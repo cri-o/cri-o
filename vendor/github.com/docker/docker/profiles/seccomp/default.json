@@ -167,6 +167,9 @@
 				"ioprio_set",
 				"io_setup",
 				"io_submit",
+				"io_uring_enter",
+				"io_uring_register",
+				"io_uring_setup",
 				"ipc",
 				"kill",
 				"lchown",
@@ -314,6 +317,7 @@
 				"sigaltstack",
 				"signalfd",
 				"signalfd4",
+				"sigprocmask",
 				"sigreturn",
 				"socket",
 				"socketcall",
@@ -596,7 +600,7 @@
 			"args": [
 				{
 					"index": 0,
-					"value": 2080505856,
+					"value": 2114060288,
 					"valueTwo": 0,
 					"op": "SCMP_CMP_MASKED_EQ"
 				}
@@ -621,7 +625,7 @@
 			"args": [
 				{
 					"index": 1,
-					"value": 2080505856,
+					"value": 2114060288,
 					"valueTwo": 0,
 					"op": "SCMP_CMP_MASKED_EQ"
 				}

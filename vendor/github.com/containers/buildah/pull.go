@@ -8,18 +8,18 @@ import (
 
 	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/buildah/util"
-	cp "github.com/containers/image/copy"
-	"github.com/containers/image/directory"
-	"github.com/containers/image/docker"
-	dockerarchive "github.com/containers/image/docker/archive"
-	"github.com/containers/image/docker/reference"
-	tarfile "github.com/containers/image/docker/tarfile"
-	ociarchive "github.com/containers/image/oci/archive"
-	oci "github.com/containers/image/oci/layout"
-	"github.com/containers/image/signature"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/types"
+	cp "github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/directory"
+	"github.com/containers/image/v5/docker"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
+	"github.com/containers/image/v5/docker/reference"
+	tarfile "github.com/containers/image/v5/docker/tarfile"
+	ociarchive "github.com/containers/image/v5/oci/archive"
+	oci "github.com/containers/image/v5/oci/layout"
+	"github.com/containers/image/v5/signature"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -102,19 +102,11 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 		}
 	case directory.Transport.Name():
 		// supports pull from a directory
-		name = srcRef.StringWithinTransport()
-		// remove leading "/"
-		if name[:1] == "/" {
-			name = name[1:]
-		}
+		name = toLocalImageName(srcRef.StringWithinTransport())
 	case oci.Transport.Name():
 		// supports pull from a directory
 		split := strings.SplitN(srcRef.StringWithinTransport(), ":", 2)
-		name = split[0]
-		// remove leading "/"
-		if name[:1] == "/" {
-			name = name[1:]
-		}
+		name = toLocalImageName(split[0])
 	default:
 		ref := srcRef.DockerReference()
 		if ref == nil {
@@ -226,6 +218,9 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	if blocked {
 		return nil, errors.Errorf("pull access to registry for %q is blocked by configuration", transports.ImageName(srcRef))
 	}
+	if err := checkRegistrySourcesAllows("pull from", srcRef); err != nil {
+		return nil, err
+	}
 
 	destName, err := localImageNameForReference(ctx, store, srcRef)
 	if err != nil {
@@ -286,4 +281,9 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 		return "", errors.Wrapf(err, "error getting config info from image %q", transports.ImageName(src))
 	}
 	return "@" + digest.Hex(), nil
+}
+
+// toLocalImageName converts an image name into a 'localhost/' prefixed one
+func toLocalImageName(imageName string) string {
+	return "localhost/" + strings.TrimLeft(imageName, "/")
 }

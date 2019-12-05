@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -93,9 +94,11 @@ func NewAuthConfigurationsFromFile(path string) (*AuthConfigurations, error) {
 func cfgPaths(dockerConfigEnv string, homeEnv string) []string {
 	var paths []string
 	if dockerConfigEnv != "" {
+		paths = append(paths, path.Join(dockerConfigEnv, "plaintext-passwords.json"))
 		paths = append(paths, path.Join(dockerConfigEnv, "config.json"))
 	}
 	if homeEnv != "" {
+		paths = append(paths, path.Join(homeEnv, ".docker", "plaintext-passwords.json"))
 		paths = append(paths, path.Join(homeEnv, ".docker", "config.json"))
 		paths = append(paths, path.Join(homeEnv, ".dockercfg"))
 	}
@@ -217,7 +220,7 @@ func (c *Client) AuthCheck(conf *AuthConfiguration) (AuthStatus, error) {
 	if conf == nil {
 		return authStatus, errors.New("conf is nil")
 	}
-	resp, err := c.do("POST", "/auth", doOptions{data: conf})
+	resp, err := c.do(http.MethodPost, "/auth", doOptions{data: conf})
 	if err != nil {
 		return authStatus, err
 	}

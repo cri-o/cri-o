@@ -12,14 +12,15 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
-	"github.com/containers/image/docker/reference"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/transports/alltransports"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/docker/reference"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/pkg/errors"
@@ -42,8 +43,8 @@ var builtinAllowedBuildArgs = map[string]bool{
 }
 
 // Executor is a buildah-based implementation of the imagebuilder.Executor
-// interface.  It coordinates the entire build by using one StageExecutors to
-// handle each stage of the build.
+// interface.  It coordinates the entire build by using one or more
+// StageExecutors to handle each stage of the build.
 type Executor struct {
 	stages                         map[string]*StageExecutor
 	store                          storage.Store
@@ -90,6 +91,9 @@ type Executor struct {
 	excludes                       []string
 	unusedArgs                     map[string]struct{}
 	buildArgs                      map[string]string
+	addCapabilities                []string
+	dropCapabilities               []string
+	devices                        []configs.Device
 }
 
 // NewExecutor creates a new instance of the imagebuilder.Executor interface.
@@ -144,6 +148,9 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		blobDirectory:                  options.BlobDirectory,
 		unusedArgs:                     make(map[string]struct{}),
 		buildArgs:                      options.Args,
+		addCapabilities:                options.AddCapabilities,
+		dropCapabilities:               options.DropCapabilities,
+		devices:                        options.Devices,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -157,7 +164,7 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 			stepCounter++
 			prefix := fmt.Sprintf("STEP %d: ", stepCounter)
 			suffix := "\n"
-			fmt.Fprintf(exec.err, prefix+format+suffix, args...)
+			fmt.Fprintf(exec.out, prefix+format+suffix, args...)
 		}
 	}
 	for arg := range options.Args {
@@ -248,26 +255,36 @@ func (b *Executor) getImageHistory(ctx context.Context, imageID string) ([]v1.Hi
 	return oci.History, nil
 }
 
-// getCreatedBy returns the command the image at node will be created by.
-func (b *Executor) getCreatedBy(node *parser.Node) string {
+// getCreatedBy returns the command the image at node will be created by.  If
+// the passed-in CompositeDigester is not nil, it is assumed to have the digest
+// information for the content if the node is ADD or COPY.
+func (b *Executor) getCreatedBy(node *parser.Node, addedContentDigest string) string {
 	if node == nil {
 		return "/bin/sh"
 	}
-	if node.Value == "run" {
+	switch strings.ToUpper(node.Value) {
+	case "RUN":
 		buildArgs := b.getBuildArgs()
 		if buildArgs != "" {
 			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + node.Original[4:]
 		}
 		return "/bin/sh -c " + node.Original[4:]
+	case "ADD", "COPY":
+		destination := node
+		for destination.Next != nil {
+			destination = destination.Next
+		}
+		return "/bin/sh -c #(nop) " + strings.ToUpper(node.Value) + " " + addedContentDigest + " in " + destination.Value + " "
+	default:
+		return "/bin/sh -c #(nop) " + node.Original
 	}
-	return "/bin/sh -c #(nop) " + node.Original
 }
 
 // historyMatches returns true if a candidate history matches the history of our
 // base image (if we have one), plus the current instruction.
 // Used to verify whether a cache of the intermediate image exists and whether
 // to run the build again.
-func (b *Executor) historyMatches(baseHistory []v1.History, child *parser.Node, history []v1.History) bool {
+func (b *Executor) historyMatches(baseHistory []v1.History, child *parser.Node, history []v1.History, addedContentDigest string) bool {
 	if len(baseHistory) >= len(history) {
 		return false
 	}
@@ -297,7 +314,7 @@ func (b *Executor) historyMatches(baseHistory []v1.History, child *parser.Node, 
 			return false
 		}
 	}
-	return history[len(baseHistory)].CreatedBy == b.getCreatedBy(child)
+	return history[len(baseHistory)].CreatedBy == b.getCreatedBy(child, addedContentDigest)
 }
 
 // getBuildArgs returns a string of the build-args specified during the build process
@@ -406,13 +423,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							// arg expansion, so if the previous stage
 							// was named using argument values, we might
 							// not record the right value here.
-							rootfs := flag[7:]
+							rootfs := strings.TrimPrefix(flag, "--from=")
 							b.rootfsMap[rootfs] = true
 							logrus.Debugf("rootfs: %q", rootfs)
 						}
 					}
 				}
-				break
 			}
 			node = node.Next // next line
 		}

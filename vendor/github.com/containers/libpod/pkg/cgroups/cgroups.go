@@ -10,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
+	systemdDbus "github.com/coreos/go-systemd/dbus"
+	"github.com/godbus/dbus"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -17,7 +20,9 @@ import (
 
 var (
 	// ErrCgroupDeleted means the cgroup was deleted
-	ErrCgroupDeleted = errors.New("cgroups: cgroup deleted")
+	ErrCgroupDeleted = errors.New("cgroup deleted")
+	// ErrCgroupV1Rootless means the cgroup v1 were attempted to be used in rootless environmen
+	ErrCgroupV1Rootless = errors.New("no support for CGroups V1 in rootless environments")
 )
 
 // CgroupControl controls a cgroup hierarchy
@@ -337,6 +342,9 @@ func Load(path string) (*CgroupControl, error) {
 			p := control.getCgroupv1Path(name)
 			if _, err := os.Stat(p); err != nil {
 				if os.IsNotExist(err) {
+					if rootless.IsRootless() {
+						return nil, ErrCgroupV1Rootless
+					}
 					// compatible with the error code
 					// used by containerd/cgroups
 					return nil, ErrCgroupDeleted
@@ -352,7 +360,56 @@ func (c *CgroupControl) CreateSystemdUnit(path string) error {
 	if !c.systemd {
 		return fmt.Errorf("the cgroup controller is not using systemd")
 	}
-	return systemdCreate(path)
+
+	conn, err := systemdDbus.New()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	return systemdCreate(path, conn)
+}
+
+// GetUserConnection returns an user connection to D-BUS
+func GetUserConnection(uid int) (*systemdDbus.Conn, error) {
+	return systemdDbus.NewConnection(func() (*dbus.Conn, error) {
+		return dbusAuthConnection(uid, dbus.SessionBusPrivate)
+	})
+}
+
+// CreateSystemdUserUnit creates the systemd cgroup for the specified user
+func (c *CgroupControl) CreateSystemdUserUnit(path string, uid int) error {
+	if !c.systemd {
+		return fmt.Errorf("the cgroup controller is not using systemd")
+	}
+
+	conn, err := GetUserConnection(uid)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	return systemdCreate(path, conn)
+}
+
+func dbusAuthConnection(uid int, createBus func(opts ...dbus.ConnOption) (*dbus.Conn, error)) (*dbus.Conn, error) {
+	conn, err := createBus()
+	if err != nil {
+		return nil, err
+	}
+
+	methods := []dbus.Auth{dbus.AuthExternal(strconv.Itoa(uid))}
+
+	err = conn.Auth(methods)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	if err := conn.Hello(); err != nil {
+		return nil, err
+	}
+
+	return conn, nil
 }
 
 // Delete cleans a cgroup
@@ -386,10 +443,11 @@ func rmDirRecursively(path string) error {
 	return nil
 }
 
-// DeleteByPath deletes the specified cgroup path
-func (c *CgroupControl) DeleteByPath(path string) error {
+// DeleteByPathConn deletes the specified cgroup path using the specified
+// dbus connection if needed.
+func (c *CgroupControl) DeleteByPathConn(path string, conn *systemdDbus.Conn) error {
 	if c.systemd {
-		return systemdDestroy(path)
+		return systemdDestroyConn(path, conn)
 	}
 	if c.cgroup2 {
 		return rmDirRecursively(filepath.Join(cgroupRoot, c.path))
@@ -411,6 +469,19 @@ func (c *CgroupControl) DeleteByPath(path string) error {
 		}
 	}
 	return lastError
+}
+
+// DeleteByPath deletes the specified cgroup path
+func (c *CgroupControl) DeleteByPath(path string) error {
+	if c.systemd {
+		conn, err := systemdDbus.New()
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		return c.DeleteByPathConn(path, conn)
+	}
+	return c.DeleteByPathConn(path, nil)
 }
 
 // Update updates the cgroups

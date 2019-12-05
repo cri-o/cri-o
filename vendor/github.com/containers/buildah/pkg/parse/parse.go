@@ -14,10 +14,10 @@ import (
 	"unicode"
 
 	"github.com/containers/buildah"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/docker/go-units"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	units "github.com/docker/go-units"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -462,25 +462,40 @@ func ValidateVolumeCtrDir(ctrDir string) error {
 
 // ValidateVolumeOpts validates a volume's options
 func ValidateVolumeOpts(options []string) ([]string, error) {
-	var foundRootPropagation, foundRWRO, foundLabelChange, bindType int
+	var foundRootPropagation, foundRWRO, foundLabelChange, bindType, foundExec, foundDev, foundSuid int
 	finalOpts := make([]string, 0, len(options))
 	for _, opt := range options {
 		switch opt {
+		case "noexec", "exec":
+			foundExec++
+			if foundExec > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'noexec' or 'exec' option", strings.Join(options, ", "))
+			}
+		case "nodev", "dev":
+			foundDev++
+			if foundDev > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'nodev' or 'dev' option", strings.Join(options, ", "))
+			}
+		case "nosuid", "suid":
+			foundSuid++
+			if foundSuid > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'nosuid' or 'suid' option", strings.Join(options, ", "))
+			}
 		case "rw", "ro":
+			foundRWRO++
 			if foundRWRO > 1 {
 				return nil, errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", strings.Join(options, ", "))
 			}
-			foundRWRO++
 		case "z", "Z", "O":
+			foundLabelChange++
 			if foundLabelChange > 1 {
 				return nil, errors.Errorf("invalid options %q, can only specify 1 'z', 'Z', or 'O' option", strings.Join(options, ", "))
 			}
-			foundLabelChange++
 		case "private", "rprivate", "shared", "rshared", "slave", "rslave", "unbindable", "runbindable":
+			foundRootPropagation++
 			if foundRootPropagation > 1 {
 				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private', '[r]slave' or '[r]unbindable' option", strings.Join(options, ", "))
 			}
-			foundRootPropagation++
 		case "bind", "rbind":
 			bindType++
 			if bindType > 1 {
@@ -568,6 +583,12 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 		ctx.RegistriesDirPath = regConfDir
 	}
 	ctx.DockerRegistryUserAgent = fmt.Sprintf("Buildah/%s", buildah.Version)
+	if os, err := c.Flags().GetString("override-os"); err == nil {
+		ctx.OSChoice = os
+	}
+	if arch, err := c.Flags().GetString("override-arch"); err == nil {
+		ctx.ArchitectureChoice = arch
+	}
 	return ctx, nil
 }
 
@@ -870,4 +891,68 @@ func RegistryFromFullName(input string) string {
 		return split[0]
 	}
 	return split[0]
+}
+
+// Device parses device mapping string to a src, dest & permissions string
+// Valid values for device looklike:
+//    '/dev/sdc"
+//    '/dev/sdc:/dev/xvdc"
+//    '/dev/sdc:/dev/xvdc:rwm"
+//    '/dev/sdc:rm"
+func Device(device string) (string, string, string, error) {
+	src := ""
+	dst := ""
+	permissions := "rwm"
+	arr := strings.Split(device, ":")
+	switch len(arr) {
+	case 3:
+		if !isValidDeviceMode(arr[2]) {
+			return "", "", "", fmt.Errorf("invalid device mode: %s", arr[2])
+		}
+		permissions = arr[2]
+		fallthrough
+	case 2:
+		if isValidDeviceMode(arr[1]) {
+			permissions = arr[1]
+		} else {
+			if len(arr[1]) == 0 || arr[1][0] != '/' {
+				return "", "", "", fmt.Errorf("invalid device mode: %s", arr[1])
+			}
+			dst = arr[1]
+		}
+		fallthrough
+	case 1:
+		if len(arr[0]) > 0 {
+			src = arr[0]
+			break
+		}
+		fallthrough
+	default:
+		return "", "", "", fmt.Errorf("invalid device specification: %s", device)
+	}
+
+	if dst == "" {
+		dst = src
+	}
+	return src, dst, permissions, nil
+}
+
+// isValidDeviceMode checks if the mode for device is valid or not.
+// isValid mode is a composition of r (read), w (write), and m (mknod).
+func isValidDeviceMode(mode string) bool {
+	var legalDeviceMode = map[rune]bool{
+		'r': true,
+		'w': true,
+		'm': true,
+	}
+	if mode == "" {
+		return false
+	}
+	for _, c := range mode {
+		if !legalDeviceMode[c] {
+			return false
+		}
+		legalDeviceMode[c] = false
+	}
+	return true
 }

@@ -3,33 +3,35 @@ package image
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
 
-	types2 "github.com/containernetworking/cni/pkg/types"
-	cp "github.com/containers/image/copy"
-	"github.com/containers/image/directory"
-	dockerarchive "github.com/containers/image/docker/archive"
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/manifest"
-	ociarchive "github.com/containers/image/oci/archive"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/tarball"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/transports/alltransports"
-	"github.com/containers/image/types"
+	cp "github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/directory"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/manifest"
+	ociarchive "github.com/containers/image/v5/oci/archive"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/tarball"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -43,8 +45,8 @@ import (
 type Image struct {
 	// Adding these two structs for now but will cull when we near
 	// completion of this library.
-	imgRef   types.Image
-	storeRef types.ImageReference
+	imgRef    types.Image
+	imgSrcRef types.ImageSource
 	inspect.ImageData
 	inspect.ImageResult
 	inspectInfo  *types.ImageInspectInfo
@@ -73,7 +75,10 @@ type InfoImage struct {
 }
 
 // ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
-var ErrRepoTagNotFound = errors.New("unable to match user input to any specific repotag")
+var ErrRepoTagNotFound = stderrors.New("unable to match user input to any specific repotag")
+
+// ErrImageIsBareList is the error returned when the image is just a list or index
+var ErrImageIsBareList = stderrors.New("image contains a manifest list or image index, but no runnable image")
 
 // NewImageRuntimeFromStore creates an ImageRuntime based on a provided store
 func NewImageRuntimeFromStore(store storage.Store) *Runtime {
@@ -85,9 +90,6 @@ func NewImageRuntimeFromStore(store storage.Store) *Runtime {
 // NewImageRuntimeFromOptions creates an Image Runtime including the store given
 // store options
 func NewImageRuntimeFromOptions(options storage.StoreOptions) (*Runtime, error) {
-	if reexec.Init() {
-		return nil, errors.Errorf("unable to reexec")
-	}
 	store, err := setStore(options)
 	if err != nil {
 		return nil, err
@@ -135,7 +137,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool, label *string) (*Image, error) {
+func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, label *string, pullType util.PullType) (*Image, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "newImage")
 	span.SetTag("type", "runtime")
 	defer span.Finish()
@@ -145,11 +147,13 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 		InputName:    name,
 		imageruntime: ir,
 	}
-	if !forcePull {
+	if pullType != util.PullImageAlways {
 		localImage, err := newImage.getLocalImage()
 		if err == nil {
 			newImage.image = localImage
 			return &newImage, nil
+		} else if pullType == util.PullImageNever {
+			return nil, err
 		}
 	}
 
@@ -296,9 +300,23 @@ func (i *Image) Digest() digest.Digest {
 	return i.image.Digest
 }
 
+// Digests returns the image's digests
+func (i *Image) Digests() []digest.Digest {
+	return i.image.Digests
+}
+
+// GetManifest returns the image's manifest as a byte array
+// and manifest type as a string.
+func (i *Image) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
+	imgSrcRef, err := i.toImageSourceRef(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	return imgSrcRef.GetManifest(ctx, instanceDigest)
+}
+
 // Manifest returns the image's manifest as a byte array
-// and manifest type as a string.  The manifest type is
-// MediaTypeImageManifest from ociv1.
+// and manifest type as a string.
 func (i *Image) Manifest(ctx context.Context) ([]byte, string, error) {
 	imgRef, err := i.toImageRef(ctx)
 	if err != nil {
@@ -307,29 +325,54 @@ func (i *Image) Manifest(ctx context.Context) ([]byte, string, error) {
 	return imgRef.Manifest(ctx)
 }
 
-// Names returns a string array of names associated with the image
+// Names returns a string array of names associated with the image, which may be a mixture of tags and digests
 func (i *Image) Names() []string {
 	return i.image.Names
 }
 
-// RepoDigests returns a string array of repodigests associated with the image
-func (i *Image) RepoDigests() ([]string, error) {
-	var repoDigests []string
-	imageDigest := i.Digest()
-
+// RepoTags returns a string array of repotags associated with the image
+func (i *Image) RepoTags() ([]string, error) {
+	var repoTags []string
 	for _, name := range i.Names() {
 		named, err := reference.ParseNormalizedNamed(name)
 		if err != nil {
 			return nil, err
 		}
-
-		canonical, err := reference.WithDigest(reference.TrimNamed(named), imageDigest)
-		if err != nil {
-			return nil, err
+		if tagged, isTagged := named.(reference.NamedTagged); isTagged {
+			repoTags = append(repoTags, tagged.String())
 		}
-
-		repoDigests = append(repoDigests, canonical.String())
 	}
+	return repoTags, nil
+}
+
+// RepoDigests returns a string array of repodigests associated with the image
+func (i *Image) RepoDigests() ([]string, error) {
+	var repoDigests []string
+	added := make(map[string]struct{})
+
+	for _, name := range i.Names() {
+		for _, imageDigest := range append(i.Digests(), i.Digest()) {
+			if imageDigest == "" {
+				continue
+			}
+
+			named, err := reference.ParseNormalizedNamed(name)
+			if err != nil {
+				return nil, err
+			}
+
+			canonical, err := reference.WithDigest(reference.TrimNamed(named), imageDigest)
+			if err != nil {
+				return nil, err
+			}
+
+			if _, alreadyInList := added[canonical.String()]; !alreadyInList {
+				repoDigests = append(repoDigests, canonical.String())
+				added[canonical.String()] = struct{}{}
+			}
+		}
+	}
+	sort.Strings(repoDigests)
 	return repoDigests, nil
 }
 
@@ -380,31 +423,6 @@ func (i *Image) Remove(ctx context.Context, force bool) error {
 	}
 	return nil
 }
-
-// Decompose an Image
-func (i *Image) Decompose() error {
-	return types2.NotImplementedError
-}
-
-// TODO: Rework this method to not require an assembly of the fq name with transport
-/*
-// GetManifest tries to GET an images manifest, returns nil on success and err on failure
-func (i *Image) GetManifest() error {
-	pullRef, err := alltransports.ParseImageName(i.assembleFqNameTransport())
-	if err != nil {
-		return errors.Errorf("unable to parse '%s'", i.Names()[0])
-	}
-	imageSource, err := pullRef.NewImageSource(nil)
-	if err != nil {
-		return errors.Wrapf(err, "unable to create new image source")
-	}
-	_, _, err = imageSource.GetManifest(nil)
-	if err == nil {
-		return nil
-	}
-	return err
-}
-*/
 
 // getImage retrieves an image matching the given name or hash from system
 // storage
@@ -553,7 +571,7 @@ func (i *Image) UntagImage(tag string) error {
 
 // PushImageToHeuristicDestination pushes the given image to "destination", which is heuristically parsed.
 // Use PushImageToReference if the destination is known precisely.
-func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, digestFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -571,11 +589,11 @@ func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination
 			return err
 		}
 	}
-	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, additionalDockerArchiveTags)
+	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, digestFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, additionalDockerArchiveTags)
 }
 
 // PushImageToReference pushes the given image to a location described by the given path
-func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, digestFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
 	sc.BlobInfoCacheDir = filepath.Join(i.imageruntime.store.GraphRoot(), "cache")
 
@@ -597,9 +615,21 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	copyOptions := getCopyOptions(sc, writer, nil, dockerRegistryOptions, signingOptions, manifestMIMEType, additionalDockerArchiveTags)
 	copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath() // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 	// Copy the image to the remote destination
-	_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
+	manifestBytes, err := cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {
 		return errors.Wrapf(err, "Error copying image to the remote destination")
+	}
+	digest, err := manifest.Digest(manifestBytes)
+	if err != nil {
+		return errors.Wrapf(err, "error computing digest of manifest of new image %q", transports.ImageName(dest))
+	}
+
+	logrus.Debugf("Successfully pushed %s with digest %s", transports.ImageName(dest), digest.String())
+
+	if digestFile != "" {
+		if err = ioutil.WriteFile(digestFile, []byte(digest.String()), 0644); err != nil {
+			return errors.Wrapf(err, "failed to write digest to file %q", digestFile)
+		}
 	}
 	i.newImageEvent(events.Push)
 	return nil
@@ -607,26 +637,9 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 
 // MatchesID returns a bool based on if the input id
 // matches the image's id
+// TODO: This isn't used anywhere, so remove it
 func (i *Image) MatchesID(id string) bool {
 	return strings.HasPrefix(i.ID(), id)
-}
-
-// toStorageReference returns a *storageReference from an Image
-func (i *Image) toStorageReference() (types.ImageReference, error) {
-	var lookupName string
-	if i.storeRef == nil {
-		if i.image != nil {
-			lookupName = i.ID()
-		} else {
-			lookupName = i.InputName
-		}
-		storeRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, lookupName)
-		if err != nil {
-			return nil, err
-		}
-		i.storeRef = storeRef
-	}
-	return i.storeRef, nil
 }
 
 // ToImageRef returns an image reference type from an image
@@ -635,48 +648,87 @@ func (i *Image) ToImageRef(ctx context.Context) (types.Image, error) {
 	return i.toImageRef(ctx)
 }
 
+// toImageSourceRef returns an ImageSource Reference type from an image
+func (i *Image) toImageSourceRef(ctx context.Context) (types.ImageSource, error) {
+	if i == nil {
+		return nil, errors.Errorf("cannot convert nil image to image source reference")
+	}
+	if i.imgSrcRef == nil {
+		ref, err := is.Transport.ParseStoreReference(i.imageruntime.store, "@"+i.ID())
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing reference to image %q", i.ID())
+		}
+		imgSrcRef, err := ref.NewImageSource(ctx, nil)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading image %q as image source", i.ID())
+		}
+		i.imgSrcRef = imgSrcRef
+	}
+	return i.imgSrcRef, nil
+}
+
+//Size returns the size of the image
+func (i *Image) Size(ctx context.Context) (*uint64, error) {
+	if i.image == nil {
+		localImage, err := i.getLocalImage()
+		if err != nil {
+			return nil, err
+		}
+		i.image = localImage
+	}
+	if sum, err := i.imageruntime.store.ImageSize(i.ID()); err == nil && sum >= 0 {
+		usum := uint64(sum)
+		return &usum, nil
+	}
+	return nil, errors.Errorf("unable to determine size")
+}
+
 // toImageRef returns an Image Reference type from an image
 func (i *Image) toImageRef(ctx context.Context) (types.Image, error) {
 	if i == nil {
 		return nil, errors.Errorf("cannot convert nil image to image reference")
 	}
+	imgSrcRef, err := i.toImageSourceRef(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if i.imgRef == nil {
-		ref, err := is.Transport.ParseStoreReference(i.imageruntime.store, "@"+i.ID())
+		systemContext := &types.SystemContext{}
+		unparsedDefaultInstance := image.UnparsedInstance(imgSrcRef, nil)
+		imgRef, err := image.FromUnparsedImage(ctx, systemContext, unparsedDefaultInstance)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing reference to image %q", i.ID())
-		}
-		imgRef, err := ref.NewImage(ctx, nil)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading image %q", i.ID())
+			// check for a "tried-to-treat-a-bare-list-like-a-runnable-image" problem, else
+			// return info about the not-a-bare-list runnable image part of this storage.Image
+			if manifestBytes, manifestType, err2 := imgSrcRef.GetManifest(ctx, nil); err2 == nil {
+				if manifest.MIMETypeIsMultiImage(manifestType) {
+					if list, err3 := manifest.ListFromBlob(manifestBytes, manifestType); err3 == nil {
+						switch manifestType {
+						case ociv1.MediaTypeImageIndex:
+							err = errors.Wrapf(ErrImageIsBareList, "%q is an image index", i.InputName)
+						case manifest.DockerV2ListMediaType:
+							err = errors.Wrapf(ErrImageIsBareList, "%q is a manifest list", i.InputName)
+						default:
+							err = errors.Wrapf(ErrImageIsBareList, "%q", i.InputName)
+						}
+						for _, instanceDigest := range list.Instances() {
+							instance := instanceDigest
+							unparsedInstance := image.UnparsedInstance(imgSrcRef, &instance)
+							if imgRef2, err4 := image.FromUnparsedImage(ctx, systemContext, unparsedInstance); err4 == nil {
+								imgRef = imgRef2
+								err = nil
+								break
+							}
+						}
+					}
+				}
+			}
+			if err != nil {
+				return nil, errors.Wrapf(err, "error reading image %q as image", i.ID())
+			}
 		}
 		i.imgRef = imgRef
 	}
 	return i.imgRef, nil
-}
-
-// sizer knows its size.
-type sizer interface {
-	Size() (int64, error)
-}
-
-//Size returns the size of the image
-func (i *Image) Size(ctx context.Context) (*uint64, error) {
-	storeRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
-	if err != nil {
-		return nil, err
-	}
-	systemContext := &types.SystemContext{}
-	img, err := storeRef.NewImageSource(ctx, systemContext)
-	if err != nil {
-		return nil, err
-	}
-	if s, ok := img.(sizer); ok {
-		if sum, err := s.Size(); err == nil {
-			usum := uint64(sum)
-			return &usum, nil
-		}
-	}
-	return nil, errors.Errorf("unable to determine size")
 }
 
 // DriverData gets the driver data from the store on a layer
@@ -703,6 +755,9 @@ type History struct {
 func (i *Image) History(ctx context.Context) ([]*History, error) {
 	img, err := i.toImageRef(ctx)
 	if err != nil {
+		if errors.Cause(err) == ErrImageIsBareList {
+			return nil, nil
+		}
 		return nil, err
 	}
 	oci, err := img.OCIConfig(ctx)
@@ -848,7 +903,10 @@ func (i *Image) GetLabel(ctx context.Context, label string) (string, error) {
 func (i *Image) Annotations(ctx context.Context) (map[string]string, error) {
 	imageManifest, manifestType, err := i.Manifest(ctx)
 	if err != nil {
-		return nil, err
+		imageManifest, manifestType, err = i.GetManifest(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	annotations := make(map[string]string)
 	switch manifestType {
@@ -863,24 +921,19 @@ func (i *Image) Annotations(ctx context.Context) (map[string]string, error) {
 	return annotations, nil
 }
 
-// ociv1Image converts and image to an imgref and then an
-// ociv1 image type
+// ociv1Image converts an image to an imgref and then returns its config blob
+// converted to an ociv1 image type
 func (i *Image) ociv1Image(ctx context.Context) (*ociv1.Image, error) {
 	imgRef, err := i.toImageRef(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	return imgRef.OCIConfig(ctx)
 }
 
 func (i *Image) imageInspectInfo(ctx context.Context) (*types.ImageInspectInfo, error) {
 	if i.inspectInfo == nil {
-		sr, err := i.toStorageReference()
-		if err != nil {
-			return nil, err
-		}
-		ic, err := sr.NewImage(ctx, &types.SystemContext{})
+		ic, err := i.toImageRef(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -901,18 +954,23 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 
 	ociv1Img, err := i.ociv1Image(ctx)
 	if err != nil {
-		return nil, err
+		ociv1Img = &ociv1.Image{}
 	}
 	info, err := i.imageInspectInfo(ctx)
 	if err != nil {
-		return nil, err
+		info = &types.ImageInspectInfo{}
 	}
 	annotations, err := i.Annotations(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	size, err := i.Size(ctx)
+	size := int64(-1)
+	if usize, err := i.Size(ctx); err == nil {
+		size = int64(*usize)
+	}
+
+	repoTags, err := i.RepoTags()
 	if err != nil {
 		return nil, err
 	}
@@ -927,7 +985,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		return nil, err
 	}
 
-	_, manifestType, err := i.Manifest(ctx)
+	_, manifestType, err := i.GetManifest(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to determine manifest type")
 	}
@@ -938,7 +996,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 
 	data := &inspect.ImageData{
 		ID:           i.ID(),
-		RepoTags:     i.Names(),
+		RepoTags:     repoTags,
 		RepoDigests:  repoDigests,
 		Comment:      comment,
 		Created:      ociv1Img.Created,
@@ -947,8 +1005,8 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		Os:           ociv1Img.OS,
 		Config:       &ociv1Img.Config,
 		Version:      info.DockerVersion,
-		Size:         int64(*size),
-		VirtualSize:  int64(*size),
+		Size:         size,
+		VirtualSize:  size,
 		Annotations:  annotations,
 		Digest:       i.Digest(),
 		Labels:       info.Labels,
@@ -1077,6 +1135,9 @@ func splitString(input string) string {
 func (i *Image) IsParent(ctx context.Context) (bool, error) {
 	children, err := i.getChildren(ctx, 1)
 	if err != nil {
+		if errors.Cause(err) == ErrImageIsBareList {
+			return false, nil
+		}
 		return false, err
 	}
 	return len(children) > 0, nil
@@ -1160,6 +1221,9 @@ func (i *Image) GetParent(ctx context.Context) (*Image, error) {
 	// fetch the configuration for the child image
 	child, err := i.ociv1Image(ctx)
 	if err != nil {
+		if errors.Cause(err) == ErrImageIsBareList {
+			return nil, nil
+		}
 		return nil, err
 	}
 	for _, img := range images {
@@ -1200,12 +1264,24 @@ func (i *Image) GetParent(ctx context.Context) (*Image, error) {
 
 // GetChildren returns a list of the imageIDs that depend on the image
 func (i *Image) GetChildren(ctx context.Context) ([]string, error) {
-	return i.getChildren(ctx, 0)
+	children, err := i.getChildren(ctx, 0)
+	if err != nil {
+		if errors.Cause(err) == ErrImageIsBareList {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return children, nil
 }
 
 // getChildren returns a list of at most "max" imageIDs that depend on the image
 func (i *Image) getChildren(ctx context.Context, max int) ([]string, error) {
 	var children []string
+
+	if _, err := i.toImageRef(ctx); err != nil {
+		return nil, nil
+	}
+
 	images, err := i.imageruntime.GetImages()
 	if err != nil {
 		return nil, err
@@ -1296,6 +1372,9 @@ func (i *Image) Comment(ctx context.Context, manifestType string) (string, error
 	}
 	ociv1Img, err := i.ociv1Image(ctx)
 	if err != nil {
+		if errors.Cause(err) == ErrImageIsBareList {
+			return "", nil
+		}
 		return "", err
 	}
 	if len(ociv1Img.History) > 0 {
@@ -1356,7 +1435,7 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 			return err
 		}
 	}
-	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
+	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
 		return errors.Wrapf(err, "unable to save %q", source)
 	}
 	i.newImageEvent(events.Save)

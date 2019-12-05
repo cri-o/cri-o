@@ -115,15 +115,16 @@ func (s *InMemoryState) Container(id string) (*Container, error) {
 	return ctr, nil
 }
 
-// LookupContainer retrieves a container by full ID, unique partial ID, or name
-func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
+// lookupID retrieves a container or pod ID by full ID, unique partial ID, or
+// name
+func (s *InMemoryState) lookupID(idOrName string) (string, error) {
 	var (
 		nameIndex *registrar.Registrar
 		idIndex   *truncindex.TruncIndex
 	)
 
 	if idOrName == "" {
-		return nil, define.ErrEmptyID
+		return "", define.ErrEmptyID
 	}
 
 	if s.namespace != "" {
@@ -131,7 +132,7 @@ func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
 		if !ok {
 			// We have no containers in the namespace
 			// Return false
-			return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+			return "", define.ErrNoSuchCtr
 		}
 		nameIndex = nsIndex.nameIndex
 		idIndex = nsIndex.idIndex
@@ -147,13 +148,53 @@ func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
 			fullID, err = idIndex.Get(idOrName)
 			if err != nil {
 				if err == truncindex.ErrNotExist {
-					return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+					return "", define.ErrNoSuchCtr
 				}
-				return nil, errors.Wrapf(err, "error performing truncindex lookup for ID %s", idOrName)
+				return "", errors.Wrapf(err, "error performing truncindex lookup for ID %s", idOrName)
 			}
 		} else {
-			return nil, errors.Wrapf(err, "error performing registry lookup for ID %s", idOrName)
+			return "", errors.Wrapf(err, "error performing registry lookup for ID %s", idOrName)
 		}
+	}
+
+	return fullID, nil
+}
+
+// LookupContainerID retrieves a container ID by full ID, unique partial ID, or
+// name
+func (s *InMemoryState) LookupContainerID(idOrName string) (string, error) {
+	fullID, err := s.lookupID(idOrName)
+
+	switch err {
+	case nil:
+		_, ok := s.containers[fullID]
+		if !ok {
+			// It's a pod, not a container
+			return "", errors.Wrapf(define.ErrNoSuchCtr, "name or ID %s is a pod, not a container", idOrName)
+		}
+
+	case define.ErrNoSuchCtr:
+		return "", errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+
+	default:
+		return "", err
+	}
+
+	return fullID, nil
+}
+
+// LookupContainer retrieves a container by full ID, unique partial ID, or name
+func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
+	fullID, err := s.lookupID(idOrName)
+
+	switch err {
+	case nil:
+
+	case define.ErrNoSuchCtr:
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+
+	default:
+		return nil, err
 	}
 
 	ctr, ok := s.containers[fullID]
@@ -385,6 +426,16 @@ func (s *InMemoryState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
+// GetContainerConfig returns a container config from the database by full ID
+func (s *InMemoryState) GetContainerConfig(id string) (*ContainerConfig, error) {
+	ctr, err := s.LookupContainer(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return ctr.Config(), nil
+}
+
 // RewriteContainerConfig rewrites a container's configuration.
 // This function is DANGEROUS, even with an in-memory state.
 // Please read the full comment on it in state.go before using it.
@@ -425,6 +476,26 @@ func (s *InMemoryState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 	return nil
 }
 
+// RewriteVolumeConfig rewrites a volume's configuration.
+// This function is DANGEROUS, even with in-memory state.
+// Please read the full comment in state.go before using it.
+func (s *InMemoryState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	// If the volume does not exist, return error
+	stateVol, ok := s.volumes[volume.Name()]
+	if !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	stateVol.config = newCfg
+
+	return nil
+}
+
 // Volume retrieves a volume from its full name
 func (s *InMemoryState) Volume(name string) (*Volume, error) {
 	if name == "" {
@@ -437,6 +508,41 @@ func (s *InMemoryState) Volume(name string) (*Volume, error) {
 	}
 
 	return vol, nil
+}
+
+// LookupVolume finds a volume from an unambiguous partial ID.
+func (s *InMemoryState) LookupVolume(name string) (*Volume, error) {
+	if name == "" {
+		return nil, define.ErrEmptyID
+	}
+
+	vol, ok := s.volumes[name]
+	if ok {
+		return vol, nil
+	}
+
+	// Alright, we've failed to find by full name. Now comes the expensive
+	// part.
+	// Loop through all volumes and look for matches.
+	var (
+		foundMatch bool
+		candidate  *Volume
+	)
+	for volName, vol := range s.volumes {
+		if strings.HasPrefix(volName, name) {
+			if foundMatch {
+				return nil, errors.Wrapf(define.ErrVolumeExists, "more than one result for volume name %q", name)
+			}
+			candidate = vol
+			foundMatch = true
+		}
+	}
+
+	if !foundMatch {
+		return nil, errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found", name)
+	}
+
+	return candidate, nil
 }
 
 // HasVolume checks if a volume with the given name is present in the state
@@ -483,6 +589,36 @@ func (s *InMemoryState) RemoveVolume(volume *Volume) error {
 	}
 
 	delete(s.volumes, volume.Name())
+
+	return nil
+}
+
+// UpdateVolume updates a volume from the database.
+// For the in-memory state, this is a no-op.
+func (s *InMemoryState) UpdateVolume(volume *Volume) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	return nil
+}
+
+// SaveVolume saves a volume's state to the database.
+// For the in-memory state, this is a no-op.
+func (s *InMemoryState) SaveVolume(volume *Volume) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
 
 	return nil
 }
@@ -538,49 +674,22 @@ func (s *InMemoryState) Pod(id string) (*Pod, error) {
 // LookupPod retrieves a pod from the state from a full or unique partial ID or
 // a full name
 func (s *InMemoryState) LookupPod(idOrName string) (*Pod, error) {
-	var (
-		nameIndex *registrar.Registrar
-		idIndex   *truncindex.TruncIndex
-	)
+	fullID, err := s.lookupID(idOrName)
 
-	if idOrName == "" {
-		return nil, define.ErrEmptyID
-	}
+	switch err {
+	case nil:
 
-	if s.namespace != "" {
-		nsIndex, ok := s.namespaceIndexes[s.namespace]
-		if !ok {
-			// We have no containers in the namespace
-			// Return false
-			return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
-		}
-		nameIndex = nsIndex.nameIndex
-		idIndex = nsIndex.idIndex
-	} else {
-		nameIndex = s.nameIndex
-		idIndex = s.idIndex
-	}
+	case define.ErrNoSuchCtr, define.ErrNoSuchPod:
+		return nil, errors.Wrapf(define.ErrNoSuchPod, "no pod found with name or ID %s", idOrName)
 
-	fullID, err := nameIndex.Get(idOrName)
-	if err != nil {
-		if err == registrar.ErrNameNotReserved {
-			// What was passed is not a name, assume it's an ID
-			fullID, err = idIndex.Get(idOrName)
-			if err != nil {
-				if err == truncindex.ErrNotExist {
-					return nil, errors.Wrapf(define.ErrNoSuchPod, "no pod found with name or ID %s", idOrName)
-				}
-				return nil, errors.Wrapf(err, "error performing truncindex lookup for ID %s", idOrName)
-			}
-		} else {
-			return nil, errors.Wrapf(err, "error performing registry lookup for ID %s", idOrName)
-		}
+	default:
+		return nil, err
 	}
 
 	pod, ok := s.pods[fullID]
 	if !ok {
 		// It's a container not a pod
-		return nil, errors.Wrapf(define.ErrNoSuchPod, "id or name %s is a container not a pod", idOrName)
+		return nil, errors.Wrapf(define.ErrNoSuchPod, "id or name %s is a container, not a pod", idOrName)
 	}
 
 	return pod, nil
