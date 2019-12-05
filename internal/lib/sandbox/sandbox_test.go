@@ -430,19 +430,5 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(err).NotTo(BeNil())
 			Expect(ns).To(BeNil())
 		})
-
-		It("should fail on invalid permissions", func() {
-			// Given
-			Expect(os.MkdirAll("/tmp/noperm", 0000)).To(BeNil())
-			defer os.RemoveAll("/tmp/noperm")
-
-			// When
-			ns, err := testSandbox.NetNsGet("/proc/self/ns",
-				"../../../tmp/noperm/test")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(ns).To(BeNil())
-		})
 	})
 })

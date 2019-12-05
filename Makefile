@@ -249,6 +249,7 @@ testunit: ${GINKGO}
 		-r \
 		--trace \
 		--cover \
+		--mod=vendor \
 		--covermode atomic \
 		--outputdir ${COVERAGE_PATH} \
 		--coverprofile coverprofile \
