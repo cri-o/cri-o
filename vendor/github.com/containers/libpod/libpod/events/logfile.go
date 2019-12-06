@@ -41,6 +41,7 @@ func (e EventLogFile) Write(ee Event) error {
 
 // Reads from the log file
 func (e EventLogFile) Read(options ReadOptions) error {
+	defer close(options.EventChannel)
 	eventOptions, err := generateEventOptions(options.Filters, options.Since, options.Until)
 	if err != nil {
 		return errors.Wrapf(err, "unable to generate event options")
@@ -55,7 +56,7 @@ func (e EventLogFile) Read(options ReadOptions) error {
 			return err
 		}
 		switch event.Type {
-		case Image, Volume, Pod, Container:
+		case Image, Volume, Pod, System, Container:
 		//	no-op
 		default:
 			return errors.Errorf("event type %s is not valid in %s", event.Type.String(), e.options.LogFilePath)
@@ -68,6 +69,10 @@ func (e EventLogFile) Read(options ReadOptions) error {
 			options.EventChannel <- event
 		}
 	}
-	close(options.EventChannel)
 	return nil
+}
+
+// String returns a string representation of the logger
+func (e EventLogFile) String() string {
+	return LogFile.String()
 }

@@ -4,6 +4,7 @@ package events
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/coreos/go-systemd/journal"
@@ -42,6 +43,9 @@ func (e EventJournalD) Write(ee Event) error {
 		m["PODMAN_IMAGE"] = ee.Image
 		m["PODMAN_NAME"] = ee.Name
 		m["PODMAN_ID"] = ee.ID
+		if ee.ContainerExitCode != 0 {
+			m["PODMAN_EXIT_CODE"] = strconv.Itoa(ee.ContainerExitCode)
+		}
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
 	}
@@ -50,21 +54,30 @@ func (e EventJournalD) Write(ee Event) error {
 
 // Read reads events from the journal and sends qualified events to the event channel
 func (e EventJournalD) Read(options ReadOptions) error {
+	defer close(options.EventChannel)
 	eventOptions, err := generateEventOptions(options.Filters, options.Since, options.Until)
 	if err != nil {
 		return errors.Wrapf(err, "failed to generate event options")
 	}
-	podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"} //nolint
-	j, err := sdjournal.NewJournal()                                              //nolint
+	j, err := sdjournal.NewJournal() //nolint
 	if err != nil {
 		return err
 	}
-	if err := j.AddMatch(podmanJournal.String()); err != nil {
-		return errors.Wrap(err, "failed to add filter for event log")
-	}
+	// TODO AddMatch and Seek seem to conflict
+	// Issue filed upstream -> https://github.com/coreos/go-systemd/issues/315
+	// Leaving commented code in case upstream fixes things
+	//podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"} //nolint
+	//if err := j.AddMatch(podmanJournal.String()); err != nil {
+	//	return errors.Wrap(err, "failed to add filter for event log")
+	//}
 	if len(options.Since) == 0 && len(options.Until) == 0 && options.Stream {
 		if err := j.SeekTail(); err != nil {
 			return errors.Wrap(err, "failed to seek end of journal")
+		}
+	} else {
+		podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"} //nolint
+		if err := j.AddMatch(podmanJournal.String()); err != nil {
+			return errors.Wrap(err, "failed to add filter for event log")
 		}
 	}
 	// the api requires a next|prev before getting a cursor
@@ -75,7 +88,6 @@ func (e EventJournalD) Read(options ReadOptions) error {
 	if err != nil {
 		return err
 	}
-	defer close(options.EventChannel)
 	for {
 		if _, err := j.Next(); err != nil {
 			return err
@@ -96,12 +108,20 @@ func (e EventJournalD) Read(options ReadOptions) error {
 		if err != nil {
 			return err
 		}
+		// TODO this keeps us from feeding the podman event parser with
+		// with regular journal content; it can be removed if the above
+		// problem with AddMatch is resolved.
+		if entry.Fields["PODMAN_EVENT"] == "" {
+			continue
+		}
 		newEvent, err := newEventFromJournalEntry(entry)
 		if err != nil {
 			// We can't decode this event.
 			// Don't fail hard - that would make events unusable.
 			// Instead, log and continue.
-			logrus.Errorf("Unable to decode event: %v", err)
+			if errors.Cause(err) != ErrEventTypeBlank {
+				logrus.Errorf("Unable to decode event: %v", err)
+			}
 			continue
 		}
 		include := true
@@ -139,8 +159,21 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { /
 	case Container, Pod:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		newEvent.Image = entry.Fields["PODMAN_IMAGE"]
+		if code, ok := entry.Fields["PODMAN_EXIT_CODE"]; ok {
+			intCode, err := strconv.Atoi(code)
+			if err != nil {
+				logrus.Errorf("Error parsing event exit code %s", code)
+			} else {
+				newEvent.ContainerExitCode = intCode
+			}
+		}
 	case Image:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 	}
 	return &newEvent, nil
+}
+
+// String returns a string representation of the logger
+func (e EventJournalD) String() string {
+	return Journald.String()
 }

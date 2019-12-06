@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -37,7 +38,9 @@ func stopPauseProcess() error {
 		if err := os.Remove(pausePidPath); err != nil {
 			return errors.Wrapf(err, "cannot delete pause pid file %s", pausePidPath)
 		}
-		syscall.Kill(pausePid, syscall.SIGKILL)
+		if err := syscall.Kill(pausePid, syscall.SIGKILL); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -61,11 +64,34 @@ func (r *Runtime) migrate(ctx context.Context) error {
 		}
 	}
 
+	// Did the user request a new runtime?
+	runtimeChangeRequested := r.migrateRuntime != ""
+	requestedRuntime, runtimeExists := r.ociRuntimes[r.migrateRuntime]
+	if !runtimeExists && runtimeChangeRequested {
+		return errors.Wrapf(define.ErrInvalidArg, "change to runtime %q requested but no such runtime is defined", r.migrateRuntime)
+	}
+
 	for _, ctr := range allCtrs {
+		needsWrite := false
+
+		// Reset pause process location
 		oldLocation := filepath.Join(ctr.state.RunDir, "conmon.pid")
 		if ctr.config.ConmonPidFile == oldLocation {
 			logrus.Infof("changing conmon PID file for %s", ctr.ID())
 			ctr.config.ConmonPidFile = filepath.Join(ctr.config.StaticDir, "conmon.pid")
+			needsWrite = true
+		}
+
+		// Reset runtime
+		if runtimeChangeRequested {
+			logrus.Infof("Resetting container %s runtime to runtime %s", ctr.ID(), r.migrateRuntime)
+			ctr.config.OCIRuntime = r.migrateRuntime
+			ctr.ociRuntime = requestedRuntime
+
+			needsWrite = true
+		}
+
+		if needsWrite {
 			if err := r.state.RewriteContainerConfig(ctr, ctr.config); err != nil {
 				return errors.Wrapf(err, "error rewriting config for container %s", ctr.ID())
 			}

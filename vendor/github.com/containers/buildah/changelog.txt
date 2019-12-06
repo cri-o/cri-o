@@ -1,3 +1,221 @@
+- Changelog for v1.11.4 (2019-10-28)
+  * buildah: add a "manifest" command
+  * manifests: add the module
+  * pkg/supplemented: add a package for grouping images together
+  * pkg/manifests: add a manifest list build/manipulation API
+  * Update for ErrUnauthorizedForCredentials API change in containers/image
+  * Update for manifest-lists API changes in containers/image
+  * version: also note the version of containers/image
+  * Move to containers/image v5.0.0
+  * Enable --device directory as src device
+  * Fix git build with branch specified
+  * Bump github.com/openshift/imagebuilder from 1.1.0 to 1.1.1
+  * Bump github.com/fsouza/go-dockerclient from 1.4.4 to 1.5.0
+  * Add clarification to the Tutorial for new users
+  * Silence "using cache" to ensure -q is fully quiet
+  * Add OWNERS File to Buildah
+  * Bump github.com/containers/storage from 1.13.4 to 1.13.5
+  * Move runtime flag to bud from common
+  * Commit: check for storage.ErrImageUnknown using errors.Cause()
+  * Fix crash when invalid COPY --from flag is specified.
+  * Bump back to v1.12.0-dev
+
+- Changelog for v1.11.3 (2019-10-04)
+  * Update c/image to v4.0.1
+  * Bump github.com/spf13/pflag from 1.0.3 to 1.0.5
+  * Fix --build-args handling
+  * Bump github.com/spf13/cobra from 0.0.3 to 0.0.5
+  * Bump github.com/cyphar/filepath-securejoin from 0.2.1 to 0.2.2
+  * Bump github.com/onsi/ginkgo from 1.8.0 to 1.10.1
+  * Bump github.com/fsouza/go-dockerclient from 1.3.0 to 1.4.4
+  * Add support for retrieving context from stdin "-"
+  * Ensure bud remote context cleans up on error
+  * info: add cgroups2
+  * Bump github.com/seccomp/libseccomp-golang from 0.9.0 to 0.9.1
+  * Bump github.com/mattn/go-shellwords from 1.0.5 to 1.0.6
+  * Bump github.com/stretchr/testify from 1.3.0 to 1.4.0
+  * Bump github.com/opencontainers/selinux from 1.2.2 to 1.3.0
+  * Bump github.com/etcd-io/bbolt from 1.3.2 to 1.3.3
+  * Bump github.com/onsi/gomega from 1.5.0 to 1.7.0
+  * update c/storage to v1.13.4
+  * Print build 'STEP' line to stdout, not stderr
+  * Fix travis-ci on forks
+  * Vendor c/storage v1.13.3
+  * Use Containerfile by default
+  * Added tutorial on how to include Buildah as library
+  * util/util: Fix "configuraitno" -> "configuration" log typo
+  * Bump back to v1.12.0-dev
+
+- Changelog for v1.11.2 (2019-09-13)
+  * Add some cleanup code
+  * Move devices code to unit specific directory.
+  * Bump back to v1.12.0-dev
+
+- Changelog for v1.11.1 (2019-09-11)
+  * Add --devices flag to bud and from
+  * Downgrade .papr to highest atomic verion
+  * Add support for /run/.containerenv
+  * Truncate output of too long image names
+  * Preserve file and directory mount permissions
+  * Bump fedora version from 28 to 30
+  * makeImageRef: ignore EmptyLayer if Squash is set
+  * Set TMPDIR to /var/tmp by default
+  * replace --debug=false with --log-level=error
+  * Allow mounts.conf entries for equal source and destination paths
+  * fix label and annotation for 1-line Dockerfiles
+  * Enable interfacer linter and fix lints
+  * install.md: mention goproxy
+  * Makefile: use go proxy
+  * Bump to v1.12.0-dev
+
+- Changelog for v1.11.0 (2019-08-29)
+  * tests/bud.bats: add --signature-policy to some tests
+  * Vendor github.com/openshift/api
+  * pull/commit/push: pay attention to $BUILD_REGISTRY_SOURCES
+  * Add `--log-level` command line option and deprecate `--debug`
+  * add support for cgroupsV2
+  * Correctly detect ExitError values from Run()
+  * Disable empty logrus timestamps to reduce logger noise
+  * Remove outdated deps Makefile target
+  * Remove gofmt.sh in favor of golangci-lint
+  * Remove govet.sh in favor of golangci-lint
+  * Allow to override build date with SOURCE_DATE_EPOCH
+  * Update shebangs to take env into consideration
+  * Fix directory pull image names
+  * Add --digestfile and Re-add push statement as debug
+  * README: mention that Podman uses Buildah's API
+  * Use content digests in ADD/COPY history entries
+  * add: add a DryRun flag to AddAndCopyOptions
+  * Fix possible runtime panic on bud
+  * Add security-related volume options to validator
+  * use correct path for ginkgo
+  * Add bud 'without arguments' integration tests
+  * Update documentation about bud
+  * add: handle hard links when copying with .dockerignore
+  * add: teach copyFileWithTar() about symlinks and directories
+  * Allow buildah bud to be called without arguments
+  * imagebuilder: fix detection of referenced stage roots
+  * Touch up go mod instructions in install
+  * run_linux: fix mounting /sys in a userns
+  * Vendor Storage v1.13.2
+  * Cirrus: Update VM images
+  * Fix handling of /dev/null masked devices
+  * Update `bud`/`from` help to contain indicator for `--dns=none`
+  * Bump back to v1.11.0-dev
+
+- Changelog for v1.10.1 (2019-08-08)
+  * Bump containers/image to v3.0.2 to fix keyring issue
+  * Bug fix for volume minus syntax
+  * Bump container/storage v1.13.1 and containers/image v3.0.1
+  * bump github.com/containernetworking/cni to v0.7.1
+  * Add overlayfs to fuse-overlayfs tip
+  * Add automatic apparmor tag discovery
+  * Fix bug whereby --get-login has no effect
+  * Bump to v1.11.0-dev
+
+- Changelog for v1.10.0 (2019-08-02)
+  * vendor github.com/containers/image@v3.0.0
+  * Remove GO111MODULE in favor of `-mod=vendor`
+  * Vendor in containers/storage v1.12.16
+  * Add '-' minus syntax for removal of config values
+  * tests: enable overlay tests for rootless
+  * rootless, overlay: use fuse-overlayfs
+  * vendor github.com/containers/image@v2.0.1
+  * Added '-' syntax to remove volume config option
+  * delete `successfully pushed` message
+  * Add golint linter and apply fixes
+  * vendor github.com/containers/storage@v1.12.15
+  * Change wait to sleep in buildahimage readme
+  * Handle ReadOnly images when deleting images
+  * Add support for listing read/only images
+
+- Changelog for v1.9.2 (2019-07-19)
+  * from/import: record the base image's digest, if it has one
+  * Fix CNI version retrieval to not require network connection
+  * Add misspell linter and apply fixes
+  * Add goimports linter and apply fixes
+  * Add stylecheck linter and apply fixes
+  * Add unconvert linter and apply fixes
+  * image: make sure we don't try to use zstd compression
+  * run.bats: skip the "z" flag when testing --mount
+  * Update to runc v1.0.0-rc8
+  * Update to match updated runtime-tools API
+  * bump github.com/opencontainers/runtime-tools to v0.9.0
+  * Build e2e tests using the proper build tags
+  * Add unparam linter and apply fixes
+  * Run: correct a typo in the --cap-add help text
+  * unshare: add a --mount flag
+  * fix push check image name is not empty
+  * Bump to v1.9.2-dev
+
+- Changelog for v1.9.1 (2019-07-12)
+  * add: fix slow copy with no excludes
+  * Add errcheck linter and fix missing error check
+  * Improve tests/tools/Makefile parallelism and abstraction
+  * Fix response body not closed resource leak
+  * Switch to golangci-lint
+  * Add gomod instructions and mailing list links
+  * On Masked path, check if /dev/null already mounted before mounting
+  * Update to containers/storage v1.12.13
+  * Refactor code in package imagebuildah
+  * Add rootless podman with NFS issue in documentation
+  * Add --mount  for buildah run
+  * import method ValidateVolumeOpts from libpod
+  * Fix typo
+  * Makefile: set GO111MODULE=off
+  * rootless: add the built-in slirp DNS server
+  * Update docker/libnetwork to get rid of outdated sctp package
+  * Update buildah-login.md
+  * migrate to go modules
+  * install.md: mention go modules
+  * tests/tools: go module for test binaries
+  * fix --volume splits comma delimited option
+  * Add bud test for RUN with a priv'd command
+  * vendor logrus v1.4.2
+  * pkg/cli: panic when flags can't be hidden
+  * pkg/unshare: check all errors
+  * pull: check error during report write
+  * run_linux.go: ignore unchecked errors
+  * conformance test: catch copy error
+  * chroot/run_test.go: export funcs to actually be executed
+  * tests/imgtype: ignore error when shutting down the store
+  * testreport: check json error
+  * bind/util.go: remove unused func
+  * rm chroot/util.go
+  * imagebuildah: remove unused `dedupeStringSlice`
+  * StageExecutor: EnsureContainerPath: catch error from SecureJoin()
+  * imagebuildah/build.go: return <expr> instead of branching
+  * rmi: avoid redundant branching
+  * conformance tests: nilness: allocate map
+  * imagebuildah/build.go: avoid redundant `filepath.Join()`
+  * imagebuildah/build.go: avoid redundant `os.Stat()`
+  * imagebuildah: omit comparison to bool
+  * fix "ineffectual assignment" lint errors
+  * docker: ignore "repeats json tag" lint error
+  * pkg/unshare: use `...` instead of iterating a slice
+  * conformance: bud test: use raw strings for regexes
+  * conformance suite: remove unused func/var
+  * buildah test suite: remove unused vars/funcs
+  * testreport: fix golangci-lint errors
+  * util: remove redundant `return` statement
+  * chroot: only log clean-up errors
+  * images_test: ignore golangci-lint error
+  * blobcache: log error when draining the pipe
+  * imagebuildah: check errors in deferred calls
+  * chroot: fix error handling in deferred funcs
+  * cmd: check all errors
+  * chroot/run_test.go: check errors
+  * chroot/run.go: check errors in deferred calls
+  * imagebuildah.Executor: remove unused onbuild field
+  * docker/types.go: remove unused struct fields
+  * util: use strings.ContainsRune instead of index check
+  * Cirrus: Initial implementation
+  * Bump to v1.9.1-dev
+
+- Changelog for v1.9.0 (2019-06-15)
+  * buildah-run: fix-out-of-range panic (2)
+  * Bump back to v1.9.0-dev
+
 - Changelog for v1.8.4 (2019-06-13)
     Update containers/image to v2.0.0
     run: fix hang with run and --isolation=chroot

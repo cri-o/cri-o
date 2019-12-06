@@ -44,6 +44,9 @@ type RuntimeConfig struct {
 	// with the hostlocal IP allocator. If left unset, an IP will be
 	// dynamically allocated.
 	IP string
+	// MAC is a static MAC address to be assigned to the network interface.
+	// If left unset, a MAC will be dynamically allocated.
+	MAC string
 	// PortMappings is the port mapping of the sandbox.
 	PortMappings []PortMapping
 	// Bandwidth is the bandwidth limiting of the pod

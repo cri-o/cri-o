@@ -7,20 +7,21 @@ import (
 	"path/filepath"
 	"strings"
 
-	cp "github.com/containers/image/copy"
-	"github.com/containers/image/directory"
-	"github.com/containers/image/docker"
-	dockerarchive "github.com/containers/image/docker/archive"
-	"github.com/containers/image/docker/tarfile"
-	ociarchive "github.com/containers/image/oci/archive"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/transports/alltransports"
-	"github.com/containers/image/types"
+	cp "github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/directory"
+	"github.com/containers/image/v5/docker"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
+	"github.com/containers/image/v5/docker/tarfile"
+	ociarchive "github.com/containers/image/v5/oci/archive"
+	oci "github.com/containers/image/v5/oci/layout"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/registries"
-	multierror "github.com/hashicorp/go-multierror"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/hashicorp/go-multierror"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -37,6 +38,9 @@ var (
 	DirTransport = directory.Transport.Name()
 	// DockerTransport is the transport for docker registries
 	DockerTransport = docker.Transport.Name()
+	// OCIDirTransport is the transport for pushing and pulling
+	// images to and from a directory containing an OCI image
+	OCIDirTransport = oci.Transport.Name()
 	// AtomicTransport is the transport for atomic registries
 	AtomicTransport = "atomic"
 	// DefaultTransport is a prefix that we apply to an image name
@@ -149,6 +153,13 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		// Need to load in all the repo tags from the manifest
 		res := []pullRefPair{}
 		for _, dst := range manifest[0].RepoTags {
+			//check if image exists and gives a warning of untagging
+			localImage, err := ir.NewFromLocal(dst)
+			imageID := strings.TrimSuffix(manifest[0].Config, ".json")
+			if err == nil && imageID != localImage.ID() {
+				logrus.Errorf("the image %s already exists, renaming the old one with ID %s to empty string", dst, localImage.ID())
+			}
+
 			pullInfo, err := ir.getPullRefPair(srcRef, dst)
 			if err != nil {
 				return nil, err
@@ -168,7 +179,6 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		if err != nil {
 			return nil, errors.Wrapf(err, "error loading manifest for %q", srcRef)
 		}
-
 		var dest string
 		if manifest.Annotations == nil || manifest.Annotations["org.opencontainers.image.ref.name"] == "" {
 			// If the input image has no image.ref.name, we need to feed it a dest anyways
@@ -183,17 +193,26 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		return ir.getSinglePullRefPairGoal(srcRef, dest)
 
 	case DirTransport:
-		path := srcRef.StringWithinTransport()
-		image := path
-		if image[:1] == "/" {
-			// Set localhost as the registry so docker.io isn't prepended, and the path becomes the repository
-			image = DefaultLocalRegistry + image
-		}
+		image := toLocalImageName(srcRef.StringWithinTransport())
+		return ir.getSinglePullRefPairGoal(srcRef, image)
+
+	case OCIDirTransport:
+		split := strings.SplitN(srcRef.StringWithinTransport(), ":", 2)
+		image := toLocalImageName(split[0])
 		return ir.getSinglePullRefPairGoal(srcRef, image)
 
 	default:
 		return ir.getSinglePullRefPairGoal(srcRef, imgName)
 	}
+}
+
+// toLocalImageName converts an image name into a 'localhost/' prefixed one
+func toLocalImageName(imageName string) string {
+	return fmt.Sprintf(
+		"%s/%s",
+		DefaultLocalRegistry,
+		strings.TrimLeft(imageName, "/"),
+	)
 }
 
 // pullImageFromHeuristicSource pulls an image based on inputName, which is heuristically parsed and may involve configured registries.
@@ -204,10 +223,19 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 
 	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
+	if dockerOptions != nil {
+		sc.OSChoice = dockerOptions.OSChoice
+		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
+	}
 	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
-		// could be trying to pull from registry with short name
+		// We might be pulling with an unqualified image reference in which case
+		// we need to make sure that we're not using any other transport.
+		srcTransport := alltransports.TransportFromImageName(inputName)
+		if srcTransport != nil && srcTransport.Name() != DockerTransport {
+			return nil, err
+		}
 		goal, err = ir.pullGoalFromPossiblyUnqualifiedName(inputName)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting default registries to try")
@@ -227,11 +255,21 @@ func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.Imag
 	defer span.Finish()
 
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
+	if dockerOptions != nil {
+		sc.OSChoice = dockerOptions.OSChoice
+		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
+	}
 	goal, err := ir.pullGoalFromImageReference(ctx, srcRef, transports.ImageName(srcRef), sc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error determining pull goal for image %q", transports.ImageName(srcRef))
 	}
 	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, nil)
+}
+
+func cleanErrorMessage(err error) string {
+	errMessage := strings.TrimPrefix(errors.Cause(err).Error(), "errors:\n")
+	errMessage = strings.Split(errMessage, "\n")[0]
+	return fmt.Sprintf("  %s\n", errMessage)
 }
 
 // doPullImage is an internal helper interpreting pullGoal. Almost everyone should call one of the callers of doPullImage instead.
@@ -243,7 +281,11 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	if err != nil {
 		return nil, err
 	}
-	defer policyContext.Destroy()
+	defer func() {
+		if err := policyContext.Destroy(); err != nil {
+			logrus.Errorf("failed to destroy policy context: %q", err)
+		}
+	}()
 
 	systemRegistriesConfPath := registries.SystemRegistriesConfPath()
 
@@ -257,7 +299,9 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		copyOptions.SourceCtx.SystemRegistriesConfPath = systemRegistriesConfPath // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 		// Print the following statement only when pulling from a docker or atomic registry
 		if writer != nil && (imageInfo.srcRef.Transport().Name() == DockerTransport || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
-			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))
+			if _, err := io.WriteString(writer, fmt.Sprintf("Trying to pull %s...\n", imageInfo.image)); err != nil {
+				return nil, err
+			}
 		}
 		// If the label is not nil, check if the label exists and if not, return err
 		if label != nil {
@@ -269,9 +313,9 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		_, err = cp.Image(ctx, policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions)
 		if err != nil {
 			pullErrors = multierror.Append(pullErrors, err)
-			logrus.Errorf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
+			logrus.Debugf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
 			if writer != nil {
-				io.WriteString(writer, "Failed\n")
+				_, _ = io.WriteString(writer, cleanErrorMessage(err))
 			}
 		} else {
 			if !goal.pullAllPairs {
@@ -296,7 +340,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		return nil, pullErrors
 	}
 	if len(images) > 0 {
-		defer ir.newImageEvent(events.Pull, images[0])
+		ir.newImageEvent(events.Pull, images[0])
 	}
 	return images, nil
 }
@@ -308,6 +352,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	if err != nil {
 		return nil, err
 	}
+
 	if decomposedImage.hasRegistry {
 		srcRef, err := docker.ParseReference("//" + inputName)
 		if err != nil {

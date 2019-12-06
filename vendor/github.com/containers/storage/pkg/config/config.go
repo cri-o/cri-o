@@ -73,6 +73,9 @@ type OptionsConfig struct {
 	RemapUIDs string `toml:"remap-uids"`
 	// RemapGIDs is a list of default GID mappings to use for layers.
 	RemapGIDs string `toml:"remap-gids"`
+	// IgnoreChownErrors is a flag for whether chown errors should be
+	// ignored when building an image.
+	IgnoreChownErrors string `toml:"ignore_chown_errors"`
 
 	// RemapUser is the name of one or more entries in /etc/subuid which
 	// should be used to set up default UID mappings.
@@ -82,11 +85,6 @@ type OptionsConfig struct {
 	RemapGroup string `toml:"remap-group"`
 	// Thinpool container options to be handed to thinpool drivers
 	Thinpool struct{ ThinpoolOptionsConfig } `toml:"thinpool"`
-	// OSTree repository
-	OstreeRepo string `toml:"ostree_repo"`
-
-	// Do not create a bind mount on the storage home
-	SkipMountHome string `toml:"skip_mount_home"`
 
 	// Alternative program to use for the mount of the file system
 	MountProgram string `toml:"mount_program"`

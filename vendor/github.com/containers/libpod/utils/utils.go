@@ -48,22 +48,12 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []stri
 	return nil
 }
 
-// StatusToExitCode converts wait status code to an exit code
-func StatusToExitCode(status int) int {
-	return ((status) & 0xff00) >> 8
-}
-
 // ErrDetach is an error indicating that the user manually detached from the
 // container.
 var ErrDetach = errors.New("detached from container")
 
 // CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
 func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
-	if len(keys) == 0 {
-		// Default keys : ctrl-p,ctrl-q
-		keys = []byte{16, 17}
-	}
-
 	buf := make([]byte, 32*1024)
 	for {
 		nr, er := src.Read(buf)

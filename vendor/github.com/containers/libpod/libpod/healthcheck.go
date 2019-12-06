@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -106,15 +107,24 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 		capture       bytes.Buffer
 		inStartPeriod bool
 	)
-	hcStatus, err := checkHealthCheckCanBeRun(c)
-	if err != nil {
-		return hcStatus, err
-	}
 	hcCommand := c.HealthCheckConfig().Test
-	if len(hcCommand) > 0 && hcCommand[0] == "CMD-SHELL" {
-		newCommand = []string{"sh", "-c", strings.Join(hcCommand[1:], " ")}
-	} else {
+	if len(hcCommand) < 1 {
+		return HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
+	}
+	switch hcCommand[0] {
+	case "", "NONE":
+		return HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
+	case "CMD":
+		newCommand = hcCommand[1:]
+	case "CMD-SHELL":
+		// TODO: SHELL command from image not available in Container - use Docker default
+		newCommand = []string{"/bin/sh", "-c", strings.Join(hcCommand[1:], " ")}
+	default:
+		// command supplied on command line - pass as-is
 		newCommand = hcCommand
+	}
+	if len(newCommand) < 1 || newCommand[0] == "" {
+		return HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 	captureBuffer := bufio.NewWriter(&capture)
 	hcw := hcWriteCloser{
@@ -123,7 +133,9 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 	streams := new(AttachStreams)
 	streams.OutputStream = hcw
 	streams.ErrorStream = hcw
-	streams.InputStream = os.Stdin
+
+	streams.InputStream = bufio.NewReader(os.Stdin)
+
 	streams.AttachOutput = true
 	streams.AttachError = true
 	streams.AttachInput = true
@@ -131,10 +143,18 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 	logrus.Debugf("executing health check command %s for %s", strings.Join(newCommand, " "), c.ID())
 	timeStart := time.Now()
 	hcResult := HealthCheckSuccess
-	hcErr := c.Exec(false, false, []string{}, newCommand, "", "", streams, 0)
+	_, hcErr := c.Exec(false, false, map[string]string{}, newCommand, "", "", streams, 0, nil, "")
 	if hcErr != nil {
+		errCause := errors.Cause(hcErr)
 		hcResult = HealthCheckFailure
-		returnCode = 1
+		if errCause == define.ErrOCIRuntimeNotFound ||
+			errCause == define.ErrOCIRuntimePermissionDenied ||
+			errCause == define.ErrOCIRuntime {
+			returnCode = 1
+			hcErr = nil
+		} else {
+			returnCode = 125
+		}
 	}
 	timeEnd := time.Now()
 	if c.HealthCheckConfig().StartPeriod > 0 {
@@ -169,7 +189,7 @@ func checkHealthCheckCanBeRun(c *Container) (HealthCheckStatus, error) {
 	if err != nil {
 		return HealthCheckInternalError, err
 	}
-	if cstate != ContainerStateRunning {
+	if cstate != define.ContainerStateRunning {
 		return HealthCheckContainerStopped, errors.Errorf("container %s is not running", c.ID())
 	}
 	if !c.HasHealthCheck() {
@@ -220,7 +240,7 @@ func (c *Container) updateHealthCheckLog(hcl HealthCheckLog, inStartPeriod bool)
 			// increment failing streak
 			healthCheck.FailingStreak = healthCheck.FailingStreak + 1
 			// if failing streak > retries, then status to unhealthy
-			if int(healthCheck.FailingStreak) >= c.HealthCheckConfig().Retries {
+			if healthCheck.FailingStreak >= c.HealthCheckConfig().Retries {
 				healthCheck.Status = HealthCheckUnhealthy
 			}
 		}

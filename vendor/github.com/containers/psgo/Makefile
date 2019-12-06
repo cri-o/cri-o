@@ -1,3 +1,6 @@
+export GO111MODULE=off
+export GOPROXY=https://proxy.golang.org
+
 SHELL= /bin/bash
 GO ?= go
 BUILD_DIR := ./bin
@@ -7,11 +10,17 @@ PROJECT := github.com/containers/psgo
 BATS_TESTS := *.bats
 GO_SRC=$(shell find . -name \*.go)
 
+GO_BUILD=$(GO) build
+# Go module support: set `-mod=vendor` to use the vendored sources
+ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
+	GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
+endif
+
 all: validate build
 
 .PHONY: build
 build: $(GO_SRC)
-	 $(GO) build -buildmode=pie -o $(BUILD_DIR)/$(NAME) $(PROJECT)/sample
+	 $(GO_BUILD) -buildmode=pie -o $(BUILD_DIR)/$(NAME) $(PROJECT)/sample
 
 .PHONY: clean
 clean:
@@ -51,7 +60,7 @@ install:
 .PHONY: .install.lint
 .install.lint:
 	# Workaround for https://github.com/golangci/golangci-lint/issues/523
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint@master
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 .PHONY: uninstall
 uninstall:

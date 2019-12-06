@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/containers/buildah/pkg/unshare"
-	cp "github.com/containers/image/copy"
-	"github.com/containers/image/types"
+	cp "github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 )
 
@@ -18,7 +18,7 @@ const (
 	DOCKER = "docker"
 )
 
-func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceReference types.ImageReference, sourceSystemContext *types.SystemContext, destinationReference types.ImageReference, destinationSystemContext *types.SystemContext, manifestType string) *cp.Options {
+func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemContext *types.SystemContext, destinationSystemContext *types.SystemContext, manifestType string) *cp.Options {
 	sourceCtx := getSystemContext(store, nil, "")
 	if sourceSystemContext != nil {
 		*sourceCtx = *sourceSystemContext

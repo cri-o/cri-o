@@ -2,9 +2,10 @@ language: go
 dist: xenial
 sudo: required
 go:
-    - 1.11.x
     - 1.12.x
+    - 1.13.x
     - tip
+go_import_path: github.com/containers/buildah
 
 env:
     global:
@@ -39,13 +40,10 @@ matrix:
 services:
     - docker
 before_install:
-    - make vendor
-    - ./hack/tree_status.sh
-    - sudo apt-get update
     - sudo apt-get -qq install software-properties-common
     - sudo add-apt-repository -y ppa:duggan/bats
     - sudo apt-get update
-    - sudo apt-get -qq install bats btrfs-tools git libapparmor-dev libc-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libselinux1-dev linux-libc-dev realpath
+    - sudo apt-get -qq install bats btrfs-tools git libapparmor-dev libc-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libselinux1-dev linux-libc-dev realpath e2fslibs-dev libfuse-dev
     - sudo apt-get -qq update
     - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
     - mkdir /home/travis/auth
@@ -85,9 +83,10 @@ script:
     - docker ps --all
     - docker images
     - docker rmi localhost:5000/my-alpine
-    # Setting up  Docker Registry is complete, let's do Buildah testing! 
-    - make install.tools install.libseccomp.sudo all runc validate SECURITYTAGS="apparmor seccomp"
-    - go test -c -tags "apparmor seccomp `./btrfs_tag.sh` `./libdm_tag.sh` `./ostree_tag.sh` `./selinux_tag.sh`" ./cmd/buildah
+    # Setting up  Docker Registry is complete, let's do Buildah testing!
+    - make install.tools -j4
+    - make install.libseccomp.sudo all runc validate lint SECURITYTAGS="apparmor seccomp"
+    - go test -c -tags "apparmor seccomp `./btrfs_tag.sh` `./libdm_tag.sh` `./selinux_tag.sh`" ./cmd/buildah
     - tmp=`mktemp -d`; mkdir $tmp/root $tmp/runroot; sudo PATH="$PATH" ./buildah.test -test.v --root $tmp/root --runroot $tmp/runroot --storage-driver vfs --signature-policy `pwd`/tests/policy.json --registries-conf `pwd`/tests/registries.conf
     - cd tests; sudo PATH="$PATH" ./test_runner.sh
     - cd ..
