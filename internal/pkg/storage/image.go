@@ -45,6 +45,7 @@ type ImageResult struct {
 	Digest       digest.Digest
 	ConfigDigest digest.Digest
 	User         string
+	PreviousName string
 }
 
 type indexInfo struct {
@@ -198,6 +199,14 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
 	sort.Strings(tags)
 	sort.Strings(repoDigests)
+	previousName := ""
+	if len(image.NamesHistory) > 0 {
+		// Remove the tag because we can only keep the name as indicator
+		split := strings.SplitN(image.NamesHistory[0], ":", 2)
+		if len(split) > 0 {
+			previousName = split[0]
+		}
+	}
 	return ImageResult{
 		ID:           image.ID,
 		Name:         name,
@@ -207,6 +216,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		Digest:       imageDigest,
 		ConfigDigest: cacheItem.configDigest,
 		User:         cacheItem.user,
+		PreviousName: previousName,
 	}
 }
 

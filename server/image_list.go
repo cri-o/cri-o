@@ -36,6 +36,8 @@ func ConvertImage(from *storage.ImageResult) *pb.Image {
 	repoTags := []string{"<none>:<none>"}
 	if len(from.RepoTags) > 0 {
 		repoTags = from.RepoTags
+	} else if from.PreviousName != "" {
+		repoTags = []string{from.PreviousName + ":<none>"}
 	}
 
 	repoDigests := []string{"<none>@<none>"}

@@ -119,6 +119,19 @@ var _ = t.Describe("ImageList", func() {
 			Expect(result.Uid.Value).To(BeEquivalentTo(10))
 		})
 
+		It("should succeed with previous tag but no current", func() {
+			// Given
+			image := &storage.ImageResult{PreviousName: "1"}
+
+			// When
+			result := server.ConvertImage(image)
+
+			// Then
+			Expect(result).NotTo(BeNil())
+			Expect(result.RepoTags).To(HaveLen(1))
+			Expect(result.RepoTags).To(ContainElement("1:<none>"))
+		})
+
 		It("should return nil if input image is nil", func() {
 			// Given
 			// When
