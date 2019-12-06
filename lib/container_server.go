@@ -19,6 +19,7 @@ import (
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/truncindex"
+	multierror "github.com/hashicorp/go-multierror"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -147,6 +148,20 @@ func New(ctx context.Context, configIface ConfigIface) (*ContainerServer, error)
 				hookDirectories = append(hookDirectories, hooksDir)
 				logrus.Warnf("implicit hook directories are deprecated; set --hooks-dir=%q explicitly to continue to load hooks from this directory", hooksDir)
 			}
+		}
+	}
+
+	for _, hookDirectory := range hookDirectories {
+		var merr *multierror.Error
+		if _, err = os.Stat(hookDirectory); err != nil {
+			if os.IsNotExist(err) {
+				merr = multierror.Append(merr, fmt.Errorf("OCI hooks directory %q does not exist: %v", hookDirectory, err))
+			} else {
+				merr = multierror.Append(merr, fmt.Errorf("Error checking for OCI hooks directory %q: %v", hookDirectory, err))
+			}
+		}
+		if merr != nil && merr.ErrorOrNil() != nil {
+			return nil, errors.WithStack(merr)
 		}
 	}
 

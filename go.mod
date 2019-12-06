@@ -35,6 +35,7 @@ require (
 	github.com/google/renameio v0.1.0
 	github.com/googleapis/gnostic v0.0.0-20170729233727-0c5108395e2d // indirect
 	github.com/gregjones/httpcache v0.0.0-20170728041850-787624de3eb7 // indirect
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.0.0-20160207214719-a0d98a5f2880 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/kr/pty v1.1.8
