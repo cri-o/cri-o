@@ -10,98 +10,133 @@ var (
 	// ErrBadMntOption indicates that an invalid mount option was passed.
 	ErrBadMntOption = errors.Errorf("invalid mount option")
 	// ErrDupeMntOption indicates that a duplicate mount option was passed.
-	ErrDupeMntOption = errors.Errorf("duplicate option passed")
+	ErrDupeMntOption = errors.Errorf("duplicate mount option passed")
 )
 
-// ProcessOptions parses the options for a bind mount and ensures that they are
-// sensible and follow convention.
-func ProcessOptions(options []string) []string {
-	var (
-		foundbind, foundrw, foundro bool
-		rootProp                    string
-	)
-	for _, opt := range options {
-		switch opt {
-		case "bind", "rbind":
-			foundbind = true
-			break
-		}
-	}
-	if !foundbind {
-		options = append(options, "rbind")
-	}
-	for _, opt := range options {
-		switch opt {
-		case "rw":
-			foundrw = true
-		case "ro":
-			foundro = true
-		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
-			rootProp = opt
-		}
-	}
-	if !foundrw && !foundro {
-		options = append(options, "rw")
-	}
-	if rootProp == "" {
-		options = append(options, "rprivate")
-	}
-	return options
+// DefaultMountOptions sets default mount options for ProcessOptions.
+type DefaultMountOptions struct {
+	Noexec bool
+	Nosuid bool
+	Nodev  bool
 }
 
-// ProcessTmpfsOptions parses the options for a tmpfs mountpoint and ensures
-// that they are sensible and follow convention.
-func ProcessTmpfsOptions(options []string) ([]string, error) {
+// ProcessOptions parses the options for a bind or tmpfs mount and ensures that
+// they are sensible and follow convention. The isTmpfs variable controls
+// whether extra, tmpfs-specific options will be allowed.
+// The defaults variable controls default mount options that will be set. If it
+// is not included, they will be set unconditionally.
+func ProcessOptions(options []string, isTmpfs bool, defaults *DefaultMountOptions) ([]string, error) {
 	var (
-		foundWrite, foundSize, foundProp, foundMode bool
+		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ bool
 	)
 
-	baseOpts := []string{"noexec", "nosuid", "nodev"}
+	var newOptions []string
+
 	for _, opt := range options {
 		// Some options have parameters - size, mode
 		splitOpt := strings.SplitN(opt, "=", 2)
 		switch splitOpt[0] {
+		case "exec", "noexec":
+			if foundExec {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'noexec' and 'exec' can be used")
+			}
+			foundExec = true
+		case "suid", "nosuid":
+			if foundSuid {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'nosuid' and 'suid' can be used")
+			}
+			foundSuid = true
+		case "nodev", "dev":
+			if foundDev {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'nodev' and 'dev' can be used")
+			}
+			foundDev = true
 		case "rw", "ro":
 			if foundWrite {
-				return nil, errors.Wrapf(ErrDupeMntOption, "only one of rw and ro can be used")
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'rw' and 'ro' can be used")
 			}
 			foundWrite = true
-			baseOpts = append(baseOpts, opt)
 		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
 			if foundProp {
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one root propagation mode can be used")
 			}
 			foundProp = true
-			baseOpts = append(baseOpts, opt)
 		case "size":
+			if !isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'size' option is only allowed with tmpfs mounts")
+			}
 			if foundSize {
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one tmpfs size can be specified")
 			}
 			foundSize = true
-			baseOpts = append(baseOpts, opt)
 		case "mode":
+			if !isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'mode' option is only allowed with tmpfs mounts")
+			}
 			if foundMode {
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one tmpfs mode can be specified")
 			}
 			foundMode = true
-			baseOpts = append(baseOpts, opt)
-		case "noexec", "nodev", "nosuid":
-			// Do nothing. We always include these even if they are
-			// not explicitly requested.
+		case "tmpcopyup":
+			if !isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'tmpcopyup' option is only allowed with tmpfs mounts")
+			}
+			if foundCopyUp {
+				return nil, errors.Wrapf(ErrDupeMntOption, "the 'tmpcopyup' or 'notmpcopyup' option can only be set once")
+			}
+			foundCopyUp = true
+		case "notmpcopyup":
+			if !isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'notmpcopyup' option is only allowed with tmpfs mounts")
+			}
+			if foundCopyUp {
+				return nil, errors.Wrapf(ErrDupeMntOption, "the 'tmpcopyup' or 'notmpcopyup' option can only be set once")
+			}
+			foundCopyUp = true
+			// do not propagate notmpcopyup to the OCI runtime
+			continue
+		case "bind", "rbind":
+			if isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'bind' and 'rbind' options are not allowed with tmpfs mounts")
+			}
+			if foundBind {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'rbind' and 'bind' can be used")
+			}
+			foundBind = true
+		case "z", "Z":
+			if isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'z' and 'Z' options are not allowed with tmpfs mounts")
+			}
+			if foundZ {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'z' and 'Z' can be used")
+			}
 		default:
-			return nil, errors.Wrapf(ErrBadMntOption, "unknown tmpfs option %q", opt)
+			return nil, errors.Wrapf(ErrBadMntOption, "unknown mount option %q", opt)
 		}
+		newOptions = append(newOptions, opt)
 	}
 
 	if !foundWrite {
-		baseOpts = append(baseOpts, "rw")
-	}
-	if !foundSize {
-		baseOpts = append(baseOpts, "size=65536k")
+		newOptions = append(newOptions, "rw")
 	}
 	if !foundProp {
-		baseOpts = append(baseOpts, "rprivate")
+		newOptions = append(newOptions, "rprivate")
+	}
+	if !foundExec && (defaults == nil || defaults.Noexec) {
+		newOptions = append(newOptions, "noexec")
+	}
+	if !foundSuid && (defaults == nil || defaults.Nosuid) {
+		newOptions = append(newOptions, "nosuid")
+	}
+	if !foundDev && (defaults == nil || defaults.Nodev) {
+		newOptions = append(newOptions, "nodev")
+	}
+	if isTmpfs && !foundCopyUp {
+		newOptions = append(newOptions, "tmpcopyup")
+	}
+	if !isTmpfs && !foundBind {
+		newOptions = append(newOptions, "rbind")
 	}
 
-	return baseOpts, nil
+	return newOptions, nil
 }

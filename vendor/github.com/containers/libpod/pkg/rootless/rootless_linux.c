@@ -24,12 +24,16 @@
 
 int renameat2 (int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
 {
-# ifdef __NR_renameat2
-  return (int) syscall (__NR_renameat2, olddirfd, oldpath, newdirfd, newpath, flags);
+# ifdef SYS_renameat2
+  return (int) syscall (SYS_renameat2, olddirfd, oldpath, newdirfd, newpath, flags);
 # else
-  /* no way to implement it atomically.  */
-  errno = ENOSYS;
-  return -1;
+  /* This might be an issue if another process is trying to read the file while it is empty.  */
+  int fd = open (newpath, O_EXCL|O_CREAT, 0700);
+  if (fd < 0)
+    return fd;
+  close (fd);
+  /* We are sure we created the file, let's overwrite it.  */
+  return rename (oldpath, newpath);
 # endif
 }
 #endif
@@ -82,7 +86,7 @@ do_pause ()
   struct sigaction act;
   int const sig[] =
     {
-     SIGALRM, SIGHUP, SIGINT, SIGPIPE, SIGQUIT, SIGTERM, SIGPOLL,
+     SIGALRM, SIGHUP, SIGINT, SIGPIPE, SIGQUIT, SIGPOLL,
      SIGPROF, SIGVTALRM, SIGXCPU, SIGXFSZ, 0
     };
 
@@ -137,7 +141,7 @@ get_cmd_line_args (pid_t pid)
         {
           allocated += 512;
           char *tmp = realloc (buffer, allocated);
-          if (buffer == NULL)
+          if (tmp == NULL)
             {
               free (buffer);
               return NULL;
@@ -244,7 +248,7 @@ static void __attribute__((constructor)) init()
   /* Shortcut.  If we are able to join the pause pid file, do it now so we don't
      need to re-exec.  */
   xdg_runtime_dir = getenv ("XDG_RUNTIME_DIR");
-  if (xdg_runtime_dir && xdg_runtime_dir[0] && can_use_shortcut ())
+  if (geteuid () != 0 && xdg_runtime_dir && xdg_runtime_dir[0] && can_use_shortcut ())
     {
       int r;
       int fd;
@@ -276,7 +280,7 @@ static void __attribute__((constructor)) init()
           return;
         }
 
-      r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof (buf)));
+      r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof (buf) - 1));
       close (fd);
       if (r < 0)
         {
@@ -295,7 +299,7 @@ static void __attribute__((constructor)) init()
       uid = geteuid ();
       gid = getegid ();
 
-      sprintf (path, "/proc/%d/ns/user", pid);
+      sprintf (path, "/proc/%ld/ns/user", pid);
       fd = open (path, O_RDONLY);
       if (fd < 0 || setns (fd, 0) < 0)
         {
@@ -305,7 +309,7 @@ static void __attribute__((constructor)) init()
       close (fd);
 
       /* Errors here cannot be ignored as we already joined a ns.  */
-      sprintf (path, "/proc/%d/ns/mnt", pid);
+      sprintf (path, "/proc/%ld/ns/mnt", pid);
       fd = open (path, O_RDONLY);
       if (fd < 0)
         {
@@ -316,7 +320,7 @@ static void __attribute__((constructor)) init()
       r = setns (fd, 0);
       if (r < 0)
         {
-          fprintf (stderr, "cannot join mount namespace for %d: %s", pid, strerror (errno));
+          fprintf (stderr, "cannot join mount namespace for %ld: %s", pid, strerror (errno));
           exit (EXIT_FAILURE);
         }
       close (fd);
@@ -416,9 +420,16 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
 
           sprintf (pid_str, "%d", pid);
 
-          asprintf (&tmp_file_path, "%s.XXXXXX", pause_pid_file_path);
+          if (asprintf (&tmp_file_path, "%s.XXXXXX", pause_pid_file_path) < 0)
+            {
+              fprintf (stderr, "unable to print to string\n");
+              kill (pid, SIGKILL);
+              _exit (EXIT_FAILURE);
+            }
+
           if (tmp_file_path == NULL)
             {
+              fprintf (stderr, "temporary file path is NULL\n");
               kill (pid, SIGKILL);
               _exit (EXIT_FAILURE);
             }
@@ -426,6 +437,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
           fd = mkstemp (tmp_file_path);
           if (fd < 0)
             {
+              fprintf (stderr, "error creating temporary file: %s\n", strerror (errno));
               kill (pid, SIGKILL);
               _exit (EXIT_FAILURE);
             }
@@ -433,6 +445,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
           r = TEMP_FAILURE_RETRY (write (fd, pid_str, strlen (pid_str)));
           if (r < 0)
             {
+              fprintf (stderr, "cannot write to file descriptor: %s\n", strerror (errno));
               kill (pid, SIGKILL);
               _exit (EXIT_FAILURE);
             }
@@ -448,6 +461,11 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
             }
 
           r = TEMP_FAILURE_RETRY (write (p[1], "0", 1));
+          if (r < 0)
+            {
+              fprintf (stderr, "cannot write to pipe: %s\n", strerror (errno));
+              _exit (EXIT_FAILURE);
+            }
           close (p[1]);
 
           _exit (EXIT_SUCCESS);
@@ -471,7 +489,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
             close (fd);
 
           setenv ("_PODMAN_PAUSE", "1", 1);
-          execlp (argv[0], NULL);
+          execlp (argv[0], argv[0], NULL);
 
           /* If the execve fails, then do the pause here.  */
           do_pause ();
@@ -531,6 +549,11 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
   if (sigdelset (&sigset, SIGCHLD) < 0)
     {
       fprintf (stderr, "cannot sigdelset(SIGCHLD): %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  if (sigdelset (&sigset, SIGTERM) < 0)
+    {
+      fprintf (stderr, "cannot sigdelset(SIGTERM): %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
   if (sigprocmask (SIG_BLOCK, &sigset, &oldsigset) < 0)
@@ -693,7 +716,6 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   pid = syscall_clone (CLONE_NEWUSER|CLONE_NEWNS|SIGCHLD, NULL);
   if (pid < 0)
     {
-      FILE *fp;
       fprintf (stderr, "cannot clone: %s\n", strerror (errno));
       check_proc_sys_userns_file (_max_user_namespaces);
       check_proc_sys_userns_file (_unprivileged_user_namespaces);
@@ -726,6 +748,11 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   if (sigdelset (&sigset, SIGCHLD) < 0)
     {
       fprintf (stderr, "cannot sigdelset(SIGCHLD): %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  if (sigdelset (&sigset, SIGTERM) < 0)
+    {
+      fprintf (stderr, "cannot sigdelset(SIGTERM): %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
   if (sigprocmask (SIG_BLOCK, &sigset, &oldsigset) < 0)
@@ -793,6 +820,11 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
     }
 
   ret = TEMP_FAILURE_RETRY (write (ready, "0", 1));
+  if (ret < 0)
+  {
+	  fprintf (stderr, "cannot write to ready pipe: %s\n", strerror (errno));
+	  _exit (EXIT_FAILURE);
+  }
   close (ready);
 
   if (sigprocmask (SIG_SETMASK, &oldsigset, NULL) < 0)

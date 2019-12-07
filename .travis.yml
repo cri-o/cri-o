@@ -7,8 +7,6 @@ services:
   - docker
 
 before_install:
-  - if [ "${TRAVIS_OS_NAME}" = linux ]; then make vendor; fi
-  - if [ "${TRAVIS_OS_NAME}" = linux ]; then ./hack/tree_status.sh; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq update; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libseccomp-dev; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install autoconf automake bison clang-format-3.9 e2fslibs-dev libfuse-dev libtool liblzma-dev gettext libsystemd-dev; fi
@@ -48,6 +46,15 @@ jobs:
         - make testunit
         - make
       go: "1.10.x"
+    - script:
+        - >
+          if [ "${TRAVIS_OS_NAME}" = linux ]; then
+            : basically undo the checkout from the install script
+            rm -fr ostree
+          fi
+        - make vendor
+        - ./hack/tree_status.sh
+      go: "1.11.x"
     - script:
         - make testunit
         - make

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/pkg/cgroups"
 	"github.com/containers/buildah/pkg/unshare"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
@@ -27,10 +28,7 @@ type InfoData struct {
 func Info(store storage.Store) ([]InfoData, error) {
 	info := []InfoData{}
 	// get host information
-	hostInfo, err := hostInfo()
-	if err != nil {
-		logrus.Error(err, "error getting host info")
-	}
+	hostInfo := hostInfo()
 	info = append(info, InfoData{Type: "host", Data: hostInfo})
 
 	// get store information
@@ -42,12 +40,23 @@ func Info(store storage.Store) ([]InfoData, error) {
 	return info, nil
 }
 
-func hostInfo() (map[string]interface{}, error) {
+func hostInfo() map[string]interface{} {
 	info := map[string]interface{}{}
 	info["os"] = runtime.GOOS
 	info["arch"] = runtime.GOARCH
 	info["cpus"] = runtime.NumCPU()
 	info["rootless"] = unshare.IsRootless()
+
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		logrus.Error(err, "err reading cgroups mode")
+	}
+	cgroupVersion := "v1"
+	if unified {
+		cgroupVersion = "v2"
+	}
+	info["CgroupVersion"] = cgroupVersion
+
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		logrus.Error(err, "err reading memory info")
@@ -115,8 +124,7 @@ func hostInfo() (map[string]interface{}, error) {
 	}
 	info["hostname"] = host
 
-	return info, nil
-
+	return info
 }
 
 // top-level "store" info

@@ -1,14 +1,22 @@
-// +build !linux
+// +build !linux !cgo
 
 package rootless
 
 import (
+	"os"
+
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/pkg/errors"
 )
 
-// IsRootless returns false on all non-linux platforms
+// IsRootless returns whether the user is rootless
 func IsRootless() bool {
-	return false
+	uid := os.Geteuid()
+	// os.Geteuid() on Windows returns -1
+	if uid == -1 {
+		return false
+	}
+	return uid != 0
 }
 
 // BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
@@ -39,4 +47,20 @@ func GetRootlessGID() int {
 // file owned by the root in the container.
 func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []string) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
+}
+
+// ConfigurationMatches checks whether the additional uids/gids configured for the user
+// match the current user namespace.
+func ConfigurationMatches() (bool, error) {
+	return true, nil
+}
+
+// GetConfiguredMappings returns the additional IDs configured for the current user.
+func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
+	return nil, nil, errors.New("this function is not supported on this os")
+}
+
+// ReadMappingsProc returns the uid_map and gid_map
+func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
+	return nil, nil
 }

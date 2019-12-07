@@ -1,6 +1,8 @@
 package cliconfig
 
 import (
+	"net"
+
 	"github.com/spf13/cobra"
 )
 
@@ -16,6 +18,7 @@ type MainFlags struct {
 	CniConfigDir      string
 	ConmonPath        string
 	DefaultMountsFile string
+	EventsBackend     string
 	HooksDir          []string
 	MaxWorks          int
 	Namespace         string
@@ -38,6 +41,9 @@ type MainFlags struct {
 	VarlinkAddress       string
 	ConnectionName       string
 	RemoteConfigFilePath string
+	Port                 int
+	IdentityFile         string
+	IgnoreHosts          bool
 }
 
 type AttachValues struct {
@@ -92,6 +98,7 @@ type CheckpointValues struct {
 	All            bool
 	Latest         bool
 	Export         string
+	IgnoreRootfs   bool
 }
 
 type CommitValues struct {
@@ -113,18 +120,20 @@ type DiffValues struct {
 	PodmanCommand
 	Archive bool
 	Format  string
+	Latest  bool
 }
 
 type ExecValues struct {
 	PodmanCommand
-	Env          []string
-	Privileged   bool
-	Interfactive bool
-	Tty          bool
-	User         string
-	Latest       bool
-	Workdir      string
-	PreserveFDs  int
+	DetachKeys  string
+	Env         []string
+	Privileged  bool
+	Interactive bool
+	Tty         bool
+	User        string
+	Latest      bool
+	Workdir     string
+	PreserveFDs int
 }
 
 type ImageExistsValues struct {
@@ -152,6 +161,7 @@ type GenerateKubeValues struct {
 type GenerateSystemdValues struct {
 	PodmanCommand
 	Name          bool
+	Files         bool
 	RestartPolicy string
 	StopTimeout   int
 }
@@ -241,7 +251,7 @@ type LogsValues struct {
 	Details    bool
 	Follow     bool
 	Since      string
-	Tail       uint64
+	Tail       int64
 	Timestamps bool
 	Latest     bool
 }
@@ -252,6 +262,33 @@ type MountValues struct {
 	Format  string
 	NoTrunc bool
 	Latest  bool
+}
+
+type NetworkCreateValues struct {
+	PodmanCommand
+	Driver     string
+	DisableDNS bool
+	Gateway    net.IP
+	Internal   bool
+	IPamDriver string
+	IPRange    net.IPNet
+	IPV6       bool
+	Network    net.IPNet
+}
+
+type NetworkListValues struct {
+	PodmanCommand
+	Filter []string
+	Quiet  bool
+}
+
+type NetworkRmValues struct {
+	PodmanCommand
+	Force bool
+}
+
+type NetworkInspectValues struct {
+	PodmanCommand
 }
 
 type PauseValues struct {
@@ -282,6 +319,7 @@ type PodCreateValues struct {
 	LabelFile    []string
 	Labels       []string
 	Name         string
+	Hostname     string
 	PodIDFile    string
 	Publish      []string
 	Share        string
@@ -393,6 +431,8 @@ type PullValues struct {
 	Authfile        string
 	CertDir         string
 	Creds           string
+	OverrideArch    string
+	OverrideOS      string
 	Quiet           bool
 	SignaturePolicy string
 	TlsVerify       bool
@@ -404,6 +444,7 @@ type PushValues struct {
 	CertDir          string
 	Compress         bool
 	Creds            string
+	Digestfile       string
 	Format           string
 	Quiet            bool
 	RemoveSignatures bool
@@ -426,12 +467,15 @@ type RestartValues struct {
 
 type RestoreValues struct {
 	PodmanCommand
-	All            bool
-	Keep           bool
-	Latest         bool
-	TcpEstablished bool
-	Import         string
-	Name           string
+	All             bool
+	Keep            bool
+	Latest          bool
+	TcpEstablished  bool
+	Import          string
+	Name            string
+	IgnoreRootfs    bool
+	IgnoreStaticIP  bool
+	IgnoreStaticMAC bool
 }
 
 type RmValues struct {
@@ -482,10 +526,15 @@ type SearchValues struct {
 	TlsVerify bool
 }
 
+type TrustValues struct {
+	PodmanCommand
+}
+
 type SignValues struct {
 	PodmanCommand
 	Directory string
 	SignBy    string
+	CertDir   string
 }
 
 type StartValues struct {
@@ -606,6 +655,7 @@ type SystemRenumberValues struct {
 
 type SystemMigrateValues struct {
 	PodmanCommand
+	NewRuntime string
 }
 
 type SystemDfValues struct {

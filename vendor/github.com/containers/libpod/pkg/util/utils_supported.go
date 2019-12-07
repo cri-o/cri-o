@@ -7,39 +7,17 @@ package util
 
 import (
 	"fmt"
-	"github.com/containers/libpod/pkg/rootless"
-	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
-	"sync"
 	"syscall"
+
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
-const (
-	_cgroup2SuperMagic = 0x63677270
-)
-
-var (
-	isUnifiedOnce sync.Once
-	isUnified     bool
-	isUnifiedErr  error
-)
-
-// IsCgroup2UnifiedMode returns whether we are running in cgroup 2 unified mode.
-func IsCgroup2UnifiedMode() (bool, error) {
-	isUnifiedOnce.Do(func() {
-		var st syscall.Statfs_t
-		if err := syscall.Statfs("/sys/fs/cgroup", &st); err != nil {
-			isUnified, isUnifiedErr = false, err
-		} else {
-			isUnified, isUnifiedErr = st.Type == _cgroup2SuperMagic, nil
-		}
-	})
-	return isUnified, isUnifiedErr
-}
-
-// GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir() (string, error) {
+// GetRuntimeDir returns the runtime directory
+func GetRuntimeDir() (string, error) {
 	var rootlessRuntimeDirError error
 
 	rootlessRuntimeDirOnce.Do(func() {
@@ -47,7 +25,9 @@ func GetRootlessRuntimeDir() (string, error) {
 		uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
 		if runtimeDir == "" {
 			tmpDir := filepath.Join("/run", "user", uid)
-			os.MkdirAll(tmpDir, 0700)
+			if err := os.MkdirAll(tmpDir, 0700); err != nil {
+				logrus.Debugf("unable to make temp dir %s", tmpDir)
+			}
 			st, err := os.Stat(tmpDir)
 			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
 				runtimeDir = tmpDir
@@ -55,7 +35,9 @@ func GetRootlessRuntimeDir() (string, error) {
 		}
 		if runtimeDir == "" {
 			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("run-%s", uid))
-			os.MkdirAll(tmpDir, 0700)
+			if err := os.MkdirAll(tmpDir, 0700); err != nil {
+				logrus.Debugf("unable to make temp dir %s", tmpDir)
+			}
 			st, err := os.Stat(tmpDir)
 			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
 				runtimeDir = tmpDir
@@ -83,10 +65,42 @@ func GetRootlessRuntimeDir() (string, error) {
 	return rootlessRuntimeDir, nil
 }
 
+// GetRootlessConfigHomeDir returns the config home directory when running as non root
+func GetRootlessConfigHomeDir() (string, error) {
+	var rootlessConfigHomeDirError error
+
+	rootlessConfigHomeDirOnce.Do(func() {
+		cfgHomeDir := os.Getenv("XDG_CONFIG_HOME")
+		if cfgHomeDir == "" {
+			home := os.Getenv("HOME")
+			resolvedHome, err := filepath.EvalSymlinks(home)
+			if err != nil {
+				rootlessConfigHomeDirError = errors.Wrapf(err, "cannot resolve %s", home)
+				return
+			}
+			tmpDir := filepath.Join(resolvedHome, ".config")
+			if err := os.MkdirAll(tmpDir, 0755); err != nil {
+				logrus.Errorf("unable to make temp dir %s", tmpDir)
+			}
+			st, err := os.Stat(tmpDir)
+			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() >= 0700 {
+				cfgHomeDir = tmpDir
+			}
+		}
+		rootlessConfigHomeDir = cfgHomeDir
+	})
+
+	if rootlessConfigHomeDirError != nil {
+		return "", rootlessConfigHomeDirError
+	}
+
+	return rootlessConfigHomeDir, nil
+}
+
 // GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
 // the pause process
 func GetRootlessPauseProcessPidPath() (string, error) {
-	runtimeDir, err := GetRootlessRuntimeDir()
+	runtimeDir, err := GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}

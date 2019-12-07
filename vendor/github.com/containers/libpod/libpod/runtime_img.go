@@ -10,15 +10,16 @@ import (
 	"os"
 
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/image/directory"
-	dockerarchive "github.com/containers/image/docker/archive"
-	ociarchive "github.com/containers/image/oci/archive"
+	"github.com/containers/image/v5/directory"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
+	ociarchive "github.com/containers/image/v5/oci/archive"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -27,11 +28,12 @@ import (
 // RemoveImage deletes an image from local storage
 // Images being used by running containers can only be removed if force=true
 func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool) (string, error) {
+	var returnMessage string
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return "", ErrRuntimeStopped
+		return "", define.ErrRuntimeStopped
 	}
 
 	// Get all containers, filter to only those using the image, and remove those containers
@@ -67,7 +69,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		// the image. we figure out which repotag the user is trying to refer
 		// to and untag it.
 		repoName, err := img.MatchRepoTag(img.InputName)
-		if hasChildren && err == image.ErrRepoTagNotFound {
+		if hasChildren && errors.Cause(err) == image.ErrRepoTagNotFound {
 			return "", errors.Errorf("unable to delete %q (cannot be forced) - image has dependent child images", img.ID())
 		}
 		if err != nil {
@@ -92,7 +94,11 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 			err = errStorage
 		}
 	}
-	return img.ID(), err
+	for _, name := range img.Names() {
+		returnMessage = returnMessage + fmt.Sprintf("Untagged: %s\n", name)
+	}
+	returnMessage = returnMessage + fmt.Sprintf("Deleted: %s", img.ID())
+	return returnMessage, err
 }
 
 // Remove containers that are in storage rather than Podman.

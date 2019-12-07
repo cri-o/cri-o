@@ -819,6 +819,16 @@ func buildCNIRuntimeConf(cacheDir string, podNetwork *PodNetwork, ifName string,
 		rt.Args = append(rt.Args, [2]string{"IP", ip})
 	}
 
+	// Add the requested static MAC to CNI_ARGS
+	mac := runtimeConfig.MAC
+	if mac != "" {
+		_, err := net.ParseMAC(mac)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse MAC address %q: %v", mac, err)
+		}
+		rt.Args = append(rt.Args, [2]string{"MAC", mac})
+	}
+
 	// Set PortMappings in Capabilities
 	if len(runtimeConfig.PortMappings) != 0 {
 		rt.CapabilityArgs["portMappings"] = runtimeConfig.PortMappings

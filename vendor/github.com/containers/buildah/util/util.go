@@ -9,12 +9,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/pkg/sysregistriesv2"
-	"github.com/containers/image/signature"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/types"
+	"github.com/containers/buildah/pkg/cgroups"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
+	"github.com/containers/image/v5/signature"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/docker/distribution/registry/api/errcode"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -114,7 +115,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 	for _, registry := range searchRegistries {
 		reg, err := sysregistriesv2.FindRegistry(sc, registry)
 		if err != nil {
-			logrus.Debugf("unable to read registry configuraitno for %#v: %v", registry, err)
+			logrus.Debugf("unable to read registry configuration for %#v: %v", registry, err)
 			continue
 		}
 		if reg == nil || !reg.Blocked {
@@ -136,7 +137,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 			continue
 		}
 		middle := ""
-		if prefix, ok := RegistryDefaultPathPrefix[registry]; ok && strings.IndexRune(name, '/') == -1 {
+		if prefix, ok := RegistryDefaultPathPrefix[registry]; ok && !strings.ContainsRune(name, '/') {
 			middle = prefix
 		}
 		candidate := path.Join(registry, middle, name)
@@ -249,6 +250,12 @@ func Runtime() string {
 	if runtime != "" {
 		return runtime
 	}
+
+	// Need to switch default until runc supports cgroups v2
+	if unified, _ := cgroups.IsCgroup2UnifiedMode(); unified {
+		return "crun"
+	}
+
 	return DefaultRuntime
 }
 
@@ -373,4 +380,18 @@ func LogIfNotRetryable(err error, what string) (retry bool) {
 // or EAGAIN or EIO syscall.Errno.
 func LogIfUnexpectedWhileDraining(err error, what string) {
 	logIfNotErrno(err, what, syscall.EINTR, syscall.EAGAIN, syscall.EIO)
+}
+
+// TruncateString trims the given string to the provided maximum amount of
+// characters and shortens it with `...`.
+func TruncateString(str string, to int) string {
+	newStr := str
+	if len(str) > to {
+		const tr = "..."
+		if to > len(tr) {
+			to -= len(tr)
+		}
+		newStr = str[0:to] + tr
+	}
+	return newStr
 }

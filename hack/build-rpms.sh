@@ -7,7 +7,7 @@ os::util::ensure::system_binary_exists rpmbuild
 os::util::ensure::system_binary_exists createrepo
 os::build::rpm::get_nvra_vars
 
-OS_RPM_SPECFILE="$( find "${OS_ROOT}" -name *.spec )"
+OS_RPM_SPECFILE="$( find "${OS_ROOT}" -name cri-o.spec )"
 OS_RPM_NAME="$( rpmspec -q --qf '%{name}\n' "${OS_RPM_SPECFILE}" | head -1 )"
 
 os::log::info "Building release RPMs for ${OS_RPM_SPECFILE} ..."

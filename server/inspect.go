@@ -7,7 +7,7 @@ import (
 	"math"
 	"net/http"
 
-	cimage "github.com/containers/image/types"
+	cimage "github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"

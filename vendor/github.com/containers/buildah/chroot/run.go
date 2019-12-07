@@ -205,13 +205,13 @@ func runUsingChrootMain() {
 	}
 
 	// Prepare to shuttle stdio back and forth.
-	rootUid32, rootGid32, err := util.GetHostRootIDs(options.Spec)
+	rootUID32, rootGID32, err := util.GetHostRootIDs(options.Spec)
 	if err != nil {
 		logrus.Errorf("error determining ownership for container stdio")
 		os.Exit(1)
 	}
-	rootUid := int(rootUid32)
-	rootGid := int(rootGid32)
+	rootUID := int(rootUID32)
+	rootGID := int(rootGID32)
 	relays := make(map[int]int)
 	closeOnceRunning := []*os.File{}
 	var ctty *os.File
@@ -288,7 +288,7 @@ func runUsingChrootMain() {
 		// Open an *os.File object that we can pass to our child.
 		ctty = os.NewFile(ptyFd, "/dev/tty")
 		// Set ownership for the PTY.
-		if err = ctty.Chown(rootUid, rootGid); err != nil {
+		if err = ctty.Chown(rootUID, rootGID); err != nil {
 			var cttyInfo unix.Stat_t
 			err2 := unix.Fstat(int(ptyFd), &cttyInfo)
 			from := ""
@@ -297,7 +297,7 @@ func runUsingChrootMain() {
 				op = "changing"
 				from = fmt.Sprintf("from %d/%d ", cttyInfo.Uid, cttyInfo.Gid)
 			}
-			logrus.Warnf("error %s ownership of container PTY %sto %d/%d: %v", op, from, rootUid, rootGid, err)
+			logrus.Warnf("error %s ownership of container PTY %sto %d/%d: %v", op, from, rootUID, rootGID, err)
 		}
 		// Set permissions on the PTY.
 		if err = ctty.Chmod(0620); err != nil {
@@ -336,15 +336,15 @@ func runUsingChrootMain() {
 		fdDesc[unix.Stdout] = "stdout"
 		fdDesc[unix.Stderr] = "stderr"
 		// Set ownership for the pipes.
-		if err = stdinRead.Chown(rootUid, rootGid); err != nil {
+		if err = stdinRead.Chown(rootUID, rootGID); err != nil {
 			logrus.Errorf("error setting ownership of container stdin pipe: %v", err)
 			os.Exit(1)
 		}
-		if err = stdoutWrite.Chown(rootUid, rootGid); err != nil {
+		if err = stdoutWrite.Chown(rootUID, rootGID); err != nil {
 			logrus.Errorf("error setting ownership of container stdout pipe: %v", err)
 			os.Exit(1)
 		}
-		if err = stderrWrite.Chown(rootUid, rootGid); err != nil {
+		if err = stderrWrite.Chown(rootUID, rootGID); err != nil {
 			logrus.Errorf("error setting ownership of container stderr pipe: %v", err)
 			os.Exit(1)
 		}
@@ -507,7 +507,9 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 		return 1, err
 	}
 	defer func() {
-		undoIntermediates()
+		if undoErr := undoIntermediates(); undoErr != nil {
+			logrus.Debugf("error cleaning up intermediate mount NS: %v", err)
+		}
 	}()
 
 	// Bind mount in our filesystems.
@@ -516,7 +518,9 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 		return 1, err
 	}
 	defer func() {
-		undoChroots()
+		if undoErr := undoChroots(); undoErr != nil {
+			logrus.Debugf("error cleaning up intermediate chroot bind mounts: %v", err)
+		}
 	}()
 
 	// Create a pipe for passing configuration down to the next process.
@@ -565,7 +569,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	cmd.UnshareFlags = syscall.CLONE_NEWUTS | syscall.CLONE_NEWNS
 	requestedUserNS := false
 	for _, ns := range spec.Linux.Namespaces {
-		if ns.Type == specs.LinuxNamespaceType(specs.UserNamespace) {
+		if ns.Type == specs.UserNamespace {
 			requestedUserNS = true
 		}
 	}
@@ -979,6 +983,21 @@ func makeReadOnly(mntpoint string, flags uintptr) error {
 	return nil
 }
 
+func isDevNull(dev os.FileInfo) bool {
+	if dev.Mode()&os.ModeCharDevice != 0 {
+		stat, _ := dev.Sys().(*syscall.Stat_t)
+		nullStat := syscall.Stat_t{}
+		if err := syscall.Stat(os.DevNull, &nullStat); err != nil {
+			logrus.Warnf("unable to stat /dev/null: %v", err)
+			return false
+		}
+		if stat.Rdev == nullStat.Rdev {
+			return true
+		}
+	}
+	return false
+}
+
 // setupChrootBindMounts actually bind mounts things under the rootfs, and returns a
 // callback that will clean up its work.
 func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func() error, err error) {
@@ -1162,6 +1181,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		switch m.Type {
 		case "bind":
 			// Do the bind mount.
+			logrus.Debugf("bind mounting %q on %q", m.Destination, filepath.Join(spec.Root.Path, m.Destination))
 			if err := unix.Mount(m.Source, target, "", requestFlags, ""); err != nil {
 				return undoBinds, errors.Wrapf(err, "error bind mounting %q from host to %q in mount namespace (%q)", m.Source, m.Destination, target)
 			}
@@ -1259,11 +1279,6 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		if err != nil {
 			target = t
 		}
-		// Get some info about the null device.
-		nullinfo, err := os.Stat(os.DevNull)
-		if err != nil {
-			return undoBinds, errors.Wrapf(err, "error examining %q for masking in mount namespace", os.DevNull)
-		}
 		// Get some info about the target.
 		targetinfo, err := os.Stat(target)
 		if err != nil {
@@ -1281,12 +1296,11 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			}
 			isReadOnly := statfs.Flags&unix.MS_RDONLY != 0
 			// Check if any of the IDs we're mapping could read it.
-			isAccessible := true
 			var stat unix.Stat_t
 			if err = unix.Stat(target, &stat); err != nil {
 				return undoBinds, errors.Wrapf(err, "error checking permissions on directory %q", target)
 			}
-			isAccessible = false
+			isAccessible := false
 			if stat.Mode&unix.S_IROTH|unix.S_IXOTH != 0 {
 				isAccessible = true
 			}
@@ -1352,8 +1366,8 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 				}
 			}
 		} else {
-			// The target's not a directory, so bind mount os.DevNull over it, unless it's already os.DevNull.
-			if !os.SameFile(nullinfo, targetinfo) {
+			// If the target's is not a directory or os.DevNull, bind mount os.DevNull over it.
+			if !isDevNull(targetinfo) {
 				if err = unix.Mount(os.DevNull, target, "", uintptr(syscall.MS_BIND|syscall.MS_RDONLY|syscall.MS_PRIVATE), ""); err != nil {
 					return undoBinds, errors.Wrapf(err, "error masking non-directory %q in mount namespace", target)
 				}

@@ -7,7 +7,7 @@ package cli
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -71,7 +71,7 @@ type BudResults struct {
 	Squash              bool
 	Tag                 []string
 	Target              string
-	TlsVerify           bool
+	TLSVerify           bool
 }
 
 // FromAndBugResults represents the results for common flags
@@ -87,13 +87,16 @@ type FromAndBudResults struct {
 	CPUSetCPUs   string
 	CPUSetMems   string
 	CPUShares    uint64
+	Devices      []string
 	DNSSearch    []string
 	DNSServers   []string
 	DNSOptions   []string
-	HttpProxy    bool
+	HTTPProxy    bool
 	Isolation    string
 	Memory       string
 	MemorySwap   string
+	OverrideArch string
+	OverrideOS   string
 	SecurityOpt  []string
 	ShmSize      string
 	Ulimit       []string
@@ -118,7 +121,9 @@ func GetNameSpaceFlags(flags *NameSpaceResults) pflag.FlagSet {
 	fs.StringVar(&flags.Network, string(specs.NetworkNamespace), "", "'container', `path` of network namespace to join, or 'host'")
 	// TODO How do we alias net and network?
 	fs.StringVar(&flags.Network, "net", "", "'container', `path` of network namespace to join, or 'host'")
-	fs.MarkHidden("net")
+	if err := fs.MarkHidden("net"); err != nil {
+		panic(fmt.Sprintf("error marking net flag as hidden: %v", err))
+	}
 	fs.StringVar(&flags.CNIConfigDir, "cni-config-dir", util.DefaultCNIConfigDir, "`directory` of CNI configuration files")
 	fs.StringVar(&flags.CNIPlugInPath, "cni-plugin-path", util.DefaultCNIPluginPath, "`path` of CNI network plugins")
 	fs.StringVar(&flags.PID, string(specs.PIDNamespace), "", "container, `path` of PID namespace to join, or 'host'")
@@ -158,13 +163,13 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image, even if a version is present")
 	fs.BoolVarP(&flags.Quiet, "quiet", "q", false, "refrain from announcing build instructions and image read/write progress")
 	fs.BoolVar(&flags.Rm, "rm", true, "Remove intermediate containers after a successful build")
-	fs.StringVar(&flags.Runtime, "runtime", util.Runtime(), "`path` to an alternate runtime. Use BUILDAH_RUNTIME environment variable to override.")
+	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/bud.go.
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
 	fs.StringVar(&flags.SignaturePolicy, "signature-policy", "", "`pathname` of signature policy file (not usually used)")
 	fs.BoolVar(&flags.Squash, "squash", false, "Squash newly built layers into a single new layer.")
 	fs.StringArrayVarP(&flags.Tag, "tag", "t", []string{}, "tagged `name` to apply to the built image")
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
-	fs.BoolVar(&flags.TlsVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
+	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	return fs
 }
 
@@ -172,7 +177,9 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs := pflag.FlagSet{}
 	fs.StringSliceVar(&flags.AddHost, "add-host", []string{}, "add a custom host-to-IP mapping (`host:ip`) (default [])")
 	fs.StringVar(&flags.BlobCache, "blob-cache", "", "assume image blobs in the specified directory will be available for pushing")
-	fs.MarkHidden("blob-cache")
+	if err := fs.MarkHidden("blob-cache"); err != nil {
+		panic(fmt.Sprintf("error marking net flag as hidden: %v", err))
+	}
 	fs.StringSliceVar(&flags.CapAdd, "cap-add", []string{}, "add the specified capability when running (default [])")
 	fs.StringSliceVar(&flags.CapDrop, "cap-drop", []string{}, "drop the specified capability when running (default [])")
 	fs.StringVar(&flags.CgroupParent, "cgroup-parent", "", "optional parent cgroup for the container")
@@ -181,13 +188,22 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.Uint64VarP(&flags.CPUShares, "cpu-shares", "c", 0, "CPU shares (relative weight)")
 	fs.StringVar(&flags.CPUSetCPUs, "cpuset-cpus", "", "CPUs in which to allow execution (0-3, 0,1)")
 	fs.StringVar(&flags.CPUSetMems, "cpuset-mems", "", "memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.")
+	fs.StringArrayVar(&flags.Devices, "device", []string{}, "Additional devices to be used within containers (default [])")
 	fs.StringSliceVar(&flags.DNSSearch, "dns-search", []string{}, "Set custom DNS search domains")
-	fs.StringSliceVar(&flags.DNSServers, "dns", []string{}, "Set custom DNS servers")
+	fs.StringSliceVar(&flags.DNSServers, "dns", []string{}, "Set custom DNS servers or disable it completely by setting it to 'none', which prevents the automatic creation of `/etc/resolv.conf`.")
 	fs.StringSliceVar(&flags.DNSOptions, "dns-option", []string{}, "Set custom DNS options")
-	fs.BoolVar(&flags.HttpProxy, "http-proxy", true, "pass thru HTTP Proxy environment variables")
+	fs.BoolVar(&flags.HTTPProxy, "http-proxy", true, "pass thru HTTP Proxy environment variables")
 	fs.StringVar(&flags.Isolation, "isolation", DefaultIsolation(), "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.")
 	fs.StringVarP(&flags.Memory, "memory", "m", "", "memory limit (format: <number>[<unit>], where unit = b, k, m or g)")
 	fs.StringVar(&flags.MemorySwap, "memory-swap", "", "swap limit equal to memory plus swap: '-1' to enable unlimited swap")
+	fs.StringVar(&flags.OverrideOS, "override-os", runtime.GOOS, "prefer `OS` instead of the running OS when pulling images")
+	if err := fs.MarkHidden("override-os"); err != nil {
+		panic(fmt.Sprintf("error marking override-os as hidden: %v", err))
+	}
+	fs.StringVar(&flags.OverrideArch, "override-arch", runtime.GOARCH, "prefer `ARCH` instead of the architecture of the machine when pulling images")
+	if err := fs.MarkHidden("override-arch"); err != nil {
+		panic(fmt.Sprintf("error marking override-arch as hidden: %v", err))
+	}
 	fs.StringArrayVar(&flags.SecurityOpt, "security-opt", []string{}, "security options (default [])")
 	fs.StringVar(&flags.ShmSize, "shm-size", "65536k", "size of '/dev/shm'. The format is `<number><unit>`.")
 	fs.StringSliceVar(&flags.Ulimit, "ulimit", []string{}, "ulimit options (default [])")
@@ -252,10 +268,6 @@ func GetDefaultAuthFile() string {
 	authfile := os.Getenv("REGISTRY_AUTH_FILE")
 	if authfile != "" {
 		return authfile
-	}
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	if runtimeDir != "" {
-		return filepath.Join(runtimeDir, "containers/auth.json")
 	}
 	return ""
 }

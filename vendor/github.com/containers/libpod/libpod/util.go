@@ -3,14 +3,16 @@ package libpod
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/containers/image/signature"
-	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/utils"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -18,21 +20,8 @@ import (
 
 // Runtime API constants
 const (
-	// DefaultTransport is a prefix that we apply to an image name
-	// to check docker hub first for the image
-	DefaultTransport = "docker://"
+	unknownPackage = "Unknown"
 )
-
-// OpenExclusiveFile opens a file for writing and ensure it doesn't already exist
-func OpenExclusiveFile(path string) (*os.File, error) {
-	baseDir := filepath.Dir(path)
-	if baseDir != "" {
-		if _, err := os.Stat(baseDir); err != nil {
-			return nil, err
-		}
-	}
-	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-}
 
 // FuncTimer helps measure the execution time of a function
 // For debug purposes, do not leave in code
@@ -40,24 +29,6 @@ func OpenExclusiveFile(path string) (*os.File, error) {
 func FuncTimer(funcName string) {
 	elapsed := time.Since(time.Now())
 	fmt.Printf("%s executed in %d ms\n", funcName, elapsed)
-}
-
-// CopyStringStringMap deep copies a map[string]string and returns the result
-func CopyStringStringMap(m map[string]string) map[string]string {
-	n := map[string]string{}
-	for k, v := range m {
-		n[k] = v
-	}
-	return n
-}
-
-// GetPolicyContext creates a signature policy context for the given signature policy path
-func GetPolicyContext(path string) (*signature.PolicyContext, error) {
-	policy, err := signature.DefaultPolicy(&types.SystemContext{SignaturePolicyPath: path})
-	if err != nil {
-		return nil, err
-	}
-	return signature.NewPolicyContext(policy)
 }
 
 // RemoveScientificNotationFromFloat returns a float without any
@@ -99,7 +70,11 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 		defer watcher.Close()
 	}
 
-	timeoutChan := time.After(timeout)
+	var timeoutChan <-chan time.Time
+
+	if timeout != 0 {
+		timeoutChan = time.After(timeout)
+	}
 
 	for {
 		select {
@@ -126,7 +101,7 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 				return false, errors.Wrapf(err, "checking file %s", path)
 			}
 		case <-timeoutChan:
-			return false, errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
+			return false, errors.Wrapf(define.ErrInternal, "timed out waiting for file %s", path)
 		}
 	}
 }
@@ -156,15 +131,15 @@ func sortMounts(m []spec.Mount) []spec.Mount {
 
 func validPodNSOption(p *Pod, ctrPod string) error {
 	if p == nil {
-		return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
+		return errors.Wrapf(define.ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 	}
 
 	if ctrPod == "" {
-		return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		return errors.Wrapf(define.ErrInvalidArg, "container is not a member of any pod")
 	}
 
 	if ctrPod != p.ID() {
-		return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		return errors.Wrapf(define.ErrInvalidArg, "pod passed in is not the pod the container is associated with")
 	}
 	return nil
 }
@@ -177,4 +152,57 @@ func JSONDeepCopy(from, to interface{}) error {
 		return err
 	}
 	return json.Unmarshal(tmp, to)
+}
+
+func dpkgVersion(path string) string {
+	output := unknownPackage
+	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
+	if outp, err := cmd.Output(); err == nil {
+		output = string(outp)
+	}
+	return strings.Trim(output, "\n")
+}
+
+func rpmVersion(path string) string {
+	output := unknownPackage
+	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
+	if outp, err := cmd.Output(); err == nil {
+		output = string(outp)
+	}
+	return strings.Trim(output, "\n")
+}
+
+func packageVersion(program string) string {
+	if out := rpmVersion(program); out != unknownPackage {
+		return out
+	}
+	return dpkgVersion(program)
+}
+
+func programVersion(mountProgram string) (string, error) {
+	output, err := utils.ExecCmd(mountProgram, "--version")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(output, "\n"), nil
+}
+
+// DefaultSeccompPath returns the path to the default seccomp.json file
+// if it exists, first it checks OverrideSeccomp and then default.
+// If neither exist function returns ""
+func DefaultSeccompPath() (string, error) {
+	_, err := os.Stat(config.SeccompOverridePath)
+	if err == nil {
+		return config.SeccompOverridePath, nil
+	}
+	if !os.IsNotExist(err) {
+		return "", errors.Wrapf(err, "can't check if %q exists", config.SeccompOverridePath)
+	}
+	if _, err := os.Stat(config.SeccompDefaultPath); err != nil {
+		if !os.IsNotExist(err) {
+			return "", errors.Wrapf(err, "can't check if %q exists", config.SeccompDefaultPath)
+		}
+		return "", nil
+	}
+	return config.SeccompDefaultPath, nil
 }

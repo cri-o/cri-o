@@ -8,7 +8,8 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
-	is "github.com/containers/image/storage"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
@@ -18,7 +19,7 @@ import (
 // ContainerCommitOptions is a struct used to commit a container to an image
 // It uses buildah's CommitOptions as a base. Long-term we might wish to
 // add these to the buildah struct once buildah is more integrated with
-//libpod
+// libpod
 type ContainerCommitOptions struct {
 	buildah.CommitOptions
 	Pause          bool
@@ -27,9 +28,6 @@ type ContainerCommitOptions struct {
 	Message        string
 	Changes        []string
 }
-
-// ChangeCmds is the list of valid Changes commands to passed to the Commit call
-var ChangeCmds = []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}
 
 // Commit commits the changes between a container and its image, creating a new
 // image
@@ -51,12 +49,12 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		}
 	}
 
-	if c.state.State == ContainerStateRunning && options.Pause {
-		if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
+	if c.state.State == define.ContainerStateRunning && options.Pause {
+		if err := c.pause(); err != nil {
 			return nil, errors.Wrapf(err, "error pausing container %q", c.ID())
 		}
 		defer func() {
-			if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
+			if err := c.unpause(); err != nil {
 				logrus.Errorf("error unpausing container %q: %v", c.ID(), err)
 			}
 		}()
@@ -179,6 +177,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 					return nil, errors.Errorf("invalid env variable %q: not defined in your environment", name)
 				}
 			} else {
+				name = change[0]
 				val = strings.Join(change[1:], " ")
 			}
 			if !isEnvCleared { // Multiple values are valid, only clear once.

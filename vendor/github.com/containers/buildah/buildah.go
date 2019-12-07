@@ -12,10 +12,11 @@ import (
 
 	"github.com/containers/buildah/docker"
 	"github.com/containers/buildah/util"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -26,7 +27,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.8.4"
+	Version = "1.12.0-dev"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -119,6 +120,9 @@ type Builder struct {
 	// FromImageID is the ID of the source image which was used to create
 	// the container, if one was used.  It should not be modified.
 	FromImageID string `json:"image-id"`
+	// FromImageDigest is the digest of the source image which was used to
+	// create the container, if one was used.  It should not be modified.
+	FromImageDigest string `json:"image-digest"`
 	// Config is the source image's configuration.  It should not be
 	// modified.
 	Config []byte `json:"config,omitempty"`
@@ -185,14 +189,17 @@ type Builder struct {
 	// committed image after the history item for the layer that we're
 	// committing.
 	AppendedEmptyLayers []v1.History
-
-	CommonBuildOpts *CommonBuildOptions
+	CommonBuildOpts     *CommonBuildOptions
 	// TopLayer is the top layer of the image
 	TopLayer string
 	// Format for the build Image
 	Format string
 	// TempVolumes are temporary mount points created during container runs
 	TempVolumes map[string]bool
+	// ContentDigester counts the digest of all Add()ed content
+	ContentDigester CompositeDigester
+	// Devices are the additional devices to add to the containers
+	Devices []configs.Device
 }
 
 // BuilderInfo are used as objects to display container information
@@ -200,6 +207,7 @@ type BuilderInfo struct {
 	Type                  string
 	FromImage             string
 	FromImageID           string
+	FromImageDigest       string
 	Config                string
 	Manifest              string
 	Container             string
@@ -222,6 +230,7 @@ type BuilderInfo struct {
 	AddCapabilities       []string
 	DropCapabilities      []string
 	History               []v1.History
+	Devices               []configs.Device
 }
 
 // GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
@@ -243,6 +252,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		Type:                  b.Type,
 		FromImage:             b.FromImage,
 		FromImageID:           b.FromImageID,
+		FromImageDigest:       b.FromImageDigest,
 		Config:                string(b.Config),
 		Manifest:              string(b.Manifest),
 		Container:             b.Container,
@@ -265,6 +275,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		AddCapabilities:       append([]string{}, b.AddCapabilities...),
 		DropCapabilities:      append([]string{}, b.DropCapabilities...),
 		History:               history,
+		Devices:               b.Devices,
 	}
 }
 
@@ -399,6 +410,8 @@ type BuilderOptions struct {
 	CommonBuildOpts *CommonBuildOptions
 	// Format for the container image
 	Format string
+	// Devices are the additional devices to add to the containers
+	Devices []configs.Device
 }
 
 // ImportOptions are used to initialize a Builder from an existing container

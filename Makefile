@@ -1,4 +1,14 @@
 GO ?= go
+
+# test for go module support
+ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
+export GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
+export GO_TEST=GO111MODULE=on $(GO) test -mod=vendor
+else
+export GO_BUILD=$(GO) build
+export GO_TEST=$(GO) test
+endif
+
 EPOCH_TEST_COMMIT ?= 1cc5a27
 PROJECT := github.com/cri-o/cri-o
 CRIO_IMAGE = crio_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
@@ -93,16 +103,16 @@ bin/pause:
 	$(MAKE) -C pause
 
 test/bin2img/bin2img: git-vars .gopathok $(wildcard test/bin2img/*.go)
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
+	$(GO_BUILD) -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
 
 test/copyimg/copyimg: git-vars .gopathok $(wildcard test/copyimg/*.go)
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/copyimg
+	$(GO_BUILD) -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/copyimg
 
 test/checkseccomp/checkseccomp: git-vars .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO_BUILD) -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
 bin/crio: git-vars .gopathok
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/cmd/crio
+	$(GO_BUILD) -i $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/cmd/crio
 
 crio.conf: bin/crio
 	./bin/crio --config="" config --default > crio.conf
@@ -111,7 +121,7 @@ release-note:
 	@$(GOPATH)/bin/release-tool -n $(release)
 
 conmon/config.h: git-vars cmd/crio-config/config.go oci/oci.go
-	$(GO) build -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
+	$(GO_BUILD) -i $(LDFLAGS) -tags "$(BUILDTAGS)" -o bin/crio-config $(PROJECT)/cmd/crio-config
 	( cd conmon && $(CURDIR)/bin/crio-config )
 
 clean:
@@ -142,7 +152,7 @@ bin/crio.cross.%: git-vars .gopathok .explicit_phony
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO) build -i $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
+	$(GO_BUILD) -i $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
 
 crioimage: git-vars
 	$(CONTAINER_RUNTIME) build -t ${CRIO_IMAGE} .
@@ -155,17 +165,17 @@ integration: crioimage
 
 ${BUILD_BIN_PATH}/ginkgo:
 	mkdir -p ${BUILD_BIN_PATH}
-	$(GO) build -o ${BUILD_BIN_PATH}/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo
+	$(GO_BUILD) -o ${BUILD_BIN_PATH}/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo
 
-vendor: .install.vndr
-	$(GOPATH)/bin/vndr \
-		-whitelist "github.com/onsi/ginkgo" \
-		-whitelist "github.com/golang/mock" \
-		${PKG}
+vendor:
+	export GO111MODULE=on \
+		$(GO) mod tidy && \
+		$(GO) mod vendor && \
+		$(GO) mod verify
 
 ${BUILD_BIN_PATH}/mockgen:
 	mkdir -p ${BUILD_BIN_PATH}
-	$(GO) build -o ${BUILD_BIN_PATH}/mockgen ./vendor/github.com/golang/mock/mockgen
+	$(GO_BUILD) -o ${BUILD_BIN_PATH}/mockgen ./vendor/github.com/golang/mock/mockgen
 
 testunit: mockgen ${BUILD_BIN_PATH}/ginkgo
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
@@ -186,7 +196,7 @@ testunit: mockgen ${BUILD_BIN_PATH}/ginkgo
 testunit-bin:
 	mkdir -p ${TESTBIN_PATH}
 	for PACKAGE in ${PACKAGES}; do \
-		go test $$PACKAGE \
+		$(GO_TEST) $$PACKAGE \
 			--tags "containers_image_ostree_stub $(BUILDTAGS)" \
 			--gcflags '-N' -c -o ${TESTBIN_PATH}/$$(basename $$PACKAGE) ;\
 	done
@@ -310,9 +320,6 @@ install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .in
 	if [ ! -x "$(GOPATH)/bin/go-md2man" ]; then \
 		go get -u github.com/cpuguy83/go-md2man; \
 	fi
-
-.install.vndr: .gopathok
-	$(GO) get -u github.com/LK4D4/vndr
 
 .install.ostree: .gopathok
 	if ! pkg-config ostree-1 2> /dev/null ; then \

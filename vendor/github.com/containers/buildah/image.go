@@ -13,17 +13,17 @@ import (
 	"time"
 
 	"github.com/containers/buildah/docker"
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/image"
-	"github.com/containers/image/manifest"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/manifest"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/ioutils"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -128,6 +128,10 @@ func computeLayerMIMEType(what string, layerCompression archive.Compression) (om
 			// Until the image specs define a media type for xz-compressed layers, even if we know
 			// how to decompress them, we can't try to compress layers with xz.
 			return "", "", errors.New("media type for xz-compressed layers is not defined")
+		case archive.Zstd:
+			// Until the image specs define a media type for zstd-compressed layers, even if we know
+			// how to decompress them, we can't try to compress layers with zstd.
+			return "", "", errors.New("media type for zstd-compressed layers is not defined")
 		default:
 			logrus.Debugf("compressing %s with unknown compressor(?)", what)
 		}
@@ -592,7 +596,7 @@ func (i *containerImageSource) GetManifest(ctx context.Context, instanceDigest *
 	return i.manifest, i.manifestType, nil
 }
 
-func (i *containerImageSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
+func (i *containerImageSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
 	return nil, nil
 }
 
@@ -706,7 +710,7 @@ func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.Ima
 		preferredManifestType: manifestType,
 		exporting:             exporting,
 		squash:                options.Squash,
-		emptyLayer:            options.EmptyLayer,
+		emptyLayer:            options.EmptyLayer && !options.Squash,
 		tarPath:               b.tarPath(&b.IDMappingOptions),
 		parent:                parent,
 		blobDirectory:         options.BlobDirectory,

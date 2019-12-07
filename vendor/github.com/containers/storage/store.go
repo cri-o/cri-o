@@ -722,6 +722,7 @@ func (s *store) getGraphDriver() (drivers.Driver, error) {
 	}
 	config := drivers.Options{
 		Root:          s.graphRoot,
+		RunRoot:       s.runRoot,
 		DriverOptions: s.graphOptions,
 		UIDMaps:       s.uidMap,
 		GIDMaps:       s.gidMap,
@@ -900,7 +901,7 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 		for _, l := range append([]ROLayerStore{rlstore}, rlstores...) {
 			lstore := l
 			if lstore != rlstore {
-				lstore.Lock()
+				lstore.RLock()
 				defer lstore.Unlock()
 				if modified, err := lstore.Modified(); modified || err != nil {
 					if err = lstore.Load(); err != nil {
@@ -979,7 +980,11 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 		var ilayer *Layer
 		for _, s := range append([]ROLayerStore{lstore}, lstores...) {
 			store := s
-			store.Lock()
+			if store == lstore {
+				store.Lock()
+			} else {
+				store.RLock()
+			}
 			defer store.Unlock()
 			if modified, err := store.Modified(); modified || err != nil {
 				if err = store.Load(); err != nil {
@@ -1043,7 +1048,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 	for _, s := range allStores {
 		store := s
 		if store != rlstore {
-			store.Lock()
+			store.RLock()
 			defer store.Unlock()
 			if modified, err := store.Modified(); modified || err != nil {
 				if err = store.Load(); err != nil {
@@ -1179,7 +1184,11 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		var cimage *Image
 		for _, s := range append([]ROImageStore{istore}, istores...) {
 			store := s
-			store.Lock()
+			if store == istore {
+				store.Lock()
+			} else {
+				store.RLock()
+			}
 			defer store.Unlock()
 			if modified, err := store.Modified(); modified || err != nil {
 				if err = store.Load(); err != nil {
@@ -1193,7 +1202,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 			}
 		}
 		if cimage == nil {
-			return nil, ErrImageUnknown
+			return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 		}
 		imageID = cimage.ID
 
@@ -1428,7 +1437,7 @@ func (s *store) ListImageBigData(id string) ([]string, error) {
 			return bigDataNames, err
 		}
 	}
-	return nil, ErrImageUnknown
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (s *store) ImageBigDataSize(id, key string) (int64, error) {
@@ -1493,6 +1502,7 @@ func (s *store) ImageBigData(id, key string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	foundImage := false
 	for _, s := range append([]ROImageStore{istore}, istores...) {
 		store := s
 		store.RLock()
@@ -1506,8 +1516,14 @@ func (s *store) ImageBigData(id, key string) ([]byte, error) {
 		if err == nil {
 			return data, nil
 		}
+		if store.Exists(id) {
+			foundImage = true
+		}
 	}
-	return nil, ErrImageUnknown
+	if foundImage {
+		return nil, errors.Wrapf(os.ErrNotExist, "error locating item named %q for image with ID %q", key, id)
+	}
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (s *store) SetImageBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error {
@@ -1578,10 +1594,12 @@ func (s *store) ImageSize(id string) (int64, error) {
 		return -1, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 
-	// Start with a list of the image's top layers.
+	// Start with a list of the image's top layers, if it has any.
 	queue := make(map[string]struct{})
 	for _, layerID := range append([]string{image.TopLayer}, image.MappedTopLayers...) {
-		queue[layerID] = struct{}{}
+		if layerID != "" {
+			queue[layerID] = struct{}{}
+		}
 	}
 	visited := make(map[string]struct{})
 	// Walk all of the layers.
@@ -2882,7 +2900,7 @@ func (s *store) Image(id string) (*Image, error) {
 			return image, nil
 		}
 	}
-	return nil, ErrImageUnknown
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (s *store) ImagesByTopLayer(id string) ([]*Image, error) {
@@ -2944,7 +2962,7 @@ func (s *store) ImagesByDigest(d digest.Digest) ([]*Image, error) {
 			}
 		}
 		imageList, err := store.ByDigest(d)
-		if err != nil && err != ErrImageUnknown {
+		if err != nil && errors.Cause(err) != ErrImageUnknown {
 			return nil, err
 		}
 		images = append(images, imageList...)
@@ -3339,14 +3357,11 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	if config.Storage.Options.Size != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.size=%s", config.Storage.Driver, config.Storage.Options.Size))
 	}
-	if config.Storage.Options.OstreeRepo != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.ostree_repo=%s", config.Storage.Driver, config.Storage.Options.OstreeRepo))
-	}
-	if config.Storage.Options.SkipMountHome != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.skip_mount_home=%s", config.Storage.Driver, config.Storage.Options.SkipMountHome))
-	}
 	if config.Storage.Options.MountProgram != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mount_program=%s", config.Storage.Driver, config.Storage.Options.MountProgram))
+	}
+	if config.Storage.Options.IgnoreChownErrors != "" {
+		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.ignore_chown_errors=%s", config.Storage.Driver, config.Storage.Options.IgnoreChownErrors))
 	}
 	if config.Storage.Options.MountOpt != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mountopt=%s", config.Storage.Driver, config.Storage.Options.MountOpt))

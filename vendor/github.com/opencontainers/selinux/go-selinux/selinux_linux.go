@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -333,6 +334,11 @@ func writeCon(fpath string, val string) error {
 	if fpath == "" {
 		return ErrEmptyPath
 	}
+	if val == "" {
+		if !GetEnabled() {
+			return nil
+		}
+	}
 
 	out, err := os.OpenFile(fpath, os.O_WRONLY, 0)
 	if err != nil {
@@ -387,6 +393,14 @@ func SetExecLabel(label string) error {
 	return writeCon(fmt.Sprintf("/proc/self/task/%d/attr/exec", syscall.Gettid()), label)
 }
 
+/*
+SetTaskLabel sets the SELinux label for the current thread, or an error. 
+This requires the dyntransition permission.
+*/
+func SetTaskLabel(label string) error {
+	return writeCon(fmt.Sprintf("/proc/self/task/%d/attr/current", syscall.Gettid()), label)
+}
+
 // SetSocketLabel takes a process label and tells the kernel to assign the
 // label to the next socket that gets created
 func SetSocketLabel(label string) error {
@@ -398,10 +412,22 @@ func SocketLabel() (string, error) {
 	return readCon(fmt.Sprintf("/proc/self/task/%d/attr/sockcreate", syscall.Gettid()))
 }
 
+// PeerLabel retrieves the label of the client on the other side of a socket
+func PeerLabel(fd uintptr) (string, error) {
+	return unix.GetsockoptString(int(fd), syscall.SOL_SOCKET, syscall.SO_PEERSEC)
+}
+
 // SetKeyLabel takes a process label and tells the kernel to assign the
 // label to the next kernel keyring that gets created
 func SetKeyLabel(label string) error {
-	return writeCon("/proc/self/attr/keycreate", label)
+	err := writeCon("/proc/self/attr/keycreate", label)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if label == "" && os.IsPermission(err) && !GetEnabled() {
+		return nil
+	}
+	return err
 }
 
 // KeyLabel retrieves the current kernel keyring label setting

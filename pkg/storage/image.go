@@ -9,14 +9,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/image/copy"
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/manifest"
-	"github.com/containers/image/pkg/sysregistriesv2"
-	"github.com/containers/image/signature"
-	istorage "github.com/containers/image/storage"
-	"github.com/containers/image/transports/alltransports"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
+	"github.com/containers/image/v5/signature"
+	istorage "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
@@ -153,9 +153,11 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, imageI
 		}
 		imageDigest = imgDigest
 	}
-	// If there are no names to convert to canonical references, we're done.
-	if len(tags) == 0 {
-		return imageDigest, knownRepoDigests
+	imageDigests := []digest.Digest{imageDigest}
+	for _, anotherImageDigest := range img.Digests {
+		if anotherImageDigest != imageDigest {
+			imageDigests = append(imageDigests, anotherImageDigest)
+		}
 	}
 	// We only want to supplement what's already explicitly in the list, so keep track of values
 	// that we already know.
@@ -166,14 +168,16 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, imageI
 	}
 	// For each tagged name, parse the name, and if we can extract a named reference, convert
 	// it into a canonical reference using the digest and add it to the list.
-	for _, tag := range tags {
-		if ref, err2 := reference.ParseAnyReference(tag); err2 == nil {
+	for _, name := range append(tags, knownRepoDigests...) {
+		if ref, err2 := reference.ParseNormalizedNamed(name); err2 == nil {
 			if name, ok := ref.(reference.Named); ok {
 				trimmed := reference.TrimNamed(name)
-				if imageRef, err3 := reference.WithDigest(trimmed, imageDigest); err3 == nil {
-					if _, ok := digestMap[imageRef.String()]; !ok {
-						repoDigests = append(repoDigests, imageRef.String())
-						digestMap[imageRef.String()] = struct{}{}
+				for _, imageDigest := range imageDigests {
+					if imageRef, err3 := reference.WithDigest(trimmed, imageDigest); err3 == nil {
+						if _, ok := digestMap[imageRef.String()]; !ok {
+							repoDigests = append(repoDigests, imageRef.String())
+							digestMap[imageRef.String()] = struct{}{}
+						}
 					}
 				}
 			}
@@ -188,7 +192,7 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 		return imageCacheItem{}, err
 	}
 	size := imageSize(img)
-	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
+	configDigest, err := imageConfigDigest(svc.ctx, systemContext, img, nil)
 	img.Close()
 	if err != nil {
 		return imageCacheItem{}, err
@@ -310,7 +314,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	}
 	defer img.Close()
 	size := imageSize(img)
-	configDigest, err := imageConfigDigest(svc.ctx, img, nil)
+	configDigest, err := imageConfigDigest(svc.ctx, systemContext, img, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -341,10 +345,24 @@ func imageSize(img types.ImageSource) *uint64 {
 	return nil
 }
 
-func imageConfigDigest(ctx context.Context, img types.ImageSource, instanceDigest *digest.Digest) (digest.Digest, error) {
+func imageConfigDigest(ctx context.Context, sys *types.SystemContext, img types.ImageSource, instanceDigest *digest.Digest) (digest.Digest, error) {
 	manifestBytes, manifestType, err := img.GetManifest(ctx, instanceDigest)
 	if err != nil {
 		return "", err
+	}
+	if manifest.MIMETypeIsMultiImage(manifestType) {
+		list, err := manifest.ListFromBlob(manifestBytes, manifestType)
+		if err != nil {
+			return "", err
+		}
+		digest, err := list.ChooseInstance(sys)
+		if err != nil {
+			return "", err
+		}
+		manifestBytes, manifestType, err = img.GetManifest(ctx, &digest)
+		if err != nil {
+			return "", err
+		}
 	}
 	imgManifest, err := manifest.FromBlob(manifestBytes, manifestType)
 	if err != nil {

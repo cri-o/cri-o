@@ -47,6 +47,15 @@ package sdjournal
 //   return sd_journal_open_directory(ret, path, flags);
 // }
 //
+// int
+// my_sd_journal_open_files(void *f, sd_journal **ret, const char **paths, int flags)
+// {
+//   int (*sd_journal_open_files)(sd_journal **, const char **, int);
+//
+//   sd_journal_open_files = f;
+//   return sd_journal_open_files(ret, paths, flags);
+// }
+//
 // void
 // my_sd_journal_close(void *f, sd_journal *j)
 // {
@@ -282,9 +291,19 @@ package sdjournal
 //   sd_journal_restart_unique(j);
 // }
 //
+// int
+// my_sd_journal_get_catalog(void *f, sd_journal *j, char **ret)
+// {
+//   int(*sd_journal_get_catalog)(sd_journal *, char **);
+//
+//   sd_journal_get_catalog = f;
+//   return sd_journal_get_catalog(j, ret);
+// }
+//
 import "C"
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -352,6 +371,12 @@ const (
 	IndefiniteWait time.Duration = 1<<63 - 1
 )
 
+var (
+	// ErrNoTestCursor gets returned when using TestCursor function and cursor
+	// parameter is not the same as the current cursor position.
+	ErrNoTestCursor = errors.New("Cursor parameter is not the same as current position")
+)
+
 // Journal is a Go wrapper of an sd_journal structure.
 type Journal struct {
 	cjournal *C.sd_journal
@@ -389,15 +414,14 @@ func NewJournal() (j *Journal, err error) {
 	r := C.my_sd_journal_open(sd_journal_open, &j.cjournal, C.SD_JOURNAL_LOCAL_ONLY)
 
 	if r < 0 {
-		return nil, fmt.Errorf("failed to open journal: %d", syscall.Errno(-r))
+		return nil, fmt.Errorf("failed to open journal: %s", syscall.Errno(-r).Error())
 	}
 
 	return j, nil
 }
 
 // NewJournalFromDir returns a new Journal instance pointing to a journal residing
-// in a given directory. The supplied path may be relative or absolute; if
-// relative, it will be converted to an absolute path before being opened.
+// in a given directory.
 func NewJournalFromDir(path string) (j *Journal, err error) {
 	j = &Journal{}
 
@@ -411,7 +435,33 @@ func NewJournalFromDir(path string) (j *Journal, err error) {
 
 	r := C.my_sd_journal_open_directory(sd_journal_open_directory, &j.cjournal, p, 0)
 	if r < 0 {
-		return nil, fmt.Errorf("failed to open journal in directory %q: %d", path, syscall.Errno(-r))
+		return nil, fmt.Errorf("failed to open journal in directory %q: %s", path, syscall.Errno(-r).Error())
+	}
+
+	return j, nil
+}
+
+// NewJournalFromFiles returns a new Journal instance pointing to a journals residing
+// in a given files.
+func NewJournalFromFiles(paths ...string) (j *Journal, err error) {
+	j = &Journal{}
+
+	sd_journal_open_files, err := getFunction("sd_journal_open_files")
+	if err != nil {
+		return nil, err
+	}
+
+	// by making the slice 1 elem too long, we guarantee it'll be null-terminated
+	cPaths := make([]*C.char, len(paths)+1)
+	for idx, path := range paths {
+		p := C.CString(path)
+		cPaths[idx] = p
+		defer C.free(unsafe.Pointer(p))
+	}
+
+	r := C.my_sd_journal_open_files(sd_journal_open_files, &j.cjournal, &cPaths[0], 0)
+	if r < 0 {
+		return nil, fmt.Errorf("failed to open journals in paths %q: %s", paths, syscall.Errno(-r).Error())
 	}
 
 	return j, nil
@@ -446,7 +496,7 @@ func (j *Journal) AddMatch(match string) error {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return fmt.Errorf("failed to add match: %d", syscall.Errno(-r))
+		return fmt.Errorf("failed to add match: %s", syscall.Errno(-r).Error())
 	}
 
 	return nil
@@ -464,7 +514,7 @@ func (j *Journal) AddDisjunction() error {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return fmt.Errorf("failed to add a disjunction in the match list: %d", syscall.Errno(-r))
+		return fmt.Errorf("failed to add a disjunction in the match list: %s", syscall.Errno(-r).Error())
 	}
 
 	return nil
@@ -482,7 +532,7 @@ func (j *Journal) AddConjunction() error {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return fmt.Errorf("failed to add a conjunction in the match list: %d", syscall.Errno(-r))
+		return fmt.Errorf("failed to add a conjunction in the match list: %s", syscall.Errno(-r).Error())
 	}
 
 	return nil
@@ -512,7 +562,7 @@ func (j *Journal) Next() (uint64, error) {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return 0, fmt.Errorf("failed to iterate journal: %d", syscall.Errno(-r))
+		return 0, fmt.Errorf("failed to iterate journal: %s", syscall.Errno(-r).Error())
 	}
 
 	return uint64(r), nil
@@ -531,7 +581,7 @@ func (j *Journal) NextSkip(skip uint64) (uint64, error) {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return 0, fmt.Errorf("failed to iterate journal: %d", syscall.Errno(-r))
+		return 0, fmt.Errorf("failed to iterate journal: %s", syscall.Errno(-r).Error())
 	}
 
 	return uint64(r), nil
@@ -549,7 +599,7 @@ func (j *Journal) Previous() (uint64, error) {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return 0, fmt.Errorf("failed to iterate journal: %d", syscall.Errno(-r))
+		return 0, fmt.Errorf("failed to iterate journal: %s", syscall.Errno(-r).Error())
 	}
 
 	return uint64(r), nil
@@ -568,7 +618,7 @@ func (j *Journal) PreviousSkip(skip uint64) (uint64, error) {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return 0, fmt.Errorf("failed to iterate journal: %d", syscall.Errno(-r))
+		return 0, fmt.Errorf("failed to iterate journal: %s", syscall.Errno(-r).Error())
 	}
 
 	return uint64(r), nil
@@ -591,14 +641,15 @@ func (j *Journal) getData(field string) (unsafe.Pointer, C.int, error) {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return nil, 0, fmt.Errorf("failed to read message: %d", syscall.Errno(-r))
+		return nil, 0, fmt.Errorf("failed to read message: %s", syscall.Errno(-r).Error())
 	}
 
 	return d, C.int(l), nil
 }
 
 // GetData gets the data object associated with a specific field from the
-// current journal entry.
+// the journal entry referenced by the last completed Next/Previous function
+// call. To call GetData, you must have first called one of these functions.
 func (j *Journal) GetData(field string) (string, error) {
 	d, l, err := j.getData(field)
 	if err != nil {
@@ -609,7 +660,9 @@ func (j *Journal) GetData(field string) (string, error) {
 }
 
 // GetDataValue gets the data object associated with a specific field from the
-// current journal entry, returning only the value of the object.
+// journal entry referenced by the last completed Next/Previous function call,
+// returning only the value of the object. To call GetDataValue, you must first
+// have called one of the Next/Previous functions.
 func (j *Journal) GetDataValue(field string) (string, error) {
 	val, err := j.GetData(field)
 	if err != nil {
@@ -620,7 +673,8 @@ func (j *Journal) GetDataValue(field string) (string, error) {
 }
 
 // GetDataBytes gets the data object associated with a specific field from the
-// current journal entry.
+// journal entry referenced by the last completed Next/Previous function call.
+// To call GetDataBytes, you must first have called one of these functions.
 func (j *Journal) GetDataBytes(field string) ([]byte, error) {
 	d, l, err := j.getData(field)
 	if err != nil {
@@ -631,7 +685,9 @@ func (j *Journal) GetDataBytes(field string) ([]byte, error) {
 }
 
 // GetDataValueBytes gets the data object associated with a specific field from the
-// current journal entry, returning only the value of the object.
+// journal entry referenced by the last completed Next/Previous function call,
+// returning only the value of the object. To call GetDataValueBytes, you must first
+// have called one of the Next/Previous functions.
 func (j *Journal) GetDataValueBytes(field string) ([]byte, error) {
 	val, err := j.GetDataBytes(field)
 	if err != nil {
@@ -641,9 +697,10 @@ func (j *Journal) GetDataValueBytes(field string) ([]byte, error) {
 	return bytes.SplitN(val, []byte("="), 2)[1], nil
 }
 
-// GetEntry returns a full representation of a journal entry with
-// all key-value pairs of data as well as address fields (cursor, realtime
-// timestamp and monotonic timestamp)
+// GetEntry returns a full representation of the journal entry referenced by the
+// last completed Next/Previous function call, with all key-value pairs of data
+// as well as address fields (cursor, realtime timestamp and monotonic timestamp).
+// To call GetEntry, you must first have called one of the Next/Previous functions.
 func (j *Journal) GetEntry() (*JournalEntry, error) {
 	sd_journal_get_realtime_usec, err := getFunction("sd_journal_get_realtime_usec")
 	if err != nil {
@@ -679,7 +736,7 @@ func (j *Journal) GetEntry() (*JournalEntry, error) {
 	var realtimeUsec C.uint64_t
 	r = C.my_sd_journal_get_realtime_usec(sd_journal_get_realtime_usec, j.cjournal, &realtimeUsec)
 	if r < 0 {
-		return nil, fmt.Errorf("failed to get realtime timestamp: %d", syscall.Errno(-r))
+		return nil, fmt.Errorf("failed to get realtime timestamp: %s", syscall.Errno(-r).Error())
 	}
 
 	entry.RealtimeTimestamp = uint64(realtimeUsec)
@@ -689,7 +746,7 @@ func (j *Journal) GetEntry() (*JournalEntry, error) {
 
 	r = C.my_sd_journal_get_monotonic_usec(sd_journal_get_monotonic_usec, j.cjournal, &monotonicUsec, &boot_id)
 	if r < 0 {
-		return nil, fmt.Errorf("failed to get monotonic timestamp: %d", syscall.Errno(-r))
+		return nil, fmt.Errorf("failed to get monotonic timestamp: %s", syscall.Errno(-r).Error())
 	}
 
 	entry.MonotonicTimestamp = uint64(monotonicUsec)
@@ -700,7 +757,7 @@ func (j *Journal) GetEntry() (*JournalEntry, error) {
 	r = C.my_sd_journal_get_cursor(sd_journal_get_cursor, j.cjournal, &c)
 	defer C.free(unsafe.Pointer(c))
 	if r < 0 {
-		return nil, fmt.Errorf("failed to get cursor: %d", syscall.Errno(-r))
+		return nil, fmt.Errorf("failed to get cursor: %s", syscall.Errno(-r).Error())
 	}
 
 	entry.Cursor = C.GoString(c)
@@ -716,7 +773,7 @@ func (j *Journal) GetEntry() (*JournalEntry, error) {
 		}
 
 		if r < 0 {
-			return nil, fmt.Errorf("failed to read message field: %d", syscall.Errno(-r))
+			return nil, fmt.Errorf("failed to read message field: %s", syscall.Errno(-r).Error())
 		}
 
 		msg := C.GoStringN((*C.char)(d), C.int(l))
@@ -731,7 +788,7 @@ func (j *Journal) GetEntry() (*JournalEntry, error) {
 	return entry, nil
 }
 
-// SetDataThresold sets the data field size threshold for data returned by
+// SetDataThreshold sets the data field size threshold for data returned by
 // GetData. To retrieve the complete data fields this threshold should be
 // turned off by setting it to 0, so that the library always returns the
 // complete data objects.
@@ -746,14 +803,16 @@ func (j *Journal) SetDataThreshold(threshold uint64) error {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return fmt.Errorf("failed to set data threshold: %d", syscall.Errno(-r))
+		return fmt.Errorf("failed to set data threshold: %s", syscall.Errno(-r).Error())
 	}
 
 	return nil
 }
 
-// GetRealtimeUsec gets the realtime (wallclock) timestamp of the current
-// journal entry.
+// GetRealtimeUsec gets the realtime (wallclock) timestamp of the journal
+// entry referenced by the last completed Next/Previous function call. To
+// call GetRealtimeUsec, you must first have called one of the Next/Previous
+// functions.
 func (j *Journal) GetRealtimeUsec() (uint64, error) {
 	var usec C.uint64_t
 
@@ -767,13 +826,16 @@ func (j *Journal) GetRealtimeUsec() (uint64, error) {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return 0, fmt.Errorf("failed to get realtime timestamp: %d", syscall.Errno(-r))
+		return 0, fmt.Errorf("failed to get realtime timestamp: %s", syscall.Errno(-r).Error())
 	}
 
 	return uint64(usec), nil
 }
 
-// GetMonotonicUsec gets the monotonic timestamp of the current journal entry.
+// GetMonotonicUsec gets the monotonic timestamp of the journal entry
+// referenced by the last completed Next/Previous function call. To call
+// GetMonotonicUsec, you must first have called one of the Next/Previous
+// functions.
 func (j *Journal) GetMonotonicUsec() (uint64, error) {
 	var usec C.uint64_t
 	var boot_id C.sd_id128_t
@@ -788,13 +850,15 @@ func (j *Journal) GetMonotonicUsec() (uint64, error) {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return 0, fmt.Errorf("failed to get monotonic timestamp: %d", syscall.Errno(-r))
+		return 0, fmt.Errorf("failed to get monotonic timestamp: %s", syscall.Errno(-r).Error())
 	}
 
 	return uint64(usec), nil
 }
 
-// GetCursor gets the cursor of the current journal entry.
+// GetCursor gets the cursor of the last journal entry reeferenced by the
+// last completed Next/Previous function call. To call GetCursor, you must
+// first have called one of the Next/Previous functions.
 func (j *Journal) GetCursor() (string, error) {
 	sd_journal_get_cursor, err := getFunction("sd_journal_get_cursor")
 	if err != nil {
@@ -811,7 +875,7 @@ func (j *Journal) GetCursor() (string, error) {
 	defer C.free(unsafe.Pointer(d))
 
 	if r < 0 {
-		return "", fmt.Errorf("failed to get cursor: %d", syscall.Errno(-r))
+		return "", fmt.Errorf("failed to get cursor: %s", syscall.Errno(-r).Error())
 	}
 
 	cursor := C.GoString(d)
@@ -835,14 +899,17 @@ func (j *Journal) TestCursor(cursor string) error {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return fmt.Errorf("failed to test to cursor %q: %d", cursor, syscall.Errno(-r))
+		return fmt.Errorf("failed to test to cursor %q: %s", cursor, syscall.Errno(-r).Error())
+	} else if r == 0 {
+		return ErrNoTestCursor
 	}
 
 	return nil
 }
 
 // SeekHead seeks to the beginning of the journal, i.e. the oldest available
-// entry.
+// entry. This call must be followed by a call to Next before any call to
+// Get* will return data about the first element.
 func (j *Journal) SeekHead() error {
 	sd_journal_seek_head, err := getFunction("sd_journal_seek_head")
 	if err != nil {
@@ -854,14 +921,15 @@ func (j *Journal) SeekHead() error {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return fmt.Errorf("failed to seek to head of journal: %d", syscall.Errno(-r))
+		return fmt.Errorf("failed to seek to head of journal: %s", syscall.Errno(-r).Error())
 	}
 
 	return nil
 }
 
 // SeekTail may be used to seek to the end of the journal, i.e. the most recent
-// available entry.
+// available entry. This call must be followed by a call to Next before any
+// call to Get* will return data about the last element.
 func (j *Journal) SeekTail() error {
 	sd_journal_seek_tail, err := getFunction("sd_journal_seek_tail")
 	if err != nil {
@@ -873,14 +941,15 @@ func (j *Journal) SeekTail() error {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return fmt.Errorf("failed to seek to tail of journal: %d", syscall.Errno(-r))
+		return fmt.Errorf("failed to seek to tail of journal: %s", syscall.Errno(-r).Error())
 	}
 
 	return nil
 }
 
 // SeekRealtimeUsec seeks to the entry with the specified realtime (wallclock)
-// timestamp, i.e. CLOCK_REALTIME.
+// timestamp, i.e. CLOCK_REALTIME. This call must be followed by a call to
+// Next/Previous before any call to Get* will return data about the sought entry.
 func (j *Journal) SeekRealtimeUsec(usec uint64) error {
 	sd_journal_seek_realtime_usec, err := getFunction("sd_journal_seek_realtime_usec")
 	if err != nil {
@@ -892,13 +961,15 @@ func (j *Journal) SeekRealtimeUsec(usec uint64) error {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return fmt.Errorf("failed to seek to %d: %d", usec, syscall.Errno(-r))
+		return fmt.Errorf("failed to seek to %d: %s", usec, syscall.Errno(-r).Error())
 	}
 
 	return nil
 }
 
-// SeekCursor seeks to a concrete journal cursor.
+// SeekCursor seeks to a concrete journal cursor. This call must be
+// followed by a call to Next/Previous before any call to Get* will return
+// data about the sought entry.
 func (j *Journal) SeekCursor(cursor string) error {
 	sd_journal_seek_cursor, err := getFunction("sd_journal_seek_cursor")
 	if err != nil {
@@ -913,7 +984,7 @@ func (j *Journal) SeekCursor(cursor string) error {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return fmt.Errorf("failed to seek to cursor %q: %d", cursor, syscall.Errno(-r))
+		return fmt.Errorf("failed to seek to cursor %q: %s", cursor, syscall.Errno(-r).Error())
 	}
 
 	return nil
@@ -937,7 +1008,7 @@ func (j *Journal) Wait(timeout time.Duration) int {
 		// equivalent hex value.
 		to = 0xffffffffffffffff
 	} else {
-		to = uint64(time.Now().Add(timeout).Unix() / 1000)
+		to = uint64(timeout / time.Microsecond)
 	}
 	j.mu.Lock()
 	r := C.my_sd_journal_wait(sd_journal_wait, j.cjournal, C.uint64_t(to))
@@ -960,7 +1031,7 @@ func (j *Journal) GetUsage() (uint64, error) {
 	j.mu.Unlock()
 
 	if r < 0 {
-		return 0, fmt.Errorf("failed to get journal disk space usage: %d", syscall.Errno(-r))
+		return 0, fmt.Errorf("failed to get journal disk space usage: %s", syscall.Errno(-r).Error())
 	}
 
 	return uint64(out), nil
@@ -994,7 +1065,7 @@ func (j *Journal) GetUniqueValues(field string) ([]string, error) {
 	r := C.my_sd_journal_query_unique(sd_journal_query_unique, j.cjournal, f)
 
 	if r < 0 {
-		return nil, fmt.Errorf("failed to query journal: %d", syscall.Errno(-r))
+		return nil, fmt.Errorf("failed to query journal: %s", syscall.Errno(-r).Error())
 	}
 
 	// Implements the SD_JOURNAL_FOREACH_UNIQUE macro from sd-journal.h
@@ -1008,7 +1079,7 @@ func (j *Journal) GetUniqueValues(field string) ([]string, error) {
 		}
 
 		if r < 0 {
-			return nil, fmt.Errorf("failed to read message field: %d", syscall.Errno(-r))
+			return nil, fmt.Errorf("failed to read message field: %s", syscall.Errno(-r).Error())
 		}
 
 		msg := C.GoStringN((*C.char)(d), C.int(l))
@@ -1021,4 +1092,29 @@ func (j *Journal) GetUniqueValues(field string) ([]string, error) {
 	}
 
 	return result, nil
+}
+
+// GetCatalog retrieves a message catalog entry for the journal entry referenced
+// by the last completed Next/Previous function call. To call GetCatalog, you
+// must first have called one of these functions.
+func (j *Journal) GetCatalog() (string, error) {
+	sd_journal_get_catalog, err := getFunction("sd_journal_get_catalog")
+	if err != nil {
+		return "", err
+	}
+
+	var c *C.char
+
+	j.mu.Lock()
+	r := C.my_sd_journal_get_catalog(sd_journal_get_catalog, j.cjournal, &c)
+	j.mu.Unlock()
+	defer C.free(unsafe.Pointer(c))
+
+	if r < 0 {
+		return "", fmt.Errorf("failed to retrieve catalog entry for current journal entry: %s", syscall.Errno(-r).Error())
+	}
+
+	catalog := C.GoString(c)
+
+	return catalog, nil
 }
