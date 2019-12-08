@@ -25,6 +25,7 @@ var _ = t.Describe("Config", func() {
 		sut.NetworkDir = os.TempDir()
 		sut.LogDir = "/"
 		sut.Listen = t.MustTempFile("crio.sock")
+		sut.HooksDir = []string{}
 		return sut
 	}
 
@@ -180,11 +181,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed during runtime", func() {
 			// Given
-			sut.Runtimes["runc"] = &config.RuntimeHandler{
-				RuntimePath: validFilePath,
-				RuntimeType: config.DefaultRuntimeType,
-			}
-			sut.Conmon = validFilePath
+			sut = runtimeValidConfig()
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, true)
@@ -195,12 +192,8 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with additional devices", func() {
 			// Given
+			sut = runtimeValidConfig()
 			sut.AdditionalDevices = []string{"/dev/null:/dev/null:rw"}
-			sut.Runtimes["runc"] = &config.RuntimeHandler{
-				RuntimePath: validFilePath,
-				RuntimeType: config.DefaultRuntimeType,
-			}
-			sut.Conmon = validFilePath
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, true)
@@ -543,10 +536,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed during runtime", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validDirPath
-			tmpDir := path.Join(os.TempDir(), "cni-test")
-			sut.NetworkConfig.PluginDirs = []string{tmpDir}
-			defer os.RemoveAll(tmpDir)
+			sut = runtimeValidConfig()
 
 			// When
 			err := sut.NetworkConfig.Validate(true)

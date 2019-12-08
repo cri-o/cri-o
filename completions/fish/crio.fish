@@ -10,7 +10,7 @@ function __fish_crio_no_subcommand --description 'Test if there has been any sub
 end
 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l additional-devices -r -d 'devices to add to the containers (default: [])'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l apparmor-profile -r -d 'default apparmor profile name (default: "crio-default-1.16.0")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l apparmor-profile -r -d 'default apparmor profile name (default: "crio-default-1.16.1")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l bind-mount-prefix -r -d 'specify a prefix to prepend to the source of a bind mount (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cgroup-manager -r -d 'cgroup manager (cgroupfs or systemd) (default: "cgroupfs")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-config-dir -r -d 'CNI configuration files directory (default: "/etc/cni/net.d/")'
@@ -34,7 +34,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l gid-mappings -r -d 'specif
 complete -c crio -n '__fish_crio_no_subcommand' -f -l global-auth-file -r -d 'path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l grpc-max-recv-msg-size -r -d 'maximum grpc receive message size in bytes (default: %!q(int=16777216))'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l grpc-max-send-msg-size -r -d 'maximum grpc receive message size (default: %!q(int=16777216))'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l hooks-dir -r -d 'set the OCI hooks directory path (may be set multiple times) (default: [])'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l hooks-dir -r -d 'set the OCI hooks directory path (may be set multiple times) (default: ["/usr/share/containers/oci/hooks.d"])'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l host-ip -r -d 'host IP considered as the primary IP to use by CRI-O for things such as host network IP (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l image-volumes -r -d 'image volume handling (\'mkdir\', \'bind\', or \'ignore\')'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l insecure-registry -r -d 'whether to disable TLS verification for the given registry'
