@@ -424,9 +424,6 @@ docs-validation:
 .PHONY: \
 	.explicit_phony \
 	git-validation \
-	bin/crio \
-	bin/crio-status \
-	bin/pinns \
 	binaries \
 	bundle \
 	build-static \
