@@ -54,6 +54,10 @@ GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 
+COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
+GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}"))
+GIT_MERGE_BASE := $(shell git merge-base origin/master $(shell git rev-parse --abbrev-ref HEAD)))
+
 # pass crio CLI options to generate custom crio.conf build time
 CONF_OVERRIDES ?=
 
@@ -85,8 +89,6 @@ TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.1.0
 
 all: binaries crio.conf docs
 
-include Makefile.inc
-
 default: help
 
 help:
@@ -115,19 +117,19 @@ lint: .gopathok ${GOLANGCI_LINT}
 bin/pinns:
 	$(MAKE) -C pinns
 
-test/copyimg/copyimg: git-vars .gopathok $(wildcard test/copyimg/*.go)
+test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
 
-test/checkseccomp/checkseccomp: git-vars .gopathok $(wildcard test/checkseccomp/*.go)
+test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
-bin/crio: git-vars .gopathok
+bin/crio: .gopathok
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
-bin/crio-status: git-vars .gopathok
+bin/crio-status: .gopathok
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
-build-static: git-vars
+build-static:
 	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(TESTIMAGE_NIX) sh -c \
 		"nix build -f cri-o/nix --argstr revision $(COMMIT_NO) && \
 		mkdir -p cri-o/bin && \
@@ -163,7 +165,7 @@ endif
 local-cross:
 	@$(MAKE) --keep-going $(CROSS_BUILD_TARGETS)
 
-bin/crio.cross.%: git-vars .gopathok .explicit_phony
+bin/crio.cross.%: .gopathok .explicit_phony
 	@echo "==> make $@"; \
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
@@ -178,7 +180,7 @@ test-images:
 	$(TESTIMAGE_SCRIPT) -g 1.13 -a 386
 	$(TESTIMAGE_SCRIPT) -g 1.10 -a amd64
 
-test-image-nix: git-vars
+test-image-nix:
 	time $(CONTAINER_RUNTIME) build -t $(TESTIMAGE_NIX) \
 		--build-arg COMMIT=$(COMMIT_NO) -f Dockerfile-nix .
 
@@ -413,7 +415,7 @@ uninstall:
 	rm -f ${FISHINSTALLDIR}/crio-status.fish
 	rm -f ${ZSHINSTALLDIR}/_crio-status
 
-git-validation: .gopathok git-vars ${GIT_VALIDATION}
+git-validation: .gopathok ${GIT_VALIDATION}
 	GIT_CHECK_EXCLUDE="vendor" \
 		${GIT_VALIDATION} -v -run DCO,short-subject,dangling-whitespace \
 			-range ${GIT_MERGE_BASE}..HEAD
