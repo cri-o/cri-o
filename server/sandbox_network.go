@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/pkg/log"
+	"github.com/cri-o/cri-o/server/metrics"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error
 func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, err error) {
+	overallStart := time.Now()
+
 	if sb.HostNetwork() {
 		return nil, nil, nil
 	}
@@ -33,11 +37,15 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 		}
 	}()
 
+	podSetUpStart := time.Now()
 	_, err = s.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
 	}
+	// metric about the CNI network setup operation
+	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_pod").
+		Observe(metrics.SinceInMicroseconds(podSetUpStart))
 
 	tmp, err := s.netPlugin.GetPodNetworkStatus(podNetwork)
 	if err != nil {
@@ -83,6 +91,10 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	}
 
 	log.Debugf(ctx, "found POD IPs: %v", podIPs)
+
+	// metric about the whole network setup operation
+	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_overall").
+		Observe(metrics.SinceInMicroseconds(overallStart))
 	return podIPs, result, err
 }
 
