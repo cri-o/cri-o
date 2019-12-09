@@ -615,9 +615,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			specgen.RemoveMount("/sys/fs/cgroup")
 			sysMnt := rspec.Mount{
 				Destination: "/sys",
-				Type:        "bind",
-				Source:      "/sys",
-				Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+				Type:        "sysfs",
+				Source:      "sysfs",
+				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
 			}
 			specgen.AddMount(sysMnt)
 		}
@@ -632,18 +632,27 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.NetworkNamespace), netNsPath); err != nil {
 			return nil, err
 		}
+	}
 
-		if privileged {
-			specgen.RemoveMount("/sys")
-			specgen.RemoveMount("/sys/fs/cgroup")
-			sysMnt := rspec.Mount{
-				Destination: "/sys",
-				Type:        "bind",
-				Source:      "/sys",
-				Options:     []string{"nosuid", "noexec", "nodev", "rw", "rbind"},
-			}
-			specgen.AddMount(sysMnt)
+	if privileged {
+		specgen.RemoveMount("/sys")
+		specgen.RemoveMount("/sys/fs/cgroup")
+
+		sysMnt := rspec.Mount{
+			Destination: "/sys",
+			Type:        "sysfs",
+			Source:      "sysfs",
+			Options:     []string{"nosuid", "noexec", "nodev", "rw"},
 		}
+		specgen.AddMount(sysMnt)
+
+		cgroupMnt := rspec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime"},
+		}
+		specgen.AddMount(cgroupMnt)
 	}
 
 	for idx, ip := range sb.IPs() {
