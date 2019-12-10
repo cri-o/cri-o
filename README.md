@@ -178,6 +178,10 @@ default UID mappings (format <container>:<host>:<size>):
   0:0:4294967295
 ```
 
+#### Metrics
+
+Please refer to the [CRI-O Metrics guide](tutorials/metrics.md).
+
 ## Weekly Meeting
 A weekly meeting is held to discuss CRI-O development. It is open to everyone.
 The details to join the meeting are on the [wiki](https://github.com/cri-o/cri-o/wiki/CRI-O-Weekly-Meeting).
