@@ -559,7 +559,7 @@ func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
 // ReserveContainerName holds a name for a container that is being created
 func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) {
 	if err := c.ctrNameIndex.Reserve(name, id); err != nil {
-		err = fmt.Errorf("error reserving ctr name %s for id %s", name, id)
+		err = fmt.Errorf("error reserving ctr name %s for id %s: %v", name, id, err)
 		logrus.Warn(err)
 		return "", err
 	}
@@ -575,7 +575,7 @@ func (c *ContainerServer) ReleaseContainerName(name string) {
 // ReservePodName holds a name for a pod that is being created
 func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
 	if err := c.podNameIndex.Reserve(name, id); err != nil {
-		err = fmt.Errorf("error reserving pod name %s for id %s", name, id)
+		err = fmt.Errorf("error reserving pod name %s for id %s: %v", name, id, err)
 		logrus.Warn(err)
 		return "", err
 	}
