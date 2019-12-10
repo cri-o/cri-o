@@ -54,9 +54,15 @@ GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 
-COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
-GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
-GIT_MERGE_BASE := $(shell git merge-base origin/master $(shell git rev-parse --abbrev-ref HEAD))
+ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
+	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
+	GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
+	GIT_MERGE_BASE := $(shell git merge-base origin/master $(shell git rev-parse --abbrev-ref HEAD))
+else
+	COMMIT_NO := unknown
+	GIT_COMMIT := unknown
+	GIT_MERGE_BASE := HEAD^
+endif
 
 # pass crio CLI options to generate custom crio.conf build time
 CONF_OVERRIDES ?=
