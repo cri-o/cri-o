@@ -306,3 +306,8 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 
 	return passwdFile, nil
 }
+
+// Int32Ptr is a utility function to assign to integer pointer variables
+func Int32Ptr(i int32) *int32 {
+	return &i
+}

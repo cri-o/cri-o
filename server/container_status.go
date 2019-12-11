@@ -55,9 +55,9 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	cState := c.State()
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
 
-	// If we defaulted to exit code -1 earlier then we attempt to
+	// If we defaulted to exit code not set earlier then we attempt to
 	// get the exit code from the exit file again.
-	if cState.ExitCode == -1 {
+	if cState.Status == oci.ContainerStateStopped && cState.ExitCode == nil {
 		err := s.Runtime().UpdateContainerStatus(c)
 		if err != nil {
 			log.Warnf(ctx, "Failed to UpdateStatus of container %s: %v", c.ID(), err)
@@ -82,11 +82,15 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		resp.Status.StartedAt = started
 		finished := cState.Finished.UnixNano()
 		resp.Status.FinishedAt = finished
-		resp.Status.ExitCode = cState.ExitCode
+		if cState.ExitCode == nil {
+			resp.Status.ExitCode = -1
+		} else {
+			resp.Status.ExitCode = *cState.ExitCode
+		}
 		switch {
 		case cState.OOMKilled:
 			resp.Status.Reason = oomKilledReason
-		case cState.ExitCode == 0:
+		case resp.Status.ExitCode == 0:
 			resp.Status.Reason = completedReason
 		default:
 			resp.Status.Reason = errorReason

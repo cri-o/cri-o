@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"fmt"
+
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -35,5 +37,8 @@ func (c *ContainerServer) ContainerWait(container string) (int32, error) {
 	if err := c.ContainerStateToDisk(ctr); err != nil {
 		logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
-	return exitCode, nil
+	if exitCode == nil {
+		return 0, fmt.Errorf("exit code not set")
+	}
+	return *exitCode, nil
 }

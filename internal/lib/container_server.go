@@ -197,7 +197,7 @@ func (c *ContainerServer) Update() error {
 			ctr := c.GetContainer(id)
 			if ctr != nil {
 				// if the container exists, update its state
-				if err := c.ContainerStateFromDisk(c.GetContainer(id)); err != nil {
+				if err := c.ContainerStateFromDisk(ctr); err != nil {
 					logrus.Warnf("unable to retrieve containers %s state from disk: %v", id, err)
 				}
 			}
@@ -407,6 +407,13 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	if err := c.ContainerStateFromDisk(scontainer); err != nil {
 		return fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
 	}
+
+	// We write back the state because it is possible that crio did not have a chance to
+	// read the exit file and persist exit code into the state on reboot.
+	if err := c.ContainerStateToDisk(scontainer); err != nil {
+		return fmt.Errorf("failed to write container state to disk %q: %v", scontainer.ID(), err)
+	}
+
 	sb.SetCreated()
 
 	if err := label.ReserveLabel(processLabel); err != nil {
@@ -533,6 +540,12 @@ func (c *ContainerServer) LoadContainer(id string) error {
 
 	if err := c.ContainerStateFromDisk(ctr); err != nil {
 		return fmt.Errorf("error reading container state from disk %q: %v", ctr.ID(), err)
+	}
+
+	// We write back the state because it is possible that crio did not have a chance to
+	// read the exit file and persist exit code into the state on reboot.
+	if err := c.ContainerStateToDisk(ctr); err != nil {
+		return fmt.Errorf("failed to write container state to disk %q: %v", ctr.ID(), err)
 	}
 	ctr.SetCreated()
 
