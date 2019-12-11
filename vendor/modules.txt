@@ -92,7 +92,7 @@ github.com/containers/buildah/pkg/cgroups
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/cli
-# github.com/containers/conmon v2.0.5+incompatible
+# github.com/containers/conmon v2.0.8+incompatible
 github.com/containers/conmon/runner/config
 # github.com/containers/image/v5 v5.0.0
 github.com/containers/image/v5/types
