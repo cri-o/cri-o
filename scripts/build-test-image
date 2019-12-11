@@ -8,7 +8,7 @@ fi
 # Versions to be used
 declare -A VERSIONS=(
     ["cni-plugins"]=v0.8.2
-    ["conmon"]=v2.0.3
+    ["conmon"]=v2.0.5
     ["cri-tools"]=v1.16.1
     ["runc"]=v1.0.0-rc9
 )
@@ -225,7 +225,7 @@ install_cri_tools() {
         TARBALL=$BINARY-$ARCHIVE
         echo "Downloading $TARBALL"
         wget -O "$TARBALL" $URL/"${VERSIONS["cri-tools"]}"/"$TARBALL"
-        tar xf "$TARBALL" -C "$MOUNT_DIR"/usr/bin
+        tar xf "$TARBALL" --no-same-owner -C "$MOUNT_DIR"/usr/bin
         run chown root:root /usr/bin/$BINARY # https://circleci.com/docs/2.0/high-uid-error
         run "$BINARY" --version
         rm "$TARBALL"
