@@ -97,6 +97,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 		"-u", c.id,
 		"-r", r.path,
 		"-b", c.bundlePath,
+		"--persist-dir", c.dir,
 		"-p", filepath.Join(c.bundlePath, "pidfile"),
 		"-l", c.logPath,
 		"--exit-dir", r.config.ContainerExitsDir,
@@ -656,7 +657,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	}
 
 	if c.state.Status == ContainerStateStopped {
-		exitFilePath := filepath.Join(r.config.ContainerExitsDir, c.id)
+		exitFilePath := filepath.Join(c.dir, "exit")
 		var fi os.FileInfo
 		err = kwait.ExponentialBackoff(
 			kwait.Backoff{
