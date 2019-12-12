@@ -699,7 +699,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb.SetCreated()
 
+	if err := s.MonitorConmon(container); err != nil {
+		logrus.Errorf("%v", err)
+	}
+
 	logrus.Infof("Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
+
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	logrus.Debugf("RunPodSandboxResponse: %+v", resp)
 	return resp, nil

@@ -222,19 +222,9 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 }
 
 func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
-	// Define the current runtime handler as the default runtime handler.
-	rh := r.defaultRuntime
-
-	// Override the current runtime handler with the runtime handler
-	// corresponding to the runtime handler key provided with this
-	// specific container.
-	if c.runtimeHandler != "" {
-		runtimeHandler, err := r.ValidateRuntimeHandler(c.runtimeHandler)
-		if err != nil {
-			return nil, err
-		}
-
-		rh = runtimeHandler
+	rh, err := r.getRuntimeHandler(c.runtimeHandler)
+	if err != nil {
+		return nil, err
 	}
 
 	if rh.RuntimeType == RuntimeTypeVM {
@@ -244,6 +234,37 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	// If the runtime type is different from "vm", then let's fallback
 	// onto the OCI implementation by default.
 	return newRuntimeOCI(r, rh.RuntimePath), nil
+}
+
+// ContainerRuntimeType returns the type of runtime configured.
+// This is needed when callers need to do specific work for oci vs vm
+// containers, like monitor an oci container's conmon.
+func (r *Runtime) ContainerRuntimeType(c *Container) (string, error) {
+	rh, err := r.getRuntimeHandler(c.runtimeHandler)
+	if err != nil {
+		return "", err
+	}
+
+	return rh.RuntimeType, nil
+}
+
+func (r *Runtime) getRuntimeHandler(handler string) (*RuntimeHandler, error) {
+	// Define the current runtime handler as the default runtime handler.
+	rh := r.defaultRuntime
+
+	// Override the current runtime handler with the runtime handler
+	// corresponding to the runtime handler key provided with this
+	// specific container.
+	if handler != "" {
+		runtimeHandler, err := r.ValidateRuntimeHandler(handler)
+		if err != nil {
+			return nil, err
+		}
+
+		rh = runtimeHandler
+	}
+
+	return &rh, nil
 }
 
 // RuntimeImpl returns the runtime implementation for a given container
