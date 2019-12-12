@@ -660,6 +660,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb.SetCreated()
 
+	if err := s.MonitorConmon(container); err != nil {
+		log.Errorf(ctx, "%v", err)
+	}
+
 	log.Infof(ctx, "ran pod sandbox with infra container: %s", container.Description())
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	return resp, nil
