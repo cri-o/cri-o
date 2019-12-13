@@ -1012,7 +1012,7 @@ func (r *Runtime) SpoofOOM(c *Container) {
 
 	c.state.Status = ContainerStateStopped
 	c.state.Finished = time.Now()
-	c.state.ExitCode = 137
+	c.state.ExitCode = utils.Int32Ptr(137)
 	c.state.OOMKilled = true
 
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
