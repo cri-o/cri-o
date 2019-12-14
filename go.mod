@@ -19,7 +19,7 @@ require (
 	github.com/containers/image/v5 v5.0.0
 	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.13.5
+	github.com/containers/storage v1.13.6
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
