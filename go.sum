@@ -134,8 +134,8 @@ github.com/containers/psgo v1.4.0 h1:D8B4fZCCZhYgc8hDyMPCiShOinmOB1TP1qe46sSC19k
 github.com/containers/psgo v1.4.0/go.mod h1:ENXXLQ5E1At4K0EUsGogXBJi/C28gwqkONWeLPI9fJ8=
 github.com/containers/storage v1.13.4/go.mod h1:6D8nK2sU9V7nEmAraINRs88ZEscM5C5DK+8Npp27GeA=
 github.com/containers/storage v1.13.5/go.mod h1:HELz8Sn+UVbPaUZMI8RvIG9doD4y4z6Gtg4k7xdd2ZY=
-github.com/containers/storage v1.15.2 h1:hLgafU4tuyQk/smMkXZfHTS8FtAQsqQvfWCp4bsgjuw=
-github.com/containers/storage v1.15.2/go.mod h1:v0lq/3f+cXH3Y/HiDaFYRR0zilwDve7I4W7U5xQxvF8=
+github.com/containers/storage v1.15.3 h1:+lFSQZnnKUFyUEtguIgdoQLJfWSuYz+j/wg5GxLtsN4=
+github.com/containers/storage v1.15.3/go.mod h1:v0lq/3f+cXH3Y/HiDaFYRR0zilwDve7I4W7U5xQxvF8=
 github.com/coredns/corefile-migration v1.0.4/go.mod h1:OFwBp/Wc9dJt5cAZzHWMNhK1r5L0p0jDwIBc6j8NC8E=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
