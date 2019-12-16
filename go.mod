@@ -15,7 +15,7 @@ require (
 	github.com/containernetworking/plugins v0.8.3
 	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/conmon v2.0.8+incompatible
-	github.com/containers/image/v5 v5.0.0
+	github.com/containers/image/v5 v5.1.0
 	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.15.3
@@ -52,7 +52,7 @@ require (
 	github.com/vbatts/git-validation v1.0.0
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20190919044723-0c1ff786ef13
+	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	google.golang.org/grpc v1.25.1
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
