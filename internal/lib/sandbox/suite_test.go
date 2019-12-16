@@ -1,6 +1,10 @@
 package sandbox_test
 
 import (
+	"fmt"
+	"math/rand"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -21,10 +25,10 @@ func TestSandbox(t *testing.T) {
 }
 
 var (
-	t              *TestFramework
-	testSandbox    *sandbox.Sandbox
-	mockCtrl       *gomock.Controller
-	netNsIfaceMock *sandboxmock.MockNetNsIface
+	t                  *TestFramework
+	testSandbox        *sandbox.Sandbox
+	mockCtrl           *gomock.Controller
+	namespaceIfaceMock *sandboxmock.MockNamespaceIface
 )
 
 var _ = BeforeSuite(func() {
@@ -35,7 +39,7 @@ var _ = BeforeSuite(func() {
 
 	// Setup the mocks
 	mockCtrl = gomock.NewController(GinkgoT())
-	netNsIfaceMock = sandboxmock.NewMockNetNsIface(mockCtrl)
+	namespaceIfaceMock = sandboxmock.NewMockNamespaceIface(mockCtrl)
 })
 
 var _ = AfterSuite(func() {
@@ -52,4 +56,17 @@ func beforeEach() {
 		[]*hostport.PortMapping{}, false)
 	Expect(err).To(BeNil())
 	Expect(testSandbox).NotTo(BeNil())
+}
+
+func createTmpFileInTmpDir() (tmpFile, tmpDir string) {
+	tmpDir = fmt.Sprintf("/tmp/crio-ns-test-%d", rand.Intn(100))
+	err := os.MkdirAll(tmpDir, 0755)
+	Expect(err).To(BeNil())
+
+	tmpFile = filepath.Join(tmpDir, "test")
+	f, err := os.Create(tmpFile)
+	f.Close()
+
+	Expect(err).To(BeNil())
+	return tmpFile, tmpDir
 }

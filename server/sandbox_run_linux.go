@@ -408,18 +408,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// Add default sysctls given in crio.conf
-	for _, defaultSysctl := range s.config.DefaultSysctls {
-		split := strings.SplitN(defaultSysctl, "=", 2)
-		if len(split) == 2 {
-			if err := validateSysctl(split[0], hostNetwork, hostIPC); err != nil {
-				log.Warnf(ctx, "sysctl not valid %q: %v - skipping...", defaultSysctl, err)
-				continue
-			}
-			g.AddLinuxSysctl(split[0], split[1])
-			continue
-		}
-		log.Warnf(ctx, "sysctl %q not of the format sysctl_name=value", defaultSysctl)
-	}
+	s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC)
 	// extract linux sysctls from annotations and pass down to oci runtime
 	// Will override any duplicate default systcl from crio.conf
 	for key, value := range req.GetConfig().GetLinux().GetSysctls() {
@@ -433,46 +422,19 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 
 	// set up namespaces
-	if hostNetwork {
-		err = g.RemoveLinuxNamespace(string(runtimespec.NetworkNamespace))
-		if err != nil {
-			return nil, err
-		}
-	} else if s.config.ManageNetworkNSLifecycle {
-		// Create the sandbox network namespace
-		if err := sb.NetNsCreate(nil); err != nil {
-			return nil, err
-		}
-
-		defer func() {
-			if err == nil {
-				return
+	cleanupFuncs, err := s.configureGeneratorForNamespaces(hostNetwork, hostIPC, hostPID, sb, g)
+	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
+	for idx := range cleanupFuncs {
+		defer func(currentFunc int) {
+			if err != nil {
+				if err2 := cleanupFuncs[currentFunc](); err != nil {
+					log.Debugf(ctx, err2.Error())
+				}
 			}
-
-			if netnsErr := sb.NetNsRemove(); netnsErr != nil {
-				log.Warnf(ctx, "Failed to remove networking namespace: %v", netnsErr)
-			}
-		}()
-
-		// Pass the created namespace path to the runtime
-		err = g.AddOrReplaceLinuxNamespace(string(runtimespec.NetworkNamespace), sb.NetNsPath())
-		if err != nil {
-			return nil, err
-		}
+		}(idx)
 	}
-
-	if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
-		err = g.RemoveLinuxNamespace(string(runtimespec.PIDNamespace))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
-		err = g.RemoveLinuxNamespace(string(runtimespec.IPCNamespace))
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
 	}
 
 	if !s.seccompEnabled {
@@ -504,7 +466,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs().Path(), labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNsPath(), labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
@@ -560,7 +522,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	var ips []string
 	var result cnitypes.Result
 
-	if s.config.ManageNetworkNSLifecycle {
+	if s.config.ManageNSLifecycle {
 		ips, result, err = s.networkStart(ctx, sb)
 		if err != nil {
 			return nil, err
@@ -645,7 +607,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
 	}
 
-	if !s.config.ManageNetworkNSLifecycle {
+	if !s.config.ManageNSLifecycle {
 		ips, _, err = s.networkStart(ctx, sb)
 		if err != nil {
 			return nil, err
@@ -767,4 +729,80 @@ func PauseCommand(cfg *config.Config, image *v1.Image) ([]string, error) {
 		return cmd, nil
 	}
 	return []string{cfg.PauseCommand}, nil
+}
+
+func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Generator, hostNetwork, hostIPC bool) {
+	for _, defaultSysctl := range s.config.DefaultSysctls {
+		split := strings.SplitN(defaultSysctl, "=", 2)
+		if len(split) == 2 {
+			if err := validateSysctl(split[0], hostNetwork, hostIPC); err != nil {
+				log.Warnf(ctx, "sysctl not valid %q: %v - skipping...", defaultSysctl, err)
+				continue
+			}
+			g.AddLinuxSysctl(split[0], split[1])
+			continue
+		}
+		log.Warnf(ctx, "sysctl %q not of the format sysctl_name=value", defaultSysctl)
+	}
+}
+
+// configureGeneratorForNamespaces set the linux namespaces for the generator, based on whether the pod is sharing namespaces with the host, as well as whether CRI-O should be managing
+// the namespace lifecycle.
+// it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox. The caller should defer the cleanup funcs if there is an error, to make sure
+// each namespace we are managing is properly cleaned up.
+func (s *Server) configureGeneratorForNamespaces(hostNetwork, hostIPC, hostPID bool, sb *sandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, err error) {
+	managedNamespaces := make([]string, 0, 3)
+	if hostNetwork {
+		err = g.RemoveLinuxNamespace(string(runtimespec.NetworkNamespace))
+		if err != nil {
+			return
+		}
+	} else if s.config.ManageNSLifecycle {
+		managedNamespaces = append(managedNamespaces, sandbox.NETNS)
+	}
+
+	if hostIPC {
+		err = g.RemoveLinuxNamespace(string(runtimespec.IPCNamespace))
+		if err != nil {
+			return
+		}
+	} else if s.config.ManageNSLifecycle {
+		managedNamespaces = append(managedNamespaces, sandbox.IPCNS)
+	}
+
+	// Since we need a process to hold open the PID namespace, CRI-O can't manage the NS lifecycle
+	if hostPID {
+		err = g.RemoveLinuxNamespace(string(runtimespec.PIDNamespace))
+		if err != nil {
+			return
+		}
+	}
+
+	// There's no option to set hostUTS
+	if s.config.ManageNSLifecycle {
+		managedNamespaces = append(managedNamespaces, sandbox.UTSNS)
+
+		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
+		nsPaths, err := sb.CreateManagedNamespaces(managedNamespaces)
+		if err != nil {
+			return nil, err
+		}
+
+		specToPath := map[string]string{
+			sandbox.IPCNS: runtimespec.IPCNamespace,
+			sandbox.NETNS: runtimespec.NetworkNamespace,
+			sandbox.UTSNS: runtimespec.UTSNamespace,
+		}
+
+		for nsType, path := range nsPaths {
+			err = g.AddOrReplaceLinuxNamespace(specToPath[nsType], path)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		cleanupFuncs = append(cleanupFuncs, sb.RemoveManagedNamespaces)
+	}
+
+	return cleanupFuncs, err
 }
