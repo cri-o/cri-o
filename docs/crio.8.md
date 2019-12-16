@@ -107,7 +107,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 # GLOBAL OPTIONS
 
-**--additional-devices**="": Devices to add to the containers (default: [])
+**--additional-devices**="": Devices to add to the containers  (default: [])
 
 **--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default. The default profile name is 'crio-default-' followed by the version string of CRI-O. (default: "crio-default-1.17.0-dev")
 
@@ -117,7 +117,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--cni-config-dir**="": CNI configuration files directory (default: "/etc/cni/net.d/")
 
-**--cni-plugin-dir**="": CNI plugin binaries directory (default: "")
+**--cni-plugin-dir**="": CNI plugin binaries directory (default: [])
 
 **--config, -c**="": Path to configuration file (default: /etc/crio/crio.conf)
 
@@ -125,7 +125,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--conmon-cgroup**="": cgroup to be used for conmon process (default: "system.slice")
 
-**--conmon-env**="": Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"])
+**--conmon-env**="": Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: [PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin])
 
 **--container-attach-socket-dir**="": Path to directory for container attach sockets (default: "/var/run/crio")
 
@@ -135,17 +135,17 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--default-capabilities**="": Capabilities to add to the containers (default: ["CHOWN" "DAC_OVERRIDE" "FSETID" "FOWNER" "NET_RAW" "SETGID" "SETUID" "SETPCAP" "NET_BIND_SERVICE" "SYS_CHROOT" "KILL"])
 
-**--default-mounts**="": Add one or more default mount paths in the form host:container (deprecated) (default: [])
+**--default-mounts**="": Add one or more default mount paths in the form host:container (deprecated) (default: []) (default: [])
 
 **--default-mounts-file**="": Path to default mounts file (default: "")
 
 **--default-runtime**="": Default OCI runtime from the runtimes config (default: "runc")
 
-**--default-sysctls**="": Sysctls to add to the containers (default: [])
+**--default-sysctls**="": Sysctls to add to the containers (default: []) (default: [])
 
 **--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is (default: "docker://")
 
-**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: [])
+**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: []) (default: [])
 
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
 
@@ -178,7 +178,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
     For the bind-mount conditions, only mounts explicitly requested by
     Kubernetes configuration are considered. Bind mounts that CRI-O
-    inserts by default (e.g. '/dev/shm') are not considered.
+    inserts by default (e.g. '/dev/shm') are not considered. (default: [])
 
 **--host-ip**="": Host IPs are the addresses to be used for the host network and can be specified up to two times (default: [])
 
@@ -190,7 +190,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--insecure-registry**="": Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
     1. List of insecure registries can contain an element with CIDR notation to specify a whole subnet.
     2. Insecure registries accept HTTP or accept HTTPS with certificates from unknown CAs.
-    3. Enabling '--insecure-registry' is useful when running a local registry. However, because its use creates security vulnerabilities, **it should ONLY be enabled for testing purposes**. For increased security, users should add their CA to their system's list of trusted CAs instead of using '--insecure-registry'.
+    3. Enabling '--insecure-registry' is useful when running a local registry. However, because its use creates security vulnerabilities, **it should ONLY be enabled for testing purposes**. For increased security, users should add their CA to their system's list of trusted CAs instead of using '--insecure-registry'. (default: [])
 
 **--listen**="": Path to the CRI-O socket (default: "/var/run/crio/crio.sock")
 
@@ -230,7 +230,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--registries-conf**="": path to the registries.conf file
 
-**--registry**="": Registry to be prepended when pulling unqualified images, can be specified multiple times (default: configured in /etc/containers/registries.conf)
+**--registry**="": Registry to be prepended when pulling unqualified images, can be specified multiple times (default: [])
 
 **--root, -r**="": The CRI-O root directory (default: "/var/lib/containers/storage")
 
@@ -238,7 +238,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--runtime**="": OCI runtime path
 
-**--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root
+**--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root (default: [])
 
 **--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used. (default: "")
 
@@ -282,6 +282,8 @@ Generate the man page documentation.
 ## markdown, md
 
 Generate the markdown documentation.
+
+**--help, -h**: show help
 
 ## config
 

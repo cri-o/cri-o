@@ -6,16 +6,16 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/internal/pkg/criocli"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var configCommand = cli.Command{
+var configCommand = &cli.Command{
 	Name: "config",
 	Usage: `Outputs a commented version of the configuration file that could be used
 by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.`,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "default",
 			Usage: "Output the default configuration (without taking into account any configuration options).",
 		},

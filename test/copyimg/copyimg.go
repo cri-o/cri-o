@@ -13,7 +13,7 @@ import (
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -27,43 +27,45 @@ func main() {
 	app.Version = "0.0.1"
 
 	app.Flags = []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "debug",
 			Usage: "turn on debug logging",
 		},
-		cli.StringFlag{
-			Name:  "root, r",
-			Usage: "graph root directory",
+		&cli.StringFlag{
+			Name:    "root",
+			Aliases: []string{"r"},
+			Usage:   "graph root directory",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "runroot",
 			Usage: "run root directory",
 		},
-		cli.StringFlag{
-			Name:  "storage-driver, s",
-			Usage: "storage driver",
+		&cli.StringFlag{
+			Name:    "storage-driver",
+			Aliases: []string{"s"},
+			Usage:   "storage driver",
 		},
-		cli.StringSliceFlag{
+		&cli.StringSliceFlag{
 			Name:  "storage-opt",
 			Usage: "storage option",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "signature-policy",
 			Usage: "signature policy",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "image-name",
 			Usage: "set image name",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "add-name",
 			Usage: "name to add to image",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "import-from",
 			Usage: "import source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "export-to",
 			Usage: "export target",
 		},
@@ -74,16 +76,16 @@ func main() {
 		var ref, importRef, exportRef types.ImageReference
 		var err error
 
-		debug := c.GlobalBool("debug")
-		rootDir := c.GlobalString("root")
-		runrootDir := c.GlobalString("runroot")
-		storageDriver := c.GlobalString("storage-driver")
-		storageOptions := c.GlobalStringSlice("storage-opt")
-		signaturePolicy := c.GlobalString("signature-policy")
-		imageName := c.GlobalString("image-name")
-		addName := c.GlobalString("add-name")
-		importFrom := c.GlobalString("import-from")
-		exportTo := c.GlobalString("export-to")
+		debug := c.Bool("debug")
+		rootDir := c.String("root")
+		runrootDir := c.String("runroot")
+		storageDriver := c.String("storage-driver")
+		storageOptions := c.StringSlice("storage-opt")
+		signaturePolicy := c.String("signature-policy")
+		imageName := c.String("image-name")
+		addName := c.String("add-name")
+		importFrom := c.String("import-from")
+		exportTo := c.String("export-to")
 
 		ctx := context.Background()
 
