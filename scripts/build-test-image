@@ -9,7 +9,7 @@ fi
 declare -A VERSIONS=(
     ["cni-plugins"]=v0.8.3
     ["conmon"]=v2.0.8
-    ["cri-tools"]=v1.16.1
+    ["cri-tools"]=v1.17.0
     ["runc"]=v1.0.0-rc9
 )
 
@@ -32,8 +32,8 @@ WORK_CTR=
 # All supported image digests
 declare -A IMAGES=(
     # go 1.13.4 digests
-    ["$GO_113:$ARCH_AMD64"]=80bf73289b856e9a9cb518e76380575b4328b031dd9f593c7c7b3c75c5598048
-    ["$GO_113:$ARCH_386"]=eab1380f36935fa5787b1b88fcaf4b33c50d3f782277adee544d3c434b345bf4
+    ["$GO_113:$ARCH_AMD64"]=6d54a51497d4b73e7af3c180b7389c8b0d05a95125069d0f63972d2cf93aac1f
+    ["$GO_113:$ARCH_386"]=30fc13b8263ce697e5dd44d6101a49344b424366b60f4b0901cef4252c2baa49
 
     # go 1.10.8 digests
     ["$GO_110:$ARCH_AMD64"]=eac40ba14416262e26def90a2d6f10d6ff579ea61c267963f6cbfbbe63b0ea7b
@@ -165,10 +165,12 @@ install_packages() {
         btrfs-progs \
         build-essential \
         clang-format \
+        conntrack \
         e2fslibs-dev \
         gawk \
         gettext \
         iptables \
+        jq \
         libaio-dev \
         libapparmor-dev \
         libcap-dev \
