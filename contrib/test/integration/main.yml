@@ -46,7 +46,10 @@
       include: "build/plugins.yml"
 
     - name: install conmon
-      include: "build/conmon.yml"
+      include: build/conmon.yml
+
+    - name: install jq
+      include: "build/jq.yml"
 
 
 - hosts: all
@@ -70,6 +73,9 @@
 
     - name: clone build and install conmon
       include: "build/conmon.yml"
+
+    - name: install jq
+      include: build/jq.yml
 
     - name: clone build and install crun
       include: "build/crun.yml"
