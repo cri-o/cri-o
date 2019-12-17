@@ -5,7 +5,8 @@ export GOSUMDB=https://sum.golang.org
 
 # test for go module support
 ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
-export GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
+export GO_MOD_VENDOR=--mod=vendor
+export GO_BUILD=GO111MODULE=on $(GO) build $(GO_MOD_VENDOR)
 else
 export GO_BUILD=$(GO) build
 endif
@@ -257,6 +258,7 @@ testunit: ${GINKGO}
 		--outputdir ${COVERAGE_PATH} \
 		--coverprofile coverprofile \
 		--tags "test $(BUILDTAGS)" \
+		$(GO_MOD_VENDOR) \
 		--succinct
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
 	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
