@@ -24,6 +24,7 @@ h
 --container-attach-socket-dir
 --container-exits-dir
 --ctr-stop-timeout
+--decryption-keys-path
 --default-capabilities
 --default-mounts
 --default-mounts-file

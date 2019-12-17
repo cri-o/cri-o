@@ -2,10 +2,12 @@ package server
 
 import (
 	"encoding/base64"
+	"os"
 	"strings"
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
+	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
 	"golang.org/x/net/context"
@@ -39,6 +41,15 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 				Password: password,
 			}
 		}
+	}
+
+	var dcc *encconfig.DecryptConfig
+	if _, err := os.Stat(s.decryptionKeysPath); err == nil {
+		cc, err := getDecryptionKeys(s.decryptionKeysPath)
+		if err != nil {
+			return nil, err
+		}
+		dcc = cc.DecryptConfig
 	}
 
 	var (
@@ -75,8 +86,9 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		}
 
 		_, err = s.StorageImageServer().PullImage(s.systemContext, img, &copy.Options{
-			SourceCtx:      &sourceCtx,
-			DestinationCtx: s.systemContext,
+			SourceCtx:        &sourceCtx,
+			DestinationCtx:   s.systemContext,
+			OciDecryptConfig: dcc,
 		})
 		if err != nil {
 			log.Debugf(ctx, "error pulling image %s: %v", img, err)
