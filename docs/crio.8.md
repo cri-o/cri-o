@@ -60,6 +60,7 @@ crio
 [--pause-image-auth-file]=[value]
 [--pause-image]=[value]
 [--pids-limit]=[value]
+[--pinns-path]=[value]
 [--profile-port]=[value]
 [--profile]
 [--read-only]
@@ -227,6 +228,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
+
+**--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: "")
 
 **--profile**: Enable pprof remote profiler on localhost:6060
 

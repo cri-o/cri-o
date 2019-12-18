@@ -647,6 +647,11 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Usage:   fmt.Sprintf("Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: %v)", defConf.ManageNSLifecycle),
 			EnvVars: []string{"CONTAINER_MANAGE_NS_LIFECYCLE"},
 		},
+		&cli.StringFlag{
+			Name:    "pinns-path",
+			Usage:   fmt.Sprintf("The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: %q)", defConf.PinnsPath),
+			EnvVars: []string{"CONTAINER_PINNS_PATH"},
+		},
 		&cli.BoolFlag{
 			Name:    "no-pivot",
 			Usage:   fmt.Sprintf("If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: %v)", defConf.NoPivot),

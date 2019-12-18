@@ -327,6 +327,7 @@ jobs:
               -e TEST_USERNS \
               -e JOBS \
               -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
+              -v $(pwd)/bin/pinns:/usr/bin/pinns \
               -v $(pwd):$WORKDIR \
               -w $WORKDIR \
               $IMAGE \

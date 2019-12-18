@@ -236,9 +236,12 @@ ctr_stop_timeout = {{ .CtrStopTimeout }}
 # **DEPRECATED** this option is being replaced by manage_ns_lifecycle, which is described below.
 # manage_network_ns_lifecycle = {{ .ManageNSLifecycle }}
 
-# ManageNSLifecycle determines whether we pin and remove namespaces
+# manage_ns_lifecycle determines whether we pin and remove namespaces
 # and manage their lifecycle
 manage_ns_lifecycle = {{ .ManageNSLifecycle }}
+
+# pinns_path is the path to find the pinns binary, which is needed to manage namespace lifecycle
+pinns_path = "{{ .PinnsPath }}"
 
 # The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
 # The runtime to use is picked based on the runtime_handler provided by the CRI.

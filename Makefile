@@ -375,7 +375,7 @@ install: .gopathok install.bin install.man install.completions
 install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
 	install ${SELINUXOPT} -D -m 755 bin/crio-status $(BINDIR)/crio-status
-	install ${SELINUXOPT} -D -m 755 bin/pinns $(LIBEXECDIR)/crio/pinns
+	install ${SELINUXOPT} -D -m 755 bin/pinns $(BINDIR)/pinns
 
 install.man: $(MANPAGES)
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5

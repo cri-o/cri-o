@@ -18,7 +18,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			managedNamespaces := make([]string, 0)
 
 			// When
-			ns, err := testSandbox.CreateManagedNamespaces(managedNamespaces)
+			ns, err := testSandbox.CreateManagedNamespaces(managedNamespaces, "pinns")
 
 			// Then
 			Expect(err).To(BeNil())
@@ -30,7 +30,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			managedNamespaces := []string{"invalid"}
 
 			// When
-			_, err := testSandbox.CreateManagedNamespaces(managedNamespaces)
+			_, err := testSandbox.CreateManagedNamespaces(managedNamespaces, "pinns")
 
 			// Then
 			Expect(err).To(Not(BeNil()))

@@ -54,7 +54,7 @@ func (n *Namespace) Initialize() NamespaceIface {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func PinManagedNamespaces(nsTypes []string) ([]NamespaceIface, error) {
+func PinManagedNamespaces(nsTypes []string, pinnsPath string) ([]NamespaceIface, error) {
 	typeToArg := map[string]string{
 		IPCNS: "-i",
 		UTSNS: "-u",
@@ -74,11 +74,6 @@ func PinManagedNamespaces(nsTypes []string) ([]NamespaceIface, error) {
 	err = os.MkdirAll(pinDir, 0755)
 	if err != nil {
 		return nil, err
-	}
-
-	pinnsPath := findPinnsPath()
-	if pinnsPath == "" {
-		return nil, errors.New("Can't find pinns to pin namespaces")
 	}
 
 	pinnsArgs := []string{"-d", pinDir}
@@ -128,21 +123,6 @@ func PinManagedNamespaces(nsTypes []string) ([]NamespaceIface, error) {
 		})
 	}
 	return returnedNamespaces, nil
-}
-
-func findPinnsPath() string {
-	pinnsSearchPath := []string{
-		"/usr/local/libexec/crio/pinns",
-		"/usr/libexec/crio/pinns",
-		"pinns",
-	}
-
-	for _, path := range pinnsSearchPath {
-		if _, err := exec.LookPath(path); err == nil {
-			return path
-		}
-	}
-	return ""
 }
 
 // getNamespace takes a path, checks if it is a namespace, and if so

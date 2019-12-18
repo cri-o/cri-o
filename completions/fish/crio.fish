@@ -80,6 +80,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-command -r -d 'Path 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-image -r -d 'Image which contains the pause executable (default: "k8s.gcr.io/pause:3.1")'
 complete -c crio -n '__fish_crio_no_subcommand' -l pause-image-auth-file -r -d 'Path to a config file containing credentials for --pause-image (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pids-limit -r -d 'Maximum number of processes allowed in a container'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l pinns-path -r -d 'The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l profile -d 'Enable pprof remote profiler on localhost:6060'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l profile-port -r -d 'Port for the pprof profiler'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l read-only -d 'Setup all unprivileged containers to run as read-only. Automatically mounts tmpfs on `/run`, `/tmp` and `/var/tmp`. (default: false)'

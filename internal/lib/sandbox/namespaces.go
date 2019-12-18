@@ -43,12 +43,12 @@ type NamespaceIface interface {
 	Type() string
 }
 
-func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []string) (map[string]string, error) {
+func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []string, pinnsPath string) (map[string]string, error) {
 	if len(managedNamespaces) == 0 {
 		return make(map[string]string), nil
 	}
 
-	namespaces, err := PinManagedNamespaces(managedNamespaces)
+	namespaces, err := PinManagedNamespaces(managedNamespaces, pinnsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (s *Sandbox) RemoveManagedNamespaces() error {
 	errs := make([]error, 0)
 
 	// use a map as a set to delete each parent directory just once
-	var directories map[string]bool
+	directories := make(map[string]bool)
 	if s.utsns != nil {
 		directories[filepath.Dir(s.utsns.Path())] = true
 		if err := s.utsns.Remove(); err != nil {
@@ -228,7 +228,7 @@ func (s *Sandbox) RemoveManagedNamespaces() error {
 		}
 	}
 
-	for directory, _ := range directories {
+	for directory := range directories {
 		if err := os.RemoveAll(directory); err != nil {
 			errs = append(errs, err)
 		}

@@ -57,6 +57,7 @@ h
 --pause-image
 --pause-image-auth-file
 --pids-limit
+--pinns-path
 --profile
 --profile-port
 --read-only
