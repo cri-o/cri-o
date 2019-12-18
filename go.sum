@@ -142,6 +142,8 @@ github.com/containers/storage v1.13.4/go.mod h1:6D8nK2sU9V7nEmAraINRs88ZEscM5C5D
 github.com/containers/storage v1.13.5/go.mod h1:HELz8Sn+UVbPaUZMI8RvIG9doD4y4z6Gtg4k7xdd2ZY=
 github.com/containers/storage v1.15.3 h1:+lFSQZnnKUFyUEtguIgdoQLJfWSuYz+j/wg5GxLtsN4=
 github.com/containers/storage v1.15.3/go.mod h1:v0lq/3f+cXH3Y/HiDaFYRR0zilwDve7I4W7U5xQxvF8=
+github.com/containers/storage v1.15.4-0.20191218193401-e18327c57107 h1:p6uPxazL30wwtXqTYFgV2mRQ+1PjQV1izzN8VpwyAxE=
+github.com/containers/storage v1.15.4-0.20191218193401-e18327c57107/go.mod h1:v0lq/3f+cXH3Y/HiDaFYRR0zilwDve7I4W7U5xQxvF8=
 github.com/coredns/corefile-migration v1.0.4/go.mod h1:OFwBp/Wc9dJt5cAZzHWMNhK1r5L0p0jDwIBc6j8NC8E=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
