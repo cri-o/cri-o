@@ -385,6 +385,9 @@ jobs:
           command: |
             make mockgen -j $JOBS
       - run:
+          name: install pinns
+          command: make PREFIX=/ install
+      - run:
           name: unit tests
           command: make testunit
       - run:
@@ -397,6 +400,7 @@ jobs:
           paths:
             - *gocache
             - build/bin/mockgen
+            - /bin/pinns
       - persist_to_workspace:
           root: .
           paths:
