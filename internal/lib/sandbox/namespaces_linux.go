@@ -54,7 +54,7 @@ func (n *Namespace) Initialize() NamespaceIface {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func PinManagedNamespaces(nsTypes []string, pinnsPath string) ([]NamespaceIface, error) {
+func pinNamespaces(nsTypes []string, pinnsPath string) ([]NamespaceIface, error) {
 	typeToArg := map[string]string{
 		IPCNS: "-i",
 		UTSNS: "-u",

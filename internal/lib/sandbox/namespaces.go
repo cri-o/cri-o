@@ -44,11 +44,15 @@ type NamespaceIface interface {
 }
 
 func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []string, pinnsPath string) (map[string]string, error) {
+	return s.CreateNamespacesWithFunc(managedNamespaces, pinnsPath, pinNamespaces)
+}
+
+func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []string, pinnsPath string, pinFunc func([]string, string) ([]NamespaceIface, error)) (map[string]string, error) {
 	if len(managedNamespaces) == 0 {
 		return make(map[string]string), nil
 	}
 
-	namespaces, err := PinManagedNamespaces(managedNamespaces, pinnsPath)
+	namespaces, err := pinFunc(managedNamespaces, pinnsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -96,11 +100,6 @@ func (s *Sandbox) NetNs() *Namespace {
 	return s.netns.Get()
 }
 
-// NetNsSet sets the sandbox's netns
-func (s *Sandbox) NetNsSet(net NamespaceIface) {
-	s.netns = net
-}
-
 // NetNsPath returns the path to the network namespace of the sandbox.
 // If the sandbox uses the host namespace, nil is returned
 func (s *Sandbox) NetNsPath() string {
@@ -135,11 +134,6 @@ func (s *Sandbox) IpcNs() *Namespace {
 	return s.ipcns.Get()
 }
 
-// IpcNsSet sets the sandbox's ipcns
-func (s *Sandbox) IpcNsSet(ipc NamespaceIface) {
-	s.ipcns = ipc
-}
-
 // IpcNsPath returns the path to the network namespace of the sandbox.
 // If the sandbox uses the host namespace, nil is returned
 func (s *Sandbox) IpcNsPath() string {
@@ -172,11 +166,6 @@ func (s *Sandbox) UtsNs() *Namespace {
 		return nil
 	}
 	return s.utsns.Get()
-}
-
-// UtsNsSet sets the sandbox's utsns
-func (s *Sandbox) UtsNsSet(uts NamespaceIface) {
-	s.utsns = uts
 }
 
 // UtsNsPath returns the path to the network namespace of the sandbox.

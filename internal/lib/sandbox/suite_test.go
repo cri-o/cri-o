@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -58,15 +57,9 @@ func beforeEach() {
 	Expect(testSandbox).NotTo(BeNil())
 }
 
-func createTmpFileInTmpDir() (tmpFile, tmpDir string) {
+func createTmpDir() (tmpDir string) {
 	tmpDir = fmt.Sprintf("/tmp/crio-ns-test-%d", rand.Intn(100))
 	err := os.MkdirAll(tmpDir, 0755)
 	Expect(err).To(BeNil())
-
-	tmpFile = filepath.Join(tmpDir, "test")
-	f, err := os.Create(tmpFile)
-	f.Close()
-
-	Expect(err).To(BeNil())
-	return tmpFile, tmpDir
+	return tmpDir
 }
