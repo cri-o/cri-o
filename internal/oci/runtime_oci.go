@@ -632,22 +632,22 @@ func (r *runtimeOCI) DeleteContainer(c *Container) error {
 }
 
 func updateContainerStatusFromExitFile(c *Container) error {
-	exitFilePath := filepath.Join(c.dir, "exit")
+	exitFilePath := c.exitFilePath()
 	fi, err := os.Stat(exitFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to find container exit file for %v: %v", c.id, err)
+		return errors.Wrapf(err, "failed to find container exit file for %s", c.id)
 	}
 	c.state.Finished, err = getFinishedTime(fi)
 	if err != nil {
-		return fmt.Errorf("failed to get finished time: %v", err)
+		return errors.Wrapf(err, "failed to get finished time")
 	}
 	statusCodeStr, err := ioutil.ReadFile(exitFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to read exit file: %v", err)
+		return errors.Wrapf(err, "failed to read exit file")
 	}
 	statusCode, err := strconv.Atoi(string(statusCodeStr))
 	if err != nil {
-		return fmt.Errorf("status code conversion failed: %v", err)
+		return errors.Wrapf(err, "status code conversion failed")
 	}
 	c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
 	return nil
@@ -687,7 +687,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	}
 
 	if c.state.Status == ContainerStateStopped {
-		exitFilePath := filepath.Join(c.dir, "exit")
+		exitFilePath := c.exitFilePath()
 		var fi os.FileInfo
 		err = kwait.ExponentialBackoff(
 			kwait.Backoff{
