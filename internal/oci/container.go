@@ -338,3 +338,7 @@ func (c *Container) Description() string {
 func (c *Container) StdinOnce() bool {
 	return c.stdinOnce
 }
+
+func (c *Container) exitFilePath() string {
+	return filepath.Join(c.dir, "exit")
+}
