@@ -89,108 +89,6 @@ func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []string, pinnsPath
 	return nsTypeToPath, nil
 }
 
-// NetNs specific functions
-
-// NetNs retrieves the network namespace of the sandbox
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) NetNs() *Namespace {
-	if s.netns == nil {
-		return nil
-	}
-	return s.netns.Get()
-}
-
-// NetNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) NetNsPath() string {
-	return s.nsPath(s.netns, NETNS)
-}
-
-// NetNsJoin attempts to join the sandbox to an existing network namespace
-// This will fail if the sandbox is already part of a network namespace
-func (s *Sandbox) NetNsJoin(nspath string) error {
-	if s.netns != nil {
-		return fmt.Errorf("sandbox already has a network namespace, cannot join another")
-	}
-
-	netNS, err := getNamespace(nspath)
-	if err != nil {
-		return err
-	}
-
-	s.netns = netNS
-
-	return nil
-}
-
-// IpcNs specific functions
-
-// IpcNs retrieves the IPC namespace of the sandbox
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) IpcNs() *Namespace {
-	if s.ipcns == nil {
-		return nil
-	}
-	return s.ipcns.Get()
-}
-
-// IpcNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) IpcNsPath() string {
-	return s.nsPath(s.ipcns, IPCNS)
-}
-
-// IpcNsJoin attempts to join the sandbox to an existing IPC namespace
-// This will fail if the sandbox is already part of a IPC namespace
-func (s *Sandbox) IpcNsJoin(nspath string) error {
-	if s.ipcns != nil {
-		return fmt.Errorf("sandbox already has a ipc namespace, cannot join another")
-	}
-
-	ipcNS, err := getNamespace(nspath)
-	if err != nil {
-		return err
-	}
-
-	s.ipcns = ipcNS
-
-	return nil
-}
-
-// UtsNs specific functions
-
-// UtsNs retrieves the UTS namespace of the sandbox
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) UtsNs() *Namespace {
-	if s.utsns == nil {
-		return nil
-	}
-	return s.utsns.Get()
-}
-
-// UtsNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) UtsNsPath() string {
-	return s.nsPath(s.utsns, UTSNS)
-}
-
-// UtsNsJoin attempts to join the sandbox to an existing UTS namespace
-// This will fail if the sandbox is already part of a UTS namespace
-func (s *Sandbox) UtsNsJoin(nspath string) error {
-	if s.utsns != nil {
-		return fmt.Errorf("sandbox already has a uts namespace, cannot join another")
-	}
-
-	utsNS, err := getNamespace(nspath)
-	if err != nil {
-		return err
-	}
-
-	s.utsns = utsNS
-
-	return nil
-}
-
 // RemoveManagedNamespaces cleans up after managing the namespaces. It removes all of the namespaces
 // and the parent directory in which they lived.
 func (s *Sandbox) RemoveManagedNamespaces() error {
@@ -228,6 +126,61 @@ func (s *Sandbox) RemoveManagedNamespaces() error {
 	}
 	return err
 }
+
+// NetNs specific functions
+
+// NetNsPath returns the path to the network namespace of the sandbox.
+// If the sandbox uses the host namespace, nil is returned
+func (s *Sandbox) NetNsPath() string {
+	return s.nsPath(s.netns, NETNS)
+}
+
+// NetNsJoin attempts to join the sandbox to an existing network namespace
+// This will fail if the sandbox is already part of a network namespace
+func (s *Sandbox) NetNsJoin(nspath string) (err error) {
+	s.netns, err = nsJoin(nspath, NETNS, s.netns)
+	return err
+}
+
+// IpcNs specific functions
+
+// IpcNsPath returns the path to the network namespace of the sandbox.
+// If the sandbox uses the host namespace, nil is returned
+func (s *Sandbox) IpcNsPath() string {
+	return s.nsPath(s.ipcns, IPCNS)
+}
+
+// IpcNsJoin attempts to join the sandbox to an existing IPC namespace
+// This will fail if the sandbox is already part of a IPC namespace
+func (s *Sandbox) IpcNsJoin(nspath string) (err error) {
+	s.ipcns, err = nsJoin(nspath, IPCNS, s.ipcns)
+	return err
+}
+
+// UtsNs specific functions
+
+// UtsNsPath returns the path to the network namespace of the sandbox.
+// If the sandbox uses the host namespace, nil is returned
+func (s *Sandbox) UtsNsPath() string {
+	return s.nsPath(s.utsns, UTSNS)
+}
+
+// UtsNsJoin attempts to join the sandbox to an existing UTS namespace
+// This will fail if the sandbox is already part of a UTS namespace
+func (s *Sandbox) UtsNsJoin(nspath string) (err error) {
+	s.utsns, err = nsJoin(nspath, UTSNS, s.utsns)
+	return err
+}
+
+// nsJoin checks if the current iface is nil, and if so gets the namespace at nsPath
+func nsJoin(nsPath, nsType string, currentIface NamespaceIface) (NamespaceIface, error) {
+	if currentIface != nil {
+		return currentIface, fmt.Errorf("sandbox already has a %s namespace, cannot join another", nsType)
+	}
+
+	return getNamespace(nsPath)
+}
+
 
 // nsPath returns the path to a namespace of the sandbox.
 // If the sandbox uses the host namespace, nil is returned
