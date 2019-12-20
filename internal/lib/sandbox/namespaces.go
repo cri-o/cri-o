@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -90,6 +91,29 @@ func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []string, pinnsPath
 	return nsTypeToPath, nil
 }
 
+// NamespacePaths returns all the paths of the
+// namespaces of the sandbox. If a namespace is not
+// managed by the sandbox, the namespace of the infra
+// container will be returned.
+// It returns a map of nsType -> path, allowing for
+// callers to branch on the namespace type
+func (s *Sandbox) NamespacePaths() map[string]string {
+	pid := infraPid(s.InfraContainer())
+
+	paths := make(map[string]string)
+
+	if ipc := nsPathGivenInfraPid(s.ipcns, IPCNS, pid); ipc != "" {
+		paths[IPCNS] = ipc
+	}
+	if net := nsPathGivenInfraPid(s.netns, NETNS, pid); net != "" {
+		paths[NETNS] = net
+	}
+	if uts := nsPathGivenInfraPid(s.utsns, UTSNS, pid); uts != "" {
+		paths[UTSNS] = uts
+	}
+	return paths
+}
+
 // RemoveManagedNamespaces cleans up after managing the namespaces. It removes all of the namespaces
 // and the parent directory in which they lived.
 func (s *Sandbox) RemoveManagedNamespaces() error {
@@ -131,7 +155,7 @@ func (s *Sandbox) RemoveManagedNamespaces() error {
 // NetNs specific functions
 
 // NetNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
+// If the sandbox uses the host namespace, the empty string is returned
 func (s *Sandbox) NetNsPath() string {
 	return s.nsPath(s.netns, NETNS)
 }
@@ -146,7 +170,7 @@ func (s *Sandbox) NetNsJoin(nspath string) (err error) {
 // IpcNs specific functions
 
 // IpcNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
+// If the sandbox uses the host namespace, the empty string is returned
 func (s *Sandbox) IpcNsPath() string {
 	return s.nsPath(s.ipcns, IPCNS)
 }
@@ -161,7 +185,7 @@ func (s *Sandbox) IpcNsJoin(nspath string) (err error) {
 // UtsNs specific functions
 
 // UtsNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
+// If the sandbox uses the host namespace, the empty string is returned
 func (s *Sandbox) UtsNsPath() string {
 	return s.nsPath(s.utsns, UTSNS)
 }
@@ -171,6 +195,14 @@ func (s *Sandbox) UtsNsPath() string {
 func (s *Sandbox) UtsNsJoin(nspath string) (err error) {
 	s.utsns, err = nsJoin(nspath, UTSNS, s.utsns)
 	return err
+}
+
+// UserNs specific functions
+
+// UserNsPath returns the path to the user namespace of the sandbox.
+// If the sandbox uses the host namespace, the empty string is returned
+func (s *Sandbox) UserNsPath() string {
+	return s.nsPath(nil, USERNS)
 }
 
 // nsJoin checks if the current iface is nil, and if so gets the namespace at nsPath
@@ -185,9 +217,27 @@ func nsJoin(nsPath, nsType string, currentIface NamespaceIface) (NamespaceIface,
 // nsPath returns the path to a namespace of the sandbox.
 // If the sandbox uses the host namespace, nil is returned
 func (s *Sandbox) nsPath(ns NamespaceIface, nsType string) string {
+	return nsPathGivenInfraPid(ns, nsType, infraPid(s.InfraContainer()))
+}
+
+// infraPid returns the pid of the passed in infra container
+// if the infra container is nil, pid is returned negative
+func infraPid(infra *oci.Container) int {
+	pid := -1
+	if infra != nil {
+		pid = infra.State().Pid
+	}
+	return pid
+}
+
+// nsPathGivenInfraPid allows callers to cache the infra pid, rather than
+// calling a container.State() in batch operations
+func nsPathGivenInfraPid(ns NamespaceIface, nsType string, infraPid int) string {
+	// caller is responsible for checking if infraContainer
+	// is valid. If not, infraPid should be negative
 	if ns == nil || ns.Get() == nil {
-		if s.infraContainer != nil {
-			return s.infraNsPath(nsType)
+		if infraPid >= 0 {
+			return infraNsPath(nsType, infraPid)
 		}
 		return ""
 	}
@@ -195,15 +245,8 @@ func (s *Sandbox) nsPath(ns NamespaceIface, nsType string) string {
 	return ns.Path()
 }
 
-// UserNsPath returns the path to the user namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) UserNsPath() string {
-	if s.infraContainer != nil {
-		return s.infraNsPath(USERNS)
-	}
-	return ""
-}
-
-func (s *Sandbox) infraNsPath(nsType string) string {
-	return fmt.Sprintf("/proc/%d/ns/%s", s.infraContainer.State().Pid, nsType)
+// infraNsPath returns the namespace path of type nsType for infra
+// with pid infraContainerPid
+func infraNsPath(nsType string, infraContainerPid int) string {
+	return fmt.Sprintf("/proc/%d/ns/%s", infraContainerPid, nsType)
 }

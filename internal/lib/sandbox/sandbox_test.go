@@ -208,6 +208,8 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(testSandbox.InfraContainer()).To(Equal(testContainer))
 			Expect(testSandbox.UserNsPath()).NotTo(Equal(""))
 			Expect(testSandbox.NetNsPath()).NotTo(Equal(""))
+			Expect(testSandbox.UtsNsPath()).NotTo(Equal(""))
+			Expect(testSandbox.IpcNsPath()).NotTo(Equal(""))
 
 			// And When
 			testSandbox.RemoveInfraContainer()
@@ -216,6 +218,8 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(testSandbox.InfraContainer()).To(BeNil())
 			Expect(testSandbox.UserNsPath()).To(Equal(""))
 			Expect(testSandbox.NetNsPath()).To(Equal(""))
+			Expect(testSandbox.UtsNsPath()).To(Equal(""))
+			Expect(testSandbox.IpcNsPath()).To(Equal(""))
 		})
 
 		It("should fail add an infra container twice", func() {

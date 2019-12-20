@@ -577,25 +577,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// Join the namespace paths for the pod sandbox container.
-	// TODO FIXME, before we cached the podInfraState, but now we don't with
-	// *NsPath() calls. Need to think of a clean way to do this
-	podInfraState := sb.InfraContainer().State()
-	log.Debugf(ctx, "pod container state %+v", podInfraState)
-
-	ipcNsPath := sb.IpcNsPath()
-	if ipcNsPath == "" {
-		return nil, errors.New("sandbox IPC namespace path returned empty")
-	}
-	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.IPCNamespace), ipcNsPath); err != nil {
-		return nil, err
-	}
-
-	utsNsPath := sb.UtsNsPath()
-	if utsNsPath == "" {
-		return nil, errors.New("sandbox UTS namespace path returned empty")
-	}
-	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UTSNamespace), utsNsPath); err != nil {
-		return nil, err
+	if err := configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), specgen); err != nil {
+		return nil, errors.Wrap(err, "failed to configure namespaces in container create")
 	}
 
 	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
@@ -604,9 +587,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			return nil, err
 		}
 	} else if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
+		infra := sb.InfraContainer()
+		if infra == nil {
+			return nil, errors.New("PID namespace requested, but sandbox has no infra container")
+		}
+
 		// share Pod PID namespace
 		// SEE NOTE ABOVE
-		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", podInfraState.Pid)
+		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", infra.State().Pid)
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
 			return nil, err
 		}
@@ -628,14 +616,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
 			}
 			specgen.AddMount(sysMnt)
-		}
-	} else {
-		netNsPath := sb.NetNsPath()
-		if netNsPath == "" {
-			return nil, errors.New("sandbox network namespace path returned empty")
-		}
-		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.NetworkNamespace), netNsPath); err != nil {
-			return nil, err
 		}
 	}
 
