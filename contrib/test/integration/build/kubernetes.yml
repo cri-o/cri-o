@@ -8,6 +8,15 @@
     version: "{{ k8s_git_version }}"
     force: "{{ force_clone | default(False) | bool}}"
 
+# replace hardcoded line not to use legacy stats provider
+- name: use CRI stats
+  lineinfile:
+    path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/pkg/kubelet/cadvisor/util.go"
+    regexp: '^(\s*)runtimeEndpoint == CrioSocket \|\| runtimeEndpoint == \"unix\:\/\/\"\+CrioSocket$'
+    # keep the whitespace to ensure the file still looks pretty :)
+    line: '\1false'
+    backrefs: yes
+
 - name: install etcd
   command: "hack/install-etcd.sh"
   args:
