@@ -169,7 +169,7 @@ var _ = t.Describe("Sandbox", func() {
 		BeforeEach(func() {
 			var err error
 			testContainer, err = oci.NewContainer("testid", "testname", "",
-				"/container/logs", "", map[string]string{},
+				"/container/logs", map[string]string{},
 				map[string]string{}, map[string]string{}, "image",
 				"imageName", "imageRef", &pb.ContainerMetadata{},
 				"testsandboxid", false, false, false, false, "",

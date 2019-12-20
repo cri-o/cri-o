@@ -739,7 +739,7 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("ContainerStateToDisk", func() {
 		It("should fail when state path invalid", func() {
 			// Given
-			container, err := oci.NewContainer(containerID, "", "", "", "",
+			container, err := oci.NewContainer(containerID, "", "", "",
 				make(map[string]string), make(map[string]string),
 				make(map[string]string), "", "", "",
 				&pb.ContainerMetadata{}, sandboxID, false, false,
