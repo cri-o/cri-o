@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	NETNS = "net"
-	IPCNS = "ipc"
-	UTSNS = "uts"
+	NETNS  = "net"
+	IPCNS  = "ipc"
+	UTSNS  = "uts"
+	USERNS = "user"
 )
 
 // ErrClosedNS is the error returned when the network namespace of the
@@ -181,13 +182,12 @@ func nsJoin(nsPath, nsType string, currentIface NamespaceIface) (NamespaceIface,
 	return getNamespace(nsPath)
 }
 
-
 // nsPath returns the path to a namespace of the sandbox.
 // If the sandbox uses the host namespace, nil is returned
 func (s *Sandbox) nsPath(ns NamespaceIface, nsType string) string {
 	if ns == nil || ns.Get() == nil {
 		if s.infraContainer != nil {
-			return fmt.Sprintf("/proc/%v/ns/%s", s.infraContainer.State().Pid, nsType)
+			return s.infraNsPath(nsType)
 		}
 		return ""
 	}
@@ -199,7 +199,11 @@ func (s *Sandbox) nsPath(ns NamespaceIface, nsType string) string {
 // If the sandbox uses the host namespace, nil is returned
 func (s *Sandbox) UserNsPath() string {
 	if s.infraContainer != nil {
-		return fmt.Sprintf("/proc/%v/ns/user", s.infraContainer.State().Pid)
+		return s.infraNsPath(USERNS)
 	}
 	return ""
+}
+
+func (s *Sandbox) infraNsPath(nsType string) string {
+	return fmt.Sprintf("/proc/%d/ns/%s", s.infraContainer.State().Pid, nsType)
 }

@@ -577,16 +577,23 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// Join the namespace paths for the pod sandbox container.
+	// TODO FIXME, before we cached the podInfraState, but now we don't with
+	// *NsPath() calls. Need to think of a clean way to do this
 	podInfraState := sb.InfraContainer().State()
-
 	log.Debugf(ctx, "pod container state %+v", podInfraState)
 
-	ipcNsPath := fmt.Sprintf("/proc/%d/ns/ipc", podInfraState.Pid)
+	ipcNsPath := sb.IpcNsPath()
+	if ipcNsPath == "" {
+		return nil, errors.New("sandbox IPC namespace path returned empty")
+	}
 	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.IPCNamespace), ipcNsPath); err != nil {
 		return nil, err
 	}
 
-	utsNsPath := fmt.Sprintf("/proc/%d/ns/uts", podInfraState.Pid)
+	utsNsPath := sb.UtsNsPath()
+	if utsNsPath == "" {
+		return nil, errors.New("sandbox UTS namespace path returned empty")
+	}
 	if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UTSNamespace), utsNsPath); err != nil {
 		return nil, err
 	}
@@ -598,6 +605,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		}
 	} else if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
 		// share Pod PID namespace
+		// SEE NOTE ABOVE
 		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", podInfraState.Pid)
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
 			return nil, err
@@ -624,11 +632,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	} else {
 		netNsPath := sb.NetNsPath()
 		if netNsPath == "" {
-			// The sandbox does not have a permanent namespace,
-			// it's on the host one.
-			netNsPath = fmt.Sprintf("/proc/%d/ns/net", podInfraState.Pid)
+			return nil, errors.New("sandbox network namespace path returned empty")
 		}
-
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.NetworkNamespace), netNsPath); err != nil {
 			return nil, err
 		}
