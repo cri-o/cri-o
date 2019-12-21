@@ -327,6 +327,7 @@ jobs:
               -e TEST_USERNS \
               -e JOBS \
               -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
+              -v $(pwd)/bin/pinns:/usr/bin/pinns \
               -v $(pwd):$WORKDIR \
               -w $WORKDIR \
               $IMAGE \
@@ -384,6 +385,9 @@ jobs:
           command: |
             make mockgen -j $JOBS
       - run:
+          name: install pinns
+          command: make PREFIX=/ install
+      - run:
           name: unit tests
           command: make testunit
       - run:
@@ -396,6 +400,7 @@ jobs:
           paths:
             - *gocache
             - build/bin/mockgen
+            - /bin/pinns
       - persist_to_workspace:
           root: .
           paths:

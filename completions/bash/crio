@@ -50,12 +50,14 @@ h
 --log-level
 --log-size-max
 --manage-network-ns-lifecycle
+--manage-ns-lifecycle
 --metrics-port
 --no-pivot
 --pause-command
 --pause-image
 --pause-image-auth-file
 --pids-limit
+--pinns-path
 --profile
 --profile-port
 --read-only

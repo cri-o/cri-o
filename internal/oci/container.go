@@ -33,7 +33,6 @@ type Container struct {
 	logPath        string
 	image          string
 	sandbox        string
-	netns          string
 	runtimeHandler string
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
@@ -79,7 +78,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id, name, bundlePath, logPath, netns string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce, privileged bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce, privileged bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -89,7 +88,6 @@ func NewContainer(id, name, bundlePath, logPath, netns string, labels, crioAnnot
 		logPath:         logPath,
 		labels:          labels,
 		sandbox:         sandbox,
-		netns:           netns,
 		terminal:        terminal,
 		stdin:           stdin,
 		stdinOnce:       stdinOnce,
@@ -258,19 +256,6 @@ func (c *Container) Sandbox() string {
 // Dir returns the dir of the container
 func (c *Container) Dir() string {
 	return c.dir
-}
-
-// NetNsPath returns the path to the network namespace of the container.
-func (c *Container) NetNsPath() (string, error) {
-	if c.state == nil {
-		return "", fmt.Errorf("container state is not populated")
-	}
-
-	if c.netns == "" {
-		return fmt.Sprintf("/proc/%d/ns/net", c.state.Pid), nil
-	}
-
-	return c.netns, nil
 }
 
 // Metadata returns the metadata of the container.

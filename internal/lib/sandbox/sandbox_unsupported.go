@@ -11,7 +11,7 @@ func (n *NetNs) Initialize() (*NetNs, error) {
 	return &NetNs{}, fmt.Errorf("netns is not implemented for this platform")
 }
 
-func (n *NetNs) Initialized() bool {
+func (n *NetNs) Initialized(nsType string) bool {
 	return false
 }
 

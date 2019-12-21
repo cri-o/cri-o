@@ -100,8 +100,8 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 			return nil, fmt.Errorf("failed to get infra container 'stopped' status %s in pod sandbox %s: %v", podInfraContainer.Name(), sb.ID(), err)
 		}
 	}
-	if s.config.ManageNetworkNSLifecycle {
-		if err := sb.NetNsRemove(); err != nil {
+	if s.config.ManageNSLifecycle {
+		if err := sb.RemoveManagedNamespaces(); err != nil {
 			return nil, err
 		}
 	}

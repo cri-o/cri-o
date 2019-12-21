@@ -159,7 +159,7 @@ var beforeEach = func() {
 		[]*hostport.PortMapping{}, false)
 	Expect(err).To(BeNil())
 
-	testContainer, err = oci.NewContainer(containerID, "", "", "", "",
+	testContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", "", "",
 		&pb.ContainerMetadata{}, sandboxID, false, false,

@@ -87,6 +87,11 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	if err := s.StorageRuntimeServer().RemovePodSandbox(sb.ID()); err != nil && err != pkgstorage.ErrInvalidSandboxID {
 		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.ID(), err)
 	}
+	if s.config.ManageNSLifecycle {
+		if err := sb.RemoveManagedNamespaces(); err != nil {
+			return nil, err
+		}
+	}
 
 	s.ReleaseContainerName(podInfraContainer.Name())
 	if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {

@@ -372,7 +372,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail wrong UID mappings", func() {
 			// Given
 			sut.UIDMappings = "value"
-			sut.ManageNetworkNSLifecycle = true
+			sut.ManageNSLifecycle = true
 
 			// When
 			err := sut.Validate(nil, false)
@@ -384,7 +384,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail wrong GID mappings", func() {
 			// Given
 			sut.GIDMappings = "value"
-			sut.ManageNetworkNSLifecycle = true
+			sut.ManageNSLifecycle = true
 
 			// When
 			err := sut.Validate(nil, false)

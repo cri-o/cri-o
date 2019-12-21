@@ -241,6 +241,10 @@ type RuntimeConfig struct {
 	// LogFilter specifies a regular expression to filter the log messages
 	LogFilter string `toml:"log_filter"`
 
+	// PinNSPath is the path to find the pinns binary, which is needed
+	// to manage namespace lifecycle
+	PinnsPath string `toml:"pinns_path"`
+
 	// Runtimes defines a list of OCI compatible runtimes. The runtime to
 	// use is picked based on the runtime_handler provided by the CRI. If
 	// no runtime_handler is provided, the runtime will be picked based on
@@ -271,9 +275,12 @@ type RuntimeConfig struct {
 	// to the kubernetes log file
 	LogToJournald bool `toml:"log_to_journald"`
 
-	// ManageNetworkNSLifecycle determines whether we pin and remove network namespace
-	// and manage its lifecycle
+	// Deprecated: In favor of ManageNSLifecycle (described below)
 	ManageNetworkNSLifecycle bool `toml:"manage_network_ns_lifecycle"`
+
+	// ManageNSLifecycle determines whether we pin and remove namespaces
+	// and manage their lifecycle
+	ManageNSLifecycle bool `toml:"manage_ns_lifecycle"`
 
 	// ReadOnly run all pods/containers in read-only mode.
 	// This mode will mount tmpfs on /run, /tmp and /var/tmp, if those are not mountpoints
@@ -508,6 +515,8 @@ func DefaultConfig() (*Config, error) {
 			DefaultUlimits:           []string{},
 			AdditionalDevices:        []string{},
 			HooksDir:                 []string{hooks.DefaultDir},
+			ManageNSLifecycle:        false,
+			PinnsPath:                "",
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
@@ -692,11 +701,15 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
 	}
 
-	if c.UIDMappings != "" && c.ManageNetworkNSLifecycle {
-		return fmt.Errorf("cannot use UIDMappings with ManageNetworkNSLifecycle")
+	// while ManageNetworkNSLifecycle is being deprecated, set
+	// ManageNSLifecycle to be true if either are
+	c.ManageNSLifecycle = c.ManageNetworkNSLifecycle || c.ManageNSLifecycle
+
+	if c.UIDMappings != "" && c.ManageNSLifecycle {
+		return fmt.Errorf("cannot use UIDMappings with ManageNSLifecycle")
 	}
-	if c.GIDMappings != "" && c.ManageNetworkNSLifecycle {
-		return fmt.Errorf("cannot use GIDMappings with ManageNetworkNSLifecycle")
+	if c.GIDMappings != "" && c.ManageNSLifecycle {
+		return fmt.Errorf("cannot use GIDMappings with ManageNSLifecycle")
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
@@ -724,6 +737,11 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err := c.ValidateConmonPath("conmon"); err != nil {
 			return errors.Wrapf(err, "conmon validation")
 		}
+
+		// Validate the pinns path
+		if err := c.ValidatePinnsPath("pinns"); err != nil {
+			return errors.Wrapf(err, "pinns validation")
+		}
 	}
 
 	return nil
@@ -744,18 +762,33 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 // If this is not the case, it tries to find it within the $PATH variable.
 // In any other case, it simply checks if `Conmon` is a valid file.
 func (c *RuntimeConfig) ValidateConmonPath(executable string) error {
-	if c.Conmon == "" {
-		conmon, err := exec.LookPath(executable)
+	var err error
+	c.Conmon, err = validateExecutablePath(executable, c.Conmon)
+
+	return err
+}
+
+func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
+	var err error
+	c.PinnsPath, err = validateExecutablePath(executable, c.PinnsPath)
+
+	return err
+}
+
+func validateExecutablePath(executable, currentPath string) (string, error) {
+	if currentPath == "" {
+		path, err := exec.LookPath(executable)
 		if err != nil {
-			return err
+			return "", err
 		}
-		c.Conmon = conmon
-		logrus.Debugf("using conmon from $PATH")
-	} else if _, err := os.Stat(c.Conmon); err != nil {
-		return errors.Wrapf(err, "invalid conmon path")
+		logrus.Debugf("using %s from $PATH", executable)
+		return path, nil
 	}
-	logrus.Infof("using conmon executable %q", c.Conmon)
-	return nil
+	if _, err := os.Stat(currentPath); err != nil {
+		return "", errors.Wrapf(err, "invalid %s path", executable)
+	}
+	logrus.Infof("using %s executable %q", executable, currentPath)
+	return currentPath, nil
 }
 
 // Validate is the main entry point for network configuration validation.

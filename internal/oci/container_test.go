@@ -41,7 +41,6 @@ var _ = t.Describe("Container", func() {
 		Expect(sut.ImageRef()).To(Equal("imageRef"))
 		Expect(sut.Sandbox()).To(Equal("sandbox"))
 		Expect(sut.Dir()).To(Equal("dir"))
-		Expect(sut.NetNsPath()).To(Equal("netns"))
 		Expect(sut.StatePath()).To(Equal("dir/state.json"))
 		Expect(sut.Metadata()).To(Equal(&pb.ContainerMetadata{}))
 		Expect(sut.StateNoLock().Version).To(BeEmpty())
@@ -139,7 +138,7 @@ var _ = t.Describe("Container", func() {
 
 	It("should succeed get the default stop signal on invalid", func() {
 		// Given
-		container, err := oci.NewContainer("", "", "", "", "",
+		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
 			"", "", "", &pb.ContainerMetadata{}, "",
 			false, false, false, false, "", "", time.Now(), "SIGNO")
@@ -153,44 +152,9 @@ var _ = t.Describe("Container", func() {
 		Expect(signal).To(Equal("TERM"))
 	})
 
-	It("should succeed get NetNsPath if not provided", func() {
-		// Given
-		container, err := oci.NewContainer("", "", "", "", "",
-			map[string]string{}, map[string]string{}, map[string]string{},
-			"", "", "", &pb.ContainerMetadata{}, "",
-			false, false, false, false, "", "", time.Now(), "")
-		Expect(err).To(BeNil())
-		Expect(container).NotTo(BeNil())
-
-		// When
-		path, err := container.NetNsPath()
-
-		// Then
-		Expect(err).To(BeNil())
-		Expect(path).To(Equal("/proc/0/ns/net"))
-	})
-
-	It("should fail get NetNsPath if container state nil", func() {
-		// Given
-		container, err := oci.NewContainer("", "", "", "", "",
-			map[string]string{}, map[string]string{}, map[string]string{},
-			"", "", "", &pb.ContainerMetadata{}, "",
-			false, false, false, false, "", "", time.Now(), "")
-		Expect(err).To(BeNil())
-		Expect(container).NotTo(BeNil())
-		container.SetState(nil)
-
-		// When
-		path, err := container.NetNsPath()
-
-		// Then
-		Expect(err).NotTo(BeNil())
-		Expect(path).To(BeEmpty())
-	})
-
 	It("should succeed get the non default stop signal", func() {
 		// Given
-		container, err := oci.NewContainer("", "", "", "", "",
+		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
 			"", "", "", &pb.ContainerMetadata{}, "",
 			false, false, false, false, "", "", time.Now(), "SIGTRAP")

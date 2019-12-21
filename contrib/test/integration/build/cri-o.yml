@@ -14,6 +14,12 @@
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
+- name: link pinns
+  file:
+    src: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/bin/pinns"
+    dest: "/bin/pinns"
+    state: link
+
 - name: install cri-o
   make:
     target: install
@@ -31,11 +37,10 @@
 
 - name: set manage network ns lifecycle
   replace:
-    regexp: 'manage_network_ns_lifecycle.*=.*false'
-    replace: 'manage_network_ns_lifecycle = true'
+    regexp: 'manage_ns_lifecycle.*=.*false'
+    replace: 'manage_ns_lifecycle = true'
     name: /etc/crio/crio.conf
     backup: yes
-  when: manage_network_ns_lifecycle
 
 - name: install configs
   copy:

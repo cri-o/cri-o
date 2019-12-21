@@ -53,12 +53,14 @@ crio
 [--log-size-max]=[value]
 [--log]=[value]
 [--manage-network-ns-lifecycle]
+[--manage-ns-lifecycle]
 [--metrics-port]=[value]
 [--no-pivot]
 [--pause-command]=[value]
 [--pause-image-auth-file]=[value]
 [--pause-image]=[value]
 [--pids-limit]=[value]
+[--pinns-path]=[value]
 [--profile-port]=[value]
 [--profile]
 [--read-only]
@@ -211,7 +213,9 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer (default: -1)
 
-**--manage-network-ns-lifecycle**: Determines whether we pin and remove network namespace and manage its lifecycle (default: false)
+**--manage-network-ns-lifecycle**: Deprecated: this option is being replaced by `manage_ns_lifecycle`, which is described below
+
+**--manage-ns-lifecycle**: Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: false)
 
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
 
@@ -224,6 +228,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
+
+**--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: "")
 
 **--profile**: Enable pprof remote profiler on localhost:6060
 
