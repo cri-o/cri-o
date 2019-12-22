@@ -725,11 +725,11 @@ func (r *runtimeOCI) WaitContainerStateStopped(ctx context.Context, c *Container
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeOCI) ContainerStats(c *Container) (*ContainerStats, error) {
+func (r *runtimeOCI) ContainerStats(c *Container, cgroup string) (*ContainerStats, error) {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	return r.containerStats(c)
+	return r.containerStats(c, cgroup)
 }
 
 // SignalContainer sends a signal to a container process.

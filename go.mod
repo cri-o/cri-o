@@ -51,6 +51,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/urfave/cli/v2 v2.0.0
 	github.com/vbatts/git-validation v1.0.0
+	github.com/vishvananda/netlink v1.0.0
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2

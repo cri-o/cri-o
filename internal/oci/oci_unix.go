@@ -8,10 +8,10 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/docker/docker/pkg/term"
 	"github.com/kr/pty"
-	"github.com/opencontainers/runc/libcontainer"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
@@ -35,9 +35,8 @@ func getExitCode(err error) int32 {
 	return -1
 }
 
-func calculateCPUPercent(stats *libcontainer.Stats) float64 {
-	return genericCalculateCPUPercent(stats.CgroupStats.CpuStats.CpuUsage.TotalUsage,
-		stats.CgroupStats.CpuStats.CpuUsage.PercpuUsage)
+func calculateCPUPercent(stats *cgroups.Metrics) float64 {
+	return genericCalculateCPUPercent(stats.CPU.Usage.Total, stats.CPU.Usage.PerCPU)
 }
 
 func genericCalculateCPUPercent(cpuTotal uint64, perCPU []uint64) float64 {
