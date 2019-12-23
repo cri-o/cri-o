@@ -116,7 +116,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			Expect(err).To(BeNil())
 			Expect(len(createdNamespaces)).To(Equal(3))
 			for _, ns := range createdNamespaces {
-				_, found := nsFound[ns]
+				_, found := nsFound[ns.Path()]
 				Expect(found).To(Equal(true))
 			}
 		})
@@ -147,8 +147,8 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, "", withTmpDir.pinNamespaces)
 			Expect(err).To(BeNil())
 
-			for _, file := range createdNamespaces {
-				f, err := os.Create(file)
+			for _, ns := range createdNamespaces {
+				f, err := os.Create(ns.Path())
 				f.Close()
 
 				Expect(err).To(BeNil())
@@ -378,9 +378,10 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
-			Expect(nsPaths[sandbox.UTSNS]).To(ContainSubstring("42"))
-			Expect(nsPaths[sandbox.NETNS]).To(ContainSubstring("42"))
-			Expect(nsPaths[sandbox.IPCNS]).To(ContainSubstring("42"))
+			for _, ns := range nsPaths {
+				Expect(ns.Path()).To(ContainSubstring("42"))
+			}
+			Expect(len(nsPaths)).To(Equal(3))
 		})
 		It("should get managed path despite infra set", func() {
 			// Given
@@ -398,9 +399,10 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
-			Expect(nsPaths[sandbox.UTSNS]).NotTo(ContainSubstring("42"))
-			Expect(nsPaths[sandbox.NETNS]).NotTo(ContainSubstring("42"))
-			Expect(nsPaths[sandbox.IPCNS]).NotTo(ContainSubstring("42"))
+			for _, ns := range nsPaths {
+				Expect(ns.Path()).NotTo(ContainSubstring("42"))
+			}
+			Expect(len(nsPaths)).To(Equal(3))
 		})
 	})
 	t.Describe("NamespacePaths without infra", func() {

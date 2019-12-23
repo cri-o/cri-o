@@ -45,21 +45,44 @@ type NamespaceIface interface {
 	Type() string
 }
 
-func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []string, pinnsPath string) (map[string]string, error) {
+// ManagedNamespace is a structure that holds all the necessary information a caller would
+// need for a sandbox managed namespace
+// Where NamespaceIface does hold similar information, ManagedNamespace exists to allow this library
+// to not return data not necessarily in a NamespaceIface (for instance, when a namespace is not managed
+// by CRI-O, but instead is based off of the infra pid)
+type ManagedNamespace struct {
+	nsPath string
+	nsType string
+}
+
+// Type returns the namespace type
+func (m *ManagedNamespace) Type() string {
+	return m.nsType
+}
+
+// Type returns the namespace path
+func (m *ManagedNamespace) Path() string {
+	return m.nsPath
+}
+
+// CreateManagedNamespaces calls pinnsPath on all the managed namespaces for the sandbox.
+// It returns a slice of ManagedNamespaces it created.
+func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []string, pinnsPath string) ([]*ManagedNamespace, error) {
 	return s.CreateNamespacesWithFunc(managedNamespaces, pinnsPath, pinNamespaces)
 }
 
-func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []string, pinnsPath string, pinFunc func([]string, string) ([]NamespaceIface, error)) (map[string]string, error) {
+// CreateManagedNamespacesWithFunc is mainly added for testing purposes. There's no point in actually calling the pinns binary
+// in unit tests, so this function allows the actual pin func to be abstracted out. Every other caller should use CreateManagedNamespaces
+func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []string, pinnsPath string, pinFunc func([]string, string) ([]NamespaceIface, error)) ([]*ManagedNamespace, error) {
+	typesAndPaths := make([]*ManagedNamespace, 0, 3)
 	if len(managedNamespaces) == 0 {
-		return make(map[string]string), nil
+		return typesAndPaths, nil
 	}
 
 	namespaces, err := pinFunc(managedNamespaces, pinnsPath)
 	if err != nil {
-		return nil, err
+		return typesAndPaths, nil
 	}
-
-	nsTypeToPath := make(map[string]string)
 
 	for _, namespace := range namespaces {
 		namespaceIface := namespace.Initialize()
@@ -74,44 +97,59 @@ func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []string, pinnsPath
 		switch namespace.Type() {
 		case NETNS:
 			s.netns = namespaceIface
-			nsTypeToPath[NETNS] = namespace.Path()
+			typesAndPaths = append(typesAndPaths, &ManagedNamespace{
+				nsType: NETNS,
+				nsPath: namespace.Path(),
+			})
 		case IPCNS:
 			s.ipcns = namespaceIface
-			nsTypeToPath[IPCNS] = namespace.Path()
+			typesAndPaths = append(typesAndPaths, &ManagedNamespace{
+				nsType: IPCNS,
+				nsPath: namespace.Path(),
+			})
 		case UTSNS:
 			s.utsns = namespaceIface
-			nsTypeToPath[UTSNS] = namespace.Path()
+			typesAndPaths = append(typesAndPaths, &ManagedNamespace{
+				nsType: UTSNS,
+				nsPath: namespace.Path(),
+			})
 		default:
 			// This should never happen
 			err = errors.New("Invalid namespace type")
-			return nil, err
+			return typesAndPaths, err
 		}
 	}
 
-	return nsTypeToPath, nil
+	return typesAndPaths, nil
 }
 
-// NamespacePaths returns all the paths of the
-// namespaces of the sandbox. If a namespace is not
-// managed by the sandbox, the namespace of the infra
-// container will be returned.
-// It returns a map of nsType -> path, allowing for
-// callers to branch on the namespace type
-func (s *Sandbox) NamespacePaths() map[string]string {
+// NamespacePaths returns all the paths of the namespaces of the sandbox. If a namespace is not
+// managed by the sandbox, the namespace of the infra container will be returned.
+// It returns a slice of ManagedNamespaces
+func (s *Sandbox) NamespacePaths() []*ManagedNamespace {
 	pid := infraPid(s.InfraContainer())
 
-	paths := make(map[string]string)
+	typesAndPaths := make([]*ManagedNamespace, 0, 3)
 
 	if ipc := nsPathGivenInfraPid(s.ipcns, IPCNS, pid); ipc != "" {
-		paths[IPCNS] = ipc
+		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
+			nsType: IPCNS,
+			nsPath: ipc,
+		})
 	}
 	if net := nsPathGivenInfraPid(s.netns, NETNS, pid); net != "" {
-		paths[NETNS] = net
+		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
+			nsType: NETNS,
+			nsPath: net,
+		})
 	}
 	if uts := nsPathGivenInfraPid(s.utsns, UTSNS, pid); uts != "" {
-		paths[UTSNS] = uts
+		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
+			nsType: UTSNS,
+			nsPath: uts,
+		})
 	}
-	return paths
+	return typesAndPaths
 }
 
 // RemoveManagedNamespaces cleans up after managing the namespaces. It removes all of the namespaces

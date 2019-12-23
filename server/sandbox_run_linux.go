@@ -783,14 +783,14 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		managedNamespaces = append(managedNamespaces, sandbox.UTSNS)
 
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
-		nsPaths, err := sb.CreateManagedNamespaces(managedNamespaces, s.config.PinnsPath)
+		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, s.config.PinnsPath)
 		if err != nil {
 			return nil, err
 		}
 
 		cleanupFuncs = append(cleanupFuncs, sb.RemoveManagedNamespaces)
 
-		if err := configureGeneratorGivenNamespacePaths(nsPaths, g); err != nil {
+		if err := configureGeneratorGivenNamespacePaths(managedNamespaces, g); err != nil {
 			return cleanupFuncs, err
 		}
 	}
@@ -800,23 +800,23 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 
 // configureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
 // to add or replace the defaults to these paths
-func configureGeneratorGivenNamespacePaths(nsPaths map[string]string, g generate.Generator) error {
+func configureGeneratorGivenNamespacePaths(managedNamespaces []*sandbox.ManagedNamespace, g generate.Generator) error {
 	typeToSpec := map[string]string{
 		sandbox.IPCNS: runtimespec.IPCNamespace,
 		sandbox.NETNS: runtimespec.NetworkNamespace,
 		sandbox.UTSNS: runtimespec.UTSNamespace,
 	}
 
-	for nsType, path := range nsPaths {
+	for _, ns := range managedNamespaces {
 		// allow for empty paths, as this namespace just shouldn't be configured
-		if path == "" {
+		if ns.Path() == "" {
 			continue
 		}
-		nsForSpec := typeToSpec[nsType]
+		nsForSpec := typeToSpec[ns.Type()]
 		if nsForSpec == "" {
 			return errors.Errorf("Invalid namespace type %s", nsForSpec)
 		}
-		err := g.AddOrReplaceLinuxNamespace(nsForSpec, path)
+		err := g.AddOrReplaceLinuxNamespace(nsForSpec, ns.Path())
 		if err != nil {
 			return err
 		}
