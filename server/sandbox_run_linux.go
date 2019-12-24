@@ -422,7 +422,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 
 	// set up namespaces
-	cleanupFuncs, err := s.configureGeneratorForNamespaces(hostNetwork, hostIPC, hostPID, sb, g)
+	cleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sb, g)
 	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
 	for idx := range cleanupFuncs {
 		defer func(currentFunc int) {
@@ -746,11 +746,11 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Ge
 	}
 }
 
-// configureGeneratorForNamespaces set the linux namespaces for the generator, based on whether the pod is sharing namespaces with the host, as well as whether CRI-O should be managing
-// the namespace lifecycle.
-// it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox. The caller should defer the cleanup funcs if there is an error, to make sure
-// each namespace we are managing is properly cleaned up.
-func (s *Server) configureGeneratorForNamespaces(hostNetwork, hostIPC, hostPID bool, sb *sandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, err error) {
+// configureGeneratorForSandboxNamespaces set the linux namespaces for the generator, based on whether the pod is sharing namespaces with the host,
+// as well as whether CRI-O should be managing the namespace lifecycle.
+// it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
+// The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
+func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, sb *sandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, err error) {
 	managedNamespaces := make([]string, 0, 3)
 	if hostNetwork {
 		err = g.RemoveLinuxNamespace(string(runtimespec.NetworkNamespace))
@@ -783,26 +783,43 @@ func (s *Server) configureGeneratorForNamespaces(hostNetwork, hostIPC, hostPID b
 		managedNamespaces = append(managedNamespaces, sandbox.UTSNS)
 
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
-		nsPaths, err := sb.CreateManagedNamespaces(managedNamespaces, s.config.PinnsPath)
+		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, s.config.PinnsPath)
 		if err != nil {
 			return nil, err
 		}
 
-		specToPath := map[string]string{
-			sandbox.IPCNS: runtimespec.IPCNamespace,
-			sandbox.NETNS: runtimespec.NetworkNamespace,
-			sandbox.UTSNS: runtimespec.UTSNamespace,
-		}
-
-		for nsType, path := range nsPaths {
-			err = g.AddOrReplaceLinuxNamespace(specToPath[nsType], path)
-			if err != nil {
-				return nil, err
-			}
-		}
-
 		cleanupFuncs = append(cleanupFuncs, sb.RemoveManagedNamespaces)
+
+		if err := configureGeneratorGivenNamespacePaths(managedNamespaces, g); err != nil {
+			return cleanupFuncs, err
+		}
 	}
 
 	return cleanupFuncs, err
+}
+
+// configureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
+// to add or replace the defaults to these paths
+func configureGeneratorGivenNamespacePaths(managedNamespaces []*sandbox.ManagedNamespace, g generate.Generator) error {
+	typeToSpec := map[string]string{
+		sandbox.IPCNS: runtimespec.IPCNamespace,
+		sandbox.NETNS: runtimespec.NetworkNamespace,
+		sandbox.UTSNS: runtimespec.UTSNamespace,
+	}
+
+	for _, ns := range managedNamespaces {
+		// allow for empty paths, as this namespace just shouldn't be configured
+		if ns.Path() == "" {
+			continue
+		}
+		nsForSpec := typeToSpec[ns.Type()]
+		if nsForSpec == "" {
+			return errors.Errorf("Invalid namespace type %s", nsForSpec)
+		}
+		err := g.AddOrReplaceLinuxNamespace(nsForSpec, ns.Path())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

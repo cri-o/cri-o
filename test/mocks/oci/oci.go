@@ -53,18 +53,18 @@ func (mr *MockRuntimeImplMockRecorder) AttachContainer(arg0, arg1, arg2, arg3, a
 }
 
 // ContainerStats mocks base method
-func (m *MockRuntimeImpl) ContainerStats(arg0 *oci.Container) (*oci.ContainerStats, error) {
+func (m *MockRuntimeImpl) ContainerStats(arg0 *oci.Container, arg1 string) (*oci.ContainerStats, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerStats", arg0)
+	ret := m.ctrl.Call(m, "ContainerStats", arg0, arg1)
 	ret0, _ := ret[0].(*oci.ContainerStats)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ContainerStats indicates an expected call of ContainerStats
-func (mr *MockRuntimeImplMockRecorder) ContainerStats(arg0 interface{}) *gomock.Call {
+func (mr *MockRuntimeImplMockRecorder) ContainerStats(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStats", reflect.TypeOf((*MockRuntimeImpl)(nil).ContainerStats), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStats", reflect.TypeOf((*MockRuntimeImpl)(nil).ContainerStats), arg0, arg1)
 }
 
 // CreateContainer mocks base method

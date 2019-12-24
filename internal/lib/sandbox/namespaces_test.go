@@ -3,11 +3,15 @@ package sandbox_test
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
 	sandboxmock "github.com/cri-o/cri-o/test/mocks/sandbox"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // pinNamespaceFunctor is a way to generically create a mockable pinNamespaces() function
@@ -112,7 +116,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			Expect(err).To(BeNil())
 			Expect(len(createdNamespaces)).To(Equal(3))
 			for _, ns := range createdNamespaces {
-				_, found := nsFound[ns]
+				_, found := nsFound[ns.Path()]
 				Expect(found).To(Equal(true))
 			}
 		})
@@ -143,8 +147,8 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, "", withTmpDir.pinNamespaces)
 			Expect(err).To(BeNil())
 
-			for _, file := range createdNamespaces {
-				f, err := os.Create(file)
+			for _, ns := range createdNamespaces {
+				f, err := os.Create(ns.Path())
 				f.Close()
 
 				Expect(err).To(BeNil())
@@ -348,6 +352,66 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			path := testSandbox.UtsNsPath()
 			// Then
 			Expect(path).ToNot(Equal(""))
+		})
+	})
+	t.Describe("NamespacePaths with infra", func() {
+		BeforeEach(func() {
+			testContainer, err := oci.NewContainer("testid", "testname", "",
+				"/container/logs", map[string]string{},
+				map[string]string{}, map[string]string{}, "image",
+				"imageName", "imageRef", &pb.ContainerMetadata{},
+				"testsandboxid", false, false, false, false, "",
+				"/root/for/container", time.Now(), "SIGKILL")
+			Expect(err).To(BeNil())
+			Expect(testContainer).NotTo(BeNil())
+
+			cstate := &oci.ContainerState{}
+			cstate.State = specs.State{
+				Pid: 42,
+			}
+			testContainer.SetState(cstate)
+
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+		})
+		It("should get something when infra set", func() {
+			// Given
+			// When
+			nsPaths := testSandbox.NamespacePaths()
+			// Then
+			for _, ns := range nsPaths {
+				Expect(ns.Path()).To(ContainSubstring("42"))
+			}
+			Expect(len(nsPaths)).To(Equal(3))
+		})
+		It("should get managed path despite infra set", func() {
+			// Given
+			managedNamespaces := []string{"ipc", "net", "uts"}
+			getPath := pinNamespacesFunctor{
+				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
+					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
+					ifaceMock.EXPECT().Get().Return(&sandbox.Namespace{})
+					ifaceMock.EXPECT().Path().Return(filepath.Join(genericNamespaceParentDir, nsType))
+				},
+			}
+			// When
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, "", getPath.pinNamespaces)
+			Expect(err).To(BeNil())
+			// When
+			nsPaths := testSandbox.NamespacePaths()
+			// Then
+			for _, ns := range nsPaths {
+				Expect(ns.Path()).NotTo(ContainSubstring("42"))
+			}
+			Expect(len(nsPaths)).To(Equal(3))
+		})
+	})
+	t.Describe("NamespacePaths without infra", func() {
+		It("should get nothing", func() {
+			// Given
+			// When
+			nsPaths := testSandbox.NamespacePaths()
+			// Then
+			Expect(len(nsPaths)).To(Equal(0))
 		})
 	})
 })
