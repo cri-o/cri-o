@@ -21,10 +21,13 @@ import (
 var _ = t.Describe("Image", func() {
 	// Test constants
 	const (
-		testRegistry            = "docker.io"
-		testImageName           = "image"
-		testNormalizedImageName = "docker.io/library/image:latest" // Keep in sync with testImageName!
-		testSHA256              = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
+		testDockerRegistry                  = "docker.io"
+		testExampleRegistry                 = "registry.example.org"
+		testImageName                       = "image"
+		testNormalizedImageName             = "docker.io/library/image:latest" // Keep in sync with testImageName!
+		testSHA256                          = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
+		testImageWithTagAndDigest           = "image:latest@sha256:" + testSHA256
+		testNormalizedImageWithTagAndDigest = "docker.io/library/image:latest@sha256:" + testSHA256
 	)
 
 	var (
@@ -44,7 +47,7 @@ var _ = t.Describe("Image", func() {
 		var err error
 		sut, err = storage.GetImageService(
 			context.Background(), nil, storeMock, "docker://",
-			[]string{}, []string{testRegistry},
+			[]string{}, []string{testDockerRegistry, testExampleRegistry},
 		)
 		Expect(err).To(BeNil())
 		Expect(sut).NotTo(BeNil())
@@ -150,8 +153,10 @@ var _ = t.Describe("Image", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(len(names)).To(Equal(1))
-			Expect(names[0]).To(Equal(testRegistry + "/library/" + testImageName))
+			Expect(names).To(Equal([]string{
+				testDockerRegistry + "/library/" + testImageName,
+				testExampleRegistry + "/" + testImageName,
+			}))
 		})
 
 		It("should succeed to resolve with full qualified image name", func() {
@@ -169,6 +174,41 @@ var _ = t.Describe("Image", func() {
 			Expect(err).To(BeNil())
 			Expect(len(names)).To(Equal(1))
 			Expect(names[0]).To(Equal(imageName))
+		})
+
+		It("should succeed to resolve image name with tag and digest", func() {
+			// Given
+			gomock.InOrder(
+				storeMock.EXPECT().Image(gomock.Any()).
+					Return(&cs.Image{ID: "id"}, nil),
+			)
+
+			// When
+			names, err := sut.ResolveNames(nil, testImageWithTagAndDigest)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(names).To(Equal([]string{
+				testDockerRegistry + "/library/" + testImageName + "@sha256:" + testSHA256,
+				testExampleRegistry + "/" + testImageName + "@sha256:" + testSHA256,
+			}))
+		})
+
+		It("should succeed to resolve fully qualified image name with tag and digest", func() {
+			// Given
+			gomock.InOrder(
+				storeMock.EXPECT().Image(gomock.Any()).
+					Return(&cs.Image{ID: "id"}, nil),
+			)
+
+			// When
+			names, err := sut.ResolveNames(nil, testNormalizedImageWithTagAndDigest)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(names).To(Equal([]string{
+				testDockerRegistry + "/library/" + testImageName + "@sha256:" + testSHA256,
+			}))
 		})
 
 		It("should succeed to resolve with a local copy", func() {

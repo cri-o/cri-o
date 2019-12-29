@@ -477,6 +477,30 @@ func splitDockerDomain(name string) (domain, remainder string) {
 	return
 }
 
+// imageNamesWithDigestOrTag strips the tag from ambiguous image references that have a digest as well (e.g. `image:tag@sha256:123...`).
+// Such image references are supported by docker but, due to their ambiguity,
+// explicitly not by containers/image.
+func imageNamesWithDigestOrTag(images []string) ([]string, error) {
+	normalized := make([]string, len(images))
+	for i, imageName := range images {
+		ref, err := reference.ParseNormalizedNamed(imageName)
+		if err != nil {
+			return nil, err
+		}
+		_, isTagged := ref.(reference.NamedTagged)
+		canonical, isDigested := ref.(reference.Canonical)
+		if isTagged && isDigested {
+			canonical, err = reference.WithDigest(reference.TrimNamed(ref), canonical.Digest())
+			if err != nil {
+				return nil, err
+			}
+			imageName = canonical.String()
+		}
+		normalized[i] = imageName
+	}
+	return normalized, nil
+}
+
 // ResolveNames resolves an image name into a storage image ID or a fully-qualified image name (domain/repo/image:tag).
 // Will only return an empty slice if err != nil.
 func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error) {
@@ -507,7 +531,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		if registry != nil && registry.Blocked {
 			return nil, fmt.Errorf("cannot use %q because it's blocked", imageName)
 		}
-		return []string{imageName}, nil
+		return imageNamesWithDigestOrTag([]string{imageName})
 	}
 	unqualifiedSearchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
 	if err != nil {
@@ -540,7 +564,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 	if len(images) == 0 {
 		return nil, fmt.Errorf("all search registries for %q are blocked", remainder)
 	}
-	return images, nil
+	return imageNamesWithDigestOrTag(images)
 }
 
 // GetImageService returns an ImageServer that uses the passed-in store, and
