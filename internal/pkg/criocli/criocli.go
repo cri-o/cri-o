@@ -230,6 +230,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.IsSet("manage-ns-lifecycle") {
 		config.ManageNSLifecycle = ctx.Bool("manage-ns-lifecycle")
 	}
+	if ctx.IsSet("pinns-path") {
+		config.PinnsPath = ctx.String("pinns-path")
+	}
 	if ctx.IsSet("no-pivot") {
 		config.NoPivot = ctx.Bool("no-pivot")
 	}
