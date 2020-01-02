@@ -802,9 +802,10 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 // to add or replace the defaults to these paths
 func configureGeneratorGivenNamespacePaths(managedNamespaces []*sandbox.ManagedNamespace, g generate.Generator) error {
 	typeToSpec := map[string]string{
-		sandbox.IPCNS: runtimespec.IPCNamespace,
-		sandbox.NETNS: runtimespec.NetworkNamespace,
-		sandbox.UTSNS: runtimespec.UTSNamespace,
+		sandbox.IPCNS:  runtimespec.IPCNamespace,
+		sandbox.NETNS:  runtimespec.NetworkNamespace,
+		sandbox.UTSNS:  runtimespec.UTSNamespace,
+		sandbox.USERNS: runtimespec.UserNamespace,
 	}
 
 	for _, ns := range managedNamespaces {

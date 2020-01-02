@@ -74,7 +74,7 @@ func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []string, pinnsPath 
 // CreateManagedNamespacesWithFunc is mainly added for testing purposes. There's no point in actually calling the pinns binary
 // in unit tests, so this function allows the actual pin func to be abstracted out. Every other caller should use CreateManagedNamespaces
 func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []string, pinnsPath string, pinFunc func([]string, string) ([]NamespaceIface, error)) ([]*ManagedNamespace, error) {
-	typesAndPaths := make([]*ManagedNamespace, 0, 3)
+	typesAndPaths := make([]*ManagedNamespace, 0, 4)
 	if len(managedNamespaces) == 0 {
 		return typesAndPaths, nil
 	}
@@ -113,6 +113,12 @@ func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []string, pinnsPath
 				nsType: UTSNS,
 				nsPath: namespace.Path(),
 			})
+		case USERNS:
+			s.userns = namespaceIface
+			typesAndPaths = append(typesAndPaths, &ManagedNamespace{
+				nsType: USERNS,
+				nsPath: namespace.Path(),
+			})
 		default:
 			// This should never happen
 			err = errors.New("Invalid namespace type")
@@ -149,6 +155,12 @@ func (s *Sandbox) NamespacePaths() []*ManagedNamespace {
 			nsPath: uts,
 		})
 	}
+	if user := nsPathGivenInfraPid(s.userns, USERNS, pid); user != "" {
+		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
+			nsType: USERNS,
+			nsPath: user,
+		})
+	}
 	return typesAndPaths
 }
 
@@ -174,6 +186,12 @@ func (s *Sandbox) RemoveManagedNamespaces() error {
 	if s.netns != nil {
 		directories[filepath.Dir(s.netns.Path())] = true
 		if err := s.netns.Remove(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if s.userns != nil {
+		directories[filepath.Dir(s.userns.Path())] = true
+		if err := s.userns.Remove(); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -240,7 +258,14 @@ func (s *Sandbox) UtsNsJoin(nspath string) (err error) {
 // UserNsPath returns the path to the user namespace of the sandbox.
 // If the sandbox uses the host namespace, the empty string is returned
 func (s *Sandbox) UserNsPath() string {
-	return s.nsPath(nil, USERNS)
+	return s.nsPath(s.userns, USERNS)
+}
+
+// UserNsJoin attempts to join the sandbox to an existing User namespace
+// This will fail if the sandbox is already part of a User namespace
+func (s *Sandbox) UserNsJoin(nspath string) (err error) {
+	s.userns, err = nsJoin(nspath, USERNS, s.userns)
+	return err
 }
 
 // nsJoin checks if the current iface is nil, and if so gets the namespace at nsPath

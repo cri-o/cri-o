@@ -44,16 +44,18 @@ int main(int argc, char **argv) {
   bool bind_net = false;
   bool bind_uts = false;
   bool bind_ipc = false;
+  bool bind_user = false;
 
   static const struct option long_options[] = {
       {"help", no_argument, NULL, 'h'},
       {"uts", optional_argument, NULL, 'u'},
       {"ipc", optional_argument, NULL, 'i'},
       {"net", optional_argument, NULL, 'n'},
+      {"user", optional_argument, NULL, 'U'},
       {"dir", required_argument, NULL, 'd'},
   };
 
-  while ((c = getopt_long(argc, argv, "huind:", long_options, NULL)) != -1) {
+  while ((c = getopt_long(argc, argv, "huUind:", long_options, NULL)) != -1) {
     switch (c) {
     case 'u':
       unshare_flags |= CLONE_NEWUTS;
@@ -68,6 +70,11 @@ int main(int argc, char **argv) {
     case 'n':
       unshare_flags |= CLONE_NEWNET;
       bind_net = true;
+      num_unshares++;
+      break;
+    case 'U':
+      unshare_flags |= CLONE_NEWUSER;
+      bind_user = true;
       num_unshares++;
       break;
     case 'd':
@@ -116,6 +123,11 @@ int main(int argc, char **argv) {
 
   if (bind_net) {
     if (bind_ns(pin_path, "net") < 0) {
+      return EXIT_FAILURE;
+    }
+  }
+  if (bind_user) {
+    if (bind_ns(pin_path, "user") < 0) {
       return EXIT_FAILURE;
     }
   }

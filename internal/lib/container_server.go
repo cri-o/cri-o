@@ -366,6 +366,16 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 				return nsErr
 			}
 		}
+		userNsPath, err := configNsPath(&m, rspec.UserNamespace)
+		if err == nil {
+			nsErr := sb.UserNsJoin(userNsPath)
+			// If we can't load the User namespace
+			// because it's closed, we just set the sb userns
+			// pointer to nil. Otherwise we return an error.
+			if nsErr != nil && nsErr != sandbox.ErrClosedNS {
+				return nsErr
+			}
+		}
 	}
 
 	if err := c.AddSandbox(sb); err != nil {

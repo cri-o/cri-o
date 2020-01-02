@@ -14,6 +14,11 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
+var (
+	allManagedNamespaces = []string{"net", "ipc", "uts", "user"}
+	numManagedNamespaces = 4
+)
+
 // pinNamespaceFunctor is a way to generically create a mockable pinNamespaces() function
 // it stores a function that is used to populate the mock instance, which allows us to test
 // different paths
@@ -102,19 +107,18 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should succeed with valid namespaces", func() {
 			// Given
-			managedNamespaces := []string{"net", "ipc", "uts"}
 			nsFound := make(map[string]bool)
-			for _, nsType := range managedNamespaces {
+			for _, nsType := range allManagedNamespaces {
 				nsFound[filepath.Join(genericNamespaceParentDir, nsType)] = false
 			}
 
 			successful := newGenericFunctor()
 			// When
-			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, "", successful.pinNamespaces)
+			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, "", successful.pinNamespaces)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(len(createdNamespaces)).To(Equal(3))
+			Expect(len(createdNamespaces)).To(Equal(numManagedNamespaces))
 			for _, ns := range createdNamespaces {
 				_, found := nsFound[ns.Path()]
 				Expect(found).To(Equal(true))
@@ -132,7 +136,6 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should succeed when namespaces not nil", func() {
 			// Given
-			managedNamespaces := []string{"net", "ipc", "uts"}
 			tmpDir := createTmpDir()
 			withTmpDir := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
@@ -144,7 +147,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				},
 			}
 
-			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, "", withTmpDir.pinNamespaces)
+			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, "", withTmpDir.pinNamespaces)
 			Expect(err).To(BeNil())
 
 			for _, ns := range createdNamespaces {
@@ -185,6 +188,13 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// Then
 			Expect(err).To(BeNil())
 		})
+		It("should succeed when asked to join a user namespace", func() {
+			// Given
+			err := testSandbox.UserNsJoin("/proc/self/ns/user")
+
+			// Then
+			Expect(err).To(BeNil())
+		})
 		It("should fail when network namespace not exists", func() {
 			// Given
 			// When
@@ -205,6 +215,14 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// Given
 			// When
 			err := testSandbox.IpcNsJoin("path")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should fail when user namespace not exists", func() {
+			// Given
+			// When
+			err := testSandbox.UserNsJoin("path")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -248,6 +266,19 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
+		It("should fail when sandbox already has user namespace", func() {
+			// Given
+			managedNamespaces := []string{"user"}
+
+			successful := newGenericFunctor()
+			// When
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, "", successful.pinNamespaces)
+			Expect(err).To(BeNil())
+			err = testSandbox.UserNsJoin("/proc/self/ns/user")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 		It("should fail when asked to join a non-namespace", func() {
 			// Given
 			// When
@@ -273,6 +304,14 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
+		It("should fail when asked to join a non-namespace", func() {
+			// Given
+			// When
+			err := testSandbox.UserNsJoin("/tmp")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 	})
 	t.Describe("*NsPath", func() {
 		It("should get nothing when network not set", func() {
@@ -293,6 +332,13 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// Given
 			// When
 			ns := testSandbox.UtsNsPath()
+			// Then
+			Expect(ns).To(Equal(""))
+		})
+		It("should get nothing when uts not set", func() {
+			// Given
+			// When
+			ns := testSandbox.UserNsPath()
 			// Then
 			Expect(ns).To(Equal(""))
 		})
@@ -353,6 +399,25 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// Then
 			Expect(path).ToNot(Equal(""))
 		})
+		It("should get something when user is set", func() {
+			// Given
+			managedNamespaces := []string{"user"}
+			getPath := pinNamespacesFunctor{
+				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
+					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
+					ifaceMock.EXPECT().Get().Return(&sandbox.Namespace{})
+					ifaceMock.EXPECT().Path().Return(filepath.Join(genericNamespaceParentDir, nsType))
+				},
+			}
+
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, "", getPath.pinNamespaces)
+			Expect(err).To(BeNil())
+
+			// When
+			path := testSandbox.UserNsPath()
+			// Then
+			Expect(path).ToNot(Equal(""))
+		})
 	})
 	t.Describe("NamespacePaths with infra", func() {
 		BeforeEach(func() {
@@ -381,11 +446,10 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			for _, ns := range nsPaths {
 				Expect(ns.Path()).To(ContainSubstring("42"))
 			}
-			Expect(len(nsPaths)).To(Equal(3))
+			Expect(len(nsPaths)).To(Equal(numManagedNamespaces))
 		})
 		It("should get managed path despite infra set", func() {
 			// Given
-			managedNamespaces := []string{"ipc", "net", "uts"}
 			getPath := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
 					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
@@ -394,7 +458,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				},
 			}
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, "", getPath.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, "", getPath.pinNamespaces)
 			Expect(err).To(BeNil())
 			// When
 			nsPaths := testSandbox.NamespacePaths()
@@ -402,7 +466,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			for _, ns := range nsPaths {
 				Expect(ns.Path()).NotTo(ContainSubstring("42"))
 			}
-			Expect(len(nsPaths)).To(Equal(3))
+			Expect(len(nsPaths)).To(Equal(numManagedNamespaces))
 		})
 	})
 	t.Describe("NamespacePaths without infra", func() {

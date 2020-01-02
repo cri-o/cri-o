@@ -29,6 +29,7 @@ type Sandbox struct {
 	netns          NamespaceIface
 	ipcns          NamespaceIface
 	utsns          NamespaceIface
+	userns         NamespaceIface
 	shmPath        string
 	cgroupParent   string
 	runtimeHandler string
