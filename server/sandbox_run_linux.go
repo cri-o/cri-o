@@ -576,7 +576,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	if err := s.createContainerPlatform(container, nil, sb.CgroupParent()); err != nil {
+	if err := s.createContainerPlatform(container, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 

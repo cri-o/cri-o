@@ -86,6 +86,10 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	return sb, nil
 }
 
+func (s *Sandbox) CreatedAt() time.Time {
+	return s.createdAt
+}
+
 // SetSeccompProfilePath sets the seccomp profile path
 func (s *Sandbox) SetSeccompProfilePath(pp string) {
 	s.seccompProfilePath = pp
@@ -154,11 +158,6 @@ func (s *Sandbox) Labels() fields.Set {
 // Annotations returns a list of annotations for the sandbox
 func (s *Sandbox) Annotations() map[string]string {
 	return s.annotations
-}
-
-// InfraContainer returns the infrastructure container for the sandbox
-func (s *Sandbox) InfraContainer() *oci.Container {
-	return s.infraContainer
 }
 
 // Containers returns the ContainerStorer that contains information on all
@@ -264,6 +263,11 @@ func (s *Sandbox) SetInfraContainer(infraCtr *oci.Container) error {
 	return nil
 }
 
+// InfraContainer returns the infrastructure container for the sandbox
+func (s *Sandbox) InfraContainer() *oci.Container {
+	return s.infraContainer
+}
+
 // RemoveInfraContainer removes the infrastructure container of a sandbox
 func (s *Sandbox) RemoveInfraContainer() {
 	s.infraContainer = nil
@@ -290,4 +294,24 @@ func (s *Sandbox) SetCreated() {
 // Created returns the created status of sandbox
 func (s *Sandbox) Created() bool {
 	return s.created
+}
+
+// Ready returns whether the sandbox should be marked as ready to the kubelet
+// if there is no infra container, it is always considered ready
+// takeLock should be set if we need to take the lock to get the infra container's state
+func (s *Sandbox) Ready(takeLock bool) bool {
+	podInfraContainer := s.InfraContainer()
+	if podInfraContainer == nil {
+		// Assume the sandbox is ready, unless it has an infra container that
+		// isn't running
+		return true
+	}
+	var cState *oci.ContainerState
+	if takeLock {
+		cState = podInfraContainer.State()
+	} else {
+		cState = podInfraContainer.StateNoLock()
+	}
+
+	return cState.Status == oci.ContainerStateRunning
 }
