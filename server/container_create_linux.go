@@ -874,16 +874,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	container.SetIDMappings(containerIDMappings)
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		userNsPath := sb.UserNsPath()
-		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.UserNamespace), userNsPath); err != nil {
-			return nil, err
-		}
 		for _, uidmap := range s.defaultIDMappings.UIDs() {
 			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
 		}
 		for _, gidmap := range s.defaultIDMappings.GIDs() {
 			specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
+	} else if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
+		return nil, err
 	}
 
 	if os.Getenv("_CRIO_ROOTLESS") != "" {

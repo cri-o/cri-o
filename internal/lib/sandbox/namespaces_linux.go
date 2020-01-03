@@ -56,9 +56,10 @@ func (n *Namespace) Initialize() NamespaceIface {
 // representing that namespace, without switching to it
 func pinNamespaces(nsTypes []string, pinnsPath string) ([]NamespaceIface, error) {
 	typeToArg := map[string]string{
-		IPCNS: "-i",
-		UTSNS: "-u",
-		NETNS: "-n",
+		IPCNS:  "-i",
+		UTSNS:  "-u",
+		USERNS: "-U",
+		NETNS:  "-n",
 	}
 
 	// create the namespace dir
