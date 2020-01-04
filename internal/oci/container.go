@@ -179,6 +179,9 @@ func (c *Container) Name() string {
 
 // ID returns the id of the container.
 func (c *Container) ID() string {
+	if c == nil {
+		return ""
+	}
 	return c.id
 }
 

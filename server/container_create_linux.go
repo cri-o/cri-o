@@ -168,7 +168,7 @@ func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfi
 }
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
-func (s *Server) createContainerPlatform(container, infraContainer *oci.Container, cgroupParent string) error {
+func (s *Server) createContainerPlatform(container *oci.Container, cgroupParent string) error {
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		rootPair := s.defaultIDMappings.RootPair()
 
@@ -711,13 +711,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	specgen.AddAnnotation(annotations.Name, containerName)
 	specgen.AddAnnotation(annotations.ContainerID, containerID)
 	specgen.AddAnnotation(annotations.SandboxID, sb.ID())
-	specgen.AddAnnotation(annotations.SandboxName, sb.InfraContainer().Name())
+	specgen.AddAnnotation(annotations.SandboxName, sb.Name())
 	specgen.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeContainer)
 	specgen.AddAnnotation(annotations.LogPath, logPath)
 	specgen.AddAnnotation(annotations.TTY, fmt.Sprintf("%v", containerConfig.Tty))
 	specgen.AddAnnotation(annotations.Stdin, fmt.Sprintf("%v", containerConfig.Stdin))
 	specgen.AddAnnotation(annotations.StdinOnce, fmt.Sprintf("%v", containerConfig.StdinOnce))
-	specgen.AddAnnotation(annotations.ResolvPath, sb.InfraContainer().CrioAnnotations()[annotations.ResolvPath])
+	specgen.AddAnnotation(annotations.ResolvPath, sb.ResolvPath())
 
 	created := time.Now()
 	specgen.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))

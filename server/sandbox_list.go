@@ -2,7 +2,6 @@ package server
 
 import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
@@ -59,21 +58,15 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		if !sb.Created() {
 			continue
 		}
-		podInfraContainer := sb.InfraContainer()
-		if podInfraContainer == nil {
-			// this can't really happen, but if it does because of a bug
-			// it's better not to panic
-			continue
-		}
-		cState := podInfraContainer.StateNoLock()
+
 		rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
-		if cState.Status == oci.ContainerStateRunning {
+		if sb.Ready(false) {
 			rStatus = pb.PodSandboxState_SANDBOX_READY
 		}
 
 		pod := &pb.PodSandbox{
 			Id:          sb.ID(),
-			CreatedAt:   podInfraContainer.CreatedAt().UnixNano(),
+			CreatedAt:   sb.CreatedAt().UnixNano(),
 			State:       rStatus,
 			Labels:      sb.Labels(),
 			Annotations: sb.Annotations(),

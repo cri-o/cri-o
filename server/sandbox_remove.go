@@ -33,7 +33,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
-	containers = append(containers, podInfraContainer)
+	if podInfraContainer != nil {
+		containers = append(containers, podInfraContainer)
+	}
 
 	// Delete all the containers in the sandbox
 	for _, c := range containers {
@@ -77,13 +79,15 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		s.StopMonitoringConmon(c)
 	}
 
-	s.removeInfraContainer(podInfraContainer)
-	podInfraContainer.CleanupConmonCgroup()
+	if podInfraContainer != nil {
+		s.removeInfraContainer(podInfraContainer)
+		podInfraContainer.CleanupConmonCgroup()
 
-	// Remove the files related to the sandbox
-	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
-		log.Warnf(ctx, "failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
+		if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
+			log.Warnf(ctx, "failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
+		}
 	}
+
 	if err := s.StorageRuntimeServer().RemovePodSandbox(sb.ID()); err != nil && err != pkgstorage.ErrInvalidSandboxID {
 		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.ID(), err)
 	}
@@ -93,9 +97,11 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 	}
 
-	s.ReleaseContainerName(podInfraContainer.Name())
-	if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
-		return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.ID(), err)
+	if podInfraContainer != nil {
+		s.ReleaseContainerName(podInfraContainer.Name())
+		if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
+			return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.ID(), err)
+		}
 	}
 
 	s.ReleasePodName(sb.Name())
@@ -106,7 +112,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		return nil, fmt.Errorf("failed to delete pod sandbox %s from index: %v", sb.ID(), err)
 	}
 
-	log.Infof(ctx, "removed pod sandbox with infra container: %s", podInfraContainer.Description())
+	log.Infof(ctx, "removed pod sandbox: %s", sb.ID())
 	resp = &pb.RemovePodSandboxResponse{}
 	return resp, nil
 }

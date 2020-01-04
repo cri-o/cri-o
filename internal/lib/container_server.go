@@ -233,12 +233,14 @@ func (c *ContainerServer) Update() error {
 			continue
 		}
 		podInfraContainer := sb.InfraContainer()
-		c.ReleaseContainerName(podInfraContainer.Name())
-		c.RemoveContainer(podInfraContainer)
-		if err := c.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
-			return err
+		if podInfraContainer != nil {
+			c.ReleaseContainerName(podInfraContainer.Name())
+			c.RemoveContainer(podInfraContainer)
+			if err := c.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
+				return err
+			}
+			sb.RemoveInfraContainer()
 		}
-		sb.RemoveInfraContainer()
 		c.ReleasePodName(sb.Name())
 		if err := c.RemoveSandbox(sb.ID()); err != nil {
 			logrus.Warnf("failed to remove sandbox ID %s: %v", sb.ID(), err)
@@ -586,6 +588,9 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
 func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
+	if ctr == nil {
+		return nil
+	}
 	if err := c.Runtime().UpdateContainerStatus(ctr); err != nil {
 		logrus.Warnf("error updating the container status %q: %v", ctr.ID(), err)
 	}
@@ -774,4 +779,15 @@ func (c *ContainerServer) RemoveSandbox(id string) error {
 // ListSandboxes lists all sandboxes in the state store
 func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
 	return c.state.sandboxes.List()
+}
+
+// StopContainerAndWait is a wrapping function that stops a container and waits for the container state to be stopped
+func (c *ContainerServer) StopContainerAndWait(ctx context.Context, ctr *oci.Container, timeout int64) error {
+	if err := c.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
+		return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
+	}
+	if err := c.Runtime().WaitContainerStateStopped(ctx, ctr); err != nil {
+		return fmt.Errorf("failed to get container 'stopped' status %s: %v", ctr.Name(), err)
+	}
+	return nil
 }

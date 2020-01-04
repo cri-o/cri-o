@@ -52,7 +52,8 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
-			Expect(len(response.Items)).To(BeZero())
+			// the sandbox is created, and even though it has no infra container, it should be displayed
+			Expect(len(response.Items)).To(Equal(1))
 		})
 
 		It("should skip not created sandboxes", func() {
