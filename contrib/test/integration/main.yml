@@ -60,7 +60,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-        version: "1.12.6"
+        version: "1.13.5"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
 
