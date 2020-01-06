@@ -303,7 +303,7 @@ func (s *Sandbox) nsPath(ns NamespaceIface, nsType NSType) string {
 // if the infra container is nil, pid is returned negative
 func infraPid(infra *oci.Container) int {
 	pid := -1
-	if infra != nil {
+	if infra != nil && !infra.Spoofed() {
 		pid = infra.State().Pid
 	}
 	return pid

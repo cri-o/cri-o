@@ -154,6 +154,7 @@ function wait_and_check_for_sandbox_oom() {
 	if [[ "$CI" == "true" ]]; then
 		skip "CI container tests don't support conmonmon"
 	fi
+	export CONTAINER_MANAGE_NS_LIFECYCLE=false
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -168,6 +169,7 @@ function wait_and_check_for_sandbox_oom() {
 	if [[ "$CI" == "true" ]]; then
 		skip "CI container tests don't support conmonmon"
 	fi
+	export CONTAINER_MANAGE_NS_LIFECYCLE=false
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]

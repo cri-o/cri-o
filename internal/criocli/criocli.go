@@ -264,7 +264,6 @@ func GetFlagsAndMetadata() ([]cli.Flag, map[string]interface{}, error) {
 		return nil, nil, errors.Errorf("error loading server config: %v", err)
 	}
 
-	// TODO FIXME should be crio wipe flags
 	flags := getCrioFlags(config)
 
 	metadata := map[string]interface{}{
