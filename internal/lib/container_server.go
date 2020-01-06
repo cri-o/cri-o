@@ -260,7 +260,9 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
-	cname, err := c.ReserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
+	cID := m.Annotations[annotations.ContainerID]
+
+	cname, err := c.ReserveContainerName(cID, m.Annotations[annotations.ContainerName])
 	if err != nil {
 		return err
 	}
@@ -270,42 +272,48 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		}
 	}()
 
-	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
-	if err != nil {
-		return err
-	}
-
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, privileged, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
-	if err != nil {
-		return err
-	}
-	scontainer.SetSpec(&m)
-	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
-
-	if m.Annotations[annotations.Volumes] != "" {
-		containerVolumes := []oci.ContainerVolume{}
-		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
-			return fmt.Errorf("failed to unmarshal container volumes: %v", err)
+	var scontainer *oci.Container
+	if sb.NeedsInfra(c.config.ManageNSLifecycle) {
+		created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
+		if err != nil {
+			return err
 		}
-		for _, cv := range containerVolumes {
-			scontainer.AddVolume(cv)
+
+		scontainer, err = oci.NewContainer(cID, cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, privileged, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+		if err != nil {
+			return err
 		}
-	}
+		scontainer.SetSpec(&m)
+		scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
 
-	if err := c.ContainerStateFromDisk(scontainer); err != nil {
-		return fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
-	}
+		if m.Annotations[annotations.Volumes] != "" {
+			containerVolumes := []oci.ContainerVolume{}
+			if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
+				return fmt.Errorf("failed to unmarshal container volumes: %v", err)
+			}
+			for _, cv := range containerVolumes {
+				scontainer.AddVolume(cv)
+			}
+		}
 
-	// We write back the state because it is possible that crio did not have a chance to
-	// read the exit file and persist exit code into the state on reboot.
-	if err := c.ContainerStateToDisk(scontainer); err != nil {
-		return fmt.Errorf("failed to write container state to disk %q: %v", scontainer.ID(), err)
+		if err := c.ContainerStateFromDisk(scontainer); err != nil {
+			return fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
+		}
+
+		// We write back the state because it is possible that crio did not have a chance to
+		// read the exit file and persist exit code into the state on reboot.
+		if err := c.ContainerStateToDisk(scontainer); err != nil {
+			return fmt.Errorf("failed to write container state to disk %q: %v", scontainer.ID(), err)
+		}
+
+		if err := c.MonitorConmon(scontainer); err != nil {
+			return fmt.Errorf("error adding conmon of sandbox container %s to monitoring loop: %v", scontainer.ID(), err)
+		}
+	} else {
+		scontainer = oci.NewSpoofedContainer(cID, cname, labels)
 	}
 
 	sb.SetCreated()
-	if err := c.MonitorConmon(scontainer); err != nil {
-		return fmt.Errorf("error adding conmon of sandbox container %s to monitoring loop: %v", scontainer.ID(), err)
-	}
 	if err := label.ReserveLabel(processLabel); err != nil {
 		return err
 	}
@@ -470,7 +478,7 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
 func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
-	if ctr == nil {
+	if ctr.Spoofed() {
 		return nil
 	}
 	if err := c.Runtime().UpdateContainerStatus(ctr); err != nil {

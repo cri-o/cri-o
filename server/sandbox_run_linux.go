@@ -467,14 +467,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
-	if err != nil {
-		return nil, err
-	}
-	container.SetMountPoint(mountPoint)
-
-	container.SetIDMappings(s.defaultIDMappings)
-
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
 			g.RemoveMount("/dev/mqueue")
@@ -507,14 +499,45 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			g.AddMount(proc)
 		}
+
+		rootPair := s.defaultIDMappings.RootPair()
+		for _, path := range pathsToChown {
+			if err := os.Chown(path, rootPair.UID, rootPair.GID); err != nil {
+				return nil, errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
+			}
+		}
 	}
 	g.SetRootPath(mountPoint)
 
 	if os.Getenv("_CRIO_ROOTLESS") != "" {
 		makeOCIConfigurationRootless(&g)
 	}
+	sb.SetNamespaceOptions(securityContext.GetNamespaceOptions())
 
-	container.SetSpec(g.Config)
+	spp := securityContext.GetSeccompProfilePath()
+	g.AddAnnotation(annotations.SeccompProfilePath, spp)
+	sb.SetSeccompProfilePath(spp)
+	if !privileged {
+		if err := s.setupSeccomp(ctx, &g, spp); err != nil {
+			return nil, err
+		}
+	}
+
+	// Only create the container in the runtime if we need it
+	var container *oci.Container
+	if sb.NeedsInfra(s.config.ManageNSLifecycle) {
+		container, err = oci.NewContainer(id, containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+		if err != nil {
+			return nil, err
+		}
+		container.SetMountPoint(mountPoint)
+
+		container.SetIDMappings(s.defaultIDMappings)
+
+		container.SetSpec(g.Config)
+	} else {
+		container = oci.NewSpoofedContainer(id, containerName, labels)
+	}
 
 	if err := sb.SetInfraContainer(container); err != nil {
 		return nil, err
@@ -552,70 +575,56 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
 	}
 	sb.AddIPs(ips)
-	sb.SetNamespaceOptions(securityContext.GetNamespaceOptions())
 
-	spp := securityContext.GetSeccompProfilePath()
-	g.AddAnnotation(annotations.SeccompProfilePath, spp)
-	sb.SetSeccompProfilePath(spp)
-	if !privileged {
-		if err := s.setupSeccomp(ctx, &g, spp); err != nil {
-			return nil, err
-		}
-	}
-
-	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
-	if err != nil {
+	if err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions); err != nil {
 		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
 	}
 	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
 	}
 
-	s.addInfraContainer(container)
-	defer func() {
-		if err != nil {
-			s.removeInfraContainer(container)
+	if !container.Spoofed() {
+		s.addInfraContainer(container)
+		defer func() {
+			if err != nil {
+				s.removeInfraContainer(container)
+			}
+		}()
+
+		if err := s.createContainerPlatform(container, sb.CgroupParent()); err != nil {
+			return nil, err
 		}
-	}()
 
-	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		rootPair := s.defaultIDMappings.RootPair()
-		for _, path := range pathsToChown {
-			if err := os.Chown(path, rootPair.UID, rootPair.GID); err != nil {
-				return nil, errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
-			}
+		if err := s.Runtime().StartContainer(container); err != nil {
+			return nil, err
 		}
-	}
 
-	if err := s.createContainerPlatform(container, sb.CgroupParent()); err != nil {
-		return nil, err
-	}
+		defer func() {
+			if err != nil {
+				// Clean-up steps from RemovePodSanbox
+				timeout := int64(10)
+				if err2 := s.Runtime().StopContainer(ctx, container, timeout); err2 != nil {
+					log.Warnf(ctx, "failed to stop container %s: %v", container.Name(), err2)
+				}
+				if err2 := s.Runtime().WaitContainerStateStopped(ctx, container); err2 != nil {
+					log.Warnf(ctx, "failed to get container 'stopped' status %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
+				}
+				if err2 := s.Runtime().DeleteContainer(container); err2 != nil {
+					log.Warnf(ctx, "failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
+				}
+				if err2 := s.ContainerStateToDisk(container); err2 != nil {
+					log.Warnf(ctx, "failed to write container state %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
+				}
+			}
+		}()
 
-	if err := s.Runtime().StartContainer(container); err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			// Clean-up steps from RemovePodSanbox
-			timeout := int64(10)
-			if err2 := s.Runtime().StopContainer(ctx, container, timeout); err2 != nil {
-				log.Warnf(ctx, "failed to stop container %s: %v", container.Name(), err2)
-			}
-			if err2 := s.Runtime().WaitContainerStateStopped(ctx, container); err2 != nil {
-				log.Warnf(ctx, "failed to get container 'stopped' status %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
-			}
-			if err2 := s.Runtime().DeleteContainer(container); err2 != nil {
-				log.Warnf(ctx, "failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
-			}
-			if err2 := s.ContainerStateToDisk(container); err2 != nil {
-				log.Warnf(ctx, "failed to write container state %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
-			}
+		if err := s.ContainerStateToDisk(container); err != nil {
+			log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
 		}
-	}()
 
-	if err := s.ContainerStateToDisk(container); err != nil {
-		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
+		if err := s.MonitorConmon(container); err != nil {
+			log.Errorf(ctx, "%v", err)
+		}
 	}
 
 	if !s.config.ManageNSLifecycle {
@@ -635,11 +644,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb.SetCreated()
 
-	if err := s.MonitorConmon(container); err != nil {
-		log.Errorf(ctx, "%v", err)
-	}
+	log.Infof(ctx, "ran pod sandbox with infra container: %s", container.Description())
 
-	log.Infof(ctx, "ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	return resp, nil
 }
