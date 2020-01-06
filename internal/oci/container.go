@@ -58,6 +58,7 @@ type Container struct {
 	stdinOnce          bool
 	privileged         bool
 	created            bool
+	spoofed            bool
 }
 
 // ContainerVolume is a bind mount for the container.
@@ -105,6 +106,16 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		stopSignal:      stopSignal,
 	}
 	return c, nil
+}
+
+func NewSpoofedContainer(id, name string, labels map[string]string) *Container {
+	c := &Container{
+		id:      id,
+		name:    name,
+		labels:  labels,
+		spoofed: true,
+	}
+	return c
 }
 
 // SetSpec loads the OCI spec in the container struct
@@ -182,9 +193,6 @@ func (c *Container) Name() string {
 
 // ID returns the id of the container.
 func (c *Container) ID() string {
-	if c == nil {
-		return ""
-	}
 	return c.id
 }
 
@@ -344,4 +352,12 @@ func (c *Container) StdinOnce() bool {
 
 func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
+}
+
+// Spoofed returns whether this container is spoofed
+// a container should be spoofed when it doesn't have to exist in the container runtime
+// but does need to exist in the storage. The main use of this is when an infra container
+// is not needed, but sandbox metadata should be stored with a spoofed infra container
+func (c *Container) Spoofed() bool {
+	return c.spoofed
 }

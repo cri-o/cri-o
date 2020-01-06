@@ -52,7 +52,6 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
-			// the sandbox is created, and even though it has no infra container, it should be displayed
 			Expect(len(response.Items)).To(Equal(1))
 		})
 

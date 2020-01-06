@@ -47,7 +47,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
-	if podInfraContainer != nil {
+	if !podInfraContainer.Spoofed() {
 		containers = append(containers, podInfraContainer)
 	}
 
@@ -85,7 +85,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		}
 	}
 
-	if podInfraContainer != nil {
+	if !podInfraContainer.Spoofed() {
 		podInfraStatus := podInfraContainer.State()
 		if podInfraStatus.Status != oci.ContainerStateStopped {
 			if err := s.StopContainerAndWait(ctx, podInfraContainer, int64(10)); err != nil {
@@ -111,7 +111,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		log.Warnf(ctx, "error writing pod infra container %q state to disk: %v", podInfraContainer.ID(), err)
 	}
 
-	log.Infof(ctx, "stopped pod sandbox: %s", sb.ID())
+	log.Infof(ctx, "stopped pod sandbox with infra container: %s", podInfraContainer.Description())
 	sb.SetStopped(true)
 
 	resp = &pb.StopPodSandboxResponse{}

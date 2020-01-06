@@ -608,7 +608,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		}
 	} else if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
 		infra := sb.InfraContainer()
-		if infra == nil {
+		if infra == nil || infra.Spoofed() {
 			return nil, errors.New("PID namespace requested, but sandbox has no infra container")
 		}
 
