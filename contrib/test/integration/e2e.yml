@@ -6,8 +6,6 @@
 - name: Increase inotify user watches
   command: sysctl -w fs.inotify.max_user_watches=1048576
 
-# TODO remove the second to last test skipped once https://github.com/cri-o/cri-o/pull/1217 is merged
-# TODO remove the last six tests once the newtworking issue with AWS is figured out https://github.com/cri-o/cri-o/issues/1529
 - name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
   set_fact:
     e2e_shell_cmd: >
@@ -16,9 +14,8 @@
             --provider=local
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
-                        --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.propagate.mounts.to.the.host|for.NodePort.service|type.clusterIP|unready.pods|ExternalName.services|Guestbook.application|in-cluster.config|Pods.should.support.pod.readiness.gates|\[sig-storage\].In-tree.Volumes.\[Driver:.local\]|\[sig-storage\].CSI.Volumes.CSI.Topology.test.using.GCE.PD.driver|\[sig\-storage\]\sCSI\sVolumes\s\[Driver\:\scsi\-hostpath\]\s\[Testpattern\:\sDynamic\sPV\s\(block\svolmode\)\]\svolumes\sshould\sstore\sdata
-                        --ginkgo.noColor
                         --ginkgo.succinct
+                        --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|Certificates API should support building a client with a CSR|Services should be able to switch session affinity for NodePort service|DNS should provide DNS for ExternalName services|Kubectl client Guestbook application should create and stop a working application|Kubectl client Simple pod should handle in-cluster config|\[sig-storage\] In-tree Volumes \[Driver: local\]|\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] volumes should store data
                         --report-dir={{ artifacts }}"
             &> {{ artifacts }}/e2e.log
   # Fix vim syntax highlighting: "
