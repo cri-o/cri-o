@@ -49,7 +49,7 @@
     - "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
 
 - name: install Go tools and dependencies
-  shell: GO111MODULE=on /usr/bin/go get -u "github.com/{{ item }}"
+  shell: GO111MODULE=on /usr/bin/go get "github.com/{{ item }}"
   with_items:
     - tools/godep
     - onsi/ginkgo/ginkgo
