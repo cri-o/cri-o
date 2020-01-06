@@ -50,6 +50,7 @@ linters:
     # - gochecknoglobals
     # - gocognit
     # - godox
+    # - gomnd
     # - lll
     # - wsl
 linters-settings:
