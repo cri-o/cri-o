@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/cri-o/cri-o/internal/pkg/findprocess"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
@@ -453,6 +454,18 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	}
 
 	logrus.Debugf("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
+
+	// When we timeout the command in conmon then we should return
+	// an ExecSyncResponse with a non-zero exit code because
+	// the prober code in the kubelet checks for it. If we return
+	// a custom error, then the probes transition into Unknown status
+	// and the container isn't restarted as expected.
+	if ec.ExitCode == -1 && ec.Message == conmonconfig.TimedOutMessage {
+		return &ExecSyncResponse{
+			Stderr:   []byte(conmonconfig.TimedOutMessage),
+			ExitCode: -1,
+		}, nil
+	}
 
 	if ec.ExitCode == -1 {
 		return nil, &ExecSyncError{
