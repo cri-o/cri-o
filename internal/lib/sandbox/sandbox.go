@@ -7,10 +7,16 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/docker/docker/pkg/mount"
+	"github.com/docker/docker/pkg/symlink"
+	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
+
+// DevShmPath is the default system wide shared memory path
+const DevShmPath = "/dev/shm"
 
 // Sandbox contains data surrounding kubernetes sandboxes on the server
 type Sandbox struct {
@@ -314,4 +320,28 @@ func (s *Sandbox) Ready(takeLock bool) bool {
 	}
 
 	return cState.Status == oci.ContainerStateRunning
+}
+
+// UnmountShm removes the shared memory mount for the sandbox and returns an
+// error if any failure occurs.
+func (s *Sandbox) UnmountShm() error {
+	if s.ShmPath() == DevShmPath {
+		return nil
+	}
+
+	// we got namespaces in the form of
+	// /var/run/containers/storage/overlay-containers/CID/userdata/shm
+	// but /var/run on most system is symlinked to /run so we first resolve
+	// the symlink and then try and see if it's mounted
+	fp, err := symlink.FollowSymlinkInScope(s.ShmPath(), "/")
+	if err != nil {
+		return err
+	}
+	if mounted, err := mount.Mounted(fp); err == nil && mounted {
+		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
