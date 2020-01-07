@@ -242,12 +242,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.SetLinuxMountLabel(mountLabel)
 
 	// Remove the default /dev/shm mount to ensure we overwrite it
-	g.RemoveMount("/dev/shm")
+	g.RemoveMount(sandbox.DevShmPath)
 
 	// create shm mount for the pod containers.
 	var shmPath string
 	if hostIPC {
-		shmPath = "/dev/shm"
+		shmPath = sandbox.DevShmPath
 	} else {
 		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
 		if err != nil {
@@ -266,7 +266,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	mnt := runtimespec.Mount{
 		Type:        "bind",
 		Source:      shmPath,
-		Destination: "/dev/shm",
+		Destination: sandbox.DevShmPath,
 		Options:     []string{"rw", "bind"},
 	}
 	// bind mount the pod shm
