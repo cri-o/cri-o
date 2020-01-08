@@ -679,16 +679,11 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 	return nil
 }
 
-// getAppArmorProfileName gets the profile name for the given container.
-func (s *Server) getAppArmorProfileName(profile string) string {
-	if profile == "" {
-		return ""
-	}
-
-	if profile == apparmor.ProfileRuntimeDefault {
-		// If the value is runtime/default, then return default profile.
+// containerAppArmorProfile gets the trimmed profile name for the given profile
+// string and falls back to the server’s default on empty and runtime/default profiles.
+func (s *Server) containerAppArmorProfile(profile string) string {
+	if profile == "" || profile == apparmor.ProfileRuntimeDefault {
 		return s.appArmorProfile
 	}
-
 	return strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
 }

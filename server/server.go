@@ -373,26 +373,38 @@ func New(
 		}
 	}
 
-	if s.appArmorEnabled && config.ApparmorProfile == libconfig.DefaultApparmorProfile {
-		logrus.Infof("installing default apparmor profile: %v", libconfig.DefaultApparmorProfile)
-		if err := apparmor.InstallDefault(libconfig.DefaultApparmorProfile); err != nil {
-			return nil, errors.Wrapf(err,
-				"installing default apparmor profile %q failed",
-				libconfig.DefaultApparmorProfile,
-			)
-		}
-		if logrus.IsLevelEnabled(logrus.TraceLevel) {
-			profileContent, err := apparmor.DefaultContent(libconfig.DefaultApparmorProfile)
-			if err != nil {
+	if s.appArmorEnabled {
+		if config.ApparmorProfile == libconfig.DefaultApparmorProfile {
+			logrus.Infof("installing default apparmor profile: %v", libconfig.DefaultApparmorProfile)
+			if err := apparmor.InstallDefault(libconfig.DefaultApparmorProfile); err != nil {
 				return nil, errors.Wrapf(err,
-					"retrieving default apparmor profile %q content failed",
+					"installing default apparmor profile %q failed",
 					libconfig.DefaultApparmorProfile,
 				)
 			}
-			logrus.Tracef("default apparmor profile contents: %s", profileContent)
+			if logrus.IsLevelEnabled(logrus.TraceLevel) {
+				profileContent, err := apparmor.DefaultContent(libconfig.DefaultApparmorProfile)
+				if err != nil {
+					return nil, errors.Wrapf(err,
+						"retrieving default apparmor profile %q content failed",
+						libconfig.DefaultApparmorProfile,
+					)
+				}
+				logrus.Tracef("default apparmor profile contents: %s", profileContent)
+			}
+		} else {
+			logrus.Infof("assuming user-provided apparmor profile: %v", config.ApparmorProfile)
+			isLoaded, err := apparmor.IsLoaded(config.ApparmorProfile)
+			if err != nil {
+				return nil, err
+			}
+			if !isLoaded {
+				return nil, errors.Errorf(
+					"config provided AppArmor profile %q not loaded",
+					config.ApparmorProfile,
+				)
+			}
 		}
-	} else {
-		logrus.Infof("assuming user-provided apparmor profile: %v", config.ApparmorProfile)
 	}
 
 	if err := configureMaxThreads(); err != nil {
@@ -740,5 +752,20 @@ func (s *Server) ReloadRegistries(file string) error {
 		return errors.Wrapf(err, "system registries reload failed: %s", file)
 	}
 	logrus.Infof("applied new registry configuration: %+v", registries)
+	return nil
+}
+
+// ReloadDefaultAppArmorProfile reloads the default AppArmor profile and
+// returns an error on any failure.
+func (s *Server) ReloadDefaultAppArmorProfile() error {
+	isLoaded, err := apparmor.IsLoaded(libconfig.DefaultApparmorProfile)
+	if err != nil {
+		return err
+	}
+	if !isLoaded {
+		if err := apparmor.InstallDefault(libconfig.DefaultApparmorProfile); err != nil {
+			return err
+		}
+	}
 	return nil
 }
