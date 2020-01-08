@@ -340,41 +340,25 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	if c.config.ManageNSLifecycle {
 		netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
 		if err == nil {
-			nsErr := sb.NetNsJoin(netNsPath)
-			// If we can't load the networking namespace
-			// because it's closed, we just set the sb netns
-			// pointer to nil. Otherwise we return an error.
-			if nsErr != nil && nsErr != sandbox.ErrClosedNS {
+			if nsErr := sb.NetNsJoin(netNsPath); nsErr != nil {
 				return nsErr
 			}
 		}
 		ipcNsPath, err := configNsPath(&m, rspec.IPCNamespace)
 		if err == nil {
-			nsErr := sb.IpcNsJoin(ipcNsPath)
-			// If we can't load the IPC namespace
-			// because it's closed, we just set the sb ipcns
-			// pointer to nil. Otherwise we return an error.
-			if nsErr != nil && nsErr != sandbox.ErrClosedNS {
+			if nsErr := sb.IpcNsJoin(ipcNsPath); nsErr != nil {
 				return nsErr
 			}
 		}
 		utsNsPath, err := configNsPath(&m, rspec.UTSNamespace)
 		if err == nil {
-			nsErr := sb.UtsNsJoin(utsNsPath)
-			// If we can't load the UTS namespace
-			// because it's closed, we just set the sb utsns
-			// pointer to nil. Otherwise we return an error.
-			if nsErr != nil && nsErr != sandbox.ErrClosedNS {
+			if nsErr := sb.UtsNsJoin(utsNsPath); nsErr != nil {
 				return nsErr
 			}
 		}
 		userNsPath, err := configNsPath(&m, rspec.UserNamespace)
 		if err == nil {
-			nsErr := sb.UserNsJoin(userNsPath)
-			// If we can't load the User namespace
-			// because it's closed, we just set the sb userns
-			// pointer to nil. Otherwise we return an error.
-			if nsErr != nil && nsErr != sandbox.ErrClosedNS {
+			if nsErr := sb.UserNsJoin(userNsPath); nsErr != nil {
 				return nsErr
 			}
 		}
