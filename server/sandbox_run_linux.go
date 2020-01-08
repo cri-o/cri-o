@@ -427,7 +427,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	for idx := range cleanupFuncs {
 		defer func(currentFunc int) {
 			if err != nil {
-				if err2 := cleanupFuncs[currentFunc](); err != nil {
+				if err2 := cleanupFuncs[currentFunc](); err2 != nil {
 					log.Debugf(ctx, err2.Error())
 				}
 			}
