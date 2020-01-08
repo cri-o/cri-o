@@ -9,12 +9,9 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/log"
-	"github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/symlink"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sys/unix"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -101,21 +98,8 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		}
 	}
 
-	// unmount the shm for the pod
-	if sb.ShmPath() != "/dev/shm" {
-		// we got namespaces in the form of
-		// /var/run/containers/storage/overlay-containers/CID/userdata/shm
-		// but /var/run on most system is symlinked to /run so we first resolve
-		// the symlink and then try and see if it's mounted
-		fp, err := symlink.FollowSymlinkInScope(sb.ShmPath(), "/")
-		if err != nil {
-			return nil, err
-		}
-		if mounted, err := mount.Mounted(fp); err == nil && mounted {
-			if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
-				return nil, err
-			}
-		}
+	if err := sb.UnmountShm(); err != nil {
+		return nil, err
 	}
 
 	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
