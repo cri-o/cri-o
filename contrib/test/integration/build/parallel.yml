@@ -1,9 +1,16 @@
 ---
+- name: include variable to check if python2-dnf can be installed
+  include: python3.yml
+
 - name: install parallel package for Fedora
   package:
     name: parallel
     state: present
-  when: ansible_distribution in ['Fedora', 'CentOS']
+  when: (supports_python3 is not defined or not supports_python3) and ansible_distribution in ['Fedora', 'CentOS']
+
+- name: install parallel package for Fedora > 30
+  shell: sudo yum install -y parallel
+  when: supports_python3 is defined and supports_python3 and ansible_distribution in ['Fedora', 'CentOS']
 
 - name: download parallel sources
   unarchive:
