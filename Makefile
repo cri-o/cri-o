@@ -409,7 +409,7 @@ install.systemd:
 uninstall:
 	rm -f $(BINDIR)/crio
 	rm -f $(BINDIR)/crio-status
-	rm -f $(LIBEXECDIR)/crio/pinns
+	rm -f $(BINDIR)/pinns
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
 	done
