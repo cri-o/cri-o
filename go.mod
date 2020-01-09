@@ -12,7 +12,7 @@ require (
 	github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
 	github.com/containerd/ttrpc v0.0.0-20190828154514-0e0f228740de
 	github.com/containernetworking/cni v0.7.1
-	github.com/containernetworking/plugins v0.8.3
+	github.com/containernetworking/plugins v0.8.4
 	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/conmon v2.0.9+incompatible
 	github.com/containers/image/v5 v5.1.0
