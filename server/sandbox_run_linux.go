@@ -751,7 +751,7 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Ge
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
 // The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
 func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, sb *sandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, err error) {
-	managedNamespaces := make([]string, 0, 3)
+	managedNamespaces := make([]sandbox.NSType, 0, 3)
 	if hostNetwork {
 		err = g.RemoveLinuxNamespace(string(runtimespec.NetworkNamespace))
 		if err != nil {
@@ -801,7 +801,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 // configureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
 // to add or replace the defaults to these paths
 func configureGeneratorGivenNamespacePaths(managedNamespaces []*sandbox.ManagedNamespace, g generate.Generator) error {
-	typeToSpec := map[string]string{
+	typeToSpec := map[sandbox.NSType]string{
 		sandbox.IPCNS:  runtimespec.IPCNamespace,
 		sandbox.NETNS:  runtimespec.NetworkNamespace,
 		sandbox.UTSNS:  runtimespec.UTSNamespace,

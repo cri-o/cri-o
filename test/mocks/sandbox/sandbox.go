@@ -118,10 +118,10 @@ func (mr *MockNamespaceIfaceMockRecorder) Remove() *gomock.Call {
 }
 
 // Type mocks base method
-func (m *MockNamespaceIface) Type() string {
+func (m *MockNamespaceIface) Type() sandbox.NSType {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Type")
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].(sandbox.NSType)
 	return ret0
 }
 

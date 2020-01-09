@@ -23,7 +23,7 @@ type Namespace struct {
 	ns          NS
 	closed      bool
 	initialized bool
-	nsType      string
+	nsType      NSType
 	nsPath      string
 }
 
@@ -54,8 +54,8 @@ func (n *Namespace) Initialize() NamespaceIface {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func pinNamespaces(nsTypes []string, pinnsPath string) ([]NamespaceIface, error) {
-	typeToArg := map[string]string{
+func pinNamespaces(nsTypes []NSType, pinnsPath string) ([]NamespaceIface, error) {
+	typeToArg := map[NSType]string{
 		IPCNS:  "-i",
 		UTSNS:  "-u",
 		USERNS: "-U",
@@ -80,7 +80,7 @@ func pinNamespaces(nsTypes []string, pinnsPath string) ([]NamespaceIface, error)
 	pinnsArgs := []string{"-d", pinDir}
 	type namespaceInfo struct {
 		path   string
-		nsType string
+		nsType NSType
 	}
 
 	mountedNamespaces := make([]namespaceInfo, 0, len(nsTypes))
@@ -91,7 +91,7 @@ func pinNamespaces(nsTypes []string, pinnsPath string) ([]NamespaceIface, error)
 		}
 		pinnsArgs = append(pinnsArgs, arg)
 		mountedNamespaces = append(mountedNamespaces, namespaceInfo{
-			path:   filepath.Join(pinDir, nsType),
+			path:   filepath.Join(pinDir, string(nsType)),
 			nsType: nsType,
 		})
 	}
@@ -150,7 +150,7 @@ func (n *Namespace) Path() string {
 }
 
 // Type returns which namespace this structure represents
-func (n *Namespace) Type() string {
+func (n *Namespace) Type() NSType {
 	return n.nsType
 }
 
