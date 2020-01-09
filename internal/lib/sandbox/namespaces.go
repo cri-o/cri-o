@@ -218,9 +218,13 @@ func (s *Sandbox) NetNsPath() string {
 
 // NetNsJoin attempts to join the sandbox to an existing network namespace
 // This will fail if the sandbox is already part of a network namespace
-func (s *Sandbox) NetNsJoin(nspath string) (err error) {
-	s.netns, err = nsJoin(nspath, NETNS, s.netns)
-	return err
+func (s *Sandbox) NetNsJoin(nspath string) error {
+	ns, err := nsJoin(nspath, NETNS, s.netns)
+	if err != nil {
+		return err
+	}
+	s.netns = ns
+	return nil
 }
 
 // IpcNs specific functions
@@ -233,8 +237,12 @@ func (s *Sandbox) IpcNsPath() string {
 
 // IpcNsJoin attempts to join the sandbox to an existing IPC namespace
 // This will fail if the sandbox is already part of a IPC namespace
-func (s *Sandbox) IpcNsJoin(nspath string) (err error) {
-	s.ipcns, err = nsJoin(nspath, IPCNS, s.ipcns)
+func (s *Sandbox) IpcNsJoin(nspath string) error {
+	ns, err := nsJoin(nspath, IPCNS, s.ipcns)
+	if err != nil {
+		return err
+	}
+	s.ipcns = ns
 	return err
 }
 
@@ -248,8 +256,12 @@ func (s *Sandbox) UtsNsPath() string {
 
 // UtsNsJoin attempts to join the sandbox to an existing UTS namespace
 // This will fail if the sandbox is already part of a UTS namespace
-func (s *Sandbox) UtsNsJoin(nspath string) (err error) {
-	s.utsns, err = nsJoin(nspath, UTSNS, s.utsns)
+func (s *Sandbox) UtsNsJoin(nspath string) error {
+	ns, err := nsJoin(nspath, UTSNS, s.utsns)
+	if err != nil {
+		return err
+	}
+	s.utsns = ns
 	return err
 }
 
@@ -263,8 +275,12 @@ func (s *Sandbox) UserNsPath() string {
 
 // UserNsJoin attempts to join the sandbox to an existing User namespace
 // This will fail if the sandbox is already part of a User namespace
-func (s *Sandbox) UserNsJoin(nspath string) (err error) {
-	s.userns, err = nsJoin(nspath, USERNS, s.userns)
+func (s *Sandbox) UserNsJoin(nspath string) error {
+	ns, err := nsJoin(nspath, USERNS, s.userns)
+	if err != nil {
+		return err
+	}
+	s.userns = ns
 	return err
 }
 
