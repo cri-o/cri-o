@@ -3,7 +3,6 @@
 package sandbox
 
 import (
-	"crypto/rand"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +12,7 @@ import (
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -62,18 +62,10 @@ func pinNamespaces(nsTypes []string, pinnsPath string) ([]NamespaceIface, error)
 		NETNS:  "-n",
 	}
 
-	// create the namespace dir
-	b := make([]byte, 16)
-	_, err := rand.Reader.Read(b)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate random pinDir name: %v", err)
-	}
-
 	const runDir = "/var/run/crio/ns"
-	pinDir := fmt.Sprintf("%s/%x-%x-%x-%x-%x", runDir, b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+	pinDir := filepath.Join(runDir, uuid.New().String())
 
-	err = os.MkdirAll(pinDir, 0755)
-	if err != nil {
+	if err := os.MkdirAll(pinDir, 0755); err != nil {
 		return nil, err
 	}
 
