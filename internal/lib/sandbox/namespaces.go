@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -70,19 +71,19 @@ func (m *ManagedNamespace) Path() string {
 
 // CreateManagedNamespaces calls pinnsPath on all the managed namespaces for the sandbox.
 // It returns a slice of ManagedNamespaces it created.
-func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []NSType, pinnsPath string) ([]*ManagedNamespace, error) {
-	return s.CreateNamespacesWithFunc(managedNamespaces, pinnsPath, pinNamespaces)
+func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []NSType, cfg *config.Config) ([]*ManagedNamespace, error) {
+	return s.CreateNamespacesWithFunc(managedNamespaces, cfg, pinNamespaces)
 }
 
 // CreateManagedNamespacesWithFunc is mainly added for testing purposes. There's no point in actually calling the pinns binary
 // in unit tests, so this function allows the actual pin func to be abstracted out. Every other caller should use CreateManagedNamespaces
-func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, pinnsPath string, pinFunc func([]NSType, string) ([]NamespaceIface, error)) ([]*ManagedNamespace, error) {
+func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, cfg *config.Config, pinFunc func([]NSType, *config.Config) ([]NamespaceIface, error)) ([]*ManagedNamespace, error) {
 	typesAndPaths := make([]*ManagedNamespace, 0, 4)
 	if len(managedNamespaces) == 0 {
 		return typesAndPaths, nil
 	}
 
-	namespaces, err := pinFunc(managedNamespaces, pinnsPath)
+	namespaces, err := pinFunc(managedNamespaces, cfg)
 	if err != nil {
 		return typesAndPaths, nil
 	}
