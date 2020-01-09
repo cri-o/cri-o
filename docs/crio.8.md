@@ -55,6 +55,7 @@ crio
 [--manage-network-ns-lifecycle]
 [--manage-ns-lifecycle]
 [--metrics-port]=[value]
+[--namespaces-dir]=[value]
 [--no-pivot]
 [--pause-command]=[value]
 [--pause-image-auth-file]=[value]
@@ -218,6 +219,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--manage-ns-lifecycle**: Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: false)
 
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
+
+**--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: "/var/run/crio/ns")
 
 **--no-pivot**: If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: false)
 

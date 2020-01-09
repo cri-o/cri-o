@@ -3,7 +3,6 @@
 package sandbox
 
 import (
-	"crypto/rand"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,8 +10,10 @@ import (
 	"sync"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -54,7 +55,7 @@ func (n *Namespace) Initialize() NamespaceIface {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func pinNamespaces(nsTypes []NSType, pinnsPath string) ([]NamespaceIface, error) {
+func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, error) {
 	typeToArg := map[NSType]string{
 		IPCNS:  "-i",
 		UTSNS:  "-u",
@@ -62,18 +63,9 @@ func pinNamespaces(nsTypes []NSType, pinnsPath string) ([]NamespaceIface, error)
 		NETNS:  "-n",
 	}
 
-	// create the namespace dir
-	b := make([]byte, 16)
-	_, err := rand.Reader.Read(b)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate random pinDir name: %v", err)
-	}
+	pinDir := filepath.Join(cfg.NamespacesDir, uuid.New().String())
 
-	const runDir = "/var/run/crio/ns"
-	pinDir := fmt.Sprintf("%s/%x-%x-%x-%x-%x", runDir, b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-
-	err = os.MkdirAll(pinDir, 0755)
-	if err != nil {
+	if err := os.MkdirAll(pinDir, 0755); err != nil {
 		return nil, err
 	}
 
@@ -96,7 +88,8 @@ func pinNamespaces(nsTypes []NSType, pinnsPath string) ([]NamespaceIface, error)
 		})
 	}
 
-	if _, err := exec.Command(pinnsPath, pinnsArgs...).Output(); err != nil {
+	pinns := cfg.PinnsPath
+	if _, err := exec.Command(pinns, pinnsArgs...).Output(); err != nil {
 		// cleanup after ourselves
 		failedUmounts := make([]string, 0)
 		for _, info := range mountedNamespaces {

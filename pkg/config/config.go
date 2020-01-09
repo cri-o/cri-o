@@ -241,6 +241,10 @@ type RuntimeConfig struct {
 	// LogFilter specifies a regular expression to filter the log messages
 	LogFilter string `toml:"log_filter"`
 
+	// NamespacesDir is the directory where the state of the managed namespaces
+	// gets tracked
+	NamespacesDir string `toml:"namespaces_dir"`
+
 	// PinNSPath is the path to find the pinns binary, which is needed
 	// to manage namespace lifecycle
 	PinnsPath string `toml:"pinns_path"`
@@ -516,6 +520,7 @@ func DefaultConfig() (*Config, error) {
 			AdditionalDevices:        []string{},
 			HooksDir:                 []string{hooks.DefaultDir},
 			ManageNSLifecycle:        false,
+			NamespacesDir:            "/var/run/crio/ns",
 			PinnsPath:                "",
 		},
 		ImageConfig: ImageConfig{
@@ -741,6 +746,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		// Validate the pinns path
 		if err := c.ValidatePinnsPath("pinns"); err != nil {
 			return errors.Wrapf(err, "pinns validation")
+		}
+
+		if err := os.MkdirAll(c.NamespacesDir, 0700); err != nil {
+			return errors.Wrapf(err, "invalid namespaces_dir")
 		}
 	}
 
