@@ -14,7 +14,6 @@ import (
 
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/libpod/pkg/annotations"
-	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -431,23 +430,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	// set this container's apparmor profile if it is set by sandbox
 	if s.appArmorEnabled && !privileged {
-		appArmorProfileName := s.getAppArmorProfileName(containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile())
-		if appArmorProfileName != "" {
-			// reload default apparmor profile if it is unloaded.
-			if s.appArmorProfile == libconfig.DefaultApparmorProfile {
-				isLoaded, err := apparmor.IsLoaded(libconfig.DefaultApparmorProfile)
-				if err != nil {
-					return nil, err
-				}
-				if !isLoaded {
-					if err := apparmor.InstallDefault(libconfig.DefaultApparmorProfile); err != nil {
-						return nil, err
-					}
-				}
-			}
+		profile := s.containerAppArmorProfile(
+			containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile(),
+		)
 
-			specgen.SetProcessApparmorProfile(appArmorProfileName)
+		// reload the profile if not loaded
+		if profile == libconfig.DefaultApparmorProfile {
+			if err := s.ReloadDefaultAppArmorProfile(); err != nil {
+				return nil, err
+			}
 		}
+
+		log.Debugf(ctx, "Using AppArmor profile %s", profile)
+		specgen.SetProcessApparmorProfile(profile)
 	}
 
 	logPath := containerConfig.GetLogPath()
