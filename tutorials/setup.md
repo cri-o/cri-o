@@ -42,17 +42,28 @@ RHEL 8 distributions:\
 Make sure you are subscribed to the following repositories: \
 BaseOS/x86_64 \
 Appstream/x86_64
+CodeReady Linux Builder for x86_64
+
+```
+subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rpms
+subscription-manager repos --enable=rhel-8-for-x86_64-appstream-rpms
+subscription-manager repos --enable=codeready-builder-for-rhel-8-x86_64-rpms
+```
 
 Follow the guide below to subscribe to the repositories if not already subscribed:\
 https://access.redhat.com/solutions/265523
 
-This requires go version 1.12 or greater.
+This requires go version 1.12 or greater:
+```
+yum module -y install go-toolset
+```
 
 ```bash
 yum install -y \
   containers-common \
   device-mapper-devel \
   git \
+  make \
   glib2-devel \
   glibc-devel \
   glibc-static \
@@ -66,11 +77,15 @@ Dependency: gpgme-devel \
 Link: http://download.eng.bos.redhat.com/brewroot/packages/gpgme/1.10.0/6.el8/x86_64/
 
 Dependency: go-md2man \
-Command: go get github.com/cpuguy83/go-md2man
+Command:
+```
+go get github.com/cpuguy83/go-md2man
+```
 
 The following dependencies:
 ```bash
   libassuan \
+  libassuan-devel \
   libgpg-error \
   libseccomp \
   libselinux \
