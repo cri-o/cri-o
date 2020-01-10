@@ -121,6 +121,8 @@ github.com/containernetworking/cni v0.7.1/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ
 github.com/containernetworking/plugins v0.8.2/go.mod h1:TxALKWZpWL79BC3GOYKJzzXr7U8R23PdhwaLp6F3adc=
 github.com/containernetworking/plugins v0.8.3 h1:eB0uwWr2jO+aVwdZrtVCj8MNo3p0mqGqWKji1yK3U9w=
 github.com/containernetworking/plugins v0.8.3/go.mod h1:MonilQ3qYDN5479D+wW461uBynC5PtGelMRlgBGiaVY=
+github.com/containernetworking/plugins v0.8.4 h1:rOtM8umH7EGqtkFwP9RtmY/Q+PoZ7MRM2mAltEHoIHE=
+github.com/containernetworking/plugins v0.8.4/go.mod h1:UZ2539umj8djuRQmBxuazHeJbYrLV8BSBejkk+she6o=
 github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982 h1:5WUe09k2sJSbmxwLHZLHc41TrIPrP0GlbhX+WDJBqvs=
 github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982/go.mod h1:eGWB4tLoo0hIBuytQpvgUC0hk2mvl2ofaYBeDsU/qoc=
 github.com/containers/conmon v2.0.8+incompatible h1:8A14aNVSUAQ3hCQpPsMcIm/zczge5o+EOUr1XfY++2I=
@@ -150,6 +152,7 @@ github.com/coredns/corefile-migration v1.0.4/go.mod h1:OFwBp/Wc9dJt5cAZzHWMNhK1r
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-iptables v0.4.2/go.mod h1:/mVI274lEDI2ns62jHCDnCyBF9Iwsmekav8Dbxlm1MU=
+github.com/coreos/go-iptables v0.4.5/go.mod h1:/mVI274lEDI2ns62jHCDnCyBF9Iwsmekav8Dbxlm1MU=
 github.com/coreos/go-oidc v2.1.0+incompatible/go.mod h1:CgnwVTmzoESiwO9qyAFEMiHoZ1nMCKZlZ9V6mm3/LKc=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
 github.com/coreos/go-semver v0.3.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=

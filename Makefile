@@ -87,7 +87,7 @@ SHRINKFLAGS := -s -w
 BASE_LDFLAGS = ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${SOURCE_DATE_EPOCH}
 LDFLAGS = -ldflags '${BASE_LDFLAGS}'
 
-TESTIMAGE_VERSION := master-1.1.5
+TESTIMAGE_VERSION := master-1.1.6
 TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)

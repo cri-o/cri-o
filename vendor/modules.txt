@@ -76,7 +76,7 @@ github.com/containernetworking/cni/pkg/types
 github.com/containernetworking/cni/pkg/types/020
 github.com/containernetworking/cni/pkg/types/current
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v0.8.3
+# github.com/containernetworking/plugins v0.8.4
 github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 github.com/containers/buildah
