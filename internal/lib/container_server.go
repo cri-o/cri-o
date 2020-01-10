@@ -348,10 +348,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		netNsPath, err := configNetNsPath(&m)
 		if err == nil {
 			nsErr := sb.NetNsJoin(netNsPath, sb.Name())
-			// If we can't load the networking namespace
-			// because it's closed, we just set the sb netns
-			// pointer to nil. Otherwise we return an error.
-			if nsErr != nil && nsErr != sandbox.ErrClosedNetNS {
+			if nsErr != nil {
 				return nsErr
 			}
 		}
