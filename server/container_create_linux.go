@@ -640,6 +640,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddMount(cgroupMnt)
 	}
 
+	// When running on cgroupv2, automatically add a cgroup namespace.
+	if cgroups.IsCgroup2UnifiedMode() {
+		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); err != nil {
+			return nil, err
+		}
+	}
+
 	for idx, ip := range sb.IPs() {
 		specgen.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
 	}
