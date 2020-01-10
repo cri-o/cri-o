@@ -783,7 +783,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		managedNamespaces = append(managedNamespaces, sandbox.UTSNS)
 
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
-		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, s.config.PinnsPath)
+		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, &s.config)
 		if err != nil {
 			return nil, err
 		}

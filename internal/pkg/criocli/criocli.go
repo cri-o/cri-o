@@ -230,6 +230,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.IsSet("manage-ns-lifecycle") {
 		config.ManageNSLifecycle = ctx.Bool("manage-ns-lifecycle")
 	}
+	if ctx.IsSet("namespaces-dir") {
+		config.NamespacesDir = ctx.String("namespaces-dir")
+	}
 	if ctx.IsSet("pinns-path") {
 		config.PinnsPath = ctx.String("pinns-path")
 	}
@@ -654,6 +657,11 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Name:    "pinns-path",
 			Usage:   fmt.Sprintf("The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: %q)", defConf.PinnsPath),
 			EnvVars: []string{"CONTAINER_PINNS_PATH"},
+		},
+		&cli.StringFlag{
+			Name:    "namespaces-dir",
+			Usage:   fmt.Sprintf("The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: %q)", defConf.NamespacesDir),
+			EnvVars: []string{"CONTAINER_NAMESPACES_DIR"},
 		},
 		&cli.BoolFlag{
 			Name:    "no-pivot",

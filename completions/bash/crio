@@ -52,6 +52,7 @@ h
 --manage-network-ns-lifecycle
 --manage-ns-lifecycle
 --metrics-port
+--namespaces-dir
 --no-pivot
 --pause-command
 --pause-image
