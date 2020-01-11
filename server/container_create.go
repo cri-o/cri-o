@@ -623,6 +623,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		log.Errorf(ctx, "%v", err)
 	}
 
+	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+		return nil, ctx.Err()
+	}
+
 	log.Infof(ctx, "Created container: %s", container.Description())
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
