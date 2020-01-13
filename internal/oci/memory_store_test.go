@@ -2,7 +2,6 @@ package oci_test
 
 import (
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -140,7 +139,7 @@ var _ = t.Describe("MemoryStore", func() {
 
 		It("should succeed apply", func() {
 			// Given
-			newContainerState := &oci.ContainerState{ExitCode: utils.Int32Ptr(-1)}
+			newContainerState := &oci.ContainerState{ExitCode: -1}
 			sut.Add(containerID, testContainer)
 			Expect(sut.Get(containerID)).NotTo(BeNil())
 

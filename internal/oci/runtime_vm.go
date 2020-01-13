@@ -580,8 +580,7 @@ func (r *runtimeVM) UpdateContainerStatus(c *Container) error {
 
 	c.state.Status = status
 	c.state.Finished = response.ExitedAt
-	exitCode := int32(response.ExitStatus)
-	c.state.ExitCode = &exitCode
+	c.state.ExitCode = int32(response.ExitStatus)
 
 	return nil
 }

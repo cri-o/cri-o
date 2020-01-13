@@ -73,7 +73,7 @@ type ContainerState struct {
 	Created   time.Time `json:"created"`
 	Started   time.Time `json:"started,omitempty"`
 	Finished  time.Time `json:"finished,omitempty"`
-	ExitCode  *int32    `json:"exitCode,omitempty"`
+	ExitCode  int32     `json:"exitCode,omitempty"`
 	OOMKilled bool      `json:"oomKilled,omitempty"`
 	Error     string    `json:"error,omitempty"`
 }

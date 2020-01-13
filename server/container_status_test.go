@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -52,11 +51,11 @@ var _ = t.Describe("ContainerStatus", func() {
 				State: specs.State{Status: oci.ContainerStateRunning},
 			}, pb.ContainerState_CONTAINER_RUNNING),
 			Entry("Stopped: ExitCode 0", &oci.ContainerState{
-				ExitCode: utils.Int32Ptr(0),
+				ExitCode: 0,
 				State:    specs.State{Status: oci.ContainerStateStopped},
 			}, pb.ContainerState_CONTAINER_EXITED),
 			Entry("Stopped: ExitCode -1", &oci.ContainerState{
-				ExitCode: utils.Int32Ptr(-1),
+				ExitCode: -1,
 				State:    specs.State{Status: oci.ContainerStateStopped},
 			}, pb.ContainerState_CONTAINER_EXITED),
 			Entry("Stopped: OOMKilled", &oci.ContainerState{
