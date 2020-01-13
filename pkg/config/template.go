@@ -240,6 +240,10 @@ ctr_stop_timeout = {{ .CtrStopTimeout }}
 # and manage their lifecycle
 manage_ns_lifecycle = {{ .ManageNSLifecycle }}
 
+# The directory where the state of the managed namespaces gets tracked.
+# Only used when manage_ns_lifecycle is true.
+namespaces_dir = "{{ .NamespacesDir }}"
+
 # pinns_path is the path to find the pinns binary, which is needed to manage namespace lifecycle
 pinns_path = "{{ .PinnsPath }}"
 
