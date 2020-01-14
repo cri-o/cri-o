@@ -253,35 +253,21 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
 		// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
 		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
-		if !isInCRIMounts("/run", containerConfig.GetMounts()) {
-			mnt := rspec.Mount{
-				Destination: "/run",
-				Type:        "tmpfs",
-				Source:      "tmpfs",
-				Options:     append(options, "mode=0755"),
-			}
-			// Add tmpfs mount on /run
-			specgen.AddMount(mnt)
+		mounts := map[string]string{
+			"/run":     "mode=0755",
+			"/tmp":     "mode=1777",
+			"/var/tmp": "mode=1777",
 		}
-		if !isInCRIMounts("/tmp", containerConfig.GetMounts()) {
-			mnt := rspec.Mount{
-				Destination: "/tmp",
-				Type:        "tmpfs",
-				Source:      "tmpfs",
-				Options:     append(options, "mode=1777"),
+		for target, mode := range mounts {
+			if !isInCRIMounts(target, containerConfig.GetMounts()) {
+				mnt := rspec.Mount{
+					Destination: target,
+					Type:        "tmpfs",
+					Source:      "tmpfs",
+					Options:     append(options, mode),
+				}
+				specgen.AddMount(mnt)
 			}
-			// Add tmpfs mount on /tmp
-			specgen.AddMount(mnt)
-		}
-		if !isInCRIMounts("/var/tmp", containerConfig.GetMounts()) {
-			mnt := rspec.Mount{
-				Destination: "/var/tmp",
-				Type:        "tmpfs",
-				Source:      "tmpfs",
-				Options:     append(options, "mode=1777"),
-			}
-			// Add tmpfs mount on /var/tmp
-			specgen.AddMount(mnt)
 		}
 	}
 
