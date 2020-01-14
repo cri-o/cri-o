@@ -215,8 +215,9 @@ func (s *Server) restore() {
 
 	// Restore sandbox IPs
 	for _, sb := range s.ListSandboxes() {
-		// Move on if pod was deleted
-		if ok, _ := deletedPods[sb.ID()]; ok {
+		// Clean up networking if pod couldn't be restored and was deleted
+		if ok := deletedPods[sb.ID()]; ok {
+			s.networkStop(sb)
 			continue
 		}
 		ip, err := s.getSandboxIP(sb)
