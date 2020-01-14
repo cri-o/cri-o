@@ -21,10 +21,6 @@ const (
 	USERNS NSType = "user"
 )
 
-// ErrClosedNS is the error returned when the network namespace of the
-// sandbox is closed
-var ErrClosedNS = errors.New("PodSandbox namespace is closed")
-
 // NamespaceIface provides a generic namespace interface
 type NamespaceIface interface {
 	// Close closes this network namespace
