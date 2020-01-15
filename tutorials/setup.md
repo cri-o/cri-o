@@ -91,8 +91,6 @@ The following dependencies:
   libselinux \
   pkgconfig \
 ```
-are found on the following page: \
-Link: https://downloads.redhat.com/redhat/rhel/rhel-8-beta/baseos/source/Packages/
 
 On Ubuntu distributions, there is a dedicated PPA provided by
 [Project Atomic](https://www.projectatomic.io/):
