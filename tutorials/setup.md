@@ -79,12 +79,11 @@ The following dependencies:
 are found on the following page: \
 Link: https://downloads.redhat.com/redhat/rhel/rhel-8-beta/baseos/source/Packages/
 
-On Ubuntu distributions, there is a dedicated PPA provided by
-[Project Atomic](https://www.projectatomic.io/):
+On Debian, Raspbian and Ubuntu distributions, [enable the Kubic project
+repositories](../README.md#installing-crio) and install the following packages:
 
 ```bash
 # Add containers-common and cri-o-runc
-apt-add-repository ppa:projectatomic/ppa
 
 apt-get update -qq && apt-get install -y \
   btrfs-tools \
