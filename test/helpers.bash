@@ -162,19 +162,17 @@ function setup_test() {
     CONTAINER_EXITS_DIR=$TESTDIR/containers/exits
     CONTAINER_ATTACH_SOCKET_DIR=$TESTDIR/containers
 
-    # Setup default mounts using deprecated --default-mounts flag
-    # should be removed, once the flag is removed
     MOUNT_PATH="$TESTDIR/secrets"
     mkdir ${MOUNT_PATH}
     MOUNT_FILE="${MOUNT_PATH}/test.txt"
     touch ${MOUNT_FILE}
     echo "Testing secrets mounts!" >${MOUNT_FILE}
-    DEFAULT_MOUNTS_OPTS="--default-mounts=${MOUNT_PATH}:/container/path1"
 
     # Setup default secrets mounts
     mkdir $TESTDIR/containers
     touch $TESTDIR/containers/mounts.conf
     echo "$TESTDIR/rhel/secrets:/run/secrets" >$TESTDIR/containers/mounts.conf
+    echo "${MOUNT_PATH}:/container/path1" >>$TESTDIR/containers/mounts.conf
     mkdir -p $TESTDIR/rhel/secrets
     touch $TESTDIR/rhel/secrets/test.txt
     echo "Testing secrets mounts. I am mounted!" >$TESTDIR/rhel/secrets/test.txt
