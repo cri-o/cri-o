@@ -95,7 +95,7 @@ up a PR and add it to the list.
 ## Getting started
 
 ### Installing CRI-O
-To install CRI-O, you can use your distributions package manager:
+To install CRI-O, you can use your distribution's package manager:
 
 Fedora 30 and later:
 ```sudo dnf module install cri-o```
@@ -104,13 +104,35 @@ Fedora 29, CentOS, RHEL, and related distributions:
 openSUSE:
 ```sudo zypper install cri-o```
 
-On Ubuntu distributions, there is a dedicated PPA provided by
-[Project Atomic](https://www.projectatomic.io/):
+Debian (10 and newer including Raspbian) and Ubuntu (18.04 and newer): Packages are available via the
+[Kubic](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
+project repositories:
 
 ```bash
-sudo apt-add-repository ppa:projectatomic/ppa
+# Debian Unstable/Sid
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Unstable/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Unstable/Release.key -O Release.key
+
+# Debian Testing
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Testing/Release.key -O Release.key
+
+# Debian 10
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_10/Release.key -O Release.key
+
+# Raspbian 10
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Raspbian_10/Release.key -O Release.key
+
+# Ubuntu (19.10, 19.04 and 18.04)
+. /etc/os-release
+sudo sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/x${NAME}_${VERSION_ID}/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list"
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/x${NAME}_${VERSION_ID}/Release.key -O Release.key
+
+sudo apt-key add - < Release.key
 sudo apt-get update -qq
-sudo apt-get install crio
+sudo apt-get install cri-o-1.16
 ```
 
 Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
