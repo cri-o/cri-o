@@ -37,7 +37,7 @@ var _ = t.Describe("Status", func() {
 			Expect(response.Status.Conditions[0].Status).To(BeTrue())
 		})
 
-		It("should succeed when CNI plugin status erros", func() {
+		It("should succeed when CNI plugin status errors", func() {
 			// Given
 			gomock.InOrder(
 				cniPluginMock.EXPECT().Status().Return(t.TestError),

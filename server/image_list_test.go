@@ -63,7 +63,7 @@ var _ = t.Describe("ImageList", func() {
 			Expect(len(response.Images)).To(BeEquivalentTo(1))
 		})
 
-		It("should fail when image listing erros", func() {
+		It("should fail when image listing errors", func() {
 			// Given
 			gomock.InOrder(
 				imageServerMock.EXPECT().ListImages(gomock.Any(),

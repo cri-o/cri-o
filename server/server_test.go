@@ -139,7 +139,7 @@ var _ = t.Describe("Server", func() {
 			Expect(server).To(BeNil())
 		})
 
-		It("should fail when socket dir creation erros", func() {
+		It("should fail when socket dir creation errors", func() {
 			// Given
 			gomock.InOrder(
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
@@ -154,7 +154,7 @@ var _ = t.Describe("Server", func() {
 			Expect(server).To(BeNil())
 		})
 
-		It("should fail when container exits dir creation erros", func() {
+		It("should fail when container exits dir creation errors", func() {
 			// Given
 			gomock.InOrder(
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
