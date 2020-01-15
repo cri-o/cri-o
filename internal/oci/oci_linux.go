@@ -3,9 +3,11 @@
 package oci
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -110,6 +112,18 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerSt
 		stats.NetInput, stats.NetOutput = getContainerNetIO(netNsPath)
 	}
 
+	totalInactiveFile, err := getTotalInactiveFile()
+	if err != nil { // nolint: gocritic
+		logrus.Warnf("error in memory working set stats retrieval: %v", err)
+	} else if stats.MemUsage > totalInactiveFile {
+		stats.WorkingSetBytes = stats.MemUsage - totalInactiveFile
+	} else {
+		logrus.Debugf(
+			"unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
+			totalInactiveFile, stats.MemUsage,
+		)
+	}
+
 	return stats, nil
 }
 
@@ -161,4 +175,41 @@ func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
 		BlockOutput: blockOutput,
 		PIDs:        pids,
 	}
+}
+
+// getTotalInactiveFile returns the value if `total_inactive_file` as integer
+// from `/sys/fs/cgroup/memory/memory.stat`. It returns an error if the file is
+// not parsable.
+func getTotalInactiveFile() (uint64, error) {
+	// no cgroupv2 support right now
+	if isV2, err := cgroups.IsCgroup2UnifiedMode(); err == nil || isV2 {
+		return 0, nil
+	}
+
+	const memoryStat = "/sys/fs/cgroup/memory/memory.stat"
+	const totalInactiveFilePrefix = "total_inactive_file "
+	f, err := os.Open(memoryStat)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), totalInactiveFilePrefix) {
+			val, err := strconv.Atoi(
+				strings.TrimPrefix(scanner.Text(), totalInactiveFilePrefix),
+			)
+			if err != nil {
+				return 0, errors.Wrapf(err, "unable to parse total inactive file value")
+			}
+			return uint64(val), nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return 0, err
+	}
+
+	return 0, errors.Errorf("%q not found in %v", totalInactiveFilePrefix, memoryStat)
 }
