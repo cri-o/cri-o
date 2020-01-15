@@ -154,7 +154,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--default-runtime**="": Default OCI runtime from the runtimes config (default: runc)
 
-**--default-sysctls**="": Sysctls to add to the containers (default: []) (default: [])
+**--default-sysctls**="": Sysctls to add to the containers (default: ["\"net.ipv4.ping_group_range\" = \"0   2147483647\""]) (default: [])
 
 **--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is (default: docker://)
 

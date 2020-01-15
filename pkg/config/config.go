@@ -551,6 +551,7 @@ func DefaultConfig() (*Config, error) {
 			CtrStopTimeout:           defaultCtrStopTimeout,
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "info",
+			DefaultSysctls:           []string{"\"net.ipv4.ping_group_range\" = \"0   2147483647\""},
 			HooksDir:                 []string{hooks.DefaultDir},
 			NamespacesDir:            "/var/run/crio/ns",
 			seccompConfig:            seccomp.New(),

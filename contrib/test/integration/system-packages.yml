@@ -6,7 +6,6 @@
   dnf:
     state: present
     name:
-      - atomic-registries
       - container-selinux
       - curl
       - device-mapper-devel
