@@ -3,6 +3,7 @@
 load helpers
 
 function setup() {
+    TEST_SYSCTL='net.ipv4.ping_group_range=0   2147483647'
     setup_test
 }
 
