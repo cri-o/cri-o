@@ -86,3 +86,6 @@
 - name: Update all packages RHEL 8 and Fedora >= 30
   shell: sudo yum update -y
   when: supports_python3 is defined and supports_python3
+
+- name: Allow processes inside of containers to send ping
+  shell: sysctl -w net.ipv4.ping_group_range='0 2147483647'

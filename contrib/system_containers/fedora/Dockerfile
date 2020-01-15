@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora:27
+FROM registry.fedoraproject.org/fedora:30
 
 ENV VERSION=0 RELEASE=1 ARCH=x86_64
 LABEL com.redhat.component="cri-o" \

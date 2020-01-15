@@ -83,11 +83,11 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 ## CRIO.RUNTIME TABLE
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
 
-**default_ulimits**=[]
-  A list of ulimits to be set in containers by default, specified as "<ulimit name>=<soft limit>:<hard limit>", for example:"nofile=1024:2048". If nothing is set here, settings will be inherited from the CRI-O daemon.
-
 **default_runtime**="runc"
   The _name_ of the OCI runtime to be used as the default.
+
+**default_ulimits**=[]
+  A list of ulimits to be set in containers by default, specified as "<ulimit name>=<soft limit>:<hard limit>", for example:"nofile=1024:2048". If nothing is set here, settings will be inherited from the CRI-O daemon.
 
 **no_pivot**=false
   If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
@@ -122,22 +122,27 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
   The default list is:
 ```
   default_capabilities = [
-          "CHOWN",
-          "DAC_OVERRIDE",
-          "FSETID",
-          "FOWNER",
-          "NET_RAW",
-          "SETGID",
-          "SETUID",
-          "SETPCAP",
-          "NET_BIND_SERVICE",
-          "SYS_CHROOT",
-          "KILL",
+	  "CHOWN",
+	  "DAC_OVERRIDE",
+	  "FSETID",
+	  "FOWNER",
+	  "SETGID",
+	  "SETUID",
+	  "SETPCAP",
+	  "NET_BIND_SERVICE",
+	  "KILL",
   ]
 ```
 
 **default_sysctls**=[]
  List of default sysctls. If it is empty or commented out, only the sysctls defined in the container json file by the user/kube will be added.
+
+  One example would be allowing ping inside of containers.  On systems that support `/proc/sys/net/ipv4/ping_group_range`, the default list could be:
+```
+  default_sysctls = [
+       "net.ipv4.ping_group_range" = "0   2147483647",
+  ]
+```
 
 **additional_devices**=[]
   List of additional devices. Specified as "<device-on-host>:<device-on-container>:<permissions>", for example: "--additional-devices=/dev/sdc:/dev/xvdc:rwm". If it is empty or commented out, only the devices defined in the container json file by the user/kube will be added.
@@ -160,6 +165,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
     1) `/etc/containers/mounts.conf` (i.e., default_mounts_file): This is the override file, where users can either add in their own default mounts, or override the default mounts shipped with the package.
 
     2) `/usr/share/containers/mounts.conf`: This is the default file read for mounts. If you want CRI-O to read from a different, specific mounts file, you can change the default_mounts_file. Note, if this is done, CRI-O will only add mounts it finds in this file.
+
+**bind_mount_prefix**="prefix"
+  A prefix to use for the source of the bind mounts.  This option would be useful if you were running CRI-O in a container and had the / on the host mounted as /host on your container.  Then if you ran CRI-O with the --bind-mount-prefix=/host option, CRI-O would add /host to any bind mounts it is handed over CRI.  If Kubernetes asked to have /var/lib/foobar bind mounted into the container, then CRI-O would bind mount /host/var/lib/foobar.  Since CRI-O itself is running in a container with / or the host mounted on /host, the container would end up with /var/lib/foobar from the host mounted in the container rather then /var/lib/foobar from the CRI-O container.
 
 **pids_limit**=1024
   Maximum number of processes allowed in a container.
@@ -214,6 +222,12 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
 
 **runtime_path**=""
   Path to the OCI compatible runtime used for this runtime handler.
+
+**runtime_root**=""
+  Root directory used to store runtime data
+
+**runtime_type**="oci"
+  Type of the runtime used for this runtime handler. "oci", "vm"
 
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.

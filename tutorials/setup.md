@@ -340,12 +340,10 @@ default_capabilities = [
 	"DAC_OVERRIDE",
 	"FSETID",
 	"FOWNER",
-	"NET_RAW",
 	"SETGID",
 	"SETUID",
 	"SETPCAP",
 	"NET_BIND_SERVICE",
-	"SYS_CHROOT",
 	"KILL",
 ]
 ```
@@ -354,6 +352,11 @@ and no sysctls
 default_sysctls = [
 ]
 ```
+
+One optional sysctl you might consider, if you want ping to work within
+containers and your kernel supports it is setting
+
+	"net.ipv4.ping_group_range" = "0 2147483647",
 
 Users can change either default by editing `/etc/crio/crio.conf`.
 

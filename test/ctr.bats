@@ -1074,7 +1074,7 @@ function teardown() {
 	run crictl exec --sync $ctr_id grep Cap /proc/1/status
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ 00000000002425fb ]]
+	[[ "$output" =~ 00000000002005fb ]]
 
 	run crictl stopp "$pod_id"
 	echo "$output"

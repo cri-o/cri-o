@@ -535,6 +535,7 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Usage:     fmt.Sprintf("Path to default mounts file (default: %q)", defConf.DefaultMountsFile),
 			EnvVars:   []string{"CONTAINER_DEFAULT_MOUNTS_FILE"},
 			TakesFile: true,
+			Hidden:    true,
 		},
 		&cli.StringFlag{
 			Name:    "default-capabilities",
