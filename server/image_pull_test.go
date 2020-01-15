@@ -130,7 +130,7 @@ var _ = t.Describe("ImagePull", func() {
 			Expect(response).To(BeNil())
 		})
 
-		It("should fail credential decode erros", func() {
+		It("should fail credential decode errors", func() {
 			// Given
 			// When
 			response, err := sut.PullImage(context.Background(),
@@ -146,7 +146,7 @@ var _ = t.Describe("ImagePull", func() {
 			Expect(response).To(BeNil())
 		})
 
-		It("should fail when image pull erros", func() {
+		It("should fail when image pull errors", func() {
 			// Given
 			gomock.InOrder(
 				imageServerMock.EXPECT().ResolveNames(

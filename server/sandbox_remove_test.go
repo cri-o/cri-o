@@ -59,7 +59,7 @@ var _ = t.Describe("RemovePodSandbox", func() {
 			Expect(response).To(BeNil())
 		})
 
-		It("should fail when infra container index removal erros", func() {
+		It("should fail when infra container index removal errors", func() {
 			// Given
 			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
