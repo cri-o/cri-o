@@ -123,7 +123,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 // returns a Namespace
 func getNamespace(nsPath string) (*Namespace, error) {
 	if err := nspkg.IsNSorErr(nsPath); err != nil {
-		return nil, ErrClosedNS
+		return nil, err
 	}
 
 	ns, err := nspkg.GetNS(nsPath)
