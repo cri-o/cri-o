@@ -1,0 +1,68 @@
+---
+
+- name: clone crun source repo
+  git:
+    repo: "https://github.com/giuseppe/crun.git"
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/giuseppe/crun"
+    force: "{{ force_clone | default(False) | bool}}"
+
+- name: Install crun dependencies
+  raw: >
+    yum install -y \
+      python \
+      git \
+      gcc \
+      automake \
+      autoconf \
+      libcap-devel \
+      systemd-devel \
+      yajl-devel \
+      libseccomp-devel \
+      libselinux-devel \
+      go-md2man \
+      glibc-static \
+      python3-libmount \
+      libtool
+
+- name: Run autogen.sh
+  command: "{{ ansible_env.GOPATH }}/src/github.com/giuseppe/crun/autogen.sh"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/giuseppe/crun"
+
+- name: Run configure
+  command: "{{ ansible_env.GOPATH }}/src/github.com/giuseppe/crun/configure"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/giuseppe/crun"
+
+- name: build crun
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/giuseppe/crun"
+
+- name: install crun
+  make:
+    target: "install"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/giuseppe/crun"
+
+- name: remove old runc binary
+  file:
+    path: /usr/bin/runc
+    state: absent
+
+- name: crun state directory
+  file:
+    path: /run/crun
+    state: directory
+
+- name: crun state directory
+  file:
+    src: /run/crun
+    dest: /run/runc
+    state: link
+    force: yes
+
+- name: link crun
+  file:
+    src: /usr/local/bin/crun
+    dest: /usr/bin/runc
+    state: link
+    force: yes

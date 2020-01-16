@@ -963,7 +963,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run crictl exec --sync "$ctr_id" doesnotexist
 	echo "$output"
-	[ "$status" -ne 0 ]
+	[ "$status" -ne 0 ] || [ "$output" =~ "Exit code: 1" ]
 
 	cleanup_ctrs
 	cleanup_pods
