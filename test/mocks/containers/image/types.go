@@ -212,6 +212,20 @@ func (mr *MockImageCloserMockRecorder) Size() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Size", reflect.TypeOf((*MockImageCloser)(nil).Size))
 }
 
+// SupportsEncryption mocks base method
+func (m *MockImageCloser) SupportsEncryption(arg0 context.Context) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SupportsEncryption", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// SupportsEncryption indicates an expected call of SupportsEncryption
+func (mr *MockImageCloserMockRecorder) SupportsEncryption(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SupportsEncryption", reflect.TypeOf((*MockImageCloser)(nil).SupportsEncryption), arg0)
+}
+
 // UpdatedImage mocks base method
 func (m *MockImageCloser) UpdatedImage(arg0 context.Context, arg1 types.ManifestUpdateOptions) (types.Image, error) {
 	m.ctrl.T.Helper()
