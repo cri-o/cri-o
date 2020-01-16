@@ -4,22 +4,21 @@ module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.14
+	github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v0.0.0-20191003151125-bec0ecbda146 // indirect
 	github.com/containerd/containerd v1.3.0
-	github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448 // indirect
 	github.com/containerd/go-runc v0.0.0-20190603165425-9007c2405372 // indirect
 	github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
-	github.com/containerd/ttrpc v0.0.0-20190613183316-1fb3814edf44
+	github.com/containerd/ttrpc v0.0.0-20190828154514-0e0f228740de
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.2
 	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/conmon v2.0.9+incompatible
-	github.com/containers/image/v5 v5.0.0
+	github.com/containers/image/v5 v5.1.0
 	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.13.6
+	github.com/containers/storage v1.15.3
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
@@ -39,7 +38,7 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
-	github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
+	github.com/opencontainers/runc v1.0.0-rc9
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.3.0
@@ -53,13 +52,13 @@ require (
 	github.com/vbatts/git-validation v1.0.0
 	golang.org/x/net v0.0.0-20190918130420-a8b05e9114ab
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20190919044723-0c1ff786ef13
+	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	google.golang.org/grpc v1.24.0
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0
 	k8s.io/cri-api v0.0.0
-	k8s.io/kubernetes v0.0.0
+	k8s.io/kubernetes v1.13.0
 	k8s.io/utils v0.0.0-20190920012459-5008bf6f8cd6
 )
 
