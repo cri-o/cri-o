@@ -61,6 +61,11 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 		}
 	}
 
+	// Parse the drop-in configuration files for config override
+	if err := config.UpdateFromPath(ctx.String("config-dir")); err != nil {
+		return "", err
+	}
+
 	// Override options set with the CLI.
 	if ctx.IsSet("conmon") {
 		config.Conmon = ctx.String("conmon")
@@ -287,6 +292,23 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Value:     libconfig.CrioConfigPath,
 			Usage:     "Path to configuration file",
 			EnvVars:   []string{"CONTAINER_CONFIG"},
+			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:    "config-dir",
+			Aliases: []string{"d"},
+			Value:   libconfig.CrioConfigDropInPath,
+			Usage: fmt.Sprintf("Path to the configuration drop-in directory."+`
+    This directory will be recursively iterated and each file gets applied
+    to the configuration in their processing order. This means that a
+    configuration file named '00-default' has a lower priority than a file
+    named '01-my-overwrite'.
+    The global config file, provided via '--config,-c' or per default in
+	%s, always has a lower priority than the files in the directory specified
+	by '--config-dir,-d'.
+	Beside that, provided command line parameters still have a higher priority
+	than any configuration file.`, libconfig.CrioConfigPath),
+			EnvVars:   []string{"CONTAINER_CONFIG_DIR"},
 			TakesFile: true,
 		},
 		&cli.StringFlag{
