@@ -39,7 +39,7 @@ func (s *Server) buildContainerStats(stats *oci.ContainerStats, container *oci.C
 		},
 		Memory: &pb.MemoryUsage{
 			Timestamp:       stats.SystemNano,
-			WorkingSetBytes: &pb.UInt64Value{Value: stats.MemUsage},
+			WorkingSetBytes: &pb.UInt64Value{Value: stats.WorkingSetBytes},
 		},
 		WritableLayer: writableLayer,
 	}
