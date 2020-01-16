@@ -86,9 +86,6 @@ POD_IPV6_CIDR="1100:200::/24"
 POD_IPV6_CIDR_START="1100:200::"
 POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
-CONTAINER_DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID,SETPCAP,NET_BIND_SERVICE,SYS_CHROOT,KILL"
-TEST_SYSCTL=${TEST_SYSCTL:-}
-
 # Make sure we have a copy of the redis:alpine image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/redis-image
@@ -269,12 +266,6 @@ function setup_crio() {
         apparmor=""
     fi
 
-    if [[ -n "$4" ]]; then
-        capabilities="$4"
-    else
-        capabilities="$CONTAINER_DEFAULT_CAPABILITIES"
-    fi
-
     # Don't forget: copyimg and crio have their own default drivers, so if you override any, you probably need to override them all
     "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=k8s.gcr.io/pause:3.1 --import-from=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json
     "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
@@ -307,7 +298,6 @@ function setup_crio() {
         --cni-default-network "$CNI_DEFAULT_NETWORK" \
         --cni-config-dir "$CRIO_CNI_CONFIG" \
         --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS \
-        --default-sysctls "$TEST_SYSCTL" \
         --pinns-path "$PINNS_BINARY_PATH" \
         $OVERRIDE_OPTIONS \
         -c "" \

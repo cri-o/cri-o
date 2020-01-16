@@ -31,7 +31,16 @@
   command: iptables -F
 
 - name: Enable localnet routing
-  command: sysctl -w net.ipv4.conf.all.route_localnet=1
+  sysctl:
+    name: net.ipv4.conf.all.route_localnet
+    state: present
+    value: 1
+
+- name: Allow processes inside of containers to send ping
+  sysctl:
+    name: net.ipv4.ping_group_range
+    state: present
+    value: 0 2147483647
 
 - name: Add masquerade for localhost
   command: iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE

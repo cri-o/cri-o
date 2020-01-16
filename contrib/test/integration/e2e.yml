@@ -4,7 +4,10 @@
   include: "e2e-base.yml"
 
 - name: Increase inotify user watches
-  command: sysctl -w fs.inotify.max_user_watches=1048576
+  sysctl:
+    name: fs.inotify.max_user_watches
+    state: present
+    value: 1048576
 
 # TODO remove the second to last test skipped once https://github.com/cri-o/cri-o/pull/1217 is merged
 # TODO remove the last six tests once the newtworking issue with AWS is figured out https://github.com/cri-o/cri-o/issues/1529
