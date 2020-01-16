@@ -3,9 +3,10 @@
   include: python3.yml
 
 - name: Make sure we have all required packages
-  dnf:
+  yum:
     state: present
     name:
+      - atomic-registries
       - container-selinux
       - curl
       - device-mapper-devel
