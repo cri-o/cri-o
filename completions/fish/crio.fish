@@ -16,6 +16,16 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l cgroup-manager -r -d 'cgro
 complete -c crio -n '__fish_crio_no_subcommand' -l cni-config-dir -r -d 'CNI configuration files directory (default: "/etc/cni/net.d/")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-plugin-dir -r -d 'CNI plugin binaries directory'
 complete -c crio -n '__fish_crio_no_subcommand' -l config -s c -r -d 'Path to configuration file'
+complete -c crio -n '__fish_crio_no_subcommand' -l config-dir -s d -r -d 'Path to the configuration drop-in directory.
+    This directory will be recursively iterated and each file gets applied
+    to the configuration in their processing order. This means that a
+    configuration file named \'00-default\' has a lower priority than a file
+    named \'01-my-overwrite\'.
+    The global config file, provided via \'--config,-c\' or per default in
+	/etc/crio/crio.conf, always has a lower priority than the files in the directory specified
+	by \'--config-dir,-d\'.
+	Beside that, provided command line parameters still have a higher priority
+	than any configuration file.'
 complete -c crio -n '__fish_crio_no_subcommand' -l conmon -r -d 'Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-cgroup -r -d 'cgroup to be used for conmon process (default: "system.slice")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-env -r -d 'Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime'
