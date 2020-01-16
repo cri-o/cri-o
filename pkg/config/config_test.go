@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/cri-o/cri-o/pkg/config"
 
@@ -798,6 +799,57 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(res).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("UpdateFromPath", func() {
+		It("should succeed with the correct priority", func() {
+			// Given
+			Expect(sut.LogLevel).To(Equal("error"))
+
+			configDir := t.MustTempDir("config-dir")
+			Expect(ioutil.WriteFile(
+				filepath.Join(configDir, "00-default"),
+				[]byte("[crio.runtime]\nlog_level = \"debug\"\n"),
+				0644,
+			)).To(BeNil())
+			Expect(ioutil.WriteFile(
+				filepath.Join(configDir, "01-my-config"),
+				[]byte("[crio.runtime]\nlog_level = \"warning\"\n"),
+				0644,
+			)).To(BeNil())
+
+			// When
+			err := sut.UpdateFromPath(configDir)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.LogLevel).To(Equal("warning"))
+		})
+
+		It("should fail with invalid config", func() {
+			// Given
+			configDir := t.MustTempDir("config-dir")
+			Expect(ioutil.WriteFile(
+				filepath.Join(configDir, "00-default"),
+				[]byte("[crio.runtime]\nlog_level = true\n"),
+				0644,
+			)).To(BeNil())
+
+			// When
+			err := sut.UpdateFromPath(configDir)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should succeed with not existing path", func() {
+			// Given
+			// When
+			err := sut.UpdateFromPath("not-existing")
+
+			// Then
+			Expect(err).To(BeNil())
 		})
 	})
 })
