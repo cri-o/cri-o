@@ -380,9 +380,9 @@ github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 # github.com/golang/groupcache v0.0.0-20160516000752-02826c3e7903
 github.com/golang/groupcache/lru
 # github.com/golang/mock v1.3.1
-github.com/golang/mock/mockgen/model
 github.com/golang/mock/mockgen
 github.com/golang/mock/gomock
+github.com/golang/mock/mockgen/model
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
