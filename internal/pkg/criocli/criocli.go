@@ -405,9 +405,15 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Name:  "insecure-registry",
 			Value: cli.NewStringSlice(defConf.InsecureRegistries...),
 			Usage: "Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication." + `
-    1. List of insecure registries can contain an element with CIDR notation to specify a whole subnet.
-    2. Insecure registries accept HTTP or accept HTTPS with certificates from unknown CAs.
-    3. Enabling '--insecure-registry' is useful when running a local registry. However, because its use creates security vulnerabilities, **it should ONLY be enabled for testing purposes**. For increased security, users should add their CA to their system's list of trusted CAs instead of using '--insecure-registry'.`,
+    1. List of insecure registries can contain an element with CIDR notation to
+       specify a whole subnet.
+    2. Insecure registries accept HTTP or accept HTTPS with certificates from
+       unknown CAs.
+    3. Enabling '--insecure-registry' is useful when running a local registry.
+       However, because its use creates security vulnerabilities, **it should ONLY
+       be enabled for testing purposes**. For increased security, users should add
+       their CA to their system's list of trusted CAs instead of using
+       '--insecure-registry'.`,
 			EnvVars: []string{"CONTAINER_INSECURE_REGISTRY"},
 		},
 		&cli.StringSliceFlag{
@@ -496,9 +502,11 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Name:  "image-volumes",
 			Value: string(libconfig.ImageVolumesMkdir),
 			Usage: "Image volume handling ('mkdir', 'bind', or 'ignore')" + `
-    1. mkdir: A directory is created inside the container root filesystem for the volumes.
-    2. bind: A directory is created inside container state directory and bind mounted into the container for the volumes.
-    3. ignore: All volumes are just ignored and no action is taken.`,
+    1. mkdir: A directory is created inside the container root filesystem for
+       the volumes.
+    2. bind: A directory is created inside container state directory and bind
+       mounted into the container for the volumes.
+	3. ignore: All volumes are just ignored and no action is taken.`,
 			EnvVars: []string{"CONTAINER_IMAGE_VOLUMES"},
 		},
 		&cli.StringSliceFlag{
@@ -509,17 +517,14 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
     the semantics of hook injection, see 'oci-hooks(5)'. CRI-O
     currently support both the 1.0.0 and 0.1.0 hook schemas, although
     the 0.1.0 schema is deprecated.
-
     This option may be set multiple times; paths from later options
     have higher precedence ('oci-hooks(5)' discusses directory
     precedence).
-
-	For the annotation conditions, CRI-O uses the Kubernetes
+    For the annotation conditions, CRI-O uses the Kubernetes
     annotations, which are a subset of the annotations passed to the
     OCI runtime. For example, 'io.kubernetes.cri-o.Volumes' is part of
     the OCI runtime configuration annotations, but it is not part of
     the Kubernetes annotations being matched for hooks.
-
     For the bind-mount conditions, only mounts explicitly requested by
     Kubernetes configuration are considered. Bind mounts that CRI-O
     inserts by default (e.g. '/dev/shm') are not considered.`,
