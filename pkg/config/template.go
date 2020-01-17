@@ -111,6 +111,10 @@ default_runtime = "{{ .DefaultRuntime }}"
 # If true, the runtime will not use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
 
+# decryption_keys_path is the path where the keys required for
+# image decryption are stored.
+decryption_keys_path = "{{ .DecryptionKeysPath }}"
+
 # Path to the conmon binary, used for monitoring the OCI runtime.
 # Will be searched for using $PATH if empty.
 conmon = "{{ .Conmon }}"

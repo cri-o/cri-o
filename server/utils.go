@@ -1,14 +1,19 @@
 package server
 
 import (
+	b64 "encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	encconfig "github.com/containers/ocicrypt/config"
+	cryptUtils "github.com/containers/ocicrypt/utils"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -338,4 +343,46 @@ func validateHostIP(hostIP net.IP) error {
 		return fmt.Errorf("hostIP can't be an all zeros address")
 	}
 	return nil
+}
+
+// getDecryptionKeys reads the keys from the given directory
+func getDecryptionKeys(keysPath string) (encconfig.CryptoConfig, error) {
+	base64Keys := make([]string, 0)
+
+	walkFn := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		// Handle symlinks
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			return errors.New("Symbolic links not supported in decryption keys paths")
+		}
+
+		privateKey, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		sEnc := b64.StdEncoding.EncodeToString(privateKey)
+		base64Keys = append(base64Keys, sEnc)
+
+		return nil
+	}
+
+	err := filepath.Walk(keysPath, walkFn)
+	if err != nil {
+		return encconfig.CryptoConfig{}, err
+	}
+
+	sortedDc, err := cryptUtils.SortDecryptionKeys(strings.Join(base64Keys, ","))
+	if err != nil {
+		return encconfig.CryptoConfig{}, err
+	}
+
+	return encconfig.InitDecryption(sortedDc), nil
 }

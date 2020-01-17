@@ -92,6 +92,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **no_pivot**=false
   If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 
+**decryption_keys_path**="/etc/crio/keys/"
+  Path where the keys required for image decryption are located
+
 **conmon**=""
   Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty.
 

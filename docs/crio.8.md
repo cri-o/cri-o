@@ -23,6 +23,7 @@ crio
 [--default-transport=[value]]
 [--default-runtime=[value]]
 [--runtimes=[value]]
+[--decryption-keys-path]=[value]
 [--default-sysctls=[value]]
 [--default-ulimits=[value]]
 [--default-transport=[value]]
@@ -119,6 +120,8 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--default-mounts**="": add one or more default mount paths in the form host:container (deprecated - add the default mounts to /etc/containers/mounts.conf instead)
 
 **--default-mounts-file**="": path to default mounts file (default: "")
+
+**--decryption-keys-path**="": Path to load keys for image decryption. (default: "/etc/crio/keys/")
 
 **--default-runtime**="": default OCI runtime from the runtimes config (default: "runc")
 
