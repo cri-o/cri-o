@@ -10,7 +10,7 @@ function __fish_crio_no_subcommand --description 'Test if there has been any sub
 end
 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l additional-devices -r -d 'devices to add to the containers (default: [])'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l apparmor-profile -r -d 'default apparmor profile name (default: "crio-default-1.16.1")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l apparmor-profile -r -d 'default apparmor profile name (default: "crio-default-1.16.2")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l bind-mount-prefix -r -d 'specify a prefix to prepend to the source of a bind mount (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cgroup-manager -r -d 'cgroup manager (cgroupfs or systemd) (default: "cgroupfs")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-config-dir -r -d 'CNI configuration files directory (default: "/etc/cni/net.d/")'
