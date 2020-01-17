@@ -438,6 +438,9 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	if err := sb.SetInfraContainer(scontainer); err != nil {
 		return err
 	}
+
+	sb.RestoreStopped()
+
 	if err := c.ctrIDIndex.Add(scontainer.ID()); err != nil {
 		return err
 	}

@@ -218,7 +218,9 @@ func (s *Server) restore(ctx context.Context) {
 	for _, sb := range s.ListSandboxes() {
 		// Clean up networking if pod couldn't be restored and was deleted
 		if ok := deletedPods[sb.ID()]; ok {
-			s.networkStop(ctx, sb)
+			if err := s.networkStop(ctx, sb); err != nil {
+				logrus.Warnf("error stopping network on restore cleanup %v:", err)
+			}
 			continue
 		}
 		ips, err := s.getSandboxIPs(sb)

@@ -35,6 +35,11 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	stopMutex.Lock()
 	defer stopMutex.Unlock()
 
+	// Clean up sandbox networking and close its network namespace.
+	if err := s.networkStop(ctx, sb); err != nil {
+		return nil, err
+	}
+
 	if sb.Stopped() {
 		resp = &pb.StopPodSandboxResponse{}
 		return resp, nil
@@ -45,9 +50,6 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	if podInfraContainer != nil {
 		containers = append(containers, podInfraContainer)
 	}
-
-	// Clean up sandbox networking and close its network namespace.
-	s.networkStop(ctx, sb)
 
 	const maxWorkers = 128
 	var waitGroup errgroup.Group
@@ -109,8 +111,8 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		log.Warnf(ctx, "error writing pod infra container %q state to disk: %v", podInfraContainer.ID(), err)
 	}
 
-	log.Infof(ctx, "removed pod sandbox: %s", sb.ID())
-	sb.SetStopped()
+	log.Infof(ctx, "stopped pod sandbox: %s", podInfraContainer.Description())
+	sb.SetStopped(true)
 	resp = &pb.StopPodSandboxResponse{}
 	return resp, nil
 }
