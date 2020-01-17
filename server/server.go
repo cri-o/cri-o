@@ -465,15 +465,13 @@ func New(
 
 	// Start a configuration watcher for the default config
 	if _, err := s.StartConfigWatcher(configPath, s.config.Reload); err != nil {
-		logrus.Warnf("unable to start config watcher for file %q: %v",
-			configPath, err)
+		logrus.Infof("unable to start config watcher: %v", err)
 	}
 
 	// Start a configuration watcher for the registries of the SystemContext
 	registriesPath := sysregistriesv2.ConfigPath(s.systemContext)
 	if _, err := s.StartConfigWatcher(registriesPath, s.ReloadRegistries); err != nil {
-		logrus.Warnf("unable to start config watcher for file %q: %v",
-			registriesPath, err)
+		logrus.Infof("unable to start config watcher: %v", err)
 	}
 
 	// Start the metrics server if configured to be enabled

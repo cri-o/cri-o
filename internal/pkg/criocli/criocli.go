@@ -9,7 +9,6 @@ import (
 	"github.com/containers/image/v5/types"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
@@ -53,11 +52,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 					}
 				}
 			}
-
-			// We don't error out if --config wasn't explicitly set and the
-			// default doesn't exist. But we will log a warning about it, so
-			// the user doesn't miss it.
-			logrus.Warnf("default configuration file does not exist: %s", path)
 		}
 	}
 
@@ -332,7 +326,7 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		&cli.StringFlag{
 			Name:    "log-level",
 			Aliases: []string{"l"},
-			Value:   "error",
+			Value:   "info",
 			Usage:   "Log messages above specified level: trace, debug, info, warn, error, fatal or panic",
 			EnvVars: []string{"CONTAINER_LOG_LEVEL"},
 		},

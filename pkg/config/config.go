@@ -514,7 +514,7 @@ func DefaultConfig() (*Config, error) {
 			LogSizeMax:               DefaultLogSizeMax,
 			LogToJournald:            DefaultLogToJournald,
 			DefaultCapabilities:      DefaultCapabilities,
-			LogLevel:                 "error",
+			LogLevel:                 "info",
 			DefaultSysctls:           []string{},
 			DefaultUlimits:           []string{},
 			AdditionalDevices:        []string{},

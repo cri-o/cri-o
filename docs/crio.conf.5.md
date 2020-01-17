@@ -167,7 +167,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **log_filter**=""
   Filter the log messages by the provided regular expression. This option supports live configuration reload. For example 'request:.*' filters all gRPC requests.
 
-**log_level**="error"
+**log_level**="info"
   Changes the verbosity of the logs based on the level it is set to. Options are fatal, panic, error, warn, info, and debug. This option supports live configuration reload.
 
 **log_size_max**=-1
