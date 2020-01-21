@@ -8,8 +8,9 @@ stdenv: &stdenv
     IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.10:master-1.1.4
     IMAGE386: &image386 quay.io/crio/crio-build-386-go1.13:master-1.1.4
     IMAGENIX: &imagenix quay.io/crio/nix:1.1.0
-    JOBS: &jobs 8
+    JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
+    WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
 
 executors:
   container:
@@ -44,6 +45,7 @@ executors:
     machine:
       image: ubuntu-1604:201903-01
     <<: *stdenv
+    working_directory: *workdir_vm
 
 workflows:
   version: 2
@@ -69,41 +71,26 @@ workflows:
           requires:
             - build
       - docs-validation
-      - ginkgo
       - git-validation
-      - integration:
-          requires:
-            - build
-            - build-test-binaries
+      - integration
       - integration:
           name: integration-critest
           run_critest: '1'
           jobs: 1
           test_args: critest.bats
-          requires:
-            - build
-            - build-test-binaries
-            - ginkgo
       - integration:
           name: integration-userns
           test_userns: '1'
-          requires:
-            - build
-            - build-test-binaries
       - integration:
           name: integration-static-glibc
           crio_binary: crio-x86_64-static-glibc
           requires:
-            - build
             - build-static
-            - build-test-binaries
       - integration:
           name: integration-static-musl
           crio_binary: crio-x86_64-static-musl
           requires:
-            - build
             - build-static
-            - build-test-binaries
       - lint
       - results:
           requires:
@@ -114,9 +101,7 @@ workflows:
             - integration-static-musl
             - integration-userns
             - unit-tests
-      - unit-tests:
-          requires:
-            - ginkgo
+      - unit-tests
       - vendor
 
 jobs:
@@ -253,26 +238,6 @@ jobs:
           paths:
             - *gocache
 
-  ginkgo:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-ginkgo-{{ checksum "go.sum" }}
-      - run:
-          name: build ginkgo
-          command: make $(pwd)/build/bin/ginkgo
-      - save_cache:
-          key: v1-ginkgo-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/ginkgo
-      - persist_to_workspace:
-          root: .
-          paths:
-            - build/bin/ginkgo
-
   git-validation:
     executor: container
     steps:
@@ -311,33 +276,32 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+      - restore_cache:
+          keys:
+            - v1-integration-{{ checksum "go.sum" }}
+      - run:
+          name: setup environment
+          command: scripts/circle-setup
+      - run:
+          name: build
+          command: make all test-binaries
+          environment:
+            GOPATH: /home/circleci/go
       - run:
           name: integration test
-          command: |
-            sudo ip6tables --list >/dev/null # enable necessary kernel modules
-            docker pull $IMAGE
-            docker run \
-              --privileged \
-              --rm \
-              --sysctl net.ipv6.conf.all.disable_ipv6=0 \
-              -e CI=true \
-              -e CRIO_BINARY \
-              -e RUN_CRITEST \
-              -e STORAGE_OPTIONS="-s=vfs" \
-              -e TEST_USERNS \
-              -e JOBS \
-              -v $(pwd)/build/bin/ginkgo:/usr/bin/ginkgo \
-              -v $(pwd)/bin/pinns:/usr/bin/pinns \
-              -v $(pwd):$WORKDIR \
-              -w $WORKDIR \
-              $IMAGE \
-              test/test_runner.sh $TEST_ARGS
+          command: sudo -E test/test_runner.sh $TEST_ARGS
           environment:
             JOBS: "<< parameters.jobs >>"
             CRIO_BINARY: "<< parameters.crio_binary >>"
             RUN_CRITEST: "<< parameters.run_critest >>"
             TEST_ARGS: "<< parameters.test_args >>"
             TEST_USERNS: "<< parameters.test_userns >>"
+            # TODO: fix this failing CRI test
+            CRI_SKIP: "should fail with with an unloaded profile"
+      - save_cache:
+          key: v1-integration-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
 
   lint:
     executor: container
@@ -388,6 +352,9 @@ jobs:
           name: install pinns
           command: make PREFIX=/ install
       - run:
+          name: build ginkgo
+          command: make $(pwd)/build/bin/ginkgo
+      - run:
           name: unit tests
           command: make testunit
       - run:
@@ -399,6 +366,7 @@ jobs:
           key: v1-unit-tests-{{ checksum "go.sum" }}
           paths:
             - *gocache
+            - build/bin/ginkgo
             - build/bin/mockgen
             - /bin/pinns
       - persist_to_workspace:

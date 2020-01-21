@@ -1131,9 +1131,6 @@ function teardown() {
 }
 
 @test "ctr oom" {
-	if [[ "$CI" == "true" ]]; then
-		skip "container tests don't support testing OOM"
-	fi
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
