@@ -113,7 +113,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **apparmor_profile**=""
   Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default-" followed by the version string of CRI-O.
 
-**cgroup_manager**="cgroupfs"
+**cgroup_manager**="systemd"
   Cgroup management implementation used for the runtime.
 
 **default_capabilities**=[]

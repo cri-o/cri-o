@@ -35,7 +35,7 @@ const (
 	defaultRuntime         = "runc"
 	DefaultRuntimeType     = "oci"
 	DefaultRuntimeRoot     = "/run/runc"
-	cgroupManager          = "cgroupfs"
+	defaultCgroupManager   = "systemd"
 	DefaultApparmorProfile = "crio-default-" + version.Version
 	defaultGRPCMaxMsgSize  = 16 * 1024 * 1024
 	OCIBufSize             = 8192
@@ -506,7 +506,7 @@ func DefaultConfig() (*Config, error) {
 			SELinux:                  selinuxEnabled(),
 			SeccompProfile:           "",
 			ApparmorProfile:          DefaultApparmorProfile,
-			CgroupManager:            cgroupManager,
+			CgroupManager:            defaultCgroupManager,
 			DefaultMountsFile:        "",
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
