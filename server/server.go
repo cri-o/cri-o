@@ -457,7 +457,7 @@ func New(
 	go func() {
 		defer close(s.stream.streamServerCloseCh)
 		if err := s.stream.streamServer.Start(true); err != nil && err != http.ErrServerClosed {
-			logrus.Errorf("Failed to start streaming server: %v", err)
+			logrus.Fatalf("Failed to start streaming server: %v", err)
 		}
 	}()
 
