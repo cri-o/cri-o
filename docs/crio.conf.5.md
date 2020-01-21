@@ -60,7 +60,7 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
   IP address on which the stream server will listen.
 
 **stream_port**="0"
-  The port on which the stream server will listen.
+  The port on which the stream server will listen. If the port is set to "0", then CRI-O will allocate a random free port number.
 
 **stream_enable_tls**=false
   Enable encrypted TLS transport of the stream server.

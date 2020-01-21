@@ -69,7 +69,8 @@ host_ip = [{{ range $opt := .HostIP }}{{ printf "\n%t%q," $opt }}{{ end }}
 # IP address on which the stream server will listen.
 stream_address = "{{ .StreamAddress }}"
 
-# The port on which the stream server will listen.
+# The port on which the stream server will listen. If the port is set to "0", then
+# CRI-O will allocate a random free port number.
 stream_port = "{{ .StreamPort }}"
 
 # Enable encrypted TLS transport of the stream server.
