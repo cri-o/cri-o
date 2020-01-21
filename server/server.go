@@ -141,7 +141,7 @@ func (s *Server) getPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResp
 	return s.stream.streamServer.GetPortForward(req)
 }
 
-func (s *Server) restore(ctx context.Context) {
+func (s *Server) restore() {
 	containers, err := s.Store().Containers()
 	if err != nil && !os.IsNotExist(errors.Cause(err)) {
 		logrus.Warnf("could not read containers and sandboxes: %v", err)
@@ -216,9 +216,8 @@ func (s *Server) restore(ctx context.Context) {
 
 	// Restore sandbox IPs
 	for _, sb := range s.ListSandboxes() {
-		// Clean up networking if pod couldn't be restored and was deleted
+		// Move on if pod was deleted
 		if ok := deletedPods[sb.ID()]; ok {
-			s.networkStop(ctx, sb)
 			continue
 		}
 		ips, err := s.getSandboxIPs(sb)
@@ -412,7 +411,7 @@ func New(
 		return nil, err
 	}
 
-	s.restore(ctx)
+	s.restore()
 	s.cleanupSandboxesOnShutdown(ctx)
 
 	bindAddress := net.ParseIP(config.StreamAddress)
