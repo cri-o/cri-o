@@ -600,6 +600,10 @@ func (c *APIConfig) Validate(onExecution bool) error {
 
 		// Remove the socket if it already exists
 		if _, err := os.Stat(c.Listen); err == nil {
+			if _, err := net.DialTimeout("unix", c.Listen, 0); err == nil {
+				return errors.Errorf("already existing crio connection on %s", c.Listen)
+			}
+
 			if err := os.Remove(c.Listen); err != nil {
 				return err
 			}
