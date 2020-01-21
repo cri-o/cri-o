@@ -53,6 +53,7 @@ workflows:
       - build:
           name: build-go1.10
           executor: container-legacy
+          jobs: 1
       - build:
           name: build-386
           executor: container-386
@@ -125,6 +126,9 @@ jobs:
       executor:
         type: string
         default: container
+      jobs:
+        type: integer
+        default: *jobs
     executor: << parameters.executor >>
     steps:
       - checkout
@@ -134,11 +138,11 @@ jobs:
       - run: go version
       - run: go env
       - run:
-          command: make binaries -j $JOBS
+          command: make binaries -j << parameters.jobs >>
       - run:
           command: make crio.conf
       - run:
-          command: make docs -j $JOBS
+          command: make docs -j << parameters.jobs >>
       - save_cache:
           key: v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
           paths:

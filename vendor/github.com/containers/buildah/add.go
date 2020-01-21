@@ -215,7 +215,12 @@ func dockerIgnoreMatcher(lines []string, contextDir string) (*fileutils.PatternM
 	if contextDir == "" {
 		return nil, nil
 	}
-	patterns := []string{".dockerignore"}
+	// If there's no .dockerignore file, then we don't have to add a
+	// pattern to tell copy logic to ignore it later.
+	var patterns []string
+	if _, err := os.Stat(filepath.Join(contextDir, ".dockerignore")); err == nil || !os.IsNotExist(err) {
+		patterns = []string{".dockerignore"}
+	}
 	for _, ignoreSpec := range lines {
 		ignoreSpec = strings.TrimSpace(ignoreSpec)
 		// ignore comments passed back from .dockerignore
@@ -224,7 +229,8 @@ func dockerIgnoreMatcher(lines []string, contextDir string) (*fileutils.PatternM
 		}
 		// if the spec starts with '!' it means the pattern
 		// should be included. make a note so that we can move
-		// it to the front of the updated pattern
+		// it to the front of the updated pattern, and insert
+		// the context dir's path in between
 		includeFlag := ""
 		if strings.HasPrefix(ignoreSpec, "!") {
 			includeFlag = "!"
@@ -299,7 +305,9 @@ func (b *Builder) addHelper(excludes *fileutils.PatternMatcher, extract bool, de
 					}
 				}
 				logrus.Debugf("copying[%d] %q to %q", n, esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
-				if excludes == nil || !excludes.Exclusions() {
+
+				// Copy the whole directory because we do not exclude anything
+				if excludes == nil {
 					if err = copyWithTar(esrc, dest); err != nil {
 						return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
 					}
@@ -309,13 +317,22 @@ func (b *Builder) addHelper(excludes *fileutils.PatternMatcher, extract bool, de
 					if err != nil {
 						return err
 					}
-					skip, err := excludes.Matches(path)
+
+					res, err := excludes.MatchesResult(path)
 					if err != nil {
 						return errors.Wrapf(err, "error checking if %s is an excluded path", path)
 					}
-					if skip {
+					// Skip the whole directory if the pattern matches exclusively
+					if res.Excludes() == 0 && res.Matches() == 1 && info.IsDir() {
+						return filepath.SkipDir
+					}
+					// The latest match result has the highest priority,
+					// which means that we only skip the filepath if
+					// the last result matched.
+					if res.IsMatched() {
 						return nil
 					}
+
 					// combine the source's basename with the dest directory
 					fpath, err := filepath.Rel(esrc, path)
 					if err != nil {
@@ -330,6 +347,19 @@ func (b *Builder) addHelper(excludes *fileutils.PatternMatcher, extract bool, de
 					return err
 				}
 				continue
+			}
+
+			// This source is a file
+			// Check if the path matches the .dockerignore
+			if excludes != nil {
+				res, err := excludes.MatchesResult(esrc)
+				if err != nil {
+					return errors.Wrapf(err, "error checking if %s is an excluded path", esrc)
+				}
+				// Skip the file if the pattern matches
+				if res.IsMatched() {
+					return nil
+				}
 			}
 
 			b.ContentDigester.Start("file")

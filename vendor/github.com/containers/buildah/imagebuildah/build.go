@@ -27,6 +27,7 @@ import (
 const (
 	PullIfMissing = buildah.PullIfMissing
 	PullAlways    = buildah.PullAlways
+	PullIfNewer   = buildah.PullIfNewer
 	PullNever     = buildah.PullNever
 
 	Gzip         = archive.Gzip
@@ -45,7 +46,7 @@ type BuildOptions struct {
 	// commands.
 	ContextDirectory string
 	// PullPolicy controls whether or not we pull images.  It should be one
-	// of PullIfMissing, PullAlways, or PullNever.
+	// of PullIfMissing, PullAlways, PullIfNewer, or PullNever.
 	PullPolicy buildah.PullPolicy
 	// Registry is a value which is prepended to the image's name, if it
 	// needs to be pulled and the image name alone can not be resolved to a
@@ -279,7 +280,7 @@ func preprocessDockerfileContents(r io.Reader, ctxDir string) (rdrCloser *io.Rea
 	stdout := bytes.Buffer{}
 	stderr := bytes.Buffer{}
 
-	cmd := exec.Command(cppPath, "-E", "-iquote", ctxDir, "-")
+	cmd := exec.Command(cppPath, "-E", "-iquote", ctxDir, "-traditional", "-undef", "-")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 

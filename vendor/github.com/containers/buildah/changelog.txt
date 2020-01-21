@@ -1,3 +1,127 @@
+- Changelog for v1.13.1 (2020-01-14)
+  * Bump github.com/containers/common from 0.0.5 to 0.0.7
+  * Bump github.com/onsi/ginkgo from 1.10.3 to 1.11.0
+  * Bump github.com/pkg/errors from 0.8.1 to 0.9.0
+  * Bump github.com/onsi/gomega from 1.7.1 to 1.8.1
+  * Add codespell support
+  * copyFileWithTar: close source files at the right time
+  * copy: don't digest files that we ignore
+  * Check for .dockerignore specifically
+  * Travis: rm go 1.12.x
+  * Don't setup excludes, if their is only one pattern to match
+  * set HOME env to /root on chroot-isolation by default
+  * docs: fix references to containers-*.5
+  * update openshift/api
+  * fix bug Add check .dockerignore COPY file
+  * buildah bud --volume: run from tmpdir, not source dir
+  * Fix imageNamePrefix to give consistent names in buildah-from
+  * cpp: use -traditional and -undef flags
+  * Fix image reference in tutorial 4
+  * discard outputs coming from onbuild command on buildah-from --quiet
+  * make --format columnizing consistent with buildah images
+  * Bump to v1.14.0-dev
+  * Bump to v1.13.0
+  * Bump to c/storage v1.15.5
+  * Update container/storage to v1.15.4
+  * Fix option handling for volumes in build
+  * Rework overlay pkg for use with libpod
+  * Fix buildahimage builds for buildah
+  * Add support for FIPS-Mode backends
+  * Set the TMPDIR for pulling/pushing image to $TMPDIR
+  * WIP: safer test for pull --all-tags
+  * BATS major cleanup: blobcache.bats: refactor
+  * BATS major cleanup: part 4: manual stuff
+  * BATS major cleanup, step 3: yet more run_buildah
+  * BATS major cleanup, part 2: use more run_buildah
+  * BATS major cleanup, part 1: log-level
+  * Bump github.com/containers/image/v5 from 5.0.0 to 5.1.0
+  * Bump github.com/containers/common from 0.0.3 to 0.0.5
+  * Bump to v1.13.0-dev
+
+- Changelog for v1.13.0 (2019-12-27)
+  * Bump to c/storage v1.15.5
+  * Update container/storage to v1.15.4
+  * Fix option handling for volumes in build
+  * Rework overlay pkg for use with libpod
+  * Fix buildahimage builds for buildah
+  * Add support for FIPS-Mode backends
+  * Set the TMPDIR for pulling/pushing image to $TMPDIR
+  * WIP: safer test for pull --all-tags
+  * BATS major cleanup: blobcache.bats: refactor
+  * BATS major cleanup: part 4: manual stuff
+  * BATS major cleanup, step 3: yet more run_buildah
+  * BATS major cleanup, part 2: use more run_buildah
+  * BATS major cleanup, part 1: log-level
+  * Bump github.com/containers/image/v5 from 5.0.0 to 5.1.0
+  * Bump github.com/containers/common from 0.0.3 to 0.0.5
+  * Bump to v1.13.0-dev
+
+- Changelog for v1.12.0 (2019-12-13)
+  * Allow ADD to use http src
+  * Bump to c/storage v.1.15.3
+  * install.md: update golang dependency
+  * imgtype: reset storage opts if driver overridden
+  * Start using containers/common
+  * overlay.bats typo: fuse-overlays should be fuse-overlayfs
+  * chroot: Unmount with MNT_DETACH instead of UnmountMountpoints()
+  * bind: don't complain about missing mountpoints
+  * imgtype: check earlier for expected manifest type
+  * Vendor containers/storage fix
+  * Vendor containers/storage v1.15.1
+  * Add history names support
+  * PR takeover of #1966
+  * Tests: Add inspect test check steps
+  * Tests: Add container name and id check in containers test steps
+  * Test: Get permission in add test
+  * Tests: Add a test for tag by id
+  * Tests: Add test cases for push test
+  * Tests: Add image digest test
+  * Tests: Add some buildah from tests
+  * Tests: Add two commit test
+  * Tests: Add buildah bud with --quiet test
+  * Tests: Add two test for buildah add
+  * Bump back to v1.12.0-dev
+
+- Changelog for v1.11.6 (2019-12-03)
+  * Handle missing equal sign in --from and --chown flags for COPY/ADD
+  * bud COPY does not download URL
+  * Bump github.com/onsi/gomega from 1.7.0 to 1.7.1
+  * Fix .dockerignore exclude regression
+  * Ran buildah through codespell
+  * commit(docker): always set ContainerID and ContainerConfig
+  * Touch up commit man page image parameter
+  * Add builder identity annotations.
+  * info: use util.Runtime()
+  * Bump github.com/onsi/ginkgo from 1.10.2 to 1.10.3
+  * Bump back to v1.12.0-dev
+
+- Changelog for v1.11.5 (2019-11-11)
+  * Enhance error on unsafe symbolic link targets
+  * Add OCIRuntime to info
+  * Check nonexsit authfile
+  * Only output image id if running buildah bud --quiet
+  * Fix --pull=true||false and add --pull-never to bud and from (retry)
+  * cgroups v2: tweak or skip tests
+  * Prepwork: new 'skip' helpers for tests
+  * Handle configuration blobs for manifest lists
+  * unmarshalConvertedConfig: avoid using the updated image's ref
+  * Add completions for Manifest commands
+  * Add disableFips option to secrets pkg
+  * Update bud.bats test archive test
+  * Add test for caching based on content digest
+  * Builder.untarPath(): always evaluate b.ContentDigester.Hash()
+  * Bump github.com/onsi/ginkgo from 1.10.1 to 1.10.2
+  * Fix another broken test: copy-url-mtime
+  * yet more fixes
+  * Actual bug fix for 'add' test: fix the expected mode
+  * BATS tests - lots of mostly minor cleanup
+  * build: drop support for ostree
+  * Add support for make vendor-in-container
+  * imgtype: exit with error if storage fails
+  * remove XDG_RUNTIME_DIR from default authfile path
+  * fix troubleshooting redirect instructions
+  * Bump back to v1.12.0-dev
+
 - Changelog for v1.11.4 (2019-10-28)
   * buildah: add a "manifest" command
   * manifests: add the module

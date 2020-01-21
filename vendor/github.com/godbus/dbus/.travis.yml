@@ -1,4 +1,4 @@
-dist: precise
+dist: xenial
 language: go
 go_import_path: github.com/godbus/dbus
 sudo: true

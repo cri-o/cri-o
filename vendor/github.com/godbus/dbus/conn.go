@@ -822,7 +822,6 @@ func (tracker *callTracker) finalize(sn uint32) {
 		delete(tracker.calls, sn)
 		c.ContextCancel()
 	}
-	return
 }
 
 func (tracker *callTracker) finalizeWithBody(sn uint32, body []interface{}) {
@@ -836,7 +835,6 @@ func (tracker *callTracker) finalizeWithBody(sn uint32, body []interface{}) {
 		c.Body = body
 		c.done()
 	}
-	return
 }
 
 func (tracker *callTracker) finalizeWithError(sn uint32, err error) {
@@ -850,7 +848,6 @@ func (tracker *callTracker) finalizeWithError(sn uint32, err error) {
 		c.Err = err
 		c.done()
 	}
-	return
 }
 
 func (tracker *callTracker) finalizeAllWithError(err error) {

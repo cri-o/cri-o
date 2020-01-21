@@ -118,7 +118,7 @@ type InspectContainerData struct {
 	BoundingCaps    []string                    `json:"BoundingCaps"`
 	ExecIDs         []string                    `json:"ExecIDs"`
 	GraphDriver     *driver.Data                `json:"GraphDriver"`
-	SizeRw          int64                       `json:"SizeRw,omitempty"`
+	SizeRw          *int64                      `json:"SizeRw,omitempty"`
 	SizeRootFs      int64                       `json:"SizeRootFs,omitempty"`
 	Mounts          []InspectMount              `json:"Mounts"`
 	Dependencies    []string                    `json:"Dependencies"`
@@ -174,6 +174,9 @@ type InspectContainerConfig struct {
 	StopSignal uint `json:"StopSignal"`
 	// Configured healthcheck for the container
 	Healthcheck *manifest.Schema2HealthConfig `json:"Healthcheck,omitempty"`
+	// CreateCommand is the full command plus arguments of the process the
+	// container has been created with.
+	CreateCommand []string `json:"CreateCommand,omitempty"`
 }
 
 // InspectContainerHostConfig holds information used when the container was
@@ -806,12 +809,13 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		if err != nil {
 			logrus.Errorf("error getting rootfs size %q: %v", config.ID, err)
 		}
+		data.SizeRootFs = rootFsSize
+
 		rwSize, err := c.rwSize()
 		if err != nil {
 			logrus.Errorf("error getting rw size %q: %v", config.ID, err)
 		}
-		data.SizeRootFs = rootFsSize
-		data.SizeRw = rwSize
+		data.SizeRw = &rwSize
 	}
 	return data, nil
 }
@@ -946,6 +950,8 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) (*InspectCon
 	// TODO: should JSON deep copy this to ensure internal pointers don't
 	// leak.
 	ctrConfig.Healthcheck = c.config.HealthCheckConfig
+
+	ctrConfig.CreateCommand = c.config.CreateCommand
 
 	return ctrConfig, nil
 }

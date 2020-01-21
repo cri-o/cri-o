@@ -172,7 +172,7 @@ func (r *Runc) Create(context context.Context, id, bundle string, opts *CreateOp
 	}
 	status, err := Monitor.Wait(cmd, ec)
 	if err == nil && status != 0 {
-		err = fmt.Errorf("%s did not terminate successfully", cmd.Args[0])
+		err = fmt.Errorf("%s did not terminate sucessfully", cmd.Args[0])
 	}
 	return err
 }
@@ -251,7 +251,7 @@ func (r *Runc) Exec(context context.Context, id string, spec specs.Process, opts
 	}
 	status, err := Monitor.Wait(cmd, ec)
 	if err == nil && status != 0 {
-		err = fmt.Errorf("%s did not terminate successfully", cmd.Args[0])
+		err = fmt.Errorf("%s did not terminate sucessfully", cmd.Args[0])
 	}
 	return err
 }
@@ -275,11 +275,7 @@ func (r *Runc) Run(context context.Context, id, bundle string, opts *CreateOpts)
 	if err != nil {
 		return -1, err
 	}
-	status, err := Monitor.Wait(cmd, ec)
-	if err == nil && status != 0 {
-		err = fmt.Errorf("%s did not terminate successfully", cmd.Args[0])
-	}
-	return status, err
+	return Monitor.Wait(cmd, ec)
 }
 
 type DeleteOpts struct {
@@ -574,11 +570,7 @@ func (r *Runc) Restore(context context.Context, id, bundle string, opts *Restore
 			}
 		}
 	}
-	status, err := Monitor.Wait(cmd, ec)
-	if err == nil && status != 0 {
-		err = fmt.Errorf("%s did not terminate successfully", cmd.Args[0])
-	}
-	return status, err
+	return Monitor.Wait(cmd, ec)
 }
 
 // Update updates the current container with the provided resource spec
@@ -682,7 +674,7 @@ func (r *Runc) runOrError(cmd *exec.Cmd) error {
 		}
 		status, err := Monitor.Wait(cmd, ec)
 		if err == nil && status != 0 {
-			err = fmt.Errorf("%s did not terminate successfully", cmd.Args[0])
+			err = fmt.Errorf("%s did not terminate sucessfully", cmd.Args[0])
 		}
 		return err
 	}
@@ -708,7 +700,7 @@ func cmdOutput(cmd *exec.Cmd, combined bool) ([]byte, error) {
 
 	status, err := Monitor.Wait(cmd, ec)
 	if err == nil && status != 0 {
-		err = fmt.Errorf("%s did not terminate successfully", cmd.Args[0])
+		err = fmt.Errorf("%s did not terminate sucessfully", cmd.Args[0])
 	}
 
 	return b.Bytes(), err

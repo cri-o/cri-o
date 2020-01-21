@@ -33,7 +33,7 @@ LIBSECCOMP_COMMIT := release-2.3
 
 EXTRALDFLAGS :=
 LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT)' $(EXTRALDFLAGS)
-SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go pkg/unshare/*.c pkg/unshare/*.go util/*.go
+SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go util/*.go
 
 all: buildah imgtype docs
 
@@ -67,6 +67,9 @@ docs: install.tools ## build the docs on the host
 .PHONY: gopath
 gopath:
 	test $(shell pwd) = $(shell cd ../../../../src/github.com/containers/buildah ; pwd)
+
+codespell:
+	codespell -S build,buildah,buildah.spec,imgtype,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L uint,iff,od
 
 .PHONY: validate
 validate: install.tools

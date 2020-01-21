@@ -123,7 +123,7 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		if timeout > -1 {
 			stopTimeout = uint(timeout)
 		}
-		if err := ctr.stop(stopTimeout, false); err != nil {
+		if err := ctr.stop(stopTimeout); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
@@ -445,7 +445,7 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 	}
 	for _, c := range containers {
 		containerStatus := "unknown"
-		// Ignoring possible errors here because we dont want this to be
+		// Ignoring possible errors here because we don't want this to be
 		// catastrophic in nature
 		containerState, err := c.State()
 		if err == nil {

@@ -102,7 +102,7 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 	if _, err := units.FromHumanSize(c.Flag("shm-size").Value.String()); err != nil {
 		return nil, errors.Wrapf(err, "invalid --shm-size")
 	}
-	volumes, _ := c.Flags().GetStringSlice("volume")
+	volumes, _ := c.Flags().GetStringArray("volume")
 	if err := Volumes(volumes); err != nil {
 		return nil, err
 	}
@@ -270,7 +270,7 @@ func getMounts(mounts []string) (map[string]specs.Mount, error) {
 
 	// TODO(vrothberg): the manual parsing can be replaced with a regular expression
 	//                  to allow a more robust parsing of the mount format and to give
-	//                  precise errors regarding supported format versus suppored options.
+	//                  precise errors regarding supported format versus supported options.
 	for _, mount := range mounts {
 		arr := strings.SplitN(mount, ",", 2)
 		if len(arr) < 2 {
@@ -589,6 +589,7 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 	if arch, err := c.Flags().GetString("override-arch"); err == nil {
 		ctx.ArchitectureChoice = arch
 	}
+	ctx.BigFilesTemporaryDir = GetTempDir()
 	return ctx, nil
 }
 
@@ -955,4 +956,11 @@ func isValidDeviceMode(mode string) bool {
 		legalDeviceMode[c] = false
 	}
 	return true
+}
+
+func GetTempDir() string {
+	if tmpdir, ok := os.LookupEnv("TMPDIR"); ok {
+		return tmpdir
+	}
+	return "/var/tmp"
 }

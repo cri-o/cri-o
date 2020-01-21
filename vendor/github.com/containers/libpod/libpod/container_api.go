@@ -183,7 +183,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created or running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
-	return c.stop(timeout, false)
+	return c.stop(timeout)
 }
 
 // Kill sends a signal to a container
@@ -404,6 +404,11 @@ func (c *Container) Mount() (string, error) {
 			return "", err
 		}
 	}
+
+	if c.state.State == define.ContainerStateRemoving {
+		return "", errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
+	}
+
 	defer c.newContainerEvent(events.Mount)
 	return c.mount()
 }
@@ -488,7 +493,12 @@ func (c *Container) Export(path string) error {
 			return err
 		}
 	}
-	defer c.newContainerEvent(events.Export)
+
+	if c.state.State == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
+	}
+
+	defer c.newContainerEvent(events.Mount)
 	return c.export(path)
 }
 
@@ -584,7 +594,12 @@ func (c *Container) Cleanup(ctx context.Context) error {
 
 	// If we didn't restart, we perform a normal cleanup
 
-	// Check if we have active exec sessions
+	// Reap exec sessions first.
+	if err := c.reapExecSessions(); err != nil {
+		return err
+	}
+
+	// Check if we have active exec sessions after reaping.
 	if len(c.state.ExecSessions) != 0 {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
 	}
@@ -674,6 +689,10 @@ func (c *Container) Refresh(ctx context.Context) error {
 		}
 	}
 
+	if c.state.State == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot refresh containers that are being removed")
+	}
+
 	wasCreated := false
 	if c.state.State == define.ContainerStateCreated {
 		wasCreated = true
@@ -696,7 +715,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 
 	// Next, if the container is running, stop it
 	if c.state.State == define.ContainerStateRunning {
-		if err := c.stop(c.config.StopTimeout, false); err != nil {
+		if err := c.stop(c.config.StopTimeout); err != nil {
 			return err
 		}
 	}
@@ -794,6 +813,11 @@ type ContainerCheckpointOptions struct {
 	// important to be able to restore a container multiple
 	// times with '--import --name'.
 	IgnoreStaticIP bool
+	// IgnoreStaticMAC tells the API to ignore the MAC set
+	// during 'podman run' with '--mac-address'. This is especially
+	// important to be able to restore a container multiple
+	// times with '--import --name'.
+	IgnoreStaticMAC bool
 }
 
 // Checkpoint checkpoints a container
@@ -814,7 +838,6 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 			return err
 		}
 	}
-	defer c.newContainerEvent(events.Checkpoint)
 	return c.checkpoint(ctx, options)
 }
 
