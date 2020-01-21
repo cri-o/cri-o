@@ -15,9 +15,6 @@ function teardown() {
         skip "critest because RUN_CRITEST is not set"
     fi
 
-    sysctl -w net.ipv4.conf.all.route_localnet=1
-    iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE
-
     start_crio
 
     run critest --parallel $JOBS \
