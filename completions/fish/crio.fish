@@ -101,7 +101,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-driver -s s -r -d 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-opt -r -d 'OCI storage driver option'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-address -r -d 'Bind address for streaming socket (default: "127.0.0.1")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-enable-tls -d 'Enable encrypted TLS transport of the stream server (default: false)'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-port -r -d 'Bind port for streaming socket (default: "0")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-port -r -d 'Bind port for streaming socket. If the port is set to \'0\', then CRI-O will allocate a random free port number. (default: "0")'
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-ca -r -d 'Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-cert -r -d 'Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-key -r -d 'Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")'

@@ -313,7 +313,7 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		},
 		&cli.StringFlag{
 			Name:    "stream-port",
-			Usage:   fmt.Sprintf("Bind port for streaming socket (default: %q)", defConf.StreamPort),
+			Usage:   fmt.Sprintf("Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number. (default: %q)", defConf.StreamPort),
 			EnvVars: []string{"CONTAINER_STREAM_PORT"},
 		},
 		&cli.StringFlag{
