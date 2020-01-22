@@ -29,6 +29,7 @@ prepare_system() {
     go env
 
     sudo systemctl stop docker
+    sudo ufw disable
 
     # enable necessary kernel modules
     sudo ip6tables --list >/dev/null
