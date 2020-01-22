@@ -28,8 +28,6 @@ CONMON_BINARY=${CONMON_BINARY:-$(which conmon)}
 CONTAINER_CONMON_CGROUP=${CONTAINER_CONMON_CGROUP:-pod}
 # Path of the default seccomp profile.
 CONTAINER_SECCOMP_PROFILE=${CONTAINER_SECCOMP_PROFILE:-${CRIO_ROOT}/vendor/github.com/seccomp/containers-golang/seccomp.json}
-# Name of the default apparmor profile.
-CONTAINER_APPARMOR_PROFILE=${CONTAINER_APPARMOR_PROFILE:-crio-default}
 # Runtime
 CONTAINER_DEFAULT_RUNTIME=${CONTAINER_DEFAULT_RUNTIME:-runc}
 RUNTIME_NAME=${RUNTIME_NAME:-runc}
@@ -48,6 +46,8 @@ APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
 APPARMOR_TEST_PROFILE_PATH=${APPARMOR_TEST_PROFILE_PATH:-${TESTDATA}/apparmor_test_deny_write}
 # Path of the apparmor profile for unloading crio-default.
 FAKE_CRIO_DEFAULT_PROFILE_PATH=${FAKE_CRIO_DEFAULT_PROFILE_PATH:-${TESTDATA}/fake_crio_default}
+# Name of the default apparmor profile.
+FAKE_CRIO_DEFAULT_PROFILE_NAME=${FAKE_CRIO_DEFAULT_PROFILE_NAME:-crio-default}
 # Name of the apparmor profile for test.
 APPARMOR_TEST_PROFILE_NAME=${APPARMOR_TEST_PROFILE_NAME:-apparmor-test-deny-write}
 # Path of boot config.
@@ -262,7 +262,7 @@ function setup_crio() {
 	if [[ -n "$2" ]]; then
 		apparmor="$2"
 	else
-		apparmor="$CONTAINER_APPARMOR_PROFILE"
+		apparmor=""
 	fi
 
 	if [[ -n "$4" ]]; then
@@ -278,7 +278,7 @@ function setup_crio() {
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --cgroup-manager "$CONTAINER_CGROUP_MANAGER" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --registry "quay.io" --registry "docker.io" --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" -r "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS --default-sysctls "$TEST_SYSCTL" --pinns-path "$PINNS_BINARY_PATH" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
+	"$CRIO_BINARY_PATH" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --apparmor-profile "$apparmor" --cgroup-manager "$CONTAINER_CGROUP_MANAGER" --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --registry "quay.io" --registry "docker.io" --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" -r "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS --default-sysctls "$TEST_SYSCTL" --pinns-path "$PINNS_BINARY_PATH" $OVERRIDE_OPTIONS --config /dev/null config >$CRIO_CONFIG
 	sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i $CRIO_CONFIG
 	# make sure we don't run with nodev, or else mounting a readonly rootfs will fail: https://github.com/cri-o/cri-o/issues/1929#issuecomment-474240498
 	sed -r -e 's/nodev(,)?//g' -i $CRIO_CONFIG

@@ -60,7 +60,7 @@ let
         # Build the crio binaries
         function build() {
           go build \
-            -tags ${old.makeFlags} \
+            -tags "apparmor seccomp selinux containers_image_ostree_stub" \
             -o bin/"$1" \
             -buildmode=pie \
             -ldflags '-s -w -linkmode external -extldflags "-static"' \
@@ -96,7 +96,7 @@ let
         # Build the crio binaries
         function build() {
           go build \
-            -tags ${old.makeFlags} \
+            -tags "apparmor seccomp selinux containers_image_ostree_stub" \
             -o bin/"$1" \
             -buildmode=pie \
             -ldflags '-s -w -linkmode external -extldflags "-static -lm"' \
