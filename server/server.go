@@ -375,7 +375,7 @@ func New(
 	}
 
 	if s.appArmorEnabled {
-		if config.ApparmorProfile == libconfig.DefaultApparmorProfile {
+		if config.ApparmorProfile == "" || config.ApparmorProfile == libconfig.DefaultApparmorProfile {
 			logrus.Infof("installing default apparmor profile: %v", libconfig.DefaultApparmorProfile)
 			if err := apparmor.InstallDefault(libconfig.DefaultApparmorProfile); err != nil {
 				return nil, errors.Wrapf(err,

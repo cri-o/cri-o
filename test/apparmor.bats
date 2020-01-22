@@ -2,28 +2,22 @@
 
 load helpers
 
-function setup() {
-	setup_test
-}
+# AppArmor tests have to run in sequence since they modify the system state
+@test "apparmor tests (in sequence)" {
+    if [[ $(is_apparmor_enabled) -eq 0 ]]; then
+        skip "skip test since apparmor is not enabled."
+    fi
 
-function teardown() {
-    cleanup_test
+    load_default_apparmor_profile_and_run_a_container_with_it
+    load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile
+    run_a_container_with_wrong_apparmor_profile_name
+    run_a_container_after_unloading_default_apparmor_profile
 }
 
 # 1. test running with loading the default apparmor profile.
 # test that we can run with the default apparmor profile which will not block touching a file in `.`
-@test "load default apparmor profile and run a container with it" {
-    # this test requires apparmor, so skip this test if apparmor is not enabled.
-    enabled=$(is_apparmor_enabled)
-    if [[ "$enabled" -eq 0 ]]; then
-        skip "skip this test since apparmor is not enabled."
-    fi
-    # apparmor inside containers can be problematic, because they mainly
-    # interact with the host system when running privileged
-    if [[ "$CI" == "true" ]]; then
-        skip "container tests don't support apparmor"
-    fi
-
+load_default_apparmor_profile_and_run_a_container_with_it() {
+    setup_test
     start_crio
 
     sed -e 's/%VALUE%/runtime\/default/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor1.json
@@ -39,20 +33,14 @@ function teardown() {
     run crictl exec --sync "$ctr_id" touch test.txt
     echo "$output"
     [ "$status" -eq 0 ]
+
+    cleanup_test
 }
 
 # 2. test running with loading a specific apparmor profile as crio default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.` as crio default apparmor profile.
-@test "load a specific apparmor profile as default apparmor and run a container with it" {
-    # this test requires apparmor, so skip this test if apparmor is not enabled.
-    enabled=$(is_apparmor_enabled)
-    if [[ "$enabled" -eq 0 ]]; then
-        skip "skip this test since apparmor is not enabled."
-    fi
-    if [[ "$CI" == "true" ]]; then
-        skip "container tests don't support apparmor"
-    fi
-
+load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it() {
+    setup_test
     load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
     start_crio "" "$APPARMOR_TEST_PROFILE_NAME"
 
@@ -72,20 +60,13 @@ function teardown() {
     [[ "$output" =~ "Permission denied" ]]
 
     remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
+    cleanup_test
 }
 
 # 3. test running with loading a specific apparmor profile but not as crio default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.`
-@test "load default apparmor profile and run a container with another apparmor profile" {
-    # this test requires apparmor, so skip this test if apparmor is not enabled.
-    enabled=$(is_apparmor_enabled)
-    if [[ "$enabled" -eq 0 ]]; then
-        skip "skip this test since apparmor is not enabled."
-    fi
-    if [[ "$CI" == "true" ]]; then
-        skip "container tests don't support apparmor"
-    fi
-
+load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile() {
+    setup_test
     load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
     start_crio
 
@@ -105,20 +86,13 @@ function teardown() {
     [[ "$output" =~ "Permission denied" ]]
 
     remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
+    cleanup_test
 }
 
 # 4. test running with wrong apparmor profile name.
 # test that we can will fail when running a ctr with wrong apparmor profile name.
-@test "run a container with wrong apparmor profile name" {
-    # this test requires apparmor, so skip this test if apparmor is not enabled.
-    enabled=$(is_apparmor_enabled)
-    if [[ "$enabled" -eq 0 ]]; then
-        skip "skip this test since apparmor is not enabled."
-    fi
-    if [[ "$CI" == "true" ]]; then
-        skip "container tests don't support apparmor"
-    fi
-
+run_a_container_with_wrong_apparmor_profile_name() {
+    setup_test
     start_crio
 
     sed -e 's/%VALUE%/not-exists/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor4.json
@@ -132,21 +106,16 @@ function teardown() {
     echo "$output"
     [ "$status" -ne 0 ]
     [[ "$output" =~ "Creating container failed" ]]
+
+    cleanup_test
 }
 
 # 5. test running with default apparmor profile unloaded.
 # test that we can will fail when running a ctr with wrong apparmor profile name.
-@test "run a container after unloading default apparmor profile" {
-    # this test requires apparmor, so skip this test if apparmor is not enabled.
-    enabled=$(is_apparmor_enabled)
-    if [[ "$enabled" -eq 0 ]]; then
-        skip "skip this test since apparmor is not enabled."
-    fi
-    if [[ "$CI" == "true" ]]; then
-        skip "container tests don't support apparmor"
-    fi
-
-    start_crio
+run_a_container_after_unloading_default_apparmor_profile() {
+    load_apparmor_profile "$FAKE_CRIO_DEFAULT_PROFILE_PATH"
+    setup_test
+    start_crio "" "$FAKE_CRIO_DEFAULT_PROFILE_NAME"
     remove_apparmor_profile "$FAKE_CRIO_DEFAULT_PROFILE_PATH"
 
     sed -e 's/%VALUE%/runtime\/default/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor5.json
@@ -159,4 +128,6 @@ function teardown() {
     run crictl create "$pod_id" "$TESTDIR"/apparmor_container5.json "$TESTDIR"/apparmor5.json
     echo "$output"
     [ "$status" -ne 0 ]
+
+    cleanup_test
 }
