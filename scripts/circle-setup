@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Versions to be used
+declare -A VERSIONS=(
+    ["cni-plugins"]=v0.8.4
+    ["conmon"]=v2.0.9
+    ["cri-tools"]=v1.17.0
+    ["runc"]=v1.0.0-rc9
+)
+
+main() {
+    set -x
+    prepare_system
+
+    install_packages
+    install_bats
+    install_conmon
+    install_cri_tools
+    install_runc
+    install_ginkgo
+    install_cni_plugins
+    install_files
+}
+
+prepare_system() {
+    env
+    go version
+    go env
+
+    sudo systemctl stop docker
+
+    # enable necessary kernel modules
+    sudo ip6tables --list >/dev/null
+
+    # enable necessary sysctls
+    sudo sysctl -w net.ipv4.conf.all.route_localnet=1
+    sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
+    sudo sysctl -w net.ipv4.ip_forward=1
+    sudo iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE
+}
+
+install_packages() {
+    sudo apt-get update
+    sudo apt-get install -y \
+        apparmor \
+        btrfs-tools \
+        conntrack \
+        e2fslibs-dev \
+        jq \
+        libaio-dev \
+        libapparmor-dev \
+        libcap-dev \
+        libdevmapper-dev \
+        libfuse-dev \
+        libglib2.0-dev \
+        libgpgme11-dev \
+        libnet1-dev \
+        libnl-3-dev \
+        libprotobuf-c-dev \
+        libprotobuf-dev \
+        libseccomp-dev \
+        libsystemd-dev \
+        libudev-dev
+}
+
+install_bats() {
+    git clone https://github.com/bats-core/bats-core --depth=1
+    sudo ./bats-core/install.sh /usr/local
+    rm -rf bats-core
+    mkdir -p ~/.parallel
+    touch ~/.parallel/will-cite
+}
+
+install_conmon() {
+    git clone https://github.com/containers/conmon
+    pushd conmon
+    git checkout "${VERSIONS["conmon"]}"
+    sudo make PREFIX=/ all install
+    popd
+    sudo rm -rf conmon
+}
+
+install_cri_tools() {
+    ARCHIVE=${VERSIONS["cri-tools"]}-linux-amd64.tar.gz
+    URL=https://github.com/kubernetes-sigs/cri-tools/releases/download
+
+    BINARIES=(crictl critest)
+    for BINARY in "${BINARIES[@]}"; do
+        TARBALL=$BINARY-$ARCHIVE
+        echo "Downloading $TARBALL"
+        wget -O "$TARBALL" $URL/"${VERSIONS["cri-tools"]}"/"$TARBALL"
+        sudo tar xf "$TARBALL" --no-same-owner -C /usr/bin
+        sudo chown root:root /usr/bin/"$BINARY"
+        sudo "$BINARY" --version
+        rm "$TARBALL"
+    done
+}
+
+install_cni_plugins() {
+    URL=https://github.com/containernetworking/plugins/releases/download
+    TARBALL=cni-plugins-linux-amd64-${VERSIONS["cni-plugins"]}.tgz
+    CNI_DIR=/opt/cni/bin
+    sudo mkdir -p "$CNI_DIR"
+    wget -O "$TARBALL" $URL/"${VERSIONS["cni-plugins"]}"/"$TARBALL"
+    sudo tar xf "$TARBALL" -C "$CNI_DIR"
+    rm "$TARBALL"
+    ls -lah "$CNI_DIR"
+}
+
+install_runc() {
+    export GOPATH=/home/circleci/go
+    go get github.com/opencontainers/runc
+    pushd $GOPATH/src/github.com/opencontainers/runc
+    git checkout "${VERSIONS["runc"]}"
+    make BUILDTAGS="apparmor selinux seccomp"
+    sudo cp runc /usr/sbin
+    popd
+    runc --version
+}
+
+install_ginkgo() {
+    make "$(pwd)"/build/bin/ginkgo
+    sudo cp build/bin/ginkgo /usr/bin
+    ginkgo version
+}
+
+install_files() {
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    sudo mkdir -p /etc/containers/registries.d
+    sudo cp "$REPO_ROOT"/test/policy.json /etc/containers
+    sudo cp "$REPO_ROOT"/test/redhat_sigstore.yaml \
+        /etc/containers/registries.d/registry.access.redhat.com.yaml
+}
+
+main "$@"
