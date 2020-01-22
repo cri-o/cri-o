@@ -794,13 +794,13 @@ func validateExecutablePath(executable, currentPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		logrus.Debugf("using %s from $PATH", executable)
+		logrus.Debugf("using %s from $PATH: %s", executable, path)
 		return path, nil
 	}
 	if _, err := os.Stat(currentPath); err != nil {
 		return "", errors.Wrapf(err, "invalid %s path", executable)
 	}
-	logrus.Infof("using %s executable %q", executable, currentPath)
+	logrus.Infof("using %s executable: %s", executable, currentPath)
 	return currentPath, nil
 }
 
