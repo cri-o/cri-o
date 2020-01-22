@@ -732,17 +732,17 @@ func PauseCommand(cfg *config.Config, image *v1.Image) ([]string, error) {
 }
 
 func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Generator, hostNetwork, hostIPC bool) {
-	for _, defaultSysctl := range s.config.DefaultSysctls {
-		split := strings.SplitN(defaultSysctl, "=", 2)
-		if len(split) == 2 {
-			if err := validateSysctl(split[0], hostNetwork, hostIPC); err != nil {
-				log.Warnf(ctx, "sysctl not valid %q: %v - skipping...", defaultSysctl, err)
-				continue
-			}
-			g.AddLinuxSysctl(split[0], split[1])
+	sysctls, err := s.config.RuntimeConfig.Sysctls()
+	if err != nil {
+		log.Warnf(ctx, "sysctls invalid: %v", err)
+	}
+
+	for _, sysctl := range sysctls {
+		if err := sysctl.Validate(hostNetwork, hostIPC); err != nil {
+			log.Warnf(ctx, "skipping invalid sysctl %s: %v", sysctl, err)
 			continue
 		}
-		log.Warnf(ctx, "sysctl %q not of the format sysctl_name=value", defaultSysctl)
+		g.AddLinuxSysctl(sysctl.Key(), sysctl.Value())
 	}
 }
 

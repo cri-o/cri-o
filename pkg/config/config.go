@@ -725,6 +725,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		return fmt.Errorf("log size max should be negative or >= %d", OCIBufSize)
 	}
 
+	if _, err := c.Sysctls(); err != nil {
+		return errors.Wrapf(err, "invalid default_sysctls")
+	}
+
 	// check for validation on execution
 	if onExecution {
 		if err := c.ValidateRuntimes(); err != nil {

@@ -162,7 +162,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 		config.DefaultCapabilities = strings.Split(ctx.String("default-capabilities"), ",")
 	}
 	if ctx.IsSet("default-sysctls") {
-		config.DefaultSysctls = strings.Split(ctx.String("default-sysctls"), ",")
+		config.DefaultSysctls = ctx.StringSlice("default-sysctls")
 	}
 	if ctx.IsSet("default-ulimits") {
 		config.DefaultUlimits = ctx.StringSlice("default-ulimits")

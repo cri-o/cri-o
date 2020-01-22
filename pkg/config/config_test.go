@@ -439,6 +439,17 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 			Expect(sut.DefaultRuntime).To(Equal("runc"))
 		})
+
+		It("should fail on invalid default_sysctls", func() {
+			// Given
+			sut.DefaultSysctls = []string{"invalid"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 	})
 
 	t.Describe("ValidateRuntimes", func() {
