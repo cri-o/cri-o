@@ -19,6 +19,8 @@ var _ = t.Describe("Config", func() {
 		sut.Runtimes["runc"] = &config.RuntimeHandler{
 			RuntimePath: validFilePath, RuntimeType: config.DefaultRuntimeType,
 		}
+		sut.PinnsPath = validFilePath
+		sut.NamespacesDir = os.TempDir()
 		sut.Conmon = validFilePath
 		tmpDir := t.MustTempDir("cni-test")
 		sut.NetworkConfig.PluginDirs = []string{tmpDir}
@@ -232,6 +234,8 @@ var _ = t.Describe("Config", func() {
 				RuntimePath: validFilePath,
 				RuntimeType: config.DefaultRuntimeType,
 			}
+			sut.PinnsPath = validFilePath
+			sut.NamespacesDir = os.TempDir()
 			sut.Conmon = validFilePath
 			sut.HooksDir = []string{validDirPath}
 
