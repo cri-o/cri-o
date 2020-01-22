@@ -17,6 +17,7 @@ crio
 [--cgroup-manager]=[value]
 [--cni-config-dir]=[value]
 [--cni-plugin-dir]=[value]
+[--config-dir|-d]=[value]
 [--config|-c]=[value]
 [--conmon-cgroup]=[value]
 [--conmon-env]=[value]
@@ -122,6 +123,17 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--cni-plugin-dir**="": CNI plugin binaries directory (default: [])
 
 **--config, -c**="": Path to configuration file (default: /etc/crio/crio.conf)
+
+**--config-dir, -d**="": Path to the configuration drop-in directory.
+    This directory will be recursively iterated and each file gets applied
+    to the configuration in their processing order. This means that a
+    configuration file named '00-default' has a lower priority than a file
+    named '01-my-overwrite'.
+    The global config file, provided via '--config,-c' or per default in
+	/etc/crio/crio.conf, always has a lower priority than the files in the directory specified
+	by '--config-dir,-d'.
+	Beside that, provided command line parameters still have a higher priority
+	than any configuration file. (default: /etc/crio/crio.conf.d)
 
 **--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: "")
 

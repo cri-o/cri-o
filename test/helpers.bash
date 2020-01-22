@@ -197,6 +197,8 @@ function setup_test() {
 	fi
 	CRIO_SOCKET="$TESTDIR/crio.sock"
 	CRIO_CONFIG="$TESTDIR/crio.conf"
+	CRIO_CONFIG_DIR="$TESTDIR/crio.conf.d"
+	mkdir "$CRIO_CONFIG_DIR"
 	CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
 	CRIO_LOG="$TESTDIR/crio.log"
 
@@ -328,6 +330,7 @@ function start_crio_no_setup() {
 		--default-mounts-file "$TESTDIR/containers/mounts.conf" \
 		-l debug \
 		-c "$CRIO_CONFIG" \
+		-d "$CRIO_CONFIG_DIR" \
 		&> >(tee "$CRIO_LOG") & CRIO_PID=$!
 	wait_until_reachable
 }
@@ -342,7 +345,7 @@ function start_crio() {
 # Start crio with journald logging
 function start_crio_journald() {
 	setup_crio "$@"
-	"$CRIO_BINARY_PATH" --log-journald -c "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY_PATH" --log-journald -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" & CRIO_PID=$!
 	wait_until_reachable
 	pull_test_containers
 }
@@ -365,7 +368,7 @@ function check_journald() {
 # Start crio with metrics enable
 function start_crio_metrics() {
 	setup_crio "$@"
-	"$CRIO_BINARY_PATH" --enable-metrics --config "$CRIO_CONFIG" & CRIO_PID=$!
+	"$CRIO_BINARY_PATH" --enable-metrics -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" & CRIO_PID=$!
 	wait_until_reachable
 	pull_test_containers
 }
