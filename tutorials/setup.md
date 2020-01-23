@@ -21,7 +21,6 @@ Fedora, RHEL<=7, CentOS and related distributions:
 
 ```bash
 yum install -y \
-  btrfs-progs-devel \
   containers-common \
   device-mapper-devel \
   git \
@@ -35,7 +34,15 @@ yum install -y \
   libseccomp-devel \
   libselinux-devel \
   pkgconfig \
+  make \
   runc
+```
+
+**Please note**:
+- ```CentOS 8``` (or higher): ```pkgconfig``` package is replaced by ```pkgconf-pkg-config```
+- By default btrfs is not enabled. To add the btrfs support, install the following package:
+```
+  btrfs-progs-devel
 ```
 
 RHEL 8 distributions:\
@@ -89,7 +96,7 @@ The following dependencies:
   libgpg-error \
   libseccomp \
   libselinux \
-  pkgconfig \
+  pkgconf-pkg-config \
 ```
 
 On Ubuntu distributions, there is a dedicated PPA provided by
