@@ -3,7 +3,7 @@ package server_test
 import (
 	"context"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/pkg/storage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/image/manifest"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/namespaces"
@@ -64,6 +64,7 @@ type CreateConfig struct {
 	CidFile            string
 	ConmonPidFile      string
 	Cgroupns           string
+	Cgroups            string
 	CgroupParent       string            // cgroup-parent
 	Command            []string          // Full command that will be used
 	UserCommand        []string          // User-entered command (or image CMD)
@@ -103,7 +104,8 @@ type CreateConfig struct {
 	NetworkAlias       []string               //network-alias
 	PidMode            namespaces.PidMode     //pid
 	Pod                string                 //pod
-	CgroupMode         namespaces.CgroupMode  //cgroup
+	PodmanPath         string
+	CgroupMode         namespaces.CgroupMode //cgroup
 	PortBindings       nat.PortMap
 	Privileged         bool     //privileged
 	Publish            []string //publish
@@ -152,7 +154,16 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 		return nil, err
 	}
 
-	cmd, _ := os.Executable()
+	// We need a cleanup process for containers in the current model.
+	// But we can't assume that the caller is Podman - it could be another
+	// user of the API.
+	// As such, provide a way to specify a path to Podman, so we can
+	// still invoke a cleanup process.
+	cmd := c.PodmanPath
+	if cmd == "" {
+		cmd, _ = os.Executable()
+	}
+
 	command := []string{cmd,
 		"--root", config.StorageConfig.GraphRoot,
 		"--runroot", config.StorageConfig.RunRoot,
@@ -194,8 +205,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	if c.Interactive {
 		options = append(options, libpod.WithStdin())
 	}
-	if c.Systemd && (strings.HasSuffix(c.Command[0], "init") ||
-		strings.HasSuffix(c.Command[0], "systemd")) {
+	if c.Systemd {
 		options = append(options, libpod.WithSystemd())
 	}
 	if c.Name != "" {
@@ -205,6 +215,9 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	if c.Pod != "" {
 		logrus.Debugf("adding container to pod %s", c.Pod)
 		options = append(options, runtime.WithPod(pod))
+	}
+	if c.Cgroups == "disabled" {
+		options = append(options, libpod.WithNoCgroups())
 	}
 	if len(c.PortBindings) > 0 {
 		portBindings, err = c.CreatePortBindings()
@@ -271,7 +284,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		hasUserns := c.UsernsMode.IsContainer() || c.UsernsMode.IsNS() || len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0
-		postConfigureNetNS := c.NetMode.IsSlirp4netns() || (hasUserns && !c.UsernsMode.IsHost())
+		postConfigureNetNS := hasUserns && !c.UsernsMode.IsHost()
 		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, string(c.NetMode), networks))
 	}
 

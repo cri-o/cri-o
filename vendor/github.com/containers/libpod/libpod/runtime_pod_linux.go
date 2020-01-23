@@ -52,6 +52,10 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 		pod.config.Name = name
 	}
 
+	if pod.config.Hostname == "" {
+		pod.config.Hostname = pod.config.Name
+	}
+
 	// Allocate a lock for the pod
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
@@ -200,7 +204,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		// Get the conmon CGroup
 		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
 		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
-		if err != nil && err != cgroups.ErrCgroupDeleted {
+		if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
 			removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup %s", p.ID(), conmonCgroupPath)
 		}
 
@@ -262,7 +266,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			// hard - instead, just log errors.
 			conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
 			conmonCgroup, err := cgroups.Load(conmonCgroupPath)
-			if err != nil && err != cgroups.ErrCgroupDeleted {
+			if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup", p.ID())
 				} else {
@@ -279,7 +283,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 				}
 			}
 			cgroup, err := cgroups.Load(p.state.CgroupPath)
-			if err != nil && err != cgroups.ErrCgroupDeleted {
+			if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error retrieving pod %s cgroup", p.ID())
 				} else {

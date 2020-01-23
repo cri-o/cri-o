@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
-	is "github.com/containers/image/storage"
+	is "github.com/containers/image/v5/storage"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
@@ -50,11 +50,11 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	}
 
 	if c.state.State == define.ContainerStateRunning && options.Pause {
-		if err := c.ociRuntime.pauseContainer(c); err != nil {
+		if err := c.pause(); err != nil {
 			return nil, errors.Wrapf(err, "error pausing container %q", c.ID())
 		}
 		defer func() {
-			if err := c.ociRuntime.unpauseContainer(c); err != nil {
+			if err := c.unpause(); err != nil {
 				logrus.Errorf("error unpausing container %q: %v", c.ID(), err)
 			}
 		}()

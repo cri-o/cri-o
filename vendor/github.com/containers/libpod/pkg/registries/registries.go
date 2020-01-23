@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/image/pkg/sysregistriesv2"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"

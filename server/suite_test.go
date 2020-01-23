@@ -14,7 +14,7 @@ import (
 	"github.com/cri-o/cri-o/oci"
 	"github.com/cri-o/cri-o/server"
 	. "github.com/cri-o/cri-o/test/framework"
-	imagetypesmock "github.com/cri-o/cri-o/test/mocks/containers/image"
+	imagetypesmock "github.com/cri-o/cri-o/test/mocks/containers/image/v5"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
 	libmock "github.com/cri-o/cri-o/test/mocks/lib"

@@ -5,6 +5,7 @@ package rootless
 import (
 	"os"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/pkg/errors"
 )
 
@@ -36,12 +37,6 @@ func GetRootlessGID() int {
 	return -1
 }
 
-// EnableLinger configures the system to not kill the user processes once the session
-// terminates
-func EnableLinger() (string, error) {
-	return "", nil
-}
-
 // TryJoinFromFilePaths attempts to join the namespaces of the pid files in paths.
 // This is useful when there are already running containers and we
 // don't have a pause process yet.  We can use the paths to the conmon
@@ -52,4 +47,20 @@ func EnableLinger() (string, error) {
 // file owned by the root in the container.
 func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []string) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
+}
+
+// ConfigurationMatches checks whether the additional uids/gids configured for the user
+// match the current user namespace.
+func ConfigurationMatches() (bool, error) {
+	return true, nil
+}
+
+// GetConfiguredMappings returns the additional IDs configured for the current user.
+func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
+	return nil, nil, errors.New("this function is not supported on this os")
+}
+
+// ReadMappingsProc returns the uid_map and gid_map
+func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
+	return nil, nil
 }

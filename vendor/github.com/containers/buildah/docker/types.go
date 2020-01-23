@@ -7,8 +7,8 @@ package docker
 import (
 	"time"
 
-	"github.com/containers/image/pkg/strslice"
-	"github.com/opencontainers/go-digest"
+	"github.com/containers/image/v5/pkg/strslice"
+	digest "github.com/opencontainers/go-digest"
 )
 
 // github.com/moby/moby/image/rootfs.go

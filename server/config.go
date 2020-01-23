@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/lib/config"
 	"github.com/cri-o/cri-o/oci"
 	"github.com/pkg/errors"

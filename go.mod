@@ -4,23 +4,23 @@ module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.12
+	github.com/Microsoft/go-winio v0.4.14
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/containerd/containerd v1.2.7
+	github.com/containerd/containerd v1.3.0
 	github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448 // indirect
 	github.com/containerd/go-runc v0.0.0-20190226155025-7d11b49dc076 // indirect
 	github.com/containerd/project v0.0.0-20190306185219-831961d1e0c8
-	github.com/containerd/ttrpc v0.0.0-20180920185216-2a805f718635
+	github.com/containerd/ttrpc v0.0.0-20190828172938-92c8520ef9f8
 	github.com/containernetworking/cni v0.7.1
-	github.com/containernetworking/plugins v0.8.1
-	github.com/containers/buildah v1.10.1
-	github.com/containers/image v3.0.2+incompatible
-	github.com/containers/libpod v1.5.0
+	github.com/containernetworking/plugins v0.8.2
+	github.com/containers/buildah v1.11.4
+	github.com/containers/image/v5 v5.0.0
+	github.com/containers/libpod v0.8.3-0.20191029195851-e7540d0406c4
 	github.com/containers/storage v1.13.7
-	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
-	github.com/docker/docker v0.7.3-0.20190410184157-6d18c6a06295
+	github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-zoo/bone v1.3.0
@@ -29,18 +29,19 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.18.0
 	github.com/google/renameio v0.1.0
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/kr/pty v1.1.5
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
+	github.com/onsi/ginkgo v1.10.1
+	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
-	github.com/opencontainers/image-spec v1.0.1
-	github.com/opencontainers/runc v1.0.0-rc8
+	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
+	github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.9.0
-	github.com/opencontainers/selinux v1.2.2
+	github.com/opencontainers/selinux v1.3.0
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/client_golang v1.0.0
+	github.com/prometheus/client_golang v1.1.0
 	github.com/seccomp/containers-golang v0.3.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/soheilhy/cmux v0.1.4
@@ -49,8 +50,8 @@ require (
 	github.com/vbatts/git-validation v1.0.0
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
-	google.golang.org/grpc v1.21.1
+	golang.org/x/sys v0.0.0-20190902133755-9109b7679e13
+	google.golang.org/grpc v1.24.0
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0

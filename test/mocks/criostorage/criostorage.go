@@ -5,8 +5,8 @@
 package criostoragemock
 
 import (
-	copy "github.com/containers/image/copy"
-	types "github.com/containers/image/types"
+	copy "github.com/containers/image/v5/copy"
+	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
 	idtools "github.com/containers/storage/pkg/idtools"
 	storage0 "github.com/cri-o/cri-o/pkg/storage"
