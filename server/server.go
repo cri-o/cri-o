@@ -393,7 +393,7 @@ func New(
 				}
 				logrus.Tracef("default apparmor profile contents: %s", profileContent)
 			}
-		} else {
+		} else if config.ApparmorProfile != "unconfined" {
 			logrus.Infof("assuming user-provided apparmor profile: %v", config.ApparmorProfile)
 			isLoaded, err := apparmor.IsLoaded(config.ApparmorProfile)
 			if err != nil {

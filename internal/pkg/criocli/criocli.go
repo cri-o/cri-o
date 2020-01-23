@@ -478,7 +478,7 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		},
 		&cli.StringFlag{
 			Name:    "apparmor-profile",
-			Usage:   fmt.Sprintf("Name of the apparmor profile to be used as the runtime's default. The default profile name is 'crio-default-' followed by the version string of CRI-O. (default: %q)", defConf.ApparmorProfile),
+			Usage:   fmt.Sprintf("Name of the apparmor profile to be used as the runtime's default. The default profile name is 'crio-default-' followed by the version string of CRI-O. (default: %q). This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation.", defConf.ApparmorProfile),
 			EnvVars: []string{"CONTAINER_APPARMOR_PROFILE"},
 		},
 		&cli.BoolFlag{
