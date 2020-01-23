@@ -62,7 +62,6 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l hooks-dir -r -d 'Set the O
     For the bind-mount conditions, only mounts explicitly requested by
     Kubernetes configuration are considered. Bind mounts that CRI-O
     inserts by default (e.g. \'/dev/shm\') are not considered.'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l host-ip -r -d 'Host IPs are the addresses to be used for the host network and can be specified up to two times'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l image-volumes -r -d 'Image volume handling (\'mkdir\', \'bind\', or \'ignore\')
     1. mkdir: A directory is created inside the container root filesystem for
        the volumes.
