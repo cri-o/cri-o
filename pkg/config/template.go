@@ -61,11 +61,6 @@ version_file = "{{ .VersionFile }}"
 # Path to AF_LOCAL socket on which CRI-O will listen.
 listen = "{{ .Listen }}"
 
-# Host IPs are the addresses to be used for the host network.
-# It is not possible to assign more than two addresses right now.
-host_ip = [{{ range $opt := .HostIP }}{{ printf "\n%t%q," $opt }}{{ end }}
-]
-
 # IP address on which the stream server will listen.
 stream_address = "{{ .StreamAddress }}"
 
