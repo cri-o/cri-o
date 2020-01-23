@@ -29,11 +29,6 @@ function teardown() {
 }
 
 @test "Ping pod from another pod" {
-    # TODO: fix this test in circleci
-    if [[ "$CI" == "true" ]]; then
-        skip "TODO: fix this test in CircleCI"
-    fi
-
     start_crio
     run crictl runp "$TESTDATA"/sandbox_config.json
     echo "$output"
