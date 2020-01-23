@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -370,9 +369,6 @@ type APIConfig struct {
 	// StreamTLSCA is the x509 CA(s) file used to verify and authenticate client
 	// communication with the tls encrypted stream
 	StreamTLSCA string `toml:"stream_tls_ca"`
-
-	// HostIP is the IP address that the server uses where it needs to use the primary host IP.
-	HostIP []string `toml:"host_ip"`
 }
 
 // MetricsConfig specifies all necessary configuration for Prometheus based
@@ -620,16 +616,6 @@ func (c *APIConfig) Validate(onExecution bool) error {
 		if _, err := os.Stat(c.Listen); err == nil {
 			if err := os.Remove(c.Listen); err != nil {
 				return err
-			}
-		}
-
-		// Validate user provided host IPs
-		if len(c.HostIP) > 2 {
-			return errors.New("It's not possible to assign more than two host IPs")
-		}
-		for _, ip := range c.HostIP {
-			if net.ParseIP(ip) == nil {
-				return errors.Errorf("Unable to parse host IP: %v", ip)
 			}
 		}
 	}
