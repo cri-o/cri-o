@@ -51,7 +51,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid log_level", func() {
 			// Given
 			filePath := modifyDefaultConfig(
-				`log_level = "error"`,
+				`log_level = "info"`,
 				`log_level = "invalid"`,
 			)
 
