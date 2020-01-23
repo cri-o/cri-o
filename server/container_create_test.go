@@ -83,7 +83,7 @@ var _ = t.Describe("ContainerCreate", func() {
 		It("should fail when container is stopped", func() {
 			// Given
 			addContainerAndSandbox()
-			testSandbox.SetStopped()
+			testSandbox.SetStopped(false)
 
 			// When
 			response, err := sut.CreateContainer(context.Background(),

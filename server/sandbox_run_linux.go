@@ -578,7 +578,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 		defer func() {
 			if err != nil {
-				s.networkStop(ctx, sb)
+				if err2 := s.networkStop(ctx, sb); err2 != nil {
+					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
+				}
 			}
 		}()
 	}
@@ -661,7 +663,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 		defer func() {
 			if err != nil {
-				s.networkStop(ctx, sb)
+				if err2 := s.networkStop(ctx, sb); err2 != nil {
+					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
+				}
 			}
 		}()
 	}

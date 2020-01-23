@@ -107,10 +107,23 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(testSandbox.Stopped()).To(BeFalse())
 
 			// When
-			testSandbox.SetStopped()
+			testSandbox.SetStopped(false)
 
 			// Then
 			Expect(testSandbox.Stopped()).To(BeTrue())
+		})
+	})
+
+	t.Describe("NetworkStopped", func() {
+		It("should succeed", func() {
+			// Given
+			Expect(testSandbox.NetworkStopped()).To(BeFalse())
+
+			// When
+			Expect(testSandbox.SetNetworkStopped(false)).To(BeNil())
+
+			// Then
+			Expect(testSandbox.NetworkStopped()).To(BeTrue())
 		})
 	})
 
@@ -210,7 +223,8 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(err).To(BeNil())
 			Expect(testSandbox.InfraContainer()).To(Equal(testContainer))
 			Expect(testSandbox.UserNsPath()).NotTo(Equal(""))
-			Expect(testSandbox.NetNsPath()).NotTo(Equal(""))
+			// while we have a sandbox, it does not have a valid network namespace
+			Expect(testSandbox.NetNsPath()).To(Equal(""))
 
 			// And When
 			testSandbox.RemoveInfraContainer()
