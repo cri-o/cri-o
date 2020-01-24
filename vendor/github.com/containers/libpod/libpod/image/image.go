@@ -74,6 +74,11 @@ type InfoImage struct {
 	Layers []LayerInfo
 }
 
+// ImageFilter is a function to determine whether a image is included
+// in command output. Images to be outputted are tested using the function.
+// A true return will include the image, a false return will exclude it.
+type ImageFilter func(*Image) bool //nolint
+
 // ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
 var ErrRepoTagNotFound = stderrors.New("unable to match user input to any specific repotag")
 
@@ -211,6 +216,19 @@ func (ir *Runtime) Shutdown(force bool) error {
 	return err
 }
 
+// GetImagesWithFilters gets images with a series of filters applied
+func (ir *Runtime) GetImagesWithFilters(filters []string) ([]*Image, error) {
+	filterFuncs, err := ir.createFilterFuncs(filters, nil)
+	if err != nil {
+		return nil, err
+	}
+	images, err := ir.GetImages()
+	if err != nil {
+		return nil, err
+	}
+	return FilterImages(images, filterFuncs), nil
+}
+
 func (i *Image) reloadImage() error {
 	newImage, err := i.imageruntime.getImage(i.ID())
 	if err != nil {
@@ -328,6 +346,21 @@ func (i *Image) Manifest(ctx context.Context) ([]byte, string, error) {
 // Names returns a string array of names associated with the image, which may be a mixture of tags and digests
 func (i *Image) Names() []string {
 	return i.image.Names
+}
+
+// NamesHistory returns a string array of names previously associated with the
+// image, which may be a mixture of tags and digests
+func (i *Image) NamesHistory() []string {
+	if len(i.image.Names) > 0 && len(i.image.NamesHistory) > 0 &&
+		// We compare the latest (time-referenced) tags for equality and skip
+		// it in the history if they match to not display them twice.  We have
+		// to compare like this, because `i.image.Names` (latest last) gets
+		// appended on retag, whereas `i.image.NamesHistory` gets prepended
+		// (latest first)
+		i.image.Names[len(i.image.Names)-1] == i.image.NamesHistory[0] {
+		return i.image.NamesHistory[1:]
+	}
+	return i.image.NamesHistory
 }
 
 // RepoTags returns a string array of repotags associated with the image
@@ -765,109 +798,65 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 		return nil, err
 	}
 
-	// Use our layers list to find images that use any of them (or no
-	// layer, since every base layer is derived from an empty layer) as its
-	// topmost layer.
-	interestingLayers := make(map[string]bool)
-	var layer *storage.Layer
-	if i.TopLayer() != "" {
-		if layer, err = i.imageruntime.store.Layer(i.TopLayer()); err != nil {
-			return nil, err
+	// Build a mapping from top-layer to image ID.
+	images, err := i.imageruntime.GetImages()
+	if err != nil {
+		return nil, err
+	}
+	topLayerMap := make(map[string]string)
+	for _, image := range images {
+		if _, exists := topLayerMap[image.TopLayer()]; !exists {
+			topLayerMap[image.TopLayer()] = image.ID()
 		}
 	}
-	interestingLayers[""] = true
-	for layer != nil {
-		interestingLayers[layer.ID] = true
-		if layer.Parent == "" {
-			break
-		}
-		layer, err = i.imageruntime.store.Layer(layer.Parent)
+
+	var allHistory []*History
+	var layer *storage.Layer
+
+	// Check if we have an actual top layer to prevent lookup errors.
+	if i.TopLayer() != "" {
+		layer, err = i.imageruntime.store.Layer(i.TopLayer())
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// Get the IDs of the images that share some of our layers.  Hopefully
-	// this step means that we'll be able to avoid reading the
-	// configuration of every single image in local storage later on.
-	images, err := i.imageruntime.GetImages()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting images from store")
-	}
-	interestingImages := make([]*Image, 0, len(images))
-	for i := range images {
-		if interestingLayers[images[i].TopLayer()] {
-			interestingImages = append(interestingImages, images[i])
-		}
-	}
+	// Iterate in reverse order over the history entries, and lookup the
+	// corresponding image ID, size and get the next later if needed.
+	numHistories := len(oci.History) - 1
+	for x := numHistories; x >= 0; x-- {
+		var size int64
 
-	// Build a list of image IDs that correspond to our history entries.
-	historyImages := make([]*Image, len(oci.History))
-	if len(oci.History) > 0 {
-		// The starting image shares its whole history with itself.
-		historyImages[len(historyImages)-1] = i
-		for i := range interestingImages {
-			image, err := images[i].ociv1Image(ctx)
-			if err != nil {
-				return nil, errors.Wrapf(err, "error getting image configuration for image %q", images[i].ID())
+		id := "<missing>"
+		if x == numHistories {
+			id = i.ID()
+		} else if layer != nil {
+			if !oci.History[x].EmptyLayer {
+				size = layer.UncompressedSize
 			}
-			// If the candidate has a longer history or no history
-			// at all, then it doesn't share the portion of our
-			// history that we're interested in matching with other
-			// images.
-			if len(image.History) == 0 || len(image.History) > len(historyImages) {
-				continue
-			}
-			// If we don't include all of the layers that the
-			// candidate image does (i.e., our rootfs didn't look
-			// like its rootfs at any point), then it can't be part
-			// of our history.
-			if len(image.RootFS.DiffIDs) > len(oci.RootFS.DiffIDs) {
-				continue
-			}
-			candidateLayersAreUsed := true
-			for i := range image.RootFS.DiffIDs {
-				if image.RootFS.DiffIDs[i] != oci.RootFS.DiffIDs[i] {
-					candidateLayersAreUsed = false
-					break
-				}
-			}
-			if !candidateLayersAreUsed {
-				continue
-			}
-			// If the candidate's entire history is an initial
-			// portion of our history, then we're based on it,
-			// either directly or indirectly.
-			sharedHistory := historiesMatch(oci.History, image.History)
-			if sharedHistory == len(image.History) {
-				historyImages[sharedHistory-1] = images[i]
+			if imageID, exists := topLayerMap[layer.ID]; exists {
+				id = imageID
+				// Delete the entry to avoid reusing it for following history items.
+				delete(topLayerMap, layer.ID)
 			}
 		}
-	}
 
-	var (
-		size       int64
-		sizeCount  = 1
-		allHistory []*History
-	)
-
-	for i := len(oci.History) - 1; i >= 0; i-- {
-		imageID := "<missing>"
-		if historyImages[i] != nil {
-			imageID = historyImages[i].ID()
-		}
-		if !oci.History[i].EmptyLayer {
-			size = img.LayerInfos()[len(img.LayerInfos())-sizeCount].Size
-			sizeCount++
-		}
 		allHistory = append(allHistory, &History{
-			ID:        imageID,
-			Created:   oci.History[i].Created,
-			CreatedBy: oci.History[i].CreatedBy,
+			ID:        id,
+			Created:   oci.History[x].Created,
+			CreatedBy: oci.History[x].CreatedBy,
 			Size:      size,
-			Comment:   oci.History[i].Comment,
+			Comment:   oci.History[x].Comment,
 		})
+
+		if layer != nil && layer.Parent != "" && !oci.History[x].EmptyLayer {
+			layer, err = i.imageruntime.store.Layer(layer.Parent)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
+
 	return allHistory, nil
 }
 

@@ -187,6 +187,9 @@ func programVersion(mountProgram string) (string, error) {
 	return strings.TrimSuffix(output, "\n"), nil
 }
 
+// DefaultSeccompPath returns the path to the default seccomp.json file
+// if it exists, first it checks OverrideSeccomp and then default.
+// If neither exist function returns ""
 func DefaultSeccompPath() (string, error) {
 	_, err := os.Stat(config.SeccompOverridePath)
 	if err == nil {
@@ -202,4 +205,29 @@ func DefaultSeccompPath() (string, error) {
 		return "", nil
 	}
 	return config.SeccompDefaultPath, nil
+}
+
+// CheckDependencyContainer verifies the given container can be used as a
+// dependency of another container.
+// Both the dependency to check and the container that will be using the
+// dependency must be passed in.
+// It is assumed that ctr is locked, and depCtr is unlocked.
+func checkDependencyContainer(depCtr, ctr *Container) error {
+	state, err := depCtr.State()
+	if err != nil {
+		return errors.Wrapf(err, "error accessing dependency container %s state", depCtr.ID())
+	}
+	if state == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot use container %s as a dependency as it is being removed", depCtr.ID())
+	}
+
+	if depCtr.ID() == ctr.ID() {
+		return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
+	}
+
+	if ctr.config.Pod != "" && depCtr.PodID() != ctr.config.Pod {
+		return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, depCtr.ID())
+	}
+
+	return nil
 }

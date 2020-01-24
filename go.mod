@@ -11,19 +11,19 @@ require (
 	github.com/containerd/go-runc v0.0.0-20190923131748-a2952bc25f51 // indirect
 	github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
 	github.com/containerd/ttrpc v0.0.0-20190828154514-0e0f228740de
-	github.com/containernetworking/cni v0.7.1
+	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 	github.com/containernetworking/plugins v0.8.4
-	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
+	github.com/containers/buildah v1.12.0
 	github.com/containers/conmon v2.0.9+incompatible
 	github.com/containers/image/v5 v5.1.0
-	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
+	github.com/containers/libpod v1.7.0
 	github.com/containers/ocicrypt v0.0.0-20190930154801-b87a4a69c741
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.15.4-0.20191218193401-e18327c57107
+	github.com/containers/storage v1.15.4
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
-	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
-	github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce
+	github.com/cri-o/ocicni v0.1.1-0.20191204151446-e25b504ca708
+	github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-zoo/bone v1.3.0

@@ -64,6 +64,7 @@ type ImagesValues struct {
 	NoTrunc   bool
 	Quiet     bool
 	Sort      string
+	History   bool
 }
 
 type EventValues struct {
@@ -127,6 +128,7 @@ type ExecValues struct {
 	PodmanCommand
 	DetachKeys  string
 	Env         []string
+	EnvFile     []string
 	Privileged  bool
 	Interactive bool
 	Tty         bool
@@ -175,12 +177,15 @@ type HistoryValues struct {
 }
 type PruneImagesValues struct {
 	PodmanCommand
-	All bool
+	All    bool
+	Force  bool
+	Filter []string
 }
 
 type PruneContainersValues struct {
 	PodmanCommand
-	Force bool
+	Force  bool
+	Filter []string
 }
 
 type PodPruneValues struct {
@@ -274,6 +279,7 @@ type NetworkCreateValues struct {
 	IPRange    net.IPNet
 	IPV6       bool
 	Network    net.IPNet
+	MacVLAN    string
 }
 
 type NetworkListValues struct {
@@ -366,6 +372,7 @@ type PodRestartValues struct {
 type PodRmValues struct {
 	PodmanCommand
 	All    bool
+	Ignore bool
 	Force  bool
 	Latest bool
 }
@@ -387,6 +394,7 @@ type PodStatsValues struct {
 type PodStopValues struct {
 	PodmanCommand
 	All     bool
+	Ignore  bool
 	Latest  bool
 	Timeout uint
 }
@@ -467,23 +475,26 @@ type RestartValues struct {
 
 type RestoreValues struct {
 	PodmanCommand
-	All            bool
-	Keep           bool
-	Latest         bool
-	TcpEstablished bool
-	Import         string
-	Name           string
-	IgnoreRootfs   bool
-	IgnoreStaticIP bool
+	All             bool
+	Keep            bool
+	Latest          bool
+	TcpEstablished  bool
+	Import          string
+	Name            string
+	IgnoreRootfs    bool
+	IgnoreStaticIP  bool
+	IgnoreStaticMAC bool
 }
 
 type RmValues struct {
 	PodmanCommand
-	All     bool
-	Force   bool
-	Latest  bool
-	Storage bool
-	Volumes bool
+	All      bool
+	Force    bool
+	Ignore   bool
+	Latest   bool
+	Storage  bool
+	Volumes  bool
+	CIDFiles []string
 }
 
 type RmiValues struct {
@@ -556,9 +567,11 @@ type StatsValues struct {
 
 type StopValues struct {
 	PodmanCommand
-	All     bool
-	Latest  bool
-	Timeout uint
+	All      bool
+	Ignore   bool
+	Latest   bool
+	Timeout  uint
+	CIDFiles []string
 }
 
 type TopValues struct {
@@ -646,6 +659,11 @@ type SystemPruneValues struct {
 	All    bool
 	Force  bool
 	Volume bool
+}
+
+type SystemResetValues struct {
+	PodmanCommand
+	Force bool
 }
 
 type SystemRenumberValues struct {

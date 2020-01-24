@@ -69,31 +69,33 @@ github.com/containerd/project/cmd/release-tool
 github.com/containerd/ttrpc
 # github.com/containerd/typeurl v0.0.0-20190228175220-2a93cfde8c20
 github.com/containerd/typeurl
-# github.com/containernetworking/cni v0.7.1
+# github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/types
 github.com/containernetworking/cni/pkg/types/020
 github.com/containernetworking/cni/pkg/types/current
+github.com/containernetworking/cni/pkg/utils
 github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.4
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
+# github.com/containers/buildah v1.12.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
 github.com/containers/buildah/docker
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/pkg/blobcache
-github.com/containers/buildah/pkg/cgroups
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/cli
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/umask
-github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/util
+# github.com/containers/common v0.0.3
+github.com/containers/common/pkg/cgroups
+github.com/containers/common/pkg/unshare
 # github.com/containers/conmon v2.0.9+incompatible
 github.com/containers/conmon/runner/config
 # github.com/containers/image/v5 v5.1.0
@@ -134,7 +136,7 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
-# github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
+# github.com/containers/libpod v1.7.0
 github.com/containers/libpod/cmd/podman/cliconfig
 github.com/containers/libpod/libpod
 github.com/containers/libpod/libpod/config
@@ -169,6 +171,7 @@ github.com/containers/libpod/pkg/resolvconf/dns
 github.com/containers/libpod/pkg/rootless
 github.com/containers/libpod/pkg/spec
 github.com/containers/libpod/pkg/sysinfo
+github.com/containers/libpod/pkg/timetype
 github.com/containers/libpod/pkg/util
 github.com/containers/libpod/utils
 github.com/containers/libpod/version
@@ -192,7 +195,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.15.4-0.20191218193401-e18327c57107
+# github.com/containers/storage v1.15.4
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -249,7 +252,7 @@ github.com/cpuguy83/go-md2man/md2man
 github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/creack/pty v1.1.7
 github.com/creack/pty
-# github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
+# github.com/cri-o/ocicni v0.1.1-0.20191204151446-e25b504ca708
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.2
 github.com/cyphar/filepath-securejoin
@@ -267,7 +270,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce
+# github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/blkiodev
@@ -330,7 +333,7 @@ github.com/emicklei/go-restful/log
 github.com/etcd-io/bbolt
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.5.0
+# github.com/fsouza/go-dockerclient v1.6.0
 github.com/fsouza/go-dockerclient
 # github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
 github.com/fullsailor/pkcs7
@@ -724,7 +727,7 @@ gopkg.in/square/go-jose.v2/cipher
 gopkg.in/square/go-jose.v2/json
 # gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 gopkg.in/tomb.v1
-# gopkg.in/yaml.v2 v2.2.4
+# gopkg.in/yaml.v2 v2.2.7
 gopkg.in/yaml.v2
 # k8s.io/api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20191218085820-ac4079a5cc22
 k8s.io/api/admissionregistration/v1

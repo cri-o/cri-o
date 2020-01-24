@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containernetworking/cni/pkg/types"
@@ -138,6 +139,10 @@ type Container struct {
 	// being checkpointed. If requestedIP is set it will be used instead
 	// of config.StaticIP.
 	requestedIP net.IP
+	// A restored container should have the same MAC address as before
+	// being checkpointed. If requestedMAC is set it will be used instead
+	// of config.StaticMAC.
+	requestedMAC net.HardwareAddr
 
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
@@ -227,6 +232,10 @@ type ContainerConfig struct {
 	// ID of this container's lock
 	LockID uint32 `json:"lockID"`
 
+	// CreateCommand is the full command plus arguments of the process the
+	// container has been created with.
+	CreateCommand []string `json:"CreateCommand,omitempty"`
+
 	// TODO consider breaking these subsections up into smaller structs
 
 	// UID/GID mappings used by the storage
@@ -296,6 +305,10 @@ type ContainerConfig struct {
 	// This cannot be set unless CreateNetNS is set.
 	// If not set, the container will be dynamically assigned an IP by CNI.
 	StaticIP net.IP `json:"staticIP"`
+	// StaticMAC is a static MAC to request for the container.
+	// This cannot be set unless CreateNetNS is set.
+	// If not set, the container will be dynamically assigned a MAC by CNI.
+	StaticMAC net.HardwareAddr `json:"staticMAC"`
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true
@@ -1064,7 +1077,14 @@ func (c *Container) CGroupPath() (string, error) {
 	case define.SystemdCgroupsManager:
 		if rootless.IsRootless() {
 			uid := rootless.GetRootlessUID()
-			return filepath.Join(c.config.CgroupParent, fmt.Sprintf("user-%d.slice/user@%d.service/user.slice", uid, uid), createUnitName("libpod", c.ID())), nil
+			parts := strings.SplitN(c.config.CgroupParent, "/", 2)
+
+			dir := ""
+			if len(parts) > 1 {
+				dir = parts[1]
+			}
+
+			return filepath.Join(parts[0], fmt.Sprintf("user-%d.slice/user@%d.service/user.slice/%s", uid, uid, dir), createUnitName("libpod", c.ID())), nil
 		}
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
@@ -1138,7 +1158,7 @@ func (c *Container) NetworkDisabled() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		return networkDisabled(container)
+		return container.NetworkDisabled()
 	}
 	return networkDisabled(c)
 
