@@ -64,11 +64,9 @@ crio
 [--profile-port]=[value]
 [--profile]
 [--read-only]
-[--registries-conf]=[value]
 [--registry]=[value]
 [--root|-r]=[value]
 [--runroot]=[value]
-[--runtime]=[value]
 [--runtimes]=[value]
 [--seccomp-profile]=[value]
 [--selinux]
@@ -255,15 +253,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts tmpfs on `/run`, `/tmp` and `/var/tmp`. (default: false)
 
-**--registries-conf**="": path to the registries.conf file
-
 **--registry**="": Registry to be prepended when pulling unqualified images, can be specified multiple times (default: [])
 
 **--root, -r**="": The CRI-O root directory (default: "/var/lib/containers/storage")
 
 **--runroot**="": The CRI-O state directory (default: "/var/run/containers/storage")
-
-**--runtime**="": OCI runtime path
 
 **--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root (default: [])
 
