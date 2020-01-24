@@ -21,7 +21,7 @@ const (
 	releaseNotes        = `{{.ProjectName}} {{.Version}}
 
 Welcome to the {{.Tag}} release of {{.ProjectName}}!
-{{- if .PreRelease }}
+{{- if .PreRelease }}  {{/* two spaces added for markdown newline*/}}
 *This is a pre-release of {{.ProjectName}}*
 {{- end}}
 

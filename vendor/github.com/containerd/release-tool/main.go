@@ -34,8 +34,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-const vendorConf = "vendor.conf"
-
 type note struct {
 	Title       string `toml:"title"`
 	Description string `toml:"description"`
@@ -169,20 +167,18 @@ This tool should be ran from the root of the project repository for a new releas
 		})
 
 		logrus.Infof("creating new release %s with %d new changes...", tag, len(changes))
-		rd, err := fileFromRev(r.Commit, vendorConf)
+		current, err := parseDependencies(r.Commit)
 		if err != nil {
 			return err
 		}
-		previous, err := getPreviousDeps(r.Previous)
-		if err != nil {
-			return err
-		}
-		deps, err := parseDependencies(rd)
+
+		previous, err := parseDependencies(r.Previous)
 		if err != nil {
 			return err
 		}
 		renameDependencies(previous, r.RenameDeps)
-		updatedDeps := updatedDeps(previous, deps)
+
+		updatedDeps := updatedDeps(previous, current)
 
 		sort.Slice(updatedDeps, func(i, j int) bool {
 			return updatedDeps[i].Name < updatedDeps[j].Name
