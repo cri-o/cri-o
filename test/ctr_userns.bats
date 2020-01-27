@@ -18,14 +18,10 @@ function teardown() {
 	export CONTAINER_GID_MAPPINGS="0:200000:100000"
 	export CONTAINER_MANAGE_NS_LIFECYCLE=false
 
-	# Workaround for https://github.com/opencontainers/runc/pull/1562
-	# Remove once the fix hits the CI
-	export OVERRIDE_OPTIONS="--selinux=false"
-
-	# Needed for RHEL
-	if test -e /proc/sys/user/max_user_namespaces; then
-		echo 15000 > /proc/sys/user/max_user_namespaces
-	fi
+    # Disable selinux only on our CI RHEL machine
+    if grep -q "Enterprise Linux" /etc/redhat-release; then
+        export OVERRIDE_OPTIONS="--selinux=false"
+    fi
 
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
