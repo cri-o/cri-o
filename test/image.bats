@@ -6,11 +6,8 @@ IMAGE=quay.io/crio/pause
 SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
 UNSIGNED_IMAGE=quay.io/crio/hello-world:latest
 IMAGE_LIST_TAG=docker.io/library/alpine:3.9
-IMAGE_LIST_DIGEST=docker.io/library/alpine@sha256:7746df395af22f04212cd25a92c1d6dbc5a06a0ca9579a229ef43008d4d1302a
-IMAGE_LIST_DIGEST_AMD64=docker.io/library/alpine@sha256:bf1684a6e3676389ec861c602e97f27b03f14178e5bc3f70dce198f9f160cce9
-IMAGE_LIST_DIGEST_ARM64=docker.io/library/alpine@sha256:1032bdba4c5f88facf7eceb259c18deb28a51785eb35e469285a03eba78dd3fc
-IMAGE_LIST_DIGEST_PPC64LE=docker.io/library/alpine@sha256:cb238aa5b34dfd5e57ddfb1bfbb564f01df218e6f6453e4036b302e32bca8bb5
-IMAGE_LIST_DIGEST_S390X=docker.io/library/alpine@sha256:d438d3b6a72b602b70bd259ebfb344e388d8809c5abf691f6de397de8c9e4572
+IMAGE_LIST_DIGEST_AMD64=docker.io/library/alpine@sha256:ab3fe83c0696e3f565c9b4a734ec309ae9bd0d74c192de4590fd6dc2ef717815
+IMAGE_LIST_DIGEST=docker.io/library/alpine@sha256:115731bab0862031b44766733890091c17924f9b7781b79997f5f163be262178
 
 function setup() {
 	setup_test
@@ -240,27 +237,6 @@ function teardown() {
 		echo "$output"
 		[ "$output" != "" ]
 		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}" ]]
-		;;
-	arm64)
-		run crictl images -v ${IMAGE_LIST_DIGEST_ARM64}
-		[ "$status" -eq 0 ]
-		echo "$output"
-		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}" ]]
-		;;
-	ppc64le)
-		run crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE}
-		[ "$status" -eq 0 ]
-		echo "$output"
-		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}" ]]
-		;;
-	s390x)
-		run crictl images -v ${IMAGE_LIST_DIGEST_S390X}
-		[ "$status" -eq 0 ]
-		echo "$output"
-		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_S390X}" ]]
 		;;
 	esac
 
