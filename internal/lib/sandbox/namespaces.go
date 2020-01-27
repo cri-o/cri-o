@@ -327,5 +327,13 @@ func nsPathGivenInfraPid(ns NamespaceIface, nsType NSType, infraPid int) string 
 // infraNsPath returns the namespace path of type nsType for infra
 // with pid infraContainerPid
 func infraNsPath(nsType NSType, infraContainerPid int) string {
-	return fmt.Sprintf("/proc/%d/ns/%s", infraContainerPid, nsType)
+	// verify nsPath exists on the host. This will prevent us from fatally erroring
+	// on network tear down if the path doesn't exist
+	// Technically, this is pretty racy, but so is every check using the infra container PID.
+	// Without managing the namespaces, this is the best we can do
+	nsPath := fmt.Sprintf("/proc/%d/ns/%s", infraContainerPid, nsType)
+	if _, err := os.Stat(nsPath); err != nil {
+		return ""
+	}
+	return nsPath
 }

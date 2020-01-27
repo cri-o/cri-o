@@ -3,12 +3,15 @@ package sandbox
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -17,6 +20,11 @@ import (
 
 // DevShmPath is the default system wide shared memory path
 const DevShmPath = "/dev/shm"
+
+var (
+	sbStoppedFilename        = "stopped"
+	sbNetworkStoppedFilename = "network-stopped"
+)
 
 // Sandbox contains data surrounding kubernetes sandboxes on the server
 type Sandbox struct {
@@ -53,6 +61,7 @@ type Sandbox struct {
 	stopMutex          sync.RWMutex
 	created            bool
 	stopped            bool
+	networkStopped     bool
 	privileged         bool
 	hostNetwork        bool
 }
@@ -282,8 +291,18 @@ func (s *Sandbox) RemoveInfraContainer() {
 // SetStopped sets the sandbox state to stopped.
 // This should be set after a stop operation succeeds
 // so that subsequent stops can return fast.
-func (s *Sandbox) SetStopped() {
+// if createFile is true, it also creates a "stopped" file in the infra container's persistent dir
+// this is used to track the sandbox is stopped over reboots
+func (s *Sandbox) SetStopped(createFile bool) {
+	if s.stopped {
+		return
+	}
 	s.stopped = true
+	if createFile {
+		if err := s.createFileInInfraDir(sbStoppedFilename); err != nil {
+			logrus.Errorf("failed to create stopped file in container state. Restore may fail: %v", err)
+		}
+	}
 }
 
 // Stopped returns whether the sandbox state has been
@@ -295,6 +314,59 @@ func (s *Sandbox) Stopped() bool {
 // SetCreated sets the created status of sandbox to true
 func (s *Sandbox) SetCreated() {
 	s.created = true
+}
+
+// NetworkStopped returns whether the network has been stopped
+func (s *Sandbox) NetworkStopped() bool {
+	return s.networkStopped
+}
+
+// SetNetworkStopped sets the sandbox network state as stopped
+// This should be set after a network stop operation succeeds,
+// so we don't double stop the network
+// if createFile is true, it creates a "network-stopped" file
+// in the infra container's persistent dir
+// this is used to track the network is stopped over reboots
+// returns an error if an error occurred when creating the network-stopped file
+func (s *Sandbox) SetNetworkStopped(createFile bool) error {
+	if s.networkStopped {
+		return nil
+	}
+	s.networkStopped = true
+	if createFile {
+		if err := s.createFileInInfraDir(sbNetworkStoppedFilename); err != nil {
+			return fmt.Errorf("failed to create state file in container directory. Restores may fail: %v", err)
+		}
+	}
+	return nil
+}
+
+func (s *Sandbox) createFileInInfraDir(filename string) error {
+	infra := s.InfraContainer()
+	f, err := os.Create(filepath.Join(infra.Dir(), filename))
+	f.Close()
+	return err
+}
+
+func (s *Sandbox) RestoreStopped() {
+	if s.fileExistsInInfraDir(sbStoppedFilename) {
+		s.stopped = true
+	}
+	if s.fileExistsInInfraDir(sbNetworkStoppedFilename) {
+		s.networkStopped = true
+	}
+}
+
+func (s *Sandbox) fileExistsInInfraDir(filename string) bool {
+	infra := s.InfraContainer()
+	infraFilePath := filepath.Join(infra.Dir(), filename)
+	if _, err := os.Stat(infraFilePath); err != nil {
+		if !os.IsNotExist(err) {
+			logrus.Warnf("error checking if %s exists: %v", infraFilePath, err)
+		}
+		return false
+	}
+	return true
 }
 
 // Created returns the created status of sandbox

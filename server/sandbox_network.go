@@ -12,6 +12,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/pkg/errors"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
@@ -33,7 +34,9 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	// but an error happened between plugin success and the end of networkStart()
 	defer func() {
 		if err != nil {
-			s.networkStop(ctx, sb)
+			if err2 := s.networkStop(ctx, sb); err2 != nil {
+				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
+			}
 		}
 	}()
 
@@ -127,9 +130,9 @@ func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) (podIPs []string, err error)
 
 // networkStop cleans up and removes a pod's network.  It is best-effort and
 // must call the network plugin even if the network namespace is already gone
-func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) {
-	if sb.HostNetwork() {
-		return
+func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
+	if sb.HostNetwork() || sb.NetworkStopped() {
+		return nil
 	}
 
 	if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
@@ -143,11 +146,11 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) {
 
 	podNetwork, err := s.newPodNetwork(sb)
 	if err != nil {
-		log.Warnf(ctx, err.Error())
-		return
+		return err
 	}
 	if err := s.netPlugin.TearDownPod(podNetwork); err != nil {
-		log.Warnf(ctx, "failed to destroy network for pod sandbox %s(%s): %v",
-			sb.Name(), sb.ID(), err)
+		return errors.Wrapf(err, "failed to destroy network for pod sandbox %s(%s)", sb.Name(), sb.ID())
 	}
+
+	return sb.SetNetworkStopped(true)
 }
