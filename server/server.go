@@ -415,10 +415,13 @@ func New(
 	s.restore(ctx)
 	s.cleanupSandboxesOnShutdown(ctx)
 
+	var bindAddressStr string
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
-		hostIPs := s.getHostIPs(config.HostIP)
-		bindAddress = hostIPs[0]
+		// If bind address isn't valid or unset, then listen on all IP addresses
+		bindAddressStr = ""
+	} else {
+		bindAddressStr = bindAddress.String()
 	}
 
 	_, err = net.LookupPort("tcp", config.StreamPort)
@@ -428,7 +431,7 @@ func New(
 
 	// Prepare streaming server
 	streamServerConfig := streaming.DefaultConfig
-	streamServerConfig.Addr = net.JoinHostPort(bindAddress.String(), config.StreamPort)
+	streamServerConfig.Addr = net.JoinHostPort(bindAddressStr, config.StreamPort)
 	if config.StreamEnableTLS {
 		certCache := &certConfigCache{
 			tlsCert: config.StreamTLSCert,
