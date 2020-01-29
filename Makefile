@@ -57,11 +57,11 @@ GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
 	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
-	GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
+	GIT_TREE_STATE := $(if $(shell git status --porcelain --untracked-files=no),dirty,clean)
 	GIT_MERGE_BASE := $(shell git merge-base origin/master $(shell git rev-parse --abbrev-ref HEAD))
 else
 	COMMIT_NO := unknown
-	GIT_COMMIT := unknown
+	GIT_TREE_STATE := unknown
 	GIT_MERGE_BASE := HEAD^
 endif
 
@@ -84,7 +84,13 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
-BASE_LDFLAGS = ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${SOURCE_DATE_EPOCH}
+
+BASE_LDFLAGS = ${SHRINKFLAGS} \
+	-X ${PROJECT}/internal/version.buildInfo=${SOURCE_DATE_EPOCH} \
+    -X ${PROJECT}/internal/version.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+    -X ${PROJECT}/internal/version.GitCommit=${COMMIT_NO} \
+    -X ${PROJECT}/internal/version.gitTreeState=${GIT_TREE_STATE}
+
 LDFLAGS = -ldflags '${BASE_LDFLAGS}'
 
 TESTIMAGE_VERSION := master-1.1.6

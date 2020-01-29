@@ -320,6 +320,12 @@ it later with **--config**. Global options will modify the output.
 
 **--default**: Output the default configuration (without taking into account any configuration options).
 
+## version
+
+display detailed version information
+
+**--json, -j**: print JSON instead of text
+
 ## wipe
 
 wipe CRI-O's container and image storage
