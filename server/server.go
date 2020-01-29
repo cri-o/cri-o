@@ -36,7 +36,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	seccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
-	knet "k8s.io/apimachinery/pkg/util/net"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
@@ -415,10 +414,13 @@ func New(
 	s.restore(ctx)
 	s.cleanupSandboxesOnShutdown(ctx)
 
+	var bindAddressStr string
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress == nil {
-		hostIPs := s.getHostIPs(config.HostIP)
-		bindAddress = hostIPs[0]
+		// If bind address isn't valid or unset, then listen on all IP addresses
+		bindAddressStr = ""
+	} else {
+		bindAddressStr = bindAddress.String()
 	}
 
 	_, err = net.LookupPort("tcp", config.StreamPort)
@@ -428,7 +430,7 @@ func New(
 
 	// Prepare streaming server
 	streamServerConfig := streaming.DefaultConfig
-	streamServerConfig.Addr = net.JoinHostPort(bindAddress.String(), config.StreamPort)
+	streamServerConfig.Addr = net.JoinHostPort(bindAddressStr, config.StreamPort)
 	if config.StreamEnableTLS {
 		certCache := &certConfigCache{
 			tlsCert: config.StreamTLSCert,
@@ -480,83 +482,6 @@ func New(
 	}
 
 	return s, nil
-}
-
-func (s *Server) getHostIPs(configIPs []string) []net.IP {
-	// emulate kubelet behavior of choosing hostIP
-	// ref: k8s/pkg/kubelet/nodestatus/setters.go
-	ips := []net.IP{}
-
-	// use configured value if set
-	for _, ip := range configIPs {
-		// The configuration validation already ensures valid IPs
-		ips = append(ips, net.ParseIP(ip))
-	}
-	// Abort if the maximum amount of adresses is already specified
-	if len(ips) > 1 {
-		return ips
-	}
-
-	// Otherwise use kubernetes utility to choose hostIP
-	// there exists the chance for both hostIP and err to be nil, so check both
-	if len(ips) == 0 {
-		if hostIP, err := knet.ChooseHostInterface(); err != nil && hostIP != nil {
-			ips = append(ips, hostIP)
-		}
-	}
-
-	// attempt to find an IP from the hostname
-	if len(ips) == 0 {
-		if hostname, err := os.Hostname(); err == nil {
-			if hostIP := net.ParseIP(hostname); hostIP != nil && validateHostIP(hostIP) == nil {
-				ips = append(ips, hostIP)
-			}
-		}
-	}
-
-	// if that fails, check if we can find a primary IP address unambiguously
-	if len(ips) == 0 {
-		if allAddrs, err := net.InterfaceAddrs(); err == nil {
-			for _, addr := range allAddrs {
-				if ipnet, ok := addr.(*net.IPNet); ok {
-					if validateHostIP(ipnet.IP) == nil {
-						ips = append(ips, ipnet.IP)
-						break
-					}
-				}
-			}
-		}
-	}
-
-	if len(ips) == 0 {
-		ips = append(ips, net.IPv4(127, 0, 0, 1))
-		logrus.Warnf("unable to find a host IP, falling back to: %v", ips)
-	}
-
-	// Search for an additional IP
-	if ifaces, err := net.Interfaces(); err == nil {
-		for _, iface := range ifaces {
-			if addrs, err := iface.Addrs(); err == nil {
-				searchThisInterface := false
-				for _, addr := range addrs {
-					if ipnet, ok := addr.(*net.IPNet); ok {
-						ip := ipnet.IP
-						if ip.Equal(ips[0]) {
-							searchThisInterface = true
-						}
-						if searchThisInterface &&
-							!ip.Equal(ips[0]) &&
-							ip.IsGlobalUnicast() {
-							ips = append(ips, ipnet.IP)
-							break
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return ips
 }
 
 func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
