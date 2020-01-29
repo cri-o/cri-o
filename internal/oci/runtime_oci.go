@@ -658,7 +658,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	}
 
 	if c.state.Status == ContainerStateStopped {
-		exitFilePath := filepath.Join(c.dir, "exit")
+		exitFilePath := filepath.Join(r.config.ContainerExitsDir, c.id)
 		var fi os.FileInfo
 		err = kwait.ExponentialBackoff(
 			kwait.Backoff{
