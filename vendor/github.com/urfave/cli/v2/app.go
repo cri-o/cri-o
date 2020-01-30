@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -12,7 +13,7 @@ import (
 )
 
 var (
-	changeLogURL            = "https://github.com/urfave/cli/blob/master/CHANGELOG.md"
+	changeLogURL            = "https://github.com/urfave/cli/blob/master/docs/CHANGELOG.md"
 	appActionDeprecationURL = fmt.Sprintf("%s#deprecated-cli-app-action-signature", changeLogURL)
 	contactSysadmin         = "This is an error in the application.  Please contact the distributor of this application if this is not you."
 	errInvalidActionType    = NewExitError("ERROR invalid Action type. "+
@@ -110,7 +111,6 @@ func NewApp() *App {
 		HelpName:     filepath.Base(os.Args[0]),
 		Usage:        "A new cli application",
 		UsageText:    "",
-		Version:      "0.0.0",
 		BashComplete: DefaultAppComplete,
 		Action:       helpCommand.Action,
 		Compiled:     compileTime(),
@@ -141,7 +141,7 @@ func (a *App) Setup() {
 	}
 
 	if a.Version == "" {
-		a.Version = "0.0.0"
+		a.HideVersion = true
 	}
 
 	if a.BashComplete == nil {
@@ -208,6 +208,13 @@ func (a *App) useShortOptionHandling() bool {
 // Run is the entry point to the cli app. Parses the arguments slice and routes
 // to the proper flag/args combination
 func (a *App) Run(arguments []string) (err error) {
+	return a.RunContext(context.Background(), arguments)
+}
+
+// RunContext is like Run except it takes a Context that will be
+// passed to its commands and sub-commands. Through this, you can
+// propagate timeouts and cancellation requests
+func (a *App) RunContext(ctx context.Context, arguments []string) (err error) {
 	a.Setup()
 
 	// handle the completion flag separately from the flagset since
@@ -223,9 +230,9 @@ func (a *App) Run(arguments []string) (err error) {
 		return err
 	}
 
-	err = parseIter(set, a, arguments[1:])
+	err = parseIter(set, a, arguments[1:], shellComplete)
 	nerr := normalizeFlags(a.Flags, set)
-	context := NewContext(a, set, nil)
+	context := NewContext(a, set, &Context{Context: ctx})
 	if nerr != nil {
 		_, _ = fmt.Fprintln(a.Writer, nerr)
 		_ = ShowAppHelp(context)
@@ -349,7 +356,7 @@ func (a *App) RunAsSubcommand(ctx *Context) (err error) {
 		return err
 	}
 
-	err = parseIter(set, a, ctx.Args().Tail())
+	err = parseIter(set, a, ctx.Args().Tail(), ctx.shellComplete)
 	nerr := normalizeFlags(a.Flags, set)
 	context := NewContext(a, set, ctx)
 
