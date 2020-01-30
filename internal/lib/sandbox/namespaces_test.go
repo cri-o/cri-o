@@ -441,16 +441,6 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
 		})
-		It("should get something when infra set", func() {
-			// Given
-			// When
-			nsPaths := testSandbox.NamespacePaths()
-			// Then
-			for _, ns := range nsPaths {
-				Expect(ns.Path()).To(ContainSubstring("42"))
-			}
-			Expect(len(nsPaths)).To(Equal(numManagedNamespaces))
-		})
 		It("should get managed path despite infra set", func() {
 			// Given
 			getPath := pinNamespacesFunctor{

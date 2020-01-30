@@ -219,8 +219,8 @@ var _ = t.Describe("Sandbox", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(testSandbox.InfraContainer()).To(Equal(testContainer))
-			Expect(testSandbox.UserNsPath()).NotTo(Equal(""))
 			// while we have a sandbox, it does not have a valid network namespace
+			Expect(testSandbox.UserNsPath()).To(Equal(""))
 			Expect(testSandbox.NetNsPath()).To(Equal(""))
 			Expect(testSandbox.UtsNsPath()).To(Equal(""))
 			Expect(testSandbox.IpcNsPath()).To(Equal(""))
