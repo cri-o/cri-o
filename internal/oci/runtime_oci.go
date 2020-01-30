@@ -98,6 +98,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 		"-u", c.id,
 		"-r", r.path,
 		"-b", c.bundlePath,
+		"--persist-dir", c.dir,
 		"-p", filepath.Join(c.bundlePath, "pidfile"),
 		"-P", c.conmonPidFilePath(),
 		"-l", c.logPath,
@@ -630,10 +631,37 @@ func (r *runtimeOCI) DeleteContainer(c *Container) error {
 	return err
 }
 
+func updateContainerStatusFromExitFile(c *Container) error {
+	exitFilePath := c.exitFilePath()
+	fi, err := os.Stat(exitFilePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to find container exit file for %s", c.id)
+	}
+	c.state.Finished, err = getFinishedTime(fi)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get finished time")
+	}
+	statusCodeStr, err := ioutil.ReadFile(exitFilePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read exit file")
+	}
+	statusCode, err := strconv.Atoi(string(statusCodeStr))
+	if err != nil {
+		return errors.Wrapf(err, "status code conversion failed")
+	}
+	c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
+	return nil
+}
+
 // UpdateContainerStatus refreshes the status of the container.
 func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	if c.state.ExitCode != nil && !c.state.Finished.IsZero() {
+		logrus.Debugf("Skipping status update for: %+v", c.state)
+		return nil
+	}
 
 	cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
@@ -648,8 +676,10 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 		// We always populate the fields below so kube can restart/reschedule
 		// containers failing.
 		c.state.Status = ContainerStateStopped
-		c.state.Finished = time.Now()
-		c.state.ExitCode = 255
+		if err := updateContainerStatusFromExitFile(c); err != nil {
+			c.state.Finished = time.Now()
+			c.state.ExitCode = utils.Int32Ptr(255)
+		}
 		return nil
 	}
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {
@@ -657,7 +687,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	}
 
 	if c.state.Status == ContainerStateStopped {
-		exitFilePath := filepath.Join(r.config.ContainerExitsDir, c.id)
+		exitFilePath := c.exitFilePath()
 		var fi os.FileInfo
 		err = kwait.ExponentialBackoff(
 			kwait.Backoff{
@@ -676,7 +706,6 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 			})
 		if err != nil {
 			logrus.Warnf("failed to find container exit file for %v: %v", c.id, err)
-			c.state.ExitCode = -1
 		} else {
 			c.state.Finished, err = getFinishedTime(fi)
 			if err != nil {
@@ -690,7 +719,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 			if err != nil {
 				return fmt.Errorf("status code conversion failed: %v", err)
 			}
-			c.state.ExitCode = int32(statusCode)
+			c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
 		}
 
 		oomFilePath := filepath.Join(c.bundlePath, "oom")
@@ -980,7 +1009,7 @@ func (r *Runtime) SpoofOOM(c *Container) {
 
 	c.state.Status = ContainerStateStopped
 	c.state.Finished = time.Now()
-	c.state.ExitCode = 137
+	c.state.ExitCode = utils.Int32Ptr(137)
 	c.state.OOMKilled = true
 
 	oomFilePath := filepath.Join(c.bundlePath, "oom")

@@ -72,7 +72,7 @@ type ContainerState struct {
 	Created   time.Time `json:"created"`
 	Started   time.Time `json:"started,omitempty"`
 	Finished  time.Time `json:"finished,omitempty"`
-	ExitCode  int32     `json:"exitCode,omitempty"`
+	ExitCode  *int32    `json:"exitCode,omitempty"`
 	OOMKilled bool      `json:"oomKilled,omitempty"`
 	Error     string    `json:"error,omitempty"`
 }
@@ -337,4 +337,8 @@ func (c *Container) Description() string {
 // StdinOnce returns whether stdin once is set for the container.
 func (c *Container) StdinOnce() bool {
 	return c.stdinOnce
+}
+
+func (c *Container) exitFilePath() string {
+	return filepath.Join(c.dir, "exit")
 }
