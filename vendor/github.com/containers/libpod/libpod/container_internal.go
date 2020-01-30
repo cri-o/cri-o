@@ -84,7 +84,7 @@ func (c *Container) rootFsSize() (int64, error) {
 	return size + layerSize, err
 }
 
-// rwSize Gets the size of the mutable top layer of the container.
+// rwSize gets the size of the mutable top layer of the container.
 func (c *Container) rwSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		var size int64
@@ -103,14 +103,16 @@ func (c *Container) rwSize() (int64, error) {
 		return 0, err
 	}
 
-	// Get the size of the top layer by calculating the size of the diff
-	// between the layer and its parent.  The top layer of a container is
-	// the only RW layer, all others are immutable
-	layer, err := c.runtime.store.Layer(container.LayerID)
+	// The top layer of a container is
+	// the only readable/writeable layer, all others are immutable.
+	rwLayer, err := c.runtime.store.Layer(container.LayerID)
 	if err != nil {
 		return 0, err
 	}
-	return c.runtime.store.DiffSize(layer.Parent, layer.ID)
+
+	// Get the size of the top layer by calculating the size of the diff
+	// between the layer and its parent.
+	return c.runtime.store.DiffSize(rwLayer.Parent, rwLayer.ID)
 }
 
 // bundlePath returns the path to the container's root filesystem - where the OCI spec will be
@@ -652,6 +654,11 @@ func (c *Container) removeConmonFiles() error {
 		return errors.Wrapf(err, "error removing container %s ctl file", c.ID())
 	}
 
+	winszFile := filepath.Join(c.bundlePath(), "winsz")
+	if err := os.Remove(winszFile); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing container %s winsz file", c.ID())
+	}
+
 	oomFile := filepath.Join(c.bundlePath(), "oom")
 	if err := os.Remove(oomFile); err != nil && !os.IsNotExist(err) {
 		return errors.Wrapf(err, "error removing container %s OOM file", c.ID())
@@ -714,7 +721,8 @@ func (c *Container) isStopped() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused, nil
+
+	return !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused), nil
 }
 
 // save container state to the database
@@ -1052,6 +1060,8 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 	// If we are ContainerStateUnknown, throw an error
 	if c.state.State == define.ContainerStateUnknown {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in an unknown state", c.ID())
+	} else if c.state.State == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot start container %s as it is being removed", c.ID())
 	}
 
 	// If we are running, do nothing
@@ -1121,9 +1131,14 @@ func (c *Container) start() error {
 }
 
 // Internal, non-locking function to stop container
-func (c *Container) stop(timeout uint, all bool) error {
+func (c *Container) stop(timeout uint) error {
 	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
+	// If the container is running in a PID Namespace, then killing the
+	// primary pid is enough to kill the container.  If it is not running in
+	// a pid namespace then the OCI Runtime needs to kill ALL processes in
+	// the containers cgroup in order to make sure the container is stopped.
+	all := !c.hasNamespace(spec.PIDNamespace)
 	// We can't use --all if CGroups aren't present.
 	// Rootless containers with CGroups v1 and NoCgroups are both cases
 	// where this can happen.
@@ -1217,7 +1232,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 
 	if c.state.State == define.ContainerStateRunning {
 		conmonPID := c.state.ConmonPID
-		if err := c.stop(timeout, false); err != nil {
+		if err := c.stop(timeout); err != nil {
 			return err
 		}
 		// Old versions of conmon have a bug where they create the exit file before
@@ -1741,6 +1756,11 @@ func (c *Container) checkReadyForRemoval() error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed without force", c.ID(), c.state.State.String())
 	}
 
+	// Reap exec sessions
+	if err := c.reapExecSessions(); err != nil {
+		return err
+	}
+
 	if len(c.state.ExecSessions) != 0 {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
 	}
@@ -1846,4 +1866,51 @@ func (c *Container) checkExitFile() error {
 
 	// Read the exit file to get our stopped time and exit code.
 	return c.handleExitFile(exitFile, info)
+}
+
+// Reap dead exec sessions
+func (c *Container) reapExecSessions() error {
+	// Instead of saving once per iteration, use a defer to do it once at
+	// the end.
+	var lastErr error
+	needSave := false
+	for id := range c.state.ExecSessions {
+		alive, err := c.ociRuntime.ExecUpdateStatus(c, id)
+		if err != nil {
+			if lastErr != nil {
+				logrus.Errorf("Error reaping exec sessions for container %s: %v", c.ID(), lastErr)
+			}
+			lastErr = err
+			continue
+		}
+		if !alive {
+			// Clean up lingering files and remove the exec session
+			if err := c.ociRuntime.ExecContainerCleanup(c, id); err != nil {
+				return errors.Wrapf(err, "error cleaning up container %s exec session %s files", c.ID(), id)
+			}
+			delete(c.state.ExecSessions, id)
+			needSave = true
+		}
+	}
+	if needSave {
+		if err := c.save(); err != nil {
+			if lastErr != nil {
+				logrus.Errorf("Error reaping exec sessions for container %s: %v", c.ID(), lastErr)
+			}
+			lastErr = err
+		}
+	}
+	return lastErr
+}
+
+func (c *Container) hasNamespace(namespace spec.LinuxNamespaceType) bool {
+	if c.config.Spec == nil || c.config.Spec.Linux == nil {
+		return false
+	}
+	for _, n := range c.config.Spec.Linux.Namespaces {
+		if n.Type == namespace {
+			return true
+		}
+	}
+	return false
 }

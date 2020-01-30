@@ -5,7 +5,6 @@
 package ocicnitypesmock
 
 import (
-	types "github.com/containernetworking/cni/pkg/types"
 	ocicni "github.com/cri-o/ocicni/pkg/ocicni"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
@@ -49,10 +48,10 @@ func (mr *MockCNIPluginMockRecorder) GetDefaultNetworkName() *gomock.Call {
 }
 
 // GetPodNetworkStatus mocks base method
-func (m *MockCNIPlugin) GetPodNetworkStatus(arg0 ocicni.PodNetwork) ([]types.Result, error) {
+func (m *MockCNIPlugin) GetPodNetworkStatus(arg0 ocicni.PodNetwork) ([]ocicni.NetResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPodNetworkStatus", arg0)
-	ret0, _ := ret[0].([]types.Result)
+	ret0, _ := ret[0].([]ocicni.NetResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -78,10 +77,10 @@ func (mr *MockCNIPluginMockRecorder) Name() *gomock.Call {
 }
 
 // SetUpPod mocks base method
-func (m *MockCNIPlugin) SetUpPod(arg0 ocicni.PodNetwork) ([]types.Result, error) {
+func (m *MockCNIPlugin) SetUpPod(arg0 ocicni.PodNetwork) ([]ocicni.NetResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetUpPod", arg0)
-	ret0, _ := ret[0].([]types.Result)
+	ret0, _ := ret[0].([]ocicni.NetResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

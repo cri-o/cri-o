@@ -386,8 +386,7 @@ func WithNamespace(ns string) RuntimeOption {
 
 // WithVolumePath sets the path under which all named volumes
 // should be created.
-// The path changes based on whethe rthe user is running as root
-// or not.
+// The path changes based on whether the user is running as root or not.
 func WithVolumePath(volPath string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -769,16 +768,8 @@ func WithIPCNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.IPCNsCtr = nsCtr.ID()
@@ -797,16 +788,8 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.MountNsCtr = nsCtr.ID()
@@ -825,20 +808,12 @@ func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		if ctr.config.CreateNetNS {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot join another container's net ns as we are making a new net ns")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
 		}
 
 		ctr.config.NetNsCtr = nsCtr.ID()
@@ -857,16 +832,8 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		if ctr.config.NoCgroups {
@@ -889,16 +856,8 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.UserNsCtr = nsCtr.ID()
@@ -918,16 +877,8 @@ func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.UTSNsCtr = nsCtr.ID()
@@ -946,16 +897,8 @@ func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.CgroupNsCtr = nsCtr.ID()
@@ -1042,11 +985,36 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if the container is not creating a network namespace")
 		}
 
-		if len(ctr.config.Networks) != 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if joining additional CNI networks")
+		if len(ctr.config.Networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if joining more than 1 CNI network")
 		}
 
 		ctr.config.StaticIP = ip
+
+		return nil
+	}
+}
+
+// WithStaticMAC indicates that the container should request a static MAC from
+// the CNI plugins.
+// It cannot be set unless WithNetNS has already been passed.
+// Further, it cannot be set if additional CNI networks to join have been
+// specified.
+func WithStaticMAC(mac net.HardwareAddr) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		if !ctr.config.CreateNetNS {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if the container is not creating a network namespace")
+		}
+
+		if len(ctr.config.Networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if joining more than 1 CNI network")
+		}
+
+		ctr.config.StaticMAC = mac
 
 		return nil
 	}
@@ -1441,6 +1409,18 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 			return define.ErrCtrFinalized
 		}
 		ctr.config.HealthCheckConfig = healthCheck
+		return nil
+	}
+}
+
+// WithCreateCommand adds the full command plus arguments of the current
+// process to the container config.
+func WithCreateCommand() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.CreateCommand = os.Args
 		return nil
 	}
 }

@@ -341,7 +341,7 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume
 	return vms, vos, nil
 }
 
-// generateKubeVolumeMount takes a user specfied mount and returns
+// generateKubeVolumeMount takes a user specified mount and returns
 // a kubernetes VolumeMount (to be added to the container) and a kubernetes Volume
 // (to be added to the pod)
 func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {
@@ -487,13 +487,16 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 		if err := c.syncContainer(); err != nil {
 			return nil, errors.Wrapf(err, "unable to sync container during YAML generation")
 		}
+
 		logrus.Debugf("Looking in container for user: %s", c.User())
-		u, err := lookup.GetUser(c.state.Mountpoint, c.User())
+		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.User(), nil)
 		if err != nil {
 			return nil, err
 		}
-		user := int64(u.Uid)
-		sc.RunAsUser = &user
+		uid := int64(execUser.Uid)
+		gid := int64(execUser.Gid)
+		sc.RunAsUser = &uid
+		sc.RunAsGroup = &gid
 	}
 	return &sc, nil
 }
