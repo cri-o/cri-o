@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/registrar"
@@ -94,7 +93,7 @@ func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
 }
 
 // New creates a new ContainerServer with options provided
-func New(ctx context.Context, systemContext *types.SystemContext, configIface libconfig.Iface) (*ContainerServer, error) {
+func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, error) {
 	if configIface == nil {
 		return nil, fmt.Errorf("provided config is nil")
 	}
@@ -108,7 +107,7 @@ func New(ctx context.Context, systemContext *types.SystemContext, configIface li
 		return nil, fmt.Errorf("cannot create container server: interface is nil")
 	}
 
-	imageService, err := storage.GetImageService(ctx, systemContext, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
+	imageService, err := storage.GetImageService(ctx, config.SystemContext, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
 		return nil, err
 	}

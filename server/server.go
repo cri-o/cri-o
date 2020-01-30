@@ -18,8 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/image/v5/pkg/sysregistriesv2"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/lib"
@@ -29,7 +27,6 @@ import (
 	"github.com/cri-o/cri-o/internal/pkg/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
-	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
@@ -71,7 +68,6 @@ type Server struct {
 	*lib.ContainerServer
 	monitorsChan      chan struct{}
 	defaultIDMappings *idtools.IDMappings
-	systemContext     *types.SystemContext // Never nil
 
 	updateLock sync.RWMutex
 
@@ -287,11 +283,9 @@ func getIDMappings(config *libconfig.Config) (*idtools.IDMappings, error) {
 	return idtools.NewIDMappingsFromMaps(parsedUIDsMappings, parsedGIDsMappings), nil
 }
 
-// New creates a new Server with the provided context, systemContext,
-// configPath and configuration
+// New creates a new Server with the provided context, configPath and configuration
 func New(
 	ctx context.Context,
-	systemContext *types.SystemContext,
 	configPath string,
 	configIface libconfig.Iface,
 ) (*Server, error) {
@@ -300,16 +294,8 @@ func New(
 	}
 	config := configIface.GetData()
 
-	// Make a copy of systemContext we can safely modify, and which is never nil. (Note that this is a shallow copy!)
-	sc := types.SystemContext{}
-	if systemContext != nil {
-		sc = *systemContext
-	}
-	systemContext = &sc
-
-	systemContext.AuthFilePath = config.GlobalAuthFile
-	systemContext.DockerRegistryUserAgent = useragent.Get(ctx)
-	systemContext.SignaturePolicyPath = config.SignaturePolicyPath
+	config.SystemContext.AuthFilePath = config.GlobalAuthFile
+	config.SystemContext.SignaturePolicyPath = config.SignaturePolicyPath
 
 	if err := os.MkdirAll(config.ContainerAttachSocketDir, 0755); err != nil {
 		return nil, err
@@ -319,7 +305,7 @@ func New(
 	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
 		return nil, err
 	}
-	containerServer, err := lib.New(ctx, systemContext, configIface)
+	containerServer, err := lib.New(ctx, configIface)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +335,6 @@ func New(
 		appArmorProfile:   config.ApparmorProfile,
 		monitorsChan:      make(chan struct{}),
 		defaultIDMappings: idMappings,
-		systemContext:     systemContext,
 	}
 
 	s.decryptionKeysPath = config.DecryptionKeysPath
@@ -464,12 +449,6 @@ func New(
 
 	// Start a configuration watcher for the default config
 	if _, err := s.StartConfigWatcher(configPath, s.config.Reload); err != nil {
-		logrus.Infof("unable to start config watcher: %v", err)
-	}
-
-	// Start a configuration watcher for the registries of the SystemContext
-	registriesPath := sysregistriesv2.ConfigPath(s.systemContext)
-	if _, err := s.StartConfigWatcher(registriesPath, s.ReloadRegistries); err != nil {
 		logrus.Infof("unable to start config watcher: %v", err)
 	}
 
@@ -663,17 +642,6 @@ func (s *Server) StartConfigWatcher(
 
 	logrus.Debugf("registered SIGHUP watcher for file %q", fileName)
 	return c, nil
-}
-
-// ReloadRegistries reloads the registry configuration from the servers
-// `SystemContext`. The method errors in case of any update failure.
-func (s *Server) ReloadRegistries(file string) error {
-	registries, err := sysregistriesv2.TryUpdatingCache(s.systemContext)
-	if err != nil {
-		return errors.Wrapf(err, "system registries reload failed: %s", file)
-	}
-	logrus.Infof("applied new registry configuration: %+v", registries)
-	return nil
 }
 
 // ReloadDefaultAppArmorProfile reloads the default AppArmor profile and

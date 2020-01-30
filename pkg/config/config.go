@@ -20,6 +20,7 @@ import (
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/version"
+	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -51,6 +52,7 @@ type Config struct {
 	ImageConfig
 	NetworkConfig
 	MetricsConfig
+	SystemContext *types.SystemContext
 }
 
 // Iface provides a config interface for data encapsulation
@@ -488,6 +490,9 @@ func DefaultConfig() (*Config, error) {
 		return nil, err
 	}
 	return &Config{
+		SystemContext: &types.SystemContext{
+			DockerRegistryUserAgent: useragent.Get(),
+		},
 		RootConfig: RootConfig{
 			Root:           storeOpts.GraphRoot,
 			RunRoot:        storeOpts.RunRoot,
@@ -564,7 +569,7 @@ func DefaultConfig() (*Config, error) {
 // The parameter `onExecution` specifies if the validation should include
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
-func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) error {
+func (c *Config) Validate(onExecution bool) error {
 	switch c.ImageVolumes {
 	case ImageVolumesMkdir:
 	case ImageVolumesIgnore:
@@ -577,7 +582,7 @@ func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) 
 		return errors.Wrapf(err, "root config")
 	}
 
-	if err := c.RuntimeConfig.Validate(systemContext, onExecution); err != nil {
+	if err := c.RuntimeConfig.Validate(c.SystemContext, onExecution); err != nil {
 		return errors.Wrapf(err, "runtime config")
 	}
 

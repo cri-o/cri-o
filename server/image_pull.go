@@ -26,7 +26,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		image = img.Image
 	}
 
-	sourceCtx := *s.systemContext // A shallow copy we can modify
+	sourceCtx := *s.config.SystemContext // A shallow copy we can modify
 	if req.GetAuth() != nil {
 		username := req.GetAuth().Username
 		password := req.GetAuth().Password
@@ -59,7 +59,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		images []string
 		pulled string
 	)
-	images, err = s.StorageImageServer().ResolveNames(s.systemContext, image)
+	images, err = s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		defer tmpImg.Close()
 
 		var storedImage *storage.ImageResult
-		storedImage, err = s.StorageImageServer().ImageStatus(s.systemContext, img)
+		storedImage, err = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
 		if err == nil {
 			tmpImgConfigDigest := tmpImg.ConfigInfo().Digest
 			if tmpImgConfigDigest.String() == "" {
@@ -136,9 +136,9 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 				}
 			}
 		}()
-		_, err = s.StorageImageServer().PullImage(s.systemContext, img, &copy.Options{
+		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &copy.Options{
 			SourceCtx:        &sourceCtx,
-			DestinationCtx:   s.systemContext,
+			DestinationCtx:   s.config.SystemContext,
 			OciDecryptConfig: dcc,
 			ProgressInterval: time.Second,
 			Progress:         progress,
@@ -153,7 +153,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 	if pulled == "" && err != nil {
 		return nil, err
 	}
-	status, err := s.StorageImageServer().ImageStatus(s.systemContext, pulled)
+	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
 	if err != nil {
 		return nil, err
 	}

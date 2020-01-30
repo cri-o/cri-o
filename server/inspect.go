@@ -73,7 +73,7 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 	}
 	image := ctr.Image()
 	if s.ContainerServer != nil && s.ContainerServer.StorageImageServer() != nil {
-		if status, err := s.ContainerServer.StorageImageServer().ImageStatus(s.systemContext, ctr.ImageRef()); err == nil {
+		if status, err := s.ContainerServer.StorageImageServer().ImageStatus(s.config.SystemContext, ctr.ImageRef()); err == nil {
 			image = status.Name
 		}
 	}

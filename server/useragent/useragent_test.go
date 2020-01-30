@@ -1,8 +1,6 @@
 package useragent_test
 
 import (
-	"context"
-
 	"github.com/cri-o/cri-o/server/useragent"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,7 +13,7 @@ var _ = t.Describe("Useragent", func() {
 		It("should succeed", func() {
 			// Given
 			// When
-			result := useragent.Get(context.Background())
+			result := useragent.Get()
 
 			// Then
 			Expect(result).To(SatisfyAll(

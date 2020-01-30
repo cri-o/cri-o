@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/image/v5/types"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -182,13 +181,9 @@ var afterEach = func() {
 }
 
 var setupSUT = func() {
-	setupSUTWithContext(nil)
-}
-
-var setupSUTWithContext = func(ctx *types.SystemContext) {
 	var err error
 	mockNewServer()
-	sut, err = server.New(context.Background(), ctx, "", libMock)
+	sut, err = server.New(context.Background(), "", libMock)
 	Expect(err).To(BeNil())
 	Expect(sut).NotTo(BeNil())
 

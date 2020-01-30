@@ -134,7 +134,7 @@ func beforeEach() {
 	)
 
 	// Setup the sut
-	sut, err = lib.New(context.Background(), nil, libMock)
+	sut, err = lib.New(context.Background(), libMock)
 	Expect(err).To(BeNil())
 	Expect(sut).NotTo(BeNil())
 

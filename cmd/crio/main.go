@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/v5/types"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/internal/pkg/criocli"
@@ -119,10 +118,8 @@ func main() {
 	app.Description = app.Usage
 	app.Version = strings.Join(v, "\n")
 
-	systemContext := &types.SystemContext{}
-
 	var err error
-	app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata(systemContext)
+	app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -210,7 +207,7 @@ func main() {
 		}
 
 		// Validate the configuration during runtime
-		if err := config.Validate(systemContext, true); err != nil {
+		if err := config.Validate(true); err != nil {
 			cancel()
 			return err
 		}
@@ -230,7 +227,7 @@ func main() {
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
 
-		service, err := server.New(ctx, systemContext, configPath, config)
+		service, err := server.New(ctx, configPath, config)
 		if err != nil {
 			logrus.Fatal(err)
 		}
