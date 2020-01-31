@@ -18,6 +18,7 @@ h
 --cni-config-dir
 --cni-plugin-dir
 --config
+--config-dir
 --conmon
 --conmon-cgroup
 --conmon-env

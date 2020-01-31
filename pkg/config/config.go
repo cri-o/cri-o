@@ -438,6 +438,24 @@ func (c *Config) UpdateFromFile(path string) error {
 	return nil
 }
 
+// UpdateFromPath recursively iterates the provided path and updates the
+// configuration for it
+func (c *Config) UpdateFromPath(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil
+	}
+	return filepath.Walk(path,
+		func(p string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			return c.UpdateFromFile(p)
+		})
+}
+
 // ToFile outputs the given Config as a TOML-encoded file at the given path.
 // Returns errors encountered when generating or writing the file, or nil
 // otherwise.
