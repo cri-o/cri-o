@@ -370,7 +370,7 @@ docs-generation:
 bundle:
 	bundle/build
 
-install: .gopathok install.bin install.man install.completions
+install: .gopathok install.bin install.man install.completions install.systemd install.config
 
 install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
