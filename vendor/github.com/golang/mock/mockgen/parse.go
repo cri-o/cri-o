@@ -41,13 +41,14 @@ var (
 
 // TODO: simplify error reporting
 
-func parseFile(source string) (*model.Package, error) {
+// sourceMode generates mocks via source file.
+func sourceMode(source string) (*model.Package, error) {
 	srcDir, err := filepath.Abs(filepath.Dir(source))
 	if err != nil {
 		return nil, fmt.Errorf("failed getting source directory: %v", err)
 	}
 
-	cfg := &packages.Config{Mode: packages.LoadSyntax, Tests: true}
+	cfg := &packages.Config{Mode: packages.LoadFiles, Tests: true, Dir: srcDir}
 	pkgs, err := packages.Load(cfg, "file="+source)
 	if err != nil {
 		return nil, err
@@ -101,8 +102,8 @@ func parseFile(source string) (*model.Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	for path := range dotImports {
-		pkg.DotImports = append(pkg.DotImports, path)
+	for pkgPath := range dotImports {
+		pkg.DotImports = append(pkg.DotImports, pkgPath)
 	}
 	return pkg, nil
 }
@@ -161,18 +162,18 @@ func (p *fileParser) addAuxInterfacesFromFile(pkg string, file *ast.File) {
 func (p *fileParser) parseFile(importPath string, file *ast.File) (*model.Package, error) {
 	allImports, dotImports := importsOfFile(file)
 	// Don't stomp imports provided by -imports. Those should take precedence.
-	for pkg, path := range allImports {
+	for pkg, pkgPath := range allImports {
 		if _, ok := p.imports[pkg]; !ok {
-			p.imports[pkg] = path
+			p.imports[pkg] = pkgPath
 		}
 	}
 	// Add imports from auxiliary files, which might be needed for embedded interfaces.
 	// Don't stomp any other imports.
 	for _, f := range p.auxFiles {
 		auxImports, _ := importsOfFile(f)
-		for pkg, path := range auxImports {
+		for pkg, pkgPath := range auxImports {
 			if _, ok := p.imports[pkg]; !ok {
-				p.imports[pkg] = path
+				p.imports[pkg] = pkgPath
 			}
 		}
 	}
@@ -187,6 +188,7 @@ func (p *fileParser) parseFile(importPath string, file *ast.File) (*model.Packag
 	}
 	return &model.Package{
 		Name:       file.Name.String(),
+		PkgPath:    importPath,
 		Interfaces: is,
 		DotImports: dotImports,
 	}, nil
@@ -250,9 +252,7 @@ func (p *fileParser) parseInterface(name, pkg string, it *ast.InterfaceType) (*m
 			}
 			// Copy the methods.
 			// TODO: apply shadowing rules.
-			for _, m := range eintf.Methods {
-				intf.Methods = append(intf.Methods, m)
-			}
+			intf.Methods = append(intf.Methods, eintf.Methods...)
 		case *ast.SelectorExpr:
 			// Embedded interface in another package.
 			fpkg, sel := v.X.(*ast.Ident).String(), v.Sel.String()
@@ -278,9 +278,7 @@ func (p *fileParser) parseInterface(name, pkg string, it *ast.InterfaceType) (*m
 			}
 			// Copy the methods.
 			// TODO: apply shadowing rules.
-			for _, m := range eintf.Methods {
-				intf.Methods = append(intf.Methods, m)
-			}
+			intf.Methods = append(intf.Methods, eintf.Methods...)
 		default:
 			return nil, fmt.Errorf("don't know how to mock method of type %T", field.Type)
 		}
@@ -455,15 +453,15 @@ func importsOfFile(file *ast.File) (normalImports map[string]string, dotImports 
 			}
 			pkgName = is.Name.Name
 		} else {
-			pkg, err := build.Import(importPath, "", 0)
-			if err != nil {
+			pkg, ok := lookupPackageName(importPath)
+			if !ok {
 				// Fallback to import path suffix. Note that this is uncertain.
 				_, last := path.Split(importPath)
 				// If the last path component has dots, the first dot-delimited
 				// field is used as the name.
 				pkgName = strings.SplitN(last, ".", 2)[0]
 			} else {
-				pkgName = pkg.Name
+				pkgName = pkg
 			}
 		}
 

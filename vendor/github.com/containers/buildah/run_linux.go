@@ -31,6 +31,7 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/docker/docker/oci/caps"
 	"github.com/docker/go-units"
 	"github.com/docker/libnetwork/resolvconf"
 	"github.com/docker/libnetwork/types"
@@ -460,7 +461,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	}
 
 	// Get the list of secrets mounts.
-	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, cdir, int(rootUID), int(rootGID), unshare.IsRootless(), false)
+	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, mountPoint, int(rootUID), int(rootGID), unshare.IsRootless(), false)
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
@@ -1670,7 +1671,17 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			}
 		}
 		if foundO {
-			overlayMount, contentDir, err := overlay.MountTemp(b.store, b.ContainerID, host, container, rootUID, rootGID)
+			containerDir, err := b.store.ContainerDirectory(b.ContainerID)
+			if err != nil {
+				return specs.Mount{}, err
+			}
+
+			contentDir, err := overlay.TempDir(containerDir, rootUID, rootGID)
+			if err != nil {
+				return specs.Mount{}, errors.Wrapf(err, "failed to create TempDir in the %s directory", containerDir)
+			}
+
+			overlayMount, err := overlay.Mount(contentDir, host, container, rootUID, rootGID, b.store.GraphOptions())
 			if err == nil {
 
 				b.TempVolumes[contentDir] = true
@@ -1789,21 +1800,27 @@ func setupCapDrop(g *generate.Generator, caps ...string) error {
 	return nil
 }
 
-func setupCapabilities(g *generate.Generator, firstAdds, firstDrops, secondAdds, secondDrops []string) error {
+func setupCapabilities(g *generate.Generator, defaultCapabilities, adds, drops []string) error {
 	g.ClearProcessCapabilities()
-	if err := setupCapAdd(g, util.DefaultCapabilities...); err != nil {
+	if err := setupCapAdd(g, defaultCapabilities...); err != nil {
 		return err
 	}
-	if err := setupCapAdd(g, firstAdds...); err != nil {
+	for _, c := range adds {
+		if strings.ToLower(c) == "all" {
+			adds = caps.GetAllCapabilities()
+			break
+		}
+	}
+	for _, c := range drops {
+		if strings.ToLower(c) == "all" {
+			g.ClearProcessCapabilities()
+			return nil
+		}
+	}
+	if err := setupCapAdd(g, adds...); err != nil {
 		return err
 	}
-	if err := setupCapDrop(g, firstDrops...); err != nil {
-		return err
-	}
-	if err := setupCapAdd(g, secondAdds...); err != nil {
-		return err
-	}
-	return setupCapDrop(g, secondDrops...)
+	return setupCapDrop(g, drops...)
 }
 
 // Search for a command that isn't given as an absolute path using the $PATH
@@ -1870,7 +1887,7 @@ func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, opti
 	if err != nil {
 		return "", err
 	}
-	if err := setupCapabilities(g, b.AddCapabilities, b.DropCapabilities, options.AddCapabilities, options.DropCapabilities); err != nil {
+	if err := setupCapabilities(g, b.Capabilities, options.AddCapabilities, options.DropCapabilities); err != nil {
 		return "", err
 	}
 	g.SetProcessUID(user.UID)
@@ -1891,6 +1908,7 @@ func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, opti
 
 func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions) {
 	g.ClearProcessEnv()
+
 	if b.CommonBuildOpts.HTTPProxy {
 		for _, envSpec := range []string{
 			"http_proxy",
