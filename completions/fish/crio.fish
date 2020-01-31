@@ -101,7 +101,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-ca -r -d 'Path to 
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-cert -r -d 'Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-key -r -d 'Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l uid-mappings -r -d 'Specify the UID mappings to use for the user namespace (default: "")'
-complete -c crio -n '__fish_crio_no_subcommand' -l version-file -r -d 'Location for CRI-O to lay down the version file (default: /var/lib/crio/version)'
+complete -c crio -n '__fish_crio_no_subcommand' -l version-file -r -d 'Location for CRI-O to lay down the version file (default: /var/run/crio/version)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l help -s h -d 'show help'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l version -s v -d 'print the version'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l help -s h -d 'show help'
