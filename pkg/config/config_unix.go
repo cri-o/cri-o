@@ -19,5 +19,5 @@ const (
 	CrioSocketPath = "/var/run/crio/crio.sock"
 
 	// CrioVersionPath is where the CRI-O version file is located
-	CrioVersionPath = "/var/lib/crio/version"
+	CrioVersionPath = "/var/run/crio/version"
 )

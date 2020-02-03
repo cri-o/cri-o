@@ -284,7 +284,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--version, -v**: print the version
 
-**--version-file**="": Location for CRI-O to lay down the version file (default: /var/lib/crio/version)
+**--version-file**="": Location for CRI-O to lay down the version file (default: /var/run/crio/version)
 
 
 # COMMANDS
