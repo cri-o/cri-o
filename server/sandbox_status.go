@@ -1,6 +1,8 @@
 package server
 
 import (
+	"github.com/cri-o/cri-o/internal/oci"
+
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -12,8 +14,11 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		return nil, err
 	}
 
+	podInfraContainer := sb.InfraContainer()
+	cState := podInfraContainer.State()
+
 	rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
-	if sb.Ready(true) {
+	if cState.Status == oci.ContainerStateRunning {
 		rStatus = pb.PodSandboxState_SANDBOX_READY
 	}
 
@@ -31,7 +36,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	resp = &pb.PodSandboxStatusResponse{
 		Status: &pb.PodSandboxStatus{
 			Id:          sandboxID,
-			CreatedAt:   sb.CreatedAt().UnixNano(),
+			CreatedAt:   podInfraContainer.CreatedAt().UnixNano(),
 			Network:     &pb.PodSandboxNetworkStatus{},
 			State:       rStatus,
 			Labels:      sb.Labels(),
