@@ -758,6 +758,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddAnnotation("org.opencontainers.image.stopSignal", containerImageConfig.Config.StopSignal)
 	}
 
+	// Add environment variables from image the CRI configuration
+	envs := mergeEnvs(containerImageConfig, containerConfig.GetEnvs())
+	for _, e := range envs {
+		parts := strings.SplitN(e, "=", 2)
+		specgen.AddProcessEnv(parts[0], parts[1])
+	}
+
 	// Setup user and groups
 	if linux != nil {
 		if err := setupContainerUser(ctx, &specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
@@ -776,12 +783,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		return nil, err
 	}
 	specgen.SetProcessArgs(processArgs)
-
-	envs := mergeEnvs(containerImageConfig, containerConfig.GetEnvs())
-	for _, e := range envs {
-		parts := strings.SplitN(e, "=", 2)
-		specgen.AddProcessEnv(parts[0], parts[1])
-	}
 
 	// Set working directory
 	// Pick it up from image config first and override if specified in CRI
