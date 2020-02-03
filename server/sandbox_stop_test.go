@@ -23,7 +23,8 @@ var _ = t.Describe("PodSandboxStatus", func() {
 		It("should succeed with already stopped sandbox", func() {
 			// Given
 			addContainerAndSandbox()
-			testSandbox.SetStopped()
+			testSandbox.SetStopped(false)
+			Expect(testSandbox.SetNetworkStopped(false)).To(BeNil())
 
 			// When
 			response, err := sut.StopPodSandbox(context.Background(),
