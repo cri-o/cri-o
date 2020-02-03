@@ -623,7 +623,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		log.Errorf(ctx, "%v", err)
 	}
 
-	log.Infof(ctx, "Created container: %s", container.Description())
+	log.Infof(ctx, "Created container %s: %s", container.ID(), container.Description())
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
 	}

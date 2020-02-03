@@ -139,7 +139,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		log.Warnf(ctx, "error writing pod infra container %q state to disk: %v", podInfraContainer.ID(), err)
 	}
 
-	log.Infof(ctx, "stopped pod sandbox: %s", podInfraContainer.Description())
+	log.Infof(ctx, "stopped pod sandbox: %s", sb.ID())
 	sb.SetStopped(true)
 	resp = &pb.StopPodSandboxResponse{}
 	return resp, nil
