@@ -805,7 +805,7 @@ var _ = t.Describe("Config", func() {
 	t.Describe("UpdateFromPath", func() {
 		It("should succeed with the correct priority", func() {
 			// Given
-			Expect(sut.LogLevel).To(Equal("error"))
+			Expect(sut.LogLevel).To(Equal("info"))
 
 			configDir := t.MustTempDir("config-dir")
 			Expect(ioutil.WriteFile(
