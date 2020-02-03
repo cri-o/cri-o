@@ -611,7 +611,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	container.SetCreated()
 
-	logrus.Infof("Created container: %s", container.Description())
+	logrus.Infof("Created container %s: %s", container.ID(), container.Description())
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
 	}
