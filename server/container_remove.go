@@ -22,7 +22,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 
 	s.StopMonitoringConmon(c)
 
-	log.Infof(ctx, "Removed container %s", c.Description())
+	log.Infof(ctx, "Removed container %s: %s", c.ID(), c.Description())
 	resp = &pb.RemoveContainerResponse{}
 	return resp, nil
 }
