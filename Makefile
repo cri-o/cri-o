@@ -119,6 +119,8 @@ endif
 	touch "$(GOPATH)/.gopathok"
 
 lint: .gopathok ${GOLANGCI_LINT}
+	${GOLANGCI_LINT} version
+	${GOLANGCI_LINT} linters
 	${GOLANGCI_LINT} run
 
 bin/pinns:
@@ -235,7 +237,7 @@ ${RELEASE_TOOL}:
 
 ${GOLANGCI_LINT}:
 	export \
-		VERSION=v1.23.1 \
+		VERSION=v1.23.3 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
