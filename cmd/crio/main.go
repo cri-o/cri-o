@@ -31,10 +31,6 @@ import (
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
-// gitCommit is the commit that the binary is being built from.
-// It will be populated by the Makefile.
-var gitCommit = ""
-
 func writeCrioGoroutineStacks() {
 	path := filepath.Join("/tmp", fmt.Sprintf("crio-goroutine-stacks-%s.log", strings.Replace(time.Now().Format(time.RFC3339), ":", "", -1))) // nolint: gocritic
 	if err := utils.WriteGoroutineStacksToFile(path); err != nil {
@@ -108,8 +104,8 @@ func main() {
 
 	var v []string
 	v = append(v, version.Version)
-	if gitCommit != "" && gitCommit != "unknown" {
-		v = append(v, fmt.Sprintf("commit: %s", gitCommit))
+	if version.GitCommit != "" && version.GitCommit != "unknown" {
+		v = append(v, fmt.Sprintf("commit: %s", version.GitCommit))
 	}
 	app.Name = "crio"
 	app.Usage = "OCI-based implementation of Kubernetes Container Runtime Interface"
@@ -131,6 +127,7 @@ func main() {
 	app.Commands = criocli.DefaultCommands
 	app.Commands = append(app.Commands, []*cli.Command{
 		configCommand,
+		versionCommand,
 		wipeCommand,
 	}...)
 
@@ -233,7 +230,7 @@ func main() {
 		}
 
 		// Immediately upon start up, write our new version file
-		if err := version.WriteVersionFile(config.VersionFile, gitCommit); err != nil {
+		if err := version.WriteVersionFile(config.VersionFile, version.GitCommit); err != nil {
 			logrus.Fatal(err)
 		}
 

@@ -2,10 +2,14 @@ package version
 
 import (
 	"bufio"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/blang/semver"
 	"github.com/google/renameio"
@@ -14,6 +18,22 @@ import (
 
 // Version is the version of the build.
 const Version = "1.17.0-dev"
+
+var (
+	GitCommit    string // sha1 from git, output of $(git rev-parse HEAD)
+	gitTreeState string // state of git tree, either "clean" or "dirty"
+	buildDate    string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+)
+
+type Info struct {
+	Version      string `json:"version,omitempty"`
+	GitCommit    string `json:"gitCommit,omitempty"`
+	GitTreeState string `json:"gitTreeState,omitempty"`
+	BuildDate    string `json:"buildDate,omitempty"`
+	GoVersion    string `json:"goVersion,omitempty"`
+	Compiler     string `json:"compiler,omitempty"`
+	Platform     string `json:"platform,omitempty"`
+}
 
 // ShouldCrioWipe opens the version file, and parses it and the version string
 // If there is a parsing error, then crio should wipe, and the error is returned.
@@ -69,7 +89,7 @@ func writeVersionFile(file, gitCommit, version string) error {
 	if err != nil {
 		return err
 	}
-	json, err := current.MarshalJSON()
+	j, err := current.MarshalJSON()
 	// Sanity check-this should never happen
 	if err != nil {
 		return err
@@ -80,7 +100,7 @@ func writeVersionFile(file, gitCommit, version string) error {
 		return err
 	}
 
-	return renameio.WriteFile(file, json, 0644)
+	return renameio.WriteFile(file, j, 0644)
 }
 
 // parseVersionConstant parses the Version variable above
@@ -102,4 +122,42 @@ func parseVersionConstant(versionString, gitCommit string) (*semver.Version, err
 		}
 	}
 	return &v, nil
+}
+
+func Get() *Info {
+	return &Info{
+		Version:      Version,
+		GitCommit:    GitCommit,
+		GitTreeState: gitTreeState,
+		BuildDate:    buildDate,
+		GoVersion:    runtime.Version(),
+		Compiler:     runtime.Compiler,
+		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+	}
+}
+
+// String returns the string representation of the version info
+func (i *Info) String() string {
+	b := strings.Builder{}
+	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
+
+	fmt.Fprintf(w, "Version:\t%s\n", i.Version)
+	fmt.Fprintf(w, "GitCommit:\t%s\n", i.GitCommit)
+	fmt.Fprintf(w, "GitTreeState:\t%s\n", i.GitTreeState)
+	fmt.Fprintf(w, "BuildDate:\t%s\n", i.BuildDate)
+	fmt.Fprintf(w, "GoVersion:\t%s\n", i.GoVersion)
+	fmt.Fprintf(w, "Compiler:\t%s\n", i.Compiler)
+	fmt.Fprintf(w, "Platform:\t%s\n", i.Platform)
+
+	w.Flush()
+	return b.String()
+}
+
+// JSONString returns the JSON representation of the version info
+func (i *Info) JSONString() (string, error) {
+	b, err := json.MarshalIndent(i, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }

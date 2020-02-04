@@ -2,7 +2,7 @@
 
 function __fish_crio_no_subcommand --description 'Test if there has been any subcommand yet'
     for i in (commandline -opc)
-        if contains -- $i complete completion man markdown md config wipe help h
+        if contains -- $i complete completion man markdown md config version wipe help h
             return 1
         end
     end
@@ -132,6 +132,9 @@ complete -r -c crio -n '__fish_crio_no_subcommand' -a 'config' -d 'Outputs a com
 by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.'
 complete -c crio -n '__fish_seen_subcommand_from config' -f -l default -d 'Output the default configuration (without taking into account any configuration options).'
+complete -c crio -n '__fish_seen_subcommand_from version' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_crio_no_subcommand' -a 'version' -d 'display detailed version information'
+complete -c crio -n '__fish_seen_subcommand_from version' -f -l json -s j -d 'print JSON instead of text'
 complete -c crio -n '__fish_seen_subcommand_from wipe' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'wipe' -d 'wipe CRI-O\'s container and image storage'
 complete -c crio -n '__fish_seen_subcommand_from help h' -f -l help -s h -d 'show help'
