@@ -757,8 +757,13 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		if err != nil {
 			return
 		}
+		err = g.RemoveLinuxNamespace(string(runtimespec.UTSNamespace))
+		if err != nil {
+			return
+		}
 	} else if s.config.ManageNSLifecycle {
 		managedNamespaces = append(managedNamespaces, sandbox.NETNS)
+		managedNamespaces = append(managedNamespaces, sandbox.UTSNS)
 	}
 
 	if hostIPC {
@@ -780,8 +785,6 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 
 	// There's no option to set hostUTS
 	if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, sandbox.UTSNS)
-
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
 		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, &s.config)
 		if err != nil {
