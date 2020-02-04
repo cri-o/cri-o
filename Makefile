@@ -37,7 +37,6 @@ COVERAGE_PATH := ${BUILD_PATH}/coverage
 JUNIT_PATH := ${BUILD_PATH}/junit
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
-MOCKGEN_FLAGS := --build_flags='--tags=test $(BUILDTAGS)'
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 FISHINSTALLDIR=${PREFIX}/share/fish/completions
@@ -285,49 +284,42 @@ mockgen: \
 
 mock-containerstorage: ${MOCKGEN}
 	${MOCKGEN} \
-		${MOCKGEN_FLAGS} \
 		-package containerstoragemock \
 		-destination ${MOCK_PATH}/containerstorage/containerstorage.go \
 		github.com/containers/storage Store
 
 mock-criostorage: ${MOCKGEN}
 	${MOCKGEN} \
-		${MOCKGEN_FLAGS} \
 		-package criostoragemock \
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
 		github.com/cri-o/cri-o/internal/pkg/storage ImageServer,RuntimeServer
 
 mock-lib-config: ${MOCKGEN}
 	${MOCKGEN} \
-		${MOCKGEN_FLAGS} \
 		-package libconfigmock \
 		-destination ${MOCK_PATH}/lib/lib.go \
 		github.com/cri-o/cri-o/pkg/config Iface
 
 mock-oci: ${MOCKGEN}
 	${MOCKGEN} \
-		${MOCKGEN_FLAGS} \
 		-package ocimock \
 		-destination ${MOCK_PATH}/oci/oci.go \
 		github.com/cri-o/cri-o/internal/oci RuntimeImpl
 
 mock-sandbox: ${MOCKGEN}
 	${MOCKGEN} \
-		${MOCKGEN_FLAGS} \
 		-package sandboxmock \
 		-destination ${MOCK_PATH}/sandbox/sandbox.go \
 		github.com/cri-o/cri-o/internal/lib/sandbox NamespaceIface
 
 mock-image-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
-		${MOCKGEN_FLAGS} \
 		-package imagetypesmock \
 		-destination ${MOCK_PATH}/containers/image/v5/types.go \
 		github.com/containers/image/v5/types ImageCloser
 
 mock-ocicni-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
-		${MOCKGEN_FLAGS} \
 		-package ocicnitypesmock \
 		-destination ${MOCK_PATH}/ocicni/types.go \
 		github.com/cri-o/ocicni/pkg/ocicni CNIPlugin
