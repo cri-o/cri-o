@@ -27,6 +27,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"text/template"
 
 	"github.com/golang/mock/mockgen/model"
@@ -116,7 +117,7 @@ func runInDir(program []byte, dir string) (*model.Package, error) {
 	cmdArgs := []string{}
 	cmdArgs = append(cmdArgs, "build")
 	if *buildFlags != "" {
-		cmdArgs = append(cmdArgs, *buildFlags)
+		cmdArgs = append(cmdArgs, strings.Split(*buildFlags, " ")...)
 	}
 	cmdArgs = append(cmdArgs, "-o", progBinary, progSource)
 
@@ -131,7 +132,8 @@ func runInDir(program []byte, dir string) (*model.Package, error) {
 	return run(filepath.Join(tmpDir, progBinary))
 }
 
-func reflect(importPath string, symbols []string) (*model.Package, error) {
+// reflectMode generates mocks via reflection on an interface.
+func reflectMode(importPath string, symbols []string) (*model.Package, error) {
 	// TODO: sanity check arguments
 
 	if *execOnly != "" {
@@ -144,7 +146,7 @@ func reflect(importPath string, symbols []string) (*model.Package, error) {
 	}
 
 	if *progOnly {
-		os.Stdout.Write(program)
+		_, _ = os.Stdout.Write(program)
 		os.Exit(0)
 	}
 
