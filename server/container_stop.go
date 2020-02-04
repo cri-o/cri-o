@@ -21,14 +21,13 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	if err != nil {
 		return nil, err
 	}
-	description := c.Description()
 
 	_, err = s.ContainerServer.ContainerStop(ctx, req.ContainerId, req.Timeout)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Infof(ctx, "stopped container: %s", description)
+	log.Infof(ctx, "stopped container %s: %s", c.ID(), c.Description())
 	resp = &pb.StopContainerResponse{}
 	return resp, nil
 }
