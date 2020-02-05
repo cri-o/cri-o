@@ -126,6 +126,8 @@ github.com/containers/image v3.0.2+incompatible h1:B1lqAE8MUPCrsBLE86J0gnXleeRq8
 github.com/containers/image v3.0.2+incompatible/go.mod h1:8Vtij257IWSanUQKe1tAeNOm2sRVkSqQTVQ1IlwI3+M=
 github.com/containers/image/v5 v5.0.0 h1:arnXgbt1ucsC/ndtSpiQY87rA0UjhF+/xQnPzqdBDn4=
 github.com/containers/image/v5 v5.0.0/go.mod h1:MgiLzCfIeo8lrHi+4Lb8HP+rh513sm0Mlk6RrhjFOLY=
+github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0 h1:iV4aHKRoPcHp5BISsuiPMyaCjGJfLKp/FUMAG1NeqvE=
+github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0/go.mod h1:MgiLzCfIeo8lrHi+4Lb8HP+rh513sm0Mlk6RrhjFOLY=
 github.com/containers/libpod v0.8.3-0.20190628005010-4aa109f00e95 h1:b5fISjEVoZbR8jNmN9A1p2sZjBT1op9HeaA9T/zEu6s=
 github.com/containers/libpod v0.8.3-0.20190628005010-4aa109f00e95/go.mod h1:dO1PO7t9N5BfdGX0bXhwgBuEgm8DC4QLir8vgdl3ZDY=
 github.com/containers/libpod v0.8.3-0.20190628140055-5e42bf071760 h1:JrdoLRKPp84uxgaOKmXP6DK02KU5p6nNEoKWJeD3bbs=
