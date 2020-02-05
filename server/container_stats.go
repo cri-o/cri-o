@@ -4,20 +4,20 @@ import (
 	"path/filepath"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/pkg/log"
 	crioStorage "github.com/cri-o/cri-o/utils"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
-func (s *Server) buildContainerStats(stats *oci.ContainerStats, container *oci.Container) *pb.ContainerStats {
+func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerStats, container *oci.Container) *pb.ContainerStats {
 	// TODO: Fix this for other storage drivers. This will only work with overlay.
 	var writableLayer *pb.FilesystemUsage
 	if s.ContainerServer.Config().RootConfig.Storage == "overlay" {
 		diffDir := filepath.Join(filepath.Dir(container.MountPoint()), "diff")
 		bytesUsed, inodeUsed, err := crioStorage.GetDiskUsageStats(diffDir)
 		if err != nil {
-			logrus.Warnf("unable to get disk usage for container %s， %s", container.ID(), err)
+			log.Warnf(ctx, "unable to get disk usage for container %s， %s", container.ID(), err)
 		}
 		writableLayer = &pb.FilesystemUsage{
 			Timestamp:  stats.SystemNano,
@@ -59,5 +59,5 @@ func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsReque
 		return nil, err
 	}
 
-	return &pb.ContainerStatsResponse{Stats: s.buildContainerStats(stats, container)}, nil
+	return &pb.ContainerStatsResponse{Stats: s.buildContainerStats(ctx, stats, container)}, nil
 }
