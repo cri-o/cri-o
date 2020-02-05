@@ -634,7 +634,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, ctx.Err()
 	}
 
-	log.Infof(ctx, "ran pod sandbox with infra container: %s", container.Description())
+	log.Infof(ctx, "ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	return resp, nil
 }

@@ -46,7 +46,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		return nil, fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}
 
-	log.Infof(ctx, "Started container: %s", c.Description())
+	log.Infof(ctx, "Started container %s: %s", c.ID(), c.Description())
 	resp = &pb.StartContainerResponse{}
 	return resp, nil
 }
