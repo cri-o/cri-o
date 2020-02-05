@@ -1,7 +1,15 @@
 # oci-runtime-tool [![Build Status](https://travis-ci.org/opencontainers/runtime-tools.svg?branch=master)](https://travis-ci.org/opencontainers/runtime-tools) [![Go Report Card](https://goreportcard.com/badge/github.com/opencontainers/runtime-tools)](https://goreportcard.com/report/github.com/opencontainers/runtime-tools)
 
 oci-runtime-tool is a collection of tools for working with the [OCI runtime specification][runtime-spec].
-To build from source code, runtime-tools requires Go 1.7.x or above.
+To build from source code, runtime-tools requires Go 1.10.x or above.
+
+## Table of Contents
+
+Additional documentation about how this group operates:
+
+- [Code of Conduct][code-of-conduct]
+- [security][security]
+
 
 ## Generating an OCI runtime spec configuration files
 
@@ -43,9 +51,9 @@ Build the validation executables:
 $ make runtimetest validation-executables
 ```
 
-Runtime validation currently [only supports](docs/runtime-compliance-testing.md) the [OCI Runtime Command Line Interface](doc/command-line-interface.md).
+Runtime validation currently [only supports](docs/runtime-compliance-testing.md) the [OCI Runtime Command Line Interface](docs/command-line-interface.md).
 If we add support for alternative APIs in the future, runtime validation will gain an option to select the desired runtime API.
-For the command line interface, the `RUNTIME` option selects the runtime command (`funC` in the [OCI Runtime Command Line Interface](doc/command-line-interface.md)).
+For the command line interface, the `RUNTIME` option selects the runtime command (`funC` in the [OCI Runtime Command Line Interface](docs/command-line-interface.md)).
 
 ```
 $ sudo make RUNTIME=runc localvalidation
@@ -69,7 +77,7 @@ validation/linux_cgroups_hugetlb.t .................... 0/1
 
 validation/linux_cgroups_memory.t ..................... 9/9
 validation/linux_rootfs_propagation_shared.t ...... 252/282
-  not ok shared root propogation exposes "/target348456609/mount892511628/example376408222"
+  not ok shared root propagation exposes "/target348456609/mount892511628/example376408222"
 
   Skipped: 29
      /dev/null (default device) has unconfigured permissions
@@ -87,7 +95,7 @@ make: *** [Makefile:44: localvalidation] Error 1
 You can also run an individual test executable directly:
 
 ```console
-$ RUNTIME=runc validation/default.t
+$ sudo RUNTIME=runc validation/default/default.t
 TAP version 13
 ok 1 - has expected hostname
   ---
@@ -105,13 +113,15 @@ If you cannot install node-tap, you can probably run the test suite with another
 For example, with [`prove`][prove]:
 
 ```console
-$ sudo make TAP='prove -Q -j9' RUNTIME=runc VALIDATION_TESTS=validation/pidfile.t localvalidation
+$ sudo make TAP='prove -Q -j9' RUNTIME=runc VALIDATION_TESTS=validation/pidfile/pidfile.t localvalidation
 RUNTIME=runc prove -Q -j9 validation/pidfile.t
 All tests successful.
 Files=1, Tests=1,  0 wallclock secs ( 0.01 usr  0.01 sys +  0.03 cusr  0.03 csys =  0.08 CPU)
 Result: PASS
 ```
 
+[security]: https://github.com/opencontainers/org/blob/master/security
+[code-of-conduct]: https://github.com/opencontainers/org/blob/master/CODE_OF_CONDUCT.md
 [bundle]: https://github.com/opencontainers/runtime-spec/blob/master/bundle.md
 [config.json]: https://github.com/opencontainers/runtime-spec/blob/master/config.md
 [debian-node-tap]: https://packages.debian.org/stretch/node-tap
