@@ -650,6 +650,11 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Value:   defConf.GRPCMaxSendMsgSize,
 			EnvVars: []string{"CONTAINER_GRPC_MAX_SEND_MSG_SIZE"},
 		},
+		&cli.StringSliceFlag{
+			Name:   "host-ip",
+			Usage:  "Deprecated: this option is no longer used",
+			Hidden: true,
+		},
 		&cli.BoolFlag{
 			Name:    "manage-network-ns-lifecycle",
 			Usage:   "Deprecated: this option is being replaced by `manage_ns_lifecycle`, which is described below",
