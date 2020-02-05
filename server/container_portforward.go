@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os/exec"
 	"strings"
 	"time"
@@ -33,6 +34,16 @@ func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (r
 }
 
 func (ss streamService) PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error {
+	// if we error in this function before Copying all of the content out of the stream,
+	// this stream will eventually get full, which causes leakages and can eventually brick CRI-O
+	// ref https://bugzilla.redhat.com/show_bug.cgi?id=1798193
+	emptyStreamOnError := true
+	defer func() {
+		if emptyStreamOnError {
+			go pools.Copy(ioutil.Discard, stream)
+		}
+	}()
+
 	sandboxID, err := ss.runtimeServer.PodIDIndex().Get(podSandboxID)
 	if err != nil {
 		return fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
@@ -88,6 +99,8 @@ func (ss streamService) PortForward(podSandboxID string, port int32, stream io.R
 		return fmt.Errorf("unable to do port forwarding: error creating stdin pipe: %v", err)
 	}
 	go func() {
+		// now that we are about to read from the pool, we can not drain the stream
+		emptyStreamOnError = false
 		pools.Copy(inPipe, stream)
 		inPipe.Close()
 	}()
