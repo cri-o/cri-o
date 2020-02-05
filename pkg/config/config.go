@@ -750,11 +750,17 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrapf(err, "invalid registries")
 		}
 
+		// Sort out invalid hooks directories
+		hooksDirs := []string{}
 		for _, hooksDir := range c.HooksDir {
 			if err := utils.IsDirectory(hooksDir); err != nil {
-				return errors.Wrapf(err, "invalid hooks_dir: %s", err)
+				logrus.Warnf("skipping invalid hooks directory: %v", err)
+				continue
 			}
+			logrus.Debugf("using  hooks directory: %s", hooksDir)
+			hooksDirs = append(hooksDirs, hooksDir)
 		}
+		c.HooksDir = hooksDirs
 
 		// Validate the conmon path
 		if err := c.ValidateConmonPath("conmon"); err != nil {

@@ -46,6 +46,8 @@ complete -c crio -n '__fish_crio_no_subcommand' -l global-auth-file -r -d 'Path 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l grpc-max-recv-msg-size -r -d 'Maximum grpc receive message size in bytes'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l grpc-max-send-msg-size -r -d 'Maximum grpc receive message size'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l hooks-dir -r -d 'Set the OCI hooks directory path (may be set multiple times) (default: ["/usr/share/containers/oci/hooks.d"])
+    If one of the directories does not exist, then CRI-O will automatically
+    skip them.
     Each \'\*.json\' file in the path configures a hook for CRI-O
     containers. For more details on the syntax of the JSON files and
     the semantics of hook injection, see \'oci-hooks(5)\'. CRI-O
