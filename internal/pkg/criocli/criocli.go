@@ -524,6 +524,8 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.StringSliceFlag{
 			Name: "hooks-dir",
 			Usage: fmt.Sprintf("Set the OCI hooks directory path (may be set multiple times) (default: %q)", defConf.HooksDir) + `
+    If one of the directories does not exist, then CRI-O will automatically
+    skip them.
     Each '\*.json' file in the path configures a hook for CRI-O
     containers. For more details on the syntax of the JSON files and
     the semantics of hook injection, see 'oci-hooks(5)'. CRI-O

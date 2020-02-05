@@ -160,7 +160,8 @@ default_sysctls = [
 additional_devices = [
 {{ range $device := .AdditionalDevices}}{{ printf "\t%q, \n" $device}}{{ end }}]
 
-# Path to OCI hooks directories for automatically executed hooks.
+# Path to OCI hooks directories for automatically executed hooks. If one of the
+# directories does not exist, then CRI-O will automatically skip them.
 hooks_dir = [
 {{ range $hooksDir := .HooksDir }}{{ printf "\t%q, \n" $hooksDir}}{{ end }}]
 

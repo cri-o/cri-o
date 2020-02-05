@@ -173,6 +173,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--help, -h**: show help
 
 **--hooks-dir**="": Set the OCI hooks directory path (may be set multiple times) (default: ["/usr/share/containers/oci/hooks.d"])
+    If one of the directories does not exist, then CRI-O will automatically
+    skip them.
     Each '\*.json' file in the path configures a hook for CRI-O
     containers. For more details on the syntax of the JSON files and
     the semantics of hook injection, see 'oci-hooks(5)'. CRI-O

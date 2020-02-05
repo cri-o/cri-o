@@ -214,39 +214,30 @@ var _ = t.Describe("Config", func() {
 			sut.PinnsPath = validFilePath
 			sut.NamespacesDir = os.TempDir()
 			sut.Conmon = validFilePath
-			sut.HooksDir = []string{validDirPath}
+			sut.HooksDir = []string{validDirPath, validDirPath, validDirPath}
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
 			Expect(err).To(BeNil())
+			Expect(sut.HooksDir).To(HaveLen(3))
 		})
 
-		It("should fail on invalid hooks directory", func() {
+		It("should sort out invalid hooks directories", func() {
 			// Given
 			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
 			sut.Conmon = validFilePath
-			sut.HooksDir = []string{invalidPath}
+			sut.PinnsPath = validFilePath
+			sut.NamespacesDir = os.TempDir()
+			sut.HooksDir = []string{invalidPath, validDirPath, validDirPath}
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("should fail if the hooks directory is not a directory", func() {
-			// Given
-			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
-			sut.Conmon = validFilePath
-			sut.HooksDir = []string{validFilePath}
-
-			// When
-			err := sut.RuntimeConfig.Validate(nil, true)
-
-			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(BeNil())
+			Expect(sut.HooksDir).To(HaveLen(2))
 		})
 
 		It("should fail on invalid conmon path", func() {
