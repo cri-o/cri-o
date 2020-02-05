@@ -15,7 +15,7 @@ require (
 	github.com/containernetworking/plugins v0.8.3
 	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/conmon v2.0.8+incompatible
-	github.com/containers/image/v5 v5.1.0
+	github.com/containers/image/v5 v5.1.1-0.20200205121319-c7a29b0b19be
 	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
 	github.com/containers/ocicrypt v0.0.0-20190930154801-b87a4a69c741
 	github.com/containers/psgo v1.4.0
