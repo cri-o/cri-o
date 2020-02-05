@@ -509,16 +509,20 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		}
 		return []string{imageName}, nil
 	}
+	unqualifiedSearchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
+	if err != nil {
+		return nil, err
+	}
 	// we got an unqualified image here, we can't go ahead w/o registries configured
 	// properly.
-	if len(svc.unqualifiedSearchRegistries) == 0 {
+	if len(svc.unqualifiedSearchRegistries) == 0 && len(unqualifiedSearchRegistries) == 0 {
 		return nil, ErrNoRegistriesConfigured
 	}
 	// this means we got an image in the form of "busybox"
 	// we need to use additional registries...
 	// normalize the unqualified image to be domain/repo/image...
 	images := []string{}
-	for _, r := range svc.unqualifiedSearchRegistries {
+	for _, r := range append(svc.unqualifiedSearchRegistries, unqualifiedSearchRegistries...) {
 		rem := remainder
 		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
 			rem = "library/" + rem
