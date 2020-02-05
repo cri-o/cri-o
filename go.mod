@@ -13,11 +13,11 @@ require (
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.12.0
 	github.com/containers/conmon v2.0.10+incompatible
-	github.com/containers/image/v5 v5.1.0
+	github.com/containers/image/v5 v5.2.0
 	github.com/containers/libpod v1.7.0
 	github.com/containers/ocicrypt v0.0.0-20191112201931-142388cb70de
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.15.4
+	github.com/containers/storage v1.15.8
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20191204151446-e25b504ca708
@@ -33,6 +33,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/kr/pty v1.1.8
+	github.com/mtrmac/gpgme v0.1.2 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
 	github.com/opencontainers/go-digest v1.0.0-rc1
@@ -40,7 +41,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc9
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
-	github.com/opencontainers/selinux v1.3.1-0.20190929122143-5215b1806f52
+	github.com/opencontainers/selinux v1.3.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.0
 	github.com/seccomp/containers-golang v0.3.2
