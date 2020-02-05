@@ -491,6 +491,8 @@ github.com/opencontainers/runtime-tools v0.6.0 h1:NYIDT9KoSAIfmXpMrulp/j+64c8OBb
 github.com/opencontainers/runtime-tools v0.6.0/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/runtime-tools v0.9.0 h1:FYgwVsKRI/H9hU32MJ/4MLOzXWodKK5zsQavY8NPMkU=
 github.com/opencontainers/runtime-tools v0.9.0/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
+github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a h1:sf61qNtb7rsTAzYjwV7sqSXoksDyazZn2uHi8nj4GlM=
+github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/selinux v1.0.1-0.20190313214808-9e2c5215628a h1:ypgErFyHJM0XzrFSXMorVy7N9ATGb9+2UZs3UIstqrY=
 github.com/opencontainers/selinux v1.0.1-0.20190313214808-9e2c5215628a/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
 github.com/opencontainers/selinux v1.2.2/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=

@@ -48,7 +48,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 	github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
 	github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
-	github.com/opencontainers/runtime-tools v0.9.0
+	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
 	github.com/opencontainers/selinux v1.3.0
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.1
