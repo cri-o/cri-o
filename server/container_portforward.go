@@ -3,9 +3,11 @@ package server
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
 
 	"github.com/cri-o/cri-o/oci"
+	"github.com/docker/docker/pkg/pools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
@@ -29,6 +31,16 @@ func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (r
 }
 
 func (ss streamService) PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error {
+	// if we error in this function before Copying all of the content out of the stream,
+	// this stream will eventually get full, which causes leakages and can eventually brick CRI-O
+	// ref https://bugzilla.redhat.com/show_bug.cgi?id=1798193
+	emptyStreamOnError := true
+	defer func() {
+		if emptyStreamOnError {
+			go pools.Copy(ioutil.Discard, stream)
+		}
+	}()
+
 	sandboxID, err := ss.runtimeServer.PodIDIndex().Get(podSandboxID)
 	if err != nil {
 		return fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
@@ -48,5 +60,6 @@ func (ss streamService) PortForward(podSandboxID string, port int32, stream io.R
 		return fmt.Errorf("container is not created or running")
 	}
 
+	emptyStreamOnError = false
 	return ss.runtimeServer.Runtime().PortForwardContainer(c, port, stream)
 }

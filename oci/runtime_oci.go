@@ -771,6 +771,12 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
 func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
+	emptyStreamOnError := true
+	defer func() {
+		if emptyStreamOnError {
+			go pools.Copy(ioutil.Discard, stream)
+		}
+	}()
 	containerPid := c.State().Pid
 	socatPath, lookupErr := exec.LookPath("socat")
 	if lookupErr != nil {
@@ -807,6 +813,7 @@ func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.Re
 		return fmt.Errorf("unable to do port forwarding: error creating stdin pipe: %v", err)
 	}
 	go func() {
+		emptyStreamOnError = false
 		pools.Copy(inPipe, stream)
 		inPipe.Close()
 	}()
