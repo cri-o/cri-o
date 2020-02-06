@@ -7,7 +7,7 @@ stdenv: &stdenv
     IMAGE: &image quay.io/crio/crio-build-amd64-go1.13:master-1.1.6
     IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.10:master-1.1.6
     IMAGE386: &image386 quay.io/crio/crio-build-386-go1.13:master-1.1.6
-    IMAGENIX: &imagenix quay.io/crio/nix:1.1.0
+    IMAGENIX: &imagenix quay.io/crio/nix:1.2.0
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
     WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
@@ -120,6 +120,9 @@ jobs:
       - run: go env
       - run:
           command: make binaries -j $JOBS
+      - run:
+          name: Show CRI-O version
+          command: ./bin/crio version
       - run:
           command: make crio.conf
       - run:
