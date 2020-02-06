@@ -45,6 +45,7 @@
     - "{{ ansible_env.GOPATH }}/src/github.com/k8s.io"
     - "{{ ansible_env.GOPATH }}/src/github.com/sstephenson"
     - "{{ ansible_env.GOPATH }}/src/github.com/opencontainers"
+    - "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
 
 - name: install Go tools and dependencies
   shell: GO111MODULE=on /usr/bin/go get "github.com/{{ item }}"
