@@ -42,7 +42,6 @@ crio
 [--grpc-max-send-msg-size]=[value]
 [--help|-h]
 [--hooks-dir]=[value]
-[--host-ip]=[value]
 [--image-volumes]=[value]
 [--insecure-registry]=[value]
 [--listen]=[value]
@@ -66,11 +65,9 @@ crio
 [--profile-port]=[value]
 [--profile]
 [--read-only]
-[--registries-conf]=[value]
 [--registry]=[value]
 [--root|-r]=[value]
 [--runroot]=[value]
-[--runtime]=[value]
 [--runtimes]=[value]
 [--seccomp-profile]=[value]
 [--selinux]
@@ -198,8 +195,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
     Kubernetes configuration are considered. Bind mounts that CRI-O
     inserts by default (e.g. '/dev/shm') are not considered. (default: [])
 
-**--host-ip**="": Host IPs are the addresses to be used for the host network and can be specified up to two times (default: [])
-
 **--image-volumes**="": Image volume handling ('mkdir', 'bind', or 'ignore')
     1. mkdir: A directory is created inside the container root filesystem for the volumes.
     2. bind: A directory is created inside container state directory and bind mounted into the container for the volumes.
@@ -252,15 +247,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts tmpfs on `/run`, `/tmp` and `/var/tmp`. (default: false)
 
-**--registries-conf**="": path to the registries.conf file
-
 **--registry**="": Registry to be prepended when pulling unqualified images, can be specified multiple times (default: [])
 
 **--root, -r**="": The CRI-O root directory (default: "/var/lib/containers/storage")
 
 **--runroot**="": The CRI-O state directory (default: "/var/run/containers/storage")
-
-**--runtime**="": OCI runtime path
 
 **--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root (default: [])
 

@@ -418,10 +418,7 @@ func New(
 
 	var bindAddressStr string
 	bindAddress := net.ParseIP(config.StreamAddress)
-	if bindAddress == nil {
-		// If bind address isn't valid or unset, then listen on all IP addresses
-		bindAddressStr = ""
-	} else {
+	if bindAddress != nil {
 		bindAddressStr = bindAddress.String()
 	}
 
