@@ -50,7 +50,6 @@
 - name: install Go tools and dependencies
   shell: GO111MODULE=on /usr/bin/go get "github.com/{{ item }}"
   with_items:
-    - tools/godep
     - onsi/ginkgo/ginkgo
     - onsi/gomega
     - jteeuwen/go-bindata/go-bindata

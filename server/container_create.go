@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/pkg/secrets"
 	"github.com/cri-o/cri-o/lib"
 	"github.com/cri-o/cri-o/lib/sandbox"
 	"github.com/cri-o/cri-o/oci"
@@ -31,7 +32,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
