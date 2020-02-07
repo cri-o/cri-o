@@ -13,4 +13,7 @@ const (
 	// ReopenLogsEvent is the event code the caller program will
 	// send along the ctrl fd to signal conmon to reopen the log files
 	ReopenLogsEvent = 2
+	// TimedOutMessage is the message sent back to the caller by conmon
+	// when a container times out
+	TimedOutMessage = "command timed out"
 )
