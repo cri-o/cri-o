@@ -44,7 +44,7 @@ var _ = t.Describe("Container", func() {
 		Expect(sut.StatePath()).To(Equal("dir/state.json"))
 		Expect(sut.Metadata()).To(Equal(&pb.ContainerMetadata{}))
 		Expect(sut.StateNoLock().Version).To(BeEmpty())
-		Expect(sut.GetStopSignal()).To(Equal("TERM"))
+		Expect(sut.GetStopSignal()).To(Equal("15"))
 		Expect(sut.CreatedAt().UnixNano()).
 			To(BeNumerically("<", time.Now().UnixNano()))
 	})
@@ -149,7 +149,7 @@ var _ = t.Describe("Container", func() {
 		signal := container.GetStopSignal()
 
 		// Then
-		Expect(signal).To(Equal("TERM"))
+		Expect(signal).To(Equal("15"))
 	})
 
 	It("should succeed get the non default stop signal", func() {
@@ -165,7 +165,7 @@ var _ = t.Describe("Container", func() {
 		signal := container.GetStopSignal()
 
 		// Then
-		Expect(signal).To(Equal("TRAP"))
+		Expect(signal).To(Equal("5"))
 	})
 
 	It("should succeed to get the state from disk", func() {
