@@ -13,7 +13,7 @@ import (
 )
 
 // Version is the version of the build.
-const Version = "1.17.0-rc1"
+const Version = "1.17.0"
 
 // ShouldCrioWipe opens the version file, and parses it and the version string
 // If there is a parsing error, then crio should wipe, and the error is returned.
