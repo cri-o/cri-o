@@ -16,6 +16,7 @@ import (
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/pkg/log"
@@ -711,6 +712,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	specgen.AddAnnotation(annotations.Stdin, fmt.Sprintf("%v", containerConfig.Stdin))
 	specgen.AddAnnotation(annotations.StdinOnce, fmt.Sprintf("%v", containerConfig.StdinOnce))
 	specgen.AddAnnotation(annotations.ResolvPath, sb.ResolvPath())
+	specgen.AddAnnotation(annotations.ContainerManager, lib.ContainerManagerCRIO)
 
 	created := time.Now()
 	specgen.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
