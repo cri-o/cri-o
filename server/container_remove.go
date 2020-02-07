@@ -29,7 +29,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerReq
 		return nil, err
 	}
 
-	logrus.Infof("Removed container %s", c.Description())
+	logrus.Infof("Removed container %s: %s", c.ID(), c.Description())
 	resp = &pb.RemoveContainerResponse{}
 	logrus.Debugf("RemoveContainerResponse: %+v", resp)
 	return resp, nil

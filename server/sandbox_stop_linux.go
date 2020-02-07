@@ -140,7 +140,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 	s.ContainerStateToDisk(podInfraContainer)
 
-	logrus.Infof("Stopped pod sandbox: %s", podInfraContainer.Description())
+	logrus.Infof("Stopped pod sandbox: %s", sb.ID())
 	sb.SetStopped()
 	resp = &pb.StopPodSandboxResponse{}
 	logrus.Debugf("StopPodSandboxResponse %s: %+v", sb.ID(), resp)
