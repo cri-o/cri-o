@@ -151,6 +151,10 @@ func (s *Server) restore(ctx context.Context) {
 			logrus.Warnf("error parsing metadata for %s: %v, ignoring", containers[i].ID, err2)
 			continue
 		}
+		if !storage.IsCrioContainer(&metadata) {
+			logrus.Debugf("container %s determined to not be a CRI-O container or sandbox", containers[i].ID)
+			continue
+		}
 		names[containers[i].ID] = containers[i].Names
 		if metadata.Pod {
 			pods[containers[i].ID] = &metadata
@@ -198,13 +202,18 @@ func (s *Server) restore(ctx context.Context) {
 	// release the name associated with you.
 	for containerID := range podContainers {
 		if err := s.LoadContainer(containerID); err != nil {
-			logrus.Warnf("could not restore container %s: %v", containerID, err)
-			for _, n := range names[containerID] {
-				if err := s.Store().DeleteContainer(n); err != nil {
-					logrus.Warnf("unable to delete container %s: %v", n, err)
+			// containers of other runtimes should not be deleted
+			if err == lib.ErrIsNonCrioContainer {
+				logrus.Infof("ignoring non CRI-O container %s", containerID)
+			} else {
+				logrus.Warnf("could not restore container %s: %v", containerID, err)
+				for _, n := range names[containerID] {
+					if err := s.Store().DeleteContainer(n); err != nil {
+						logrus.Warnf("unable to delete container %s: %v", n, err)
+					}
+					// Release the container name
+					s.ReleaseContainerName(n)
 				}
-				// Release the container name
-				s.ReleaseContainerName(n)
 			}
 		}
 	}
