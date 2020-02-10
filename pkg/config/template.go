@@ -146,29 +146,29 @@ cgroup_manager = "{{ .CgroupManager }}"
 # only the capabilities defined in the containers json file by the user/kube
 # will be added.
 default_capabilities = [
-{{ range $capability := .DefaultCapabilities}}{{ printf "\t%q, \n" $capability}}{{ end }}]
+{{ range $capability := .DefaultCapabilities}}{{ printf "\t%q,\n" $capability}}{{ end }}]
 
 # List of default sysctls. If it is empty or commented out, only the sysctls
 # defined in the container json file by the user/kube will be added.
 default_sysctls = [
-{{ range $sysctl := .DefaultSysctls}}{{ printf "\t%q, \n" $sysctl}}{{ end }}]
+{{ range $sysctl := .DefaultSysctls}}{{ printf "\t%q,\n" $sysctl}}{{ end }}]
 
 # List of additional devices. specified as
 # "<device-on-host>:<device-on-container>:<permissions>", for example: "--device=/dev/sdc:/dev/xvdc:rwm".
 #If it is empty or commented out, only the devices
 # defined in the container json file by the user/kube will be added.
 additional_devices = [
-{{ range $device := .AdditionalDevices}}{{ printf "\t%q, \n" $device}}{{ end }}]
+{{ range $device := .AdditionalDevices}}{{ printf "\t%q,\n" $device}}{{ end }}]
 
 # Path to OCI hooks directories for automatically executed hooks. If one of the
 # directories does not exist, then CRI-O will automatically skip them.
 hooks_dir = [
-{{ range $hooksDir := .HooksDir }}{{ printf "\t%q, \n" $hooksDir}}{{ end }}]
+{{ range $hooksDir := .HooksDir }}{{ printf "\t%q,\n" $hooksDir}}{{ end }}]
 
 # List of default mounts for each container. **Deprecated:** this option will
 # be removed in future versions in favor of default_mounts_file.
 default_mounts = [
-{{ range $mount := .DefaultMounts }}{{ printf "\t%q, \n" $mount }}{{ end }}]
+{{ range $mount := .DefaultMounts }}{{ printf "\t%q,\n" $mount }}{{ end }}]
 
 # Path to the file specifying the defaults mounts for each container. The
 # format of the config is /SRC:/DST, one mount per line. Notice that CRI-O reads
