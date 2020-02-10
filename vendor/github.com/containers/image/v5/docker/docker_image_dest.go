@@ -59,14 +59,16 @@ func (d *dockerImageDestination) Close() error {
 }
 
 func (d *dockerImageDestination) SupportedManifestMIMETypes() []string {
-	return []string{
+	mimeTypes := []string{
 		imgspecv1.MediaTypeImageManifest,
 		manifest.DockerV2Schema2MediaType,
 		imgspecv1.MediaTypeImageIndex,
 		manifest.DockerV2ListMediaType,
-		manifest.DockerV2Schema1SignedMediaType,
-		manifest.DockerV2Schema1MediaType,
 	}
+	if d.c.sys == nil || !d.c.sys.DockerDisableDestSchema1MIMETypes {
+		mimeTypes = append(mimeTypes, manifest.DockerV2Schema1SignedMediaType, manifest.DockerV2Schema1MediaType)
+	}
+	return mimeTypes
 }
 
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.

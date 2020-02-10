@@ -2479,6 +2479,10 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	s.graphLock.Lock()
+	defer s.graphLock.Unlock()
+
 	rlstore.Lock()
 	defer rlstore.Unlock()
 	if modified, err := rlstore.Modified(); modified || err != nil {
@@ -2486,6 +2490,18 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 			return "", err
 		}
 	}
+
+	/* We need to make sure the home mount is present when the Mount is done.  */
+	if s.graphLock.TouchedSince(s.lastLoaded) {
+		s.graphDriver = nil
+		s.layerStore = nil
+		s.graphDriver, err = s.getGraphDriver()
+		if err != nil {
+			return "", err
+		}
+		s.lastLoaded = time.Now()
+	}
+
 	if rlstore.Exists(id) {
 		options := drivers.MountOpts{
 			MountLabel: mountLabel,
@@ -2767,8 +2783,14 @@ func (s *store) ContainerParentOwners(id string) ([]int, []int, error) {
 }
 
 func (s *store) Layers() ([]Layer, error) {
-	var layers []Layer
 	lstore, err := s.LayerStore()
+	if err != nil {
+		return nil, err
+	}
+	if err := lstore.LoadLocked(); err != nil {
+		return nil, err
+	}
+	layers, err := lstore.Layers()
 	if err != nil {
 		return nil, err
 	}
@@ -2778,7 +2800,7 @@ func (s *store) Layers() ([]Layer, error) {
 		return nil, err
 	}
 
-	for _, s := range append([]ROLayerStore{lstore}, lstores...) {
+	for _, s := range lstores {
 		store := s
 		store.RLock()
 		defer store.Unlock()

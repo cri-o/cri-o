@@ -29,6 +29,8 @@ github.com/Microsoft/hcsshim/internal/wclayer
 github.com/Microsoft/hcsshim/osversion
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
+# github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
+github.com/acarl005/stripansi
 # github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
 github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
@@ -96,7 +98,7 @@ github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/util
 # github.com/containers/conmon v2.0.9+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.1.1-0.20200205121319-c7a29b0b19be
+# github.com/containers/image/v5 v5.2.1
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -193,7 +195,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.15.4-0.20191218193401-e18327c57107
+# github.com/containers/storage v1.15.8
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -404,7 +406,7 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.8
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.9.4
+# github.com/klauspost/compress v1.9.8
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -419,7 +421,7 @@ github.com/konsorten/go-windows-terminal-sequences
 github.com/kr/pty
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
-# github.com/mattn/go-shellwords v1.0.6
+# github.com/mattn/go-shellwords v1.0.9
 github.com/mattn/go-shellwords
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
@@ -431,7 +433,7 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/morikuni/aec v1.0.0
 github.com/morikuni/aec
-# github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c
+# github.com/mtrmac/gpgme v0.1.2
 github.com/mtrmac/gpgme
 # github.com/onsi/ginkgo v1.10.3
 github.com/onsi/ginkgo
@@ -497,7 +499,7 @@ github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/validate
-# github.com/opencontainers/selinux v1.3.1-0.20190929122143-5215b1806f52
+# github.com/opencontainers/selinux v1.3.1
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 # github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible
@@ -514,7 +516,7 @@ github.com/opentracing/opentracing-go/log
 # github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913
 github.com/ostreedev/ostree-go/pkg/glibobject
 github.com/ostreedev/ostree-go/pkg/otbuiltin
-# github.com/pkg/errors v0.8.1
+# github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
@@ -580,7 +582,7 @@ github.com/vbatts/git-validation/validate
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v4 v4.11.1
+# github.com/vbauerster/mpb/v4 v4.11.2
 github.com/vbauerster/mpb/v4
 github.com/vbauerster/mpb/v4/cwriter
 github.com/vbauerster/mpb/v4/decor
