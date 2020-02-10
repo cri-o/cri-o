@@ -6,6 +6,7 @@ cd "$(dirname "$0")"
 FILES_BIN=(
     "../bin/crio-x86_64-static-glibc"
     "../bin/crio-x86_64-static-musl"
+    "../bin/pinns"
 )
 FILES_MAN=(
     "../docs/crio.8"
