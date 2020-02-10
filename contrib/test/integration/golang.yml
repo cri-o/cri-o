@@ -45,13 +45,12 @@
     - "{{ ansible_env.GOPATH }}/src/github.com/k8s.io"
     - "{{ ansible_env.GOPATH }}/src/github.com/sstephenson"
     - "{{ ansible_env.GOPATH }}/src/github.com/opencontainers"
+    - "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
 
 - name: install Go tools and dependencies
-  shell: /usr/bin/go get -u "github.com/{{ item }}"
+  shell: GO111MODULE=on /usr/bin/go get "github.com/{{ item }}"
   with_items:
-    - tools/godep
     - onsi/ginkgo/ginkgo
     - onsi/gomega
-    - cloudflare/cfssl/cmd/...
     - jteeuwen/go-bindata/go-bindata
     - cpuguy83/go-md2man

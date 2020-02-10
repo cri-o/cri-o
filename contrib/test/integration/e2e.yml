@@ -30,7 +30,7 @@
 - name: wait for the cluster to be running
   command: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/bin/kubectl get service kubernetes --namespace default"
   register: kube_poll
-  until: kube_poll | succeeded
+  until: kube_poll.rc == 0
   retries: 100
   delay: 30
 
@@ -50,7 +50,7 @@
 - name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
   set_fact:
     e2e_shell_cmd: >
-        GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y /usr/bin/go run hack/e2e.go
+        GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y "{{ ansible_env.GOPATH }}"/bin/kubetest
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
                         --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.support.inline.execution.and.attach|should.propagate.mounts.to.the.host|for.NodePort.service|type.clusterIP|unready.pods|ExternalName.services|Guestbook.application|in-cluster.config

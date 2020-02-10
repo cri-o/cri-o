@@ -1,0 +1,23 @@
+---
+# checkout the kubetest version right before it requires go 1.13
+# the repos that require go 1.12 will be fixed up below
+- name: clone test-infra source repo
+  git:
+    repo: "https://github.com/kubernetes/test-infra.git"
+    dest: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
+    force: "{{ force_clone | default(False) | bool}}"
+    version: f9516fc71fa3fe370d420a61c0b1943c4a9d1dcd
+
+# per https://github.com/kubernetes/test-infra/issues/14070 we need to download
+# kubetest with go module 1.11 on and without -u. As of the time of writing this,
+# neither are happening in hack/e2e.go. instead, add this, and set --get=false when
+# running e2e
+- name: download kubetest deps
+  shell: GO111MODULE=on GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org go mod download
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
+
+- name: install kubetest
+  shell: GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org GO111MODULE=on go build -o "{{ ansible_env.GOPATH }}"/bin/kubetest ./kubetest
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
