@@ -146,6 +146,16 @@ if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
     fi
 fi
 
+# Make sure we have a copy of the fedora-ping image.
+if ! [ -d "$ARTIFACTS_PATH"/fedora-ping-image ]; then
+	mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
+	if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/fedora-ping:latest --export-to=dir:"$ARTIFACTS_PATH"/fedora-ping-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+		echo "Error pulling quay.io/crio/fedora-ping-image"
+		rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
+		exit 1
+	fi
+fi
+
 function setup_test() {
     TESTDIR=$(mktemp -d)
     RANDOM_CNI_NETWORK=${TESTDIR: -10}

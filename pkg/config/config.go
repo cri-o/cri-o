@@ -550,7 +550,7 @@ func DefaultConfig() (*Config, error) {
 			LogSizeMax:               DefaultLogSizeMax,
 			CtrStopTimeout:           defaultCtrStopTimeout,
 			DefaultCapabilities:      DefaultCapabilities,
-			LogLevel:                 "error",
+			LogLevel:                 "info",
 			DefaultSysctls:           []string{},
 			DefaultUlimits:           []string{},
 			AdditionalDevices:        []string{},
