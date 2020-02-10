@@ -30,7 +30,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 			log.Warnf(ctx, "unable to get stats for container %s: %v", container.ID(), err)
 			continue
 		}
-		response := s.buildContainerStats(stats, container)
+		response := s.buildContainerStats(ctx, stats, container)
 		allStats = append(allStats, response)
 	}
 
