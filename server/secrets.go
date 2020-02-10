@@ -12,6 +12,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
 // SecretData info
@@ -143,7 +144,7 @@ func secretMounts(ctx context.Context, defaultMountsPaths []string, mountLabel, 
 				return nil, err
 			}
 		}
-		if err := label.Relabel(ctrDirOnHost, mountLabel, false); err != nil {
+		if err := label.Relabel(ctrDirOnHost, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
 			return nil, err
 		}
 
