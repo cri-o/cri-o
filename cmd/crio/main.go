@@ -131,10 +131,8 @@ func main() {
 		wipeCommand,
 	}...)
 
-	var configPath string
 	app.Before = func(c *cli.Context) (err error) {
-		var config *libconfig.Config
-		configPath, config, err = criocli.GetConfigFromContext(c)
+		config, err := criocli.GetConfigFromContext(c)
 		if err != nil {
 			return err
 		}
@@ -224,7 +222,7 @@ func main() {
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
 
-		service, err := server.New(ctx, configPath, config)
+		service, err := server.New(ctx, config)
 		if err != nil {
 			logrus.Fatal(err)
 		}

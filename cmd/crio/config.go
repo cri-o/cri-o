@@ -20,7 +20,7 @@ it later with **--config**. Global options will modify the output.`,
 		},
 	},
 	Action: func(c *cli.Context) error {
-		_, conf, err := criocli.GetConfigFromContext(c)
+		conf, err := criocli.GetConfigFromContext(c)
 		if err != nil {
 			return err
 		}
