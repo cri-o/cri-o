@@ -21,25 +21,24 @@ var DefaultCommands = []*cli.Command{
 	markdown(),
 }
 
-func GetConfigFromContext(c *cli.Context) (string, *libconfig.Config, error) {
+func GetConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
 	config, ok := c.App.Metadata["config"].(*libconfig.Config)
 	if !ok {
-		return "", nil, fmt.Errorf("type assertion error when accessing server config")
+		return nil, fmt.Errorf("type assertion error when accessing server config")
 	}
-	configPath, err := mergeConfig(config, c)
-	if err != nil {
-		return "", nil, err
+	if err := mergeConfig(config, c); err != nil {
+		return nil, err
 	}
-	return configPath, config, nil
+	return config, nil
 }
 
-func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
+func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
 	path := ctx.String("config")
 	if path != "" {
 		if err := config.UpdateFromFile(path); err != nil {
 			if ctx.IsSet("config") || !os.IsNotExist(err) {
-				return path, err
+				return err
 			}
 
 			// Use the build-time-defined defaults path
@@ -47,7 +46,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 				path = filepath.Join(DefaultsPath, "/crio.conf")
 				if err := config.UpdateFromFile(path); err != nil {
 					if ctx.IsSet("config") || !os.IsNotExist(err) {
-						return path, err
+						return err
 					}
 				}
 			}
@@ -56,7 +55,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 
 	// Parse the drop-in configuration files for config override
 	if err := config.UpdateFromPath(ctx.String("config-dir")); err != nil {
-		return "", err
+		return err
 	}
 
 	// Override options set with the CLI.
@@ -121,7 +120,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 		for _, r := range runtimes {
 			fields := strings.Split(r, ":")
 			if len(fields) != 3 {
-				return path, fmt.Errorf("wrong format for --runtimes: %q", r)
+				return fmt.Errorf("wrong format for --runtimes: %q", r)
 			}
 			config.Runtimes[fields[0]] = &libconfig.RuntimeHandler{
 				RuntimePath: fields[1],
@@ -256,7 +255,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 		config.MetricsPort = ctx.Int("metrics-port")
 	}
 
-	return path, nil
+	return nil
 }
 
 func GetFlagsAndMetadata() ([]cli.Flag, map[string]interface{}, error) {

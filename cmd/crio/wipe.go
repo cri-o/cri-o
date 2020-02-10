@@ -21,7 +21,7 @@ var wipeCommand = &cli.Command{
 }
 
 func crioWipe(c *cli.Context) error {
-	_, config, err := criocli.GetConfigFromContext(c)
+	config, err := criocli.GetConfigFromContext(c)
 	if err != nil {
 		return err
 	}

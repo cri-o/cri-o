@@ -3,23 +3,62 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/signal"
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/cri-o/cri-o/internal/pkg/log"
+	"github.com/cri-o/cri-o/internal/pkg/signals"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-// Reload reloads the configuration with the config at the provided `fileName`
-// path. The method errors in case of any read or update failure.
-func (c *Config) Reload(fileName string) error {
+// StartWatcher starts a new SIGHUP go routine for the current config.
+func (c *Config) StartWatcher() {
+	// Setup the signal notifier
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, signals.Hup)
+
+	go func() {
+		for {
+			// Block until the signal is received
+			<-ch
+			if err := c.Reload(); err != nil {
+				logrus.Errorf("unable to reload configuration: %v", err)
+				continue
+			}
+		}
+	}()
+
+	logrus.Debugf("registered SIGHUP watcher for config")
+}
+
+// Reload reloads the configuration for the single crio.conf and the drop-in
+// configuration directory.
+func (c *Config) Reload() error {
+	logrus.Infof("reloading configuration")
+
 	// Reload the config
 	newConfig, err := DefaultConfig()
 	if err != nil {
 		return fmt.Errorf("unable to create default config")
 	}
-	if err := newConfig.UpdateFromFile(fileName); err != nil {
-		return err
+
+	if _, err := os.Stat(c.singleConfigPath); !os.IsNotExist(err) {
+		logrus.Infof("updating config from file %s", c.singleConfigPath)
+		if err := newConfig.UpdateFromFile(c.singleConfigPath); err != nil {
+			return err
+		}
+	} else {
+		logrus.Infof("skipping not-existing config file %s", c.singleConfigPath)
+	}
+
+	if _, err := os.Stat(c.dropInConfigDir); !os.IsNotExist(err) {
+		logrus.Infof("updating config from path %s", c.dropInConfigDir)
+		if err := newConfig.UpdateFromPath(c.dropInConfigDir); err != nil {
+			return err
+		}
+	} else {
+		logrus.Infof("skipping not-existing config path %s", c.dropInConfigDir)
 	}
 
 	// Reload all available options

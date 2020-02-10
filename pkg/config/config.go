@@ -46,6 +46,9 @@ const (
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
 type Config struct {
+	singleConfigPath string // Path to the single config file
+	dropInConfigDir  string // Path to the drop-in config files
+
 	RootConfig
 	APIConfig
 	RuntimeConfig
@@ -434,6 +437,7 @@ func (c *Config) UpdateFromFile(path string) error {
 	}
 
 	t.toConfig(c)
+	c.singleConfigPath = path
 	return nil
 }
 
@@ -443,7 +447,7 @@ func (c *Config) UpdateFromPath(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil
 	}
-	return filepath.Walk(path,
+	if err := filepath.Walk(path,
 		func(p string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -452,7 +456,11 @@ func (c *Config) UpdateFromPath(path string) error {
 				return nil
 			}
 			return c.UpdateFromFile(p)
-		})
+		}); err != nil {
+		return err
+	}
+	c.dropInConfigDir = path
+	return nil
 }
 
 // ToFile outputs the given Config as a TOML-encoded file at the given path.
@@ -900,4 +908,9 @@ func (r *RuntimeHandler) ValidateRuntimeType(name string) error {
 			r.RuntimeType, name)
 	}
 	return nil
+}
+
+func (c *Config) SetLocations(singleConfigPath, dropInConfigDir string) {
+	c.singleConfigPath = singleConfigPath
+	c.dropInConfigDir = dropInConfigDir
 }

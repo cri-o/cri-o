@@ -13,9 +13,10 @@ var _ = t.Describe("Config", func() {
 	BeforeEach(beforeEach)
 
 	t.Describe("Reload", func() {
-		var modifyDefaultConfig = func(old, new string) string {
+		var modifyDefaultConfig = func(old, new string) {
 			filePath := t.MustTempFile("config")
 			Expect(sut.ToFile(filePath)).To(BeNil())
+			Expect(sut.UpdateFromFile(filePath)).To(BeNil())
 
 			read, err := ioutil.ReadFile(filePath)
 			Expect(err).To(BeNil())
@@ -23,40 +24,30 @@ var _ = t.Describe("Config", func() {
 			newContents := strings.ReplaceAll(string(read), old, new)
 			err = ioutil.WriteFile(filePath, []byte(newContents), 0)
 			Expect(err).To(BeNil())
-
-			return filePath
 		}
 
 		It("should succeed without any config change", func() {
 			// Given
 			filePath := t.MustTempFile("config")
 			Expect(sut.ToFile(filePath)).To(BeNil())
+			Expect(sut.UpdateFromFile(filePath)).To(BeNil())
 
 			// When
-			err := sut.Reload(filePath)
+			err := sut.Reload()
 
 			// Then
 			Expect(err).To(BeNil())
 		})
 
-		It("should fail with invalid config path", func() {
-			// Given
-			// When
-			err := sut.Reload("")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
 		It("should fail with invalid log_level", func() {
 			// Given
-			filePath := modifyDefaultConfig(
+			modifyDefaultConfig(
 				`log_level = "info"`,
 				`log_level = "invalid"`,
 			)
 
 			// When
-			err := sut.Reload(filePath)
+			err := sut.Reload()
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -64,13 +55,13 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with invalid pause_image_auth_file", func() {
 			// Given
-			filePath := modifyDefaultConfig(
+			modifyDefaultConfig(
 				`pause_image_auth_file = ""`,
 				`pause_image_auth_file = "`+invalidPath+`"`,
 			)
 
 			// When
-			err := sut.Reload(filePath)
+			err := sut.Reload()
 
 			// Then
 			Expect(err).NotTo(BeNil())
