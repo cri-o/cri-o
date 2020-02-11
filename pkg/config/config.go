@@ -587,19 +587,19 @@ func (c *Config) Validate(onExecution bool) error {
 	}
 
 	if err := c.RootConfig.Validate(onExecution); err != nil {
-		return errors.Wrapf(err, "root config")
+		return errors.Wrapf(err, "validating root config")
 	}
 
 	if err := c.RuntimeConfig.Validate(c.SystemContext, onExecution); err != nil {
-		return errors.Wrapf(err, "runtime config")
+		return errors.Wrapf(err, "validating runtime config")
 	}
 
 	if err := c.NetworkConfig.Validate(onExecution); err != nil {
-		return errors.Wrapf(err, "network config")
+		return errors.Wrapf(err, "validating network config")
 	}
 
 	if err := c.APIConfig.Validate(onExecution); err != nil {
-		return errors.Wrapf(err, "api config")
+		return errors.Wrapf(err, "validating api config")
 	}
 
 	if !c.SELinux {

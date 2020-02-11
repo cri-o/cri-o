@@ -3,13 +3,11 @@ package server
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
-	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/cri-o/cri-o/internal/pkg/log"
 	"github.com/cri-o/cri-o/internal/pkg/storage"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -46,13 +44,9 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		}
 	}
 
-	var dcc *encconfig.DecryptConfig
-	if _, err := os.Stat(s.decryptionKeysPath); err == nil {
-		cc, err := getDecryptionKeys(s.decryptionKeysPath)
-		if err != nil {
-			return nil, err
-		}
-		dcc = cc.DecryptConfig
+	decryptConfig, err := getDecryptionKeys(s.config.DecryptionKeysPath)
+	if err != nil {
+		return nil, err
 	}
 
 	var (
@@ -139,7 +133,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &copy.Options{
 			SourceCtx:        &sourceCtx,
 			DestinationCtx:   s.config.SystemContext,
-			OciDecryptConfig: dcc,
+			OciDecryptConfig: decryptConfig,
 			ProgressInterval: time.Second,
 			Progress:         progress,
 		})

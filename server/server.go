@@ -60,8 +60,7 @@ type Server struct {
 	netPlugin       ocicni.CNIPlugin
 	hostportManager hostport.HostPortManager
 
-	appArmorProfile    string
-	decryptionKeysPath string
+	appArmorProfile string
 
 	*lib.ContainerServer
 	monitorsChan      chan struct{}
@@ -344,8 +343,6 @@ func New(
 		monitorsChan:      make(chan struct{}),
 		defaultIDMappings: idMappings,
 	}
-
-	s.decryptionKeysPath = config.DecryptionKeysPath
 
 	if s.seccompEnabled {
 		if config.SeccompProfile != "" {

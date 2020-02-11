@@ -142,3 +142,16 @@ function expect_log_failure() {
     # then
     expect_log_failure "custom log level filter does not compile"
 }
+
+@test "reload config should succeed with 'decryption_keys_path'" {
+    # given
+    NEW_OPTION="/etc/crio"
+    OPTION="decryption_keys_path"
+
+    # when
+    replace_config $OPTION $NEW_OPTION
+    reload_crio
+
+    # then
+    expect_log_success $OPTION $NEW_OPTION
+}

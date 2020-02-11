@@ -110,7 +110,7 @@ default_runtime = "{{ .DefaultRuntime }}"
 no_pivot = {{ .NoPivot }}
 
 # decryption_keys_path is the path where the keys required for
-# image decryption are stored.
+# image decryption are stored. This option supports live configuration reload.
 decryption_keys_path = "{{ .DecryptionKeysPath }}"
 
 # Path to the conmon binary, used for monitoring the OCI runtime.
