@@ -90,14 +90,14 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
     -X ${PROJECT}/internal/version.GitCommit=${COMMIT_NO} \
     -X ${PROJECT}/internal/version.gitTreeState=${GIT_TREE_STATE}
 
-LDFLAGS = -ldflags '${BASE_LDFLAGS}'
+LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
 TESTIMAGE_VERSION := master-1.1.6
 TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
-TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.1.0
+TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.2.0
 
 all: binaries crio.conf docs
 

@@ -50,33 +50,11 @@ let
   self = {
     cri-o-static-musl = (muslPkgs.cri-o.overrideAttrs(old: {
       name = "cri-o-x86_64-static-musl-${revision}";
-      buildInputs = old.buildInputs ++ [ muslPkgs.systemd ];
+      buildInputs = old.buildInputs ++ (with muslPkgs; [ systemd ]);
       src = ./..;
-
-      # TODO: remove the build phase patch after CRI-O 1.17.0 release in nixpkgs
-      buildPhase = ''
-        pushd go/src/${old.goPackagePath}
-
-        # Build the crio binaries
-        function build() {
-          go build \
-            -tags "apparmor seccomp selinux containers_image_ostree_stub" \
-            -o bin/"$1" \
-            -buildmode=pie \
-            -ldflags '-s -w -linkmode external -extldflags "-static"' \
-            ${old.goPackagePath}/cmd/"$1"
-        }
-        build crio
-        build crio-status
-      '';
-      installPhase = ''
-        install -Dm755 bin/crio $bin/bin/crio-x86_64-static-musl
-        install -Dm755 bin/crio-status $bin/bin/crio-status-x86_64-static-musl
-      '';
+      EXTRA_LDFLAGS = ''-linkmode external -extldflags "-static"'';
     })).override {
       flavor = "-x86_64-static-musl";
-      ldflags = ''-linkmode external -extldflags "-static"'';
-
       glibc = null;
       gpgme = (static muslPkgs.gpgme);
       libassuan = (static muslPkgs.libassuan);
@@ -86,33 +64,11 @@ let
     };
     cri-o-static-glibc = (glibcPkgs.cri-o.overrideAttrs(old: {
       name = "cri-o-x86_64-static-glibc-${revision}";
-      buildInputs = old.buildInputs ++ [ glibcPkgs.systemd ];
+      buildInputs = old.buildInputs ++ (with glibcPkgs; [ systemd ]);
       src = ./..;
-
-      # TODO: remove the build phase patch after CRI-O 1.17.0 release in nixpkgs
-      buildPhase = ''
-        pushd go/src/${old.goPackagePath}
-
-        # Build the crio binaries
-        function build() {
-          go build \
-            -tags "apparmor seccomp selinux containers_image_ostree_stub" \
-            -o bin/"$1" \
-            -buildmode=pie \
-            -ldflags '-s -w -linkmode external -extldflags "-static -lm"' \
-            ${old.goPackagePath}/cmd/"$1"
-        }
-        build crio
-        build crio-status
-      '';
-      installPhase = ''
-        install -Dm755 bin/crio $bin/bin/crio-x86_64-static-glibc
-        install -Dm755 bin/crio-status $bin/bin/crio-status-x86_64-static-glibc
-      '';
+      EXTRA_LDFLAGS = ''-linkmode external -extldflags "-static -lm"'';
     })).override {
       flavor = "-x86_64-static-glibc";
-      ldflags = ''-linkmode external -extldflags "-static -lm"'';
-
       gpgme = (static glibcPkgs.gpgme);
       libassuan = (static glibcPkgs.libassuan);
       libgpgerror = (static glibcPkgs.libgpgerror);
