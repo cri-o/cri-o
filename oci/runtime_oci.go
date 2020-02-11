@@ -20,6 +20,7 @@ import (
 	"github.com/docker/docker/pkg/pools"
 	"github.com/fsnotify/fsnotify"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
@@ -687,12 +688,11 @@ func (r *runtimeOCI) SignalContainer(c *Container, sig syscall.Signal) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	signalString, err := findStringInSignalMap(sig)
-	if err != nil {
-		return err
+	if !inSignalMap(sig) {
+		return errors.Errorf("unable to find %s in the signal map", sig.String())
 	}
 
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.ID(), signalString)
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", c.ID(), strconv.Itoa(int(sig)))
 }
 
 // AttachContainer attaches IO to a running container.

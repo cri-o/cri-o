@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -21,7 +22,7 @@ import (
 )
 
 const (
-	defaultStopSignal    = "TERM"
+	defaultStopSignal    = "15"
 	defaultStopSignalInt = 15
 )
 
@@ -149,11 +150,13 @@ func (c *Container) GetStopSignal() string {
 		return defaultStopSignal
 	}
 	cleanSignal := strings.TrimPrefix(strings.ToUpper(c.stopSignal), "SIG")
-	_, ok := signal.SignalMap[cleanSignal]
+	val, ok := signal.SignalMap[cleanSignal]
 	if !ok {
 		return defaultStopSignal
 	}
-	return cleanSignal
+	// return the stop signal in the form of its int converted to a string
+	// i.e stop signal 34 is returned as "34" to avoid back and forth conversion
+	return strconv.Itoa(int(val))
 }
 
 // StopSignal returns the container's own stop signal configured from
