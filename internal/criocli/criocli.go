@@ -146,9 +146,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("hooks-dir") {
 		config.HooksDir = ctx.StringSlice("hooks-dir")
 	}
-	if ctx.IsSet("default-mounts") {
-		config.DefaultMounts = ctx.StringSlice("default-mounts")
-	}
 	if ctx.IsSet("default-mounts-file") {
 		config.DefaultMountsFile = ctx.String("default-mounts-file")
 	}
@@ -566,17 +563,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   cli.NewStringSlice(defConf.HooksDir...),
 			EnvVars: []string{"CONTAINER_HOOKS_DIR"},
 		},
-		&cli.StringSliceFlag{
-			Name:    "default-mounts",
-			Usage:   fmt.Sprintf("Add one or more default mount paths in the form host:container (deprecated) (default: %q)", defConf.DefaultMounts),
-			EnvVars: []string{"CONTAINER_DEFAULT_MOUNTS"},
-		},
 		&cli.StringFlag{
 			Name:      "default-mounts-file",
 			Usage:     fmt.Sprintf("Path to default mounts file (default: %q)", defConf.DefaultMountsFile),
 			EnvVars:   []string{"CONTAINER_DEFAULT_MOUNTS_FILE"},
 			TakesFile: true,
-			Hidden:    true,
 		},
 		&cli.StringSliceFlag{
 			Name:    "default-capabilities",
