@@ -416,7 +416,8 @@ function cleanup_test() {
 	cleanup_pods
 	stop_crio
 	cleanup_lvm
-	rm -rf "$TESTDIR"
+	# Best effort remove the test dir, as sometime it is still busy
+	rm -rf "$TESTDIR" || true
 }
 
 
