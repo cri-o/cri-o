@@ -16,6 +16,7 @@ require (
 	github.com/containers/buildah v1.11.4
 	github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0
 	github.com/containers/libpod v0.8.3-0.20191029195851-e7540d0406c4
+	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.13.7
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
