@@ -61,7 +61,8 @@ require (
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog v1.0.0
 	k8s.io/kubernetes v1.13.0
-	k8s.io/utils v0.0.0-20191217005138-9e5e9d854fcc
+	k8s.io/release v0.2.4-0.20200213145234-7a6274a02e2c
+	k8s.io/utils v0.0.0-20200117235808-5f6fbceb4c31
 )
 
 replace (

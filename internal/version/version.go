@@ -16,13 +16,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Version is the version of the build.
-const Version = "1.17.0-dev"
-
 var (
 	GitCommit    string // sha1 from git, output of $(git rev-parse HEAD)
 	gitTreeState string // state of git tree, either "clean" or "dirty"
 	buildDate    string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+	Version      string // Version is the version of the build.
 )
 
 type Info struct {

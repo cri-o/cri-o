@@ -97,6 +97,7 @@ func TestParseVersionBadVersion(t *testing.T) {
 }
 
 func TestParseVersionWithCurrentVersion(t *testing.T) {
+	Version = "1.17.0"
 	_, err := parseVersionConstant(Version, "")
 	must(t, err)
 }

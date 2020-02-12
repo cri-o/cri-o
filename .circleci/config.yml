@@ -144,11 +144,21 @@ jobs:
     steps:
       - checkout
       - run:
+          name: add remote go fetch all tags
+          command: |
+            git remote add base https://github.com/cri-o/cri-o
+            git fetch base
+      - run:
           name: build
           command: |
             nix-build nix --argstr revision $CIRCLE_SHA1
             mkdir -p bin
             cp result-*bin/bin/crio-* bin
+      - run:
+          name: Show CRI-O version for static binaries
+          command: |
+            ./bin/crio-x86_64-static-glibc version
+            ./bin/crio-x86_64-static-musl version
       - persist_to_workspace:
           root: .
           paths:

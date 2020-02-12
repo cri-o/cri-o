@@ -83,12 +83,14 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
+VERSION := $(shell $(GO) run ./scripts/latest_version.go)
 
 BASE_LDFLAGS = ${SHRINKFLAGS} \
 	-X ${PROJECT}/internal/version.buildInfo=${SOURCE_DATE_EPOCH} \
-    -X ${PROJECT}/internal/version.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
-    -X ${PROJECT}/internal/version.GitCommit=${COMMIT_NO} \
-    -X ${PROJECT}/internal/version.gitTreeState=${GIT_TREE_STATE}
+	-X ${PROJECT}/internal/version.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+	-X ${PROJECT}/internal/version.GitCommit=${COMMIT_NO} \
+	-X ${PROJECT}/internal/version.gitTreeState=${GIT_TREE_STATE} \
+	-X ${PROJECT}/internal/version.Version=${VERSION}
 
 LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
