@@ -77,7 +77,7 @@ var _ = t.Describe("HookFilter", func() {
 
 			// Then
 			Expect(res).To(BeNil())
-			Expect(entry.Message).To(Equal("a slice: [FILTERED]"))
+			Expect(entry.Message).To(Equal("A slice: [FILTERED]"))
 		})
 	})
 })

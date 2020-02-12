@@ -646,7 +646,7 @@ function wait_for_log() {
             exit 1
         fi
 
-        if grep -q "$1" "$CRIO_LOG"; then
+        if grep -iq "$1" "$CRIO_LOG"; then
             break
         fi
 
