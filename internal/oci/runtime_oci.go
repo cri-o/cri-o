@@ -782,13 +782,12 @@ func (r *runtimeOCI) SignalContainer(c *Container, sig syscall.Signal) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	signalString, err := findStringInSignalMap(sig)
-	if err != nil {
-		return err
+	if !inSignalMap(sig) {
+		return errors.Errorf("unable to find %s in the signal map", sig.String())
 	}
 
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path,
-		rootFlag, r.root, "kill", c.ID(), signalString)
+		rootFlag, r.root, "kill", c.ID(), strconv.Itoa(int(sig)))
 }
 
 // AttachContainer attaches IO to a running container.
