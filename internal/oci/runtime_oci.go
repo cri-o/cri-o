@@ -313,27 +313,43 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 	if tty {
 		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
 	} else {
+		var r, w *os.File
 		if stdin != nil {
 			// Use an os.Pipe here as it returns true *os.File objects.
 			// This way, if you run 'kubectl exec <pod> -i bash' (no tty) and type 'exit',
 			// the call below to execCmd.Run() can unblock because its Stdin is the read half
 			// of the pipe.
-			r, w, err := os.Pipe()
+			r, w, err = os.Pipe()
 			if err != nil {
 				return err
 			}
-			go func() { _, copyError = pools.Copy(w, stdin) }()
-
 			execCmd.Stdin = r
+			go func() {
+				_, copyError = pools.Copy(w, stdin)
+				w.Close()
+			}()
 		}
+
 		if stdout != nil {
 			execCmd.Stdout = stdout
 		}
+
 		if stderr != nil {
 			execCmd.Stderr = stderr
 		}
 
-		cmdErr = execCmd.Run()
+		if err := execCmd.Start(); err != nil {
+			return err
+		}
+
+		// The read side of the pipe should be closed after the container process has been started.
+		if r != nil {
+			if err := r.Close(); err != nil {
+				return err
+			}
+		}
+
+		cmdErr = execCmd.Wait()
 	}
 
 	if copyError != nil {
