@@ -1,4 +1,4 @@
-module k8s.io/klog/v2
+module k8s.io/klog
 
 go 1.12
 

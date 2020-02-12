@@ -23,13 +23,13 @@ import (
 	"github.com/cri-o/cri-o/server"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/version"
+	"github.com/golang/glog"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
-	"k8s.io/klog"
 )
 
 // gitCommit is the commit that the binary is being built from.
@@ -223,19 +223,18 @@ func catchShutdown(gserver *grpc.Server, sserver *server.Server, hserver *http.S
 }
 
 func main() {
-	// Unfortunately, there's no way to ask klog to not write to tmp without this kludge.
-	// Until something like https://github.com/kubernetes/klog/pull/100 is merged, this will have to do.
-	klogFlagSet := goflag.NewFlagSet("klog", goflag.ExitOnError)
-	klog.InitFlags(klogFlagSet)
+	// Unfortunately, there's no way to ask glog to not write to tmp without this kludge.
+	glogFlagSet := goflag.NewFlagSet("glog", goflag.ExitOnError)
+	glog.InitFlags(glogFlagSet)
 
-	if err := klogFlagSet.Set("logtostderr", "false"); err != nil {
-		fmt.Fprintf(os.Stderr, "unable to set logtostderr for klog: %v\n", err)
+	if err := glogFlagSet.Set("logtostderr", "false"); err != nil {
+		fmt.Fprintf(os.Stderr, "unable to set logtostderr for glog: %v\n", err)
 	}
-	if err := klogFlagSet.Set("alsologtostderr", "false"); err != nil {
-		fmt.Fprintf(os.Stderr, "unable to set alsologtostderr for klog: %v\n", err)
+	if err := glogFlagSet.Set("alsologtostderr", "false"); err != nil {
+		fmt.Fprintf(os.Stderr, "unable to set alsologtostderr for glog: %v\n", err)
 	}
 
-	klog.SetOutput(ioutil.Discard)
+	glog.SetOutput(ioutil.Discard)
 
 	if reexec.Init() {
 		return
