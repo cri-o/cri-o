@@ -1163,7 +1163,7 @@ k8s.io/client-go/listers/storage/v1alpha1
 # k8s.io/cloud-provider v0.0.0-20191004111010-9775d7be8494 => k8s.io/cloud-provider v0.0.0-20190314002645-c892ea32361a
 k8s.io/cloud-provider
 k8s.io/cloud-provider/features
-# k8s.io/klog v0.3.3 => k8s.io/klog v0.0.0-20181108234604-8139d8cb77af
+# k8s.io/klog v1.0.0 => k8s.io/klog v0.0.0-20181108234604-8139d8cb77af
 k8s.io/klog
 # k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372
 k8s.io/kube-openapi/pkg/util/proto
