@@ -315,12 +315,12 @@ func (mounter *SafeFormatAndMount) formatAndMount(source string, target string, 
 	}
 
 	options = append(options, "defaults")
-	var mountErrorValue MountErrorType
+	mountErrorValue := UnknownMountError
 
 	// Check if the disk is already formatted
 	existingFormat, err := mounter.GetDiskFormat(source)
 	if err != nil {
-		return err
+		return NewMountError(GetDiskFormatFailed, "failed to get disk format of disk %s: %v", source, err)
 	}
 
 	// Use 'ext4' as the default
@@ -345,10 +345,11 @@ func (mounter *SafeFormatAndMount) formatAndMount(source string, target string, 
 		}
 
 		klog.Infof("Disk %q appears to be unformatted, attempting to format as type: %q with options: %v", source, fstype, args)
-		_, err := mounter.Exec.Command("mkfs."+fstype, args...).CombinedOutput()
+		output, err := mounter.Exec.Command("mkfs."+fstype, args...).CombinedOutput()
 		if err != nil {
-			klog.Errorf("format of disk %q failed: type:(%q) target:(%q) options:(%q)error:(%v)", source, fstype, target, options, err)
-			return NewMountError(FormatFailed, err.Error())
+			detailedErr := fmt.Sprintf("format of disk %q failed: type:(%q) target:(%q) options:(%q) errcode:(%v) output:(%v) ", source, fstype, target, options, err, string(output))
+			klog.Error(detailedErr)
+			return NewMountError(FormatFailed, detailedErr)
 		}
 
 		klog.Infof("Disk successfully formatted (mkfs): %s - %s %s", fstype, source, target)
@@ -499,7 +500,8 @@ func SearchMountPoints(hostSource, mountInfoPath string) ([]string, error) {
 
 	mountID := 0
 	rootPath := ""
-	majorMinor := ""
+	major := -1
+	minor := -1
 
 	// Finding the underlying root path and major:minor if possible.
 	// We need search in backward order because it's possible for later mounts
@@ -509,12 +511,13 @@ func SearchMountPoints(hostSource, mountInfoPath string) ([]string, error) {
 			// If it's a mount point or path under a mount point.
 			mountID = mis[i].ID
 			rootPath = filepath.Join(mis[i].Root, strings.TrimPrefix(hostSource, mis[i].MountPoint))
-			majorMinor = mis[i].MajorMinor
+			major = mis[i].Major
+			minor = mis[i].Minor
 			break
 		}
 	}
 
-	if rootPath == "" || majorMinor == "" {
+	if rootPath == "" || major == -1 || minor == -1 {
 		return nil, fmt.Errorf("failed to get root path and major:minor for %s", hostSource)
 	}
 
@@ -524,7 +527,7 @@ func SearchMountPoints(hostSource, mountInfoPath string) ([]string, error) {
 			// Ignore mount entry for mount source itself.
 			continue
 		}
-		if mis[i].Root == rootPath && mis[i].MajorMinor == majorMinor {
+		if mis[i].Root == rootPath && mis[i].Major == major && mis[i].Minor == minor {
 			refs = append(refs, mis[i].MountPoint)
 		}
 	}

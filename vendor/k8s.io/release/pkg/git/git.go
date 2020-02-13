@@ -19,9 +19,11 @@ package git
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
-	"path/filepath"
+	"path"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -32,26 +34,72 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 
 	"k8s.io/release/pkg/command"
 	"k8s.io/release/pkg/util"
 )
 
 const (
-	DefaultGithubOrg     = "kubernetes"
-	DefaultGithubRepo    = "kubernetes"
-	DefaultGithubURL     = "https://github.com"
-	DefaultGithubRepoURL = DefaultGithubURL + "/" + DefaultGithubOrg + "/" + DefaultGithubRepo
-	DefaultRemote        = "origin"
-	DefaultMasterRef     = "HEAD"
-	Master               = "master"
+	DefaultGithubOrg         = "kubernetes"
+	DefaultGithubRepo        = "kubernetes"
+	DefaultGithubReleaseRepo = "sig-release"
+	DefaultGithubURLBase     = "https://github.com"
+	DefaultRemote            = "origin"
+	DefaultMasterRef         = "HEAD"
+	Master                   = "master"
 
 	branchRE              = `master|release-([0-9]{1,})\.([0-9]{1,})(\.([0-9]{1,}))*$`
 	defaultGithubAuthRoot = "git@github.com:"
 	gitExecutable         = "git"
 )
+
+// GetDefaultKubernetesRepoURL returns the default HTTPS repo URL for Kubernetes.
+// Expected: https://github.com/kubernetes/kubernetes
+func GetDefaultKubernetesRepoURL() (string, error) {
+	return GetKubernetesRepoURL(DefaultGithubOrg, false)
+}
+
+// GetKubernetesRepoURL takes a GitHub org and repo, and useSSH as a boolean and
+// returns a repo URL for Kubernetes.
+// Expected result is one of the following:
+// - https://github.com/<org>/kubernetes
+// - git@github.com:<org>/kubernetes
+func GetKubernetesRepoURL(org string, useSSH bool) (string, error) {
+	if org == "" {
+		org = DefaultGithubOrg
+	}
+
+	return GetRepoURL(org, DefaultGithubRepo, useSSH)
+}
+
+// GetRepoURL takes a GitHub org and repo, and useSSH as a boolean and
+// returns a repo URL for the specified repo.
+// Expected result is one of the following:
+// - https://github.com/<org>/<repo>
+// - git@github.com:<org>/<repo>
+func GetRepoURL(org, repo string, useSSH bool) (string, error) {
+	slug := fmt.Sprintf("%s/%s", org, repo)
+
+	var urlBase string
+	var repoURL string
+	if useSSH {
+		urlBase = defaultGithubAuthRoot
+		repoURL = fmt.Sprintf("%s%s", urlBase, slug)
+	} else {
+		urlBase = DefaultGithubURLBase
+
+		u, err := url.Parse(urlBase)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to parse URL base")
+		}
+
+		u.Path = path.Join(u.Path, slug)
+
+		repoURL = u.String()
+	}
+
+	return repoURL, nil
+}
 
 // DiscoverResult is the result of a revision discovery
 type DiscoverResult struct {
@@ -78,11 +126,26 @@ func (d *DiscoverResult) EndRev() string {
 	return d.endRev
 }
 
+// Remote is a representation of a git remote location
+type Remote struct {
+	name string
+	urls []string
+}
+
+// Name returns the name of the remote
+func (r *Remote) Name() string {
+	return r.name
+}
+
+// URLs returns all available URLs of the remote
+func (r *Remote) URLs() []string {
+	return r.urls
+}
+
 // Wrapper type for a Kubernetes repository instance
 type Repo struct {
 	inner    Repository
 	worktree Worktree
-	auth     transport.AuthMethod
 	dir      string
 	dryRun   bool
 }
@@ -96,6 +159,7 @@ type Repository interface {
 	Branches() (storer.ReferenceIter, error)
 	Head() (*plumbing.Reference, error)
 	Remote(string) (*git.Remote, error)
+	Remotes() ([]*git.Remote, error)
 	ResolveRevision(plumbing.Revision) (*plumbing.Hash, error)
 	Tags() (storer.ReferenceIter, error)
 }
@@ -129,27 +193,25 @@ func (r *Repo) SetInnerRepo(repo Repository) {
 	r.inner = repo
 }
 
-// CloneOrOpenDefaultGitHubRepoSSH clones the default Kubernets GitHub
-// repository into the path or updates it.
-func CloneOrOpenDefaultGitHubRepoSSH(path, owner string) (*Repo, error) {
-	return CloneOrOpenGitHubRepo(path, owner, DefaultGithubRepo, true)
+// CloneOrOpenDefaultGitHubRepoSSH clones the default Kubernetes GitHub
+// repository via SSH if the repoPath is empty, otherwise updates it at the
+// expected repoPath.
+func CloneOrOpenDefaultGitHubRepoSSH(repoPath string) (*Repo, error) {
+	return CloneOrOpenGitHubRepo(
+		repoPath, DefaultGithubOrg, DefaultGithubRepo, true,
+	)
 }
 
 // CloneOrOpenGitHubRepo creates a temp directory containing the provided
 // GitHub repository via the owner and repo. If useSSH is true, then it will
 // clone the repository using the defaultGithubAuthRoot.
-func CloneOrOpenGitHubRepo(path, owner, repo string, useSSH bool) (*Repo, error) {
-	return CloneOrOpenRepo(
-		path,
-		func() string {
-			slug := fmt.Sprintf("%s/%s", owner, repo)
-			if useSSH {
-				return defaultGithubAuthRoot + slug
-			}
-			return fmt.Sprintf("%s/%s", DefaultGithubURL, slug)
-		}(),
-		useSSH,
-	)
+func CloneOrOpenGitHubRepo(repoPath, owner, repo string, useSSH bool) (*Repo, error) {
+	repoURL, err := GetRepoURL(owner, repo, useSSH)
+	if err != nil {
+		return nil, err
+	}
+
+	return CloneOrOpenRepo(repoPath, repoURL, useSSH)
 }
 
 // CloneOrOpenRepo creates a temp directory containing the provided
@@ -159,13 +221,13 @@ func CloneOrOpenGitHubRepo(path, owner, repo string, useSSH bool) (*Repo, error)
 //
 // The function returns the repository if cloning or updating of the repository
 // was successful, otherwise an error.
-func CloneOrOpenRepo(repoPath, url string, useSSH bool) (*Repo, error) {
+func CloneOrOpenRepo(repoPath, repoURL string, useSSH bool) (*Repo, error) {
 	// We still need the plain git executable for some methods
 	if !command.Available(gitExecutable) {
 		return nil, errors.New("git is needed to support all repository features")
 	}
 
-	logrus.Debugf("Using repository url %q", url)
+	logrus.Debugf("Using repository url %q", repoURL)
 	targetDir := ""
 	if repoPath != "" {
 		logrus.Debugf("Using existing repository path %q", repoPath)
@@ -173,47 +235,38 @@ func CloneOrOpenRepo(repoPath, url string, useSSH bool) (*Repo, error) {
 
 		if err == nil {
 			// The file or directory exists, just try to update the repo
-			return updateRepo(repoPath, useSSH)
+			return updateRepo(repoPath)
 		} else if os.IsNotExist(err) {
 			// The directory does not exists, we still have to clone it
 			targetDir = repoPath
 		} else {
 			// Something else bad happened
-			return nil, err
+			return nil, errors.Wrap(err, "unable to update repo")
 		}
 	} else {
 		// No repoPath given, use a random temp dir instead
 		t, err := ioutil.TempDir("", "k8s-")
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "unable to create temp dir")
 		}
 		targetDir = t
 	}
 
 	if _, err := git.PlainClone(targetDir, false, &git.CloneOptions{
-		URL:      url,
+		URL:      repoURL,
 		Progress: os.Stdout,
 	}); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unable to clone repo")
 	}
-	return updateRepo(targetDir, useSSH)
+	return updateRepo(targetDir)
 }
 
 // updateRepo tries to open the provided repoPath and fetches the latest
 // changes from the configured remote location
-func updateRepo(repoPath string, useSSH bool) (*Repo, error) {
+func updateRepo(repoPath string) (*Repo, error) {
 	r, err := git.PlainOpen(repoPath)
 	if err != nil {
-		return nil, err
-	}
-
-	var auth transport.AuthMethod
-	if useSSH {
-		auth, err = ssh.NewPublicKeysFromFile(gitExecutable,
-			filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa"), "")
-		if err != nil {
-			return nil, err
-		}
+		return nil, errors.Wrap(err, "unable to open repo")
 	}
 
 	// Update the repo
@@ -225,12 +278,11 @@ func updateRepo(repoPath string, useSSH bool) (*Repo, error) {
 
 	worktree, err := r.Worktree()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unable to get repository worktree")
 	}
 	return &Repo{
 		inner:    r,
 		worktree: worktree,
-		auth:     auth,
 		dir:      repoPath,
 	}, nil
 }
@@ -250,7 +302,6 @@ func OpenRepo(repoPath string) (*Repo, error) {
 	return &Repo{
 		inner:    r,
 		worktree: worktree,
-		auth:     nil,
 		dir:      repoPath,
 	}, nil
 }
@@ -418,7 +469,7 @@ func (r *Repo) HasRemoteBranch(branch string) error {
 	}
 
 	// We can then use every Remote functions to retrieve wanted information
-	refs, err := remote.List(&git.ListOptions{Auth: r.auth})
+	refs, err := remote.List(&git.ListOptions{})
 	if err != nil {
 		logrus.Warn("Could not list references on the remote repository.")
 		return err
@@ -497,6 +548,10 @@ func (r *Repo) MergeBase(from, to string) (string, error) {
 
 // Remotify returns the name prepended with the default remote
 func Remotify(name string) string {
+	split := strings.Split(name, "/")
+	if len(split) > 1 {
+		return name
+	}
 	return fmt.Sprintf("%s/%s", DefaultRemote, name)
 }
 
@@ -512,7 +567,7 @@ func (r *Repo) DescribeTag(rev string) (string, error) {
 		return "", err
 	}
 
-	return strings.TrimSpace(result.Output()), nil
+	return result.OutputTrimNL(), nil
 }
 
 // Merge does a git merge into the current branch from the provided one
@@ -710,4 +765,72 @@ func (r *Repo) Rm(force bool, files ...string) error {
 	return command.
 		NewWithWorkDir(r.Dir(), gitExecutable, args...).
 		RunSilentSuccess()
+}
+
+// Remotes lists the currently available remotes for the repository
+func (r *Repo) Remotes() (res []*Remote, err error) {
+	remotes, err := r.inner.Remotes()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to list remotes")
+	}
+
+	// Sort the remotes by their name which is not always the case
+	sort.Slice(remotes, func(i, j int) bool {
+		return remotes[i].Config().Name < remotes[j].Config().Name
+	})
+
+	for _, remote := range remotes {
+		config := remote.Config()
+		res = append(res, &Remote{name: config.Name, urls: config.URLs})
+	}
+
+	return res, nil
+}
+
+// HasRemote checks if the provided remote `name` is available and matches the
+// expected `url`
+func (r *Repo) HasRemote(name, expectedURL string) bool {
+	remotes, err := r.Remotes()
+	if err != nil {
+		logrus.Warnf("Unable to get repository remotes: %v", err)
+		return false
+	}
+
+	for _, remote := range remotes {
+		if remote.Name() == name {
+			for _, url := range remote.URLs() {
+				if url == expectedURL {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// AddRemote adds a new remote to the current working tree
+func (r *Repo) AddRemote(name, owner, repo string) error {
+	repoURL, err := GetRepoURL(owner, repo, true)
+	if err != nil {
+		return errors.Wrap(err, "unable to get remote URL")
+	}
+
+	args := []string{"remote", "add", name, repoURL}
+	return command.
+		NewWithWorkDir(r.Dir(), gitExecutable, args...).
+		RunSilentSuccess()
+}
+
+// PushToRemote push the current branch to a spcified remote, but only if the
+// repository is not in dry run mode
+func (r *Repo) PushToRemote(remote, remoteBranch string) error {
+	args := []string{"push"}
+	if r.dryRun {
+		logrus.Infof("Won't push due to dry run repository")
+		args = append(args, "--dry-run")
+	}
+	args = append(args, remote, remoteBranch)
+
+	return command.NewWithWorkDir(r.Dir(), gitExecutable, args...).RunSuccess()
 }
