@@ -31,7 +31,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-cgroup -r -d 'cgrou
 complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-env -r -d 'Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime'
 complete -c crio -n '__fish_crio_no_subcommand' -l container-attach-socket-dir -r -d 'Path to directory for container attach sockets (default: "/var/run/crio")'
 complete -c crio -n '__fish_crio_no_subcommand' -l container-exits-dir -r -d 'Path to directory in which container exit files are written to by conmon (default: "/var/run/crio/exits")'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l ctr-stop-timeout -r -d 'The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l ctr-stop-timeout -r -d 'The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container. The lowest possible value is 30s, whereas lower values are not considered by CRI-O'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l decryption-keys-path -r -d 'Path to load keys for image decryption. (default: "/etc/crio/keys/")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-capabilities -r -d 'Capabilities to add to the containers (default: ["CHOWN" "DAC_OVERRIDE" "FSETID" "FOWNER" "NET_RAW" "SETGID" "SETUID" "SETPCAP" "NET_BIND_SERVICE" "SYS_CHROOT" "KILL"])'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-mounts -r -d 'Add one or more default mount paths in the form host:container (deprecated) (default: [])'

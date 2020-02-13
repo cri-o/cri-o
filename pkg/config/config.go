@@ -41,6 +41,7 @@ const (
 	defaultGRPCMaxMsgSize  = 16 * 1024 * 1024
 	OCIBufSize             = 8192
 	RuntimeTypeVM          = "vm"
+	defaultCtrStopTimeout  = 30 // seconds
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -540,6 +541,7 @@ func DefaultConfig() (*Config, error) {
 			ContainerExitsDir:        containerExitsDir,
 			ContainerAttachSocketDir: conmonconfig.ContainerAttachSocketDir,
 			LogSizeMax:               DefaultLogSizeMax,
+			CtrStopTimeout:           defaultCtrStopTimeout,
 			LogToJournald:            DefaultLogToJournald,
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "info",
@@ -741,6 +743,14 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
 		return fmt.Errorf("log size max should be negative or >= %d", OCIBufSize)
+	}
+
+	// We need to ensure the container termination will be properly waited
+	// for by defining a minimal timeout value. This will prevent timeout
+	// value defined in the configuration file to be too low.
+	if c.CtrStopTimeout < defaultCtrStopTimeout {
+		c.CtrStopTimeout = defaultCtrStopTimeout
+		logrus.Warnf("forcing ctr_stop_timeout to lowest possible value of %ds", c.CtrStopTimeout)
 	}
 
 	if _, err := c.Sysctls(); err != nil {

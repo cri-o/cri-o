@@ -639,7 +639,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.Int64Flag{
 			Name:    "ctr-stop-timeout",
-			Usage:   "The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container",
+			Usage:   "The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container. The lowest possible value is 30s, whereas lower values are not considered by CRI-O",
 			Value:   defConf.CtrStopTimeout,
 			EnvVars: []string{"CONTAINER_STOP_TIMEOUT"},
 		},
