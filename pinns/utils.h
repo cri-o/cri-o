@@ -12,31 +12,31 @@
 
 #define _pexit(s)                                                              \
   do {                                                                         \
-    fprintf(stderr, "[pinns:e]: %s %s\n", s, strerror(errno));                 \
+    fprintf(stderr, "[pinns:e]: %s: %s\n", s, strerror(errno));                \
     _exit(EXIT_FAILURE);                                                       \
   } while (0)
 
 #define pexit(s)                                                               \
   do {                                                                         \
-    fprintf(stderr, "[pinns:e]: %s %s\n", s, strerror(errno));                 \
+    fprintf(stderr, "[pinns:e]: %s: %s\n", s, strerror(errno));                \
     exit(EXIT_FAILURE);                                                        \
   } while (0)
 
 #define pexitf(fmt, ...)                                                       \
   do {                                                                         \
-    fprintf(stderr, "[pinns:e]: " fmt " %s\n", ##__VA_ARGS__,                  \
+    fprintf(stderr, "[pinns:e]: " fmt ": %s\n", ##__VA_ARGS__,                 \
             strerror(errno));                                                  \
     exit(EXIT_FAILURE);                                                        \
   } while (0)
 
 #define pwarn(s)                                                               \
   do {                                                                         \
-    fprintf(stderr, "[pinns:w]: %s %s\n", s, strerror(errno));                 \
+    fprintf(stderr, "[pinns:w]: %s: %s\n", s, strerror(errno));                \
   } while (0)
 
 #define pwarnf(fmt, ...)                                                       \
   do {                                                                         \
-    fprintf(stderr, "[pinns:e]: " fmt " %s\n", ##__VA_ARGS__,                  \
+    fprintf(stderr, "[pinns:e]: " fmt ": %s\n", ##__VA_ARGS__,                 \
             strerror(errno));                                                  \
   } while (0)
 

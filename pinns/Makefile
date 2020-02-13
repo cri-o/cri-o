@@ -2,11 +2,14 @@ src = $(wildcard *.c)
 obj = $(src:.c=.o)
 
 override LIBS +=
-CFLAGS ?= -std=c99 -Os -Wall -Wextra
+CFLAGS ?= -std=c99 -Os -Wall -Werror -Wextra
 override CFLAGS += -static
+
+all: ../bin/pinns
 
 ../bin/pinns: $(obj) | ../bin
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	strip -s $@
 
 ../bin:
 	mkdir -p $@
