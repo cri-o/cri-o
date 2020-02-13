@@ -14,7 +14,7 @@
 
 #include "utils.h"
 
-int bind_ns(const char *pin_path, const char *ns_name) {
+static int bind_ns(const char *pin_path, const char *ns_name) {
   char bind_path[PATH_MAX];
   char ns_path[PATH_MAX];
   int fd;
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
   }
 
   if (!pin_path) {
-    pexit("Path for pinning namespaces not specified.");
+    pexit("Path for pinning namespaces not specified");
   }
 
   struct stat sb;
