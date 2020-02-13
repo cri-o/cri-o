@@ -5,6 +5,7 @@ import (
 	"errors"
 	goflag "flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -30,6 +31,7 @@ import (
 	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
+	"k8s.io/klog"
 	runtime "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
@@ -336,8 +338,19 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 }
 
 func main() {
-	// https://github.com/kubernetes/kubernetes/issues/17162
-	goflag.CommandLine.Parse([]string{})
+	// Unfortunately, there's no way to ask klog to not write to tmp without this kludge.
+	// Until something like https://github.com/kubernetes/klog/pull/100 is merged, this will have to do.
+	klogFlagSet := goflag.NewFlagSet("klog", goflag.ExitOnError)
+	klog.InitFlags(klogFlagSet)
+
+	if err := klogFlagSet.Set("logtostderr", "false"); err != nil {
+		fmt.Fprintf(os.Stderr, "unable to set logtostderr for klog: %v\n", err)
+	}
+	if err := klogFlagSet.Set("alsologtostderr", "false"); err != nil {
+		fmt.Fprintf(os.Stderr, "unable to set alsologtostderr for klog: %v\n", err)
+	}
+
+	klog.SetOutput(ioutil.Discard)
 
 	if reexec.Init() {
 		return
