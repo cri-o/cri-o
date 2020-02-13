@@ -68,7 +68,7 @@ func (c *conmonmon) signalConmons() {
 	for ctr, info := range c.conmons {
 		if ctr.State().Status == oci.ContainerStateRunning {
 			if err := c.verifyConmonValid(info.startTime, info.conmonPID); err != nil {
-				logrus.Debugf("conmon pid %d invalid: %v. Killing container %s", info.conmonPID, err, ctr.ID())
+				logrus.Errorf("conmon pid %d invalid: %v. Killing container %s", info.conmonPID, err, ctr.ID())
 				delete(c.conmons, ctr)
 				// kill container in separate thread to hold the conmonmon lock as little as possible
 				go c.oomKillContainer(ctr)
