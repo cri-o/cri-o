@@ -305,15 +305,8 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 
-	dupLabels, err := label.DupSecOpt(m.Process.SelinuxLabel)
-	if err != nil {
-		return err
-	}
-
-	processLabel, mountLabel, err := label.InitLabels(dupLabels)
-	if err != nil {
-		return err
-	}
+	processLabel := m.Process.SelinuxLabel
+	mountLabel := m.Linux.MountLabel
 
 	spp := m.Annotations[annotations.SeccompProfilePath]
 
