@@ -5,6 +5,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -479,9 +480,21 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			specgen.SetLinuxResourcesCPUCpus(resources.GetCpusetCpus())
 			specgen.SetLinuxResourcesCPUMems(resources.GetCpusetMems())
 
-			hugepageLimits := resources.GetHugepageLimits()
-			for _, limit := range hugepageLimits {
-				specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
+			supportsHugetlb := true
+			if cgroups.IsCgroup2UnifiedMode() {
+				// If the kernel has no support for hugetlb, silently ignore the limits
+				controllers, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
+				if err != nil {
+					return nil, err
+				}
+				supportsHugetlb = strings.Contains(string(controllers), "hugetlb")
+			}
+
+			if supportsHugetlb {
+				hugepageLimits := resources.GetHugepageLimits()
+				for _, limit := range hugepageLimits {
+					specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
+				}
 			}
 		}
 
