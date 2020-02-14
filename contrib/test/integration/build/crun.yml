@@ -49,6 +49,16 @@
     path: /usr/bin/runc
     state: absent
 
+- name: remove old runc binary under /usr/local/bin
+  file:
+    path: /usr/local/bin/runc
+    state: absent
+
+- name: remove old runc binary under /usr/local/sbin
+  file:
+    path: /usr/local/sbin/runc
+    state: absent
+
 - name: crun state directory
   file:
     path: /run/crun
@@ -65,5 +75,12 @@
   file:
     src: /usr/local/bin/crun
     dest: /usr/bin/runc
+    state: link
+    force: yes
+
+- name: link crun to /usr/local/bin
+  file:
+    src: /usr/local/bin/crun
+    dest: /usr/local/bin/runc
     state: link
     force: yes
