@@ -42,6 +42,14 @@
     name: /etc/crio/crio.conf
     backup: yes
 
+- name: use crun
+  replace:
+    regexp: 'runc'
+    replace: 'crun'
+    name: /etc/crio/crio.conf
+    backup: yes
+  when: "build_crun | default(False) | bool"
+
 - name: install configs
   copy:
     src: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/{{ item.src }}"
