@@ -221,8 +221,8 @@ function teardown() {
 	stop_crio
 
 	# simulate reboot with runc state going away
-	"$CONTAINER_RUNTIME" delete -f "$pod_id"
-	"$CONTAINER_RUNTIME" delete -f "$ctr_id"
+	"$CONTAINER_RUNTIME" --root $RUNTIME_ROOT delete -f "$pod_id"
+	"$CONTAINER_RUNTIME" --root $RUNTIME_ROOT delete -f "$ctr_id"
 
 	start_crio
 	run crictl pods --quiet
