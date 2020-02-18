@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -29,7 +28,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	seccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
@@ -55,7 +53,6 @@ type StreamService struct {
 // Server implements the RuntimeService and ImageService
 type Server struct {
 	config          libconfig.Config
-	seccompProfile  *seccomp.Seccomp
 	stream          StreamService
 	netPlugin       ocicni.CNIPlugin
 	hostportManager hostport.HostPortManager
@@ -68,7 +65,6 @@ type Server struct {
 
 	updateLock sync.RWMutex
 
-	seccompEnabled  bool
 	appArmorEnabled bool
 }
 
@@ -337,30 +333,10 @@ func New(
 		netPlugin:         netPlugin,
 		hostportManager:   hostportManager,
 		config:            *config,
-		seccompEnabled:    seccomp.IsEnabled(),
 		appArmorEnabled:   apparmor.IsEnabled(),
 		appArmorProfile:   config.ApparmorProfile,
 		monitorsChan:      make(chan struct{}),
 		defaultIDMappings: idMappings,
-	}
-
-	if s.seccompEnabled {
-		if config.SeccompProfile != "" {
-			seccompProfile, fileErr := ioutil.ReadFile(config.SeccompProfile)
-			if fileErr != nil {
-				return nil, fmt.Errorf("opening seccomp profile (%s) failed: %v",
-					config.SeccompProfile, fileErr)
-			}
-			var seccompConfig seccomp.Seccomp
-			if jsonErr := json.Unmarshal(seccompProfile, &seccompConfig); jsonErr != nil {
-				return nil, fmt.Errorf("decoding seccomp profile failed: %v", jsonErr)
-			}
-			logrus.Infof("using seccomp profile %q", config.SeccompProfile)
-			s.seccompProfile = &seccompConfig
-		} else {
-			logrus.Infof("no seccomp profile specified, using the internal default")
-			s.seccompProfile = seccomp.DefaultProfile()
-		}
 	}
 
 	if s.appArmorEnabled {

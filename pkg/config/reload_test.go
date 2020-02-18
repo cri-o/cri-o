@@ -66,6 +66,20 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
+
+		It("should fail with invalid seccomp_profile", func() {
+			// Given
+			modifyDefaultConfig(
+				`seccomp_profile = ""`,
+				`seccomp_profile = "`+invalidPath+`"`,
+			)
+
+			// When
+			err := sut.Reload()
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 	})
 
 	t.Describe("ReloadLogLevel", func() {
@@ -235,6 +249,45 @@ var _ = t.Describe("Config", func() {
 
 			// When
 			err := sut.ReloadRegistries()
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("ReloadSeccompProfile", func() {
+		It("should succeed without any config change", func() {
+			// Given
+			// When
+			err := sut.ReloadSeccompProfile(sut)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with config change", func() {
+			// Given
+			filePath := t.MustTempFile("seccomp")
+			Expect(ioutil.WriteFile(filePath, []byte(`{}`), 0644)).To(BeNil())
+
+			newConfig := defaultConfig()
+			newConfig.SeccompProfile = filePath
+
+			// When
+			err := sut.ReloadSeccompProfile(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.SeccompProfile).To(Equal(filePath))
+		})
+
+		It("should fail with invalid seccomp_profile", func() {
+			// Given
+			newConfig := defaultConfig()
+			newConfig.SeccompProfile = invalidPath
+
+			// When
+			err := sut.ReloadSeccompProfile(newConfig)
 
 			// Then
 			Expect(err).NotTo(BeNil())

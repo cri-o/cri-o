@@ -640,7 +640,7 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 		specgen.Config.Linux.Seccomp = nil
 		return nil
 	}
-	if !s.seccompEnabled {
+	if s.Config().Seccomp().IsDisabled() {
 		if profile != seccompUnconfined {
 			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
 		}
@@ -654,7 +654,7 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 
 	// Load the default seccomp profile from the server if the profile is a default one
 	if profile == seccompRuntimeDefault || profile == seccompDockerDefault {
-		linuxSpecs, err := seccomp.LoadProfileFromConfig(s.seccompProfile, specgen.Config)
+		linuxSpecs, err := seccomp.LoadProfileFromConfig(s.Config().Seccomp().Profile(), specgen.Config)
 		if err != nil {
 			return err
 		}

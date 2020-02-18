@@ -231,8 +231,8 @@ func recursiveEntries(
 ) {
 	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
 		if v.Kind() == reflect.Ptr {
-			// Skip recursive data
-			if seen[v.Interface()] {
+			// Skip private or recursive data
+			if !v.CanInterface() || seen[v.Interface()] {
 				return
 			}
 			seen[v.Interface()] = true

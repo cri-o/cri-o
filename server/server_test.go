@@ -195,40 +195,6 @@ var _ = t.Describe("Server", func() {
 			Entry("sz", "1:1:w", "1:1:w"),
 		)
 
-		It("should fail with inavailable seccomp profile", func() {
-			// Given
-			gomock.InOrder(
-				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(serverConfig),
-			)
-			serverConfig.SeccompProfile = invalidDir
-
-			// When
-			server, err := server.New(context.Background(), libMock)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
-		})
-
-		It("should fail with wrong seccomp profile", func() {
-			// Given
-			gomock.InOrder(
-				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(serverConfig),
-			)
-			serverConfig.SeccompProfile = "/dev/null"
-
-			// When
-			server, err := server.New(context.Background(), libMock)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
-		})
-
 		It("should fail with invalid stream address and port", func() {
 			// Given
 			mockNewServer()

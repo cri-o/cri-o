@@ -19,6 +19,7 @@ import (
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
+	"github.com/cri-o/cri-o/pkg/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	units "github.com/docker/go-units"
@@ -296,6 +297,9 @@ type RuntimeConfig struct {
 	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
 	// will only be able to write to volumes mounted into them
 	ReadOnly bool `toml:"read_only"`
+
+	// seccompConfig is the internal seccomp configuration
+	seccompConfig *seccomp.Config
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -551,6 +555,7 @@ func DefaultConfig() (*Config, error) {
 			ManageNSLifecycle:        false,
 			NamespacesDir:            "/var/run/crio/ns",
 			PinnsPath:                "",
+			seccompConfig:            seccomp.New(),
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:    defaultTransport,
@@ -792,6 +797,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err := os.MkdirAll(c.NamespacesDir, 0700); err != nil {
 			return errors.Wrapf(err, "invalid namespaces_dir")
 		}
+
+		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
+			return errors.Wrapf(err, "unable to load seccomp profile")
+		}
 	}
 
 	return nil
@@ -823,6 +832,11 @@ func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
 	c.PinnsPath, err = validateExecutablePath(executable, c.PinnsPath)
 
 	return err
+}
+
+// Seccomp returns the seccomp configuration
+func (c *RuntimeConfig) Seccomp() *seccomp.Config {
+	return c.seccompConfig
 }
 
 func validateExecutablePath(executable, currentPath string) (string, error) {
