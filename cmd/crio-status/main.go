@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/cri-o/cri-o/internal/client"
-	"github.com/cri-o/cri-o/internal/pkg/criocli"
+	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/urfave/cli/v2"
 )

@@ -16,7 +16,7 @@ import (
 	"time"
 
 	conmonconfig "github.com/containers/conmon/runner/config"
-	"github.com/cri-o/cri-o/internal/pkg/findprocess"
+	"github.com/cri-o/cri-o/internal/findprocess"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/docker/pkg/pools"

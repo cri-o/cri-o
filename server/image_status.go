@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/pkg/log"
-	pkgstorage "github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/internal/log"
+	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"

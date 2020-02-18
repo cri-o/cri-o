@@ -296,7 +296,7 @@ mock-criostorage: ${MOCKGEN}
 	${MOCKGEN} \
 		-package criostoragemock \
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
-		github.com/cri-o/cri-o/internal/pkg/storage ImageServer,RuntimeServer
+		github.com/cri-o/cri-o/internal/storage ImageServer,RuntimeServer
 
 mock-lib-config: ${MOCKGEN}
 	${MOCKGEN} \

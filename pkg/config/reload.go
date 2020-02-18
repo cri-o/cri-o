@@ -6,8 +6,8 @@ import (
 	"os/signal"
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
-	"github.com/cri-o/cri-o/internal/pkg/log"
-	"github.com/cri-o/cri-o/internal/pkg/signals"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
