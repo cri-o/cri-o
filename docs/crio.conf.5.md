@@ -191,7 +191,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **gid_mappings**=""
   The GID mappings for the user namespace of each container. A range is specified in the form containerGID:HostGID:Size. Multiple ranges must be separated by comma.
 
-**ctr_stop_timeout**=0
+**ctr_stop_timeout**=30
   The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container.
 
 **manage_network_ns_lifecycle**=false

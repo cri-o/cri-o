@@ -142,7 +142,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--container-exits-dir**="": Path to directory in which container exit files are written to by conmon (default: "/var/run/crio/exits")
 
-**--ctr-stop-timeout**="": The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container (default: 0)
+**--ctr-stop-timeout**="": The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container. The lowest possible value is 30s, whereas lower values are not considered by CRI-O (default: 30)
 
 **--decryption-keys-path**="": Path to load keys for image decryption. (default: "/etc/crio/keys/")
 

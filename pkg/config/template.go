@@ -229,7 +229,8 @@ uid_mappings = "{{ .UIDMappings }}"
 gid_mappings = "{{ .GIDMappings }}"
 
 # The minimal amount of time in seconds to wait before issuing a timeout
-# regarding the proper termination of the container.
+# regarding the proper termination of the container. The lowest possible
+# value is 30s, whereas lower values are not considered by CRI-O.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
 
 # **DEPRECATED** this option is being replaced by manage_ns_lifecycle, which is described below.

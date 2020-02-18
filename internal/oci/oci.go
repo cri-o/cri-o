@@ -34,11 +34,6 @@ const (
 	// killContainerTimeout is the timeout that we wait for the container to
 	// be SIGKILLed.
 	killContainerTimeout = 2 * time.Minute
-
-	// minCtrStopTimeout is the minimal amount of time in seconds to wait
-	// before issuing a timeout regarding the proper termination of the
-	// container.
-	minCtrStopTimeout = 30
 )
 
 // Runtime is the generic structure holding both global and specific
@@ -124,14 +119,6 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 		return nil
 	}
 
-	// We need to ensure the container termination will be properly waited
-	// for by defining a minimal timeout value. This will prevent timeout
-	// value defined in the configuration file to be too low.
-	timeout := r.config.CtrStopTimeout
-	if timeout < minCtrStopTimeout {
-		timeout = minCtrStopTimeout
-	}
-
 	done := make(chan error)
 	chControl := make(chan struct{})
 	go func() {
@@ -160,9 +147,12 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 	case <-ctx.Done():
 		close(chControl)
 		return ctx.Err()
-	case <-time.After(time.Duration(timeout) * time.Second):
+	case <-time.After(time.Duration(r.config.CtrStopTimeout) * time.Second):
 		close(chControl)
-		return fmt.Errorf("failed to get container stopped status: %ds timeout reached", timeout)
+		return fmt.Errorf(
+			"failed to get container stopped status: %ds timeout reached",
+			r.config.CtrStopTimeout,
+		)
 	}
 
 	if err != nil {
