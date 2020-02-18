@@ -173,10 +173,12 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$device" ]]
 
-	# Dump the deviced cgroup configuration for debugging.
-	run crictl exec --timeout=$timeout --sync "$ctr_id" cat /sys/fs/cgroup/devices/devices.list
-	echo $output
-	[[ "$output" =~ "c 10:237 w" ]]
+	if test $(stat -f -c%T /sys/fs/cgroup) != cgroup2fs; then
+		# Dump the deviced cgroup configuration for debugging.
+		run crictl exec --timeout=$timeout --sync "$ctr_id" cat /sys/fs/cgroup/devices/devices.list
+		echo $output
+		[[ "$output" =~ "c 10:237 w" ]]
+	fi
 
         # Opening the device in read mode should fail because the device
         # cgroup access only allows writes.
@@ -1244,43 +1246,71 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.limit_in_bytes"
+	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.limit_in_bytes || cat /sys/fs/cgroup/memory.max"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "209715200" ]]
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "512" ]]
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "10000" ]]
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "20000" ]]
+
+	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[[ "$output" =~ "20000 10000" ]]
+
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.weight"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		# 512 shares are converted to cpu.weight 20
+		[[ "$output" =~ "20" ]]
+	else
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[[ "$output" =~ "512" ]]
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[[ "$output" =~ "10000" ]]
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[[ "$output" =~ "20000" ]]
+	fi
 
 	run crictl update --memory 524288000 --cpu-period 20000 --cpu-quota 10000 --cpu-share 256 "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.limit_in_bytes"
+	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.limit_in_bytes || cat /sys/fs/cgroup/memory.max"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "524288000" ]]
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "256" ]]
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "20000" ]]
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ "10000" ]]
+
+	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[[ "$output" =~ "10000 20000" ]]
+
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.weight"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		# 256 shares are converted to cpu.weight 10
+		[[ "$output" =~ "10" ]]
+	else
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[[ "$output" =~ "256" ]]
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[[ "$output" =~ "20000" ]]
+		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[[ "$output" =~ "10000" ]]
+	fi
 }
 
 @test "ctr correctly setup working directory" {
@@ -1346,11 +1376,11 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.cpus"
+	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.cpus || cat /sys/fs/cgroup/cpuset.cpus"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "0" ]]
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.mems"
+	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.mems || cat /sys/fs/cgroup/cpuset.mems"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "0" ]]
@@ -1488,7 +1518,11 @@ function teardown() {
 
 	run crictl exec "$ctr_id" grep ro\, /proc/mounts
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "tmpfs /sys/fs/cgroup tmpfs" ]]
+	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+		[[ "$output" =~ "/sys/fs/cgroup cgroup2" ]]
+	else
+		[[ "$output" =~ "/sys/fs/cgroup tmpfs" ]]
+	fi
 
 	run crictl stopp "$pod_id"
 	echo "$output"

@@ -6,6 +6,10 @@ e2e_selinux_enabled: False
 node_e2e_selinux_enabled: False
 manage_ns_lifecycle: True
 
+build_runc: False
+build_crun: False
+cgroupv2: False
+
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"
