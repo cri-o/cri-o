@@ -19,7 +19,6 @@ import (
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/version"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	units "github.com/docker/go-units"
@@ -37,7 +36,7 @@ const (
 	DefaultRuntimeType     = "oci"
 	DefaultRuntimeRoot     = "/run/runc"
 	defaultCgroupManager   = "systemd"
-	DefaultApparmorProfile = "crio-default-" + version.Version
+	DefaultApparmorProfile = "crio-default"
 	defaultGRPCMaxMsgSize  = 16 * 1024 * 1024
 	OCIBufSize             = 8192
 	RuntimeTypeVM          = "vm"

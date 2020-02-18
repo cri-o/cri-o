@@ -108,7 +108,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
   Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the internal default seccomp profile will be used.
 
 **apparmor_profile**=""
-  Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default-" followed by the version string of CRI-O.
+  Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default".
 
 **cgroup_manager**="systemd"
   Cgroup management implementation used for the runtime.
