@@ -20,7 +20,7 @@ type entry struct {
 }
 
 const (
-	crioCLIGoPath  = "internal/pkg/criocli/criocli.go"
+	crioCLIGoPath  = "internal/criocli/criocli.go"
 	crioCLIMdPath  = "docs/crio.8.md"
 	crioConfMdPath = "docs/crio.conf.5.md"
 )

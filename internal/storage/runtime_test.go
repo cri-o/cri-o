@@ -8,7 +8,7 @@ import (
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/internal/storage"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
 	"github.com/golang/mock/gomock"
