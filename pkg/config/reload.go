@@ -74,7 +74,7 @@ func (c *Config) Reload() error {
 	if err := c.ReloadRegistries(); err != nil {
 		return err
 	}
-
+	c.ReloadDecryptionKeyConfig(newConfig)
 	return nil
 }
 
@@ -154,4 +154,13 @@ func (c *Config) ReloadRegistries() error {
 	}
 	logrus.Infof("applied new registry configuration: %+v", registries)
 	return nil
+}
+
+// ReloadDecryptionKeyConfig updates the DecryptionKeysPath with the provided
+// `newConfig`.
+func (c *Config) ReloadDecryptionKeyConfig(newConfig *Config) {
+	if c.DecryptionKeysPath != newConfig.DecryptionKeysPath {
+		logConfig("decryption_keys_path", newConfig.DecryptionKeysPath)
+		c.DecryptionKeysPath = newConfig.DecryptionKeysPath
+	}
 }

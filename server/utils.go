@@ -19,6 +19,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	"k8s.io/apimachinery/pkg/api/resource"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -256,9 +257,13 @@ func translateLabelsToDescription(labels map[string]string) string {
 }
 
 // getDecryptionKeys reads the keys from the given directory
-func getDecryptionKeys(keysPath string) (encconfig.CryptoConfig, error) {
-	base64Keys := make([]string, 0)
+func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
+	if _, err := os.Stat(keysPath); os.IsNotExist(err) {
+		logrus.Debugf("skipping non-existing decryption_keys_path: %s", keysPath)
+		return nil, nil
+	}
 
+	base64Keys := []string{}
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -284,15 +289,14 @@ func getDecryptionKeys(keysPath string) (encconfig.CryptoConfig, error) {
 		return nil
 	}
 
-	err := filepath.Walk(keysPath, walkFn)
-	if err != nil {
-		return encconfig.CryptoConfig{}, err
+	if err := filepath.Walk(keysPath, walkFn); err != nil {
+		return nil, err
 	}
 
 	sortedDc, err := cryptUtils.SortDecryptionKeys(strings.Join(base64Keys, ","))
 	if err != nil {
-		return encconfig.CryptoConfig{}, err
+		return nil, err
 	}
 
-	return encconfig.InitDecryption(sortedDc), nil
+	return encconfig.InitDecryption(sortedDc).DecryptConfig, nil
 }

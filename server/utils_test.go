@@ -105,7 +105,7 @@ func TestGetDecryptionKeys(t *testing.T) {
 
 	cc, err := getDecryptionKeys(keysDir)
 
-	if err != nil && cc.DecryptConfig != nil {
+	if err != nil && cc != nil {
 		t.Fatalf("Unable to find the expected keys")
 	}
 }
