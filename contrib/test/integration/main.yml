@@ -36,7 +36,7 @@
         k8s_git_version: "cgroupv2-crio"
         k8s_github_fork: "giuseppe"
         crio_socket: "/var/run/crio/crio.sock"
-      when: "cgroupv2 | default(False) | bool"
+      when: "cgroupv2 | bool"
 
     - name: clone build and install kubetest
       include: "build/kubetest.yml"
@@ -45,11 +45,11 @@
 
     - name: clone build and install runc
       include: "build/runc.yml"
-      when: "build_runc | default(True) | bool"
+      when: "build_runc | bool"
 
     - name: clone build and install crun
       include: "build/crun.yml"
-      when: "build_crun | default(False) | bool"
+      when: "build_crun | bool"
 
     - name: clone build and install networking plugins
       include: "build/plugins.yml"
@@ -88,7 +88,12 @@
 
     - name: clone build and install crun
       include: "build/crun.yml"
-      when: "build_crun | default(False) | bool"
+      when: "build_crun | bool"
+
+    - name: clone build and install runc
+      include: "build/runc.yml"
+      when: "build_runc | bool"
+
   post_tasks:
     - name: Swap is disused and disabled as required for kubernetes
       include: "disable_swap.yml"
@@ -147,7 +152,7 @@
         k8s_git_version: "cgroupv2-crio"
         k8s_github_fork: "giuseppe"
         crio_socket: "/var/run/crio/crio.sock"
-      when: "cgroupv2 | default(False) | bool"
+      when: "cgroupv2 | bool"
     - name: run k8s node-e2e tests
       include: node-e2e.yml
 
@@ -173,7 +178,7 @@
         k8s_git_version: "cgroupv2-crio"
         k8s_github_fork: "giuseppe"
         crio_socket: "/var/run/crio/crio.sock"
-      when: "cgroupv2 | default(False) | bool"
+      when: "cgroupv2 | bool"
 
     - name: clone build and install kubetest
       include: "build/kubetest.yml"
@@ -205,7 +210,7 @@
         k8s_git_version: "cgroupv2-crio"
         k8s_github_fork: "giuseppe"
         crio_socket: "/var/run/crio/crio.sock"
-      when: "cgroupv2 | default(False) | bool"
+      when: "cgroupv2 | bool"
 
     - name: clone build and install kubetest
       include: "build/kubetest.yml"

@@ -6,7 +6,7 @@ e2e_selinux_enabled: False
 node_e2e_selinux_enabled: False
 manage_ns_lifecycle: True
 
-build_runc: False
+build_runc: True
 build_crun: False
 cgroupv2: False
 
