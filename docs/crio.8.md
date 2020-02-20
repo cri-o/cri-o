@@ -323,6 +323,8 @@ display detailed version information
 
 wipe CRI-O's container and image storage
 
+**--force, -f**: force wipe by skipping the version check
+
 ## help, h
 
 Shows a list of commands or help for one command
