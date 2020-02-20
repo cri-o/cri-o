@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -39,6 +40,26 @@ import (
 // minMemoryLimit is the minimum memory that must be set for a container.
 // A lower value would result in the container failing to start.
 const minMemoryLimit = 12582912
+
+var (
+	_cgroupv2HasHugetlbOnce sync.Once
+	_cgroupv2HasHugetlb     bool
+	_cgroupv2HasHugetlbErr  error
+)
+
+// cgroupv2HasHugetlb returns whether the hugetlb controller is present on
+// cgroup v2.
+func cgroupv2HasHugetlb() (bool, error) {
+	_cgroupv2HasHugetlbOnce.Do(func() {
+		controllers, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
+		if err != nil {
+			_cgroupv2HasHugetlbErr = errors.Wrapf(err, "read /sys/fs/cgroup/cgroup.controllers")
+			return
+		}
+		_cgroupv2HasHugetlb = strings.Contains(string(controllers), "hugetlb")
+	})
+	return _cgroupv2HasHugetlb, _cgroupv2HasHugetlbErr
+}
 
 type configDevice struct {
 	Device   rspec.LinuxDevice
@@ -482,14 +503,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 			supportsHugetlb := true
 			if cgroups.IsCgroup2UnifiedMode() {
-				// If the kernel has no support for hugetlb, silently ignore the limits
-				controllers, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
+				supportsHugetlb, err = cgroupv2HasHugetlb()
 				if err != nil {
 					return nil, err
 				}
-				supportsHugetlb = strings.Contains(string(controllers), "hugetlb")
 			}
 
+			// If the kernel has no support for hugetlb, silently ignore the limits
 			if supportsHugetlb {
 				hugepageLimits := resources.GetHugepageLimits()
 				for _, limit := range hugepageLimits {
