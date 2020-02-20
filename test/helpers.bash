@@ -38,7 +38,7 @@ ULIMITS=${ULIMITS:-}
 DEVICES=${DEVICES:-}
 OVERRIDE_OPTIONS=${OVERRIDE_OPTIONS:-}
 RUNTIME_PATH=$(command -v $CONTAINER_RUNTIME || true)
-RUNTIME_BINARY=${RUNTIME_PATH:-/usr/local/sbin/runc}
+RUNTIME_BINARY=${RUNTIME_PATH:-$(which runc)}
 RUNTIME_ROOT=${RUNTIME_ROOT:-/run/runc}
 # Path of the apparmor_parser binary.
 APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
