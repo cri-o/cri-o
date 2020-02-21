@@ -3,6 +3,7 @@ package log
 import (
 	"io/ioutil"
 	"regexp"
+	"unicode"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -50,5 +51,13 @@ func (f *FilterHook) Fire(entry *logrus.Entry) error {
 	if entry.Level == logrus.DebugLevel {
 		entry.Message = f.predefined.ReplaceAllString(entry.Message, "[FILTERED]")
 	}
+
+	// Uppercase every first character for each log just for better optics
+	if len(entry.Message) > 0 {
+		messageBytes := []byte(entry.Message)
+		messageBytes[0] = byte(unicode.ToUpper(rune(messageBytes[0])))
+		entry.Message = string(messageBytes)
+	}
+
 	return nil
 }
