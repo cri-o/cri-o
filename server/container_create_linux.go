@@ -660,8 +660,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddMount(cgroupMnt)
 	}
 
-	// When running on cgroupv2, automatically add a cgroup namespace.
-	if cgroups.IsCgroup2UnifiedMode() {
+	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
+	if !privileged && cgroups.IsCgroup2UnifiedMode() {
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); err != nil {
 			return nil, err
 		}
