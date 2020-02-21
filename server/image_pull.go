@@ -8,12 +8,15 @@ import (
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
+	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
+
+var localRegistryPrefix = libpodImage.DefaultLocalRegistry + "/"
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp *pb.PullImageResponse, err error) {
@@ -61,6 +64,18 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		var tmpImg types.ImageCloser
 		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
 		if err != nil {
+			// We're not able to find the image remotely, check if it's
+			// available locally, but only for localhost/ prefixed ones.
+			// This allows pulling localhost/ prefixed images even if the
+			// `imagePullPolicy` is set to `Always`.
+			if strings.HasPrefix(img, localRegistryPrefix) {
+				if _, err := s.StorageImageServer().ImageStatus(
+					s.config.SystemContext, img,
+				); err == nil {
+					pulled = img
+					break
+				}
+			}
 			log.Debugf(ctx, "error preparing image %s: %v", img, err)
 			continue
 		}
