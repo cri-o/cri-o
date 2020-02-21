@@ -7,41 +7,28 @@ fi
 
 # Versions to be used
 declare -A VERSIONS=(
-    ["cni-plugins"]=v0.8.4
-    ["conmon"]=v2.0.9
+    ["cni-plugins"]=v0.8.5
+    ["conmon"]=v2.0.10
     ["cri-tools"]=v1.17.0
-    ["runc"]=v1.0.0-rc9
+    ["runc"]=v1.0.0-rc10
 )
 
-# Available architectures and go versions
-ARCH_386=386
+# Commonly used constants
 ARCH_AMD64=amd64
-GO_113=1.13
-GO_110=1.10
 
 # The default values
 TARGET_IMAGE=crio-build
 REGISTRY=
 ARCH=$ARCH_AMD64
-GO=$GO_113
+GO=1.13
 BASE_IMAGE=docker.io/golang
 TAG=latest
 DRYRUN=false
 WORK_CTR=
 
-# All supported image digests
-declare -A IMAGES=(
-    # go 1.13.4 digests
-    ["$GO_113:$ARCH_AMD64"]=6d54a51497d4b73e7af3c180b7389c8b0d05a95125069d0f63972d2cf93aac1f
-    ["$GO_113:$ARCH_386"]=30fc13b8263ce697e5dd44d6101a49344b424366b60f4b0901cef4252c2baa49
-
-    # go 1.10.8 digests
-    ["$GO_110:$ARCH_AMD64"]=eac40ba14416262e26def90a2d6f10d6ff579ea61c267963f6cbfbbe63b0ea7b
-)
-
 usage() {
-    printf "Usage: %s -a <%s|%s> -g <%s|%s> [ -r REGISTRY ] [ -t IMAGE ] [ -v TAG ] [ -d ] [ -h ]\n\n" \
-        "$(basename "$0")" $ARCH_AMD64 $ARCH_386 $GO_113 $GO_110
+    printf "Usage: %s -a GO_ARCH -g GO_VERSION [ -r REGISTRY ] [ -t IMAGE ] [ -v TAG ] [ -d ] [ -h ]\n\n" \
+        "$(basename "$0")"
     echo "Possible arguments:"
     printf "  -a\ttarget architecture of the image (default: '%s')\n" $ARCH
     printf "  -d\tdon’t build the image, only print the resulting image name and exit\n"
@@ -87,24 +74,6 @@ parse_args() {
         esac
     done
 
-    # Validate the inputs
-    if [[ "$ARCH" != "$ARCH_AMD64" ]] && [[ "$ARCH" != "$ARCH_386" ]]; then
-        printf "Invalid architecture specified: %s\n\n" "$ARCH"
-        exit 1
-    fi
-
-    if [[ "$GO" != "$GO_113" ]] && [[ "$GO" != "$GO_110" ]]; then
-        printf "Invalid go version specified: %s\n\n" "$GO"
-        exit 1
-    fi
-
-    KEY=$GO:$ARCH
-    if [[ "${IMAGES[$KEY]:-NO}" == NO ]]; then
-        echo "Invalid architecture and go version combination specified:"
-        printf "architecture: %s\ngo version: %s\n\n" "$ARCH" "$GO"
-        exit 1
-    fi
-
     TARGET_IMAGE=$TARGET_IMAGE-$ARCH-go$GO:$TAG
     if [[ $REGISTRY != "" ]]; then
         TARGET_IMAGE=$REGISTRY/$TARGET_IMAGE
@@ -116,9 +85,18 @@ parse_args() {
     fi
 }
 
+digest() {
+    IMAGE=$BASE_IMAGE:$GO
+    buildah rmi "$IMAGE" 2>/dev/null || true
+    buildah manifest inspect docker://"$IMAGE" |
+        jq -er "[.manifests[] | select(
+                 .platform.architecture == \"$ARCH\" and
+                 .platform.os == \"linux\")][0].digest"
+}
+
 unshare() {
     echo "Building target image: $TARGET_IMAGE"
-    BASE_IMAGE=$BASE_IMAGE@sha256:${IMAGES[$KEY]}
+    BASE_IMAGE=$BASE_IMAGE@$(digest)
     echo "Using base image: $BASE_IMAGE"
 
     WORK_CTR=$(buildah from --pull "$BASE_IMAGE")
@@ -194,7 +172,7 @@ install_packages() {
         protobuf-compiler \
         python-protobuf \
         socat
-    if [[ "$GO" == "$GO_113" ]]; then
+    if [[ "$GO" != "1.10" ]]; then
         run apt-get install -y libbtrfs-dev
     fi
     run apt-get clean
@@ -228,7 +206,7 @@ install_cri_tools() {
         echo "Downloading $TARBALL"
         wget -O "$TARBALL" $URL/"${VERSIONS["cri-tools"]}"/"$TARBALL"
         tar xf "$TARBALL" --no-same-owner -C "$MOUNT_DIR"/usr/bin
-        run chown root:root /usr/bin/$BINARY # https://circleci.com/docs/2.0/high-uid-error
+        run chown root:root /usr/bin/"$BINARY" # https://circleci.com/docs/2.0/high-uid-error
         run "$BINARY" --version
         rm "$TARBALL"
     done
