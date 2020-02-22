@@ -47,51 +47,87 @@ executors:
     <<: *stdenv
     working_directory: *workdir_vm
 
+filterAllTags: &filterAllTags
+  tags:
+    only: /.*/
+
 workflows:
   version: 2
   pipeline:
     jobs:
-      - build
+      - build:
+          filters: *filterAllTags
+
       - build:
           name: build-go1.10
           executor: container-legacy
+          filters: *filterAllTags
+
       - build:
           name: build-386
           executor: container-386
-      - build-static
-      - build-test-binaries
+          filters: *filterAllTags
+
+      - build-static:
+          filters: *filterAllTags
+
+      - build-test-binaries:
+          filters: *filterAllTags
+
       - bundle:
           requires:
             - build
             - build-static
+          filters: *filterAllTags
+
       - completions-validation:
           requires:
             - build
+          filters: *filterAllTags
+
       - docs-generation:
           requires:
             - build
-      - docs-validation
-      - git-validation
-      - integration
+          filters: *filterAllTags
+
+      - docs-validation:
+          filters: *filterAllTags
+
+      - git-validation:
+          filters: *filterAllTags
+
+      - integration:
+          filters: *filterAllTags
+
       - integration:
           name: integration-critest
           run_critest: '1'
           jobs: 1
           test_args: critest.bats
+          filters: *filterAllTags
+
       - integration:
           name: integration-userns
           test_userns: '1'
+          filters: *filterAllTags
+
       - integration:
           name: integration-static-glibc
           crio_binary: crio-x86_64-static-glibc
           requires:
             - build-static
+          filters: *filterAllTags
+
       - integration:
           name: integration-static-musl
           crio_binary: crio-x86_64-static-musl
           requires:
             - build-static
-      - lint
+          filters: *filterAllTags
+
+      - lint:
+          filters: *filterAllTags
+
       - results:
           requires:
             - bundle
@@ -101,8 +137,13 @@ workflows:
             - integration-static-musl
             - integration-userns
             - unit-tests
-      - unit-tests
-      - vendor
+          filters: *filterAllTags
+
+      - unit-tests:
+          filters: *filterAllTags
+
+      - vendor:
+          filters: *filterAllTags
 
 jobs:
   build:
