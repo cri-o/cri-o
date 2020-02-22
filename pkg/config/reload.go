@@ -75,6 +75,10 @@ func (c *Config) Reload() error {
 		return err
 	}
 	c.ReloadDecryptionKeyConfig(newConfig)
+	if err := c.ReloadSeccompProfile(newConfig); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -163,4 +167,17 @@ func (c *Config) ReloadDecryptionKeyConfig(newConfig *Config) {
 		logConfig("decryption_keys_path", newConfig.DecryptionKeysPath)
 		c.DecryptionKeysPath = newConfig.DecryptionKeysPath
 	}
+}
+
+// ReloadSeccompProfile reloads the seccomp profile from the new config if
+// their paths differ.
+func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
+	// Reload the seccomp profile in any case because its content could have
+	// changed as well
+	if err := c.Seccomp().LoadProfile(newConfig.SeccompProfile); err != nil {
+		return errors.Wrap(err, "unable to reload seccomp_profile")
+	}
+	c.SeccompProfile = newConfig.SeccompProfile
+	logConfig("seccomp_profile", c.SeccompProfile)
+	return nil
 }

@@ -155,3 +155,30 @@ function expect_log_failure() {
     # then
     expect_log_success $OPTION $NEW_OPTION
 }
+
+@test "reload config should succeed with 'seccomp_profile'" {
+    # given
+    NEW_SECCOMP_PROFILE="$(mktemp --tmpdir seccomp.XXXXXX.json)"
+    echo "{}" > "$NEW_SECCOMP_PROFILE"
+    OPTION="seccomp_profile"
+
+    # when
+    replace_config $OPTION $NEW_SECCOMP_PROFILE
+    reload_crio
+
+    # then
+    expect_log_success $OPTION $NEW_SECCOMP_PROFILE
+}
+
+@test "reload config should fail with invalid 'seccomp_profile'" {
+    # given
+    NEW_SECCOMP_PROFILE=")"
+    OPTION="seccomp_profile"
+
+    # when
+    replace_config $OPTION $NEW_SECCOMP_PROFILE
+    reload_crio
+
+    # then
+    expect_log_failure "unable to reload seccomp_profile"
+}

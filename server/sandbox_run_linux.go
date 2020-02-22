@@ -439,7 +439,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	if !s.seccompEnabled {
+	if s.Config().Seccomp().IsDisabled() {
 		g.Config.Linux.Seccomp = nil
 	}
 
