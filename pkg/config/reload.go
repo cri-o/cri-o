@@ -78,6 +78,9 @@ func (c *Config) Reload() error {
 	if err := c.ReloadSeccompProfile(newConfig); err != nil {
 		return err
 	}
+	if err := c.ReloadAppArmorProfile(newConfig); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -179,5 +182,18 @@ func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 	}
 	c.SeccompProfile = newConfig.SeccompProfile
 	logConfig("seccomp_profile", c.SeccompProfile)
+	return nil
+}
+
+// ReloadAppArmorProfile reloads the AppArmor profile from the new config if
+// they differ.
+func (c *Config) ReloadAppArmorProfile(newConfig *Config) error {
+	if c.ApparmorProfile != newConfig.ApparmorProfile {
+		if err := c.AppArmor().LoadProfile(newConfig.ApparmorProfile); err != nil {
+			return errors.Wrap(err, "unable to reload apparmor_profile")
+		}
+		c.ApparmorProfile = newConfig.ApparmorProfile
+		logConfig("apparmor_profile", c.ApparmorProfile)
+	}
 	return nil
 }
