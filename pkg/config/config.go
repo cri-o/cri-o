@@ -30,13 +30,9 @@ import (
 
 // Defaults if none are specified
 const (
-	pauseImage             = "k8s.gcr.io/pause:3.1"
-	pauseCommand           = "/pause"
-	defaultTransport       = "docker://"
 	defaultRuntime         = "runc"
 	DefaultRuntimeType     = "oci"
 	DefaultRuntimeRoot     = "/run/runc"
-	defaultCgroupManager   = "systemd"
 	DefaultApparmorProfile = "crio-default"
 	defaultGRPCMaxMsgSize  = 16 * 1024 * 1024
 	OCIBufSize             = 8192
@@ -525,56 +521,40 @@ func DefaultConfig() (*Config, error) {
 			DefaultRuntime:     defaultRuntime,
 			Runtimes: Runtimes{
 				defaultRuntime: {
-					RuntimePath: "",
 					RuntimeType: DefaultRuntimeType,
 					RuntimeRoot: DefaultRuntimeRoot,
 				},
 			},
-			Conmon: "",
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
 			ConmonCgroup:             "system.slice",
 			SELinux:                  selinuxEnabled(),
-			SeccompProfile:           "",
 			ApparmorProfile:          DefaultApparmorProfile,
-			CgroupManager:            defaultCgroupManager,
-			DefaultMountsFile:        "",
+			CgroupManager:            "systemd",
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
 			ContainerAttachSocketDir: conmonconfig.ContainerAttachSocketDir,
 			LogSizeMax:               DefaultLogSizeMax,
 			CtrStopTimeout:           defaultCtrStopTimeout,
-			LogToJournald:            DefaultLogToJournald,
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "info",
-			DefaultSysctls:           []string{},
-			DefaultUlimits:           []string{},
-			AdditionalDevices:        []string{},
 			HooksDir:                 []string{hooks.DefaultDir},
-			ManageNSLifecycle:        false,
 			NamespacesDir:            "/var/run/crio/ns",
-			PinnsPath:                "",
 			seccompConfig:            seccomp.New(),
 		},
 		ImageConfig: ImageConfig{
-			DefaultTransport:    defaultTransport,
-			GlobalAuthFile:      "",
-			PauseImage:          pauseImage,
-			PauseImageAuthFile:  "",
-			PauseCommand:        pauseCommand,
-			SignaturePolicyPath: "",
-			ImageVolumes:        ImageVolumesMkdir,
-			Registries:          []string{},
-			InsecureRegistries:  []string{},
+			DefaultTransport: "docker://",
+			PauseImage:       "k8s.gcr.io/pause:3.1",
+			PauseCommand:     "/pause",
+			ImageVolumes:     ImageVolumesMkdir,
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
 			PluginDirs: []string{cniBinDir},
 		},
 		MetricsConfig: MetricsConfig{
-			EnableMetrics: false,
-			MetricsPort:   9090,
+			MetricsPort: 9090,
 		},
 	}, nil
 }
