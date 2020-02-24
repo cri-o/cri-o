@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/containers/libpod/pkg/apparmor"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -291,6 +292,37 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("ReloadAppArmorProfile", func() {
+		BeforeEach(func() {
+			if !apparmor.IsEnabled() {
+				Skip("AppArmor is disabled")
+			}
+		})
+
+		It("should succeed without any config change", func() {
+			// Given
+			// When
+			err := sut.ReloadAppArmorProfile(sut)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed with config change", func() {
+			// Given
+			const profile = "unconfined"
+			newConfig := defaultConfig()
+			newConfig.ApparmorProfile = profile
+
+			// When
+			err := sut.ReloadAppArmorProfile(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.ApparmorProfile).To(Equal(profile))
 		})
 	})
 })

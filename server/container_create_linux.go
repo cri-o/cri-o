@@ -438,19 +438,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// set this container's apparmor profile if it is set by sandbox
-	if s.appArmorEnabled && !privileged {
-		profile := s.containerAppArmorProfile(
+	if s.Config().AppArmor().IsEnabled() && !privileged {
+		profile, err := s.Config().AppArmor().Apply(
 			containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile(),
 		)
-
-		// reload the profile if not loaded
-		if profile == libconfig.DefaultApparmorProfile {
-			if err := s.ReloadDefaultAppArmorProfile(); err != nil {
-				return nil, err
-			}
+		if err != nil {
+			return nil, errors.Wrapf(err, "applying apparmor profile to container %s", containerID)
 		}
 
-		log.Debugf(ctx, "Using AppArmor profile %s", profile)
+		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, containerID)
 		specgen.SetProcessApparmorProfile(profile)
 	}
 

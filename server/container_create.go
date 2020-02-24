@@ -23,7 +23,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	seccomp "github.com/seccomp/containers-golang"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/security/apparmor"
 )
 
 const (
@@ -677,13 +676,4 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 	}
 	specgen.Config.Linux.Seccomp = linuxSpecs
 	return nil
-}
-
-// containerAppArmorProfile gets the trimmed profile name for the given profile
-// string and falls back to the server’s default on empty and runtime/default profiles.
-func (s *Server) containerAppArmorProfile(profile string) string {
-	if profile == "" || profile == apparmor.ProfileRuntimeDefault {
-		return s.appArmorProfile
-	}
-	return strings.TrimPrefix(profile, apparmor.ProfileNamePrefix)
 }
