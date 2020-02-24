@@ -5,7 +5,7 @@ stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
     IMAGE: &image quay.io/crio/crio-build-amd64-go1.13:master-1.2.0
-    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.10:master-1.2.0
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.12:master-1.2.0
     IMAGE386: &image386 quay.io/crio/crio-build-386-go1.13:master-1.2.0
     IMAGENIX: &imagenix quay.io/crio/nix:1.2.0
     JOBS: &jobs 4
@@ -59,7 +59,7 @@ workflows:
           filters: *filterAllTags
 
       - build:
-          name: build-go1.10
+          name: build-go1.12
           executor: container-legacy
           filters: *filterAllTags
 

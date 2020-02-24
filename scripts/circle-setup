@@ -2,12 +2,8 @@
 set -euo pipefail
 
 # Versions to be used
-declare -A VERSIONS=(
-    ["cni-plugins"]=v0.8.4
-    ["conmon"]=v2.0.9
-    ["cri-tools"]=v1.17.0
-    ["runc"]=v1.0.0-rc9
-)
+# shellcheck source=versions
+source "$(dirname "${BASH_SOURCE[0]}")"/versions
 
 main() {
     set -x
@@ -25,8 +21,6 @@ main() {
 
 prepare_system() {
     env
-    go version
-    go env
 
     sudo systemctl stop docker
     sudo ufw disable
@@ -42,12 +36,21 @@ prepare_system() {
 }
 
 install_packages() {
+    # remove old golang version
+    sudo rm -rf /usr/local/go
+    sudo rm -rf /usr/local/bin/go
+
+    # set GOPATH
+    echo "export GOPATH=/home/circleci/go" >>~/.bashrc
+
+    sudo add-apt-repository -y ppa:longsleep/golang-backports
     sudo apt-get update
     sudo apt-get install -y \
         apparmor \
         btrfs-tools \
         conntrack \
         e2fslibs-dev \
+        golang-go \
         jq \
         libaio-dev \
         libapparmor-dev \
@@ -63,6 +66,9 @@ install_packages() {
         libseccomp-dev \
         libsystemd-dev \
         libudev-dev
+
+    go version
+    go env
 }
 
 install_bats() {
@@ -111,8 +117,10 @@ install_cni_plugins() {
 
 install_runc() {
     export GOPATH=/home/circleci/go
-    go get github.com/opencontainers/runc
-    pushd $GOPATH/src/github.com/opencontainers/runc
+    mkdir -p "$GOPATH"/github.com/opencontainers
+    RUNC_PATH=github.com/opencontainers/runc
+    git clone https://"$RUNC_PATH" "$GOPATH"/src/"$RUNC_PATH"
+    pushd "$GOPATH"/src/$RUNC_PATH
     git checkout "${VERSIONS["runc"]}"
     make BUILDTAGS="apparmor selinux seccomp"
     sudo cp runc /usr/sbin
