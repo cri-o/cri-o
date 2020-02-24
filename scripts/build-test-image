@@ -6,12 +6,8 @@ if ! command -v buildah >/dev/null; then
 fi
 
 # Versions to be used
-declare -A VERSIONS=(
-    ["cni-plugins"]=v0.8.5
-    ["conmon"]=v2.0.10
-    ["cri-tools"]=v1.17.0
-    ["runc"]=v1.0.0-rc10
-)
+# shellcheck source=versions
+source "$(dirname "${BASH_SOURCE[0]}")"/versions
 
 # Commonly used constants
 ARCH_AMD64=amd64
@@ -151,6 +147,7 @@ install_packages() {
         jq \
         libaio-dev \
         libapparmor-dev \
+        libbtrfs-dev \
         libcap-dev \
         libdevmapper-dev \
         libdevmapper1.02.1 \
@@ -172,9 +169,6 @@ install_packages() {
         protobuf-compiler \
         python-protobuf \
         socat
-    if [[ "$GO" != "1.10" ]]; then
-        run apt-get install -y libbtrfs-dev
-    fi
     run apt-get clean
     rm -rf "$MOUNT_DIR"/var/lib/apt/lists/*
 }

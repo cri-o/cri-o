@@ -167,7 +167,7 @@ func (r *runtimeVM) startRuntimeDaemon(c *Container) error {
 	args = append(args, "start")
 
 	// Modify the runtime path so that it complies with v2 shim API
-	newRuntimePath := strings.Replace(r.path, "-", ".", -1) // nolint: gocritic
+	newRuntimePath := strings.ReplaceAll(r.path, "-", ".")
 
 	// Setup default namespace
 	r.ctx = namespaces.WithNamespace(r.ctx, namespaces.Default)
