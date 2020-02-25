@@ -24,7 +24,7 @@ func New() *Config {
 }
 
 // LoadProfile can be used to load a seccomp profile from the provided path.
-// This method will not fial if seccomp is disabled.
+// This method will not fail if seccomp is disabled.
 func (c *Config) LoadProfile(profilePath string) error {
 	if c.IsDisabled() {
 		logrus.Info("Seccomp is disabled by the system or at CRI-O build-time")

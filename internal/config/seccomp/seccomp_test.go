@@ -3,7 +3,7 @@ package seccomp_test
 import (
 	"io/ioutil"
 
-	"github.com/cri-o/cri-o/pkg/config/seccomp"
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	containers_seccomp "github.com/seccomp/containers-golang"
