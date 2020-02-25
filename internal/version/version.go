@@ -16,11 +16,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Variables injected during build-time
 var (
-	GitCommit    string // sha1 from git, output of $(git rev-parse HEAD)
+	version      string // Version is the version of the build.
+	gitCommit    string // sha1 from git, output of $(git rev-parse HEAD)
 	gitTreeState string // state of git tree, either "clean" or "dirty"
 	buildDate    string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
-	Version      string // Version is the version of the build.
 )
 
 type Info struct {
@@ -39,7 +40,7 @@ type Info struct {
 // and returns whether the major and minor versions are the same.
 // If they differ, then crio should wipe.
 func ShouldCrioWipe(versionFileName string) (bool, error) {
-	return shouldCrioWipe(versionFileName, Version)
+	return shouldCrioWipe(versionFileName, version)
 }
 
 // shouldCrioWipe is an internal function for testing purposes
@@ -76,8 +77,8 @@ func shouldCrioWipe(versionFileName, versionString string) (bool, error) {
 // file is the location of the old version file
 // gitCommit is the current git commit version. It will be added to the file
 // to aid in debugging, but will not be used to compare versions
-func WriteVersionFile(file, gitCommit string) error {
-	return writeVersionFile(file, gitCommit, Version)
+func WriteVersionFile(file string) error {
+	return writeVersionFile(file, gitCommit, version)
 }
 
 // writeVersionFile is an internal function for testing purposes
@@ -124,8 +125,8 @@ func parseVersionConstant(versionString, gitCommit string) (*semver.Version, err
 
 func Get() *Info {
 	return &Info{
-		Version:      Version,
-		GitCommit:    GitCommit,
+		Version:      version,
+		GitCommit:    gitCommit,
 		GitTreeState: gitTreeState,
 		BuildDate:    buildDate,
 		GoVersion:    runtime.Version(),
@@ -145,7 +146,7 @@ func (i *Info) String() string {
 	fmt.Fprintf(w, "BuildDate:\t%s\n", i.BuildDate)
 	fmt.Fprintf(w, "GoVersion:\t%s\n", i.GoVersion)
 	fmt.Fprintf(w, "Compiler:\t%s\n", i.Compiler)
-	fmt.Fprintf(w, "Platform:\t%s\n", i.Platform)
+	fmt.Fprintf(w, "Platform:\t%s", i.Platform)
 
 	w.Flush()
 	return b.String()
