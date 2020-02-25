@@ -151,7 +151,7 @@ build-static:
 		mkdir -p cri-o/bin && \
 		cp result-*bin/bin/crio-* cri-o/bin"
 
-release-bundle: clean build-static docs crio.conf bundle
+release-bundle: clean bin/pinns build-static docs crio.conf bundle
 
 crio.conf: bin/crio
 	./bin/crio --config="" $(CONF_OVERRIDES) config  > crio.conf

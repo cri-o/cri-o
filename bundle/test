@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euox pipefail
+
+# Check for root
+if [[ $EUID -ne 0 ]]; then
+    echo "Please run this script as root"
+    exit 1
+fi
+
+# Global vars to be used
+# shellcheck source=vars
+source "$(dirname "${BASH_SOURCE[0]}")"/vars
+
+cd "$(dirname "$0")"
+
+# Untar the bundle
+tar xfvz "$ARCHIVE"
+pushd "$BUNDLE"
+
+# Install and prepare config
+make install
+mkdir /etc/crio/crio.conf.d
+printf '[crio.runtime]\ncgroup_manager = "cgroupfs"\n' \
+    >/etc/crio/crio.conf.d/01-override.conf
+
+# Start CRI-O
+systemctl daemon-reload
+systemctl start crio
+systemctl is-active --quiet crio && echo CRI-O is running
+
+# Run a workload
+crictl version
+crictl run \
+    ../../test/testdata/container_redis.json \
+    ../../test/testdata/sandbox_config.json
+
+# Test the workloads status
+if [[ ! $(crictl pods -s Ready -q) ]]; then
+    echo "No running pod found"
+    exit 1
+fi
+
+if [[ ! $(crictl ps --state Running -q) ]]; then
+    echo "No running container found"
+    exit 1
+fi
+
+# Cleanup
+crictl rmp -fa
+systemctl stop crio
+make uninstall
