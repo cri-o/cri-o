@@ -5,8 +5,8 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/docker/docker/pkg/pools"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -28,7 +28,7 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 	// ref https://bugzilla.redhat.com/show_bug.cgi?id=1798193
 	emptyStreamOnError := true
 	defer func() {
-		if emptyStreamOnError {
+		if emptyStreamOnError && stream != nil {
 			go func() {
 				_, copyError := pools.Copy(ioutil.Discard, stream)
 				logrus.Errorf("error closing port forward stream after other error: %v", copyError)
