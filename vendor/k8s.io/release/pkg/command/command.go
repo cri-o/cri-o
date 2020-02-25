@@ -41,7 +41,7 @@ type command struct {
 
 // A generic command exit status
 type Status struct {
-	exitCode syscall.WaitStatus
+	waitStatus syscall.WaitStatus
 	*Stream
 }
 
@@ -237,8 +237,8 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 	status.stdErr = stdErrBuffer.String()
 
 	if exitErr, ok := runErr.(*exec.ExitError); ok {
-		if exitCode, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-			status.exitCode = exitCode
+		if waitStatus, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+			status.waitStatus = waitStatus
 			return status, nil
 		}
 	}
@@ -248,17 +248,23 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 
 // Success returns if a Status was successful
 func (s *Status) Success() bool {
-	return s.exitCode == 0
+	return s.waitStatus.ExitStatus() == 0
 }
 
 // ExitCode returns the exit status of the command status
 func (s *Status) ExitCode() int {
-	return s.exitCode.ExitStatus()
+	return s.waitStatus.ExitStatus()
 }
 
 // Output returns stdout of the command status
 func (s *Stream) Output() string {
 	return s.stdOut
+}
+
+// OutputTrimNL returns stdout of the command status with newlines trimmed
+// Use only when output is expected to be a single "word", like a version string.
+func (s *Stream) OutputTrimNL() string {
+	return strings.TrimSpace(s.stdOut)
 }
 
 // Error returns the stderr of the command status

@@ -20,21 +20,146 @@ import (
 	"archive/tar"
 	"bufio"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"k8s.io/release/pkg/command"
 )
 
 const (
 	TagPrefix = "v"
 )
+
+func GetURLResponse(url string, trim bool) (string, error) {
+	resp, httpErr := http.Get(url)
+	if httpErr != nil {
+		return "", errors.Wrapf(httpErr, "an error occurred GET-ing %s", url)
+	}
+
+	defer resp.Body.Close()
+	statusOK := resp.StatusCode >= 200 && resp.StatusCode < 300
+	if !statusOK {
+		errMsg := fmt.Sprintf("HTTP status not OK (%v) for %s", resp.StatusCode, url)
+		return "", errors.New(errMsg)
+	}
+
+	respBytes, ioErr := ioutil.ReadAll(resp.Body)
+	if ioErr != nil {
+		return "", errors.Wrapf(ioErr, "could not handle the response body for %s", url)
+	}
+
+	respString := string(respBytes)
+	if trim {
+		respString = strings.TrimSpace(respString)
+	}
+
+	return respString, nil
+}
+
+// PackagesAvailable takes a slice of packages and determines if they are installed
+// on the host OS. Replaces common::check_packages.
+func PackagesAvailable(packages ...string) (bool, error) {
+	hostOS, osErr := getOS()
+	if osErr != nil {
+		return false, osErr
+	}
+
+	var pkgMgr string
+	missingPkgs := []string{}
+
+	ok := true
+	switch hostOS {
+	case "Ubuntu", "Debian", "LinuxMint":
+		pkgMgr = "apt"
+		logrus.Infof("Assuming %s as the host OS package manager", pkgMgr)
+
+		for _, pkg := range packages {
+			checkCmd := command.New(
+				"dpkg",
+				"-l",
+				pkg,
+			)
+
+			logrus.Infof("Checking if %s has been installed via %s...", pkg, pkgMgr)
+			checkCmdStatus, checkCmdErr := checkCmd.RunSilent()
+			if checkCmdErr != nil {
+				return false, checkCmdErr
+			}
+
+			if !checkCmdStatus.Success() {
+				logrus.Infof("Adding %s to missing packages", pkg)
+				missingPkgs = append(missingPkgs, pkg)
+				ok = false
+			}
+		}
+	case "Fedora":
+		pkgMgr = "dnf"
+		logrus.Infof("Assuming %s as the host OS package manager", pkgMgr)
+
+		for _, pkg := range packages {
+			checkCmd := command.New(
+				"rpm",
+				"--quiet",
+				"-q",
+				pkg,
+			)
+
+			logrus.Infof("Checking if %s has been installed via %s...", pkg, pkgMgr)
+			checkCmdStatus, checkCmdErr := checkCmd.RunSilent()
+			if checkCmdErr != nil {
+				return false, checkCmdErr
+			}
+
+			if !checkCmdStatus.Success() {
+				missingPkgs = append(missingPkgs, pkg)
+				ok = false
+			}
+		}
+	default:
+		ok = false
+		return ok, errors.New("cannot continue; running tool on an unsupported OS")
+	}
+
+	installInstructionsPrefix := fmt.Sprintf("sudo %s install ", pkgMgr)
+
+	if len(missingPkgs) > 0 {
+		missingPkgsString := strings.Join(missingPkgs, ",")
+
+		logrus.Warnf("The following packages are not installed via %s: %s", pkgMgr, missingPkgsString)
+
+		for _, pkg := range missingPkgs {
+			installInstructions := fmt.Sprintf("'%s%s'", installInstructionsPrefix, pkg)
+
+			logrus.Infof("Install %s with: %s", pkg, installInstructions)
+		}
+	}
+
+	return ok, nil
+}
+
+func getOS() (string, error) {
+	logrus.Info("Checking host OS...")
+
+	get := command.New("lsb_release", "-si")
+	getStream, getErr := get.RunSilentSuccessOutput()
+	if getErr != nil {
+		return "", getErr
+	}
+
+	osOutput := getStream.OutputTrimNL()
+	logrus.Infof("Host OS is %s", osOutput)
+
+	return osOutput, nil
+}
 
 /*
 #############################################################################
@@ -75,12 +200,12 @@ func Ask(question, expectedResponse string, retries int) (answer string, success
 	attempts := 1
 
 	if retries < 0 {
-		fmt.Printf("Retries was set to a number less than zero (%d). Please specify a positive number of retries or zero, if you want to ask unconditionally.", retries)
+		fmt.Printf("Retries was set to a number less than zero (%d). Please specify a positive number of retries or zero, if you want to ask unconditionally.\n", retries)
 	}
 
 	for attempts <= retries {
 		scanner := bufio.NewScanner(os.Stdin)
-		fmt.Printf("%s (%d/%d) ", question, attempts, retries)
+		fmt.Printf("%s (%d/%d) \n", question, attempts, retries)
 
 		scanner.Scan()
 		answer = scanner.Text()
@@ -89,7 +214,7 @@ func Ask(question, expectedResponse string, retries int) (answer string, success
 			return answer, true, nil
 		}
 
-		fmt.Printf("Expected '%s', but got '%s'", expectedResponse, answer)
+		fmt.Printf("Expected '%s', but got '%s'\n", expectedResponse, answer)
 
 		attempts++
 	}
@@ -198,4 +323,94 @@ func TagStringToSemver(tag string) (semver.Version, error) {
 
 func SemverToTagString(tag semver.Version) string {
 	return AddTagPrefix(tag.String())
+}
+
+// CopyFileLocal copies a local file from one local location to another.
+func CopyFileLocal(src, dst string, required bool) error {
+	srcStat, err := os.Stat(src)
+	if err != nil && required {
+		return err
+	}
+	if os.IsNotExist(err) && !required {
+		return nil
+	}
+
+	if !srcStat.Mode().IsRegular() {
+		return errors.New("cannot copy non-regular file: IsRegular reports whether m describes a regular file. That is, it tests that no mode type bits are set")
+	}
+
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+	_, err = io.Copy(destination, source)
+	return err
+}
+
+// CopyDirContentsLocal copies local directory contents from one local location
+// to another.
+func CopyDirContentsLocal(src, dst string) error {
+	// If initial destination does not exist create it.
+	if _, err := os.Stat(dst); err != nil {
+		if err := os.MkdirAll(dst, os.FileMode(0755)); err != nil {
+			return errors.Wrapf(err, "Unable to create directory at path %s", dst)
+		}
+	}
+	files, err := ioutil.ReadDir(src)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		srcPath := filepath.Join(src, file.Name())
+		dstPath := filepath.Join(dst, file.Name())
+
+		fileInfo, err := os.Stat(srcPath)
+		if err != nil {
+			return err
+		}
+
+		switch fileInfo.Mode() & os.ModeType {
+		case os.ModeDir:
+			if !Exists(dstPath) {
+				if err := os.MkdirAll(dstPath, os.FileMode(0755)); err != nil {
+					return err
+				}
+			}
+			if err := CopyDirContentsLocal(srcPath, dstPath); err != nil {
+				return err
+			}
+		default:
+			if err := CopyFileLocal(srcPath, dstPath, false); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// RemoveAndReplaceDir removes a directory and its contents then recreates it.
+func RemoveAndReplaceDir(path string) error {
+	if err := os.RemoveAll(path); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(path, os.FileMode(0755)); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Exists indicates whether a file exists.
+func Exists(path string) bool {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false
+	}
+
+	return true
 }
