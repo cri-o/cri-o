@@ -35,7 +35,7 @@ func (ss StreamService) PortForward(podSandboxID string, port int32, stream io.R
 	// ref https://bugzilla.redhat.com/show_bug.cgi?id=1798193
 	emptyStreamOnError := true
 	defer func() {
-		if emptyStreamOnError {
+		if emptyStreamOnError && stream != nil {
 			go func() {
 				_, copyError := pools.Copy(ioutil.Discard, stream)
 				logrus.Errorf("error closing port forward stream after other error: %v", copyError)
