@@ -454,4 +454,5 @@ docs-validation:
 	test-images \
 	test-image-nix \
 	uninstall \
-	vendor
+	vendor \
+	bin/pinns
