@@ -82,11 +82,10 @@ SHRINKFLAGS := -s -w
 VERSION := $(shell $(GO_RUN) ./scripts/latest_version.go)
 
 BASE_LDFLAGS = ${SHRINKFLAGS} \
-	-X ${PROJECT}/internal/version.buildInfo=${SOURCE_DATE_EPOCH} \
 	-X ${PROJECT}/internal/version.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
-	-X ${PROJECT}/internal/version.GitCommit=${COMMIT_NO} \
+	-X ${PROJECT}/internal/version.gitCommit=${COMMIT_NO} \
 	-X ${PROJECT}/internal/version.gitTreeState=${GIT_TREE_STATE} \
-	-X ${PROJECT}/internal/version.Version=${VERSION}
+	-X ${PROJECT}/internal/version.version=${VERSION}
 
 LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
