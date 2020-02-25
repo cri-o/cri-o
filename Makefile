@@ -81,8 +81,10 @@ GO_FILES := $(shell find . -type f -name '*.go' -not -name '*_test.go')
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
 VERSION := $(shell $(GO_RUN) ./scripts/latest_version.go)
+DEFAULTS_PATH := ""
 
 BASE_LDFLAGS = ${SHRINKFLAGS} \
+	-X ${PROJECT}/internal/pkg/criocli.DefaultsPath=${DEFAULTS_PATH} \
 	-X ${PROJECT}/internal/version.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	-X ${PROJECT}/internal/version.gitCommit=${COMMIT_NO} \
 	-X ${PROJECT}/internal/version.gitTreeState=${GIT_TREE_STATE} \
