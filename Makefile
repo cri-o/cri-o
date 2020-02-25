@@ -79,6 +79,7 @@ unexport GOBIN
 endif
 GOPKGDIR := $(GOPATH)/src/$(PROJECT)
 GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
+GO_FILES := $(shell find . -type f -name '*.go' -not -name '*_test.go')
 
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
@@ -133,16 +134,16 @@ lint: .gopathok ${GOLANGCI_LINT}
 bin/pinns:
 	$(MAKE) -C pinns
 
-test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
+test/copyimg/copyimg: $(GO_FILES) .gopathok
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
 
-test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
+test/checkseccomp/checkseccomp: $(GO_FILES) .gopathok
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
-bin/crio: .gopathok
+bin/crio: $(GO_FILES) .gopathok
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
-bin/crio-status: .gopathok
+bin/crio-status: $(GO_FILES) .gopathok
 	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static:
