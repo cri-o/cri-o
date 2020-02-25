@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -499,6 +500,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			cgPath = filepath.Join(parent, scopePrefix+"-"+containerID)
 		}
 		specgen.SetLinuxCgroupsPath(cgPath)
+
+		if t := sandboxConfig.GetTerminationGracePeriod(); t != nil {
+			// currently only supported by systemd, see
+			// https://github.com/opencontainers/runc/pull/2224
+			if useSystemd {
+				specgen.AddAnnotation("org.systemd.property.StopTimeoutUSec",
+					"uint64 "+strconv.FormatInt(*t, 10)+"000000") // sec to usec
+			}
+		}
 
 		if privileged {
 			specgen.SetupPrivileged(true)
