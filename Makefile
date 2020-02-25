@@ -3,13 +3,9 @@ GO ?= go
 export GOPROXY=https://proxy.golang.org
 export GOSUMDB=https://sum.golang.org
 
-# test for go module support
-ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
-export GO_MOD_VENDOR=--mod=vendor
-export GO_BUILD=GO111MODULE=on $(GO) build $(GO_MOD_VENDOR)
-else
-export GO_BUILD=$(GO) build
-endif
+GO_MOD_VENDOR := --mod=vendor
+GO_BUILD := GO111MODULE=on $(GO) build $(GO_MOD_VENDOR)
+GO_RUN := GO111MODULE=on $(GO) run $(GO_MOD_VENDOR)
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
@@ -83,7 +79,7 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
-VERSION := $(shell $(GO) run ./scripts/latest_version.go)
+VERSION := $(shell $(GO_RUN) ./scripts/latest_version.go)
 
 BASE_LDFLAGS = ${SHRINKFLAGS} \
 	-X ${PROJECT}/internal/version.buildInfo=${SOURCE_DATE_EPOCH} \
@@ -431,7 +427,7 @@ git-validation: .gopathok ${GIT_VALIDATION}
 			-range ${GIT_MERGE_BASE}..HEAD
 
 docs-validation:
-	$(GO) run -tags "$(BUILDTAGS)" ./test/docs-validation
+	$(GO_RUN) -tags "$(BUILDTAGS)" ./test/docs-validation
 
 .PHONY: \
 	.explicit_phony \
