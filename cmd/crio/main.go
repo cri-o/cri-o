@@ -115,17 +115,12 @@ func main() {
 	}
 	app := cli.NewApp()
 
-	var v []string
-	v = append(v, version.Version)
-	if version.GitCommit != "" && version.GitCommit != "unknown" {
-		v = append(v, fmt.Sprintf("commit: %s", version.GitCommit))
-	}
 	app.Name = "crio"
 	app.Usage = "OCI-based implementation of Kubernetes Container Runtime Interface"
 	app.Authors = []*cli.Author{{Name: "The CRI-O Maintainers"}}
 	app.UsageText = usage
 	app.Description = app.Usage
-	app.Version = strings.Join(v, "\n")
+	app.Version = "\n" + version.Get().String()
 
 	var err error
 	app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
@@ -241,7 +236,7 @@ func main() {
 		}
 
 		// Immediately upon start up, write our new version file
-		if err := version.WriteVersionFile(config.VersionFile, version.GitCommit); err != nil {
+		if err := version.WriteVersionFile(config.VersionFile); err != nil {
 			logrus.Fatal(err)
 		}
 
