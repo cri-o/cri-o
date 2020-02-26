@@ -4,9 +4,9 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.2.0
-    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.12:master-1.2.0
-    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.2.0
+    IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.0
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.12:master-1.3.0
+    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.0
     IMAGENIX: &imagenix quay.io/crio/nix:1.2.0
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
@@ -392,10 +392,20 @@ jobs:
             - *gocache
 
   results:
-    executor: container-base
+    executor: container
     steps:
       - attach_workspace:
           at: .
+      - run:
+          name: upload bundle
+          command: |
+            if [[ -z $GCS_BUCKET_SA ]]; then
+              echo Skipping upload because GCB Service Account is not available
+            else
+              echo $GCS_BUCKET_SA > /tmp/key.json
+              gcloud auth activate-service-account --key-file=/tmp/key.json
+              gsutil cp bundle/*.tar.gz gs://k8s-conform-cri-o/artifacts
+            fi
       - store_test_results:
           path: build/junit
       - store_artifacts:
