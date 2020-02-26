@@ -188,8 +188,8 @@ local-image:
 	$(TESTIMAGE_SCRIPT)
 
 test-images:
-	$(TESTIMAGE_SCRIPT) -g 1.13 -a amd64
-	$(TESTIMAGE_SCRIPT) -g 1.13 -a 386
+	$(TESTIMAGE_SCRIPT) -g 1.14 -a amd64
+	$(TESTIMAGE_SCRIPT) -g 1.14 -a 386
 	$(TESTIMAGE_SCRIPT) -g 1.12 -a amd64
 
 test-image-nix:
