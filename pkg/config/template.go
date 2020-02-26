@@ -135,7 +135,9 @@ seccomp_profile = "{{ .SeccompProfile }}"
 
 # Used to change the name of the default AppArmor profile of CRI-O. The default
 # profile name is "crio-default". This profile only takes effect if the user
-# does not specify a profile via the Kubernetes Pod's metadata annotation.
+# does not specify a profile via the Kubernetes Pod's metadata annotation. If
+# the profile is set to "unconfined", then this equals to disabling AppArmor.
+# This option supports live configuration reload.
 apparmor_profile = "{{ .ApparmorProfile }}"
 
 # Cgroup management implementation used for the runtime.
