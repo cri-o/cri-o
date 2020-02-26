@@ -54,5 +54,4 @@
     - tools/godep
     - onsi/ginkgo/ginkgo
     - onsi/gomega
-    - cloudflare/cfssl/cmd/...
     - jteeuwen/go-bindata/go-bindata
