@@ -182,3 +182,37 @@ function expect_log_failure() {
     # then
     expect_log_failure "unable to reload seccomp_profile"
 }
+
+@test "reload config should succeed with 'apparmor_profile'" {
+    if [[ $(is_apparmor_enabled) -eq 0 ]]; then
+        skip "skip test since AppArmor is not enabled."
+    fi
+
+    # given
+    NEW_APPARMOR_PROFILE="unconfined"
+    OPTION="apparmor_profile"
+
+    # when
+    replace_config $OPTION $NEW_APPARMOR_PROFILE
+    reload_crio
+
+    # then
+    expect_log_success $OPTION $NEW_APPARMOR_PROFILE
+}
+
+@test "reload config should fail with invalid 'apparmor_profile'" {
+    if [[ $(is_apparmor_enabled) -eq 0 ]]; then
+        skip "skip test since AppArmor is not enabled."
+    fi
+
+    # given
+    NEW_APPARMOR_PROFILE=")"
+    OPTION="apparmor_profile"
+
+    # when
+    replace_config $OPTION $NEW_APPARMOR_PROFILE
+    reload_crio
+
+    # then
+    expect_log_failure "unable to reload apparmor_profile"
+}

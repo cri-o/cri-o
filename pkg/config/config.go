@@ -19,6 +19,7 @@ import (
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/pkg/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
@@ -30,14 +31,13 @@ import (
 
 // Defaults if none are specified
 const (
-	defaultRuntime         = "runc"
-	DefaultRuntimeType     = "oci"
-	DefaultRuntimeRoot     = "/run/runc"
-	DefaultApparmorProfile = "crio-default"
-	defaultGRPCMaxMsgSize  = 16 * 1024 * 1024
-	OCIBufSize             = 8192
-	RuntimeTypeVM          = "vm"
-	defaultCtrStopTimeout  = 30 // seconds
+	defaultRuntime        = "runc"
+	DefaultRuntimeType    = "oci"
+	DefaultRuntimeRoot    = "/run/runc"
+	defaultGRPCMaxMsgSize = 16 * 1024 * 1024
+	OCIBufSize            = 8192
+	RuntimeTypeVM         = "vm"
+	defaultCtrStopTimeout = 30 // seconds
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -296,6 +296,9 @@ type RuntimeConfig struct {
 
 	// seccompConfig is the internal seccomp configuration
 	seccompConfig *seccomp.Config
+
+	// apparmorConfig is the internal AppArmor configuration
+	apparmorConfig *apparmor.Config
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -530,7 +533,7 @@ func DefaultConfig() (*Config, error) {
 			},
 			ConmonCgroup:             "system.slice",
 			SELinux:                  selinuxEnabled(),
-			ApparmorProfile:          DefaultApparmorProfile,
+			ApparmorProfile:          apparmor.DefaultProfile,
 			CgroupManager:            "systemd",
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
@@ -542,6 +545,7 @@ func DefaultConfig() (*Config, error) {
 			HooksDir:                 []string{hooks.DefaultDir},
 			NamespacesDir:            "/var/run/crio/ns",
 			seccompConfig:            seccomp.New(),
+			apparmorConfig:           apparmor.New(),
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
@@ -781,6 +785,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
 			return errors.Wrapf(err, "unable to load seccomp profile")
 		}
+
+		if err := c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
+			return errors.Wrapf(err, "unable to load AppArmor profile")
+		}
 	}
 
 	return nil
@@ -817,6 +825,11 @@ func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
 // Seccomp returns the seccomp configuration
 func (c *RuntimeConfig) Seccomp() *seccomp.Config {
 	return c.seccompConfig
+}
+
+// AppArmor returns the AppArmor configuration
+func (c *RuntimeConfig) AppArmor() *apparmor.Config {
+	return c.apparmorConfig
 }
 
 func validateExecutablePath(executable, currentPath string) (string, error) {
