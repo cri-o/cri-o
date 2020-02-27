@@ -6,7 +6,7 @@ It also assumes you've set up your system to use kubeadm. If you haven't done so
 ### Configuring CNI
 
 First, CRI-O and `kubeadm reset` don't play well together, as `kubeadm reset` empties `/etc/cni/net.d/`.
-Therefore, it is good to change the `crio.network.network_dir` in `crio.conf` to somewhere kubeadm won't touch.
+Therefore, it is good to add an overwrite of the `crio.network.network_dir` in `/etc/crio/crio.conf.d/01-overwrite-cni.conf` to somewhere kubeadm won't touch.
 
 Further, you'll need to use your plugins to figure out your pod-network-cidr. If you use the default bridge plugin defined [here](/contrib/cni/10-crio-bridge.conf), set
 ```CIDR=10.88.0.0/16```

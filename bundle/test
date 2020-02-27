@@ -19,7 +19,6 @@ pushd "$BUNDLE"
 
 # Install and prepare config
 make install
-mkdir /etc/crio/crio.conf.d
 printf '[crio.runtime]\ncgroup_manager = "cgroupfs"\n' \
     >/etc/crio/crio.conf.d/01-override.conf
 

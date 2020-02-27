@@ -34,6 +34,10 @@ JUNIT_PATH := ${BUILD_PATH}/junit
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
 
+CRIO_CONFD_DIR := crio.conf.d
+CRIO_CONFIG_DEFAULT := 00-default.conf
+BUILD_CONFIG_PATH := ${BUILD_PATH}/${CRIO_CONFD_DIR}/${CRIO_CONFIG_DEFAULT}
+
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 FISHINSTALLDIR=${PREFIX}/share/fish/completions
 ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
@@ -60,7 +64,7 @@ else
 	GIT_MERGE_BASE := HEAD^
 endif
 
-# pass crio CLI options to generate custom crio.conf build time
+# pass crio CLI options to generate custom configuration options at build time
 CONF_OVERRIDES ?=
 
 CROSS_BUILD_TARGETS := \
@@ -99,7 +103,9 @@ TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
 TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.2.0
 
-all: binaries crio.conf docs
+all: binaries config docs
+
+config: ${BUILD_CONFIG_PATH}
 
 default: help
 
@@ -149,10 +155,13 @@ build-static:
 		mkdir -p cri-o/bin && \
 		cp result-*bin/bin/crio-* cri-o/bin"
 
-release-bundle: clean bin/pinns build-static docs crio.conf bundle
+release-bundle: clean bin/pinns build-static docs config bundle
 
-crio.conf: bin/crio
-	./bin/crio --config="" $(CONF_OVERRIDES) config  > crio.conf
+${CRIO_CONFD_DIR}: ${BUILD_CONFIG_PATH}
+
+${BUILD_CONFIG_PATH}: bin/crio
+	mkdir -p $(dir ${BUILD_CONFIG_PATH})
+	./bin/crio --config="" $(CONF_OVERRIDES) config > ${BUILD_CONFIG_PATH}
 
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
@@ -383,9 +392,9 @@ install.man: $(MANPAGES)
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 
-install.config: crio.conf
+install.config: ${BUILD_CONFIG_PATH}
 	install ${SELINUXOPT} -d $(DATAROOTDIR)/oci/hooks.d
-	install ${SELINUXOPT} -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
+	install ${SELINUXOPT} -D -m 644 $(BUILD_CONFIG_PATH) $(ETCDIR_CRIO)/$(CRIO_CONFD_DIR)/$(CRIO_CONFIG_DEFAULT)
 	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	install ${SELINUXOPT} -D -m 644 crictl.yaml $(CRICTL_CONFIG_DIR)
 
@@ -432,6 +441,7 @@ docs-validation:
 	$(GO_RUN) -tags "$(BUILDTAGS)" ./test/docs-validation
 
 .PHONY: \
+	${CRIO_CONFD_DIR} \
 	.explicit_phony \
 	git-validation \
 	binaries \
@@ -439,6 +449,7 @@ docs-validation:
 	build-static \
 	clean \
 	completions \
+	config \
 	default \
 	docs \
 	docs-validation \

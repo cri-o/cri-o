@@ -22,7 +22,7 @@ FILES_MAN=(
 FILES_ETC=(
     "../crictl.yaml"
     "../crio-umount.conf"
-    "../crio.conf"
+    "../build/crio.conf.d/00-default.conf"
 )
 FILES_CONTRIB=(
     "../contrib/cni/10-crio-bridge.conf"
