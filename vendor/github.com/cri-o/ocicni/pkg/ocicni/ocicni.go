@@ -503,8 +503,8 @@ func (plugin *cniNetworkPlugin) forEachNetwork(podNetwork *PodNetwork, fromCache
 			var newRt *libcni.RuntimeConf
 			cniNet, newRt, err = plugin.loadNetworkFromCache(network.Name, rt)
 			if err != nil {
-				logrus.Errorf("error loading cached network config: %v", err)
-				// fall back to loading from existing plugins on disk
+				logrus.Debugf("error loading cached network config: %v", err)
+				logrus.Debugf("falling back to loading from existing plugins on disk")
 			} else {
 				// Use the updated RuntimeConf
 				rt = newRt

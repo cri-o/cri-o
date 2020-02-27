@@ -126,6 +126,7 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		if err != nil {
 			return nil, err
 		}
+		defer tarSource.Close()
 		manifest, err := tarSource.LoadTarManifest()
 
 		if err != nil {
@@ -407,5 +408,5 @@ func checkRemoteImageForLabel(ctx context.Context, label string, imageInfo pullR
 			return nil
 		}
 	}
-	return errors.Errorf("%s has no label %s", imageInfo.image, label)
+	return errors.Errorf("%s has no label %s in %q", imageInfo.image, label, remoteInspect.Labels)
 }

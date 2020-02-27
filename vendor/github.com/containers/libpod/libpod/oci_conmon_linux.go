@@ -5,8 +5,11 @@ package libpod
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,8 +17,10 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"text/template"
 	"time"
 
+	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
@@ -32,6 +37,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	"k8s.io/client-go/tools/remotecommand"
+)
+
+const (
+	// This is Conmon's STDIO_BUF_SIZE. I don't believe we have access to it
+	// directly from the Go cose, so const it here
+	bufferSize = conmonConfig.BufSize
 )
 
 // ConmonOCIRuntime is an OCI runtime managed by Conmon.
@@ -148,9 +160,23 @@ func (r *ConmonOCIRuntime) Path() string {
 	return r.path
 }
 
+// hasCurrentUserMapped checks whether the current user is mapped inside the container user namespace
+func hasCurrentUserMapped(ctr *Container) bool {
+	if len(ctr.config.IDMappings.UIDMap) == 0 && len(ctr.config.IDMappings.GIDMap) == 0 {
+		return true
+	}
+	uid := os.Geteuid()
+	for _, m := range ctr.config.IDMappings.UIDMap {
+		if uid >= m.HostID && uid < m.HostID+m.Size {
+			return true
+		}
+	}
+	return false
+}
+
 // CreateContainer creates a container.
 func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (err error) {
-	if len(ctr.config.IDMappings.UIDMap) != 0 || len(ctr.config.IDMappings.GIDMap) != 0 {
+	if !hasCurrentUserMapped(ctr) {
 		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.VolumePath} {
 			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {
 				return err
@@ -450,6 +476,123 @@ func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "resume", ctr.ID())
 }
 
+// HTTPAttach performs an attach for the HTTP API.
+// This will consume, and automatically close, the hijacked HTTP session.
+// It is not necessary to close it independently.
+// The cancel channel is not closed; it is up to the caller to do so after
+// this function returns.
+// If this is a container with a terminal, we will stream raw. If it is not, we
+// will stream with an 8-byte header to multiplex STDOUT and STDERR.
+func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) (deferredErr error) {
+	isTerminal := false
+	if ctr.config.Spec.Process != nil {
+		isTerminal = ctr.config.Spec.Process.Terminal
+	}
+
+	// Ensure that our contract of closing the HTTP connection is honored.
+	defer hijackWriteErrorAndClose(deferredErr, ctr.ID(), httpConn, httpBuf)
+
+	if streams != nil {
+		if isTerminal {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot specify which streams to attach as container %s has a terminal", ctr.ID())
+		}
+		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
+			return errors.Wrapf(define.ErrInvalidArg, "must specify at least one stream to attach to")
+		}
+	}
+
+	attachSock, err := r.AttachSocketPath(ctr)
+	if err != nil {
+		return err
+	}
+	socketPath := buildSocketPath(attachSock)
+
+	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
+	if err != nil {
+		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Errorf("unable to close container %s attach socket: %q", ctr.ID(), err)
+		}
+	}()
+
+	logrus.Debugf("Successfully connected to container %s attach socket %s", ctr.ID(), socketPath)
+
+	detachString := define.DefaultDetachKeys
+	if detachKeys != nil {
+		detachString = *detachKeys
+	}
+	detach, err := processDetachKeys(detachString)
+	if err != nil {
+		return err
+	}
+
+	// Make a channel to pass errors back
+	errChan := make(chan error)
+
+	attachStdout := true
+	attachStderr := true
+	attachStdin := true
+	if streams != nil {
+		attachStdout = streams.Stdout
+		attachStderr = streams.Stderr
+		attachStdin = streams.Stdin
+	}
+
+	// Handle STDOUT/STDERR
+	go func() {
+		var err error
+		if isTerminal {
+			logrus.Debugf("Performing terminal HTTP attach for container %s", ctr.ID())
+			err = httpAttachTerminalCopy(conn, httpBuf, ctr.ID())
+		} else {
+			logrus.Debugf("Performing non-terminal HTTP attach for container %s", ctr.ID())
+			err = httpAttachNonTerminalCopy(conn, httpBuf, ctr.ID(), attachStdin, attachStdout, attachStderr)
+		}
+		errChan <- err
+		logrus.Debugf("STDOUT/ERR copy completed")
+	}()
+	// Next, STDIN. Avoid entirely if attachStdin unset.
+	if attachStdin {
+		go func() {
+			_, err := utils.CopyDetachable(conn, httpBuf, detach)
+			logrus.Debugf("STDIN copy completed")
+			errChan <- err
+		}()
+	}
+
+	if cancel != nil {
+		select {
+		case err := <-errChan:
+			return err
+		case <-cancel:
+			return nil
+		}
+	} else {
+		var connErr error = <-errChan
+		return connErr
+	}
+}
+
+// AttachResize resizes the terminal used by the given container.
+func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error {
+	// TODO: probably want a dedicated function to get ctl file path?
+	controlPath := filepath.Join(ctr.bundlePath(), "ctl")
+	controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
+	if err != nil {
+		return errors.Wrapf(err, "could not open ctl file for terminal resize")
+	}
+	defer controlFile.Close()
+
+	logrus.Debugf("Received a resize event for container %s: %+v", ctr.ID(), newSize)
+	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 1, newSize.Height, newSize.Width); err != nil {
+		return errors.Wrapf(err, "failed to write to ctl file to resize terminal")
+	}
+
+	return nil
+}
+
 // ExecContainer executes a command in a running container
 // TODO: Split into Create/Start/Attach/Wait
 func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options *ExecOptions) (int, chan error, error) {
@@ -532,7 +675,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
 		ociLog = c.execOCILog(sessionID)
 	}
-	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog)
+	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog, "")
 
 	if options.PreserveFDs > 0 {
 		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", options.PreserveFDs))...)
@@ -544,6 +687,10 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 
 	if options.Terminal {
 		args = append(args, "-t")
+	}
+
+	if options.Streams.AttachInput {
+		args = append(args, "-i")
 	}
 
 	// Append container ID and command
@@ -558,9 +705,8 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	execCmd := exec.Command(r.conmonPath, args...)
 
 	if options.Streams != nil {
-		if options.Streams.AttachInput {
-			execCmd.Stdin = options.Streams.InputStream
-		}
+		// Don't add the InputStream to the execCmd. Instead, the data should be passed
+		// through CopyDetachable
 		if options.Streams.AttachOutput {
 			execCmd.Stdout = options.Streams.OutputStream
 		}
@@ -582,7 +728,8 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 
 	// we don't want to step on users fds they asked to preserve
 	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
-	execCmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", options.PreserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", options.PreserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", options.PreserveFDs+5))
+	execCmd.Env = r.conmonEnv
+	execCmd.Env = append(execCmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", options.PreserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", options.PreserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", options.PreserveFDs+5))
 	execCmd.Env = append(execCmd.Env, conmonEnv...)
 
 	execCmd.ExtraFiles = append(execCmd.ExtraFiles, childSyncPipe, childStartPipe, childAttachPipe)
@@ -709,7 +856,7 @@ func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (b
 	return true, nil
 }
 
-// ExecCleanupContainer cleans up files created when a command is run via
+// ExecContainerCleanup cleans up files created when a command is run via
 // ExecContainer. This includes the attach socket for the exec session.
 func (r *ConmonOCIRuntime) ExecContainerCleanup(ctr *Container, sessionID string) error {
 	// Clean up the sockets dir. Issue #3962
@@ -887,6 +1034,27 @@ func waitPidStop(pid int, timeout time.Duration) error {
 	}
 }
 
+func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
+	logTag := ctr.LogTag()
+	if logTag == "" {
+		return "", nil
+	}
+	data, err := ctr.inspectLocked(false)
+	if err != nil {
+		return "", nil
+	}
+	tmpl, err := template.New("container").Parse(logTag)
+	if err != nil {
+		return "", errors.Wrapf(err, "template parsing error %s", logTag)
+	}
+	var b bytes.Buffer
+	err = tmpl.Execute(&b, data)
+	if err != nil {
+		return "", err
+	}
+	return b.String(), nil
+}
+
 // createOCIContainer generates this container's main conmon instance and prepares it for starting
 func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (err error) {
 	var stderrBuf bytes.Buffer
@@ -913,7 +1081,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
 		ociLog = filepath.Join(ctr.state.RunDir, "oci-log")
 	}
-	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog)
+
+	logTag, err := r.getLogTag(ctr)
+	if err != nil {
+		return err
+	}
+
+	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog, logTag)
 
 	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")
@@ -967,7 +1141,8 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return err
 	}
 
-	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3), fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
+	cmd.Env = r.conmonEnv
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3), fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
 	cmd.Env = append(cmd.Env, conmonEnv...)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childSyncPipe, childStartPipe)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, envFiles...)
@@ -1000,6 +1175,15 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 		// Leak one end in conmon, the other one will be leaked into slirp4netns
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
+
+		if ctr.rootlessPortSyncR != nil {
+			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
+		}
+		if ctr.rootlessPortSyncW != nil {
+			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncW)
+			// Leak one end in conmon, the other one will be leaked into rootlessport
+			cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessPortSyncW)
+		}
 	}
 
 	err = startCommandGivenSelinux(cmd)
@@ -1138,7 +1322,7 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*o
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
-func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath string) []string {
+func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath, logTag string) []string {
 	// set the conmon API version to be able to use the correct sync struct keys
 	args := []string{"--api-version", "1"}
 	if r.cgroupManager == define.SystemdCgroupsManager && !ctr.config.NoCgroups {
@@ -1184,6 +1368,9 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	}
 	if ociLogPath != "" {
 		args = append(args, "--runtime-arg", "--log-format=json", "--runtime-arg", "--log", fmt.Sprintf("--runtime-arg=%s", ociLogPath))
+	}
+	if logTag != "" {
+		args = append(args, "--log-tag", logTag)
 	}
 	if ctr.config.NoCgroups {
 		logrus.Debugf("Running with no CGroups")
@@ -1238,8 +1425,19 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 // it then signals for conmon to start by sending nonse data down the start fd
 func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File) error {
 	mustCreateCgroup := true
-	// If cgroup creation is disabled - just signal.
+
 	if ctr.config.NoCgroups {
+		mustCreateCgroup = false
+	}
+
+	// If cgroup creation is disabled - just signal.
+	switch ctr.config.CgroupsMode {
+	case "disabled", "no-conmon":
+		mustCreateCgroup = false
+	}
+
+	// $INVOCATION_ID is set by systemd when running as a service.
+	if os.Getenv("INVOCATION_ID") != "" {
 		mustCreateCgroup = false
 	}
 
@@ -1263,12 +1461,10 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 			control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
 			if err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-			} else {
+			} else if err := control.AddPid(cmd.Process.Pid); err != nil {
 				// we need to remove this defer and delete the cgroup once conmon exits
 				// maybe need a conmon monitor?
-				if err := control.AddPid(cmd.Process.Pid); err != nil {
-					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-				}
+				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
 		}
 	}
@@ -1407,4 +1603,140 @@ func (r *ConmonOCIRuntime) getOCIRuntimeVersion() (string, error) {
 		return "", err
 	}
 	return strings.TrimSuffix(output, "\n"), nil
+}
+
+// Copy data from container to HTTP connection, for terminal attach.
+// Container is the container's attach socket connection, http is a buffer for
+// the HTTP connection. cid is the ID of the container the attach session is
+// running for (used solely for error messages).
+func httpAttachTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid string) error {
+	buf := make([]byte, bufferSize)
+	for {
+		numR, err := container.Read(buf)
+		if numR > 0 {
+			switch buf[0] {
+			case AttachPipeStdout:
+				// Do nothing
+			default:
+				logrus.Errorf("Received unexpected attach type %+d, discarding %d bytes", buf[0], numR)
+				continue
+			}
+
+			numW, err2 := http.Write(buf[1:numR])
+			if err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s STDOUT: %v", cid, err)
+				}
+				return err2
+			} else if numW+1 != numR {
+				return io.ErrShortWrite
+			}
+			// We need to force the buffer to write immediately, so
+			// there isn't a delay on the terminal side.
+			if err2 := http.Flush(); err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s STDOUT: %v", cid, err)
+				}
+				return err2
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+// Copy data from a container to an HTTP connection, for non-terminal attach.
+// Appends a header to multiplex input.
+func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid string, stdin, stdout, stderr bool) error {
+	buf := make([]byte, bufferSize)
+	for {
+		numR, err := container.Read(buf)
+		if numR > 0 {
+			headerBuf := []byte{0, 0, 0, 0}
+
+			// Practically speaking, we could make this buf[0] - 1,
+			// but we need to validate it anyways...
+			switch buf[0] {
+			case AttachPipeStdin:
+				headerBuf[0] = 0
+				if !stdin {
+					continue
+				}
+			case AttachPipeStdout:
+				if !stdout {
+					continue
+				}
+				headerBuf[0] = 1
+			case AttachPipeStderr:
+				if !stderr {
+					continue
+				}
+				headerBuf[0] = 2
+			default:
+				logrus.Errorf("Received unexpected attach type %+d, discarding %d bytes", buf[0], numR)
+				continue
+			}
+
+			// Get big-endian length and append.
+			// Subtract 1 because we strip the first byte (used for
+			// multiplexing by Conmon).
+			lenBuf := []byte{0, 0, 0, 0}
+			binary.BigEndian.PutUint32(lenBuf, uint32(numR-1))
+			headerBuf = append(headerBuf, lenBuf...)
+
+			numH, err2 := http.Write(headerBuf)
+			if err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+				}
+
+				return err2
+			}
+			// Hardcoding header length is pretty gross, but
+			// fast. Should be safe, as this is a fixed part
+			// of the protocol.
+			if numH != 8 {
+				if err != nil {
+					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+				}
+
+				return io.ErrShortWrite
+			}
+
+			numW, err2 := http.Write(buf[1:numR])
+			if err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+				}
+
+				return err2
+			} else if numW+1 != numR {
+				if err != nil {
+					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+				}
+
+				return io.ErrShortWrite
+			}
+			// We need to force the buffer to write immediately, so
+			// there isn't a delay on the terminal side.
+			if err2 := http.Flush(); err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s STDOUT: %v", cid, err)
+				}
+				return err2
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+
+			return err
+		}
+	}
+
 }

@@ -108,6 +108,9 @@ func Check(commit string) ([]byte, error) {
 		if gitNewEnough {
 			excludeList := strings.Split(excludeEnvList, ":")
 			for _, exclude := range excludeList {
+				if exclude == "" {
+					continue
+				}
 				args = append(args, "--", ".", fmt.Sprintf(":(exclude)%s", exclude))
 			}
 		}

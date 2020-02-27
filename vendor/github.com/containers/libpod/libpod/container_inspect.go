@@ -107,6 +107,7 @@ type InspectContainerData struct {
 	OCIConfigPath   string                      `json:"OCIConfigPath,omitempty"`
 	OCIRuntime      string                      `json:"OCIRuntime,omitempty"`
 	LogPath         string                      `json:"LogPath"`
+	LogTag          string                      `json:"LogTag"`
 	ConmonPidFile   string                      `json:"ConmonPidFile"`
 	Name            string                      `json:"Name"`
 	RestartCount    int32                       `json:"RestartCount"`
@@ -629,17 +630,9 @@ type InspectNetworkSettings struct {
 	MacAddress             string               `json:"MacAddress"`
 }
 
-// Inspect a container for low-level information
-func (c *Container) Inspect(size bool) (*InspectContainerData, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-
+// inspectLocked inspects a container for low-level information.
+// The caller must held c.lock.
+func (c *Container) inspectLocked(size bool) (*InspectContainerData, error) {
 	storeCtr, err := c.runtime.store.Container(c.ID())
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting container from store %q", c.ID())
@@ -653,6 +646,20 @@ func (c *Container) Inspect(size bool) (*InspectContainerData, error) {
 		return nil, errors.Wrapf(err, "error getting graph driver info %q", c.ID())
 	}
 	return c.getContainerInspectData(size, driverData)
+}
+
+// Inspect a container for low-level information
+func (c *Container) Inspect(size bool) (*InspectContainerData, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	return c.inspectLocked(size)
 }
 
 func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) (*InspectContainerData, error) {
@@ -732,6 +739,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		HostsPath:       hostsPath,
 		StaticDir:       config.StaticDir,
 		LogPath:         config.LogPath,
+		LogTag:          config.LogTag,
 		OCIRuntime:      config.OCIRuntime,
 		ConmonPidFile:   config.ConmonPidFile,
 		Name:            config.Name,
@@ -1006,6 +1014,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.ShmSize = c.config.ShmSize
 	hostConfig.Runtime = "oci"
 
+	// Default CPUShares is 1024, but we may overwrite below.
+	hostConfig.CpuShares = 1024
+
 	// This is very expensive to initialize.
 	// So we don't want to initialize it unless we absolutely have to - IE,
 	// there are things that require a major:minor to path translation.
@@ -1206,11 +1217,12 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 
 	// Network mode parsing.
 	networkMode := ""
-	if c.config.CreateNetNS {
+	switch {
+	case c.config.CreateNetNS:
 		networkMode = "default"
-	} else if c.config.NetNsCtr != "" {
+	case c.config.NetNsCtr != "":
 		networkMode = fmt.Sprintf("container:%s", c.config.NetNsCtr)
-	} else {
+	default:
 		// Find the spec's network namespace.
 		// If there is none, it's host networking.
 		// If there is one and it has a path, it's "ns:".

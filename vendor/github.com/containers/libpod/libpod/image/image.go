@@ -709,11 +709,12 @@ func (i *Image) Size(ctx context.Context) (*uint64, error) {
 		}
 		i.image = localImage
 	}
-	if sum, err := i.imageruntime.store.ImageSize(i.ID()); err == nil && sum >= 0 {
+	sum, err := i.imageruntime.store.ImageSize(i.ID())
+	if err == nil && sum >= 0 {
 		usum := uint64(sum)
 		return &usum, nil
 	}
-	return nil, errors.Errorf("unable to determine size")
+	return nil, errors.Wrap(err, "unable to determine size")
 }
 
 // toImageRef returns an Image Reference type from an image
@@ -781,6 +782,7 @@ type History struct {
 	CreatedBy string     `json:"createdBy"`
 	Size      int64      `json:"size"`
 	Comment   string     `json:"comment"`
+	Tags      []string   `json:"tags"`
 }
 
 // History gets the history of an image and the IDs of images that are part of
@@ -830,7 +832,8 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 		id := "<missing>"
 		if x == numHistories {
 			id = i.ID()
-		} else if layer != nil {
+		}
+		if layer != nil {
 			if !oci.History[x].EmptyLayer {
 				size = layer.UncompressedSize
 			}
@@ -840,14 +843,17 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 				delete(topLayerMap, layer.ID)
 			}
 		}
-
-		allHistory = append(allHistory, &History{
+		h := History{
 			ID:        id,
 			Created:   oci.History[x].Created,
 			CreatedBy: oci.History[x].CreatedBy,
 			Size:      size,
 			Comment:   oci.History[x].Comment,
-		})
+		}
+		if layer != nil {
+			h.Tags = layer.Names
+		}
+		allHistory = append(allHistory, &h)
 
 		if layer != nil && layer.Parent != "" && !oci.History[x].EmptyLayer {
 			layer, err = i.imageruntime.store.Layer(layer.Parent)
@@ -898,8 +904,7 @@ func (i *Image) Annotations(ctx context.Context) (map[string]string, error) {
 		}
 	}
 	annotations := make(map[string]string)
-	switch manifestType {
-	case ociv1.MediaTypeImageManifest:
+	if manifestType == ociv1.MediaTypeImageManifest {
 		var m ociv1.Manifest
 		if err := json.Unmarshal(imageManifest, &m); err == nil {
 			for k, v := range m.Annotations {
@@ -1007,6 +1012,16 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		ManifestType: manifestType,
 		User:         ociv1Img.Config.User,
 		History:      ociv1Img.History,
+		NamesHistory: i.NamesHistory(),
+	}
+	if manifestType == manifest.DockerV2Schema2MediaType {
+		hc, err := i.GetHealthCheck(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if hc != nil {
+			data.HealthCheck = hc
+		}
 	}
 	return data, nil
 }
@@ -1523,7 +1538,7 @@ func GetLayersMapWithImageInfo(imageruntime *Runtime) (map[string]*LayerInfo, er
 		}
 	}
 
-	// scan all layers & add all childs for each layers to layerInfo
+	// scan all layers & add all childid's for each layers to layerInfo
 	for _, layer := range layers {
 		_, ok := layerInfoMap[layer.ID]
 		if ok {
