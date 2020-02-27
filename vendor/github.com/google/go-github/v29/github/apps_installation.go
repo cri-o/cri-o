@@ -13,8 +13,8 @@ import (
 // ListRepos lists the repositories that are accessible to the authenticated installation.
 //
 // GitHub API docs: https://developer.github.com/v3/apps/installations/#list-repositories
-func (s *AppsService) ListRepos(ctx context.Context, opt *ListOptions) ([]*Repository, *Response, error) {
-	u, err := addOptions("installation/repositories", opt)
+func (s *AppsService) ListRepos(ctx context.Context, opts *ListOptions) ([]*Repository, *Response, error) {
+	u, err := addOptions("installation/repositories", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -42,9 +42,9 @@ func (s *AppsService) ListRepos(ctx context.Context, opt *ListOptions) ([]*Repos
 // to the authenticated user for an installation.
 //
 // GitHub API docs: https://developer.github.com/v3/apps/installations/#list-repositories-accessible-to-the-user-for-an-installation
-func (s *AppsService) ListUserRepos(ctx context.Context, id int64, opt *ListOptions) ([]*Repository, *Response, error) {
+func (s *AppsService) ListUserRepos(ctx context.Context, id int64, opts *ListOptions) ([]*Repository, *Response, error) {
 	u := fmt.Sprintf("user/installations/%v/repositories", id)
-	u, err := addOptions(u, opt)
+	u, err := addOptions(u, opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,6 +98,20 @@ func (s *AppsService) RemoveRepository(ctx context.Context, instID, repoID int64
 		return nil, err
 	}
 	req.Header.Set("Accept", mediaTypeIntegrationPreview)
+
+	return s.client.Do(ctx, req, nil)
+}
+
+// RevokeInstallationToken revokes an installation token.
+//
+// GitHub docs: https://developer.github.com/v3/apps/installations/#revoke-an-installation-token
+func (s *AppsService) RevokeInstallationToken(ctx context.Context) (*Response, error) {
+	u := "installation/token"
+	req, err := s.client.NewRequest("DELETE", u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", mediaTypeRevokeTokenPreview)
 
 	return s.client.Do(ctx, req, nil)
 }

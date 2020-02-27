@@ -133,6 +133,9 @@ workflows:
       - lint:
           filters: *filterAllTags
 
+      - release-notes:
+          filters: *filterAllTags
+
       - results:
           requires:
             - bundle-test
@@ -141,6 +144,7 @@ workflows:
             - integration-static-glibc
             - integration-static-musl
             - integration-userns
+            - release-notes
             - unit-tests
           filters: *filterAllTags
 
@@ -390,20 +394,42 @@ jobs:
           paths:
             - *gocache
 
+  release-notes:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-release-notes-{{ checksum "go.sum" }}
+      - run:
+          name: Generate Release Notes
+          command: make release-notes
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/release-notes
+      - save_cache:
+          key: v1-release-notes-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+
   results:
     executor: container
     steps:
       - attach_workspace:
           at: .
       - run:
-          name: upload bundle
+          name: Upload to Google Cloud Bucket
           command: |
             if [[ -z $GCS_BUCKET_SA ]]; then
               echo Skipping upload because GCB Service Account is not available
             else
               echo $GCS_BUCKET_SA > /tmp/key.json
               gcloud auth activate-service-account --key-file=/tmp/key.json
-              gsutil cp bundle/*.tar.gz gs://k8s-conform-cri-o/artifacts
+
+              BUCKET=gs://k8s-conform-cri-o
+              gsutil cp bundle/*.tar.gz $BUCKET/artifacts
+              gsutil cp build/release-notes/*.md $BUCKET/release-notes
             fi
       - store_test_results:
           path: build/junit

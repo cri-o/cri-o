@@ -599,6 +599,10 @@ type PullRequestEvent struct {
 	// The following field is only present when the webhook is triggered on
 	// a repository belonging to an organization.
 	Organization *Organization `json:"organization,omitempty"`
+
+	// The following fields are only populated when the Action is "synchronize".
+	Before *string `json:"before,omitempty"`
+	After  *string `json:"after,omitempty"`
 }
 
 // PullRequestReviewEvent is triggered when a review is submitted on a pull
@@ -719,6 +723,8 @@ type PushEventRepository struct {
 	HasWiki         *bool      `json:"has_wiki,omitempty"`
 	HasPages        *bool      `json:"has_pages,omitempty"`
 	ForksCount      *int       `json:"forks_count,omitempty"`
+	Archived        *bool      `json:"archived,omitempty"`
+	Disabled        *bool      `json:"disabled,omitempty"`
 	OpenIssuesCount *int       `json:"open_issues_count,omitempty"`
 	DefaultBranch   *string    `json:"default_branch,omitempty"`
 	MasterBranch    *string    `json:"master_branch,omitempty"`

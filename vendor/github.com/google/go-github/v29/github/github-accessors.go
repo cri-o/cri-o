@@ -1940,6 +1940,14 @@ func (c *Contributor) GetLogin() string {
 	return *c.Login
 }
 
+// GetNodeID returns the NodeID field if it's non-nil, zero value otherwise.
+func (c *Contributor) GetNodeID() string {
+	if c == nil || c.NodeID == nil {
+		return ""
+	}
+	return *c.NodeID
+}
+
 // GetOrganizationsURL returns the OrganizationsURL field if it's non-nil, zero value otherwise.
 func (c *Contributor) GetOrganizationsURL() string {
 	if c == nil || c.OrganizationsURL == nil {
@@ -7796,6 +7804,22 @@ func (p *ProjectPermissionLevel) GetUser() *User {
 	return p.User
 }
 
+// GetAllowDeletions returns the AllowDeletions field.
+func (p *Protection) GetAllowDeletions() *AllowDeletions {
+	if p == nil {
+		return nil
+	}
+	return p.AllowDeletions
+}
+
+// GetAllowForcePushes returns the AllowForcePushes field.
+func (p *Protection) GetAllowForcePushes() *AllowForcePushes {
+	if p == nil {
+		return nil
+	}
+	return p.AllowForcePushes
+}
+
 // GetEnforceAdmins returns the EnforceAdmins field.
 func (p *Protection) GetEnforceAdmins() *AdminEnforcement {
 	if p == nil {
@@ -7820,12 +7844,36 @@ func (p *Protection) GetRequiredStatusChecks() *RequiredStatusChecks {
 	return p.RequiredStatusChecks
 }
 
+// GetRequireLinearHistory returns the RequireLinearHistory field.
+func (p *Protection) GetRequireLinearHistory() *RequireLinearHistory {
+	if p == nil {
+		return nil
+	}
+	return p.RequireLinearHistory
+}
+
 // GetRestrictions returns the Restrictions field.
 func (p *Protection) GetRestrictions() *BranchRestrictions {
 	if p == nil {
 		return nil
 	}
 	return p.Restrictions
+}
+
+// GetAllowDeletions returns the AllowDeletions field if it's non-nil, zero value otherwise.
+func (p *ProtectionRequest) GetAllowDeletions() bool {
+	if p == nil || p.AllowDeletions == nil {
+		return false
+	}
+	return *p.AllowDeletions
+}
+
+// GetAllowForcePushes returns the AllowForcePushes field if it's non-nil, zero value otherwise.
+func (p *ProtectionRequest) GetAllowForcePushes() bool {
+	if p == nil || p.AllowForcePushes == nil {
+		return false
+	}
+	return *p.AllowForcePushes
 }
 
 // GetRequiredPullRequestReviews returns the RequiredPullRequestReviews field.
@@ -7842,6 +7890,14 @@ func (p *ProtectionRequest) GetRequiredStatusChecks() *RequiredStatusChecks {
 		return nil
 	}
 	return p.RequiredStatusChecks
+}
+
+// GetRequireLinearHistory returns the RequireLinearHistory field if it's non-nil, zero value otherwise.
+func (p *ProtectionRequest) GetRequireLinearHistory() bool {
+	if p == nil || p.RequireLinearHistory == nil {
+		return false
+	}
+	return *p.RequireLinearHistory
 }
 
 // GetRestrictions returns the Restrictions field.
@@ -7874,6 +7930,22 @@ func (p *PublicEvent) GetSender() *User {
 		return nil
 	}
 	return p.Sender
+}
+
+// GetKey returns the Key field if it's non-nil, zero value otherwise.
+func (p *PublicKey) GetKey() string {
+	if p == nil || p.Key == nil {
+		return ""
+	}
+	return *p.Key
+}
+
+// GetKeyID returns the KeyID field if it's non-nil, zero value otherwise.
+func (p *PublicKey) GetKeyID() string {
+	if p == nil || p.KeyID == nil {
+		return ""
+	}
+	return *p.KeyID
 }
 
 // GetActiveLockReason returns the ActiveLockReason field if it's non-nil, zero value otherwise.
@@ -8492,12 +8564,28 @@ func (p *PullRequestEvent) GetAction() string {
 	return *p.Action
 }
 
+// GetAfter returns the After field if it's non-nil, zero value otherwise.
+func (p *PullRequestEvent) GetAfter() string {
+	if p == nil || p.After == nil {
+		return ""
+	}
+	return *p.After
+}
+
 // GetAssignee returns the Assignee field.
 func (p *PullRequestEvent) GetAssignee() *User {
 	if p == nil {
 		return nil
 	}
 	return p.Assignee
+}
+
+// GetBefore returns the Before field if it's non-nil, zero value otherwise.
+func (p *PullRequestEvent) GetBefore() string {
+	if p == nil || p.Before == nil {
+		return ""
+	}
+	return *p.Before
 }
 
 // GetChanges returns the Changes field.
@@ -8634,6 +8722,14 @@ func (p *PullRequestMergeResult) GetSHA() string {
 		return ""
 	}
 	return *p.SHA
+}
+
+// GetAuthorAssociation returns the AuthorAssociation field if it's non-nil, zero value otherwise.
+func (p *PullRequestReview) GetAuthorAssociation() string {
+	if p == nil || p.AuthorAssociation == nil {
+		return ""
+	}
+	return *p.AuthorAssociation
 }
 
 // GetBody returns the Body field if it's non-nil, zero value otherwise.
@@ -9172,6 +9268,14 @@ func (p *PushEventRepoOwner) GetName() string {
 	return *p.Name
 }
 
+// GetArchived returns the Archived field if it's non-nil, zero value otherwise.
+func (p *PushEventRepository) GetArchived() bool {
+	if p == nil || p.Archived == nil {
+		return false
+	}
+	return *p.Archived
+}
+
 // GetArchiveURL returns the ArchiveURL field if it's non-nil, zero value otherwise.
 func (p *PushEventRepository) GetArchiveURL() string {
 	if p == nil || p.ArchiveURL == nil {
@@ -9210,6 +9314,14 @@ func (p *PushEventRepository) GetDescription() string {
 		return ""
 	}
 	return *p.Description
+}
+
+// GetDisabled returns the Disabled field if it's non-nil, zero value otherwise.
+func (p *PushEventRepository) GetDisabled() bool {
+	if p == nil || p.Disabled == nil {
+		return false
+	}
+	return *p.Disabled
 }
 
 // GetFork returns the Fork field if it's non-nil, zero value otherwise.
@@ -9914,6 +10026,14 @@ func (r *Repository) GetDefaultBranch() string {
 		return ""
 	}
 	return *r.DefaultBranch
+}
+
+// GetDeleteBranchOnMerge returns the DeleteBranchOnMerge field if it's non-nil, zero value otherwise.
+func (r *Repository) GetDeleteBranchOnMerge() bool {
+	if r == nil || r.DeleteBranchOnMerge == nil {
+		return false
+	}
+	return *r.DeleteBranchOnMerge
 }
 
 // GetDeploymentsURL returns the DeploymentsURL field if it's non-nil, zero value otherwise.

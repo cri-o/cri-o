@@ -46,6 +46,9 @@ const (
 
 	// Media Type values to access preview APIs
 
+	// https://developer.github.com/changes/2020-01-10-revoke-installation-token/
+	mediaTypeRevokeTokenPreview = "application/vnd.github.gambit-preview+json"
+
 	// https://developer.github.com/changes/2014-12-09-new-attributes-for-stars-api/
 	mediaTypeStarringPreview = "application/vnd.github.v3.star+json"
 
@@ -57,9 +60,6 @@ const (
 
 	// https://developer.github.com/changes/2018-10-16-deployments-environments-states-and-auto-inactive-updates/
 	mediaTypeExpandDeploymentStatusPreview = "application/vnd.github.flash-preview+json"
-
-	// https://developer.github.com/changes/2016-02-19-source-import-preview-api/
-	mediaTypeImportPreview = "application/vnd.github.barred-rock-preview"
 
 	// https://developer.github.com/changes/2016-05-12-reactions-api-preview/
 	mediaTypeReactionsPreview = "application/vnd.github.squirrel-girl-preview"
@@ -135,9 +135,6 @@ const (
 
 	// https://developer.github.com/changes/2019-10-03-multi-line-comments/
 	mediaTypeMultiLineCommentsPreview = "application/vnd.github.comfort-fade-preview+json"
-
-	// https://developer.github.com/v3/repos/#create-a-repository-dispatch-event
-	mediaTypeRepositoryDispatchPreview = "application/vnd.github.everest-preview+json"
 )
 
 // A Client manages communication with the GitHub API.
@@ -162,6 +159,7 @@ type Client struct {
 	common service // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services used for talking to different parts of the GitHub API.
+	Actions        *ActionsService
 	Activity       *ActivityService
 	Admin          *AdminService
 	Apps           *AppsService
@@ -190,10 +188,20 @@ type service struct {
 }
 
 // ListOptions specifies the optional parameters to various List methods that
-// support pagination.
+// support offset pagination.
 type ListOptions struct {
 	// For paginated result sets, page of results to retrieve.
 	Page int `url:"page,omitempty"`
+
+	// For paginated result sets, the number of results to include per page.
+	PerPage int `url:"per_page,omitempty"`
+}
+
+// ListCursorOptions specifies the optional parameters to various List methods that
+// support cursor pagination.
+type ListCursorOptions struct {
+	// For paginated result sets, page of results to retrieve.
+	Page string `url:"page,omitempty"`
 
 	// For paginated result sets, the number of results to include per page.
 	PerPage int `url:"per_page,omitempty"`
@@ -224,8 +232,8 @@ type RawOptions struct {
 
 // addOptions adds the parameters in opt as URL query parameters to s. opt
 // must be a struct whose fields may contain "url" tags.
-func addOptions(s string, opt interface{}) (string, error) {
-	v := reflect.ValueOf(opt)
+func addOptions(s string, opts interface{}) (string, error) {
+	v := reflect.ValueOf(opts)
 	if v.Kind() == reflect.Ptr && v.IsNil() {
 		return s, nil
 	}
@@ -235,7 +243,7 @@ func addOptions(s string, opt interface{}) (string, error) {
 		return s, err
 	}
 
-	qs, err := query.Values(opt)
+	qs, err := query.Values(opts)
 	if err != nil {
 		return s, err
 	}
@@ -257,6 +265,7 @@ func NewClient(httpClient *http.Client) *Client {
 
 	c := &Client{client: httpClient, BaseURL: baseURL, UserAgent: userAgent, UploadURL: uploadURL}
 	c.common.client = c
+	c.Actions = (*ActionsService)(&c.common)
 	c.Activity = (*ActivityService)(&c.common)
 	c.Admin = (*AdminService)(&c.common)
 	c.Apps = (*AppsService)(&c.common)
@@ -337,7 +346,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 
 	var buf io.ReadWriter
 	if body != nil {
-		buf = new(bytes.Buffer)
+		buf = &bytes.Buffer{}
 		enc := json.NewEncoder(buf)
 		enc.SetEscapeHTML(false)
 		err := enc.Encode(body)
@@ -398,11 +407,26 @@ type Response struct {
 	// results. Any or all of these may be set to the zero value for
 	// responses that are not part of a paginated set, or for which there
 	// are no additional pages.
-
+	//
+	// These fields support what is called "offset pagination" and should
+	// be used with the ListOptions struct.
 	NextPage  int
 	PrevPage  int
 	FirstPage int
 	LastPage  int
+
+	// Additionally, some APIs support "cursor pagination" instead of offset.
+	// This means that a token points directly to the next record which
+	// can lead to O(1) performance compared to O(n) performance provided
+	// by offset pagination.
+	//
+	// For APIs that support cursor pagination (such as
+	// TeamsService.ListIDPGroupsInOrganization), the following field
+	// will be populated to point to the next page.
+	//
+	// To use this token, set ListCursorOptions.Page to this value before
+	// calling the endpoint again.
+	NextPageToken string
 
 	// Explicitly specify the Rate type so Rate's String() receiver doesn't
 	// propagate to Response.
@@ -448,7 +472,9 @@ func (r *Response) populatePageValues() {
 			for _, segment := range segments[1:] {
 				switch strings.TrimSpace(segment) {
 				case `rel="next"`:
-					r.NextPage, _ = strconv.Atoi(page)
+					if r.NextPage, err = strconv.Atoi(page); err != nil {
+						r.NextPageToken = page
+					}
 				case `rel="prev"`:
 					r.PrevPage, _ = strconv.Atoi(page)
 				case `rel="first"`:
