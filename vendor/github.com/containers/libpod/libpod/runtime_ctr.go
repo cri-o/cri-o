@@ -234,15 +234,16 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 			}
 		case define.SystemdCgroupsManager:
 			if ctr.config.CgroupParent == "" {
-				if pod != nil && pod.config.UsePodCgroup {
+				switch {
+				case pod != nil && pod.config.UsePodCgroup:
 					podCgroup, err := pod.CgroupPath()
 					if err != nil {
 						return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
 					}
 					ctr.config.CgroupParent = podCgroup
-				} else if rootless.IsRootless() {
+				case rootless.IsRootless():
 					ctr.config.CgroupParent = SystemdDefaultRootlessCgroupParent
-				} else {
+				default:
 					ctr.config.CgroupParent = SystemdDefaultCgroupParent
 				}
 			} else if len(ctr.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
@@ -318,7 +319,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 		// The volume does not exist, so we need to create it.
 		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
 		if isAnonymous {
-			volOptions = append(volOptions, withSetCtrSpecific())
+			volOptions = append(volOptions, withSetAnon())
 		}
 		newVol, err := r.newVolume(ctx, volOptions...)
 		if err != nil {
@@ -361,10 +362,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 		if err := r.state.AddContainerToPod(pod, ctr); err != nil {
 			return nil, err
 		}
-	} else {
-		if err := r.state.AddContainer(ctr); err != nil {
-			return nil, err
-		}
+	} else if err := r.state.AddContainer(ctr); err != nil {
+		return nil, err
 	}
 	ctr.newContainerEvent(events.Create)
 	return ctr, nil
@@ -570,7 +569,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	for _, v := range c.config.NamedVolumes {
 		if volume, err := runtime.state.Volume(v.Name); err == nil {
-			if !volume.IsCtrSpecific() {
+			if !volume.Anonymous() {
 				continue
 			}
 			if err := runtime.removeVolume(ctx, volume, false); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
@@ -708,7 +707,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 
 	for _, v := range c.config.NamedVolumes {
 		if volume, err := r.state.Volume(v.Name); err == nil {
-			if !volume.IsCtrSpecific() {
+			if !volume.Anonymous() {
 				continue
 			}
 			if err := r.removeVolume(ctx, volume, false); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {
@@ -836,4 +835,45 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 		}
 	}
 	return ctrs[lastCreatedIndex], nil
+}
+
+// PruneContainers removes stopped and exited containers from localstorage.  A set of optional filters
+// can be provided to be more granular.
+func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) (map[string]int64, map[string]error, error) {
+	pruneErrors := make(map[string]error)
+	prunedContainers := make(map[string]int64)
+	// We add getting the exited and stopped containers via a filter
+	containerStateFilter := func(c *Container) bool {
+		if c.PodID() != "" {
+			return false
+		}
+		state, err := c.State()
+		if err != nil {
+			logrus.Error(err)
+			return false
+		}
+		if state == define.ContainerStateStopped || state == define.ContainerStateExited {
+			return true
+		}
+		return false
+	}
+	filterFuncs = append(filterFuncs, containerStateFilter)
+	delContainers, err := r.GetContainers(filterFuncs...)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, c := range delContainers {
+		ctr := c
+		size, err := ctr.RWSize()
+		if err != nil {
+			pruneErrors[ctr.ID()] = err
+			continue
+		}
+		err = r.RemoveContainer(context.Background(), ctr, false, false)
+		pruneErrors[ctr.ID()] = err
+		if err != nil {
+			prunedContainers[ctr.ID()] = size
+		}
+	}
+	return prunedContainers, pruneErrors, nil
 }

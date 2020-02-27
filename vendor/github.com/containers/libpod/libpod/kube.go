@@ -15,7 +15,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -310,13 +310,13 @@ func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.C
 func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
 	var envVars []v1.EnvVar
 	for _, e := range envs {
-		splitE := strings.SplitN(e, "=", 2)
-		if len(splitE) != 2 {
+		split := strings.SplitN(e, "=", 2)
+		if len(split) != 2 {
 			return envVars, errors.Errorf("environment variable %s is malformed; should be key=value", e)
 		}
 		ev := v1.EnvVar{
-			Name:  splitE[0],
-			Value: splitE[1],
+			Name:  split[0],
+			Value: split[1],
 		}
 		envVars = append(envVars, ev)
 	}
@@ -365,11 +365,12 @@ func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {
 	// neither a directory or a file lives here, default to creating a directory
 	// TODO should this be an error instead?
 	var hostPathType v1.HostPathType
-	if err != nil {
+	switch {
+	case err != nil:
 		hostPathType = v1.HostPathDirectoryOrCreate
-	} else if isDir {
+	case isDir:
 		hostPathType = v1.HostPathDirectory
-	} else {
+	default:
 		hostPathType = v1.HostPathFile
 	}
 	vo.HostPath.Type = &hostPathType

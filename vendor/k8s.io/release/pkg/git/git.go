@@ -17,6 +17,7 @@ limitations under the License.
 package git
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -28,6 +29,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/google/go-github/v29/github"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/src-d/go-git.v4"
@@ -690,16 +692,21 @@ func (r *Repo) PreviousTag(tag, branch string) (string, error) {
 
 // TagsForBranch returns a list of tags for the provided branch sorted by
 // creation date
-func (r *Repo) TagsForBranch(branch string) ([]string, error) {
-	if err := r.Checkout(branch); err != nil {
-		return nil, err
+func (r *Repo) TagsForBranch(branch string) (res []string, err error) {
+	previousBranch, err := r.CurrentBranch()
+	if err != nil {
+		return nil, errors.Wrap(err, "retrieving current branch")
 	}
+	if err := r.Checkout(branch); err != nil {
+		return nil, errors.Wrapf(err, "checking out %s", branch)
+	}
+	defer func() { err = r.Checkout(previousBranch) }()
 
 	status, err := command.NewWithWorkDir(
 		r.Dir(), gitExecutable, "tag", "--sort=-creatordate", "--merged",
 	).RunSilentSuccessOutput()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "retrieving merged tags for branch %s", branch)
 	}
 
 	return strings.Fields(status.Output()), nil
@@ -833,4 +840,55 @@ func (r *Repo) PushToRemote(remote, remoteBranch string) error {
 	args = append(args, remote, remoteBranch)
 
 	return command.NewWithWorkDir(r.Dir(), gitExecutable, args...).RunSuccess()
+}
+
+// TagsPerBranch is an abstraction over a simple branch to latest tag association
+type TagsPerBranch map[string]string
+
+// LatestGitHubTagsPerBranch returns the latest GitHub available tag for each
+// branch
+func LatestGitHubTagsPerBranch() (TagsPerBranch, error) {
+	ghClient := github.NewClient(nil)
+
+	allTags, _, err := ghClient.Repositories.ListTags(
+		context.Background(), DefaultGithubOrg, DefaultGithubRepo, nil,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to retrieve GitHub releases")
+	}
+
+	releases := make(TagsPerBranch)
+	for _, t := range allTags {
+		tag := t.GetName()
+
+		// Alpha releases are only available on the master branch
+		if strings.Contains(tag, "alpha") {
+			releases.addIfNotExisting(Master, tag)
+			continue
+		}
+
+		// This should always succeed
+		semverTag, err := util.TagStringToSemver(tag)
+		if err != nil {
+			return nil, errors.Wrapf(err, "tag %s is not a vaild semver", tag)
+		}
+
+		// Latest vx.x.0 release are on both master and release branch
+		if len(semverTag.Pre) == 0 {
+			releases.addIfNotExisting(Master, tag)
+		}
+
+		branch := fmt.Sprintf("release-%d.%d", semverTag.Major, semverTag.Minor)
+		releases.addIfNotExisting(branch, tag)
+	}
+
+	return releases, nil
+}
+
+// addIfNotExisting adds a new `tag` for the `branch` if not already existing
+// in the map `TagsForBranch`
+func (t TagsPerBranch) addIfNotExisting(branch, tag string) {
+	if _, ok := t[branch]; !ok {
+		t[branch] = tag
+	}
 }

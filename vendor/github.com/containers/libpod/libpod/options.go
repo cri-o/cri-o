@@ -20,7 +20,9 @@ import (
 )
 
 var (
-	NameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	// NameRegex is a regular expression to validate container/pod names.
+	NameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	// RegexError is thrown in presence of an invalid container/pod name.
 	RegexError = errors.Wrapf(define.ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
 )
 
@@ -731,7 +733,9 @@ func WithExitCommand(exitCommand []string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		ctr.config.ExitCommand = append(exitCommand, ctr.ID())
+		ctr.config.ExitCommand = exitCommand
+		ctr.config.ExitCommand = append(ctr.config.ExitCommand, ctr.ID())
+
 		return nil
 	}
 }
@@ -1057,25 +1061,43 @@ func WithLogPath(path string) CtrCreateOption {
 	}
 }
 
-// WithNoCgroups disables the creation of CGroups for the new container.
-func WithNoCgroups() CtrCreateOption {
+// WithLogTag sets the tag to the log file.
+func WithLogTag(tag string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		if tag == "" {
+			return errors.Wrapf(define.ErrInvalidArg, "log tag must be set")
+		}
+
+		ctr.config.LogTag = tag
+
+		return nil
+	}
+
+}
+
+// WithCgroupsMode disables the creation of CGroups for the conmon process.
+func WithCgroupsMode(mode string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
 
-		if ctr.config.CgroupParent != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "NoCgroups conflicts with CgroupParent")
+		switch mode {
+		case "disabled":
+			ctr.config.NoCgroups = true
+			ctr.config.CgroupsMode = mode
+		case "enabled", "no-conmon":
+			ctr.config.CgroupsMode = mode
+		default:
+			return errors.Wrapf(define.ErrInvalidArg, "Invalid cgroup mode %q", mode)
 		}
-
-		if ctr.config.PIDNsCtr != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "NoCgroups requires a private PID namespace and cannot be used when PID namespace is shared with another container")
-		}
-
-		ctr.config.NoCgroups = true
 
 		return nil
 	}
+
 }
 
 // WithCgroupParent sets the Cgroup Parent of the new container.
@@ -1524,17 +1546,16 @@ func WithVolumeGID(gid int) VolumeCreateOption {
 	}
 }
 
-// withSetCtrSpecific sets a bool notifying libpod that a volume was created
-// specifically for a container.
-// These volumes will be removed when the container is removed and volumes are
-// also specified for removal.
-func withSetCtrSpecific() VolumeCreateOption {
+// withSetAnon sets a bool notifying libpod that this volume is anonymous and
+// should be removed when containers using it are removed and volumes are
+// specified for removal.
+func withSetAnon() VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.IsCtrSpecific = true
+		volume.config.IsAnon = true
 
 		return nil
 	}

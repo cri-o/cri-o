@@ -304,7 +304,7 @@ func GetImageConfig(changes []string) (ImageConfig, error) {
 	return config, nil
 }
 
-// Parse and validate a signal name or number
+// ParseSignal parses and validates a signal name or number.
 func ParseSignal(rawSignal string) (syscall.Signal, error) {
 	// Strip off leading dash, to allow -1 or -HUP
 	basename := strings.TrimPrefix(rawSignal, "-")
@@ -321,20 +321,27 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
-func ParseIDMapping(mode namespaces.UsernsMode, UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
+func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
 	options := storage.IDMappingOptions{
 		HostUIDMapping: true,
 		HostGIDMapping: true,
 	}
 
 	if mode.IsKeepID() {
-		if len(UIDMapSlice) > 0 || len(GIDMapSlice) > 0 {
+		if len(uidMapSlice) > 0 || len(gidMapSlice) > 0 {
 			return nil, errors.New("cannot specify custom mappings with --userns=keep-id")
 		}
 		if len(subUIDMap) > 0 || len(subGIDMap) > 0 {
 			return nil, errors.New("cannot specify subuidmap or subgidmap with --userns=keep-id")
 		}
 		if rootless.IsRootless() {
+			min := func(a, b int) int {
+				if a < b {
+					return a
+				}
+				return b
+			}
+
 			uid := rootless.GetRootlessUID()
 			gid := rootless.GetRootlessGID()
 
@@ -352,13 +359,17 @@ func ParseIDMapping(mode namespaces.UsernsMode, UIDMapSlice, GIDMapSlice []strin
 
 			options.UIDMap, options.GIDMap = nil, nil
 
-			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: uid})
+			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
 			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
-			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
+			if maxUID > uid {
+				options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
+			}
 
-			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: gid})
+			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
 			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
-			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
+			if maxGID > gid {
+				options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
+			}
 
 			options.HostUIDMapping = false
 			options.HostGIDMapping = false
@@ -373,17 +384,17 @@ func ParseIDMapping(mode namespaces.UsernsMode, UIDMapSlice, GIDMapSlice []strin
 	if subUIDMap == "" && subGIDMap != "" {
 		subUIDMap = subGIDMap
 	}
-	if len(GIDMapSlice) == 0 && len(UIDMapSlice) != 0 {
-		GIDMapSlice = UIDMapSlice
+	if len(gidMapSlice) == 0 && len(uidMapSlice) != 0 {
+		gidMapSlice = uidMapSlice
 	}
-	if len(UIDMapSlice) == 0 && len(GIDMapSlice) != 0 {
-		UIDMapSlice = GIDMapSlice
+	if len(uidMapSlice) == 0 && len(gidMapSlice) != 0 {
+		uidMapSlice = gidMapSlice
 	}
-	if len(UIDMapSlice) == 0 && subUIDMap == "" && os.Getuid() != 0 {
-		UIDMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getuid())}
+	if len(uidMapSlice) == 0 && subUIDMap == "" && os.Getuid() != 0 {
+		uidMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getuid())}
 	}
-	if len(GIDMapSlice) == 0 && subGIDMap == "" && os.Getuid() != 0 {
-		GIDMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getgid())}
+	if len(gidMapSlice) == 0 && subGIDMap == "" && os.Getuid() != 0 {
+		gidMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getgid())}
 	}
 
 	if subUIDMap != "" && subGIDMap != "" {
@@ -394,11 +405,11 @@ func ParseIDMapping(mode namespaces.UsernsMode, UIDMapSlice, GIDMapSlice []strin
 		options.UIDMap = mappings.UIDs()
 		options.GIDMap = mappings.GIDs()
 	}
-	parsedUIDMap, err := idtools.ParseIDMap(UIDMapSlice, "UID")
+	parsedUIDMap, err := idtools.ParseIDMap(uidMapSlice, "UID")
 	if err != nil {
 		return nil, err
 	}
-	parsedGIDMap, err := idtools.ParseIDMap(GIDMapSlice, "GID")
+	parsedGIDMap, err := idtools.ParseIDMap(gidMapSlice, "GID")
 	if err != nil {
 		return nil, err
 	}
