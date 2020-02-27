@@ -1,0 +1,3 @@
+[submodule "pinns/crun"]
+	path = pinns/crun
+	url = https://github.com/containers/crun

@@ -2,6 +2,8 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <linux/limits.h>
+#include <runtime_spec_schema_config_schema.h>
+#include <linux.h> // libcrun linux.h
 #include <sched.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -14,33 +16,15 @@
 
 #include "utils.h"
 
-static int bind_ns(const char *pin_path, const char *ns_name) {
-  char bind_path[PATH_MAX];
-  char ns_path[PATH_MAX];
-  int fd;
-
-  snprintf(bind_path, PATH_MAX - 1, "%s/%s", pin_path, ns_name);
-  fd = open(bind_path, O_RDONLY | O_CREAT | O_EXCL, 0);
-  if (fd < 0) {
-    pwarn("Failed to create ns file");
-    return -1;
-  }
-  close(fd);
-
-  snprintf(ns_path, PATH_MAX - 1, "/proc/self/ns/%s", ns_name);
-  if (mount(ns_path, bind_path, NULL, MS_BIND, NULL) < 0) {
-    pwarnf("Failed to bind mount ns: %s", ns_path);
-    return -1;
-  }
-
-  return 0;
-}
+static int configure_namespaces_after_unshare(const char* const config_path);
+static int bind_ns(const char *pin_path, const char *ns_name);
 
 int main(int argc, char **argv) {
   int num_unshares = 0;
   int unshare_flags = 0;
   int c;
   char *pin_path = NULL;
+  char *config_path = NULL;
   bool bind_net = false;
   bool bind_uts = false;
   bool bind_ipc = false;
@@ -55,9 +39,10 @@ int main(int argc, char **argv) {
       {"user", optional_argument, NULL, 'U'},
       {"cgroup", optional_argument, NULL, 'c'},
       {"dir", required_argument, NULL, 'd'},
+	  {"config", optional_argument, NULL, 'C'},
   };
 
-  while ((c = getopt_long(argc, argv, "pchuUind:", long_options, NULL)) != -1) {
+  while ((c = getopt_long(argc, argv, "pchuUind:C:", long_options, NULL)) != -1) {
     switch (c) {
     case 'u':
       unshare_flags |= CLONE_NEWUTS;
@@ -90,6 +75,9 @@ int main(int argc, char **argv) {
     case 'd':
       pin_path = optarg;
       break;
+	case 'C':
+	  config_path = optarg;
+	  break;
     case 'h':
       // usage();
     default:
@@ -111,12 +99,26 @@ int main(int argc, char **argv) {
     nexitf("%s is not a directory", pin_path);
   }
 
+  if (stat(config_path, &sb) != 0) {
+    pexitf("Failed to check if path %s exists", config_path);
+  }
+
+  if (S_ISDIR(sb.st_mode)) {
+    nexitf("%s is a directory", config_path);
+  }
+
   if (num_unshares == 0) {
     nexit("No namespace specified for pinning");
   }
 
   if (unshare(unshare_flags) < 0) {
     pexit("Failed to unshare namespaces");
+  }
+
+  if (config_path != NULL) {
+    if (configure_namespaces_after_unshare(config_path) < 0) {
+    	pexit("Failed to configure namespaces after unshare");
+    }
   }
 
   if (bind_uts) {
@@ -150,4 +152,45 @@ int main(int argc, char **argv) {
   }
 
   return EXIT_SUCCESS;
+}
+
+static int bind_ns(const char *pin_path, const char *ns_name) {
+  char bind_path[PATH_MAX];
+  char ns_path[PATH_MAX];
+  int fd;
+
+  snprintf(bind_path, PATH_MAX - 1, "%s/%s", pin_path, ns_name);
+  fd = open(bind_path, O_RDONLY | O_CREAT | O_EXCL, 0);
+  if (fd < 0) {
+    pwarn("Failed to create ns file");
+    return -1;
+  }
+  close(fd);
+
+  snprintf(ns_path, PATH_MAX - 1, "/proc/self/ns/%s", ns_name);
+  if (mount(ns_path, bind_path, NULL, MS_BIND, NULL) < 0) {
+    pwarnf("Failed to bind mount ns: %s", ns_path);
+    return -1;
+  }
+
+  return 0;
+}
+
+static int configure_namespaces_after_unshare(const char* const config_path) {
+	parser_error err = NULL;
+	runtime_spec_schema_config_schema *container = runtime_spec_schema_config_schema_parse_file (config_path, NULL, &err);
+	if (container == NULL) {
+		pwarn("failed to parse file");
+		free(err);
+		return EXIT_FAILURE;
+	}
+	free(err);
+
+	libcrun_error_t *crun_err = NULL;
+	if (libcrun_set_sysctl_from_schema (container, crun_err) < 0) {
+		crun_error_write_warning_and_release (NULL, &crun_err);
+		return EXIT_FAILURE;
+	}
+
+  return 0;
 }

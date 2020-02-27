@@ -926,6 +926,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if err := specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
 		return nil, err
 	}
+	if err := specgen.SaveToFile("/tmp/config-ctr.json", saveOptions); err != nil {
+		return nil, err
+	}
 	if err := specgen.SaveToFile(filepath.Join(containerInfo.RunDir, "config.json"), saveOptions); err != nil {
 		return nil, err
 	}

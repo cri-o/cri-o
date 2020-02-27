@@ -34,7 +34,7 @@
 		"sysctls": {
 			"kernel.shm_rmid_forced": "1",
 			"net.ipv4.ip_local_port_range": "1024 65000",
-			"kernel.msgmax": "8192"
+			"kernel.msgmax": "4096"
 		},
 		"cgroup_parent": "pod_123-456.slice",
 		"security_context": {

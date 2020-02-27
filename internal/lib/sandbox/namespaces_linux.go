@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -55,7 +57,7 @@ func (n *Namespace) Initialize() NamespaceIface {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, error) {
+func pinNamespaces(nsTypes []NSType, cfg *config.Config, runtimeConfigPath string) ([]NamespaceIface, error) {
 	typeToArg := map[NSType]string{
 		IPCNS:  "-i",
 		UTSNS:  "-u",
@@ -70,6 +72,9 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 	}
 
 	pinnsArgs := []string{"-d", pinDir}
+	if runtimeConfigPath != "" {
+		pinnsArgs = append(pinnsArgs, "-C", runtimeConfigPath)
+	}
 	type namespaceInfo struct {
 		path   string
 		nsType NSType
@@ -87,9 +92,10 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 			nsType: nsType,
 		})
 	}
-
 	pinns := cfg.PinnsPath
-	if _, err := exec.Command(pinns, pinnsArgs...).Output(); err != nil {
+	out, err := exec.Command(pinns, pinnsArgs...).CombinedOutput()
+	logrus.Debugf("pinns output %s", string(out))
+	if err != nil {
 		// cleanup after ourselves
 		failedUmounts := make([]string, 0)
 		for _, info := range mountedNamespaces {
