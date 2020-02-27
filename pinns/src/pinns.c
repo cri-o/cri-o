@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#include <glib.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <linux/limits.h>
@@ -13,28 +14,9 @@
 #include <unistd.h>
 
 #include "utils.h"
+#include "sysctl.h"
 
-static int bind_ns(const char *pin_path, const char *ns_name) {
-  char bind_path[PATH_MAX];
-  char ns_path[PATH_MAX];
-  int fd;
-
-  snprintf(bind_path, PATH_MAX - 1, "%s/%s", pin_path, ns_name);
-  fd = open(bind_path, O_RDONLY | O_CREAT | O_EXCL, 0);
-  if (fd < 0) {
-    pwarn("Failed to create ns file");
-    return -1;
-  }
-  close(fd);
-
-  snprintf(ns_path, PATH_MAX - 1, "/proc/self/ns/%s", ns_name);
-  if (mount(ns_path, bind_path, NULL, MS_BIND, NULL) < 0) {
-    pwarnf("Failed to bind mount ns: %s", ns_path);
-    return -1;
-  }
-
-  return 0;
-}
+static int bind_ns(const char *pin_path, const char *ns_name);
 
 int main(int argc, char **argv) {
   int num_unshares = 0;
@@ -46,6 +28,8 @@ int main(int argc, char **argv) {
   bool bind_ipc = false;
   bool bind_user = false;
   bool bind_cgroup = false;
+  // TODO FIXME leaking
+  GPtrArray *sysctls = g_ptr_array_new ();
 
   static const struct option long_options[] = {
       {"help", no_argument, NULL, 'h'},
@@ -55,9 +39,10 @@ int main(int argc, char **argv) {
       {"user", optional_argument, NULL, 'U'},
       {"cgroup", optional_argument, NULL, 'c'},
       {"dir", required_argument, NULL, 'd'},
+      {"sysctl", optional_argument, NULL, 's'},
   };
 
-  while ((c = getopt_long(argc, argv, "pchuUind:", long_options, NULL)) != -1) {
+  while ((c = getopt_long(argc, argv, "pchuUind:s:", long_options, NULL)) != -1) {
     switch (c) {
     case 'u':
       unshare_flags |= CLONE_NEWUTS;
@@ -84,11 +69,14 @@ int main(int argc, char **argv) {
       unshare_flags |= CLONE_NEWCGROUP;
       bind_cgroup = true;
       num_unshares++;
+      break;
 #endif
       pexit("unsharing cgroups is not supported by this pinns version");
-      break;
     case 'd':
       pin_path = optarg;
+      break;
+    case 's':
+      g_ptr_array_add (sysctls, optarg);
       break;
     case 'h':
       // usage();
@@ -117,6 +105,11 @@ int main(int argc, char **argv) {
 
   if (unshare(unshare_flags) < 0) {
     pexit("Failed to unshare namespaces");
+  }
+
+  if (sysctls->len > 0 && configure_sysctls(sysctls) < 0) {
+    pexit("Failed to configure sysctls after unshare");
+	return EXIT_FAILURE;
   }
 
   if (bind_uts) {
@@ -150,4 +143,26 @@ int main(int argc, char **argv) {
   }
 
   return EXIT_SUCCESS;
+}
+
+static int bind_ns(const char *pin_path, const char *ns_name) {
+  char bind_path[PATH_MAX];
+  char ns_path[PATH_MAX];
+  int fd;
+
+  snprintf(bind_path, PATH_MAX - 1, "%s/%s", pin_path, ns_name);
+  fd = open(bind_path, O_RDONLY | O_CREAT | O_EXCL, 0);
+  if (fd < 0) {
+    pwarn("Failed to create ns file");
+    return -1;
+  }
+  close(fd);
+
+  snprintf(ns_path, PATH_MAX - 1, "/proc/self/ns/%s", ns_name);
+  if (mount(ns_path, bind_path, NULL, MS_BIND, NULL) < 0) {
+    pwarnf("Failed to bind mount ns: %s", ns_path);
+    return -1;
+  }
+
+  return 0;
 }

@@ -1,19 +1,23 @@
-src = $(wildcard *.c)
+PKG_CONFIG ?= pkg-config
+src = $(wildcard src/*.c)
 obj = $(src:.c=.o)
 
-override LIBS +=
+override LIBS += $(shell $(PKG_CONFIG) --libs glib-2.0)
 CFLAGS ?= -std=c99 -Os -Wall -Werror -Wextra
-override CFLAGS += -static
+override CFLAGS += -static $(shell $(PKG_CONFIG) --cflags glib-2.0)
 
 all: ../bin/pinns
 
 ../bin/pinns: $(obj) | ../bin
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 	strip -s $@
+
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 ../bin:
 	mkdir -p $@
 
 .PHONY: clean
 clean:
-	rm -f $(obj) ../bin/pinns
+	rm -f $(obj) bin/pinns

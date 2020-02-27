@@ -409,12 +409,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// Add default sysctls given in crio.conf
-	s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC)
-	// extract linux sysctls from annotations and pass down to oci runtime
-	// Will override any duplicate default systcl from crio.conf
-	for key, value := range sbox.Config().GetLinux().GetSysctls() {
-		g.AddLinuxSysctl(key, value)
-	}
+	sysctls := s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC, req.GetConfig().GetLinux().GetSysctls())
 
 	// Set OOM score adjust of the infra container to be very low
 	// so it doesn't get killed.
@@ -423,7 +418,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 
 	// set up namespaces
-	cleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sb, g)
+	cleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sb, g, sysctls)
 	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
 	for idx := range cleanupFuncs {
 		defer func(currentFunc int) {
@@ -750,26 +745,36 @@ func PauseCommand(cfg *config.Config, image *v1.Image) ([]string, error) {
 	return []string{cfg.PauseCommand}, nil
 }
 
-func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Generator, hostNetwork, hostIPC bool) {
-	sysctls, err := s.config.RuntimeConfig.Sysctls()
+func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Generator, hostNetwork, hostIPC bool, sysctls map[string]string) map[string]string {
+	sysctlsToReturn := make(map[string]string)
+	defaultSysctls, err := s.config.RuntimeConfig.Sysctls()
 	if err != nil {
 		log.Warnf(ctx, "sysctls invalid: %v", err)
 	}
 
-	for _, sysctl := range sysctls {
+	for _, sysctl := range defaultSysctls {
 		if err := sysctl.Validate(hostNetwork, hostIPC); err != nil {
 			log.Warnf(ctx, "skipping invalid sysctl %s: %v", sysctl, err)
 			continue
 		}
 		g.AddLinuxSysctl(sysctl.Key(), sysctl.Value())
+		sysctlsToReturn[sysctl.Key()] = sysctl.Value()
 	}
+
+	// extract linux sysctls from annotations and pass down to oci runtime
+	// Will override any duplicate default systcl from crio.conf
+	for key, value := range sysctls {
+		g.AddLinuxSysctl(key, value)
+		sysctlsToReturn[key] = value
+	}
+	return sysctlsToReturn
 }
 
 // configureGeneratorForSandboxNamespaces set the linux namespaces for the generator, based on whether the pod is sharing namespaces with the host,
 // as well as whether CRI-O should be managing the namespace lifecycle.
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
 // The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
-func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, sb *libsandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, err error) {
+func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, sb *libsandbox.Sandbox, g generate.Generator, sysctls map[string]string) (cleanupFuncs []func() error, err error) {
 	managedNamespaces := make([]libsandbox.NSType, 0, 3)
 	if hostNetwork {
 		err = g.RemoveLinuxNamespace(string(spec.NetworkNamespace))
@@ -802,7 +807,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		managedNamespaces = append(managedNamespaces, libsandbox.UTSNS)
 
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
-		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, &s.config)
+		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, &s.config, sysctls)
 		if err != nil {
 			return nil, err
 		}
@@ -840,6 +845,7 @@ func configureGeneratorGivenNamespacePaths(managedNamespaces []*libsandbox.Manag
 		if err != nil {
 			return err
 		}
+		fmt.Fprintf(os.Stderr, "namespace type %s has path %s", ns.Type(), ns.Path())
 	}
 	return nil
 }

@@ -731,6 +731,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	// while ManageNetworkNSLifecycle is being deprecated, set
 	// ManageNSLifecycle to be true if either are
 	c.ManageNSLifecycle = c.ManageNetworkNSLifecycle || c.ManageNSLifecycle
+	c.ManageNSLifecycle = true
 
 	if c.UIDMappings != "" && c.ManageNSLifecycle {
 		return fmt.Errorf("cannot use UIDMappings with ManageNSLifecycle")

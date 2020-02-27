@@ -41,7 +41,8 @@ function teardown() {
 }
 
 @test "conmon custom cgroup" {
-	CONTAINER_CONMON_CGROUP="customcrioconmon.slice" start_crio
+	# TODO FIXME we should still probably have a parent cgroup, right?
+	CONTAINER_MANAGE_NS_LIFECYCLE=false CONTAINER_CONMON_CGROUP="customcrioconmon.slice" start_crio
 	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "Burstablecriotest123.slice"; json.dump(obj, sys.stdout)')
 	echo "$cgroup_parent_config" > "$TESTDIR"/sandbox_config_slice.json
 	run crictl runp "$TESTDIR"/sandbox_config_slice.json
@@ -50,6 +51,7 @@ function teardown() {
 	pod_id="$output"
 	scope_name="crio-conmon-$pod_id.scope"
 	run systemctl status $scope_name
+	echo "XXXXXXX $output"
 	[[ "$output" =~ "customcrioconmon.slice" ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
