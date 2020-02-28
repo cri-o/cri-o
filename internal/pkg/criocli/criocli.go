@@ -295,7 +295,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
     The global config file, provided via '--config,-c' or per default in
     %s, always has a lower priority than the files in the directory specified
     by '--config-dir,-d'.
-    Beside that, provided command line parameters still have a higher priority
+    Besides that, provided command line parameters have a higher priority
     than any configuration file.`, libconfig.CrioConfigPath),
 			EnvVars:   []string{"CONTAINER_CONFIG_DIR"},
 			TakesFile: true,
