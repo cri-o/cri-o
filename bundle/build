@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Global vars to be used
+# shellcheck source=vars
+source "$(dirname "${BASH_SOURCE[0]}")"/vars
+
 cd "$(dirname "$0")"
 
 FILES_BIN=(

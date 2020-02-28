@@ -80,6 +80,11 @@ workflows:
             - build-static
           filters: *filterAllTags
 
+      - bundle-test:
+          requires:
+            - bundle
+          filters: *filterAllTags
+
       - completions-validation:
           requires:
             - build
@@ -130,7 +135,7 @@ workflows:
 
       - results:
           requires:
-            - bundle
+            - bundle-test
             - integration
             - integration-critest
             - integration-static-glibc
@@ -238,6 +243,19 @@ jobs:
           root: .
           paths:
             - bundle/*.tar.gz
+
+  bundle-test:
+    executor: machine
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: setup environment
+          command: scripts/circle-setup
+      - run:
+          name: test
+          command: sudo bundle/test
 
   completions-validation:
     executor: container

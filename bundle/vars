@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BUNDLE=crio-$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)
+ARCHIVE="$BUNDLE.tar.gz"
