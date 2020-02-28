@@ -293,10 +293,10 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
     configuration file named '00-default' has a lower priority than a file
     named '01-my-overwrite'.
     The global config file, provided via '--config,-c' or per default in
-	%s, always has a lower priority than the files in the directory specified
-	by '--config-dir,-d'.
-	Beside that, provided command line parameters still have a higher priority
-	than any configuration file.`, libconfig.CrioConfigPath),
+    %s, always has a lower priority than the files in the directory specified
+    by '--config-dir,-d'.
+    Beside that, provided command line parameters still have a higher priority
+    than any configuration file.`, libconfig.CrioConfigPath),
 			EnvVars:   []string{"CONTAINER_CONFIG_DIR"},
 			TakesFile: true,
 		},
