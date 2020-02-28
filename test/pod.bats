@@ -319,7 +319,7 @@ function teardown() {
 		skip "need systemd cgroup manager"
 	fi
 
-	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "/Burstable/pod_integration_tests-123"; json.dump(obj, sys.stdout)')
+	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "Burstable-pod_integration_tests-123.slice"; json.dump(obj, sys.stdout)')
 	echo "$cgroup_parent_config" > "$TESTDIR"/sandbox_systemd_cgroup_parent.json
 
 	start_crio
@@ -331,7 +331,7 @@ function teardown() {
 	run systemctl list-units --type=slice
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "Burstable-pod_integration_tests_123.slice" ]]
+	[[ "$output" =~ "Burstable-pod_integration_tests-123.slice" ]]
 }
 
 @test "kubernetes pod terminationGracePeriod passthru" {

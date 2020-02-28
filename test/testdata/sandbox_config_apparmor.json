@@ -29,7 +29,7 @@
     "owner": "hmeng"
   },
   "linux": {
-    "cgroup_parent": "/Burstable/pod_123-456",
+    "cgroup_parent": "pod_123-456.slice",
     "security_context": {
       "apparmor_profile": "%VALUE%",
       "namespace_options": {
