@@ -634,12 +634,12 @@ func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
 }
 
 func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, profile string) error {
-	if profile == "" {
-		// running w/o seccomp, aka unconfined
-		specgen.Config.Linux.Seccomp = nil
-		return nil
-	}
 	if s.Config().Seccomp().IsDisabled() {
+		if profile == "" {
+			// seccomp disabled and no profile specified
+			specgen.Config.Linux.Seccomp = nil
+			return nil
+		}
 		if profile != seccompUnconfined {
 			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
 		}
@@ -651,8 +651,8 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 		return nil
 	}
 
-	// Load the default seccomp profile from the server if the profile is a default one
-	if profile == seccompRuntimeDefault || profile == seccompDockerDefault {
+	// Load the default seccomp profile from the server if the profile is a default one or empty
+	if profile == "" || profile == seccompRuntimeDefault || profile == seccompDockerDefault {
 		linuxSpecs, err := seccomp.LoadProfileFromConfig(s.Config().Seccomp().Profile(), specgen.Config)
 		if err != nil {
 			return err
