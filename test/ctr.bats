@@ -1257,6 +1257,16 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "209715200" ]]
 
+	if test -r /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes ; then
+		expected=209715200
+	else
+		expected=0
+	fi
+	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes 2> /dev/null || cat /sys/fs/cgroup/memory.swap.max 2> /dev/null"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[ "$output" -eq "$expected" ]
+
 	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
 		echo "$output"
@@ -1291,6 +1301,16 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "524288000" ]]
+
+	if test -r /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes ; then
+		expected=524288000
+	else
+		expected=0
+	fi
+	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes 2> /dev/null || cat /sys/fs/cgroup/memory.swap.max 2> /dev/null"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[ "$output" -eq "$expected" ]
 
 	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
