@@ -40,6 +40,7 @@ func toOCIResources(r *pb.LinuxContainerResources) *rspec.LinuxResources {
 		},
 		Memory: &rspec.LinuxMemory{
 			Limit: proto.Int64(r.GetMemoryLimitInBytes()),
+			Swap:  proto.Int64(r.GetMemoryLimitInBytes()),
 		},
 		// TODO(runcom): OOMScoreAdj is missing
 	}

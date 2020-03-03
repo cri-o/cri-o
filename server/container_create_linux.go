@@ -495,6 +495,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 				return nil, fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
 			}
 			specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
+			specgen.SetLinuxResourcesMemorySwap(memoryLimit)
 
 			specgen.SetProcessOOMScoreAdj(int(resources.GetOomScoreAdj()))
 			specgen.SetLinuxResourcesCPUCpus(resources.GetCpusetCpus())
