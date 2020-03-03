@@ -77,6 +77,10 @@
     - name: install jq
       include: build/jq.yml
 
+    - name: clone build and install runc
+      include: "build/runc.yml"
+      when: "{{ build_runc | default(True) | bool}}"
+
     - name: clone build and install crun
       include: "build/crun.yml"
       when: "{{ build_crun | default(False) | bool}}"
