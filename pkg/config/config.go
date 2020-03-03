@@ -20,7 +20,7 @@ import (
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
-	"github.com/cri-o/cri-o/pkg/config/seccomp"
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	units "github.com/docker/go-units"
