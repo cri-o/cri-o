@@ -90,6 +90,11 @@
       vars:
         force_clone: true
         cri_tools_git_version: v1.16.0
+
+    - name: clone build and install runc
+      include: "build/runc.yml"
+      when: "{{ build_runc | default(True) | bool}}"
+
     - name: run cri-o integration tests
       include: test.yml
 
