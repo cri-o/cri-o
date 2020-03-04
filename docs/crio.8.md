@@ -127,10 +127,10 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
     configuration file named '00-default' has a lower priority than a file
     named '01-my-overwrite'.
     The global config file, provided via '--config,-c' or per default in
-	/etc/crio/crio.conf, always has a lower priority than the files in the directory specified
-	by '--config-dir,-d'.
-	Beside that, provided command line parameters still have a higher priority
-	than any configuration file. (default: /etc/crio/crio.conf.d)
+    /etc/crio/crio.conf, always has a lower priority than the files in the directory specified
+    by '--config-dir,-d'.
+    Besides that, provided command line parameters have a higher priority
+    than any configuration file. (default: /etc/crio/crio.conf.d)
 
 **--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: "")
 
@@ -351,4 +351,5 @@ Shows a list of commands or help for one command
 
 # SEE ALSO
 
-crio.conf(5), oci-hooks(5), policy.json(5), registries.conf(5), storage.conf(5)
+crio.conf(5), crio.conf.d(5), oci-hooks(5), policy.json(5), registries.conf(5),
+storage.conf(5)

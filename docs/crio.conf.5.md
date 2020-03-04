@@ -264,7 +264,7 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
   The port on which the metrics server will listen.
 
 # SEE ALSO
-containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
+crio.conf.d(5), containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
 
 # HISTORY
 Aug 2018, Update to the latest state by Valentin Rothberg <vrothberg@suse.com>
