@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/cri-o/cri-o/server"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/google/renameio"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
@@ -240,6 +242,11 @@ func main() {
 			logrus.Fatal(err)
 		}
 
+		// write CRI-O's PID
+		if err := writePidFile(config.PidFile); err != nil {
+			logrus.Fatal(err)
+		}
+
 		runtime.RegisterRuntimeServiceServer(grpcServer, service)
 		runtime.RegisterImageServiceServer(grpcServer, service)
 
@@ -329,4 +336,18 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
 	}
+}
+
+func writePidFile(file string) error {
+	if file == "" {
+		return nil
+	}
+	// Create the top level directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
+		return err
+	}
+
+	pidBytes := []byte(strconv.Itoa(os.Getpid()))
+
+	return renameio.WriteFile(file, pidBytes, 0644)
 }

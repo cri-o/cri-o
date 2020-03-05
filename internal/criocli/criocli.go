@@ -227,6 +227,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("namespaces-dir") {
 		config.NamespacesDir = ctx.String("namespaces-dir")
 	}
+	if ctx.IsSet("pid-file") {
+		config.PidFile = ctx.String("pid-file")
+	}
 	if ctx.IsSet("pinns-path") {
 		config.PinnsPath = ctx.String("pinns-path")
 	}
@@ -664,6 +667,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "manage-ns-lifecycle",
 			Usage:   fmt.Sprintf("Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: %v)", defConf.ManageNSLifecycle),
 			EnvVars: []string{"CONTAINER_MANAGE_NS_LIFECYCLE"},
+		},
+		&cli.StringFlag{
+			Name:      "pid-file",
+			Usage:     fmt.Sprintf("Location for CRI-O to lay down the pid file (default: %s)", defConf.PidFile),
+			EnvVars:   []string{"CONTAINER_PID_FILE"},
+			TakesFile: true,
 		},
 		&cli.StringFlag{
 			Name:    "pinns-path",

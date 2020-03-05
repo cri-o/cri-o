@@ -44,8 +44,12 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
 **log_dir**="/var/log/crio/pods"
   The default log directory where all logs will go unless directly specified by the kubelet. The log directory specified must be an absolute directory.
 
+
+**pid_file**="/var/run/crio/pid"
+  Location for CRI-O to lay down the pid file
+
 **version_file**="/var/run/crio/version"
-  Location for crio to lay down the version file.
+  Location for CRI-O to lay down the version file.
 
 ## CRIO.API TABLE
 The `crio.api` table contains settings for the kubelet/gRPC interface.

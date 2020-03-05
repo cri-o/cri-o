@@ -58,6 +58,7 @@ crio
 [--pause-command]=[value]
 [--pause-image-auth-file]=[value]
 [--pause-image]=[value]
+[--pid-file]=[value]
 [--pids-limit]=[value]
 [--pinns-path]=[value]
 [--profile-port]=[value]
@@ -241,6 +242,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--pause-image**="": Image which contains the pause executable (default: "k8s.gcr.io/pause:3.1")
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
+
+**--pid-file**="": Location for CRI-O to lay down the pid file (default: /var/run/crio/pid)
 
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
 

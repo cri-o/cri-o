@@ -96,6 +96,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l no-pivot -d 'If true, the 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-command -r -d 'Path to the pause executable in the pause image (default: "/pause")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-image -r -d 'Image which contains the pause executable (default: "k8s.gcr.io/pause:3.1")'
 complete -c crio -n '__fish_crio_no_subcommand' -l pause-image-auth-file -r -d 'Path to a config file containing credentials for --pause-image (default: "")'
+complete -c crio -n '__fish_crio_no_subcommand' -l pid-file -r -d 'Location for CRI-O to lay down the pid file (default: /var/run/crio/pid)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pids-limit -r -d 'Maximum number of processes allowed in a container'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pinns-path -r -d 'The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l profile -d 'Enable pprof remote profiler on localhost:6060'

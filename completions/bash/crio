@@ -58,6 +58,7 @@ h
 --pause-command
 --pause-image
 --pause-image-auth-file
+--pid-file
 --pids-limit
 --pinns-path
 --profile

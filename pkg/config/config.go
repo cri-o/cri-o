@@ -142,6 +142,9 @@ type RootConfig struct {
 	// tells us to put them somewhere else.
 	LogDir string `toml:"log_dir"`
 
+	// PidFile is the location CRI-O will lay down the PID file
+	PidFile string `toml:"pid_file"`
+
 	// VersionFile is the location CRI-O will lay down the version file
 	VersionFile string `toml:"version_file"`
 }
@@ -510,6 +513,7 @@ func DefaultConfig() (*Config, error) {
 			Storage:        storeOpts.GraphDriverName,
 			StorageOptions: storeOpts.GraphDriverOptions,
 			LogDir:         "/var/log/crio/pods",
+			PidFile:        CrioPidPath,
 			VersionFile:    CrioVersionPath,
 		},
 		APIConfig: APIConfig{
