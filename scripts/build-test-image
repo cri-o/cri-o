@@ -8,7 +8,7 @@ fi
 # Versions to be used
 declare -A VERSIONS=(
     ["cni-plugins"]=v0.8.2
-    ["conmon"]=v2.0.9
+    ["conmon"]=v2.0.11
     ["cri-tools"]=v1.16.1
     ["runc"]=v1.0.0-rc9
 )
