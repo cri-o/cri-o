@@ -1,0 +1,1587 @@
+#!/usr/bin/env bash
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+trap cleanup INT TERM
+PROFILE_NAME="kube-local.profile"
+
+function print_msg() {
+    ##################################################################
+    # Description:                                                   #
+    #   Print Message                                                #
+    #                                                                #
+    # Args:                                                          #
+    #     ${1} = message type: INFO, INFO_NEWLINE, WARN_NEWLINE,     #
+    #                          WARN, OK, DEBUG, FAIL                 #
+    #     ${2} = message                                             #
+    ##################################################################
+    msg_type="${1}"
+    msg="${2}"
+
+    # Determine the msg type here to be logged in the ${LOG_FILE}
+    case "${msg_type}" in
+        "INFO" | "INFO_NEWLINE")
+            msg_type_in_ascii="[ INFO  ]"
+            ;;
+        "WARN" | "WARN_NEWLINE")
+            msg_type_in_ascii="[ \e[1m\e[31mWARNING\e[0m  ]"
+            ;;
+        "OK")
+            msg_type_in_ascii="[ \e[1m\e[32mOK\e[0m  ]"
+            ;;
+        "FAIL")
+            msg_type_in_ascii="[ \e[1m\e[31mFAIL\e[0m  ]"
+            ;;
+        "DEBUG")
+            msg_type_in_ascii="[ \e[1m\e[33mDEBUG\e[0m  ]"
+            ;;
+    esac
+
+    # Logging
+    if [[ "${LOGGING}" = "true" ]]; then
+        # Remove any char after _ in the msg_type
+        simplified_type=$(echo ${msg_type} | awk -F_ '{print $1}')
+        if [[ "${LOGGING_FILTER}" == *"${simplified_type}"* ]];then
+            echo -e "${msg_type_in_ascii} ${msg}" >> ${LOG_FILE}
+        fi
+    fi
+
+    # Quiet-mode, just log above and return
+    if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+       return
+    fi
+
+    case "${msg_type}" in
+        "INFO")
+            echo -ne "${msg_type_in_ascii} ${msg}"
+            return
+            ;;
+        "INFO_NEWLINE")
+            echo -ne "${msg_type_in_ascii} ${msg}\n"
+            return
+            ;;
+        "WARN_NEWLINE")
+            echo -ne "${msg_type_in_ascii} ${msg}\n"
+            return
+            ;;
+        "WARN")
+            echo -ne "${msg_type_in_ascii} ${msg}"
+            return
+            ;;
+        "OK")
+            echo -ne "${msg_type_in_ascii} ${msg}\n"
+            return
+            ;;
+        "FAIL")
+            echo -ne "${msg_type_in_ascii} Aborting... ${msg}\n"
+            return
+            ;;
+        "DEBUG")
+            if [ "${PRINT_DEBUG_ENABLED}" = "true" ]; then
+                echo -ne "${msg_type_in_ascii} ${msg}\n"
+                return
+            fi
+            ;;
+        "BLANK-LINE")
+            echo
+            return
+            ;;
+        *)
+            echo -en "[ \e[1m\e[31mFAIL\e[0m  ] Message type not supported [${msg_type}]!\n"
+            cleanup
+            exit 1
+            ;;
+    esac
+
+}
+
+function question_with_answer_yes_no() {
+    ####################################################################
+    # Description:                                                     #
+    #   Ask a question to users with answer yes/no                     #
+    #   Argument: ${1} - Question                                      #
+    #             ${2} - type of message (WARN or INFO)                #
+    #                                                                  #
+    #   Return: Value from yn                                          #
+    ####################################################################
+
+    while true; do
+        print_msg "BLANK-LINE"
+        print_msg "INFO_NEWLINE" "${1}"
+
+        msg_would_like_continue="Would you like to continue? [Yes/No]"
+        if [ "${2}" = "WARN" ]; then
+            print_msg "WARN" "${msg_would_like_continue}"
+        else
+            print_msg "INFO" "${msg_would_like_continue}"
+        fi
+          
+        read -rp "" yn
+        yn=$(echo ${yn} | ${AWK_BIN} '{print tolower($0)}')
+        case ${yn} in
+            [yes]*)
+                break
+	        ;;
+            [no]*)
+                break
+                ;;
+            *)
+                print_msg "INFO_NEWLINE" "Please answer yes or no."
+	        ;;
+        esac
+    done
+}
+
+function exec_cmd() {
+    ############################################################################
+    # Description:                                                             #
+    #   Execute command                                                        #
+    #                                                                          #
+    #   Params:                                                                #
+    #       ${1} = Command type:                                               #
+    #          QUIET = Output stdout && stderr to logfile only                 #
+    #          SUDO = Runs the command as sudo                                 #
+    #                                                                          #
+    #       ${2} = Command                                                     #
+    ############################################################################
+
+    # Requested SUDO or QUIET mode
+    if [ $# -gt 1 ]; then
+        cmd_type="${1}"
+        cmd="${2}"
+        print_msg "DEBUG" "Executing: command type: [\e[1m\e[1m${cmd_type}\e[0m] command: [\e[1m\e[1m${cmd}\e[0m]"
+        case ${cmd_type} in
+            "SUDO")
+                ${SUDO_BIN} ${cmd}
+                if [ $? -ne 0 ]; then
+                    print_msg "FAIL" "Cannot execute: ${1}"
+                    cleanup
+                    exit 1
+                fi
+                return
+                ;;
+            "QUIET")
+                ${cmd} >> "${LOG_FILE}" 2>&1
+                if [ $? -ne 0 ]; then
+                    print_msg "FAIL" "Cannot execute: ${1}"
+                    cleanup
+                    exit 1
+                fi
+                return
+                ;;
+            "BACKGROUND")
+                ${cmd} &
+                if [ $? -ne 0 ]; then
+                    print_msg "FAIL" "Cannot execute: ${1} &"
+                    cleanup
+                    exit 1
+                fi
+                return
+                ;;
+        esac
+    fi
+
+    # No command type has used
+    cmd="${1}"
+    print_msg "DEBUG" "Executing: [\e[1m\e[1m${cmd}\e[0m]"
+    ${cmd}
+    if [ $? -ne 0 ]; then
+        print_msg "FAIL" "Cannot execute: ${1}"
+        cleanup
+        exit 1
+    fi
+}
+
+function welcome_msg() {
+    ##################################################################
+    # Description:                                                   #
+    #   Tradicional welcome message                                  #
+    ##################################################################
+
+    print_msg "WARN" "DO NOT USE IN PRODUCTION ENVIRONMENT!"
+    print_msg "BLANK-LINE"
+    if [ "${AUTOINSTALL}" = "true" ]; then
+       return
+    fi
+
+    question_with_answer_yes_no "This tool will create a development environment for ${CONTAINER_ORCHESTRATION_NAME} with \e[1m\e[1m${RUNTIME_NAME}\e[0m as runtime."
+    case ${yn} in
+        [yes]*)
+            print_msg "BLANK-LINE"
+            print_msg "INFO_NEWLINE" "Welcome to quick setup for [\e[1m\e[1m${RUNTIME_NAME}/${CONTAINER_ORCHESTRATION_NAME}\e[0m]"
+            ;;
+        [no]*) 
+            print_msg "INFO_NEWLINE" "Exiting..."
+            exit 1
+            ;;
+    esac
+}
+
+function update_system() {
+   ##################################################################
+   # Description:                                                   #
+   #   Function to update the system before continue                #
+   ##################################################################
+
+    print_msg "INFO_NEWLINE" "Updating the system..."
+    cmd_update="${DISTRO_CMD_TOOL} update ${AUTO_UPDATE_SYSTEM}"
+
+    if [[ "${AUTOINSTALL}" = "true" ]]; then
+        exec_cmd "SUDO" "${cmd_update}"
+        return
+    fi
+
+    question_with_answer_yes_no "It is recommended to update the system"
+    case ${yn} in
+        [no]*) 
+            print_msg "INFO_NEWLINE" "As requested, NOT updating the system..."
+            ;;
+        [yes]*)
+            exec_cmd "SUDO" "${cmd_update}"
+            ;;
+    esac
+}
+
+function enable_subscription_rhel_for_crio() {
+    ##################################################################
+    # Description:                                                   #
+    #   Enable subscription for RHEL machines                        #
+    ##################################################################
+
+    case ${DISTRO_VERSION_ID} in
+        "8*")
+	    exec_cmd "SUDO" "${SUBSCRIPTION_MANAGER_BIN} repos --enable=rhel-8-for-x86_64-baseos-rpms"
+
+	    exec_cmd "SUDO" "${SUBSCRIPTION_MANAGER_BIN} repos --enable=rhel-8-for-x86_64-appstream-rpms"
+
+	    exec_cmd "SUDO" "${SUBSCRIPTION_MANAGER_BIN} repos --enable=codeready-builder-for-rhel-8-x86_64-rpms"
+	;;
+        *)
+	    print_msg "INFO_NEWLINE" "Red Hat Enterprise Linux:"
+	    print_msg "INFO_NEWLINE" "At this time, the tool could not detect which  channels must be added to: ${DISTRO_NAME} ${DISTRO_VERSION_ID}."
+	    print_msg "WARN_NEWLINE" "Please add manually the channels in a second shell and press enter to continue"
+	    read -rp ""
+
+    esac
+}
+
+function detect_system() {
+    ##################################################################
+    # Description:                                                   #
+    #   Detect system by NAME var in /etc/os-release                 #
+    ##################################################################
+
+    print_msg "DEBUG" "Detecting distro..."
+    source /etc/os-release
+    NAME=$(echo ${NAME} | ${AWK_BIN} '{print tolower($0)}')
+    case ${ID} in
+        fedora)
+            DISTRO_NAME=${NAME}
+  	    DISTRO_CMD_TOOL="${DNF_BIN}"
+            DISTRO_PKG_MANAGER="${RPM_BIN}"
+            DISTRO_CMD_CHECK_PKG_EXISTS="${DISTRO_PKG_MANAGER} -q"
+  	    DISTRO_VERSION_ID=${VERSION_ID}
+            DISTRO_GOLANG_PACKAGE="golang-bin"
+
+            if [ "${RUNTIME_NAME}" = "cri-o" ]; then
+                RUNTIME_OPTIONAL_PACKAGES="btrfs-progs-devel"
+            fi
+            ;;
+        centos)
+            DISTRO_NAME=${NAME}
+  	    DISTRO_CMD_TOOL="${DNF_BIN}"
+            DISTRO_PKG_MANAGER="${RPM_BIN}"
+            DISTRO_CMD_CHECK_PKG_EXISTS="${DISTRO_PKG_MANAGER} -q"
+ 	    DISTRO_VERSION_ID=${VERSION_ID}
+            DISTRO_GOLANG_PACKAGE="golang-bin"
+
+            if [ "${RUNTIME_NAME}" = "cri-o" ]; then
+                RUNTIME_OPTIONAL_PACKAGES="btrfs-progs-devel"
+            fi
+            ;;
+        rhel)
+            DISTRO_NAME=${NAME}
+  	    DISTRO_CMD_TOOL="${DNF_BIN}"
+            DISTRO_PKG_MANAGER="${RPM_BIN}"
+            DISTRO_CMD_CHECK_PKG_EXISTS="${DISTRO_PKG_MANAGER} -q"
+ 	    DISTRO_VERSION_ID=${VERSION_ID}
+            DISTRO_GOLANG_PACKAGE="golang-bin"
+
+            if [ "${RUNTIME_NAME}" = "cri-o" ]; then
+                RUNTIME_OPTIONAL_PACKAGES="btrfs-progs-devel"
+	        enable_subscription_rhel_for_crio
+            fi
+            ;;
+        opensuse*)
+
+            opensuse_leap_id="opensuse-leap"
+            if [ "${ID}" = "${opensuse_leap_id}" ]; then
+                print_msg "FAIL" "Based on our knowledge, [\e[1m\e[1m${opensuse_leap_id}\e[0m] at this moment is a not supported distro. Please contact your distro community/vendor for further info!"
+                exit 1
+            fi
+
+            DISTRO_NAME=${NAME}
+            DISTRO_PKG_MANAGER="${RPM_BIN}"
+            DISTRO_CMD_CHECK_PKG_EXISTS="${DISTRO_PKG_MANAGER} -q"
+	    DISTRO_CMD_TOOL="${ZYPPER_BIN}"
+	    DISTRO_VERSION_ID=${VERSION_ID}
+            DISTRO_GOLANG_PACKAGE="golang-bin"
+
+            if [ "${RUNTIME_NAME}" = "cri-o" ]; then
+                RUNTIME_OPTIONAL_PACKAGES="btrfsprogs"
+            fi
+            ;;
+        debian)
+            DISTRO_NAME=${NAME}
+	    DISTRO_CMD_TOOL="${APT_GET_BIN}"
+            DISTRO_PKG_MANAGER="${DPKG_BIN}"
+            DISTRO_CMD_CHECK_PKG_EXISTS="${DISTRO_PKG_MANAGER} -l | ${GREP_BIN}"
+	    DISTRO_VERSION_ID=${VERSION_ID}
+            if [ "${RUNTIME_NAME}" = "cri-o" ]; then
+                RUNTIME_OPTIONAL_PACKAGES="btrfs-tools"
+            fi
+            ;;
+        ubuntu)
+            DISTRO_NAME=${NAME}
+	    DISTRO_CMD_TOOL="${APT_GET_BIN}"
+            DISTRO_PKG_MANAGER="${DPKG_BIN}"
+            DISTRO_CMD_CHECK_PKG_EXISTS="${DISTRO_PKG_MANAGER} -l | ${GREP_BIN}"
+	    DISTRO_VERSION_ID=${VERSION_ID}
+            if [ "${RUNTIME_NAME}" = "cri-o" ]; then
+                RUNTIME_OPTIONAL_PACKAGES="btrfs-tools"
+            fi
+            ;;
+        *)
+            print_msg "FAIL" "Unknown distro"
+            exit 1
+    esac
+    print_msg "DEBUG" "Detected: [\e[1m\e[1m${DISTRO_NAME}\e[0m]\n"
+}
+
+
+function detect_cgroupv1() {
+    ####################################################################
+    # Description:                                                     #
+    #   Detect the cgroup version, currently cgroupv2 is not supported #
+    ####################################################################
+
+    print_msg "BLANK-LINE"
+    print_msg "INFO" "Checking cgroup configuration..."
+    CMDLINE=$(${CAT_BIN} /proc/cmdline)
+    if [[ "${CMDLINE}" != *"systemd.unified_cgroup_hierarchy=0"* ]]; then
+        print_msg "BLANK-LINE"
+        print_msg "WARN_NEWLINE" "At this moment, cgroupv2 is not supported by ${RUNTIME_NAME}, please use cgroupv1"
+        question_with_answer_yes_no "It is required to update the kernel parameters to use cgroupv1"
+        case ${yn} in
+            [yes]*)
+                update_kernel_params
+                ;;
+            [no]*) 
+                print_msg "INFO_NEWLINE" "Exiting..."
+                exit 1
+                ;;
+	esac
+    fi
+    print_msg "OK" "[\e[1m\e[1mcgroupv1\e[0m]\n"
+}
+
+function update_kernel_params() {
+    ######################################################################
+    # Description:                                                       #
+    #   Update the kernel args for cgroupv1 - SOON SHOULD BE DEPRECATED  #
+    #                                                                    #
+    # NOTE: To revert this change use the command below and reboot       #
+    #                                                                    #
+    # $ sudo grubby --update-kernel=ALL \                                #
+    #               --remove-args=systemd.unified_cgroup_hierarchy=0     #
+    #                                                                    #
+    # $ sudo reboot                                                      #
+    ######################################################################
+
+    exec_cmd "SUDO" "${DISTRO_CMD_TOOL} install grubby ${AUTO_INSTALL_PACKAGES}"
+    exec_cmd "SUDO" "${GRUBBY_BIN} --update-kernel=ALL --args=systemd.unified_cgroup_hierarchy=0"
+
+    if [ "${AUTO_REBOOT}" = "true" ]; then
+        ${SUDO_BIN} "${REBOOT_BIN}"
+    fi
+
+    question_with_answer_yes_no "The system must be rebooted. [\e[1m\e[1mReboot NOW?\e[0m]"
+    case ${yn} in
+        [yes]*)
+	    print_msg "INFO_NEWLINE" "Rebooting..."
+	    ${SUDO_BIN} "${REBOOT_BIN}"
+            ;;
+        [no]*) 
+            print_msg "INFO_NEWLINE" "Exiting..."
+            exit 1
+            ;;
+    esac
+}
+
+function add_extra_repository() {
+    ###########################################################
+    # Description:                                            #
+    #   Add additional repositories required for the packages #
+    ###########################################################
+
+    case ${DISTRO_NAME} in
+        "ubuntu")
+            exec_cmd "SUDO" "apt-add-repository ppa:projectatomic/ppa"
+            ;;
+        *)
+            print_msg "FAIL" "Cannot add extra repository for distro ${1}"
+            exit 1
+            ;;
+    esac
+}
+
+function install_golang() {
+    ###########################################################
+    # Description:                                            #
+    #   Trigger installation for golang                       #
+    ###########################################################
+
+    if [ "${AUTO_REMOVE_EXISTING_GOLANG_FROM_DISTRO_PACKAGING}" = "true" ]; then
+        exec_cmd "SUDO" "${DISTRO_CMD_TOOL} -q remove ${DISTRO_GOLANG_PACKAGE}"
+    else
+        ${DISTRO_CMD_CHECK_PKG_EXISTS} ${DISTRO_GOLANG_PACKAGE} 2> /dev/null
+        if [ $? -eq 0 ]; then
+            print_msg "BLANK-LINE"
+            print_msg "WARN_NEWLINE" "A golang package is detected. A new installation might conflict with the existing package."
+            print_msg "WARN_NEWLINE" "Having two or more golang binaries in \$PATH might generate conflict during the build of any go project."
+            question_with_answer_yes_no "It is recommended to remove he \e[1m\e[1mexisting package\e[0m before installing a new golang bin" "WARN"
+            case ${yn} in
+                [yes]*)
+                    exec_cmd "SUDO" "${DISTRO_CMD_TOOL} remove ${DISTRO_GOLANG_PACKAGE}"
+                    ;;
+                [no]*) 
+                    print_msg "INFO_NEWLINE" "As requested, NOT removing package ${DISTRO_GOLANG_PACKAGE}"
+                    ;;
+            esac
+        fi 
+        print_msg "INFO_NEWLINE" "Installing go [\e[1m\e[1m${GOLANG_VERSION}\e[0m]..."
+    fi
+
+    # Install requirements for golang deploy
+    if ! [ -x "$(command -v "${WGET_BIN}")" ]; then
+        exec_cmd "SUDO" "${DISTRO_CMD_TOOL} install wget ${AUTO_INSTALL_PACKAGES}"
+    fi
+
+    if [ "${AUTO_REMOVE_GOLANG_DIR}" = "true" ]; then
+        exec_cmd "SUDO" "${RM_BIN} -rf ${GOLANG_DIR_PATH}"
+    else
+        if [[ -d "${GOLANG_DIR_PATH}" ]]
+        then
+            print_msg "BLANK-LINE"
+            print_msg "WARN_NEWLINE" "The dir [\e[1m\e[1m${GOLANG_DIR_PATH}\e[0m] already exists."
+            question_with_answer_yes_no "Removing current version and installing the new binaries..."
+            case ${yn} in
+                [yes]*)
+                    exec_cmd "SUDO" "${RM_BIN} -rf ${GOLANG_DIR_PATH}"
+   	            ;;
+                [no]*)
+                   return
+                   ;;
+            esac
+        fi
+    fi
+
+    # Moving to a temp dir for wget
+    tmpdir_wget=$(mktemp -d)
+    pushd "${tmpdir_wget}" &> /dev/null || exit
+
+    print_msg "INFO_NEWLINE" "Downloading ${GOLANG_TAR_URL}..."
+    exec_cmd "${WGET_BIN} -q ${GOLANG_TAR_URL}"
+
+    print_msg "INFO_NEWLINE" "Downloading ${GOLANG_HASH_URL}..."
+    exec_cmd "${WGET_BIN} -q ${GOLANG_HASH_URL}"
+
+    sha256sum_from_tarfile=$(${SHA256SUM_BIN} ${GOLANG_TAR_FILENAME} | awk '{print $1}')
+    sha256sum_from_web=$(${CAT_BIN} ${GOLANG_HASH_FILENAME})
+
+    if [ "${sha256sum_from_tarfile}" != "${sha256sum_from_web}" ]; then
+        print_msg "FAIL" "sha256sum failed for ${GOLANG_TAR_FILENAME}"
+        print_msg "INFO_NEWLINE" "sha256 from tar.gz: [${sha256sum_from_tarfile}]"
+        print_msg "INFO_NEWLINE" "sha256 from hash: [${sha256sum_from_web}]"
+        exit 1
+    fi
+    print_msg "INFO_NEWLINE" "${GOLANG_HASH} check for ${GOLANG_TAR_FILENAME} passed..."
+
+    exec_cmd "${RM_BIN} -f ${GOLANG_HASH_FILENAME}"
+
+    exec_cmd "${TAR_BIN} -xzf ${GOLANG_TAR_FILENAME}"
+    exec_cmd "SUDO" "${MV_BIN} go ${GOLANG_DIR_INSTALL}"
+
+    # return to the original dir and remove tmp dir
+    popd &> /dev/null || exit
+    ${RM_BIN} -rf "${tmpdir_wget}"
+
+    add_export_config_golang
+
+    if [[ ! -d "${GOLANG_PROJECT_HOME}" ]]
+    then
+        exec_cmd "${MKDIR_BIN} -p ${GOLANG_PROJECT_HOME}"
+    fi
+
+    exec_cmd "${MKDIR_BIN} -p ${GOLANG_PROJECT_HOME_SRC}"
+    exec_cmd "${MKDIR_BIN} -p ${GOLANG_PROJECT_HOME_BIN}"
+    exec_cmd "${MKDIR_BIN} -p ${GOLANG_PROJECT_HOME_SRC_GITHUB}"
+
+    print_msg "BLANK-LINE"
+}
+
+function clean_runtime_files() {
+    ###########################################################
+    # Description:                                            #
+    #   Function remove all created files/dirs from:
+    #     - runtime
+    #     - runtime client
+    #     - runtime endpoint
+    #   
+    ###########################################################
+    if [[ -d "${RUNTIME_GOLANG_DIR}" ]]; then
+        exec_cmd "cd ${RUNTIME_GOLANG_DIR}"
+
+        if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+            ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} uninstall" &>> ${LOG_FILE}
+        else
+            ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} uninstall"
+        fi
+    fi
+
+    ${RM_BIN} -rf "${RUNTIME_GOLANG_DIR}"
+    ${SUDO_BIN} "${RM_BIN}" -rf "${RUNTIME_ENDPOINT}"
+    ${RM_BIN} -rf "${RUNTIME_MONITOR_GOLANG_DIR}"
+
+    ${RM_BIN} -rf ${RUNTIME_CLIENT_GOLANG_DIR}
+    print_msg "DEBUG" "Removed dir(s) ${RUNTIME_GOLANG_DIR}, ${RUNTIME_CLIENT_GOLANG_DIR} ${RUNTIME_MONITOR_GOLANG_DIR} and endpoint file ${RUNTIME_ENDPOINT}"
+}
+
+function execute_cleanup() {
+    ###########################################################
+    # Description:                                            #
+    #   Function remove all created files/dirs                #
+    ###########################################################
+
+    # Environment vars
+    cleanup_export_config
+    print_msg "OK" "Removed vars added into ${GO_ENV_VARS}"
+
+    declare -a log_container_orchestration=(${CONTAINER_ORCHESTRATION_LOGS})
+    for logfile in "${log_container_orchestration[@]}"
+    do
+        cmd="${RM_BIN} -f ${LOGDIR}/${logfile}"
+        exec_cmd "${cmd}"
+    done
+
+    # kube-apiserver-audit is owned by root:root
+    ${SUDO_BIN} "${RM_BIN}" -f "${CONTAINER_ORCHESTRATION_LOG_KUBE_APISERVER_AUDIT}"
+
+    print_msg "BLANK-LINE"
+    declare -a services=(${CONTAINER_ORCHESTRATION_SERVICES})
+    for service in "${services[@]}"
+    do
+        print_msg "INFO_NEWLINE" "Terminating ${service}..."
+        $(${PGREP_BIN} -f ${service} | ${XARGS_BIN} ${SUDO_BIN} ${KILL_BIN} -9 &> /dev/null)
+    done
+    print_msg "BLANK-LINE"
+
+    # Runtime
+    clean_runtime_files
+
+    # Specific removes from CRI-O runtime
+    if [ "${RUNTIME_NAME}" = "cri-o" ]; then
+        # services
+        print_msg "DEBUG" "Stopping and Disabling the [\e[1m\e[1m${RUNTIME_NAME}\e[0m] service..."
+
+        cmd_stop_srv="${SUDO_BIN} ${SYSTEMCTL_BIN} stop ${RUNTIME_NAME}"
+        cmd_disable_srv="${SUDO_BIN} ${SYSTEMCTL_BIN} disable ${RUNTIME_NAME}"
+        if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+            ${cmd_stop_srv} &> /dev/null
+            ${cmd_disable_srv} &> /dev/null
+        else
+            ${cmd_stop_srv}
+            ${cmd_disable_srv}
+        fi
+
+        # MD2MAN
+
+        # Do not use exec_cmd - it will complain if go is not installed and the
+        # script is triggered for uninstall
+        "${GOLANG_BIN} clean -i -n ${MD2MAN_GITHUB_URL}" 2> /dev/null
+
+        exec_cmd "${RM_BIN} -rf ${MD2MAN_GOLANG_DIR}"
+        exec_cmd "${RM_BIN} -rf ${GOLANG_PROJECT_HOME_BIN}/${MD2MAN_NAME}"
+        print_msg "DEBUG" "Removed dir ${MD2MAN_GOLANG_DIR}"
+    
+        # Remove packages installed
+        case ${DISTRO_NAME} in
+            fedora)
+                if [[ ${DISTRO_VERSION_ID} -gt 30 ]]; then
+                    packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS_LATEST}"
+                else
+                    packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS}"
+                fi
+                # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
+                ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -e ${packages} --nodeps
+                ;;
+            centos | rhel)
+                if [[ ${DISTRO_VERSION_ID} -gt 7 ]]; then
+                    packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS_LATEST}"
+                else
+                    packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS}"
+                fi
+                # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
+                ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -e ${packages} --nodeps
+                ;;
+            ubuntu)
+                packages="${CRIO_PACKAGES_UBUNTU}"
+                # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
+                ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -P ${packages}
+                ;;
+            debian)
+                packages="${CRIO_PACKAGES_DEBIAN}"
+                # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
+                ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -P ${packages}
+                ;;
+            opensuse*)
+                packages="${CRIO_PACKAGES_OPENSUSE}"
+                # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
+                ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -e ${packages} --nodeps
+                ;;
+        esac
+        print_msg "BLANK-LINE"
+        print_msg "OK" "Removed packages: ${packages}"
+    fi
+
+    # golang
+    exec_cmd "SUDO" "${RM_BIN} -rf ${GOLANG_DIR_PATH}"
+
+    # Container Network
+    print_msg "BLANK-LINE"
+    print_msg "INFO_NEWLINE" "Removing container network plugins dir: ${CONTAINER_NETWORK_CNI_PATH}"
+    exec_cmd "SUDO" "${RM_BIN} -rf ${CONTAINER_NETWORK_CNI_PATH}"
+    exec_cmd "${RM_BIN} -rf ${CONTAINER_NETWORK_GOLANG_DIR}"
+
+    # Container Orchestration
+    print_msg "INFO_NEWLINE" "Removing ${CONTAINER_ORCHESTRATION_NAME}..."
+    exec_cmd "SUDO" "${RM_BIN} -rf ${CONTAINER_ORCHESTRATION_GOLANG_DIR}"
+}
+
+function cleanup() {
+    ###########################################################
+    # Description:                                            #
+    #   Function for --uninstall                              #
+    ###########################################################
+    if [[ "${AUTO_CLEAN}" = "true" ]]; then
+        execute_cleanup
+    else
+        print_msg "BLANK-LINE"
+        print_msg "INFO_NEWLINE" "   ==============================="
+        print_msg "WARN_NEWLINE" " \e[31mATTENTION: Uninstall mode\e[0m"
+        print_msg "INFO_NEWLINE" "   ==============================="
+        print_msg "INFO_NEWLINE" "- Remove vars added into ${GO_ENV_VARS}"
+        print_msg "INFO_NEWLINE" "- Remove dir ${GOLANG_DIR_PATH}"
+        print_msg "INFO_NEWLINE" "- Remove ${MD2MAN_GOLANG_DIR}"
+        print_msg "INFO_NEWLINE" "- Remove dir ${RUNTIME_GOLANG_DIR} and all dependencies"
+        print_msg "INFO_NEWLINE" "- Remove dir ${RUNTIME_CLIENT_GOLANG_DIR} and all dependencies"
+        print_msg "INFO_NEWLINE" "- Remove dir ${CONTAINER_ORCHESTRATION_GOLANG_DIR} and all dependencies"
+        question_with_answer_yes_no "REMOVE files/dirs generated by this script?" "WARN"
+        case ${yn} in
+            [yes]*)
+                execute_cleanup
+                print_msg "BLANK-LINE"
+                print_msg "OK" "Reverted all the changes from the script..."
+                ;;
+            [no]*) 
+                print_msg "DEBUG" "As requested, not removing files/dirs generated by this script!"
+                ;;
+        esac
+    fi    
+    print_msg "INFO_NEWLINE" "Exiting..."
+    exit 1
+}
+
+function cleanup_export_config() {
+    ###########################################################
+    # Description:                                            #
+    #   Function remove export configuration                  #
+    ###########################################################
+    if ${GREP_BIN} -q "${CONFIG_HEADER}" ${GO_ENV_VARS}; then
+        ${SUDO_BIN} sh -c "${SED_BIN} -i \"/${CONFIG_HEADER}/,/${CONFIG_HEADER_END}/d\" ${GO_ENV_VARS}"
+    fi
+    if [ $? -ne 0 ]; then
+        print_msg "FAIL" "Cannot clean configuration from ${GO_ENV_VARS}"
+	exit 1
+    fi
+
+    print_msg "DEBUG" "Removed ${0} info from ${GO_ENV_VARS}..."
+    return $?
+}
+
+function add_export_config_golang() {
+    ###########################################################
+    # Description:                                            #
+    #   Add export configuration for golang in ${GO_ENV_VARS} #
+    ###########################################################
+
+    cleanup_export_config
+    print_msg "BLANK-LINE"
+    print_msg "INFO_NEWLINE" "Adding environment vars into ${GO_ENV_VARS}..."
+    print_msg "DEBUG" "\t\e[1m\e[1mexport GOROOT=${GOLANG_DIR_PATH}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport GOPATH=${GOLANG_PROJECT_HOME}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport IP=${IP_LOCALHOST}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport PATH=${PATH_PROJECTS}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport FEATURE_GATES=${FEATURE_GATES}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport CONTAINER_RUNTIME=${CONTAINER_RUNTIME}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport CGROUP_DRIVER=${CGROUP_DRIVER}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport CONTAINER_RUNTIME_ENDPOINT=${CONTAINER_RUNTIME_ENDPOINT}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport ALLOW_SECURITY_CONTEXT=${ALLOW_SECURITY_CONTEXT}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport ALLOW_PRIVILEGED=${ALLOW_PRIVILEGED}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport DNS_SERVER_IP=${IP_LOCALHOST}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport API_HOST=${IP_LOCALHOST}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport API_HOST_API=${IP_LOCALHOST}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport KUBE_ENABLE_CLUSTER_DNS=${KUBE_ENABLE_CLUSTER_DNS}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport ENABLE_HOSTPATH_PROVISIONER=${ENABLE_HOSTPATH_PROVISIONER}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport KUBE_ENABLE_CLUSTER_DASHBOARD=${KUBE_ENABLE_CLUSTER_DASHBOARD}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport KUBECONFIG=${KUBECONFIG}\e[0m"
+    print_msg "DEBUG" "\t\e[1m\e[1mexport KUBERNETES_PROVIDER=${KUBERNETES_PROVIDER}\e[0m"
+
+    ${SUDO_BIN} sh -c "echo -e \"# kube-local section begin\n\
+export GOROOT=${GOLANG_DIR_PATH}\n\
+export GOPATH=${GOLANG_PROJECT_HOME}\n\
+export IP=${IP_LOCALHOST}
+export PATH=${PATH_PROJECTS}
+export FEATURE_GATES=${FEATURE_GATES}
+export CONTAINER_RUNTIME=${CONTAINER_RUNTIME}
+export CGROUP_DRIVER=${CGROUP_DRIVER}
+export CONTAINER_RUNTIME_ENDPOINT="${RUNTIME_ENDPOINT}"
+export ALLOW_SECURITY_CONTEXT="${ALLOW_SECURITY_CONTEXT}"
+export ALLOW_PRIVILEGED=${ALLOW_PRIVILEGED}
+export DNS_SERVER_IP=${IP_LOCALHOST}
+export API_HOST=${IP_LOCALHOST}
+export API_HOST_IP=${IP_LOCALHOST}
+export KUBE_ENABLE_CLUSTER_DNS=${KUBE_ENABLE_CLUSTER_DNS}
+export ENABLE_HOSTPATH_PROVISIONER=${ENABLE_HOSTPATH_PROVISIONER}
+export KUBE_ENABLE_CLUSTER_DASHBOARD=${KUBE_ENABLE_CLUSTER_DASHBOARD}
+export KUBECONFIG="${CONTAINER_ORCHESTRATION_KUBECONFIG_PATH}"
+export KUBERNETES_PROVIDER=${KUBERNETES_PROVIDER}
+# kube-local section end\" >> ${GO_ENV_VARS}"
+
+    source ${GO_ENV_VARS}
+}
+
+function git_check_branch_version() {
+    ###########################################################
+    # Description:                                            #
+    #   check if the current branch version is the            #
+    #   requested by user.                                    #
+    #                                                         #
+    # Args: branch name                                       #
+    #                                                         #
+    # Return: 0 - true or 1 = false                           #
+    ###########################################################
+
+    branch=$(${GIT_BIN} rev-parse --abbrev-ref HEAD)
+    print_msg "DEBUG" "Current branch: [\e[1m\e[1m${branch}\e[0m]"
+    print_msg "DEBUG" "Requested branch: [\e[1m\e[1m${branch}\e[0m]"
+
+    if [[ "${branch}" = "${1}" ]]; then
+        return 0
+    fi
+
+    cmd="${GIT_BIN} checkout -b ${1}"
+    if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+        # DO not use exec_cmd here. If branch already exists like master
+        # will return 1 from git command and will fail
+        ${cmd} &> /dev/null
+    else
+        # DO not use exec_cmd here. If branch already exists like master
+        # will return 1 from git command and will fail
+        ${cmd}
+    fi
+
+    return 1
+
+}
+
+function install_project() {
+    ###############################################################
+    # Description:                                                #
+    #   Build and install a project into golang src dir           #
+    #                                                             #
+    #   PARAMS:                                                   #
+    #       ${1} - project name                                   #
+    #           example: kubernetes                               #
+    #                                                             #
+    #       ${2} - project golang dir                             #
+    #           example: ${HOME}/go/src/github/kubernetes         #
+    #                                                             #
+    #       ${3} - project golang src dir                         #
+    #           example: github                                   #          
+    #                                                             #
+    #       ${4} - github branch name                             #
+    #           example: master                                   #
+    #                                                             #
+    #       ${5} - github url for the project                     # 
+    #           example: https://github.com/kubernetes/kubernetes #
+    #                                                             #
+    #       ${6} - action - possible values:                      #
+    #           MAKE_ONLY                                         #
+    #             - execute: make                                 #
+    #                                                             #
+    #           MAKE_AND_MAKE_INSTALL                             #
+    #             - execute: make && make install                 #          
+    #                                                             #
+    #   Just another example:                         Args number #
+    #   -----------------------                      ------------ #
+    #        install_project \                                    #
+    #            ${RUNTIME_NAME} \                   # ${1}       #
+    #            ${RUNTIME_GOLANG_DIR} \             # ${2}       #
+    #            ${RUNTIME_GOLANG_SRC_GITHUB} \      # ${3}       #
+    #            ${RUNTIME_VERSION} \                # ${4}       #
+    #            ${RUNTIME_GITHUB_URL}               # ${5}       #
+    #            "MAKE_AND_MAKE_INSTALL"             # ${6}       #
+    ###############################################################
+    
+    ############ Some local vars ##################################
+    SUPPORTED_ACTIONS="MAKE_ONLY, MAKE_AND_MAKE_INSTALL"
+    ARGS_REQUIRED=6
+    ###############################################################
+
+    ###############################################################
+    # Few checks before we proceed
+    # 
+    # 1) Number of args
+    if [[ $# != "${ARGS_REQUIRED}" ]]; then
+        print_msg "FAIL" "The number of arguments for ${FUNCNAME[0]} is ${ARGS_REQUIRED}"
+        exit 1
+    fi
+    print_msg "DEBUG" "Function: ${FUNCNAME[0]}() - Action: [\e[1m\e[1m${6}\e[0m]"
+
+    # 2) Look for the action in param ${6}
+    if [[ ! "${SUPPORTED_ACTIONS}" == *"${6}"* ]]; then
+        print_msg "FAIL" "${FUNCNAME[0]} requires an action: ${SUPPORTED_ACTIONS}"
+        exit 1
+    fi
+
+    if [[ ! -d "${GOLANG_PROJECT_HOME_SRC}" ]]
+    then
+        exec_cmd "${MKDIR_BIN} -p ${GOLANG_PROJECT_HOME_SRC}"
+        exec_cmd "${MKDIR_BIN} -p ${GOLANG_PROJECT_HOME_BIN}"
+    fi
+    exec_cmd "cd ${GOLANG_PROJECT_HOME_SRC}"
+
+    rebase_git_tree=false
+    if [[ -d "${2}" ]]
+    then 
+        while true; do
+            print_msg "BLANK-LINE"
+            print_msg "WARN_NEWLINE" "The dir [\e[1m\e[1m${2}\e[0m] already exists."
+            print_msg "WARN_NEWLINE" "What would you like to do ?"
+            print_msg "WARN_NEWLINE" "[1] git fetch && git rebase"
+            print_msg "WARN_NEWLINE" "[2] Remove existing dir and download/build the project ${1} again"
+            print_msg "WARN_NEWLINE" "[3] Skip, no need to remove or re-build the project"
+            print_msg "WARN_NEWLINE" ">"
+            read -rp "" yn
+            yn=$(echo ${yn} | ${AWK_BIN} '{print tolower($0)}')
+            case ${yn} in
+                1)
+                    rebase_git_tree=true
+                    break
+     	            ;;
+                2)
+                    exec_cmd "SUDO" "${RM_BIN} -rf ${2}"
+                    break
+                    ;;
+                3)
+                    return "${EEXIST}"
+                    ;;
+                *)
+                    print_msg "INFO_NEWLINE" "Please answer 1, 2 or 3"
+                    ;;
+ 	    esac
+        done
+    fi
+
+    if [ "${rebase_git_tree}" = "true" ]; then
+        exec_cmd "cd ${3}/${1}"
+        git_check_branch_version "${4}"
+        exec_cmd "${GIT_BIN} fetch"
+        exec_cmd "${GIT_BIN} rebase"
+    else
+        if [[ ! -d "${3}" ]]
+        then 
+            exec_cmd "${MKDIR_BIN} -p ${3}"
+        fi
+        exec_cmd "cd ${3}"
+
+        cmd="${GIT_BIN} clone ${5}"
+        if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+            exec_cmd "QUIET" "${cmd}"
+        else
+            exec_cmd "${cmd}"
+        fi
+        exec_cmd "cd ${1}"
+        git_check_branch_version "${4}"
+    fi
+
+    print_msg "INFO_NEWLINE" "Building ${1}..."
+    cmd="${MAKE_BIN} ${MAKE_NUMBER_OF_JOBS}"
+    if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+        exec_cmd "QUIET" "${cmd}"
+    else
+        exec_cmd "${cmd}"
+    fi
+
+    if [ "${6}" = "MAKE_AND_MAKE_INSTALL" ]; then
+        if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+            ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} install" &>> ${LOG_FILE}
+        else
+            ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} install"
+        fi
+    fi
+
+    return 0
+}
+
+function install_runtime() {
+    ###########################################################
+    # Description:                                            #
+    #   select the runtime                                    #
+    ###########################################################
+
+    if [ "${AUTO_CLEAN}" = "true" ]; then
+        clean_runtime_files
+    fi
+
+    print_msg "INFO_NEWLINE" "Installing runtime: [\e[1m\e[1m${RUNTIME_NAME}\e[0m]"
+    case "${RUNTIME_NAME}" in
+        "cri-o")
+            install_required_packages_runtime_crio
+
+            install_project \
+"${RUNTIME_NAME}" \
+"${RUNTIME_GOLANG_DIR}" \
+"${RUNTIME_GOLANG_SRC_GITHUB}" \
+"${RUNTIME_VERSION}" \
+"${RUNTIME_GITHUB_URL}" \
+"MAKE_AND_MAKE_INSTALL"
+
+            install_project \
+"${RUNTIME_CLIENT_NAME}" \
+"${RUNTIME_CLIENT_GOLANG_DIR}" \
+"${RUNTIME_CLIENT_GOLANG_SRC_GITHUB}" \
+"${RUNTIME_CLIENT_VERSION}" \
+"${RUNTIME_CLIENT_GITHUB_URL}" \
+"MAKE_AND_MAKE_INSTALL"
+
+            install_project \
+"${RUNTIME_MONITOR}" \
+"${RUNTIME_MONITOR_GOLANG_DIR}" \
+"${RUNTIME_MONITOR_GOLANG_SRC_GITHUB}" \
+"${RUNTIME_MONITOR_VERSION}" \
+"${RUNTIME_MONITOR_GITHUB_URL}" \
+"MAKE_AND_MAKE_INSTALL"
+
+            # Only enable/start the service if user do not want to skip
+            cmd_enable_srv="${SUDO_BIN} ${SYSTEMCTL_BIN} enable ${RUNTIME_NAME}"
+            cmd_start_srv="${SUDO_BIN} ${SYSTEMCTL_BIN} start ${RUNTIME_NAME}"
+            print_msg "INFO_NEWLINE" "Enabling and Starting the [\e[1m\e[1m${RUNTIME_NAME}\e[0m] service..."
+            if [ ! $? = "${EEXIST}" ]; then
+                if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+                    ${cmd_enable_srv} &> /dev/null
+                    ${cmd_start_srv} &> /dev/null
+                else
+                    ${cmd_enable_srv}
+                    ${cmd_start_srv}
+                fi
+            fi
+            print_msg "INFO_NEWLINE" "Runtime endpoint: ${RUNTIME_ENDPOINT}"
+            ;;
+        *)
+            print_msg "FAIL" "Unknown runtime"
+            exit 1
+            ;;
+    esac
+       
+}
+
+function install_container_network_plugin() {
+    ###########################################################
+    # Description:                                            #
+    # Install Container Networking plugins                    #
+    ###########################################################
+    print_msg "BLANK-LINE"
+
+    if [ "${AUTO_CLEAN}" = "true" ]; then
+        exec_cmd "SUDO" "${RM_BIN} -rf ${CONTAINER_NETWORK_CNI_PATH}"
+        exec_cmd "${RM_BIN} -rf ${CONTAINER_NETWORK_GOLANG_DIR}"
+    fi
+    print_msg "INFO_NEWLINE" "Installing Container Network plugin ${CONTAINER_NETWORK_TAG}..."
+    exec_cmd "${MKDIR_BIN} -p ${CONTAINER_NETWORK_GOLANG_DIR}"
+    exec_cmd "cd ${CONTAINER_NETWORK_GOLANG_DIR}"
+
+    cmd="${GIT_BIN} clone ${CONTAINER_NETWORK_GITHUB_URL}"
+    if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+        exec_cmd "QUIET" "${cmd}"
+    else
+        exec_cmd "${cmd}"
+    fi
+    exec_cmd "cd ${CONTAINER_NETWORK_REPO_PLUGIN_DIR}"
+
+    print_msg "INFO_NEWLINE" "Building Container Network plugin..."
+    cmd="${GIT_BIN} checkout ${CONTAINER_NETWORK_TAG}"
+    if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+       exec_cmd "QUIET" "${cmd}"
+       exec_cmd "QUIET" "./build_linux.sh"
+    else
+        exec_cmd "${cmd}"
+        exec_cmd "./build_linux.sh"
+    fi
+    exec_cmd "SUDO" "${MKDIR_BIN} -p ${CONTAINER_NETWORK_CNI_PATH_BIN}"
+    exec_cmd "SUDO" "${CP_BIN} bin/* ${CONTAINER_NETWORK_CNI_PATH_BIN}"
+}
+
+function install_required_packages_runtime_crio() {
+    ###########################################################################
+    # Description:                                                            #
+    #   Install required packages for each distro                             #
+    ###########################################################################
+
+    print_msg "DEBUG" "Installing requirements for [\e[1m\e[1m${RUNTIME_NAME}\e[0m]"
+
+    case "${DISTRO_NAME}" in
+        fedora)
+            if [[ ${DISTRO_VERSION_ID} -gt 30 ]]; then
+                packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS_LATEST}"
+            else
+                packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS}"
+            fi
+            ;;
+        centos | rhel)
+            if [[ ${DISTRO_VERSION_ID} -gt 7 ]]; then
+                packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS_LATEST}"
+            else 
+                packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS}"
+            fi
+            ;;
+        ubuntu)
+            add_extra_repository
+            packages="${CRIO_PACKAGES_UBUNTU}"
+            ;;
+        debian)
+            packages="${CRIO_PACKAGES_DEBIAN}"
+            ;;
+        opensuse*)
+            packages="${CRIO_PACKAGES_OPENSUSE}"
+            ;;
+    esac
+
+    # Installing packages
+    if [[ ! -d ${MD2MAN_GOLANG_DIR} ]]; then
+        print_msg "DEBUG" "Downloading ${MD2MAN_GITHUB_URL}..."
+        exec_cmd "${GOLANG_BIN} get ${MD2MAN_GITHUB_URL}"
+    else
+        print_msg "DEBUG" "Detected ${MD2MAN_NAME}... Skiping: ${GOLANG_BIN} get ${MD2MAN_GITHUB_URL}"
+    fi
+
+    exec_cmd "SUDO" "${DISTRO_CMD_TOOL} install ${packages} ${AUTO_INSTALL_PACKAGES}"
+    
+    # Optional packages
+    ${DISTRO_CMD_CHECK_PKG_EXISTS} ${RUNTIME_OPTIONAL_PACKAGES} &> /dev/null
+    if [ $? -ne 0 ]; then
+        print_msg "BLANK-LINE"
+        print_msg "INFO_NEWLINE" "Optional packages available to install for [\e[1m\e[1m${RUNTIME_NAME}\e[0m]:"
+        question_with_answer_yes_no "Package(s): [\e[1m\e[1m${RUNTIME_OPTIONAL_PACKAGES}\e[0m]"
+        case ${yn} in
+            [yes]*)
+                exec_cmd "SUDO" "${DISTRO_CMD_TOOL} install ${RUNTIME_OPTIONAL_PACKAGES} ${AUTO_INSTALL_PACKAGES}"
+		;;
+            [no]*) 
+                print_msg "DEBUG" "As requested, NOT installing ${RUNTIME_OPTIONAL_PACKAGES}.."
+                ;;
+	esac
+    else
+        if [ -n "${RUNTIME_OPTIONAL_PACKAGES}" ]; then
+            print_msg "BLANK-LINE"
+            print_msg "INFO_NEWLINE" "Optional packages for [\e[1m\e[1m${RUNTIME_NAME}\e[0m]: ${RUNTIME_OPTIONAL_PACKAGES} already installed..."
+        fi
+    fi
+
+    install_container_network_plugin
+
+}
+
+function install_container_orchestration {
+    ###########################################################
+    # Description:                                            #
+    #   select the container orchestration                    #
+    ###########################################################
+    print_msg "BLANK-LINE"
+    print_msg "INFO_NEWLINE" "Building Container Orchestration: [\e[1m\e[1m${CONTAINER_ORCHESTRATION_NAME}\e[0m]"
+
+    case "${CONTAINER_ORCHESTRATION_NAME}" in
+        "kubernetes")
+            install_project \
+"${CONTAINER_ORCHESTRATION_NAME}" \
+"${CONTAINER_ORCHESTRATION_GOLANG_DIR}" \
+"${CONTAINER_ORCHESTRATION_GOLANG_SRC_GITHUB}" \
+"${CONTAINER_ORCHESTRATION_VERSION}" \
+"${CONTAINER_ORCHESTRATION_GITHUB_URL}" \
+"MAKE_ONLY"
+            ;;
+        *)
+            print_msg "FAIL" "Unknown container orchestration"
+            exit 1
+            ;;
+    esac
+       
+}
+
+function kubectl_retry() {
+    ###########################################################
+    # Description:                                            #
+    #   Execute kubectl cmd and retry 5 times by default      #
+    #                                                         #
+    # Args:                                                   #
+    #   "{$1}" - command                                      #
+    #   "{$2}" - (tries) default 5                            #
+    ###########################################################
+    if [ $# -gt 1 ]; then
+        cmd="${KUBECTL_CMD} ${1}"
+        tries="${2}"
+    else
+        cmd="${KUBECTL_CMD} ${1}"
+        tries="${KUBECTL_ATTEMPTS}"
+    fi
+
+
+    while true; do
+        if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+            ${cmd} &> /dev/null
+        else
+            ${cmd} 2> /dev/null
+        fi
+
+        if [ $? -eq 0 ]; then
+            break
+        fi
+
+        tries=$((tries-1))
+
+        if [[ ${tries} -le 0 ]]; then
+            print_msg "FAIL" "kubectl [${cmd}] exceed the maximum number of attempts [${KUBECTL_ATTEMPTS}]! Exiting..."
+            cleanup
+            exit 1
+      fi
+
+      sec="${KUBECTL_WAIT_SEC_FOR_NEXT_CMD}"
+      print_msg "INFO_NEWLINE" "kubectl failed, cluster might not be ready! A next attept will happen in ${sec}..."
+      ${SLEEP_BIN} ${sec}
+
+  done
+}
+
+function load_local_up_cluster() {
+    ###########################################################
+    # Description:                                            #
+    #   Function for loading local up cluster                 #
+    ###########################################################
+    print_msg "INFO_NEWLINE" "Installing etcd..."
+    if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+        exec_cmd "QUIET" "${CONTAINER_ORCHESTRATION_GOLANG_DIR}/hack/install-etcd.sh"
+    else
+        exec_cmd "${CONTAINER_ORCHESTRATION_GOLANG_DIR}/hack/install-etcd.sh"
+    fi
+
+    print_msg "BLANK-LINE"
+    print_msg "INFO_NEWLINE" "Building local cluster..."
+    print_msg "BLANK-LINE"
+
+    print_msg "DEBUG" "IP: [\e[1m\e[1m${IP}\e[0m]"
+    print_msg "DEBUG" "KUBECONFIG: [\e[1m\e[1m${KUBECONFIG}\e[0m]"
+    print_msg "DEBUG" "KUBERNETES_PROVIDER: [\e[1m\e[1m${KUBERNETES_PROVIDER}\e[0m]"
+    print_msg "DEBUG" "PATH: [\e[1m\e[1m${PATH}\e[0m]"
+    print_msg "DEBUG" "FEATURE_GATES: [\e[1m\e[1m${FEATURE_GATES}}\e[0m]"
+    print_msg "DEBUG" "CONTAINER_RUNTIME: [\e[1m\e[1m${CONTAINER_RUNTIME}\e[0m]"
+    print_msg "DEBUG" "CGROUP_DRIVER: [\e[1m\e[1m${CGROUP_DRIVER}\e[0m]"
+    print_msg "DEBUG" "CONTAINER_RUNTIME_ENDPOINT: [\e[1m\e[1m${CONTAINER_RUNTIME_ENDPOINT}\e[0m]"
+    print_msg "DEBUG" "ALLOW_SECURITY_CONTEXT: [\e[1m\e[1m${ALLOW_SECURITY_CONTEXT}\e[0m]"
+    print_msg "DEBUG" "ALLOW_PRIVILEGED: [\e[1m\e[1m${ALLOW_PRIVILEGED}\e[0m]"
+    print_msg "DEBUG" "DNS_SERVER_IP: [\e[1m\e[1m${DNS_SERVER_IP}\e[0m]"
+    print_msg "DEBUG" "API_HOST: [\e[1m\e[1m${API_HOST}\e[0m]"
+    print_msg "DEBUG" "API_HOST_IP: [\e[1m\e[1m${API_HOST_IP}\e[0m]"
+    print_msg "DEBUG" "KUBE_ENABLE_CLUSTER_DNS: [\e[1m\e[1m${KUBE_ENABLE_CLUSTER_DNS}\e[0m]"
+    print_msg "DEBUG" "ENABLE_HOSTPATH_PROVISIONER: [\e[1m\e[1m${ENABLE_HOSTPATH_PROVISIONER}\e[0m]"
+    print_msg "DEBUG" "KUBE_ENABLE_CLUSTER_DASHBOARD: [\e[1m\e[1m${KUBE_ENABLE_CLUSTER_DASHBOARD}\e[0m]"
+    
+
+
+    exec_cmd "cd ${CONTAINER_ORCHESTRATION_GOLANG_DIR}/hack/"
+    cmd="./local-up-cluster.sh"
+    if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
+        exec_cmd "QUIET" "${cmd}"
+    else
+        exec_cmd "BACKGROUND" "${cmd}"
+        print_msg "INFO_NEWLINE" "Checking cluster status and health..."
+        kubectl_retry "get cs -o yaml"
+
+    fi
+    print_msg "BLANK-LINE"
+}
+
+function start() {
+    ###########################################################
+    # Description:                                            #
+    #   Main function                                         #
+    ###########################################################
+    detect_system
+    welcome_msg
+
+    if [ "${RUNTIME_VERSION}" != "${CONTAINER_ORCHESTRATION_VERSION}" ] && [ "${FORCE_INSTALL_DIFFER_VERSIONS_RUNTIME_CONTAINER_ORCHESTRATION}" != "true" ]; then
+        question_with_answer_yes_no "The versions differ from ${RUNTIME_NAME} [${RUNTIME_VERSION}] and \
+${CONTAINER_ORCHESTRATION_NAME} [${CONTAINER_ORCHESTRATION_VERSION}]. The build the environment might fail!" "WARN"
+        case ${yn} in
+            [yes]*)
+                print_msg "INFO" "Continuing..."
+                ;;
+            [no]*) 
+                print_msg "FAIL" "Exiting..."
+                exit 1
+                ;;
+        esac
+    fi
+
+    update_system
+
+    # REMOVE-ME: currently runtimes need this step
+    detect_cgroupv1
+
+    install_golang
+
+    install_runtime
+    install_container_orchestration
+
+    print_msg "BLANK-LINE"
+    print_msg "OK" "Golang: version: ${GOLANG_VERSION}"
+    print_msg "OK" "Runtime: ${RUNTIME_NAME} Version: ${RUNTIME_VERSION}"
+    print_msg "OK" "Container Orchestration: ${CONTAINER_ORCHESTRATION_NAME} Version: ${CONTAINER_ORCHESTRATION_VERSION}"
+
+    load_local_up_cluster
+    if [ -n "${KUBECTL_SCRIPT}" ]; then
+        kubectl_exec
+    fi
+
+    if [ "${RUN_SERVICE_ONCE}" = "true" ]; then
+        print_msg "OK" "As requested, shutdown environment..."
+
+        if [ -n "${OUTPUT_FILENAME}" ]; then
+            print_msg "OK" "Output generated: ${OUTPUT_FILENAME}"
+        fi
+        cleanup
+        exit 0
+    fi
+
+    print_msg "OK" "Cluster ready to go!"
+    print_msg "OK" "Environment deployed!"
+    print_msg "BLANK-LINE"
+
+    print_msg "OK" "For cleaning the environment and remove all files generated by this script, use:"
+    print_msg "OK" "${0} --uninstall"
+    print_msg "BLANK-LINE"
+
+    print_msg "OK" "Example of usage:"
+    print_msg "OK" "\t source ${GO_ENV_VARS}"
+    print_msg "OK" "\t kubectl get cs"
+    print_msg "OK" "\t kubectl get pod -A"
+
+    if [ -n "${OUTPUT_FILENAME}" ]; then
+        print_msg "OK" "Output generated: ${OUTPUT_FILENAME}"
+    fi
+    print_msg "BLANK-LINE"
+    print_msg "OK" "Enjoy!"
+
+}
+
+function attach_environment_info_to_file() {
+    ###########################################################
+    # Description:                                            #
+    #   Attach environment information into a filename        #
+    #                                                         #
+    # Args: ${1} - file to attach the information             #
+    ###########################################################
+
+    FILENAME="${1}"
+    echo "####################${CONFIG_HEADER} #################" &>> "${FILENAME}"
+    echo "Distro: ${DISTRO_NAME}" &>> "${FILENAME}"
+    echo "Distro version: ${DISTRO_VERSION_ID}" &>> "${FILENAME}"
+    echo -e "Golang version: ${GOLANG_VERSION}\n"  &>> "${FILENAME}"
+
+    echo "Container Orchestration: ${CONTAINER_ORCHESTRATION_NAME}" &>> "${FILENAME}"
+    echo -e "Container Orchestration Version: ${CONTAINER_ORCHESTRATION_VERSION}\n" &>> "${FILENAME}"
+
+    echo "Container Network: ${CONTAINER_NETWORK_REPO_NAME}" &>> "${FILENAME}"
+    echo -e "Container Network Tag: ${CONTAINER_NETWORK_TAG}\n" &>> "${FILENAME}"
+
+    echo "Runtime name: ${RUNTIME_NAME}" &>> "${FILENAME}"
+    echo "Runtime version: ${RUNTIME_VERSION}" &>> "${FILENAME}"
+    echo "Runtime client: ${RUNTIME_CLIENT_NAME}" &>> "${FILENAME}"
+    echo "Runtime client version: ${RUNTIME_CLIENT_VERSION}" &>> "${FILENAME}"
+    echo "Runtime monitor: ${RUNTIME_MONITOR}" &>> "${FILENAME}"
+    echo "Runtime monitor version: ${RUNTIME_MONITOR_VERSION}" &>> "${FILENAME}"
+    echo -e "####################${CONFIG_HEADER_END} #################\n\n" &>> "${FILENAME}"
+
+}
+function kubectl_exec() {
+    ###########################################################
+    # Description:                                            #
+    #   Execute kubectl command or script                     #
+    ###########################################################
+    print_msg "INFO_NEWLINE" "Executing kubectl command/script..."
+    source ${GO_ENV_VARS}
+
+    cmd=$(${KUBECTL_SCRIPT})
+
+    # Check if output file was specificed
+    if [ -n "${OUTPUT_FILENAME}" ]; then
+         print_msg "DEBUG" "Executing the command [${KUBECTL_SCRIPT}] sending output to ${OUTPUT_FILENAME}"
+         attach_environment_info_to_file "${OUTPUT_FILENAME}"
+         #$("${KUBECTL_SCRIPT}" &>> ${OUTPUT_FILENAME})
+         echo "${cmd}" &>> ${OUTPUT_FILENAME}
+    fi
+
+    # Checking if the command failed
+    if [ $? -ne 0 ]; then
+        print_msg "FAIL" "Error to execute kubectl command, check logs!"
+        print_msg "DEBUG" "{$1}"
+        exit 1
+    fi
+}
+
+function usage() {
+    echo "Usage: ${0} [OPTION]... "
+    echo
+    echo "${0} - A script for helping deploy a local ${CONTAINER_ORCHESTRATION_NAME} cluster"
+    echo
+    echo " -a, --autoinstall                      Autoinstall mode, don't ask questions during deploy."
+    echo "                                        See profile file for additional info and options regarding autoinstall"
+    echo
+    echo " -p, --profile=FILENAME                 A profile to be loaded and used during execution"
+    echo " -c, --command=[FILENAME]               Execute a command(s) in the cluster (requires -o)"
+    echo " -h, --help                             Display this message and exit"
+    echo " -o, --output                           Output (requires -c)"
+    echo " -r, --run-service-once                 Run the command and stop ${CONTAINER_ORCHESTRATION_NAME} service. Cleanup env after command execution. (requires -c and -o)"
+    echo " -q, --quiet                            Quiet mode. Do not print any message into stdout. Messages can be read from log file."
+    echo " -u, --uninstall                        Uninstall all files/dirs generated from this script"
+    echo " -s, --container-orchestration-version  Specify the container ORCHESTRATION version"
+    echo " -k, --container-runtime-version        Specify the container RUNTIME version"
+    echo
+    echo "Examples:"
+    echo
+    echo "#1) - Execute several kubectl commands via shell script and terminate the ${CONTAINER_ORCHESTRATION_NAME} service after execution:"
+    echo
+    echo -e "\t\$ ${0} \\"
+    echo -e "\t      --autoinstall \\"
+    echo -e "\t      --command /home/myuser/projects/kube-local/examples/script \\"
+    echo -e "\t      --run-service-once \\"
+    echo -e "\t      --output /tmp/output.kube-local.log"
+    echo
+    echo "#2) - Execute kubectl get services command and keep the ${CONTAINER_ORCHESTRATION_NAME} service alive:"
+    echo
+    echo -e "\t\$ ${0} \\"
+    echo -e "\t      -c \"kubectl get services\" \\"
+    echo -e "\t      -o /tmp/output-my-tests"
+    echo
+
+}
+
+
+function load_profile() {
+    ###########################################################
+    # Description:                                            #
+    #   Function for loading profile files                    #
+    ###########################################################
+
+    filename="${1}"
+    if [ -f "${filename}" ]; then
+        source "${filename}"
+    else
+        # default profile name
+        filename="${PROFILE_NAME}"
+        if [ -f "${filename}" ]; then
+            source "${filename}"
+        else
+            print_msg "FAIL" "Aborting... Cannot load profile ${filename}!"
+            exit 1
+        fi
+    fi   
+    PROFILE_NAME="${filename}"
+    print_msg "DEBUG" "Profile loaded: ${PROFILE_NAME}"
+    print_msg "DEBUG" "Log file: ${LOG_FILE}"
+}
+
+######################
+# Let's get started  #
+######################
+
+# No args, no need to check getopt
+if [[ -z ${@} ]]; then
+   load_profile
+   start
+else
+    PROFILE=false
+    COMMAND_FROM_USER=""
+    OUTPUT=""
+    QUIET_MODE_ON=false
+    RUN_SERVICE_ONCE_USER_REQUEST=false
+
+    options=$(getopt \
+        --longoptions "autoinstall, quiet, run-service-once, uninstall, command:, profile:, output:, container-runtime-version:, container-orchestration-version:" \
+        --name "$(basename "$0")" \
+        --options "aqk:s:urc:p:ho:" \
+        -- "$@"
+    )
+
+    if [ "$?" -ne 0 ]; then
+        exit 1
+    fi
+    eval set -- ${options}
+
+    while true; do
+        case "${1}" in
+            -a|--autoinstall)
+                AUTOINSTALL_MODE_ON=true
+                shift
+                ;;
+            -r|--run-service-once)
+                RUN_SERVICE_ONCE_USER_REQUEST=true
+                shift
+                ;;
+            -q|--quiet)
+                QUIET_MODE_ON=true
+		shift
+                ;;
+            -p|--profile)
+                shift
+                load_profile "${1}"
+                PROFILE=true
+                shift
+                ;;
+            -h)
+                load_profile
+                usage
+                exit 0
+                ;;
+            -c|--command)
+                shift
+                COMMAND_FROM_USER="${1}"
+                shift
+                ;;
+            -o|--output)
+                shift
+                OUTPUT="${1}"
+                shift
+                ;;
+            -s|--container-orchestration-version)
+                shift
+                CONTAINER_ORCH_VERSION_USER_REQUEST="${1}"
+                shift
+                ;;
+            -k|--container-runtime-version)
+                shift
+                CONTAINER_RUNTIME_VERSION_USER_REQUEST="${1}"
+                shift
+                ;;
+            -u|--uninstall)
+                shift
+                load_profile
+                detect_system
+                cleanup
+                exit 0
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    # After getopt - we can start
+    if [ "${PROFILE}" = "false" ]; then
+        load_profile
+    fi
+
+    # User requested from command line to execute in autoinstall mode
+    # Required to overwrite option from profile file.
+    # Keep - as first validation - for reloading the profile
+    if [ "${AUTOINSTALL_MODE_ON}" = "true" ]; then
+        ${SED_BIN} -i 's/AUTOINSTALL=false/AUTOINSTALL=true/g' "${PROFILE_NAME}"
+        load_profile "${PROFILE_NAME}"
+    fi
+
+    # User requested from command line to execute a service just once
+    # Required to overwrite option from profile file.
+    if [ "${RUN_SERVICE_ONCE_USER_REQUEST}" = "true" ]; then
+        RUN_SERVICE_ONCE=true
+    fi
+
+    # User requested from command line to execute a service just once
+    # Required to overwrite option from profile file.
+    if [ -n "${CONTAINER_ORCH_VERSION_USER_REQUEST}" ]; then
+        CONTAINER_ORCHESTRATION_VERSION="${CONTAINER_ORCH_VERSION_USER_REQUEST}"
+    fi
+
+    # User requested from command line to execute a service just once
+    # Required to overwrite option from profile file.
+    if [ -n "${CONTAINER_RUNTIME_VERSION_USER_REQUEST}" ]; then
+        RUNTIME_VERSION="${CONTAINER_RUNTIME_VERSION_USER_REQUEST}"
+    fi
+
+    if [ -n "${OUTPUT}" ]; then
+        if [ -z "${COMMAND_FROM_USER}" ]; then
+            print_msg "FAIL" "The output option requires a command to be specified!"
+            exit 1
+        fi
+        OUTPUT_FILENAME="${OUTPUT}"
+    fi
+
+    # User requested from command line to execute a command
+    # Required to overwrite option from profile file.
+    if [ -n "${COMMAND_FROM_USER}" ]; then
+        if [ -z "${OUTPUT}" ]; then
+            print_msg "FAIL" "The command option requires a output file to be specified!"
+            exit 1
+        fi
+        KUBECTL_SCRIPT="${COMMAND_FROM_USER}"
+        # If kubectl command was used, let's replace with the full path
+        if [[ "${COMMAND_FROM_USER}" =~ "kubectl" ]]; then
+            # Get only the second part of command, exclude: kubectl str
+            KUBECTL_ARGS="${COMMAND_FROM_USER#* }"
+            KUBECTL_SCRIPT="${KUBECTL_CMD} ${KUBECTL_ARGS}"
+        fi
+    fi
+
+    # User requested from command line to execute in quiet mode
+    # Required to overwrite option from profile file.
+    if [ "${QUIET_MODE_ON}" = "true" ]; then
+        if [ "${AUTOINSTALL}" != "true" ]; then
+            print_msg "FAIL" "--quiet requires autoinstall mode!"
+            exit 1
+        fi
+        AUTO_INSTALL_QUIET_MODE=true
+    fi
+
+    print_msg "DEBUG" "Loaded profile: [\e[1m\e[1m${PROFILE_NAME}\e[0m]"
+    start
+fi
+
+exit 0
