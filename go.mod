@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.12.0
-	github.com/containers/conmon v2.0.10+incompatible
+	github.com/containers/conmon v2.0.11+incompatible
 	github.com/containers/image/v5 v5.2.0
 	github.com/containers/libpod v1.7.0
 	github.com/containers/ocicrypt v0.0.0-20191112201931-142388cb70de
