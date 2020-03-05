@@ -9,7 +9,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/pkg/rootless"
 	cs "github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/internal/storage"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -84,7 +84,7 @@ var _ = t.Describe("Image", func() {
 			imageService, err := storage.GetImageService(
 				context.Background(),
 				&types.SystemContext{
-					SystemRegistriesConfPath: "../../../test/registries.conf"},
+					SystemRegistriesConfPath: "../../test/registries.conf"},
 				storeMock, "", []string{}, []string{},
 			)
 
@@ -579,7 +579,7 @@ var _ = t.Describe("Image", func() {
 	t.Describe("PrepareImage", func() {
 		It("should succeed with testimage", func() {
 			// Given
-			const imageName = "tarball:../../../test/testdata/image.tar"
+			const imageName = "tarball:../../test/testdata/image.tar"
 
 			// When
 			res, err := sut.PrepareImage(&types.SystemContext{}, imageName)
@@ -631,7 +631,7 @@ var _ = t.Describe("Image", func() {
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
-				SignaturePolicyPath: "../../../test/policy.json",
+				SignaturePolicyPath: "../../test/policy.json",
 			}, imageName, &copy.Options{})
 
 			// Then
@@ -646,7 +646,7 @@ var _ = t.Describe("Image", func() {
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
-				SignaturePolicyPath: "../../../test/policy.json",
+				SignaturePolicyPath: "../../test/policy.json",
 			}, imageName, &copy.Options{})
 
 			// Then

@@ -3,7 +3,7 @@ package log_test
 import (
 	"fmt"
 
-	"github.com/cri-o/cri-o/internal/pkg/log"
+	"github.com/cri-o/cri-o/internal/log"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"

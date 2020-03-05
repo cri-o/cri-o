@@ -5,9 +5,9 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/pkg/log"
-	pkgstorage "github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/internal/log"
+	oci "github.com/cri-o/cri-o/internal/oci"
+	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"

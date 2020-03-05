@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/cri-o/cri-o/internal/pkg/criocli"
+	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/urfave/cli/v2"
 )

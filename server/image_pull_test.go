@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/containers/image/v5/types"
-	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

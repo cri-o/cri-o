@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/cri-o/cri-o/internal/pkg/findprocess"
+	"github.com/cri-o/cri-o/internal/findprocess"
 	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

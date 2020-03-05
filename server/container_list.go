@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/pkg/log"
+	"github.com/cri-o/cri-o/internal/log"
+	oci "github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"

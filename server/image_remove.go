@@ -3,8 +3,8 @@ package server
 import (
 	"fmt"
 
-	"github.com/cri-o/cri-o/internal/pkg/log"
-	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )

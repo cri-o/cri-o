@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
 	"github.com/golang/mock/gomock"
