@@ -180,7 +180,7 @@ $ sudo curl -v --unix-socket /var/run/crio/crio.sock http://localhost/info | jq
 {
   "storage_driver": "btrfs",
   "storage_root": "/var/lib/containers/storage",
-  "cgroup_driver": "cgroupfs",
+  "cgroup_driver": "systemd",
   "default_id_mappings": { ... }
 }
 ```
@@ -199,7 +199,7 @@ line tool. It supports all API endpoints via the dedicated subcommands `config`,
 
 ```
 $ sudo go run cmd/crio-status/main.go info
-cgroup driver: cgroupfs
+cgroup driver: systemd
 storage driver: btrfs
 storage root: /var/lib/containers/storage
 default GID mappings (format <container>:<host>:<size>):

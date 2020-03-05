@@ -17,6 +17,9 @@ cd "$(dirname "$0")"
 tar xfvz "$ARCHIVE"
 pushd "$BUNDLE"
 
+# Install and prepare config
+make install
+
 # Start CRI-O
 systemctl daemon-reload
 systemctl start crio
