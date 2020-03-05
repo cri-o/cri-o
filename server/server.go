@@ -260,7 +260,6 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// crio.service restart!!!
 	s.cleanupSandboxesOnShutdown(ctx)
 
-	s.ShutdownConmonmon()
 	return s.ContainerServer.Shutdown()
 }
 
