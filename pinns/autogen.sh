@@ -6,6 +6,8 @@ fi
 
 git submodule update --init --recursive
 
+crun/autogen.sh && crun/configure && make -C crun
+
 exec autoreconf -fis
 
 libtoolize --copy --ltdl --force

@@ -6,6 +6,8 @@
   dnf:
     state: present
     name:
+      - autoconf
+      - automake
       - atomic-registries
       - container-selinux
       - curl
@@ -23,9 +25,11 @@
       - iptables
       - krb5-workstation
       - libassuan-devel
+      - libcap-devel
       - libffi-devel
       - libgpg-error-devel
       - libguestfs-tools
+      - libtool
       - libseccomp-devel
       - libselinux-python
       - libsemanage-python
@@ -44,6 +48,7 @@
       - openssl-devel
       - pkgconfig
       - python
+      - python3-libmount
       - python2-crypto
       - python-devel
       - python-rhsm-certificates
@@ -57,6 +62,7 @@
       - socat
       - tar
       - wget
+      - yajl-devel
 
 - name: Add Fedora <=29 specific packages
   package:
