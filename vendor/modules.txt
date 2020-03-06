@@ -77,7 +77,7 @@ github.com/containerd/release-tool
 github.com/containerd/ttrpc
 # github.com/containerd/typeurl v0.0.0-20190228175220-2a93cfde8c20
 github.com/containerd/typeurl
-# github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
+# github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 ## explicit
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke

@@ -529,9 +529,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			return nil, err
 		}
-		if result != nil {
-			g.AddAnnotation(annotations.CNIResult, result.String())
-		}
 		defer func() {
 			if err != nil {
 				if err2 := s.networkStop(ctx, sb); err2 != nil {
@@ -539,6 +536,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				}
 			}
 		}()
+		if result != nil {
+			var data []byte
+			data, err = json.Marshal(result)
+			if err != nil {
+				return nil, err
+			}
+			g.AddAnnotation(annotations.CNIResult, string(data))
+		}
 	}
 
 	for idx, ip := range ips {

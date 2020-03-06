@@ -9,7 +9,7 @@ require (
 	github.com/containerd/containerd v1.3.3
 	github.com/containerd/release-tool v0.0.0-20200218161915-2230b10b5f0b
 	github.com/containerd/ttrpc v0.0.0-20200121165050-0be804eadb15
-	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
+	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.14.0
 	github.com/containers/conmon v2.0.10+incompatible
