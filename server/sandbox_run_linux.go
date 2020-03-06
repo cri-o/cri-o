@@ -677,7 +677,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		log.Errorf(ctx, "%v", err)
 	}
 
-	log.Infof(ctx, "ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
+	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+		return nil, ctx.Err()
+	}
+
+	log.Infof(ctx, "ran pod sandbox with infra container: %s", container.Description())
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
 	return resp, nil
 }
