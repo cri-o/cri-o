@@ -35,6 +35,7 @@ yum install -y \
   libselinux-devel \
   pkgconfig \
   make \
+  gcc \
   runc
 ```
 
