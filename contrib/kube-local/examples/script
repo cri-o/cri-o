@@ -1,0 +1,13 @@
+#!/bin/bash
+
+function execute_cmd() {
+
+    cmd=$(${1})
+    echo "###### ${1} output #######"
+    echo "${cmd}"
+    echo -e "###### ${1} output #######\n\n"
+
+}
+
+execute_cmd "kubectl get cs"
+execute_cmd "kubectl get pods -A"
