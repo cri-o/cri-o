@@ -63,6 +63,7 @@ Obsoletes: ocid <= 0.3
 Provides: ocid = %{version}-%{release}
 Provides: %{service_name} = %{version}-%{release}
 Requires: containernetworking-plugins >= 0.7.2-1
+Requires: conmon
 
 %description
 %{summary}
@@ -92,12 +93,6 @@ export GOPATH=$(pwd)/_output:$(pwd)
 export BUILDTAGS="selinux seccomp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_ostree_stub"
 # build crio
 %gobuild -o bin/%{service_name} %{import_path}/cmd/%{service_name}
-
-# build conmon
-%gobuild -o bin/crio-config %{import_path}/cmd/crio-config
-pushd conmon && ../bin/crio-config
-%{__make} all
-popd
 
 # build pause and docs
 %{__make} GO_MD2MAN=%{_bindir}/go-md2man bin/pause docs
@@ -167,7 +162,6 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/Godeps/_workspace:%{gopath}
 %config(noreplace) %{_sysconfdir}/cni/net.d/200-loopback.conf
 %config(noreplace) %{_sysconfdir}/crictl.yaml
 %dir %{_libexecdir}/%{service_name}
-%{_libexecdir}/%{service_name}/conmon
 %{_libexecdir}/%{service_name}/pause
 %{_unitdir}/%{service_name}.service
 %{_unitdir}/%{name}.service

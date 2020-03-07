@@ -14,8 +14,8 @@ CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/bin/crio}
 # Path of the crictl binary.
 CRICTL_PATH=$(command -v crictl || true)
 CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
-# Path of the conmon binary.
-CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/bin/conmon}
+# Path of the conmon binary set as a variable to allow overwriting.
+CONMON_BINARY=${CONMON_BINARY:-$(which conmon)}
 # Path of the pause binary.
 PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/cri-o/bin/pause}
 # Path of the default seccomp profile.
@@ -116,8 +116,6 @@ CRIO_CNI_PLUGIN=${CRIO_CNI_PLUGIN:-/opt/cni/bin/}
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
 
-cp "$CONMON_BINARY" "$TESTDIR/conmon"
-
 PATH=$PATH:$TESTDIR
 
 DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID,SETPCAP,NET_BIND_SERVICE,SYS_CHROOT,KILL"
@@ -172,8 +170,6 @@ if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
         exit 1
     fi
 fi
-# Run crio using the binary specified by $CRIO_BINARY.
-
 # This must ONLY be run on engines created with `start_crio`.
 function crio() {
 	"$CRIO_BINARY" --listen "$CRIO_SOCKET" "$@"
