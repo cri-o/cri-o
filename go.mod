@@ -58,6 +58,7 @@ require (
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0
 	k8s.io/cri-api v0.0.0
+	k8s.io/klog v1.0.0
 	k8s.io/kubernetes v1.13.0
 	k8s.io/utils v0.0.0-20190920012459-5008bf6f8cd6
 )
