@@ -14,7 +14,7 @@ function teardown() {
 function kill_conmon() {
 	ctr_id="$1"
 
-	conmon_pid=$(ps -eo "%p %a" | grep conmon | grep "$ctr_id" | cut -d' ' -f1)
+	conmon_pid=$(pgrep -f "conmon .* -c $ctr_id ")
 	if [ -z "$conmon_pid" ]; then
 		skip "conmon pid found empty; probably kata containers"
 	fi
