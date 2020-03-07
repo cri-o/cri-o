@@ -376,8 +376,7 @@ jobs:
             - *gocache
 
   lint:
-    # TODO: Use the `container` if golangci-lint supports go 1.14
-    executor: container-legacy
+    executor: container
     steps:
       - checkout
       - restore_cache:
