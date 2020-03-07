@@ -129,6 +129,12 @@ run() {
 }
 
 install_packages() {
+    # prepare Google Cloud SDK
+    run bash -c 'echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" |
+        tee -a /etc/apt/sources.list.d/google-cloud-sdk.list'
+    run bash -c 'curl https://packages.cloud.google.com/apt/doc/apt-key.gpg |
+        apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -'
+
     run apt-get update
     run apt-get install -y \
         apparmor \
@@ -143,6 +149,7 @@ install_packages() {
         e2fslibs-dev \
         gawk \
         gettext \
+        google-cloud-sdk \
         iptables \
         jq \
         libaio-dev \

@@ -136,7 +136,15 @@ sudo apt-get install cri-o-[REQUIRED VERSION]
 
 Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
 guide](tutorials/setup.md). We also provide a way in building [static binaries
-of `CRI-O`](tutorials/setup.md#static-builds) via nix.
+of `CRI-O`](tutorials/setup.md#static-builds) via nix. Those binaries are
+available for every successfully built commit on our [Google Cloud Storage
+Bucket][bucket]. This means that the latest master commit can be downloaded via:
+
+[bucket]: https://console.cloud.google.com/storage/browser/k8s-conform-cri-o/artifacts
+
+```shell
+> curl -f https://storage.googleapis.com/k8s-conform-cri-o/artifacts/crio-$(git ls-remote https://github.com/cri-o/cri-o master | cut -c1-9).tar.gz -o crio.tar.gz
+```
 
 ### Running CRI-O
 
