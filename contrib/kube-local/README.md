@@ -56,17 +56,17 @@ Installing a devel environment manually.
   - [Ubuntu](https://www.ubuntu.com)  (needs help/testers)
 
 ## Supported runtime
-  - [CRI-O](https://github.com/cri-o/cri-o) - Open Container Initiative-based implementation of Kubernetes Container Runtime Interface 
+  - [CRI-O](https://github.com/cri-o/cri-o) - Open Container Initiative-based implementation of Kubernetes Container Runtime Interface
 
 ## Supported container orchestration
   - [Kubernetes](https://github.com/kubernetes/kubernetes) - Production-Grade Container Scheduling and Management
 
 ## How it works?
    kube-local is based on **bash** as most of the code in kubernetes/hack. There is a configuration file called **kube-local.profile** which specify all the configurations.
-   
-```sh   
+
+```sh
 $ ./kube-local -h
-Usage: ./kube-local [OPTION]... 
+Usage: ./kube-local [OPTION]...
 
 ./kube-local - A script for helping deploy a local  cluster
 
@@ -98,7 +98,7 @@ Run **Kubernetes 1.13** and **CRI-O 1.13** executing a shell script with kubectl
             --container-runtime-version "1.13"
 ```
 
-See the output log generated: 
+See the output log generated:
 ```
         $ cat /tmp/output.kube-local.*.log
         ##################### kube-local section begins #################
@@ -135,8 +135,7 @@ See the output log generated:
 ```
 
 ### Example 2
-Execute several kubectl commands via shell script and terminate the service after execution.   
-Kubernetes version: master and CRI-O version: master
+Execute several kubectl commands via shell script and terminate the service after execution.
 ```
 	$ ./kube-local \
               --autoinstall \
@@ -145,8 +144,7 @@ Kubernetes version: master and CRI-O version: master
               --output /tmp/output.kube-local."$(date +"%Y_%m_%d_%I_%M_%p")".log
 
 ```
-
-See the output log generated: 
+See the output log generated:
 ```
         $ cat /tmp/output.kube-local.*.log
           ##################### kube-local section begins #################
@@ -184,16 +182,14 @@ See the output log generated:
           ###### kubectl get pods -A output #######
 ```
 ### Example 3
-Execute kubectl get services command and keep the service alive.  
-Kubernetes version: master and CRI-O version: master
+Execute kubectl get services command and keep the service alive.
 ```
 	$ ./kube-local \
 	      -c "kubectl get services" \
 	      -o /tmp/output.kube-local."$(date +"%Y_%m_%d_%I_%M_%p")".log
-
 ```
 
-See the output log generated: 
+See the output log generated:
 ```
         $ cat /tmp/output.kube-local.*.log
          ##################### kube-local section begins #################
@@ -220,10 +216,10 @@ See the output log generated:
 ```
 
 Service still alive, let's trigger others commands..
-```  
+```
          $ source /etc/profile
          $ kubectl get cs
-```  
+```
 ## Running
 
 ### Manual run
@@ -290,14 +286,14 @@ kube-local.profile is a configuration file, all options described below.
 | Name | Description |
 | ------ | ------ |
 | DISTRO_NAME | The OS Distribution name. **Automatically filled in the script** via /etc/os-release
-| DISTRO_CMD_TOOL | The OS Distribuition command name. **Automatically filled in the script**. Example dnf, apt-get, etc. 
+| DISTRO_CMD_TOOL | The OS Distribuition command name. **Automatically filled in the script**. Example dnf, apt-get, etc.
 | DISTRO_PKG_MANAGER | The OS Distribution package manager. **Automatically filled in the script**. Example: dpkg, rpm, etc.
 | DISTRO_VERSION_ID | The OS Distribution version. **Automatically filled in the script** via /etc/os-release. Example: 8 (from RHEL 8)
 
 ### Golang
 | Name | Description |
 | ------ | ------ |
-| GOLANG_ARCH |  Golang arch. Default: **linux-amd64** 
+| GOLANG_ARCH |  Golang arch. Default: **linux-amd64**
 | GOLANG_VERSION |  Golang version. Example: **1.13.7**
 | GOLANG_TAG |  Speficy a Golang tag name
 | GOLANG_TAR_FILENAME | Golang tar file name
@@ -318,13 +314,13 @@ kube-local.profile is a configuration file, all options described below.
 ### Runtime
 | Name | Description |
 | ------ | ------ |
-| RUNTIME_NAME| Runtime name. Default: **cri-o** 
-| RUNTIME_GITHUB_URL | Runtime github URL 
-| RUNTIME_OPTIONAL_PACKAGES | Optional packages for the runtime. This option is **filled automatically inside the script** as depends of distro detection. 
+| RUNTIME_NAME| Runtime name. Default: **cri-o**
+| RUNTIME_GITHUB_URL | Runtime github URL
+| RUNTIME_OPTIONAL_PACKAGES | Optional packages for the runtime. This option is **filled automatically inside the script** as depends of distro detection.
 | RUNTIME_VERSION | Runtime version. Example: master, release-1.13, etc
-| RUNTIME_TAG | Runtime specific tag 
-| RUNTIME_GOLANG_SRC_GITHUB | Runtime Golang src github dir. Default: **github.com** 
-| RUNTIME_GOLANG_DIR | Runtime Golang project dir: **${GOLANG_PROJECT_HOME_SRC}/${RUNTIME_GOLANG_SRC_GITHUB}/${RUNTIME_NAME}** 
+| RUNTIME_TAG | Runtime specific tag
+| RUNTIME_GOLANG_SRC_GITHUB | Runtime Golang src github dir. Default: **github.com**
+| RUNTIME_GOLANG_DIR | Runtime Golang project dir: **${GOLANG_PROJECT_HOME_SRC}/${RUNTIME_GOLANG_SRC_GITHUB}/${RUNTIME_NAME}**
 | RUNTIME_ENDPOINT | Runtim endpoint. Default: **/var/run/crio/crio.sock**
 
 ### Runtime Client
@@ -333,7 +329,7 @@ kube-local.profile is a configuration file, all options described below.
 | RUNTIME_CLIENT_NAME| Runtime client name. Default: **cri-tools**
 | RUNTIME_CLIENT_GITHUB_URL| Runtime client github URL. Default: **https://github.com/kubernetes-sigs/cri-tools**
 | RUNTIME_CLIENT_VERSION| Runtime client version. Example: master, release-1.13, etc
-| RUNTIME_CLIENT_TAG|  Runtime client specific tag 
+| RUNTIME_CLIENT_TAG|  Runtime client specific tag
 | RUNTIME_CLIENT_GOLANG_SRC_GITHUB|  Runtime Client Golang src github dir. Default: **github.com** 
 | RUNTIME_CLIENT_GOLANG_DIR| Runtime Client Golang project dir: **${GOLANG_PROJECT_HOME_SRC}/${RUNTIME_CLIENT_GOLANG_SRC_GITHUB}/${RUNTIME_CLIENT_NAME}**
 
@@ -343,8 +339,8 @@ kube-local.profile is a configuration file, all options described below.
 | RUNTIME_MONITOR| Runtime monitor. Default **conmon**
 | RUNTIME_MONITOR_GITHUB_URL|  Runtime monitor github URL. Default: **https://github.com/containers/conmon**
 | RUNTIME_MONITOR_VERSION| Runtime monitor version. Example: master
-| RUNTIME_MONITOR_TAG| Runtime monitor specific tag 
-| RUNTIME_MONITOR_GOLANG_SRC_GITHUB| Runtime monitor Golang src github dir. Default: **github.com** 
+| RUNTIME_MONITOR_TAG| Runtime monitor specific tag
+| RUNTIME_MONITOR_GOLANG_SRC_GITHUB| Runtime monitor Golang src github dir. Default: **github.com**
 | RUNTIME_MONITOR_GOLANG_DIR| Runtime Client Golang project dir: **${GOLANG_PROJECT_HOME_SRC}/${RUNTIME_MONITOR_GOLANG_SRC_GITHUB}/${RUNTIME_MONITOR}**
 
 ### Container Orchestration
@@ -379,7 +375,7 @@ kube-local.profile is a configuration file, all options described below.
 ### Additional info for the cluster
 | Name | Description |
 | ------ | ------ |
-| IP_LOCALHOST| Local IP address. 
+| IP_LOCALHOST| Local IP address.
 | FEATURE_GATES| Feature gates are a set of key=value pairs that describe Kubernetes features. Default: **AllAlpha=false,RunAsGroup=true**
 | PATH_PROJECTS| Add additional path to ${PATH} env var.
 | CONTAINER_RUNTIME| The container runtime to use. Default: **remote**
@@ -394,4 +390,4 @@ kube-local.profile is a configuration file, all options described below.
 | ENABLE_HOSTPATH_PROVISIONER| Default: **true**
 | KUBE_ENABLE_CLUSTER_DASHBOARD| Default: **true**
 | KUBECONFIG | Path for the Kubeconfig. Default: **${CONTAINER_ORCHESTRATION_KUBECONFIG_PATH}**
-| KUBERNETES_PROVIDER | Default: **local** 
+| KUBERNETES_PROVIDER | Default: **local**

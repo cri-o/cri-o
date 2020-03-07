@@ -51,10 +51,10 @@ RUN_SERVICE_ONCE=false
 #####################################################################################
 # Auto-install  - Use -y for yes or comment this line for no                        #
 #####################################################################################
-# Do NOT ask user questions                 
+# Do NOT ask user questions
 AUTOINSTALL=false
 
-if [ "${AUTOINSTALL}" = "true" ]; then                                            
+if [ "${AUTOINSTALL}" = "true" ]; then
     AUTO_INSTALL_QUIET_MODE=false
 
     # Do NOT ask when RUNTIME and CONTAINER ORCHESTRATION are in diff versions
@@ -77,7 +77,7 @@ if [ "${AUTOINSTALL}" = "true" ]; then
 
     # Remove existing golang dir
     AUTO_REMOVE_GOLANG_DIR=true
-fi                                                                              
+fi
 
 
 #####################################################################################

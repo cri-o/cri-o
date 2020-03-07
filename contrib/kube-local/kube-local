@@ -124,7 +124,7 @@ function question_with_answer_yes_no() {
         else
             print_msg "INFO" "${msg_would_like_continue}"
         fi
-          
+
         read -rp "" yn
         yn=$(echo ${yn} | ${AWK_BIN} '{print tolower($0)}')
         case ${yn} in
@@ -219,7 +219,7 @@ function welcome_msg() {
             print_msg "BLANK-LINE"
             print_msg "INFO_NEWLINE" "Welcome to quick setup for [\e[1m\e[1m${RUNTIME_NAME}/${CONTAINER_ORCHESTRATION_NAME}\e[0m]"
             ;;
-        [no]*) 
+        [no]*)
             print_msg "INFO_NEWLINE" "Exiting..."
             exit 1
             ;;
@@ -242,7 +242,7 @@ function update_system() {
 
     question_with_answer_yes_no "It is recommended to update the system"
     case ${yn} in
-        [no]*) 
+        [no]*)
             print_msg "INFO_NEWLINE" "As requested, NOT updating the system..."
             ;;
         [yes]*)
@@ -286,10 +286,10 @@ function detect_system() {
     case ${ID} in
         fedora)
             DISTRO_NAME=${NAME}
-  	    DISTRO_CMD_TOOL="${DNF_BIN}"
+            DISTRO_CMD_TOOL="${DNF_BIN}"
             DISTRO_PKG_MANAGER="${RPM_BIN}"
             DISTRO_CMD_CHECK_PKG_EXISTS="${DISTRO_PKG_MANAGER} -q"
-  	    DISTRO_VERSION_ID=${VERSION_ID}
+            DISTRO_VERSION_ID=${VERSION_ID}
             DISTRO_GOLANG_PACKAGE="golang-bin"
 
             if [ "${RUNTIME_NAME}" = "cri-o" ]; then
@@ -298,10 +298,10 @@ function detect_system() {
             ;;
         centos)
             DISTRO_NAME=${NAME}
-  	    DISTRO_CMD_TOOL="${DNF_BIN}"
+            DISTRO_CMD_TOOL="${DNF_BIN}"
             DISTRO_PKG_MANAGER="${RPM_BIN}"
             DISTRO_CMD_CHECK_PKG_EXISTS="${DISTRO_PKG_MANAGER} -q"
- 	    DISTRO_VERSION_ID=${VERSION_ID}
+            DISTRO_VERSION_ID=${VERSION_ID}
             DISTRO_GOLANG_PACKAGE="golang-bin"
 
             if [ "${RUNTIME_NAME}" = "cri-o" ]; then
@@ -310,10 +310,10 @@ function detect_system() {
             ;;
         rhel)
             DISTRO_NAME=${NAME}
-  	    DISTRO_CMD_TOOL="${DNF_BIN}"
+            DISTRO_CMD_TOOL="${DNF_BIN}"
             DISTRO_PKG_MANAGER="${RPM_BIN}"
             DISTRO_CMD_CHECK_PKG_EXISTS="${DISTRO_PKG_MANAGER} -q"
- 	    DISTRO_VERSION_ID=${VERSION_ID}
+            DISTRO_VERSION_ID=${VERSION_ID}
             DISTRO_GOLANG_PACKAGE="golang-bin"
 
             if [ "${RUNTIME_NAME}" = "cri-o" ]; then
@@ -385,7 +385,7 @@ function detect_cgroupv1() {
             [yes]*)
                 update_kernel_params
                 ;;
-            [no]*) 
+            [no]*)
                 print_msg "INFO_NEWLINE" "Exiting..."
                 exit 1
                 ;;
@@ -420,7 +420,7 @@ function update_kernel_params() {
 	    print_msg "INFO_NEWLINE" "Rebooting..."
 	    ${SUDO_BIN} "${REBOOT_BIN}"
             ;;
-        [no]*) 
+        [no]*)
             print_msg "INFO_NEWLINE" "Exiting..."
             exit 1
             ;;
@@ -463,11 +463,11 @@ function install_golang() {
                 [yes]*)
                     exec_cmd "SUDO" "${DISTRO_CMD_TOOL} remove ${DISTRO_GOLANG_PACKAGE}"
                     ;;
-                [no]*) 
+                [no]*)
                     print_msg "INFO_NEWLINE" "As requested, NOT removing package ${DISTRO_GOLANG_PACKAGE}"
                     ;;
             esac
-        fi 
+        fi
         print_msg "INFO_NEWLINE" "Installing go [\e[1m\e[1m${GOLANG_VERSION}\e[0m]..."
     fi
 
@@ -487,7 +487,7 @@ function install_golang() {
             case ${yn} in
                 [yes]*)
                     exec_cmd "SUDO" "${RM_BIN} -rf ${GOLANG_DIR_PATH}"
-   	            ;;
+                   ;;
                 [no]*)
                    return
                    ;;
@@ -542,11 +542,11 @@ function install_golang() {
 function clean_runtime_files() {
     ###########################################################
     # Description:                                            #
-    #   Function remove all created files/dirs from:
-    #     - runtime
-    #     - runtime client
-    #     - runtime endpoint
-    #   
+    #   Function remove all created files/dirs from:          #
+    #     - runtime                                           #
+    #     - runtime client                                    #
+    #     - runtime endpoint                                  #
+    #                                                         #
     ###########################################################
     if [[ -d "${RUNTIME_GOLANG_DIR}" ]]; then
         exec_cmd "cd ${RUNTIME_GOLANG_DIR}"
@@ -622,7 +622,7 @@ function execute_cleanup() {
         exec_cmd "${RM_BIN} -rf ${MD2MAN_GOLANG_DIR}"
         exec_cmd "${RM_BIN} -rf ${GOLANG_PROJECT_HOME_BIN}/${MD2MAN_NAME}"
         print_msg "DEBUG" "Removed dir ${MD2MAN_GOLANG_DIR}"
-    
+
         # Remove packages installed
         case ${DISTRO_NAME} in
             fedora)
@@ -702,11 +702,11 @@ function cleanup() {
                 print_msg "BLANK-LINE"
                 print_msg "OK" "Reverted all the changes from the script..."
                 ;;
-            [no]*) 
+            [no]*)
                 print_msg "DEBUG" "As requested, not removing files/dirs generated by this script!"
                 ;;
         esac
-    fi    
+    fi
     print_msg "INFO_NEWLINE" "Exiting..."
     exit 1
 }
@@ -827,12 +827,12 @@ function install_project() {
     #           example: ${HOME}/go/src/github/kubernetes         #
     #                                                             #
     #       ${3} - project golang src dir                         #
-    #           example: github                                   #          
+    #           example: github                                   #
     #                                                             #
     #       ${4} - github branch name                             #
     #           example: master                                   #
     #                                                             #
-    #       ${5} - github url for the project                     # 
+    #       ${5} - github url for the project                     #
     #           example: https://github.com/kubernetes/kubernetes #
     #                                                             #
     #       ${6} - action - possible values:                      #
@@ -840,7 +840,7 @@ function install_project() {
     #             - execute: make                                 #
     #                                                             #
     #           MAKE_AND_MAKE_INSTALL                             #
-    #             - execute: make && make install                 #          
+    #             - execute: make && make install                 #
     #                                                             #
     #   Just another example:                         Args number #
     #   -----------------------                      ------------ #
@@ -852,7 +852,7 @@ function install_project() {
     #            ${RUNTIME_GITHUB_URL}               # ${5}       #
     #            "MAKE_AND_MAKE_INSTALL"             # ${6}       #
     ###############################################################
-    
+
     ############ Some local vars ##################################
     SUPPORTED_ACTIONS="MAKE_ONLY, MAKE_AND_MAKE_INSTALL"
     ARGS_REQUIRED=6
@@ -860,7 +860,7 @@ function install_project() {
 
     ###############################################################
     # Few checks before we proceed
-    # 
+    #
     # 1) Number of args
     if [[ $# != "${ARGS_REQUIRED}" ]]; then
         print_msg "FAIL" "The number of arguments for ${FUNCNAME[0]} is ${ARGS_REQUIRED}"
@@ -883,7 +883,7 @@ function install_project() {
 
     rebase_git_tree=false
     if [[ -d "${2}" ]]
-    then 
+    then
         while true; do
             print_msg "BLANK-LINE"
             print_msg "WARN_NEWLINE" "The dir [\e[1m\e[1m${2}\e[0m] already exists."
@@ -898,7 +898,7 @@ function install_project() {
                 1)
                     rebase_git_tree=true
                     break
-     	            ;;
+                    ;;
                 2)
                     exec_cmd "SUDO" "${RM_BIN} -rf ${2}"
                     break
@@ -909,7 +909,7 @@ function install_project() {
                 *)
                     print_msg "INFO_NEWLINE" "Please answer 1, 2 or 3"
                     ;;
- 	    esac
+            esac
         done
     fi
 
@@ -920,7 +920,7 @@ function install_project() {
         exec_cmd "${GIT_BIN} rebase"
     else
         if [[ ! -d "${3}" ]]
-        then 
+        then
             exec_cmd "${MKDIR_BIN} -p ${3}"
         fi
         exec_cmd "cd ${3}"
@@ -1013,7 +1013,7 @@ function install_runtime() {
             exit 1
             ;;
     esac
-       
+
 }
 
 function install_container_network_plugin() {
@@ -1071,7 +1071,7 @@ function install_required_packages_runtime_crio() {
         centos | rhel)
             if [[ ${DISTRO_VERSION_ID} -gt 7 ]]; then
                 packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS_LATEST}"
-            else 
+            else
                 packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS}"
             fi
             ;;
@@ -1096,7 +1096,7 @@ function install_required_packages_runtime_crio() {
     fi
 
     exec_cmd "SUDO" "${DISTRO_CMD_TOOL} install ${packages} ${AUTO_INSTALL_PACKAGES}"
-    
+
     # Optional packages
     ${DISTRO_CMD_CHECK_PKG_EXISTS} ${RUNTIME_OPTIONAL_PACKAGES} &> /dev/null
     if [ $? -ne 0 ]; then
@@ -1107,7 +1107,7 @@ function install_required_packages_runtime_crio() {
             [yes]*)
                 exec_cmd "SUDO" "${DISTRO_CMD_TOOL} install ${RUNTIME_OPTIONAL_PACKAGES} ${AUTO_INSTALL_PACKAGES}"
 		;;
-            [no]*) 
+            [no]*)
                 print_msg "DEBUG" "As requested, NOT installing ${RUNTIME_OPTIONAL_PACKAGES}.."
                 ;;
 	esac
@@ -1145,7 +1145,7 @@ function install_container_orchestration {
             exit 1
             ;;
     esac
-       
+
 }
 
 function kubectl_retry() {
@@ -1224,7 +1224,7 @@ function load_local_up_cluster() {
     print_msg "DEBUG" "KUBE_ENABLE_CLUSTER_DNS: [\e[1m\e[1m${KUBE_ENABLE_CLUSTER_DNS}\e[0m]"
     print_msg "DEBUG" "ENABLE_HOSTPATH_PROVISIONER: [\e[1m\e[1m${ENABLE_HOSTPATH_PROVISIONER}\e[0m]"
     print_msg "DEBUG" "KUBE_ENABLE_CLUSTER_DASHBOARD: [\e[1m\e[1m${KUBE_ENABLE_CLUSTER_DASHBOARD}\e[0m]"
-    
+
 
 
     exec_cmd "cd ${CONTAINER_ORCHESTRATION_GOLANG_DIR}/hack/"
@@ -1255,7 +1255,7 @@ ${CONTAINER_ORCHESTRATION_NAME} [${CONTAINER_ORCHESTRATION_VERSION}]. The build 
             [yes]*)
                 print_msg "INFO" "Continuing..."
                 ;;
-            [no]*) 
+            [no]*)
                 print_msg "FAIL" "Exiting..."
                 exit 1
                 ;;
@@ -1424,7 +1424,7 @@ function load_profile() {
             print_msg "FAIL" "Aborting... Cannot load profile ${filename}!"
             exit 1
         fi
-    fi   
+    fi
     PROFILE_NAME="${filename}"
     print_msg "DEBUG" "Profile loaded: ${PROFILE_NAME}"
     print_msg "DEBUG" "Log file: ${LOG_FILE}"
