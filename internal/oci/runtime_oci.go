@@ -853,6 +853,15 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
 func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
+	emptyStreamOnError := true
+	defer func() {
+		if emptyStreamOnError {
+			go func() {
+				_, copyError := pools.Copy(ioutil.Discard, stream)
+				logrus.Errorf("error closing port forward stream after other error: %v", copyError)
+			}()
+		}
+	}()
 	containerPid := c.State().Pid
 	socatPath, lookupErr := exec.LookPath("socat")
 	if lookupErr != nil {
@@ -893,6 +902,7 @@ func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.Re
 	}
 	var copyError error
 	go func() {
+		emptyStreamOnError = false
 		_, copyError = pools.Copy(inPipe, stream)
 		inPipe.Close()
 	}()
