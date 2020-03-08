@@ -18,6 +18,13 @@ var wipeCommand = &cli.Command{
 	Name:   "wipe",
 	Usage:  "wipe CRI-O's container and image storage",
 	Action: crioWipe,
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:    "force",
+			Aliases: []string{"f"},
+			Usage:   "force wipe by skipping the version check",
+		},
+	},
 }
 
 func crioWipe(c *cli.Context) error {
@@ -26,10 +33,13 @@ func crioWipe(c *cli.Context) error {
 		return err
 	}
 
+	shouldWipe := true
 	// First, check if we need to upgrade at all
-	shouldWipe, err := version.ShouldCrioWipe(config.VersionFile)
-	if err != nil {
-		fmt.Fprint(os.Stderr, err.Error())
+	if !c.IsSet("force") {
+		shouldWipe, err = version.ShouldCrioWipe(config.VersionFile)
+		if err != nil {
+			fmt.Fprint(os.Stderr, err.Error())
+		}
 	}
 
 	// if we should not wipe, exit with no error
