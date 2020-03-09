@@ -116,15 +116,17 @@ install_cni_plugins() {
 }
 
 install_runc() {
-    export GOPATH=/home/circleci/go
-    mkdir -p "$GOPATH"/github.com/opencontainers
-    RUNC_PATH=github.com/opencontainers/runc
-    git clone https://"$RUNC_PATH" "$GOPATH"/src/"$RUNC_PATH"
-    pushd "$GOPATH"/src/$RUNC_PATH
-    git checkout "${VERSIONS["runc"]}"
-    make BUILDTAGS="apparmor selinux seccomp"
-    sudo cp runc /usr/sbin
-    popd
+    URL=https://github.com/opencontainers/runc/releases/download/"${VERSIONS["runc"]}"
+    BINARY=/usr/sbin/runc
+    sudo wget -O "$BINARY" "$URL"/runc.amd64
+    sudo chmod +x "$BINARY"
+
+    # Verify the SHA256
+    SUMFILE=runc.sha256sum
+    wget "$URL"/$SUMFILE
+    grep -qw "$(sha256sum "$BINARY" | awk '{ print $1 }')" $SUMFILE
+    rm $SUMFILE
+
     runc --version
 }
 
