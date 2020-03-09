@@ -45,7 +45,6 @@
 	"annotations": {
 		"pod": "podsandbox1"
 	},
-	"readonly_rootfs": false,
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
@@ -60,6 +59,7 @@
 		},
 		"security_context": {
 			"privileged": "%privilegedboolean%",
+			"readonly_rootfs": false,
 			"namespace_options": {
 				"pid": 1
 			}

@@ -37,8 +37,6 @@
 		"owner": "dragon",
 		"daemon": "crio"
 	},
-	"privileged": true,
-	"readonly_rootfs": true,
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,

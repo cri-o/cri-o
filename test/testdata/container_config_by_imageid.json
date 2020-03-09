@@ -37,8 +37,6 @@
 		"owner": "dragon",
 		"daemon": "crio"
 	},
-	"privileged": true,
-	"readonly_rootfs": true,
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
@@ -55,6 +53,7 @@
 			"namespace_options": {
 				"pid": 1
 			},
+			"readonly_rootfs": true,
 			"capabilities": {
 				"add_capabilities": [
 					"setuid",

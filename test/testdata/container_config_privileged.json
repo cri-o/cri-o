@@ -42,7 +42,6 @@
 	"stdin_once": false,
 	"tty": false,
 	"linux": {
-		"privileged": true,
 		"resources": {
 			"cpu_period": 10000,
 			"cpu_quota": 20000,
@@ -54,6 +53,7 @@
 			"namespace_options": {
 				"pid": 1
 			},
+			"privileged": true,
 			"readonly_rootfs": false,
 			"selinux_options": {
 				"user": "system_u",
