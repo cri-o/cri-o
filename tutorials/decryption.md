@@ -16,9 +16,10 @@ Encryption ties trust to an entity based on the model in which a key is associat
 
 ## Configuring Image Decryption for **Node** key model
 
-In order to set up image decryption support, modify `/etc/crio/crio.conf` as follows:
+In order to set up image decryption support, add an overwrite to `/etc/crio/crio.conf.d/01-decrypt.conf` as follows:
 
 ```toml
+[crio.runtime]
 # decryption_keys_path is the path where the keys required for
 # image decryption are located
 decryption_keys_path = "/etc/crio/keys/"

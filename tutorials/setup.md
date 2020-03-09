@@ -39,11 +39,9 @@ yum install -y \
 ```
 
 **Please note**:
-- ```CentOS 8``` (or higher): ```pkgconfig``` package is replaced by ```pkgconf-pkg-config```
-- By default btrfs is not enabled. To add the btrfs support, install the following package:
-```
-  btrfs-progs-devel
-```
+- `CentOS 8` (or higher): `pkgconfig` package is replaced by `pkgconf-pkg-config`
+- By default btrfs is not enabled. To add the btrfs support, install the
+  following package: `btrfs-progs-devel`
 
 RHEL 8 distributions:\
 Make sure you are subscribed to the following repositories: \
@@ -264,12 +262,12 @@ The resulting binary should be now available in `result-bin/bin` and
 ### Creating a release archive
 
 A release bundle consists of all static binaries, the man pages and
-configuration files like `crio.conf`. The `release-bundle` target can be used to
-build a new release archive within the current repository:
+configuration files like `00-default.conf`. The `release-bundle` target can be
+used to build a new release archive within the current repository:
 
 ```
 make release-bundle
-...
+…
 Created ./bundle/crio-v1.15.0.tar.gz
 ```
 
@@ -321,19 +319,24 @@ For more information about this file see [registries.conf(5)](https://github.com
 
 ### Recommended - Use systemd cgroups.
 
-By default, CRI-O uses cgroupfs as a cgroup manager. However, we recommend using systemd as a cgroup manager. You can change your cgroup manager in crio.conf:
+By default, CRI-O uses cgroupfs as a cgroup manager. However, we recommend using
+systemd as a cgroup manager. You can change your cgroup manager by adding an
+overwrite to `/etc/crio/crio.conf.d/01-cgroup-manager.conf`:
 
 ```
+[crio.runtime]
 cgroup_manager = "systemd"
 ```
 
-### Optional - Modify verbosity of logs in /etc/crio/crio.conf
+### Optional - Modify verbosity of logs
 
-Users can modify the `log_level` field in `/etc/crio/crio.conf` to change the verbosity of
-the logs.
-Options are fatal, panic, error (default), warn, info, and debug.
+Users can modify the `log_level` by specifying an overwrite like
+`/etc/crio/crio.conf.d/01-log-level.conf` to change the verbosity of
+the logs. Options are fatal, panic, error, warn, info (default), debug and
+trace.
 
 ```
+[crio.runtime]
 log_level = "info"
 ```
 
@@ -361,7 +364,7 @@ default_sysctls = [
 ]
 ```
 
-Users can change either default by editing `/etc/crio/crio.conf`.
+Users can change either default by adding overwrites to `/etc/crio/crio.conf.d`.
 
 ## Starting CRI-O
 
