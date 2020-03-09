@@ -214,7 +214,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.16.0
+# github.com/containers/storage v1.16.2
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -455,7 +455,7 @@ github.com/jbenet/go-context/io
 github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.10.0
+# github.com/klauspost/compress v1.10.2
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -887,6 +887,8 @@ gopkg.in/tomb.v1
 gopkg.in/warnings.v0
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
+# gotest.tools/v3 v3.0.2
+## explicit
 # k8s.io/api v0.17.2 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200218170745-b7dcc4ac2981
 ## explicit
 k8s.io/api/admissionregistration/v1

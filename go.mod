@@ -17,7 +17,7 @@ require (
 	github.com/containers/libpod v1.8.0
 	github.com/containers/ocicrypt v1.0.1
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.16.0
+	github.com/containers/storage v1.16.2
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20200218164758-d2881573038f
@@ -54,6 +54,7 @@ require (
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
 	google.golang.org/grpc v1.27.1
+	gotest.tools/v3 v3.0.2 // indirect
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.0.0
