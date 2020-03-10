@@ -39,11 +39,11 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 		status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
 		if err != nil {
 			if errors.Cause(err) == storage.ErrImageUnknown {
-				log.Warnf(ctx, "imageStatus: can't find %s", image)
+				log.Debugf(ctx, "can't find %s", image)
 				notfound = true
 				continue
 			}
-			log.Warnf(ctx, "imageStatus: error getting status from %s: %v", image, err)
+			log.Warnf(ctx, "error getting status from %s: %v", image, err)
 			lastErr = err
 			continue
 		}

@@ -8,6 +8,7 @@ import (
 )
 
 type ID struct{}
+type Name struct{}
 
 func Debugf(ctx context.Context, format string, args ...interface{}) {
 	entry(ctx).Debugf(format, args...)
@@ -31,9 +32,10 @@ func entry(ctx context.Context) *logrus.Entry {
 		return logrus.NewEntry(logger)
 	}
 
-	idValue := ctx.Value(ID{})
-	if ret, ok := idValue.(string); ok {
-		return logger.WithField("id", ret)
+	id, idOk := ctx.Value(ID{}).(string)
+	name, nameOk := ctx.Value(Name{}).(string)
+	if idOk && nameOk {
+		return logger.WithField("id", id).WithField("name", name)
 	}
 
 	return logrus.NewEntry(logger)
