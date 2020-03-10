@@ -619,9 +619,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	container.SetCreated()
 
-	if err := s.MonitorConmon(container); err != nil {
-		log.Errorf(ctx, "%v", err)
-	}
 
 	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
 		return nil, ctx.Err()
