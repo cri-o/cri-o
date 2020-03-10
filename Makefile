@@ -176,9 +176,11 @@ release-notes: ${RELEASE_NOTES}
 		--github-org cri-o \
 		--github-repo cri-o \
 		--required-author "" \
+		--repo-path /tmp/cri-o-repo \
 		--start-rev $$TAG \
 		--end-sha $(COMMIT_NO) \
-		--output $$OUTPATH/$(COMMIT_NO).md
+		--output $$OUTPATH/$(COMMIT_NO).md &&\
+	sed -i '1s;^;# $(VERSION)\n\n;' $$OUTPATH/$(COMMIT_NO).md
 
 clean:
 ifneq ($(GOPATH),)
