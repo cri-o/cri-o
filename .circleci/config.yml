@@ -403,7 +403,13 @@ jobs:
             - v1-release-notes-{{ checksum "go.sum" }}
       - run:
           name: Generate Release Notes
-          command: make release-notes
+          command: |
+            if [[ -z $GITHUB_TOKEN ]]; then
+              echo Skipping release notes generation
+              mkdir -p build/release-notes
+            else
+              make release-notes
+            fi
       - persist_to_workspace:
           root: .
           paths:
@@ -429,7 +435,12 @@ jobs:
 
               BUCKET=gs://k8s-conform-cri-o
               gsutil cp bundle/*.tar.gz $BUCKET/artifacts
-              gsutil cp build/release-notes/*.md $BUCKET/release-notes
+
+              if [[ -z $GITHUB_TOKEN ]]; then
+                echo Skipping release notes upload
+              else
+                gsutil cp build/release-notes/*.md $BUCKET/release-notes
+              fi
             fi
       - store_test_results:
           path: build/junit
