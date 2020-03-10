@@ -521,9 +521,6 @@ func addSecretsBindMounts(ctx context.Context, mountLabel, ctrRunDir string, def
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
 	log.Infof(ctx, "Attempting to create container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
-	s.updateLock.RLock()
-	defer s.updateLock.RUnlock()
-
 	sbID := req.PodSandboxId
 	if sbID == "" {
 		return nil, fmt.Errorf("PodSandboxId should not be empty")

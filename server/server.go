@@ -13,7 +13,6 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/containers/storage/pkg/idtools"
@@ -59,8 +58,6 @@ type Server struct {
 	*lib.ContainerServer
 	monitorsChan      chan struct{}
 	defaultIDMappings *idtools.IDMappings
-
-	updateLock sync.RWMutex
 }
 
 type certConfigCache struct {

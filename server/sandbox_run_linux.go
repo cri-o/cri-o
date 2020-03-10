@@ -40,9 +40,6 @@ const cgroupMemorySubsystemMountPathV1 = "/sys/fs/cgroup/memory"
 const cgroupMemorySubsystemMountPathV2 = "/sys/fs/cgroup"
 
 func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
-	s.updateLock.RLock()
-	defer s.updateLock.RUnlock()
-
 	if req.GetConfig().GetMetadata() == nil {
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Metadata is nil")
 	}
