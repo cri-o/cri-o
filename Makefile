@@ -53,6 +53,7 @@ MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
+RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
 	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
@@ -166,6 +167,19 @@ ${BUILD_CONFIG_PATH}: bin/crio
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
 
+release-notes: ${RELEASE_NOTES}
+	# A valid GITHUB_TOKEN has to be exported to let this work
+	TAG=v$(shell $(GO_RUN) ./scripts/latest_version.go --no-bump-version) &&\
+	OUTPATH=${BUILD_PATH}/release-notes &&\
+	mkdir -p $$OUTPATH &&\
+	${RELEASE_NOTES} \
+		--github-org cri-o \
+		--github-repo cri-o \
+		--required-author "" \
+		--start-rev $$TAG \
+		--end-sha $(COMMIT_NO) \
+		--output $$OUTPATH/$(COMMIT_NO).md
+
 clean:
 ifneq ($(GOPATH),)
 	rm -f "$(GOPATH)/.gopathok"
@@ -248,6 +262,9 @@ ${GIT_VALIDATION}:
 
 ${RELEASE_TOOL}:
 	$(call go-build,./vendor/github.com/containerd/project/cmd/release-tool)
+
+${RELEASE_NOTES}:
+	$(call go-build,./vendor/k8s.io/release/cmd/release-notes)
 
 ${GOLANGCI_LINT}:
 	export \

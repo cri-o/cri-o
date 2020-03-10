@@ -270,7 +270,7 @@ github.com/coreos/pkg/dlopen
 ## explicit
 github.com/cpuguy83/go-md2man
 github.com/cpuguy83/go-md2man/md2man
-# github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d
+# github.com/cpuguy83/go-md2man/v2 v2.0.0
 github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/creack/pty v1.1.7
 github.com/creack/pty
@@ -406,7 +406,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-github/v29 v29.0.2
+# github.com/google/go-github/v29 v29.0.3
 github.com/google/go-github/v29/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
@@ -487,6 +487,8 @@ github.com/modern-go/reflect2
 github.com/morikuni/aec
 # github.com/mtrmac/gpgme v0.1.2
 github.com/mtrmac/gpgme
+# github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481
+github.com/nozzle/throttler
 # github.com/onsi/ginkgo v1.12.0
 ## explicit
 github.com/onsi/ginkgo
@@ -632,7 +634,7 @@ github.com/sirupsen/logrus
 # github.com/soheilhy/cmux v0.1.4
 ## explicit
 github.com/soheilhy/cmux
-# github.com/spf13/cobra v0.0.5
+# github.com/spf13/cobra v0.0.6
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
@@ -1198,12 +1200,19 @@ k8s.io/kubernetes/pkg/volume/util/hostutil
 k8s.io/kubernetes/pkg/volume/util/recyclerclient
 k8s.io/kubernetes/pkg/volume/util/subpath
 k8s.io/kubernetes/third_party/forked/golang/expansion
-# k8s.io/release v0.2.5-0.20200226093427-c99628f49d85
+# k8s.io/release v0.2.5
 ## explicit
+k8s.io/release/cmd/release-notes
 k8s.io/release/pkg/command
 k8s.io/release/pkg/git
+k8s.io/release/pkg/log
+k8s.io/release/pkg/notes
+k8s.io/release/pkg/notes/client
+k8s.io/release/pkg/notes/document
+k8s.io/release/pkg/notes/internal
+k8s.io/release/pkg/notes/options
 k8s.io/release/pkg/util
-# k8s.io/utils v0.0.0-20200124190032-861946025e34
+# k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab
 ## explicit
 k8s.io/utils/buffer
 k8s.io/utils/exec
