@@ -36,7 +36,7 @@
 			"net.ipv4.ip_local_port_range": "1024 65000",
 			"kernel.msgmax": "8192"
 		},
-		"cgroup_parent": "/Burstable/pod_123-456",
+		"cgroup_parent": "pod_123-456.slice",
 		"security_context": {
 			"namespace_options": {
 				"network": 0,

@@ -19,8 +19,6 @@ pushd "$BUNDLE"
 
 # Install and prepare config
 make install
-printf '[crio.runtime]\ncgroup_manager = "cgroupfs"\n' \
-    >/etc/crio/crio.conf.d/01-override.conf
 
 # Start CRI-O
 systemctl daemon-reload
