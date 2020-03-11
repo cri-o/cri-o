@@ -362,7 +362,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, ""); err != nil {
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
 			return nil, errors.Wrap(err, "add or replace linux namespace")
 		}
 		for _, uidmap := range s.defaultIDMappings.UIDs() {
@@ -810,7 +810,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 // configureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
 // to add or replace the defaults to these paths
 func configureGeneratorGivenNamespacePaths(managedNamespaces []*libsandbox.ManagedNamespace, g generate.Generator) error {
-	typeToSpec := map[libsandbox.NSType]string{
+	typeToSpec := map[libsandbox.NSType]spec.LinuxNamespaceType{
 		libsandbox.IPCNS:  spec.IPCNamespace,
 		libsandbox.NETNS:  spec.NetworkNamespace,
 		libsandbox.UTSNS:  spec.UTSNamespace,
@@ -826,7 +826,7 @@ func configureGeneratorGivenNamespacePaths(managedNamespaces []*libsandbox.Manag
 		if nsForSpec == "" {
 			return errors.Errorf("Invalid namespace type %s", nsForSpec)
 		}
-		err := g.AddOrReplaceLinuxNamespace(nsForSpec, ns.Path())
+		err := g.AddOrReplaceLinuxNamespace(string(nsForSpec), ns.Path())
 		if err != nil {
 			return err
 		}

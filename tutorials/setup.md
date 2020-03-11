@@ -226,9 +226,9 @@ make BUILDTAGS='seccomp apparmor'
 It is possible to build a statically linked binary of CRI-O by using the
 officially provided [nix](https://nixos.org/nix) package and the derivation of
 it [within this repository](../nix). The builds are completely reproducible and
-will create a `x86_64`/`amd64` stripped ELF binary for the standard
-[glibc](https://www.gnu.org/software/libc) toolchain. These binaries are
-integration tested as well and support the following features:
+will create a `x86_64`/`amd64` stripped ELF binary for
+[glibc](https://www.gnu.org/software/libc). These binaries are integration
+tested as well and support the following features:
 
 - apparmor
 - btrfs
