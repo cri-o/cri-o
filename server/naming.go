@@ -35,17 +35,6 @@ func makeSandboxContainerName(sandboxConfig *pb.PodSandboxConfig) string {
 	}, nameDelimiter)
 }
 
-func makeContainerName(sandboxMetadata *pb.PodSandboxMetadata, containerConfig *pb.ContainerConfig) string {
-	return strings.Join([]string{
-		kubePrefix,
-		containerConfig.Metadata.Name,
-		sandboxMetadata.Name,
-		sandboxMetadata.Namespace,
-		sandboxMetadata.Uid,
-		fmt.Sprintf("%d", containerConfig.Metadata.Attempt),
-	}, nameDelimiter)
-}
-
 func (s *Server) ReservePodIDAndName(config *pb.PodSandboxConfig) (id, name string, err error) {
 	if config == nil || config.Metadata == nil || config.Metadata.Namespace == "" {
 		return "", "", fmt.Errorf("cannot generate pod name without namespace")
@@ -71,17 +60,4 @@ func (s *Server) ReserveSandboxContainerIDAndName(config *pb.PodSandboxConfig) (
 		return "", err
 	}
 	return name, err
-}
-
-func (s *Server) ReserveContainerIDandName(sandboxMetadata *pb.PodSandboxMetadata, config *pb.ContainerConfig) (id, name string, err error) {
-	if config == nil || config.Metadata == nil || sandboxMetadata == nil {
-		return "", "", fmt.Errorf("cannot generate container name without metadata")
-	}
-
-	id = stringid.GenerateNonCryptoID()
-	name, err = s.ReserveContainerName(id, makeContainerName(sandboxMetadata, config))
-	if err != nil {
-		return "", "", err
-	}
-	return id, name, err
 }
