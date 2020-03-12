@@ -8,8 +8,8 @@ import (
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
-	"github.com/cri-o/cri-o/internal/pkg/log"
-	"github.com/cri-o/cri-o/internal/pkg/storage"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"

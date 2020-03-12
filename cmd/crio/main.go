@@ -15,9 +15,9 @@ import (
 
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/cri-o/cri-o/internal/pkg/criocli"
-	"github.com/cri-o/cri-o/internal/pkg/log"
-	"github.com/cri-o/cri-o/internal/pkg/signals"
+	"github.com/cri-o/cri-o/internal/criocli"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"

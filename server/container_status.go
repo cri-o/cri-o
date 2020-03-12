@@ -3,8 +3,8 @@ package server
 import (
 	"strconv"
 
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/pkg/log"
+	"github.com/cri-o/cri-o/internal/log"
+	oci "github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
