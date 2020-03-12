@@ -16,15 +16,16 @@ import (
 	"time"
 
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/findprocess"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
-	"github.com/docker/docker/pkg/pools"
 	"github.com/fsnotify/fsnotify"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -795,8 +796,8 @@ func (r *runtimeOCI) SignalContainer(c *Container, sig syscall.Signal) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	if !inSignalMap(sig) {
-		return errors.Errorf("unable to find %s in the signal map", sig.String())
+	if unix.SignalName(sig) == "" {
+		return errors.Errorf("unable to find signal %s", sig.String())
 	}
 
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path,

@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/pkg/cgroups"
-	"github.com/docker/docker/pkg/pools"
-	"github.com/docker/docker/pkg/term"
+	"github.com/containers/storage/pkg/pools"
 	"github.com/kr/pty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -54,7 +53,8 @@ func genericCalculateCPUPercent(cpuTotal uint64, perCPU []uint64) float64 {
 }
 
 func setSize(fd uintptr, size remotecommand.TerminalSize) error {
-	return term.SetWinsize(fd, &term.Winsize{Height: size.Height, Width: size.Width})
+	winsize := &unix.Winsize{Row: size.Height, Col: size.Width}
+	return unix.IoctlSetWinsize(int(fd), unix.TIOCSWINSZ, winsize)
 }
 
 func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-chan remotecommand.TerminalSize) error {

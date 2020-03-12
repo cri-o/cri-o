@@ -16,7 +16,7 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/pkg/lookup"
-	"github.com/docker/docker/pkg/symlink"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -210,7 +210,7 @@ func GenerateID() (string, error) {
 
 // openContainerFile opens a file inside a container rootfs safely
 func openContainerFile(rootfs, path string) (io.ReadCloser, error) {
-	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, path), rootfs)
+	fp, err := securejoin.SecureJoin(rootfs, path)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +260,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		return "", nil
 	}
 	passwdFile := filepath.Join(rundir, "passwd")
-	originPasswdFile, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, "/etc/passwd"), rootfs)
+	originPasswdFile, err := securejoin.SecureJoin(rootfs, "/etc/passwd")
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to follow symlinks to passwd file")
 	}

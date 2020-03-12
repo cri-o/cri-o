@@ -17,12 +17,12 @@ require (
 	github.com/containers/libpod v1.8.1
 	github.com/containers/ocicrypt v1.0.1
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.16.2
+	github.com/containers/storage v1.16.4
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20200218164758-d2881573038f
-	github.com/docker/docker v1.4.2-0.20200226173334-8a05747fb6bf
+	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/docker/go-units v0.4.0
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815 // indirect
@@ -49,7 +49,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc9
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
-	github.com/opencontainers/selinux v1.3.3
+	github.com/opencontainers/selinux v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.4.0 // indirect
 	github.com/prometheus/client_golang v1.4.1

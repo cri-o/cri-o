@@ -10,9 +10,9 @@ import (
 	"sync"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/symlink"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
@@ -176,11 +176,15 @@ func (n *Namespace) Remove() error {
 	// /var/run/$NSTYPEns/$NSTYPE-d08effa-06eb-a963-f51a-e2b0eceffc5d
 	// but /var/run on most system is symlinked to /run so we first resolve
 	// the symlink and then try and see if it's mounted
-	fp, err := symlink.FollowSymlinkInScope(n.Path(), "/")
+	fp, err := securejoin.SecureJoin("/", n.Path())
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "unable to join '/' with %s path", n.Path())
 	}
-	if mounted, err := mount.Mounted(fp); err == nil && mounted {
+	mounted, err := mount.Mounted(fp)
+	if err != nil {
+		return errors.Wrap(err, "unable to check if path is mounted")
+	}
+	if mounted {
 		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
 			return err
 		}

@@ -89,7 +89,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	if err := sb.UnmountShm(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unable to unmount SHM")
 	}
 
 	if err := s.StorageRuntimeServer().RemovePodSandbox(sb.ID()); err != nil && err != pkgstorage.ErrInvalidSandboxID {
@@ -97,7 +97,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 	if s.config.ManageNSLifecycle {
 		if err := sb.RemoveManagedNamespaces(); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "unable to remove managed namespaces")
 		}
 	}
 
