@@ -699,6 +699,7 @@ func AddCgroupAnnotation(ctx context.Context, g generate.Generator, mountPath, c
 					}
 				}
 			}
+			configureGeneratorWithCollectMode(g)
 		} else {
 			if strings.HasSuffix(path.Base(cgroupParent), ".slice") {
 				return "", fmt.Errorf("cri-o configured with cgroupfs cgroup manager, but received systemd slice as parent: %s", cgroupParent)
@@ -710,6 +711,12 @@ func AddCgroupAnnotation(ctx context.Context, g generate.Generator, mountPath, c
 	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
 	return cgroupParent, nil
+}
+
+func configureGeneratorWithCollectMode(g generate.Generator) {
+	// we always want inactive-or-failed as the collect mode
+	// when using systemd
+	g.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 }
 
 // PauseCommand returns the pause command for the provided image configuration.

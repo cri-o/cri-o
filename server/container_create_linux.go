@@ -533,13 +533,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		}
 		specgen.SetLinuxCgroupsPath(cgPath)
 
-		if t, ok := kubeAnnotations[podTerminationGracePeriodLabel]; ok {
-			// currently only supported by systemd, see
-			// https://github.com/opencontainers/runc/pull/2224
-			if useSystemd {
+		if useSystemd {
+			if t, ok := kubeAnnotations[podTerminationGracePeriodLabel]; ok {
+				// currently only supported by systemd, see
+				// https://github.com/opencontainers/runc/pull/2224
 				specgen.AddAnnotation("org.systemd.property.TimeoutStopUSec",
 					"uint64 "+t+"000000") // sec to usec
 			}
+			configureGeneratorWithCollectMode(specgen)
 		}
 
 		if privileged {
