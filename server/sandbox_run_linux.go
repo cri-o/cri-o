@@ -19,7 +19,7 @@ import (
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -243,12 +243,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.SetLinuxMountLabel(mountLabel)
 
 	// Remove the default /dev/shm mount to ensure we overwrite it
-	g.RemoveMount(sandbox.DevShmPath)
+	g.RemoveMount(libsandbox.DevShmPath)
 
 	// create shm mount for the pod containers.
 	var shmPath string
 	if hostIPC {
-		shmPath = sandbox.DevShmPath
+		shmPath = libsandbox.DevShmPath
 	} else {
 		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
 		if err != nil {
@@ -267,7 +267,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	mnt := spec.Mount{
 		Type:        "bind",
 		Source:      shmPath,
-		Destination: sandbox.DevShmPath,
+		Destination: libsandbox.DevShmPath,
 		Options:     []string{"rw", "bind"},
 	}
 	// bind mount the pod shm
@@ -374,7 +374,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	sb, err := sandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, resolvPath, hostname, portMappings, hostNetwork)
+	sb, err := libsandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, resolvPath, hostname, portMappings, hostNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -650,7 +650,7 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 	if err := os.Mkdir(shmPath, 0700); err != nil {
 		return "", err
 	}
-	shmOptions := "mode=1777,size=" + strconv.Itoa(sandbox.DefaultShmSize)
+	shmOptions := "mode=1777,size=" + strconv.Itoa(libsandbox.DefaultShmSize)
 	if err = unix.Mount("shm", shmPath, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 		label.FormatMountLabel(shmOptions, mountLabel)); err != nil {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
@@ -764,15 +764,15 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Ge
 // as well as whether CRI-O should be managing the namespace lifecycle.
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
 // The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
-func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, sb *sandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, err error) {
-	managedNamespaces := make([]sandbox.NSType, 0, 3)
+func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, sb *libsandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, err error) {
+	managedNamespaces := make([]libsandbox.NSType, 0, 3)
 	if hostNetwork {
 		err = g.RemoveLinuxNamespace(string(spec.NetworkNamespace))
 		if err != nil {
 			return
 		}
 	} else if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, sandbox.NETNS)
+		managedNamespaces = append(managedNamespaces, libsandbox.NETNS)
 	}
 
 	if hostIPC {
@@ -781,7 +781,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 			return
 		}
 	} else if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, sandbox.IPCNS)
+		managedNamespaces = append(managedNamespaces, libsandbox.IPCNS)
 	}
 
 	// Since we need a process to hold open the PID namespace, CRI-O can't manage the NS lifecycle
@@ -794,7 +794,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 
 	// There's no option to set hostUTS
 	if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, sandbox.UTSNS)
+		managedNamespaces = append(managedNamespaces, libsandbox.UTSNS)
 
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
 		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, &s.config)
@@ -814,12 +814,12 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 
 // configureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
 // to add or replace the defaults to these paths
-func configureGeneratorGivenNamespacePaths(managedNamespaces []*sandbox.ManagedNamespace, g generate.Generator) error {
-	typeToSpec := map[sandbox.NSType]string{
-		sandbox.IPCNS:  spec.IPCNamespace,
-		sandbox.NETNS:  spec.NetworkNamespace,
-		sandbox.UTSNS:  spec.UTSNamespace,
-		sandbox.USERNS: spec.UserNamespace,
+func configureGeneratorGivenNamespacePaths(managedNamespaces []*libsandbox.ManagedNamespace, g generate.Generator) error {
+	typeToSpec := map[libsandbox.NSType]string{
+		libsandbox.IPCNS:  spec.IPCNamespace,
+		libsandbox.NETNS:  spec.NetworkNamespace,
+		libsandbox.UTSNS:  spec.UTSNamespace,
+		libsandbox.USERNS: spec.UserNamespace,
 	}
 
 	for _, ns := range managedNamespaces {
