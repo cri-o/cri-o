@@ -255,9 +255,6 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: setup environment
-          command: scripts/circle-setup
-      - run:
           name: test
           command: sudo bundle/test
 
