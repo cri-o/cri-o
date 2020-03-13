@@ -33,7 +33,7 @@ executors:
 
   container-base:
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
     <<: *stdenv
     working_directory: *workdir
 
@@ -376,7 +376,8 @@ jobs:
             - *gocache
 
   lint:
-    executor: container
+    # TODO: Use the `container` if golangci-lint supports go 1.14
+    executor: container-legacy
     steps:
       - checkout
       - restore_cache:
