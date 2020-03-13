@@ -27,7 +27,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.14.0"
+	Version = "1.14.2"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -408,6 +408,11 @@ type BuilderOptions struct {
 	Devices []configs.Device
 	//DefaultEnv for containers
 	DefaultEnv []string
+	// MaxPullRetries is the maximum number of attempts we'll make to pull
+	// any one image from the external registry if the first attempt fails.
+	MaxPullRetries int
+	// PullRetryDelay is how long to wait before retrying a pull attempt.
+	PullRetryDelay time.Duration
 }
 
 // ImportOptions are used to initialize a Builder from an existing container

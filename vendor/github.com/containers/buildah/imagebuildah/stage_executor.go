@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/buildah"
 	buildahdocker "github.com/containers/buildah/docker"
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker/reference"
@@ -316,8 +317,12 @@ func (s *StageExecutor) digestSpecifiedContent(node *parser.Node, argValues []st
 		} else {
 			// Source is not a URL, so it's a location relative to
 			// the all-content-comes-from-below-this-directory
-			// directory.
+			// directory.  Also raise an error if the src escapes
+			// the context directory.
 			contextSrc, err := securejoin.SecureJoin(contextDir, src)
+			if err == nil && strings.HasPrefix(src, "../") {
+				err = errors.New("escaping context directory error")
+			}
 			if err != nil {
 				return "", errors.Wrapf(err, "forbidden path for %q, it is outside of the build context %q", src, contextDir)
 			}
@@ -435,8 +440,12 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 				// Treat the source, which is not a URL, as a
 				// location relative to the
 				// all-content-comes-from-below-this-directory
-				// directory.
+				// directory.  Also raise an error if the src
+				// escapes the context directory.
 				srcSecure, err := securejoin.SecureJoin(contextDir, src)
+				if err == nil && strings.HasPrefix(src, "../") {
+					err = errors.New("escaping context directory error")
+				}
 				if err != nil {
 					return errors.Wrapf(err, "forbidden path for %q, it is outside of the build context %q", src, contextDir)
 				}
@@ -613,6 +622,8 @@ func (s *StageExecutor) prepare(ctx context.Context, stage imagebuilder.Stage, f
 		Format:                s.executor.outputFormat,
 		Capabilities:          s.executor.capabilities,
 		Devices:               s.executor.devices,
+		MaxPullRetries:        s.executor.maxPullPushRetries,
+		PullRetryDelay:        s.executor.retryPullPushDelay,
 	}
 
 	// Check and see if the image is a pseudonym for the end result of a
@@ -776,8 +787,12 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 		}
 	}
 	logImageID := func(imgID string) {
+		if len(imgID) > 11 {
+			imgID = imgID[0:11]
+		}
 		if s.executor.iidfile == "" {
-			fmt.Fprintf(s.executor.out, "%s\n", imgID)
+
+			fmt.Fprintf(s.executor.out, "--> %s\n", imgID)
 		}
 	}
 
@@ -1018,7 +1033,6 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			}
 		}
 	}
-
 	return imgID, ref, nil
 }
 
@@ -1212,6 +1226,8 @@ func (s *StageExecutor) commit(ctx context.Context, ib *imagebuilder.Builder, cr
 		EmptyLayer:            emptyLayer,
 		BlobDirectory:         s.executor.blobDirectory,
 		SignBy:                s.executor.signBy,
+		MaxRetries:            s.executor.maxPullPushRetries,
+		RetryDelay:            s.executor.retryPullPushDelay,
 	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {
@@ -1233,9 +1249,22 @@ func (s *StageExecutor) EnsureContainerPath(path string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring container path %q", path)
 	}
-	_, err = os.Lstat(targetPath)
+
+	_, err = os.Stat(targetPath)
 	if err != nil && os.IsNotExist(err) {
 		err = os.MkdirAll(targetPath, 0755)
+		if err != nil {
+			return errors.Wrapf(err, "error creating directory path %q", targetPath)
+		}
+		// get the uid and gid so that we can set the correct permissions on the
+		// working directory
+		uid, gid, _, err := chrootuser.GetUser(s.mountPoint, s.builder.User())
+		if err != nil {
+			return errors.Wrapf(err, "error getting uid and gid for user %q", s.builder.User())
+		}
+		if err = os.Chown(targetPath, int(uid), int(gid)); err != nil {
+			return errors.Wrapf(err, "error setting ownership on %q", targetPath)
+		}
 	}
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring container path %q", path)

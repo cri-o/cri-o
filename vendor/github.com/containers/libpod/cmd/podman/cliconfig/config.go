@@ -260,6 +260,7 @@ type LogsValues struct {
 	Tail       int64
 	Timestamps bool
 	Latest     bool
+	UseName    bool
 }
 
 type MountValues struct {
@@ -657,9 +658,10 @@ type VolumeRmValues struct {
 
 type CleanupValues struct {
 	PodmanCommand
-	All    bool
-	Latest bool
-	Remove bool
+	All         bool
+	Latest      bool
+	Remove      bool
+	RemoveImage bool
 }
 
 type SystemPruneValues struct {

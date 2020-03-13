@@ -9,9 +9,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
@@ -96,13 +99,40 @@ type Executor struct {
 	signBy                         string
 	architecture                   string
 	os                             string
+	maxPullPushRetries             int
+	retryPullPushDelay             time.Duration
 }
 
 // NewExecutor creates a new instance of the imagebuilder.Executor interface.
 func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Node) (*Executor, error) {
+	defaultContainerConfig, err := config.Default()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get container config")
+	}
+
 	excludes, err := imagebuilder.ParseDockerignore(options.ContextDirectory)
 	if err != nil {
 		return nil, err
+	}
+	capabilities := defaultContainerConfig.Capabilities("", options.AddCapabilities, options.DropCapabilities)
+
+	devices := []configs.Device{}
+	for _, device := range append(defaultContainerConfig.Containers.Devices, options.Devices...) {
+		dev, err := parse.DeviceFromPath(device)
+		if err != nil {
+			return nil, err
+		}
+		devices = append(dev, devices...)
+	}
+
+	transientMounts := []Mount{}
+	for _, volume := range append(defaultContainerConfig.Containers.Volumes, options.TransientMounts...) {
+		mount, err := parse.Volume(volume)
+		if err != nil {
+			return nil, err
+		}
+
+		transientMounts = append([]Mount{Mount(mount)}, transientMounts...)
 	}
 
 	exec := Executor{
@@ -115,7 +145,7 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		quiet:                          options.Quiet,
 		runtime:                        options.Runtime,
 		runtimeArgs:                    options.RuntimeArgs,
-		transientMounts:                options.TransientMounts,
+		transientMounts:                transientMounts,
 		compression:                    options.Compression,
 		output:                         options.Output,
 		outputFormat:                   options.OutputFormat,
@@ -149,12 +179,14 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		rootfsMap:                      make(map[string]bool),
 		blobDirectory:                  options.BlobDirectory,
 		unusedArgs:                     make(map[string]struct{}),
-		buildArgs:                      options.Args,
-		capabilities:                   options.Capabilities,
-		devices:                        options.Devices,
+		buildArgs:                      copyStringStringMap(options.Args),
+		capabilities:                   capabilities,
+		devices:                        devices,
 		signBy:                         options.SignBy,
 		architecture:                   options.Architecture,
 		os:                             options.OS,
+		maxPullPushRetries:             options.MaxPullPushRetries,
+		retryPullPushDelay:             options.PullPushRetryDelay,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -531,7 +563,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	if err := cleanup(); err != nil {
 		return "", nil, err
 	}
-
+	logrus.Debugf("printing final image id %q", imageID)
 	if b.iidfile != "" {
 		if err = ioutil.WriteFile(b.iidfile, []byte(imageID), 0644); err != nil {
 			return imageID, ref, errors.Wrapf(err, "failed to write image ID to file %q", b.iidfile)
@@ -541,7 +573,6 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			return imageID, ref, errors.Wrapf(err, "failed to write image ID to stdout")
 		}
 	}
-
 	return imageID, ref, nil
 }
 

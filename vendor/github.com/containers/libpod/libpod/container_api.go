@@ -9,10 +9,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/docker/docker/oci/caps"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -237,7 +237,7 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	}
 
 	if privileged || c.config.Privileged {
-		capList = caps.GetAllCapabilities()
+		capList = capabilities.AllCapabilities()
 	}
 
 	// Generate exec session ID
@@ -269,11 +269,6 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 			logrus.Errorf("Error removing exec session %s bundle path for container %s: %v", sessionID, c.ID(), err)
 		}
 	}()
-
-	// if the user is empty, we should inherit the user that the container is currently running with
-	if user == "" {
-		user = c.config.User
-	}
 
 	opts := new(ExecOptions)
 	opts.Cmd = cmd
@@ -400,7 +395,7 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 // HTTPAttach forwards an attach session over a hijacked HTTP session.
 // HTTPAttach will consume and close the included httpCon, which is expected to
 // be sourced from a hijacked HTTP connection.
-// The cancel channel is optional, and can be used to asyncronously cancel the
+// The cancel channel is optional, and can be used to asynchronously cancel the
 // attach session.
 // The streams variable is only supported if the container was not a terminal,
 // and allows specifying which of the container's standard streams will be
@@ -627,6 +622,26 @@ func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 			return c.state.ExitCode, nil
 		}
 	}
+}
+
+func (c *Container) WaitForConditionWithInterval(waitTimeout time.Duration, condition define.ContainerStatus) (int32, error) {
+	if !c.valid {
+		return -1, define.ErrCtrRemoved
+	}
+	if condition == define.ContainerStateStopped || condition == define.ContainerStateExited {
+		return c.WaitWithInterval(waitTimeout)
+	}
+	for {
+		state, err := c.State()
+		if err != nil {
+			return -1, err
+		}
+		if state == condition {
+			break
+		}
+		time.Sleep(waitTimeout)
+	}
+	return -1, nil
 }
 
 // Cleanup unmounts all mount points in container and cleans up container storage

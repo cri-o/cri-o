@@ -739,6 +739,7 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 
 	for vol := range config.BuiltinImgVolumes {
 		cleanDest := filepath.Clean(vol)
+		logrus.Debugf("Adding image volume at %s", cleanDest)
 		if config.ImageVolumeType == "tmpfs" {
 			// Tmpfs image volumes are handled as mounts
 			mount := spec.Mount{
@@ -747,13 +748,13 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 				Type:        TypeTmpfs,
 				Options:     []string{"rprivate", "rw", "nodev", "exec"},
 			}
-			mounts[vol] = mount
+			mounts[cleanDest] = mount
 		} else {
 			// Anonymous volumes have no name.
 			namedVolume := new(libpod.ContainerNamedVolume)
 			namedVolume.Options = []string{"rprivate", "rw", "nodev", "exec"}
 			namedVolume.Dest = cleanDest
-			volumes[vol] = namedVolume
+			volumes[cleanDest] = namedVolume
 		}
 	}
 
@@ -825,7 +826,7 @@ func (config *CreateConfig) addContainerInitBinary(path string) (spec.Mount, err
 // TODO: Should we unmount subtree mounts? E.g., if /tmp/ is mounted by
 // one mount, and we already have /tmp/a and /tmp/b, should we remove
 // the /tmp/a and /tmp/b mounts in favor of the more general /tmp?
-func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
+func SupercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
 	if len(mounts) > 0 {
 		// If we have overlappings mounts, remove them from the spec in favor of
 		// the user-added volume mounts
@@ -854,7 +855,7 @@ func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 }
 
 // Ensure mount options on all mounts are correct
-func initFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
+func InitFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
 	// We need to look up mounts so we can figure out the proper mount flags
 	// to apply.
 	systemMounts, err := pmount.GetMounts()
