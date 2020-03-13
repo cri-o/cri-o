@@ -4,9 +4,9 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/crio/crio-build-amd64-go1.13:1.18-1.2.0
-    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.12:1.18-1.2.0
-    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.13:1.18-1.2.0
+    IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.1
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.12:master-1.3.1
+    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.1
     IMAGENIX: &imagenix quay.io/crio/nix:1.2.0
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
@@ -33,7 +33,7 @@ executors:
 
   container-base:
     docker:
-      - image: circleci/golang:1.13
+      - image: golang:1.14
     <<: *stdenv
     working_directory: *workdir
 
@@ -133,6 +133,9 @@ workflows:
       - lint:
           filters: *filterAllTags
 
+      - release-notes:
+          filters: *filterAllTags
+
       - results:
           requires:
             - bundle-test
@@ -141,6 +144,7 @@ workflows:
             - integration-static-glibc
             - integration-static-musl
             - integration-userns
+            - release-notes
             - unit-tests
           filters: *filterAllTags
 
@@ -170,7 +174,7 @@ jobs:
           name: Show CRI-O version
           command: ./bin/crio version
       - run:
-          command: make crio.conf
+          command: make crio.conf.d
       - run:
           command: make docs -j $JOBS
       - save_cache:
@@ -182,7 +186,7 @@ jobs:
           root: .
           paths:
             - bin
-            - crio.conf
+            - build/crio.conf.d/00-default.conf
             - docs
 
   build-static:
@@ -390,11 +394,54 @@ jobs:
           paths:
             - *gocache
 
+  release-notes:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-release-notes-{{ checksum "go.sum" }}
+      - run:
+          name: Generate Release Notes
+          command: |
+            if [[ -z $GITHUB_TOKEN ]]; then
+              echo Skipping release notes generation
+              mkdir -p build/release-notes
+            else
+              make release-notes
+            fi
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/release-notes
+      - save_cache:
+          key: v1-release-notes-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+
   results:
-    executor: container-base
+    executor: container
     steps:
       - attach_workspace:
           at: .
+      - run:
+          name: Upload to Google Cloud Bucket
+          command: |
+            if [[ -z $GCS_BUCKET_SA ]]; then
+              echo Skipping upload because GCB Service Account is not available
+            else
+              echo $GCS_BUCKET_SA > /tmp/key.json
+              gcloud auth activate-service-account --key-file=/tmp/key.json
+
+              BUCKET=gs://k8s-conform-cri-o
+              gsutil cp bundle/*.tar.gz $BUCKET/artifacts
+
+              if [[ -z $GITHUB_TOKEN ]]; then
+                echo Skipping release notes upload
+              else
+                gsutil cp build/release-notes/*.md $BUCKET/release-notes
+              fi
+            fi
       - store_test_results:
           path: build/junit
       - store_artifacts:

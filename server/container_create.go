@@ -15,12 +15,14 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/utils"
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/pkg/errors"
 	seccomp "github.com/seccomp/containers-golang"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -545,22 +547,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %v", sbID)
 	}
 
-	// The config of the container
-	containerConfig := req.GetConfig()
-	if containerConfig == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig is nil")
+	ctr := container.New(ctx)
+	if err := ctr.SetConfig(req.GetConfig()); err != nil {
+		return nil, errors.Wrapf(err, "setting container config")
 	}
 
-	if containerConfig.GetMetadata() == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Metadata is nil")
-	}
-
-	name := containerConfig.GetMetadata().GetName()
-	if name == "" {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
-	}
-
-	containerID, containerName, err := s.ReserveContainerIDandName(sb.Metadata(), containerConfig)
+	containerID, containerName, err := s.ReserveContainerIDandName(sb.Metadata(), ctr.Config())
 	if err != nil {
 		return nil, err
 	}
@@ -571,7 +563,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	container, err := s.createSandboxContainer(ctx, containerID, containerName, sb, req.GetSandboxConfig(), containerConfig)
+	newContainer, err := s.createSandboxContainer(ctx, containerID, containerName, sb, req.GetSandboxConfig(), ctr.Config())
 	if err != nil {
 		return nil, err
 	}
@@ -584,10 +576,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	s.addContainer(container)
+	s.addContainer(newContainer)
 	defer func() {
 		if err != nil {
-			s.removeContainer(container)
+			s.removeContainer(newContainer)
 		}
 	}()
 
@@ -602,21 +594,21 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err := s.createContainerPlatform(container, sb.CgroupParent()); err != nil {
+	if err := s.createContainerPlatform(newContainer, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
-	if err := s.ContainerStateToDisk(container); err != nil {
-		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
+	if err := s.ContainerStateToDisk(newContainer); err != nil {
+		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
-	container.SetCreated()
+	newContainer.SetCreated()
 
-	if err := s.MonitorConmon(container); err != nil {
+	if err := s.MonitorConmon(newContainer); err != nil {
 		log.Errorf(ctx, "%v", err)
 	}
 
-	log.Infof(ctx, "Created container %s: %s", container.ID(), container.Description())
+	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
 	}

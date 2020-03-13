@@ -24,6 +24,7 @@ import (
 	"go/build"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"log"
 	"path"
 	"path/filepath"
@@ -48,19 +49,10 @@ func sourceMode(source string) (*model.Package, error) {
 		return nil, fmt.Errorf("failed getting source directory: %v", err)
 	}
 
-	cfg := &packages.Config{Mode: packages.LoadFiles, Tests: true, Dir: srcDir}
-	pkgs, err := packages.Load(cfg, "file="+source)
+	packageImport, err := parsePackageImport(source, srcDir)
 	if err != nil {
 		return nil, err
 	}
-	if packages.PrintErrors(pkgs) > 0 || len(pkgs) == 0 {
-		return nil, errors.New("loading package failed")
-	}
-
-	packageImport := pkgs[0].PkgPath
-
-	// It is illegal to import a _test package.
-	packageImport = strings.TrimSuffix(packageImport, "_test")
 
 	fs := token.NewFileSet()
 	file, err := parser.ParseFile(fs, source, nil, 0)
@@ -440,6 +432,15 @@ func (p *fileParser) parseType(pkg string, typ ast.Expr) (model.Type, error) {
 // importsOfFile returns a map of package name to import path
 // of the imports in file.
 func importsOfFile(file *ast.File) (normalImports map[string]string, dotImports []string) {
+	var importPaths []string
+	for _, is := range file.Imports {
+		if is.Name != nil {
+			continue
+		}
+		importPath := is.Path.Value[1 : len(is.Path.Value)-1] // remove quotes
+		importPaths = append(importPaths, importPath)
+	}
+	packagesName := createPackageMap(importPaths)
 	normalImports = make(map[string]string)
 	dotImports = make([]string, 0)
 	for _, is := range file.Imports {
@@ -453,7 +454,7 @@ func importsOfFile(file *ast.File) (normalImports map[string]string, dotImports 
 			}
 			pkgName = is.Name.Name
 		} else {
-			pkg, ok := lookupPackageName(importPath)
+			pkg, ok := packagesName[importPath]
 			if !ok {
 				// Fallback to import path suffix. Note that this is uncertain.
 				_, last := path.Split(importPath)
@@ -518,4 +519,47 @@ func isVariadic(f *ast.FuncType) bool {
 	}
 	_, ok := f.Params.List[nargs-1].Type.(*ast.Ellipsis)
 	return ok
+}
+
+// packageNameOfDir get package import path via dir
+func packageNameOfDir(srcDir string) (string, error) {
+	files, err := ioutil.ReadDir(srcDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var goFilePath string
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".go") {
+			goFilePath = file.Name()
+			break
+		}
+	}
+	if goFilePath == "" {
+		return "", fmt.Errorf("go source file not found %s", srcDir)
+	}
+
+	packageImport, err := parsePackageImport(goFilePath, srcDir)
+	if err != nil {
+		return "", err
+	}
+	return packageImport, nil
+}
+
+// parseImportPackage get package import path via source file
+func parsePackageImport(source, srcDir string) (string, error) {
+	cfg := &packages.Config{Mode: packages.LoadFiles, Tests: true, Dir: srcDir}
+	pkgs, err := packages.Load(cfg, "file="+source)
+	if err != nil {
+		return "", err
+	}
+	if packages.PrintErrors(pkgs) > 0 || len(pkgs) == 0 {
+		return "", errors.New("loading package failed")
+	}
+
+	packageImport := pkgs[0].PkgPath
+
+	// It is illegal to import a _test package.
+	packageImport = strings.TrimSuffix(packageImport, "_test")
+	return packageImport, nil
 }

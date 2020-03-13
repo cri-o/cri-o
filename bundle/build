@@ -17,11 +17,12 @@ FILES_BIN=(
 FILES_MAN=(
     "../docs/crio.8"
     "../docs/crio.conf.5"
+    "../docs/crio.conf.d.5"
 )
 FILES_ETC=(
     "../crictl.yaml"
     "../crio-umount.conf"
-    "../crio.conf"
+    "../build/crio.conf.d/00-default.conf"
 )
 FILES_CONTRIB=(
     "../contrib/cni/10-crio-bridge.conf"

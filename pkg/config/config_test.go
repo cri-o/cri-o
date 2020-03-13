@@ -707,15 +707,63 @@ var _ = t.Describe("Config", func() {
 	})
 
 	t.Describe("UpdateFromFile", func() {
-		It("should succeed with default config", func() {
+		It("should succeed with custom config", func() {
 			// Given
+			f := t.MustTempFile("config")
+			Expect(ioutil.WriteFile(f,
+				[]byte(`
+					[crio]
+					storage_driver = "overlay2"
+					[crio.runtime]
+					pids_limit = 2048`,
+				), 0),
+			).To(BeNil())
+
 			// When
-			err := sut.UpdateFromFile("testdata/config.toml")
+			err := sut.UpdateFromFile(f)
 
 			// Then
 			Expect(err).To(BeNil())
 			Expect(sut.Storage).To(Equal("overlay2"))
+			Expect(sut.Runtimes).To(HaveLen(1))
+			Expect(sut.Runtimes).To(HaveKey("runc"))
 			Expect(sut.PidsLimit).To(BeEquivalentTo(2048))
+		})
+
+		It("should succeed with custom runtime", func() {
+			// Given
+			f := t.MustTempFile("config")
+			Expect(ioutil.WriteFile(f,
+				[]byte("[crio.runtime.runtimes.crun]"), 0),
+			).To(BeNil())
+
+			// When
+			err := sut.UpdateFromFile(f)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.Runtimes).To(HaveLen(1))
+			Expect(sut.Runtimes).To(HaveKey("crun"))
+		})
+
+		It("should succeed with additional runtime", func() {
+			// Given
+			f := t.MustTempFile("config")
+			Expect(ioutil.WriteFile(f,
+				[]byte(`
+					[crio.runtime.runtimes.runc]
+					[crio.runtime.runtimes.crun]
+				`), 0),
+			).To(BeNil())
+
+			// When
+			err := sut.UpdateFromFile(f)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.Runtimes).To(HaveLen(2))
+			Expect(sut.Runtimes).To(HaveKey("crun"))
+			Expect(sut.Runtimes).To(HaveKey("runc"))
 		})
 
 		It("should fail when file does not exist", func() {

@@ -109,13 +109,13 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--additional-devices**="": Devices to add to the containers  (default: [])
 
-**--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation. (default: "crio-default")
+**--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation. (default: crio-default)
 
 **--bind-mount-prefix**="": A prefix to use for the source of the bind mounts. This option would be useful if you were running CRI-O in a container. And had `/` mounted on `/host` in your container. Then if you ran CRI-O with the `--bind-mount-prefix=/host` option, CRI-O would add /host to any bind mounts it is handed over CRI. If Kubernetes asked to have `/var/lib/foobar` bind mounted into the container, then CRI-O would bind mount `/host/var/lib/foobar`. Since CRI-O itself is running in a container with `/` or the host mounted on `/host`, the container would end up with `/var/lib/foobar` from the host mounted in the container rather then `/var/lib/foobar` from the CRI-O container. (default: "")
 
-**--cgroup-manager**="": cgroup manager (cgroupfs or systemd) (default: "systemd")
+**--cgroup-manager**="": cgroup manager (cgroupfs or systemd) (default: systemd)
 
-**--cni-config-dir**="": CNI configuration files directory (default: "/etc/cni/net.d/")
+**--cni-config-dir**="": CNI configuration files directory (default: /etc/cni/net.d/)
 
 **--cni-plugin-dir**="": CNI plugin binaries directory (default: [])
 
@@ -127,24 +127,24 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
     configuration file named '00-default' has a lower priority than a file
     named '01-my-overwrite'.
     The global config file, provided via '--config,-c' or per default in
-	/etc/crio/crio.conf, always has a lower priority than the files in the directory specified
-	by '--config-dir,-d'.
-	Beside that, provided command line parameters still have a higher priority
-	than any configuration file. (default: /etc/crio/crio.conf.d)
+    /etc/crio/crio.conf, always has a lower priority than the files in the directory specified
+    by '--config-dir,-d'.
+    Besides that, provided command line parameters have a higher priority
+    than any configuration file. (default: /etc/crio/crio.conf.d)
 
 **--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: "")
 
-**--conmon-cgroup**="": cgroup to be used for conmon process (default: "system.slice")
+**--conmon-cgroup**="": cgroup to be used for conmon process (default: system.slice)
 
 **--conmon-env**="": Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: [PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin])
 
-**--container-attach-socket-dir**="": Path to directory for container attach sockets (default: "/var/run/crio")
+**--container-attach-socket-dir**="": Path to directory for container attach sockets (default: /var/run/crio)
 
-**--container-exits-dir**="": Path to directory in which container exit files are written to by conmon (default: "/var/run/crio/exits")
+**--container-exits-dir**="": Path to directory in which container exit files are written to by conmon (default: /var/run/crio/exits)
 
 **--ctr-stop-timeout**="": The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container. The lowest possible value is 30s, whereas lower values are not considered by CRI-O (default: 30)
 
-**--decryption-keys-path**="": Path to load keys for image decryption. (default: "/etc/crio/keys/")
+**--decryption-keys-path**="": Path to load keys for image decryption. (default: /etc/crio/keys/)
 
 **--default-capabilities**="": Capabilities to add to the containers (default: ["CHOWN" "DAC_OVERRIDE" "FSETID" "FOWNER" "NET_RAW" "SETGID" "SETUID" "SETPCAP" "NET_BIND_SERVICE" "SYS_CHROOT" "KILL"])
 
@@ -152,11 +152,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--default-mounts-file**="": Path to default mounts file (default: "")
 
-**--default-runtime**="": Default OCI runtime from the runtimes config (default: "runc")
+**--default-runtime**="": Default OCI runtime from the runtimes config (default: runc)
 
 **--default-sysctls**="": Sysctls to add to the containers (default: []) (default: [])
 
-**--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is (default: "docker://")
+**--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is (default: docker://)
 
 **--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: []) (default: [])
 
@@ -172,7 +172,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--help, -h**: show help
 
-**--hooks-dir**="": Set the OCI hooks directory path (may be set multiple times) (default: ["/usr/share/containers/oci/hooks.d"])
+**--hooks-dir**="": Set the OCI hooks directory path (may be set multiple times)
     If one of the directories does not exist, then CRI-O will automatically
     skip them.
     Each '\*.json' file in the path configures a hook for CRI-O
@@ -190,7 +190,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
     the Kubernetes annotations being matched for hooks.
     For the bind-mount conditions, only mounts explicitly requested by
     Kubernetes configuration are considered. Bind mounts that CRI-O
-    inserts by default (e.g. '/dev/shm') are not considered. (default: [])
+    inserts by default (e.g. '/dev/shm') are not considered. (default: [/usr/share/containers/oci/hooks.d])
 
 **--image-volumes**="": Image volume handling ('mkdir', 'bind', or 'ignore')
     1. mkdir: A directory is created inside the container root filesystem for
@@ -210,11 +210,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        their CA to their system's list of trusted CAs instead of using
        '--insecure-registry'. (default: [])
 
-**--listen**="": Path to the CRI-O socket (default: "/var/run/crio/crio.sock")
+**--listen**="": Path to the CRI-O socket (default: /var/run/crio/crio.sock)
 
 **--log**="": Set the log file path where internal debug information is written
 
-**--log-dir**="": Default log directory where all logs will go unless directly specified by the kubelet
+**--log-dir**="": Default log directory where all logs will go unless directly specified by the kubelet (default: /var/log/crio/pods)
 
 **--log-filter**="": Filter the log messages by the provided regular expression. For example 'request.\*' filters all gRPC requests.
 
@@ -232,13 +232,13 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
 
-**--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: "/var/run/crio/ns")
+**--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: /var/run/crio/ns)
 
 **--no-pivot**: If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: false)
 
-**--pause-command**="": Path to the pause executable in the pause image (default: "/pause")
+**--pause-command**="": Path to the pause executable in the pause image (default: /pause)
 
-**--pause-image**="": Image which contains the pause executable (default: "k8s.gcr.io/pause:3.1")
+**--pause-image**="": Image which contains the pause executable (default: k8s.gcr.io/pause:3.1)
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 
@@ -254,9 +254,9 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--registry**="": Registry to be prepended when pulling unqualified images, can be specified multiple times (default: [])
 
-**--root, -r**="": The CRI-O root directory (default: "/var/lib/containers/storage")
+**--root, -r**="": The CRI-O root directory (default: /var/lib/containers/storage)
 
-**--runroot**="": The CRI-O state directory (default: "/var/run/containers/storage")
+**--runroot**="": The CRI-O state directory (default: /var/run/containers/storage)
 
 **--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root (default: [])
 
@@ -270,11 +270,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--storage-opt**="": OCI storage driver option (default: [])
 
-**--stream-address**="": Bind address for streaming socket (default: "127.0.0.1")
+**--stream-address**="": Bind address for streaming socket (default: 127.0.0.1)
 
 **--stream-enable-tls**: Enable encrypted TLS transport of the stream server (default: false)
 
-**--stream-port**="": Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number. (default: "0")
+**--stream-port**="": Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number. (default: 0)
 
 **--stream-tls-ca**="": Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")
 
@@ -351,4 +351,5 @@ Shows a list of commands or help for one command
 
 # SEE ALSO
 
-crio.conf(5), oci-hooks(5), policy.json(5), registries.conf(5), storage.conf(5)
+crio.conf(5), crio.conf.d(5), oci-hooks(5), policy.json(5), registries.conf(5),
+storage.conf(5)

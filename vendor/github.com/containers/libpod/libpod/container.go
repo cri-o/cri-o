@@ -135,6 +135,9 @@ type Container struct {
 	rootlessSlirpSyncR *os.File
 	rootlessSlirpSyncW *os.File
 
+	rootlessPortSyncR *os.File
+	rootlessPortSyncW *os.File
+
 	// A restored container should have the same IP address as before
 	// being checkpointed. If requestedIP is set it will be used instead
 	// of config.StaticIP.
@@ -241,7 +244,7 @@ type ContainerConfig struct {
 	// UID/GID mappings used by the storage
 	IDMappings storage.IDMappingOptions `json:"idMappingsOptions,omitempty"`
 
-	// Information on the image used for the root filesystem/
+	// Information on the image used for the root filesystem
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
 	// Rootfs to use for the container, this conflicts with RootfsImageID
@@ -370,12 +373,17 @@ type ContainerConfig struct {
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
 	// NoCgroups indicates that the container will not create CGroups. It is
-	// incompatible with CgroupParent.
+	// incompatible with CgroupParent.  Deprecated in favor of CgroupsMode.
 	NoCgroups bool `json:"noCgroups,omitempty"`
+	// CgroupsMode indicates how the container will create cgroups
+	// (disabled, no-conmon, enabled).  It supersedes NoCgroups.
+	CgroupsMode string `json:"cgroupsMode,omitempty"`
 	// Cgroup parent of the container
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
+	// LogTag is the tag used for logging
+	LogTag string `json:"logTag"`
 	// LogDriver driver for logs
 	LogDriver string `json:"logDriver"`
 	// File containing the conmon PID
@@ -467,11 +475,9 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 		if err := json.Unmarshal(content, &returnSpec); err != nil {
 			return nil, errors.Wrapf(err, "error unmarshalling container config")
 		}
-	} else {
+	} else if !os.IsNotExist(err) {
 		// ignore when the file does not exist
-		if !os.IsNotExist(err) {
-			return nil, errors.Wrapf(err, "error opening container config")
-		}
+		return nil, errors.Wrapf(err, "error opening container config")
 	}
 
 	return returnSpec, nil
@@ -721,6 +727,11 @@ func (c *Container) CgroupParent() string {
 // in the runtime
 func (c *Container) LogPath() string {
 	return c.config.LogPath
+}
+
+// LogTag returns the tag to the container's log file
+func (c *Container) LogTag() string {
+	return c.config.LogTag
 }
 
 // RestartPolicy returns the container's restart policy.

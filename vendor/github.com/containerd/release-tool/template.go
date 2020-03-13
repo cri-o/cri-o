@@ -51,10 +51,10 @@ https://github.com/{{.GithubRepo}}/issues.
 {{- end}}
 
 ### Dependency Changes
-
-Previous release can be found at [{{.Previous}}](https://github.com/{{.GithubRepo}}/releases/tag/{{.Previous}})
 {{range $dep := .Dependencies}}
 * **{{$dep.Name}}**	{{if $dep.Previous}}{{$dep.Previous}} -> {{$dep.Commit}}{{else}}{{$dep.Commit}} **_new_**{{end}}
 {{- end}}
+
+Previous release can be found at [{{.Previous}}](https://github.com/{{.GithubRepo}}/releases/tag/{{.Previous}})
 `
 )

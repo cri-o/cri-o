@@ -1,8 +1,8 @@
 # CRI-O Metrics
 
 To enable the [Prometheus][0] metrics exporter for CRI-O, either start `crio`
-with `--metrics-enable` or set the corresponding option in
-`/etc/crio/crio.conf`:
+with `--metrics-enable` or add the corresponding option to a config overwrite,
+for example `/etc/crio/crio.conf.d/01-metrics.conf`:
 
 ```toml
 [crio.metrics]

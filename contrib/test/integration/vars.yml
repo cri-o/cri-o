@@ -20,7 +20,7 @@ result_dest_basedir: '{{ lookup("env","WORKSPACE") |
 
 # Environment variables to set when executing integration tests
 int_test_env:
-    CGROUP_MANAGER: "cgroupfs"
+    CGROUP_MANAGER: "systemd"
     STORAGE_OPTIONS: >
         --storage-driver=overlay
 

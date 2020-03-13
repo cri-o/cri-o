@@ -14,14 +14,19 @@ var _ = t.Describe("Log", func() {
 	var ctx context.Context
 
 	const (
-		msg = "Hello world"
-		id  = "some-id"
+		msg  = "Hello world"
+		id   = "some-id"
+		name = "some-name"
 	)
 
 	idEntry := "id=" + id
+	nameEntry := "name=" + name
 
 	BeforeEach(func() {
-		ctx = context.WithValue(context.Background(), log.ID{}, id)
+		ctx = context.WithValue(
+			context.WithValue(context.Background(), log.ID{}, id),
+			log.Name{}, name,
+		)
 	})
 
 	t.Describe("Debugf", func() {
@@ -35,6 +40,7 @@ var _ = t.Describe("Log", func() {
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
 			Expect(buf.String()).To(ContainSubstring(idEntry))
+			Expect(buf.String()).To(ContainSubstring(nameEntry))
 		})
 
 		It("should succeed to debug on empty context", func() {
@@ -45,6 +51,7 @@ var _ = t.Describe("Log", func() {
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
 			Expect(buf.String()).ToNot(ContainSubstring(idEntry))
+			Expect(buf.String()).ToNot(ContainSubstring(nameEntry))
 		})
 
 		It("should succeed to debug on nil context", func() {
@@ -55,6 +62,7 @@ var _ = t.Describe("Log", func() {
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
 			Expect(buf.String()).ToNot(ContainSubstring(idEntry))
+			Expect(buf.String()).ToNot(ContainSubstring(nameEntry))
 		})
 	})
 
@@ -69,6 +77,7 @@ var _ = t.Describe("Log", func() {
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
 			Expect(buf.String()).To(ContainSubstring(idEntry))
+			Expect(buf.String()).To(ContainSubstring(nameEntry))
 		})
 
 		It("should not debug log", func() {
@@ -92,6 +101,7 @@ var _ = t.Describe("Log", func() {
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
 			Expect(buf.String()).To(ContainSubstring(idEntry))
+			Expect(buf.String()).To(ContainSubstring(nameEntry))
 		})
 
 		It("should not info log", func() {
@@ -115,6 +125,7 @@ var _ = t.Describe("Log", func() {
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
 			Expect(buf.String()).To(ContainSubstring(idEntry))
+			Expect(buf.String()).To(ContainSubstring(nameEntry))
 		})
 
 		It("should not warn log", func() {

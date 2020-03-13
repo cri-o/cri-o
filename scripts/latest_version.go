@@ -7,6 +7,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -27,7 +28,14 @@ const (
 	sort        = "sort"
 )
 
+var noBumpVersion = false
+
 func main() {
+	// Parse CLI flags
+	flag.BoolVar(&noBumpVersion, "no-bump-version", false,
+		"do not increment the version")
+	flag.Parse()
+
 	// Disable any logs
 	logrus.SetOutput(ioutil.Discard)
 
@@ -88,7 +96,7 @@ func main() {
 			tag = incVersion(lsRemoteRes.Output(), branch)
 		}
 	} else {
-		tag = describeRes.Output()
+		tag = decVersion(describeRes.Output())
 	}
 	tag = strings.TrimSpace(tag)
 
@@ -96,6 +104,11 @@ func main() {
 }
 
 func incVersion(tag, branch string) string {
+	// Do nothing if no version bump is required
+	if noBumpVersion {
+		return tag
+	}
+
 	sv, err := util.TagStringToSemver(strings.TrimSpace(tag))
 	if err != nil {
 		panic(err)
@@ -107,6 +120,30 @@ func incVersion(tag, branch string) string {
 		sv.Minor++
 	}
 	sv.Pre = []semver.PRVersion{{VersionStr: "dev"}}
+
+	return sv.String()
+}
+
+func decVersion(tag string) string {
+	// Do nothing if version bump is required
+	if !noBumpVersion {
+		return tag
+	}
+
+	sv, err := util.TagStringToSemver(strings.TrimSpace(tag))
+	if err != nil {
+		panic(err)
+	}
+
+	if sv.Patch > 0 { // nolint: gocritic
+		sv.Patch--
+	} else if sv.Minor > 0 {
+		sv.Minor--
+	} else if sv.Major > 0 {
+		sv.Major--
+	} else {
+		panic(fmt.Sprintf("unable to decrement version %v", sv))
+	}
 
 	return sv.String()
 }

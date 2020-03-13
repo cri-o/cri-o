@@ -34,6 +34,10 @@ JUNIT_PATH := ${BUILD_PATH}/junit
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
 
+CRIO_CONFD_DIR := crio.conf.d
+CRIO_CONFIG_DEFAULT := 00-default.conf
+BUILD_CONFIG_PATH := ${BUILD_PATH}/${CRIO_CONFD_DIR}/${CRIO_CONFIG_DEFAULT}
+
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 FISHINSTALLDIR=${PREFIX}/share/fish/completions
 ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
@@ -49,6 +53,7 @@ MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
+RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
 	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
@@ -60,7 +65,7 @@ else
 	GIT_MERGE_BASE := HEAD^
 endif
 
-# pass crio CLI options to generate custom crio.conf build time
+# pass crio CLI options to generate custom configuration options at build time
 CONF_OVERRIDES ?=
 
 CROSS_BUILD_TARGETS := \
@@ -92,14 +97,16 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
 
 LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
-TESTIMAGE_VERSION := master-1.2.0
+TESTIMAGE_VERSION := master-1.3.0
 TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
 TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.2.0
 
-all: binaries crio.conf docs
+all: binaries config docs
+
+config: ${BUILD_CONFIG_PATH}
 
 default: help
 
@@ -149,13 +156,31 @@ build-static:
 		mkdir -p cri-o/bin && \
 		cp result-*bin/bin/crio-* cri-o/bin"
 
-release-bundle: clean bin/pinns build-static docs crio.conf bundle
+release-bundle: clean bin/pinns build-static docs config bundle
 
-crio.conf: bin/crio
-	./bin/crio --config="" $(CONF_OVERRIDES) config  > crio.conf
+${CRIO_CONFD_DIR}: ${BUILD_CONFIG_PATH}
+
+${BUILD_CONFIG_PATH}: bin/crio
+	mkdir -p $(dir ${BUILD_CONFIG_PATH})
+	./bin/crio --config="" $(CONF_OVERRIDES) config > ${BUILD_CONFIG_PATH}
 
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
+
+release-notes: ${RELEASE_NOTES}
+	# A valid GITHUB_TOKEN has to be exported to let this work
+	TAG=v$(shell $(GO_RUN) ./scripts/latest_version.go --no-bump-version) &&\
+	OUTPATH=${BUILD_PATH}/release-notes &&\
+	mkdir -p $$OUTPATH &&\
+	${RELEASE_NOTES} \
+		--github-org cri-o \
+		--github-repo cri-o \
+		--required-author "" \
+		--repo-path /tmp/cri-o-repo \
+		--start-rev $$TAG \
+		--end-sha $(COMMIT_NO) \
+		--output $$OUTPATH/$(COMMIT_NO).md &&\
+	sed -i '1s;^;# $(VERSION)\n\n;' $$OUTPATH/$(COMMIT_NO).md
 
 clean:
 ifneq ($(GOPATH),)
@@ -190,8 +215,8 @@ local-image:
 	$(TESTIMAGE_SCRIPT)
 
 test-images:
-	$(TESTIMAGE_SCRIPT) -g 1.13 -a amd64
-	$(TESTIMAGE_SCRIPT) -g 1.13 -a 386
+	$(TESTIMAGE_SCRIPT) -g 1.14 -a amd64
+	$(TESTIMAGE_SCRIPT) -g 1.14 -a 386
 	$(TESTIMAGE_SCRIPT) -g 1.12 -a amd64
 
 test-image-nix:
@@ -240,9 +265,12 @@ ${GIT_VALIDATION}:
 ${RELEASE_TOOL}:
 	$(call go-build,./vendor/github.com/containerd/project/cmd/release-tool)
 
+${RELEASE_NOTES}:
+	$(call go-build,./vendor/k8s.io/release/cmd/release-notes)
+
 ${GOLANGCI_LINT}:
 	export \
-		VERSION=v1.23.3 \
+		VERSION=v1.23.8 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
@@ -383,9 +411,9 @@ install.man: $(MANPAGES)
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 
-install.config: crio.conf
+install.config: ${BUILD_CONFIG_PATH}
 	install ${SELINUXOPT} -d $(DATAROOTDIR)/oci/hooks.d
-	install ${SELINUXOPT} -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
+	install ${SELINUXOPT} -D -m 644 $(BUILD_CONFIG_PATH) $(ETCDIR_CRIO)/$(CRIO_CONFD_DIR)/$(CRIO_CONFIG_DEFAULT)
 	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	install ${SELINUXOPT} -D -m 644 crictl.yaml $(CRICTL_CONFIG_DIR)
 
@@ -432,6 +460,7 @@ docs-validation:
 	$(GO_RUN) -tags "$(BUILDTAGS)" ./test/docs-validation
 
 .PHONY: \
+	${CRIO_CONFD_DIR} \
 	.explicit_phony \
 	git-validation \
 	binaries \
@@ -439,6 +468,7 @@ docs-validation:
 	build-static \
 	clean \
 	completions \
+	config \
 	default \
 	docs \
 	docs-validation \

@@ -17,6 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ToCreateOptions converts the input to a slice of container create options.
 func (c *NetworkConfig) ToCreateOptions(runtime *libpod.Runtime, userns *UserConfig) ([]libpod.CtrCreateOption, error) {
 	var portBindings []ocicni.PortMapping
 	var err error
@@ -43,7 +44,8 @@ func (c *NetworkConfig) ToCreateOptions(runtime *libpod.Runtime, userns *UserCon
 		}
 	}
 
-	if c.NetMode.IsNS() {
+	switch {
+	case c.NetMode.IsNS():
 		ns := c.NetMode.NS()
 		if ns == "" {
 			return nil, errors.Errorf("invalid empty user-defined network namespace")
@@ -52,13 +54,13 @@ func (c *NetworkConfig) ToCreateOptions(runtime *libpod.Runtime, userns *UserCon
 		if err != nil {
 			return nil, err
 		}
-	} else if c.NetMode.IsContainer() {
+	case c.NetMode.IsContainer():
 		connectedCtr, err := runtime.LookupContainer(c.NetMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.Container())
 		}
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
-	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
+	case !c.NetMode.IsHost() && !c.NetMode.IsNone():
 		postConfigureNetNS := userns.getPostConfigureNetNS()
 		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, string(c.NetMode), networks))
 	}
@@ -97,31 +99,35 @@ func (c *NetworkConfig) ToCreateOptions(runtime *libpod.Runtime, userns *UserCon
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator based according to the current
+// state of the NetworkConfig.
 func (c *NetworkConfig) ConfigureGenerator(g *generate.Generator) error {
 	netMode := c.NetMode
-	if netMode.IsHost() {
+	netCtr := netMode.Container()
+	switch {
+	case netMode.IsHost():
 		logrus.Debug("Using host netmode")
 		if err := g.RemoveLinuxNamespace(string(spec.NetworkNamespace)); err != nil {
 			return err
 		}
-	} else if netMode.IsNone() {
+	case netMode.IsNone():
 		logrus.Debug("Using none netmode")
-	} else if netMode.IsBridge() {
+	case netMode.IsBridge():
 		logrus.Debug("Using bridge netmode")
-	} else if netCtr := netMode.Container(); netCtr != "" {
+	case netCtr != "":
 		logrus.Debugf("using container %s netmode", netCtr)
-	} else if IsNS(string(netMode)) {
+	case IsNS(string(netMode)):
 		logrus.Debug("Using ns netmode")
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), NS(string(netMode))); err != nil {
 			return err
 		}
-	} else if IsPod(string(netMode)) {
+	case IsPod(string(netMode)):
 		logrus.Debug("Using pod netmode, unless pod is not sharing")
-	} else if netMode.IsSlirp4netns() {
+	case netMode.IsSlirp4netns():
 		logrus.Debug("Using slirp4netns netmode")
-	} else if netMode.IsUserDefined() {
+	case netMode.IsUserDefined():
 		logrus.Debug("Using user defined netmode")
-	} else {
+	default:
 		return errors.Errorf("unknown network mode")
 	}
 
@@ -183,6 +189,7 @@ func NatToOCIPortBindings(ports nat.PortMap) ([]ocicni.PortMapping, error) {
 	return portBindings, nil
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *CgroupConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	if c.CgroupMode.IsNS() {
@@ -206,16 +213,18 @@ func (c *CgroupConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCre
 		options = append(options, libpod.WithCgroupParent(c.CgroupParent))
 	}
 
-	if c.Cgroups == "disabled" {
-		options = append(options, libpod.WithNoCgroups())
+	if c.Cgroups != "" {
+		options = append(options, libpod.WithCgroupsMode(c.Cgroups))
 	}
 
 	return options, nil
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *UserConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
-	if c.UsernsMode.IsNS() {
+	switch {
+	case c.UsernsMode.IsNS():
 		ns := c.UsernsMode.NS()
 		if ns == "" {
 			return nil, errors.Errorf("invalid empty user-defined user namespace")
@@ -225,13 +234,13 @@ func (c *UserConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreat
 			return nil, err
 		}
 		options = append(options, libpod.WithIDMappings(*c.IDMappings))
-	} else if c.UsernsMode.IsContainer() {
+	case c.UsernsMode.IsContainer():
 		connectedCtr, err := runtime.LookupContainer(c.UsernsMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.UsernsMode.Container())
 		}
 		options = append(options, libpod.WithUserNSFrom(connectedCtr))
-	} else {
+	default:
 		options = append(options, libpod.WithIDMappings(*c.IDMappings))
 	}
 
@@ -241,6 +250,8 @@ func (c *UserConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreat
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the UserConfig.
 func (c *UserConfig) ConfigureGenerator(g *generate.Generator) error {
 	if IsNS(string(c.UsernsMode)) {
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), NS(string(c.UsernsMode))); err != nil {
@@ -271,11 +282,14 @@ func (c *UserConfig) getPostConfigureNetNS() bool {
 	return postConfigureNetNS
 }
 
+// InNS returns true if the UserConfig indicates to be in a dedicated user
+// namespace.
 func (c *UserConfig) InNS(isRootless bool) bool {
 	hasUserns := c.UsernsMode.IsContainer() || c.UsernsMode.IsNS() || len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0
 	return isRootless || (hasUserns && !c.UsernsMode.IsHost())
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *IpcConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	if c.IpcMode.IsHost() {
@@ -293,6 +307,8 @@ func (c *IpcConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreate
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the IpcConfig.
 func (c *IpcConfig) ConfigureGenerator(g *generate.Generator) error {
 	ipcMode := c.IpcMode
 	if IsNS(string(ipcMode)) {
@@ -308,6 +324,8 @@ func (c *IpcConfig) ConfigureGenerator(g *generate.Generator) error {
 	return nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the CgroupConfig.
 func (c *CgroupConfig) ConfigureGenerator(g *generate.Generator) error {
 	cgroupMode := c.CgroupMode
 	if cgroupMode.IsDefaultValue() {
@@ -337,6 +355,7 @@ func (c *CgroupConfig) ConfigureGenerator(g *generate.Generator) error {
 	return nil
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *PidConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	if c.PidMode.IsContainer() {
@@ -351,6 +370,8 @@ func (c *PidConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreate
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the PidConfig.
 func (c *PidConfig) ConfigureGenerator(g *generate.Generator) error {
 	pidMode := c.PidMode
 	if IsNS(string(pidMode)) {
@@ -368,6 +389,7 @@ func (c *PidConfig) ConfigureGenerator(g *generate.Generator) error {
 	return nil
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *UtsConfig) ToCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	if IsPod(string(c.UtsMode)) {
@@ -391,22 +413,26 @@ func (c *UtsConfig) ToCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod) ([
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the UtsConfig.
 func (c *UtsConfig) ConfigureGenerator(g *generate.Generator, net *NetworkConfig, runtime *libpod.Runtime) error {
 	hostname := c.Hostname
+	utsCtrID := c.UtsMode.Container()
 	var err error
 	if hostname == "" {
-		if utsCtrID := c.UtsMode.Container(); utsCtrID != "" {
+		switch {
+		case utsCtrID != "":
 			utsCtr, err := runtime.GetContainer(utsCtrID)
 			if err != nil {
 				return errors.Wrapf(err, "unable to retrieve hostname from dependency container %s", utsCtrID)
 			}
 			hostname = utsCtr.Hostname()
-		} else if net.NetMode.IsHost() || c.UtsMode.IsHost() {
+		case net.NetMode.IsHost() || c.UtsMode.IsHost():
 			hostname, err = os.Hostname()
 			if err != nil {
 				return errors.Wrap(err, "unable to retrieve hostname of the host")
 			}
-		} else {
+		default:
 			logrus.Debug("No hostname set; container's hostname will default to runtime default")
 		}
 	}

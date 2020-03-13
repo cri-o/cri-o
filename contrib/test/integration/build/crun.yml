@@ -5,7 +5,7 @@
     repo: "https://github.com/containers/crun.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun"
     force: "{{ force_clone | default(False) | bool}}"
-    version: 0.12.2.1
+    version: "7c84e354169e3e4dd49d5ac21f13a143b87f5493" # 0.12.2.1 + https://github.com/containers/crun/pull/266
 
 - name: Install crun dependencies
   raw: >

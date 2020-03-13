@@ -434,9 +434,18 @@ func (c *Config) UpdateFromFile(path string) error {
 	t := new(tomlConfig)
 	t.fromConfig(c)
 
-	_, err = toml.Decode(string(data), t)
+	metadata, err := toml.Decode(string(data), t)
 	if err != nil {
 		return fmt.Errorf("unable to decode configuration %v: %v", path, err)
+	}
+
+	// If the default runtime `runc` provided via DefaultConfig() is not part
+	// of the configuration file, then we have to manually remove it because
+	// the user explicitly removed it
+	runtimesKey := []string{"crio", "runtime", "runtimes"}
+	if metadata.IsDefined(runtimesKey...) &&
+		!metadata.IsDefined(append(runtimesKey, defaultRuntime)...) {
+		delete(c.Runtimes, defaultRuntime)
 	}
 
 	t.toConfig(c)

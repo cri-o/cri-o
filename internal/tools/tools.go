@@ -8,4 +8,5 @@ import (
 	_ "github.com/golang/mock/mockgen"
 	_ "github.com/onsi/ginkgo/ginkgo"
 	_ "github.com/vbatts/git-validation"
+	_ "k8s.io/release/cmd/release-notes"
 )

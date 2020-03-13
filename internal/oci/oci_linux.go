@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -86,6 +87,16 @@ func newPipe() (parent, child *os.File, err error) {
 }
 
 func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerStats, error) {
+	// this correction has to be made because the libpod cgroups package can't find a
+	// systemd cgroup that isn't converted to a fully qualified cgroup path
+	if r.config.CgroupManager == "systemd" {
+		var err error
+		cgroup, err = systemd.ExpandSlice(cgroup)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error expanding systemd slice to get container %s stats", ctr.ID())
+		}
+	}
+
 	cg, err := cgroups.Load(cgroup)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to load cgroup at %s", cgroup)
