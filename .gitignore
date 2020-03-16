@@ -20,8 +20,6 @@ coverprofile
 lib/state.json
 result-*bin
 *_junit.xml
-bundle/tmp
-bundle/*.tar.gz
 
 ./Vagrantfile
 .vagrant/

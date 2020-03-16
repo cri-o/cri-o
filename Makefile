@@ -396,7 +396,10 @@ docs-generation:
 	bin/crio --config="" man > docs/crio.8
 
 bundle:
-	bundle/build
+	contrib/bundle/build
+
+bundle-test:
+	sudo contrib/bundle/test
 
 install: .gopathok install.bin install.man install.completions install.systemd install.config
 
@@ -465,6 +468,7 @@ docs-validation:
 	git-validation \
 	binaries \
 	bundle \
+	bundle-test \
 	build-static \
 	clean \
 	completions \

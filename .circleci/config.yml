@@ -246,7 +246,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - bundle/*.tar.gz
+            - build/bundle/*.tar.gz
 
   bundle-test:
     executor: machine
@@ -256,7 +256,7 @@ jobs:
           at: .
       - run:
           name: test
-          command: sudo bundle/test
+          command: make bundle-test
 
   completions-validation:
     executor: container
@@ -431,7 +431,7 @@ jobs:
               gcloud auth activate-service-account --key-file=/tmp/key.json
 
               BUCKET=gs://k8s-conform-cri-o
-              gsutil cp bundle/*.tar.gz $BUCKET/artifacts
+              gsutil cp build/bundle/*.tar.gz $BUCKET/artifacts
 
               if [[ -z $GITHUB_TOKEN ]]; then
                 echo Skipping release notes upload
