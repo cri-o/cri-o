@@ -30,7 +30,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	pmount "github.com/containers/storage/pkg/mount"
-	"github.com/coreos/go-systemd/activation"
+	"github.com/coreos/go-systemd/v22/activation"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -1161,6 +1161,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	if ctr.config.NetMode.IsSlirp4netns() {
 		if ctr.config.PostConfigureNetNS {
+			havePortMapping := len(ctr.Config().PortMappings) > 0
+			if havePortMapping {
+				ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
+				if err != nil {
+					return errors.Wrapf(err, "failed to create rootless port sync pipe")
+				}
+			}
 			ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
 			if err != nil {
 				return errors.Wrapf(err, "failed to create rootless network sync pipe")
@@ -1176,9 +1183,6 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		// Leak one end in conmon, the other one will be leaked into slirp4netns
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
 
-		if ctr.rootlessPortSyncR != nil {
-			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
-		}
 		if ctr.rootlessPortSyncW != nil {
 			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncW)
 			// Leak one end in conmon, the other one will be leaked into rootlessport
@@ -1248,18 +1252,35 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 
 	}
 
+	var addGroups []string
+	var sgids []uint32
+
+	// if the user is empty, we should inherit the user that the container is currently running with
+	if user == "" {
+		user = c.config.User
+		addGroups = c.config.Groups
+	}
+
 	overrides := c.getUserOverrides()
 	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, user, overrides)
 	if err != nil {
 		return nil, err
 	}
 
+	if len(addGroups) > 0 {
+		sgids, err = lookup.GetContainerGroups(addGroups, c.state.Mountpoint, overrides)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error looking up supplemental groups for container %s exec session %s", c.ID(), sessionID)
+		}
+	}
+
 	// If user was set, look it up in the container to get a UID to use on
 	// the host
-	if user != "" {
-		sgids := make([]uint32, 0, len(execUser.Sgids))
-		for _, sgid := range execUser.Sgids {
-			sgids = append(sgids, uint32(sgid))
+	if user != "" || len(sgids) > 0 {
+		if user != "" {
+			for _, sgid := range execUser.Sgids {
+				sgids = append(sgids, uint32(sgid))
+			}
 		}
 		processUser := spec.User{
 			UID:            uint32(execUser.Uid),

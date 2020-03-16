@@ -37,6 +37,8 @@ EXTRALDFLAGS :=
 LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT)' $(EXTRALDFLAGS)
 SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go util/*.go
 
+LINTFLAGS ?=
+
 all: buildah imgtype docs
 
 .PHONY: static
@@ -99,7 +101,7 @@ install.libseccomp.sudo: gopath
 install.cni.sudo: gopath
 	rm -rf ../../containernetworking/plugins
 	git clone https://github.com/containernetworking/plugins ../../containernetworking/plugins
-	cd ../../containernetworking/plugins && ./build.sh && mkdir -p /opt/cni/bin && sudo install -v -m755 bin/* /opt/cni/bin/
+	cd ../../containernetworking/plugins && ./build_linux.sh && sudo install -D -v -m755 -t /opt/cni/bin/ bin/*
 
 .PHONY: install
 install:
@@ -147,4 +149,4 @@ vendor:
 
 .PHONY: lint
 lint: install.tools
-	./tests/tools/build/golangci-lint run
+	./tests/tools/build/golangci-lint run $(LINTFLAGS)

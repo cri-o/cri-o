@@ -593,22 +593,14 @@ func WithUser(user string) CtrCreateOption {
 // other configuration from the image will be added to the config.
 // TODO: Replace image name and ID with a libpod.Image struct when that is
 // finished.
-func WithRootFSFromImage(imageID string, imageName string, useImageVolumes bool) CtrCreateOption {
+func WithRootFSFromImage(imageID string, imageName string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
 
-		if ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "container already configured with root filesystem")
-		}
-		if ctr.config.Rootfs != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set both an image ID and a rootfs for a container")
-		}
-
 		ctr.config.RootfsImageID = imageID
 		ctr.config.RootfsImageName = imageName
-		ctr.config.ImageVolumes = useImageVolumes
 
 		return nil
 	}
@@ -816,10 +808,6 @@ func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 			return err
 		}
 
-		if ctr.config.CreateNetNS {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot join another container's net ns as we are making a new net ns")
-		}
-
 		ctr.config.NetNsCtr = nsCtr.ID()
 
 		return nil
@@ -838,10 +826,6 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 
 		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
 			return err
-		}
-
-		if ctr.config.NoCgroups {
-			return errors.Wrapf(define.ErrInvalidArg, "container has disabled creation of CGroups, which is incompatible with sharing a PID namespace")
 		}
 
 		ctr.config.PIDNsCtr = nsCtr.ID()
@@ -922,16 +906,8 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 		deps := make([]string, 0, len(ctrs))
 
 		for _, dep := range ctrs {
-			if !dep.valid {
-				return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid", dep.ID())
-			}
-
-			if dep.ID() == ctr.ID() {
-				return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-			}
-
-			if ctr.config.Pod != "" && dep.config.Pod != ctr.config.Pod {
-				return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, dep.ID())
+			if err := checkDependencyContainer(dep, ctr); err != nil {
+				return err
 			}
 
 			deps = append(deps, dep.ID())
@@ -953,20 +929,10 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 			return define.ErrCtrFinalized
 		}
 
-		if ctr.config.NetNsCtr != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "container is already set to join another container's net ns, cannot create a new net ns")
-		}
-
 		ctr.config.PostConfigureNetNS = postConfigureNetNS
 		ctr.config.NetMode = namespaces.NetworkMode(netmode)
 		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
-
-		if rootless.IsRootless() {
-			if len(networks) > 0 {
-				return errors.New("cannot use CNI networks with rootless containers")
-			}
-		}
 
 		ctr.config.Networks = networks
 
@@ -985,14 +951,6 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !ctr.config.CreateNetNS {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if the container is not creating a network namespace")
-		}
-
-		if len(ctr.config.Networks) > 1 {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if joining more than 1 CNI network")
-		}
-
 		ctr.config.StaticIP = ip
 
 		return nil
@@ -1008,14 +966,6 @@ func WithStaticMAC(mac net.HardwareAddr) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
-		}
-
-		if !ctr.config.CreateNetNS {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if the container is not creating a network namespace")
-		}
-
-		if len(ctr.config.Networks) > 1 {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if joining more than 1 CNI network")
 		}
 
 		ctr.config.StaticMAC = mac
@@ -1111,10 +1061,6 @@ func WithCgroupParent(parent string) CtrCreateOption {
 			return errors.Wrapf(define.ErrInvalidArg, "cgroup parent cannot be empty")
 		}
 
-		if ctr.config.NoCgroups {
-			return errors.Wrapf(define.ErrInvalidArg, "CgroupParent conflicts with NoCgroups")
-		}
-
 		ctr.config.CgroupParent = parent
 
 		return nil
@@ -1127,9 +1073,6 @@ func WithDNSSearch(searchDomains []string) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS search domains if container will not create /etc/resolv.conf")
-		}
 		ctr.config.DNSSearch = searchDomains
 		return nil
 	}
@@ -1140,9 +1083,6 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
-		}
-		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS servers if container will not create /etc/resolv.conf")
 		}
 		var dns []net.IP
 		for _, i := range dnsServers {
@@ -1163,9 +1103,6 @@ func WithDNSOption(dnsOptions []string) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS options if container will not create /etc/resolv.conf")
-		}
 		ctr.config.DNSOption = dnsOptions
 		return nil
 	}
@@ -1176,10 +1113,6 @@ func WithHosts(hosts []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
-		}
-
-		if ctr.config.UseImageHosts {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot add hosts if container will not create /etc/hosts")
 		}
 
 		ctr.config.HostAdd = hosts
@@ -1279,9 +1212,6 @@ func WithRootFS(rootfs string) CtrCreateOption {
 		if _, err := os.Stat(rootfs); err != nil {
 			return errors.Wrapf(err, "error checking path %q", rootfs)
 		}
-		if ctr.config.RootfsImageID != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set both an image ID and a rootfs for a container")
-		}
 		ctr.config.Rootfs = rootfs
 		return nil
 	}
@@ -1311,12 +1241,6 @@ func WithUseImageResolvConf() CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if len(ctr.config.DNSServer) != 0 ||
-			len(ctr.config.DNSSearch) != 0 ||
-			len(ctr.config.DNSOption) != 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "not creating resolv.conf conflicts with DNS options")
-		}
-
 		ctr.config.UseImageResolvConf = true
 
 		return nil
@@ -1329,10 +1253,6 @@ func WithUseImageHosts() CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
-		}
-
-		if len(ctr.config.HostAdd) != 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "not creating /etc/hosts conflicts with adding to the hosts file")
 		}
 
 		ctr.config.UseImageHosts = true
@@ -1780,7 +1700,240 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 		if pod.valid {
 			return define.ErrPodFinalized
 		}
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set pod ports as no infra container is being created")
+		}
 		pod.config.InfraContainer.PortBindings = bindings
+		return nil
+	}
+}
+
+// WithPodStaticIP sets a static IP for the pod.
+func WithPodStaticIP(ip net.IP) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set pod static IP as no infra container is being created")
+		}
+
+		if pod.config.InfraContainer.HostNetwork {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set static IP if host network is specified")
+		}
+
+		if len(pod.config.InfraContainer.Networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if joining more than 1 CNI network")
+		}
+
+		pod.config.InfraContainer.StaticIP = ip
+
+		return nil
+	}
+}
+
+// WithPodStaticMAC sets a static MAC address for the pod.
+func WithPodStaticMAC(mac net.HardwareAddr) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set pod static MAC as no infra container is being created")
+		}
+
+		if pod.config.InfraContainer.HostNetwork {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set static MAC if host network is specified")
+		}
+
+		if len(pod.config.InfraContainer.Networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if joining more than 1 CNI network")
+		}
+
+		pod.config.InfraContainer.StaticMAC = mac
+
+		return nil
+	}
+}
+
+// WithPodUseImageResolvConf sets a pod to use an image's resolv.conf and not
+// create its own.
+func WithPodUseImageResolvConf() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod DNS as no infra container is being created")
+		}
+
+		if len(pod.config.InfraContainer.DNSServer) != 0 ||
+			len(pod.config.InfraContainer.DNSSearch) != 0 ||
+			len(pod.config.InfraContainer.DNSOption) != 0 {
+			return errors.Wrapf(define.ErrInvalidArg, "requested use of image resolv.conf conflicts with already-configured DNS settings")
+		}
+
+		pod.config.InfraContainer.UseImageResolvConf = true
+
+		return nil
+	}
+}
+
+// WithPodDNS sets the DNS Servers for a pod.
+func WithPodDNS(dnsServer []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod DNS as no infra container is being created")
+		}
+
+		if pod.config.InfraContainer.UseImageResolvConf {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS servers if pod will not create /etc/resolv.conf")
+		}
+
+		pod.config.InfraContainer.DNSServer = dnsServer
+
+		return nil
+	}
+}
+
+// WithPodDNSSearch sets the DNS Search domains for a pod.
+func WithPodDNSSearch(dnsSearch []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod DNS as no infra container is being created")
+		}
+
+		if pod.config.InfraContainer.UseImageResolvConf {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS search domains if pod will not create /etc/resolv.conf")
+		}
+
+		pod.config.InfraContainer.DNSSearch = dnsSearch
+
+		return nil
+	}
+}
+
+// WithPodDNSOption sets DNS Options for a pod.
+func WithPodDNSOption(dnsOption []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod DNS as no infra container is being created")
+		}
+
+		if pod.config.InfraContainer.UseImageResolvConf {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS options if pod will not create /etc/resolv.conf")
+		}
+
+		pod.config.InfraContainer.DNSOption = dnsOption
+
+		return nil
+	}
+}
+
+// WithPodUseImageHosts tells the pod not to create /etc/hosts and instead to
+// use the one provided by the image.
+func WithPodUseImageHosts() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod hosts as no infra container is being created")
+		}
+
+		if len(pod.config.InfraContainer.HostAdd) != 0 {
+			return errors.Wrapf(define.ErrInvalidArg, "not creating /etc/hosts conflicts with adding to the hosts file")
+		}
+
+		pod.config.InfraContainer.UseImageHosts = true
+
+		return nil
+	}
+}
+
+// WithPodHosts adds additional entries to the pod's /etc/hosts
+func WithPodHosts(hosts []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod hosts as no infra container is being created")
+		}
+
+		if pod.config.InfraContainer.UseImageHosts {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot add to /etc/hosts if container is using image hosts")
+		}
+
+		pod.config.InfraContainer.HostAdd = hosts
+
+		return nil
+	}
+}
+
+// WithPodNetworks sets additional CNI networks for the pod to join.
+func WithPodNetworks(networks []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod CNI networks as no infra container is being created")
+		}
+
+		if (pod.config.InfraContainer.StaticIP != nil || pod.config.InfraContainer.StaticMAC != nil) &&
+			len(networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot join more than one CNI network if setting a static IP or MAC address")
+		}
+
+		if pod.config.InfraContainer.HostNetwork {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot join pod to CNI networks if host network is specified")
+		}
+
+		pod.config.InfraContainer.Networks = networks
+
+		return nil
+	}
+}
+
+// WithPodHostNetwork tells the pod to use the host's network namespace.
+func WithPodHostNetwork() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod host networking as no infra container is being created")
+		}
+
+		if len(pod.config.InfraContainer.PortBindings) > 0 ||
+			pod.config.InfraContainer.StaticIP != nil ||
+			pod.config.InfraContainer.StaticMAC != nil ||
+			len(pod.config.InfraContainer.Networks) > 0 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set host network if network-related configuration is specified")
+		}
+
+		pod.config.InfraContainer.HostNetwork = true
+
 		return nil
 	}
 }

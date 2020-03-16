@@ -139,6 +139,9 @@ type StoreOptions struct {
 	// GraphRoot is the filesystem path under which we will store the
 	// contents of layers, images, and containers.
 	GraphRoot string `json:"root,omitempty"`
+	// RootlessStoragePath is the storage path for rootless users
+	// default $HOME/.local/share/containers/storage
+	RootlessStoragePath string `toml:"rootless_storage_path"`
 	// GraphDriverName is the underlying storage driver that we'll be
 	// using.  It only needs to be specified the first time a Store is
 	// initialized for a given RunRoot and GraphRoot.
@@ -2317,24 +2320,53 @@ func (s *store) DeleteContainer(id string) error {
 
 	if rcstore.Exists(id) {
 		if container, err := rcstore.Get(id); err == nil {
+			errChan := make(chan error)
+			var wg sync.WaitGroup
+
 			if rlstore.Exists(container.LayerID) {
-				if err = rlstore.Delete(container.LayerID); err != nil {
-					return err
-				}
+				wg.Add(1)
+				go func() {
+					errChan <- rlstore.Delete(container.LayerID)
+					wg.Done()
+				}()
 			}
-			if err = rcstore.Delete(id); err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func() {
+				errChan <- rcstore.Delete(id)
+				wg.Done()
+			}()
+
 			middleDir := s.graphDriverName + "-containers"
 			gcpath := filepath.Join(s.GraphRoot(), middleDir, container.ID)
-			if err = os.RemoveAll(gcpath); err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func() {
+				errChan <- os.RemoveAll(gcpath)
+				wg.Done()
+			}()
+
 			rcpath := filepath.Join(s.RunRoot(), middleDir, container.ID)
-			if err = os.RemoveAll(rcpath); err != nil {
-				return err
+			wg.Add(1)
+			go func() {
+				errChan <- os.RemoveAll(rcpath)
+				wg.Done()
+			}()
+
+			go func() {
+				wg.Wait()
+				close(errChan)
+			}()
+
+			for {
+				select {
+				case err, ok := <-errChan:
+					if !ok {
+						return nil
+					}
+					if err != nil {
+						return err
+					}
+				}
 			}
-			return nil
 		}
 	}
 	return ErrNotAContainer
@@ -3288,10 +3320,11 @@ func DefaultConfigFile(rootless bool) (string, error) {
 // TOML-friendly explicit tables used for conversions.
 type tomlConfig struct {
 	Storage struct {
-		Driver    string            `toml:"driver"`
-		RunRoot   string            `toml:"runroot"`
-		GraphRoot string            `toml:"graphroot"`
-		Options   cfg.OptionsConfig `toml:"options"`
+		Driver              string            `toml:"driver"`
+		RunRoot             string            `toml:"runroot"`
+		GraphRoot           string            `toml:"graphroot"`
+		RootlessStoragePath string            `toml:"rootless_storage_path"`
+		Options             cfg.OptionsConfig `toml:"options"`
 	} `toml:"storage"`
 }
 
@@ -3312,6 +3345,9 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 		fmt.Printf("Failed to parse %s %v\n", configFile, err.Error())
 		return
 	}
+	if os.Getenv("STORAGE_DRIVER") != "" {
+		config.Storage.Driver = os.Getenv("STORAGE_DRIVER")
+	}
 	if config.Storage.Driver != "" {
 		storeOptions.GraphDriverName = config.Storage.Driver
 	}
@@ -3320,6 +3356,9 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	}
 	if config.Storage.GraphRoot != "" {
 		storeOptions.GraphRoot = config.Storage.GraphRoot
+	}
+	if config.Storage.RootlessStoragePath != "" {
+		storeOptions.RootlessStoragePath = config.Storage.RootlessStoragePath
 	}
 	for _, s := range config.Storage.Options.AdditionalImageStores {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.imagestore=%s", config.Storage.Driver, s))
@@ -3364,11 +3403,8 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	} else {
 		storeOptions.GIDMap = append(storeOptions.GIDMap, gidmap...)
 	}
-	if os.Getenv("STORAGE_DRIVER") != "" {
-		storeOptions.GraphDriverName = os.Getenv("STORAGE_DRIVER")
-	}
 
-	storeOptions.GraphDriverOptions = cfg.GetGraphDriverOptions(storeOptions.GraphDriverName, config.Storage.Options)
+	storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, cfg.GetGraphDriverOptions(storeOptions.GraphDriverName, config.Storage.Options)...)
 
 	if os.Getenv("STORAGE_OPTS") != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, strings.Split(os.Getenv("STORAGE_OPTS"), ",")...)

@@ -914,6 +914,7 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 }
 
 func (c *Container) completeNetworkSetup() error {
+	var outResolvConf []string
 	netDisabled, err := c.NetworkDisabled()
 	if err != nil {
 		return err
@@ -927,7 +928,37 @@ func (c *Container) completeNetworkSetup() error {
 	if c.config.NetMode == "slirp4netns" {
 		return c.runtime.setupRootlessNetNS(c)
 	}
-	return c.runtime.setupNetNS(c)
+	if err := c.runtime.setupNetNS(c); err != nil {
+		return err
+	}
+	state := c.state
+	// collect any dns servers that cni tells us to use (dnsname)
+	for _, cni := range state.NetworkStatus {
+		if cni.DNS.Nameservers != nil {
+			for _, server := range cni.DNS.Nameservers {
+				outResolvConf = append(outResolvConf, fmt.Sprintf("nameserver %s", server))
+			}
+		}
+	}
+	// check if we have a bindmount for resolv.conf
+	resolvBindMount := state.BindMounts["/etc/resolv.conf"]
+	if len(outResolvConf) < 1 || resolvBindMount == "" || len(c.config.NetNsCtr) > 0 {
+		return nil
+	}
+	// read the existing resolv.conf
+	b, err := ioutil.ReadFile(resolvBindMount)
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		// only keep things that don't start with nameserver from the old
+		// resolv.conf file
+		if !strings.HasPrefix(line, "nameserver") {
+			outResolvConf = append([]string{line}, outResolvConf...)
+		}
+	}
+	// write and return
+	return ioutil.WriteFile(resolvBindMount, []byte(strings.Join(outResolvConf, "\n")), 0644)
 }
 
 // Initialize a container, creating it in the runtime
@@ -1370,6 +1401,9 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		return nil, errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
 	}
 
+	if vol.config.LockID == c.config.LockID {
+		return nil, errors.Wrapf(define.ErrWillDeadlock, "container %s and volume %s share lock ID %d", c.ID(), vol.Name(), c.config.LockID)
+	}
 	vol.lock.Lock()
 	defer vol.lock.Unlock()
 	if vol.needsMount() {
@@ -1383,17 +1417,33 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	}
 	if vol.state.NeedsCopyUp {
 		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
+
+		// Set NeedsCopyUp to false immediately, so we don't try this
+		// again when there are already files copied.
+		vol.state.NeedsCopyUp = false
+		if err := vol.save(); err != nil {
+			return nil, err
+		}
+
+		// If the volume is not empty, we should not copy up.
+		volMount := vol.MountPoint()
+		contents, err := ioutil.ReadDir(volMount)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
+		}
+		if len(contents) > 0 {
+			// The volume is not empty. It was likely modified
+			// outside of Podman. For safety, let's not copy up into
+			// it. Fixes CVE-2020-1726.
+			return vol, nil
+		}
+
 		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
 		}
-		if err := c.copyWithTarFromImage(srcDir, vol.MountPoint()); err != nil && !os.IsNotExist(err) {
+		if err := c.copyWithTarFromImage(srcDir, volMount); err != nil && !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
-		}
-
-		vol.state.NeedsCopyUp = false
-		if err := vol.save(); err != nil {
-			return nil, err
 		}
 	}
 	return vol, nil

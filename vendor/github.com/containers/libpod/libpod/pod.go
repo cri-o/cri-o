@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"net"
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
@@ -87,6 +88,7 @@ type PodInspect struct {
 type PodInspectState struct {
 	CgroupPath       string `json:"cgroupPath"`
 	InfraContainerID string `json:"infraContainerID"`
+	Status           string `json:"status"`
 }
 
 // PodContainerInfo keeps information on a container in a pod
@@ -97,8 +99,18 @@ type PodContainerInfo struct {
 
 // InfraContainerConfig is the configuration for the pod's infra container
 type InfraContainerConfig struct {
-	HasInfraContainer bool                 `json:"makeInfraContainer"`
-	PortBindings      []ocicni.PortMapping `json:"infraPortBindings"`
+	HasInfraContainer  bool                 `json:"makeInfraContainer"`
+	HostNetwork        bool                 `json:"infraHostNetwork,omitempty"`
+	PortBindings       []ocicni.PortMapping `json:"infraPortBindings"`
+	StaticIP           net.IP               `json:"staticIP,omitempty"`
+	StaticMAC          net.HardwareAddr     `json:"staticMAC,omitempty"`
+	UseImageResolvConf bool                 `json:"useImageResolvConf,omitempty"`
+	DNSServer          []string             `json:"dnsServer,omitempty"`
+	DNSSearch          []string             `json:"dnsSearch,omitempty"`
+	DNSOption          []string             `json:"dnsOption,omitempty"`
+	UseImageHosts      bool                 `json:"useImageHosts,omitempty"`
+	HostAdd            []string             `json:"hostsAdd,omitempty"`
+	Networks           []string             `json:"networks,omitempty"`
 }
 
 // ID retrieves the pod's ID

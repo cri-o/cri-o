@@ -15,7 +15,6 @@ import (
 )
 
 const (
-
 	// _conmonMinMajorVersion is the major version required for conmon.
 	_conmonMinMajorVersion = 2
 
@@ -70,6 +69,7 @@ var (
 		"CAP_MKNOD",
 		"CAP_NET_BIND_SERVICE",
 		"CAP_NET_RAW",
+		"CAP_SETFCAP",
 		"CAP_SETGID",
 		"CAP_SETPCAP",
 		"CAP_SETUID",
@@ -98,6 +98,7 @@ const (
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container
 	DefaultPidsLimit = 2048
+	// DefaultRootlessSignaturePolicyPath is the default value for the
 	// rootless policy.json file.
 	DefaultRootlessSignaturePolicyPath = ".config/containers/policy.json"
 	// DefaultShmSize default value
@@ -121,6 +122,7 @@ func DefaultConfig() (*Config, error) {
 	}
 
 	var signaturePolicyPath string
+	netns := "bridge"
 	if unshare.IsRootless() {
 		home, err := unshare.HomeDir()
 		if err != nil {
@@ -130,14 +132,15 @@ func DefaultConfig() (*Config, error) {
 		if _, err := os.Stat(sigPath); err == nil {
 			signaturePolicyPath = sigPath
 		}
+		netns = "slirp4netns"
 	}
 
 	return &Config{
 		Containers: ContainersConfig{
-			AdditionalDevices:   []string{},
-			AdditionalVolumes:   []string{},
+			Devices:             []string{},
+			Volumes:             []string{},
+			Annotations:         []string{},
 			ApparmorProfile:     DefaultApparmorProfile,
-			CgroupManager:       SystemdCgroupsManager,
 			CgroupNS:            "private",
 			DefaultCapabilities: DefaultCapabilities,
 			DefaultSysctls:      []string{},
@@ -156,7 +159,7 @@ func DefaultConfig() (*Config, error) {
 			IPCNS:               "private",
 			LogDriver:           DefaultLogDriver,
 			LogSizeMax:          DefaultLogSizeMax,
-			NetNS:               "bridge",
+			NetNS:               netns,
 			NoHosts:             false,
 			PidsLimit:           DefaultPidsLimit,
 			PidNS:               "private",
@@ -209,6 +212,8 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 	if onCgroupsv2, _ := isCgroup2UnifiedMode(); onCgroupsv2 {
 		c.OCIRuntime = "crun"
 	}
+	c.CgroupManager = SystemdCgroupsManager
+	c.StopTimeout = uint(10)
 
 	c.OCIRuntimes = map[string][]string{
 		"runc": {

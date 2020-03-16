@@ -2,7 +2,6 @@ package createconfig
 
 import (
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -11,6 +10,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/seccomp"
 	"github.com/containers/storage"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -38,6 +38,7 @@ type CreateResourceConfig struct {
 	CPUs              float64  // cpus
 	CPUsetCPUs        string
 	CPUsetMems        string   // cpuset-mems
+	DeviceCgroupRules []string //device-cgroup-rule
 	DeviceReadBps     []string // device-read-bps
 	DeviceReadIOps    []string // device-read-iops
 	DeviceWriteBps    []string // device-write-bps
@@ -107,58 +108,17 @@ type NetworkConfig struct {
 	PublishAll   bool     //publish-all
 }
 
-// SeccompPolicy determines which seccomp profile gets applied to the container.
-type SeccompPolicy int
-
-const (
-	// SeccompPolicyDefault - if set use SecurityConfig.SeccompProfilePath,
-	// otherwise use the default profile.  The SeccompProfilePath might be
-	// explicitly set by the user.
-	SeccompPolicyDefault SeccompPolicy = iota
-	// SeccompPolicyImage - if set use SecurityConfig.SeccompProfileFromImage,
-	// otherwise follow SeccompPolicyDefault.
-	SeccompPolicyImage
-)
-
-// Map for easy lookups of supported policies.
-var supportedSeccompPolicies = map[string]SeccompPolicy{
-	"":        SeccompPolicyDefault,
-	"default": SeccompPolicyDefault,
-	"image":   SeccompPolicyImage,
-}
-
-// LookupSeccompPolicy looksup the corresponding SeccompPolicy for the specified
-// string. If none is found, an errors is returned including the list of
-// supported policies.
-// Note that an empty string resolved to SeccompPolicyDefault.
-func LookupSeccompPolicy(s string) (SeccompPolicy, error) {
-	policy, exists := supportedSeccompPolicies[s]
-	if exists {
-		return policy, nil
-	}
-
-	// Sort the keys first as maps are non-deterministic.
-	keys := []string{}
-	for k := range supportedSeccompPolicies {
-		if k != "" {
-			keys = append(keys, k)
-		}
-	}
-	sort.Strings(keys)
-
-	return -1, errors.Errorf("invalid seccomp policy %q: valid policies are %+q", s, keys)
-}
-
 // SecurityConfig configures the security features for the container
 type SecurityConfig struct {
 	CapAdd                  []string // cap-add
 	CapDrop                 []string // cap-drop
+	CapRequired             []string // cap-required
 	LabelOpts               []string //SecurityOpts
 	NoNewPrivs              bool     //SecurityOpts
 	ApparmorProfile         string   //SecurityOpts
 	SeccompProfilePath      string   //SecurityOpts
 	SeccompProfileFromImage string   // seccomp profile from the container image
-	SeccompPolicy           SeccompPolicy
+	SeccompPolicy           seccomp.Policy
 	SecurityOpts            []string
 	Privileged              bool              //privileged
 	ReadOnlyRootfs          bool              //read-only
@@ -167,6 +127,7 @@ type SecurityConfig struct {
 }
 
 // CreateConfig is a pre OCI spec structure.  It represents user input from varlink or the CLI
+// swagger:model CreateConfig
 type CreateConfig struct {
 	Annotations       map[string]string
 	Args              []string
@@ -196,6 +157,7 @@ type CreateConfig struct {
 	Resources         CreateResourceConfig
 	RestartPolicy     string
 	Rm                bool           //rm
+	Rmi               bool           //rmi
 	StopSignal        syscall.Signal // stop-signal
 	StopTimeout       uint           // stop-timeout
 	Systemd           bool
@@ -271,6 +233,10 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 
 	if c.Rm {
 		command = append(command, "--rm")
+	}
+
+	if c.Rmi {
+		command = append(command, "--rmi")
 	}
 
 	return command, nil
@@ -381,9 +347,8 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 	options = append(options, nsOpts...)
 
-	useImageVolumes := c.ImageVolumeType == TypeBind
 	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image, useImageVolumes))
+	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image))
 	options = append(options, libpod.WithConmonPidFile(c.ConmonPidFile))
 	options = append(options, libpod.WithLabels(c.Labels))
 	options = append(options, libpod.WithShmSize(c.Resources.ShmSize))
@@ -427,6 +392,6 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 
 // AddPrivilegedDevices iterates through host devices and adds all
 // host devices to the spec
-func (c *CreateConfig) AddPrivilegedDevices(g *generate.Generator) error {
-	return c.addPrivilegedDevices(g)
+func AddPrivilegedDevices(g *generate.Generator) error {
+	return addPrivilegedDevices(g)
 }
