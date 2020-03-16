@@ -11,7 +11,6 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
-	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -262,11 +261,11 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		names = append(names, metadata.PodName)
 	}
 
-	coptions := cstorage.ContainerOptions{
+	coptions := storage.ContainerOptions{
 		LabelOpts: labelOptions,
 	}
 	if idMappings != nil {
-		coptions.IDMappingOptions = cstorage.IDMappingOptions{UIDMap: idMappings.UIDs(), GIDMap: idMappings.GIDs()}
+		coptions.IDMappingOptions = storage.IDMappingOptions{UIDMap: idMappings.UIDs(), GIDMap: idMappings.GIDs()}
 	}
 	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, img.ID, "", string(mdata), &coptions)
 	if err != nil {
