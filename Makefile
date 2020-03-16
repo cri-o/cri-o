@@ -422,6 +422,14 @@ uninstall:
 	rm -f ${BASHINSTALLDIR}/crio-status
 	rm -f ${FISHINSTALLDIR}/crio-status.fish
 	rm -f ${ZSHINSTALLDIR}/_crio-status
+	rm -f $(PREFIX)/lib/systemd/system/crio-wipe.service
+	rm -f $(PREFIX)/lib/systemd/system/crio-shutdown.service
+	rm -f $(PREFIX)/lib/systemd/system/crio.service
+	rm -f $(PREFIX)/lib/systemd/system/cri-o.service
+	rm -rf $(DATAROOTDIR)/oci/hooks.d
+	rm -f $(ETCDIR_CRIO)/crio.conf
+	rm -f $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
+	rm -f $(CRICTL_CONFIG_DIR)/crictl.yaml
 
 git-validation: .gopathok ${GIT_VALIDATION}
 	GIT_CHECK_EXCLUDE="vendor" \
