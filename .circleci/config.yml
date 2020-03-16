@@ -1,0 +1,10 @@
+---
+version: 2
+jobs:
+  build:
+    docker:
+      - image: alpine:latest
+    steps:
+      - run:
+          name: Noop
+          command: exit 0
