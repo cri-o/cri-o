@@ -104,20 +104,27 @@ func main() {
 }
 
 func incVersion(tag, branch string) string {
-	// Do nothing if no version bump is required
-	if noBumpVersion {
-		return tag
-	}
-
 	sv, err := util.TagStringToSemver(strings.TrimSpace(tag))
 	if err != nil {
 		panic(err)
 	}
+	isReleaseBranch := kgit.IsReleaseBranch(branch) && branch != kgit.Master
+
+	// Do nothing if no version bump is required
+	if noBumpVersion {
+		if !isReleaseBranch {
+			// Use the first patch as start
+			sv.Patch = 0
+		}
+		return sv.String()
+	}
+
 	// Release branches get the next patch
-	if kgit.IsReleaseBranch(branch) {
+	if isReleaseBranch {
 		sv.Patch++
 	} else {
 		sv.Minor++
+		sv.Patch = 0
 	}
 	sv.Pre = []semver.PRVersion{{VersionStr: "dev"}}
 
