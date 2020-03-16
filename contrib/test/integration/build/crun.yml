@@ -2,10 +2,10 @@
 
 - name: clone crun source repo
   git:
-    repo: "https://github.com/containers/crun.git"
+    repo: "https://github.com/giuseppe/crun.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun"
     force: "{{ force_clone | default(False) | bool}}"
-    version: "0.13"
+    version: "cgroup-delegation"
 
 - name: Install crun dependencies
   raw: >
