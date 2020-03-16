@@ -1200,17 +1200,19 @@ k8s.io/kubernetes/pkg/volume/util/hostutil
 k8s.io/kubernetes/pkg/volume/util/recyclerclient
 k8s.io/kubernetes/pkg/volume/util/subpath
 k8s.io/kubernetes/third_party/forked/golang/expansion
-# k8s.io/release v0.2.5
+# k8s.io/release v0.2.7-0.20200316100236-bc627c49ab58
 ## explicit
 k8s.io/release/cmd/release-notes
 k8s.io/release/pkg/command
 k8s.io/release/pkg/git
+k8s.io/release/pkg/github
+k8s.io/release/pkg/github/internal
+k8s.io/release/pkg/http
 k8s.io/release/pkg/log
 k8s.io/release/pkg/notes
-k8s.io/release/pkg/notes/client
 k8s.io/release/pkg/notes/document
-k8s.io/release/pkg/notes/internal
 k8s.io/release/pkg/notes/options
+k8s.io/release/pkg/release
 k8s.io/release/pkg/util
 # k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab
 ## explicit

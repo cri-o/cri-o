@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package client
+package github
 
 import (
 	"context"
@@ -98,6 +98,36 @@ func (c *githubNotesReplayClient) GetRepoCommit(ctx context.Context, owner, repo
 		return nil, nil, err
 	}
 	result := &github.RepositoryCommit{}
+	record := apiRecord{Result: result}
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, nil, err
+	}
+	return result, record.response(), nil
+}
+
+func (c *githubNotesReplayClient) ListReleases(
+	ctx context.Context, owner, repo string, opt *github.ListOptions,
+) ([]*github.RepositoryRelease, *github.Response, error) {
+	data, err := c.readRecordedData(gitHubAPIListReleases)
+	if err != nil {
+		return nil, nil, err
+	}
+	result := []*github.RepositoryRelease{}
+	record := apiRecord{Result: result}
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, nil, err
+	}
+	return result, record.response(), nil
+}
+
+func (c *githubNotesReplayClient) ListTags(
+	ctx context.Context, owner, repo string, opt *github.ListOptions,
+) ([]*github.RepositoryTag, *github.Response, error) {
+	data, err := c.readRecordedData(gitHubAPIListTags)
+	if err != nil {
+		return nil, nil, err
+	}
+	result := []*github.RepositoryTag{}
 	record := apiRecord{Result: result}
 	if err := json.Unmarshal(data, &record); err != nil {
 		return nil, nil, err

@@ -114,7 +114,7 @@ func incVersion(tag, branch string) string {
 		panic(err)
 	}
 	// Release branches get the next patch
-	if kgit.IsReleaseBranch(branch) {
+	if kgit.IsReleaseBranch(branch) && branch != kgit.Master {
 		sv.Patch++
 	} else {
 		sv.Minor++

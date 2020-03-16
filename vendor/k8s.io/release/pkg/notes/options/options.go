@@ -17,16 +17,13 @@ limitations under the License.
 package options
 
 import (
-	"context"
 	"os"
 
-	"github.com/google/go-github/v29/github"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/oauth2"
 
 	"k8s.io/release/pkg/git"
-	"k8s.io/release/pkg/notes/client"
+	"k8s.io/release/pkg/github"
 )
 
 type Options struct {
@@ -61,7 +58,15 @@ const (
 	RevisionDiscoveryModeMergeBaseToLatest = "mergebase-to-latest"
 	RevisionDiscoveryModePatchToPatch      = "patch-to-patch"
 	RevisionDiscoveryModeMinorToMinor      = "minor-to-minor"
-	GitHubToken                            = "GITHUB_TOKEN"
+)
+
+const (
+	FormatSpecNone              = ""
+	FormatSpecJSON              = "json"
+	FormatSpecDefaultGoTemplate = "go-template:default"
+
+	// Deprecated: This option is internaly translated to `FormatSpecDefaultGoTemplate`
+	FormatSpecMarkdown = "markdown"
 )
 
 // New creates a new Options instance with the default values
@@ -95,55 +100,31 @@ func (o *Options) ValidateAndFinish() (err error) {
 	}
 
 	// The GitHub Token is required if replay is not specified
-	token, ok := os.LookupEnv(GitHubToken)
+	token, ok := os.LookupEnv(github.TokenEnvKey)
 	if ok {
 		o.githubToken = token
 	} else if o.ReplayDir == "" {
 		return errors.Errorf(
 			"neither environment variable `%s` nor `replay` option is set",
-			GitHubToken,
+			github.TokenEnvKey,
 		)
 	}
 
 	// Check if we want to automatically discover the revisions
 	if o.DiscoverMode != RevisionDiscoveryModeNONE {
-		repo, err := o.repo()
-		if err != nil {
+		if err := o.resolveDiscoverMode(); err != nil {
 			return err
 		}
-
-		var result git.DiscoverResult
-		if o.DiscoverMode == RevisionDiscoveryModeMergeBaseToLatest {
-			result, err = repo.LatestReleaseBranchMergeBaseToLatest()
-		} else if o.DiscoverMode == RevisionDiscoveryModePatchToPatch {
-			result, err = repo.LatestPatchToPatch(o.Branch)
-		} else if o.DiscoverMode == RevisionDiscoveryModeMinorToMinor {
-			result, err = repo.LatestNonPatchFinalToMinor()
-		}
-		if err != nil {
-			return err
-		}
-
-		o.StartSHA = result.StartSHA()
-		o.StartRev = result.StartRev()
-		o.EndSHA = result.EndSHA()
-		o.EndRev = result.EndRev()
-
-		logrus.Infof("discovered start SHA %s", o.StartSHA)
-		logrus.Infof("discovered end SHA %s", o.EndSHA)
-
-		logrus.Infof("using start revision %s", o.StartRev)
-		logrus.Infof("using end revision %s", o.EndRev)
 	}
 
 	// The start SHA or rev is required.
 	if o.StartSHA == "" && o.StartRev == "" {
-		return errors.New("the starting commit hash must be set via -start-sha, $START_SHA, -start-rev or $START_REV")
+		return errors.New("the starting commit hash must be set via --start-sha, $START_SHA, --start-rev or $START_REV")
 	}
 
 	// The end SHA or rev is required.
 	if o.EndSHA == "" && o.EndRev == "" {
-		return errors.New("the ending commit hash must be set via -end-sha, $END_SHA, -end-rev or $END_REV")
+		return errors.New("the ending commit hash must be set via --end-sha, $END_SHA, --end-rev or $END_REV")
 	}
 
 	// Check if we have to parse a revision
@@ -178,6 +159,44 @@ func (o *Options) ValidateAndFinish() (err error) {
 		}
 	}
 
+	// Set the format
+	// TODO: Remove "markdown" after some time as it is deprecated in PR#1008
+	if o.Format == FormatSpecMarkdown || o.Format == FormatSpecNone {
+		o.Format = FormatSpecDefaultGoTemplate
+	}
+
+	return nil
+}
+
+func (o *Options) resolveDiscoverMode() error {
+	repo, err := o.repo()
+	if err != nil {
+		return err
+	}
+
+	var result git.DiscoverResult
+	if o.DiscoverMode == RevisionDiscoveryModeMergeBaseToLatest {
+		result, err = repo.LatestReleaseBranchMergeBaseToLatest()
+	} else if o.DiscoverMode == RevisionDiscoveryModePatchToPatch {
+		result, err = repo.LatestPatchToPatch(o.Branch)
+	} else if o.DiscoverMode == RevisionDiscoveryModeMinorToMinor {
+		result, err = repo.LatestNonPatchFinalToMinor()
+	}
+	if err != nil {
+		return err
+	}
+
+	o.StartSHA = result.StartSHA()
+	o.StartRev = result.StartRev()
+	o.EndSHA = result.EndSHA()
+	o.EndRev = result.EndRev()
+
+	logrus.Infof("discovered start SHA %s", o.StartSHA)
+	logrus.Infof("discovered end SHA %s", o.EndSHA)
+
+	logrus.Infof("using start revision %s", o.StartRev)
+	logrus.Infof("using end revision %s", o.EndRev)
+
 	return nil
 }
 
@@ -205,21 +224,20 @@ func (o *Options) repo() (repo *git.Repo, err error) {
 // a Client which in addition records the responses from Github and stores them
 // on disk, or a Client that replays those pre-recorded responses and does not
 // talk to the GitHub API at all.
-func (o *Options) Client() client.Client {
+func (o *Options) Client() (github.Client, error) {
 	if o.ReplayDir != "" {
-		return client.NewReplayer(o.ReplayDir)
+		return github.NewReplayer(o.ReplayDir), nil
 	}
 
 	// Create a real GitHub API client
-	ctx := context.Background()
-	httpClient := oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: o.githubToken},
-	))
-	c := client.New(github.NewClient(httpClient))
-
-	if o.RecordDir != "" {
-		return client.NewRecorder(c, o.RecordDir)
+	gh, err := github.NewWithToken(o.githubToken)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create GitHub client")
 	}
 
-	return c
+	if o.RecordDir != "" {
+		return github.NewRecorder(gh.Client(), o.RecordDir), nil
+	}
+
+	return gh.Client(), nil
 }

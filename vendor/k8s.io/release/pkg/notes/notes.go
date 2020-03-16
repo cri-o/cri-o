@@ -27,12 +27,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/go-github/v29/github"
+	gogithub "github.com/google/go-github/v29/github"
 	"github.com/nozzle/throttler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/release/pkg/notes/client"
+	"k8s.io/release/pkg/github"
 	"k8s.io/release/pkg/notes/options"
 )
 
@@ -129,27 +129,31 @@ type ReleaseNotes map[int]*ReleaseNote
 type ReleaseNotesHistory []int
 
 type Result struct {
-	commit      *github.RepositoryCommit
-	pullRequest *github.PullRequest
+	commit      *gogithub.RepositoryCommit
+	pullRequest *gogithub.PullRequest
 }
 
 type Gatherer struct {
-	client  client.Client
+	client  github.Client
 	context context.Context
 	options *options.Options
 }
 
 // NewGatherer creates a new notes gatherer
-func NewGatherer(ctx context.Context, opts *options.Options) *Gatherer {
+func NewGatherer(ctx context.Context, opts *options.Options) (*Gatherer, error) {
+	client, err := opts.Client()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create notes client")
+	}
 	return &Gatherer{
-		client:  opts.Client(),
+		client:  client,
 		context: ctx,
 		options: opts,
-	}
+	}, nil
 }
 
 // NewGathererWithClient creates a new notes gatherer with a specific client
-func NewGathererWithClient(ctx context.Context, c client.Client) *Gatherer {
+func NewGathererWithClient(ctx context.Context, c github.Client) *Gatherer {
 	return &Gatherer{
 		client:  c,
 		context: ctx,
@@ -382,7 +386,7 @@ func (g *Gatherer) ReleaseNoteFromCommit(result *Result, relVer string) (*Releas
 
 // ListCommits lists all commits starting from a given commit SHA and ending at
 // a given commit SHA.
-func (g *Gatherer) ListCommits(branch, start, end string) ([]*github.RepositoryCommit, error) {
+func (g *Gatherer) ListCommits(branch, start, end string) ([]*gogithub.RepositoryCommit, error) {
 	startCommit, _, err := g.client.GetCommit(g.context, g.options.GithubOrg, g.options.GithubRepo, start)
 	if err != nil {
 		return nil, err
@@ -395,7 +399,7 @@ func (g *Gatherer) ListCommits(branch, start, end string) ([]*github.RepositoryC
 
 	allCommits := &commitList{}
 
-	worker := func(clo *github.CommitsListOptions) ([]*github.RepositoryCommit, *github.Response, error) {
+	worker := func(clo *gogithub.CommitsListOptions) ([]*gogithub.RepositoryCommit, *gogithub.Response, error) {
 		commits, resp, err := g.client.ListCommits(g.context, g.options.GithubOrg, g.options.GithubRepo, clo)
 		if err != nil {
 			return nil, nil, err
@@ -403,11 +407,11 @@ func (g *Gatherer) ListCommits(branch, start, end string) ([]*github.RepositoryC
 		return commits, resp, err
 	}
 
-	clo := github.CommitsListOptions{
+	clo := gogithub.CommitsListOptions{
 		SHA:   branch,
 		Since: startCommit.GetCommitter().GetDate(),
 		Until: endCommit.GetCommitter().GetDate(),
-		ListOptions: github.ListOptions{
+		ListOptions: gogithub.ListOptions{
 			Page:    1,
 			PerPage: 100,
 		},
@@ -452,16 +456,16 @@ func (g *Gatherer) ListCommits(branch, start, end string) ([]*github.RepositoryC
 
 type commitList struct {
 	sync.RWMutex
-	list []*github.RepositoryCommit
+	list []*gogithub.RepositoryCommit
 }
 
-func (l *commitList) Add(c []*github.RepositoryCommit) {
+func (l *commitList) Add(c []*gogithub.RepositoryCommit) {
 	l.Lock()
 	defer l.Unlock()
 	l.list = append(l.list, c...)
 }
 
-func (l *commitList) List() []*github.RepositoryCommit {
+func (l *commitList) List() []*gogithub.RepositoryCommit {
 	l.RLock()
 	defer l.RUnlock()
 	return l.list
@@ -510,7 +514,7 @@ func matchesIncludeFilter(msg string) *regexp.Regexp {
 // gatherNotes list commits that have release notes starting from a given
 // commit SHA and ending at a given commit SHA. This function is similar to
 // ListCommits except that only commits with tagged release notes are returned.
-func (g *Gatherer) gatherNotes(commits []*github.RepositoryCommit) (filtered []*Result, err error) {
+func (g *Gatherer) gatherNotes(commits []*gogithub.RepositoryCommit) (filtered []*Result, err error) {
 	allResults := &resultList{}
 
 	nrOfCommits := len(commits)
@@ -534,6 +538,14 @@ func (g *Gatherer) gatherNotes(commits []*github.RepositoryCommit) (filtered []*
 	// and use that throttler for all API calls.
 	t := throttler.New(maxParallelRequests, nrOfCommits)
 
+	notesForCommit := func(commit *gogithub.RepositoryCommit) {
+		res, err := g.notesForCommit(commit)
+		if err == nil && res != nil {
+			allResults.Add(res)
+		}
+		t.Done(err)
+	}
+
 	for i, commit := range commits {
 		logrus.Infof(
 			"starting to process commit %d of %d (%0.2f%%): %s",
@@ -541,13 +553,12 @@ func (g *Gatherer) gatherNotes(commits []*github.RepositoryCommit) (filtered []*
 			commit.GetSHA(),
 		)
 
-		go func(commit *github.RepositoryCommit) {
-			res, err := g.notesForCommit(commit)
-			if err == nil && res != nil {
-				allResults.Add(res)
-			}
-			t.Done(err)
-		}(commit)
+		if g.options.ReplayDir == "" {
+			go notesForCommit(commit)
+		} else {
+			// Ensure the same order like recorded
+			notesForCommit(commit)
+		}
 
 		if t.Throttle() > 0 {
 			break
@@ -561,7 +572,7 @@ func (g *Gatherer) gatherNotes(commits []*github.RepositoryCommit) (filtered []*
 	return allResults.List(), nil
 }
 
-func (g *Gatherer) notesForCommit(commit *github.RepositoryCommit) (*Result, error) {
+func (g *Gatherer) notesForCommit(commit *gogithub.RepositoryCommit) (*Result, error) {
 	prs, err := g.PRsFromCommit(commit)
 	if err != nil {
 		if err == errNoPRIDFoundInCommitMessage || err == errNoPRFoundForCommitSHA {
@@ -627,8 +638,8 @@ func (l *resultList) List() []*Result {
 // PRsFromCommit return an API Pull Request struct given a commit struct. This is
 // useful for going from a commit log to the PR (which contains useful info such
 // as labels).
-func (g *Gatherer) PRsFromCommit(commit *github.RepositoryCommit) (
-	[]*github.PullRequest, error,
+func (g *Gatherer) PRsFromCommit(commit *gogithub.RepositoryCommit) (
+	[]*gogithub.PullRequest, error,
 ) {
 	githubPRs, err := g.prsForCommitFromMessage(*commit.Commit.Message)
 	if err != nil {
@@ -645,7 +656,7 @@ func (g *Gatherer) PRsFromCommit(commit *github.RepositoryCommit) (
 // a given string. This pattern is used often in the k/k repo and we can take
 // advantage of this to contextualize release note generation with the kind, sig,
 // area, etc labels.
-func LabelsWithPrefix(pr *github.PullRequest, prefix string) []string {
+func LabelsWithPrefix(pr *gogithub.PullRequest, prefix string) []string {
 	labels := []string{}
 	for _, label := range pr.Labels {
 		if strings.HasPrefix(*label.Name, prefix) {
@@ -657,7 +668,7 @@ func LabelsWithPrefix(pr *github.PullRequest, prefix string) []string {
 
 // IsActionRequired indicates whether or not the release-note-action-required
 // label was set on the PR.
-func IsActionRequired(pr *github.PullRequest) bool {
+func IsActionRequired(pr *gogithub.PullRequest) bool {
 	for _, label := range pr.Labels {
 		if *label.Name == "release-note-action-required" {
 			return true
@@ -704,10 +715,10 @@ func HasString(a []string, x string) bool {
 }
 
 // prsForCommitFromSHA retrieves the PR numbers for a commit given its sha
-func (g *Gatherer) prsForCommitFromSHA(sha string) (prs []*github.PullRequest, err error) {
-	plo := &github.PullRequestListOptions{
+func (g *Gatherer) prsForCommitFromSHA(sha string) (prs []*gogithub.PullRequest, err error) {
+	plo := &gogithub.PullRequestListOptions{
 		State: "closed",
-		ListOptions: github.ListOptions{
+		ListOptions: gogithub.ListOptions{
 			Page:    1,
 			PerPage: 100,
 		},
@@ -735,7 +746,7 @@ func (g *Gatherer) prsForCommitFromSHA(sha string) (prs []*github.PullRequest, e
 	return prs, nil
 }
 
-func (g *Gatherer) prsForCommitFromMessage(commitMessage string) (prs []*github.PullRequest, err error) {
+func (g *Gatherer) prsForCommitFromMessage(commitMessage string) (prs []*gogithub.PullRequest, err error) {
 	prsNum, err := prsNumForCommitFromMessage(commitMessage)
 	if err != nil {
 		return nil, err

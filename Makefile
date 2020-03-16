@@ -85,7 +85,7 @@ GO_FILES := $(shell find . -type f -name '*.go' -not -name '*_test.go')
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
-VERSION := $(shell $(GO_RUN) ./scripts/latest_version.go)
+VERSION := $(shell $(GO_RUN) ./scripts/latest-version)
 DEFAULTS_PATH := ""
 
 BASE_LDFLAGS = ${SHRINKFLAGS} \
@@ -168,19 +168,9 @@ release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
 
 release-notes: ${RELEASE_NOTES}
-	# A valid GITHUB_TOKEN has to be exported to let this work
-	TAG=v$(shell $(GO_RUN) ./scripts/latest_version.go --no-bump-version) &&\
-	OUTPATH=${BUILD_PATH}/release-notes &&\
-	mkdir -p $$OUTPATH &&\
-	${RELEASE_NOTES} \
-		--github-org cri-o \
-		--github-repo cri-o \
-		--required-author "" \
-		--repo-path /tmp/cri-o-repo \
-		--start-rev $$TAG \
-		--end-sha $(COMMIT_NO) \
-		--output $$OUTPATH/$(COMMIT_NO).md &&\
-	sed -i '1s;^;# $(VERSION)\n\n;' $$OUTPATH/$(COMMIT_NO).md
+	${GO_RUN} ./scripts/release-notes \
+		--output-path ${BUILD_PATH}/release-notes \
+		--tag ${VERSION}
 
 clean:
 ifneq ($(GOPATH),)

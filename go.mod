@@ -60,7 +60,7 @@ require (
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog v1.0.0
 	k8s.io/kubernetes v1.13.0
-	k8s.io/release v0.2.5
+	k8s.io/release v0.2.7-0.20200316100236-bc627c49ab58
 	k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab
 )
 

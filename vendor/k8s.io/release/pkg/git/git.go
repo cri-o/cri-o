@@ -53,6 +53,17 @@ const (
 	gitExecutable         = "git"
 )
 
+func GetTag() (string, error) {
+	tag, err := command.New(
+		"git", "describe", "--tags", "--always", "--dirty",
+	).RunSilentSuccessOutput()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get current tag")
+	}
+	t := time.Now().Format("20060102")
+	return fmt.Sprintf("v%s-%s", t, tag.OutputTrimNL()), nil
+}
+
 // GetDefaultKubernetesRepoURL returns the default HTTPS repo URL for Kubernetes.
 // Expected: https://github.com/kubernetes/kubernetes
 func GetDefaultKubernetesRepoURL() (string, error) {
@@ -494,6 +505,8 @@ func (r *Repo) Checkout(rev string, args ...string) error {
 		RunSilentSuccess()
 }
 
+// IsReleaseBranch returns true if the provided branch is a Kubernetes release
+// branch
 func IsReleaseBranch(branch string) bool {
 	re := regexp.MustCompile(branchRE)
 	if !re.MatchString(branch) {

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package client
+package github
 
 import (
 	"context"
@@ -34,10 +34,12 @@ type gitHubAPI string
 
 const (
 	gitHubAPIGetCommit                  gitHubAPI = "GetCommit"
-	gitHubAPIListCommits                gitHubAPI = "ListCommits"
-	gitHubAPIListPullRequestsWithCommit gitHubAPI = "ListPullRequestsWithCommit"
 	gitHubAPIGetPullRequest             gitHubAPI = "GetPullRequest"
 	gitHubAPIGetRepoCommit              gitHubAPI = "GetRepoCommit"
+	gitHubAPIListCommits                gitHubAPI = "ListCommits"
+	gitHubAPIListPullRequestsWithCommit gitHubAPI = "ListPullRequestsWithCommit"
+	gitHubAPIListReleases               gitHubAPI = "ListReleases"
+	gitHubAPIListTags                   gitHubAPI = "ListTags"
 )
 
 type apiRecord struct {
@@ -117,6 +119,32 @@ func (c *githubNotesRecordClient) GetRepoCommit(ctx context.Context, owner, repo
 		return nil, nil, err
 	}
 	return commit, resp, nil
+}
+
+func (c *githubNotesRecordClient) ListReleases(
+	ctx context.Context, owner, repo string, opt *github.ListOptions,
+) ([]*github.RepositoryRelease, *github.Response, error) {
+	releases, resp, err := c.client.ListReleases(ctx, owner, repo, opt)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := c.recordAPICall(gitHubAPIListReleases, releases, resp); err != nil {
+		return nil, nil, err
+	}
+	return releases, resp, nil
+}
+
+func (c *githubNotesRecordClient) ListTags(
+	ctx context.Context, owner, repo string, opt *github.ListOptions,
+) ([]*github.RepositoryTag, *github.Response, error) {
+	tags, resp, err := c.client.ListTags(ctx, owner, repo, opt)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := c.recordAPICall(gitHubAPIListTags, tags, resp); err != nil {
+		return nil, nil, err
+	}
+	return tags, resp, nil
 }
 
 // recordAPICall records a single GitHub API call into a JSON file by ensuring
