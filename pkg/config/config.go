@@ -18,7 +18,6 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
-	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
@@ -57,13 +56,13 @@ type Config struct {
 
 // Iface provides a config interface for data encapsulation
 type Iface interface {
-	GetStore() (cstorage.Store, error)
+	GetStore() (storage.Store, error)
 	GetData() *Config
 }
 
 // GetStore returns the container storage for a given configuration
-func (c *Config) GetStore() (cstorage.Store, error) {
-	return cstorage.GetStore(cstorage.StoreOptions{
+func (c *Config) GetStore() (storage.Store, error) {
+	return storage.GetStore(storage.StoreOptions{
 		RunRoot:            c.RunRoot,
 		GraphRoot:          c.Root,
 		GraphDriverName:    c.Storage,

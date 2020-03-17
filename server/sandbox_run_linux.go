@@ -25,7 +25,6 @@ import (
 	"github.com/cri-o/cri-o/pkg/config"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
-	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -162,7 +161,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err := label.Relabel(resolvPath, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
 			return nil, err
 		}
-		mnt := runtimespec.Mount{
+		mnt := spec.Mount{
 			Type:        "bind",
 			Source:      resolvPath,
 			Destination: "/etc/resolv.conf",
@@ -265,7 +264,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}()
 	}
 
-	mnt := runtimespec.Mount{
+	mnt := spec.Mount{
 		Type:        "bind",
 		Source:      shmPath,
 		Destination: sandbox.DevShmPath,
@@ -458,7 +457,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err := label.Relabel(hostnamePath, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
 		return nil, err
 	}
-	mnt = runtimespec.Mount{
+	mnt = spec.Mount{
 		Type:        "bind",
 		Source:      hostnamePath,
 		Destination: "/etc/hostname",
@@ -480,7 +479,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
 			g.RemoveMount("/dev/mqueue")
-			mqueue := runtimespec.Mount{
+			mqueue := spec.Mount{
 				Type:        "bind",
 				Source:      "/dev/mqueue",
 				Destination: "/dev/mqueue",
@@ -501,7 +500,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 		if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
 			g.RemoveMount("/proc")
-			proc := runtimespec.Mount{
+			proc := spec.Mount{
 				Type:        "bind",
 				Source:      "/proc",
 				Destination: "/proc",
@@ -768,7 +767,7 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Ge
 func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, sb *sandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, err error) {
 	managedNamespaces := make([]sandbox.NSType, 0, 3)
 	if hostNetwork {
-		err = g.RemoveLinuxNamespace(string(runtimespec.NetworkNamespace))
+		err = g.RemoveLinuxNamespace(string(spec.NetworkNamespace))
 		if err != nil {
 			return
 		}
@@ -777,7 +776,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 	}
 
 	if hostIPC {
-		err = g.RemoveLinuxNamespace(string(runtimespec.IPCNamespace))
+		err = g.RemoveLinuxNamespace(string(spec.IPCNamespace))
 		if err != nil {
 			return
 		}
@@ -787,7 +786,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 
 	// Since we need a process to hold open the PID namespace, CRI-O can't manage the NS lifecycle
 	if hostPID {
-		err = g.RemoveLinuxNamespace(string(runtimespec.PIDNamespace))
+		err = g.RemoveLinuxNamespace(string(spec.PIDNamespace))
 		if err != nil {
 			return
 		}
@@ -817,10 +816,10 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 // to add or replace the defaults to these paths
 func configureGeneratorGivenNamespacePaths(managedNamespaces []*sandbox.ManagedNamespace, g generate.Generator) error {
 	typeToSpec := map[sandbox.NSType]string{
-		sandbox.IPCNS:  runtimespec.IPCNamespace,
-		sandbox.NETNS:  runtimespec.NetworkNamespace,
-		sandbox.UTSNS:  runtimespec.UTSNamespace,
-		sandbox.USERNS: runtimespec.UserNamespace,
+		sandbox.IPCNS:  spec.IPCNamespace,
+		sandbox.NETNS:  spec.NetworkNamespace,
+		sandbox.UTSNS:  spec.UTSNamespace,
+		sandbox.USERNS: spec.UserNamespace,
 	}
 
 	for _, ns := range managedNamespaces {
