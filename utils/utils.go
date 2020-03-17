@@ -45,24 +45,6 @@ func ExecCmd(name string, args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
-// ExecCmdWithStdStreams execute a command with the specified standard streams.
-func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, name string, args ...string) error {
-	cmd := exec.Command(name, args...)
-	cmd.Stdin = stdin
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
-	}
-
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("`%v %v` failed: %v", name, strings.Join(args, " "), err)
-	}
-
-	return nil
-}
-
 // StatusToExitCode converts wait status code to an exit code
 func StatusToExitCode(status int) int {
 	return ((status) & 0xff00) >> 8

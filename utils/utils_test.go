@@ -47,36 +47,6 @@ var _ = t.Describe("Utils", func() {
 		})
 	})
 
-	t.Describe("ExecCmdWithStdStreams", func() {
-		It("should succeed", func() {
-			// Given
-			stdout := &bytes.Buffer{}
-			stderr := &bytes.Buffer{}
-
-			// When
-			err := utils.ExecCmdWithStdStreams(nil, stdout, stderr, "ls")
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(stdout.String()).NotTo(BeEmpty())
-			Expect(stderr.String()).To(BeEmpty())
-		})
-
-		It("should fail on wrong command", func() {
-			// Given
-			stdout := &bytes.Buffer{}
-			stderr := &bytes.Buffer{}
-
-			// When
-			err := utils.ExecCmdWithStdStreams(nil, stdout, stderr, "not-existing")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(stdout.String()).To(BeEmpty())
-			Expect(stderr.String()).To(BeEmpty())
-		})
-	})
-
 	t.Describe("StatusToExitCode", func() {
 		It("should succeed", func() {
 			// Given
