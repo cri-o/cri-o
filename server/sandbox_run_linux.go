@@ -23,6 +23,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/pkg/sandbox"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -43,25 +44,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
 
-	if req.GetConfig().GetMetadata() == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Metadata is nil")
+	sbox := sandbox.New(ctx)
+	if err := sbox.SetConfig(req.GetConfig()); err != nil {
+		return nil, errors.Wrapf(err, "setting sandbox config")
 	}
 
 	pathsToChown := []string{}
 
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
-	log.Infof(ctx, "attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(req.GetConfig().GetLabels()), leaky.PodInfraContainerName)
-	var processLabel, mountLabel, resolvPath string
-	// process req.Name
-	kubeName := req.GetConfig().GetMetadata().GetName()
-	if kubeName == "" {
-		return nil, fmt.Errorf("PodSandboxConfig.Name should not be empty")
-	}
+	log.Infof(ctx, "attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(sbox.Config().GetLabels()), leaky.PodInfraContainerName)
 
-	namespace := req.GetConfig().GetMetadata().GetNamespace()
-	attempt := req.GetConfig().GetMetadata().GetAttempt()
+	kubeName := sbox.Config().GetMetadata().GetName()
+	namespace := sbox.Config().GetMetadata().GetNamespace()
+	attempt := sbox.Config().GetMetadata().GetAttempt()
 
-	id, name, err := s.ReservePodIDAndName(req.GetConfig())
+	id, name, err := s.ReservePodIDAndName(sbox.Config())
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +68,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	containerName, err := s.ReserveSandboxContainerIDAndName(req.GetConfig())
+	containerName, err := s.ReserveSandboxContainerIDAndName(sbox.Config())
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +79,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}()
 
 	var labelOptions []string
-	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
+	securityContext := sbox.Config().GetLinux().GetSecurityContext()
 	selinuxConfig := securityContext.GetSelinuxOptions()
 	if selinuxConfig != nil {
 		labelOptions = getLabelOptions(selinuxConfig)
@@ -93,14 +90,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		s.config.PauseImageAuthFile,
 		"",
 		containerName,
-		req.GetConfig().GetMetadata().GetName(),
-		req.GetConfig().GetMetadata().GetUid(),
+		kubeName,
+		sbox.Config().GetMetadata().GetUid(),
 		namespace,
 		attempt,
 		s.defaultIDMappings,
 		labelOptions)
-	mountLabel = podContainer.MountLabel
-	processLabel = podContainer.ProcessLabel
+
+	mountLabel := podContainer.MountLabel
+	processLabel := podContainer.ProcessLabel
 
 	if errors.Cause(err) == storage.ErrDuplicateName {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
@@ -144,10 +142,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.SetProcessArgs(pauseCommand)
 
 	// set DNS options
-	if req.GetConfig().GetDnsConfig() != nil {
-		dnsServers := req.GetConfig().GetDnsConfig().Servers
-		dnsSearches := req.GetConfig().GetDnsConfig().Searches
-		dnsOptions := req.GetConfig().GetDnsConfig().Options
+	var resolvPath string
+	if sbox.Config().GetDnsConfig() != nil {
+		dnsServers := sbox.Config().GetDnsConfig().Servers
+		dnsSearches := sbox.Config().GetDnsConfig().Searches
+		dnsOptions := sbox.Config().GetDnsConfig().Options
 		resolvPath = fmt.Sprintf("%s/resolv.conf", podContainer.RunDir)
 		err = parseDNSOptions(dnsServers, dnsSearches, dnsOptions, resolvPath)
 		if err != nil {
@@ -172,14 +171,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// add metadata
-	metadata := req.GetConfig().GetMetadata()
+	metadata := sbox.Config().GetMetadata()
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}
 
 	// add labels
-	labels := req.GetConfig().GetLabels()
+	labels := sbox.Config().GetLabels()
 
 	if err := validateLabels(labels); err != nil {
 		return nil, err
@@ -196,14 +195,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// add annotations
-	kubeAnnotations := req.GetConfig().GetAnnotations()
+	kubeAnnotations := sbox.Config().GetAnnotations()
 	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
 	if err != nil {
 		return nil, err
 	}
 
 	// set log directory
-	logDir := req.GetConfig().GetLogDirectory()
+	logDir := sbox.Config().GetLogDirectory()
 	if logDir == "" {
 		logDir = filepath.Join(s.config.LogDir, id)
 	}
@@ -300,7 +299,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	hostNetwork := securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 
-	hostname, err := getHostname(id, req.GetConfig().Hostname, hostNetwork)
+	hostname, err := getHostname(id, sbox.Config().Hostname, hostNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +338,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	created := time.Now()
 	g.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
-	portMappings := convertPortMappings(req.GetConfig().GetPortMappings())
+	portMappings := convertPortMappings(sbox.Config().GetPortMappings())
 	portMappingsJSON, err := json.Marshal(portMappings)
 	if err != nil {
 		return nil, err
@@ -357,7 +356,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		parent = cgroupMemorySubsystemMountPathV1
 	}
 
-	cgroupParent, err := AddCgroupAnnotation(ctx, g, parent, s.config.CgroupManager, req.GetConfig().GetLinux().GetCgroupParent(), id)
+	cgroupParent, err := AddCgroupAnnotation(ctx, g, parent, s.config.CgroupManager, sbox.Config().GetLinux().GetCgroupParent(), id)
 	if err != nil {
 		return nil, err
 	}
@@ -413,7 +412,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC)
 	// extract linux sysctls from annotations and pass down to oci runtime
 	// Will override any duplicate default systcl from crio.conf
-	for key, value := range req.GetConfig().GetLinux().GetSysctls() {
+	for key, value := range sbox.Config().GetLinux().GetSysctls() {
 		g.AddLinuxSysctl(key, value)
 	}
 
