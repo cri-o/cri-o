@@ -453,19 +453,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.SetProcessApparmorProfile(profile)
 	}
 
-	logPath := containerConfig.GetLogPath()
 	sboxLogDir := sandboxConfig.GetLogDirectory()
 	if sboxLogDir == "" {
 		sboxLogDir = sb.LogDir()
 	}
+
+	logPath := containerConfig.GetLogPath()
 	if logPath == "" {
 		logPath = filepath.Join(sboxLogDir, containerID+".log")
-	}
-	if !filepath.IsAbs(logPath) {
-		// XXX: It's not really clear what this should be versus the sbox logDirectory.
-		log.Warnf(ctx, "requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
+	} else {
 		logPath = filepath.Join(sboxLogDir, logPath)
-		log.Warnf(ctx, "logPath from relative path is now absolute: %s", logPath)
 	}
 
 	// Handle https://issues.k8s.io/44043
