@@ -163,6 +163,7 @@ type GenerateKubeValues struct {
 type GenerateSystemdValues struct {
 	PodmanCommand
 	Name          bool
+	New           bool
 	Files         bool
 	RestartPolicy string
 	StopTimeout   int
@@ -259,6 +260,7 @@ type LogsValues struct {
 	Tail       int64
 	Timestamps bool
 	Latest     bool
+	UseName    bool
 }
 
 type MountValues struct {
@@ -308,12 +310,13 @@ type HealthCheckValues struct {
 
 type KubePlayValues struct {
 	PodmanCommand
-	Authfile        string
-	CertDir         string
-	Creds           string
-	Quiet           bool
-	SignaturePolicy string
-	TlsVerify       bool
+	Authfile           string
+	CertDir            string
+	Creds              string
+	Quiet              bool
+	SignaturePolicy    string
+	TlsVerify          bool
+	SeccompProfileRoot string
 }
 
 type PodCreateValues struct {
@@ -597,6 +600,12 @@ type VarlinkValues struct {
 	Timeout int64
 }
 
+type ServiceValues struct {
+	PodmanCommand
+	Varlink bool
+	Timeout int64
+}
+
 type SetTrustValues struct {
 	PodmanCommand
 	PolicyPath  string
@@ -649,9 +658,10 @@ type VolumeRmValues struct {
 
 type CleanupValues struct {
 	PodmanCommand
-	All    bool
-	Latest bool
-	Remove bool
+	All         bool
+	Latest      bool
+	Remove      bool
+	RemoveImage bool
 }
 
 type SystemPruneValues struct {
@@ -679,4 +689,8 @@ type SystemDfValues struct {
 	PodmanCommand
 	Verbose bool
 	Format  string
+}
+
+type UntagValues struct {
+	PodmanCommand
 }

@@ -3,12 +3,15 @@ package createconfig
 import (
 	"strings"
 
+	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod"
 	libpodconfig "github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/sysinfo"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -16,9 +19,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-const cpuPeriod = 100000
+const CpuPeriod = 100000
 
-func getAvailableGids() (int64, error) {
+func GetAvailableGids() (int64, error) {
 	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
 	if err != nil {
 		return 0, err
@@ -80,7 +83,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 	gid5Available := true
 	if isRootless {
-		nGids, err := getAvailableGids()
+		nGids, err := GetAvailableGids()
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +153,6 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	for key, val := range config.Annotations {
 		g.AddAnnotation(key, val)
 	}
-	g.AddProcessEnv("container", "podman")
 
 	addedResources := false
 
@@ -197,8 +199,8 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		addedResources = true
 	}
 	if config.Resources.CPUs != 0 {
-		g.SetLinuxResourcesCPUPeriod(cpuPeriod)
-		g.SetLinuxResourcesCPUQuota(int64(config.Resources.CPUs * cpuPeriod))
+		g.SetLinuxResourcesCPUPeriod(CpuPeriod)
+		g.SetLinuxResourcesCPUQuota(int64(config.Resources.CPUs * CpuPeriod))
 		addedResources = true
 	}
 	if config.Resources.CPURtRuntime != 0 {
@@ -223,26 +225,24 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		// If privileged, we need to add all the host devices to the
 		// spec.  We do not add the user provided ones because we are
 		// already adding them all.
-		if err := config.AddPrivilegedDevices(&g); err != nil {
+		if err := AddPrivilegedDevices(&g); err != nil {
 			return nil, err
 		}
 	} else {
 		for _, devicePath := range config.Devices {
-			if err := devicesFromPath(&g, devicePath); err != nil {
+			if err := DevicesFromPath(&g, devicePath); err != nil {
 				return nil, err
 			}
+		}
+		if len(config.Resources.DeviceCgroupRules) != 0 {
+			if err := deviceCgroupRules(&g, config.Resources.DeviceCgroupRules); err != nil {
+				return nil, err
+			}
+			addedResources = true
 		}
 	}
 
 	// SECURITY OPTS
-	g.SetProcessNoNewPrivileges(config.Security.NoNewPrivs)
-
-	if !config.Security.Privileged {
-		g.SetProcessApparmorProfile(config.Security.ApparmorProfile)
-	}
-
-	blockAccessToKernelFilesystems(config, &g)
-
 	var runtimeConfig *libpodconfig.Config
 
 	if runtime != nil {
@@ -251,6 +251,26 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			return nil, err
 		}
 	}
+
+	g.SetProcessNoNewPrivileges(config.Security.NoNewPrivs)
+
+	if !config.Security.Privileged {
+		g.SetProcessApparmorProfile(config.Security.ApparmorProfile)
+	}
+
+	// Unless already set via the CLI, check if we need to disable process
+	// labels or set the defaults.
+	if len(config.Security.LabelOpts) == 0 && runtimeConfig != nil {
+		if !runtimeConfig.EnableLabeling {
+			// Disabled in the config.
+			config.Security.LabelOpts = append(config.Security.LabelOpts, "disable")
+		} else if err := config.Security.SetLabelOpts(runtime, &config.Pid, &config.Ipc); err != nil {
+			// Defaults!
+			return nil, err
+		}
+	}
+
+	BlockAccessToKernelFilesystems(config.Security.Privileged, config.Pid.PidMode.IsHost(), &g)
 
 	// RESOURCES - PIDS
 	if config.Resources.PidsLimit > 0 {
@@ -274,6 +294,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		}
 	}
 
+	// Make sure to always set the default variables unless overridden in the
+	// config.
+	config.Env = env.Join(env.DefaultEnvVariables, config.Env)
 	for name, val := range config.Env {
 		g.AddProcessEnv(name, val)
 	}
@@ -309,14 +332,26 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 	configSpec := g.Config
 
+	// If the container image specifies an label with a
+	// capabilities.ContainerImageLabel then split the comma separated list
+	// of capabilities and record them.  This list indicates the only
+	// capabilities, required to run the container.
+	var capRequired []string
+	for key, val := range config.Labels {
+		if util.StringInSlice(key, capabilities.ContainerImageLabels) {
+			capRequired = strings.Split(val, ",")
+		}
+	}
+	config.Security.CapRequired = capRequired
+
 	if err := config.Security.ConfigureGenerator(&g, &config.User); err != nil {
 		return nil, err
 	}
 
 	// BIND MOUNTS
-	configSpec.Mounts = supercedeUserMounts(userMounts, configSpec.Mounts)
+	configSpec.Mounts = SupercedeUserMounts(userMounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
-	finalMounts, err := initFSMounts(configSpec.Mounts)
+	finalMounts, err := InitFSMounts(configSpec.Mounts)
 	if err != nil {
 		return nil, err
 	}
@@ -358,10 +393,10 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			return nil, errors.New("cannot specify resource limits when cgroups are disabled is specified")
 		}
 		configSpec.Linux.Resources = &spec.LinuxResources{}
-	case "enabled", "":
+	case "enabled", "no-conmon", "":
 		// Do nothing
 	default:
-		return nil, errors.New("unrecognized option for cgroups; supported are 'default' and 'disabled'")
+		return nil, errors.New("unrecognized option for cgroups; supported are 'default', 'disabled', 'no-conmon'")
 	}
 
 	// Add annotations
@@ -398,8 +433,8 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	return configSpec, nil
 }
 
-func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {
-	if !config.Security.Privileged {
+func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, g *generate.Generator) {
+	if !privileged {
 		for _, mp := range []string{
 			"/proc/acpi",
 			"/proc/kcore",
@@ -415,7 +450,7 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 			g.AddLinuxMaskedPaths(mp)
 		}
 
-		if config.Pid.PidMode.IsHost() && rootless.IsRootless() {
+		if pidModeIsHost && rootless.IsRootless() {
 			return
 		}
 

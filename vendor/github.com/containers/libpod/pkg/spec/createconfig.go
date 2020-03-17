@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/seccomp"
 	"github.com/containers/storage"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -37,6 +38,7 @@ type CreateResourceConfig struct {
 	CPUs              float64  // cpus
 	CPUsetCPUs        string
 	CPUsetMems        string   // cpuset-mems
+	DeviceCgroupRules []string //device-cgroup-rule
 	DeviceReadBps     []string // device-read-bps
 	DeviceReadIOps    []string // device-read-iops
 	DeviceWriteBps    []string // device-write-bps
@@ -108,20 +110,24 @@ type NetworkConfig struct {
 
 // SecurityConfig configures the security features for the container
 type SecurityConfig struct {
-	CapAdd             []string // cap-add
-	CapDrop            []string // cap-drop
-	LabelOpts          []string //SecurityOpts
-	NoNewPrivs         bool     //SecurityOpts
-	ApparmorProfile    string   //SecurityOpts
-	SeccompProfilePath string   //SecurityOpts
-	SecurityOpts       []string
-	Privileged         bool              //privileged
-	ReadOnlyRootfs     bool              //read-only
-	ReadOnlyTmpfs      bool              //read-only-tmpfs
-	Sysctl             map[string]string //sysctl
+	CapAdd                  []string // cap-add
+	CapDrop                 []string // cap-drop
+	CapRequired             []string // cap-required
+	LabelOpts               []string //SecurityOpts
+	NoNewPrivs              bool     //SecurityOpts
+	ApparmorProfile         string   //SecurityOpts
+	SeccompProfilePath      string   //SecurityOpts
+	SeccompProfileFromImage string   // seccomp profile from the container image
+	SeccompPolicy           seccomp.Policy
+	SecurityOpts            []string
+	Privileged              bool              //privileged
+	ReadOnlyRootfs          bool              //read-only
+	ReadOnlyTmpfs           bool              //read-only-tmpfs
+	Sysctl                  map[string]string //sysctl
 }
 
 // CreateConfig is a pre OCI spec structure.  It represents user input from varlink or the CLI
+// swagger:model CreateConfig
 type CreateConfig struct {
 	Annotations       map[string]string
 	Args              []string
@@ -151,6 +157,7 @@ type CreateConfig struct {
 	Resources         CreateResourceConfig
 	RestartPolicy     string
 	Rm                bool           //rm
+	Rmi               bool           //rmi
 	StopSignal        syscall.Signal // stop-signal
 	StopTimeout       uint           // stop-timeout
 	Systemd           bool
@@ -228,6 +235,10 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 		command = append(command, "--rm")
 	}
 
+	if c.Rmi {
+		command = append(command, "--rmi")
+	}
+
 	return command, nil
 }
 
@@ -282,9 +293,12 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	options = append(options, libpod.WithStopSignal(c.StopSignal))
 	options = append(options, libpod.WithStopTimeout(c.StopTimeout))
 
-	logPath := getLoggingPath(c.LogDriverOpt)
+	logPath, logTag := getLoggingOpts(c.LogDriverOpt)
 	if logPath != "" {
 		options = append(options, libpod.WithLogPath(logPath))
+	}
+	if logTag != "" {
+		options = append(options, libpod.WithLogTag(logTag))
 	}
 
 	if c.LogDriver != "" {
@@ -333,9 +347,8 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 	options = append(options, nsOpts...)
 
-	useImageVolumes := c.ImageVolumeType == TypeBind
 	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image, useImageVolumes))
+	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image))
 	options = append(options, libpod.WithConmonPidFile(c.ConmonPidFile))
 	options = append(options, libpod.WithLabels(c.Labels))
 	options = append(options, libpod.WithShmSize(c.Resources.ShmSize))
@@ -379,6 +392,6 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 
 // AddPrivilegedDevices iterates through host devices and adds all
 // host devices to the spec
-func (c *CreateConfig) AddPrivilegedDevices(g *generate.Generator) error {
-	return c.addPrivilegedDevices(g)
+func AddPrivilegedDevices(g *generate.Generator) error {
+	return addPrivilegedDevices(g)
 }

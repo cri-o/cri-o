@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/logs"
-	journal "github.com/coreos/go-systemd/sdjournal"
+	journal "github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +40,7 @@ func (c *Container) readFromJournal(options *logs.LogOptions, logChannel chan *l
 	defaultTime := time.Time{}
 	if options.Since != defaultTime {
 		// coreos/go-systemd/sdjournal doesn't correctly handle requests for data in the future
-		// return nothing instead of fasely printing
+		// return nothing instead of falsely printing
 		if time.Now().Before(options.Since) {
 			return nil
 		}

@@ -3,13 +3,13 @@ package image
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -102,6 +102,13 @@ func ReferenceFilter(ctx context.Context, referenceFilter string) ResultFilter {
 	}
 }
 
+// IdFilter allows you to filter by image Id
+func IdFilter(idFilter string) ResultFilter {
+	return func(i *Image) bool {
+		return i.ID() == idFilter
+	}
+}
+
 // OutputImageFilter allows you to filter by an a specific image name
 func OutputImageFilter(userImage *Image) ResultFilter {
 	return func(i *Image) bool {
@@ -141,7 +148,7 @@ func (ir *Runtime) createFilterFuncs(filters []string, img *Image) ([]ResultFilt
 				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
 			}
 			filterFuncs = append(filterFuncs, CreatedBeforeFilter(before.Created()))
-		case "after":
+		case "since", "after":
 			after, err := ir.NewFromLocal(splitFilter[1])
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
@@ -165,6 +172,8 @@ func (ir *Runtime) createFilterFuncs(filters []string, img *Image) ([]ResultFilt
 		case "reference":
 			referenceFilter := strings.Join(splitFilter[1:], "=")
 			filterFuncs = append(filterFuncs, ReferenceFilter(ctx, referenceFilter))
+		case "id":
+			filterFuncs = append(filterFuncs, IdFilter(splitFilter[1]))
 		default:
 			return nil, errors.Errorf("invalid filter %s ", splitFilter[0])
 		}
