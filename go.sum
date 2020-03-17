@@ -174,6 +174,8 @@ github.com/containers/storage v1.16.0/go.mod h1:nqN09JSi1/RSI1UAUwDYXPRiGSlq5FPb
 github.com/containers/storage v1.16.1/go.mod h1:toFp72SLn/iyJ6YbrnrZ0bW63aH2Qw3dA8JVwL4ADPo=
 github.com/containers/storage v1.16.2 h1:S77Y+lmJcnGoPEZB2OOrTrRGyjT8viDCGyhVNNz78h8=
 github.com/containers/storage v1.16.2/go.mod h1:/RNmsK01ajCL+VtMSi3W8kHzpBwN+Q5gLYWgfw5wlMg=
+github.com/containers/storage v1.16.4 h1:+pEL9A1i11qy1j/MYvh8Y5vs79BBfA+hslyJq1iPOGc=
+github.com/containers/storage v1.16.4/go.mod h1:SdysZeLKJOvfHYysUWg9OZUC3gdZWi5b2b7NC18VpPE=
 github.com/coredns/corefile-migration v1.0.4/go.mod h1:OFwBp/Wc9dJt5cAZzHWMNhK1r5L0p0jDwIBc6j8NC8E=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
@@ -223,6 +225,7 @@ github.com/docker/docker v0.0.0-20171019062838-86f080cff091/go.mod h1:eEKB0N0r5N
 github.com/docker/docker v0.0.0-20180522102801-da99009bbb11/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v1.4.2-0.20191101170500-ac7306503d23/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f h1:Sm8iD2lifO31DwXfkGzq8VgA7rwxPjRsYmeo0K/dF9Y=
 github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v1.4.2-0.20200226173334-8a05747fb6bf h1:s6Wbo1AEBp1mB8CivUS+/7kIMp7I/z5de+BYbM7eC/Q=
 github.com/docker/docker v1.4.2-0.20200226173334-8a05747fb6bf/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
@@ -538,11 +541,15 @@ github.com/klauspost/compress v1.10.0 h1:92XGj1AcYzA6UrVdd4qIIBrT8OroryvRvdmg/If
 github.com/klauspost/compress v1.10.0/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.10.2 h1:Znfn6hXZAHaLPNnlqUYRrBSReFHYybslgv4PTiyz6P0=
 github.com/klauspost/compress v1.10.2/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
+github.com/klauspost/compress v1.10.3 h1:OP96hzwJVBIHYU52pVTI6CczrxPvrGfgqF9N5eTO0Q8=
+github.com/klauspost/compress v1.10.3/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/cpuid v0.0.0-20180405133222-e7e905edc00e/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/cpuid v1.2.0/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/pgzip v1.2.1 h1:oIPZROsWuPHpOdMVWLuJZXwgjhrW8r1yEX8UqMyeNHM=
 github.com/klauspost/pgzip v1.2.1/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
+github.com/klauspost/pgzip v1.2.2 h1:8d4I0LDiieuGngsqlqOih9ker/NS0LX4V0i+EhiFWg0=
+github.com/klauspost/pgzip v1.2.2/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2 h1:DB17ag19krx9CFsz4o3enTrPXyIXCl+2iCXH/aMAp9s=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
@@ -694,6 +701,8 @@ github.com/opencontainers/selinux v1.3.2 h1:DR4lL9SYVjgcTZKEZIncvDU06fKSc/eygjmN
 github.com/opencontainers/selinux v1.3.2/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/opencontainers/selinux v1.3.3 h1:RX0wAeqtvVSYQcr017X3pFXPkLEtB6V4NjRD7gVQgg4=
 github.com/opencontainers/selinux v1.3.3/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
+github.com/opencontainers/selinux v1.4.0 h1:cpiX/2wWIju/6My60T6/z9CxNG7c8xTQyEmA9fChpUo=
+github.com/opencontainers/selinux v1.4.0/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316 h1:enQG2QUGwug4fR1yM6hL0Fjzx6Km/exZY6RbSPwMu3o=
 github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316/go.mod h1:dv+J0b/HWai0QnMVb37/H0v36klkLBi2TNpPeWDxX10=
 github.com/openshift/imagebuilder v1.1.1 h1:KAUR31p8UBJdfVO42azWgb+LeMAed2zaKQ19e0C0X2I=

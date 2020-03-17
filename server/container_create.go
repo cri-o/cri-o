@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -17,8 +18,7 @@ import (
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/utils"
-	dockermounts "github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/symlink"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -90,7 +90,7 @@ func (m criOrderedMounts) parts(i int) int {
 }
 
 // Ensure mount point on which path is mounted, is shared.
-func ensureShared(path string, mountInfos []*dockermounts.Info) error {
+func ensureShared(path string, mountInfos []*mount.Info) error {
 	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
 	if err != nil {
 		return err
@@ -108,7 +108,7 @@ func ensureShared(path string, mountInfos []*dockermounts.Info) error {
 }
 
 // Ensure mount point on which path is mounted, is either shared or slave.
-func ensureSharedOrSlave(path string, mountInfos []*dockermounts.Info) error {
+func ensureSharedOrSlave(path string, mountInfos []*mount.Info) error {
 	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
 	if err != nil {
 		return err
@@ -125,7 +125,7 @@ func ensureSharedOrSlave(path string, mountInfos []*dockermounts.Info) error {
 	return fmt.Errorf("path %q is mounted on %q but it is not a shared or slave mount", path, sourceMount)
 }
 
-func getMountInfo(mountInfos []*dockermounts.Info, dir string) *dockermounts.Info {
+func getMountInfo(mountInfos []*mount.Info, dir string) *mount.Info {
 	for _, m := range mountInfos {
 		if m.Mountpoint == dir {
 			return m
@@ -134,7 +134,7 @@ func getMountInfo(mountInfos []*dockermounts.Info, dir string) *dockermounts.Inf
 	return nil
 }
 
-func getSourceMount(source string, mountInfos []*dockermounts.Info) (path, optionalMountInfo string, err error) {
+func getSourceMount(source string, mountInfos []*mount.Info) (path, optionalMountInfo string, err error) {
 	mountinfo := getMountInfo(mountInfos, source)
 	if mountinfo != nil {
 		return source, mountinfo.Optional, nil
@@ -160,7 +160,7 @@ func getSourceMount(source string, mountInfos []*dockermounts.Info) (path, optio
 func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string, specgen *generate.Generator) ([]rspec.Mount, error) {
 	mounts := []rspec.Mount{}
 	for dest := range containerInfo.Config.Config.Volumes {
-		fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, dest), rootfs)
+		fp, err := securejoin.SecureJoin(rootfs, dest)
 		if err != nil {
 			return nil, err
 		}
@@ -218,7 +218,7 @@ func resolveSymbolicLink(path, scope string) (string, error) {
 	if scope == "" {
 		scope = "/"
 	}
-	return symlink.FollowSymlinkInScope(path, scope)
+	return securejoin.SecureJoin(scope, path)
 }
 
 func addDevices(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {

@@ -18,6 +18,7 @@ import (
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -25,8 +26,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
-	dockermounts "github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/symlink"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -945,7 +945,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 }
 
 func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
-	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, containerCwd), rootfs)
+	fp, err := securejoin.SecureJoin(rootfs, containerCwd)
 	if err != nil {
 		return err
 	}
@@ -1018,16 +1018,16 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		specgen.AddMount(m)
 	}
 
-	for _, mount := range mounts {
-		dest := mount.GetContainerPath()
+	for _, m := range mounts {
+		dest := m.GetContainerPath()
 		if dest == "" {
 			return nil, nil, fmt.Errorf("mount.ContainerPath is empty")
 		}
 
-		if mount.HostPath == "" {
+		if m.HostPath == "" {
 			return nil, nil, fmt.Errorf("mount.HostPath is empty")
 		}
-		src := filepath.Join(bindMountPrefix, mount.GetHostPath())
+		src := filepath.Join(bindMountPrefix, m.GetHostPath())
 
 		resolvedSrc, err := resolveSymbolicLink(src, bindMountPrefix)
 		if err == nil {
@@ -1041,17 +1041,17 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		}
 
 		options := []string{"rw"}
-		if mount.Readonly {
+		if m.Readonly {
 			options = []string{"ro"}
 		}
 		options = append(options, "rbind")
 
 		// mount propagation
-		mountInfos, err := dockermounts.GetMounts(nil)
+		mountInfos, err := mount.GetMounts()
 		if err != nil {
 			return nil, nil, err
 		}
-		switch mount.GetPropagation() {
+		switch m.GetPropagation() {
 		case pb.MountPropagation_PROPAGATION_PRIVATE:
 			options = append(options, "rprivate")
 			// Since default root propagation in runc is rprivate ignore
@@ -1076,11 +1076,11 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 				}
 			}
 		default:
-			log.Warnf(ctx, "unknown propagation mode for hostPath %q", mount.HostPath)
+			log.Warnf(ctx, "unknown propagation mode for hostPath %q", m.HostPath)
 			options = append(options, "rprivate")
 		}
 
-		if mount.SelinuxRelabel {
+		if m.SelinuxRelabel {
 			if err := securityLabel(src, mountLabel, false); err != nil {
 				return nil, nil, err
 			}
@@ -1089,7 +1089,7 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		volumes = append(volumes, oci.ContainerVolume{
 			ContainerPath: dest,
 			HostPath:      src,
-			Readonly:      mount.Readonly,
+			Readonly:      m.Readonly,
 		})
 
 		ociMounts = append(ociMounts, rspec.Mount{

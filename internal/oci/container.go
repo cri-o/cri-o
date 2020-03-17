@@ -13,18 +13,17 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/docker/docker/pkg/signal"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
-const (
-	defaultStopSignal    = "15"
-	defaultStopSignalInt = 15
-)
+const defaultStopSignalInt = 15
+
+var defaultStopSignal = strconv.Itoa(defaultStopSignalInt)
 
 // Container represents a runtime container.
 type Container struct {
@@ -129,14 +128,13 @@ func (c *Container) GetStopSignal() string {
 	if c.stopSignal == "" {
 		return defaultStopSignal
 	}
-	cleanSignal := strings.TrimPrefix(strings.ToUpper(c.stopSignal), "SIG")
-	val, ok := signal.SignalMap[cleanSignal]
-	if !ok {
+	signal := unix.SignalNum(strings.ToUpper(c.stopSignal))
+	if signal == 0 {
 		return defaultStopSignal
 	}
 	// return the stop signal in the form of its int converted to a string
 	// i.e stop signal 34 is returned as "34" to avoid back and forth conversion
-	return strconv.Itoa(int(val))
+	return strconv.Itoa(int(signal))
 }
 
 // StopSignal returns the container's own stop signal configured from
@@ -145,12 +143,12 @@ func (c *Container) StopSignal() syscall.Signal {
 	if c.stopSignal == "" {
 		return defaultStopSignalInt
 	}
-	cleanSignal := strings.TrimPrefix(strings.ToUpper(c.stopSignal), "SIG")
-	sig, ok := signal.SignalMap[cleanSignal]
-	if !ok {
+
+	signal := unix.SignalNum(strings.ToUpper(c.stopSignal))
+	if signal == 0 {
 		return defaultStopSignalInt
 	}
-	return sig
+	return signal
 }
 
 // FromDisk restores container's state from disk

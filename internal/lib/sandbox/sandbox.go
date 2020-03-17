@@ -1,16 +1,16 @@
 package sandbox
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/symlink"
+	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
@@ -405,13 +405,13 @@ func (s *Sandbox) UnmountShm() error {
 	// /var/run/containers/storage/overlay-containers/CID/userdata/shm
 	// but /var/run on most system is symlinked to /run so we first resolve
 	// the symlink and then try and see if it's mounted
-	fp, err := symlink.FollowSymlinkInScope(s.ShmPath(), "/")
+	fp, err := securejoin.SecureJoin("/", s.ShmPath())
 	if err != nil {
 		return err
 	}
 	if mounted, err := mount.Mounted(fp); err == nil && mounted {
 		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
-			return err
+			return errors.Wrapf(err, "unable to unmount %s", fp)
 		}
 	}
 
