@@ -2,6 +2,8 @@ package server
 
 import (
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -9,7 +11,7 @@ import (
 func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (resp *pb.PodSandboxStatusResponse, err error) {
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.PodSandboxId, err)
 	}
 
 	rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
