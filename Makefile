@@ -297,7 +297,10 @@ testunit: ${GINKGO}
 		--succinct
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
 	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
-	find . -name '*_junit.xml' -exec mv -t ${JUNIT_PATH} {} +
+	for f in $$(find . -name "*_junit.xml"); do \
+		mkdir -p $(JUNIT_PATH)/$$(dirname $$f) ;\
+		mv $$f $(JUNIT_PATH)/$$(dirname $$f) ;\
+	done
 
 testunit-bin:
 	mkdir -p ${TESTBIN_PATH}
