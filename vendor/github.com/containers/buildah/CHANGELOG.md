@@ -2,6 +2,144 @@
 
 # Changelog
 
+## v1.14.2 (2020-03-03)
+    Add Buildah pull request template
+    Bump to containers/storage v1.16.1
+    run_linux: fix tight loop if file is not pollable
+    Bump github.com/opencontainers/selinux from 1.3.2 to 1.3.3
+    Bump github.com/containers/common from 0.4.1 to 0.4.2
+    Bump back to v1.15.0-dev
+    Add Containerfile to build a versioned stable image on quay.io
+
+## v1.14.1 (2020-02-27)
+    Search for local runtime per values in containers.conf
+    Set correct ownership on working directory
+    BATS : in teardown, umount stale mounts
+    Bump github.com/spf13/cobra from 0.0.5 to 0.0.6
+    Bump github.com/fsouza/go-dockerclient from 1.6.1 to 1.6.3
+    Bump github.com/stretchr/testify from 1.4.0 to 1.5.1
+    Replace unix with syscall to allow vendoring into libpod
+    Update to containers/common v0.4.1
+    Improve remote manifest retrieval
+    Fix minor spelling errors in containertools README
+    Clear the right variable in buildahimage
+    Correct a couple of incorrect format specifiers
+    Update to containers/common v0.3.0
+    manifest push --format: force an image type, not a list type
+    run: adjust the order in which elements are added to $PATH
+    getDateAndDigestAndSize(): handle creation time not being set
+    Bump github.com/containers/common from 0.2.0 to 0.2.1
+    include installation steps for CentOS 8 and Stream
+    include installation steps for CentOS7 and forks
+    Adjust Ubuntu install info to also work on Pop!_OS
+    Make the commit id clear like Docker
+    Show error on copied file above context directory in build
+    Bump github.com/containers/image/v5 from 5.2.0 to 5.2.1
+    pull/from/commit/push: retry on most failures
+    Makefile: fix install.cni.sudo
+    Repair buildah so it can use containers.conf on the server side
+    Bump github.com/mattn/go-shellwords from 1.0.9 to 1.0.10
+    Bump github.com/fsouza/go-dockerclient from 1.6.0 to 1.6.1
+    Fixing formatting & build instructions
+    Add Code of Conduct
+    Bors: Fix no. req. github reviews
+    Cirrus+Bors: Simplify temp branch skipping
+    Bors-ng: Add documentation and status-icon
+    Bump github.com/onsi/ginkgo from 1.11.0 to 1.12.0
+    fix XDG_RUNTIME_DIR for authfile
+    Cirrus: Disable F29 testing
+    Cirrus: Add jq package
+    Cirrus: Fix lint + validation using wrong epoch
+    Stop using fedorproject registry
+    Bors: Workaround ineffective required statuses
+    Bors: Enable app + Disable Travis
+    Cirrus: Add standardized log-collection
+    Cirrus: Improve automated lint + validation
+    Allow passing options to golangci-lint
+    Cirrus: Fixes from review feedback
+    Cirrus: Temporarily ignore VM testing failures
+    Cirrus: Migrate off papr + implement VM testing
+    Cirrus: Update packages + fixes for get_ci_vm.sh
+    Show validation command-line
+    Skip overlay test w/ vfs driver
+    use alpine, not centos, for various tests
+    Flake handling: cache and prefetch images
+    Bump to v1.15.0-dev
+
+## v1.14.0 (2020-02-05)
+    bump github.com/mtrmac/gpgme
+    Update containers/common to v0.1.4
+    manifest push: add --format option
+    Bump github.com/onsi/gomega from 1.8.1 to 1.9.0
+    vendor github.com/containers/image/v5@v5.2.0
+    info test: deal with random key order
+    Bump back to v1.14.0-dev
+
+## v1.13.2 (2020-01-29)
+    sign.bats: set GPG_TTY=/dev/null
+    Fix parse_unsupported.go
+    getDateAndDigestAndSize(): use manifest.Digest
+    Bump github.com/opencontainers/selinux from 1.3.0 to 1.3.1
+    Bump github.com/containers/common from 0.1.0 to 0.1.2
+    Touch up os/arch doc
+    chroot: handle slightly broken seccomp defaults
+    buildahimage: specify fuse-overlayfs mount options
+    Bump github.com/mattn/go-shellwords from 1.0.7 to 1.0.9
+    copy.bats: make sure we detect failures due to missing source
+    parse: don't complain about not being able to rename something to itself
+    Makefile: use a $(GO_TEST) macro, fix a typo
+    manifests: unit test fix
+    Fix build for 32bit platforms
+    Allow users to set OS and architecture on bud
+    Fix COPY in containerfile with envvar
+    Bump c/storage to v1.15.7
+    add --sign-by to bud/commit/push, --remove-signatures for pull/push
+    Remove cut/paste error in CHANGELOG.md
+    Update vendor of containers/common to v0.1.0
+    update install instructions for Debian, Raspbian and Ubuntu
+    Add support for containers.conf
+    Bump back to v1.14.0-dev
+
+## v1.13.1 (2020-01-14)
+    Bump github.com/containers/common from 0.0.5 to 0.0.7
+    Bump github.com/onsi/ginkgo from 1.10.3 to 1.11.0
+    Bump github.com/pkg/errors from 0.8.1 to 0.9.0
+    Bump github.com/onsi/gomega from 1.7.1 to 1.8.1
+    Add codespell support
+    copyFileWithTar: close source files at the right time
+    copy: don't digest files that we ignore
+    Check for .dockerignore specifically
+    Travis: rm go 1.12.x
+    Don't setup excludes, if their is only one pattern to match
+    set HOME env to /root on chroot-isolation by default
+    docs: fix references to containers-*.5
+    update openshift/api
+    fix bug Add check .dockerignore COPY file
+    buildah bud --volume: run from tmpdir, not source dir
+    Fix imageNamePrefix to give consistent names in buildah-from
+    cpp: use -traditional and -undef flags
+    Fix image reference in tutorial 4
+    discard outputs coming from onbuild command on buildah-from --quiet
+    make --format columnizing consistent with buildah images
+    Bump to v1.14.0-dev
+
+## v1.13.0 (2019-12-27)
+    Bump to c/storage v1.15.5
+    Update container/storage to v1.15.4
+    Fix option handling for volumes in build
+    Rework overlay pkg for use with libpod
+    Fix buildahimage builds for buildah
+    Add support for FIPS-Mode backends
+    Set the TMPDIR for pulling/pushing image to $TMPDIR
+    WIP: safer test for pull --all-tags
+    BATS major cleanup: blobcache.bats: refactor
+    BATS major cleanup: part 4: manual stuff
+    BATS major cleanup, step 3: yet more run_buildah
+    BATS major cleanup, part 2: use more run_buildah
+    BATS major cleanup, part 1: log-level
+    Bump github.com/containers/image/v5 from 5.0.0 to 5.1.0
+    Bump github.com/containers/common from 0.0.3 to 0.0.5
+    Bump to v1.13.0-dev
 
 ## v1.12.0 (2019-12-13)
     Allow ADD to use http src

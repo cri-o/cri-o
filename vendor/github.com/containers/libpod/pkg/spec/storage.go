@@ -409,9 +409,10 @@ func getBindMount(args []string) (spec.Mount, error) {
 			// ro=[true|false]
 			// rw
 			// rw=[true|false]
-			if len(kv) == 1 {
+			switch len(kv) {
+			case 1:
 				newMount.Options = append(newMount.Options, kv[0])
-			} else if len(kv) == 2 {
+			case 2:
 				switch strings.ToLower(kv[1]) {
 				case "true":
 					newMount.Options = append(newMount.Options, kv[0])
@@ -424,7 +425,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 				default:
 					return newMount, errors.Wrapf(optionArgError, "%s must be set to true or false, instead received %q", kv[0], kv[1])
 				}
-			} else {
+			default:
 				return newMount, errors.Wrapf(optionArgError, "badly formatted option %q", val)
 			}
 		case "nosuid", "suid":
@@ -738,6 +739,7 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 
 	for vol := range config.BuiltinImgVolumes {
 		cleanDest := filepath.Clean(vol)
+		logrus.Debugf("Adding image volume at %s", cleanDest)
 		if config.ImageVolumeType == "tmpfs" {
 			// Tmpfs image volumes are handled as mounts
 			mount := spec.Mount{
@@ -746,13 +748,13 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 				Type:        TypeTmpfs,
 				Options:     []string{"rprivate", "rw", "nodev", "exec"},
 			}
-			mounts[vol] = mount
+			mounts[cleanDest] = mount
 		} else {
 			// Anonymous volumes have no name.
 			namedVolume := new(libpod.ContainerNamedVolume)
 			namedVolume.Options = []string{"rprivate", "rw", "nodev", "exec"}
 			namedVolume.Dest = cleanDest
-			volumes[vol] = namedVolume
+			volumes[cleanDest] = namedVolume
 		}
 	}
 
@@ -824,7 +826,7 @@ func (config *CreateConfig) addContainerInitBinary(path string) (spec.Mount, err
 // TODO: Should we unmount subtree mounts? E.g., if /tmp/ is mounted by
 // one mount, and we already have /tmp/a and /tmp/b, should we remove
 // the /tmp/a and /tmp/b mounts in favor of the more general /tmp?
-func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
+func SupercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
 	if len(mounts) > 0 {
 		// If we have overlappings mounts, remove them from the spec in favor of
 		// the user-added volume mounts
@@ -853,7 +855,7 @@ func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 }
 
 // Ensure mount options on all mounts are correct
-func initFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
+func InitFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
 	// We need to look up mounts so we can figure out the proper mount flags
 	// to apply.
 	systemMounts, err := pmount.GetMounts()

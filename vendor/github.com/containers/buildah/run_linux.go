@@ -26,6 +26,8 @@ import (
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/capabilities"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/unshare"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
@@ -89,7 +91,11 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
-	b.configureEnvironment(g, options)
+	defaultContainerConfig, err := config.Default()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get container config")
+	}
+	b.configureEnvironment(g, options, defaultContainerConfig.Containers.Env)
 
 	if b.CommonBuildOpts == nil {
 		return errors.Errorf("Invalid format on container you must recreate the container")
@@ -291,8 +297,12 @@ func addCommonOptsToSpec(commonOpts *CommonBuildOptions, g *generate.Generator) 
 		g.SetLinuxCgroupsPath(commonOpts.CgroupParent)
 	}
 
+	defaultContainerConfig, err := config.Default()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get container config")
+	}
 	// Other process resource limits
-	if err := addRlimits(commonOpts.Ulimit, g); err != nil {
+	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits); err != nil {
 		return err
 	}
 
@@ -460,7 +470,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	}
 
 	// Get the list of secrets mounts.
-	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, cdir, int(rootUID), int(rootGID), unshare.IsRootless(), false)
+	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, mountPoint, int(rootUID), int(rootGID), unshare.IsRootless(), false)
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
@@ -506,6 +516,11 @@ func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDP
 	nameservers := resolvconf.GetNameservers(contents, types.IP)
 	options := resolvconf.GetOptions(contents)
 
+	defaultContainerConfig, err := config.Default()
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get container config")
+	}
+	dnsSearch = append(defaultContainerConfig.Containers.DNSSearches, dnsSearch...)
 	if len(dnsSearch) > 0 {
 		search = dnsSearch
 	}
@@ -519,6 +534,7 @@ func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDP
 		}
 	}
 
+	dnsServers = append(defaultContainerConfig.Containers.DNSServers, dnsServers...)
 	if len(dnsServers) != 0 {
 		dns, err := getDNSIP(dnsServers)
 		if err != nil {
@@ -530,6 +546,7 @@ func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDP
 		}
 	}
 
+	dnsOptions = append(defaultContainerConfig.Containers.DNSOptions, dnsOptions...)
 	if len(dnsOptions) != 0 {
 		options = dnsOptions
 	}
@@ -661,6 +678,11 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 	runtime := options.Runtime
 	if runtime == "" {
 		runtime = util.Runtime()
+
+		localRuntime := util.FindLocalRuntime(runtime)
+		if localRuntime != "" {
+			runtime = localRuntime
+		}
 	}
 
 	// Default to just passing down our stdio.
@@ -1181,6 +1203,13 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 	runCopyStdioPassData(copyPipes, stdioPipe, finishCopy, relayMap, relayBuffer, readDesc, writeDesc)
 }
 
+func canRetry(err error) bool {
+	if errno, isErrno := err.(syscall.Errno); isErrno {
+		return errno == syscall.EINTR || errno == syscall.EAGAIN
+	}
+	return false
+}
+
 func runCopyStdioPassData(copyPipes bool, stdioPipe [][]int, finishCopy []int, relayMap map[int]int, relayBuffer map[int]*bytes.Buffer, readDesc map[int]string, writeDesc map[int]string) {
 	closeStdin := false
 
@@ -1228,7 +1257,7 @@ func runCopyStdioPassData(copyPipes bool, stdioPipe [][]int, finishCopy []int, r
 				// If it's zero-length on our stdin and we're
 				// using pipes, it's an EOF, so close the stdin
 				// pipe's writing end.
-				if n == 0 && copyPipes && int(pollFd.Fd) == unix.Stdin {
+				if n == 0 && !canRetry(err) && int(pollFd.Fd) == unix.Stdin {
 					removes[int(pollFd.Fd)] = struct{}{}
 				} else if n > 0 {
 					// Buffer the data in case we get blocked on where they need to go.
@@ -1599,12 +1628,13 @@ func runSetupBoundFiles(bundlePath string, bindFiles map[string]string) (mounts 
 	return mounts
 }
 
-func addRlimits(ulimit []string, g *generate.Generator) error {
+func addRlimits(ulimit []string, g *generate.Generator, defaultUlimits []string) error {
 	var (
 		ul  *units.Ulimit
 		err error
 	)
 
+	ulimit = append(defaultUlimits, ulimit...)
 	for _, u := range ulimit {
 		if ul, err = units.ParseUlimit(u); err != nil {
 			return errors.Wrapf(err, "ulimit option %q requires name=SOFT:HARD, failed to be parsed", u)
@@ -1670,7 +1700,17 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			}
 		}
 		if foundO {
-			overlayMount, contentDir, err := overlay.MountTemp(b.store, b.ContainerID, host, container, rootUID, rootGID)
+			containerDir, err := b.store.ContainerDirectory(b.ContainerID)
+			if err != nil {
+				return specs.Mount{}, err
+			}
+
+			contentDir, err := overlay.TempDir(containerDir, rootUID, rootGID)
+			if err != nil {
+				return specs.Mount{}, errors.Wrapf(err, "failed to create TempDir in the %s directory", containerDir)
+			}
+
+			overlayMount, err := overlay.Mount(contentDir, host, container, rootUID, rootGID, b.store.GraphOptions())
 			if err == nil {
 
 				b.TempVolumes[contentDir] = true
@@ -1789,21 +1829,27 @@ func setupCapDrop(g *generate.Generator, caps ...string) error {
 	return nil
 }
 
-func setupCapabilities(g *generate.Generator, firstAdds, firstDrops, secondAdds, secondDrops []string) error {
+func setupCapabilities(g *generate.Generator, defaultCapabilities, adds, drops []string) error {
 	g.ClearProcessCapabilities()
-	if err := setupCapAdd(g, util.DefaultCapabilities...); err != nil {
+	if err := setupCapAdd(g, defaultCapabilities...); err != nil {
 		return err
 	}
-	if err := setupCapAdd(g, firstAdds...); err != nil {
+	for _, c := range adds {
+		if strings.ToLower(c) == "all" {
+			adds = capabilities.AllCapabilities()
+			break
+		}
+	}
+	for _, c := range drops {
+		if strings.ToLower(c) == "all" {
+			g.ClearProcessCapabilities()
+			return nil
+		}
+	}
+	if err := setupCapAdd(g, adds...); err != nil {
 		return err
 	}
-	if err := setupCapDrop(g, firstDrops...); err != nil {
-		return err
-	}
-	if err := setupCapAdd(g, secondAdds...); err != nil {
-		return err
-	}
-	return setupCapDrop(g, secondDrops...)
+	return setupCapDrop(g, drops...)
 }
 
 // Search for a command that isn't given as an absolute path using the $PATH
@@ -1870,7 +1916,7 @@ func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, opti
 	if err != nil {
 		return "", err
 	}
-	if err := setupCapabilities(g, b.AddCapabilities, b.DropCapabilities, options.AddCapabilities, options.DropCapabilities); err != nil {
+	if err := setupCapabilities(g, b.Capabilities, options.AddCapabilities, options.DropCapabilities); err != nil {
 		return "", err
 	}
 	g.SetProcessUID(user.UID)
@@ -1889,8 +1935,9 @@ func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, opti
 	return homeDir, nil
 }
 
-func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions) {
+func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions, defaultEnv []string) {
 	g.ClearProcessEnv()
+
 	if b.CommonBuildOpts.HTTPProxy {
 		for _, envSpec := range []string{
 			"http_proxy",
@@ -1909,7 +1956,7 @@ func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions
 		}
 	}
 
-	for _, envSpec := range append(b.Env(), options.Env...) {
+	for _, envSpec := range append(append(defaultEnv, b.Env()...), options.Env...) {
 		env := strings.SplitN(envSpec, "=", 2)
 		if len(env) > 1 {
 			g.AddProcessEnv(env[0], env[1])

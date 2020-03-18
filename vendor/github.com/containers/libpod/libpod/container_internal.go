@@ -22,7 +22,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/cyphar/filepath-securejoin"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -339,7 +339,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 	c.newContainerEvent(events.Restart)
 
 	// Increment restart count
-	c.state.RestartCount = c.state.RestartCount + 1
+	c.state.RestartCount += 1
 	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
 	if err := c.save(); err != nil {
 		return false, err
@@ -914,6 +914,7 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 }
 
 func (c *Container) completeNetworkSetup() error {
+	var outResolvConf []string
 	netDisabled, err := c.NetworkDisabled()
 	if err != nil {
 		return err
@@ -927,7 +928,37 @@ func (c *Container) completeNetworkSetup() error {
 	if c.config.NetMode == "slirp4netns" {
 		return c.runtime.setupRootlessNetNS(c)
 	}
-	return c.runtime.setupNetNS(c)
+	if err := c.runtime.setupNetNS(c); err != nil {
+		return err
+	}
+	state := c.state
+	// collect any dns servers that cni tells us to use (dnsname)
+	for _, cni := range state.NetworkStatus {
+		if cni.DNS.Nameservers != nil {
+			for _, server := range cni.DNS.Nameservers {
+				outResolvConf = append(outResolvConf, fmt.Sprintf("nameserver %s", server))
+			}
+		}
+	}
+	// check if we have a bindmount for resolv.conf
+	resolvBindMount := state.BindMounts["/etc/resolv.conf"]
+	if len(outResolvConf) < 1 || resolvBindMount == "" || len(c.config.NetNsCtr) > 0 {
+		return nil
+	}
+	// read the existing resolv.conf
+	b, err := ioutil.ReadFile(resolvBindMount)
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		// only keep things that don't start with nameserver from the old
+		// resolv.conf file
+		if !strings.HasPrefix(line, "nameserver") {
+			outResolvConf = append([]string{line}, outResolvConf...)
+		}
+	}
+	// write and return
+	return ioutil.WriteFile(resolvBindMount, []byte(strings.Join(outResolvConf, "\n")), 0644)
 }
 
 // Initialize a container, creating it in the runtime
@@ -1195,6 +1226,7 @@ func (c *Container) pause() error {
 	}
 
 	if err := c.ociRuntime.PauseContainer(c); err != nil {
+		// TODO when using docker-py there is some sort of race/incompatibility here
 		return err
 	}
 
@@ -1212,6 +1244,7 @@ func (c *Container) unpause() error {
 	}
 
 	if err := c.ociRuntime.UnpauseContainer(c); err != nil {
+		// TODO when using docker-py there is some sort of race/incompatibility here
 		return err
 	}
 
@@ -1252,6 +1285,12 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 				}
 			}
 		}
+		// Ensure we tear down the container network so it will be
+		// recreated - otherwise, behavior of restart differs from stop
+		// and start
+		if err := c.cleanupNetwork(); err != nil {
+			return err
+		}
 	}
 	defer func() {
 		if err != nil {
@@ -1284,7 +1323,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 // TODO: Add ability to override mount label so we can use this for Mount() too
 // TODO: Can we use this for export? Copying SHM into the export might not be
 // good
-func (c *Container) mountStorage() (_ string, Err error) {
+func (c *Container) mountStorage() (_ string, deferredErr error) {
 	var err error
 	// Container already mounted, nothing to do
 	if c.state.Mounted {
@@ -1305,7 +1344,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 			return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
 		}
 		defer func() {
-			if Err != nil {
+			if deferredErr != nil {
 				if err := c.unmountSHM(c.config.ShmDir); err != nil {
 					logrus.Errorf("Error unmounting SHM for container %s after mount error: %v", c.ID(), err)
 				}
@@ -1322,7 +1361,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 			return "", err
 		}
 		defer func() {
-			if Err != nil {
+			if deferredErr != nil {
 				if err := c.unmount(false); err != nil {
 					logrus.Errorf("Error unmounting container %s after mount error: %v", c.ID(), err)
 				}
@@ -1337,7 +1376,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 			return "", err
 		}
 		defer func() {
-			if Err == nil {
+			if deferredErr == nil {
 				return
 			}
 			vol.lock.Lock()
@@ -1362,6 +1401,9 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		return nil, errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
 	}
 
+	if vol.config.LockID == c.config.LockID {
+		return nil, errors.Wrapf(define.ErrWillDeadlock, "container %s and volume %s share lock ID %d", c.ID(), vol.Name(), c.config.LockID)
+	}
 	vol.lock.Lock()
 	defer vol.lock.Unlock()
 	if vol.needsMount() {
@@ -1375,17 +1417,33 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	}
 	if vol.state.NeedsCopyUp {
 		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
+
+		// Set NeedsCopyUp to false immediately, so we don't try this
+		// again when there are already files copied.
+		vol.state.NeedsCopyUp = false
+		if err := vol.save(); err != nil {
+			return nil, err
+		}
+
+		// If the volume is not empty, we should not copy up.
+		volMount := vol.MountPoint()
+		contents, err := ioutil.ReadDir(volMount)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
+		}
+		if len(contents) > 0 {
+			// The volume is not empty. It was likely modified
+			// outside of Podman. For safety, let's not copy up into
+			// it. Fixes CVE-2020-1726.
+			return vol, nil
+		}
+
 		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
 		}
-		if err := c.copyWithTarFromImage(srcDir, vol.MountPoint()); err != nil && !os.IsNotExist(err) {
+		if err := c.copyWithTarFromImage(srcDir, volMount); err != nil && !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
-		}
-
-		vol.state.NeedsCopyUp = false
-		if err := vol.save(); err != nil {
-			return nil, err
 		}
 	}
 	return vol, nil

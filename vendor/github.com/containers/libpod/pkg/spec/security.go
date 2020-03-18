@@ -4,13 +4,17 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod"
-	"github.com/docker/docker/oci/caps"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
+// ToCreateOptions convert the SecurityConfig to a slice of container create
+// options.
 func (c *SecurityConfig) ToCreateOptions() ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	options = append(options, libpod.WithSecLabels(c.LabelOpts))
@@ -18,6 +22,8 @@ func (c *SecurityConfig) ToCreateOptions() ([]libpod.CtrCreateOption, error) {
 	return options, nil
 }
 
+// SetLabelOpts sets the label options of the SecurityConfig according to the
+// input.
 func (c *SecurityConfig) SetLabelOpts(runtime *libpod.Runtime, pidConfig *PidConfig, ipcConfig *IpcConfig) error {
 	if c.Privileged {
 		c.LabelOpts = label.DisableSecOpt()
@@ -57,6 +63,7 @@ func (c *SecurityConfig) SetLabelOpts(runtime *libpod.Runtime, pidConfig *PidCon
 	return nil
 }
 
+// SetSecurityOpts the the security options (labels, apparmor, seccomp, etc.).
 func (c *SecurityConfig) SetSecurityOpts(runtime *libpod.Runtime, securityOpts []string) error {
 	for _, opt := range securityOpts {
 		if opt == "no-new-privileges" {
@@ -91,6 +98,7 @@ func (c *SecurityConfig) SetSecurityOpts(runtime *libpod.Runtime, securityOpts [
 	return nil
 }
 
+// ConfigureGenerator configures the generator according to the input.
 func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserConfig) error {
 	// HANDLE CAPABILITIES
 	// NOTE: Must happen before SECCOMP
@@ -107,28 +115,49 @@ func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserCon
 
 	configSpec := g.Config
 	var err error
-	var caplist []string
+	var defaultCaplist []string
 	bounding := configSpec.Process.Capabilities.Bounding
 	if useNotRoot(user.User) {
-		configSpec.Process.Capabilities.Bounding = caplist
+		configSpec.Process.Capabilities.Bounding = defaultCaplist
 	}
-	caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, c.CapAdd, c.CapDrop, nil, false)
+	defaultCaplist, err = capabilities.MergeCapabilities(configSpec.Process.Capabilities.Bounding, c.CapAdd, c.CapDrop)
 	if err != nil {
 		return err
 	}
 
-	configSpec.Process.Capabilities.Bounding = caplist
-	configSpec.Process.Capabilities.Permitted = caplist
-	configSpec.Process.Capabilities.Inheritable = caplist
-	configSpec.Process.Capabilities.Effective = caplist
-	configSpec.Process.Capabilities.Ambient = caplist
+	privCapRequired := []string{}
+
+	if !c.Privileged && len(c.CapRequired) > 0 {
+		// Pass CapRequired in CapAdd field to normalize capabilities names
+		capRequired, err := capabilities.MergeCapabilities(nil, c.CapRequired, nil)
+		if err != nil {
+			logrus.Errorf("capabilities requested by user or image are not valid: %q", strings.Join(c.CapRequired, ","))
+		} else {
+			// Verify all capRequiered are in the defaultCapList
+			for _, cap := range capRequired {
+				if !util.StringInSlice(cap, defaultCaplist) {
+					privCapRequired = append(privCapRequired, cap)
+				}
+			}
+		}
+		if len(privCapRequired) == 0 {
+			defaultCaplist = capRequired
+		} else {
+			logrus.Errorf("capabilities requested by user or image are not allowed by default: %q", strings.Join(privCapRequired, ","))
+		}
+	}
+	configSpec.Process.Capabilities.Bounding = defaultCaplist
+	configSpec.Process.Capabilities.Permitted = defaultCaplist
+	configSpec.Process.Capabilities.Inheritable = defaultCaplist
+	configSpec.Process.Capabilities.Effective = defaultCaplist
+	configSpec.Process.Capabilities.Ambient = defaultCaplist
 	if useNotRoot(user.User) {
-		caplist, err = caps.TweakCapabilities(bounding, c.CapAdd, c.CapDrop, nil, false)
+		defaultCaplist, err = capabilities.MergeCapabilities(bounding, c.CapAdd, c.CapDrop)
 		if err != nil {
 			return err
 		}
 	}
-	configSpec.Process.Capabilities.Bounding = caplist
+	configSpec.Process.Capabilities.Bounding = defaultCaplist
 
 	// HANDLE SECCOMP
 	if c.SeccompProfilePath != "unconfined" {

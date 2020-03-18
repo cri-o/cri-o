@@ -34,6 +34,8 @@ func pullAndFindImage(ctx context.Context, store storage.Store, srcRef types.Ima
 		Store:         store,
 		SystemContext: options.SystemContext,
 		BlobDirectory: options.BlobDirectory,
+		MaxRetries:    options.MaxPullRetries,
+		RetryDelay:    options.PullRetryDelay,
 	}
 	ref, err := pullImage(ctx, store, srcRef, pullOptions, sc)
 	if err != nil {
@@ -68,13 +70,13 @@ func getImageName(name string, img *storage.Image) string {
 
 func imageNamePrefix(imageName string) string {
 	prefix := imageName
-	s := strings.Split(imageName, "/")
-	if len(s) > 0 {
-		prefix = s[len(s)-1]
-	}
-	s = strings.Split(prefix, ":")
+	s := strings.Split(prefix, ":")
 	if len(s) > 0 {
 		prefix = s[0]
+	}
+	s = strings.Split(prefix, "/")
+	if len(s) > 0 {
+		prefix = s[len(s)-1]
 	}
 	s = strings.Split(prefix, "@")
 	if len(s) > 0 {
@@ -398,14 +400,13 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			UIDMap:         uidmap,
 			GIDMap:         gidmap,
 		},
-		AddCapabilities:  copyStringSlice(options.AddCapabilities),
-		DropCapabilities: copyStringSlice(options.DropCapabilities),
-		CommonBuildOpts:  options.CommonBuildOpts,
-		TopLayer:         topLayer,
-		Args:             options.Args,
-		Format:           options.Format,
-		TempVolumes:      map[string]bool{},
-		Devices:          options.Devices,
+		Capabilities:    copyStringSlice(options.Capabilities),
+		CommonBuildOpts: options.CommonBuildOpts,
+		TopLayer:        topLayer,
+		Args:            options.Args,
+		Format:          options.Format,
+		TempVolumes:     map[string]bool{},
+		Devices:         options.Devices,
 	}
 
 	if options.Mount {
