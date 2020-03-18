@@ -126,6 +126,7 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		if err != nil {
 			return nil, err
 		}
+		defer tarSource.Close()
 		manifest, err := tarSource.LoadTarManifest()
 
 		if err != nil {
@@ -230,7 +231,12 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
-		// could be trying to pull from registry with short name
+		// We might be pulling with an unqualified image reference in which case
+		// we need to make sure that we're not using any other transport.
+		srcTransport := alltransports.TransportFromImageName(inputName)
+		if srcTransport != nil && srcTransport.Name() != DockerTransport {
+			return nil, err
+		}
 		goal, err = ir.pullGoalFromPossiblyUnqualifiedName(inputName)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting default registries to try")
@@ -325,7 +331,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
 			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in the registries config file.")
 		}
-		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we dont need to yap about registries.
+		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we don't need to yap about registries.
 		if !goal.usedSearchRegistries {
 			if pullErrors != nil && len(pullErrors.Errors) > 0 { // this should always be true
 				return nil, errors.Wrap(pullErrors.Errors[0], "unable to pull image")
@@ -347,6 +353,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	if err != nil {
 		return nil, err
 	}
+
 	if decomposedImage.hasRegistry {
 		srcRef, err := docker.ParseReference("//" + inputName)
 		if err != nil {
@@ -401,5 +408,5 @@ func checkRemoteImageForLabel(ctx context.Context, label string, imageInfo pullR
 			return nil
 		}
 	}
-	return errors.Errorf("%s has no label %s", imageInfo.image, label)
+	return errors.Errorf("%s has no label %s in %q", imageInfo.image, label, remoteInspect.Labels)
 }

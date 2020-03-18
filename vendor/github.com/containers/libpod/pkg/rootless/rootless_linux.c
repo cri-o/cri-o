@@ -19,20 +19,31 @@
 #include <sys/select.h>
 #include <stdio.h>
 
-#ifndef RENAME_NOREPLACE
-# define RENAME_NOREPLACE	(1 << 0)
-
-int renameat2 (int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
+int rename_noreplace (int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
 {
-# ifdef __NR_renameat2
-  return (int) syscall (__NR_renameat2, olddirfd, oldpath, newdirfd, newpath, flags);
-# else
-  /* no way to implement it atomically.  */
-  errno = ENOSYS;
-  return -1;
+  int ret;
+
+# ifdef SYS_renameat2
+#  ifndef RENAME_NOREPLACE
+#   define RENAME_NOREPLACE	(1 << 0)
+#  endif
+
+  ret = (int) syscall (SYS_renameat2, olddirfd, oldpath, newdirfd, newpath, RENAME_NOREPLACE);
+  if (ret == 0 || errno != EINVAL)
+    return ret;
+
+  /* Fallback in case of errno==EINVAL.  */
 # endif
+
+  /* This might be an issue if another process is trying to read the file while it is empty.  */
+  ret = open (newpath, O_EXCL|O_CREAT, 0700);
+  if (ret < 0)
+    return ret;
+  close (ret);
+
+  /* We are sure we created the file, let's overwrite it.  */
+  return rename (oldpath, newpath);
 }
-#endif
 
 #ifndef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(expression) \
@@ -47,7 +58,7 @@ static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
 static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
 
 static int open_files_max_fd;
-fd_set open_files_set;
+static fd_set *open_files_set;
 static uid_t rootless_uid_init;
 static gid_t rootless_gid_init;
 
@@ -189,6 +200,9 @@ can_use_shortcut ()
   if (argv == NULL)
     return false;
 
+  if (strstr (argv[0], "podman") == NULL)
+    return false;
+
   for (argc = 0; argv[argc]; argc++)
     {
       if (argc == 0 || argv[argc][0] == '-')
@@ -226,17 +240,39 @@ static void __attribute__((constructor)) init()
   if (d)
     {
       struct dirent *ent;
+      size_t size = 0;
 
-      FD_ZERO (&open_files_set);
       for (ent = readdir (d); ent; ent = readdir (d))
         {
-          int fd = atoi (ent->d_name);
-          if (fd != dirfd (d))
+          int fd;
+
+          if (ent->d_name[0] == '.')
+            continue;
+
+          fd = atoi (ent->d_name);
+          if (fd == dirfd (d))
+            continue;
+
+          if (fd >= size * FD_SETSIZE)
             {
-              if (fd > open_files_max_fd)
-                open_files_max_fd = fd;
-              FD_SET (fd, &open_files_set);
+              int i;
+              size_t new_size;
+
+              new_size = (fd / FD_SETSIZE) + 1;
+              open_files_set = realloc (open_files_set, new_size * sizeof (fd_set));
+              if (open_files_set == NULL)
+                _exit (EXIT_FAILURE);
+
+              for (i = size; i < new_size; i++)
+                FD_ZERO (&(open_files_set[i]));
+
+              size = new_size;
             }
+
+          if (fd > open_files_max_fd)
+            open_files_max_fd = fd;
+
+          FD_SET (fd % FD_SETSIZE, &(open_files_set[fd / FD_SETSIZE]));
         }
       closedir (d);
     }
@@ -255,6 +291,8 @@ static void __attribute__((constructor)) init()
       char path[PATH_MAX];
       const char *const suffix = "/libpod/pause.pid";
       char *cwd = getcwd (NULL, 0);
+      char uid_fmt[16];
+      char gid_fmt[16];
 
       if (cwd == NULL)
         {
@@ -312,6 +350,13 @@ static void __attribute__((constructor)) init()
           fprintf (stderr, "cannot open %s: %s", path, strerror (errno));
           exit (EXIT_FAILURE);
         }
+
+      sprintf (uid_fmt, "%d", uid);
+      sprintf (gid_fmt, "%d", gid);
+
+      setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
+      setenv ("_CONTAINERS_ROOTLESS_UID", uid_fmt, 1);
+      setenv ("_CONTAINERS_ROOTLESS_GID", gid_fmt, 1);
 
       r = setns (fd, 0);
       if (r < 0)
@@ -449,7 +494,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
 
           /* There can be another process at this point trying to configure the user namespace and the pause
            process, do not override the pid file if it already exists. */
-          if (renameat2 (AT_FDCWD, tmp_file_path, AT_FDCWD, pause_pid_file_path, RENAME_NOREPLACE) < 0)
+          if (rename_noreplace (AT_FDCWD, tmp_file_path, AT_FDCWD, pause_pid_file_path) < 0)
             {
               unlink (tmp_file_path);
               kill (pid, SIGKILL);
@@ -530,10 +575,8 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
       /* We passed down these fds, close them.  */
       int f;
       for (f = 3; f < open_files_max_fd; f++)
-        {
-          if (FD_ISSET (f, &open_files_set))
-            close (f);
-        }
+        if (open_files_set == NULL || FD_ISSET (f % FD_SETSIZE, &(open_files_set[f / FD_SETSIZE])))
+          close (f);
       return pid;
     }
 
@@ -724,10 +767,11 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
           num_fds = strtol (listen_fds, NULL, 10);
           if (num_fds != LONG_MIN && num_fds != LONG_MAX)
             {
-              long i;
-              for (i = 3; i < num_fds + 3; i++)
-                if (FD_ISSET (i, &open_files_set))
-                  close (i);
+              int f;
+
+              for (f = 3; f < num_fds + 3; f++)
+                if (open_files_set == NULL || FD_ISSET (f % FD_SETSIZE, &(open_files_set[f / FD_SETSIZE])))
+                  close (f);
             }
           unsetenv ("LISTEN_PID");
           unsetenv ("LISTEN_FDS");

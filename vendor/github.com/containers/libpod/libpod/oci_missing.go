@@ -1,13 +1,16 @@
 package libpod
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"path/filepath"
 	"sync"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 var (
@@ -107,6 +110,16 @@ func (r *MissingRuntime) UnpauseContainer(ctr *Container) error {
 	return r.printError()
 }
 
+// HTTPAttach is not available as the runtime is missing
+func (r *MissingRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) error {
+	return r.printError()
+}
+
+// AttachResize is not available as the runtime is missing
+func (r *MissingRuntime) AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error {
+	return r.printError()
+}
+
 // ExecContainer is not available as the runtime is missing
 func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions) (int, chan error, error) {
 	return -1, nil, r.printError()
@@ -118,6 +131,11 @@ func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options
 // perfect, though.
 func (r *MissingRuntime) ExecStopContainer(ctr *Container, sessionID string, timeout uint) error {
 	return r.printError()
+}
+
+// ExecUpdateStatus is not available as the runtime is missing.
+func (r *MissingRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (bool, error) {
+	return false, r.printError()
 }
 
 // ExecContainerCleanup is not available as the runtime is missing

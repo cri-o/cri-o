@@ -31,7 +31,7 @@ const (
 	// HealthCheckNotDefined means the container has no health
 	// check defined in it
 	HealthCheckNotDefined HealthCheckStatus = iota
-	// HealthCheckInternalError means somes something failed obtaining or running
+	// HealthCheckInternalError means some something failed obtaining or running
 	// a given health check
 	HealthCheckInternalError HealthCheckStatus = iota
 	// HealthCheckDefined means the healthcheck was found on the container
@@ -238,7 +238,7 @@ func (c *Container) updateHealthCheckLog(hcl HealthCheckLog, inStartPeriod bool)
 		}
 		if !inStartPeriod {
 			// increment failing streak
-			healthCheck.FailingStreak = healthCheck.FailingStreak + 1
+			healthCheck.FailingStreak += 1
 			// if failing streak > retries, then status to unhealthy
 			if healthCheck.FailingStreak >= c.HealthCheckConfig().Retries {
 				healthCheck.Status = HealthCheckUnhealthy

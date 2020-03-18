@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/containers/libpod/pkg/rootless"
@@ -31,8 +32,8 @@ func Device(d *configs.Device) spec.LinuxDevice {
 	}
 }
 
-// devicesFromPath computes a list of devices
-func devicesFromPath(g *generate.Generator, devicePath string) error {
+// DevicesFromPath computes a list of devices
+func DevicesFromPath(g *generate.Generator, devicePath string) error {
 	devs := strings.Split(devicePath, ":")
 	resolvedDevicePath := devs[0]
 	// check if it is a symbolic link
@@ -88,6 +89,42 @@ func devicesFromPath(g *generate.Generator, devicePath string) error {
 	}
 
 	return addDevice(g, strings.Join(append([]string{resolvedDevicePath}, devs[1:]...), ":"))
+}
+
+func deviceCgroupRules(g *generate.Generator, deviceCgroupRules []string) error {
+	for _, deviceCgroupRule := range deviceCgroupRules {
+		if err := validateDeviceCgroupRule(deviceCgroupRule); err != nil {
+			return err
+		}
+		ss := parseDeviceCgroupRule(deviceCgroupRule)
+		if len(ss[0]) != 5 {
+			return errors.Errorf("invalid device cgroup rule format: '%s'", deviceCgroupRule)
+		}
+		matches := ss[0]
+		var major, minor *int64
+		if matches[2] == "*" {
+			majorDev := int64(-1)
+			major = &majorDev
+		} else {
+			majorDev, err := strconv.ParseInt(matches[2], 10, 64)
+			if err != nil {
+				return errors.Errorf("invalid major value in device cgroup rule format: '%s'", deviceCgroupRule)
+			}
+			major = &majorDev
+		}
+		if matches[3] == "*" {
+			minorDev := int64(-1)
+			minor = &minorDev
+		} else {
+			minorDev, err := strconv.ParseInt(matches[2], 10, 64)
+			if err != nil {
+				return errors.Errorf("invalid major value in device cgroup rule format: '%s'", deviceCgroupRule)
+			}
+			minor = &minorDev
+		}
+		g.AddLinuxResourcesDevice(true, matches[1], major, minor, matches[4])
+	}
+	return nil
 }
 
 func addDevice(g *generate.Generator, device string) error {
@@ -179,7 +216,7 @@ func getDevices(path string) ([]*configs.Device, error) {
 	return out, nil
 }
 
-func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
+func addPrivilegedDevices(g *generate.Generator) error {
 	hostDevices, err := getDevices("/dev")
 	if err != nil {
 		return err
@@ -243,16 +280,16 @@ func (c *CreateConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
 		var lwds []spec.LinuxWeightDevice
 		ret = bio
 		for _, i := range c.Resources.BlkioWeightDevice {
-			wd, err := validateweightDevice(i)
+			wd, err := ValidateweightDevice(i)
 			if err != nil {
 				return ret, errors.Wrapf(err, "invalid values for blkio-weight-device")
 			}
-			wdStat, err := getStatFromPath(wd.path)
+			wdStat, err := GetStatFromPath(wd.Path)
 			if err != nil {
-				return ret, errors.Wrapf(err, "error getting stat from path %q", wd.path)
+				return ret, errors.Wrapf(err, "error getting stat from path %q", wd.Path)
 			}
 			lwd := spec.LinuxWeightDevice{
-				Weight: &wd.weight,
+				Weight: &wd.Weight,
 			}
 			lwd.Major = int64(unix.Major(wdStat.Rdev))
 			lwd.Minor = int64(unix.Minor(wdStat.Rdev))
@@ -310,7 +347,7 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 		if err != nil {
 			return []spec.LinuxThrottleDevice{}, err
 		}
-		ltdStat, err := getStatFromPath(t.path)
+		ltdStat, err := GetStatFromPath(t.path)
 		if err != nil {
 			return ltds, errors.Wrapf(err, "error getting stat from path %q", t.path)
 		}
@@ -324,7 +361,7 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 	return ltds, nil
 }
 
-func getStatFromPath(path string) (unix.Stat_t, error) {
+func GetStatFromPath(path string) (unix.Stat_t, error) {
 	s := unix.Stat_t{}
 	err := unix.Stat(path, &s)
 	return s, err

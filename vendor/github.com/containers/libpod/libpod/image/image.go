@@ -74,6 +74,11 @@ type InfoImage struct {
 	Layers []LayerInfo
 }
 
+// ImageFilter is a function to determine whether a image is included
+// in command output. Images to be outputted are tested using the function.
+// A true return will include the image, a false return will exclude it.
+type ImageFilter func(*Image) bool //nolint
+
 // ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
 var ErrRepoTagNotFound = stderrors.New("unable to match user input to any specific repotag")
 
@@ -94,10 +99,7 @@ func NewImageRuntimeFromOptions(options storage.StoreOptions) (*Runtime, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	return &Runtime{
-		store: store,
-	}, nil
+	return NewImageRuntimeFromStore(store), nil
 }
 
 func setStore(options storage.StoreOptions) (storage.Store, error) {
@@ -109,30 +111,29 @@ func setStore(options storage.StoreOptions) (storage.Store, error) {
 	return store, nil
 }
 
-// newFromStorage creates a new image object from a storage.Image
-func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
-	image := Image{
-		InputName:    img.ID,
+// newImage creates a new image object given an "input name" and a storage.Image
+func (ir *Runtime) newImage(inputName string, img *storage.Image) *Image {
+	return &Image{
+		InputName:    inputName,
 		imageruntime: ir,
 		image:        img,
 	}
-	return &image
+}
+
+// newFromStorage creates a new image object from a storage.Image. Its "input name" will be its ID.
+func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
+	return ir.newImage(img.ID, img)
 }
 
 // NewFromLocal creates a new image object that is intended
 // to only deal with local images already in the store (or
 // its aliases)
 func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
-	image := Image{
-		InputName:    name,
-		imageruntime: ir,
-	}
-	localImage, err := image.getLocalImage()
+	updatedInputName, localImage, err := ir.getLocalImage(name)
 	if err != nil {
 		return nil, err
 	}
-	image.image = localImage
-	return &image, nil
+	return ir.newImage(updatedInputName, localImage), nil
 }
 
 // New creates a new image object where the image could be local
@@ -143,15 +144,10 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	defer span.Finish()
 
 	// We don't know if the image is local or not ... check local first
-	newImage := Image{
-		InputName:    name,
-		imageruntime: ir,
-	}
 	if pullType != util.PullImageAlways {
-		localImage, err := newImage.getLocalImage()
+		newImage, err := ir.NewFromLocal(name)
 		if err == nil {
-			newImage.image = localImage
-			return &newImage, nil
+			return newImage, nil
 		} else if pullType == util.PullImageNever {
 			return nil, err
 		}
@@ -166,13 +162,11 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
 
-	newImage.InputName = imageName[0]
-	img, err := newImage.getLocalImage()
+	newImage, err := ir.NewFromLocal(imageName[0])
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
 	}
-	newImage.image = img
-	return &newImage, nil
+	return newImage, nil
 }
 
 // LoadFromArchiveReference creates a new image object for images pulled from a tar archive and the like (podman load)
@@ -189,16 +183,11 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 	}
 
 	for _, name := range imageNames {
-		newImage := Image{
-			InputName:    name,
-			imageruntime: ir,
-		}
-		img, err := newImage.getLocalImage()
+		newImage, err := ir.NewFromLocal(name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
 		}
-		newImage.image = img
-		newImages = append(newImages, &newImage)
+		newImages = append(newImages, newImage)
 	}
 	ir.newImageEvent(events.LoadFromArchive, "")
 	return newImages, nil
@@ -211,12 +200,25 @@ func (ir *Runtime) Shutdown(force bool) error {
 	return err
 }
 
+// GetImagesWithFilters gets images with a series of filters applied
+func (ir *Runtime) GetImagesWithFilters(filters []string) ([]*Image, error) {
+	filterFuncs, err := ir.createFilterFuncs(filters, nil)
+	if err != nil {
+		return nil, err
+	}
+	images, err := ir.GetImages()
+	if err != nil {
+		return nil, err
+	}
+	return FilterImages(images, filterFuncs), nil
+}
+
 func (i *Image) reloadImage() error {
 	newImage, err := i.imageruntime.getImage(i.ID())
 	if err != nil {
 		return errors.Wrapf(err, "unable to reload image")
 	}
-	i.image = newImage.image
+	i.image = newImage
 	return nil
 }
 
@@ -229,60 +231,60 @@ func stripSha256(name string) string {
 }
 
 // getLocalImage resolves an unknown input describing an image and
-// returns a storage.Image or an error. It is used by NewFromLocal.
-func (i *Image) getLocalImage() (*storage.Image, error) {
-	imageError := fmt.Sprintf("unable to find '%s' in local storage", i.InputName)
-	if i.InputName == "" {
-		return nil, errors.Errorf("input name is blank")
+// returns an updated input name, and a storage.Image, or an error. It is used by NewFromLocal.
+func (ir *Runtime) getLocalImage(inputName string) (string, *storage.Image, error) {
+	imageError := fmt.Sprintf("unable to find '%s' in local storage", inputName)
+	if inputName == "" {
+		return "", nil, errors.Errorf("input name is blank")
 	}
 	// Check if the input name has a transport and if so strip it
-	dest, err := alltransports.ParseImageName(i.InputName)
+	dest, err := alltransports.ParseImageName(inputName)
 	if err == nil && dest.DockerReference() != nil {
-		i.InputName = dest.DockerReference().String()
+		inputName = dest.DockerReference().String()
 	}
 
-	img, err := i.imageruntime.getImage(stripSha256(i.InputName))
+	img, err := ir.getImage(stripSha256(inputName))
 	if err == nil {
-		return img.image, err
+		return inputName, img, err
 	}
 
 	// container-storage wasn't able to find it in its current form
 	// check if the input name has a tag, and if not, run it through
 	// again
-	decomposedImage, err := decompose(i.InputName)
+	decomposedImage, err := decompose(inputName)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	// The image has a registry name in it and we made sure we looked for it locally
 	// with a tag.  It cannot be local.
 	if decomposedImage.hasRegistry {
-		return nil, errors.Wrapf(ErrNoSuchImage, imageError)
+		return "", nil, errors.Wrapf(ErrNoSuchImage, imageError)
 	}
 	// if the image is saved with the repository localhost, searching with localhost prepended is necessary
 	// We don't need to strip the sha because we have already determined it is not an ID
 	ref, err := decomposedImage.referenceWithRegistry(DefaultLocalRegistry)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	img, err = i.imageruntime.getImage(ref.String())
+	img, err = ir.getImage(ref.String())
 	if err == nil {
-		return img.image, err
+		return inputName, img, err
 	}
 
 	// grab all the local images
-	images, err := i.imageruntime.GetImages()
+	images, err := ir.GetImages()
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	// check the repotags of all images for a match
 	repoImage, err := findImageInRepotags(decomposedImage, images)
 	if err == nil {
-		return repoImage, nil
+		return inputName, repoImage, nil
 	}
 
-	return nil, errors.Wrapf(ErrNoSuchImage, err.Error())
+	return "", nil, errors.Wrapf(ErrNoSuchImage, err.Error())
 }
 
 // ID returns the image ID as a string
@@ -328,6 +330,21 @@ func (i *Image) Manifest(ctx context.Context) ([]byte, string, error) {
 // Names returns a string array of names associated with the image, which may be a mixture of tags and digests
 func (i *Image) Names() []string {
 	return i.image.Names
+}
+
+// NamesHistory returns a string array of names previously associated with the
+// image, which may be a mixture of tags and digests
+func (i *Image) NamesHistory() []string {
+	if len(i.image.Names) > 0 && len(i.image.NamesHistory) > 0 &&
+		// We compare the latest (time-referenced) tags for equality and skip
+		// it in the history if they match to not display them twice.  We have
+		// to compare like this, because `i.image.Names` (latest last) gets
+		// appended on retag, whereas `i.image.NamesHistory` gets prepended
+		// (latest first)
+		i.image.Names[len(i.image.Names)-1] == i.image.NamesHistory[0] {
+		return i.image.NamesHistory[1:]
+	}
+	return i.image.NamesHistory
 }
 
 // RepoTags returns a string array of repotags associated with the image
@@ -427,7 +444,7 @@ func (i *Image) Remove(ctx context.Context, force bool) error {
 // getImage retrieves an image matching the given name or hash from system
 // storage
 // If no matching image can be found, an error is returned
-func (ir *Runtime) getImage(image string) (*Image, error) {
+func (ir *Runtime) getImage(image string) (*storage.Image, error) {
 	var img *storage.Image
 	ref, err := is.Transport.ParseStoreReference(ir.store, image)
 	if err == nil {
@@ -443,8 +460,7 @@ func (ir *Runtime) getImage(image string) (*Image, error) {
 		}
 		img = img2
 	}
-	newImage := ir.newFromStorage(img)
-	return newImage, nil
+	return img, nil
 }
 
 // GetImages retrieves all images present in storage
@@ -669,18 +685,12 @@ func (i *Image) toImageSourceRef(ctx context.Context) (types.ImageSource, error)
 
 //Size returns the size of the image
 func (i *Image) Size(ctx context.Context) (*uint64, error) {
-	if i.image == nil {
-		localImage, err := i.getLocalImage()
-		if err != nil {
-			return nil, err
-		}
-		i.image = localImage
-	}
-	if sum, err := i.imageruntime.store.ImageSize(i.ID()); err == nil && sum >= 0 {
+	sum, err := i.imageruntime.store.ImageSize(i.ID())
+	if err == nil && sum >= 0 {
 		usum := uint64(sum)
 		return &usum, nil
 	}
-	return nil, errors.Errorf("unable to determine size")
+	return nil, errors.Wrap(err, "unable to determine size")
 }
 
 // toImageRef returns an Image Reference type from an image
@@ -748,6 +758,7 @@ type History struct {
 	CreatedBy string     `json:"createdBy"`
 	Size      int64      `json:"size"`
 	Comment   string     `json:"comment"`
+	Tags      []string   `json:"tags"`
 }
 
 // History gets the history of an image and the IDs of images that are part of
@@ -765,109 +776,69 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 		return nil, err
 	}
 
-	// Use our layers list to find images that use any of them (or no
-	// layer, since every base layer is derived from an empty layer) as its
-	// topmost layer.
-	interestingLayers := make(map[string]bool)
-	var layer *storage.Layer
-	if i.TopLayer() != "" {
-		if layer, err = i.imageruntime.store.Layer(i.TopLayer()); err != nil {
-			return nil, err
+	// Build a mapping from top-layer to image ID.
+	images, err := i.imageruntime.GetImages()
+	if err != nil {
+		return nil, err
+	}
+	topLayerMap := make(map[string]string)
+	for _, image := range images {
+		if _, exists := topLayerMap[image.TopLayer()]; !exists {
+			topLayerMap[image.TopLayer()] = image.ID()
 		}
 	}
-	interestingLayers[""] = true
-	for layer != nil {
-		interestingLayers[layer.ID] = true
-		if layer.Parent == "" {
-			break
-		}
-		layer, err = i.imageruntime.store.Layer(layer.Parent)
+
+	var allHistory []*History
+	var layer *storage.Layer
+
+	// Check if we have an actual top layer to prevent lookup errors.
+	if i.TopLayer() != "" {
+		layer, err = i.imageruntime.store.Layer(i.TopLayer())
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// Get the IDs of the images that share some of our layers.  Hopefully
-	// this step means that we'll be able to avoid reading the
-	// configuration of every single image in local storage later on.
-	images, err := i.imageruntime.GetImages()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting images from store")
-	}
-	interestingImages := make([]*Image, 0, len(images))
-	for i := range images {
-		if interestingLayers[images[i].TopLayer()] {
-			interestingImages = append(interestingImages, images[i])
-		}
-	}
+	// Iterate in reverse order over the history entries, and lookup the
+	// corresponding image ID, size and get the next later if needed.
+	numHistories := len(oci.History) - 1
+	for x := numHistories; x >= 0; x-- {
+		var size int64
 
-	// Build a list of image IDs that correspond to our history entries.
-	historyImages := make([]*Image, len(oci.History))
-	if len(oci.History) > 0 {
-		// The starting image shares its whole history with itself.
-		historyImages[len(historyImages)-1] = i
-		for i := range interestingImages {
-			image, err := images[i].ociv1Image(ctx)
-			if err != nil {
-				return nil, errors.Wrapf(err, "error getting image configuration for image %q", images[i].ID())
+		id := "<missing>"
+		if x == numHistories {
+			id = i.ID()
+		}
+		if layer != nil {
+			if !oci.History[x].EmptyLayer {
+				size = layer.UncompressedSize
 			}
-			// If the candidate has a longer history or no history
-			// at all, then it doesn't share the portion of our
-			// history that we're interested in matching with other
-			// images.
-			if len(image.History) == 0 || len(image.History) > len(historyImages) {
-				continue
-			}
-			// If we don't include all of the layers that the
-			// candidate image does (i.e., our rootfs didn't look
-			// like its rootfs at any point), then it can't be part
-			// of our history.
-			if len(image.RootFS.DiffIDs) > len(oci.RootFS.DiffIDs) {
-				continue
-			}
-			candidateLayersAreUsed := true
-			for i := range image.RootFS.DiffIDs {
-				if image.RootFS.DiffIDs[i] != oci.RootFS.DiffIDs[i] {
-					candidateLayersAreUsed = false
-					break
-				}
-			}
-			if !candidateLayersAreUsed {
-				continue
-			}
-			// If the candidate's entire history is an initial
-			// portion of our history, then we're based on it,
-			// either directly or indirectly.
-			sharedHistory := historiesMatch(oci.History, image.History)
-			if sharedHistory == len(image.History) {
-				historyImages[sharedHistory-1] = images[i]
+			if imageID, exists := topLayerMap[layer.ID]; exists {
+				id = imageID
+				// Delete the entry to avoid reusing it for following history items.
+				delete(topLayerMap, layer.ID)
 			}
 		}
-	}
-
-	var (
-		size       int64
-		sizeCount  = 1
-		allHistory []*History
-	)
-
-	for i := len(oci.History) - 1; i >= 0; i-- {
-		imageID := "<missing>"
-		if historyImages[i] != nil {
-			imageID = historyImages[i].ID()
-		}
-		if !oci.History[i].EmptyLayer {
-			size = img.LayerInfos()[len(img.LayerInfos())-sizeCount].Size
-			sizeCount++
-		}
-		allHistory = append(allHistory, &History{
-			ID:        imageID,
-			Created:   oci.History[i].Created,
-			CreatedBy: oci.History[i].CreatedBy,
+		h := History{
+			ID:        id,
+			Created:   oci.History[x].Created,
+			CreatedBy: oci.History[x].CreatedBy,
 			Size:      size,
-			Comment:   oci.History[i].Comment,
-		})
+			Comment:   oci.History[x].Comment,
+		}
+		if layer != nil {
+			h.Tags = layer.Names
+		}
+		allHistory = append(allHistory, &h)
+
+		if layer != nil && layer.Parent != "" && !oci.History[x].EmptyLayer {
+			layer, err = i.imageruntime.store.Layer(layer.Parent)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
+
 	return allHistory, nil
 }
 
@@ -909,8 +880,7 @@ func (i *Image) Annotations(ctx context.Context) (map[string]string, error) {
 		}
 	}
 	annotations := make(map[string]string)
-	switch manifestType {
-	case ociv1.MediaTypeImageManifest:
+	if manifestType == ociv1.MediaTypeImageManifest {
 		var m ociv1.Manifest
 		if err := json.Unmarshal(imageManifest, &m); err == nil {
 			for k, v := range m.Annotations {
@@ -1018,6 +988,16 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		ManifestType: manifestType,
 		User:         ociv1Img.Config.User,
 		History:      ociv1Img.History,
+		NamesHistory: i.NamesHistory(),
+	}
+	if manifestType == manifest.DockerV2Schema2MediaType {
+		hc, err := i.GetHealthCheck(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if hc != nil {
+			data.HealthCheck = hc
+		}
 	}
 	return data, nil
 }
@@ -1534,7 +1514,7 @@ func GetLayersMapWithImageInfo(imageruntime *Runtime) (map[string]*LayerInfo, er
 		}
 	}
 
-	// scan all layers & add all childs for each layers to layerInfo
+	// scan all layers & add all childid's for each layers to layerInfo
 	for _, layer := range layers {
 		_, ok := layerInfoMap[layer.ID]
 		if ok {

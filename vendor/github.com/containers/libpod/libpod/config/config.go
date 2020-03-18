@@ -2,7 +2,7 @@ package config
 
 import (
 	"bytes"
-	"io/ioutil"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
@@ -71,7 +72,7 @@ const (
 // SetOptions contains a subset of options in a Config. It's used to indicate if
 // a given option has either been set by the user or by a parsed libpod
 // configuration file.  If not, the corresponding option might be overwritten by
-// values from the database.  This behavior guarantess backwards compat with
+// values from the database.  This behavior guarantees backwards compat with
 // older version of libpod and Podman.
 type SetOptions struct {
 	// StorageConfigRunRootSet indicates if the RunRoot has been explicitly set
@@ -118,7 +119,7 @@ type Config struct {
 	// SetOptions contains a subset of config options. It's used to indicate if
 	// a given option has either been set by the user or by a parsed libpod
 	// configuration file.  If not, the corresponding option might be
-	// overwritten by values from the database.  This behavior guarantess
+	// overwritten by values from the database.  This behavior guarantees
 	// backwards compat with older version of libpod and Podman.
 	SetOptions
 
@@ -137,11 +138,11 @@ type Config struct {
 	// VolumePath is the default location that named volumes will be created
 	// under. This convention is followed by the default volume driver, but
 	// may not be by other drivers.
-	VolumePath string `toml:"volume_path"`
+	VolumePath string `toml:"volume_path,omitempty"`
 
 	// ImageDefaultTransport is the default transport method used to fetch
 	// images.
-	ImageDefaultTransport string `toml:"image_default_transport"`
+	ImageDefaultTransport string `toml:"image_default_transport,omitempty"`
 
 	// SignaturePolicyPath is the path to a signature policy to use for
 	// validating images. If left empty, the containers/image default signature
@@ -149,61 +150,61 @@ type Config struct {
 	SignaturePolicyPath string `toml:"signature_policy_path,omitempty"`
 
 	// OCIRuntime is the OCI runtime to use.
-	OCIRuntime string `toml:"runtime"`
+	OCIRuntime string `toml:"runtime,omitempty"`
 
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
-	OCIRuntimes map[string][]string `toml:"runtimes"`
+	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
 
 	// RuntimeSupportsJSON is the list of the OCI runtimes that support
 	// --format=json.
-	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
+	RuntimeSupportsJSON []string `toml:"runtime_supports_json,omitempty"`
 
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
 	// running containers without CGroups.
-	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups"`
+	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups,omitempty"`
 
 	// RuntimePath is the path to OCI runtime binary for launching containers.
 	// The first path pointing to a valid file will be used This is used only
 	// when there are no OCIRuntime/OCIRuntimes defined.  It is used only to be
 	// backward compatible with older versions of Podman.
-	RuntimePath []string `toml:"runtime_path"`
+	RuntimePath []string `toml:"runtime_path,omitempty"`
 
 	// ConmonPath is the path to the Conmon binary used for managing containers.
 	// The first path pointing to a valid file will be used.
-	ConmonPath []string `toml:"conmon_path"`
+	ConmonPath []string `toml:"conmon_path,omitempty"`
 
 	// ConmonEnvVars are environment variables to pass to the Conmon binary
 	// when it is launched.
-	ConmonEnvVars []string `toml:"conmon_env_vars"`
+	ConmonEnvVars []string `toml:"conmon_env_vars,omitempty"`
 
 	// CGroupManager is the CGroup Manager to use Valid values are "cgroupfs"
 	// and "systemd".
-	CgroupManager string `toml:"cgroup_manager"`
+	CgroupManager string `toml:"cgroup_manager,omitempty"`
 
 	// InitPath is the path to the container-init binary.
-	InitPath string `toml:"init_path"`
+	InitPath string `toml:"init_path,omitempty"`
 
 	// StaticDir is the path to a persistent directory to store container
 	// files.
-	StaticDir string `toml:"static_dir"`
+	StaticDir string `toml:"static_dir,omitempty"`
 
 	// TmpDir is the path to a temporary directory to store per-boot container
 	// files. Must be stored in a tmpfs.
-	TmpDir string `toml:"tmp_dir"`
+	TmpDir string `toml:"tmp_dir,omitempty"`
 
 	// MaxLogSize is the maximum size of container logfiles.
 	MaxLogSize int64 `toml:"max_log_size,omitempty"`
 
 	// NoPivotRoot sets whether to set no-pivot-root in the OCI runtime.
-	NoPivotRoot bool `toml:"no_pivot_root"`
+	NoPivotRoot bool `toml:"no_pivot_root,omitempty"`
 
 	// CNIConfigDir sets the directory where CNI configuration files are
 	// stored.
-	CNIConfigDir string `toml:"cni_config_dir"`
+	CNIConfigDir string `toml:"cni_config_dir,omitempty"`
 
 	// CNIPluginDir sets a number of directories where the CNI network
 	// plugins can be located.
-	CNIPluginDir []string `toml:"cni_plugin_dir"`
+	CNIPluginDir []string `toml:"cni_plugin_dir,omitempty"`
 
 	// CNIDefaultNetwork is the network name of the default CNI network
 	// to attach pods to.
@@ -213,7 +214,7 @@ type Config struct {
 	// configuration files. When the same filename is present in in
 	// multiple directories, the file in the directory listed last in
 	// this slice takes precedence.
-	HooksDir []string `toml:"hooks_dir"`
+	HooksDir []string `toml:"hooks_dir,omitempty"`
 
 	// DefaultMountsFile is the path to the default mounts file for testing
 	// purposes only.
@@ -229,10 +230,10 @@ type Config struct {
 
 	// InfraImage is the image a pod infra container will use to manage
 	// namespaces.
-	InfraImage string `toml:"infra_image"`
+	InfraImage string `toml:"infra_image,omitempty"`
 
 	// InfraCommand is the command run to start up a pod infra container.
-	InfraCommand string `toml:"infra_command"`
+	InfraCommand string `toml:"infra_command,omitempty"`
 
 	// EnablePortReservation determines whether libpod will reserve ports on the
 	// host when they are forwarded to containers. When enabled, when ports are
@@ -241,13 +242,13 @@ type Config struct {
 	// programs on the host. However, this can cause significant memory usage if
 	// a container has many ports forwarded to it. Disabling this can save
 	// memory.
-	EnablePortReservation bool `toml:"enable_port_reservation"`
+	EnablePortReservation bool `toml:"enable_port_reservation,omitempty"`
 
 	// EnableLabeling indicates whether libpod will support container labeling.
-	EnableLabeling bool `toml:"label"`
+	EnableLabeling bool `toml:"label,omitempty"`
 
 	// NetworkCmdPath is the path to the slirp4netns binary.
-	NetworkCmdPath string `toml:"network_cmd_path"`
+	NetworkCmdPath string `toml:"network_cmd_path,omitempty"`
 
 	// NumLocks is the number of locks to make available for containers and
 	// pods.
@@ -257,17 +258,21 @@ type Config struct {
 	LockType string `toml:"lock_type,omitempty"`
 
 	// EventsLogger determines where events should be logged.
-	EventsLogger string `toml:"events_logger"`
+	EventsLogger string `toml:"events_logger,omitempty"`
 
 	// EventsLogFilePath is where the events log is stored.
-	EventsLogFilePath string `toml:"events_logfile_path"`
+	EventsLogFilePath string `toml:"events_logfile_path,omitempty"`
 
 	//DetachKeys is the sequence of keys used to detach a container.
-	DetachKeys string `toml:"detach_keys"`
+	DetachKeys string `toml:"detach_keys,omitempty"`
 
 	// SDNotify tells Libpod to allow containers to notify the host systemd of
 	// readiness using the SD_NOTIFY mechanism.
-	SDNotify bool
+	SDNotify bool `toml:",omitempty"`
+
+	// CgroupCheck indicates the configuration has been rewritten after an
+	// upgrade to Fedora 31 to change the default OCI runtime for cgroupsv2.
+	CgroupCheck bool `toml:"cgroup_check,omitempty"`
 }
 
 // DBConfig is a set of Libpod runtime configuration settings that are saved in
@@ -282,17 +287,15 @@ type DBConfig struct {
 }
 
 // readConfigFromFile reads the specified config file at `path` and attempts to
-// unmarshal its content into a Config.
-func readConfigFromFile(path string) (*Config, error) {
-	var config Config
-
-	configBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
+// unmarshal its content into a Config. The config param specifies the previous
+// default config.  If the path, only specifies a few fields in the Toml file
+// the defaults from the config parameter will be used for all other fields.
+func readConfigFromFile(path string, config *Config) (*Config, error) {
 	logrus.Debugf("Reading configuration file %q", path)
-	err = toml.Unmarshal(configBytes, &config)
+	_, err := toml.DecodeFile(path, config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode configuration %v: %v", path, err)
+	}
 
 	// For the sake of backwards compat we need to check if the config fields
 	// with *Set suffix are set in the config.  Note that the storage-related
@@ -308,7 +311,7 @@ func readConfigFromFile(path string) (*Config, error) {
 		config.TmpDirSet = true
 	}
 
-	return &config, err
+	return config, err
 }
 
 // Write decodes the config as TOML and writes it to the specified path.
@@ -434,45 +437,57 @@ func probeConmon(conmonBinary string) error {
 // with cgroupsv2. Other OCI runtimes are not yet supporting cgroupsv2. This
 // might change in the future.
 func NewConfig(userConfigPath string) (*Config, error) {
-	config := &Config{} // start with an empty config
+	// Start with the default config and iteratively merge fields in the system
+	// configs.
+	config, err := defaultConfigFromMemory()
+	if err != nil {
+		return nil, err
+	}
+
+	// Now, check if the user can access system configs and merge them if needed.
+	configs, err := systemConfigs()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error finding config on system")
+	}
+
+	for _, path := range configs {
+		config, err = readConfigFromFile(path, config)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading system config %q", path)
+		}
+	}
 
 	// First, try to read the user-specified config
 	if userConfigPath != "" {
 		var err error
-		config, err = readConfigFromFile(userConfigPath)
+		config, err = readConfigFromFile(userConfigPath, config)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
 		}
 	}
 
-	// Now, check if the user can access system configs and merge them if needed.
-	if configs, err := systemConfigs(); err != nil {
-		return nil, errors.Wrapf(err, "error finding config on system")
-	} else {
-		for _, path := range configs {
-			systemConfig, err := readConfigFromFile(path)
+	// Since runc does not currently support cgroupV2
+	// Change to default crun on first running of libpod.conf
+	// TODO Once runc has support for cgroups, this function should be removed.
+	if !config.CgroupCheck && rootless.IsRootless() {
+		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, err
+		}
+		if cgroupsV2 {
+			path, err := exec.LookPath("crun")
 			if err != nil {
-				return nil, errors.Wrapf(err, "error reading system config %q", path)
+				// Can't find crun path so do nothing
+				logrus.Warnf("Can not find crun package on the host, containers might fail to run on cgroup V2 systems without crun: %q", err)
+			} else {
+				config.CgroupCheck = true
+				config.OCIRuntime = path
 			}
-			// Merge the it into the config. Any unset field in config will be
-			// over-written by the systemConfig.
-			if err := config.mergeConfig(systemConfig); err != nil {
-				return nil, errors.Wrapf(err, "error merging system config")
-			}
-			logrus.Debugf("Merged system config %q: %v", path, config)
 		}
 	}
 
-	// Finally, create a default config from memory and forcefully merge it into
-	// the config. This way we try to make sure that all fields are properly set
-	// and that user AND system config can partially set.
-	if defaultConfig, err := defaultConfigFromMemory(); err != nil {
-		return nil, errors.Wrapf(err, "error generating default config from memory")
-	} else {
-		if err := config.mergeConfig(defaultConfig); err != nil {
-			return nil, errors.Wrapf(err, "error merging default config from memory")
-		}
-	}
+	// If we need to, switch to cgroupfs and logger=file on rootless.
+	config.checkCgroupsAndLogger()
 
 	// Relative paths can cause nasty bugs, because core paths we use could
 	// shift between runs (or even parts of the program - the OCI runtime
@@ -486,9 +501,6 @@ func NewConfig(userConfigPath string) (*Config, error) {
 	if !filepath.IsAbs(config.VolumePath) {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "volume path must be an absolute path - instead got %q", config.VolumePath)
 	}
-
-	// Check if we need to switch to cgroupfs on rootless.
-	config.checkCgroupsAndAdjustConfig()
 
 	return config, nil
 }
@@ -515,20 +527,22 @@ func systemConfigs() ([]string, error) {
 	}
 
 	configs := []string{}
-	if _, err := os.Stat(_rootOverrideConfigPath); err == nil {
-		configs = append(configs, _rootOverrideConfigPath)
-	}
 	if _, err := os.Stat(_rootConfigPath); err == nil {
 		configs = append(configs, _rootConfigPath)
+	}
+	if _, err := os.Stat(_rootOverrideConfigPath); err == nil {
+		configs = append(configs, _rootOverrideConfigPath)
 	}
 	return configs, nil
 }
 
-// checkCgroupsAndAdjustConfig checks if we're running rootless with the systemd
+// checkCgroupsAndLogger checks if we're running rootless with the systemd
 // cgroup manager. In case the user session isn't available, we're switching the
-// cgroup manager to cgroupfs.  Note, this only applies to rootless.
-func (c *Config) checkCgroupsAndAdjustConfig() {
-	if !rootless.IsRootless() || c.CgroupManager != define.SystemdCgroupsManager {
+// cgroup manager to cgroupfs and the events logger backend to 'file'.
+// Note, this only applies to rootless.
+func (c *Config) checkCgroupsAndLogger() {
+	if !rootless.IsRootless() || (c.CgroupManager !=
+		define.SystemdCgroupsManager && c.EventsLogger == "file") {
 		return
 	}
 
@@ -543,7 +557,62 @@ func (c *Config) checkCgroupsAndAdjustConfig() {
 		logrus.Warningf("The cgroups manager is set to systemd but there is no systemd user session available")
 		logrus.Warningf("For using systemd, you may need to login using an user session")
 		logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibly as root)", rootless.GetRootlessUID())
-		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
+		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs and --events-backend=file")
 		c.CgroupManager = define.CgroupfsCgroupsManager
+		c.EventsLogger = "file"
 	}
+}
+
+// MergeDBConfig merges the configuration from the database.
+func (c *Config) MergeDBConfig(dbConfig *DBConfig) error {
+
+	if !c.StorageConfigRunRootSet && dbConfig.StorageTmp != "" {
+		if c.StorageConfig.RunRoot != dbConfig.StorageTmp &&
+			c.StorageConfig.RunRoot != "" {
+			logrus.Debugf("Overriding run root %q with %q from database",
+				c.StorageConfig.RunRoot, dbConfig.StorageTmp)
+		}
+		c.StorageConfig.RunRoot = dbConfig.StorageTmp
+	}
+
+	if !c.StorageConfigGraphRootSet && dbConfig.StorageRoot != "" {
+		if c.StorageConfig.GraphRoot != dbConfig.StorageRoot &&
+			c.StorageConfig.GraphRoot != "" {
+			logrus.Debugf("Overriding graph root %q with %q from database",
+				c.StorageConfig.GraphRoot, dbConfig.StorageRoot)
+		}
+		c.StorageConfig.GraphRoot = dbConfig.StorageRoot
+	}
+
+	if !c.StorageConfigGraphDriverNameSet && dbConfig.GraphDriver != "" {
+		if c.StorageConfig.GraphDriverName != dbConfig.GraphDriver &&
+			c.StorageConfig.GraphDriverName != "" {
+			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve",
+				c.StorageConfig.GraphDriverName, dbConfig.GraphDriver)
+		}
+		c.StorageConfig.GraphDriverName = dbConfig.GraphDriver
+	}
+
+	if !c.StaticDirSet && dbConfig.LibpodRoot != "" {
+		if c.StaticDir != dbConfig.LibpodRoot && c.StaticDir != "" {
+			logrus.Debugf("Overriding static dir %q with %q from database", c.StaticDir, dbConfig.LibpodRoot)
+		}
+		c.StaticDir = dbConfig.LibpodRoot
+	}
+
+	if !c.TmpDirSet && dbConfig.LibpodTmp != "" {
+		if c.TmpDir != dbConfig.LibpodTmp && c.TmpDir != "" {
+			logrus.Debugf("Overriding tmp dir %q with %q from database", c.TmpDir, dbConfig.LibpodTmp)
+		}
+		c.TmpDir = dbConfig.LibpodTmp
+		c.EventsLogFilePath = filepath.Join(dbConfig.LibpodTmp, "events", "events.log")
+	}
+
+	if !c.VolumePathSet && dbConfig.VolumePath != "" {
+		if c.VolumePath != dbConfig.VolumePath && c.VolumePath != "" {
+			logrus.Debugf("Overriding volume path %q with %q from database", c.VolumePath, dbConfig.VolumePath)
+		}
+		c.VolumePath = dbConfig.VolumePath
+	}
+	return nil
 }

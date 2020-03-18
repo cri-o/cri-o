@@ -5,13 +5,14 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"time"
 
+	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/docker/docker/oci/caps"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -183,7 +184,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created or running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
-	return c.stop(timeout, false)
+	return c.stop(timeout)
 }
 
 // Kill sends a signal to a container
@@ -236,7 +237,7 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	}
 
 	if privileged || c.config.Privileged {
-		capList = caps.GetAllCapabilities()
+		capList = capabilities.AllCapabilities()
 	}
 
 	// Generate exec session ID
@@ -268,11 +269,6 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 			logrus.Errorf("Error removing exec session %s bundle path for container %s: %v", sessionID, c.ID(), err)
 		}
 	}()
-
-	// if the user is empty, we should inherit the user that the container is currently running with
-	if user == "" {
-		user = c.config.User
-	}
 
 	opts := new(ExecOptions)
 	opts.Cmd = cmd
@@ -374,7 +370,9 @@ type AttachStreams struct {
 	AttachInput bool
 }
 
-// Attach attaches to a container
+// Attach attaches to a container.
+// This function returns when the attach finishes. It does not hold the lock for
+// the duration of its runtime, only using it at the beginning to verify state.
 func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
 	if !c.batched {
 		c.lock.Lock()
@@ -382,6 +380,7 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 			c.lock.Unlock()
 			return err
 		}
+		// We are NOT holding the lock for the duration of the function.
 		c.lock.Unlock()
 	}
 
@@ -389,8 +388,69 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 
-	defer c.newContainerEvent(events.Attach)
+	c.newContainerEvent(events.Attach)
 	return c.attach(streams, keys, resize, false, nil)
+}
+
+// HTTPAttach forwards an attach session over a hijacked HTTP session.
+// HTTPAttach will consume and close the included httpCon, which is expected to
+// be sourced from a hijacked HTTP connection.
+// The cancel channel is optional, and can be used to asynchronously cancel the
+// attach session.
+// The streams variable is only supported if the container was not a terminal,
+// and allows specifying which of the container's standard streams will be
+// forwarded to the client.
+// This function returns when the attach finishes. It does not hold the lock for
+// the duration of its runtime, only using it at the beginning to verify state.
+func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) error {
+	if !c.batched {
+		c.lock.Lock()
+		if err := c.syncContainer(); err != nil {
+			c.lock.Unlock()
+
+			// Write any errors to the HTTP buffer before we close.
+			hijackWriteErrorAndClose(err, c.ID(), httpCon, httpBuf)
+
+			return err
+		}
+		// We are NOT holding the lock for the duration of the function.
+		c.lock.Unlock()
+	}
+
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
+		toReturn := errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
+
+		// Write any errors to the HTTP buffer before we close.
+		hijackWriteErrorAndClose(toReturn, c.ID(), httpCon, httpBuf)
+
+		return toReturn
+	}
+
+	logrus.Infof("Performing HTTP Hijack attach to container %s", c.ID())
+
+	c.newContainerEvent(events.Attach)
+	return c.ociRuntime.HTTPAttach(c, httpCon, httpBuf, streams, detachKeys, cancel)
+}
+
+// AttachResize resizes the container's terminal, which is displayed by Attach
+// and HTTPAttach.
+func (c *Container) AttachResize(newSize remotecommand.TerminalSize) error {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "can only resize created or running containers")
+	}
+
+	logrus.Infof("Resizing TTY of container %s", c.ID())
+
+	return c.ociRuntime.AttachResize(c, newSize)
 }
 
 // Mount mounts a container's filesystem on the host
@@ -404,6 +464,11 @@ func (c *Container) Mount() (string, error) {
 			return "", err
 		}
 	}
+
+	if c.state.State == define.ContainerStateRemoving {
+		return "", errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
+	}
+
 	defer c.newContainerEvent(events.Mount)
 	return c.mount()
 }
@@ -488,7 +553,12 @@ func (c *Container) Export(path string) error {
 			return err
 		}
 	}
-	defer c.newContainerEvent(events.Export)
+
+	if c.state.State == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
+	}
+
+	defer c.newContainerEvent(events.Mount)
 	return c.export(path)
 }
 
@@ -554,6 +624,26 @@ func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 	}
 }
 
+func (c *Container) WaitForConditionWithInterval(waitTimeout time.Duration, condition define.ContainerStatus) (int32, error) {
+	if !c.valid {
+		return -1, define.ErrCtrRemoved
+	}
+	if condition == define.ContainerStateStopped || condition == define.ContainerStateExited {
+		return c.WaitWithInterval(waitTimeout)
+	}
+	for {
+		state, err := c.State()
+		if err != nil {
+			return -1, err
+		}
+		if state == condition {
+			break
+		}
+		time.Sleep(waitTimeout)
+	}
+	return -1, nil
+}
+
 // Cleanup unmounts all mount points in container and cleans up container storage
 // It also cleans up the network stack
 func (c *Container) Cleanup(ctx context.Context) error {
@@ -584,7 +674,12 @@ func (c *Container) Cleanup(ctx context.Context) error {
 
 	// If we didn't restart, we perform a normal cleanup
 
-	// Check if we have active exec sessions
+	// Reap exec sessions first.
+	if err := c.reapExecSessions(); err != nil {
+		return err
+	}
+
+	// Check if we have active exec sessions after reaping.
 	if len(c.state.ExecSessions) != 0 {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
 	}
@@ -674,6 +769,10 @@ func (c *Container) Refresh(ctx context.Context) error {
 		}
 	}
 
+	if c.state.State == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot refresh containers that are being removed")
+	}
+
 	wasCreated := false
 	if c.state.State == define.ContainerStateCreated {
 		wasCreated = true
@@ -696,7 +795,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 
 	// Next, if the container is running, stop it
 	if c.state.State == define.ContainerStateRunning {
-		if err := c.stop(c.config.StopTimeout, false); err != nil {
+		if err := c.stop(c.config.StopTimeout); err != nil {
 			return err
 		}
 	}
@@ -794,6 +893,11 @@ type ContainerCheckpointOptions struct {
 	// important to be able to restore a container multiple
 	// times with '--import --name'.
 	IgnoreStaticIP bool
+	// IgnoreStaticMAC tells the API to ignore the MAC set
+	// during 'podman run' with '--mac-address'. This is especially
+	// important to be able to restore a container multiple
+	// times with '--import --name'.
+	IgnoreStaticMAC bool
 }
 
 // Checkpoint checkpoints a container
@@ -814,7 +918,6 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 			return err
 		}
 	}
-	defer c.newContainerEvent(events.Checkpoint)
 	return c.checkpoint(ctx, options)
 }
 

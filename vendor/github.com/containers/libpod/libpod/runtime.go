@@ -180,12 +180,13 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 		// Set up the lock manager
 		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
 		if err != nil {
-			if os.IsNotExist(errors.Cause(err)) {
+			switch {
+			case os.IsNotExist(errors.Cause(err)):
 				manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to get new shm lock manager")
 				}
-			} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
+			case errors.Cause(err) == syscall.ERANGE && runtime.doRenumber:
 				logrus.Debugf("Number of locks does not match - removing old locks")
 
 				// ERANGE indicates a lock numbering mismatch.
@@ -199,7 +200,7 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 				if err != nil {
 					return nil, err
 				}
-			} else {
+			default:
 				return nil, err
 			}
 		}
@@ -213,11 +214,11 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// Find a working conmon binary
-	if cPath, err := runtime.config.FindConmon(); err != nil {
+	cPath, err := runtime.config.FindConmon()
+	if err != nil {
 		return err
-	} else {
-		runtime.conmonPath = cPath
 	}
+	runtime.conmonPath = cPath
 
 	// Make the static files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.StaticDir, 0700); err != nil {
@@ -289,10 +290,8 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		logrus.Debug("Not configuring container store")
 	} else if runtime.noStore {
 		logrus.Debug("No store required. Not opening container store.")
-	} else {
-		if err := runtime.configureStore(); err != nil {
-			return err
-		}
+	} else if err := runtime.configureStore(); err != nil {
+		return err
 	}
 	defer func() {
 		if err != nil && store != nil {
@@ -625,7 +624,8 @@ func (r *Runtime) refresh(alivePath string) error {
 	}
 
 	// Next refresh the state of all containers to recreate dirs and
-	// namespaces, and all the pods to recreate cgroups
+	// namespaces, and all the pods to recreate cgroups.
+	// Containers, pods, and volumes must also reacquire their locks.
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all containers from state")
@@ -634,10 +634,14 @@ func (r *Runtime) refresh(alivePath string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all pods from state")
 	}
-	// No locks are taken during pod and container refresh.
-	// Furthermore, the pod and container refresh() functions are not
+	vols, err := r.state.AllVolumes()
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving all volumes from state")
+	}
+	// No locks are taken during pod, volume, and container refresh.
+	// Furthermore, the pod/volume/container refresh() functions are not
 	// allowed to take locks themselves.
-	// We cannot assume that any pod or container has a valid lock until
+	// We cannot assume that any pod/volume/container has a valid lock until
 	// after this function has returned.
 	// The runtime alive lock should suffice to provide mutual exclusion
 	// until this has run.
@@ -649,6 +653,11 @@ func (r *Runtime) refresh(alivePath string) error {
 	for _, pod := range pods {
 		if err := pod.refresh(); err != nil {
 			logrus.Errorf("Error refreshing pod %s: %v", pod.ID(), err)
+		}
+	}
+	for _, vol := range vols {
+		if err := vol.refresh(); err != nil {
+			logrus.Errorf("Error refreshing volume %s: %v", vol.Name(), err)
 		}
 	}
 
@@ -681,24 +690,22 @@ func (r *Runtime) Info() ([]define.InfoData, error) {
 	}
 	info = append(info, define.InfoData{Type: "store", Data: storeInfo})
 
-	reg, err := sysreg.GetRegistries()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting registries")
-	}
 	registries := make(map[string]interface{})
-	registries["search"] = reg
-
-	ireg, err := sysreg.GetInsecureRegistries()
+	data, err := sysreg.GetRegistriesData()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
-	registries["insecure"] = ireg
-
-	breg, err := sysreg.GetBlockedRegistries()
+	for _, reg := range data {
+		registries[reg.Prefix] = reg
+	}
+	regs, err := sysreg.GetRegistries()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
-	registries["blocked"] = breg
+	if len(regs) > 0 {
+		registries["search"] = regs
+	}
+
 	info = append(info, define.InfoData{Type: "registries", Data: registries})
 	return info, nil
 }
@@ -710,18 +717,14 @@ func (r *Runtime) generateName() (string, error) {
 		// Make sure container with this name does not exist
 		if _, err := r.state.LookupContainer(name); err == nil {
 			continue
-		} else {
-			if errors.Cause(err) != define.ErrNoSuchCtr {
-				return "", err
-			}
+		} else if errors.Cause(err) != define.ErrNoSuchCtr {
+			return "", err
 		}
 		// Make sure pod with this name does not exist
 		if _, err := r.state.LookupPod(name); err == nil {
 			continue
-		} else {
-			if errors.Cause(err) != define.ErrNoSuchPod {
-				return "", err
-			}
+		} else if errors.Cause(err) != define.ErrNoSuchPod {
+			return "", err
 		}
 		return name, nil
 	}

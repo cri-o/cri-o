@@ -7,14 +7,16 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"syscall"
 
-	"github.com/containers/buildah/pkg/cgroups"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/signature"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -209,6 +211,36 @@ func FindImage(store storage.Store, firstRegistry string, systemContext *types.S
 	return ref, img, nil
 }
 
+// ResolveNameToReferences tries to create a list of possible references
+// (including their transports) from the provided image name.
+func ResolveNameToReferences(
+	store storage.Store,
+	systemContext *types.SystemContext,
+	image string,
+) (refs []types.ImageReference, err error) {
+	names, transport, _, err := ResolveName(image, "", systemContext, store)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing name %q", image)
+	}
+
+	if transport != DefaultTransport {
+		transport += ":"
+	}
+
+	for _, name := range names {
+		ref, err := alltransports.ParseImageName(transport + name)
+		if err != nil {
+			logrus.Debugf("error parsing reference to image %q: %v", name, err)
+			continue
+		}
+		refs = append(refs, ref)
+	}
+	if len(refs) == 0 {
+		return nil, errors.Errorf("error locating images with names %v", names)
+	}
+	return refs, nil
+}
+
 // AddImageNames adds the specified names to the specified image.
 func AddImageNames(store storage.Store, firstRegistry string, systemContext *types.SystemContext, image *storage.Image, addNames []string) error {
 	names, err := ExpandNames(addNames, firstRegistry, systemContext, store)
@@ -252,7 +284,7 @@ func Runtime() string {
 	}
 
 	// Need to switch default until runc supports cgroups v2
-	if unified, _ := cgroups.IsCgroup2UnifiedMode(); unified {
+	if unified, _ := IsCgroup2UnifiedMode(); unified {
 		return "crun"
 	}
 
@@ -394,4 +426,40 @@ func TruncateString(str string, to int) string {
 		newStr = str[0:to] + tr
 	}
 	return newStr
+}
+
+var (
+	isUnifiedOnce sync.Once
+	isUnified     bool
+	isUnifiedErr  error
+)
+
+// fileExistsAndNotADir - Check to see if a file exists
+// and that it is not a directory.
+func fileExistsAndNotADir(path string) bool {
+	file, err := os.Stat(path)
+
+	if file == nil || err != nil || os.IsNotExist(err) {
+		return false
+	}
+	return !file.IsDir()
+}
+
+// FindLocalRuntime find the local runtime of the
+// system searching through the config file for
+// possible locations.
+func FindLocalRuntime(runtime string) string {
+	var localRuntime string
+	conf, err := config.Default()
+	if err != nil {
+		logrus.Debugf("Error loading container config when searching for local runtime.")
+		return localRuntime
+	}
+	for _, val := range conf.Libpod.OCIRuntimes[runtime] {
+		if fileExistsAndNotADir(val) {
+			localRuntime = val
+			break
+		}
+	}
+	return localRuntime
 }
