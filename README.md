@@ -146,7 +146,9 @@ Bucket][bucket]. This means that the latest master commit can be downloaded via:
 > curl -f https://storage.googleapis.com/k8s-conform-cri-o/artifacts/crio-$(git ls-remote https://github.com/cri-o/cri-o master | cut -c1-9).tar.gz -o crio.tar.gz
 ```
 
-### Running CRI-O
+### Running kubernetes with CRI-O
+
+You need to start `CRI-O` first (tutorials/setup.md#starting-cri-o).
 
 You can run a local version of Kubernetes with `CRI-O` using `local-up-cluster.sh`:
 
