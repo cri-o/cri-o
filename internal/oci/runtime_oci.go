@@ -228,8 +228,9 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr,
-		r.path, rootFlag, r.root, "start", c.id); err != nil {
+	if _, err := utils.ExecCmd(
+		r.path, rootFlag, r.root, "start", c.id,
+	); err != nil {
 		return err
 	}
 	c.state.Started = time.Now()
@@ -613,8 +614,9 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	}
 
 	if timeout > 0 {
-		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr,
-			r.path, rootFlag, r.root, "kill", c.id, c.GetStopSignal()); err != nil {
+		if _, err := utils.ExecCmd(
+			r.path, rootFlag, r.root, "kill", c.id, c.GetStopSignal(),
+		); err != nil {
 			if err := checkProcessGone(c); err != nil {
 				return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 			}
@@ -626,8 +628,9 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		logrus.Warnf("Stop container %q timed out: %v", c.id, err)
 	}
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr,
-		r.path, rootFlag, r.root, "kill", c.id, "KILL"); err != nil {
+	if _, err := utils.ExecCmd(
+		r.path, rootFlag, r.root, "kill", c.id, "KILL",
+	); err != nil {
 		if err := checkProcessGone(c); err != nil {
 			return fmt.Errorf("failed to stop container %q: %v", c.id, err)
 		}
@@ -657,7 +660,6 @@ func (r *runtimeOCI) DeleteContainer(c *Container) error {
 	defer c.opLock.Unlock()
 
 	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "delete", "--force", c.id)
-
 	return err
 }
 
@@ -800,8 +802,10 @@ func (r *runtimeOCI) SignalContainer(c *Container, sig syscall.Signal) error {
 		return errors.Errorf("unable to find signal %s", sig.String())
 	}
 
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path,
-		rootFlag, r.root, "kill", c.ID(), strconv.Itoa(int(sig)))
+	_, err := utils.ExecCmd(
+		r.path, rootFlag, r.root, "kill", c.ID(), strconv.Itoa(int(sig)),
+	)
+	return err
 }
 
 // AttachContainer attaches IO to a running container.
