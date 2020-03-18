@@ -137,7 +137,10 @@ lint: .gopathok ${GOLANGCI_LINT}
 
 bin/pinns:
 	# first fetch subdirs
-	cd pinns && ./autogen.sh && ./configure && $(MAKE)
+	$(shell pwd)/pinns/autogen-crun.sh
+	cd pinns && $(shell pwd)/pinns/autogen.sh
+	cd pinns && $(shell pwd)/pinns/configure
+	$(MAKE) -C pinns
 	# return to the upper dir
 	cp pinns/pinns bin/
 

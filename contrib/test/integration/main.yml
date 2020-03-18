@@ -73,6 +73,9 @@
     - node-e2e
     - critest
   tasks:
+    - name: install pinns packages
+      shell: yum install -y autoconf automake libcap-devel systemd-devel yajl-devel libseccomp-devel glibc-static libtool python36 gettext
+
     - name: install Golang tools
       include: golang.yml
       vars:
@@ -93,6 +96,7 @@
     - name: clone build and install runc
       include: "build/runc.yml"
       when: "build_runc | bool"
+
 
   post_tasks:
     - name: Swap is disused and disabled as required for kubernetes
