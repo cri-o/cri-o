@@ -107,12 +107,16 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 	return c, nil
 }
 
-func NewSpoofedContainer(id, name string, labels map[string]string) *Container {
+func NewSpoofedContainer(id, name string, labels map[string]string, created time.Time) *Container {
+	state := &ContainerState{}
+	state.Created = created
+	state.Started = created
 	c := &Container{
 		id:      id,
 		name:    name,
 		labels:  labels,
 		spoofed: true,
+		state: state,
 	}
 	return c
 }

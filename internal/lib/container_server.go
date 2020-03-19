@@ -272,13 +272,13 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		}
 	}()
 
+	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
+	if err != nil {
+		return err
+	}
+
 	var scontainer *oci.Container
 	if sb.NeedsInfra(c.config.ManageNSLifecycle) {
-		created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
-		if err != nil {
-			return err
-		}
-
 		scontainer, err = oci.NewContainer(cID, cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, privileged, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 		if err != nil {
 			return err
@@ -310,7 +310,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 			return fmt.Errorf("error adding conmon of sandbox container %s to monitoring loop: %v", scontainer.ID(), err)
 		}
 	} else {
-		scontainer = oci.NewSpoofedContainer(cID, cname, labels)
+		scontainer = oci.NewSpoofedContainer(cID, cname, labels, created)
 	}
 
 	sb.SetCreated()
