@@ -536,7 +536,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 		container.SetSpec(g.Config)
 	} else {
-		container = oci.NewSpoofedContainer(id, containerName, labels)
+		container = oci.NewSpoofedContainer(id, containerName, labels, created)
 	}
 
 	if err := sb.SetInfraContainer(container); err != nil {
