@@ -14,13 +14,13 @@
 			"value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 		}
 	],
-	"readonly_rootfs": true,
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
 	"tty": false,
 	"linux": {
 		"security_context": {
+			"readonly_rootfs": true,
 			"namespace_options": {
 				"pid": 1
 			}

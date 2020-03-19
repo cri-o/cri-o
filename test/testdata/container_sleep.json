@@ -21,7 +21,6 @@
 	"annotations": {
 		"pod": "podsandbox"
 	},
-	"readonly_rootfs": false,
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
@@ -30,7 +29,8 @@
 		"security_context": {
 			"namespace_options": {
 				"pid": 1
-			}
+			},
+			"readonly_rootfs": false
 		},
 		"resources": {
 			"cpu_period": 10000,
