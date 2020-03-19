@@ -45,11 +45,6 @@
 
     - name: clone build and install runc
       include: "build/runc.yml"
-      when: "build_runc | bool"
-
-    - name: clone build and install crun
-      include: "build/crun.yml"
-      when: "build_crun | bool"
 
     - name: clone build and install networking plugins
       include: "build/plugins.yml"
