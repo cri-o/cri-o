@@ -11,7 +11,7 @@ fi
 # shellcheck source=vars
 source "$(dirname "${BASH_SOURCE[0]}")"/vars
 
-cd "$(dirname "$0")"
+pushd "$ARCHIVE_PATH"
 
 # Untar the bundle
 tar xfvz "$ARCHIVE"
@@ -28,8 +28,8 @@ systemctl is-active --quiet crio && echo CRI-O is running
 # Run a workload
 crictl version
 crictl run \
-    ../../test/testdata/container_redis.json \
-    ../../test/testdata/sandbox_config.json
+    "$GIT_ROOT/test/testdata/container_redis.json" \
+    "$GIT_ROOT/test/testdata/sandbox_config.json"
 
 # Test the workloads status
 if [[ ! $(crictl pods -s Ready -q) ]]; then

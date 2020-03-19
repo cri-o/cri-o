@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+GIT_ROOT=$(git rev-parse --show-toplevel)
+
+ARCHIVE_PATH="$GIT_ROOT/build/bundle"
+mkdir -p "$ARCHIVE_PATH"
+
 BUNDLE=crio-$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)
 ARCHIVE="$BUNDLE.tar.gz"
