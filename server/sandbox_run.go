@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -56,7 +57,7 @@ func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
 		return handler, nil
 	}
 
-	if _, err := s.Runtime().ValidateRuntimeHandler(handler); err != nil {
+	if _, err := lib.ContainerServer().Runtime().ValidateRuntimeHandler(handler); err != nil {
 		return "", err
 	}
 
@@ -106,12 +107,13 @@ func getHostname(id, hostname string, hostNetwork bool) (string, error) {
 }
 
 func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
-	storageMetadata, err := s.StorageRuntimeServer().GetContainerMetadata(id)
+	cs := lib.ContainerServer()
+	storageMetadata, err := cs.StorageRuntimeServer().GetContainerMetadata(id)
 	if err != nil {
 		return err
 	}
 	storageMetadata.SetMountLabel(mountLabel)
-	return s.StorageRuntimeServer().SetContainerMetadata(id, &storageMetadata)
+	return cs.StorageRuntimeServer().SetContainerMetadata(id, &storageMetadata)
 }
 
 func getLabelOptions(selinuxOptions *pb.SELinuxOption) []string {

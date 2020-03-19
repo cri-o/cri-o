@@ -3,6 +3,7 @@ package server_test
 import (
 	"context"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +24,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 	t.Describe("ListPodSandbox", func() {
 		It("should succeed", func() {
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			Expect(lib.ContainerServer().AddSandbox(testSandbox)).To(BeNil())
 			testContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
@@ -42,7 +43,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 		It("should succeed without infra container", func() {
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			Expect(lib.ContainerServer().AddSandbox(testSandbox)).To(BeNil())
 			testSandbox.SetCreated()
 
 			// When
@@ -58,7 +59,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 		It("should skip not created sandboxes", func() {
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			Expect(lib.ContainerServer().AddSandbox(testSandbox)).To(BeNil())
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
 
 			// When
@@ -75,7 +76,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
-			Expect(sut.LoadSandbox(sandboxID)).To(BeNil())
+			Expect(lib.ContainerServer().LoadSandbox(sandboxID, false)).To(BeNil())
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
@@ -93,7 +94,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
-			Expect(sut.LoadSandbox(sandboxID)).To(BeNil())
+			Expect(lib.ContainerServer().LoadSandbox(sandboxID, false)).To(BeNil())
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
@@ -113,7 +114,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
-			Expect(sut.LoadSandbox(sandboxID)).To(BeNil())
+			Expect(lib.ContainerServer().LoadSandbox(sandboxID, false)).To(BeNil())
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
@@ -130,7 +131,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 		It("should succeed with filter but when not finding id", func() {
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			Expect(lib.ContainerServer().AddSandbox(testSandbox)).To(BeNil())
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),

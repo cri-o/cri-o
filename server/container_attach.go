@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -24,12 +25,13 @@ func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (resp *pb.At
 
 // Attach endpoint for streaming.Runtime
 func (s StreamService) Attach(containerID string, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	c, err := s.runtimeServer.GetContainerFromShortID(containerID)
+	cs := lib.ContainerServer()
+	c, err := cs.GetContainerFromShortID(containerID)
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
+	if err := cs.Runtime().UpdateContainerStatus(c); err != nil {
 		return err
 	}
 
@@ -38,5 +40,5 @@ func (s StreamService) Attach(containerID string, inputStream io.Reader, outputS
 		return fmt.Errorf("container is not created or running")
 	}
 
-	return s.runtimeServer.Runtime().AttachContainer(c, inputStream, outputStream, errorStream, tty, resize)
+	return cs.Runtime().AttachContainer(c, inputStream, outputStream, errorStream, tty, resize)
 }

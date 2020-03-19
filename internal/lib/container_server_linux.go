@@ -8,7 +8,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
-func (c *ContainerServer) addSandboxPlatform(sb *sandbox.Sandbox) error {
+func (c *ContainerServerImpl) addSandboxPlatform(sb *sandbox.Sandbox) error {
 	context, err := selinux.NewContext(sb.ProcessLabel())
 	if err != nil {
 		return err
@@ -17,7 +17,7 @@ func (c *ContainerServer) addSandboxPlatform(sb *sandbox.Sandbox) error {
 	return nil
 }
 
-func (c *ContainerServer) removeSandboxPlatform(sb *sandbox.Sandbox) error {
+func (c *ContainerServerImpl) removeSandboxPlatform(sb *sandbox.Sandbox) error {
 	processLabel := sb.ProcessLabel()
 	context, err := selinux.NewContext(processLabel)
 	if err != nil {

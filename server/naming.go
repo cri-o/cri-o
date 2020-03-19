@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/cri-o/cri-o/internal/lib"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -52,7 +53,7 @@ func (s *Server) ReservePodIDAndName(config *pb.PodSandboxConfig) (id, name stri
 	}
 
 	id = stringid.GenerateNonCryptoID()
-	name, err = s.ReservePodName(id, makeSandboxName(config))
+	name, err = lib.ContainerServer().ReservePodName(id, makeSandboxName(config))
 
 	if err != nil {
 		return "", "", err
@@ -66,7 +67,7 @@ func (s *Server) ReserveSandboxContainerIDAndName(config *pb.PodSandboxConfig) (
 	}
 
 	id := stringid.GenerateNonCryptoID()
-	name, err = s.ReserveContainerName(id, makeSandboxContainerName(config))
+	name, err = lib.ContainerServer().ReserveContainerName(id, makeSandboxContainerName(config))
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +80,7 @@ func (s *Server) ReserveContainerIDandName(sandboxMetadata *pb.PodSandboxMetadat
 	}
 
 	id = stringid.GenerateNonCryptoID()
-	name, err = s.ReserveContainerName(id, makeContainerName(sandboxMetadata, config))
+	name, err = lib.ContainerServer().ReserveContainerName(id, makeContainerName(sandboxMetadata, config))
 	if err != nil {
 		return "", "", err
 	}

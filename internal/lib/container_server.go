@@ -32,7 +32,7 @@ import (
 const ContainerManagerCRIO = "cri-o"
 
 // ContainerServer implements the ImageServer
-type ContainerServer struct {
+type ContainerServerImpl struct {
 	runtime              *oci.Runtime
 	store                cstorage.Store
 	storageImageServer   storage.ImageServer
@@ -44,75 +44,76 @@ type ContainerServer struct {
 	Hooks                *hooks.Manager
 
 	stateLock sync.Locker
-	state     *containerServerState
-	config    *libconfig.Config
+	state     *ContainerServerImplState
 
 	*conmonmon
 }
 
-// Runtime returns the oci runtime for the ContainerServer
-func (c *ContainerServer) Runtime() *oci.Runtime {
+// cs is the ContainerServerImpl singleton
+var cs *ContainerServerImpl = nil
+
+func ContainerServer() *ContainerServerImpl {
+	return cs
+}
+
+// Runtime returns the oci runtime for the ContainerServerImpl
+func (c *ContainerServerImpl) Runtime() *oci.Runtime {
 	return c.runtime
 }
 
-// Store returns the Store for the ContainerServer
-func (c *ContainerServer) Store() cstorage.Store {
+// Store returns the Store for the ContainerServerImpl
+func (c *ContainerServerImpl) Store() cstorage.Store {
 	return c.store
 }
 
-// StorageImageServer returns the ImageServer for the ContainerServer
-func (c *ContainerServer) StorageImageServer() storage.ImageServer {
+// StorageImageServer returns the ImageServer for the ContainerServerImpl
+func (c *ContainerServerImpl) StorageImageServer() storage.ImageServer {
 	return c.storageImageServer
 }
 
-// CtrNameIndex returns the Registrar for the ContainerServer
-func (c *ContainerServer) CtrNameIndex() *registrar.Registrar {
+// CtrNameIndex returns the Registrar for the ContainerServerImpl
+func (c *ContainerServerImpl) CtrNameIndex() *registrar.Registrar {
 	return c.ctrNameIndex
 }
 
-// CtrIDIndex returns the TruncIndex for the ContainerServer
-func (c *ContainerServer) CtrIDIndex() *truncindex.TruncIndex {
+// CtrIDIndex returns the TruncIndex for the ContainerServerImpl
+func (c *ContainerServerImpl) CtrIDIndex() *truncindex.TruncIndex {
 	return c.ctrIDIndex
 }
 
 // PodNameIndex returns the index of pod names
-func (c *ContainerServer) PodNameIndex() *registrar.Registrar {
+func (c *ContainerServerImpl) PodNameIndex() *registrar.Registrar {
 	return c.podNameIndex
 }
 
 // PodIDIndex returns the index of pod IDs
-func (c *ContainerServer) PodIDIndex() *truncindex.TruncIndex {
+func (c *ContainerServerImpl) PodIDIndex() *truncindex.TruncIndex {
 	return c.podIDIndex
 }
 
-// Config gets the configuration for the ContainerServer
-func (c *ContainerServer) Config() *libconfig.Config {
-	return c.config
-}
-
-// StorageRuntimeServer gets the runtime server for the ContainerServer
-func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
+// StorageRuntimeServer gets the runtime server for the ContainerServerImpl
+func (c *ContainerServerImpl) StorageRuntimeServer() storage.RuntimeServer {
 	return c.storageRuntimeServer
 }
 
-// New creates a new ContainerServer with options provided
-func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, error) {
+// InitContainerServer creates a new ContainerServer with options provided
+func InitContainerServer(ctx context.Context, configIface libconfig.Iface) error {
 	if configIface == nil {
-		return nil, fmt.Errorf("provided config is nil")
+		return fmt.Errorf("provided config is nil")
 	}
 	store, err := configIface.GetStore()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	config := configIface.GetData()
 
 	if config == nil {
-		return nil, fmt.Errorf("cannot create container server: interface is nil")
+		return fmt.Errorf("cannot create container server: config interface is nil")
 	}
 
 	imageService, err := storage.GetImageService(ctx, config.SystemContext, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	storageRuntimeService := storage.GetRuntimeService(ctx, imageService)
@@ -121,10 +122,10 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 
 	newHooks, err := hooks.New(ctx, config.HooksDir, []string{})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	cs := &ContainerServer{
+	cs = &ContainerServerImpl{
 		runtime:              runtime,
 		store:                store,
 		storageImageServer:   imageService,
@@ -135,23 +136,22 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		podIDIndex:           truncindex.NewTruncIndex([]string{}),
 		Hooks:                newHooks,
 		stateLock:            &sync.Mutex{},
-		state: &containerServerState{
+		state: &ContainerServerImplState{
 			containers:      oci.NewMemoryStore(),
 			infraContainers: oci.NewMemoryStore(),
 			sandboxes:       sandbox.NewMemoryStore(),
 			processLevels:   make(map[string]int),
 		},
-		config: config,
 	}
 
 	cmm := cs.newConmonmon(runtime)
 	cs.conmonmon = cmm
 
-	return cs, nil
+	return nil
 }
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store
-func (c *ContainerServer) LoadSandbox(id string) error {
+func (c *ContainerServerImpl) LoadSandbox(id string, manageNSLifecycle bool) error {
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	if c.config.ManageNSLifecycle {
+	if manageNSLifecycle {
 		netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
 		if err == nil {
 			if nsErr := sb.NetNsJoin(netNsPath); nsErr != nil {
@@ -343,7 +343,7 @@ func configNsPath(spec *rspec.Spec, nsType rspec.LinuxNamespaceType) (string, er
 var ErrIsNonCrioContainer = errors.New("non CRI-O container")
 
 // LoadContainer loads a container from the disk into the container store
-func (c *ContainerServer) LoadContainer(id string) error {
+func (c *ContainerServerImpl) LoadContainer(id string) error {
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
@@ -456,7 +456,7 @@ func isTrue(annotaton string) bool {
 
 // ContainerStateFromDisk retrieves information on the state of a running container
 // from the disk
-func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
+func (c *ContainerServerImpl) ContainerStateFromDisk(ctr *oci.Container) error {
 	if err := ctr.FromDisk(); err != nil {
 		return err
 	}
@@ -469,7 +469,7 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
-func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
+func (c *ContainerServerImpl) ContainerStateToDisk(ctr *oci.Container) error {
 	if ctr == nil {
 		return nil
 	}
@@ -487,7 +487,7 @@ func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
 }
 
 // ReserveContainerName holds a name for a container that is being created
-func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) {
+func (c *ContainerServerImpl) ReserveContainerName(id, name string) (string, error) {
 	if err := c.ctrNameIndex.Reserve(name, id); err != nil {
 		err = fmt.Errorf("error reserving ctr name %s for id %s: %v", name, id, err)
 		logrus.Warn(err)
@@ -498,12 +498,12 @@ func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) 
 
 // ReleaseContainerName releases a container name from the index so that it can
 // be used by other containers
-func (c *ContainerServer) ReleaseContainerName(name string) {
+func (c *ContainerServerImpl) ReleaseContainerName(name string) {
 	c.ctrNameIndex.Release(name)
 }
 
 // ReservePodName holds a name for a pod that is being created
-func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
+func (c *ContainerServerImpl) ReservePodName(id, name string) (string, error) {
 	if err := c.podNameIndex.Reserve(name, id); err != nil {
 		err = fmt.Errorf("error reserving pod name %s for id %s: %v", name, id, err)
 		logrus.Warn(err)
@@ -514,7 +514,7 @@ func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
 
 // ReleasePodName releases a pod name from the index so it can be used by other
 // pods
-func (c *ContainerServer) ReleasePodName(name string) {
+func (c *ContainerServerImpl) ReleasePodName(name string) {
 	c.podNameIndex.Release(name)
 }
 
@@ -527,7 +527,7 @@ func recoverLogError() {
 }
 
 // Shutdown attempts to shut down the server's storage cleanly
-func (c *ContainerServer) Shutdown() error {
+func (c *ContainerServerImpl) Shutdown() error {
 	defer recoverLogError()
 	_, err := c.store.Shutdown(false)
 	if err != nil && errors.Cause(err) != cstorage.ErrLayerUsedByContainer {
@@ -536,7 +536,7 @@ func (c *ContainerServer) Shutdown() error {
 	return nil
 }
 
-type containerServerState struct {
+type ContainerServerImplState struct {
 	containers      oci.ContainerStorer
 	infraContainers oci.ContainerStorer
 	sandboxes       sandbox.Storer
@@ -545,7 +545,7 @@ type containerServerState struct {
 }
 
 // AddContainer adds a container to the container state store
-func (c *ContainerServer) AddContainer(ctr *oci.Container) {
+func (c *ContainerServerImpl) AddContainer(ctr *oci.Container) {
 	newSandbox := c.state.sandboxes.Get(ctr.Sandbox())
 	if newSandbox == nil {
 		return
@@ -555,27 +555,27 @@ func (c *ContainerServer) AddContainer(ctr *oci.Container) {
 }
 
 // AddInfraContainer adds a container to the container state store
-func (c *ContainerServer) AddInfraContainer(ctr *oci.Container) {
+func (c *ContainerServerImpl) AddInfraContainer(ctr *oci.Container) {
 	c.state.infraContainers.Add(ctr.ID(), ctr)
 }
 
 // GetContainer returns a container by its ID
-func (c *ContainerServer) GetContainer(id string) *oci.Container {
+func (c *ContainerServerImpl) GetContainer(id string) *oci.Container {
 	return c.state.containers.Get(id)
 }
 
 // GetInfraContainer returns a container by its ID
-func (c *ContainerServer) GetInfraContainer(id string) *oci.Container {
+func (c *ContainerServerImpl) GetInfraContainer(id string) *oci.Container {
 	return c.state.infraContainers.Get(id)
 }
 
 // HasContainer checks if a container exists in the state
-func (c *ContainerServer) HasContainer(id string) bool {
+func (c *ContainerServerImpl) HasContainer(id string) bool {
 	return c.state.containers.Get(id) != nil
 }
 
 // RemoveContainer removes a container from the container state store
-func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
+func (c *ContainerServerImpl) RemoveContainer(ctr *oci.Container) {
 	sbID := ctr.Sandbox()
 	sb := c.state.sandboxes.Get(sbID)
 	if sb == nil {
@@ -586,18 +586,18 @@ func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 }
 
 // RemoveInfraContainer removes a container from the container state store
-func (c *ContainerServer) RemoveInfraContainer(ctr *oci.Container) {
+func (c *ContainerServerImpl) RemoveInfraContainer(ctr *oci.Container) {
 	c.state.infraContainers.Delete(ctr.ID())
 }
 
 // listContainers returns a list of all containers stored by the server state
-func (c *ContainerServer) listContainers() []*oci.Container {
+func (c *ContainerServerImpl) listContainers() []*oci.Container {
 	return c.state.containers.List()
 }
 
 // ListContainers returns a list of all containers stored by the server state
 // that match the given filter function
-func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) ([]*oci.Container, error) {
+func (c *ContainerServerImpl) ListContainers(filters ...func(*oci.Container) bool) ([]*oci.Container, error) {
 	containers := c.listContainers()
 	if len(filters) == 0 {
 		return containers, nil
@@ -614,7 +614,7 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 }
 
 // AddSandbox adds a sandbox to the sandbox state store
-func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) error {
+func (c *ContainerServerImpl) AddSandbox(sb *sandbox.Sandbox) error {
 	c.state.sandboxes.Add(sb.ID(), sb)
 
 	c.stateLock.Lock()
@@ -623,12 +623,12 @@ func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) error {
 }
 
 // GetSandbox returns a sandbox by its ID
-func (c *ContainerServer) GetSandbox(id string) *sandbox.Sandbox {
+func (c *ContainerServerImpl) GetSandbox(id string) *sandbox.Sandbox {
 	return c.state.sandboxes.Get(id)
 }
 
 // GetSandboxContainer returns a sandbox's infra container
-func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
+func (c *ContainerServerImpl) GetSandboxContainer(id string) *oci.Container {
 	sb := c.state.sandboxes.Get(id)
 	if sb == nil {
 		return nil
@@ -637,12 +637,12 @@ func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
 }
 
 // HasSandbox checks if a sandbox exists in the state
-func (c *ContainerServer) HasSandbox(id string) bool {
+func (c *ContainerServerImpl) HasSandbox(id string) bool {
 	return c.state.sandboxes.Get(id) != nil
 }
 
 // RemoveSandbox removes a sandbox from the state store
-func (c *ContainerServer) RemoveSandbox(id string) error {
+func (c *ContainerServerImpl) RemoveSandbox(id string) error {
 	sb := c.state.sandboxes.Get(id)
 	if sb == nil {
 		return nil
@@ -659,12 +659,12 @@ func (c *ContainerServer) RemoveSandbox(id string) error {
 }
 
 // ListSandboxes lists all sandboxes in the state store
-func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
+func (c *ContainerServerImpl) ListSandboxes() []*sandbox.Sandbox {
 	return c.state.sandboxes.List()
 }
 
 // StopContainerAndWait is a wrapping function that stops a container and waits for the container state to be stopped
-func (c *ContainerServer) StopContainerAndWait(ctx context.Context, ctr *oci.Container, timeout int64) error {
+func (c *ContainerServerImpl) StopContainerAndWait(ctx context.Context, ctr *oci.Container, timeout int64) error {
 	if err := c.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
 		return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
 	}

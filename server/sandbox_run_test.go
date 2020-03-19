@@ -305,7 +305,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(res).To(Equal([]string{sut.Config().PauseCommand}))
+			Expect(res).NotTo(BeEmpty())
 		})
 
 		It("should succeed with Entrypoint", func() {

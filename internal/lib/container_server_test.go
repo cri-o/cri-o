@@ -23,7 +23,7 @@ var _ = t.Describe("ContainerServer", func() {
 	// Prepare the sut
 	BeforeEach(beforeEach)
 
-	t.Describe("New", func() {
+	t.Describe("InitContainerServer", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// Create temp lockfile
@@ -43,11 +43,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), libMock)
+			err = lib.InitContainerServer(context.Background(), libMock)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(server).NotTo(BeNil())
 		})
 
 		It("should fail when GetStore fails", func() {
@@ -57,21 +56,19 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			server, err := lib.New(context.Background(), libMock)
+			err := lib.InitContainerServer(context.Background(), libMock)
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
 		})
 
 		It("should fail when config is nil", func() {
 			// Given
 			// When
-			server, err := lib.New(context.Background(), nil)
+			err := lib.InitContainerServer(context.Background(), nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
 		})
 	})
 
@@ -140,15 +137,6 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(res).NotTo(BeNil())
 		})
 
-		It("should succeed to get the Config", func() {
-			// Given
-			// When
-			res := sut.Config()
-
-			// Then
-			Expect(res).NotTo(BeNil())
-		})
-
 		It("should succeed to get the StorageRuntimeServer", func() {
 			// Given
 			// When
@@ -166,7 +154,7 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(testManifest)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -182,7 +170,7 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(manifest)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -198,7 +186,7 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(manifest)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -209,7 +197,7 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(testManifest)
 
 			// When
-			err := sut.LoadSandbox("")
+			err := sut.LoadSandbox("", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -224,7 +212,7 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(manifest)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -239,7 +227,7 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(manifest)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -254,7 +242,7 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(manifest)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -273,7 +261,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -290,7 +278,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -309,7 +297,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -328,7 +316,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -347,7 +335,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -366,7 +354,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -385,7 +373,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -404,7 +392,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -419,7 +407,7 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox("id")
+			err := sut.LoadSandbox("id", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())

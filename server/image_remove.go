@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"golang.org/x/net/context"
@@ -23,7 +24,8 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (r
 		images  []string
 		deleted bool
 	)
-	images, err = s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
+	cs := lib.ContainerServer()
+	images, err = cs.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -32,7 +34,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (r
 		}
 	}
 	for _, img := range images {
-		err = s.StorageImageServer().UntagImage(s.config.SystemContext, img)
+		err = cs.StorageImageServer().UntagImage(s.config.SystemContext, img)
 		if err != nil {
 			log.Debugf(ctx, "error deleting image %s: %v", img, err)
 			continue

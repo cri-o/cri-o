@@ -11,7 +11,7 @@ import (
 )
 
 // GetStorageContainer searches for a container with the given name or ID in the given store
-func (c *ContainerServer) GetStorageContainer(container string) (*cstorage.Container, error) {
+func (c *ContainerServerImpl) GetStorageContainer(container string) (*cstorage.Container, error) {
 	ociCtr, err := c.LookupContainer(container)
 	if err != nil {
 		return nil, err
@@ -20,7 +20,7 @@ func (c *ContainerServer) GetStorageContainer(container string) (*cstorage.Conta
 }
 
 // GetContainerTopLayerID gets the ID of the top layer of the given container
-func (c *ContainerServer) GetContainerTopLayerID(containerID string) (string, error) {
+func (c *ContainerServerImpl) GetContainerTopLayerID(containerID string) (string, error) {
 	ctr, err := c.GetStorageContainer(containerID)
 	if err != nil {
 		return "", err
@@ -29,7 +29,7 @@ func (c *ContainerServer) GetContainerTopLayerID(containerID string) (string, er
 }
 
 // GetContainerRwSize Gets the size of the mutable top layer of the container
-func (c *ContainerServer) GetContainerRwSize(containerID string) (int64, error) {
+func (c *ContainerServerImpl) GetContainerRwSize(containerID string) (int64, error) {
 	container, err := c.store.Container(containerID)
 	if err != nil {
 		return 0, err
@@ -49,7 +49,7 @@ func (c *ContainerServer) GetContainerRwSize(containerID string) (int64, error) 
 // A container FS is split into two parts.  The first is the top layer, a
 // mutable layer, and the rest is the RootFS: the set of immutable layers
 // that make up the image on which the container is based
-func (c *ContainerServer) GetContainerRootFsSize(containerID string) (int64, error) {
+func (c *ContainerServerImpl) GetContainerRootFsSize(containerID string) (int64, error) {
 	container, err := c.store.Container(containerID)
 	if err != nil {
 		return 0, err
@@ -86,7 +86,7 @@ func (c *ContainerServer) GetContainerRootFsSize(containerID string) (int64, err
 }
 
 // GetContainerFromShortID gets an oci container matching the specified full or partial id
-func (c *ContainerServer) GetContainerFromShortID(cid string) (*oci.Container, error) {
+func (c *ContainerServerImpl) GetContainerFromShortID(cid string) (*oci.Container, error) {
 	if cid == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
@@ -103,7 +103,7 @@ func (c *ContainerServer) GetContainerFromShortID(cid string) (*oci.Container, e
 	return ctr, nil
 }
 
-func (c *ContainerServer) getSandboxFromRequest(pid string) (*sandbox.Sandbox, error) {
+func (c *ContainerServerImpl) getSandboxFromRequest(pid string) (*sandbox.Sandbox, error) {
 	if pid == "" {
 		return nil, fmt.Errorf("pod ID should not be empty")
 	}
@@ -121,7 +121,7 @@ func (c *ContainerServer) getSandboxFromRequest(pid string) (*sandbox.Sandbox, e
 }
 
 // LookupContainer returns the container with the given name or full or partial id
-func (c *ContainerServer) LookupContainer(idOrName string) (*oci.Container, error) {
+func (c *ContainerServerImpl) LookupContainer(idOrName string) (*oci.Container, error) {
 	if idOrName == "" {
 		return nil, fmt.Errorf("container ID or name should not be empty")
 	}
@@ -139,7 +139,7 @@ func (c *ContainerServer) LookupContainer(idOrName string) (*oci.Container, erro
 }
 
 // LookupSandbox returns the pod sandbox with the given name or full or partial id
-func (c *ContainerServer) LookupSandbox(idOrName string) (*sandbox.Sandbox, error) {
+func (c *ContainerServerImpl) LookupSandbox(idOrName string) (*sandbox.Sandbox, error) {
 	if idOrName == "" {
 		return nil, fmt.Errorf("container ID or name should not be empty")
 	}

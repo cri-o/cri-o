@@ -17,7 +17,7 @@ type LogOptions struct {
 }
 
 // GetLogs gets each line of a log file and, if it matches the criteria in logOptions, sends it down logChan
-func (c *ContainerServer) GetLogs(container string, logChan chan string, opts LogOptions) error {
+func (c *ContainerServerImpl) GetLogs(container, logDir string, logChan chan string, opts LogOptions) error {
 	defer close(logChan)
 	// Get the full ID of the container
 	ctr, err := c.LookupContainer(container)
@@ -31,7 +31,7 @@ func (c *ContainerServer) GetLogs(container string, logChan chan string, opts Lo
 		sandbox = containerID
 	}
 	// Read the log line by line and pass it into the pipe
-	logsFile := path.Join(c.config.LogDir, sandbox, containerID+".log")
+	logsFile := path.Join(logDir, sandbox, containerID+".log")
 
 	seekInfo := &tail.SeekInfo{Offset: 0, Whence: 0}
 	if opts.Tail > 0 {

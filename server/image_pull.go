@@ -9,6 +9,7 @@ import (
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
 	libpodImage "github.com/containers/libpod/libpod/image"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -108,20 +109,21 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		images []string
 		pulled string
 	)
-	images, err = s.StorageImageServer().ResolveNames(s.config.SystemContext, pullArgs.image)
+	cs := lib.ContainerServer()
+	images, err = cs.StorageImageServer().ResolveNames(s.config.SystemContext, pullArgs.image)
 	if err != nil {
 		return "", err
 	}
 	for _, img := range images {
 		var tmpImg types.ImageCloser
-		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
+		tmpImg, err = cs.StorageImageServer().PrepareImage(&sourceCtx, img)
 		if err != nil {
 			// We're not able to find the image remotely, check if it's
 			// available locally, but only for localhost/ prefixed ones.
 			// This allows pulling localhost/ prefixed images even if the
 			// `imagePullPolicy` is set to `Always`.
 			if strings.HasPrefix(img, localRegistryPrefix) {
-				if _, err := s.StorageImageServer().ImageStatus(
+				if _, err := cs.StorageImageServer().ImageStatus(
 					s.config.SystemContext, img,
 				); err == nil {
 					pulled = img
@@ -134,7 +136,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		defer tmpImg.Close()
 
 		var storedImage *storage.ImageResult
-		storedImage, err = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
+		storedImage, err = cs.StorageImageServer().ImageStatus(s.config.SystemContext, img)
 		if err == nil {
 			tmpImgConfigDigest := tmpImg.ConfigInfo().Digest
 			if tmpImgConfigDigest.String() == "" {
@@ -197,7 +199,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				}
 			}
 		}()
-		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &copy.Options{
+		_, err = cs.StorageImageServer().PullImage(s.config.SystemContext, img, &copy.Options{
 			SourceCtx:        &sourceCtx,
 			DestinationCtx:   s.config.SystemContext,
 			OciDecryptConfig: decryptConfig,
@@ -215,8 +217,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	if pulled == "" && err != nil {
 		return "", err
 	}
-
-	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
+	status, err := cs.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
 	if err != nil {
 		return "", err
 	}

@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
@@ -13,12 +14,13 @@ import (
 
 // ExecSync runs a command in a container synchronously.
 func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *pb.ExecSyncResponse, err error) {
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	cs := lib.ContainerServer()
+	c, err := cs.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	if err := s.Runtime().UpdateContainerStatus(c); err != nil {
+	if err := cs.Runtime().UpdateContainerStatus(c); err != nil {
 		return nil, err
 	}
 
@@ -32,7 +34,7 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		return nil, fmt.Errorf("exec command cannot be empty")
 	}
 
-	execResp, err := s.Runtime().ExecSyncContainer(c, cmd, req.Timeout)
+	execResp, err := cs.Runtime().ExecSyncContainer(c, cmd, req.Timeout)
 	if err != nil {
 		return nil, err
 	}

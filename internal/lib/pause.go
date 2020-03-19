@@ -9,7 +9,7 @@ import (
 )
 
 // ContainerPause pauses a running container.
-func (c *ContainerServer) ContainerPause(container string) (string, error) {
+func (c *ContainerServerImpl) ContainerPause(container string) (string, error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to find container %s", container)
@@ -31,7 +31,7 @@ func (c *ContainerServer) ContainerPause(container string) (string, error) {
 }
 
 // ContainerUnpause unpauses a running container with a grace period (i.e., timeout).
-func (c *ContainerServer) ContainerUnpause(container string) (string, error) {
+func (c *ContainerServerImpl) ContainerUnpause(container string) (string, error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to find container %s", container)

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	cstorage "github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -168,7 +169,6 @@ var beforeEach = func() {
 	// Initialize test streaming server
 	streamServerConfig := streaming.DefaultConfig
 	testStreamService = server.StreamService{}
-	testStreamService.SetRuntimeServer(sut)
 	server, err := streaming.NewServer(streamServerConfig, testStreamService)
 	Expect(err).To(BeNil())
 	Expect(server).NotTo(BeNil())
@@ -188,8 +188,9 @@ var setupSUT = func() {
 	Expect(sut).NotTo(BeNil())
 
 	// Inject the mock
-	sut.SetStorageImageServer(imageServerMock)
-	sut.SetStorageRuntimeServer(runtimeServerMock)
+	cs := lib.ContainerServer()
+	cs.SetStorageImageServer(imageServerMock)
+	cs.SetStorageRuntimeServer(runtimeServerMock)
 	Expect(sut.SetNetPlugin(cniPluginMock)).To(BeNil())
 }
 
@@ -204,11 +205,12 @@ func mockNewServer() {
 }
 
 func addContainerAndSandbox() {
-	Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+	cs := lib.ContainerServer()
+	Expect(cs.AddSandbox(testSandbox)).To(BeNil())
 	Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
-	sut.AddContainer(testContainer)
-	Expect(sut.CtrIDIndex().Add(testContainer.ID())).To(BeNil())
-	Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
+	cs.AddContainer(testContainer)
+	Expect(cs.CtrIDIndex().Add(testContainer.ID())).To(BeNil())
+	Expect(cs.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
 }
 
 var mockDirs = func(manifest []byte) {

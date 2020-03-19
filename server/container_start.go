@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
@@ -13,7 +14,8 @@ import (
 
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (resp *pb.StartContainerResponse, err error) {
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	cs := lib.ContainerServer()
+	c, err := cs.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
@@ -30,7 +32,7 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		if err != nil {
 			c.SetStartFailed(err)
 		}
-		if err := s.ContainerStateToDisk(c); err != nil {
+		if err := cs.ContainerStateToDisk(c); err != nil {
 			log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
 		}
 	}()
@@ -39,11 +41,11 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 	// is started, we want to start the watcher on it, and appropriately kill it.
 	// this situation is VERY unlikely, but conmonmon exists because the kernel OOM killer
 	// can't be trusted
-	if err := s.MonitorConmon(c); err != nil {
+	if err := cs.MonitorConmon(c); err != nil {
 		log.Debugf(ctx, "failed to add conmon for %s to monitor: %v", c.ID(), err)
 	}
 
-	err = s.Runtime().StartContainer(c)
+	err = cs.Runtime().StartContainer(c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}

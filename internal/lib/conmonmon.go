@@ -24,7 +24,7 @@ type conmonmon struct {
 	conmons   map[*oci.Container]*conmonInfo
 	closeChan chan bool
 	runtime   *oci.Runtime
-	server    *ContainerServer
+	server    *ContainerServerImpl
 	lock      sync.Mutex
 }
 
@@ -37,7 +37,7 @@ type conmonInfo struct {
 
 // newConmonmon creates a new conmonmon instance given a runtime.
 // It also starts the monitoring routine
-func (c *ContainerServer) newConmonmon(r *oci.Runtime) *conmonmon {
+func (c *ContainerServerImpl) newConmonmon(r *oci.Runtime) *conmonmon {
 	cmm := conmonmon{
 		conmons:   make(map[*oci.Container]*conmonInfo),
 		runtime:   r,

@@ -12,6 +12,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -531,7 +532,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("PodSandboxId should not be empty")
 	}
 
-	sandboxID, err := s.PodIDIndex().Get(sbID)
+	cs := lib.ContainerServer()
+	sandboxID, err := cs.PodIDIndex().Get(sbID)
 	if err != nil {
 		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
 	}
@@ -559,7 +561,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	defer func() {
 		if err != nil {
-			s.ReleaseContainerName(containerName)
+			cs.ReleaseContainerName(containerName)
 		}
 	}()
 
@@ -569,7 +571,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 	defer func() {
 		if err != nil {
-			err2 := s.StorageRuntimeServer().DeleteContainer(containerID)
+			err2 := cs.StorageRuntimeServer().DeleteContainer(containerID)
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
@@ -583,12 +585,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err := s.CtrIDIndex().Add(containerID); err != nil {
+	if err := cs.CtrIDIndex().Add(containerID); err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err != nil {
-			if err2 := s.CtrIDIndex().Delete(containerID); err2 != nil {
+			if err2 := cs.CtrIDIndex().Delete(containerID); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", containerID)
 			}
 		}
@@ -598,13 +600,13 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 
-	if err := s.ContainerStateToDisk(newContainer); err != nil {
+	if err := cs.ContainerStateToDisk(newContainer); err != nil {
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
 	newContainer.SetCreated()
 
-	if err := s.MonitorConmon(newContainer); err != nil {
+	if err := cs.MonitorConmon(newContainer); err != nil {
 		log.Errorf(ctx, "%v", err)
 	}
 
@@ -631,7 +633,7 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 		specgen.Config.Linux.Seccomp = nil
 		return nil
 	}
-	if s.Config().Seccomp().IsDisabled() {
+	if s.config.Seccomp().IsDisabled() {
 		if profile != seccompUnconfined {
 			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
 		}
@@ -645,7 +647,7 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 
 	// Load the default seccomp profile from the server if the profile is a default one
 	if profile == seccompRuntimeDefault || profile == seccompDockerDefault {
-		linuxSpecs, err := seccomp.LoadProfileFromConfig(s.Config().Seccomp().Profile(), specgen.Config)
+		linuxSpecs, err := seccomp.LoadProfileFromConfig(s.config.Seccomp().Profile(), specgen.Config)
 		if err != nil {
 			return err
 		}

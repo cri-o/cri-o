@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -11,18 +12,19 @@ import (
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (resp *pb.RemoveContainerResponse, err error) {
+	cs := lib.ContainerServer()
 	// save container description to print
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	c, err := cs.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	_, err = s.ContainerServer.Remove(ctx, req.ContainerId, true)
+	_, err = cs.Remove(ctx, req.ContainerId, s.config.ContainerExitsDir, true)
 	if err != nil {
 		return nil, err
 	}
 
-	s.StopMonitoringConmon(c)
+	cs.StopMonitoringConmon(c)
 
 	log.Infof(ctx, "Removed container %s: %s", c.ID(), c.Description())
 	resp = &pb.RemoveContainerResponse{}

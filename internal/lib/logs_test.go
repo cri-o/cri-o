@@ -37,7 +37,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// When
 			go func() {
-				e <- sut.GetLogs(containerID, c, lib.LogOptions{
+				e <- sut.GetLogs(containerID, ".", c, lib.LogOptions{
 					SinceTime: time.Date(2000, 0, 0, 0, 0, 0, 0, time.UTC),
 				})
 			}()
@@ -53,7 +53,7 @@ var _ = t.Describe("ContainerServer", func() {
 			addContainerAndSandbox()
 
 			// When
-			err := sut.GetLogs(containerID, c, lib.LogOptions{Tail: 1})
+			err := sut.GetLogs(containerID, ".", c, lib.LogOptions{Tail: 1})
 
 			// Then
 			Expect(<-c).To(BeEmpty())
@@ -64,7 +64,7 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 
 			// When
-			err := sut.GetLogs("", make(chan string), lib.LogOptions{})
+			err := sut.GetLogs("", ".", make(chan string), lib.LogOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())

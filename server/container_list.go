@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
@@ -29,16 +30,17 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 // filterContainerList applies a protobuf-defined filter to retrieve only intended containers. Not matching
 // the filter is not considered an error but will return an empty response.
 func (s *Server) filterContainerList(ctx context.Context, filter *pb.ContainerFilter, origCtrList []*oci.Container) []*oci.Container {
+	cs := lib.ContainerServer()
 	// Filter using container id and pod id first.
 	if filter.Id != "" {
-		id, err := s.CtrIDIndex().Get(filter.Id)
+		id, err := cs.CtrIDIndex().Get(filter.Id)
 		if err != nil {
 			// If we don't find a container ID with a filter, it should not
 			// be considered an error.  Log a warning and return an empty struct
 			log.Warnf(ctx, "unable to find container ID %s", filter.Id)
 			return []*oci.Container{}
 		}
-		c := s.ContainerServer.GetContainer(id)
+		c := cs.GetContainer(id)
 		if c != nil {
 			switch {
 			case filter.PodSandboxId == "":
@@ -50,7 +52,7 @@ func (s *Server) filterContainerList(ctx context.Context, filter *pb.ContainerFi
 			}
 		}
 	} else if filter.PodSandboxId != "" {
-		pod := s.ContainerServer.GetSandbox(filter.PodSandboxId)
+		pod := cs.GetSandbox(filter.PodSandboxId)
 		if pod == nil {
 			return []*oci.Container{}
 		}
@@ -64,7 +66,7 @@ func (s *Server) filterContainerList(ctx context.Context, filter *pb.ContainerFi
 func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (resp *pb.ListContainersResponse, err error) {
 	var ctrs []*pb.Container
 	filter := req.GetFilter()
-	ctrList, err := s.ContainerServer.ListContainers()
+	ctrList, err := lib.ContainerServer().ListContainers()
 	if err != nil {
 		return nil, err
 	}

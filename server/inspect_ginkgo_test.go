@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/go-zoo/bone"
 	"github.com/golang/mock/gomock"
@@ -45,9 +46,10 @@ var _ = t.Describe("Inspect", func() {
 
 		It("should succeed with valid /containers route", func() {
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			cs := lib.ContainerServer()
+			Expect(cs.AddSandbox(testSandbox)).To(BeNil())
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
-			sut.AddContainer(testContainer)
+			cs.AddContainer(testContainer)
 			gomock.InOrder(
 				imageServerMock.EXPECT().ImageStatus(gomock.Any(),
 					gomock.Any()).Return(&storage.ImageResult{}, nil),
@@ -66,10 +68,11 @@ var _ = t.Describe("Inspect", func() {
 
 		It("should fail if sandbox not found on /containers route", func() {
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			cs := lib.ContainerServer()
+			Expect(cs.AddSandbox(testSandbox)).To(BeNil())
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
-			sut.AddContainer(testContainer)
-			Expect(sut.RemoveSandbox(testSandbox.ID())).To(BeNil())
+			cs.AddContainer(testContainer)
+			Expect(cs.RemoveSandbox(testSandbox.ID())).To(BeNil())
 
 			// When
 			request, err := http.NewRequest("GET",
@@ -84,10 +87,11 @@ var _ = t.Describe("Inspect", func() {
 
 		It("should fail if container state is nil on /containers route", func() {
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			cs := lib.ContainerServer()
+			Expect(cs.AddSandbox(testSandbox)).To(BeNil())
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
 			testContainer.SetState(nil)
-			sut.AddContainer(testContainer)
+			cs.AddContainer(testContainer)
 
 			// When
 			request, err := http.NewRequest("GET",

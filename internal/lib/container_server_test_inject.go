@@ -9,11 +9,11 @@ import (
 )
 
 // SetStorageRuntimeServer sets the runtime server for the ContainerServer
-func (c *ContainerServer) SetStorageRuntimeServer(server storage.RuntimeServer) {
+func (c *ContainerServerImpl) SetStorageRuntimeServer(server storage.RuntimeServer) {
 	c.storageRuntimeServer = server
 }
 
 // SetStorageImageServer sets the ImageServer for the ContainerServer
-func (c *ContainerServer) SetStorageImageServer(server storage.ImageServer) {
+func (c *ContainerServerImpl) SetStorageImageServer(server storage.ImageServer) {
 	c.storageImageServer = server
 }

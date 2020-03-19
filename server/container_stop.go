@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -10,13 +11,14 @@ import (
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest) (resp *pb.StopContainerResponse, err error) {
+	cs := lib.ContainerServer()
 	// save container description to print
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	c, err := cs.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	_, err = s.ContainerServer.ContainerStop(ctx, req.ContainerId, req.Timeout)
+	_, err = cs.ContainerStop(ctx, req.ContainerId, req.Timeout)
 	if err != nil {
 		return nil, err
 	}

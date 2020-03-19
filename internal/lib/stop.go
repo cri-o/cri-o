@@ -9,7 +9,7 @@ import (
 )
 
 // ContainerStop stops a running container with a grace period (i.e., timeout).
-func (c *ContainerServer) ContainerStop(ctx context.Context, container string, timeout int64) (string, error) {
+func (c *ContainerServerImpl) ContainerStop(ctx context.Context, container string, timeout int64) (string, error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to find container %s", container)

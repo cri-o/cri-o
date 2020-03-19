@@ -206,7 +206,7 @@ func (s *Server) createContainerPlatform(container *oci.Container, cgroupParent 
 			}
 		}
 	}
-	return s.Runtime().CreateContainer(container, cgroupParent)
+	return lib.ContainerServer().Runtime().CreateContainer(container, cgroupParent)
 }
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
@@ -248,7 +248,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 
-	ulimits, err := getUlimitsFromConfig(&s.config)
+	ulimits, err := getUlimitsFromConfig(s.config)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +306,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if image == "" {
 		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
 	}
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
+	cs := lib.ContainerServer()
+	images, err := cs.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -321,7 +322,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		imgResultErr error
 	)
 	for _, img := range images {
-		imgResult, imgResultErr = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
+		imgResult, imgResultErr = cs.StorageImageServer().ImageStatus(s.config.SystemContext, img)
 		if imgResultErr == nil {
 			break
 		}
@@ -354,7 +355,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	containerIDMappings := s.defaultIDMappings
 	metadata := containerConfig.GetMetadata()
 
-	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
+	containerInfo, err := cs.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
 		image, imgResult.ID,
 		containerName, containerID,
@@ -385,7 +386,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	defer func() {
 		if err != nil {
-			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
+			err2 := cs.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
@@ -405,7 +406,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	specgen.AddAnnotation(annotations.Volumes, string(volumesJSON))
 
-	configuredDevices, err := getDevicesFromConfig(ctx, &s.config)
+	configuredDevices, err := getDevicesFromConfig(ctx, s.config)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +418,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddLinuxResourcesDevice(d.Resource.Allow, d.Resource.Type, d.Resource.Major, d.Resource.Minor, d.Resource.Access)
 	}
 
-	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
+	privilegedWithoutHostDevices, err := cs.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
 	if err != nil {
 		return nil, err
 	}
@@ -441,8 +442,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// set this container's apparmor profile if it is set by sandbox
-	if s.Config().AppArmor().IsEnabled() && !privileged {
-		profile, err := s.Config().AppArmor().Apply(
+	if s.config.AppArmor().IsEnabled() && !privileged {
+		profile, err := s.config.AppArmor().Apply(
 			containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile(),
 		)
 		if err != nil {
@@ -781,7 +782,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	specgen.AddAnnotation(annotations.SeccompProfilePath, spp)
 
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
+	mountPoint, err := cs.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
@@ -837,7 +838,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	specgen.SetProcessCwd(containerCwd)
 	if err := setupWorkingDirectory(mountPoint, mountLabel, containerCwd); err != nil {
-		if err1 := s.StorageRuntimeServer().StopContainer(containerID); err1 != nil {
+		if err1 := cs.StorageRuntimeServer().StopContainer(containerID); err1 != nil {
 			return nil, fmt.Errorf("can't umount container after cwd error %v: %v", err, err1)
 		}
 		return nil, err
@@ -885,8 +886,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	for key, value := range sb.Annotations() {
 		newAnnotations[key] = value
 	}
-	if s.ContainerServer.Hooks != nil {
-		if _, err := s.ContainerServer.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.GetMounts()) > 0); err != nil {
+	if cs.Hooks != nil {
+		if _, err := cs.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.GetMounts()) > 0); err != nil {
 			return nil, err
 		}
 	}

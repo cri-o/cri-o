@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/lib"
 	crioStorage "github.com/cri-o/cri-o/utils"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -32,7 +33,7 @@ func getStorageFsInfo(store storage.Store) (*pb.FilesystemUsage, error) {
 
 // ImageFsInfo returns information of the filesystem that is used to store images.
 func (s *Server) ImageFsInfo(ctx context.Context, req *pb.ImageFsInfoRequest) (resp *pb.ImageFsInfoResponse, err error) {
-	store := s.StorageImageServer().GetStore()
+	store := lib.ContainerServer().StorageImageServer().GetStore()
 	fsUsage, err := getStorageFsInfo(store)
 
 	if err != nil {

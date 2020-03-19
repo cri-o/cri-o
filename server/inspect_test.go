@@ -21,7 +21,7 @@ func TestGetInfo(t *testing.T) {
 	c.RootConfig.Root = "afoobarroot"
 	c.RuntimeConfig.CgroupManager = "systemd"
 	c.APIConfig = config.APIConfig{}
-	s := &Server{config: *c}
+	s := &Server{config: c}
 	ci := s.getInfo()
 	if ci.CgroupDriver != "systemd" {
 		t.Fatalf("expected 'systemd', got %q", ci.CgroupDriver)

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/storage"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -16,7 +17,9 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 			filter = filterImage.Image
 		}
 	}
-	results, err := s.StorageImageServer().ListImages(s.config.SystemContext, filter)
+	results, err := lib.ContainerServer().
+		StorageImageServer().
+		ListImages(s.config.SystemContext, filter)
 	if err != nil {
 		return nil, err
 	}

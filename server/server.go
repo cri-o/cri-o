@@ -44,7 +44,6 @@ const (
 
 // StreamService implements streaming.Runtime.
 type StreamService struct {
-	runtimeServer       *Server // needed by Exec() endpoint
 	streamServer        streaming.Server
 	streamServerCloseCh chan struct{}
 	streaming.Runtime
@@ -52,12 +51,11 @@ type StreamService struct {
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	config          libconfig.Config
+	config          *libconfig.Config
 	stream          StreamService
 	netPlugin       ocicni.CNIPlugin
 	hostportManager hostport.HostPortManager
 
-	*lib.ContainerServer
 	monitorsChan      chan struct{}
 	defaultIDMappings *idtools.IDMappings
 
@@ -153,7 +151,8 @@ func (s *Server) getPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResp
 }
 
 func (s *Server) restore(ctx context.Context) {
-	containers, err := s.Store().Containers()
+	cs := lib.ContainerServer()
+	containers, err := cs.Store().Containers()
 	if err != nil && !os.IsNotExist(errors.Cause(err)) {
 		logrus.Warnf("could not read containers and sandboxes: %v", err)
 	}
@@ -162,7 +161,7 @@ func (s *Server) restore(ctx context.Context) {
 	names := map[string][]string{}
 	deletedPods := map[string]bool{}
 	for i := range containers {
-		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(containers[i].ID)
+		metadata, err2 := cs.StorageRuntimeServer().GetContainerMetadata(containers[i].ID)
 		if err2 != nil {
 			logrus.Warnf("error parsing metadata for %s: %v, ignoring", containers[i].ID, err2)
 			continue
@@ -182,19 +181,19 @@ func (s *Server) restore(ctx context.Context) {
 	// Go through all the pods and check if it can be restored. If an error occurs, delete the pod and any containers
 	// associated with it. Release the pod and container names as well.
 	for sbID, metadata := range pods {
-		if err = s.LoadSandbox(sbID); err == nil {
+		if err = cs.LoadSandbox(sbID, s.config.ManageNSLifecycle); err == nil {
 			continue
 		}
 		logrus.Warnf("could not restore sandbox %s container %s: %v", metadata.PodID, sbID, err)
 		for _, n := range names[sbID] {
-			if err := s.Store().DeleteContainer(n); err != nil {
+			if err := cs.Store().DeleteContainer(n); err != nil {
 				logrus.Warnf("unable to delete container %s: %v", n, err)
 			}
 			// Release the infra container name and the pod name for future use
 			if strings.Contains(n, infraName) {
-				s.ReleaseContainerName(n)
+				cs.ReleaseContainerName(n)
 			} else {
-				s.ReleasePodName(n)
+				cs.ReleasePodName(n)
 			}
 		}
 		// Go through the containers and delete any container that was under the deleted pod
@@ -202,11 +201,11 @@ func (s *Server) restore(ctx context.Context) {
 		for k, v := range podContainers {
 			if v.PodID == sbID {
 				for _, n := range names[k] {
-					if err := s.Store().DeleteContainer(n); err != nil {
+					if err := cs.Store().DeleteContainer(n); err != nil {
 						logrus.Warnf("unable to delete container %s: %v", n, err)
 					}
 					// Release the container name for future use
-					s.ReleaseContainerName(n)
+					cs.ReleaseContainerName(n)
 				}
 			}
 		}
@@ -217,25 +216,25 @@ func (s *Server) restore(ctx context.Context) {
 	// Go through all the containers and check if it can be restored. If an error occurs, delete the conainer and
 	// release the name associated with you.
 	for containerID := range podContainers {
-		if err := s.LoadContainer(containerID); err != nil {
+		if err := cs.LoadContainer(containerID); err != nil {
 			// containers of other runtimes should not be deleted
 			if err == lib.ErrIsNonCrioContainer {
 				logrus.Infof("ignoring non CRI-O container %s", containerID)
 			} else {
 				logrus.Warnf("could not restore container %s: %v", containerID, err)
 				for _, n := range names[containerID] {
-					if err := s.Store().DeleteContainer(n); err != nil {
+					if err := cs.Store().DeleteContainer(n); err != nil {
 						logrus.Warnf("unable to delete container %s: %v", n, err)
 					}
 					// Release the container name
-					s.ReleaseContainerName(n)
+					cs.ReleaseContainerName(n)
 				}
 			}
 		}
 	}
 
 	// Restore sandbox IPs
-	for _, sb := range s.ListSandboxes() {
+	for _, sb := range cs.ListSandboxes() {
 		// Clean up networking if pod couldn't be restored and was deleted
 		if ok := deletedPods[sb.ID()]; ok {
 			if err := s.networkStop(ctx, sb); err != nil {
@@ -249,6 +248,8 @@ func (s *Server) restore(ctx context.Context) {
 		}
 		sb.AddIPs(ips)
 	}
+
+	logrus.Debugf("Restored %d sandboxes", len(lib.ContainerServer().ListSandboxes()))
 }
 
 // cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
@@ -272,8 +273,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// crio.service restart!!!
 	s.cleanupSandboxesOnShutdown(ctx)
 
-	s.ShutdownConmonmon()
-	return s.ContainerServer.Shutdown()
+	lib.ContainerServer().ShutdownConmonmon()
+	return lib.ContainerServer().Shutdown()
 }
 
 // configureMaxThreads sets the Go runtime max threads threshold
@@ -331,8 +332,7 @@ func New(
 	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
 		return nil, err
 	}
-	containerServer, err := lib.New(ctx, configIface)
-	if err != nil {
+	if err := lib.InitContainerServer(ctx, configIface); err != nil {
 		return nil, err
 	}
 
@@ -352,10 +352,9 @@ func New(
 	}
 
 	s := &Server{
-		ContainerServer:          containerServer,
 		netPlugin:                netPlugin,
 		hostportManager:          hostportManager,
-		config:                   *config,
+		config:                   config,
 		monitorsChan:             make(chan struct{}),
 		defaultIDMappings:        idMappings,
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
@@ -400,7 +399,6 @@ func New(
 			Certificates:       []tls.Certificate{cert},
 		}
 	}
-	s.stream.runtimeServer = s
 	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create streaming server")
@@ -414,8 +412,6 @@ func New(
 		}
 	}()
 
-	logrus.Debugf("sandboxes: %v", s.ContainerServer.ListSandboxes())
-
 	// Start a configuration watcher for the default config
 	s.config.StartWatcher()
 
@@ -428,35 +424,35 @@ func New(
 }
 
 func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
-	return s.ContainerServer.AddSandbox(sb)
+	return lib.ContainerServer().AddSandbox(sb)
 }
 
 func (s *Server) getSandbox(id string) *sandbox.Sandbox {
-	return s.ContainerServer.GetSandbox(id)
+	return lib.ContainerServer().GetSandbox(id)
 }
 
 func (s *Server) removeSandbox(id string) error {
-	return s.ContainerServer.RemoveSandbox(id)
+	return lib.ContainerServer().RemoveSandbox(id)
 }
 
 func (s *Server) addContainer(c *oci.Container) {
-	s.ContainerServer.AddContainer(c)
+	lib.ContainerServer().AddContainer(c)
 }
 
 func (s *Server) addInfraContainer(c *oci.Container) {
-	s.ContainerServer.AddInfraContainer(c)
+	lib.ContainerServer().AddInfraContainer(c)
 }
 
 func (s *Server) getInfraContainer(id string) *oci.Container {
-	return s.ContainerServer.GetInfraContainer(id)
+	return lib.ContainerServer().GetInfraContainer(id)
 }
 
 func (s *Server) removeContainer(c *oci.Container) {
-	s.ContainerServer.RemoveContainer(c)
+	lib.ContainerServer().RemoveContainer(c)
 }
 
 func (s *Server) removeInfraContainer(c *oci.Container) {
-	s.ContainerServer.RemoveInfraContainer(c)
+	lib.ContainerServer().RemoveInfraContainer(c)
 }
 
 func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox, error) {
@@ -464,7 +460,7 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 		return nil, sandbox.ErrIDEmpty
 	}
 
-	sandboxID, err := s.PodIDIndex().Get(podSandboxID)
+	sandboxID, err := lib.ContainerServer().PodIDIndex().Get(podSandboxID)
 	if err != nil {
 		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
 	}
@@ -530,19 +526,20 @@ func (s *Server) StartExitMonitor() {
 			case event := <-watcher.Events:
 				logrus.Debugf("event: %v", event)
 				if event.Op&fsnotify.Create == fsnotify.Create {
+					cs := lib.ContainerServer()
 					containerID := filepath.Base(event.Name)
 					logrus.Debugf("container or sandbox exited: %v", containerID)
-					c := s.GetContainer(containerID)
+					c := cs.GetContainer(containerID)
 					if c != nil {
 						logrus.Debugf("container exited and found: %v", containerID)
-						err := s.Runtime().UpdateContainerStatus(c)
+						err := cs.Runtime().UpdateContainerStatus(c)
 						if err != nil {
 							logrus.Warnf("Failed to update container status %s: %v", containerID, err)
-						} else if err := s.ContainerStateToDisk(c); err != nil {
+						} else if err := cs.ContainerStateToDisk(c); err != nil {
 							logrus.Warnf("unable to write containers %s state to disk: %v", c.ID(), err)
 						}
 					} else {
-						sb := s.GetSandbox(containerID)
+						sb := cs.GetSandbox(containerID)
 						if sb != nil {
 							c := sb.InfraContainer()
 							if c == nil {
@@ -550,10 +547,10 @@ func (s *Server) StartExitMonitor() {
 								continue
 							}
 							logrus.Debugf("sandbox exited and found: %v", containerID)
-							err := s.Runtime().UpdateContainerStatus(c)
+							err := cs.Runtime().UpdateContainerStatus(c)
 							if err != nil {
 								logrus.Warnf("Failed to update sandbox infra container status %s: %v", c.ID(), err)
-							} else if err := s.ContainerStateToDisk(c); err != nil {
+							} else if err := cs.ContainerStateToDisk(c); err != nil {
 								logrus.Warnf("unable to write containers %s state to disk: %v", c.ID(), err)
 							}
 						}

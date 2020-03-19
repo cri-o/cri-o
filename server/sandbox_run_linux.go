@@ -62,9 +62,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
+	cs := lib.ContainerServer()
 	defer func() {
 		if err != nil {
-			s.ReleasePodName(name)
+			cs.ReleasePodName(name)
 		}
 	}()
 
@@ -74,7 +75,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	defer func() {
 		if err != nil {
-			s.ReleaseContainerName(containerName)
+			cs.ReleaseContainerName(containerName)
 		}
 	}()
 
@@ -84,7 +85,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if selinuxConfig != nil {
 		labelOptions = getLabelOptions(selinuxConfig)
 	}
-	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
+	podContainer, err := cs.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
 		name, id,
 		s.config.PauseImage,
 		s.config.PauseImageAuthFile,
@@ -108,7 +109,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	defer func() {
 		if err != nil {
-			if err2 := s.StorageRuntimeServer().RemovePodSandbox(id); err2 != nil {
+			if err2 := cs.StorageRuntimeServer().RemovePodSandbox(id); err2 != nil {
 				log.Warnf(ctx, "couldn't cleanup pod sandbox %q: %v", id, err2)
 			}
 		}
@@ -124,7 +125,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.HostSpecific = true
 	g.ClearProcessRlimits()
 
-	ulimits, err := getUlimitsFromConfig(&s.config)
+	ulimits, err := getUlimitsFromConfig(s.config)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +136,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// setup defaults for the pod sandbox
 	g.SetRootReadonly(true)
 
-	pauseCommand, err := PauseCommand(s.Config(), podContainer.Config)
+	pauseCommand, err := PauseCommand(s.config, podContainer.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -277,13 +278,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	if err := s.CtrIDIndex().Add(id); err != nil {
+	if err := cs.CtrIDIndex().Add(id); err != nil {
 		return nil, err
 	}
 
 	defer func() {
 		if err != nil {
-			if err2 := s.CtrIDIndex().Delete(id); err2 != nil {
+			if err2 := cs.CtrIDIndex().Delete(id); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", id)
 			}
 		}
@@ -389,13 +390,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	if err := s.PodIDIndex().Add(id); err != nil {
+	if err := cs.PodIDIndex().Add(id); err != nil {
 		return nil, err
 	}
 
 	defer func() {
 		if err != nil {
-			if err := s.PodIDIndex().Delete(id); err != nil {
+			if err := cs.PodIDIndex().Delete(id); err != nil {
 				log.Warnf(ctx, "couldn't delete pod id %s from idIndex", id)
 			}
 		}
@@ -438,12 +439,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	if s.Config().Seccomp().IsDisabled() {
+	if s.config.Seccomp().IsDisabled() {
 		g.Config.Linux.Seccomp = nil
 	}
 
 	saveOptions := generate.ExportOptions{}
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(id)
+	mountPoint, err := cs.StorageRuntimeServer().StartContainer(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
 	}
@@ -591,7 +592,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	if err := s.Runtime().StartContainer(container); err != nil {
+	if err := cs.Runtime().StartContainer(container); err != nil {
 		return nil, err
 	}
 
@@ -599,22 +600,22 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			// Clean-up steps from RemovePodSanbox
 			timeout := int64(10)
-			if err2 := s.Runtime().StopContainer(ctx, container, timeout); err2 != nil {
+			if err2 := cs.Runtime().StopContainer(ctx, container, timeout); err2 != nil {
 				log.Warnf(ctx, "failed to stop container %s: %v", container.Name(), err2)
 			}
-			if err2 := s.Runtime().WaitContainerStateStopped(ctx, container); err2 != nil {
+			if err2 := cs.Runtime().WaitContainerStateStopped(ctx, container); err2 != nil {
 				log.Warnf(ctx, "failed to get container 'stopped' status %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
-			if err2 := s.Runtime().DeleteContainer(container); err2 != nil {
+			if err2 := cs.Runtime().DeleteContainer(container); err2 != nil {
 				log.Warnf(ctx, "failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
-			if err2 := s.ContainerStateToDisk(container); err2 != nil {
+			if err2 := cs.ContainerStateToDisk(container); err2 != nil {
 				log.Warnf(ctx, "failed to write container state %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
 		}
 	}()
 
-	if err := s.ContainerStateToDisk(container); err != nil {
+	if err := cs.ContainerStateToDisk(container); err != nil {
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
 	}
 
@@ -635,7 +636,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb.SetCreated()
 
-	if err := s.MonitorConmon(container); err != nil {
+	if err := cs.MonitorConmon(container); err != nil {
 		log.Errorf(ctx, "%v", err)
 	}
 
@@ -796,7 +797,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		managedNamespaces = append(managedNamespaces, libsandbox.UTSNS)
 
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
-		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, &s.config)
+		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, s.config)
 		if err != nil {
 			return nil, err
 		}

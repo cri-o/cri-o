@@ -9,7 +9,7 @@ import (
 )
 
 // ContainerKill sends the user provided signal to the containers primary process.
-func (c *ContainerServer) ContainerKill(container string, killSignal syscall.Signal) (string, error) {
+func (c *ContainerServerImpl) ContainerKill(container string, killSignal syscall.Signal) (string, error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to find container %s", container)

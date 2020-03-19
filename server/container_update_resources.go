@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -12,7 +13,8 @@ import (
 
 // UpdateContainerResources updates ContainerConfig of the container.
 func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateContainerResourcesRequest) (resp *pb.UpdateContainerResourcesResponse, err error) {
-	c, err := s.GetContainerFromShortID(req.GetContainerId())
+	cs := lib.ContainerServer()
+	c, err := cs.GetContainerFromShortID(req.GetContainerId())
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +24,7 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateCon
 	}
 
 	resources := toOCIResources(req.GetLinux())
-	if err := s.Runtime().UpdateContainer(c, resources); err != nil {
+	if err := cs.Runtime().UpdateContainer(c, resources); err != nil {
 		return nil, err
 	}
 	return &pb.UpdateContainerResourcesResponse{}, nil

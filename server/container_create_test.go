@@ -3,6 +3,7 @@ package server_test
 import (
 	"context"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -96,7 +97,8 @@ var _ = t.Describe("ContainerCreate", func() {
 
 		It("should fail when sandbox not found", func() {
 			// Given
-			Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
+			Expect(lib.ContainerServer().
+				PodIDIndex().Add(testSandbox.ID())).To(BeNil())
 
 			// When
 			response, err := sut.CreateContainer(context.Background(),

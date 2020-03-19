@@ -15,7 +15,7 @@ import (
 const configFile = "config.json"
 
 // ContainerRename renames the given container
-func (c *ContainerServer) ContainerRename(container, name string) error {
+func (c *ContainerServerImpl) ContainerRename(container, name string) error {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func updateConfigName(configPath, name string) error {
 	return specgen.SaveToFile(configPath, generate.ExportOptions{})
 }
 
-func (c *ContainerServer) updateStateName(ctr *oci.Container, name string) error {
+func (c *ContainerServerImpl) updateStateName(ctr *oci.Container, name string) error {
 	if ctr != nil && ctr.State() != nil && ctr.State().Annotations != nil {
 		ctr.State().Annotations[annotations.Name] = name
 		ctr.State().Annotations[annotations.Metadata] = updateMetadata(ctr.State().Annotations, name)

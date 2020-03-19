@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -20,17 +21,18 @@ func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (r
 }
 
 func (s StreamService) PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error {
-	sandboxID, err := s.runtimeServer.PodIDIndex().Get(podSandboxID)
+	cs := lib.ContainerServer()
+	sandboxID, err := cs.PodIDIndex().Get(podSandboxID)
 	if err != nil {
 		return fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
 	}
-	c := s.runtimeServer.GetSandboxContainer(sandboxID)
+	c := cs.GetSandboxContainer(sandboxID)
 
 	if c == nil {
 		return fmt.Errorf("could not find container for sandbox %q", podSandboxID)
 	}
 
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
+	if err := cs.Runtime().UpdateContainerStatus(c); err != nil {
 		return err
 	}
 
@@ -39,5 +41,5 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 		return fmt.Errorf("container is not created or running")
 	}
 
-	return s.runtimeServer.Runtime().PortForwardContainer(c, port, stream)
+	return cs.Runtime().PortForwardContainer(c, port, stream)
 }

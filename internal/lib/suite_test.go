@@ -36,7 +36,7 @@ var (
 	storeMock      *containerstoragemock.MockStore
 	ociRuntimeMock *ocimock.MockRuntimeImpl
 	testManifest   []byte
-	sut            *lib.ContainerServer
+	sut            *lib.ContainerServerImpl
 	mySandbox      *sandbox.Sandbox
 	myContainer    *oci.Container
 
@@ -125,7 +125,6 @@ func beforeEach() {
 	// Set the config
 	config, err := libconfig.DefaultConfig()
 	Expect(err).To(BeNil())
-	config.LogDir = "."
 	config.HooksDir = []string{}
 
 	gomock.InOrder(
@@ -134,9 +133,9 @@ func beforeEach() {
 	)
 
 	// Setup the sut
-	sut, err = lib.New(context.Background(), libMock)
+	err = lib.InitContainerServer(context.Background(), libMock)
 	Expect(err).To(BeNil())
-	Expect(sut).NotTo(BeNil())
+	sut = lib.ContainerServer()
 
 	// Setup test vars
 	mySandbox, err = sandbox.New(sandboxID, "", "", "", "",

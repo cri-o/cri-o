@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 	"github.com/pkg/errors"
@@ -23,7 +24,8 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
+	cs := lib.ContainerServer()
+	images, err := cs.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		if err == pkgstorage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -36,7 +38,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 		lastErr  error
 	)
 	for _, image := range images {
-		status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
+		status, err := cs.StorageImageServer().ImageStatus(s.config.SystemContext, image)
 		if err != nil {
 			if errors.Cause(err) == storage.ErrImageUnknown {
 				log.Debugf(ctx, "can't find %s", image)

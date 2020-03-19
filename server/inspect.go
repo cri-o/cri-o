@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/types"
@@ -72,8 +73,9 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 		return types.ContainerInfo{}, errSandboxNotFound
 	}
 	image := ctr.Image()
-	if s.ContainerServer != nil && s.ContainerServer.StorageImageServer() != nil {
-		if status, err := s.ContainerServer.StorageImageServer().ImageStatus(s.config.SystemContext, ctr.ImageRef()); err == nil {
+	cs := lib.ContainerServer()
+	if cs != nil && cs.StorageImageServer() != nil {
+		if status, err := cs.StorageImageServer().ImageStatus(s.config.SystemContext, ctr.ImageRef()); err == nil {
 			image = status.Name
 		}
 	}
@@ -132,7 +134,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 
 	mux.Get(InspectContainersEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		containerID := bone.GetValue(req, "id")
-		ci, err := s.getContainerInfo(containerID, s.GetContainer, s.getInfraContainer, s.getSandbox)
+		ci, err := s.getContainerInfo(containerID, lib.ContainerServer().GetContainer, s.getInfraContainer, s.getSandbox)
 		if err != nil {
 			switch err {
 			case errCtrNotFound:

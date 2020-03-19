@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
@@ -30,13 +31,14 @@ func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (resp *pb.ListPodSandboxResponse, err error) {
 	var pods []*pb.PodSandbox
 	var podList []*sandbox.Sandbox
-	podList = append(podList, s.ContainerServer.ListSandboxes()...)
+	cs := lib.ContainerServer()
+	podList = append(podList, cs.ListSandboxes()...)
 
 	filter := req.Filter
 	// Filter by pod id first.
 	if filter != nil {
 		if filter.Id != "" {
-			id, err := s.PodIDIndex().Get(filter.Id)
+			id, err := cs.PodIDIndex().Get(filter.Id)
 			if err != nil {
 				// Not finding an ID in a filtered list should not be considered
 				// and error; it might have been deleted when stop was done.

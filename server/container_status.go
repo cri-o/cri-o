@@ -3,6 +3,7 @@ package server
 import (
 	"strconv"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
@@ -19,7 +20,8 @@ const (
 
 // ContainerStatus returns status of the container.
 func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (resp *pb.ContainerStatusResponse, err error) {
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	cs := lib.ContainerServer()
+	c, err := cs.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
@@ -54,7 +56,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	// If we defaulted to exit code not set earlier then we attempt to
 	// get the exit code from the exit file again.
 	if cState.Status == oci.ContainerStateStopped && cState.ExitCode == nil {
-		err := s.Runtime().UpdateContainerStatus(c)
+		err := cs.Runtime().UpdateContainerStatus(c)
 		if err != nil {
 			log.Warnf(ctx, "Failed to UpdateStatus of container %s: %v", c.ID(), err)
 		}

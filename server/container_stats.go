@@ -3,6 +3,7 @@ package server
 import (
 	"path/filepath"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	crioStorage "github.com/cri-o/cri-o/utils"
@@ -14,7 +15,7 @@ import (
 func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerStats, container *oci.Container) *pb.ContainerStats {
 	// TODO: Fix this for other storage drivers. This will only work with overlay.
 	var writableLayer *pb.FilesystemUsage
-	if s.ContainerServer.Config().RootConfig.Storage == "overlay" {
+	if s.config.Storage == "overlay" {
 		diffDir := filepath.Join(filepath.Dir(container.MountPoint()), "diff")
 		bytesUsed, inodeUsed, err := crioStorage.GetDiskUsageStats(diffDir)
 		if err != nil {
@@ -49,17 +50,18 @@ func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerSt
 // ContainerStats returns stats of the container. If the container does not
 // exist, the call returns an error.
 func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsRequest) (resp *pb.ContainerStatsResponse, err error) {
-	container, err := s.GetContainerFromShortID(req.ContainerId)
+	cs := lib.ContainerServer()
+	container, err := cs.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err
 	}
-	sb := s.GetSandbox(container.Sandbox())
+	sb := cs.GetSandbox(container.Sandbox())
 	if sb == nil {
 		return nil, errors.Errorf("unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
 	}
 	cgroup := sb.CgroupParent()
 
-	stats, err := s.Runtime().ContainerStats(container, cgroup)
+	stats, err := cs.Runtime().ContainerStats(container, cgroup)
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 // Remove removes a container
-func (c *ContainerServer) Remove(ctx context.Context, container string, force bool) (string, error) {
+func (c *ContainerServerImpl) Remove(ctx context.Context, container, containerExitsDir string, force bool) (string, error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return "", err
@@ -35,7 +35,7 @@ func (c *ContainerServer) Remove(ctx context.Context, container string, force bo
 	if err := c.runtime.DeleteContainer(ctr); err != nil {
 		return "", errors.Wrapf(err, "failed to delete container %s", ctrID)
 	}
-	if err := os.Remove(filepath.Join(c.Config().RuntimeConfig.ContainerExitsDir, ctrID)); err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(filepath.Join(containerExitsDir, ctrID)); err != nil && !os.IsNotExist(err) {
 		return "", errors.Wrapf(err, "failed to remove container exit file %s", ctrID)
 	}
 	c.RemoveContainer(ctr)

@@ -16,7 +16,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail on invalid container ID", func() {
 			// Given
 			// When
-			res, err := sut.Remove(context.Background(), "", false)
+			res, err := sut.Remove(context.Background(), "", "", false)
 
 			// Then
 			Expect(err).NotTo(BeNil())

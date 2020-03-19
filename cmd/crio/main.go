@@ -16,6 +16,7 @@ import (
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/internal/criocli"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/version"
@@ -250,10 +251,11 @@ func main() {
 			service.StartExitMonitor()
 		}()
 		hookSync := make(chan error, 2)
-		if service.ContainerServer.Hooks == nil {
+		cs := lib.ContainerServer()
+		if cs.Hooks == nil {
 			hookSync <- err // so we don't block during cleanup
 		} else {
-			go service.ContainerServer.Hooks.Monitor(ctx, hookSync)
+			go cs.Hooks.Monitor(ctx, hookSync)
 			err = <-hookSync
 			if err != nil {
 				cancel()
