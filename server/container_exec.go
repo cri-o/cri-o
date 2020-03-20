@@ -6,6 +6,8 @@ import (
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/client-go/tools/remotecommand"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -24,7 +26,7 @@ func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (resp *pb.ExecRe
 func (s StreamService) Exec(containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	c, err := s.runtimeServer.GetContainerFromShortID(containerID)
 	if err != nil {
-		return fmt.Errorf("could not find container %q: %v", containerID, err)
+		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
 	if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
