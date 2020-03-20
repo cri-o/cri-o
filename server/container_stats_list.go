@@ -24,7 +24,12 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 
 	allStats := make([]*pb.ContainerStats, 0, len(ctrList))
 	for _, container := range ctrList {
-		cgroup := s.GetSandbox(container.Sandbox()).CgroupParent()
+		sb := s.GetSandbox(container.Sandbox())
+		if sb == nil {
+			log.Warnf(ctx, "unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
+			continue
+		}
+		cgroup := sb.CgroupParent()
 		stats, err := s.Runtime().ContainerStats(container, cgroup)
 		if err != nil {
 			log.Warnf(ctx, "unable to get stats for container %s: %v", container.ID(), err)
