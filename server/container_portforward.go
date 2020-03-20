@@ -24,20 +24,23 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 	if err != nil {
 		return fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
 	}
-	c := s.runtimeServer.GetSandboxContainer(sandboxID)
+	sb := s.runtimeServer.GetSandbox(sandboxID)
 
-	if c == nil {
-		return fmt.Errorf("could not find container for sandbox %q", podSandboxID)
+	if sb == nil {
+		return fmt.Errorf("could not find sandbox %q", podSandboxID)
 	}
 
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
-		return err
+	c := sb.InfraContainer()
+	if !c.Spoofed() {
+		if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
+			return err
+		}
+
+		cState := c.State()
+		if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
+			return fmt.Errorf("container is not created or running")
+		}
 	}
 
-	cState := c.State()
-	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
-		return fmt.Errorf("container is not created or running")
-	}
-
-	return s.runtimeServer.Runtime().PortForwardContainer(c, port, stream)
+	return s.runtimeServer.Runtime().PortForwardContainer(c, sb.NetNsPath(), port, stream)
 }

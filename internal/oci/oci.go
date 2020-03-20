@@ -67,7 +67,7 @@ type RuntimeImpl interface {
 	SignalContainer(*Container, syscall.Signal) error
 	AttachContainer(*Container, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
-	PortForwardContainer(*Container, int32, io.ReadWriter) error
+	PortForwardContainer(string, int32, io.ReadWriter) error
 	ReopenContainerLog(*Container) error
 	WaitContainerStateStopped(context.Context, *Container) error
 }
@@ -375,13 +375,13 @@ func (r *Runtime) AttachContainer(c *Container, inputStream io.Reader, outputStr
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
-func (r *Runtime) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
+func (r *Runtime) PortForwardContainer(c *Container, nsPath string, port int32, stream io.ReadWriter) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.PortForwardContainer(c, port, stream)
+	return impl.PortForwardContainer(nsPath, port, stream)
 }
 
 // ReopenContainerLog reopens the log file of a container.
