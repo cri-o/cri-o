@@ -377,9 +377,12 @@ jobs:
             - *gocache
 
   lint:
-    executor: container
+    executor: machine
     steps:
       - checkout
+      - run:
+          name: setup environment
+          command: scripts/circle-setup
       - restore_cache:
           keys:
             - v2-lint-{{ checksum "go.sum" }}
