@@ -870,14 +870,14 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
-func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
-	containerPid := c.State().Pid
+func (r *runtimeOCI) PortForwardContainer(nsPath string, port int32, stream io.ReadWriter) error {
 	socatPath, lookupErr := exec.LookPath("socat")
 	if lookupErr != nil {
 		return fmt.Errorf("unable to do port forwarding: socat not found")
 	}
 
-	args := []string{"-t", fmt.Sprintf("%d", containerPid), "-n", socatPath, "-", fmt.Sprintf("TCP4:localhost:%d", port)}
+	args := []string{fmt.Sprintf("--net=%s", nsPath), socatPath, "-", fmt.Sprintf("TCP4:localhost:%d", port)}
+
 
 	nsenterPath, lookupErr := exec.LookPath("nsenter")
 	if lookupErr != nil {
