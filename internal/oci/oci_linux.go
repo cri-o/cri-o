@@ -86,11 +86,10 @@ func newPipe() (parent, child *os.File, err error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
-func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerStats, error) {
+func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (stats *ContainerStats, err error) {
 	// this correction has to be made because the libpod cgroups package can't find a
 	// systemd cgroup that isn't converted to a fully qualified cgroup path
-	if r.config.CgroupManager == "systemd" {
-		var err error
+	if r.config.CgroupManager == SystemdCgroupsManager {
 		cgroup, err = systemd.ExpandSlice(cgroup)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error expanding systemd slice to get container %s stats", ctr.ID())
@@ -107,7 +106,7 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerSt
 		return nil, errors.Wrapf(err, "unable to obtain cgroup stats")
 	}
 
-	stats := &ContainerStats{}
+	stats = &ContainerStats{}
 	stats.Container = ctr.ID()
 	stats.CPUNano = cgroupStats.CPU.Usage.Total
 	stats.SystemNano = time.Now().UnixNano()
