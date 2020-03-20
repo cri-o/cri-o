@@ -14,7 +14,7 @@ MANDIR ?= ${PREFIX}/share/man
 ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_CRIO ?= ${ETCDIR}/crio
 DATAROOTDIR ?= ${PREFIX}/share/containers
-BUILDTAGS ?= $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/seccomp_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh)
+BUILDTAGS ?= $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) containers_image_ostree_stub $(shell hack/seccomp_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 CONTAINER_RUNTIME ?= podman
 
@@ -228,14 +228,6 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 .install.md2man: .gopathok
 	if [ ! -x "$(GOPATH)/bin/go-md2man" ]; then \
 		go get -u github.com/cpuguy83/go-md2man; \
-	fi
-
-.install.ostree: .gopathok
-	if ! pkg-config ostree-1 2> /dev/null ; then \
-		git clone https://github.com/ostreedev/ostree $(GOPATH)/src/github.com/ostreedev/ostree ; \
-		cd $(GOPATH)/src/github.com/ostreedev/ostree ; \
-		./autogen.sh --prefix=/usr/local; \
-		$(MAKE) all install; \
 	fi
 
 .PHONY: \
