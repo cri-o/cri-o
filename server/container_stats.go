@@ -5,6 +5,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/oci"
 	crioStorage "github.com/cri-o/cri-o/utils"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -52,7 +53,11 @@ func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsReque
 	if err != nil {
 		return nil, err
 	}
-	cgroup := s.GetSandbox(container.Sandbox()).CgroupParent()
+	sb := s.GetSandbox(container.Sandbox())
+	if sb == nil {
+		return nil, errors.Errorf("unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
+	}
+	cgroup := sb.CgroupParent()
 
 	stats, err := s.Runtime().ContainerStats(container, cgroup)
 	if err != nil {
