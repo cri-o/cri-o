@@ -13,11 +13,11 @@ require (
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.14.2
 	github.com/containers/conmon v2.0.12+incompatible
-	github.com/containers/image/v5 v5.2.1
+	github.com/containers/image/v5 v5.3.0
 	github.com/containers/libpod v1.8.1
 	github.com/containers/ocicrypt v1.0.1
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.16.4
+	github.com/containers/storage v1.16.5
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
