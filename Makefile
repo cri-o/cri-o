@@ -14,7 +14,7 @@ MANDIR ?= ${PREFIX}/share/man
 ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_CRIO ?= ${ETCDIR}/crio
 DATAROOTDIR ?= ${PREFIX}/share/containers
-BUILDTAGS ?= $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/seccomp_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh)
+BUILDTAGS ?= $(shell hack/btrfs_tag.sh) $(shell hack/libdm_installed.sh) $(shell hack/libdm_no_deferred_remove_tag.sh) $(shell hack/btrfs_installed_tag.sh) containers_image_ostree_stub $(shell hack/seccomp_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 CONTAINER_RUNTIME ?= podman
 
@@ -53,7 +53,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build crio, conmon and pause"
+	@echo " * 'binaries' - Build crio, and pause"
 	@echo " * 'release-note' - Generate release note"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
@@ -74,18 +74,11 @@ lint: .gopathok
 	@echo "checking lint"
 	@./.tool/lint
 
-fmt: gofmt cfmt
-
-cfmt:
-	find . '(' -name '*.h' -o -name '*.c' ')' ! -path './vendor/*'  -exec clang-format -i {} \+
-	git diff --exit-code
+fmt: gofmt
 
 gofmt:
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
-
-bin/conmon: conmon/config.h
-	$(MAKE) -C conmon
 
 bin/pause:
 	$(MAKE) -C pause
@@ -108,10 +101,6 @@ crio.conf: bin/crio
 release-note:
 	@$(GOPATH)/bin/release-tool -n $(release)
 
-conmon/config.h: cmd/crio-config/config.go oci/oci.go
-	$(GO) build -i $(LDFLAGS) -o bin/crio-config $(PROJECT)/cmd/crio-config
-	( cd conmon && $(CURDIR)/bin/crio-config )
-
 clean:
 ifneq ($(GOPATH),)
 	rm -f "$(GOPATH)/.gopathok"
@@ -123,7 +112,6 @@ endif
 	find . -name \#\* -delete
 	rm -f bin/crio
 	rm -f bin/crio.cross.*
-	$(MAKE) -C conmon clean
 	$(MAKE) -C pause clean
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
@@ -157,7 +145,7 @@ testunit:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/conmon bin/pause
+binaries: bin/crio bin/pause
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
@@ -175,7 +163,6 @@ install: .gopathok install.bin install.man
 
 install.bin: binaries
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
-	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
 	install ${SELINUXOPT} -D -m 755 bin/pause $(LIBEXECDIR)/crio/pause
 
 install.man: $(MANPAGES)
@@ -201,7 +188,6 @@ install.systemd:
 
 uninstall:
 	rm -f $(BINDIR)/crio
-	rm -f $(LIBEXECDIR)/crio/conmon
 	rm -f $(LIBEXECDIR)/crio/pause
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
@@ -244,18 +230,9 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 		go get -u github.com/cpuguy83/go-md2man; \
 	fi
 
-.install.ostree: .gopathok
-	if ! pkg-config ostree-1 2> /dev/null ; then \
-		git clone https://github.com/ostreedev/ostree $(GOPATH)/src/github.com/ostreedev/ostree ; \
-		cd $(GOPATH)/src/github.com/ostreedev/ostree ; \
-		./autogen.sh --prefix=/usr/local; \
-		$(MAKE) all install; \
-	fi
-
 .PHONY: \
 	.explicit_phony \
 	.gitvalidation \
-	bin/conmon \
 	bin/crio \
 	bin/pause \
 	binaries \

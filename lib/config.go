@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
+	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -388,7 +389,7 @@ func DefaultConfig() *Config {
 			CgroupManager:            cgroupManager,
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
-			ContainerAttachSocketDir: oci.ContainerAttachSocketDir,
+			ContainerAttachSocketDir: conmonconfig.ContainerAttachSocketDir,
 			LogSizeMax:               DefaultLogSizeMax,
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "error",
