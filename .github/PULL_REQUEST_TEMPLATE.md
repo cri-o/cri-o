@@ -34,6 +34,7 @@ remove leading whitespace from that line:
 > /kind api-change
 > /kind bug
 > /kind cleanup
+> /kind dependency-change
 > /kind deprecation
 > /kind design
 > /kind documentation
