@@ -10,11 +10,10 @@ import (
 // BarOption is a function option which changes the default behavior of a bar.
 type BarOption func(*bState)
 
-type mergeWrapper interface {
-	MergeUnwrap() []decor.Decorator
-}
-
 func (s *bState) addDecorators(dest *[]decor.Decorator, decorators ...decor.Decorator) {
+	type mergeWrapper interface {
+		MergeUnwrap() []decor.Decorator
+	}
 	for _, decorator := range decorators {
 		if mw, ok := decorator.(mergeWrapper); ok {
 			*dest = append(*dest, mw.MergeUnwrap()...)
@@ -200,8 +199,8 @@ func MakeFillerTypeSpecificBarOption(
 	}
 }
 
-// BarOptOnCond returns option when condition evaluates to true.
-func BarOptOnCond(option BarOption, condition func() bool) BarOption {
+// BarOptOn returns option when condition evaluates to true.
+func BarOptOn(option BarOption, condition func() bool) BarOption {
 	if condition() {
 		return option
 	}
