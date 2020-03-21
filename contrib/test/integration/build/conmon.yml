@@ -4,7 +4,7 @@
   git:
     repo: "https://github.com/containers/conmon.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
-    version: "6f3572558b97bc60dd8f8c7f0807748e6ce2c440"
+    version: "v2.0.12"
 
 - name: build conmon
   make:
