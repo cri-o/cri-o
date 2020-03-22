@@ -66,7 +66,7 @@ var (
 // A Decoder can be used in two modes:
 //
 // 1) As a stream, or
-// 2) For stateless decoding using DecodeAll or DecodeBuffer.
+// 2) For stateless decoding using DecodeAll.
 //
 // Only a single stream can be decoded concurrently, but the same decoder
 // can run multiple concurrent stateless decodes. It is even possible to
@@ -315,7 +315,7 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 			if size > 1<<20 {
 				size = 1 << 20
 			}
-			dst = make([]byte, 0, frame.WindowSize)
+			dst = make([]byte, 0, size)
 		}
 
 		dst, err = frame.runDecoder(dst, block)
@@ -386,6 +386,35 @@ func (d *Decoder) Close() {
 		d.current.d = nil
 	}
 	d.current.err = ErrDecoderClosed
+}
+
+// IOReadCloser returns the decoder as an io.ReadCloser for convenience.
+// Any changes to the decoder will be reflected, so the returned ReadCloser
+// can be reused along with the decoder.
+// io.WriterTo is also supported by the returned ReadCloser.
+func (d *Decoder) IOReadCloser() io.ReadCloser {
+	return closeWrapper{d: d}
+}
+
+// closeWrapper wraps a function call as a closer.
+type closeWrapper struct {
+	d *Decoder
+}
+
+// WriteTo forwards WriteTo calls to the decoder.
+func (c closeWrapper) WriteTo(w io.Writer) (n int64, err error) {
+	return c.d.WriteTo(w)
+}
+
+// Read forwards read calls to the decoder.
+func (c closeWrapper) Read(p []byte) (n int, err error) {
+	return c.d.Read(p)
+}
+
+// Close closes the decoder.
+func (c closeWrapper) Close() error {
+	c.d.Close()
+	return nil
 }
 
 type decodeOutput struct {

@@ -1,7 +1,6 @@
 package fileutils
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"strings"
 	"text/scanner"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -226,8 +226,9 @@ func (p *Pattern) compile() error {
 
 	sl := string(os.PathSeparator)
 	escSL := sl
-	if sl == `\` {
-		escSL += `\`
+	const bs = `\`
+	if sl == bs {
+		escSL += bs
 	}
 
 	for scan.Peek() != scanner.EOF {
@@ -262,11 +263,11 @@ func (p *Pattern) compile() error {
 		} else if ch == '.' || ch == '$' {
 			// Escape some regexp special chars that have no meaning
 			// in golang's filepath.Match
-			regStr += `\` + string(ch)
+			regStr += bs + string(ch)
 		} else if ch == '\\' {
 			// escape next char. Note that a trailing \ in the pattern
 			// will be left alone (but need to escape it)
-			if sl == `\` {
+			if sl == bs {
 				// On windows map "\" to "\\", meaning an escaped backslash,
 				// and then just continue because filepath.Match on
 				// Windows doesn't allow escaping at all
@@ -274,9 +275,9 @@ func (p *Pattern) compile() error {
 				continue
 			}
 			if scan.Peek() != scanner.EOF {
-				regStr += `\` + string(scan.Next())
+				regStr += bs + string(scan.Next())
 			} else {
-				regStr += `\`
+				regStr += bs
 			}
 		} else {
 			regStr += string(ch)
@@ -353,6 +354,21 @@ func ReadSymlinkedDirectory(path string) (string, error) {
 	}
 	if !realPathInfo.Mode().IsDir() {
 		return "", fmt.Errorf("canonical path points to a file '%s'", realPath)
+	}
+	return realPath, nil
+}
+
+// ReadSymlinkedPath returns the target directory of a symlink.
+// The target of the symbolic link can be a file and a directory.
+func ReadSymlinkedPath(path string) (realPath string, err error) {
+	if realPath, err = filepath.Abs(path); err != nil {
+		return "", errors.Wrapf(err, "unable to get absolute path for %q", path)
+	}
+	if realPath, err = filepath.EvalSymlinks(realPath); err != nil {
+		return "", errors.Wrapf(err, "failed to canonicalise path for %q", path)
+	}
+	if _, err := os.Stat(realPath); err != nil {
+		return "", errors.Wrapf(err, "failed to stat target %q of %q", realPath, path)
 	}
 	return realPath, nil
 }

@@ -31,6 +31,8 @@ github.com/Microsoft/hcsshim/internal/safefile
 github.com/OpenPeeDeeP/depguard
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
+# github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
+github.com/acarl005/stripansi
 # github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
 github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
@@ -98,7 +100,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/cli
 # github.com/containers/conmon v2.0.11+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.1.1-0.20200205121319-c7a29b0b19be
+# github.com/containers/image/v5 v5.3.0
 github.com/containers/image/v5/types
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/docker/reference
@@ -109,6 +111,7 @@ github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/pkg/blobinfocache/memory
 github.com/containers/image/v5/pkg/compression/types
 github.com/containers/image/v5/image
+github.com/containers/image/v5/internal/pkg/platform
 github.com/containers/image/v5/manifest
 github.com/containers/image/v5/pkg/blobinfocache
 github.com/containers/image/v5/pkg/compression
@@ -195,7 +198,7 @@ github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/cgroups
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.15.4
+# github.com/containers/storage v1.16.5
 github.com/containers/storage
 github.com/containers/storage/pkg/reexec
 github.com/containers/storage/pkg/idtools
@@ -206,14 +209,14 @@ github.com/containers/storage/pkg/lockfile
 github.com/containers/storage/drivers/register
 github.com/containers/storage/pkg/config
 github.com/containers/storage/pkg/directory
+github.com/containers/storage/pkg/homedir
 github.com/containers/storage/pkg/ioutils
+github.com/containers/storage/pkg/mount
 github.com/containers/storage/pkg/parsers
 github.com/containers/storage/pkg/stringutils
 github.com/containers/storage/pkg/system
 github.com/containers/storage/pkg/tarlog
 github.com/containers/storage/pkg/truncindex
-github.com/containers/storage/pkg/homedir
-github.com/containers/storage/pkg/mount
 github.com/containers/storage/pkg/chrootarchive
 github.com/containers/storage/pkg/fileutils
 github.com/containers/storage/pkg/longpath
@@ -529,14 +532,14 @@ github.com/json-iterator/go
 # github.com/kisielk/gotool v1.0.0
 github.com/kisielk/gotool
 github.com/kisielk/gotool/internal/load
-# github.com/klauspost/compress v1.9.4
+# github.com/klauspost/compress v1.10.3
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/compress/fse
-# github.com/klauspost/pgzip v1.2.1
+# github.com/klauspost/pgzip v1.2.2
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
@@ -550,7 +553,7 @@ github.com/magiconair/properties
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.8
 github.com/mattn/go-isatty
-# github.com/mattn/go-shellwords v1.0.6
+# github.com/mattn/go-shellwords v1.0.10
 github.com/mattn/go-shellwords
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
@@ -568,7 +571,7 @@ github.com/modern-go/reflect2
 github.com/morikuni/aec
 # github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 github.com/mrunalp/fileutils
-# github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c
+# github.com/mtrmac/gpgme v0.1.2
 github.com/mtrmac/gpgme
 # github.com/nbutton23/zxcvbn-go v0.0.0-20171102151520-eafdab6b0663
 github.com/nbutton23/zxcvbn-go
@@ -652,9 +655,10 @@ github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/error
-# github.com/opencontainers/selinux v1.3.0
+# github.com/opencontainers/selinux v1.4.0
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
+github.com/opencontainers/selinux/pkg/pwalk
 # github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible
 github.com/openshift/api/config/v1
 # github.com/openshift/imagebuilder v1.1.1
@@ -671,7 +675,7 @@ github.com/ostreedev/ostree-go/pkg/glibobject
 github.com/ostreedev/ostree-go/pkg/otbuiltin
 # github.com/pelletier/go-toml v1.2.0
 github.com/pelletier/go-toml
-# github.com/pkg/errors v0.8.1
+# github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
@@ -729,7 +733,7 @@ github.com/syndtr/gocapability/capability
 github.com/tchap/go-patricia/patricia
 # github.com/timakin/bodyclose v0.0.0-20190721030226-87058b9bfcec
 github.com/timakin/bodyclose/passes/bodyclose
-# github.com/ulikunitz/xz v0.5.6
+# github.com/ulikunitz/xz v0.5.7
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
@@ -750,7 +754,7 @@ github.com/vbatts/git-validation/git
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v4 v4.11.1
+# github.com/vbauerster/mpb/v4 v4.12.2
 github.com/vbauerster/mpb/v4
 github.com/vbauerster/mpb/v4/decor
 github.com/vbauerster/mpb/v4/cwriter
@@ -772,7 +776,7 @@ go.opencensus.io/internal
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
 go.opencensus.io
-# golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
+# golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/openpgp/packet
@@ -805,7 +809,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
+# golang.org/x/sys v0.0.0-20200217220822-9197077df867
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.2
@@ -1195,7 +1199,7 @@ k8s.io/component-base/metrics/legacyregistry
 k8s.io/component-base/version
 # k8s.io/cri-api v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20190913145653-2bd9643cee5b
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
-# k8s.io/klog v0.4.0
+# k8s.io/klog v1.0.0
 k8s.io/klog
 # k8s.io/kube-openapi v0.0.0-20190816220812-743ec37842bf
 k8s.io/kube-openapi/pkg/util/proto

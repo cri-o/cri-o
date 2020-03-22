@@ -15,10 +15,10 @@ require (
 	github.com/containernetworking/plugins v0.8.2
 	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/conmon v2.0.11+incompatible
-	github.com/containers/image/v5 v5.1.1-0.20200205121319-c7a29b0b19be
+	github.com/containers/image/v5 v5.3.0
 	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.15.4
+	github.com/containers/storage v1.16.5
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
@@ -41,8 +41,8 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc9
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
-	github.com/opencontainers/selinux v1.3.0
-	github.com/pkg/errors v0.8.1
+	github.com/opencontainers/selinux v1.4.0
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/seccomp/containers-golang v0.3.1
 	github.com/sirupsen/logrus v1.4.2
@@ -52,7 +52,7 @@ require (
 	github.com/vbatts/git-validation v1.0.0
 	golang.org/x/net v0.0.0-20190918130420-a8b05e9114ab
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
+	golang.org/x/sys v0.0.0-20200217220822-9197077df867
 	google.golang.org/grpc v1.24.0
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
