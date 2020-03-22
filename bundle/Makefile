@@ -22,6 +22,7 @@ install:
 	install $(SELINUX) -d -m 755 $(ZSHINSTALLDIR)
 	install $(SELINUX) -d -m 755 $(CONTAINERS_DIR)
 	install $(SELINUX) -d -m 755 $(CNIDIR)
+	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/pinns
 	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-x86_64-static-glibc
 	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-x86_64-static-musl
 	ln -sf $(BINDIR)/$(DEFAULT_BINARY) $(BINDIR)/crio
@@ -44,6 +45,7 @@ uninstall:
 	rm $(BINDIR)/crio
 	rm $(BINDIR)/crio-x86_64-static-glibc
 	rm $(BINDIR)/crio-x86_64-static-musl
+	rm $(BINDIR)/pinns
 	rm $(ETCDIR)/crictl.yaml
 	rm $(OCIDIR)/crio-umount.conf
 	rm $(ETCDIR)/crio/crio.conf
