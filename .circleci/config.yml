@@ -401,6 +401,9 @@ jobs:
       - restore_cache:
           keys:
             - v1-release-notes-{{ checksum "go.sum" }}
+      - add_ssh_keys:
+          fingerprints:
+            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
       - run:
           name: Generate Release Notes
           command: |
@@ -435,12 +438,6 @@ jobs:
 
               BUCKET=gs://k8s-conform-cri-o
               gsutil cp build/bundle/*.tar.gz $BUCKET/artifacts
-
-              if [[ -z $GITHUB_TOKEN ]]; then
-                echo Skipping release notes upload
-              else
-                gsutil cp build/release-notes/*.md $BUCKET/release-notes
-              fi
             fi
       - store_test_results:
           path: build/junit
@@ -449,7 +446,7 @@ jobs:
           destination: bin
       - store_artifacts:
           path: build
-          destination: test
+          destination: build
       - store_artifacts:
           path: bundle
           destination: bundle
