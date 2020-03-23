@@ -552,24 +552,27 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, errors.Wrapf(err, "setting container config")
 	}
 
-	containerID, containerName, err := s.ReserveContainerIDandName(sb.Metadata(), ctr.Config())
-	if err != nil {
-		return nil, err
+	if err := ctr.SetNameAndID(sb.Metadata()); err != nil {
+		return nil, errors.Wrap(err, "setting container name and ID")
+	}
+
+	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
+		return nil, errors.Wrap(err, "reserving container name")
 	}
 
 	defer func() {
 		if err != nil {
-			s.ReleaseContainerName(containerName)
+			s.ReleaseContainerName(ctr.Name())
 		}
 	}()
 
-	newContainer, err := s.createSandboxContainer(ctx, containerID, containerName, sb, req.GetSandboxConfig(), ctr.Config())
+	newContainer, err := s.createSandboxContainer(ctx, ctr.ID(), ctr.Name(), sb, req.GetSandboxConfig(), ctr.Config())
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err != nil {
-			err2 := s.StorageRuntimeServer().DeleteContainer(containerID)
+			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
@@ -583,13 +586,13 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err := s.CtrIDIndex().Add(containerID); err != nil {
+	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err != nil {
-			if err2 := s.CtrIDIndex().Delete(containerID); err2 != nil {
-				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", containerID)
+			if err2 := s.CtrIDIndex().Delete(ctr.ID()); err2 != nil {
+				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
 			}
 		}
 	}()
@@ -610,7 +613,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	resp := &pb.CreateContainerResponse{
-		ContainerId: containerID,
+		ContainerId: ctr.ID(),
 	}
 
 	return resp, nil
