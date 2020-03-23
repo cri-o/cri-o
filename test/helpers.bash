@@ -148,12 +148,12 @@ fi
 
 # Make sure we have a copy of the fedora-ping image.
 if ! [ -d "$ARTIFACTS_PATH"/fedora-ping-image ]; then
-	mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
-	if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/fedora-ping:latest --export-to=dir:"$ARTIFACTS_PATH"/fedora-ping-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
-		echo "Error pulling quay.io/crio/fedora-ping-image"
-		rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
-		exit 1
-	fi
+    mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
+    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/fedora-ping:latest --export-to=dir:"$ARTIFACTS_PATH"/fedora-ping-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
+        echo "Error pulling quay.io/crio/fedora-ping-image"
+        rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
+        exit 1
+    fi
 fi
 
 function setup_test() {
@@ -622,6 +622,13 @@ function ping_pod_from_pod() {
     echo "$output"
     [ "$status" -eq 0 ]
 
+    # since RHEL kernels don't mirror ipv4.ip_forward sysctl to ipv6, this fails
+    # in such an environment without giving all containers NET_RAW capability
+    # rather than reducing the security of the tests for all cases, skip this check
+    # instead
+    if (grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep " 7"); then
+        return
+    fi
     ipv6=$(parse_pod_ipv6 "$1")
     run crictl exec --sync "$2" ping6 -W 1 -c 2 "$ipv6"
     echo "$output"
