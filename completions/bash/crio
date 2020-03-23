@@ -17,6 +17,7 @@ h
 --bind-mount-prefix
 --cgroup-manager
 --cni-config-dir
+--cni-default-network
 --cni-plugin-dir
 --config
 --config-dir

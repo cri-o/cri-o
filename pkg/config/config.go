@@ -336,6 +336,9 @@ type ImageConfig struct {
 
 // NetworkConfig represents the "crio.network" TOML config table
 type NetworkConfig struct {
+	// CNIDefaultNetwork is the default CNI network name to be selected
+	CNIDefaultNetwork string `toml:"cni_default_network"`
+
 	// NetworkDir is where CNI network configuration files are stored.
 	NetworkDir string `toml:"network_dir"`
 

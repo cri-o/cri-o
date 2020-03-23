@@ -170,6 +170,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("log-journald") {
 		config.LogToJournald = ctx.Bool("log-journald")
 	}
+	if ctx.IsSet("cni-default-network") {
+		config.CNIDefaultNetwork = ctx.String("cni-default-network")
+	}
 	if ctx.IsSet("cni-config-dir") {
 		config.NetworkDir = ctx.String("cni-config-dir")
 	}
@@ -508,6 +511,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "log-journald",
 			Usage:   fmt.Sprintf("Log to systemd journal (journald) in addition to kubernetes log file (default: %t)", defConf.LogToJournald),
 			EnvVars: []string{"CONTAINER_LOG_JOURNALD"},
+		},
+		&cli.StringFlag{
+			Name:    "cni-default-network",
+			Usage:   `Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.`,
+			Value:   defConf.CNIDefaultNetwork,
+			EnvVars: []string{"CONTAINER_CNI_DEFAULT_NETWORK"},
 		},
 		&cli.StringFlag{
 			Name:      "cni-config-dir",
