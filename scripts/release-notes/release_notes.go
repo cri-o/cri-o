@@ -186,7 +186,7 @@ Download the static release bundle via our Google Cloud Bucket:
 			return errors.Wrap(err, "commit")
 		}
 
-		if err := repo.Push(git.Remotify(branch)); err != nil {
+		if err := repo.Push(branch); err != nil {
 			return errors.Wrap(err, "push changes")
 		}
 	}
