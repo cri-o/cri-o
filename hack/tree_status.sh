@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
-set -e
 
-STATUS=$(git status --porcelain)
-if [[ -z $STATUS ]]
-then
-	echo "tree is clean"
+if git diff --exit-code; then
+    echo tree is clean
 else
-	echo "tree is dirty, please commit all changes"
-	echo ""
-	echo "$STATUS"
-	git diff
-	exit 1
+    echo please commit your local changes
 fi
