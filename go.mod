@@ -13,10 +13,10 @@ require (
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.14.2
 	github.com/containers/conmon v2.0.11+incompatible
-	github.com/containers/image/v5 v5.2.1
+	github.com/containers/image/v5 v5.3.0
 	github.com/containers/libpod v1.8.1
 	github.com/containers/ocicrypt v0.0.0-20191112201931-142388cb70de
-	github.com/containers/storage v1.16.2
+	github.com/containers/storage v1.16.5
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -43,7 +43,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc9
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
-	github.com/opencontainers/selinux v1.3.3
+	github.com/opencontainers/selinux v1.4.0
 	github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.4.0 // indirect
@@ -59,7 +59,7 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20200202164722-d101bd2416d5
+	golang.org/x/sys v0.0.0-20200217220822-9197077df867
 	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	google.golang.org/grpc v1.27.0
 	k8s.io/api v0.17.3
