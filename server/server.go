@@ -77,6 +77,32 @@ type Server struct {
 
 	seccompEnabled  bool
 	appArmorEnabled bool
+	// pullOperationsInProgress is used to avoid pulling the same image in parallel. Goroutines
+	// will block on the pullResult.
+	pullOperationsInProgress map[pullArguments]*pullOperation
+	// pullOperationsLock is used to synchronize pull operations.
+	pullOperationsLock sync.Mutex
+}
+
+// pullArguments are used to identify a pullOperation via an input image name and
+// possibly specified credentials.
+type pullArguments struct {
+	image       string
+	credentials types.DockerAuthConfig
+}
+
+// pullOperation is used to synchronize parallel pull operations via the
+// server's pullCache.  Goroutines can block the pullOperation's waitgroup and
+// be released once the pull operation has finished.
+type pullOperation struct {
+	// wg allows for Goroutines trying to pull the same image to wait until the
+	// currently running pull operation has finished.
+	wg sync.WaitGroup
+	// imageRef is the reference of the actually pulled image which will differ
+	// from the input if it was a short name (e.g., alpine).
+	imageRef string
+	// err is the error indicating if the pull operation has succeeded or not.
+	err error
 }
 
 type certConfigCache struct {
@@ -350,16 +376,17 @@ func New(
 	}
 
 	s := &Server{
-		ContainerServer:   containerServer,
-		netPlugin:         netPlugin,
-		hostportManager:   hostportManager,
-		config:            *config,
-		seccompEnabled:    seccomp.IsEnabled(),
-		appArmorEnabled:   apparmor.IsEnabled(),
-		appArmorProfile:   config.ApparmorProfile,
-		monitorsChan:      make(chan struct{}),
-		defaultIDMappings: idMappings,
-		systemContext:     systemContext,
+		ContainerServer:          containerServer,
+		netPlugin:                netPlugin,
+		hostportManager:          hostportManager,
+		config:                   *config,
+		seccompEnabled:           seccomp.IsEnabled(),
+		appArmorEnabled:          apparmor.IsEnabled(),
+		appArmorProfile:          config.ApparmorProfile,
+		monitorsChan:             make(chan struct{}),
+		defaultIDMappings:        idMappings,
+		systemContext:            systemContext,
+		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
 	}
 
 	s.decryptionKeysPath = config.DecryptionKeysPath
