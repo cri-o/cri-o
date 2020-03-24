@@ -50,7 +50,7 @@ function test_crio_wiped() {
 }
 
 function start_crio_with_stopped_pod() {
-	start_crio "" "" "" "" ""
+	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]

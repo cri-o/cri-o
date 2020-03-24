@@ -16,9 +16,9 @@ fi
 IFS=';' read -ra array <<<"${CNI_ARGS}"
 for arg in "${array[@]}"; do
     IFS='=' read -ra item <<<"${arg}"
-    if [[ "${item[0]}" = "K8S_POD_NAMESPACE" ]]; then
+    if [[ "${item[0]}" == "K8S_POD_NAMESPACE" ]]; then
         K8S_POD_NAMESPACE="${item[1]}"
-    elif [[ "${item[0]}" = "K8S_POD_NAME" ]]; then
+    elif [[ "${item[0]}" == "K8S_POD_NAME" ]]; then
         K8S_POD_NAME="${item[1]}"
     fi
 done
@@ -33,14 +33,17 @@ fi
 
 TEST_DIR=%TEST_DIR%
 
-echo "FOUND_CNI_CONTAINERID=${CNI_CONTAINERID}" >>"$TEST_DIR"/plugin_test_args.out
-echo "FOUND_K8S_POD_NAMESPACE=${K8S_POD_NAMESPACE}" >>"$TEST_DIR"/plugin_test_args.out
-echo "FOUND_K8S_POD_NAME=${K8S_POD_NAME}" >>"$TEST_DIR"/plugin_test_args.out
+cat <<EOT >"$TEST_DIR/plugin_test_args.out"
+FOUND_CNI_CONTAINERID="${CNI_CONTAINERID}"
+FOUND_K8S_POD_NAMESPACE="${K8S_POD_NAMESPACE}"
+FOUND_K8S_POD_NAME="${K8S_POD_NAME}"
+EOT
 
+# shellcheck disable=1090
 . "$TEST_DIR"/cni_plugin_helper_input.env
 rm -f "$TEST_DIR"/cni_plugin_helper_input.env
 
-result=$(/opt/cni/bin/bridge $@) || exit $?
+result=$(/opt/cni/bin/bridge "$@") || exit $?
 
 if [[ "${DEBUG_ARGS}" == "malformed-result" ]]; then
     cat <<-EOF
@@ -50,5 +53,5 @@ if [[ "${DEBUG_ARGS}" == "malformed-result" ]]; then
 EOF
 
 else
-    echo $result
+    echo "$result"
 fi

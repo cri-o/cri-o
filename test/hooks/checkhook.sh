@@ -1,4 +1,4 @@
-#!/bin/sh
-echo $@ >>HOOKSCHECK
-read line
-echo $line >>HOOKSCHECK
+#!/usr/bin/env sh
+echo "$@" >>HOOKSCHECK
+read -r line
+echo "$line" >>HOOKSCHECK

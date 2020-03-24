@@ -13,7 +13,7 @@ function teardown() {
 }
 
 @test "image remove with multiple names, by name" {
-	start_crio "" ""
+	start_crio
 	# Pull the image, giving it one name.
 	run crictl pull "$IMAGE"
 	echo "$output"
@@ -48,7 +48,7 @@ function teardown() {
 }
 
 @test "image remove with multiple names, by ID" {
-	start_crio "" ""
+	start_crio
 	# Pull the image, giving it one name.
 	run crictl pull "$IMAGE"
 	echo "$output"
