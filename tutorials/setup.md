@@ -226,10 +226,9 @@ make BUILDTAGS='seccomp apparmor'
 It is possible to build a statically linked binary of CRI-O by using the
 officially provided [nix](https://nixos.org/nix) package and the derivation of
 it [within this repository](../nix). The builds are completely reproducible and
-will create a `x86_64`/`amd64` stripped ELF binary for
-[glibc](https://www.gnu.org/software/libc) and [musl
-libc](https://www.musl-libc.org).  These binaries are integration tested as well
-and support the following features:
+will create a `x86_64`/`amd64` stripped ELF binary for the standard
+[glibc](https://www.gnu.org/software/libc) toolchain. These binaries are
+integration tested as well and support the following features:
 
 - apparmor
 - btrfs
@@ -270,8 +269,7 @@ image before.
 Note that the container runtime and nix image can be specified here, too. The
 resulting binaries should now be available within:
 
-- `bin/crio-x86_64-static-glibc`
-- `bin/crio-x86_64-static-musl`
+- `bin/crio-static`
 
 To build the binaries without any prepared container and via the already
 installed nix package manager, simply run the following command from the root
@@ -281,8 +279,7 @@ directory of this repository:
 nix build -f nix
 ```
 
-The resulting binary should be now available in `result-bin/bin` and
-`result-2-bin/bin`.
+The resulting binary should be now available in `result-bin/bin`.
 
 ### Creating a release archive
 

@@ -12,8 +12,6 @@ ZSHINSTALLDIR ?= $(PREFIX)/share/zsh/site-functions
 SYSTEMDDIR ?= $(PREFIX)/lib/systemd/system
 OPT_CNI_BIN_DIR ?= /opt/cni/bin
 
-DEFAULT_BINARY ?= crio-x86_64-static-musl
-
 all: install
 
 .PHONY: install
@@ -45,11 +43,9 @@ install-crio:
 	install $(SELINUX) -d -m 755 $(FISHINSTALLDIR)
 	install $(SELINUX) -d -m 755 $(ZSHINSTALLDIR)
 	install $(SELINUX) -d -m 755 $(CONTAINERS_DIR)
-	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-status-x86_64-static-glibc
-	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-status-x86_64-static-musl
-	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-x86_64-static-glibc
-	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-x86_64-static-musl
-	ln -sf $(BINDIR)/$(DEFAULT_BINARY) $(BINDIR)/crio
+	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-status-static
+	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crio-static
+	ln -sf $(BINDIR)/crio-static $(BINDIR)/crio
 	install $(SELINUX) -D -m 644 -t $(ETCDIR) etc/crictl.yaml
 	install $(SELINUX) -D -m 644 -t $(OCIDIR) etc/crio-umount.conf
 	install $(SELINUX) -D -m 644 -t $(ETCDIR)/crio/crio.conf.d etc/00-default.conf
@@ -97,10 +93,8 @@ uninstall-crictl:
 .PHONY: uninstall-crio
 uninstall-crio:
 	rm $(BINDIR)/crio
-	rm $(BINDIR)/crio-status-x86_64-static-glibc
-	rm $(BINDIR)/crio-status-x86_64-static-musl
-	rm $(BINDIR)/crio-x86_64-static-glibc
-	rm $(BINDIR)/crio-x86_64-static-musl
+	rm $(BINDIR)/crio-status-static
+	rm $(BINDIR)/crio-static
 	rm $(ETCDIR)/crictl.yaml
 	rm $(OCIDIR)/crio-umount.conf
 	rm $(ETCDIR)/crio/crio.conf.d/00-default.conf
