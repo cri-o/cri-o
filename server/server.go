@@ -336,7 +336,9 @@ func New(
 		return nil, err
 	}
 
-	netPlugin, err := ocicni.InitCNI("", config.NetworkDir, config.PluginDirs...)
+	netPlugin, err := ocicni.InitCNI(
+		config.CNIDefaultNetwork, config.NetworkDir, config.PluginDirs...,
+	)
 	if err != nil {
 		return nil, err
 	}

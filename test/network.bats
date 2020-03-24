@@ -8,7 +8,7 @@ function setup() {
 
 function teardown() {
 	cleanup_test
-	rm -f /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING/*
+	rm -f /var/lib/cni/networks/$RANDOM_CNI_NETWORK/*
 }
 
 @test "ensure correct hostname" {
@@ -139,8 +139,8 @@ function teardown() {
 
 	# ensure that the server cleaned up sandbox networking if the sandbox
 	# failed after network setup
-	rm -f /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING | grep -v lock | wc -l)
+	rm -f /var/lib/cni/networks/$RANDOM_CNI_NETWORK/last_reserved_ip*
+	num_allocated=$(ls /var/lib/cni/networks/$RANDOM_CNI_NETWORK | grep -v lock | wc -l)
 	[[ "${num_allocated}" == "0" ]]
 }
 
@@ -153,7 +153,7 @@ function teardown() {
 
 	# ensure that the server cleaned up sandbox networking if the sandbox
 	# failed during network setup after the CNI plugin itself succeeded
-	rm -f /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/crionet_test_args_$RANDOM_STRING | grep -v lock | wc -l)
+	rm -f /var/lib/cni/networks/$RANDOM_CNI_NETWORK/last_reserved_ip*
+	num_allocated=$(ls /var/lib/cni/networks/$RANDOM_CNI_NETWORK | grep -v lock | wc -l)
 	[[ "${num_allocated}" == "0" ]]
 }

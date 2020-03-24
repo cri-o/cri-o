@@ -8,6 +8,9 @@ example directories).
 To use these configurations, place them in `/etc/cni/net.d` (or the directory
 specified by `crio.network.network_dir` in your overwrite of `/etc/crio/crio.conf.d`).
 
+CRI-O will only choose the network that has been specified via
+`crio.network.cni_default_network`.
+
 In addition, you need to install the [CNI plugins][cni] necessary into
 `/opt/cni/bin` (or the directories specified by `crio.network.plugin_dir`). The
 two plugins necessary for the example CNI configurations are `loopback` and

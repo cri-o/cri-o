@@ -349,6 +349,10 @@ image_volumes = "{{ .ImageVolumes }}"
 # CNI plugins.
 [crio.network]
 
+# The default CNI network name to be selected. If not set or "", then
+# CRI-O will pick-up the first one found in network_dir.
+# cni_default_network = "{{ .CNIDefaultNetwork }}"
+
 # Path to the directory where CNI configuration files are located.
 network_dir = "{{ .NetworkDir }}"
 

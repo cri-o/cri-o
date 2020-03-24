@@ -16,6 +16,7 @@ crio
 [--bind-mount-prefix]=[value]
 [--cgroup-manager]=[value]
 [--cni-config-dir]=[value]
+[--cni-default-network]=[value]
 [--cni-plugin-dir]=[value]
 [--config-dir|-d]=[value]
 [--config|-c]=[value]
@@ -116,6 +117,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--cgroup-manager**="": cgroup manager (cgroupfs or systemd) (default: systemd)
 
 **--cni-config-dir**="": CNI configuration files directory (default: /etc/cni/net.d/)
+
+**--cni-default-network**="": Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.
 
 **--cni-plugin-dir**="": CNI plugin binaries directory (default: [])
 

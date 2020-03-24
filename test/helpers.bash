@@ -151,7 +151,7 @@ fi
 
 function setup_test() {
     TESTDIR=$(mktemp -d)
-    RANDOM_STRING=${TESTDIR: -10}
+    RANDOM_CNI_NETWORK=${TESTDIR: -10}
 
     # Setup default hooks dir
     HOOKSDIR=$TESTDIR/hooks
@@ -284,6 +284,16 @@ function setup_crio() {
     "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
     "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
     "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
+
+    # Prepare the CNI configuration files, we're running with non host
+    # networking by default
+    CNI_DEFAULT_NETWORK=crio
+    netfunc="prepare_network_conf"
+    if [[ -n "$5" ]]; then
+        netfunc="$5"
+        CNI_DEFAULT_NETWORK="crio-$RANDOM_CNI_NETWORK"
+    fi
+
     "$CRIO_BINARY_PATH" \
         ${DEFAULT_MOUNTS_OPTS} \
         ${HOOKS_OPTS} \
@@ -296,6 +306,7 @@ function setup_crio() {
         --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" \
         -r "$TESTDIR/crio" \
         --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS \
+        --cni-default-network "$CNI_DEFAULT_NETWORK" \
         --cni-config-dir "$CRIO_CNI_CONFIG" \
         --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS \
         --default-sysctls "$TEST_SYSCTL" \
@@ -309,14 +320,7 @@ function setup_crio() {
     sed -r -e 's/nodev(,)?//g' -i $CRIO_CONFIG
     sed -i -e 's;\(container_exits_dir =\) \(.*\);\1 "'$CONTAINER_EXITS_DIR'";g' $CRIO_CONFIG
     sed -i -e 's;\(container_attach_socket_dir =\) \(.*\);\1 "'$CONTAINER_ATTACH_SOCKET_DIR'";g' $CRIO_CONFIG
-    # Prepare the CNI configuration files, we're running with non host networking by default
-    if [[ -n "$5" ]]; then
-        netfunc="$5"
-    else
-        netfunc="prepare_network_conf"
-    fi
     ${netfunc}
-
 }
 
 function pull_test_containers() {
@@ -518,7 +522,7 @@ function prepare_network_conf() {
     cat >$CRIO_CNI_CONFIG/10-crio.conf <<-EOF
 {
     "cniVersion": "0.3.1",
-    "name": "crionet",
+    "name": "crio",
     "type": "bridge",
     "bridge": "cni0",
     "isGateway": true,
@@ -545,7 +549,7 @@ function write_plugin_test_args_network_conf() {
     cat >$CRIO_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
 {
     "cniVersion": "0.3.1",
-    "name": "crionet_test_args_$RANDOM_STRING",
+    "name": "crio-$RANDOM_CNI_NETWORK",
     "type": "cni_plugin_helper.bash",
     "bridge": "cni0",
     "isGateway": true,

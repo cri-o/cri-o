@@ -248,6 +248,9 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 ## CRIO.NETWORK TABLE
 The `crio.network` table containers settings pertaining to the management of CNI plugins.
 
+**cni_default_network**=""
+  The default CNI network name to be selected. If not set or "", then CRI-O will pick-up the first one found in network_dir.
+
 **network_dir**="/etc/cni/net.d/"
   Path to the directory where CNI configuration files are located.
 

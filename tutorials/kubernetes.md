@@ -53,9 +53,9 @@ Kubelet is prepared now.
 ## Flannel network
 If your cluster is using flannel network, your network configuration should be like:
 ```
-# cat /etc/cni/net.d/10-mynet.conf
+# cat /etc/cni/net.d/10-crio.conf
 {
-    "name": "mynet",
+    "name": "crio",
     "type": "flannel"
 }
 ```
