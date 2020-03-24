@@ -148,6 +148,9 @@ workflows:
             - unit-tests
           filters: *filterAllTags
 
+      - shfmt:
+          filters: *filterAllTags
+
       - unit-tests:
           filters: *filterAllTags
 
@@ -450,6 +453,22 @@ jobs:
       - store_artifacts:
           path: bundle
           destination: bundle
+
+  shfmt:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-shfmt-{{ checksum "go.sum" }}
+      - run:
+          name: Format shell files
+          command: make shfmt
+      - save_cache:
+          key: v1-shfmt-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/shfmt
 
   unit-tests:
     executor: container

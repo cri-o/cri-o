@@ -1,4 +1,4 @@
 #!/bin/sh
-echo $@ >> HOOKSCHECK
+echo $@ >>HOOKSCHECK
 read line
-echo $line >> HOOKSCHECK
+echo $line >>HOOKSCHECK

@@ -2,7 +2,7 @@
 tmpdir="$PWD/tmp.$RANDOM"
 mkdir -p "$tmpdir"
 trap 'rm -fr "$tmpdir"' EXIT
-cc -o "$tmpdir"/libdm_tag -ldevmapper -x c - > /dev/null 2> /dev/null << EOF
+cc -o "$tmpdir"/libdm_tag -ldevmapper -x c - >/dev/null 2>/dev/null <<EOF
 #include <libdevmapper.h>
 int main() {
 	struct dm_task *task;
@@ -10,6 +10,6 @@ int main() {
 	return 0;
 }
 EOF
-if test $? -ne 0 ; then
-	echo libdm_no_deferred_remove
+if test $? -ne 0; then
+    echo libdm_no_deferred_remove
 fi
