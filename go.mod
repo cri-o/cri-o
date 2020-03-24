@@ -11,20 +11,23 @@ require (
 	github.com/containerd/go-runc v0.0.0-20190923131748-a2952bc25f51 // indirect
 	github.com/containerd/project v0.0.0-20190513184420-7fb81da5e663
 	github.com/containerd/ttrpc v0.0.0-20190828154514-0e0f228740de
-	github.com/containernetworking/cni v0.7.1
-	github.com/containernetworking/plugins v0.8.3
-	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
+	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
+	github.com/containernetworking/plugins v0.8.5
+	github.com/containers/buildah v1.14.2
 	github.com/containers/conmon v2.0.11+incompatible
 	github.com/containers/image/v5 v5.2.1
-	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
+	github.com/containers/libpod v1.8.1
 	github.com/containers/ocicrypt v0.0.0-20190930154801-b87a4a69c741
-	github.com/containers/psgo v1.4.0 // indirect
-	github.com/containers/storage v1.15.8
+	github.com/containers/storage v1.16.2
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
-	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
-	github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce
+	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
+	github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f
 	github.com/docker/go-units v0.4.0
+	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
+	github.com/elazarl/goproxy v0.0.0-20190421051319-9d40249d3c2f // indirect
+	github.com/elazarl/goproxy/ext v0.0.0-20190911111923-ecfe977594f1 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-zoo/bone v1.3.0
 	github.com/godbus/dbus/v5 v5.0.3
@@ -35,29 +38,36 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/kr/pty v1.1.8
-	github.com/onsi/ginkgo v1.10.3
-	github.com/onsi/gomega v1.7.1
+	github.com/morikuni/aec v1.0.0 // indirect
+	github.com/onsi/ginkgo v1.12.0
+	github.com/onsi/gomega v1.9.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 	github.com/opencontainers/runc v1.0.0-rc9
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
-	github.com/opencontainers/selinux v1.3.1
+	github.com/opencontainers/selinux v1.3.3
+	github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible // indirect
 	github.com/pkg/errors v0.9.1
+	github.com/pkg/profile v1.3.0 // indirect
 	github.com/prometheus/client_golang v1.2.1
 	github.com/seccomp/containers-golang v0.3.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/soheilhy/cmux v0.1.4
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
+	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/urfave/cli/v2 v2.1.1
 	github.com/vbatts/git-validation v1.0.0
-	github.com/vishvananda/netlink v1.0.0
+	github.com/vbauerster/mpb v3.4.0+incompatible // indirect
+	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
+	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
+	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/grpc v1.25.1
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.17.3
+	k8s.io/apimachinery v0.17.3
 	k8s.io/client-go v0.0.0
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog v1.0.0

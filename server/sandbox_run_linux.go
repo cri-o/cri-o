@@ -14,6 +14,7 @@ import (
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+	current "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage"
@@ -530,7 +531,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			return nil, err
 		}
 		if result != nil {
-			g.AddAnnotation(annotations.CNIResult, result.String())
+			resultCurrent, err := current.NewResultFromResult(result)
+			if err != nil {
+				return nil, err
+			}
+			cniResultJSON, err := json.Marshal(resultCurrent)
+			if err != nil {
+				return nil, err
+			}
+			g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
 		}
 		defer func() {
 			if err != nil {

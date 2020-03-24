@@ -36,9 +36,6 @@ func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool) error
 		}
 	}
 
-	v.lock.Lock()
-	defer v.lock.Unlock()
-
 	return r.removeVolume(ctx, v, force)
 }
 
@@ -59,7 +56,7 @@ func (r *Runtime) GetVolume(name string) (*Volume, error) {
 	return vol, nil
 }
 
-// LookupVolume retrieves a volume by unambigious partial name.
+// LookupVolume retrieves a volume by unambiguous partial name.
 func (r *Runtime) LookupVolume(name string) (*Volume, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()

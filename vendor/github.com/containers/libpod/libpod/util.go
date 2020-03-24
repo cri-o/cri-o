@@ -1,7 +1,9 @@
 package libpod
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +18,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Runtime API constants
@@ -187,6 +190,9 @@ func programVersion(mountProgram string) (string, error) {
 	return strings.TrimSuffix(output, "\n"), nil
 }
 
+// DefaultSeccompPath returns the path to the default seccomp.json file
+// if it exists, first it checks OverrideSeccomp and then default.
+// If neither exist function returns ""
 func DefaultSeccompPath() (string, error) {
 	_, err := os.Stat(config.SeccompOverridePath)
 	if err == nil {
@@ -202,4 +208,46 @@ func DefaultSeccompPath() (string, error) {
 		return "", nil
 	}
 	return config.SeccompDefaultPath, nil
+}
+
+// CheckDependencyContainer verifies the given container can be used as a
+// dependency of another container.
+// Both the dependency to check and the container that will be using the
+// dependency must be passed in.
+// It is assumed that ctr is locked, and depCtr is unlocked.
+func checkDependencyContainer(depCtr, ctr *Container) error {
+	state, err := depCtr.State()
+	if err != nil {
+		return errors.Wrapf(err, "error accessing dependency container %s state", depCtr.ID())
+	}
+	if state == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot use container %s as a dependency as it is being removed", depCtr.ID())
+	}
+
+	if depCtr.ID() == ctr.ID() {
+		return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
+	}
+
+	if ctr.config.Pod != "" && depCtr.PodID() != ctr.config.Pod {
+		return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, depCtr.ID())
+	}
+
+	return nil
+}
+
+// hijackWriteErrorAndClose writes an error to a hijacked HTTP session and
+// closes it. Intended to HTTPAttach function.
+// If error is nil, it will not be written; we'll only close the connection.
+func hijackWriteErrorAndClose(toWrite error, cid string, httpCon io.Closer, httpBuf *bufio.ReadWriter) {
+	if toWrite != nil {
+		if _, err := httpBuf.Write([]byte(toWrite.Error())); err != nil {
+			logrus.Errorf("Error writing error %q to container %s HTTP attach connection: %v", toWrite, cid, err)
+		} else if err := httpBuf.Flush(); err != nil {
+			logrus.Errorf("Error flushing HTTP buffer for container %s HTTP attach connection: %v", cid, err)
+		}
+	}
+
+	if err := httpCon.Close(); err != nil {
+		logrus.Errorf("Error closing container %s HTTP attach connection: %v", cid, err)
+	}
 }

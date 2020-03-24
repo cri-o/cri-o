@@ -3,6 +3,12 @@
 # This script wraps the CNI 'bridge' plugin to provide additional testing
 # capabilities
 
+if [[ "${CNI_COMMAND}" == "VERSION" ]]; then
+	echo '{"cniVersion": "0.3.1", "supportedVersions": ["0.4.0","0.3.1"]}'
+	exit 0
+fi
+￼
+
 if [[ -z "${CNI_ARGS}" ]]; then
 	exit 1
 fi

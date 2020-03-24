@@ -3,23 +3,26 @@
 package libpod
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/netns"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/rootlessport"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -28,23 +31,50 @@ import (
 )
 
 // Get an OCICNI network config
-func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP) ocicni.PodNetwork {
-	defaultNetwork := r.netPlugin.GetDefaultNetworkName()
+func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP, staticMAC net.HardwareAddr) ocicni.PodNetwork {
+	var networkKey string
+	if len(networks) > 0 {
+		// This is inconsistent for >1 network, but it's probably the
+		// best we can do.
+		networkKey = networks[0]
+	} else {
+		networkKey = r.netPlugin.GetDefaultNetworkName()
+	}
 	network := ocicni.PodNetwork{
 		Name:      name,
 		Namespace: name, // TODO is there something else we should put here? We don't know about Kube namespaces
 		ID:        id,
 		NetNS:     nsPath,
-		Networks:  networks,
 		RuntimeConfig: map[string]ocicni.RuntimeConfig{
-			defaultNetwork: {PortMappings: ports},
+			networkKey: {PortMappings: ports},
 		},
 	}
 
-	if staticIP != nil {
-		network.Networks = []string{defaultNetwork}
+	// If we have extra networks, add them
+	if len(networks) > 0 {
+		network.Networks = make([]ocicni.NetAttachment, len(networks))
+		for i, netName := range networks {
+			network.Networks[i].Name = netName
+		}
+	}
+
+	if staticIP != nil || staticMAC != nil {
+		// For static IP or MAC, we need to populate networks even if
+		// it's just the default.
+		if len(networks) == 0 {
+			// If len(networks) == 0 this is guaranteed to be the
+			// default network.
+			network.Networks = []ocicni.NetAttachment{{Name: networkKey}}
+		}
+		var rt ocicni.RuntimeConfig = ocicni.RuntimeConfig{PortMappings: ports}
+		if staticIP != nil {
+			rt.IP = staticIP.String()
+		}
+		if staticMAC != nil {
+			rt.MAC = staticMAC.String()
+		}
 		network.RuntimeConfig = map[string]ocicni.RuntimeConfig{
-			defaultNetwork: {IP: staticIP.String(), PortMappings: ports},
+			networkKey: rt,
 		}
 	}
 
@@ -62,7 +92,16 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		requestedIP = ctr.config.StaticIP
 	}
 
-	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
+	var requestedMAC net.HardwareAddr
+	if ctr.requestedMAC != nil {
+		requestedMAC = ctr.requestedMAC
+		// cancel request for a specific MAC in case the container is reused later
+		ctr.requestedMAC = nil
+	} else {
+		requestedMAC = ctr.config.StaticMAC
+	}
+
+	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP, requestedMAC)
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
@@ -78,10 +117,10 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 
 	networkStatus := make([]*cnitypes.Result, 0)
 	for idx, r := range results {
-		logrus.Debugf("[%d] CNI result: %v", idx, r.String())
-		resultCurrent, err := cnitypes.GetResult(r)
+		logrus.Debugf("[%d] CNI result: %v", idx, r.Result)
+		resultCurrent, err := cnitypes.GetResult(r.Result)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
+			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.Result, err)
 		}
 		networkStatus = append(networkStatus, resultCurrent)
 	}
@@ -109,23 +148,10 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 
 	networkStatus := []*cnitypes.Result{}
-	if !rootless.IsRootless() {
+	if !rootless.IsRootless() && ctr.config.NetMode != "slirp4netns" {
 		networkStatus, err = r.configureNetNS(ctr, ctrNS)
 	}
 	return ctrNS, networkStatus, err
-}
-
-type slirp4netnsCmdArg struct {
-	Proto     string `json:"proto,omitempty"`
-	HostAddr  string `json:"host_addr"`
-	HostPort  int32  `json:"host_port"`
-	GuestAddr string `json:"guest_addr"`
-	GuestPort int32  `json:"guest_port"`
-}
-
-type slirp4netnsCmd struct {
-	Execute string            `json:"execute"`
-	Args    slirp4netnsCmdArg `json:"arguments"`
 }
 
 func checkSlirpFlags(path string) (bool, bool, bool, error) {
@@ -158,13 +184,9 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer errorhandling.CloseQuiet(syncW)
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
-	apiSocket := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
 	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
 	cmdArgs := []string{}
-	if havePortMapping {
-		cmdArgs = append(cmdArgs, "--api-socket", apiSocket)
-	}
 	dhp, mtu, sandbox, err := checkSlirpFlags(path)
 	if err != nil {
 		return errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
@@ -185,15 +207,19 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	// -e, --exit-fd=FD specify the FD for terminating slirp4netns
 	// -r, --ready-fd=FD specify the FD to write to when the initialization steps are finished
 	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4")
+	netnsPath := ""
 	if !ctr.config.PostConfigureNetNS {
 		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
 		if err != nil {
 			return errors.Wrapf(err, "failed to create rootless network sync pipe")
 		}
-		cmdArgs = append(cmdArgs, "--netns-type=path", ctr.state.NetNS.Path(), "tap0")
+		netnsPath = ctr.state.NetNS.Path()
+		cmdArgs = append(cmdArgs, "--netns-type=path", netnsPath, "tap0")
 	} else {
 		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
 		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
+		netnsPath = fmt.Sprintf("/proc/%d/ns/net", ctr.state.PID)
+		// we don't use --netns-path here (unavailable for slirp4netns < v0.4)
 		cmdArgs = append(cmdArgs, fmt.Sprintf("%d", ctr.state.PID), "tap0")
 	}
 
@@ -229,15 +255,31 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	}
 	defer func() {
 		if err := cmd.Process.Release(); err != nil {
-			logrus.Errorf("unable to release comman process: %q", err)
+			logrus.Errorf("unable to release command process: %q", err)
 		}
 	}()
 
+	if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
+		return err
+	}
+
+	if havePortMapping {
+		return r.setupRootlessPortMapping(ctr, netnsPath)
+	}
+	return nil
+}
+
+func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout time.Duration) error {
+	prog := filepath.Base(cmd.Path)
+	if len(cmd.Args) > 0 {
+		prog = cmd.Args[0]
+	}
 	b := make([]byte, 16)
 	for {
-		if err := syncR.SetDeadline(time.Now().Add(1 * time.Second)); err != nil {
-			return errors.Wrapf(err, "error setting slirp4netns pipe timeout")
+		if err := syncR.SetDeadline(time.Now().Add(timeout)); err != nil {
+			return errors.Wrapf(err, "error setting %s pipe timeout", prog)
 		}
+		// FIXME: return err as soon as proc exits, without waiting for timeout
 		if _, err := syncR.Read(b); err == nil {
 			break
 		} else {
@@ -246,7 +288,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 				var status syscall.WaitStatus
 				pid, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
 				if err != nil {
-					return errors.Wrapf(err, "failed to read slirp4netns process status")
+					return errors.Wrapf(err, "failed to read %s process status", prog)
 				}
 				if pid != cmd.Process.Pid {
 					continue
@@ -258,100 +300,95 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 					}
 					logContent, err := ioutil.ReadAll(logFile)
 					if err != nil {
-						return errors.Wrapf(err, "slirp4netns failed")
+						return errors.Wrapf(err, "%s failed", prog)
 					}
-					return errors.Errorf("slirp4netns failed: %q", logContent)
+					return errors.Errorf("%s failed: %q", prog, logContent)
 				}
 				if status.Signaled() {
-					return errors.New("slirp4netns killed by signal")
+					return errors.Errorf("%s killed by signal", prog)
 				}
 				continue
 			}
-			return errors.Wrapf(err, "failed to read from slirp4netns sync pipe")
+			return errors.Wrapf(err, "failed to read from %s sync pipe", prog)
+		}
+	}
+	return nil
+}
+
+func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (err error) {
+	syncR, syncW, err := os.Pipe()
+	if err != nil {
+		return errors.Wrapf(err, "failed to open pipe")
+	}
+	defer errorhandling.CloseQuiet(syncR)
+	defer errorhandling.CloseQuiet(syncW)
+
+	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("rootlessport-%s.log", ctr.config.ID))
+	logFile, err := os.Create(logPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open rootlessport log file %s", logPath)
+	}
+	defer logFile.Close()
+	// Unlink immediately the file so we won't need to worry about cleaning it up later.
+	// It is still accessible through the open fd logFile.
+	if err := os.Remove(logPath); err != nil {
+		return errors.Wrapf(err, "delete file %s", logPath)
+	}
+
+	if !ctr.config.PostConfigureNetNS {
+		ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
+		if err != nil {
+			return errors.Wrapf(err, "failed to create rootless port sync pipe")
 		}
 	}
 
-	if havePortMapping {
-		const pidWaitTimeout = 60 * time.Second
-		chWait := make(chan error)
-		go func() {
-			interval := 25 * time.Millisecond
-			for i := time.Duration(0); i < pidWaitTimeout; i += interval {
-				// Check if the process is still running.
-				var status syscall.WaitStatus
-				pid, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
-				if err != nil {
-					break
-				}
-				if pid != cmd.Process.Pid {
-					continue
-				}
-				if status.Exited() || status.Signaled() {
-					chWait <- fmt.Errorf("slirp4netns exited with status %d", status.ExitStatus())
-				}
-				time.Sleep(interval)
-			}
-		}()
-		defer close(chWait)
-
-		// wait that API socket file appears before trying to use it.
-		if _, err := WaitForFile(apiSocket, chWait, pidWaitTimeout*time.Millisecond); err != nil {
-			return errors.Wrapf(err, "waiting for slirp4nets to create the api socket file %s", apiSocket)
-		}
-
-		// for each port we want to add we need to open a connection to the slirp4netns control socket
-		// and send the add_hostfwd command.
-		for _, i := range ctr.config.PortMappings {
-			conn, err := net.Dial("unix", apiSocket)
-			if err != nil {
-				return errors.Wrapf(err, "cannot open connection to %s", apiSocket)
-			}
-			defer func() {
-				if err := conn.Close(); err != nil {
-					logrus.Errorf("unable to close connection: %q", err)
-				}
-			}()
-			hostIP := i.HostIP
-			if hostIP == "" {
-				hostIP = "0.0.0.0"
-			}
-			cmd := slirp4netnsCmd{
-				Execute: "add_hostfwd",
-				Args: slirp4netnsCmdArg{
-					Proto:     i.Protocol,
-					HostAddr:  hostIP,
-					HostPort:  i.HostPort,
-					GuestPort: i.ContainerPort,
-				},
-			}
-			// create the JSON payload and send it.  Mark the end of request shutting down writes
-			// to the socket, as requested by slirp4netns.
-			data, err := json.Marshal(&cmd)
-			if err != nil {
-				return errors.Wrapf(err, "cannot marshal JSON for slirp4netns")
-			}
-			if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", data))); err != nil {
-				return errors.Wrapf(err, "cannot write to control socket %s", apiSocket)
-			}
-			if err := conn.(*net.UnixConn).CloseWrite(); err != nil {
-				return errors.Wrapf(err, "cannot shutdown the socket %s", apiSocket)
-			}
-			buf := make([]byte, 2048)
-			readLength, err := conn.Read(buf)
-			if err != nil {
-				return errors.Wrapf(err, "cannot read from control socket %s", apiSocket)
-			}
-			// if there is no 'error' key in the received JSON data, then the operation was
-			// successful.
-			var y map[string]interface{}
-			if err := json.Unmarshal(buf[0:readLength], &y); err != nil {
-				return errors.Wrapf(err, "error parsing error status from slirp4netns")
-			}
-			if e, found := y["error"]; found {
-				return errors.Errorf("error from slirp4netns while setting up port redirection: %v", e)
-			}
-		}
+	cfg := rootlessport.Config{
+		Mappings:  ctr.config.PortMappings,
+		NetNSPath: netnsPath,
+		ExitFD:    3,
+		ReadyFD:   4,
+		TmpDir:    ctr.runtime.config.TmpDir,
 	}
+	cfgJSON, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	cfgR := bytes.NewReader(cfgJSON)
+	var stdout bytes.Buffer
+	cmd := exec.Command(fmt.Sprintf("/proc/%d/exe", os.Getpid()))
+	cmd.Args = []string{rootlessport.ReexecKey}
+	// Leak one end of the pipe in rootlessport process, the other will be sent to conmon
+
+	if ctr.rootlessPortSyncR != nil {
+		defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
+	}
+
+	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessPortSyncR, syncW)
+	cmd.Stdin = cfgR
+	// stdout is for human-readable error, stderr is for debug log
+	cmd.Stdout = &stdout
+	cmd.Stderr = io.MultiWriter(logFile, &logrusDebugWriter{"rootlessport: "})
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+	if err := cmd.Start(); err != nil {
+		return errors.Wrapf(err, "failed to start rootlessport process")
+	}
+	defer func() {
+		if err := cmd.Process.Release(); err != nil {
+			logrus.Errorf("unable to release rootlessport process: %q", err)
+		}
+	}()
+	if err := waitForSync(syncR, cmd, logFile, 3*time.Second); err != nil {
+		stdoutStr := stdout.String()
+		if stdoutStr != "" {
+			// err contains full debug log and too verbose, so return stdoutStr
+			logrus.Debug(err)
+			return errors.Errorf("failed to expose ports via rootlessport: %q", stdoutStr)
+		}
+		return err
+	}
+	logrus.Debug("rootlessport is ready")
 	return nil
 }
 
@@ -433,7 +470,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
 	// rootless containers do not use the CNI plugin
-	if !rootless.IsRootless() {
+	if !rootless.IsRootless() && ctr.config.NetMode != "slirp4netns" {
 		var requestedIP net.IP
 		if ctr.requestedIP != nil {
 			requestedIP = ctr.requestedIP
@@ -443,7 +480,16 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 			requestedIP = ctr.config.StaticIP
 		}
 
-		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
+		var requestedMAC net.HardwareAddr
+		if ctr.requestedMAC != nil {
+			requestedMAC = ctr.requestedMAC
+			// cancel request for a specific MAC in case the container is reused later
+			ctr.requestedMAC = nil
+		} else {
+			requestedMAC = ctr.config.StaticMAC
+		}
+
+		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP, requestedMAC)
 
 		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
 			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
@@ -510,35 +556,112 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	return netStats, err
 }
 
-func (c *Container) getContainerNetworkInfo(data *InspectContainerData) *InspectContainerData {
-	if c.state.NetNS != nil && len(c.state.NetworkStatus) > 0 {
-		// Report network settings from the first pod network
-		result := c.state.NetworkStatus[0]
-		// Go through our IP addresses
-		for _, ctrIP := range result.IPs {
-			ipWithMask := ctrIP.Address.String()
-			splitIP := strings.Split(ipWithMask, "/")
-			mask, _ := strconv.Atoi(splitIP[1])
-			if ctrIP.Version == "4" {
-				data.NetworkSettings.IPAddress = splitIP[0]
-				data.NetworkSettings.IPPrefixLen = mask
-				data.NetworkSettings.Gateway = ctrIP.Gateway.String()
-			} else {
-				data.NetworkSettings.GlobalIPv6Address = splitIP[0]
-				data.NetworkSettings.GlobalIPv6PrefixLen = mask
-				data.NetworkSettings.IPv6Gateway = ctrIP.Gateway.String()
-			}
+// Produce an InspectNetworkSettings containing information on the container
+// network.
+func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
+	settings := new(InspectNetworkSettings)
+	settings.Ports = []ocicni.PortMapping{}
+	if c.config.PortMappings != nil {
+		// TODO: This may not be safe.
+		settings.Ports = c.config.PortMappings
+	}
+
+	// We can't do more if the network is down.
+	if c.state.NetNS == nil {
+		return settings, nil
+	}
+
+	// Set network namespace path
+	settings.SandboxKey = c.state.NetNS.Path()
+
+	// If this is empty, we're probably slirp4netns
+	if len(c.state.NetworkStatus) == 0 {
+		return settings, nil
+	}
+
+	// If we have CNI networks - handle that here
+	if len(c.config.Networks) > 0 {
+		if len(c.config.Networks) != len(c.state.NetworkStatus) {
+			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI networks but have information on %d networks", len(c.config.Networks), len(c.state.NetworkStatus))
 		}
 
-		// Set network namespace path
-		data.NetworkSettings.SandboxKey = c.state.NetNS.Path()
+		settings.Networks = make(map[string]*InspectAdditionalNetwork)
 
-		// Set MAC address of interface linked with network namespace path
-		for _, i := range result.Interfaces {
-			if i.Sandbox == data.NetworkSettings.SandboxKey {
-				data.NetworkSettings.MacAddress = i.Mac
+		// CNI results should be in the same order as the list of
+		// networks we pass into CNI.
+		for index, name := range c.config.Networks {
+			cniResult := c.state.NetworkStatus[index]
+			addedNet := new(InspectAdditionalNetwork)
+			addedNet.NetworkID = name
+
+			basicConfig, err := resultToBasicNetworkConfig(cniResult)
+			if err != nil {
+				return nil, err
 			}
+			addedNet.InspectBasicNetworkConfig = basicConfig
+
+			settings.Networks[name] = addedNet
+		}
+
+		return settings, nil
+	}
+
+	// If not joining networks, we should have at most 1 result
+	if len(c.state.NetworkStatus) > 1 {
+		return nil, errors.Wrapf(define.ErrInternal, "should have at most 1 CNI result if not joining networks, instead got %d", len(c.state.NetworkStatus))
+	}
+
+	if len(c.state.NetworkStatus) == 1 {
+		basicConfig, err := resultToBasicNetworkConfig(c.state.NetworkStatus[0])
+		if err != nil {
+			return nil, err
+		}
+
+		settings.InspectBasicNetworkConfig = basicConfig
+	}
+
+	return settings, nil
+}
+
+// resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
+// result
+func resultToBasicNetworkConfig(result *cnitypes.Result) (InspectBasicNetworkConfig, error) {
+	config := InspectBasicNetworkConfig{}
+
+	for _, ctrIP := range result.IPs {
+		size, _ := ctrIP.Address.Mask.Size()
+		switch {
+		case ctrIP.Version == "4" && config.IPAddress == "":
+			config.IPAddress = ctrIP.Address.IP.String()
+			config.IPPrefixLen = size
+			config.Gateway = ctrIP.Gateway.String()
+			if ctrIP.Interface != nil && *ctrIP.Interface < len(result.Interfaces) && *ctrIP.Interface > 0 {
+				config.MacAddress = result.Interfaces[*ctrIP.Interface].Mac
+			}
+		case ctrIP.Version == "4" && config.IPAddress != "":
+			config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, ctrIP.Address.String())
+			if ctrIP.Interface != nil && *ctrIP.Interface < len(result.Interfaces) && *ctrIP.Interface > 0 {
+				config.AdditionalMacAddresses = append(config.AdditionalMacAddresses, result.Interfaces[*ctrIP.Interface].Mac)
+			}
+		case ctrIP.Version == "6" && config.IPAddress == "":
+			config.GlobalIPv6Address = ctrIP.Address.IP.String()
+			config.GlobalIPv6PrefixLen = size
+			config.IPv6Gateway = ctrIP.Gateway.String()
+		case ctrIP.Version == "6" && config.IPAddress != "":
+			config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, ctrIP.Address.String())
+		default:
+			return config, errors.Wrapf(define.ErrInternal, "unrecognized IP version %q", ctrIP.Version)
 		}
 	}
-	return data
+
+	return config, nil
+}
+
+type logrusDebugWriter struct {
+	prefix string
+}
+
+func (w *logrusDebugWriter) Write(p []byte) (int, error) {
+	logrus.Debugf("%s%s", w.prefix, string(p))
+	return len(p), nil
 }

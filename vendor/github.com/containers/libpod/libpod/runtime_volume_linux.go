@@ -28,7 +28,7 @@ func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) 
 }
 
 // newVolume creates a new empty volume
-func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) (_ *Volume, Err error) {
+func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) (_ *Volume, deferredErr error) {
 	volume, err := newVolume(r)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating volume")
@@ -85,7 +85,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	if err := os.Chown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
 		return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", fullVolPath, volume.config.UID, volume.config.GID)
 	}
-	if err := LabelVolumePath(fullVolPath, true); err != nil {
+	if err := LabelVolumePath(fullVolPath); err != nil {
 		return nil, err
 	}
 	volume.config.MountPoint = fullVolPath
@@ -98,7 +98,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	volume.config.LockID = volume.lock.ID()
 
 	defer func() {
-		if Err != nil {
+		if deferredErr != nil {
 			if err := volume.lock.Free(); err != nil {
 				logrus.Errorf("Error freeing volume lock after failed creation: %v", err)
 			}
@@ -123,6 +123,9 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		}
 		return define.ErrVolumeRemoved
 	}
+
+	v.lock.Lock()
+	defer v.lock.Unlock()
 
 	// Update volume status to pick up a potential removal from state
 	if err := v.update(); err != nil {

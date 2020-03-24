@@ -57,7 +57,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	}
 
 	// only one cnitypes.Result is returned since newPodNetwork sets Networks list empty
-	result = tmp[0]
+	result = tmp[0].Result
 	log.Debugf(ctx, "CNI setup result: %v", result)
 
 	network, err := cnicurrent.GetResult(result)
@@ -116,7 +116,7 @@ func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) (podIPs []string, err error)
 		return nil, fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 	}
 
-	res, err := cnicurrent.GetResult(result[0])
+	res, err := cnicurrent.GetResult(result[0].Result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 	}

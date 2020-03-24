@@ -22,7 +22,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/cyphar/filepath-securejoin"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -84,7 +84,7 @@ func (c *Container) rootFsSize() (int64, error) {
 	return size + layerSize, err
 }
 
-// rwSize Gets the size of the mutable top layer of the container.
+// rwSize gets the size of the mutable top layer of the container.
 func (c *Container) rwSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		var size int64
@@ -103,14 +103,16 @@ func (c *Container) rwSize() (int64, error) {
 		return 0, err
 	}
 
-	// Get the size of the top layer by calculating the size of the diff
-	// between the layer and its parent.  The top layer of a container is
-	// the only RW layer, all others are immutable
-	layer, err := c.runtime.store.Layer(container.LayerID)
+	// The top layer of a container is
+	// the only readable/writeable layer, all others are immutable.
+	rwLayer, err := c.runtime.store.Layer(container.LayerID)
 	if err != nil {
 		return 0, err
 	}
-	return c.runtime.store.DiffSize(layer.Parent, layer.ID)
+
+	// Get the size of the top layer by calculating the size of the diff
+	// between the layer and its parent.
+	return c.runtime.store.DiffSize(rwLayer.Parent, rwLayer.ID)
 }
 
 // bundlePath returns the path to the container's root filesystem - where the OCI spec will be
@@ -337,7 +339,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 	c.newContainerEvent(events.Restart)
 
 	// Increment restart count
-	c.state.RestartCount = c.state.RestartCount + 1
+	c.state.RestartCount += 1
 	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
 	if err := c.save(); err != nil {
 		return false, err
@@ -652,6 +654,11 @@ func (c *Container) removeConmonFiles() error {
 		return errors.Wrapf(err, "error removing container %s ctl file", c.ID())
 	}
 
+	winszFile := filepath.Join(c.bundlePath(), "winsz")
+	if err := os.Remove(winszFile); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing container %s winsz file", c.ID())
+	}
+
 	oomFile := filepath.Join(c.bundlePath(), "oom")
 	if err := os.Remove(oomFile); err != nil && !os.IsNotExist(err) {
 		return errors.Wrapf(err, "error removing container %s OOM file", c.ID())
@@ -714,7 +721,8 @@ func (c *Container) isStopped() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused, nil
+
+	return !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused), nil
 }
 
 // save container state to the database
@@ -906,6 +914,7 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 }
 
 func (c *Container) completeNetworkSetup() error {
+	var outResolvConf []string
 	netDisabled, err := c.NetworkDisabled()
 	if err != nil {
 		return err
@@ -919,7 +928,37 @@ func (c *Container) completeNetworkSetup() error {
 	if c.config.NetMode == "slirp4netns" {
 		return c.runtime.setupRootlessNetNS(c)
 	}
-	return c.runtime.setupNetNS(c)
+	if err := c.runtime.setupNetNS(c); err != nil {
+		return err
+	}
+	state := c.state
+	// collect any dns servers that cni tells us to use (dnsname)
+	for _, cni := range state.NetworkStatus {
+		if cni.DNS.Nameservers != nil {
+			for _, server := range cni.DNS.Nameservers {
+				outResolvConf = append(outResolvConf, fmt.Sprintf("nameserver %s", server))
+			}
+		}
+	}
+	// check if we have a bindmount for resolv.conf
+	resolvBindMount := state.BindMounts["/etc/resolv.conf"]
+	if len(outResolvConf) < 1 || resolvBindMount == "" || len(c.config.NetNsCtr) > 0 {
+		return nil
+	}
+	// read the existing resolv.conf
+	b, err := ioutil.ReadFile(resolvBindMount)
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		// only keep things that don't start with nameserver from the old
+		// resolv.conf file
+		if !strings.HasPrefix(line, "nameserver") {
+			outResolvConf = append([]string{line}, outResolvConf...)
+		}
+	}
+	// write and return
+	return ioutil.WriteFile(resolvBindMount, []byte(strings.Join(outResolvConf, "\n")), 0644)
 }
 
 // Initialize a container, creating it in the runtime
@@ -1052,6 +1091,8 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 	// If we are ContainerStateUnknown, throw an error
 	if c.state.State == define.ContainerStateUnknown {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in an unknown state", c.ID())
+	} else if c.state.State == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot start container %s as it is being removed", c.ID())
 	}
 
 	// If we are running, do nothing
@@ -1121,9 +1162,14 @@ func (c *Container) start() error {
 }
 
 // Internal, non-locking function to stop container
-func (c *Container) stop(timeout uint, all bool) error {
+func (c *Container) stop(timeout uint) error {
 	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
+	// If the container is running in a PID Namespace, then killing the
+	// primary pid is enough to kill the container.  If it is not running in
+	// a pid namespace then the OCI Runtime needs to kill ALL processes in
+	// the containers cgroup in order to make sure the container is stopped.
+	all := !c.hasNamespace(spec.PIDNamespace)
 	// We can't use --all if CGroups aren't present.
 	// Rootless containers with CGroups v1 and NoCgroups are both cases
 	// where this can happen.
@@ -1180,6 +1226,7 @@ func (c *Container) pause() error {
 	}
 
 	if err := c.ociRuntime.PauseContainer(c); err != nil {
+		// TODO when using docker-py there is some sort of race/incompatibility here
 		return err
 	}
 
@@ -1197,6 +1244,7 @@ func (c *Container) unpause() error {
 	}
 
 	if err := c.ociRuntime.UnpauseContainer(c); err != nil {
+		// TODO when using docker-py there is some sort of race/incompatibility here
 		return err
 	}
 
@@ -1217,7 +1265,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 
 	if c.state.State == define.ContainerStateRunning {
 		conmonPID := c.state.ConmonPID
-		if err := c.stop(timeout, false); err != nil {
+		if err := c.stop(timeout); err != nil {
 			return err
 		}
 		// Old versions of conmon have a bug where they create the exit file before
@@ -1236,6 +1284,12 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 					logrus.Debugf("error killing conmon process: %v", err)
 				}
 			}
+		}
+		// Ensure we tear down the container network so it will be
+		// recreated - otherwise, behavior of restart differs from stop
+		// and start
+		if err := c.cleanupNetwork(); err != nil {
+			return err
 		}
 	}
 	defer func() {
@@ -1269,7 +1323,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 // TODO: Add ability to override mount label so we can use this for Mount() too
 // TODO: Can we use this for export? Copying SHM into the export might not be
 // good
-func (c *Container) mountStorage() (_ string, Err error) {
+func (c *Container) mountStorage() (_ string, deferredErr error) {
 	var err error
 	// Container already mounted, nothing to do
 	if c.state.Mounted {
@@ -1290,7 +1344,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 			return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
 		}
 		defer func() {
-			if Err != nil {
+			if deferredErr != nil {
 				if err := c.unmountSHM(c.config.ShmDir); err != nil {
 					logrus.Errorf("Error unmounting SHM for container %s after mount error: %v", c.ID(), err)
 				}
@@ -1307,7 +1361,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 			return "", err
 		}
 		defer func() {
-			if Err != nil {
+			if deferredErr != nil {
 				if err := c.unmount(false); err != nil {
 					logrus.Errorf("Error unmounting container %s after mount error: %v", c.ID(), err)
 				}
@@ -1322,7 +1376,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 			return "", err
 		}
 		defer func() {
-			if Err == nil {
+			if deferredErr == nil {
 				return
 			}
 			vol.lock.Lock()
@@ -1347,6 +1401,9 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		return nil, errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
 	}
 
+	if vol.config.LockID == c.config.LockID {
+		return nil, errors.Wrapf(define.ErrWillDeadlock, "container %s and volume %s share lock ID %d", c.ID(), vol.Name(), c.config.LockID)
+	}
 	vol.lock.Lock()
 	defer vol.lock.Unlock()
 	if vol.needsMount() {
@@ -1360,17 +1417,33 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	}
 	if vol.state.NeedsCopyUp {
 		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
+
+		// Set NeedsCopyUp to false immediately, so we don't try this
+		// again when there are already files copied.
+		vol.state.NeedsCopyUp = false
+		if err := vol.save(); err != nil {
+			return nil, err
+		}
+
+		// If the volume is not empty, we should not copy up.
+		volMount := vol.MountPoint()
+		contents, err := ioutil.ReadDir(volMount)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
+		}
+		if len(contents) > 0 {
+			// The volume is not empty. It was likely modified
+			// outside of Podman. For safety, let's not copy up into
+			// it. Fixes CVE-2020-1726.
+			return vol, nil
+		}
+
 		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
 		}
-		if err := c.copyWithTarFromImage(srcDir, vol.MountPoint()); err != nil && !os.IsNotExist(err) {
+		if err := c.copyWithTarFromImage(srcDir, volMount); err != nil && !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
-		}
-
-		vol.state.NeedsCopyUp = false
-		if err := vol.save(); err != nil {
-			return nil, err
 		}
 	}
 	return vol, nil
@@ -1741,6 +1814,11 @@ func (c *Container) checkReadyForRemoval() error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed without force", c.ID(), c.state.State.String())
 	}
 
+	// Reap exec sessions
+	if err := c.reapExecSessions(); err != nil {
+		return err
+	}
+
 	if len(c.state.ExecSessions) != 0 {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
 	}
@@ -1846,4 +1924,51 @@ func (c *Container) checkExitFile() error {
 
 	// Read the exit file to get our stopped time and exit code.
 	return c.handleExitFile(exitFile, info)
+}
+
+// Reap dead exec sessions
+func (c *Container) reapExecSessions() error {
+	// Instead of saving once per iteration, use a defer to do it once at
+	// the end.
+	var lastErr error
+	needSave := false
+	for id := range c.state.ExecSessions {
+		alive, err := c.ociRuntime.ExecUpdateStatus(c, id)
+		if err != nil {
+			if lastErr != nil {
+				logrus.Errorf("Error reaping exec sessions for container %s: %v", c.ID(), lastErr)
+			}
+			lastErr = err
+			continue
+		}
+		if !alive {
+			// Clean up lingering files and remove the exec session
+			if err := c.ociRuntime.ExecContainerCleanup(c, id); err != nil {
+				return errors.Wrapf(err, "error cleaning up container %s exec session %s files", c.ID(), id)
+			}
+			delete(c.state.ExecSessions, id)
+			needSave = true
+		}
+	}
+	if needSave {
+		if err := c.save(); err != nil {
+			if lastErr != nil {
+				logrus.Errorf("Error reaping exec sessions for container %s: %v", c.ID(), lastErr)
+			}
+			lastErr = err
+		}
+	}
+	return lastErr
+}
+
+func (c *Container) hasNamespace(namespace spec.LinuxNamespaceType) bool {
+	if c.config.Spec == nil || c.config.Spec.Linux == nil {
+		return false
+	}
+	for _, n := range c.config.Spec.Linux.Namespaces {
+		if n.Type == namespace {
+			return true
+		}
+	}
+	return false
 }

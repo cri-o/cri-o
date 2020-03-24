@@ -452,6 +452,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 	var lastErr error
 	var pausePid int
+	foundProcess := false
 
 	for _, path := range paths {
 		if !needNewNamespace {
@@ -502,11 +503,15 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 			}
 
 			pausePid, err = strconv.Atoi(string(b[:n]))
-			if err == nil {
+			if err == nil && unix.Kill(pausePid, 0) == nil {
+				foundProcess = true
 				lastErr = nil
 				break
 			}
 		}
+	}
+	if !foundProcess && pausePidPath != "" {
+		return BecomeRootInUserNS(pausePidPath)
 	}
 	if lastErr != nil {
 		return false, 0, lastErr
@@ -514,6 +519,8 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 	return joinUserAndMountNS(uint(pausePid), pausePidPath)
 }
+
+// ReadMappingsProc parses and returns the ID mappings at the specified path.
 func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
 	file, err := os.Open(path)
 	if err != nil {
