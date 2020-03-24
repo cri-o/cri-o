@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/release/pkg/command"
 	kgit "k8s.io/release/pkg/git"
+	"k8s.io/release/pkg/util"
 )
 
 const (
@@ -19,6 +20,7 @@ const (
 	grep                = "grep"
 	tail                = "tail"
 	releaseBranchPrefix = "release-"
+	dryRunEnv           = "DRY_RUN"
 )
 
 var dryRun bool
@@ -27,7 +29,7 @@ func main() {
 	flag.BoolVar(
 		&dryRun,
 		"dry-run",
-		true,
+		!util.IsEnvSet(dryRunEnv),
 		"do not really push, just do a dry run",
 	)
 	flag.Parse()
@@ -43,6 +45,15 @@ func run() error {
 		return errors.Errorf(
 			"please ensure that %s are available in $PATH",
 			strings.Join([]string{git, grep, tail}, ", "),
+		)
+	}
+
+	if dryRun {
+		logrus.Warnf("Please note that this is only a dry-run and will not "+
+			"result in any real git push to the remote location. "+
+			"To enable a real git push, export the environment "+
+			"variable %s=false",
+			dryRunEnv,
 		)
 	}
 

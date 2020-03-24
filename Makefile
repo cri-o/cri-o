@@ -475,6 +475,9 @@ git-validation: .gopathok ${GIT_VALIDATION}
 docs-validation:
 	$(GO_RUN) -tags "$(BUILDTAGS)" ./test/docs-validation
 
+release-branch-forward:
+	$(GO_RUN) ./scripts/release-branch-forward
+
 .PHONY: \
 	${CRIO_CONFD_DIR} \
 	.explicit_phony \
@@ -496,6 +499,7 @@ docs-validation:
 	nixpkgs \
 	release-bundle \
 	shfmt \
+	release-branch-forward \
 	testunit \
 	testunit-bin \
 	test-images \
