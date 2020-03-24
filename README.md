@@ -1,11 +1,12 @@
 ![CRI-O logo](logo/crio-logo.svg)
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
-[![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg?style=flat-square)](#)
+[![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
 [![CircleCI](https://circleci.com/gh/cri-o/cri-o.svg?style=shield)](https://circleci.com/gh/cri-o/cri-o)
+[![Release Notes](https://img.shields.io/badge/release-notes-blue.svg)](https://cri-o.github.io/cri-o)
 [![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2298/badge)](https://bestpractices.coreinfrastructure.org/projects/2298)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/cri-o/cri-o)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o)](https://goreportcard.com/report/github.com/cri-o/cri-o)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o?ref=badge_shield)
 [![Mentioned in Awesome CRI-O](https://awesome.re/mentioned-badge.svg)](awesome.md)
 
@@ -26,6 +27,9 @@ Key:
 
 * `✓` Changes in main Kubernetes repo about CRI are actively implemented in CRI-O
 * `=` Maintenance is manual, only bugs will be patched.
+
+The release notes for CRI-O are hand-crafted and can be continuously retrieved
+from [our GitHub pages website](https://cri-o.github.io/cri-o).
 
 ## What is the scope of this project?
 
