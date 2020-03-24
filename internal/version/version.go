@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"text/tabwriter"
@@ -14,6 +15,8 @@ import (
 	"github.com/blang/semver"
 	"github.com/google/renameio"
 	"github.com/pkg/errors"
+
+	"github.com/cri-o/cri-o/utils"
 )
 
 // Variables injected during build-time
@@ -32,6 +35,7 @@ type Info struct {
 	GoVersion    string `json:"goVersion,omitempty"`
 	Compiler     string `json:"compiler,omitempty"`
 	Platform     string `json:"platform,omitempty"`
+	Linkmode     string `json:"linkmode,omitempty"`
 }
 
 // ShouldCrioWipe opens the version file, and parses it and the version string
@@ -132,6 +136,7 @@ func Get() *Info {
 		GoVersion:    runtime.Version(),
 		Compiler:     runtime.Compiler,
 		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		Linkmode:     getLinkmode(),
 	}
 }
 
@@ -140,16 +145,32 @@ func (i *Info) String() string {
 	b := strings.Builder{}
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
 
-	fmt.Fprintf(w, "Version:\t%s\n", i.Version)
-	fmt.Fprintf(w, "GitCommit:\t%s\n", i.GitCommit)
-	fmt.Fprintf(w, "GitTreeState:\t%s\n", i.GitTreeState)
-	fmt.Fprintf(w, "BuildDate:\t%s\n", i.BuildDate)
-	fmt.Fprintf(w, "GoVersion:\t%s\n", i.GoVersion)
-	fmt.Fprintf(w, "Compiler:\t%s\n", i.Compiler)
-	fmt.Fprintf(w, "Platform:\t%s", i.Platform)
+	v := reflect.ValueOf(*i)
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		value := v.FieldByName(field.Name).String()
+		fmt.Fprintf(w, "%s:\t%s", field.Name, value)
+		if i+1 < t.NumField() {
+			fmt.Fprintf(w, "\n")
+		}
+	}
 
 	w.Flush()
 	return b.String()
+}
+
+func getLinkmode() string {
+	output, err := utils.ExecCmd("ldd", os.Args[0])
+	if err != nil {
+		return fmt.Sprintf("unknown: %v", err)
+	}
+
+	if strings.Contains(output, "not a dynamic executable") {
+		return "static"
+	}
+
+	return "dynamic"
 }
 
 // JSONString returns the JSON representation of the version info
