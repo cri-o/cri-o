@@ -549,7 +549,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs().Path(), labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, sb.NetNs().Path(), labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
