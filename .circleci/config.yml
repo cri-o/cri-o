@@ -385,12 +385,12 @@ jobs:
           command: scripts/circle-setup
       - restore_cache:
           keys:
-            - v2-lint-{{ checksum "go.sum" }}
+            - v3-lint-{{ checksum "go.sum" }}
       - run:
           name: lint
           command: make lint
       - save_cache:
-          key: v2-lint-{{ checksum "go.sum" }}
+          key: v3-lint-{{ checksum "go.sum" }}
           paths:
             - *gocache
 
