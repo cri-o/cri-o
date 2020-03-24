@@ -595,6 +595,8 @@ github.com/opentracing/opentracing-go/log
 # github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913
 github.com/ostreedev/ostree-go/pkg/glibobject
 github.com/ostreedev/ostree-go/pkg/otbuiltin
+# github.com/pkg/diff v0.0.0-20190930165518-531926345625
+github.com/pkg/diff
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -1246,6 +1248,13 @@ k8s.io/utils/net
 k8s.io/utils/nsenter
 k8s.io/utils/path
 k8s.io/utils/trace
+# mvdan.cc/editorconfig v0.1.1-0.20191109213504-890940e3f00e
+mvdan.cc/editorconfig
+# mvdan.cc/sh/v3 v3.0.2
+## explicit
+mvdan.cc/sh/v3/cmd/shfmt
+mvdan.cc/sh/v3/fileutil
+mvdan.cc/sh/v3/syntax
 # sigs.k8s.io/structured-merge-diff/v3 v3.0.0-20200207200219-5e70324e7c1c
 sigs.k8s.io/structured-merge-diff/v3/value
 # sigs.k8s.io/yaml v1.2.0

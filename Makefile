@@ -54,6 +54,7 @@ GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
+SHFMT := ${BUILD_BIN_PATH}/shfmt
 
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
 	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
@@ -134,6 +135,9 @@ lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} version
 	${GOLANGCI_LINT} linters
 	${GOLANGCI_LINT} run
+
+shfmt: ${SHFMT}
+	${SHFMT} -w -i 4 -d $(shell ${SHFMT} -f . | grep -v vendor/)
 
 bin/pinns:
 	$(MAKE) -C pinns
@@ -257,6 +261,9 @@ ${RELEASE_TOOL}:
 
 ${RELEASE_NOTES}:
 	$(call go-build,./vendor/k8s.io/release/cmd/release-notes)
+
+${SHFMT}:
+	$(call go-build,./vendor/mvdan.cc/sh/v3/cmd/shfmt)
 
 ${GOLANGCI_LINT}:
 	export \
@@ -482,6 +489,7 @@ docs-validation:
 	lint \
 	local-cross \
 	release-bundle \
+	shfmt \
 	testunit \
 	testunit-bin \
 	test-images \
