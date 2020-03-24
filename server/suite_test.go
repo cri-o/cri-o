@@ -174,7 +174,7 @@ var beforeEach = func() {
 	testContainer, err = oci.NewContainer(containerID, "", "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", "", "",
-		&pb.ContainerMetadata{}, sandboxID, false, false,
+		&pb.ContainerMetadata{}, sandboxID, false,
 		false, false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
 

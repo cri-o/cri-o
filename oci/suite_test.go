@@ -40,7 +40,7 @@ func getTestContainer() *oci.Container {
 		map[string]string{"key": "crioAnnotation"},
 		map[string]string{"key": "annotation"},
 		"image", "imageName", "imageRef", &pb.ContainerMetadata{}, "sandbox",
-		false, false, false, false, "", "dir", time.Now(), "")
+		false, false, false, "", "dir", time.Now(), "")
 	Expect(err).To(BeNil())
 	Expect(container).NotTo(BeNil())
 	return container

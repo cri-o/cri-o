@@ -814,7 +814,7 @@ var _ = t.Describe("ContainerServer", func() {
 			container, err := oci.NewContainer(containerID, "", "", "", "",
 				make(map[string]string), make(map[string]string),
 				make(map[string]string), "", "", "",
-				&pb.ContainerMetadata{}, sandboxID, false, false,
+				&pb.ContainerMetadata{}, sandboxID, false,
 				false, false, "", "/invalid", time.Now(), "")
 			Expect(err).To(BeNil())
 
