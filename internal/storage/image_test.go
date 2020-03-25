@@ -2,7 +2,6 @@ package storage_test
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 
 	"github.com/containers/image/v5/copy"
@@ -33,10 +32,13 @@ var _ = t.Describe("Image", func() {
 	var (
 		mockCtrl  *gomock.Controller
 		storeMock *containerstoragemock.MockStore
-	)
 
-	// The system under test
-	var sut storage.ImageServer
+		// The system under test
+		sut storage.ImageServer
+
+		// The empty system context
+		ctx *types.SystemContext
+	)
 
 	// Prepare the system under test
 	BeforeEach(func() {
@@ -44,9 +46,14 @@ var _ = t.Describe("Image", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		storeMock = containerstoragemock.NewMockStore(mockCtrl)
 
+		// Setup the SUT
 		var err error
+		ctx = &types.SystemContext{
+			SystemRegistriesConfPath: t.MustTempFile("registries"),
+		}
+
 		sut, err = storage.GetImageService(
-			context.Background(), nil, storeMock, "docker://",
+			context.Background(), ctx, storeMock, "docker://",
 			[]string{}, []string{testDockerRegistry, testExampleRegistry},
 		)
 		Expect(err).To(BeNil())
@@ -54,6 +61,7 @@ var _ = t.Describe("Image", func() {
 	})
 	AfterEach(func() {
 		mockCtrl.Finish()
+		Expect(os.Remove(ctx.SystemRegistriesConfPath)).To(BeNil())
 	})
 
 	mockGetRef := func() mockSequence {
@@ -149,7 +157,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(nil, testImageName)
+			names, err := sut.ResolveNames(ctx, testImageName)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -168,7 +176,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(nil, imageName)
+			names, err := sut.ResolveNames(ctx, imageName)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -184,7 +192,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(nil, testImageWithTagAndDigest)
+			names, err := sut.ResolveNames(ctx, testImageWithTagAndDigest)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -202,7 +210,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(nil, testNormalizedImageWithTagAndDigest)
+			names, err := sut.ResolveNames(ctx, testNormalizedImageWithTagAndDigest)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -235,7 +243,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(nil, testSHA256)
+			names, err := sut.ResolveNames(ctx, testSHA256)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -251,7 +259,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(nil, "camelCaseName")
+			names, err := sut.ResolveNames(ctx, "camelCaseName")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -266,18 +274,14 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// Create an empty file for the registries config path
-			file, err := ioutil.TempFile(".", "registries")
-			Expect(err).To(BeNil())
-			defer os.Remove(file.Name())
-
 			sut, err := storage.GetImageService(context.Background(),
-				&types.SystemContext{SystemRegistriesConfPath: file.Name()},
-				storeMock, "", []string{}, []string{})
+				ctx, storeMock, "", []string{}, []string{},
+			)
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
 
 			// When
-			names, err := sut.ResolveNames(nil, testImageName)
+			names, err := sut.ResolveNames(ctx, testImageName)
 
 			// Then
 			Expect(err).NotTo(BeNil())
