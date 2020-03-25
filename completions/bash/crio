@@ -29,7 +29,6 @@ h
 --ctr-stop-timeout
 --decryption-keys-path
 --default-capabilities
---default-mounts
 --default-mounts-file
 --default-runtime
 --default-sysctls

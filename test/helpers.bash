@@ -86,9 +86,6 @@ POD_IPV6_CIDR="1100:200::/24"
 POD_IPV6_CIDR_START="1100:200::"
 POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
-CONTAINER_DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID,SETPCAP,NET_BIND_SERVICE,SYS_CHROOT,KILL"
-TEST_SYSCTL=${TEST_SYSCTL:-}
-
 # Make sure we have a copy of the redis:alpine image.
 if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/redis-image
@@ -149,6 +146,16 @@ if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
     fi
 fi
 
+# Make sure we have a copy of the fedora-ping image.
+if ! [ -d "$ARTIFACTS_PATH"/fedora-ping-image ]; then
+    mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
+    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/fedora-ping:latest --export-to=dir:"$ARTIFACTS_PATH"/fedora-ping-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
+        echo "Error pulling quay.io/crio/fedora-ping-image"
+        rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
+        exit 1
+    fi
+fi
+
 function setup_test() {
     TESTDIR=$(mktemp -d)
     RANDOM_CNI_NETWORK=${TESTDIR: -10}
@@ -162,19 +169,17 @@ function setup_test() {
     CONTAINER_EXITS_DIR=$TESTDIR/containers/exits
     CONTAINER_ATTACH_SOCKET_DIR=$TESTDIR/containers
 
-    # Setup default mounts using deprecated --default-mounts flag
-    # should be removed, once the flag is removed
     MOUNT_PATH="$TESTDIR/secrets"
     mkdir ${MOUNT_PATH}
     MOUNT_FILE="${MOUNT_PATH}/test.txt"
     touch ${MOUNT_FILE}
     echo "Testing secrets mounts!" >${MOUNT_FILE}
-    DEFAULT_MOUNTS_OPTS="--default-mounts=${MOUNT_PATH}:/container/path1"
 
     # Setup default secrets mounts
     mkdir $TESTDIR/containers
     touch $TESTDIR/containers/mounts.conf
     echo "$TESTDIR/rhel/secrets:/run/secrets" >$TESTDIR/containers/mounts.conf
+    echo "${MOUNT_PATH}:/container/path1" >>$TESTDIR/containers/mounts.conf
     mkdir -p $TESTDIR/rhel/secrets
     touch $TESTDIR/rhel/secrets/test.txt
     echo "Testing secrets mounts. I am mounted!" >$TESTDIR/rhel/secrets/test.txt
@@ -271,12 +276,6 @@ function setup_crio() {
         apparmor=""
     fi
 
-    if [[ -n "$4" ]]; then
-        capabilities="$4"
-    else
-        capabilities="$CONTAINER_DEFAULT_CAPABILITIES"
-    fi
-
     # Don't forget: copyimg and crio have their own default drivers, so if you override any, you probably need to override them all
     "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=k8s.gcr.io/pause:3.1 --import-from=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json
     "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
@@ -309,7 +308,6 @@ function setup_crio() {
         --cni-default-network "$CNI_DEFAULT_NETWORK" \
         --cni-config-dir "$CRIO_CNI_CONFIG" \
         --cni-plugin-dir "$CRIO_CNI_PLUGIN" $DEVICES $ULIMITS \
-        --default-sysctls "$TEST_SYSCTL" \
         --pinns-path "$PINNS_BINARY_PATH" \
         $OVERRIDE_OPTIONS \
         -c "" \
@@ -624,6 +622,13 @@ function ping_pod_from_pod() {
     echo "$output"
     [ "$status" -eq 0 ]
 
+    # since RHEL kernels don't mirror ipv4.ip_forward sysctl to ipv6, this fails
+    # in such an environment without giving all containers NET_RAW capability
+    # rather than reducing the security of the tests for all cases, skip this check
+    # instead
+    if (grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep " 7"); then
+        return
+    fi
     ipv6=$(parse_pod_ipv6 "$1")
     run crictl exec --sync "$2" ping6 -W 1 -c 2 "$ipv6"
     echo "$output"

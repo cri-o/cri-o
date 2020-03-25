@@ -374,12 +374,10 @@ default_capabilities = [
 	"DAC_OVERRIDE",
 	"FSETID",
 	"FOWNER",
-	"NET_RAW",
 	"SETGID",
 	"SETUID",
 	"SETPCAP",
 	"NET_BIND_SERVICE",
-	"SYS_CHROOT",
 	"KILL",
 ]
 ```

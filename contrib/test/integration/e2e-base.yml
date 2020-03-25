@@ -71,4 +71,7 @@
   command: modprobe br_netfilter
 
 - name: Enable iptables NAT for the bridge
-  command: sysctl -w net.bridge.bridge-nf-call-iptables=1
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: 1
+    state: present

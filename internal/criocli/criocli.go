@@ -146,14 +146,11 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("hooks-dir") {
 		config.HooksDir = ctx.StringSlice("hooks-dir")
 	}
-	if ctx.IsSet("default-mounts") {
-		config.DefaultMounts = ctx.StringSlice("default-mounts")
-	}
 	if ctx.IsSet("default-mounts-file") {
 		config.DefaultMountsFile = ctx.String("default-mounts-file")
 	}
 	if ctx.IsSet("default-capabilities") {
-		config.DefaultCapabilities = strings.Split(ctx.String("default-capabilities"), ",")
+		config.DefaultCapabilities = ctx.StringSlice("default-capabilities")
 	}
 	if ctx.IsSet("default-sysctls") {
 		config.DefaultSysctls = ctx.StringSlice("default-sysctls")
@@ -566,26 +563,23 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   cli.NewStringSlice(defConf.HooksDir...),
 			EnvVars: []string{"CONTAINER_HOOKS_DIR"},
 		},
-		&cli.StringSliceFlag{
-			Name:    "default-mounts",
-			Usage:   fmt.Sprintf("Add one or more default mount paths in the form host:container (deprecated) (default: %q)", defConf.DefaultMounts),
-			EnvVars: []string{"CONTAINER_DEFAULT_MOUNTS"},
-		},
 		&cli.StringFlag{
 			Name:      "default-mounts-file",
 			Usage:     fmt.Sprintf("Path to default mounts file (default: %q)", defConf.DefaultMountsFile),
 			EnvVars:   []string{"CONTAINER_DEFAULT_MOUNTS_FILE"},
 			TakesFile: true,
 		},
-		&cli.StringFlag{
+		&cli.StringSliceFlag{
 			Name:    "default-capabilities",
-			Usage:   fmt.Sprintf("Capabilities to add to the containers (default: %q)", defConf.DefaultCapabilities),
+			Usage:   "Capabilities to add to the containers",
 			EnvVars: []string{"CONTAINER_DEFAULT_CAPABILITIES"},
+			Value:   cli.NewStringSlice(defConf.DefaultCapabilities...),
 		},
 		&cli.StringSliceFlag{
 			Name:    "default-sysctls",
-			Usage:   fmt.Sprintf("Sysctls to add to the containers (default: %q)", defConf.DefaultSysctls),
+			Usage:   "Sysctls to add to the containers",
 			EnvVars: []string{"CONTAINER_DEFAULT_SYSCTLS"},
+			Value:   cli.NewStringSlice(defConf.DefaultSysctls...),
 		},
 		&cli.StringSliceFlag{
 			Name:    "default-ulimits",

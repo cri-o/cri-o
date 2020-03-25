@@ -29,7 +29,6 @@ crio
 [--decryption-keys-path]=[value]
 [--default-capabilities]=[value]
 [--default-mounts-file]=[value]
-[--default-mounts]=[value]
 [--default-runtime]=[value]
 [--default-sysctls]=[value]
 [--default-transport]=[value]
@@ -149,15 +148,13 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--decryption-keys-path**="": Path to load keys for image decryption. (default: /etc/crio/keys/)
 
-**--default-capabilities**="": Capabilities to add to the containers (default: ["CHOWN" "DAC_OVERRIDE" "FSETID" "FOWNER" "NET_RAW" "SETGID" "SETUID" "SETPCAP" "NET_BIND_SERVICE" "SYS_CHROOT" "KILL"])
-
-**--default-mounts**="": Add one or more default mount paths in the form host:container (deprecated) (default: []) (default: [])
+**--default-capabilities**="": Capabilities to add to the containers (default: [CHOWN DAC_OVERRIDE FSETID FOWNER SETGID SETUID SETPCAP NET_BIND_SERVICE KILL])
 
 **--default-mounts-file**="": Path to default mounts file (default: "")
 
 **--default-runtime**="": Default OCI runtime from the runtimes config (default: runc)
 
-**--default-sysctls**="": Sysctls to add to the containers (default: []) (default: [])
+**--default-sysctls**="": Sysctls to add to the containers (default: [])
 
 **--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is (default: docker://)
 
