@@ -120,6 +120,8 @@ help:
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
+	@echo " * 'shfmt' - shell format check and apply diff"
+
 
 # Dummy target for marking pattern rules phony
 .explicit_phony:
