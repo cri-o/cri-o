@@ -87,6 +87,9 @@ type ContainersConfig struct {
 	// Default way to create a cgroup namespace for the container
 	CgroupNS string `toml:"cgroupns"`
 
+	// Default cgroup configuration
+	Cgroups string `toml:"cgroups"`
+
 	// Capabilities to add to all containers.
 	DefaultCapabilities []string `toml:"default_capabilities"`
 
@@ -270,6 +273,10 @@ type EngineConfig struct {
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
 	// running containers without CGroups.
 	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroupv2"`
+
+	// RuntimeSupportsKVM is a list of OCI runtimes that support
+	// KVM separation for conatainers.
+	RuntimeSupportsKVM []string `toml:"runtime_supports_kvm"`
 
 	// SetOptions contains a subset of config options. It's used to indicate if
 	// a given option has either been set by the user or by the parsed
