@@ -185,7 +185,7 @@ func WriteGoroutineStacksToFile(path string) error {
 func GenerateID() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
-		return "", errors.Wrapf(err, "generate ID")
+		return "", errors.Wrap(err, "generate ID")
 	}
 	return hex.EncodeToString(b), nil
 }
@@ -244,7 +244,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	passwdFile := filepath.Join(rundir, "passwd")
 	originPasswdFile, err := securejoin.SecureJoin(rootfs, "/etc/passwd")
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to follow symlinks to passwd file")
+		return "", errors.Wrap(err, "unable to follow symlinks to passwd file")
 	}
 	info, err := os.Stat(originPasswdFile)
 	if err != nil {
@@ -280,10 +280,10 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	}
 	pwd := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", orig, username, uid, gid, username, homedir)
 	if err := ioutil.WriteFile(passwdFile, []byte(pwd), info.Mode()); err != nil {
-		return "", errors.Wrapf(err, "failed to create temporary passwd file")
+		return "", errors.Wrap(err, "failed to create temporary passwd file")
 	}
 	if err := os.Chown(passwdFile, int(passwdUID), int(passwdGID)); err != nil {
-		return "", errors.Wrapf(err, "failed to chown temporary passwd file")
+		return "", errors.Wrap(err, "failed to chown temporary passwd file")
 	}
 
 	return passwdFile, nil

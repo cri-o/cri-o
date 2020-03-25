@@ -21,7 +21,7 @@ func NewFilterHook(filter string) (hook *FilterHook, err error) {
 		custom, err = regexp.Compile(filter)
 		logrus.Debugf("Using log filter: %q", custom)
 		if err != nil {
-			return nil, errors.Wrapf(err, "custom log level filter does not compile")
+			return nil, errors.Wrap(err, "custom log level filter does not compile")
 		}
 	}
 

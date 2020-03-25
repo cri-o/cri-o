@@ -125,7 +125,7 @@ Download the static release bundle via our Google Cloud Bucket:
 	if util.IsEnvSet("CIRCLECI") && !util.IsEnvSet("CIRCLE_PULL_REQUEST") {
 		currentBranch, err := repo.CurrentBranch()
 		if err != nil {
-			return errors.Wrapf(err, "get current branch")
+			return errors.Wrap(err, "get current branch")
 		}
 
 		logrus.Infof("Checking out branch %s", branch)

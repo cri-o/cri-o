@@ -671,15 +671,15 @@ func updateContainerStatusFromExitFile(c *Container) error {
 	}
 	c.state.Finished, err = getFinishedTime(fi)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get finished time")
+		return errors.Wrap(err, "failed to get finished time")
 	}
 	statusCodeStr, err := ioutil.ReadFile(exitFilePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read exit file")
+		return errors.Wrap(err, "failed to read exit file")
 	}
 	statusCode, err := strconv.Atoi(string(statusCodeStr))
 	if err != nil {
-		return errors.Wrapf(err, "status code conversion failed")
+		return errors.Wrap(err, "status code conversion failed")
 	}
 	c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
 	return nil

@@ -103,7 +103,7 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (stats *Conta
 
 	cgroupStats, err := cg.Stat()
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to obtain cgroup stats")
+		return nil, errors.Wrap(err, "unable to obtain cgroup stats")
 	}
 
 	stats = &ContainerStats{}
@@ -211,7 +211,7 @@ func getTotalInactiveFile() (uint64, error) {
 				strings.TrimPrefix(scanner.Text(), totalInactiveFilePrefix),
 			)
 			if err != nil {
-				return 0, errors.Wrapf(err, "unable to parse total inactive file value")
+				return 0, errors.Wrap(err, "unable to parse total inactive file value")
 			}
 			return uint64(val), nil
 		}

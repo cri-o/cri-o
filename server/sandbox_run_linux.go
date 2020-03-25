@@ -46,7 +46,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sbox := sandbox.New(ctx)
 	if err := sbox.SetConfig(req.GetConfig()); err != nil {
-		return nil, errors.Wrapf(err, "setting sandbox config")
+		return nil, errors.Wrap(err, "setting sandbox config")
 	}
 
 	pathsToChown := []string{}
@@ -363,7 +363,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, ""); err != nil {
-			return nil, errors.Wrapf(err, "add or replace linux namespace")
+			return nil, errors.Wrap(err, "add or replace linux namespace")
 		}
 		for _, uidmap := range s.defaultIDMappings.UIDs() {
 			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
