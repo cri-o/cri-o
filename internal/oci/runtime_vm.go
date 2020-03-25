@@ -206,7 +206,7 @@ func (r *runtimeVM) startRuntimeDaemon(c *Container) error {
 	// Start the server
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "%s", out)
+		return errors.Wrap(err, string(out))
 	}
 
 	// Retrieve the address from the output
@@ -251,7 +251,7 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 		}
 	}()
 
-	return errors.Wrapf(err, "start container")
+	return errors.Wrap(err, "start container")
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
@@ -286,7 +286,7 @@ func (r *runtimeVM) ExecSyncContainer(c *Container, command []string, timeout in
 	if err != nil {
 		return nil, &ExecSyncError{
 			ExitCode: -1,
-			Err:      errors.Wrapf(err, "ExecSyncContainer failed"),
+			Err:      errors.Wrap(err, "ExecSyncContainer failed"),
 		}
 	}
 
@@ -308,7 +308,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	// Generate a unique execID
 	execID, err := utils.GenerateID()
 	if err != nil {
-		return -1, errors.Wrapf(err, "exec container")
+		return -1, errors.Wrap(err, "exec container")
 	}
 
 	// Create IO fifos

@@ -549,7 +549,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	ctr := container.New(ctx)
 	if err := ctr.SetConfig(req.GetConfig()); err != nil {
-		return nil, errors.Wrapf(err, "setting container config")
+		return nil, errors.Wrap(err, "setting container config")
 	}
 
 	if err := ctr.SetNameAndID(sb.Metadata()); err != nil {

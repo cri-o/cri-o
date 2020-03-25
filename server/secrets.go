@@ -137,7 +137,7 @@ func secretMounts(ctx context.Context, defaultMountsPaths []string, mountLabel, 
 
 		data, err := getHostSecretData(hostDir)
 		if err != nil {
-			return nil, errors.Wrapf(err, "getting host secret data failed")
+			return nil, errors.Wrap(err, "getting host secret data failed")
 		}
 		for _, s := range data {
 			if err := s.SaveTo(ctrDirOnHost); err != nil {

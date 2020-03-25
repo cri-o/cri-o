@@ -586,19 +586,19 @@ func (c *Config) Validate(onExecution bool) error {
 	}
 
 	if err := c.RootConfig.Validate(onExecution); err != nil {
-		return errors.Wrapf(err, "validating root config")
+		return errors.Wrap(err, "validating root config")
 	}
 
 	if err := c.RuntimeConfig.Validate(c.SystemContext, onExecution); err != nil {
-		return errors.Wrapf(err, "validating runtime config")
+		return errors.Wrap(err, "validating runtime config")
 	}
 
 	if err := c.NetworkConfig.Validate(onExecution); err != nil {
-		return errors.Wrapf(err, "validating network config")
+		return errors.Wrap(err, "validating network config")
 	}
 
 	if err := c.APIConfig.Validate(onExecution); err != nil {
-		return errors.Wrapf(err, "validating api config")
+		return errors.Wrap(err, "validating api config")
 	}
 
 	if !c.SELinux {
@@ -650,7 +650,7 @@ func (c *RootConfig) Validate(onExecution bool) error {
 			return errors.New("log_dir is not an absolute path")
 		}
 		if err := os.MkdirAll(c.LogDir, 0700); err != nil {
-			return errors.Wrapf(err, "invalid log_dir")
+			return errors.Wrap(err, "invalid log_dir")
 		}
 	}
 
@@ -751,18 +751,18 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	}
 
 	if _, err := c.Sysctls(); err != nil {
-		return errors.Wrapf(err, "invalid default_sysctls")
+		return errors.Wrap(err, "invalid default_sysctls")
 	}
 
 	// check for validation on execution
 	if onExecution {
 		if err := c.ValidateRuntimes(); err != nil {
-			return errors.Wrapf(err, "runtime validation")
+			return errors.Wrap(err, "runtime validation")
 		}
 
 		// Validate the system registries configuration
 		if _, err := sysregistriesv2.GetRegistries(systemContext); err != nil {
-			return errors.Wrapf(err, "invalid registries")
+			return errors.Wrap(err, "invalid registries")
 		}
 
 		// Sort out invalid hooks directories
@@ -779,24 +779,24 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 		// Validate the conmon path
 		if err := c.ValidateConmonPath("conmon"); err != nil {
-			return errors.Wrapf(err, "conmon validation")
+			return errors.Wrap(err, "conmon validation")
 		}
 
 		// Validate the pinns path
 		if err := c.ValidatePinnsPath("pinns"); err != nil {
-			return errors.Wrapf(err, "pinns validation")
+			return errors.Wrap(err, "pinns validation")
 		}
 
 		if err := os.MkdirAll(c.NamespacesDir, 0700); err != nil {
-			return errors.Wrapf(err, "invalid namespaces_dir")
+			return errors.Wrap(err, "invalid namespaces_dir")
 		}
 
 		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
-			return errors.Wrapf(err, "unable to load seccomp profile")
+			return errors.Wrap(err, "unable to load seccomp profile")
 		}
 
 		if err := c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
-			return errors.Wrapf(err, "unable to load AppArmor profile")
+			return errors.Wrap(err, "unable to load AppArmor profile")
 		}
 	}
 
@@ -876,14 +876,14 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 
 		for _, pluginDir := range c.PluginDirs {
 			if err := os.MkdirAll(pluginDir, 0755); err != nil {
-				return errors.Wrapf(err, "invalid plugin_dirs entry")
+				return errors.Wrap(err, "invalid plugin_dirs entry")
 			}
 		}
 		// While the plugin_dir option is being deprecated, we need this check
 		if c.PluginDir != "" {
 			logrus.Warnf("The config field plugin_dir is being deprecated. Please use plugin_dirs instead")
 			if err := os.MkdirAll(c.PluginDir, 0755); err != nil {
-				return errors.Wrapf(err, "invalid plugin_dir entry")
+				return errors.Wrap(err, "invalid plugin_dir entry")
 			}
 			// Append PluginDir to PluginDirs, so from now on we can operate in terms of PluginDirs and not worry
 			// about missing cases.

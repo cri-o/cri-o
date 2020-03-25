@@ -56,7 +56,7 @@ func cgroupv2HasHugetlb() (bool, error) {
 	_cgroupv2HasHugetlbOnce.Do(func() {
 		controllers, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
 		if err != nil {
-			_cgroupv2HasHugetlbErr = errors.Wrapf(err, "read /sys/fs/cgroup/cgroup.controllers")
+			_cgroupv2HasHugetlbErr = errors.Wrap(err, "read /sys/fs/cgroup/cgroup.controllers")
 			return
 		}
 		_cgroupv2HasHugetlb = strings.Contains(string(controllers), "hugetlb")
@@ -121,7 +121,7 @@ func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfi
 				return errors.Errorf("privileged container was configured with a device container path that already exists on the host.")
 			}
 			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error checking if container path exists on host")
+				return errors.Wrap(err, "error checking if container path exists on host")
 			}
 		}
 
