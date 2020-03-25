@@ -22,6 +22,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
@@ -345,6 +346,9 @@ type NetworkConfig struct {
 
 	// PluginDirs is where CNI plugin binaries are stored.
 	PluginDirs []string `toml:"plugin_dirs"`
+
+	// cniPlugin is the internal OCI CNI plugin
+	cniPlugin ocicni.CNIPlugin
 }
 
 // APIConfig represents the "crio.api" TOML config table.
@@ -893,6 +897,15 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 			// thus seamlessly transitioning and depreciating the option
 			c.PluginDir = ""
 		}
+
+		// Init CNI plugin
+		cniPlugin, err := ocicni.InitCNI(
+			c.CNIDefaultNetwork, c.NetworkDir, c.PluginDirs...,
+		)
+		if err != nil {
+			return errors.Wrap(err, "initialize CNI plugin")
+		}
+		c.cniPlugin = cniPlugin
 	}
 
 	return nil
@@ -938,4 +951,9 @@ func (r *RuntimeHandler) ValidateRuntimeType(name string) error {
 func (c *Config) SetLocations(singleConfigPath, dropInConfigDir string) {
 	c.singleConfigPath = singleConfigPath
 	c.dropInConfigDir = dropInConfigDir
+}
+
+// CNIPlugin returns the network configuration CNI plugin
+func (c *NetworkConfig) CNIPlugin() ocicni.CNIPlugin {
+	return c.cniPlugin
 }
