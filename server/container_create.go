@@ -607,10 +607,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	newContainer.SetCreated()
 
-	if err := s.MonitorConmon(newContainer); err != nil {
-		log.Errorf(ctx, "%v", err)
-	}
-
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	resp := &pb.CreateContainerResponse{
 		ContainerId: ctr.ID(),
