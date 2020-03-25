@@ -89,7 +89,11 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 	}
 
 	pinns := cfg.PinnsPath
-	if _, err := exec.Command(pinns, pinnsArgs...).Output(); err != nil {
+	out, err := exec.Command(pinns, pinnsArgs...).CombinedOutput()
+	if len(out) != 0 {
+		logrus.Debugf("pinns output %s", string(out))
+	}
+	if err != nil {
 		// cleanup after ourselves
 		failedUmounts := make([]string, 0)
 		for _, info := range mountedNamespaces {
@@ -98,9 +102,9 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 			}
 		}
 		if len(failedUmounts) != 0 {
-			return nil, fmt.Errorf("failed to cleanup %v after pinns failure %v", failedUmounts, err)
+			return nil, fmt.Errorf("failed to cleanup %v after pinns failure %s %v", failedUmounts, out, err)
 		}
-		return nil, fmt.Errorf("failed to pin namespaces %v: %v", nsTypes, err)
+		return nil, fmt.Errorf("pinning namespaces %v caused %s: %v", nsTypes, out, err)
 	}
 
 	returnedNamespaces := make([]NamespaceIface, 0)

@@ -81,7 +81,7 @@ func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, cfg *conf
 
 	namespaces, err := pinFunc(managedNamespaces, cfg)
 	if err != nil {
-		return typesAndPaths, nil
+		return typesAndPaths, err
 	}
 
 	for _, namespace := range namespaces {
