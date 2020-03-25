@@ -89,7 +89,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l log-journald -d 'Log to sy
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-level -s l -r -d 'Log messages above specified level: trace, debug, info, warn, error, fatal or panic'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-size-max -r -d 'Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l manage-network-ns-lifecycle -d 'Deprecated: this option is being replaced by `manage_ns_lifecycle`, which is described below'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l manage-ns-lifecycle -d 'Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: false)'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l manage-ns-lifecycle -d 'Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: true)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-port -r -d 'Port for the metrics endpoint'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l namespaces-dir -r -d 'The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l no-pivot -d 'If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: false)'

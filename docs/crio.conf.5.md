@@ -204,10 +204,10 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **ctr_stop_timeout**=30
   The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container.
 
-**manage_network_ns_lifecycle**=false
+**manage_network_ns_lifecycle**=true
   **DEPRECATED** this option is being replaced by manage_ns_lifecycle, which is described below.
 
-**manage_ns_lifecycle**=false
+**manage_ns_lifecycle**=true
   Determines whether we pin and remove namespaces and manage their lifecycle
 
 **namespaces_dir**="/var/run/crio/ns"
