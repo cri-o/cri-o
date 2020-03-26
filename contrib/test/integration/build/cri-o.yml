@@ -20,25 +20,15 @@
     dest: "/bin/pinns"
     state: link
 
-- name: install cri-o
-  make:
-    target: install
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
-
 - name: set RestartPolicy in systemd unit appropriate for tests
   lineinfile:
     path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/contrib/systemd/crio.service"
     regexp: '^Restart='
-    line: '^Restart=no'
+    line: 'Restart=no'
 
-- name: install cri-o systemd files
+- name: install cri-o
   make:
-    target: install.systemd
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
-
-- name: install cri-o config
-  make:
-    target: install.config
+    target: install
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
 - name: set manage network ns lifecycle
