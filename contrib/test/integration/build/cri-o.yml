@@ -25,6 +25,12 @@
     target: install
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
+- name: set RestartPolicy in systemd unit appropriate for tests
+  lineinfile:
+    path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/contrib/systemd/crio.service"
+    regexp: '^Restart='
+    line: '^Restart=no'
+
 - name: install cri-o systemd files
   make:
     target: install.systemd
