@@ -35,10 +35,10 @@
 		"batch": "no"
 	},
 	"annotations": {
+		"io.kubernetes.pod.terminationGracePeriod": "88",
 		"owner": "dragon",
 		"daemon": "crio"
 	},
-	"privileged": true,
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,

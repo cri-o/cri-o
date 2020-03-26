@@ -18,6 +18,7 @@ import (
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/rootless"
 	createconfig "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -25,8 +26,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
-	dockermounts "github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/symlink"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -41,6 +41,9 @@ import (
 // A lower value would result in the container failing to start.
 const minMemoryLimit = 12582912
 
+// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
+const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
+
 var (
 	_cgroupv2HasHugetlbOnce sync.Once
 	_cgroupv2HasHugetlb     bool
@@ -53,7 +56,7 @@ func cgroupv2HasHugetlb() (bool, error) {
 	_cgroupv2HasHugetlbOnce.Do(func() {
 		controllers, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
 		if err != nil {
-			_cgroupv2HasHugetlbErr = errors.Wrapf(err, "read /sys/fs/cgroup/cgroup.controllers")
+			_cgroupv2HasHugetlbErr = errors.Wrap(err, "read /sys/fs/cgroup/cgroup.controllers")
 			return
 		}
 		_cgroupv2HasHugetlb = strings.Contains(string(controllers), "hugetlb")
@@ -118,7 +121,7 @@ func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfi
 				return errors.Errorf("privileged container was configured with a device container path that already exists on the host.")
 			}
 			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error checking if container path exists on host")
+				return errors.Wrap(err, "error checking if container path exists on host")
 			}
 		}
 
@@ -450,19 +453,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.SetProcessApparmorProfile(profile)
 	}
 
-	logPath := containerConfig.GetLogPath()
 	sboxLogDir := sandboxConfig.GetLogDirectory()
 	if sboxLogDir == "" {
 		sboxLogDir = sb.LogDir()
 	}
+
+	logPath := containerConfig.GetLogPath()
 	if logPath == "" {
 		logPath = filepath.Join(sboxLogDir, containerID+".log")
-	}
-	if !filepath.IsAbs(logPath) {
-		// XXX: It's not really clear what this should be versus the sbox logDirectory.
-		log.Warnf(ctx, "requested logPath for ctr id %s is a relative path: %s", containerID, logPath)
+	} else {
 		logPath = filepath.Join(sboxLogDir, logPath)
-		log.Warnf(ctx, "logPath from relative path is now absolute: %s", logPath)
 	}
 
 	// Handle https://issues.k8s.io/44043
@@ -529,6 +529,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			cgPath = filepath.Join(parent, scopePrefix+"-"+containerID)
 		}
 		specgen.SetLinuxCgroupsPath(cgPath)
+
+		if t, ok := kubeAnnotations[podTerminationGracePeriodLabel]; ok {
+			// currently only supported by systemd, see
+			// https://github.com/opencontainers/runc/pull/2224
+			if useSystemd {
+				specgen.AddAnnotation("org.systemd.property.TimeoutStopUSec",
+					"uint64 "+t+"000000") // sec to usec
+			}
+		}
 
 		if privileged {
 			specgen.SetupPrivileged(true)
@@ -933,7 +942,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 }
 
 func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
-	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, containerCwd), rootfs)
+	fp, err := securejoin.SecureJoin(rootfs, containerCwd)
 	if err != nil {
 		return err
 	}
@@ -1006,16 +1015,16 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		specgen.AddMount(m)
 	}
 
-	for _, mount := range mounts {
-		dest := mount.GetContainerPath()
+	for _, m := range mounts {
+		dest := m.GetContainerPath()
 		if dest == "" {
 			return nil, nil, fmt.Errorf("mount.ContainerPath is empty")
 		}
 
-		if mount.HostPath == "" {
+		if m.HostPath == "" {
 			return nil, nil, fmt.Errorf("mount.HostPath is empty")
 		}
-		src := filepath.Join(bindMountPrefix, mount.GetHostPath())
+		src := filepath.Join(bindMountPrefix, m.GetHostPath())
 
 		resolvedSrc, err := resolveSymbolicLink(src, bindMountPrefix)
 		if err == nil {
@@ -1029,17 +1038,17 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		}
 
 		options := []string{"rw"}
-		if mount.Readonly {
+		if m.Readonly {
 			options = []string{"ro"}
 		}
 		options = append(options, "rbind")
 
 		// mount propagation
-		mountInfos, err := dockermounts.GetMounts(nil)
+		mountInfos, err := mount.GetMounts()
 		if err != nil {
 			return nil, nil, err
 		}
-		switch mount.GetPropagation() {
+		switch m.GetPropagation() {
 		case pb.MountPropagation_PROPAGATION_PRIVATE:
 			options = append(options, "rprivate")
 			// Since default root propagation in runc is rprivate ignore
@@ -1064,11 +1073,11 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 				}
 			}
 		default:
-			log.Warnf(ctx, "unknown propagation mode for hostPath %q", mount.HostPath)
+			log.Warnf(ctx, "unknown propagation mode for hostPath %q", m.HostPath)
 			options = append(options, "rprivate")
 		}
 
-		if mount.SelinuxRelabel {
+		if m.SelinuxRelabel {
 			if err := securityLabel(src, mountLabel, false); err != nil {
 				return nil, nil, err
 			}
@@ -1077,7 +1086,7 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		volumes = append(volumes, oci.ContainerVolume{
 			ContainerPath: dest,
 			HostPath:      src,
-			Readonly:      mount.Readonly,
+			Readonly:      m.Readonly,
 		})
 
 		ociMounts = append(ociMounts, rspec.Mount{

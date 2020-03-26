@@ -690,16 +690,21 @@ func (r *Repo) PreviousTag(tag, branch string) (string, error) {
 
 // TagsForBranch returns a list of tags for the provided branch sorted by
 // creation date
-func (r *Repo) TagsForBranch(branch string) ([]string, error) {
-	if err := r.Checkout(branch); err != nil {
-		return nil, err
+func (r *Repo) TagsForBranch(branch string) (res []string, err error) {
+	previousBranch, err := r.CurrentBranch()
+	if err != nil {
+		return nil, errors.Wrap(err, "retrieving current branch")
 	}
+	if err := r.Checkout(branch); err != nil {
+		return nil, errors.Wrapf(err, "checking out %s", branch)
+	}
+	defer func() { err = r.Checkout(previousBranch) }()
 
 	status, err := command.NewWithWorkDir(
 		r.Dir(), gitExecutable, "tag", "--sort=-creatordate", "--merged",
 	).RunSilentSuccessOutput()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "retrieving merged tags for branch %s", branch)
 	}
 
 	return strings.Fields(status.Output()), nil

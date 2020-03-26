@@ -35,7 +35,6 @@
   "annotations": {
     "pod": "podsandbox1"
   },
-  "readonly_rootfs": false,
   "log_path": "",
   "stdin": false,
   "stdin_once": false,
@@ -52,6 +51,7 @@
     },
     "security_context": {
       "apparmor_profile": "%VALUE%",
+	  "readonly_rootfs": false,
       "namespace_options": {
         "pid": 1
       },

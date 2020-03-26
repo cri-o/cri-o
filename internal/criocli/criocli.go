@@ -146,14 +146,11 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("hooks-dir") {
 		config.HooksDir = ctx.StringSlice("hooks-dir")
 	}
-	if ctx.IsSet("default-mounts") {
-		config.DefaultMounts = ctx.StringSlice("default-mounts")
-	}
 	if ctx.IsSet("default-mounts-file") {
 		config.DefaultMountsFile = ctx.String("default-mounts-file")
 	}
 	if ctx.IsSet("default-capabilities") {
-		config.DefaultCapabilities = strings.Split(ctx.String("default-capabilities"), ",")
+		config.DefaultCapabilities = ctx.StringSlice("default-capabilities")
 	}
 	if ctx.IsSet("default-sysctls") {
 		config.DefaultSysctls = ctx.StringSlice("default-sysctls")
@@ -169,6 +166,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 	if ctx.IsSet("log-journald") {
 		config.LogToJournald = ctx.Bool("log-journald")
+	}
+	if ctx.IsSet("cni-default-network") {
+		config.CNIDefaultNetwork = ctx.String("cni-default-network")
 	}
 	if ctx.IsSet("cni-config-dir") {
 		config.NetworkDir = ctx.String("cni-config-dir")
@@ -293,10 +293,10 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
     configuration file named '00-default' has a lower priority than a file
     named '01-my-overwrite'.
     The global config file, provided via '--config,-c' or per default in
-	%s, always has a lower priority than the files in the directory specified
-	by '--config-dir,-d'.
-	Beside that, provided command line parameters still have a higher priority
-	than any configuration file.`, libconfig.CrioConfigPath),
+    %s, always has a lower priority than the files in the directory specified
+    by '--config-dir,-d'.
+    Besides that, provided command line parameters have a higher priority
+    than any configuration file.`, libconfig.CrioConfigPath),
 			EnvVars:   []string{"CONTAINER_CONFIG_DIR"},
 			TakesFile: true,
 		},
@@ -308,28 +308,31 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    "conmon-cgroup",
-			Usage:   fmt.Sprintf("cgroup to be used for conmon process (default: %q)", defConf.ConmonCgroup),
+			Usage:   "cgroup to be used for conmon process",
+			Value:   defConf.ConmonCgroup,
 			EnvVars: []string{"CONTAINER_CONMON_CGROUP"},
 		},
 		&cli.StringFlag{
 			Name:      "listen",
-			Usage:     fmt.Sprintf("Path to the CRI-O socket (default: %q)", defConf.Listen),
+			Usage:     "Path to the CRI-O socket",
+			Value:     defConf.Listen,
 			EnvVars:   []string{"CONTAINER_LISTEN"},
 			TakesFile: true,
 		},
 		&cli.StringFlag{
 			Name:    "stream-address",
-			Usage:   fmt.Sprintf("Bind address for streaming socket (default: %q)", defConf.StreamAddress),
+			Usage:   "Bind address for streaming socket",
+			Value:   defConf.StreamAddress,
 			EnvVars: []string{"CONTAINER_STREAM_ADDRESS"},
 		},
 		&cli.StringFlag{
 			Name:    "stream-port",
-			Usage:   fmt.Sprintf("Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number. (default: %q)", defConf.StreamPort),
+			Usage:   "Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number.",
+			Value:   defConf.StreamPort,
 			EnvVars: []string{"CONTAINER_STREAM_PORT"},
 		},
 		&cli.StringFlag{
 			Name:      "log",
-			Value:     "",
 			Usage:     "Set the log file path where internal debug information is written",
 			EnvVars:   []string{"CONTAINER_LOG"},
 			TakesFile: true,
@@ -354,19 +357,21 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:      "log-dir",
-			Value:     "",
 			Usage:     "Default log directory where all logs will go unless directly specified by the kubelet",
+			Value:     defConf.LogDir,
 			EnvVars:   []string{"CONTAINER_LOG_DIR"},
 			TakesFile: true,
 		},
 		&cli.StringFlag{
 			Name:    "pause-command",
-			Usage:   fmt.Sprintf("Path to the pause executable in the pause image (default: %q)", defConf.PauseCommand),
+			Usage:   "Path to the pause executable in the pause image",
+			Value:   defConf.PauseCommand,
 			EnvVars: []string{"CONTAINER_PAUSE_COMMAND"},
 		},
 		&cli.StringFlag{
 			Name:    "pause-image",
-			Usage:   fmt.Sprintf("Image which contains the pause executable (default: %q)", defConf.PauseImage),
+			Usage:   "Image which contains the pause executable",
+			Value:   defConf.PauseImage,
 			EnvVars: []string{"CONTAINER_PAUSE_IMAGE"},
 		},
 		&cli.StringFlag{
@@ -390,13 +395,15 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.StringFlag{
 			Name:      "root",
 			Aliases:   []string{"r"},
-			Usage:     fmt.Sprintf("The CRI-O root directory (default: %q)", defConf.Root),
+			Usage:     "The CRI-O root directory",
+			Value:     defConf.Root,
 			EnvVars:   []string{"CONTAINER_ROOT"},
 			TakesFile: true,
 		},
 		&cli.StringFlag{
 			Name:      "runroot",
-			Usage:     fmt.Sprintf("The CRI-O state directory (default: %q)", defConf.RunRoot),
+			Usage:     "The CRI-O state directory",
+			Value:     defConf.RunRoot,
 			EnvVars:   []string{"CONTAINER_RUNROOT"},
 			TakesFile: true,
 		},
@@ -435,12 +442,14 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    "default-transport",
-			Usage:   fmt.Sprintf("A prefix to prepend to image names that cannot be pulled as-is (default: %q)", defConf.DefaultTransport),
+			Usage:   "A prefix to prepend to image names that cannot be pulled as-is",
+			Value:   defConf.DefaultTransport,
 			EnvVars: []string{"CONTAINER_DEFAULT_TRANSPORT"},
 		},
 		&cli.StringFlag{
 			Name:  "decryption-keys-path",
-			Usage: fmt.Sprintf("Path to load keys for image decryption. (default: %q)", defConf.DecryptionKeysPath),
+			Usage: "Path to load keys for image decryption.",
+			Value: defConf.DecryptionKeysPath,
 		},
 		// XXX: DEPRECATED
 		&cli.StringFlag{
@@ -451,7 +460,8 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    "default-runtime",
-			Usage:   fmt.Sprintf("Default OCI runtime from the runtimes config (default: %q)", defConf.DefaultRuntime),
+			Usage:   "Default OCI runtime from the runtimes config",
+			Value:   defConf.DefaultRuntime,
 			EnvVars: []string{"CONTAINER_DEFAULT_RUNTIME"},
 		},
 		&cli.StringSliceFlag{
@@ -467,7 +477,8 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    "apparmor-profile",
-			Usage:   fmt.Sprintf("Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation. (default: %q)", defConf.ApparmorProfile),
+			Usage:   "Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation.",
+			Value:   defConf.ApparmorProfile,
 			EnvVars: []string{"CONTAINER_APPARMOR_PROFILE"},
 		},
 		&cli.BoolFlag{
@@ -477,7 +488,8 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    "cgroup-manager",
-			Usage:   fmt.Sprintf("cgroup manager (cgroupfs or systemd) (default: %q)", defConf.CgroupManager),
+			Usage:   "cgroup manager (cgroupfs or systemd)",
+			Value:   defConf.CgroupManager,
 			EnvVars: []string{"CONTAINER_CGROUP_MANAGER"},
 		},
 		&cli.Int64Flag{
@@ -498,8 +510,15 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars: []string{"CONTAINER_LOG_JOURNALD"},
 		},
 		&cli.StringFlag{
+			Name:    "cni-default-network",
+			Usage:   `Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.`,
+			Value:   defConf.CNIDefaultNetwork,
+			EnvVars: []string{"CONTAINER_CNI_DEFAULT_NETWORK"},
+		},
+		&cli.StringFlag{
 			Name:      "cni-config-dir",
-			Usage:     fmt.Sprintf("CNI configuration files directory (default: %q)", defConf.NetworkDir),
+			Usage:     "CNI configuration files directory",
+			Value:     defConf.NetworkDir,
 			EnvVars:   []string{"CONTAINER_CNI_CONFIG_DIR"},
 			TakesFile: true,
 		},
@@ -522,7 +541,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringSliceFlag{
 			Name: "hooks-dir",
-			Usage: fmt.Sprintf("Set the OCI hooks directory path (may be set multiple times) (default: %q)", defConf.HooksDir) + `
+			Usage: `Set the OCI hooks directory path (may be set multiple times)
     If one of the directories does not exist, then CRI-O will automatically
     skip them.
     Each '\*.json' file in the path configures a hook for CRI-O
@@ -541,12 +560,8 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
     For the bind-mount conditions, only mounts explicitly requested by
     Kubernetes configuration are considered. Bind mounts that CRI-O
     inserts by default (e.g. '/dev/shm') are not considered.`,
+			Value:   cli.NewStringSlice(defConf.HooksDir...),
 			EnvVars: []string{"CONTAINER_HOOKS_DIR"},
-		},
-		&cli.StringSliceFlag{
-			Name:    "default-mounts",
-			Usage:   fmt.Sprintf("Add one or more default mount paths in the form host:container (deprecated) (default: %q)", defConf.DefaultMounts),
-			EnvVars: []string{"CONTAINER_DEFAULT_MOUNTS"},
 		},
 		&cli.StringFlag{
 			Name:      "default-mounts-file",
@@ -554,15 +569,17 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars:   []string{"CONTAINER_DEFAULT_MOUNTS_FILE"},
 			TakesFile: true,
 		},
-		&cli.StringFlag{
+		&cli.StringSliceFlag{
 			Name:    "default-capabilities",
-			Usage:   fmt.Sprintf("Capabilities to add to the containers (default: %q)", defConf.DefaultCapabilities),
+			Usage:   "Capabilities to add to the containers",
 			EnvVars: []string{"CONTAINER_DEFAULT_CAPABILITIES"},
+			Value:   cli.NewStringSlice(defConf.DefaultCapabilities...),
 		},
 		&cli.StringSliceFlag{
 			Name:    "default-sysctls",
-			Usage:   fmt.Sprintf("Sysctls to add to the containers (default: %q)", defConf.DefaultSysctls),
+			Usage:   "Sysctls to add to the containers",
 			EnvVars: []string{"CONTAINER_DEFAULT_SYSCTLS"},
+			Value:   cli.NewStringSlice(defConf.DefaultSysctls...),
 		},
 		&cli.StringSliceFlag{
 			Name:    "default-ulimits",
@@ -627,13 +644,14 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:      "container-attach-socket-dir",
-			Usage:     fmt.Sprintf("Path to directory for container attach sockets (default: %q)", defConf.ContainerAttachSocketDir),
+			Usage:     "Path to directory for container attach sockets",
+			Value:     defConf.ContainerAttachSocketDir,
 			EnvVars:   []string{"CONTAINER_ATTACH_SOCKET_DIR"},
 			TakesFile: true,
 		},
 		&cli.StringFlag{
-			Name:      "container-exits-dir",
-			Usage:     fmt.Sprintf("Path to directory in which container exit files are written to by conmon (default: %q)", defConf.ContainerExitsDir),
+			Name:  "container-exits-dir",
+			Usage: "Path to directory in which container exit files are written to by conmon", Value: defConf.ContainerExitsDir,
 			EnvVars:   []string{"CONTAINER_EXITS_DIR"},
 			TakesFile: true,
 		},
@@ -672,7 +690,8 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    "namespaces-dir",
-			Usage:   fmt.Sprintf("The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: %q)", defConf.NamespacesDir),
+			Usage:   "The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true",
+			Value:   defConf.NamespacesDir,
 			EnvVars: []string{"CONTAINER_NAMESPACES_DIR"},
 		},
 		&cli.BoolFlag{
@@ -713,7 +732,8 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:      "version-file",
-			Usage:     fmt.Sprintf("Location for CRI-O to lay down the version file (default: %s)", defConf.VersionFile),
+			Usage:     "Location for CRI-O to lay down the version file",
+			Value:     defConf.VersionFile,
 			EnvVars:   []string{"CONTAINER_VERSION_FILE"},
 			TakesFile: true,
 		},

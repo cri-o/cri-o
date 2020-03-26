@@ -1,11 +1,12 @@
 ![CRI-O logo](logo/crio-logo.svg)
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
-[![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg?style=flat-square)](#)
+[![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
 [![CircleCI](https://circleci.com/gh/cri-o/cri-o.svg?style=shield)](https://circleci.com/gh/cri-o/cri-o)
+[![Release Notes](https://img.shields.io/badge/release-notes-blue.svg)](https://cri-o.github.io/cri-o)
 [![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2298/badge)](https://bestpractices.coreinfrastructure.org/projects/2298)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o?style=flat-square)](https://goreportcard.com/report/github.com/cri-o/cri-o)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o)](https://goreportcard.com/report/github.com/cri-o/cri-o)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o?ref=badge_shield)
 [![Mentioned in Awesome CRI-O](https://awesome.re/mentioned-badge.svg)](awesome.md)
 
@@ -26,6 +27,9 @@ Key:
 
 * `✓` Changes in main Kubernetes repo about CRI are actively implemented in CRI-O
 * `=` Maintenance is manual, only bugs will be patched.
+
+The release notes for CRI-O are hand-crafted and can be continuously retrieved
+from [our GitHub pages website](https://cri-o.github.io/cri-o).
 
 ## What is the scope of this project?
 
@@ -136,9 +140,19 @@ sudo apt-get install cri-o-[REQUIRED VERSION]
 
 Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
 guide](tutorials/setup.md). We also provide a way in building [static binaries
-of `CRI-O`](tutorials/setup.md#static-builds) via nix.
+of `CRI-O`](tutorials/setup.md#static-builds) via nix. Those binaries are
+available for every successfully built commit on our [Google Cloud Storage
+Bucket][bucket]. This means that the latest master commit can be downloaded via:
 
-### Running CRI-O
+[bucket]: https://console.cloud.google.com/storage/browser/k8s-conform-cri-o/artifacts
+
+```shell
+> curl -f https://storage.googleapis.com/k8s-conform-cri-o/artifacts/crio-$(git ls-remote https://github.com/cri-o/cri-o master | cut -c1-9).tar.gz -o crio.tar.gz
+```
+
+### Running kubernetes with CRI-O
+
+You need to start `CRI-O` first (tutorials/setup.md#starting-cri-o).
 
 You can run a local version of Kubernetes with `CRI-O` using `local-up-cluster.sh`:
 
@@ -172,7 +186,7 @@ $ sudo curl -v --unix-socket /var/run/crio/crio.sock http://localhost/info | jq
 {
   "storage_driver": "btrfs",
   "storage_root": "/var/lib/containers/storage",
-  "cgroup_driver": "cgroupfs",
+  "cgroup_driver": "systemd",
   "default_id_mappings": { ... }
 }
 ```
@@ -191,7 +205,7 @@ line tool. It supports all API endpoints via the dedicated subcommands `config`,
 
 ```
 $ sudo go run cmd/crio-status/main.go info
-cgroup driver: cgroupfs
+cgroup driver: systemd
 storage driver: btrfs
 storage root: /var/lib/containers/storage
 default GID mappings (format <container>:<host>:<size>):

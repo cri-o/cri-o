@@ -1,6 +1,9 @@
 module github.com/grpc-ecosystem/go-grpc-middleware
 
 require (
+	github.com/go-kit/kit v0.9.0
+	github.com/go-logfmt/logfmt v0.4.0 // indirect
+	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.2
 	github.com/opentracing/opentracing-go v1.1.0
@@ -15,3 +18,5 @@ require (
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 // indirect
 	google.golang.org/grpc v1.19.0
 )
+
+go 1.13

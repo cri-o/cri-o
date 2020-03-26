@@ -36,18 +36,19 @@
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
 - name: set manage network ns lifecycle
-  replace:
-    regexp: 'manage_ns_lifecycle.*=.*false'
-    replace: 'manage_ns_lifecycle = true'
-    name: /etc/crio/crio.conf
-    backup: yes
+  copy:
+    dest: /etc/crio/crio.conf.d/01-ns-lifecycle.conf
+    content: |
+      [crio.runtime]
+      manage_ns_lifecycle = true
 
 - name: use crun
-  replace:
-    regexp: 'runc'
-    replace: 'crun'
-    name: /etc/crio/crio.conf
-    backup: yes
+  copy:
+    dest: /etc/crio/crio.conf.d/01-crun.conf
+    content: |
+      [crio.runtime]
+      default_runtime = "crun"
+      [crio.runtime.runtimes.crun]
   when: "build_crun | default(False) | bool"
 
 - name: install configs
@@ -64,25 +65,15 @@
       dest: /etc/containers/registries.d/registry.access.redhat.com.yaml
 
 - name: run with overlay
-  replace:
-    regexp: 'storage_driver = ""'
-    replace: 'storage_driver = "overlay"'
-    name: /etc/crio/crio.conf
-    backup: yes
-
-- name: run with systemd cgroup manager
-  replace:
-    regexp: 'cgroup_manager = "cgroupfs"'
-    replace: 'cgroup_manager = "systemd"'
-    name: /etc/crio/crio.conf
-    backup: yes
+  copy:
+    dest: /etc/crio/crio.conf.d/01-overlay.conf
+    content: |
+      [crio]
+      storage_driver = "overlay"
 
 - name: add quay.io and docker.io as default registries
-  lineinfile:
-    dest: /etc/crio/crio.conf
-    line: |
-          # Added by Ansible from build/cri-o.yml
-          registries = [ "quay.io", "docker.io" ]
-    insertafter: 'registries = \['
-    regexp: 'quay\.io, docker\.io'
-    state: present
+  copy:
+    dest: /etc/crio/crio.conf.d/01-registries.conf
+    content: |
+      [crio.image]
+      registries = [ "quay.io", "docker.io" ]

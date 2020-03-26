@@ -12,7 +12,7 @@ if [[ -n "$TEST_USERNS" ]]; then
 
     # Needed for RHEL
     if [[ -w /proc/sys/user/max_user_namespaces ]]; then
-        echo 15000 > /proc/sys/user/max_user_namespaces
+        echo 15000 >/proc/sys/user/max_user_namespaces
     fi
 fi
 
@@ -24,15 +24,15 @@ export OVERRIDE_OPTIONS="--selinux=false"
 . helpers.bash
 
 function execute() {
-	>&2 echo "++ $@"
-	eval "$@"
+    echo >&2 "++ $@"
+    eval "$@"
 }
 
 # Tests to run. Defaults to all.
 TESTS=${@:-.}
 
 # The number of parallel jobs to execute
-export JOBS=${JOBS:-$(($(nproc --all)*4))}
+export JOBS=${JOBS:-$(($(nproc --all) * 4))}
 
 # Run the tests.
 execute time bats --jobs "$JOBS" --tap $TESTS

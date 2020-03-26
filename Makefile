@@ -34,6 +34,10 @@ JUNIT_PATH := ${BUILD_PATH}/junit
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
 
+CRIO_CONFD_DIR := crio.conf.d
+CRIO_CONFIG_DEFAULT := 00-default.conf
+BUILD_CONFIG_PATH := ${BUILD_PATH}/${CRIO_CONFD_DIR}/${CRIO_CONFIG_DEFAULT}
+
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 FISHINSTALLDIR=${PREFIX}/share/fish/completions
 ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
@@ -49,6 +53,8 @@ MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
+RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
+SHFMT := ${BUILD_BIN_PATH}/shfmt
 
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
 	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
@@ -60,7 +66,7 @@ else
 	GIT_MERGE_BASE := HEAD^
 endif
 
-# pass crio CLI options to generate custom crio.conf build time
+# pass crio CLI options to generate custom configuration options at build time
 CONF_OVERRIDES ?=
 
 CROSS_BUILD_TARGETS := \
@@ -80,7 +86,7 @@ GO_FILES := $(shell find . -type f -name '*.go' -not -name '*_test.go')
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
-VERSION := $(shell $(GO_RUN) ./scripts/latest_version.go)
+VERSION := $(shell $(GO_RUN) ./scripts/latest-version)
 DEFAULTS_PATH := ""
 
 BASE_LDFLAGS = ${SHRINKFLAGS} \
@@ -92,14 +98,16 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
 
 LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
-TESTIMAGE_VERSION := master-1.2.0
+TESTIMAGE_VERSION := master-1.3.2
 TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
 TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.2.0
 
-all: binaries crio.conf docs
+all: binaries config docs
+
+config: ${BUILD_CONFIG_PATH}
 
 default: help
 
@@ -128,6 +136,9 @@ lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} linters
 	${GOLANGCI_LINT} run
 
+shfmt: ${SHFMT}
+	${SHFMT} -w -i 4 -d $(shell ${SHFMT} -f . | grep -v vendor/)
+
 bin/pinns:
 	$(MAKE) -C pinns
 
@@ -149,13 +160,21 @@ build-static:
 		mkdir -p cri-o/bin && \
 		cp result-*bin/bin/crio-* cri-o/bin"
 
-release-bundle: clean bin/pinns build-static docs crio.conf bundle
+release-bundle: clean bin/pinns build-static docs config bundle
 
-crio.conf: bin/crio
-	./bin/crio --config="" $(CONF_OVERRIDES) config  > crio.conf
+${CRIO_CONFD_DIR}: ${BUILD_CONFIG_PATH}
+
+${BUILD_CONFIG_PATH}: bin/crio
+	mkdir -p $(dir ${BUILD_CONFIG_PATH})
+	./bin/crio --config="" $(CONF_OVERRIDES) config > ${BUILD_CONFIG_PATH}
 
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
+
+release-notes: ${RELEASE_NOTES}
+	${GO_RUN} ./scripts/release-notes \
+		--output-path ${BUILD_PATH}/release-notes \
+		--tag ${VERSION}
 
 clean:
 ifneq ($(GOPATH),)
@@ -240,9 +259,15 @@ ${GIT_VALIDATION}:
 ${RELEASE_TOOL}:
 	$(call go-build,./vendor/github.com/containerd/project/cmd/release-tool)
 
+${RELEASE_NOTES}:
+	$(call go-build,./vendor/k8s.io/release/cmd/release-notes)
+
+${SHFMT}:
+	$(call go-build,./vendor/mvdan.cc/sh/v3/cmd/shfmt)
+
 ${GOLANGCI_LINT}:
 	export \
-		VERSION=v1.23.3 \
+		VERSION=v1.24.0 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
@@ -269,7 +294,10 @@ testunit: ${GINKGO}
 		--succinct
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
 	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
-	find . -name '*_junit.xml' -exec mv -t ${JUNIT_PATH} {} +
+	for f in $$(find . -name "*_junit.xml"); do \
+		mkdir -p $(JUNIT_PATH)/$$(dirname $$f) ;\
+		mv $$f $(JUNIT_PATH)/$$(dirname $$f) ;\
+	done
 
 testunit-bin:
 	mkdir -p ${TESTBIN_PATH}
@@ -368,7 +396,10 @@ docs-generation:
 	bin/crio --config="" man > docs/crio.8
 
 bundle:
-	bundle/build
+	contrib/bundle/build
+
+bundle-test:
+	sudo contrib/bundle/test
 
 install: .gopathok install.bin install.man install.completions install.systemd install.config
 
@@ -383,9 +414,9 @@ install.man: $(MANPAGES)
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 
-install.config: crio.conf
+install.config: ${BUILD_CONFIG_PATH}
 	install ${SELINUXOPT} -d $(DATAROOTDIR)/oci/hooks.d
-	install ${SELINUXOPT} -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
+	install ${SELINUXOPT} -D -m 644 $(BUILD_CONFIG_PATH) $(ETCDIR_CRIO)/$(CRIO_CONFD_DIR)/$(CRIO_CONFIG_DEFAULT)
 	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	install ${SELINUXOPT} -D -m 644 crictl.yaml $(CRICTL_CONFIG_DIR)
 
@@ -422,6 +453,14 @@ uninstall:
 	rm -f ${BASHINSTALLDIR}/crio-status
 	rm -f ${FISHINSTALLDIR}/crio-status.fish
 	rm -f ${ZSHINSTALLDIR}/_crio-status
+	rm -f $(PREFIX)/lib/systemd/system/crio-wipe.service
+	rm -f $(PREFIX)/lib/systemd/system/crio-shutdown.service
+	rm -f $(PREFIX)/lib/systemd/system/crio.service
+	rm -f $(PREFIX)/lib/systemd/system/cri-o.service
+	rm -rf $(DATAROOTDIR)/oci/hooks.d
+	rm -f $(ETCDIR_CRIO)/crio.conf
+	rm -f $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
+	rm -f $(CRICTL_CONFIG_DIR)/crictl.yaml
 
 git-validation: .gopathok ${GIT_VALIDATION}
 	GIT_CHECK_EXCLUDE="vendor" \
@@ -432,13 +471,16 @@ docs-validation:
 	$(GO_RUN) -tags "$(BUILDTAGS)" ./test/docs-validation
 
 .PHONY: \
+	${CRIO_CONFD_DIR} \
 	.explicit_phony \
 	git-validation \
 	binaries \
 	bundle \
+	bundle-test \
 	build-static \
 	clean \
 	completions \
+	config \
 	default \
 	docs \
 	docs-validation \
@@ -447,6 +489,7 @@ docs-validation:
 	lint \
 	local-cross \
 	release-bundle \
+	shfmt \
 	testunit \
 	testunit-bin \
 	test-images \

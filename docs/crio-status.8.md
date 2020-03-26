@@ -87,4 +87,5 @@ Shows a list of commands or help for one command
 
 # SEE ALSO
 
-crio.conf(5), oci-hooks(5), policy.json(5), registries.conf(5), storage.conf(5)
+crio.conf(5), crio.conf.d(5), oci-hooks(5), policy.json(5), registries.conf(5),
+storage.conf(5)

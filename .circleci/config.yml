@@ -4,9 +4,9 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.1
-    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.12:master-1.3.1
-    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.1
+    IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.2
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.12:master-1.3.2
+    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.2
     IMAGENIX: &imagenix quay.io/crio/nix:1.2.0
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
@@ -33,7 +33,7 @@ executors:
 
   container-base:
     docker:
-      - image: circleci/golang:1.14
+      - image: golang:1.14
     <<: *stdenv
     working_directory: *workdir
 
@@ -133,6 +133,9 @@ workflows:
       - lint:
           filters: *filterAllTags
 
+      - release-notes:
+          filters: *filterAllTags
+
       - results:
           requires:
             - bundle-test
@@ -141,7 +144,11 @@ workflows:
             - integration-static-glibc
             - integration-static-musl
             - integration-userns
+            - release-notes
             - unit-tests
+          filters: *filterAllTags
+
+      - shfmt:
           filters: *filterAllTags
 
       - unit-tests:
@@ -170,7 +177,7 @@ jobs:
           name: Show CRI-O version
           command: ./bin/crio version
       - run:
-          command: make crio.conf
+          command: make crio.conf.d
       - run:
           command: make docs -j $JOBS
       - save_cache:
@@ -182,7 +189,7 @@ jobs:
           root: .
           paths:
             - bin
-            - crio.conf
+            - build/crio.conf.d/00-default.conf
             - docs
 
   build-static:
@@ -242,7 +249,17 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - bundle/*.tar.gz
+            - build/bundle/*.tar.gz
+
+  bundle-test:
+    executor: machine
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: test
+          command: make bundle-test
 
   bundle-test:
     executor: machine
@@ -376,26 +393,68 @@ jobs:
             - *gocache
 
   lint:
-    # TODO: Use the `container` if golangci-lint supports go 1.14
-    executor: container-legacy
+    executor: machine
     steps:
       - checkout
+      - run:
+          name: setup environment
+          command: scripts/circle-setup
       - restore_cache:
           keys:
-            - v2-lint-{{ checksum "go.sum" }}
+            - v3-lint-{{ checksum "go.sum" }}
       - run:
           name: lint
           command: make lint
       - save_cache:
-          key: v2-lint-{{ checksum "go.sum" }}
+          key: v3-lint-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+
+  release-notes:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-release-notes-{{ checksum "go.sum" }}
+      - add_ssh_keys:
+          fingerprints:
+            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
+      - run:
+          name: Generate Release Notes
+          command: |
+            if [[ -z $GITHUB_TOKEN ]]; then
+              echo Skipping release notes generation
+              mkdir -p build/release-notes
+            else
+              make release-notes
+            fi
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/release-notes
+      - save_cache:
+          key: v1-release-notes-{{ checksum "go.sum" }}
           paths:
             - *gocache
 
   results:
-    executor: container-base
+    executor: container
     steps:
       - attach_workspace:
           at: .
+      - run:
+          name: Upload to Google Cloud Bucket
+          command: |
+            if [[ -z $GCS_BUCKET_SA ]]; then
+              echo Skipping upload because GCB Service Account is not available
+            else
+              echo $GCS_BUCKET_SA > /tmp/key.json
+              gcloud auth activate-service-account --key-file=/tmp/key.json
+
+              BUCKET=gs://k8s-conform-cri-o
+              gsutil cp build/bundle/*.tar.gz $BUCKET/artifacts
+            fi
       - store_test_results:
           path: build/junit
       - store_artifacts:
@@ -403,10 +462,26 @@ jobs:
           destination: bin
       - store_artifacts:
           path: build
-          destination: test
+          destination: build
       - store_artifacts:
           path: bundle
           destination: bundle
+
+  shfmt:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-shfmt-{{ checksum "go.sum" }}
+      - run:
+          name: Format shell files
+          command: make shfmt
+      - save_cache:
+          key: v1-shfmt-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/shfmt
 
   unit-tests:
     executor: container

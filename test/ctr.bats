@@ -1076,7 +1076,13 @@ function teardown() {
 	run crictl exec --sync $ctr_id grep Cap /proc/1/status
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ 00000000002425fb ]]
+
+    # This magic values originates from the output of
+    # `grep CapEff /proc/self/status`
+    #
+    # It represents the bitflag of the effective capabilities available to the
+    # process.
+    [[ "$output" =~ 00000000002005fb ]]
 
 	run crictl stopp "$pod_id"
 	echo "$output"
@@ -1530,4 +1536,21 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+}
+
+@test "annotations passed through" {
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl inspectp $pod_id | run grep '"owner": "hmeng"'
+	run crictl inspectp $pod_id | run grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	stop_crio
 }

@@ -16,7 +16,7 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/pkg/lookup"
-	"github.com/docker/docker/pkg/symlink"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -43,24 +43,6 @@ func ExecCmd(name string, args ...string) (string, error) {
 	}
 
 	return stdout.String(), nil
-}
-
-// ExecCmdWithStdStreams execute a command with the specified standard streams.
-func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, name string, args ...string) error {
-	cmd := exec.Command(name, args...)
-	cmd.Stdin = stdin
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
-	}
-
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("`%v %v` failed: %v", name, strings.Join(args, " "), err)
-	}
-
-	return nil
 }
 
 // StatusToExitCode converts wait status code to an exit code
@@ -203,14 +185,14 @@ func WriteGoroutineStacksToFile(path string) error {
 func GenerateID() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
-		return "", errors.Wrapf(err, "generate ID")
+		return "", errors.Wrap(err, "generate ID")
 	}
 	return hex.EncodeToString(b), nil
 }
 
 // openContainerFile opens a file inside a container rootfs safely
 func openContainerFile(rootfs, path string) (io.ReadCloser, error) {
-	fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, path), rootfs)
+	fp, err := securejoin.SecureJoin(rootfs, path)
 	if err != nil {
 		return nil, err
 	}
@@ -260,9 +242,9 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		return "", nil
 	}
 	passwdFile := filepath.Join(rundir, "passwd")
-	originPasswdFile, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, "/etc/passwd"), rootfs)
+	originPasswdFile, err := securejoin.SecureJoin(rootfs, "/etc/passwd")
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to follow symlinks to passwd file")
+		return "", errors.Wrap(err, "unable to follow symlinks to passwd file")
 	}
 	info, err := os.Stat(originPasswdFile)
 	if err != nil {
@@ -298,10 +280,10 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	}
 	pwd := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", orig, username, uid, gid, username, homedir)
 	if err := ioutil.WriteFile(passwdFile, []byte(pwd), info.Mode()); err != nil {
-		return "", errors.Wrapf(err, "failed to create temporary passwd file")
+		return "", errors.Wrap(err, "failed to create temporary passwd file")
 	}
 	if err := os.Chown(passwdFile, int(passwdUID), int(passwdGID)); err != nil {
-		return "", errors.Wrapf(err, "failed to chown temporary passwd file")
+		return "", errors.Wrap(err, "failed to chown temporary passwd file")
 	}
 
 	return passwdFile, nil

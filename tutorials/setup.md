@@ -1,8 +1,31 @@
+![CRI-O logo](../logo/crio-logo.svg)
+
 # Build and install CRI-O from source
 
-This guide will walk you through the installation of [CRI-O](https://github.com/cri-o/cri-o), an Open Container Initiative-based implementation of [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md).
+This guide will walk you through the installation of [CRI-O](https://github.com/cri-o/cri-o), an Open Container Initiative-based implementation of [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md). It is assumed you are running a Linux machine.
 
-It is assumed you are running a Linux machine.
+**Table of Content**:
+
+- [Build and install CRI-O from source](#build-and-install-cri-o-from-source)
+  * [Runtime dependencies](#runtime-dependencies)
+  * [Build and Run Dependencies](#build-and-run-dependencies)
+    + [Fedora - RHEL 7 - CentOS](#fedora---rhel-7---centos)
+    + [RHEL 8](#rhel-8)
+    + [Debian - Raspbian - Ubuntu](#debian---raspbian---ubuntu)
+  * [Get Source Code](#get-source-code)
+  * [Build](#build)
+    + [Build Tags](#build-tags)
+  * [Static builds](#static-builds)
+    + [Creating a release archive](#creating-a-release-archive)
+  * [Download conmon](#download-conmon)
+  * [Setup CNI networking](#setup-cni-networking)
+  * [CRI-O configuration](#cri-o-configuration)
+    + [Validate registries in registries.conf](#validate-registries-in-registriesconf)
+    + [Recommended - Use systemd cgroups.](#recommended---use-systemd-cgroups)
+    + [Optional - Modify verbosity of logs](#optional---modify-verbosity-of-logs)
+    + [Optional - Modify capabilities and sysctls](#optional---modify-capabilities-and-sysctls)
+  * [Starting CRI-O](#starting-cri-o)
+  * [Using CRI-O](#using-cri-o)
 
 ## Runtime dependencies
 
@@ -15,6 +38,8 @@ Latest version of `runc` is expected to be installed on the system. It is picked
 
 ## Build and Run Dependencies
 
+
+### Fedora - RHEL 7 - CentOS
 **Required**
 
 Fedora, RHEL<=7, CentOS and related distributions:
@@ -39,12 +64,11 @@ yum install -y \
 ```
 
 **Please note**:
-- ```CentOS 8``` (or higher): ```pkgconfig``` package is replaced by ```pkgconf-pkg-config```
-- By default btrfs is not enabled. To add the btrfs support, install the following package:
-```
-  btrfs-progs-devel
-```
+- `CentOS 8` (or higher): `pkgconfig` package is replaced by `pkgconf-pkg-config`
+- By default btrfs is not enabled. To add the btrfs support, install the
+  following package: `btrfs-progs-devel`
 
+### RHEL 8
 RHEL 8 distributions:\
 Make sure you are subscribed to the following repositories: \
 BaseOS/x86_64 \
@@ -99,12 +123,11 @@ The following dependencies:
   pkgconf-pkg-config \
 ```
 
+### Debian - Raspbian - Ubuntu
 On Debian, Raspbian and Ubuntu distributions, [enable the Kubic project
 repositories](../README.md#installing-crio) and install the following packages:
 
 ```bash
-# Add containers-common and cri-o-runc
-
 apt-get update -qq && apt-get install -y \
   btrfs-tools \
   containers-common \
@@ -264,12 +287,12 @@ The resulting binary should be now available in `result-bin/bin` and
 ### Creating a release archive
 
 A release bundle consists of all static binaries, the man pages and
-configuration files like `crio.conf`. The `release-bundle` target can be used to
-build a new release archive within the current repository:
+configuration files like `00-default.conf`. The `release-bundle` target can be
+used to build a new release archive within the current repository:
 
 ```
 make release-bundle
-...
+…
 Created ./bundle/crio-v1.15.0.tar.gz
 ```
 
@@ -321,19 +344,24 @@ For more information about this file see [registries.conf(5)](https://github.com
 
 ### Recommended - Use systemd cgroups.
 
-By default, CRI-O uses cgroupfs as a cgroup manager. However, we recommend using systemd as a cgroup manager. You can change your cgroup manager in crio.conf:
+By default, CRI-O uses cgroupfs as a cgroup manager. However, we recommend using
+systemd as a cgroup manager. You can change your cgroup manager by adding an
+overwrite to `/etc/crio/crio.conf.d/01-cgroup-manager.conf`:
 
 ```
+[crio.runtime]
 cgroup_manager = "systemd"
 ```
 
-### Optional - Modify verbosity of logs in /etc/crio/crio.conf
+### Optional - Modify verbosity of logs
 
-Users can modify the `log_level` field in `/etc/crio/crio.conf` to change the verbosity of
-the logs.
-Options are fatal, panic, error (default), warn, info, and debug.
+Users can modify the `log_level` by specifying an overwrite like
+`/etc/crio/crio.conf.d/01-log-level.conf` to change the verbosity of
+the logs. Options are fatal, panic, error, warn, info (default), debug and
+trace.
 
 ```
+[crio.runtime]
 log_level = "info"
 ```
 
@@ -346,12 +374,10 @@ default_capabilities = [
 	"DAC_OVERRIDE",
 	"FSETID",
 	"FOWNER",
-	"NET_RAW",
 	"SETGID",
 	"SETUID",
 	"SETPCAP",
 	"NET_BIND_SERVICE",
-	"SYS_CHROOT",
 	"KILL",
 ]
 ```
@@ -361,7 +387,7 @@ default_sysctls = [
 ]
 ```
 
-Users can change either default by editing `/etc/crio/crio.conf`.
+Users can change either default by adding overwrites to `/etc/crio/crio.conf.d`.
 
 ## Starting CRI-O
 

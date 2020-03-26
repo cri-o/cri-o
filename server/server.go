@@ -335,7 +335,9 @@ func New(
 		return nil, err
 	}
 
-	netPlugin, err := ocicni.InitCNI("", config.NetworkDir, config.PluginDirs...)
+	netPlugin, err := ocicni.InitCNI(
+		config.CNIDefaultNetwork, config.NetworkDir, config.PluginDirs...,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -479,11 +481,11 @@ func (s *Server) startMetricsServer() error {
 	if s.config.EnableMetrics {
 		me, err := s.CreateMetricsEndpoint()
 		if err != nil {
-			return errors.Wrapf(err, "failed to create metrics endpoint")
+			return errors.Wrap(err, "failed to create metrics endpoint")
 		}
 		l, err := net.Listen("tcp", fmt.Sprintf(":%v", s.config.MetricsPort))
 		if err != nil {
-			return errors.Wrapf(err, "failed to create listener for metrics")
+			return errors.Wrap(err, "failed to create listener for metrics")
 		}
 		go func() {
 			if err := http.Serve(l, me); err != nil {

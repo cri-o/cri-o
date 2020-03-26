@@ -195,7 +195,7 @@ function teardown() {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
-	export TEST_SYSCTL="net.ipv4.ip_forward=1"
+	export CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward=1"
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config_sysctl.json
 	echo "$output"
@@ -319,7 +319,7 @@ function teardown() {
 		skip "need systemd cgroup manager"
 	fi
 
-	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "/Burstable/pod_integration_tests-123"; json.dump(obj, sys.stdout)')
+	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "Burstable-pod_integration_tests-123.slice"; json.dump(obj, sys.stdout)')
 	echo "$cgroup_parent_config" > "$TESTDIR"/sandbox_systemd_cgroup_parent.json
 
 	start_crio
@@ -331,5 +331,33 @@ function teardown() {
 	run systemctl list-units --type=slice
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "Burstable-pod_integration_tests_123.slice" ]]
+	[[ "$output" =~ "Burstable-pod_integration_tests-123.slice" ]]
+}
+
+@test "kubernetes pod terminationGracePeriod passthru" {
+	[ -v CIRCLECI ] && skip "runc v1.0.0-rc11 required" # TODO remove this
+	CONTAINER_CGROUP_MANAGER="systemd" start_crio
+
+	config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);del obj["linux"]["cgroup_parent"]; json.dump(obj, sys.stdout)')
+	echo "$config" > "$TESTDIR"/sandbox_config-systemd.json
+	run crictl runp "$TESTDIR"/sandbox_config-systemd.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run crictl create "$pod_id" "$TESTDATA"/container_config_sleep.json "$TESTDIR"/sandbox_config-systemd.json
+	echo $output
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	run crictl start "$ctr_id"
+	echo $output
+	[ "$status" -eq 0 ]
+
+	run systemctl show "crio-${ctr_id}.scope"
+	[ "$status" -eq 0 ]
+	echo "$output" | grep 'TimeoutStopUSec=' || true	# show
+	echo "$output" | grep -q '^TimeoutStopUSec=1min 28s$'	# check
+
+	stop_crio
 }

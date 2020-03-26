@@ -10,17 +10,19 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/utils"
-	dockermounts "github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/symlink"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/pkg/errors"
 	seccomp "github.com/seccomp/containers-golang"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -88,7 +90,7 @@ func (m criOrderedMounts) parts(i int) int {
 }
 
 // Ensure mount point on which path is mounted, is shared.
-func ensureShared(path string, mountInfos []*dockermounts.Info) error {
+func ensureShared(path string, mountInfos []*mount.Info) error {
 	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
 	if err != nil {
 		return err
@@ -106,7 +108,7 @@ func ensureShared(path string, mountInfos []*dockermounts.Info) error {
 }
 
 // Ensure mount point on which path is mounted, is either shared or slave.
-func ensureSharedOrSlave(path string, mountInfos []*dockermounts.Info) error {
+func ensureSharedOrSlave(path string, mountInfos []*mount.Info) error {
 	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
 	if err != nil {
 		return err
@@ -123,7 +125,7 @@ func ensureSharedOrSlave(path string, mountInfos []*dockermounts.Info) error {
 	return fmt.Errorf("path %q is mounted on %q but it is not a shared or slave mount", path, sourceMount)
 }
 
-func getMountInfo(mountInfos []*dockermounts.Info, dir string) *dockermounts.Info {
+func getMountInfo(mountInfos []*mount.Info, dir string) *mount.Info {
 	for _, m := range mountInfos {
 		if m.Mountpoint == dir {
 			return m
@@ -132,7 +134,7 @@ func getMountInfo(mountInfos []*dockermounts.Info, dir string) *dockermounts.Inf
 	return nil
 }
 
-func getSourceMount(source string, mountInfos []*dockermounts.Info) (path, optionalMountInfo string, err error) {
+func getSourceMount(source string, mountInfos []*mount.Info) (path, optionalMountInfo string, err error) {
 	mountinfo := getMountInfo(mountInfos, source)
 	if mountinfo != nil {
 		return source, mountinfo.Optional, nil
@@ -158,7 +160,7 @@ func getSourceMount(source string, mountInfos []*dockermounts.Info) (path, optio
 func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string, specgen *generate.Generator) ([]rspec.Mount, error) {
 	mounts := []rspec.Mount{}
 	for dest := range containerInfo.Config.Config.Volumes {
-		fp, err := symlink.FollowSymlinkInScope(filepath.Join(rootfs, dest), rootfs)
+		fp, err := securejoin.SecureJoin(rootfs, dest)
 		if err != nil {
 			return nil, err
 		}
@@ -216,7 +218,7 @@ func resolveSymbolicLink(path, scope string) (string, error) {
 	if scope == "" {
 		scope = "/"
 	}
-	return symlink.FollowSymlinkInScope(path, scope)
+	return securejoin.SecureJoin(scope, path)
 }
 
 func addDevices(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
@@ -545,76 +547,69 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %v", sbID)
 	}
 
-	// The config of the container
-	containerConfig := req.GetConfig()
-	if containerConfig == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig is nil")
+	ctr := container.New(ctx)
+	if err := ctr.SetConfig(req.GetConfig()); err != nil {
+		return nil, errors.Wrap(err, "setting container config")
 	}
 
-	if containerConfig.GetMetadata() == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Metadata is nil")
+	if err := ctr.SetNameAndID(sb.Metadata()); err != nil {
+		return nil, errors.Wrap(err, "setting container name and ID")
 	}
 
-	name := containerConfig.GetMetadata().GetName()
-	if name == "" {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
-	}
-
-	containerID, containerName, err := s.ReserveContainerIDandName(sb.Metadata(), containerConfig)
-	if err != nil {
-		return nil, err
+	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
+		return nil, errors.Wrap(err, "reserving container name")
 	}
 
 	defer func() {
 		if err != nil {
-			s.ReleaseContainerName(containerName)
+			s.ReleaseContainerName(ctr.Name())
 		}
 	}()
 
-	container, err := s.createSandboxContainer(ctx, containerID, containerName, sb, req.GetSandboxConfig(), containerConfig)
+	newContainer, err := s.createSandboxContainer(ctx, ctr.ID(), ctr.Name(), sb, req.GetSandboxConfig(), ctr.Config())
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err != nil {
-			err2 := s.StorageRuntimeServer().DeleteContainer(containerID)
+			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
 		}
 	}()
 
-	s.addContainer(container)
+	s.addContainer(newContainer)
 	defer func() {
 		if err != nil {
-			s.removeContainer(container)
+			s.removeContainer(newContainer)
 		}
 	}()
 
-	if err := s.CtrIDIndex().Add(containerID); err != nil {
+	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err != nil {
-			if err2 := s.CtrIDIndex().Delete(containerID); err2 != nil {
-				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", containerID)
+			if err2 := s.CtrIDIndex().Delete(ctr.ID()); err2 != nil {
+				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
 			}
 		}
 	}()
 
-	if err := s.createContainerPlatform(container, sb.CgroupParent()); err != nil {
+	if err := s.createContainerPlatform(newContainer, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
 
-	if err := s.ContainerStateToDisk(container); err != nil {
-		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
+	if err := s.ContainerStateToDisk(newContainer); err != nil {
+		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
-	container.SetCreated()
+	newContainer.SetCreated()
 
-	log.Infof(ctx, "Created container %s: %s", container.ID(), container.Description())
+	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	resp := &pb.CreateContainerResponse{
-		ContainerId: containerID,
+		ContainerId: ctr.ID(),
 	}
 
 	return resp, nil

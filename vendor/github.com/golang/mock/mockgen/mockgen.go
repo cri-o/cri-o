@@ -46,6 +46,12 @@ const (
 )
 
 var (
+	version = ""
+	commit  = "none"
+	date    = "unknown"
+)
+
+var (
 	source          = flag.String("source", "", "(source mode) Input Go source file; enables source mode.")
 	destination     = flag.String("destination", "", "Output file; defaults to stdout.")
 	mockNames       = flag.String("mock_names", "", "Comma-separated interfaceName=mockName pairs of explicit mock names to use. Mock names default to 'Mock'+ interfaceName suffix.")
@@ -55,20 +61,21 @@ var (
 	copyrightFile   = flag.String("copyright_file", "", "Copyright file used to add copyright header")
 
 	debugParser = flag.Bool("debug_parser", false, "Print out parser results only.")
-	version     = flag.Bool("version", false, "Print version.")
+	showVersion = flag.Bool("version", false, "Print version.")
 )
 
 func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	if *version {
+	if *showVersion {
 		printVersion()
 		return
 	}
 
 	var pkg *model.Package
 	var err error
+	var packageName string
 	if *source != "" {
 		pkg, err = sourceMode(*source)
 	} else {
@@ -76,7 +83,18 @@ func main() {
 			usage()
 			log.Fatal("Expected exactly two arguments")
 		}
-		pkg, err = reflectMode(flag.Arg(0), strings.Split(flag.Arg(1), ","))
+		packageName = flag.Arg(0)
+		if packageName == "." {
+			dir, err := os.Getwd()
+			if err != nil {
+				log.Fatalf("Get current directory failed: %v", err)
+			}
+			packageName, err = packageNameOfDir(dir)
+			if err != nil {
+				log.Fatalf("Parse package name failed: %v", err)
+			}
+		}
+		pkg, err = reflectMode(packageName, strings.Split(flag.Arg(1), ","))
 	}
 	if err != nil {
 		log.Fatalf("Loading input failed: %v", err)
@@ -130,7 +148,7 @@ func main() {
 	if *source != "" {
 		g.filename = *source
 	} else {
-		g.srcPackage = flag.Arg(0)
+		g.srcPackage = packageName
 		g.srcInterfaces = flag.Arg(1)
 	}
 
@@ -286,10 +304,12 @@ func (g *generator) Generate(pkg *model.Package, outputPkgName string, outputPac
 	}
 	sort.Strings(sortedPaths)
 
+	packagesName := createPackageMap(sortedPaths)
+
 	g.packageMap = make(map[string]string, len(im))
 	localNames := make(map[string]bool, len(im))
 	for _, pth := range sortedPaths {
-		base, ok := lookupPackageName(pth)
+		base, ok := packagesName[pth]
 		if !ok {
 			base = sanitize(path.Base(pth))
 		}
@@ -604,20 +624,36 @@ func (g *generator) Output() []byte {
 	return src
 }
 
-func lookupPackageName(importPath string) (string, bool) {
+// createPackageMap returns a map of import path to package name
+// for specified importPaths.
+func createPackageMap(importPaths []string) map[string]string {
 	var pkg struct {
-		Name string
+		Name       string
+		ImportPath string
 	}
+	pkgMap := make(map[string]string)
 	b := bytes.NewBuffer(nil)
-	cmd := exec.Command("go", "list", "-json", importPath)
+	args := []string{"list", "-json"}
+	args = append(args, importPaths...)
+	cmd := exec.Command("go", args...)
 	cmd.Stdout = b
-	err := cmd.Run()
-	if err != nil {
-		return "", false
+	cmd.Run()
+	dec := json.NewDecoder(b)
+	for dec.More() {
+		err := dec.Decode(&pkg)
+		if err != nil {
+			log.Printf("failed to decode 'go list' output: %v", err)
+			continue
+		}
+		pkgMap[pkg.ImportPath] = pkg.Name
 	}
-	err = json.Unmarshal(b.Bytes(), &pkg)
-	if err != nil {
-		return "", false
+	return pkgMap
+}
+
+func printVersion() {
+	if version != "" {
+		fmt.Printf("v%s\nCommit: %s\nDate: %s\n", version, commit, date)
+	} else {
+		printModuleVersion()
 	}
-	return pkg.Name, true
 }

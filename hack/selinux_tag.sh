@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-if pkg-config libselinux 2> /dev/null ; then
-	echo selinux
+if pkg-config libselinux 2>/dev/null; then
+    echo selinux
 fi

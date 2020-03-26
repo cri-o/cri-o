@@ -38,7 +38,6 @@
 	"annotations": {
 		"pod": "podsandbox1"
 	},
-	"readonly_rootfs": false,
 	"log_path": "",
 	"stdin": false,
 	"stdin_once": false,
@@ -54,6 +53,7 @@
 			"cpuset_mems": "0"
 		},
 		"security_context": {
+			"readonly_rootfs": false,
 			"capabilities": {
 				"add_capabilities": [
 					"sys_admin"

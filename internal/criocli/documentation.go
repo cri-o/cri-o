@@ -62,7 +62,8 @@ const markdownDocTemplate = `
 
 # SEE ALSO
 
-crio.conf(5), oci-hooks(5), policy.json(5), registries.conf(5), storage.conf(5)`
+crio.conf(5), crio.conf.d(5), oci-hooks(5), policy.json(5), registries.conf(5),
+storage.conf(5)`
 
 func man() *cli.Command {
 	return &cli.Command{

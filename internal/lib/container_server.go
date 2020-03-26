@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -13,12 +12,12 @@ import (
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/registrar"
 	cstorage "github.com/containers/storage"
+	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/truncindex"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/docker/docker/pkg/ioutils"
-	"github.com/docker/docker/pkg/truncindex"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -38,7 +37,6 @@ type ContainerServer struct {
 	store                cstorage.Store
 	storageImageServer   storage.ImageServer
 	storageRuntimeServer storage.RuntimeServer
-	updateLock           sync.RWMutex
 	ctrNameIndex         *registrar.Registrar
 	ctrIDIndex           *truncindex.TruncIndex
 	podNameIndex         *registrar.Registrar
@@ -143,131 +141,6 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		},
 		config: config,
 	}, nil
-}
-
-// Update makes changes to the server's state (lists of pods and containers) to
-// reflect the list of pods and containers that are stored on disk, possibly
-// having been modified by other parties
-func (c *ContainerServer) Update() error {
-	c.updateLock.Lock()
-	defer c.updateLock.Unlock()
-
-	containers, err := c.store.Containers()
-	if err != nil && !os.IsNotExist(errors.Cause(err)) {
-		logrus.Warnf("could not read containers and sandboxes: %v", err)
-		return err
-	}
-	newPods := map[string]*storage.RuntimeContainerMetadata{}
-	oldPods := map[string]string{}
-	removedPods := map[string]string{}
-	newPodContainers := map[string]*storage.RuntimeContainerMetadata{}
-	oldPodContainers := map[string]string{}
-	removedPodContainers := map[string]string{}
-	for i := range containers {
-		container := &containers[i]
-		if c.HasSandbox(container.ID) {
-			// FIXME: do we need to reload/update any info about the sandbox?
-			oldPods[container.ID] = container.ID
-			oldPodContainers[container.ID] = container.ID
-			continue
-		}
-		if c.GetContainer(container.ID) != nil {
-			// FIXME: do we need to reload/update any info about the container?
-			oldPodContainers[container.ID] = container.ID
-			continue
-		}
-		// not previously known, so figure out what it is
-		metadata, err2 := c.storageRuntimeServer.GetContainerMetadata(container.ID)
-		if err2 != nil {
-			logrus.Errorf("error parsing metadata for %s: %v, ignoring", container.ID, err2)
-			continue
-		}
-		if metadata.Pod {
-			newPods[container.ID] = &metadata
-		} else {
-			newPodContainers[container.ID] = &metadata
-		}
-	}
-	c.ctrIDIndex.Iterate(func(id string) {
-		if _, ok := oldPodContainers[id]; !ok {
-			// this container's ID wasn't in the updated list -> removed
-			removedPodContainers[id] = id
-		} else {
-			ctr := c.GetContainer(id)
-			if ctr != nil {
-				// if the container exists, update its state
-				if err := c.ContainerStateFromDisk(ctr); err != nil {
-					logrus.Warnf("unable to retrieve containers %s state from disk: %v", id, err)
-				}
-			}
-		}
-	})
-	for removedPodContainer := range removedPodContainers {
-		// forget this container
-		ctr := c.GetContainer(removedPodContainer)
-		if ctr == nil {
-			logrus.Warnf("bad state when getting container removed %+v", removedPodContainer)
-			continue
-		}
-		c.ReleaseContainerName(ctr.Name())
-		c.RemoveContainer(ctr)
-		if err := c.ctrIDIndex.Delete(ctr.ID()); err != nil {
-			return err
-		}
-		logrus.Debugf("forgetting removed pod container %s", ctr.ID())
-	}
-	c.PodIDIndex().Iterate(func(id string) {
-		if _, ok := oldPods[id]; !ok {
-			// this pod's ID wasn't in the updated list -> removed
-			removedPods[id] = id
-		}
-	})
-	for removedPod := range removedPods {
-		// forget this pod
-		sb := c.GetSandbox(removedPod)
-		if sb == nil {
-			logrus.Warnf("bad state when getting pod to remove %+v", removedPod)
-			continue
-		}
-		podInfraContainer := sb.InfraContainer()
-		if podInfraContainer != nil {
-			c.ReleaseContainerName(podInfraContainer.Name())
-			c.RemoveContainer(podInfraContainer)
-			if err := c.ctrIDIndex.Delete(podInfraContainer.ID()); err != nil {
-				return err
-			}
-			sb.RemoveInfraContainer()
-		}
-		c.ReleasePodName(sb.Name())
-		if err := c.RemoveSandbox(sb.ID()); err != nil {
-			logrus.Warnf("failed to remove sandbox ID %s: %v", sb.ID(), err)
-		}
-		if err := c.podIDIndex.Delete(sb.ID()); err != nil {
-			return err
-		}
-		logrus.Debugf("forgetting removed pod %s", sb.ID())
-	}
-	for sandboxID := range newPods {
-		// load this pod
-		if err = c.LoadSandbox(sandboxID); err != nil {
-			logrus.Warnf("could not load new pod sandbox %s: %v, ignoring", sandboxID, err)
-		} else {
-			logrus.Debugf("loaded new pod sandbox %s: %v", sandboxID, err)
-		}
-	}
-	for containerID := range newPodContainers {
-		// load this container
-		if err = c.LoadContainer(containerID); err != nil {
-			if err == ErrIsNonCrioContainer {
-				logrus.Infof("ignoring non CRI-O container %s", containerID)
-			} else {
-				logrus.Warnf("could not load new sandbox container %s: %v, ignoring", containerID, err)
-			}
-		} else {
-			logrus.Debugf("loaded new pod container %s: %v", containerID, err)
-		}
-	}
-	return nil
 }
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store

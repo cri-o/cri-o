@@ -2,7 +2,7 @@
 # only fixup paths for e2e tests which expect to be able to pass 'test-handler' as the runtime handler
 - name: add test-handler runtime handler for Runtimes test
   blockinfile:
-    path: /etc/crio/crio.conf
+    path: /etc/crio/crio.conf.d/00-default.conf
     insertbefore: .*crio.runtime.runtimes.runc.*
     backup: yes
     block: |
@@ -71,4 +71,7 @@
   command: modprobe br_netfilter
 
 - name: Enable iptables NAT for the bridge
-  command: sysctl -w net.bridge.bridge-nf-call-iptables=1
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: 1
+    state: present
