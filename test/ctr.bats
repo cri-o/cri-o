@@ -1076,7 +1076,13 @@ function teardown() {
 	run crictl exec --sync $ctr_id grep Cap /proc/1/status
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ 00000000002005fb ]]
+
+    # This magic values originates from the output of
+    # `grep CapEff /proc/self/status`
+    #
+    # It represents the bitflag of the effective capabilities available to the
+    # process.
+    [[ "$output" =~ 00000000002005fb ]]
 
 	run crictl stopp "$pod_id"
 	echo "$output"
