@@ -380,20 +380,17 @@ jobs:
             - *gocache
 
   lint:
-    executor: machine
+    executor: container
     steps:
       - checkout
-      - run:
-          name: setup environment
-          command: scripts/circle-setup
       - restore_cache:
           keys:
-            - v3-lint-{{ checksum "go.sum" }}
+            - v4-lint-{{ checksum "go.sum" }}
       - run:
           name: lint
           command: make lint
       - save_cache:
-          key: v3-lint-{{ checksum "go.sum" }}
+          key: v4-lint-{{ checksum "go.sum" }}
           paths:
             - *gocache
 
