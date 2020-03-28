@@ -187,8 +187,7 @@ endif
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
-	rm -f bin/crio
-	rm -f bin/crio.cross.*
+	rm -rf bin/
 	$(MAKE) -C pinns clean
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
