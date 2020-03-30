@@ -87,12 +87,11 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	defer parentStartPipe.Close()
 
 	var args []string
-	if r.config.CgroupManager == SystemdCgroupsManager {
+	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "-s")
 	}
-	if r.config.CgroupManager == CgroupfsCgroupsManager {
-		args = append(args, "--syslog")
-	}
+
+	args = append(args, "--syslog")
 
 	args = append(args,
 		"-c", c.id,

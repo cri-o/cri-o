@@ -336,7 +336,7 @@ function teardown() {
 
 @test "kubernetes pod terminationGracePeriod passthru" {
 	[ -v CIRCLECI ] && skip "runc v1.0.0-rc11 required" # TODO remove this
-	CONTAINER_CGROUP_MANAGER="systemd" start_crio
+	start_crio
 
 	config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);del obj["linux"]["cgroup_parent"]; json.dump(obj, sys.stdout)')
 	echo "$config" > "$TESTDIR"/sandbox_config-systemd.json

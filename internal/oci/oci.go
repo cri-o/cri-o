@@ -26,11 +26,6 @@ const (
 	// ContainerCreateTimeout represents the value of container creating timeout
 	ContainerCreateTimeout = 240 * time.Second
 
-	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
-	CgroupfsCgroupsManager = "cgroupfs"
-	// SystemdCgroupsManager represents systemd native cgroup manager
-	SystemdCgroupsManager = "systemd"
-
 	// killContainerTimeout is the timeout that we wait for the container to
 	// be SIGKILLed.
 	killContainerTimeout = 2 * time.Minute

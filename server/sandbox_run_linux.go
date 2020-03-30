@@ -7,16 +7,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containers/libpod/pkg/annotations"
-	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -25,7 +22,6 @@ import (
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/sandbox"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -36,9 +32,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/leaky"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
-
-const cgroupMemorySubsystemMountPathV1 = "/sys/fs/cgroup/memory"
-const cgroupMemorySubsystemMountPathV2 = "/sys/fs/cgroup"
 
 func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	s.updateLock.RLock()
@@ -353,21 +346,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
 
-	parent := ""
-	cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+	cgroupParent, cgroupPath, err := s.config.CgroupManager().GetSandboxCgroupPath(sbox.Config().GetLinux().GetCgroupParent(), sbox.ID())
 	if err != nil {
 		return nil, err
 	}
-	if cgroupv2 {
-		parent = cgroupMemorySubsystemMountPathV2
-	} else {
-		parent = cgroupMemorySubsystemMountPathV1
+	if cgroupPath != "" {
+		g.SetLinuxCgroupsPath(cgroupPath)
 	}
-
-	cgroupParent, err := AddCgroupAnnotation(ctx, g, parent, s.config.CgroupManager, sbox.Config().GetLinux().GetCgroupParent(), sbox.ID())
-	if err != nil {
-		return nil, err
-	}
+	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
@@ -680,68 +666,6 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
 	}
 	return shmPath, nil
-}
-
-func AddCgroupAnnotation(ctx context.Context, g generate.Generator, mountPath, cgroupManager, cgroupParent, id string) (string, error) {
-	if cgroupParent != "" {
-		if cgroupManager == oci.SystemdCgroupsManager {
-			if len(cgroupParent) <= 6 || !strings.HasSuffix(path.Base(cgroupParent), ".slice") {
-				return "", fmt.Errorf("cri-o configured with systemd cgroup manager, but did not receive slice as parent: %s", cgroupParent)
-			}
-			cgPath := convertCgroupFsNameToSystemd(cgroupParent)
-			g.SetLinuxCgroupsPath(cgPath + ":" + "crio" + ":" + id)
-			cgroupParent = cgPath
-
-			// check memory limit is greater than the minimum memory limit of 4Mb
-			// expand the cgroup slice path
-			slicePath, err := systemd.ExpandSlice(cgroupParent)
-			if err != nil {
-				return "", errors.Wrapf(err, "error expanding systemd slice path for %q", cgroupParent)
-			}
-			filename := ""
-			cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
-			if err != nil {
-				return "", err
-			}
-			if cgroupv2 {
-				filename = "memory.max"
-			} else {
-				filename = "memory.limit_in_bytes"
-			}
-
-			// read in the memory limit from the memory.limit_in_bytes file
-			fileData, err := ioutil.ReadFile(filepath.Join(mountPath, slicePath, filename))
-			if err != nil {
-				if os.IsNotExist(err) {
-					log.Warnf(ctx, "Failed to find %s for slice: %q", filename, cgroupParent)
-				} else {
-					return "", errors.Wrapf(err, "error reading %s file for slice %q", filename, cgroupParent)
-				}
-			} else {
-				// strip off the newline character and convert it to an int
-				strMemory := strings.TrimRight(string(fileData), "\n")
-				if strMemory != "" && strMemory != "max" {
-					memoryLimit, err := strconv.ParseInt(strMemory, 10, 64)
-					if err != nil {
-						return "", errors.Wrapf(err, "error converting cgroup memory value from string to int %q", strMemory)
-					}
-					// Compare with the minimum allowed memory limit
-					if memoryLimit != 0 && memoryLimit < minMemoryLimit {
-						return "", fmt.Errorf("pod set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
-					}
-				}
-			}
-		} else {
-			if strings.HasSuffix(path.Base(cgroupParent), ".slice") {
-				return "", fmt.Errorf("cri-o configured with cgroupfs cgroup manager, but received systemd slice as parent: %s", cgroupParent)
-			}
-			cgPath := filepath.Join(cgroupParent, scopePrefix+"-"+id)
-			g.SetLinuxCgroupsPath(cgPath)
-		}
-	}
-	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
-
-	return cgroupParent, nil
 }
 
 // PauseCommand returns the pause command for the provided image configuration.

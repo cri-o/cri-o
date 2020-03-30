@@ -20,6 +20,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
+	"github.com/cri-o/cri-o/internal/config/cgroupmanager"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
@@ -204,9 +205,9 @@ type RuntimeConfig struct {
 	// default for the runtime.
 	ApparmorProfile string `toml:"apparmor_profile"`
 
-	// CgroupManager is the manager implementation name which is used to
+	// CgroupManagerName is the manager implementation name which is used to
 	// handle cgroups for containers.
-	CgroupManager string `toml:"cgroup_manager"`
+	CgroupManagerName string `toml:"cgroup_manager"`
 
 	// DefaultMountsFile is the file path for the default mounts to be mounted for the container
 	// Note, for testing purposes mainly
@@ -295,6 +296,9 @@ type RuntimeConfig struct {
 
 	// apparmorConfig is the internal AppArmor configuration
 	apparmorConfig *apparmor.Config
+
+	// cgroupManager is the internal CgroupManager configuration
+	cgroupManager cgroupmanager.CgroupManager
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -514,6 +518,7 @@ func DefaultConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	cgroupManager := cgroupmanager.New()
 	return &Config{
 		SystemContext: &types.SystemContext{
 			DockerRegistryUserAgent: useragent.Get(),
@@ -549,7 +554,7 @@ func DefaultConfig() (*Config, error) {
 			ConmonCgroup:             "system.slice",
 			SELinux:                  selinuxEnabled(),
 			ApparmorProfile:          apparmor.DefaultProfile,
-			CgroupManager:            "systemd",
+			CgroupManagerName:        cgroupManager.Name(),
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
 			ContainerAttachSocketDir: conmonconfig.ContainerAttachSocketDir,
@@ -561,6 +566,7 @@ func DefaultConfig() (*Config, error) {
 			NamespacesDir:            "/var/run",
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
+			cgroupManager:            cgroupManager,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
@@ -774,12 +780,13 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	// check for validation on execution
 	if onExecution {
-		if err := c.ValidateRuntimes(); err != nil {
+		var err error
+		if err = c.ValidateRuntimes(); err != nil {
 			return errors.Wrap(err, "runtime validation")
 		}
 
 		// Validate the system registries configuration
-		if _, err := sysregistriesv2.GetRegistries(systemContext); err != nil {
+		if _, err = sysregistriesv2.GetRegistries(systemContext); err != nil {
 			return errors.Wrap(err, "invalid registries")
 		}
 
@@ -796,12 +803,12 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		c.HooksDir = hooksDirs
 
 		// Validate the conmon path
-		if err := c.ValidateConmonPath("conmon"); err != nil {
+		if err = c.ValidateConmonPath("conmon"); err != nil {
 			return errors.Wrap(err, "conmon validation")
 		}
 
 		// Validate the pinns path
-		if err := c.ValidatePinnsPath("pinns"); err != nil {
+		if err = c.ValidatePinnsPath("pinns"); err != nil {
 			return errors.Wrap(err, "pinns validation")
 		}
 
@@ -809,12 +816,17 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "invalid namespaces_dir")
 		}
 
-		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
+		if err = c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
 			return errors.Wrap(err, "unable to load seccomp profile")
 		}
 
-		if err := c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
+		if err = c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
 			return errors.Wrap(err, "unable to load AppArmor profile")
+		}
+
+		c.cgroupManager, err = cgroupmanager.SetCgroupManager(c.CgroupManagerName)
+		if err != nil {
+			return errors.Wrap(err, "unable to update cgroup manager")
 		}
 	}
 
@@ -857,6 +869,11 @@ func (c *RuntimeConfig) Seccomp() *seccomp.Config {
 // AppArmor returns the AppArmor configuration
 func (c *RuntimeConfig) AppArmor() *apparmor.Config {
 	return c.apparmorConfig
+}
+
+// CgroupManager returns the AppArmor configuration
+func (c *RuntimeConfig) CgroupManager() cgroupmanager.CgroupManager {
+	return c.cgroupManager
 }
 
 func validateExecutablePath(executable, currentPath string) (string, error) {

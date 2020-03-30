@@ -31,10 +31,6 @@ import (
 const (
 	seccompUnconfined      = "unconfined"
 	seccompLocalhostPrefix = "localhost/"
-
-	scopePrefix           = "crio"
-	defaultCgroupfsParent = "/crio"
-	defaultSystemdParent  = "system.slice"
 )
 
 type orderedMounts []rspec.Mount
