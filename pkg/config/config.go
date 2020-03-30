@@ -505,7 +505,7 @@ func (c *Config) ToBytes() ([]byte, error) {
 
 // DefaultConfig returns the default configuration for crio.
 func DefaultConfig() (*Config, error) {
-	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+	storeOpts, err := storage.DefaultStoreOptions(false, rootless.GetRootlessUID())
 	if err != nil {
 		return nil, err
 	}
