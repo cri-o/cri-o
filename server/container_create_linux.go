@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -42,6 +43,19 @@ const minMemoryLimit = 12582912
 
 // Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
 const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
+
+var (
+	_cgroupHasMemorySwapOnce sync.Once
+	_cgroupHasMemorySwap     bool
+)
+
+func cgroupHasMemorySwap() bool {
+	_cgroupHasMemorySwapOnce.Do(func() {
+		_, err := os.Stat("/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes")
+		_cgroupHasMemorySwap = err == nil
+	})
+	return _cgroupHasMemorySwap
+}
 
 type configDevice struct {
 	Device   rspec.LinuxDevice
@@ -493,7 +507,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 					return nil, fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
 				}
 				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
-				specgen.SetLinuxResourcesMemorySwap(memoryLimit)
+				if cgroupHasMemorySwap() {
+					specgen.SetLinuxResourcesMemorySwap(memoryLimit)
+				}
 			}
 
 			specgen.SetProcessOOMScoreAdj(int(resources.GetOomScoreAdj()))
