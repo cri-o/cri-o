@@ -1,6 +1,6 @@
 [Unit]
 Description=CRI-O Auto Update Script
-Before=crio.service
+After=crio.service
 RequiresMountsFor=/var/lib/containers
 
 [Service]
