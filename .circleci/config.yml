@@ -134,6 +134,8 @@ workflows:
           filters: *filterAllTags
 
       - release-notes:
+          requires:
+            - results
           filters: *filterAllTags
 
       - results:
@@ -144,7 +146,6 @@ workflows:
             - integration-static-glibc
             - integration-static-musl
             - integration-userns
-            - release-notes
             - unit-tests
           filters: *filterAllTags
 
@@ -409,14 +410,12 @@ jobs:
           command: |
             if [[ -z $GITHUB_TOKEN ]]; then
               echo Skipping release notes generation
-              mkdir -p build/release-notes
             else
               make release-notes
             fi
-      - persist_to_workspace:
-          root: .
-          paths:
-            - build/release-notes
+      - store_artifacts:
+          path: build/release-notes
+          destination: release-notes
       - save_cache:
           key: v1-release-notes-{{ checksum "go.sum" }}
           paths:
