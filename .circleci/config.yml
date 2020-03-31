@@ -90,6 +90,11 @@ workflows:
             - build
           filters: *filterAllTags
 
+      - dependencies:
+          requires:
+            - results
+          filters: *filterAllTags
+
       - docs-generation:
           requires:
             - build
@@ -321,6 +326,33 @@ jobs:
             - *gocache
             - build/bin/git-validation
 
+  dependencies:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "go.sum" }}
+      - add_ssh_keys:
+          fingerprints:
+            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
+      - run:
+          name: Generate Dependency Report
+          command: |
+            if [[ -z $GITHUB_TOKEN ]]; then
+              echo Skipping dependencies generation
+            else
+              make dependencies
+            fi
+      - store_artifacts:
+          path: build/dependencies/dependencies.md
+          destination: dependencies.md
+      - save_cache:
+          key: v1-dependencies-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/go-mod-outdated
+
   integration:
     executor: machine
     parameters:
@@ -412,6 +444,7 @@ jobs:
           key: v1-release-notes-{{ checksum "go.sum" }}
           paths:
             - *gocache
+            - build/bin/release-notes
 
   results:
     executor: container

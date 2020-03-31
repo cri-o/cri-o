@@ -43,6 +43,7 @@ require (
 	github.com/opencontainers/selinux v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.1
+	github.com/psampaz/go-mod-outdated v0.5.1-0.20200214214326-701cdba07e4c
 	github.com/seccomp/containers-golang v0.3.2
 	github.com/sirupsen/logrus v1.5.0
 	github.com/soheilhy/cmux v0.1.4

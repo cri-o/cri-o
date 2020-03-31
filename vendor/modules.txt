@@ -477,6 +477,8 @@ github.com/klauspost/pgzip
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
+# github.com/mattn/go-runewidth v0.0.4
+github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.10
 github.com/mattn/go-shellwords
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -495,6 +497,8 @@ github.com/morikuni/aec
 github.com/mtrmac/gpgme
 # github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481
 github.com/nozzle/throttler
+# github.com/olekukonko/tablewriter v0.0.1
+github.com/olekukonko/tablewriter
 # github.com/onsi/ginkgo v1.12.0
 ## explicit
 github.com/onsi/ginkgo
@@ -612,6 +616,11 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
+# github.com/psampaz/go-mod-outdated v0.5.1-0.20200214214326-701cdba07e4c
+## explicit
+github.com/psampaz/go-mod-outdated
+github.com/psampaz/go-mod-outdated/internal/mod
+github.com/psampaz/go-mod-outdated/internal/runner
 # github.com/rootless-containers/rootlesskit v0.8.0
 github.com/rootless-containers/rootlesskit/pkg/msgutil
 github.com/rootless-containers/rootlesskit/pkg/port
