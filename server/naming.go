@@ -14,16 +14,6 @@ const (
 	nameDelimiter = "_"
 )
 
-func makeSandboxName(sandboxConfig *pb.PodSandboxConfig) string {
-	return strings.Join([]string{
-		kubePrefix,
-		sandboxConfig.Metadata.Name,
-		sandboxConfig.Metadata.Namespace,
-		sandboxConfig.Metadata.Uid,
-		fmt.Sprintf("%d", sandboxConfig.Metadata.Attempt),
-	}, nameDelimiter)
-}
-
 func makeSandboxContainerName(sandboxConfig *pb.PodSandboxConfig) string {
 	return strings.Join([]string{
 		kubePrefix,
@@ -33,20 +23,6 @@ func makeSandboxContainerName(sandboxConfig *pb.PodSandboxConfig) string {
 		sandboxConfig.Metadata.Uid,
 		fmt.Sprintf("%d", sandboxConfig.Metadata.Attempt),
 	}, nameDelimiter)
-}
-
-func (s *Server) ReservePodIDAndName(config *pb.PodSandboxConfig) (id, name string, err error) {
-	if config == nil || config.Metadata == nil || config.Metadata.Namespace == "" {
-		return "", "", fmt.Errorf("cannot generate pod name without namespace")
-	}
-
-	id = stringid.GenerateNonCryptoID()
-	name, err = s.ReservePodName(id, makeSandboxName(config))
-
-	if err != nil {
-		return "", "", err
-	}
-	return id, name, nil
 }
 
 func (s *Server) ReserveSandboxContainerIDAndName(config *pb.PodSandboxConfig) (name string, err error) {
