@@ -1,3 +1,5 @@
+// +build windows
+
 /*
    Copyright The containerd Authors.
 
@@ -14,30 +16,16 @@
    limitations under the License.
 */
 
-package fs
+package platforms
 
 import (
-	"syscall"
-	"time"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// StatAtime returns the Atim
-func StatAtime(st *syscall.Stat_t) syscall.Timespec {
-	return st.Atim
-}
-
-// StatCtime returns the Ctim
-func StatCtime(st *syscall.Stat_t) syscall.Timespec {
-	return st.Ctim
-}
-
-// StatMtime returns the Mtim
-func StatMtime(st *syscall.Stat_t) syscall.Timespec {
-	return st.Mtim
-}
-
-// StatATimeAsTime returns st.Atim as a time.Time
-func StatATimeAsTime(st *syscall.Stat_t) time.Time {
-	// The int64 conversions ensure the line compiles for 32-bit systems as well.
-	return time.Unix(int64(st.Atim.Sec), int64(st.Atim.Nsec)) // nolint: unconvert
+// Default returns the default matcher for the platform.
+func Default() MatchComparer {
+	return Ordered(DefaultSpec(), specs.Platform{
+		OS:           "linux",
+		Architecture: "amd64",
+	})
 }

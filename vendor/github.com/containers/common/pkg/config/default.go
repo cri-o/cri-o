@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/containers/common/pkg/unshare"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +40,7 @@ var (
 	// DefaultInitPath is the default path to the container-init binary
 	DefaultInitPath = "/usr/libexec/podman/catatonit"
 	// DefaultInfraImage to use for infra container
-	DefaultInfraImage = "k8s.gcr.io/pause:3.1"
+	DefaultInfraImage = "k8s.gcr.io/pause:3.2"
 	// DefaultInfraCommand to be run in an infra container
 	DefaultInfraCommand = "/pause"
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
@@ -98,6 +98,8 @@ const (
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container
 	DefaultPidsLimit = 2048
+	// DefaultPullPolicy pulls the image if it does not exist locally
+	DefaultPullPolicy = "missing"
 	// DefaultRootlessSignaturePolicyPath is the default value for the
 	// rootless policy.json file.
 	DefaultRootlessSignaturePolicyPath = ".config/containers/policy.json"
@@ -116,12 +118,11 @@ const (
 // DefaultConfig defines the default values from containers.conf
 func DefaultConfig() (*Config, error) {
 
-	defaultLibpodConfig, err := defaultConfigFromMemory()
+	defaultEngineConfig, err := defaultConfigFromMemory()
 	if err != nil {
 		return nil, err
 	}
 
-	var signaturePolicyPath string
 	netns := "bridge"
 	if unshare.IsRootless() {
 		home, err := unshare.HomeDir()
@@ -130,7 +131,7 @@ func DefaultConfig() (*Config, error) {
 		}
 		sigPath := filepath.Join(home, DefaultRootlessSignaturePolicyPath)
 		if _, err := os.Stat(sigPath); err == nil {
-			signaturePolicyPath = sigPath
+			defaultEngineConfig.SignaturePolicyPath = sigPath
 		}
 		netns = "slirp4netns"
 	}
@@ -152,37 +153,36 @@ func DefaultConfig() (*Config, error) {
 			Env: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			EnvHost:             false,
-			HTTPProxy:           false,
-			Init:                false,
-			InitPath:            "",
-			IPCNS:               "private",
-			LogDriver:           DefaultLogDriver,
-			LogSizeMax:          DefaultLogSizeMax,
-			NetNS:               netns,
-			NoHosts:             false,
-			PidsLimit:           DefaultPidsLimit,
-			PidNS:               "private",
-			SeccompProfile:      SeccompDefaultPath,
-			ShmSize:             DefaultShmSize,
-			SignaturePolicyPath: signaturePolicyPath,
-			UTSNS:               "private",
-			UserNS:              "private",
-			UserNSSize:          DefaultUserNSSize,
+			EnvHost:        false,
+			HTTPProxy:      false,
+			Init:           false,
+			InitPath:       "",
+			IPCNS:          "private",
+			LogDriver:      DefaultLogDriver,
+			LogSizeMax:     DefaultLogSizeMax,
+			NetNS:          netns,
+			NoHosts:        false,
+			PidsLimit:      DefaultPidsLimit,
+			PidNS:          "private",
+			SeccompProfile: SeccompDefaultPath,
+			ShmSize:        DefaultShmSize,
+			UTSNS:          "private",
+			UserNS:         "private",
+			UserNSSize:     DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:   "podman",
 			NetworkConfigDir: cniConfigDir,
 			CNIPluginDirs:    cniBinDir,
 		},
-		Libpod: *defaultLibpodConfig,
+		Engine: *defaultEngineConfig,
 	}, nil
 }
 
-// defaultConfigFromMemory returns a default libpod configuration. Note that the
+// defaultConfigFromMemory returns a default engine configuration. Note that the
 // config is different for root and rootless. It also parses the storage.conf.
-func defaultConfigFromMemory() (*LibpodConfig, error) {
-	c := new(LibpodConfig)
+func defaultConfigFromMemory() (*EngineConfig, error) {
+	c := new(EngineConfig)
 	tmp, err := defaultTmpDir()
 	if err != nil {
 		return nil, err
@@ -201,7 +201,6 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 	}
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
-	c.StorageConfig = storeOpts
 
 	c.HooksDir = DefaultHooksDirs
 	c.ImageDefaultTransport = _defaultTransport
@@ -235,6 +234,14 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 			"/bin/crun",
 			"/run/current-system/sw/bin/crun",
 		},
+		"kata": {
+			"/usr/bin/kata-runtime",
+			"/usr/sbin/kata-runtime",
+			"/usr/local/bin/kata-runtime",
+			"/usr/local/sbin/kata-runtime",
+			"/sbin/kata-runtime",
+			"/bin/kata-runtime",
+		},
 	}
 	c.ConmonEnvVars = []string{
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -249,6 +256,7 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 		"/usr/local/sbin/conmon",
 		"/run/current-system/sw/bin/conmon",
 	}
+	c.PullPolicy = DefaultPullPolicy
 	c.RuntimeSupportsJSON = []string{
 		"crun",
 		"runc",
