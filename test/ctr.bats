@@ -1257,15 +1257,20 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "209715200" ]]
 
-	if test -r /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes ; then
-		expected=209715200
-	else
-		expected=0
+	# set memory swap max file for cgroupv1 or v2
+	CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
+	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+		CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory.swap.max"
 	fi
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes 2> /dev/null || cat /sys/fs/cgroup/memory.swap.max 2> /dev/null"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[ "$output" -eq "$expected" ]
+
+	# we can only rely on these files being here if cgroup memory swap is enabled
+	# otherwise this test fails
+	if test -r "$CGROUP_MEM_SWAP_FILE" ; then
+		run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[ "$output" -eq "209715200" ]
+	fi
 
 	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
@@ -1302,15 +1307,12 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "524288000" ]]
 
-	if test -r /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes ; then
-		expected=524288000
-	else
-		expected=0
+	if test -r "$CGROUP_MEM_SWAP_FILE" ; then
+		run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[ "$output" -eq "524288000" ]
 	fi
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes 2> /dev/null || cat /sys/fs/cgroup/memory.swap.max 2> /dev/null"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[ "$output" -eq "$expected" ]
 
 	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
