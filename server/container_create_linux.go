@@ -636,6 +636,29 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddMount(cgroupMnt)
 	}
 
+	containerImageConfig := containerInfo.Config
+	if containerImageConfig == nil {
+		err = fmt.Errorf("empty image config for %s", image)
+		return nil, err
+	}
+
+	processArgs, err := buildOCIProcessArgs(ctx, containerConfig, containerImageConfig)
+	if err != nil {
+		return nil, err
+	}
+	specgen.SetProcessArgs(processArgs)
+
+	if strings.Contains(processArgs[0], "/sbin/init") || (filepath.Base(processArgs[0]) == oci.SystemdCgroupsManager) {
+		setupSystemd(specgen.Mounts(), specgen)
+	}
+
+	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
+	if !privileged && cgroups.IsCgroup2UnifiedMode() {
+		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); err != nil {
+			return nil, err
+		}
+	}
+
 	for idx, ip := range sb.IPs() {
 		specgen.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
 	}
@@ -751,12 +774,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	specgen.AddAnnotation(annotations.MountPoint, mountPoint)
 
-	containerImageConfig := containerInfo.Config
-	if containerImageConfig == nil {
-		err = fmt.Errorf("empty image config for %s", image)
-		return nil, err
-	}
-
 	if containerImageConfig.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
 		specgen.AddAnnotation("org.opencontainers.image.stopSignal", containerImageConfig.Config.StopSignal)
@@ -781,12 +798,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if err != nil {
 		return nil, err
 	}
-
-	processArgs, err := buildOCIProcessArgs(ctx, containerConfig, containerImageConfig)
-	if err != nil {
-		return nil, err
-	}
-	specgen.SetProcessArgs(processArgs)
 
 	// Set working directory
 	// Pick it up from image config first and override if specified in CRI
@@ -1113,4 +1124,65 @@ func getDevicesFromConfig(ctx context.Context, config *libconfig.Config) ([]conf
 	}
 
 	return linuxdevs, nil
+}
+
+// mountExists returns true if dest exists in the list of mounts
+func mountExists(specMounts []rspec.Mount, dest string) bool {
+	for _, m := range specMounts {
+		if m.Destination == dest {
+			return true
+		}
+	}
+	return false
+}
+
+// systemd expects to have /run, /run/lock and /tmp on tmpfs
+// It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
+func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
+	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
+	for _, dest := range []string{"/run", "/run/lock"} {
+		if mountExists(mounts, dest) {
+			continue
+		}
+		tmpfsMnt := rspec.Mount{
+			Destination: dest,
+			Type:        "tmpfs",
+			Source:      "tmpfs",
+			Options:     append(options, "tmpcopyup", "size=65536k"),
+		}
+		g.AddMount(tmpfsMnt)
+	}
+	for _, dest := range []string{"/tmp", "/var/log/journal"} {
+		if mountExists(mounts, dest) {
+			continue
+		}
+		tmpfsMnt := rspec.Mount{
+			Destination: dest,
+			Type:        "tmpfs",
+			Source:      "tmpfs",
+			Options:     append(options, "tmpcopyup"),
+		}
+		g.AddMount(tmpfsMnt)
+	}
+
+	if cgroups.IsCgroup2UnifiedMode() {
+		g.RemoveMount("/sys/fs/cgroup")
+
+		systemdMnt := rspec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"private", "rw"},
+		}
+		g.AddMount(systemdMnt)
+	} else {
+		systemdMnt := rspec.Mount{
+			Destination: "/sys/fs/cgroup/systemd",
+			Type:        "bind",
+			Source:      "/sys/fs/cgroup/systemd",
+			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+		}
+		g.AddMount(systemdMnt)
+		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
+	}
 }
