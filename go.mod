@@ -20,6 +20,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
+	github.com/creack/pty v1.1.9
 	github.com/cri-o/ocicni v0.1.1-0.20200218164758-d2881573038f
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/docker/go-units v0.4.0
@@ -38,7 +39,6 @@ require (
 	github.com/gorilla/handlers v1.4.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/hpcloud/tail v1.0.0
-	github.com/kr/pty v1.1.8
 	github.com/mrtazz/checkmake v0.0.0-20191009095831-03dd76b964dd // indirect
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
 	github.com/onsi/ginkgo v1.12.0
