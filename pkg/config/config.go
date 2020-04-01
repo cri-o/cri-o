@@ -534,7 +534,7 @@ func DefaultConfig() (*Config, error) {
 			AdditionalDevices:        []string{},
 			HooksDir:                 []string{hooks.DefaultDir},
 			ManageNSLifecycle:        false,
-			NamespacesDir:            "/var/run/crio/ns",
+			NamespacesDir:            "/var/run",
 			PinnsPath:                "",
 		},
 		ImageConfig: ImageConfig{
@@ -752,8 +752,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrapf(err, "pinns validation")
 		}
 
-		if err := os.MkdirAll(c.NamespacesDir, 0700); err != nil {
-			return errors.Wrapf(err, "invalid namespaces_dir")
+		if err := os.MkdirAll(c.NamespacesDir, 0755); err != nil {
+			return errors.Wrap(err, "invalid namespaces_dir")
 		}
 	}
 
