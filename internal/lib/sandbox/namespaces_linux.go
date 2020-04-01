@@ -63,13 +63,11 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		NETNS:  "-n",
 	}
 
-	pinDir := filepath.Join(cfg.NamespacesDir, uuid.New().String())
-
-	if err := os.MkdirAll(pinDir, 0755); err != nil {
-		return nil, err
+	pinnedNamespace := uuid.New().String()
+	pinnsArgs := []string{
+		"-d", cfg.NamespacesDir,
+		"-f", pinnedNamespace,
 	}
-
-	pinnsArgs := []string{"-d", pinDir}
 	type namespaceInfo struct {
 		path   string
 		nsType NSType
@@ -83,7 +81,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		}
 		pinnsArgs = append(pinnsArgs, arg)
 		mountedNamespaces = append(mountedNamespaces, namespaceInfo{
-			path:   filepath.Join(pinDir, string(nsType)),
+			path:   filepath.Join(cfg.NamespacesDir, fmt.Sprintf("%sns", string(nsType)), pinnedNamespace),
 			nsType: nsType,
 		})
 	}
