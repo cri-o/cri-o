@@ -103,7 +103,7 @@ TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
-TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.2.0
+TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.3.0
 
 all: binaries config docs
 
@@ -158,9 +158,9 @@ bin/crio-status: $(GO_FILES) .gopathok
 
 build-static:
 	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(TESTIMAGE_NIX) sh -c \
-		"nix build -f cri-o/nix --argstr revision $(COMMIT_NO) && \
+		"nix build -f cri-o/nix && \
 		mkdir -p cri-o/bin && \
-		cp result-*bin/bin/crio-* cri-o/bin"
+		cp result-bin/bin/crio-* cri-o/bin"
 
 release-bundle: clean bin/pinns build-static docs config bundle
 
@@ -213,6 +213,10 @@ test-images:
 	$(TESTIMAGE_SCRIPT) -g 1.14 -a amd64
 	$(TESTIMAGE_SCRIPT) -g 1.14 -a 386
 	$(TESTIMAGE_SCRIPT) -g 1.12 -a amd64
+
+nixpkgs:
+	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -c nix-prefetch-git \
+		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
 
 test-image-nix:
 	time $(CONTAINER_RUNTIME) build -t $(TESTIMAGE_NIX) \
@@ -489,6 +493,7 @@ docs-validation:
 	install \
 	lint \
 	local-cross \
+	nixpkgs \
 	release-bundle \
 	shfmt \
 	testunit \

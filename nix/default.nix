@@ -1,27 +1,12 @@
-{ revision ? "HEAD", system ? builtins.currentSystem }:
+{ system ? builtins.currentSystem }:
 let
-  nixpkgs = import ./nixpkgs.nix;
-  glibcPkgs = import (builtins.head nixpkgs) {};
-  muslPkgs = (import (builtins.head nixpkgs) {
+  pkgs = import ./nixpkgs.nix {
     config = {
       packageOverrides = pkg: {
-        go_1_13 = muslPkgs.go_1_12;
-        go_1_12 = pkg.go_1_12.overrideAttrs (old: {
-          prePatch = ''
-            sed -i 's/TestChown/testChown/' src/os/os_unix_test.go
-            sed -i 's/TestFileChown/testFileChown/' src/os/os_unix_test.go
-            sed -i 's/TestLchown/testLchown/' src/os/os_unix_test.go
-            sed -i 's/TestCoverageUsesAtomicModeForRace/testCoverageUsesAtomicModeForRace/' src/cmd/go/go_test.go
-            sed -i 's/TestTestRaceInstall/testTestRaceInstall/' src/cmd/go/go_test.go
-            sed -i 's/TestGoTestRaceFailures/testGoTestRaceFailures/' src/cmd/go/go_test.go
-            sed -i '/func cmdtest/a return' src/cmd/dist/test.go
-          '' + old.prePatch;
-        });
-        gnupg = glibcPkgs.gnupg;
-        systemd = (import (builtins.elemAt nixpkgs 1) {}).systemd;
+        go_1_12 = pkg.go_1_14;
       };
     };
-  }).pkgsMusl;
+  };
 
   static = pkg: pkg.overrideAttrs(old: {
     configureFlags = (old.configureFlags or []) ++
@@ -48,32 +33,18 @@ let
   });
 
   self = {
-    cri-o-static-musl = (muslPkgs.cri-o.overrideAttrs(old: {
-      name = "cri-o-x86_64-static-musl-${revision}";
-      buildInputs = old.buildInputs ++ (with muslPkgs; [ systemd ]);
-      src = ./..;
-      EXTRA_LDFLAGS = ''-linkmode external -extldflags "-static"'';
-    })).override {
-      flavor = "-x86_64-static-musl";
-      glibc = null;
-      gpgme = (static muslPkgs.gpgme);
-      libassuan = (static muslPkgs.libassuan);
-      libgpgerror = (static muslPkgs.libgpgerror);
-      libseccomp = (static muslPkgs.libseccomp);
-      lvm2 = (patchLvm2 (static muslPkgs.lvm2));
-    };
-    cri-o-static-glibc = (glibcPkgs.cri-o.overrideAttrs(old: {
-      name = "cri-o-x86_64-static-glibc-${revision}";
-      buildInputs = old.buildInputs ++ (with glibcPkgs; [ systemd ]);
+    cri-o-static = (pkgs.cri-o.overrideAttrs(old: {
+      name = "cri-o-static";
+      buildInputs = old.buildInputs ++ (with pkgs; [ systemd ]);
       src = ./..;
       EXTRA_LDFLAGS = ''-linkmode external -extldflags "-static -lm"'';
     })).override {
-      flavor = "-x86_64-static-glibc";
-      gpgme = (static glibcPkgs.gpgme);
-      libassuan = (static glibcPkgs.libassuan);
-      libgpgerror = (static glibcPkgs.libgpgerror);
-      libseccomp = (static glibcPkgs.libseccomp);
-      lvm2 = (patchLvm2 (static glibcPkgs.lvm2));
+      flavor = "-static";
+      gpgme = (static pkgs.gpgme);
+      libassuan = (static pkgs.libassuan);
+      libgpgerror = (static pkgs.libgpgerror);
+      libseccomp = (static pkgs.libseccomp);
+      lvm2 = (patchLvm2 (static pkgs.lvm2));
     };
   };
 in self

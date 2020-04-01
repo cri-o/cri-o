@@ -12,10 +12,8 @@ cd "$(dirname "$0")"
 source "$GIT_ROOT/scripts/versions"
 
 FILES_BIN=(
-    "$GIT_ROOT/bin/crio-status-x86_64-static-glibc"
-    "$GIT_ROOT/bin/crio-status-x86_64-static-musl"
-    "$GIT_ROOT/bin/crio-x86_64-static-glibc"
-    "$GIT_ROOT/bin/crio-x86_64-static-musl"
+    "$GIT_ROOT/bin/crio-status-static"
+    "$GIT_ROOT/bin/crio-static"
     "$GIT_ROOT/bin/pinns"
 )
 FILES_MAN=(

@@ -7,7 +7,7 @@ stdenv: &stdenv
     IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.2
     IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.12:master-1.3.2
     IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.2
-    IMAGENIX: &imagenix quay.io/crio/nix:1.2.0
+    IMAGENIX: &imagenix quay.io/crio/nix:1.3.0
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
     WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
@@ -117,15 +117,8 @@ workflows:
           filters: *filterAllTags
 
       - integration:
-          name: integration-static-glibc
-          crio_binary: crio-x86_64-static-glibc
-          requires:
-            - build-static
-          filters: *filterAllTags
-
-      - integration:
-          name: integration-static-musl
-          crio_binary: crio-x86_64-static-musl
+          name: integration-static
+          crio_binary: crio-static
           requires:
             - build-static
           filters: *filterAllTags
@@ -141,8 +134,7 @@ workflows:
             - bundle-test
             - integration
             - integration-critest
-            - integration-static-glibc
-            - integration-static-musl
+            - integration-static
             - integration-userns
             - release-notes
             - unit-tests
@@ -197,7 +189,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: add remote go fetch all tags
+          name: Add remote to fetch all tags
           command: |
             git remote add base https://github.com/cri-o/cri-o
             git fetch base
@@ -210,8 +202,7 @@ jobs:
       - run:
           name: Show CRI-O version for static binaries
           command: |
-            ./bin/crio-x86_64-static-glibc version
-            ./bin/crio-x86_64-static-musl version
+            ./bin/crio-static version
       - persist_to_workspace:
           root: .
           paths:
