@@ -428,7 +428,7 @@ jobs:
               gcloud auth activate-service-account --key-file=/tmp/key.json
 
               BUCKET=gs://k8s-conform-cri-o
-              gsutil cp build/bundle/*.tar.gz $BUCKET/artifacts
+              gsutil cp -n build/bundle/*.tar.gz $BUCKET/artifacts
             fi
       - store_test_results:
           path: build/junit
