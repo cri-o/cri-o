@@ -70,30 +70,40 @@ func main() {
 			versionScope = strings.TrimPrefix(branch, "release-")
 		}
 
-		// Assume we have internet access, so we use the tag from the upstream
-		// remote
-		lsRemoteRes, err := command.
-			New(git, "ls-remote", "--sort=v:refname", "--tags", remote).
-			Pipe(grep, versionScope).
-			Pipe(grep, "-Eo", fullVersion).
-			Pipe(tail, "-1").
-			RunSilentSuccessOutput()
-
-		if err != nil {
-			// Fallback to the local git repository, if ls-remote failed
-			localTagRes, err := command.
-				New(git, "tag").
-				Pipe(grep, versionScope).
+		// Test if the release branch contains a tag and fallback to the master
+		// if not
+		for _, test := range []struct {
+			scope  string
+			branch string
+		}{
+			{versionScope, branch},
+			{"", kgit.Master},
+		} {
+			// Assume we have internet access, so we use the tag from the upstream
+			// remote
+			lsRemoteRes, err := command.
+				New(git, "ls-remote", "--sort=v:refname", "--tags", remote).
+				Pipe(grep, test.scope).
 				Pipe(grep, "-Eo", fullVersion).
-				Pipe(sort, "-V").
 				Pipe(tail, "-1").
 				RunSilentSuccessOutput()
 
-			if err == nil {
-				tag = incVersion(localTagRes.Output(), branch)
+			if err != nil {
+				// Fallback to the local git repository, if ls-remote failed
+				localTagRes, err := command.
+					New(git, "tag").
+					Pipe(grep, test.scope).
+					Pipe(grep, "-Eo", fullVersion).
+					Pipe(sort, "-V").
+					Pipe(tail, "-1").
+					RunSilentSuccessOutput()
+
+				if err == nil && localTagRes.OutputTrimNL() != "" {
+					tag = incVersion(localTagRes.Output(), test.branch)
+				}
+			} else if lsRemoteRes.OutputTrimNL() != "" {
+				tag = incVersion(lsRemoteRes.Output(), test.branch)
 			}
-		} else {
-			tag = incVersion(lsRemoteRes.Output(), branch)
 		}
 	} else {
 		tag = decVersion(describeRes.Output())
