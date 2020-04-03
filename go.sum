@@ -162,14 +162,9 @@ github.com/containers/common v0.4.2/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaT
 github.com/containers/common v0.5.0/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
 github.com/containers/common v0.6.1 h1:z9VeVXYeOnNV99uNLp7zoE5KO1n0hqz1mdm5a6AiIrA=
 github.com/containers/common v0.6.1/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
-github.com/containers/conmon v1.0.0-rc2 h1:d9x08VKHhWmMxMzTtj/FtGyDjiSoMvgxu0oveP70EzY=
 github.com/containers/conmon v2.0.10+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/conmon v2.0.11+incompatible h1:6GsjGxxobNEQrVsxRrosI33Vm8nS1Gk4n5Tp1B1yETE=
-github.com/containers/conmon v2.0.11+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/conmon v2.0.12+incompatible h1:1Ymn/y9LPcGfKqE2yWpyPze4zJMgUlj94raqONfC5ss=
-github.com/containers/conmon v2.0.12+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/conmon v2.0.14+incompatible h1:knU1O1QxXy5YxtjMQVKEyCajROaehizK9FHaICl+P5Y=
-github.com/containers/conmon v2.0.14+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
+github.com/containers/conmon v2.0.15+incompatible h1:3CdToyAu/XEiXO2Se/HaOv3TEc1pbk2YaZCZbTLIFUs=
+github.com/containers/conmon v2.0.15+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.1.0/go.mod h1:BKlMD34WxRo1ruGHHEOrPQP0Qci7SWoPwU6fS7arsCU=
 github.com/containers/image/v5 v5.2.0/go.mod h1:IAub4gDGvXoxaIAdNy4e3FbVTDPVNMv9F0UfVVFbYCU=
 github.com/containers/image/v5 v5.2.1 h1:rQR6QSUneWBoW1bTFpP9EJJTevQFv27YsKYQVJIzg+s=
