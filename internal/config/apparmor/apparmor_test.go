@@ -31,10 +31,10 @@ var _ = t.Describe("Config", func() {
 	})
 
 	t.Describe("LoadProfile", func() {
-		It("should succeed with unconfied", func() {
+		It("should succeed with unconfined", func() {
 			// Given
 			// When
-			err := sut.LoadProfile("unconfied")
+			err := sut.LoadProfile("unconfined")
 
 			// Then
 			Expect(err).To(BeNil())
