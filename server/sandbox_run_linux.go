@@ -187,13 +187,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// Add special container name label for the infra container
-	labelsJSON := []byte{}
 	if labels != nil {
 		labels[types.KubernetesContainerNameLabel] = leaky.PodInfraContainerName
-		labelsJSON, err = json.Marshal(labels)
-		if err != nil {
-			return nil, err
-		}
+	}
+	labelsJSON, err := json.Marshal(labels)
+	if err != nil {
+		return nil, err
 	}
 
 	// add annotations
