@@ -110,7 +110,7 @@ install_cni_plugins() {
 
 install_runc() {
     export GOPATH=/home/circleci/go
-    go get github.com/opencontainers/runc
+    go get -d github.com/opencontainers/runc
     pushd $GOPATH/src/github.com/opencontainers/runc
     git checkout "${VERSIONS["runc"]}"
     make BUILDTAGS="apparmor selinux seccomp"
