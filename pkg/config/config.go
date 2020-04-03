@@ -552,7 +552,7 @@ func DefaultConfig() (*Config, error) {
 			DefaultCapabilities:      DefaultCapabilities,
 			LogLevel:                 "info",
 			HooksDir:                 []string{hooks.DefaultDir},
-			NamespacesDir:            "/var/run/crio/ns",
+			NamespacesDir:            "/var/run",
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
 		},
@@ -787,7 +787,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "pinns validation")
 		}
 
-		if err := os.MkdirAll(c.NamespacesDir, 0700); err != nil {
+		if err := os.MkdirAll(c.NamespacesDir, 0755); err != nil {
 			return errors.Wrap(err, "invalid namespaces_dir")
 		}
 

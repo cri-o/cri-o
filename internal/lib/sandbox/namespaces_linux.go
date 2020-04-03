@@ -63,13 +63,11 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		NETNS:  "-n",
 	}
 
-	pinDir := filepath.Join(cfg.NamespacesDir, uuid.New().String())
-
-	if err := os.MkdirAll(pinDir, 0755); err != nil {
-		return nil, err
+	pinnedNamespace := uuid.New().String()
+	pinnsArgs := []string{
+		"-d", cfg.NamespacesDir,
+		"-f", pinnedNamespace,
 	}
-
-	pinnsArgs := []string{"-d", pinDir}
 	type namespaceInfo struct {
 		path   string
 		nsType NSType
@@ -83,13 +81,13 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		}
 		pinnsArgs = append(pinnsArgs, arg)
 		mountedNamespaces = append(mountedNamespaces, namespaceInfo{
-			path:   filepath.Join(pinDir, string(nsType)),
+			path:   filepath.Join(cfg.NamespacesDir, fmt.Sprintf("%sns", string(nsType)), pinnedNamespace),
 			nsType: nsType,
 		})
 	}
 
 	pinns := cfg.PinnsPath
-	if _, err := exec.Command(pinns, pinnsArgs...).Output(); err != nil {
+	if output, err := exec.Command(pinns, pinnsArgs...).Output(); err != nil {
 		// cleanup after ourselves
 		failedUmounts := make([]string, 0)
 		for _, info := range mountedNamespaces {
@@ -98,9 +96,9 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 			}
 		}
 		if len(failedUmounts) != 0 {
-			return nil, fmt.Errorf("failed to cleanup %v after pinns failure %v", failedUmounts, err)
+			return nil, fmt.Errorf("failed to cleanup %v after pinns failure %s %v", failedUmounts, output, err)
 		}
-		return nil, fmt.Errorf("failed to pin namespaces %v: %v", nsTypes, err)
+		return nil, fmt.Errorf("failed to pin namespaces %v: %s %v", nsTypes, output, err)
 	}
 
 	returnedNamespaces := make([]NamespaceIface, 0)

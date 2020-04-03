@@ -210,7 +210,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **manage_ns_lifecycle**=false
   Determines whether we pin and remove namespaces and manage their lifecycle
 
-**namespaces_dir**="/var/run/crio/ns"
+**namespaces_dir**="/var/run"
   The directory where the state of the managed namespaces gets tracked. Only used when manage_ns_lifecycle is true
 
 **pinns_path**=""
