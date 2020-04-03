@@ -4,8 +4,8 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/crio/crio-build-amd64-go1.13:1.16-1.1.4
-    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.10:1.16-1.1.4
+    IMAGE: &image quay.io/crio/crio-build-amd64-go1.13:1.16-1.1.5
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.10:1.16-1.1.5
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
     WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
