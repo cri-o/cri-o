@@ -284,11 +284,11 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	}
 	var m rspec.Spec
 	if err := json.Unmarshal(config, &m); err != nil {
-		return err
+		return errors.Wrap(err, "error unmarshalling sandbox spec")
 	}
 	labels := make(map[string]string)
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
-		return err
+		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Labels)
 	}
 	name := m.Annotations[annotations.Name]
 	name, err = c.ReservePodName(id, name)
@@ -302,7 +302,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	}()
 	var metadata pb.PodSandboxMetadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
-		return err
+		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Metadata)
 	}
 
 	processLabel := m.Process.SelinuxLabel
@@ -312,19 +312,19 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 
 	kubeAnnotations := make(map[string]string)
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
-		return err
+		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Annotations)
 	}
 
 	portMappings := []*hostport.PortMapping{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.PortMappings]), &portMappings); err != nil {
-		return err
+		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.PortMappings)
 	}
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
 	nsOpts := pb.NamespaceOption{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
-		return err
+		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.NamespaceOptions)
 	}
 
 	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork)
