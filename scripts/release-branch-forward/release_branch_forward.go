@@ -73,7 +73,7 @@ func run() error {
 	tagPrefix := strings.TrimPrefix(latestReleaseBranch, releaseBranchPrefix)
 	lsRemoteTags, err := command.
 		New(git, "ls-remote", "--sort=v:refname", "--tags", remote).
-		Pipe(grep, "-Eo", "v"+tagPrefix+".*").
+		Pipe(grep, "-Eo", "v"+tagPrefix+".[0-9]*$").
 		RunSilentSuccessOutput()
 	if err == nil {
 		logrus.Warnf(
