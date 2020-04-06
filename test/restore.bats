@@ -300,3 +300,222 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 }
+
+@test "crio restore first not managing then managing" {
+	CONTAINER_MANAGE_NS_LIFECYCLE=false start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run crictl pods --quiet --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_list_info="$output"
+
+	run crictl inspectp --output=table "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_status_info=`echo "$output" | grep Status`
+	pod_ip=`echo "$output" | grep IP`
+
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	run crictl ps --quiet --id "$ctr_id" --all
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_list_info="$output"
+
+	run crictl inspect "$ctr_id" --output table
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_status_info=`echo "$output" | grep State`
+
+	stop_crio
+
+	CONTAINER_MANAGE_NS_LIFECYCLE=true start_crio
+	run crictl pods --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" != "" ]]
+	[[ "${output}" == "${pod_id}" ]]
+
+	run crictl pods --quiet --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" == "${pod_list_info}" ]]
+
+	run crictl inspectp --output=table "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	status_output=`echo "$output" | grep Status`
+	ip_output=`echo "$output" | grep IP`
+	[[ "${status_output}" == "${pod_status_info}" ]]
+	[[ "${ip_output}" == "${pod_ip}" ]]
+
+	run crictl ps --quiet --all
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" != "" ]]
+	[[ "${output}" == "${ctr_id}" ]]
+
+	run crictl ps --quiet --id "$ctr_id" --all
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" == "${ctr_list_info}" ]]
+
+	run crictl inspect "$ctr_id" --output table
+	echo "$output"
+	[ "$status" -eq 0 ]
+	output=`echo "$output" | grep State`
+	[[ "${output}" == "${ctr_status_info}" ]]
+}
+
+@test "crio restore first managing then not managing" {
+	CONTAINER_MANAGE_NS_LIFECYCLE=true start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run crictl pods --quiet --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_list_info="$output"
+
+	run crictl inspectp --output=table "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_status_info=`echo "$output" | grep Status`
+	pod_ip=`echo "$output" | grep IP`
+
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	run crictl ps --quiet --id "$ctr_id" --all
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_list_info="$output"
+
+	run crictl inspect "$ctr_id" --output table
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_status_info=`echo "$output" | grep State`
+
+	stop_crio
+
+	CONTAINER_MANAGE_NS_LIFECYCLE=false start_crio
+	run crictl pods --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" != "" ]]
+	[[ "${output}" == "${pod_id}" ]]
+
+	run crictl pods --quiet --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" == "${pod_list_info}" ]]
+
+	run crictl inspectp --output=table "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	status_output=`echo "$output" | grep Status`
+	ip_output=`echo "$output" | grep IP`
+	[[ "${status_output}" == "${pod_status_info}" ]]
+	[[ "${ip_output}" == "${pod_ip}" ]]
+
+	run crictl ps --quiet --all
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" != "" ]]
+	[[ "${output}" == "${ctr_id}" ]]
+
+	run crictl ps --quiet --id "$ctr_id" --all
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" == "${ctr_list_info}" ]]
+
+	run crictl inspect "$ctr_id" --output table
+	echo "$output"
+	[ "$status" -eq 0 ]
+	output=`echo "$output" | grep State`
+	[[ "${output}" == "${ctr_status_info}" ]]
+}
+
+@test "crio restore changing managing dir" {
+	CONTAINER_MANAGE_NS_LIFECYCLE=true CONTAINER_NAMESPACE_DIR="$TESTDIR/ns1" start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+	run crictl pods --quiet --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_list_info="$output"
+
+	run crictl inspectp --output=table "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_status_info=`echo "$output" | grep Status`
+	pod_ip=`echo "$output" | grep IP`
+
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	run crictl ps --quiet --id "$ctr_id" --all
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_list_info="$output"
+
+	run crictl inspect "$ctr_id" --output table
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_status_info=`echo "$output" | grep State`
+
+	stop_crio
+
+	CONTAINER_MANAGE_NS_LIFECYCLE=true CONTAINER_NAMESPACE_DIR="$TESTDIR/ns2" start_crio
+	run crictl pods --quiet
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" != "" ]]
+	[[ "${output}" == "${pod_id}" ]]
+
+	run crictl pods --quiet --id "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" == "${pod_list_info}" ]]
+
+	run crictl inspectp --output=table "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	status_output=`echo "$output" | grep Status`
+	ip_output=`echo "$output" | grep IP`
+	[[ "${status_output}" == "${pod_status_info}" ]]
+	[[ "${ip_output}" == "${pod_ip}" ]]
+
+	run crictl ps --quiet --all
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" != "" ]]
+	[[ "${output}" == "${ctr_id}" ]]
+
+	run crictl ps --quiet --id "$ctr_id" --all
+	echo "$output"
+	[ "$status" -eq 0 ]
+	[[ "${output}" == "${ctr_list_info}" ]]
+
+	run crictl inspect "$ctr_id" --output table
+	echo "$output"
+	[ "$status" -eq 0 ]
+	output=`echo "$output" | grep State`
+	[[ "${output}" == "${ctr_status_info}" ]]
+}

@@ -84,7 +84,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l log-size-max -r -d 'Maximu
 complete -c crio -n '__fish_crio_no_subcommand' -f -l manage-network-ns-lifecycle -d 'Deprecated: this option is being replaced by `manage_ns_lifecycle`, which is described below'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l manage-ns-lifecycle -d 'Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-port -r -d 'Port for the metrics endpoint'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l namespaces-dir -r -d 'The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: "/var/run/crio/ns")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l namespaces-dir -r -d 'The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: "/var/run")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l no-pivot -d 'If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-command -r -d 'Path to the pause executable in the pause image (default: "/pause")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-image -r -d 'Image which contains the pause executable (default: "k8s.gcr.io/pause:3.1")'
