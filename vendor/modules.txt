@@ -57,6 +57,7 @@ github.com/containerd/containerd/events
 github.com/containerd/containerd/log
 github.com/containerd/containerd/namespaces
 github.com/containerd/containerd/pkg/ttrpcutil
+github.com/containerd/containerd/platforms
 github.com/containerd/containerd/runtime/v2/shim
 github.com/containerd/containerd/runtime/v2/task
 github.com/containerd/containerd/sys
@@ -89,29 +90,35 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.5
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.14.2
+# github.com/containers/buildah v1.14.6
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
 github.com/containers/buildah/docker
 github.com/containers/buildah/imagebuildah
+github.com/containers/buildah/manifests
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/cli
+github.com/containers/buildah/pkg/manifests
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/secrets
+github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.4.2
+# github.com/containers/common v0.8.1
+## explicit
+github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/capabilities
+github.com/containers/common/pkg/cgroupv2
 github.com/containers/common/pkg/config
-github.com/containers/common/pkg/unshare
+github.com/containers/common/pkg/sysinfo
 # github.com/containers/conmon v2.0.15+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.3.0
+# github.com/containers/image/v5 v5.3.1
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -152,7 +159,7 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
-# github.com/containers/libpod v1.8.1
+# github.com/containers/libpod v1.8.2
 ## explicit
 github.com/containers/libpod/cmd/podman/cliconfig
 github.com/containers/libpod/libpod
@@ -193,6 +200,7 @@ github.com/containers/libpod/pkg/seccomp
 github.com/containers/libpod/pkg/signal
 github.com/containers/libpod/pkg/spec
 github.com/containers/libpod/pkg/sysinfo
+github.com/containers/libpod/pkg/systemd
 github.com/containers/libpod/pkg/timetype
 github.com/containers/libpod/pkg/util
 github.com/containers/libpod/utils
@@ -218,7 +226,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.16.5
+# github.com/containers/storage v1.18.2
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -259,6 +267,7 @@ github.com/containers/storage/pkg/stringutils
 github.com/containers/storage/pkg/system
 github.com/containers/storage/pkg/tarlog
 github.com/containers/storage/pkg/truncindex
+github.com/containers/storage/pkg/unshare
 # github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
 github.com/coreos/go-systemd/dbus
 # github.com/coreos/go-systemd/v22 v22.0.0
@@ -363,7 +372,7 @@ github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
 # github.com/etcd-io/bbolt v1.3.3
 github.com/etcd-io/bbolt
-# github.com/fsnotify/fsnotify v1.4.7
+# github.com/fsnotify/fsnotify v1.4.9
 ## explicit
 github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.6.3
@@ -462,7 +471,7 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/pgzip v1.2.2
+# github.com/klauspost/pgzip v1.2.3
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
@@ -564,7 +573,7 @@ github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
 # github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316
 github.com/openshift/api/config/v1
-# github.com/openshift/imagebuilder v1.1.1
+# github.com/openshift/imagebuilder v1.1.4
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/dockerfile/parser
@@ -628,13 +637,13 @@ github.com/seccomp/libseccomp-golang
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
 github.com/shurcooL/sanitized_anchor_name
-# github.com/sirupsen/logrus v1.4.2
+# github.com/sirupsen/logrus v1.5.0 => github.com/sirupsen/logrus v1.4.2
 ## explicit
 github.com/sirupsen/logrus
 # github.com/soheilhy/cmux v0.1.4
 ## explicit
 github.com/soheilhy/cmux
-# github.com/spf13/cobra v0.0.6
+# github.com/spf13/cobra v0.0.7
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
@@ -690,6 +699,8 @@ github.com/xeipuuv/gojsonpointer
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.1.0
 github.com/xeipuuv/gojsonschema
+# go.etcd.io/bbolt v1.3.4
+go.etcd.io/bbolt
 # go.opencensus.io v0.22.1
 go.opencensus.io
 go.opencensus.io/internal
@@ -889,7 +900,7 @@ gopkg.in/tomb.v1
 gopkg.in/warnings.v0
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
-# k8s.io/api v0.17.3 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200325144952-9e991415386e
+# k8s.io/api v0.17.4 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200325144952-9e991415386e
 ## explicit
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
@@ -931,7 +942,7 @@ k8s.io/api/settings/v1alpha1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apimachinery v0.17.3 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20200325144952-9e991415386e
+# k8s.io/apimachinery v0.17.4 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20200325144952-9e991415386e
 ## explicit
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
@@ -1239,6 +1250,7 @@ mvdan.cc/sh/v3/syntax
 sigs.k8s.io/structured-merge-diff/v3/value
 # sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
+# github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2
 # github.com/godbus/dbus => github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
 # github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2
 # k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200325144952-9e991415386e
