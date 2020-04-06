@@ -85,7 +85,15 @@ GO_FILES := $(shell find . -type f -name '*.go' -not -name '*_test.go')
 
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
-SHRINKFLAGS := -s -w
+
+# Set DEBUG=1 to enable debug symbols in binaries
+DEBUG ?= 0
+ifeq ($(DEBUG),0)
+SHRINKFLAGS = -s -w
+else
+GCFLAGS = -gcflags '-N -l'
+endif
+
 VERSION := $(shell $(GO_RUN) ./scripts/latest-version)
 DEFAULTS_PATH := ""
 
@@ -145,16 +153,16 @@ bin/pinns:
 	$(MAKE) -C pinns
 
 test/copyimg/copyimg: $(GO_FILES) .gopathok
-	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
+	$(GO_BUILD) $(GCFLAGS) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
 
 test/checkseccomp/checkseccomp: $(GO_FILES) .gopathok
-	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO_BUILD) $(GCFLAGS) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
 bin/crio: $(GO_FILES) .gopathok
-	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
+	$(GO_BUILD) $(GCFLAGS) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
 bin/crio-status: $(GO_FILES) .gopathok
-	$(GO_BUILD) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
+	$(GO_BUILD) $(GCFLAGS) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static:
 	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(TESTIMAGE_NIX) sh -c \

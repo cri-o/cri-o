@@ -38,6 +38,8 @@ let
       buildInputs = old.buildInputs ++ (with pkgs; [ systemd ]);
       src = ./..;
       EXTRA_LDFLAGS = ''-linkmode external -extldflags "-static -lm"'';
+      dontStrip = true;
+      # DEBUG = 1; # Uncomment this line to enable debug symbols in the binary
     })).override {
       flavor = "-static";
       gpgme = (static pkgs.gpgme);
