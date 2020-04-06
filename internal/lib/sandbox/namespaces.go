@@ -3,7 +3,6 @@ package sandbox
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -170,37 +169,27 @@ func (s *Sandbox) RemoveManagedNamespaces() error {
 	errs := make([]error, 0)
 
 	// use a map as a set to delete each parent directory just once
-	directories := make(map[string]bool)
 	if s.utsns != nil {
-		directories[filepath.Dir(s.utsns.Path())] = true
 		if err := s.utsns.Remove(); err != nil {
 			errs = append(errs, err)
 		}
 	}
 	if s.ipcns != nil {
-		directories[filepath.Dir(s.ipcns.Path())] = true
 		if err := s.ipcns.Remove(); err != nil {
 			errs = append(errs, err)
 		}
 	}
 	if s.netns != nil {
-		directories[filepath.Dir(s.netns.Path())] = true
 		if err := s.netns.Remove(); err != nil {
 			errs = append(errs, err)
 		}
 	}
 	if s.userns != nil {
-		directories[filepath.Dir(s.userns.Path())] = true
 		if err := s.userns.Remove(); err != nil {
 			errs = append(errs, err)
 		}
 	}
 
-	for directory := range directories {
-		if err := os.RemoveAll(directory); err != nil {
-			errs = append(errs, err)
-		}
-	}
 	var err error
 	if len(errs) != 0 {
 		err = errors.Errorf("Removing namespaces encountered the following errors %v", errs)
