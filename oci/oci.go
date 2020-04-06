@@ -477,6 +477,18 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 
 	logrus.Debugf("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
 
+	// When we timeout the command in conmon then we should return
+	// an ExecSyncResponse with a non-zero exit code because
+	// the prober code in the kubelet checks for it. If we return
+	// a custom error, then the probes transition into Unknown status
+	// and the container isn't restarted as expected.
+	if ec.ExitCode == -1 && ec.Message == "command timed out" {
+		return &ExecSyncResponse{
+			Stderr:   []byte(ec.Message),
+			ExitCode: -1,
+		}, nil
+	}
+
 	if ec.ExitCode == -1 {
 		return nil, ExecSyncError{
 			Stdout:   stdoutBuf,

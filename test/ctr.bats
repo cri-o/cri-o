@@ -609,7 +609,10 @@ function teardown() {
 	run crictl exec --sync --timeout 1 "$ctr_id" sleep 3
 	echo "$output"
 	[[ "$output" =~ "command timed out" ]]
-	[ "$status" -ne 0 ]
+	# in 1.11, the exit code is non-zero only when ExecSyncError is returned
+	# In later versions, the exit code is non-zero if ExecSyncResponse returns
+	# a non-zero code
+	[ "$status" -eq 0 ]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
