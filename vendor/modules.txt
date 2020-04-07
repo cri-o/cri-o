@@ -100,7 +100,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/cli
 # github.com/containers/conmon v2.0.11+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.3.0
+# github.com/containers/image/v5 v5.3.1
 github.com/containers/image/v5/types
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/docker/reference
@@ -198,7 +198,7 @@ github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/cgroups
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.16.5
+# github.com/containers/storage v1.16.6
 github.com/containers/storage
 github.com/containers/storage/pkg/reexec
 github.com/containers/storage/pkg/idtools
@@ -539,7 +539,7 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/compress/fse
-# github.com/klauspost/pgzip v1.2.2
+# github.com/klauspost/pgzip v1.2.3
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
@@ -708,7 +708,7 @@ github.com/seccomp/containers-golang
 github.com/seccomp/libseccomp-golang
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
 github.com/shurcooL/sanitized_anchor_name
-# github.com/sirupsen/logrus v1.4.2
+# github.com/sirupsen/logrus v1.5.0 => github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/soheilhy/cmux v0.1.4
 github.com/soheilhy/cmux
@@ -770,6 +770,8 @@ github.com/xeipuuv/gojsonpointer
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.1.0
 github.com/xeipuuv/gojsonschema
+# go.etcd.io/bbolt v1.3.4
+go.etcd.io/bbolt
 # go.opencensus.io v0.22.0
 go.opencensus.io/trace
 go.opencensus.io/internal

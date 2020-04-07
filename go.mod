@@ -15,10 +15,10 @@ require (
 	github.com/containernetworking/plugins v0.8.2
 	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/conmon v2.0.11+incompatible
-	github.com/containers/image/v5 v5.3.0
+	github.com/containers/image/v5 v5.3.1
 	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.16.5
+	github.com/containers/storage v1.16.6
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
@@ -45,7 +45,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/seccomp/containers-golang v0.3.1
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.5.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/urfave/cli v1.22.1
@@ -67,6 +67,7 @@ replace (
 	github.com/godbus/dbus => github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v0.1.2-0.20190408193819-a1b50f621a48
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2
+	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20190913145653-2bd9643cee5b
 	k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20190913145653-2bd9643cee5b
 	k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20190913145653-2bd9643cee5b
