@@ -13,9 +13,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"runtime/debug"
 
+	"github.com/google/renameio"
 	"github.com/pkg/diff"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"mvdan.cc/editorconfig"
 
 	"mvdan.cc/sh/v3/fileutil"
@@ -43,6 +46,7 @@ var (
 	caseIndent  = flag.Bool("ci", false, "")
 	spaceRedirs = flag.Bool("sr", false, "")
 	keepPadding = flag.Bool("kp", false, "")
+	funcNext    = flag.Bool("fn", false, "")
 
 	toJSON = flag.Bool("tojson", false, "")
 
@@ -56,7 +60,7 @@ var (
 	out   io.Writer = os.Stdout
 	color bool
 
-	version = "v3.0.2"
+	version = "(devel)" // to match the default from runtime/debug
 )
 
 func main() {
@@ -67,9 +71,9 @@ func main1() int {
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, `usage: shfmt [flags] [path ...]
 
-If no arguments are given, standard input will be used. If a given path
-is a directory, it will be recursively searched for shell files - both
-by filename extension and by shebang.
+If the only argument is a dash ('-') or no arguments are given, standard input
+will be used. If a given path is a directory, it will be recursively searched
+for shell files - both by filename extension and by shebang.
 
   -version  show version and exit
 
@@ -91,6 +95,7 @@ Printer options:
   -ci       switch cases will be indented
   -sr       redirect operators will be followed by a space
   -kp       keep column alignment paddings
+  -fn       function opening braces are placed on a separate line
 
 Utilities:
 
@@ -101,6 +106,14 @@ Utilities:
 	flag.Parse()
 
 	if *showVersion {
+		// don't overwrite the version if it was set by -ldflags=-X
+		if info, ok := debug.ReadBuildInfo(); ok && version == "(devel)" {
+			mod := &info.Main
+			if mod.Replace != nil {
+				mod = mod.Replace
+			}
+			version = mod.Version
+		}
 		fmt.Println(version)
 		return 0
 	}
@@ -116,7 +129,7 @@ Utilities:
 	}
 	flag.Visit(func(f *flag.Flag) {
 		switch f.Name {
-		case "ln", "p", "i", "bn", "ci", "sr", "kp":
+		case "ln", "p", "i", "bn", "ci", "sr", "kp", "fn":
 			useEditorConfig = false
 		}
 	})
@@ -145,6 +158,7 @@ Utilities:
 		syntax.SwitchCaseIndent(*caseIndent)(printer)
 		syntax.SpaceRedirects(*spaceRedirs)(printer)
 		syntax.KeepPadding(*keepPadding)(printer)
+		syntax.FunctionNextLine(*funcNext)(printer)
 	}
 
 	if os.Getenv("FORCE_COLOR") == "true" {
@@ -152,10 +166,10 @@ Utilities:
 		color = true
 	} else if os.Getenv("TERM") == "dumb" {
 		// Equivalent to forcing color to be turned off.
-	} else if f, ok := out.(*os.File); ok && terminal.IsTerminal(int(f.Fd())) {
+	} else if f, ok := out.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
 		color = true
 	}
-	if flag.NArg() == 0 {
+	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {
 		if err := formatStdin(); err != nil {
 			if err != errChangedWithDiff {
 				fmt.Fprintln(os.Stderr, err)
@@ -202,7 +216,15 @@ func walk(path string, onError func(error)) {
 		return
 	}
 	if !info.IsDir() {
-		if err := formatPath(path, false); err != nil {
+		checkShebang := false
+		if *find {
+			conf := fileutil.CouldBeScript(info)
+			if conf == fileutil.ConfNotScript {
+				return
+			}
+			checkShebang = conf == fileutil.ConfIfShebang
+		}
+		if err := formatPath(path, checkShebang); err != nil {
 			onError(err)
 		}
 		return
@@ -214,6 +236,19 @@ func walk(path string, onError func(error)) {
 		}
 		if info.IsDir() && vcsDir.MatchString(info.Name()) {
 			return filepath.SkipDir
+		}
+		if useEditorConfig {
+			props, err := ecQuery.Find(path)
+			if err != nil {
+				return err
+			}
+			if props.Get("ignore") == "true" {
+				if info.IsDir() {
+					return filepath.SkipDir
+				} else {
+					return nil
+				}
+			}
 		}
 		conf := fileutil.CouldBeScript(info)
 		if conf == fileutil.ConfNotScript {
@@ -227,7 +262,7 @@ func walk(path string, onError func(error)) {
 	})
 }
 
-var query = editorconfig.Query{
+var ecQuery = editorconfig.Query{
 	FileCache:   make(map[string]*editorconfig.File),
 	RegexpCache: make(map[string]*regexp.Regexp),
 }
@@ -287,7 +322,7 @@ func formatPath(path string, checkShebang bool) error {
 
 func formatBytes(src []byte, path string) error {
 	if useEditorConfig {
-		props, err := query.Find(path)
+		props, err := ecQuery.Find(path)
 		if err != nil {
 			return err
 		}
@@ -314,14 +349,18 @@ func formatBytes(src []byte, path string) error {
 			}
 		}
 		if *write {
-			f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0)
+			info, err := os.Lstat(path)
 			if err != nil {
 				return err
 			}
-			if _, err := f.Write(res); err != nil {
-				return err
+			perm := info.Mode().Perm()
+			writeFile := renameio.WriteFile
+			// TODO: support atomic writes on Windows once renameio
+			// supports it
+			if runtime.GOOS == "windows" {
+				writeFile = ioutil.WriteFile
 			}
-			if err := f.Close(); err != nil {
+			if err := writeFile(path, res, perm); err != nil {
 				return err
 			}
 		}

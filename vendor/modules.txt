@@ -754,8 +754,11 @@ golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
 ## explicit
 golang.org/x/sys/cpu
+golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+# golang.org/x/term v0.0.0-20191110171634-ad39bd3f0407
+golang.org/x/term
 # golang.org/x/text v0.3.2
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -1239,9 +1242,9 @@ k8s.io/utils/net
 k8s.io/utils/nsenter
 k8s.io/utils/path
 k8s.io/utils/trace
-# mvdan.cc/editorconfig v0.1.1-0.20191109213504-890940e3f00e
+# mvdan.cc/editorconfig v0.1.1-0.20200121172147-e40951bde157
 mvdan.cc/editorconfig
-# mvdan.cc/sh/v3 v3.0.2
+# mvdan.cc/sh/v3 v3.1.0
 ## explicit
 mvdan.cc/sh/v3/cmd/shfmt
 mvdan.cc/sh/v3/fileutil

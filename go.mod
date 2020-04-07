@@ -62,7 +62,7 @@ require (
 	k8s.io/kubernetes v1.18.0
 	k8s.io/release v0.2.5
 	k8s.io/utils v0.0.0-20200327001022-6496210b90e8
-	mvdan.cc/sh/v3 v3.0.2
+	mvdan.cc/sh/v3 v3.1.0
 )
 
 replace (
