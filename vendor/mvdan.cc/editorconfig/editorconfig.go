@@ -146,7 +146,11 @@ func (s Section) String() string {
 // compiled to regular expressions.
 //
 // Note that this function doesn't apply defaults; for that, see Find.
+//
+// Note that, since the EditorConfig spec doesn't allow backslashes as path
+// separators, backslashes in name are converted to forward slashes.
 func (f *File) Filter(name string, cache map[string]*regexp.Regexp) Section {
+	name = filepath.ToSlash(name)
 	result := Section{}
 	for i := len(f.Sections) - 1; i >= 0; i-- {
 		section := f.Sections[i]
