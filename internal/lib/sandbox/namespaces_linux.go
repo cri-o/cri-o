@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -85,9 +86,14 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 			nsType: nsType,
 		})
 	}
-
 	pinns := cfg.PinnsPath
-	if output, err := exec.Command(pinns, pinnsArgs...).Output(); err != nil {
+
+	logrus.Debugf("calling pinns with %v", pinnsArgs)
+	output, err := exec.Command(pinns, pinnsArgs...).Output()
+	if len(output) != 0 {
+		logrus.Debugf("pinns output: %s", string(output))
+	}
+	if err != nil {
 		// cleanup after ourselves
 		failedUmounts := make([]string, 0)
 		for _, info := range mountedNamespaces {
