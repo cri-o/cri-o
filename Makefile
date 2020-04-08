@@ -94,7 +94,7 @@ else
 GCFLAGS = -gcflags '-N -l'
 endif
 
-VERSION := $(shell $(GO_RUN) ./scripts/latest-version)
+VERSION ?= $(shell $(GO_RUN) ./scripts/latest-version)
 DEFAULTS_PATH := ""
 
 BASE_LDFLAGS = ${SHRINKFLAGS} \
