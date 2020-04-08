@@ -23,7 +23,9 @@
       go-md2man \
       glibc-static \
       python3-libmount \
-      libtool
+      libtool \
+      pkgconf-pkg-config \
+      gperf \
 
 - name: Run autogen.sh
   command: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun/autogen.sh"
