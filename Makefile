@@ -53,6 +53,7 @@ MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
+GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 
@@ -186,6 +187,10 @@ release-notes: ${RELEASE_NOTES}
 		--output-path ${BUILD_PATH}/release-notes \
 		--tag ${VERSION}
 
+dependencies: ${GO_MOD_OUTDATED}
+	${GO_RUN} ./scripts/dependencies \
+		--output-path ${BUILD_PATH}/dependencies
+
 clean:
 ifneq ($(GOPATH),)
 	rm -f "$(GOPATH)/.gopathok"
@@ -277,6 +282,9 @@ ${RELEASE_NOTES}:
 
 ${SHFMT}:
 	$(call go-build,./vendor/mvdan.cc/sh/v3/cmd/shfmt)
+
+${GO_MOD_OUTDATED}:
+	$(call go-build,./vendor/github.com/psampaz/go-mod-outdated)
 
 ${GOLANGCI_LINT}:
 	export \
@@ -510,4 +518,5 @@ docs-validation:
 	test-image-nix \
 	uninstall \
 	vendor \
-	bin/pinns
+	bin/pinns \
+	dependencies
