@@ -125,6 +125,12 @@ conmon_cgroup = "{{ .ConmonCgroup }}"
 conmon_env = [
 {{ range $env := .ConmonEnv }}{{ printf "\t%q,\n" $env }}{{ end }}]
 
+# Additional environment variables to set for all the
+# containers. These are overridden if set in the
+# container image spec or in the container runtime configuration.
+default_env = [
+{{ range $env := .DefaultEnv }}{{ printf "\t%q,\n" $env }}{{ end }}]
+
 # If true, SELinux will be used for pod separation on the host.
 selinux = {{ .SELinux }}
 
