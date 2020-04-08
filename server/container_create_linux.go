@@ -45,10 +45,28 @@ const minMemoryLimit = 12582912
 const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
 
 var (
+	_cgroupv1HasHugetlbOnce sync.Once
+	_cgroupv1HasHugetlb     bool
+	_cgroupv1HasHugetlbErr  error
 	_cgroupv2HasHugetlbOnce sync.Once
 	_cgroupv2HasHugetlb     bool
 	_cgroupv2HasHugetlbErr  error
 )
+
+// cgroupv1HasHugetlb returns whether the hugetlb controller is present on
+// cgroup v1.
+func cgroupv1HasHugetlb() (bool, error) {
+	_cgroupv1HasHugetlbOnce.Do(func() {
+		if _, err := ioutil.ReadDir("/sys/fs/cgroup/hugetlb"); err != nil {
+			_cgroupv1HasHugetlbErr = errors.Wrap(err, "readdir /sys/fs/cgroup/hugetlb")
+			_cgroupv1HasHugetlb = false
+		} else {
+			_cgroupv1HasHugetlbErr = nil
+			_cgroupv1HasHugetlb = true
+		}
+	})
+	return _cgroupv1HasHugetlb, _cgroupv1HasHugetlbErr
+}
 
 // cgroupv2HasHugetlb returns whether the hugetlb controller is present on
 // cgroup v2.
@@ -497,9 +515,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			specgen.SetLinuxResourcesCPUCpus(resources.GetCpusetCpus())
 			specgen.SetLinuxResourcesCPUMems(resources.GetCpusetMems())
 
-			supportsHugetlb := true
+			supportsHugetlb := false
 			if cgroups.IsCgroup2UnifiedMode() {
 				supportsHugetlb, err = cgroupv2HasHugetlb()
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				supportsHugetlb, err = cgroupv1HasHugetlb()
 				if err != nil {
 					return nil, err
 				}
