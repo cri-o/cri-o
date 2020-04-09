@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"sort"
@@ -19,6 +18,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -46,6 +46,7 @@ type ImageResult struct {
 	ConfigDigest digest.Digest
 	User         string
 	PreviousName string
+	Labels       map[string]string
 }
 
 type indexInfo struct {
@@ -60,6 +61,7 @@ type imageCacheItem struct {
 	user         string
 	size         *uint64
 	configDigest digest.Digest
+	info         *types.ImageInspectInfo
 }
 
 type imageCache map[string]imageCacheItem
@@ -187,10 +189,17 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 		return imageCacheItem{}, err
 	}
 	size := imageSize(imageFull)
+
+	info, err := imageFull.Inspect(svc.ctx)
+	if err != nil {
+		return imageCacheItem{}, errors.Wrap(err, "inspecting image")
+	}
+
 	return imageCacheItem{
 		user:         imageConfig.Config.User,
 		size:         size,
 		configDigest: configDigest,
+		info:         info,
 	}, nil
 }
 
@@ -207,6 +216,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 			previousName = split[0]
 		}
 	}
+
 	return ImageResult{
 		ID:           image.ID,
 		Name:         name,
@@ -217,6 +227,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		ConfigDigest: cacheItem.configDigest,
 		User:         cacheItem.user,
 		PreviousName: previousName,
+		Labels:       cacheItem.info.Labels,
 	}
 }
 

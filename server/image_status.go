@@ -63,6 +63,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 				RepoDigests: status.RepoDigests,
 				Size_:       size,
 			},
+			Info: status.Labels,
 		}
 		uid, username := getUserFromImage(status.User)
 		if uid != nil {
