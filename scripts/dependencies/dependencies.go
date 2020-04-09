@@ -16,9 +16,8 @@ import (
 )
 
 const (
-	branch   = "gh-pages"
-	postsDir = "_posts"
-	file     = "dependencies.md"
+	branch = "gh-pages"
+	file   = "dependencies.md"
 )
 
 var outputPath string
@@ -130,15 +129,11 @@ _Generated on %s for commit [%s][0]._
 		defer func() { err = repo.Checkout(currentBranch) }()
 
 		// Write the target file
-		if err := os.MkdirAll(postsDir, 0o755); err != nil {
-			return errors.Wrap(err, "creating posts directory")
-		}
-		postsFile := filepath.Join(postsDir, file)
-		if err := ioutil.WriteFile(postsFile, []byte(content), 0o644); err != nil {
+		if err := ioutil.WriteFile(file, []byte(content), 0o644); err != nil {
 			return errors.Wrap(err, "write content to file")
 		}
 
-		if err := repo.Add(postsFile); err != nil {
+		if err := repo.Add(file); err != nil {
 			return errors.Wrap(err, "add file to repo")
 		}
 
