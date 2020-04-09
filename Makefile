@@ -177,7 +177,7 @@ ${CRIO_CONFD_DIR}: ${BUILD_CONFIG_PATH}
 
 ${BUILD_CONFIG_PATH}: bin/crio
 	mkdir -p $(dir ${BUILD_CONFIG_PATH})
-	./bin/crio --config="" $(CONF_OVERRIDES) config > ${BUILD_CONFIG_PATH}
+	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > ${BUILD_CONFIG_PATH}
 
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
