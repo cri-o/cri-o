@@ -3,8 +3,6 @@ Description=Container Runtime Interface for OCI (CRI-O)
 Documentation=https://github.com/cri-o/cri-o
 Wants=network-online.target
 After=network-online.target
-After=crio-wipe.service
-Requires=crio-wipe.service
 
 [Service]
 Type=notify
