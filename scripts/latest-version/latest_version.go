@@ -66,7 +66,7 @@ func main() {
 			branch = strings.TrimSpace(branchRes.Output())
 		}
 		versionScope := ""
-		if strings.HasPrefix(branch, "release-") {
+		if isReleaseBranch(branch) {
 			versionScope = strings.TrimPrefix(branch, "release-")
 		}
 
@@ -118,7 +118,7 @@ func incVersion(tag, branch string) string {
 	if err != nil {
 		panic(err)
 	}
-	isReleaseBranch := kgit.IsReleaseBranch(branch) && branch != kgit.Master
+	isReleaseBranch := isReleaseBranch(branch)
 
 	// Do nothing if no version bump is required
 	if noBumpVersion {
@@ -139,6 +139,10 @@ func incVersion(tag, branch string) string {
 	sv.Pre = []semver.PRVersion{{VersionStr: "dev"}}
 
 	return sv.String()
+}
+
+func isReleaseBranch(branch string) bool {
+	return kgit.IsReleaseBranch(branch) && branch != kgit.Master
 }
 
 func decVersion(tag string) string {
