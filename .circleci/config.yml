@@ -491,6 +491,18 @@ jobs:
               BUCKET=gs://k8s-conform-cri-o
               gsutil cp -n build/bundle/*.tar.gz $BUCKET/artifacts
             fi
+            if TAG=$(git describe --exact-match --tags 2>/dev/null); then
+              if [[ -z $GITHUB_TOKEN ]]; then
+                echo GITHUB_TOKEN not set
+                exit 1
+              else
+                FILE=build/bundle/crio-$TAG.tar.gz
+                curl -H "Authorization: token $GITHUB_TOKEN" \
+                     -H "Content-Type: $(file -b --mime-type "$FILE")" \
+                     --data-binary @"$FILE" \
+                     "https://uploads.github.com/repos/cri-o/cri-o/releases/$TAG/assets?name=$(basename "$FILE")"
+              fi
+            fi
       - store_test_results:
           path: build/junit
       - store_artifacts:
