@@ -92,7 +92,7 @@ workflows:
 
       - dependencies:
           requires:
-            - results
+            - release-notes
           filters: *filterAllTags
 
       - docs-generation:
