@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 10 Apr 2020 08:32:37 UTC for commit [45812b1][0]._
+_Generated on Fri, 10 Apr 2020 08:55:43 UTC for commit [45812b1][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/45812b14860f04b9715d8177f0c142b7ea30a05b
 
