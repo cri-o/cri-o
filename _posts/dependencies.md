@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 10 Apr 2020 15:43:44 UTC for commit [64ef434][0]._
+_Generated on Fri, 10 Apr 2020 16:04:11 UTC for commit [64ef434][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/64ef43477c68ce2cb8346807567db3babb6d54b5
 
@@ -463,7 +463,7 @@ _Generated on Fri, 10 Apr 2020 15:43:44 UTC for commit [64ef434][0]._
 | go.uber.org/multierr                                    | v1.1.0                                            | v1.5.0                             | false  | true             |
 | go.uber.org/zap                                         | v1.10.0                                           | v1.14.1                            | false  | true             |
 | go4.org                                                 | v0.0.0-20180809161055-417644f6feb5                | v0.0.0-20200406031205-0882d5f8a577 | false  | true             |
-| golang.org/x/build                                      | v0.0.0-20190927031335-2835ba2e683f                | v0.0.0-20200409231334-81f06ce67b1b | false  | true             |
+| golang.org/x/build                                      | v0.0.0-20190927031335-2835ba2e683f                | v0.0.0-20200410153153-f87aadf4bc36 | false  | true             |
 | golang.org/x/crypto                                     | v0.0.0-20200323165209-0ec3e9974c59                | v0.0.0-20200406173513-056763e48d71 | false  | true             |
 | golang.org/x/exp                                        | v0.0.0-20190510132918-efd6b22b2522                | v0.0.0-20200331195152-e8c3332aa8e5 | false  | true             |
 | golang.org/x/image                                      | v0.0.0-20190227222117-0694c2d4d067                | v0.0.0-20200119044424-58c23975cae1 | false  | true             |
