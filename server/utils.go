@@ -139,7 +139,7 @@ func (s *Server) newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 		}
 	}
 
-	network := s.netPlugin.GetDefaultNetworkName()
+	network := s.config.CNIPlugin().GetDefaultNetworkName()
 	return ocicni.PodNetwork{
 		Name:      sb.KubeName(),
 		Namespace: sb.Namespace(),

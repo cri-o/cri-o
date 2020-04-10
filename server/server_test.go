@@ -155,23 +155,6 @@ var _ = t.Describe("Server", func() {
 			Expect(server).To(BeNil())
 		})
 
-		It("should fail when CNI init errors", func() {
-			// Given
-			gomock.InOrder(
-				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(serverConfig),
-			)
-			serverConfig.NetworkDir = invalidDir
-
-			// When
-			server, err := server.New(context.Background(), libMock)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(server).To(BeNil())
-		})
-
 		DescribeTable("should fail with wrong ID mappings", func(u, g string) {
 			// Given
 			gomock.InOrder(

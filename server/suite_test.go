@@ -190,7 +190,7 @@ var setupSUT = func() {
 	// Inject the mock
 	sut.SetStorageImageServer(imageServerMock)
 	sut.SetStorageRuntimeServer(runtimeServerMock)
-	Expect(sut.SetNetPlugin(cniPluginMock)).To(BeNil())
+	Expect(sut.SetCNIPlugin(cniPluginMock)).To(BeNil())
 }
 
 func mockNewServer() {

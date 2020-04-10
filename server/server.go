@@ -24,7 +24,6 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -54,7 +53,6 @@ type StreamService struct {
 type Server struct {
 	config          libconfig.Config
 	stream          StreamService
-	netPlugin       ocicni.CNIPlugin
 	hostportManager hostport.HostPortManager
 
 	*lib.ContainerServer
@@ -335,12 +333,6 @@ func New(
 		return nil, err
 	}
 
-	netPlugin, err := ocicni.InitCNI(
-		config.CNIDefaultNetwork, config.NetworkDir, config.PluginDirs...,
-	)
-	if err != nil {
-		return nil, err
-	}
 	iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIpv4)
 	if _, err := iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain); err != nil {
 		logrus.Warnf("unable to ensure iptables chain: %v", err)
@@ -354,7 +346,6 @@ func New(
 
 	s := &Server{
 		ContainerServer:          containerServer,
-		netPlugin:                netPlugin,
 		hostportManager:          hostportManager,
 		config:                   *config,
 		monitorsChan:             make(chan struct{}),

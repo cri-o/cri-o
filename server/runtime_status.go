@@ -21,7 +21,7 @@ func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.St
 		Status: true,
 	}
 
-	if err := s.netPlugin.Status(); err != nil {
+	if err := s.config.CNIPlugin().Status(); err != nil {
 		networkCondition.Status = false
 		networkCondition.Reason = networkNotReadyReason
 		networkCondition.Message = fmt.Sprintf("Network plugin returns error: %v", err)

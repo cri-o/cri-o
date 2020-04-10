@@ -18,12 +18,8 @@ func (s *StreamService) SetRuntimeServer(server *Server) {
 	s.runtimeServer = server
 }
 
-// SetNetPlugin sets the network plugin for the ContainerServer. The function
+// SetCNIPlugin sets the network plugin for the ContainerServer. The function
 // errors if a sane shutdown of the initially created network plugin failed.
-func (s *Server) SetNetPlugin(plugin ocicni.CNIPlugin) error {
-	if err := s.netPlugin.Shutdown(); err != nil {
-		return err
-	}
-	s.netPlugin = plugin
-	return nil
+func (s *Server) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
+	return s.config.SetCNIPlugin(plugin)
 }
