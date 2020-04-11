@@ -96,9 +96,38 @@ up a PR and add it to the list.
 ### Installing CRI-O
 To install CRI-O, you can use your distribution's package manager:
 
+CentOS 7:
+```bash
+sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_7/devel:kubic:libcontainers:stable.repo
+sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION]/CentOS_7/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo
+sudo yum -y install cri-o
+```
+
+CentOS 8:
+```bash
+sudo dnf -y install 'dnf-command(copr)'
+sudo dnf -y copr enable rhcontainerbot/container-selinux
+sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8/devel:kubic:libcontainers:stable.repo
+sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION]/CentOS_8/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo
+sudo dnf -y install cri-o
+```
+
+CentOS Stream:
+```bash
+sudo dnf -y install 'dnf-command(copr)'
+sudo dnf -y copr enable rhcontainerbot/container-selinux
+sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8_Stream/devel:kubic:libcontainers:stable.repo
+sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION]/CentOS_8_Stream/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo
+sudo dnf -y install cri-o
+```
+
 Fedora 30 and later:
-```sudo dnf module install cri-o```
-Fedora 29, CentOS, RHEL, and related distributions:
+```bash
+sudo dnf module enable cri-o:[REQUIRED VERSION]
+sudo dnf install cri-o
+```
+
+Fedora 29, RHEL, and related distributions:
 ```sudo yum install crio```
 openSUSE:
 ```sudo zypper install cri-o```
