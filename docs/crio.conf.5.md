@@ -101,6 +101,10 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **conmon_env**=["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
   Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime.
 
+**default_env**=[]
+	Additional environment variables to set for all the containers. These are overridden if set in the container image spec or in
+  the container runtime configuration.
+
 **selinux**=false
   If true, SELinux will be used for pod separation on the host.
 
