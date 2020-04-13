@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 13 Apr 2020 18:16:54 UTC for commit [92694fc][0]._
+_Generated on Mon, 13 Apr 2020 18:58:50 UTC for commit [92694fc][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/92694fc10fcb7a0f5a39921e098c14dbcd08fdb4
 
@@ -11,8 +11,8 @@ _Generated on Mon, 13 Apr 2020 18:16:54 UTC for commit [92694fc][0]._
 | github.com/containers/buildah      | v1.14.7                              | v1.14.8                            | true   | true             |
 | github.com/psampaz/go-mod-outdated | v0.5.1-0.20200214214326-701cdba07e4c | v0.6.0                             | true   | true             |
 | golang.org/x/sys                   | v0.0.0-20200408040146-ea54a3c99b9b   | v0.0.0-20200413165638-669c56c373c4 | true   | true             |
-| k8s.io/api                         | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200413171602-3c7258daa640 | true   | true             |
-| k8s.io/apimachinery                | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200413171602-3c7258daa640 | true   | true             |
+| k8s.io/api                         | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200413185148-c32b93aa2bc2 | true   | true             |
+| k8s.io/apimachinery                | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200413185148-c32b93aa2bc2 | true   | true             |
 | k8s.io/client-go                   | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200413171602-3c7258daa640 | true   | true             |
 | k8s.io/cri-api                     | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200413171602-3c7258daa640 | true   | true             |
 | k8s.io/release                     | v0.2.5                               | v0.2.7                             | true   | true             |
@@ -97,7 +97,7 @@ _Generated on Mon, 13 Apr 2020 18:16:54 UTC for commit [92694fc][0]._
 | github.com/containerd/cgroups                           | v0.0.0-20190919134610-bf292b21730f                | v0.0.0-20200407151229-7fc7a507c04c | false  | true             |
 | github.com/containerd/console                           | v0.0.0-20180822173158-c12b1e7919c1                | v1.0.0                             | false  | true             |
 | github.com/containerd/containerd                        | v1.3.3                                            |                                    | true   | true             |
-| github.com/containerd/continuity                        | v0.0.0-20190426062206-aaeac12a7ffc                | v0.0.0-20200228182428-0f16d7a0959c | false  | true             |
+| github.com/containerd/continuity                        | v0.0.0-20190426062206-aaeac12a7ffc                | v0.0.0-20200413184840-d3ef23f19fbb | false  | true             |
 | github.com/containerd/fifo                              | v0.0.0-20190226154929-a9fb20d87448                | v0.0.0-20200410184934-f15a3290365b | false  | true             |
 | github.com/containerd/go-runc                           | v0.0.0-20180907222934-5a6d9f37cfa3                | v0.0.0-20200220073739-7016d3ce2328 | false  | true             |
 | github.com/containerd/release-tool                      | v0.0.0-20200402162031-a35b5d7ce53d                |                                    | true   | true             |
@@ -513,9 +513,9 @@ _Generated on Mon, 13 Apr 2020 18:16:54 UTC for commit [92694fc][0]._
 | gotest.tools/gotestsum                                  | v0.3.5                                            | v0.4.1                             | false  | true             |
 | grpc.go4.org                                            | v0.0.0-20170609214715-11d0a25b4919                |                                    | false  | true             |
 | honnef.co/go/tools                                      | v0.0.1-2019.2.3                                   | v0.0.1-2020.1.3                    | false  | true             |
-| k8s.io/api                                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413171602-3c7258daa640 | true   | true             |
+| k8s.io/api                                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413185148-c32b93aa2bc2 | true   | true             |
 | k8s.io/apiextensions-apiserver                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413171602-3c7258daa640 | false  | true             |
-| k8s.io/apimachinery                                     | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413171602-3c7258daa640 | true   | true             |
+| k8s.io/apimachinery                                     | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413185148-c32b93aa2bc2 | true   | true             |
 | k8s.io/apiserver                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413171602-3c7258daa640 | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413171602-3c7258daa640 | false  | true             |
 | k8s.io/client-go                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413171602-3c7258daa640 | true   | true             |
