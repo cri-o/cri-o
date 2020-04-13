@@ -18,6 +18,7 @@ crio
 [--conmon-cgroup=[value]]
 [--cpu-profile=[value]]
 [--default-capabilities=[value]]
+[--default-env=[value]]
 [--default-mounts=[value]]
 [--default-mounts-file=[value]]
 [--default-transport=[value]]
@@ -115,6 +116,8 @@ crio [GLOBAL OPTIONS] config [OPTIONS]
 **--cpu-profile**="": set the CPU profile file path
 
 **--default-capabilities**="": capabilities to add to the containers (default: "CHOWN, DAC_OVERRIDE, FSETID, FOWNER, NET_RAW, SETGID, SETUID, SETPCAP, NET_BIND_SERVICE, SYS_CHROOT, KILL)
+
+**--default-env**="": Additional environment variables to set for all containers (default: [])
 
 **--default-mounts**="": add one or more default mount paths in the form host:container (deprecated - add the default mounts to /etc/containers/mounts.conf instead)
 

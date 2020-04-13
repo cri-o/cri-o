@@ -22,6 +22,7 @@ h
 --container-exits-dir
 --ctr-stop-timeout
 --default-capabilities
+--default-env
 --default-mounts
 --default-mounts-file
 --default-runtime
