@@ -29,6 +29,7 @@ crio
 [--ctr-stop-timeout]=[value]
 [--decryption-keys-path]=[value]
 [--default-capabilities]=[value]
+[--default-env]=[value]
 [--default-mounts-file]=[value]
 [--default-mounts]=[value]
 [--default-runtime]=[value]
@@ -149,6 +150,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--decryption-keys-path**="": Path to load keys for image decryption. (default: "/etc/crio/keys/")
 
 **--default-capabilities**="": Capabilities to add to the containers (default: ["CHOWN" "DAC_OVERRIDE" "FSETID" "FOWNER" "NET_RAW" "SETGID" "SETUID" "SETPCAP" "NET_BIND_SERVICE" "SYS_CHROOT" "KILL"])
+
+**--default-env**="": Additional environment variables to set for all containers (default: [])
 
 **--default-mounts**="": Add one or more default mount paths in the form host:container (deprecated) (default: []) (default: [])
 
