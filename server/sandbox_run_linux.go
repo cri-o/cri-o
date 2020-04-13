@@ -40,7 +40,7 @@ import (
 const cgroupMemorySubsystemMountPathV1 = "/sys/fs/cgroup/memory"
 const cgroupMemorySubsystemMountPathV2 = "/sys/fs/cgroup"
 
-func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
+func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, errRet error) {
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
 
@@ -60,20 +60,22 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	id, name, err := s.ReservePodIDAndName(sbox.Config())
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			s.ReleasePodName(name)
 		}
 	}()
 
 	containerName, err := s.ReserveSandboxContainerIDAndName(sbox.Config())
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			s.ReleaseContainerName(containerName)
 		}
 	}()
@@ -101,13 +103,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	processLabel := podContainer.ProcessLabel
 
 	if errors.Cause(err) == storage.ErrDuplicateName {
+		errRet = err
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
 	}
 	if err != nil {
+		errRet = err
 		return nil, fmt.Errorf("error creating pod sandbox with name %q: %v", name, err)
 	}
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			if err2 := s.StorageRuntimeServer().RemovePodSandbox(id); err2 != nil {
 				log.Warnf(ctx, "couldn't cleanup pod sandbox %q: %v", id, err2)
 			}
@@ -119,6 +123,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// creates a spec Generator with the default spec.
 	g, err := generate.New("linux")
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	g.HostSpecific = true
@@ -126,6 +131,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	ulimits, err := getUlimitsFromConfig(&s.config)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	for _, u := range ulimits {
@@ -137,6 +143,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	pauseCommand, err := PauseCommand(s.Config(), podContainer.Config)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	g.SetProcessArgs(pauseCommand)
@@ -148,17 +155,17 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		dnsSearches := sbox.Config().GetDnsConfig().Searches
 		dnsOptions := sbox.Config().GetDnsConfig().Options
 		resolvPath = fmt.Sprintf("%s/resolv.conf", podContainer.RunDir)
-		err = parseDNSOptions(dnsServers, dnsSearches, dnsOptions, resolvPath)
-		if err != nil {
+
+		errRet = parseDNSOptions(dnsServers, dnsSearches, dnsOptions, resolvPath)
+		if errRet != nil {
 			err1 := removeFile(resolvPath)
 			if err1 != nil {
-				err = err1
-				return nil, fmt.Errorf("%v; failed to remove %s: %v", err, resolvPath, err1)
+				return nil, fmt.Errorf("%v; failed to remove %s: %v", errRet, resolvPath, err1)
 			}
-			return nil, err
+			return nil, errRet
 		}
-		if err := label.Relabel(resolvPath, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
-			return nil, err
+		if errRet = label.Relabel(resolvPath, mountLabel, false); errRet != nil && errors.Cause(errRet) != unix.ENOTSUP {
+			return nil, errRet
 		}
 		mnt := spec.Mount{
 			Type:        "bind",
@@ -174,14 +181,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	metadata := sbox.Config().GetMetadata()
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
 	// add labels
 	labels := sbox.Config().GetLabels()
 
-	if err := validateLabels(labels); err != nil {
-		return nil, err
+	if errRet = validateLabels(labels); errRet != nil {
+		return nil, errRet
 	}
 
 	// Add special container name label for the infra container
@@ -190,6 +198,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
@@ -197,6 +206,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	kubeAnnotations := sbox.Config().GetAnnotations()
 	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
@@ -205,8 +215,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if logDir == "" {
 		logDir = filepath.Join(s.config.LogDir, id)
 	}
-	if err := os.MkdirAll(logDir, 0700); err != nil {
-		return nil, err
+	if errRet = os.MkdirAll(logDir, 0700); errRet != nil {
+		return nil, errRet
 	}
 	// This should always be absolute from k8s.
 	if !filepath.IsAbs(logDir) {
@@ -221,12 +231,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.ClearProcessCapabilities()
 		capabilities.AddCapabilities = append(capabilities.AddCapabilities, s.config.DefaultCapabilities...)
 	}
-	if err := setupCapabilities(&g, capabilities); err != nil {
-		return nil, err
+	if errRet = setupCapabilities(&g, capabilities); errRet != nil {
+		return nil, errRet
 	}
 
 	nsOptsJSON, err := json.Marshal(securityContext.GetNamespaceOptions())
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
@@ -248,13 +259,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if hostIPC {
 		shmPath = libsandbox.DevShmPath
 	} else {
-		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
-		if err != nil {
-			return nil, err
+		shmPath, errRet = setupShm(podContainer.RunDir, mountLabel)
+		if errRet != nil {
+			return nil, errRet
 		}
 		pathsToChown = append(pathsToChown, shmPath)
 		defer func() {
-			if err != nil {
+			if errRet != nil {
 				if err2 := unix.Unmount(shmPath, unix.MNT_DETACH); err2 != nil {
 					log.Warnf(ctx, "failed to unmount shm for pod: %v", err2)
 				}
@@ -271,17 +282,16 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// bind mount the pod shm
 	g.AddMount(mnt)
 
-	err = s.setPodSandboxMountLabel(id, mountLabel)
-	if err != nil {
-		return nil, err
+	if errRet = s.setPodSandboxMountLabel(id, mountLabel); errRet != nil {
+		return nil, errRet
 	}
 
-	if err := s.CtrIDIndex().Add(id); err != nil {
-		return nil, err
+	if errRet = s.CtrIDIndex().Add(id); errRet != nil {
+		return nil, errRet
 	}
 
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			if err2 := s.CtrIDIndex().Delete(id); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", id)
 			}
@@ -292,14 +302,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	logPath := filepath.Join(logDir, id+".log")
 
 	// Handle https://issues.k8s.io/44043
-	if err := ensureSaneLogPath(logPath); err != nil {
-		return nil, err
+	if errRet = ensureSaneLogPath(logPath); errRet != nil {
+		return nil, errRet
 	}
 
 	hostNetwork := securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 
 	hostname, err := getHostname(id, sbox.Config().Hostname, hostNetwork)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	g.SetHostname(hostname)
@@ -307,6 +318,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// validate the runtime handler
 	runtimeHandler, err := s.runtimeHandler(req)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
@@ -340,6 +352,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	portMappings := convertPortMappings(sbox.Config().GetPortMappings())
 	portMappingsJSON, err := json.Marshal(portMappings)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
@@ -347,6 +360,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	parent := ""
 	cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	if cgroupv2 {
@@ -357,12 +371,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	cgroupParent, err := AddCgroupAnnotation(ctx, g, parent, s.config.CgroupManager, sbox.Config().GetLinux().GetCgroupParent(), id)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
-			return nil, errors.Wrap(err, "add or replace linux namespace")
+		if errRet = g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); errRet != nil {
+			return nil, errors.Wrap(errRet, "add or replace linux namespace")
 		}
 		for _, uidmap := range s.defaultIDMappings.UIDs() {
 			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
@@ -374,26 +389,27 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb, err := libsandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, resolvPath, hostname, portMappings, hostNetwork)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
-	if err := s.addSandbox(sb); err != nil {
-		return nil, err
+	if errRet = s.addSandbox(sb); errRet != nil {
+		return nil, errRet
 	}
 	defer func() {
-		if err != nil {
-			if err := s.removeSandbox(id); err != nil {
+		if errRet != nil {
+			if err := s.removeSandbox(id); errRet != nil {
 				log.Warnf(ctx, "could not remove pod sandbox: %v", err)
 			}
 		}
 	}()
 
-	if err := s.PodIDIndex().Add(id); err != nil {
-		return nil, err
+	if errRet = s.PodIDIndex().Add(id); errRet != nil {
+		return nil, errRet
 	}
 
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			if err := s.PodIDIndex().Delete(id); err != nil {
 				log.Warnf(ctx, "couldn't delete pod id %s from idIndex", id)
 			}
@@ -426,7 +442,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
 	for idx := range cleanupFuncs {
 		defer func(currentFunc int) {
-			if err != nil {
+			if errRet != nil {
 				if err2 := cleanupFuncs[currentFunc](); err2 != nil {
 					log.Debugf(ctx, err2.Error())
 				}
@@ -434,6 +450,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}(idx)
 	}
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
@@ -444,16 +461,17 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	saveOptions := generate.ExportOptions{}
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(id)
 	if err != nil {
+		errRet = err
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
 	}
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 
 	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
-	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
-		return nil, err
+	if errRet = ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); errRet != nil {
+		return nil, errRet
 	}
-	if err := label.Relabel(hostnamePath, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
-		return nil, err
+	if errRet = label.Relabel(hostnamePath, mountLabel, false); errRet != nil && errors.Cause(errRet) != unix.ENOTSUP {
+		return nil, errRet
 	}
 	mnt = spec.Mount{
 		Type:        "bind",
@@ -468,6 +486,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	container.SetMountPoint(mountPoint)
@@ -515,31 +534,33 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	container.SetSpec(g.Config)
 
-	if err := sb.SetInfraContainer(container); err != nil {
-		return nil, err
+	if errRet = sb.SetInfraContainer(container); errRet != nil {
+		return nil, errRet
 	}
 
 	var ips []string
 	var result cnitypes.Result
 
 	if s.config.ManageNSLifecycle {
-		ips, result, err = s.networkStart(ctx, sb)
-		if err != nil {
-			return nil, err
+		ips, result, errRet = s.networkStart(ctx, sb)
+		if errRet != nil {
+			return nil, errRet
 		}
 		if result != nil {
 			resultCurrent, err := current.NewResultFromResult(result)
 			if err != nil {
+				errRet = err
 				return nil, err
 			}
 			cniResultJSON, err := json.Marshal(resultCurrent)
 			if err != nil {
+				errRet = err
 				return nil, err
 			}
 			g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
 		}
 		defer func() {
-			if err != nil {
+			if errRet != nil {
 				if err2 := s.networkStop(ctx, sb); err2 != nil {
 					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 				}
@@ -557,22 +578,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)
 	sb.SetSeccompProfilePath(spp)
 	if !privileged {
-		if err := s.setupSeccomp(ctx, &g, spp); err != nil {
-			return nil, err
+		if errRet = s.setupSeccomp(ctx, &g, spp); errRet != nil {
+			return nil, errRet
 		}
 	}
 
-	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
+	if errRet = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions); errRet != nil {
+		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), id, errRet)
 	}
-	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
-		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
+	if errRet = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); errRet != nil {
+		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, errRet)
 	}
 
 	s.addInfraContainer(container)
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			s.removeInfraContainer(container)
 		}
 	}()
@@ -580,22 +600,22 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		rootPair := s.defaultIDMappings.RootPair()
 		for _, path := range pathsToChown {
-			if err := os.Chown(path, rootPair.UID, rootPair.GID); err != nil {
-				return nil, errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
+			if errRet = os.Chown(path, rootPair.UID, rootPair.GID); errRet != nil {
+				return nil, errors.Wrapf(errRet, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
 			}
 		}
 	}
 
-	if err := s.createContainerPlatform(container, sb.CgroupParent()); err != nil {
-		return nil, err
+	if errRet = s.createContainerPlatform(container, sb.CgroupParent()); errRet != nil {
+		return nil, errRet
 	}
 
-	if err := s.Runtime().StartContainer(container); err != nil {
-		return nil, err
+	if errRet = s.Runtime().StartContainer(container); errRet != nil {
+		return nil, errRet
 	}
 
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			// Clean-up steps from RemovePodSanbox
 			timeout := int64(10)
 			if err2 := s.Runtime().StopContainer(ctx, container, timeout); err2 != nil {
@@ -613,17 +633,17 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
-	if err := s.ContainerStateToDisk(container); err != nil {
-		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
+	if errRet = s.ContainerStateToDisk(container); errRet != nil {
+		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), errRet)
 	}
 
 	if !s.config.ManageNSLifecycle {
-		ips, _, err = s.networkStart(ctx, sb)
-		if err != nil {
-			return nil, err
+		ips, _, errRet = s.networkStart(ctx, sb)
+		if errRet != nil {
+			return nil, errRet
 		}
 		defer func() {
-			if err != nil {
+			if errRet != nil {
 				if err2 := s.networkStop(ctx, sb); err2 != nil {
 					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 				}

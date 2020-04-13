@@ -520,7 +520,7 @@ func addSecretsBindMounts(ctx context.Context, mountLabel, ctrRunDir string, def
 }
 
 // CreateContainer creates a new container in specified PodSandbox
-func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
+func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, errRet error) {
 	log.Infof(ctx, "Attempting to create container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	s.updateLock.RLock()
@@ -548,30 +548,31 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	ctr := container.New(ctx)
-	if err := ctr.SetConfig(req.GetConfig()); err != nil {
-		return nil, errors.Wrap(err, "setting container config")
+	if errRet = ctr.SetConfig(req.GetConfig()); errRet != nil {
+		return nil, errors.Wrap(errRet, "setting container config")
 	}
 
-	if err := ctr.SetNameAndID(sb.Metadata()); err != nil {
-		return nil, errors.Wrap(err, "setting container name and ID")
+	if errRet = ctr.SetNameAndID(sb.Metadata()); errRet != nil {
+		return nil, errors.Wrap(errRet, "setting container name and ID")
 	}
 
-	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		return nil, errors.Wrap(err, "reserving container name")
+	if _, errRet = s.ReserveContainerName(ctr.ID(), ctr.Name()); errRet != nil {
+		return nil, errors.Wrap(errRet, "reserving container name")
 	}
 
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			s.ReleaseContainerName(ctr.Name())
 		}
 	}()
 
 	newContainer, err := s.createSandboxContainer(ctx, ctr.ID(), ctr.Name(), sb, req.GetSandboxConfig(), ctr.Config())
 	if err != nil {
-		return nil, err
+		errRet = err
+		return nil, errRet
 	}
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
@@ -581,24 +582,24 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	s.addContainer(newContainer)
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			s.removeContainer(newContainer)
 		}
 	}()
 
-	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
-		return nil, err
+	if errRet = s.CtrIDIndex().Add(ctr.ID()); errRet != nil {
+		return nil, errRet
 	}
 	defer func() {
-		if err != nil {
+		if errRet != nil {
 			if err2 := s.CtrIDIndex().Delete(ctr.ID()); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
 			}
 		}
 	}()
 
-	if err := s.createContainerPlatform(newContainer, sb.CgroupParent()); err != nil {
-		return nil, err
+	if errRet = s.createContainerPlatform(newContainer, sb.CgroupParent()); errRet != nil {
+		return nil, errRet
 	}
 
 	if err := s.ContainerStateToDisk(newContainer); err != nil {

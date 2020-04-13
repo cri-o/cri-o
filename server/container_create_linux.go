@@ -383,6 +383,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if err != nil {
 		return nil, err
 	}
+
+	var errRet error
+	defer func() {
+		if errRet != nil {
+			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
+			if err2 != nil {
+				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
+			}
+		}
+	}()
+
 	mountLabel := containerInfo.MountLabel
 	var processLabel string
 	if !privileged {
@@ -401,30 +412,25 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		processLabel = ""
 	}
 
-	defer func() {
-		if err != nil {
-			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
-			if err2 != nil {
-				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
-			}
-		}
-	}()
 	specgen.SetLinuxMountLabel(mountLabel)
 	specgen.SetProcessSelinuxLabel(processLabel)
 
 	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, &specgen, s.config.RuntimeConfig.BindMountPrefix)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
 	volumesJSON, err := json.Marshal(containerVolumes)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	specgen.AddAnnotation(annotations.Volumes, string(volumesJSON))
 
 	configuredDevices, err := getDevicesFromConfig(ctx, &s.config)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
@@ -437,17 +443,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
-	if err := addDevices(ctx, sb, containerConfig, privilegedWithoutHostDevices, &specgen); err != nil {
-		return nil, err
+	if errRet = addDevices(ctx, sb, containerConfig, privilegedWithoutHostDevices, &specgen); errRet != nil {
+		return nil, errRet
 	}
 
 	labels := containerConfig.GetLabels()
 
-	if err := validateLabels(labels); err != nil {
-		return nil, err
+	if errRet = validateLabels(labels); errRet != nil {
+		return nil, errRet
 	}
 
 	kubeAnnotations := containerConfig.GetAnnotations()
@@ -464,6 +471,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile(),
 		)
 		if err != nil {
+			errRet = err
 			return nil, errors.Wrapf(err, "applying apparmor profile to container %s", containerID)
 		}
 
@@ -484,8 +492,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// Handle https://issues.k8s.io/44043
-	if err := ensureSaneLogPath(logPath); err != nil {
-		return nil, err
+	if errRet = ensureSaneLogPath(logPath); errRet != nil {
+		return nil, errRet
 	}
 
 	log.Debugf(ctx, "setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
@@ -507,7 +515,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 			memoryLimit := resources.GetMemoryLimitInBytes()
 			if memoryLimit != 0 && memoryLimit < minMemoryLimit {
-				return nil, fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+				errRet = fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+				return nil, errRet
 			}
 			if memoryLimit != 0 {
 				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
@@ -519,14 +528,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 			supportsHugetlb := false
 			if cgroups.IsCgroup2UnifiedMode() {
-				supportsHugetlb, err = cgroupv2HasHugetlb()
-				if err != nil {
-					return nil, err
+				supportsHugetlb, errRet = cgroupv2HasHugetlb()
+				if errRet != nil {
+					return nil, errRet
 				}
 			} else {
-				supportsHugetlb, err = cgroupv1HasHugetlb()
-				if err != nil {
-					return nil, err
+				supportsHugetlb, errRet = cgroupv1HasHugetlb()
+				if errRet != nil {
+					return nil, errRet
 				}
 			}
 
@@ -578,6 +587,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			capabilities.AddCapabilities = append(capabilities.AddCapabilities, s.config.DefaultCapabilities...)
 			err = setupCapabilities(&specgen, capabilities)
 			if err != nil {
+				errRet = err
 				return nil, err
 			}
 		}
@@ -627,33 +637,34 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// Join the namespace paths for the pod sandbox container.
-	if err := configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), specgen); err != nil {
-		return nil, errors.Wrap(err, "failed to configure namespaces in container create")
+	if errRet = configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), specgen); errRet != nil {
+		return nil, errors.Wrap(errRet, "failed to configure namespaces in container create")
 	}
 
 	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
 		// kubernetes PodSpec specify to use Host PID namespace
-		if err := specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace)); err != nil {
-			return nil, err
+		if errRet = specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace)); errRet != nil {
+			return nil, errRet
 		}
 	} else if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
 		infra := sb.InfraContainer()
 		if infra == nil {
-			return nil, errors.New("PID namespace requested, but sandbox has no infra container")
+			errRet = errors.New("PID namespace requested, but sandbox has no infra container")
+			return nil, errRet
 		}
 
 		// share Pod PID namespace
 		// SEE NOTE ABOVE
 		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", infra.State().Pid)
-		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
-			return nil, err
+		if errRet = specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); errRet != nil {
+			return nil, errRet
 		}
 	}
 
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
 	if sb.HostNetwork() {
-		if err := specgen.RemoveLinuxNamespace(string(rspec.NetworkNamespace)); err != nil {
-			return nil, err
+		if errRet = specgen.RemoveLinuxNamespace(string(rspec.NetworkNamespace)); errRet != nil {
+			return nil, errRet
 		}
 
 		if !isInCRIMounts("/sys", containerConfig.GetMounts()) {
@@ -692,12 +703,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
-		err = fmt.Errorf("empty image config for %s", image)
-		return nil, err
+		errRet = fmt.Errorf("empty image config for %s", image)
+		return nil, errRet
 	}
 
 	processArgs, err := buildOCIProcessArgs(ctx, containerConfig, containerImageConfig)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	specgen.SetProcessArgs(processArgs)
@@ -708,8 +720,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
 	if !privileged && cgroups.IsCgroup2UnifiedMode() {
-		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); err != nil {
-			return nil, err
+		if errRet = specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); errRet != nil {
+			return nil, errRet
 		}
 	}
 
@@ -734,8 +746,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
-		if err := securityLabel(sb.ResolvPath(), mountLabel, false); err != nil {
-			return nil, err
+		if errRet = securityLabel(sb.ResolvPath(), mountLabel, false); errRet != nil {
+			return nil, errRet
 		}
 
 		mnt = rspec.Mount{
@@ -749,8 +761,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	if sb.HostnamePath() != "" {
-		if err := securityLabel(sb.HostnamePath(), mountLabel, false); err != nil {
-			return nil, err
+		if errRet = securityLabel(sb.HostnamePath(), mountLabel, false); errRet != nil {
+			return nil, errRet
 		}
 
 		mnt = rspec.Mount{
@@ -798,33 +810,37 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	specgen.AddAnnotation(annotations.Metadata, string(metadataJSON))
 
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	specgen.AddAnnotation(annotations.Labels, string(labelsJSON))
 
 	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
 	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath()
 	if !privileged {
-		if err := s.setupSeccomp(ctx, &specgen, spp); err != nil {
-			return nil, err
+		if errRet = s.setupSeccomp(ctx, &specgen, spp); errRet != nil {
+			return nil, errRet
 		}
 	}
 	specgen.AddAnnotation(annotations.SeccompProfilePath, spp)
 
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
+		errRet = fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
+		return nil, errRet
 	}
 	specgen.AddAnnotation(annotations.MountPoint, mountPoint)
 
@@ -842,14 +858,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	// Setup user and groups
 	if linux != nil {
-		if err := setupContainerUser(ctx, &specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
-			return nil, err
+		if errRet = setupContainerUser(ctx, &specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); errRet != nil {
+			return nil, errRet
 		}
 	}
 
 	// Add image volumes
 	volumeMounts, err := addImageVolumes(ctx, mountPoint, s, &containerInfo, mountLabel, &specgen)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
@@ -865,21 +882,21 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		containerCwd = runtimeCwd
 	}
 	specgen.SetProcessCwd(containerCwd)
-	if err := setupWorkingDirectory(mountPoint, mountLabel, containerCwd); err != nil {
+	if errRet = setupWorkingDirectory(mountPoint, mountLabel, containerCwd); errRet != nil {
 		if err1 := s.StorageRuntimeServer().StopContainer(containerID); err1 != nil {
-			return nil, fmt.Errorf("can't umount container after cwd error %v: %v", err, err1)
+			errRet = fmt.Errorf("can't umount container after cwd error %v: %v", errRet, err1)
+			return nil, errRet
 		}
-		return nil, err
+		return nil, errRet
 	}
 
 	var secretMounts []rspec.Mount
 	if len(s.config.DefaultMounts) > 0 {
 		// This option has been deprecated, once it is removed in the later versions, delete the server/secrets.go file as well
 		log.Warnf(ctx, "--default-mounts has been deprecated and will be removed in future versions. Add mounts to either %q or %q", secrets.DefaultMountsFile, secrets.OverrideMountsFile)
-		var err error
-		secretMounts, err = addSecretsBindMounts(ctx, mountLabel, containerInfo.RunDir, s.config.DefaultMounts, specgen)
-		if err != nil {
-			return nil, fmt.Errorf("failed to mount secrets: %v", err)
+		secretMounts, errRet = addSecretsBindMounts(ctx, mountLabel, containerInfo.RunDir, s.config.DefaultMounts, specgen)
+		if errRet != nil {
+			return nil, fmt.Errorf("failed to mount secrets: %v", errRet)
 		}
 	}
 	// Check for FIPS_DISABLE label in the pod config
@@ -915,8 +932,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		newAnnotations[key] = value
 	}
 	if s.ContainerServer.Hooks != nil {
-		if _, err := s.ContainerServer.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.GetMounts()) > 0); err != nil {
-			return nil, err
+		if _, errRet = s.ContainerServer.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.GetMounts()) > 0); errRet != nil {
+			return nil, errRet
 		}
 	}
 
@@ -932,6 +949,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
+		errRet = err
 		return nil, err
 	}
 
@@ -943,8 +961,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		for _, gidmap := range s.defaultIDMappings.GIDs() {
 			specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
-	} else if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
-		return nil, err
+	} else if errRet = specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); errRet != nil {
+		return nil, errRet
 	}
 
 	if os.Getenv("_CRIO_ROOTLESS") != "" {
@@ -952,11 +970,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	saveOptions := generate.ExportOptions{}
-	if err := specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
-		return nil, err
+	if errRet = specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); errRet != nil {
+		return nil, errRet
 	}
-	if err := specgen.SaveToFile(filepath.Join(containerInfo.RunDir, "config.json"), saveOptions); err != nil {
-		return nil, err
+	if errRet = specgen.SaveToFile(filepath.Join(containerInfo.RunDir, "config.json"), saveOptions); errRet != nil {
+		return nil, errRet
 	}
 
 	container.SetSpec(specgen.Config)
