@@ -59,6 +59,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 					Metadata: &pb.PodSandboxMetadata{
 						Name:      "name",
 						Namespace: "default",
+						Uid:       "uid",
 					},
 					LogDirectory: "/tmp",
 					Linux: &pb.LinuxPodSandboxConfig{
@@ -129,6 +130,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 					Metadata: &pb.PodSandboxMetadata{
 						Name:      "name",
 						Namespace: "default",
+						Uid:       "uid",
 					},
 				}})
 

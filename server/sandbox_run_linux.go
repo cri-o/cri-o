@@ -58,13 +58,17 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	namespace := sbox.Config().GetMetadata().GetNamespace()
 	attempt := sbox.Config().GetMetadata().GetAttempt()
 
-	id, name, err := s.ReservePodIDAndName(sbox.Config())
-	if err != nil {
-		return nil, err
+	if err = sbox.SetNameAndID(); err != nil {
+		return nil, errors.Wrap(err, "setting pod sandbox name and id")
 	}
+
+	if _, err = s.ReservePodName(sbox.ID(), sbox.Name()); err != nil {
+		return nil, errors.Wrap(err, "reserving pod sandbox name")
+	}
+
 	defer func() {
 		if err != nil {
-			s.ReleasePodName(name)
+			s.ReleasePodName(sbox.Name())
 		}
 	}()
 
@@ -85,7 +89,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		labelOptions = getLabelOptions(selinuxConfig)
 	}
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
-		name, id,
+		sbox.Name(), sbox.ID(),
 		s.config.PauseImage,
 		s.config.PauseImageAuthFile,
 		"",
@@ -101,15 +105,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	processLabel := podContainer.ProcessLabel
 
 	if errors.Cause(err) == storage.ErrDuplicateName {
-		return nil, fmt.Errorf("pod sandbox with name %q already exists", name)
+		return nil, fmt.Errorf("pod sandbox with name %q already exists", sbox.Name())
 	}
 	if err != nil {
-		return nil, fmt.Errorf("error creating pod sandbox with name %q: %v", name, err)
+		return nil, fmt.Errorf("error creating pod sandbox with name %q: %v", sbox.Name(), err)
 	}
 	defer func() {
 		if err != nil {
-			if err2 := s.StorageRuntimeServer().RemovePodSandbox(id); err2 != nil {
-				log.Warnf(ctx, "couldn't cleanup pod sandbox %q: %v", id, err2)
+			if err2 := s.StorageRuntimeServer().RemovePodSandbox(sbox.ID()); err2 != nil {
+				log.Warnf(ctx, "couldn't cleanup pod sandbox %q: %v", sbox.ID(), err2)
 			}
 		}
 	}()
@@ -203,14 +207,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// set log directory
 	logDir := sbox.Config().GetLogDirectory()
 	if logDir == "" {
-		logDir = filepath.Join(s.config.LogDir, id)
+		logDir = filepath.Join(s.config.LogDir, sbox.ID())
 	}
 	if err := os.MkdirAll(logDir, 0700); err != nil {
 		return nil, err
 	}
 	// This should always be absolute from k8s.
 	if !filepath.IsAbs(logDir) {
-		return nil, fmt.Errorf("requested logDir for sbox id %s is a relative path: %s", id, logDir)
+		return nil, fmt.Errorf("requested logDir for sbox id %s is a relative path: %s", sbox.ID(), logDir)
 	}
 
 	privileged := s.privilegedSandbox(req)
@@ -271,25 +275,25 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// bind mount the pod shm
 	g.AddMount(mnt)
 
-	err = s.setPodSandboxMountLabel(id, mountLabel)
+	err = s.setPodSandboxMountLabel(sbox.ID(), mountLabel)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := s.CtrIDIndex().Add(id); err != nil {
+	if err := s.CtrIDIndex().Add(sbox.ID()); err != nil {
 		return nil, err
 	}
 
 	defer func() {
 		if err != nil {
-			if err2 := s.CtrIDIndex().Delete(id); err2 != nil {
-				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", id)
+			if err2 := s.CtrIDIndex().Delete(sbox.ID()); err2 != nil {
+				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", sbox.ID())
 			}
 		}
 	}()
 
 	// set log path inside log directory
-	logPath := filepath.Join(logDir, id+".log")
+	logPath := filepath.Join(logDir, sbox.ID()+".log")
 
 	// Handle https://issues.k8s.io/44043
 	if err := ensureSaneLogPath(logPath); err != nil {
@@ -298,7 +302,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	hostNetwork := securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 
-	hostname, err := getHostname(id, sbox.Config().Hostname, hostNetwork)
+	hostname, err := getHostname(sbox.ID(), sbox.Config().Hostname, hostNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -314,12 +318,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.Labels, string(labelsJSON))
 	g.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 	g.AddAnnotation(annotations.LogPath, logPath)
-	g.AddAnnotation(annotations.Name, name)
+	g.AddAnnotation(annotations.Name, sbox.Name())
 	g.AddAnnotation(annotations.Namespace, namespace)
 	g.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeSandbox)
-	g.AddAnnotation(annotations.SandboxID, id)
+	g.AddAnnotation(annotations.SandboxID, sbox.ID())
 	g.AddAnnotation(annotations.ContainerName, containerName)
-	g.AddAnnotation(annotations.ContainerID, id)
+	g.AddAnnotation(annotations.ContainerID, sbox.ID())
 	g.AddAnnotation(annotations.ShmPath, shmPath)
 	g.AddAnnotation(annotations.PrivilegedRuntime, fmt.Sprintf("%v", privileged))
 	g.AddAnnotation(annotations.RuntimeHandler, runtimeHandler)
@@ -355,7 +359,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		parent = cgroupMemorySubsystemMountPathV1
 	}
 
-	cgroupParent, err := AddCgroupAnnotation(ctx, g, parent, s.config.CgroupManager, sbox.Config().GetLinux().GetCgroupParent(), id)
+	cgroupParent, err := AddCgroupAnnotation(ctx, g, parent, s.config.CgroupManager, sbox.Config().GetLinux().GetCgroupParent(), sbox.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +376,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	sb, err := libsandbox.New(id, namespace, name, kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, resolvPath, hostname, portMappings, hostNetwork)
+	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, resolvPath, hostname, portMappings, hostNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -382,20 +386,20 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	defer func() {
 		if err != nil {
-			if err := s.removeSandbox(id); err != nil {
+			if err := s.removeSandbox(sbox.ID()); err != nil {
 				log.Warnf(ctx, "could not remove pod sandbox: %v", err)
 			}
 		}
 	}()
 
-	if err := s.PodIDIndex().Add(id); err != nil {
+	if err := s.PodIDIndex().Add(sbox.ID()); err != nil {
 		return nil, err
 	}
 
 	defer func() {
 		if err != nil {
-			if err := s.PodIDIndex().Delete(id); err != nil {
-				log.Warnf(ctx, "couldn't delete pod id %s from idIndex", id)
+			if err := s.PodIDIndex().Delete(sbox.ID()); err != nil {
+				log.Warnf(ctx, "couldn't delete pod id %s from idIndex", sbox.ID())
 			}
 		}
 	}()
@@ -442,9 +446,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	saveOptions := generate.ExportOptions{}
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(id)
+	mountPoint, err := s.StorageRuntimeServer().StartContainer(sbox.ID())
 	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
+		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), sbox.ID(), err)
 	}
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 
@@ -466,7 +470,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 
-	container, err := oci.NewContainer(id, containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, id, false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, sbox.ID(), false, false, false, sb.Privileged(), sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
@@ -564,10 +568,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
+		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), sbox.ID(), err)
 	}
 	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
-		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), id, err)
+		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %v", sb.Name(), sbox.ID(), err)
 	}
 
 	s.addInfraContainer(container)
@@ -635,7 +639,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	sb.SetCreated()
 
 	log.Infof(ctx, "ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
-	resp = &pb.RunPodSandboxResponse{PodSandboxId: id}
+	resp = &pb.RunPodSandboxResponse{PodSandboxId: sbox.ID()}
 	return resp, nil
 }
 
