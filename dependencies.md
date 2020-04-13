@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 13 Apr 2020 19:51:53 UTC for commit [8859e3f][0]._
+_Generated on Mon, 13 Apr 2020 20:13:52 UTC for commit [8859e3f][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/8859e3f46d28c864f0c496cfd56ecfc588c52eff
 
@@ -525,7 +525,7 @@ _Generated on Mon, 13 Apr 2020 19:51:53 UTC for commit [8859e3f][0]._
 | k8s.io/component-base                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413185148-c32b93aa2bc2 | false  | true             |
 | k8s.io/cri-api                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413185148-c32b93aa2bc2 | true   | true             |
 | k8s.io/csi-translation-lib                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413185148-c32b93aa2bc2 | false  | true             |
-| k8s.io/gengo                                            | v0.0.0-20200114144118-36b2048a9120                | v0.0.0-20200205140755-e0e292d8aa12 | false  | true             |
+| k8s.io/gengo                                            | v0.0.0-20200114144118-36b2048a9120                | v0.0.0-20200413195148-3a45101e95ac | false  | true             |
 | k8s.io/heapster                                         | v1.2.0-beta.1                                     | v1.5.4                             | false  | true             |
 | k8s.io/klog                                             | v1.0.0                                            |                                    | true   | true             |
 | k8s.io/kube-aggregator                                  | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200413185148-c32b93aa2bc2 | false  | true             |
