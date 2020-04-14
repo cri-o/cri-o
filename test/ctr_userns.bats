@@ -40,7 +40,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	state=$(crictl inspect "$ctr_id")
-	pid=$(echo $state | python -c 'import json; import sys; d=json.load(sys.stdin); print(d["pid"])')
+	pid=$(echo $state | jq .info.pid)
 	grep 100000 /proc/$pid/uid_map
 	[ "$status" -eq 0 ]
 	grep 200000 /proc/$pid/gid_map
