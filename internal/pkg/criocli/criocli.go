@@ -197,6 +197,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.GlobalIsSet("conmon-env") {
 		config.ConmonEnv = ctx.GlobalStringSlice("conmon-env")
 	}
+	if ctx.GlobalIsSet("default-env") {
+		config.DefaultEnv = ctx.GlobalStringSlice("default-env")
+	}
 	if ctx.GlobalIsSet("container-attach-socket-dir") {
 		config.ContainerAttachSocketDir = ctx.GlobalString("container-attach-socket-dir")
 	}
@@ -531,6 +534,11 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 			Name:   "conmon-env",
 			Usage:  fmt.Sprintf("environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: %q)", defConf.ConmonEnv),
 			EnvVar: "CONTAINER_CONMON_ENV",
+		},
+		cli.StringSliceFlag{
+			Name:   "default-env",
+			Usage:  fmt.Sprintf("additional environment variables to set for all containers (default: %q)", defConf.DefaultEnv),
+			EnvVar: "CONTAINER_DEFAULT_ENV",
 		},
 		cli.StringFlag{
 			Name:   "container-attach-socket-dir",
