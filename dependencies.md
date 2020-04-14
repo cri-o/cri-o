@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 14 Apr 2020 15:22:46 UTC for commit [8ecb63a][0]._
+_Generated on Tue, 14 Apr 2020 16:00:43 UTC for commit [8ecb63a][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/8ecb63a91caacac59499da9f8bfc5631221d3888
 
@@ -69,7 +69,7 @@ _Generated on Tue, 14 Apr 2020 15:22:46 UTC for commit [8ecb63a][0]._
 | github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.30.7                            | false  | true             |
 | github.com/bazelbuild/bazel-gazelle                     | v0.19.1-0.20191105222053-70208cbdc798             | v0.20.0                            | false  | true             |
 | github.com/bazelbuild/buildtools                        | v0.0.0-20190917191645-69366ca98f89                | v0.0.0-20200408162031-39e438388635 | false  | true             |
-| github.com/bazelbuild/rules_go                          | v0.0.0-20190719190356-6dae44dc5cab                | v0.22.3                            | false  | true             |
+| github.com/bazelbuild/rules_go                          | v0.0.0-20190719190356-6dae44dc5cab                | v0.22.4                            | false  | true             |
 | github.com/beorn7/perks                                 | v0.0.0-20180321164747-3a771d992973                | v1.0.1                             | false  | true             |
 | github.com/bgentry/speakeasy                            | v0.1.0                                            |                                    | false  | true             |
 | github.com/bifurcation/mint                             | v0.0.0-20180715133206-93c51c6ce115                | v0.0.0-20200214151656-93c820e81448 | false  | true             |
