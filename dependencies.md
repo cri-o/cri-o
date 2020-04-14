@@ -1,13 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 14 Apr 2020 16:00:43 UTC for commit [8ecb63a][0]._
+_Generated on Tue, 14 Apr 2020 16:18:45 UTC for commit [f0aef34][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8ecb63a91caacac59499da9f8bfc5631221d3888
+[0]: https://github.com/cri-o/cri-o/commit/f0aef34b8dc8924175b2d7461004089ec6ea43f8
 
 ## Outdated Dependencies
 
 |               MODULE               |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
+| github.com/containerd/release-tool | v0.0.0-20200402162031-a35b5d7ce53d   | v0.0.0-20200414154710-2f2f86e47034 | true   | true             |
 | github.com/containers/buildah      | v1.14.7                              | v1.14.8                            | true   | true             |
 | github.com/psampaz/go-mod-outdated | v0.5.1-0.20200214214326-701cdba07e4c | v0.6.0                             | true   | true             |
 | golang.org/x/sys                   | v0.0.0-20200408040146-ea54a3c99b9b   | v0.0.0-20200413165638-669c56c373c4 | true   | true             |
@@ -100,7 +101,7 @@ _Generated on Tue, 14 Apr 2020 16:00:43 UTC for commit [8ecb63a][0]._
 | github.com/containerd/continuity                        | v0.0.0-20190426062206-aaeac12a7ffc                | v0.0.0-20200413184840-d3ef23f19fbb | false  | true             |
 | github.com/containerd/fifo                              | v0.0.0-20190226154929-a9fb20d87448                | v0.0.0-20200410184934-f15a3290365b | false  | true             |
 | github.com/containerd/go-runc                           | v0.0.0-20180907222934-5a6d9f37cfa3                | v0.0.0-20200220073739-7016d3ce2328 | false  | true             |
-| github.com/containerd/release-tool                      | v0.0.0-20200402162031-a35b5d7ce53d                |                                    | true   | true             |
+| github.com/containerd/release-tool                      | v0.0.0-20200402162031-a35b5d7ce53d                | v0.0.0-20200414154710-2f2f86e47034 | true   | true             |
 | github.com/containerd/ttrpc                             | v0.0.0-20200121165050-0be804eadb15                |                                    | true   | true             |
 | github.com/containerd/typeurl                           | v0.0.0-20190228175220-2a93cfde8c20                |                                    | false  | true             |
 | github.com/containernetworking/cni                      | v0.7.2-0.20200304161608-4fae32b84921              |                                    | true   | true             |
@@ -464,7 +465,7 @@ _Generated on Tue, 14 Apr 2020 16:00:43 UTC for commit [8ecb63a][0]._
 | go.uber.org/zap                                         | v1.10.0                                           | v1.14.1                            | false  | true             |
 | go4.org                                                 | v0.0.0-20180809161055-417644f6feb5                | v0.0.0-20200411211856-f5505b9728dd | false  | true             |
 | golang.org/x/build                                      | v0.0.0-20190927031335-2835ba2e683f                | v0.0.0-20200410173725-baa2dcbbd3ad | false  | true             |
-| golang.org/x/crypto                                     | v0.0.0-20200323165209-0ec3e9974c59                | v0.0.0-20200406173513-056763e48d71 | false  | true             |
+| golang.org/x/crypto                                     | v0.0.0-20200323165209-0ec3e9974c59                | v0.0.0-20200414155820-4f8f47aa7992 | false  | true             |
 | golang.org/x/exp                                        | v0.0.0-20190510132918-efd6b22b2522                | v0.0.0-20200331195152-e8c3332aa8e5 | false  | true             |
 | golang.org/x/image                                      | v0.0.0-20190227222117-0694c2d4d067                | v0.0.0-20200119044424-58c23975cae1 | false  | true             |
 | golang.org/x/lint                                       | v0.0.0-20190409202823-959b441ac422                | v0.0.0-20200302205851-738671d3881b | false  | true             |
