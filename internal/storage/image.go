@@ -18,6 +18,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
@@ -47,6 +48,7 @@ type ImageResult struct {
 	User         string
 	PreviousName string
 	Labels       map[string]string
+	OCIConfig    *specs.Image
 }
 
 type indexInfo struct {
@@ -58,7 +60,7 @@ type indexInfo struct {
 // avoid having to reread them every time we need to return information about
 // images.
 type imageCacheItem struct {
-	user         string
+	config       *specs.Image
 	size         *uint64
 	configDigest digest.Digest
 	info         *types.ImageInspectInfo
@@ -196,7 +198,7 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	}
 
 	return imageCacheItem{
-		user:         imageConfig.Config.User,
+		config:       imageConfig,
 		size:         size,
 		configDigest: configDigest,
 		info:         info,
@@ -225,9 +227,10 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		Size:         cacheItem.size,
 		Digest:       imageDigest,
 		ConfigDigest: cacheItem.configDigest,
-		User:         cacheItem.user,
+		User:         cacheItem.config.Config.User,
 		PreviousName: previousName,
 		Labels:       cacheItem.info.Labels,
+		OCIConfig:    cacheItem.config,
 	}
 }
 
