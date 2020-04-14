@@ -18,7 +18,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 					Namespace: "namespace",
 				},
 			}
-			sut.SetConfig(config)
+			Expect(sut.SetConfig(config)).To(BeNil())
 
 			// When
 			err := sut.SetNameAndID()
@@ -50,7 +50,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 					Namespace: "namespace",
 				},
 			}
-			sut.SetConfig(config)
+			Expect(sut.SetConfig(config)).NotTo(BeNil())
 
 			// When
 			err := sut.SetNameAndID()
@@ -68,7 +68,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 					Uid:  "uid",
 				},
 			}
-			sut.SetConfig(config)
+			Expect(sut.SetConfig(config)).To(BeNil())
 
 			// When
 			err := sut.SetNameAndID()
@@ -86,7 +86,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 					Namespace: "namespace",
 				},
 			}
-			sut.SetConfig(config)
+			Expect(sut.SetConfig(config)).To(BeNil())
 
 			// When
 			err := sut.SetNameAndID()
