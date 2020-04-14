@@ -24,7 +24,7 @@ FILES_MAN=(
 FILES_ETC=(
     "$GIT_ROOT/crictl.yaml"
     "$GIT_ROOT/crio-umount.conf"
-    "$GIT_ROOT/build/crio.conf.d/00-default.conf"
+    "$GIT_ROOT/crio.conf"
 )
 FILES_CONTRIB=(
     "$GIT_ROOT/contrib/cni/10-crio-bridge.conf"

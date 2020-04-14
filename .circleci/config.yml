@@ -183,7 +183,7 @@ jobs:
           name: Show CRI-O version
           command: ./bin/crio version
       - run:
-          command: make crio.conf.d
+          command: make crio.conf
       - run:
           command: make docs -j $JOBS
       - save_cache:
@@ -195,7 +195,7 @@ jobs:
           root: .
           paths:
             - bin
-            - build/crio.conf.d/00-default.conf
+            - crio.conf
             - docs
 
   build-static:

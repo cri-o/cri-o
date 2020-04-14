@@ -34,10 +34,6 @@ JUNIT_PATH := ${BUILD_PATH}/junit
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
 
-CRIO_CONFD_DIR := crio.conf.d
-CRIO_CONFIG_DEFAULT := 00-default.conf
-BUILD_CONFIG_PATH := ${BUILD_PATH}/${CRIO_CONFD_DIR}/${CRIO_CONFIG_DEFAULT}
-
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 FISHINSTALLDIR=${PREFIX}/share/fish/completions
 ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
@@ -114,9 +110,7 @@ TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
 TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.3.0
 
-all: binaries config docs
-
-config: ${BUILD_CONFIG_PATH}
+all: binaries crio.conf docs
 
 default: help
 
@@ -171,13 +165,10 @@ build-static:
 		mkdir -p cri-o/bin && \
 		cp result-bin/bin/crio-* cri-o/bin"
 
-release-bundle: clean bin/pinns build-static docs config bundle
+release-bundle: clean bin/pinns build-static docs crio.conf bundle
 
-${CRIO_CONFD_DIR}: ${BUILD_CONFIG_PATH}
-
-${BUILD_CONFIG_PATH}: bin/crio
-	mkdir -p $(dir ${BUILD_CONFIG_PATH})
-	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > ${BUILD_CONFIG_PATH}
+crio.conf: bin/crio
+	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > crio.conf
 
 release-note: ${RELEASE_TOOL}
 	${RELEASE_TOOL} -n $(release)
@@ -435,9 +426,10 @@ install.man: $(MANPAGES)
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 
-install.config: ${BUILD_CONFIG_PATH}
+install.config: crio.conf
 	install ${SELINUXOPT} -d $(DATAROOTDIR)/oci/hooks.d
-	install ${SELINUXOPT} -D -m 644 $(BUILD_CONFIG_PATH) $(ETCDIR_CRIO)/$(CRIO_CONFD_DIR)/$(CRIO_CONFIG_DEFAULT)
+	install ${SELINUXOPT} -d $(ETCDIR_CRIO)/crio.conf.d
+	install ${SELINUXOPT} -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
 	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	install ${SELINUXOPT} -D -m 644 crictl.yaml $(CRICTL_CONFIG_DIR)
 
@@ -480,6 +472,7 @@ uninstall:
 	rm -f $(PREFIX)/lib/systemd/system/cri-o.service
 	rm -rf $(DATAROOTDIR)/oci/hooks.d
 	rm -f $(ETCDIR_CRIO)/crio.conf
+	rm -rf $(ETCDIR_CRIO)/crio.conf.d
 	rm -f $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	rm -f $(CRICTL_CONFIG_DIR)/crictl.yaml
 
@@ -495,7 +488,6 @@ release-branch-forward:
 	$(GO_RUN) ./scripts/release-branch-forward
 
 .PHONY: \
-	${CRIO_CONFD_DIR} \
 	.explicit_phony \
 	git-validation \
 	binaries \
