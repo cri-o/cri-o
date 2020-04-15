@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 15 Apr 2020 20:37:13 UTC for commit [a70c97b][0]._
+_Generated on Wed, 15 Apr 2020 22:20:13 UTC for commit [6417cfd][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a70c97b9d6f3b1c287e92f19512e6d366d3d0e99
+[0]: https://github.com/cri-o/cri-o/commit/6417cfd1a2ef8493fe41ac91090fbc26b936ac69
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Wed, 15 Apr 2020 20:37:13 UTC for commit [a70c97b][0]._
 | golang.org/x/sys                   | v0.0.0-20200408040146-ea54a3c99b9b | v0.0.0-20200413165638-669c56c373c4 | true   | true             |
 | k8s.io/api                         | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200415201458-b86297c8378b | true   | true             |
 | k8s.io/apimachinery                | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200415201458-b86297c8378b | true   | true             |
-| k8s.io/client-go                   | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200415183650-413c81a7933c | true   | true             |
+| k8s.io/client-go                   | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200415201458-b86297c8378b | true   | true             |
 | k8s.io/cri-api                     | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200415201458-b86297c8378b | true   | true             |
 | k8s.io/release                     | v0.2.5                             | v0.2.7                             | true   | true             |
 | k8s.io/utils                       | v0.0.0-20200327001022-6496210b90e8 | v0.0.0-20200414100711-2df71ebbae66 | true   | true             |
@@ -40,7 +40,7 @@ _Generated on Wed, 15 Apr 2020 20:37:13 UTC for commit [a70c97b][0]._
 | github.com/BurntSushi/toml                              | v0.3.1                                            |                                    | true   | true             |
 | github.com/BurntSushi/xgb                               | v0.0.0-20160522181843-27f122750802                | v0.0.0-20200324125942-20f126ea2843 | false  | true             |
 | github.com/DataDog/zstd                                 | v1.4.0                                            | v1.4.5                             | false  | true             |
-| github.com/GoogleCloudPlatform/k8s-cloud-provider       | v0.0.0-20190822182118-27a4ced34534                | v0.0.0-20200415200910-40c9792bee2c | false  | true             |
+| github.com/GoogleCloudPlatform/k8s-cloud-provider       | v0.0.0-20190822182118-27a4ced34534                | v0.0.0-20200415212048-7901bc822317 | false  | true             |
 | github.com/GoogleCloudPlatform/testgrid                 | v0.0.1-alpha.4                                    | v0.0.10                            | false  | true             |
 | github.com/JeffAshton/win_pdh                           | v0.0.0-20161109143554-76bb4ee9f0ab                |                                    | false  | true             |
 | github.com/MakeNowJust/heredoc                          | v0.0.0-20170808103936-bb23615498cd                | v1.0.0                             | false  | true             |
@@ -519,10 +519,10 @@ _Generated on Wed, 15 Apr 2020 20:37:13 UTC for commit [a70c97b][0]._
 | k8s.io/apimachinery                                     | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | true   | true             |
 | k8s.io/apiserver                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | false  | true             |
-| k8s.io/client-go                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415183650-413c81a7933c | true   | true             |
+| k8s.io/client-go                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | true   | true             |
 | k8s.io/cloud-provider                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | false  | true             |
-| k8s.io/cluster-bootstrap                                | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415183650-413c81a7933c | false  | true             |
-| k8s.io/code-generator                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415183650-413c81a7933c | false  | true             |
+| k8s.io/cluster-bootstrap                                | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | false  | true             |
+| k8s.io/code-generator                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | false  | true             |
 | k8s.io/component-base                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | false  | true             |
 | k8s.io/cri-api                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | true   | true             |
 | k8s.io/csi-translation-lib                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415201458-b86297c8378b | false  | true             |
