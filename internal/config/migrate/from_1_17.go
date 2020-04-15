@@ -50,5 +50,23 @@ func migrateFrom1_17(cfg *config.Config) error {
 		logrus.Infof(`Changing "ctr_stop_timeout" to %d`, cfg.CtrStopTimeout)
 	}
 
+	// Change namespaces dir to new path
+	// https://github.com/cri-o/cri-o/pull/3509
+	logrus.Infof("Checking for namespaces_dir, which now should be /var/run instead of /var/run/crio/ns")
+	newNamespacesDir := "/var/run"
+	if cfg.NamespacesDir == "/var/run/crio/ns" {
+		cfg.NamespacesDir = newNamespacesDir
+		logrus.Infof(`Changing "namespaces_dir" to %s`, cfg.NamespacesDir)
+	}
+
+	// Upgrade pause image
+	// https://github.com/cri-o/cri-o/pull/3582
+	logrus.Infof("Checking for pause_image, which now should be k8s.gcr.io/pause:3.2 instead of k8s.gcr.io/pause:3.1")
+	newPauseImage := "k8s.gcr.io/pause:3.2"
+	if cfg.PauseImage == "k8s.gcr.io/pause:3.1" {
+		cfg.PauseImage = newPauseImage
+		logrus.Infof(`Changing "pause_image" to %s`, cfg.PauseImage)
+	}
+
 	return nil
 }
