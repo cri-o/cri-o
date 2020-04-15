@@ -80,6 +80,28 @@ To output a markdown compatible table, pass the `-style markdown` option
 go list -u -m -json all | go-mod-outdated -style markdown 
 ```
 
+**Important note for Go 1.14 users**
+
+If are using Go 1.14 with vendoring you need to pass **-mod=mod** or **-mod=readonly** to the go list command otherwise 
+you will get the following error: 
+
+```
+$ go list -u -m -json all
+ 
+go list -m: can't determine available upgrades using the vendor directory
+        (Use -mod=mod or -mod=readonly to bypass.)
+```
+
+The following will work:
+
+```
+ go list -u -m -mod=mod -json all | go-mod-outdated
+```
+
+```
+ go list -u -m -mod=readonly -json all | go-mod-outdated
+```
+
 ### Docker
 In the folder where your go.mod lives run
 ```
@@ -141,10 +163,8 @@ There is a case where the updated version reported by the go list command is act
 go-mod-outdated output includes a column named **VALID TIMESTAMP** which will give an indication when this case happens,
 helping application maintainers to avoid upgrading to a version that will break their application. 
 
-## Important notes
+## Important note
 
-- Go's module system will be finalized in Go 1.13 version. Since this tool relies on the output of Go's list related to 
-modules, expect things to break.
 - Upgrading an application is a responsibility of the maintainer of the application. Semantic versioning provides a way
 to indicate breaking changes, but still everything relies on each module developer to apply correct version tags. Unless
 there is a fully automated way to detect breaking changes in a codebase, a good practice to avoid surpises is to write 
@@ -156,6 +176,7 @@ tests and avoid dependencies on modules not well maintained and documented.
 - 1.11.x
 - 1.12.x
 - 1.13.x
+- 1.14.x
 
 ## Supported operating systems
 
