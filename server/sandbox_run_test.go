@@ -49,6 +49,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 					gomock.Any()).Return(nil),
 				runtimeServerMock.EXPECT().StartContainer(gomock.Any()).
 					Return("", nil),
+				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).
+					Return(nil),
 				runtimeServerMock.EXPECT().RemovePodSandbox(gomock.Any()).
 					Return(nil),
 			)
