@@ -47,90 +47,52 @@ executors:
     <<: *stdenv
     working_directory: *workdir_vm
 
-filterAllTags: &filterAllTags
-  tags:
-    only: /.*/
-
 workflows:
   version: 2
   pipeline:
     jobs:
-      - build:
-          filters: *filterAllTags
-
+      - build
       - build:
           name: build-go1.13
           executor: container-legacy
-          filters: *filterAllTags
-
       - build:
           name: build-386
           executor: container-386
-          filters: *filterAllTags
-
-      - build-static:
-          filters: *filterAllTags
-
-      - build-test-binaries:
-          filters: *filterAllTags
-
+      - build-static
+      - build-test-binaries
       - bundle:
           requires:
             - build
             - build-static
-          filters: *filterAllTags
-
       - bundle-test:
           requires:
             - bundle
-          filters: *filterAllTags
-
       - completions-validation:
           requires:
             - build
-          filters: *filterAllTags
-
       - dependencies:
           requires:
             - release-notes
-          filters: *filterAllTags
-
       - docs-generation:
           requires:
             - build
-          filters: *filterAllTags
-
-      - docs-validation:
-          filters: *filterAllTags
-
-      - git-validation:
-          filters: *filterAllTags
-
-      - integration:
-          filters: *filterAllTags
-
+      - docs-validation
+      - git-validation
+      - integration
       - integration:
           name: integration-critest
           run_critest: '1'
           jobs: 1
           test_args: critest.bats
-          filters: *filterAllTags
-
       - integration:
           name: integration-userns
           test_userns: '1'
-          filters: *filterAllTags
-
       - integration:
           name: integration-static
           crio_binary: crio-static
           requires:
             - build-static
-          filters: *filterAllTags
-
-      - lint:
-          filters: *filterAllTags
-
+      - lint
       - release-branch-forward:
           requires:
             - results
@@ -138,12 +100,9 @@ workflows:
             branches:
               only:
                 - master
-
       - release-notes:
           requires:
             - results
-          filters: *filterAllTags
-
       - results:
           requires:
             - bundle-test
@@ -152,19 +111,10 @@ workflows:
             - integration-static
             - integration-userns
             - unit-tests
-          filters: *filterAllTags
-
-      - shellcheck:
-          filters: *filterAllTags
-
-      - shfmt:
-          filters: *filterAllTags
-
-      - unit-tests:
-          filters: *filterAllTags
-
-      - vendor:
-          filters: *filterAllTags
+      - shellcheck
+      - shfmt
+      - unit-tests
+      - vendor
 
 jobs:
   build:
@@ -479,32 +429,12 @@ jobs:
   results:
     executor: container
     steps:
+      - checkout
       - attach_workspace:
           at: .
       - run:
-          name: Upload to Google Cloud Bucket
-          command: |
-            if [[ -z $GCS_BUCKET_SA ]]; then
-              echo Skipping upload because GCB Service Account is not available
-            else
-              echo $GCS_BUCKET_SA > /tmp/key.json
-              gcloud auth activate-service-account --key-file=/tmp/key.json
-
-              BUCKET=gs://k8s-conform-cri-o
-              gsutil cp -n build/bundle/*.tar.gz $BUCKET/artifacts
-            fi
-            if TAG=$(git describe --exact-match --tags 2>/dev/null); then
-              if [[ -z $GITHUB_TOKEN ]]; then
-                echo GITHUB_TOKEN not set
-                exit 1
-              else
-                FILE=build/bundle/crio-$TAG.tar.gz
-                curl -H "Authorization: token $GITHUB_TOKEN" \
-                     -H "Content-Type: $(file -b --mime-type "$FILE")" \
-                     --data-binary @"$FILE" \
-                     "https://uploads.github.com/repos/cri-o/cri-o/releases/$TAG/assets?name=$(basename "$FILE")"
-              fi
-            fi
+          name: Upload artifacts
+          command: make upload-artifacts
       - store_test_results:
           path: build/junit
       - store_artifacts:

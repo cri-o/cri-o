@@ -506,6 +506,9 @@ docs-validation:
 release-branch-forward:
 	$(GO_RUN) ./scripts/release-branch-forward
 
+upload-artifacts:
+	./scripts/upload-artifacts
+
 .PHONY: \
 	.explicit_phony \
 	git-validation \
@@ -536,4 +539,5 @@ release-branch-forward:
 	uninstall \
 	vendor \
 	bin/pinns \
-	dependencies
+	dependencies \
+	upload-artifacts
