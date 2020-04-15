@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"flag"
 	"fmt"
+	"io/ioutil"
 	"sort"
 	"strings"
 )
@@ -55,10 +55,6 @@ type Command struct {
 	HideHelp bool
 	// Boolean to hide this command from help or completion
 	Hidden bool
-	// Boolean to enable short-option handling so user can combine several
-	// single-character bool arguments into one
-	// i.e. foobar -o -v -> foobar -ov
-	UseShortOptionHandling bool
 
 	// Full name of command for help, defaults to full command name, including parent commands.
 	HelpName        string
@@ -77,7 +73,7 @@ func (c CommandsByName) Len() int {
 }
 
 func (c CommandsByName) Less(i, j int) bool {
-	return lexicographicLess(c[i].Name, c[j].Name)
+	return c[i].Name < c[j].Name
 }
 
 func (c CommandsByName) Swap(i, j int) {
@@ -110,11 +106,57 @@ func (c Command) Run(ctx *Context) (err error) {
 		)
 	}
 
-	if ctx.App.UseShortOptionHandling {
-		c.UseShortOptionHandling = true
+	set, err := flagSet(c.Name, c.Flags)
+	if err != nil {
+		return err
+	}
+	set.SetOutput(ioutil.Discard)
+
+	if c.SkipFlagParsing {
+		err = set.Parse(append([]string{"--"}, ctx.Args().Tail()...))
+	} else if !c.SkipArgReorder {
+		firstFlagIndex := -1
+		terminatorIndex := -1
+		for index, arg := range ctx.Args() {
+			if arg == "--" {
+				terminatorIndex = index
+				break
+			} else if arg == "-" {
+				// Do nothing. A dash alone is not really a flag.
+				continue
+			} else if strings.HasPrefix(arg, "-") && firstFlagIndex == -1 {
+				firstFlagIndex = index
+			}
+		}
+
+		if firstFlagIndex > -1 {
+			args := ctx.Args()
+			regularArgs := make([]string, len(args[1:firstFlagIndex]))
+			copy(regularArgs, args[1:firstFlagIndex])
+
+			var flagArgs []string
+			if terminatorIndex > -1 {
+				flagArgs = args[firstFlagIndex:terminatorIndex]
+				regularArgs = append(regularArgs, args[terminatorIndex:]...)
+			} else {
+				flagArgs = args[firstFlagIndex:]
+			}
+
+			err = set.Parse(append(flagArgs, regularArgs...))
+		} else {
+			err = set.Parse(ctx.Args().Tail())
+		}
+	} else {
+		err = set.Parse(ctx.Args().Tail())
 	}
 
-	set, err := c.parseFlags(ctx.Args().Tail())
+	nerr := normalizeFlags(c.Flags, set)
+	if nerr != nil {
+		fmt.Fprintln(ctx.App.Writer, nerr)
+		fmt.Fprintln(ctx.App.Writer)
+		ShowCommandHelp(ctx, c.Name)
+		return nerr
+	}
 
 	context := NewContext(ctx.App, set, ctx)
 	context.Command = c
@@ -128,20 +170,14 @@ func (c Command) Run(ctx *Context) (err error) {
 			context.App.handleExitCoder(context, err)
 			return err
 		}
-		_, _ = fmt.Fprintln(context.App.Writer, "Incorrect Usage:", err.Error())
-		_, _ = fmt.Fprintln(context.App.Writer)
-		_ = ShowCommandHelp(context, c.Name)
+		fmt.Fprintln(context.App.Writer, "Incorrect Usage:", err.Error())
+		fmt.Fprintln(context.App.Writer)
+		ShowCommandHelp(context, c.Name)
 		return err
 	}
 
 	if checkCommandHelp(context, c.Name) {
 		return nil
-	}
-
-	cerr := checkRequiredFlags(c.Flags, context)
-	if cerr != nil {
-		_ = ShowCommandHelp(context, c.Name)
-		return cerr
 	}
 
 	if c.After != nil {
@@ -161,7 +197,7 @@ func (c Command) Run(ctx *Context) (err error) {
 	if c.Before != nil {
 		err = c.Before(context)
 		if err != nil {
-			_ = ShowCommandHelp(context, c.Name)
+			ShowCommandHelp(context, c.Name)
 			context.App.handleExitCoder(context, err)
 			return err
 		}
@@ -177,71 +213,6 @@ func (c Command) Run(ctx *Context) (err error) {
 		context.App.handleExitCoder(context, err)
 	}
 	return err
-}
-
-func (c *Command) parseFlags(args Args) (*flag.FlagSet, error) {
-	if c.SkipFlagParsing {
-		set, err := c.newFlagSet()
-		if err != nil {
-			return nil, err
-		}
-
-		return set, set.Parse(append([]string{"--"}, args...))
-	}
-
-	if !c.SkipArgReorder {
-		args = reorderArgs(args)
-	}
-
-	set, err := parseIter(c, args)
-	if err != nil {
-		return nil, err
-	}
-
-	err = normalizeFlags(c.Flags, set)
-	if err != nil {
-		return nil, err
-	}
-
-	return set, nil
-}
-
-func (c *Command) newFlagSet() (*flag.FlagSet, error) {
-	return flagSet(c.Name, c.Flags)
-}
-
-func (c *Command) useShortOptionHandling() bool {
-	return c.UseShortOptionHandling
-}
-
-// reorderArgs moves all flags before arguments as this is what flag expects
-func reorderArgs(args []string) []string {
-	var nonflags, flags []string
-
-	readFlagValue := false
-	for i, arg := range args {
-		if arg == "--" {
-			nonflags = append(nonflags, args[i:]...)
-			break
-		}
-
-		if readFlagValue && !strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") {
-			readFlagValue = false
-			flags = append(flags, arg)
-			continue
-		}
-		readFlagValue = false
-
-		if arg != "-" && strings.HasPrefix(arg, "-") {
-			flags = append(flags, arg)
-
-			readFlagValue = !strings.Contains(arg, "=")
-		} else {
-			nonflags = append(nonflags, arg)
-		}
-	}
-
-	return append(flags, nonflags...)
 }
 
 // Names returns the names including short names and aliases.
@@ -268,7 +239,6 @@ func (c Command) HasName(name string) bool {
 func (c Command) startApp(ctx *Context) error {
 	app := NewApp()
 	app.Metadata = ctx.App.Metadata
-	app.ExitErrHandler = ctx.App.ExitErrHandler
 	// set the name and usage
 	app.Name = fmt.Sprintf("%s %s", ctx.App.Name, c.Name)
 	if c.HelpName == "" {
@@ -297,7 +267,6 @@ func (c Command) startApp(ctx *Context) error {
 	app.Email = ctx.App.Email
 	app.Writer = ctx.App.Writer
 	app.ErrWriter = ctx.App.ErrWriter
-	app.UseShortOptionHandling = ctx.App.UseShortOptionHandling
 
 	app.categories = CommandCategories{}
 	for _, command := range c.Subcommands {

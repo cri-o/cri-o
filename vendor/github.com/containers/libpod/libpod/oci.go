@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"net"
 
+	"github.com/containers/libpod/libpod/define"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -71,6 +72,9 @@ type OCIRuntime interface {
 	// Returns an int (exit code), error channel (errors from attach), and
 	// error (errors that occurred attempting to start the exec session).
 	ExecContainer(ctr *Container, sessionID string, options *ExecOptions) (int, chan error, error)
+	// ExecAttachResize resizes the terminal of a running exec session. Only
+	// allowed with sessions that were created with a TTY.
+	ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error
 	// ExecStopContainer stops a given exec session in a running container.
 	// SIGTERM with be sent initially, then SIGKILL after the given timeout.
 	// If timeout is 0, SIGKILL will be sent immediately, and SIGTERM will
@@ -117,7 +121,7 @@ type OCIRuntime interface {
 	ExitFilePath(ctr *Container) (string, error)
 
 	// RuntimeInfo returns verbose information about the runtime.
-	RuntimeInfo() (map[string]interface{}, error)
+	RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error)
 }
 
 // ExecOptions are options passed into ExecContainer. They control the command
@@ -138,17 +142,17 @@ type ExecOptions struct {
 	// the container was run as will be used.
 	User string
 	// Streams are the streams that will be attached to the container.
-	Streams *AttachStreams
+	Streams *define.AttachStreams
 	// PreserveFDs is a number of additional file descriptors (in addition
 	// to 0, 1, 2) that will be passed to the executed process. The total FDs
 	// passed will be 3 + PreserveFDs.
 	PreserveFDs uint
-	// Resize is a channel where terminal resize events are sent to be
-	// handled.
-	Resize chan remotecommand.TerminalSize
 	// DetachKeys is a set of keys that, when pressed in sequence, will
 	// detach from the container.
-	DetachKeys string
+	// If not provided, the default keys will be used.
+	// If provided but set to "", detaching from the container will be
+	// disabled.
+	DetachKeys *string
 }
 
 // HTTPAttachStreams informs the HTTPAttach endpoint which of the container's

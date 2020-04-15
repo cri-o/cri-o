@@ -11,10 +11,10 @@ require (
 	github.com/containerd/ttrpc v0.0.0-20200121165050-0be804eadb15
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.5
-	github.com/containers/buildah v1.14.7
+	github.com/containers/buildah v1.14.8
 	github.com/containers/conmon v2.0.15+incompatible
 	github.com/containers/image/v5 v5.4.3
-	github.com/containers/libpod v1.8.2
+	github.com/containers/libpod v1.9.0-rc2
 	github.com/containers/ocicrypt v1.0.2
 	github.com/containers/storage v1.18.2
 	github.com/coreos/go-systemd/v22 v22.0.0
@@ -66,9 +66,9 @@ require (
 )
 
 replace (
-	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2
 	github.com/godbus/dbus => github.com/godbus/dbus v0.0.0-20190623212516-8a1682060722
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2
+	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200408172955-7879fc12a633
 	k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20200408172955-7879fc12a633
 	k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20200408172955-7879fc12a633
