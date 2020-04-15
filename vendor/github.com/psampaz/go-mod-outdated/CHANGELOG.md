@@ -3,11 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [UNRELEASED] XXXX-XX-XX
+## [0.6.0] 2020-04-09
 ### Added
 - Added -style markdown option
+- Added tests for Go 1.14
+
 ### Changed
-- Switch to https://golangci.com/ for static code analysis
+- Updated docker base image to 1.14.2
+- Reduced docker image size
+- Updated version of golangci-lint to 1.24
 
 ## [0.5.0] 2019-09-27 
 ### Added
@@ -26,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - Flag '-ci' to exit with non-zero exit code when an outdated dependency is found
 - osx in travis
+
 ### Removed
 - tip version in travis
 
@@ -33,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - Extra column 'VALID TIMESTAMPS' which indicates if the timestamp of the new version is
 actually newer that the current one 
+
 ### Changed
 - Packages are now internal
 
