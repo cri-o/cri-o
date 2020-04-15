@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 15 Apr 2020 14:24:19 UTC for commit [770595a][0]._
+_Generated on Wed, 15 Apr 2020 15:39:51 UTC for commit [8253f43][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/770595a38a2357583c7e32e384371523337d3c0f
+[0]: https://github.com/cri-o/cri-o/commit/8253f43d91ee71162b7d3d403a573f8e798fdf8b
 
 ## Outdated Dependencies
 
@@ -13,7 +13,7 @@ _Generated on Wed, 15 Apr 2020 14:24:19 UTC for commit [770595a][0]._
 | github.com/psampaz/go-mod-outdated | v0.5.1-0.20200214214326-701cdba07e4c | v0.6.0                             | true   | true             |
 | golang.org/x/sys                   | v0.0.0-20200408040146-ea54a3c99b9b   | v0.0.0-20200413165638-669c56c373c4 | true   | true             |
 | k8s.io/api                         | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200415140230-495b0ddfaaec | true   | true             |
-| k8s.io/apimachinery                | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200415110016-fe1781d86db7 | true   | true             |
+| k8s.io/apimachinery                | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200415140230-495b0ddfaaec | true   | true             |
 | k8s.io/client-go                   | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200415140230-495b0ddfaaec | true   | true             |
 | k8s.io/cri-api                     | v0.0.0-20200408172955-7879fc12a633   | v0.0.0-20200415140230-495b0ddfaaec | true   | true             |
 | k8s.io/release                     | v0.2.5                               | v0.2.7                             | true   | true             |
@@ -464,7 +464,7 @@ _Generated on Wed, 15 Apr 2020 14:24:19 UTC for commit [770595a][0]._
 | go.uber.org/multierr                                    | v1.1.0                                            | v1.5.0                             | false  | true             |
 | go.uber.org/zap                                         | v1.10.0                                           | v1.14.1                            | false  | true             |
 | go4.org                                                 | v0.0.0-20180809161055-417644f6feb5                | v0.0.0-20200411211856-f5505b9728dd | false  | true             |
-| golang.org/x/build                                      | v0.0.0-20190927031335-2835ba2e683f                | v0.0.0-20200414163754-9a1cfea4557b | false  | true             |
+| golang.org/x/build                                      | v0.0.0-20190927031335-2835ba2e683f                | v0.0.0-20200415143047-455db85f97ba | false  | true             |
 | golang.org/x/crypto                                     | v0.0.0-20200323165209-0ec3e9974c59                | v0.0.0-20200414173820-0848c9571904 | false  | true             |
 | golang.org/x/exp                                        | v0.0.0-20190510132918-efd6b22b2522                | v0.0.0-20200331195152-e8c3332aa8e5 | false  | true             |
 | golang.org/x/image                                      | v0.0.0-20190227222117-0694c2d4d067                | v0.0.0-20200119044424-58c23975cae1 | false  | true             |
@@ -516,7 +516,7 @@ _Generated on Wed, 15 Apr 2020 14:24:19 UTC for commit [770595a][0]._
 | honnef.co/go/tools                                      | v0.0.1-2019.2.3                                   | v0.0.1-2020.1.3                    | false  | true             |
 | k8s.io/api                                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | true   | true             |
 | k8s.io/apiextensions-apiserver                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | false  | true             |
-| k8s.io/apimachinery                                     | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415110016-fe1781d86db7 | true   | true             |
+| k8s.io/apimachinery                                     | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | true   | true             |
 | k8s.io/apiserver                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | false  | true             |
 | k8s.io/client-go                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | true   | true             |
@@ -538,7 +538,7 @@ _Generated on Wed, 15 Apr 2020 14:24:19 UTC for commit [770595a][0]._
 | k8s.io/kubelet                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | false  | true             |
 | k8s.io/kubernetes                                       | v1.18.1                                           |                                    | true   | true             |
 | k8s.io/legacy-cloud-providers                           | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | false  | true             |
-| k8s.io/metrics                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415110016-fe1781d86db7 | false  | true             |
+| k8s.io/metrics                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | false  | true             |
 | k8s.io/release                                          | v0.2.5                                            | v0.2.7                             | true   | true             |
 | k8s.io/repo-infra                                       | v0.0.1-alpha.1                                    | v0.0.3                             | false  | true             |
 | k8s.io/sample-apiserver                                 | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200415140230-495b0ddfaaec | false  | true             |
