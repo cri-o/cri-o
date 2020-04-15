@@ -562,7 +562,7 @@ func DefaultConfig() (*Config, error) {
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
-			PauseImage:       "k8s.gcr.io/pause:3.1",
+			PauseImage:       "k8s.gcr.io/pause:3.2",
 			PauseCommand:     "/pause",
 			ImageVolumes:     ImageVolumesMkdir,
 		},
