@@ -15,7 +15,7 @@ import (
 const configFile = "config.json"
 
 // ContainerRename renames the given container
-func (c *ContainerServer) ContainerRename(container, name string) error {
+func (c *ContainerServer) ContainerRename(container, name string) (retErr error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func (c *ContainerServer) ContainerRename(container, name string) error {
 		return err
 	}
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			c.ReleaseContainerName(name)
 		} else {
 			c.ReleaseContainerName(oldName)
