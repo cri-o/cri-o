@@ -37,6 +37,11 @@
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun"
 
+- name: run crun clean
+  make:
+    target: clean
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun"
+
 - name: build crun
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun"
