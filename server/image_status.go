@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/log"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -63,7 +65,13 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 				RepoDigests: status.RepoDigests,
 				Size_:       size,
 			},
-			Info: status.Labels,
+		}
+		if req.Verbose {
+			info, err := createImageInfo(status)
+			if err != nil {
+				return nil, errors.Wrap(err, "creating image info")
+			}
+			resp.Info = info
 		}
 		uid, username := getUserFromImage(status.User)
 		if uid != nil {
@@ -98,4 +106,19 @@ func getUserFromImage(user string) (id *int64, username string) {
 	}
 	// If user is a numeric uid.
 	return &uid, ""
+}
+
+func createImageInfo(result *pkgstorage.ImageResult) (map[string]string, error) {
+	info := struct {
+		Labels    map[string]string `json:"labels,omitempty"`
+		ImageSpec *specs.Image      `json:"imageSpec"`
+	}{
+		result.Labels,
+		result.OCIConfig,
+	}
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return nil, errors.Wrapf(err, "marshal data: %v", info)
+	}
+	return map[string]string{"info": string(bytes)}, nil
 }
