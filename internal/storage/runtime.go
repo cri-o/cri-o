@@ -147,7 +147,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 	metadata.MountLabel = mountLabel
 }
 
-func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, isPauseImage bool) (ContainerInfo, error) {
+func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, isPauseImage bool) (ci ContainerInfo, retErr error) {
 	var ref types.ImageReference
 	if podName == "" || podID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
@@ -285,7 +285,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	// If anything fails after this point, we need to delete the incomplete
 	// container before returning.
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			if err2 := r.storageImageServer.GetStore().DeleteContainer(container.ID); err2 != nil {
 				if metadata.Pod {
 					logrus.Debugf("%v deleting partially-created pod sandbox %q", err2, container.ID)
