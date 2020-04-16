@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1079,SC2027,SC2086
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,11 +48,11 @@ function print_msg() {
     esac
 
     # Logging
-    if [[ "${LOGGING}" = "true" ]]; then
+    if [[ "${LOGGING}" == "true" ]]; then
         # Remove any char after _ in the msg_type
-        simplified_type=$(echo ${msg_type} | awk -F_ '{print $1}')
+        simplified_type=$(echo "${msg_type}" | awk -F_ '{print $1}')
         if [[ "${LOGGING_FILTER}" == *"${simplified_type}"* ]]; then
-            echo -e "${msg_type_in_ascii} ${msg}" >>${LOG_FILE}
+            echo -e "${msg_type_in_ascii} ${msg}" >>"${LOG_FILE}"
         fi
     fi
 
@@ -126,7 +127,8 @@ function question_with_answer_yes_no() {
         fi
 
         read -rp "" yn
-        yn=$(echo ${yn} | ${AWK_BIN} '{print tolower($0)}')
+        # shellcheck disable=SC2016
+        yn=$(echo "${yn}" | ${AWK_BIN} '{print tolower($0)}')
         case ${yn} in
         [yes]*)
             break
@@ -161,8 +163,7 @@ function exec_cmd() {
         print_msg "DEBUG" "Executing: command type: [\e[1m\e[1m${cmd_type}\e[0m] command: [\e[1m\e[1m${cmd}\e[0m]"
         case ${cmd_type} in
         "SUDO")
-            ${SUDO_BIN} ${cmd}
-            if [ $? -ne 0 ]; then
+            if ! ${SUDO_BIN} "${cmd}"; then
                 print_msg "FAIL" "Cannot execute: ${1}"
                 cleanup
                 exit 1
@@ -170,8 +171,7 @@ function exec_cmd() {
             return
             ;;
         "QUIET")
-            ${cmd} >>"${LOG_FILE}" 2>&1
-            if [ $? -ne 0 ]; then
+            if ! ${cmd} >>"${LOG_FILE}" 2>&1; then
                 print_msg "FAIL" "Cannot execute: ${1}"
                 cleanup
                 exit 1
@@ -180,6 +180,7 @@ function exec_cmd() {
             ;;
         "BACKGROUND")
             ${cmd} &
+            # shellcheck disable=SC2181
             if [ $? -ne 0 ]; then
                 print_msg "FAIL" "Cannot execute: ${1} &"
                 cleanup
@@ -193,8 +194,7 @@ function exec_cmd() {
     # No command type has used
     cmd="${1}"
     print_msg "DEBUG" "Executing: [\e[1m\e[1m${cmd}\e[0m]"
-    ${cmd}
-    if [ $? -ne 0 ]; then
+    if ! ${cmd}; then
         print_msg "FAIL" "Cannot execute: ${1}"
         cleanup
         exit 1
@@ -235,7 +235,7 @@ function update_system() {
     print_msg "INFO_NEWLINE" "Updating the system..."
     cmd_update="${DISTRO_CMD_TOOL} update ${AUTO_UPDATE_SYSTEM}"
 
-    if [[ "${AUTOINSTALL}" = "true" ]]; then
+    if [[ "${AUTOINSTALL}" == "true" ]]; then
         exec_cmd "SUDO" "${cmd_update}"
         return
     fi
@@ -283,7 +283,8 @@ function detect_system() {
 
     print_msg "DEBUG" "Detecting distro..."
     source /etc/os-release
-    NAME=$(echo ${NAME} | ${AWK_BIN} '{print tolower($0)}')
+    # shellcheck disable=SC2016
+    NAME=$(echo "${NAME}" | ${AWK_BIN} '{print tolower($0)}')
     case ${ID} in
     fedora)
         DISTRO_NAME=${ID}
@@ -458,6 +459,7 @@ function install_golang() {
         exec_cmd "SUDO" "${DISTRO_CMD_TOOL} -q remove ${DISTRO_GOLANG_PACKAGE} ${AUTO_REMOVE_GOLANG_PACKAGE_IF_EXISTS}"
     else
         ${DISTRO_CMD_CHECK_PKG_EXISTS} ${DISTRO_GOLANG_PACKAGE} 2>/dev/null
+        # shellcheck disable=SC2181
         if [ $? -eq 0 ]; then
             print_msg "BLANK-LINE"
             print_msg "WARN_NEWLINE" "A golang package is detected. A new installation might conflict with the existing package."
@@ -554,7 +556,7 @@ function clean_runtime_files() {
         exec_cmd "cd ${RUNTIME_GOLANG_DIR}"
 
         if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
-            ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} uninstall" &>>${LOG_FILE}
+            ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} uninstall" &>>"${LOG_FILE}"
         else
             ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} uninstall"
         fi
@@ -564,7 +566,7 @@ function clean_runtime_files() {
     ${SUDO_BIN} "${RM_BIN}" -rf "${RUNTIME_ENDPOINT}"
     ${RM_BIN} -rf "${RUNTIME_MONITOR_GOLANG_DIR}"
 
-    ${RM_BIN} -rf ${RUNTIME_CLIENT_GOLANG_DIR}
+    ${RM_BIN} -rf "${RUNTIME_CLIENT_GOLANG_DIR}"
     print_msg "DEBUG" "Removed dir(s) ${RUNTIME_GOLANG_DIR}, ${RUNTIME_CLIENT_GOLANG_DIR} ${RUNTIME_MONITOR_GOLANG_DIR} and endpoint file ${RUNTIME_ENDPOINT}"
 }
 
@@ -578,7 +580,7 @@ function execute_cleanup() {
     cleanup_export_config
     print_msg "OK" "Removed vars added into ${GO_ENV_VARS}"
 
-    declare -a log_container_orchestration=(${CONTAINER_ORCHESTRATION_LOGS})
+    declare -a log_container_orchestration=("${CONTAINER_ORCHESTRATION_LOGS}")
     for logfile in "${log_container_orchestration[@]}"; do
         cmd="${RM_BIN} -f ${LOGDIR}/${logfile}"
         exec_cmd "${cmd}"
@@ -588,10 +590,11 @@ function execute_cleanup() {
     ${SUDO_BIN} "${RM_BIN}" -f "${CONTAINER_ORCHESTRATION_LOG_KUBE_APISERVER_AUDIT}"
 
     print_msg "BLANK-LINE"
-    declare -a services=(${CONTAINER_ORCHESTRATION_SERVICES})
+    declare -a services="(${CONTAINER_ORCHESTRATION_SERVICES})"
     for service in "${services[@]}"; do
         print_msg "INFO_NEWLINE" "Terminating ${service}..."
-        $(${PGREP_BIN} -f ${service} | ${XARGS_BIN} ${SUDO_BIN} ${KILL_BIN} -9 &>/dev/null)
+        # shellcheck disable=SC2091
+        $(${PGREP_BIN} -f "${service}" | "${XARGS_BIN}" "${SUDO_BIN}" "${KILL_BIN}" -9 &>/dev/null)
     done
     print_msg "BLANK-LINE"
 
@@ -632,7 +635,7 @@ function execute_cleanup() {
                 packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS}"
             fi
             # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
-            ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -e ${packages} --nodeps
+            ${SUDO_BIN} "${DISTRO_PKG_MANAGER}" -e "${packages}" --nodeps
             ;;
         centos | rhel)
             if [[ ${DISTRO_VERSION_ID} -gt 7 ]]; then
@@ -641,22 +644,22 @@ function execute_cleanup() {
                 packages="${CRIO_PACKAGES_FEDORA_RHEL_CENTOS}"
             fi
             # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
-            ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -e ${packages} --nodeps
+            ${SUDO_BIN} "${DISTRO_PKG_MANAGER}" -e "${packages}" --nodeps
             ;;
         ubuntu)
             packages="${CRIO_PACKAGES_UBUNTU}"
             # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
-            ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -P ${packages}
+            ${SUDO_BIN} "${DISTRO_PKG_MANAGER}" -P "${packages}"
             ;;
         debian)
             packages="${CRIO_PACKAGES_DEBIAN}"
             # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
-            ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -P ${packages}
+            ${SUDO_BIN} "${DISTRO_PKG_MANAGER}" -P "${packages}"
             ;;
         opensuse*)
             packages="${CRIO_PACKAGES_OPENSUSE}"
             # DO NOT USE exec_cmd "SUDO" as it won't continue the flow in case of failure.
-            ${SUDO_BIN} ${DISTRO_PKG_MANAGER} -e ${packages} --nodeps
+            ${SUDO_BIN} "${DISTRO_PKG_MANAGER}" -e "${packages}" --nodeps
             ;;
         esac
         print_msg "BLANK-LINE"
@@ -682,7 +685,7 @@ function cleanup() {
     # Description:                                            #
     #   Function for --uninstall                              #
     ###########################################################
-    if [[ "${AUTO_CLEAN}" = "true" ]]; then
+    if [[ "${AUTO_CLEAN}" == "true" ]]; then
         execute_cleanup
     else
         print_msg "BLANK-LINE"
@@ -716,9 +719,10 @@ function cleanup_export_config() {
     # Description:                                            #
     #   Function remove export configuration                  #
     ###########################################################
-    if ${GREP_BIN} -q "${CONFIG_HEADER}" ${GO_ENV_VARS}; then
+    if ${GREP_BIN} -q "${CONFIG_HEADER}" "${GO_ENV_VARS}"; then
         ${SUDO_BIN} sh -c "${SED_BIN} -i \"/${CONFIG_HEADER}/,/${CONFIG_HEADER_END}/d\" ${GO_ENV_VARS}"
     fi
+    # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
         print_msg "FAIL" "Cannot clean configuration from ${GO_ENV_VARS}"
         exit 1
@@ -756,6 +760,7 @@ function add_export_config_golang() {
     print_msg "DEBUG" "\t\e[1m\e[1mexport KUBECONFIG=${KUBECONFIG}\e[0m"
     print_msg "DEBUG" "\t\e[1m\e[1mexport KUBERNETES_PROVIDER=${KUBERNETES_PROVIDER}\e[0m"
 
+    # shellcheck disable=SC1078
     ${SUDO_BIN} sh -c "echo -e \"# kube-local section begin\n\
 export GOROOT=${GOLANG_DIR_PATH}\n\
 export GOPATH=${GOLANG_PROJECT_HOME}\n\
@@ -777,7 +782,8 @@ export KUBECONFIG="${CONTAINER_ORCHESTRATION_KUBECONFIG_PATH}"
 export KUBERNETES_PROVIDER=${KUBERNETES_PROVIDER}
 # kube-local section end\" >> ${GO_ENV_VARS}"
 
-    source ${GO_ENV_VARS}
+    # shellcheck disable=SC1090
+    source "${GO_ENV_VARS}"
 }
 
 function git_check_branch_version() {
@@ -795,7 +801,7 @@ function git_check_branch_version() {
     print_msg "DEBUG" "Current branch: [\e[1m\e[1m${branch}\e[0m]"
     print_msg "DEBUG" "Requested branch: [\e[1m\e[1m${branch}\e[0m]"
 
-    if [[ "${branch}" = "${1}" ]]; then
+    if [[ "${branch}" == "${1}" ]]; then
         return 0
     fi
 
@@ -891,7 +897,8 @@ function install_project() {
             print_msg "WARN_NEWLINE" "[3] Skip, no need to remove or re-build the project"
             print_msg "WARN_NEWLINE" ">"
             read -rp "" yn
-            yn=$(echo ${yn} | ${AWK_BIN} '{print tolower($0)}')
+            # shellcheck disable=SC2016
+            yn=$(echo "${yn}" | ${AWK_BIN} '{print tolower($0)}')
             case ${yn} in
             1)
                 rebase_git_tree=true
@@ -942,7 +949,7 @@ function install_project() {
 
     if [ "${6}" = "MAKE_AND_INSTALL" ]; then
         if [ "${AUTO_INSTALL_QUIET_MODE}" = "true" ]; then
-            ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} install" &>>${LOG_FILE}
+            ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} install" &>>"${LOG_FILE}"
         else
             ${SUDO_BIN} sh -c "source ${GO_ENV_VARS} && ${MAKE_BIN} install"
         fi
@@ -964,7 +971,7 @@ function install_runtime() {
     print_msg "INFO_NEWLINE" "Installing runtime: [\e[1m\e[1m${RUNTIME_NAME}\e[0m]"
     case "${RUNTIME_NAME}" in
     "cri-o")
-        install_required_packages_runtime_crio
+        install_required_packages_runtime_crio "$@"
 
         install_project \
             "${RUNTIME_NAME}" \
@@ -1073,7 +1080,7 @@ function install_required_packages_runtime_crio() {
         fi
         ;;
     ubuntu)
-        add_extra_repository
+        add_extra_repository "$@"
         packages="${CRIO_PACKAGES_UBUNTU}"
         ;;
     debian)
@@ -1098,6 +1105,7 @@ function install_required_packages_runtime_crio() {
     optional_pkgs_cmd="${DISTRO_CMD_TOOL} install ${RUNTIME_OPTIONAL_PACKAGES} ${AUTO_INSTALL_PACKAGES}"
     if [ "${AUTOINSTALL}" = "false" ]; then
         ${DISTRO_CMD_CHECK_PKG_EXISTS} ${RUNTIME_OPTIONAL_PACKAGES} &>/dev/null
+        # shellcheck disable=SC2181
         if [ $? -ne 0 ]; then
             print_msg "BLANK-LINE"
             print_msg "INFO_NEWLINE" "Optional packages available to install for [\e[1m\e[1m${RUNTIME_NAME}\e[0m]:"
@@ -1176,6 +1184,7 @@ function kubectl_retry() {
             ${cmd} 2>/dev/null
         fi
 
+        # shellcheck disable=SC2181
         if [ $? -eq 0 ]; then
             break
         fi
@@ -1190,7 +1199,7 @@ function kubectl_retry() {
 
         sec="${KUBECTL_WAIT_SEC_FOR_NEXT_CMD}"
         print_msg "INFO_NEWLINE" "kubectl failed, cluster might not be ready! A next attept will happen in ${sec}..."
-        ${SLEEP_BIN} ${sec}
+        ${SLEEP_BIN} "${sec}"
 
     done
 }
@@ -1270,7 +1279,7 @@ ${CONTAINER_ORCHESTRATION_NAME} [${CONTAINER_ORCHESTRATION_VERSION}]. The build 
 
     install_golang
 
-    install_runtime
+    install_runtime "$@"
     install_container_orchestration
 
     print_msg "BLANK-LINE"
@@ -1280,7 +1289,7 @@ ${CONTAINER_ORCHESTRATION_NAME} [${CONTAINER_ORCHESTRATION_VERSION}]. The build 
 
     load_local_up_cluster
     if [ -n "${KUBECTL_SCRIPT}" ]; then
-        kubectl_exec
+        kubectl_exec "$@"
     fi
 
     if [ "${RUN_SERVICE_ONCE}" = "true" ]; then
@@ -1323,6 +1332,7 @@ function attach_environment_info_to_file() {
     ###########################################################
 
     FILENAME="${1}"
+    # shellcheck disable=SC2129
     echo "####################${CONFIG_HEADER} #################" &>>"${FILENAME}"
     echo "Distro: ${DISTRO_NAME}" &>>"${FILENAME}"
     echo "Distro version: ${DISTRO_VERSION_ID}" &>>"${FILENAME}"
@@ -1349,7 +1359,8 @@ function kubectl_exec() {
     #   Execute kubectl command or script                     #
     ###########################################################
     print_msg "INFO_NEWLINE" "Executing kubectl command/script..."
-    source ${GO_ENV_VARS}
+    # shellcheck disable=SC1090
+    source "${GO_ENV_VARS}"
 
     cmd=$(${KUBECTL_SCRIPT})
 
@@ -1358,10 +1369,11 @@ function kubectl_exec() {
         print_msg "DEBUG" "Executing the command [${KUBECTL_SCRIPT}] sending output to ${OUTPUT_FILENAME}"
         attach_environment_info_to_file "${OUTPUT_FILENAME}"
         #$("${KUBECTL_SCRIPT}" &>> ${OUTPUT_FILENAME})
-        echo "${cmd}" &>>${OUTPUT_FILENAME}
+        echo "${cmd}" &>>"${OUTPUT_FILENAME}"
     fi
 
     # Checking if the command failed
+    # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
         print_msg "FAIL" "Error to execute kubectl command, check logs!"
         print_msg "DEBUG" "{$1}"
@@ -1414,11 +1426,13 @@ function load_profile() {
 
     filename="${1}"
     if [ -f "${filename}" ]; then
+        # shellcheck disable=SC1090
         source "${filename}"
     else
         # default profile name
         filename="${PROFILE_NAME}"
         if [ -f "${filename}" ]; then
+            # shellcheck disable=SC1090
             source "${filename}"
         else
             print_msg "FAIL" "Aborting... Cannot load profile ${filename}!"
@@ -1435,7 +1449,7 @@ function load_profile() {
 ######################
 
 # No args, no need to check getopt
-if [[ -z ${@} ]]; then
+if [[ -z ${*} ]]; then
     load_profile
     start
 else
@@ -1453,10 +1467,11 @@ else
             -- "$@"
     )
 
+    # shellcheck disable=SC2181
     if [ "$?" -ne 0 ]; then
         exit 1
     fi
-    eval set -- ${options}
+    eval set -- "${options}"
 
     while true; do
         case "${1}" in
@@ -1582,7 +1597,7 @@ else
     fi
 
     print_msg "DEBUG" "Loaded profile: [\e[1m\e[1m${PROFILE_NAME}\e[0m]"
-    start
+    start "$@"
 fi
 
 exit 0

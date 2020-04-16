@@ -1,10 +1,12 @@
 package server
 
 import (
-	"strconv"
+	"encoding/json"
 
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -98,11 +100,29 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	resp.Status.LogPath = c.LogPath()
 
 	if req.Verbose {
-		resp.Info = map[string]string{
-			"pid":       strconv.Itoa(c.State().Pid),
-			"sandboxId": c.Sandbox(),
+		info, err := createContainerInfo(c)
+		if err != nil {
+			return nil, errors.Wrap(err, "creating container info")
 		}
+		resp.Info = info
 	}
 
 	return resp, nil
+}
+
+func createContainerInfo(container *oci.Container) (map[string]string, error) {
+	info := struct {
+		SandboxID   string    `json:"sandboxID"`
+		Pid         int       `json:"pid"`
+		RuntimeSpec spec.Spec `json:"runtimeSpec"`
+	}{
+		container.Sandbox(),
+		container.State().Pid,
+		container.Spec(),
+	}
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return nil, errors.Wrapf(err, "marshal data: %v", info)
+	}
+	return map[string]string{"info": string(bytes)}, nil
 }

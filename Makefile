@@ -52,6 +52,7 @@ GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 SHFMT := ${BUILD_BIN_PATH}/shfmt
+SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
 
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
 	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
@@ -124,7 +125,7 @@ help:
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
 	@echo " * 'shfmt' - shell format check and apply diff"
-
+	@echo " * 'shellcheck' - Execute the shellcheck linter"
 
 # Dummy target for marking pattern rules phony
 .explicit_phony:
@@ -141,8 +142,18 @@ lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} linters
 	${GOLANGCI_LINT} run
 
-shfmt: ${SHFMT}
-	${SHFMT} -w -i 4 -d $(shell ${SHFMT} -f . | grep -v vendor/)
+shellfiles: ${SHFMT}
+	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/))
+
+shfmt: shellfiles
+	${SHFMT} -w -i 4 -d ${SHELLFILES}
+
+shellcheck: shellfiles ${SHELLCHECK}
+	${SHELLCHECK} \
+		-P contrib/bundle \
+		-P scripts \
+		-P test \
+		-x ${SHELLFILES}
 
 bin/pinns:
 	$(MAKE) -C pinns
@@ -283,6 +294,14 @@ ${GOLANGCI_LINT}:
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
+
+${SHELLCHECK}:
+	mkdir -p ${BUILD_BIN_PATH} && \
+	VERSION=v0.7.0 \
+	URL=https://github.com/koalaman/shellcheck/releases/download/$$VERSION/shellcheck-$$VERSION.linux.x86_64.tar.xz \
+	SHA256SUM=c37d4f51e26ec8ab96b03d84af8c050548d7288a47f755ffb57706c6c458e027 && \
+	curl -sfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$$VERSION/shellcheck && \
+	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
 
 vendor:
 	export GO111MODULE=on \
@@ -506,8 +525,10 @@ release-branch-forward:
 	local-cross \
 	nixpkgs \
 	release-bundle \
+	shellfiles \
 	shfmt \
 	release-branch-forward \
+	shellcheck \
 	testunit \
 	testunit-bin \
 	test-images \

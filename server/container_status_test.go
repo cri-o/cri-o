@@ -31,6 +31,7 @@ var _ = t.Describe("ContainerStatus", func() {
 			addContainerAndSandbox()
 			testContainer.AddVolume(oci.ContainerVolume{})
 			testContainer.SetState(givenState)
+			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
 			// When
 			response, err := sut.ContainerStatus(context.Background(),
@@ -44,6 +45,7 @@ var _ = t.Describe("ContainerStatus", func() {
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.Status.Mounts)).To(BeEquivalentTo(1))
 			Expect(response.Status.State).To(Equal(expectedState))
+			Expect(response.Info["info"]).To(ContainSubstring(`"ociVersion":"1.0.0"`))
 		},
 			Entry("Created", &oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},

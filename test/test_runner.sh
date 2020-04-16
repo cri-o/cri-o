@@ -3,7 +3,7 @@ set -e
 
 TEST_USERNS=${TEST_USERNS:-}
 
-cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
 if [[ -n "$TEST_USERNS" ]]; then
     echo "Enabled user namespace testing"
@@ -24,15 +24,15 @@ export OVERRIDE_OPTIONS="--selinux=false"
 . helpers.bash
 
 function execute() {
-    echo >&2 "++ $@"
+    echo >&2 ++ "$@"
     eval "$@"
 }
 
 # Tests to run. Defaults to all.
-TESTS=${@:-.}
+TESTS=${*:-.}
 
 # The number of parallel jobs to execute
 export JOBS=${JOBS:-$(($(nproc --all) * 4))}
 
 # Run the tests.
-execute time bats --jobs "$JOBS" --tap $TESTS
+execute time bats --jobs "$JOBS" --tap "$TESTS"
