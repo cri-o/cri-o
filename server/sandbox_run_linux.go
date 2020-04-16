@@ -40,6 +40,7 @@ import (
 const cgroupMemorySubsystemMountPathV1 = "/sys/fs/cgroup/memory"
 const cgroupMemorySubsystemMountPathV2 = "/sys/fs/cgroup"
 
+// nolint:gocyclo
 func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
@@ -448,6 +449,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), id, err)
 	}
+	defer func() {
+		if err != nil {
+			if err2 := s.StorageRuntimeServer().StopContainer(id); err2 != nil {
+				log.Warnf(ctx, "couldn't stop storage container: %v: %v", id, err2)
+			}
+		}
+	}()
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 
 	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
