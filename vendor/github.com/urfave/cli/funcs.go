@@ -39,6 +39,3 @@ type FlagNamePrefixFunc func(fullName, placeholder string) string
 // with the environment variable details.
 type FlagEnvHintFunc func(envVar, str string) string
 
-// FlagFileHintFunc is used by the default FlagStringFunc to annotate flag help
-// with the file path details.
-type FlagFileHintFunc func(filePath, str string) string
