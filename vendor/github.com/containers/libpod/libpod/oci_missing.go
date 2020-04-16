@@ -50,7 +50,7 @@ func getMissingRuntime(name string, r *Runtime) (OCIRuntime, error) {
 
 	newRuntime := new(MissingRuntime)
 	newRuntime.name = name
-	newRuntime.exitsDir = filepath.Join(r.config.TmpDir, "exits")
+	newRuntime.exitsDir = filepath.Join(r.config.Engine.TmpDir, "exits")
 
 	missingRuntimes[name] = newRuntime
 
@@ -125,6 +125,11 @@ func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options
 	return -1, nil, r.printError()
 }
 
+// ExecAttachResize is not available as the runtime is missing.
+func (r *MissingRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error {
+	return r.printError()
+}
+
 // ExecStopContainer is not available as the runtime is missing.
 // TODO: We can also investigate using unix.Kill() on the PID of the exec
 // session here if we want to make stopping containers possible. Won't be
@@ -190,15 +195,14 @@ func (r *MissingRuntime) ExitFilePath(ctr *Container) (string, error) {
 }
 
 // RuntimeInfo returns information on the missing runtime
-func (r *MissingRuntime) RuntimeInfo() (map[string]interface{}, error) {
-	info := make(map[string]interface{})
-	info["OCIRuntime"] = map[string]interface{}{
-		"name":    r.name,
-		"path":    "missing",
-		"package": "missing",
-		"version": "missing",
+func (r *MissingRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
+	ocirt := define.OCIRuntimeInfo{
+		Name:    r.name,
+		Path:    "missing",
+		Package: "missing",
+		Version: "missing",
 	}
-	return info, nil
+	return nil, &ocirt, nil
 }
 
 // Return an error indicating the runtime is missing

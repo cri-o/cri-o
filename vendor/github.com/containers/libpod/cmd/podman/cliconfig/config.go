@@ -2,7 +2,10 @@ package cliconfig
 
 import (
 	"net"
+	"os"
 
+	"github.com/containers/common/pkg/config"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -115,6 +118,7 @@ type CommitValues struct {
 	Pause          bool
 	Quiet          bool
 	IncludeVolumes bool
+	ImageIDFile    string
 }
 
 type ContainersPrune struct {
@@ -170,7 +174,7 @@ type GenerateSystemdValues struct {
 	New           bool
 	Files         bool
 	RestartPolicy string
-	StopTimeout   int
+	StopTimeout   uint
 }
 
 type HistoryValues struct {
@@ -317,6 +321,7 @@ type KubePlayValues struct {
 	Authfile           string
 	CertDir            string
 	Creds              string
+	Network            string
 	Quiet              bool
 	SignaturePolicy    string
 	TlsVerify          bool
@@ -698,4 +703,15 @@ type SystemDfValues struct {
 
 type UntagValues struct {
 	PodmanCommand
+}
+
+func GetDefaultConfig() *config.Config {
+	var err error
+	conf, err := config.NewConfig("")
+	conf.CheckCgroupsAndAdjustConfig()
+	if err != nil {
+		logrus.Errorf("Error loading container config %v\n", err)
+		os.Exit(1)
+	}
+	return conf
 }
