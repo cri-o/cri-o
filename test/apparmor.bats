@@ -42,7 +42,7 @@ load_default_apparmor_profile_and_run_a_container_with_it() {
 load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it() {
     setup_test
     load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
-    start_crio "" "$APPARMOR_TEST_PROFILE_NAME"
+    start_crio "$APPARMOR_TEST_PROFILE_NAME"
 
     sed -e 's/%VALUE%/apparmor-test-deny-write/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor2.json
     sed -e 's/%VALUE%/apparmor-test-deny-write/g' "$TESTDATA"/container_redis_apparmor.json > "$TESTDIR"/apparmor_container2.json
@@ -115,7 +115,7 @@ run_a_container_with_wrong_apparmor_profile_name() {
 run_a_container_after_unloading_default_apparmor_profile() {
     load_apparmor_profile "$FAKE_CRIO_DEFAULT_PROFILE_PATH"
     setup_test
-    start_crio "" "$FAKE_CRIO_DEFAULT_PROFILE_NAME"
+    start_crio "$FAKE_CRIO_DEFAULT_PROFILE_NAME"
     remove_apparmor_profile "$FAKE_CRIO_DEFAULT_PROFILE_PATH"
 
     sed -e 's/%VALUE%/runtime\/default/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor5.json
