@@ -18,7 +18,7 @@ require (
 	github.com/containers/image/v5 v5.3.1
 	github.com/containers/libpod v1.8.1
 	github.com/containers/ocicrypt v0.0.0-20190930154801-b87a4a69c741
-	github.com/containers/storage v1.16.6
+	github.com/containers/storage v1.16.7-0.20200415192751-01ee1656d552
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
