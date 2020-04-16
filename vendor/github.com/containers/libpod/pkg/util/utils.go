@@ -309,15 +309,15 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 	// Strip off leading dash, to allow -1 or -HUP
 	basename := strings.TrimPrefix(rawSignal, "-")
 
-	signal, err := signal.ParseSignal(basename)
+	sig, err := signal.ParseSignal(basename)
 	if err != nil {
 		return -1, err
 	}
 	// 64 is SIGRTMAX; wish we could get this from a standard Go library
-	if signal < 1 || signal > 64 {
+	if sig < 1 || sig > 64 {
 		return -1, errors.Errorf("valid signals are 1 through 64")
 	}
-	return signal, nil
+	return sig, nil
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
@@ -327,6 +327,18 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 		HostGIDMapping: true,
 	}
 
+	if mode.IsAuto() {
+		var err error
+		options.HostUIDMapping = false
+		options.HostGIDMapping = false
+		options.AutoUserNs = true
+		opts, err := mode.GetAutoOptions()
+		if err != nil {
+			return nil, err
+		}
+		options.AutoUserNsOpts = *opts
+		return &options, nil
+	}
 	if mode.IsKeepID() {
 		if len(uidMapSlice) > 0 || len(gidMapSlice) > 0 {
 			return nil, errors.New("cannot specify custom mappings with --userns=keep-id")
@@ -504,6 +516,8 @@ func ParseInputTime(inputTime string) (time.Time, error) {
 }
 
 // GetGlobalOpts checks all global flags and generates the command string
+// FIXME: Port input to config.Config
+// TODO: Is there a "better" way to reverse values to flags? This seems brittle.
 func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
 	globalFlags := map[string]bool{
 		"cgroup-manager": true, "cni-config-dir": true, "conmon": true, "default-mounts-file": true,
@@ -608,4 +622,47 @@ func Tmpdir() string {
 	}
 
 	return tmpdir
+}
+
+// ValidateSysctls validates a list of sysctl and returns it.
+func ValidateSysctls(strSlice []string) (map[string]string, error) {
+	sysctl := make(map[string]string)
+	validSysctlMap := map[string]bool{
+		"kernel.msgmax":          true,
+		"kernel.msgmnb":          true,
+		"kernel.msgmni":          true,
+		"kernel.sem":             true,
+		"kernel.shmall":          true,
+		"kernel.shmmax":          true,
+		"kernel.shmmni":          true,
+		"kernel.shm_rmid_forced": true,
+	}
+	validSysctlPrefixes := []string{
+		"net.",
+		"fs.mqueue.",
+	}
+
+	for _, val := range strSlice {
+		foundMatch := false
+		arr := strings.Split(val, "=")
+		if len(arr) < 2 {
+			return nil, errors.Errorf("%s is invalid, sysctl values must be in the form of KEY=VALUE", val)
+		}
+		if validSysctlMap[arr[0]] {
+			sysctl[arr[0]] = arr[1]
+			continue
+		}
+
+		for _, prefix := range validSysctlPrefixes {
+			if strings.HasPrefix(arr[0], prefix) {
+				sysctl[arr[0]] = arr[1]
+				foundMatch = true
+				break
+			}
+		}
+		if !foundMatch {
+			return nil, errors.Errorf("sysctl '%s' is not whitelisted", arr[0])
+		}
+	}
+	return sysctl, nil
 }

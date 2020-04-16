@@ -19,7 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"syscall"
+	"os/signal"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/reexec"
@@ -29,6 +29,7 @@ import (
 	rkbuiltin "github.com/rootless-containers/rootlesskit/pkg/port/builtin"
 	rkportutil "github.com/rootless-containers/rootlesskit/pkg/port/portutil"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -101,6 +102,28 @@ func parent() error {
 		return err
 	}
 
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, unix.SIGPIPE)
+	defer func() {
+		// dummy signal to terminate the goroutine
+		sigC <- unix.SIGKILL
+	}()
+	go func() {
+		defer func() {
+			signal.Stop(sigC)
+			close(sigC)
+		}()
+
+		s := <-sigC
+		if s == unix.SIGPIPE {
+			if f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755); err == nil {
+				unix.Dup2(int(f.Fd()), 1) // nolint:errcheck
+				unix.Dup2(int(f.Fd()), 2) // nolint:errcheck
+				f.Close()
+			}
+		}
+	}()
+
 	// create the parent driver
 	stateDir, err := ioutil.TempDir(cfg.TmpDir, "rootlessport")
 	if err != nil {
@@ -168,7 +191,7 @@ func parent() error {
 	}()
 
 	defer func() {
-		if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
+		if err := unix.Kill(cmd.Process.Pid, unix.SIGTERM); err != nil {
 			logrus.WithError(err).Warn("kill child process")
 		}
 	}()
