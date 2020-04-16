@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 16 Apr 2020 17:14:11 UTC for commit [3cadd56][0]._
+_Generated on Thu, 16 Apr 2020 17:45:12 UTC for commit [3c28e3d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3cadd56e10991d0b0aa85941bca0bf33d53eb390
+[0]: https://github.com/cri-o/cri-o/commit/3c28e3dc9ed64b997071d316d34c48ab2a739c17
 
 ## Outdated Dependencies
 
@@ -70,7 +70,7 @@ _Generated on Thu, 16 Apr 2020 17:14:11 UTC for commit [3cadd56][0]._
 | github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20190805220309-36081240882b | false  | true             |
 | github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.30.7                            | false  | true             |
 | github.com/bazelbuild/bazel-gazelle                     | v0.19.1-0.20191105222053-70208cbdc798             | v0.20.0                            | false  | true             |
-| github.com/bazelbuild/buildtools                        | v0.0.0-20190917191645-69366ca98f89                | v0.0.0-20200415161916-ccca1600e667 | false  | true             |
+| github.com/bazelbuild/buildtools                        | v0.0.0-20190917191645-69366ca98f89                | v0.0.0-20200416171023-c137a33e2f87 | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.0.0-20190719190356-6dae44dc5cab                | v0.22.4                            | false  | true             |
 | github.com/beorn7/perks                                 | v0.0.0-20180321164747-3a771d992973                | v1.0.1                             | false  | true             |
 | github.com/bgentry/speakeasy                            | v0.1.0                                            |                                    | false  | true             |
