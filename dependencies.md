@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 16 Apr 2020 17:56:53 UTC for commit [771c073][0]._
+_Generated on Thu, 16 Apr 2020 18:13:52 UTC for commit [a5da393][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/771c0731b2b37efea3eea0fcb78feffa50b2fd0f
+[0]: https://github.com/cri-o/cri-o/commit/a5da393d511f0f02471532c5fd64cd0095dc06dd
 
 ## Outdated Dependencies
 
@@ -65,7 +65,7 @@ _Generated on Thu, 16 Apr 2020 17:56:53 UTC for commit [771c073][0]._
 | github.com/armon/go-socks5                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                       | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20200108200545-475eaeb16496 | false  | true             |
 | github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20190805220309-36081240882b | false  | true             |
-| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.30.7                            | false  | true             |
+| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.30.8                            | false  | true             |
 | github.com/bazelbuild/bazel-gazelle                     | v0.19.1-0.20191105222053-70208cbdc798             | v0.20.0                            | false  | true             |
 | github.com/bazelbuild/buildtools                        | v0.0.0-20190917191645-69366ca98f89                | v0.0.0-20200416171023-c137a33e2f87 | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.0.0-20190719190356-6dae44dc5cab                | v0.22.4                            | false  | true             |
