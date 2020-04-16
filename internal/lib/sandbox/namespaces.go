@@ -72,7 +72,7 @@ func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []NSType, cfg *confi
 
 // CreateManagedNamespacesWithFunc is mainly added for testing purposes. There's no point in actually calling the pinns binary
 // in unit tests, so this function allows the actual pin func to be abstracted out. Every other caller should use CreateManagedNamespaces
-func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, cfg *config.Config, pinFunc func([]NSType, *config.Config) ([]NamespaceIface, error)) ([]*ManagedNamespace, error) {
+func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, cfg *config.Config, pinFunc func([]NSType, *config.Config) ([]NamespaceIface, error)) (mns []*ManagedNamespace, retErr error) {
 	typesAndPaths := make([]*ManagedNamespace, 0, 4)
 	if len(managedNamespaces) == 0 {
 		return typesAndPaths, nil
@@ -86,7 +86,7 @@ func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, cfg *conf
 	for _, namespace := range namespaces {
 		namespaceIface := namespace.Initialize()
 		defer func() {
-			if err != nil {
+			if retErr != nil {
 				if err1 := namespaceIface.Remove(); err1 != nil {
 					logrus.Warnf("removing namespace interface returned: %v", err1)
 				}
