@@ -1,13 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 16 Apr 2020 00:38:50 UTC for commit [4cf1236][0]._
+_Generated on Thu, 16 Apr 2020 01:19:17 UTC for commit [00ee477][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4cf12368306eb63ecbfdf117f8334b560d583008
+[0]: https://github.com/cri-o/cri-o/commit/00ee477ba75e10fbc54e5862a52b3174691fc29e
 
 ## Outdated Dependencies
 
 |               MODULE               |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |------------------------------------|------------------------------------|------------------------------------|--------|------------------|
+| github.com/containerd/containerd   | v1.3.3                             | v1.3.4                             | true   | true             |
 | github.com/containerd/release-tool | v0.0.0-20200402162031-a35b5d7ce53d | v0.0.0-20200414154710-2f2f86e47034 | true   | true             |
 | github.com/containers/buildah      | v1.14.7                            | v1.14.8                            | true   | true             |
 | github.com/containers/libpod       | v1.8.2                             | v1.9.0                             | true   | true             |
@@ -97,7 +98,7 @@ _Generated on Thu, 16 Apr 2020 00:38:50 UTC for commit [4cf1236][0]._
 | github.com/container-storage-interface/spec             | v1.2.0                                            |                                    | false  | true             |
 | github.com/containerd/cgroups                           | v0.0.0-20190919134610-bf292b21730f                | v0.0.0-20200407151229-7fc7a507c04c | false  | true             |
 | github.com/containerd/console                           | v0.0.0-20180822173158-c12b1e7919c1                | v1.0.0                             | false  | true             |
-| github.com/containerd/containerd                        | v1.3.3                                            |                                    | true   | true             |
+| github.com/containerd/containerd                        | v1.3.3                                            | v1.3.4                             | true   | true             |
 | github.com/containerd/continuity                        | v0.0.0-20190426062206-aaeac12a7ffc                | v0.0.0-20200413184840-d3ef23f19fbb | false  | true             |
 | github.com/containerd/fifo                              | v0.0.0-20190226154929-a9fb20d87448                | v0.0.0-20200410184934-f15a3290365b | false  | true             |
 | github.com/containerd/go-runc                           | v0.0.0-20180907222934-5a6d9f37cfa3                | v0.0.0-20200220073739-7016d3ce2328 | false  | true             |
