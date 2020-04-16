@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 16 Apr 2020 22:55:49 UTC for commit [f242c17][0]._
+_Generated on Thu, 16 Apr 2020 23:53:54 UTC for commit [2b6f80e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f242c17516e88dd6c69fcca12b45af2711953704
+[0]: https://github.com/cri-o/cri-o/commit/2b6f80e30466dc9d34ec21a26e9a60fd80e2a403
 
 ## Outdated Dependencies
 
@@ -485,7 +485,7 @@ _Generated on Thu, 16 Apr 2020 22:55:49 UTC for commit [f242c17][0]._
 | gonum.org/v1/plot                                       | v0.0.0-20190515093506-e2840ee46a6b                | v0.7.0                             | false  | true             |
 | google.golang.org/api                                   | v0.9.0                                            | v0.21.0                            | false  | true             |
 | google.golang.org/appengine                             | v1.6.2                                            | v1.6.5                             | false  | true             |
-| google.golang.org/genproto                              | v0.0.0-20200117163144-32f20d992d24                | v0.0.0-20200413115906-b5235f65be36 | false  | true             |
+| google.golang.org/genproto                              | v0.0.0-20200117163144-32f20d992d24                | v0.0.0-20200416231807-8751e049a2a0 | false  | true             |
 | google.golang.org/grpc                                  | v1.28.1                                           |                                    | true   | true             |
 | gopkg.in/airbrake/gobrake.v2                            | v2.0.9                                            |                                    | false  | true             |
 | gopkg.in/alecthomas/kingpin.v2                          | v2.2.6                                            |                                    | false  | true             |
@@ -524,7 +524,7 @@ _Generated on Thu, 16 Apr 2020 22:55:49 UTC for commit [f242c17][0]._
 | k8s.io/code-generator                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200416223424-b9c370c90f71 | false  | true             |
 | k8s.io/component-base                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200416223424-b9c370c90f71 | false  | true             |
 | k8s.io/cri-api                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200416223424-b9c370c90f71 | true   | true             |
-| k8s.io/csi-translation-lib                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200416205921-d0f99fe39cc7 | false  | true             |
+| k8s.io/csi-translation-lib                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200416223424-b9c370c90f71 | false  | true             |
 | k8s.io/gengo                                            | v0.0.0-20200114144118-36b2048a9120                | v0.0.0-20200413195148-3a45101e95ac | false  | true             |
 | k8s.io/heapster                                         | v1.2.0-beta.1                                     | v1.5.4                             | false  | true             |
 | k8s.io/klog                                             | v1.0.0                                            |                                    | true   | true             |
