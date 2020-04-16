@@ -58,6 +58,7 @@ crio
 [--pause-command]=[value]
 [--pause-image-auth-file]=[value]
 [--pause-image]=[value]
+[--pid-namespace]=[value]
 [--pids-limit]=[value]
 [--pinns-path]=[value]
 [--profile-port]=[value]
@@ -243,6 +244,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 
 **--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
+
+**--pid-namespace**="": Select the PID namespace scope.  Choose from `container` for all containers (including pod infra containers) to have sibling PID namespaces (the default), `pod` for all containers to share a single, per-pod namespace, or `pod-container` to have the pod's infra container in one PID namespace with the non-infra containers in per-container PID namespaces that are children of the pod's infra PID namespace.  A `hostPID` Kubernetes pod specification overrides this setting.
 
 **--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: "")
 

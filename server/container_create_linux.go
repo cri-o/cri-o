@@ -644,8 +644,20 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 		// share Pod PID namespace
 		// SEE NOTE ABOVE
-		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", infra.State().Pid)
-		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
+		podPIDNsPath := fmt.Sprintf("/proc/%d/ns/pid", infra.State().Pid)
+
+		var pidNamespacePath string
+
+		switch s.config.RuntimeConfig.PidNamespace {
+		case libconfig.PidNamespaceContainer:
+		case libconfig.PidNamespacePod:
+			pidNamespacePath = podPIDNsPath
+		case libconfig.PidNamespacePodContainer:
+			pidNamespacePath = podPIDNsPath
+		default:
+			return nil, fmt.Errorf("unrecognized PID namespace configuration: %s", s.config.RuntimeConfig.PidNamespace)
+		}
+		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNamespacePath); err != nil {
 			return nil, err
 		}
 	}
@@ -930,7 +942,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	crioAnnotations := specgen.Config.Annotations
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, "", labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.Privileged(), sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

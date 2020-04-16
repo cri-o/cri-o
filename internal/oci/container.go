@@ -45,6 +45,7 @@ type Container struct {
 	seccompProfilePath string
 	conmonCgroupfsPath string
 	labels             fields.Set
+	pidNamespace       string
 	annotations        fields.Set
 	crioAnnotations    fields.Set
 	state              *ContainerState
@@ -78,7 +79,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce, privileged bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id, name, bundlePath, logPath string, pidNamespace string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce, privileged bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -87,6 +88,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		bundlePath:      bundlePath,
 		logPath:         logPath,
 		labels:          labels,
+		pidNamespace:    pidNamespace,
 		sandbox:         sandbox,
 		terminal:        terminal,
 		stdin:           stdin,

@@ -117,6 +117,9 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	if r.config.NoPivot {
 		args = append(args, "--no-pivot")
 	}
+	if c.pidNamespace != "" {
+		args = append(args, "--pid-namespace", c.pidNamespace)
+	}
 	if c.terminal {
 		args = append(args, "-t")
 	} else if c.stdin {

@@ -171,6 +171,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **pids_limit**=1024
   Maximum number of processes allowed in a container.
 
+**pid_namespace**=""
+  Select the PID namespace scope.  Choose from `container` for all containers (including pod infra containers) to have sibling PID namespaces (the default), `pod` for all containers to share a single, per-pod namespace, or `pod-container` to have the pod's infra container in one PID namespace with the non-infra containers in per-container PID namespaces that are children of the pod's infra PID namespace.  A `hostPID` Kubernetes pod specification overrides this setting.
+
 **log_filter**=""
   Filter the log messages by the provided regular expression. This option supports live configuration reload. For example 'request:.*' filters all gRPC requests.
 

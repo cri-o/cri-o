@@ -34,4 +34,28 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+
+
+	run crictl exec --sync "$pod_id" cat /proc/*/cmdline
+	echo "$output"
+	[ "$status" -eq 0 ]
+	if [ -n "${REDIS_IN_INFRA}" ]
+	then
+		[[ "$output" =~ "redis" ]]
+	else
+		! [[ "$output" =~ "redis" ]]
+	fi
+
+}
+
+@test "container pid namespace" {
+	ADDITIONAL_CRIO_OPTIONS=--pid-namespace=container pid_namespace_test
+}
+
+@test "pod pid namespace" {
+	ADDITIONAL_CRIO_OPTIONS=--pid-namespace=pod REDIS_IN_INFRA=1 EXPECTED_INIT=pause pid_namespace_test
+}
+
+@test "pod-container pid namespace" {
+	ADDITIONAL_CRIO_OPTIONS=--pid-namespace=pod-container REDIS_IN_INFRA=1 pid_namespace_test
 }

@@ -242,6 +242,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("stream-tls-cert") {
 		config.StreamTLSCert = ctx.String("stream-tls-cert")
 	}
+	if ctx.IsSet("pid-namespace") {
+		config.PidNamespace = libconfig.PidNamespaceType(ctx.String("pid-namespace"))
+	}
 	if ctx.IsSet("stream-tls-key") {
 		config.StreamTLSKey = ctx.String("stream-tls-key")
 	}
@@ -715,6 +718,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     fmt.Sprintf("Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSCert),
 			EnvVars:   []string{"CONTAINER_TLS_CERT"},
 			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:      "pid-namespace",
+			Usage:     fmt.Sprintf("Select the PID namespace scope (\"container\" default, \"pod\", or \"pod-container\")"),
+			EnvVars:   []string{"CONTAINER_PID_NAMESPACE"},
 		},
 		&cli.StringFlag{
 			Name:      "stream-tls-key",

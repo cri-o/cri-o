@@ -87,6 +87,24 @@ const (
 	ImageVolumesBind ImageVolumesType = "bind"
 )
 
+// PIDNamespaceType describes pod PID namespace strategies.
+type PidNamespaceType string
+
+const (
+	// PIDNamespaceContainer is for all containers (including pod infra
+	// containers) to have sibling PID namespaces.
+	PidNamespaceContainer PidNamespaceType = "container"
+
+	// PIDNamespacePod is for all containers to share a single, per-pod
+	// namespace.
+	PidNamespacePod PidNamespaceType = "pod"
+
+	// PIDNamespacePodContainer is for the pod's infra container in one
+	// PID namespace with the non-infra container in per-container PID
+	// namespaces that are children of the pod's infra PID namespace.
+	PidNamespacePodContainer PidNamespaceType = "pod-container"
+)
+
 const (
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container
@@ -257,6 +275,16 @@ type RuntimeConfig struct {
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
 	PidsLimit int64 `toml:"pids_limit"`
+
+	// Select the PID namespace scope.  Choose from 'container' for all
+	// containers (including pod infra containers) to have sibling PID
+	// namespaces (the default), 'pod' for all containers to share a
+	// single, per-pod namespace, or 'pod-container' to have the pod's
+	// infra container in one PID namespace with the non-infra containers
+	// in per-container PID namespaces that are children of the pod's infra
+	// PID namespace .  A 'hostPID' Kubernetes pod specification overrides
+	// this setting.
+	PidNamespace PidNamespaceType `toml:"pid_namespace"`
 
 	// LogSizeMax is the maximum number of bytes after which the log file
 	// will be truncated. It can be expressed as a human-friendly string
