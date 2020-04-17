@@ -18,7 +18,7 @@ function wait_until_exit() {
     attempt=0
     while [ $attempt -le 100 ]; do
         attempt=$((attempt + 1))
-        run crictl inspect "$ctr_id" --output table
+        run crictl inspect -o table "$ctr_id"
         echo "$output"
         [ "$status" -eq 0 ]
         if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
@@ -797,7 +797,7 @@ function wait_until_exit() {
 	[[ "$output" =~ "name: container1" ]]
 	[[ "$output" =~ "attempt: 1" ]]
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# TODO: expected value should not hard coded here

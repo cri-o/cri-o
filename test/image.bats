@@ -48,7 +48,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	run crictl inspect "$ctr_id" --output yaml
+	run crictl inspect -o yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
@@ -70,7 +70,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	run crictl inspect "$ctr_id" --output yaml
+	run crictl inspect -o yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
@@ -96,7 +96,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crictl inspect "$ctr_id" --output yaml
+	run crictl inspect -o yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
@@ -122,7 +122,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crictl inspect "$ctr_id" --output yaml
+	run crictl inspect -o yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "image: $IMAGE_LIST_DIGEST" ]]

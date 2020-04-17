@@ -101,6 +101,7 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (stats *Conta
 	// this correction has to be made because the libpod cgroups package can't find a
 	// systemd cgroup that isn't converted to a fully qualified cgroup path
 	if r.config.CgroupManager == SystemdCgroupsManager {
+		logrus.Debugf("Expanding systemd cgroup slice %v", cgroup)
 		cgroup, err = systemd.ExpandSlice(cgroup)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error expanding systemd slice to get container %s stats", ctr.ID())

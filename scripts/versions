@@ -5,7 +5,7 @@ set -euo pipefail
 declare -A VERSIONS=(
     ["cni-plugins"]=v0.8.5
     ["conmon"]=v2.0.15
-    ["cri-tools"]=v1.17.0
+    ["cri-tools"]=v1.18.0
     ["runc"]=v1.0.0-rc10
 )
 export VERSIONS

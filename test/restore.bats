@@ -22,7 +22,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_list_info="$output"
 
-	run crictl inspectp --output=table "$pod_id"
+	run crictl inspectp -o table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_status_info=`echo "$output" | grep Status`
@@ -38,7 +38,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_list_info="$output"
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_status_info=`echo "$output" | grep State`
@@ -57,7 +57,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${pod_list_info}" ]]
 
-	run crictl inspectp --output=table "$pod_id"
+	run crictl inspectp -o table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	status_output=`echo "$output" | grep Status`
@@ -76,7 +76,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${ctr_list_info}" ]]
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	output=`echo "$output" | grep State`
@@ -213,7 +213,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" =~ "CONTAINER_CREATED" ]]
@@ -242,7 +242,7 @@ function teardown() {
 	[[ "${output}" != "" ]]
 	[[ "${output}" =~ "${ctr_id}" ]]
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "${output}" =~ "CONTAINER_EXITED" ]]
@@ -313,7 +313,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_list_info="$output"
 
-	run crictl inspectp --output=table "$pod_id"
+	run crictl inspectp -o table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_status_info=`echo "$output" | grep Status`
@@ -329,7 +329,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_list_info="$output"
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_status_info=`echo "$output" | grep State`
@@ -348,7 +348,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${pod_list_info}" ]]
 
-	run crictl inspectp --output=table "$pod_id"
+	run crictl inspectp -o table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	status_output=`echo "$output" | grep Status`
@@ -367,7 +367,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${ctr_list_info}" ]]
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	output=`echo "$output" | grep State`
@@ -386,7 +386,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_list_info="$output"
 
-	run crictl inspectp --output=table "$pod_id"
+	run crictl inspectp -o table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_status_info=`echo "$output" | grep Status`
@@ -402,7 +402,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_list_info="$output"
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_status_info=`echo "$output" | grep State`
@@ -421,7 +421,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${pod_list_info}" ]]
 
-	run crictl inspectp --output=table "$pod_id"
+	run crictl inspectp -o table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	status_output=`echo "$output" | grep Status`
@@ -440,7 +440,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${ctr_list_info}" ]]
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	output=`echo "$output" | grep State`
@@ -459,7 +459,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	pod_list_info="$output"
 
-	run crictl inspectp --output=table "$pod_id"
+	run crictl inspectp -o table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_status_info=`echo "$output" | grep Status`
@@ -475,7 +475,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_list_info="$output"
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_status_info=`echo "$output" | grep State`
@@ -494,7 +494,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${pod_list_info}" ]]
 
-	run crictl inspectp --output=table "$pod_id"
+	run crictl inspectp -o table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	status_output=`echo "$output" | grep Status`
@@ -513,7 +513,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	[[ "${output}" == "${ctr_list_info}" ]]
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	output=`echo "$output" | grep State`
