@@ -772,6 +772,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
+	defer func() {
+		if errRet != nil {
+			if err := s.StorageRuntimeServer().StopContainer(containerID); err != nil {
+				log.Warnf(ctx, "couldn't stop storage container: %v: %v", containerID, err)
+			}
+		}
+	}()
 	specgen.AddAnnotation(annotations.MountPoint, mountPoint)
 
 	if containerImageConfig.Config.StopSignal != "" {
@@ -816,9 +823,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	specgen.SetProcessCwd(containerCwd)
 	if err := setupWorkingDirectory(mountPoint, mountLabel, containerCwd); err != nil {
-		if err1 := s.StorageRuntimeServer().StopContainer(containerID); err1 != nil {
-			return nil, fmt.Errorf("can't umount container after cwd error %v: %v", err, err1)
-		}
 		return nil, err
 	}
 
