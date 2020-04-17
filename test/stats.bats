@@ -24,18 +24,18 @@ function teardown() {
 
     # then
     JSON="$output"
-    echo $JSON | jq --exit-status '.stats[0].attributes.id != ""'
+    echo $JSON | jq -e '.stats[0].attributes.id != ""'
     [ "$status" -eq 0 ]
 
-    echo $JSON | jq --exit-status '.stats[0].cpu.timestamp > 0'
+    echo $JSON | jq -e '.stats[0].cpu.timestamp > 0'
     [ "$status" -eq 0 ]
 
-    echo $JSON | jq --exit-status '.stats[0].cpu.usageCoreNanoSeconds.value > 0'
+    echo $JSON | jq -e '.stats[0].cpu.usageCoreNanoSeconds.value > 0'
     [ "$status" -eq 0 ]
 
-    echo $JSON | jq --exit-status '.stats[0].memory.timestamp > 0'
+    echo $JSON | jq -e '.stats[0].memory.timestamp > 0'
     [ "$status" -eq 0 ]
 
-    echo $JSON | jq --exit-status '.stats[0].memory.workingSetBytes.value > 0'
+    echo $JSON | jq -e '.stats[0].memory.workingSetBytes.value > 0'
     [ "$status" -eq 0 ]
 }

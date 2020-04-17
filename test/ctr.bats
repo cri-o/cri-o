@@ -18,7 +18,7 @@ function wait_until_exit() {
     attempt=0
     while [ $attempt -le 100 ]; do
         attempt=$((attempt + 1))
-        run crictl inspect "$ctr_id" --output table
+        run crictl inspect -o table "$ctr_id"
         echo "$output"
         [ "$status" -eq 0 ]
         if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
@@ -797,7 +797,7 @@ function wait_until_exit() {
 	[[ "$output" =~ "name: container1" ]]
 	[[ "$output" =~ "attempt: 1" ]]
 
-	run crictl inspect "$ctr_id" --output table
+	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# TODO: expected value should not hard coded here
@@ -1271,10 +1271,28 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.limit_in_bytes || cat /sys/fs/cgroup/memory.max"
+	# set memory {,swap} max file for cgroupv1 or v2
+	CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
+	CGROUP_MEM_FILE="/sys/fs/cgroup/memory/memory.limit_in_bytes"
+	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+		CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory.swap.max"
+		CGROUP_MEM_FILE="/sys/fs/cgroup/memory.max"
+	fi
+
+	run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "209715200" ]]
+
+
+	# we can only rely on these files being here if cgroup memory swap is enabled
+	# otherwise this test fails
+	if test -r "$CGROUP_MEM_SWAP_FILE" ; then
+		run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[ "$output" -eq "209715200" ]
+	fi
 
 	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
@@ -1306,10 +1324,17 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory/memory.limit_in_bytes || cat /sys/fs/cgroup/memory.max"
+	run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "524288000" ]]
+
+	if test -r "$CGROUP_MEM_SWAP_FILE" ; then
+		run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE"
+		echo "$output"
+		[ "$status" -eq 0 ]
+		[ "$output" -eq "524288000" ]
+	fi
 
 	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"

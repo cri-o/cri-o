@@ -51,6 +51,9 @@ var (
 	_cgroupv2HasHugetlbOnce sync.Once
 	_cgroupv2HasHugetlb     bool
 	_cgroupv2HasHugetlbErr  error
+
+	_cgroupHasMemorySwapOnce sync.Once
+	_cgroupHasMemorySwap     bool
 )
 
 // cgroupv1HasHugetlb returns whether the hugetlb controller is present on
@@ -80,6 +83,18 @@ func cgroupv2HasHugetlb() (bool, error) {
 		_cgroupv2HasHugetlb = strings.Contains(string(controllers), "hugetlb")
 	})
 	return _cgroupv2HasHugetlb, _cgroupv2HasHugetlbErr
+}
+
+func cgroupHasMemorySwap() bool {
+	_cgroupHasMemorySwapOnce.Do(func() {
+		if cgroups.IsCgroup2UnifiedMode() {
+			_cgroupHasMemorySwap = true
+			return
+		}
+		_, err := os.Stat("/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes")
+		_cgroupHasMemorySwap = err == nil
+	})
+	return _cgroupHasMemorySwap
 }
 
 type configDevice struct {
@@ -506,11 +521,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			specgen.SetLinuxResourcesCPUShares(uint64(resources.GetCpuShares()))
 
 			memoryLimit := resources.GetMemoryLimitInBytes()
-			if memoryLimit != 0 && memoryLimit < minMemoryLimit {
-				return nil, fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
-			}
 			if memoryLimit != 0 {
+				if memoryLimit < minMemoryLimit {
+					return nil, fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+				}
 				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
+				if cgroupHasMemorySwap() {
+					specgen.SetLinuxResourcesMemorySwap(memoryLimit)
+				}
 			}
 
 			specgen.SetProcessOOMScoreAdj(int(resources.GetOomScoreAdj()))
