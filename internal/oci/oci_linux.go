@@ -87,6 +87,17 @@ func newPipe() (parent, child *os.File, err error) {
 }
 
 func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (stats *ContainerStats, err error) {
+	stats = &ContainerStats{}
+	stats.Container = ctr.ID()
+	stats.SystemNano = time.Now().UnixNano()
+
+	// technically, the CRI does not mandate a CgroupParent is given to a pod
+	// this situation should never happen in production, but some test suites
+	// (such as critest) assume we can call stats on a cgroupless container
+	if cgroup == "" {
+		return stats, nil
+	}
+
 	// this correction has to be made because the libpod cgroups package can't find a
 	// systemd cgroup that isn't converted to a fully qualified cgroup path
 	if r.config.CgroupManager == SystemdCgroupsManager {
@@ -106,10 +117,7 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (stats *Conta
 		return nil, errors.Wrap(err, "unable to obtain cgroup stats")
 	}
 
-	stats = &ContainerStats{}
-	stats.Container = ctr.ID()
 	stats.CPUNano = cgroupStats.CPU.Usage.Total
-	stats.SystemNano = time.Now().UnixNano()
 	stats.CPU = calculateCPUPercent(cgroupStats)
 	stats.MemUsage = cgroupStats.Memory.Usage.Usage
 	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
