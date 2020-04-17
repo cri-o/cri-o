@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 17 Apr 2020 15:09:18 UTC for commit [5e9529a][0]._
+_Generated on Fri, 17 Apr 2020 15:54:13 UTC for commit [662ce56][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5e9529a92b2d76fe104372ba44d7e6f984489bcf
+[0]: https://github.com/cri-o/cri-o/commit/662ce562cd038cc87cb524052943dc7af119059a
 
 ## Outdated Dependencies
 
@@ -10,6 +10,7 @@ _Generated on Fri, 17 Apr 2020 15:09:18 UTC for commit [5e9529a][0]._
 |------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containerd/containerd   | v1.3.3                             | v1.3.4                             | true   | true             |
 | github.com/containerd/release-tool | v0.0.0-20200402162031-a35b5d7ce53d | v0.0.0-20200414154710-2f2f86e47034 | true   | true             |
+| github.com/containers/common       | v0.9.1                             | v1.0.0                             | true   | false            |
 | github.com/containers/storage      | v1.18.2                            | v1.19.0                            | true   | true             |
 | golang.org/x/sys                   | v0.0.0-20200408040146-ea54a3c99b9b | v0.0.0-20200413165638-669c56c373c4 | true   | true             |
 | k8s.io/api                         | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200417144106-87eb688ec921 | true   | true             |
@@ -107,7 +108,7 @@ _Generated on Fri, 17 Apr 2020 15:09:18 UTC for commit [5e9529a][0]._
 | github.com/containernetworking/cni                      | v0.7.2-0.20200304161608-4fae32b84921              |                                    | true   | true             |
 | github.com/containernetworking/plugins                  | v0.8.5                                            |                                    | true   | true             |
 | github.com/containers/buildah                           | v1.14.8                                           |                                    | true   | true             |
-| github.com/containers/common                            | v0.8.1                                            | v1.0.0                             | false  | false            |
+| github.com/containers/common                            | v0.9.1                                            | v1.0.0                             | true   | false            |
 | github.com/containers/conmon                            | v2.0.15+incompatible                              |                                    | true   | true             |
 | github.com/containers/image/v5                          | v5.4.3                                            |                                    | true   | true             |
 | github.com/containers/libpod                            | v1.9.0                                            |                                    | true   | true             |
