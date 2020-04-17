@@ -145,7 +145,6 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 					nsType := ifaceMock.Type()
 					ifaceMock.EXPECT().Type().Return(nsType)
 					ifaceMock.EXPECT().Path().Return(filepath.Join(tmpDir, string(nsType)))
-					ifaceMock.EXPECT().Path().Return(filepath.Join(tmpDir, string(nsType)))
 					ifaceMock.EXPECT().Remove().Return(nil)
 				},
 			}
@@ -165,8 +164,6 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			_, err = os.Stat(tmpDir)
-			Expect(os.IsNotExist(err)).To(Equal(true))
 		})
 	})
 	t.Describe("*NsJoin", func() {
