@@ -19,6 +19,7 @@ import (
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
+	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
@@ -102,19 +103,6 @@ const (
 	DefaultLogToJournald = false
 )
 
-// DefaultCapabilities for the default_capabilities option in the crio.conf file
-var DefaultCapabilities = []string{
-	"CHOWN",
-	"DAC_OVERRIDE",
-	"FSETID",
-	"FOWNER",
-	"SETGID",
-	"SETUID",
-	"SETPCAP",
-	"NET_BIND_SERVICE",
-	"KILL",
-}
-
 // This structure is necessary to fake the TOML tables when parsing,
 // while also not requiring a bunch of layered structs for no good
 // reason.
@@ -174,7 +162,7 @@ type RuntimeConfig struct {
 	DefaultMounts []string `toml:"default_mounts"`
 
 	// Capabilities to add to all containers.
-	DefaultCapabilities []string `toml:"default_capabilities"`
+	DefaultCapabilities capabilities.Capabilities `toml:"default_capabilities"`
 
 	// Sysctls to add to all containers.
 	DefaultSysctls []string `toml:"default_sysctls"`
@@ -553,7 +541,7 @@ func DefaultConfig() (*Config, error) {
 			ContainerAttachSocketDir: conmonconfig.ContainerAttachSocketDir,
 			LogSizeMax:               DefaultLogSizeMax,
 			CtrStopTimeout:           defaultCtrStopTimeout,
-			DefaultCapabilities:      DefaultCapabilities,
+			DefaultCapabilities:      capabilities.Default(),
 			LogLevel:                 "info",
 			HooksDir:                 []string{hooks.DefaultDir},
 			NamespacesDir:            "/var/run",
@@ -756,6 +744,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	if _, err := c.Sysctls(); err != nil {
 		return errors.Wrap(err, "invalid default_sysctls")
+	}
+
+	if err := c.DefaultCapabilities.Validate(); err != nil {
+		return errors.Wrapf(err, "invalid capabilities")
 	}
 
 	// check for validation on execution

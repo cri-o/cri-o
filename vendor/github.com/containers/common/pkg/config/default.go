@@ -148,6 +148,7 @@ func DefaultConfig() (*Config, error) {
 			Annotations:         []string{},
 			ApparmorProfile:     DefaultApparmorProfile,
 			CgroupNS:            "private",
+			Cgroups:             "enabled",
 			DefaultCapabilities: DefaultCapabilities,
 			DefaultSysctls:      []string{},
 			DefaultUlimits:      getDefaultProcessLimits(),
@@ -246,6 +247,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/usr/local/sbin/kata-runtime",
 			"/sbin/kata-runtime",
 			"/bin/kata-runtime",
+			"/usr/bin/kata-qemu",
+			"/usr/bin/kata-fc",
 		},
 	}
 	c.ConmonEnvVars = []string{
@@ -267,6 +270,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"runc",
 	}
 	c.RuntimeSupportsNoCgroups = []string{"crun"}
+	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc"}
 	c.InitPath = DefaultInitPath
 	c.NoPivotRoot = false
 
@@ -434,6 +438,11 @@ func (c *Config) PidNS() string {
 // CgroupNS returns the default Cgroup Namespace configuration to run containers with
 func (c *Config) CgroupNS() string {
 	return c.Containers.CgroupNS
+}
+
+// Cgroups returns whether to containers with cgroup confinement
+func (c *Config) Cgroups() string {
+	return c.Containers.Cgroups
 }
 
 // UTSNS returns the default UTS Namespace configuration to run containers with
