@@ -35,6 +35,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -l container-exits-dir -r -d 'Pa
 complete -c crio -n '__fish_crio_no_subcommand' -f -l ctr-stop-timeout -r -d 'The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container. The lowest possible value is 30s, whereas lower values are not considered by CRI-O'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l decryption-keys-path -r -d 'Path to load keys for image decryption.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-capabilities -r -d 'Capabilities to add to the containers'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l default-env -r -d 'Additional environment variables to set for all containers'
 complete -c crio -n '__fish_crio_no_subcommand' -l default-mounts-file -r -d 'Path to default mounts file (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-runtime -r -d 'Default OCI runtime from the runtimes config'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-sysctls -r -d 'Sysctls to add to the containers'

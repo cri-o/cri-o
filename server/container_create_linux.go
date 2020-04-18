@@ -858,6 +858,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddAnnotation("org.opencontainers.image.stopSignal", containerImageConfig.Config.StopSignal)
 	}
 
+	// First add any configured environment variables from crio config.
+	// They will get overridden if specified in the image or container config.
+	specgen.AddMultipleProcessEnv(s.Config().DefaultEnv)
+
 	// Add environment variables from image the CRI configuration
 	envs := mergeEnvs(containerImageConfig, containerConfig.GetEnvs())
 	for _, e := range envs {

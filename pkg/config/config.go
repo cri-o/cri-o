@@ -164,6 +164,11 @@ type RuntimeConfig struct {
 	// Capabilities to add to all containers.
 	DefaultCapabilities capabilities.Capabilities `toml:"default_capabilities"`
 
+	// Additional environment variables to set for all the
+	// containers. These are overridden if set in the
+	// container image spec or in the container runtime configuration.
+	DefaultEnv []string `toml:"default_env"`
+
 	// Sysctls to add to all containers.
 	DefaultSysctls []string `toml:"default_sysctls"`
 
