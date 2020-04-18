@@ -277,7 +277,7 @@ func (c *ContainerServer) Update() error {
 }
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store
-func (c *ContainerServer) LoadSandbox(id string) error {
+func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
@@ -296,7 +296,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			c.ReleasePodName(name)
 		}
 	}()
@@ -352,7 +352,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 	}
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			if err := c.RemoveSandbox(sb.ID()); err != nil {
 				logrus.Warnf("could not remove sandbox ID %s: %v", sb.ID(), err)
 			}
@@ -374,7 +374,7 @@ func (c *ContainerServer) LoadSandbox(id string) error {
 		return err
 	}
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			c.ReleaseContainerName(cname)
 		}
 	}()
@@ -452,7 +452,7 @@ func configNetNsPath(spec *rspec.Spec) (string, error) {
 var ErrIsNonCrioContainer = errors.New("non CRI-O container")
 
 // LoadContainer loads a container from the disk into the container store
-func (c *ContainerServer) LoadContainer(id string) error {
+func (c *ContainerServer) LoadContainer(id string) (retErr error) {
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
@@ -478,7 +478,7 @@ func (c *ContainerServer) LoadContainer(id string) error {
 	}
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			c.ReleaseContainerName(name)
 		}
 	}()
