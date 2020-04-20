@@ -286,7 +286,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/creack/pty v1.1.9
 ## explicit
 github.com/creack/pty
-# github.com/cri-o/ocicni v0.2.0
+# github.com/cri-o/ocicni v0.2.1-0.20200409131010-b197cd13855b
 ## explicit
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.2
