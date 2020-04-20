@@ -37,6 +37,13 @@ let
       name = "cri-o-static";
       buildInputs = old.buildInputs ++ (with pkgs; [ systemd ]);
       src = ./..;
+      buildPhase = ''
+        pushd go/src/github.com/cri-o/cri-o
+        make BUILDTAGS="apparmor seccomp selinux containers_image_ostree_stub netgo" \
+          bin/crio \
+          bin/crio-status \
+          bin/pinns
+      '';
       EXTRA_LDFLAGS = ''-linkmode external -extldflags "-static -lm"'';
       dontStrip = true;
       # DEBUG = 1; # Uncomment this line to enable debug symbols in the binary
