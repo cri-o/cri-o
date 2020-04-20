@@ -13,18 +13,20 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/vishvananda/netlink"
+
 	"github.com/containernetworking/cni/libcni"
 	cniinvoke "github.com/containernetworking/cni/pkg/invoke"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
 	cniversion "github.com/containernetworking/cni/pkg/version"
+	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 )
 
 type cniNetworkPlugin struct {
 	cniConfig *libcni.CNIConfig
-	loNetwork *cniNetwork
 
 	sync.RWMutex
 	defaultNetName netName
@@ -217,7 +219,6 @@ func initCNI(exec cniinvoke.Exec, cacheDir, defaultNetName string, confDir strin
 			changeable: defaultNetName == "",
 		},
 		networks:     make(map[string]*cniNetwork),
-		loNetwork:    getLoNetwork(),
 		confDir:      confDir,
 		binDirs:      binDirs,
 		shutdownChan: make(chan struct{}),
@@ -335,30 +336,8 @@ func loadNetworks(confDir string, cni *libcni.CNIConfig) (map[string]*cniNetwork
 }
 
 const (
-	loIfname  string = "lo"
-	loNetname string = "cni-loopback"
+	loIfname string = "lo"
 )
-
-func getLoNetwork() *cniNetwork {
-	loConfig, err := libcni.ConfListFromBytes([]byte(fmt.Sprintf(`{
-  "cniVersion": "0.3.1",
-  "name": "%s",
-  "plugins": [{
-    "type": "loopback"
-  }]
-}`, loNetname)))
-	if err != nil {
-		// The hardcoded config above should always be valid and unit tests will
-		// catch this
-		panic(err)
-	}
-	loNetwork := &cniNetwork{
-		name:   loIfname,
-		config: loConfig,
-	}
-
-	return loNetwork
-}
 
 func (plugin *cniNetworkPlugin) syncNetworkConfig() error {
 	networks, defaultNetName, err := loadNetworks(plugin.confDir, plugin.cniConfig)
@@ -525,13 +504,47 @@ func (plugin *cniNetworkPlugin) forEachNetwork(podNetwork *PodNetwork, fromCache
 	return nil
 }
 
-func buildLoopbackRuntimeConf(cacheDir string, podNetwork *PodNetwork) *libcni.RuntimeConf {
-	return &libcni.RuntimeConf{
-		ContainerID: podNetwork.ID,
-		NetNS:       podNetwork.NetNS,
-		CacheDir:    cacheDir,
-		IfName:      loIfname,
+func bringUpLoopback(netns string) error {
+	if err := ns.WithNetNSPath(netns, func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName(loIfname)
+		if err == nil {
+			err = netlink.LinkSetUp(link)
+		}
+		if err != nil {
+			return err
+		}
+
+		v4Addrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
+		if err != nil {
+			return err
+		}
+		if len(v4Addrs) != 0 {
+			// sanity check that this is a loopback address
+			for _, addr := range v4Addrs {
+				if !addr.IP.IsLoopback() {
+					return fmt.Errorf("loopback interface found with non-loopback address %q", addr.IP)
+				}
+			}
+		}
+
+		v6Addrs, err := netlink.AddrList(link, netlink.FAMILY_V6)
+		if err != nil {
+			return err
+		}
+		if len(v6Addrs) != 0 {
+			// sanity check that this is a loopback address
+			for _, addr := range v6Addrs {
+				if !addr.IP.IsLoopback() {
+					return fmt.Errorf("loopback interface found with non-loopback address %q", addr.IP)
+				}
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error adding loopback interface: %s", err)
 	}
+	return nil
 }
 
 func (plugin *cniNetworkPlugin) SetUpPod(podNetwork PodNetwork) ([]NetResult, error) {
@@ -542,9 +555,9 @@ func (plugin *cniNetworkPlugin) SetUpPod(podNetwork PodNetwork) ([]NetResult, er
 	plugin.podLock(podNetwork).Lock()
 	defer plugin.podUnlock(podNetwork)
 
-	loRt := buildLoopbackRuntimeConf(plugin.cacheDir, &podNetwork)
-	if _, err := plugin.loNetwork.addToNetwork(loRt, plugin.cniConfig); err != nil {
-		logrus.Errorf("Error while adding to cni lo network: %s", err)
+	// Set up loopback interface
+	if err := bringUpLoopback(podNetwork.NetNS); err != nil {
+		logrus.Errorf(err.Error())
 		return nil, err
 	}
 
@@ -622,7 +635,7 @@ func (plugin *cniNetworkPlugin) getCachedNetworkInfo(containerID string) ([]NetA
 			continue
 		}
 		// Ignore the loopback interface; it's handled separately
-		if cachedInfo.IfName == loIfname && cachedInfo.NetName == loNetname {
+		if cachedInfo.IfName == loIfname && cachedInfo.NetName == "cni-loopback" {
 			continue
 		}
 		if cachedInfo.IfName == "" || cachedInfo.NetName == "" {
@@ -636,6 +649,20 @@ func (plugin *cniNetworkPlugin) getCachedNetworkInfo(containerID string) ([]NetA
 		})
 	}
 	return attachments, nil
+}
+
+func tearDownLoopback(netns string) error {
+	return ns.WithNetNSPath(netns, func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName(loIfname)
+		if err != nil {
+			return err // not tested
+		}
+		err = netlink.LinkSetDown(link)
+		if err != nil {
+			return err // not tested
+		}
+		return nil
+	})
 }
 
 // TearDownPod tears down pod networks. Prefers cached pod attachment information
@@ -652,14 +679,13 @@ func (plugin *cniNetworkPlugin) TearDownPod(podNetwork PodNetwork) error {
 		return err
 	}
 
-	loRt := buildLoopbackRuntimeConf(plugin.cacheDir, &podNetwork)
-	if err := plugin.loNetwork.deleteFromNetwork(loRt, plugin.cniConfig); err != nil {
-		logrus.Errorf("Error while removing pod from CNI lo network: %v", err)
-		// Loopback teardown errors are not fatal
-	}
-
 	plugin.podLock(podNetwork).Lock()
 	defer plugin.podUnlock(podNetwork)
+
+	if err := tearDownLoopback(podNetwork.NetNS); err != nil {
+		// ignore error
+		logrus.Errorf("Ignoring error tearing down loopback interface: %v", err)
+	}
 
 	return plugin.forEachNetwork(&podNetwork, true, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
 		if err := network.deleteFromNetwork(rt, plugin.cniConfig); err != nil {
@@ -670,11 +696,35 @@ func (plugin *cniNetworkPlugin) TearDownPod(podNetwork PodNetwork) error {
 	})
 }
 
+func checkLoopback(netns string) error {
+	// Make sure loopback interface is up
+	if err := ns.WithNetNSPath(netns, func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName(loIfname)
+		if err != nil {
+			return err
+		}
+
+		if link.Attrs().Flags&net.FlagUp != net.FlagUp {
+			return fmt.Errorf("loopback interface is down")
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error checking loopback interface: %v", err)
+	}
+	return nil
+}
+
 // GetPodNetworkStatus returns IP addressing and interface details for all
 // networks attached to the pod.
 func (plugin *cniNetworkPlugin) GetPodNetworkStatus(podNetwork PodNetwork) ([]NetResult, error) {
 	plugin.podLock(podNetwork).Lock()
 	defer plugin.podUnlock(podNetwork)
+
+	if err := checkLoopback(podNetwork.NetNS); err != nil {
+		logrus.Errorf(err.Error())
+		return nil, err
+	}
 
 	results := make([]NetResult, 0)
 	if err := plugin.forEachNetwork(&podNetwork, true, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
