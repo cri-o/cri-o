@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/release/pkg/command"
@@ -19,14 +20,10 @@ import (
 
 const branch = "gh-pages"
 
-var (
-	outputPath string
-	tag        string
-)
+var outputPath string
 
 func main() {
 	// Parse CLI flags
-	flag.StringVar(&tag, "tag", "", "the release tag of the notes")
 	flag.StringVar(&outputPath,
 		"output-path", "", "the output path for the release notes",
 	)
@@ -50,15 +47,11 @@ func run() error {
 	}
 
 	// Get latest release version
-	res, err := command.New(
-		"go", "run", "./scripts/latest-version", "--no-bump-version",
-	).RunSilentSuccessOutput()
-	if err != nil {
-		return errors.Wrap(err, "retrieve start tag")
-	}
-	startTag := util.AddTagPrefix(res.OutputTrimNL())
-	endTag := util.AddTagPrefix(tag)
+	startTag := util.AddTagPrefix(decVersion(version.Version))
 	logrus.Infof("Using start tag %s", startTag)
+
+	endTag := util.AddTagPrefix(version.Version)
+	logrus.Infof("Using end tag %s", endTag)
 
 	// Generate the notes
 	repo, err := git.OpenRepo(".")
@@ -216,4 +209,26 @@ func indexOfPrefix(prefix string, slice []string) int {
 		}
 	}
 	return -1
+}
+
+func decVersion(tag string) string {
+	sv, err := util.TagStringToSemver(strings.TrimSpace(tag))
+	if err != nil {
+		panic(err)
+	}
+
+	// clear any RC
+	sv.Pre = nil
+
+	if sv.Patch > 0 { // nolint: gocritic
+		sv.Patch-- // 1.17.2 -> 1.17.1
+	} else if sv.Minor > 0 {
+		sv.Minor-- // 1.18.0 -> 1.17.0
+	} else if sv.Major > 0 {
+		sv.Major-- // 1.19.0 -> 2.0.0 (should never happen)
+	} else {
+		panic(fmt.Sprintf("unable to decrement version %v", sv))
+	}
+
+	return sv.String()
 }
