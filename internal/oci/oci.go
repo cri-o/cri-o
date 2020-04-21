@@ -205,6 +205,15 @@ func (r *Runtime) ContainerRuntimeType(c *Container) (string, error) {
 	return rh.RuntimeType, nil
 }
 
+func (r *Runtime) SupportsKVM(c *Container) (bool, error) {
+	rh, err := r.getRuntimeHandler(c.runtimeHandler)
+	if err != nil {
+		return false, err
+	}
+
+	return rh.RuntimeType == config.RuntimeTypeVM, nil
+}
+
 func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	rh, err := r.getRuntimeHandler(c.runtimeHandler)
 	if err != nil {

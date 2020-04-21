@@ -304,10 +304,9 @@ ${SHELLCHECK}:
 	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
 
 vendor:
-	export GO111MODULE=on \
-		$(GO) mod tidy && \
-		$(GO) mod vendor && \
-		$(GO) mod verify
+	GO111MODULE=on $(GO) mod tidy
+	GO111MODULE=on $(GO) mod vendor
+	GO111MODULE=on $(GO) mod verify
 
 testunit: ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}

@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
@@ -22,11 +22,22 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
+
+var containerConfig *config.Config
+
+func init() {
+	var err error
+	containerConfig, err = config.Default()
+	if err != nil {
+		logrus.Error(err)
+		os.Exit(1)
+	}
+}
 
 // Helper function to determine the username/password passed
 // in the creds string.  It could be either or both.
@@ -515,37 +526,6 @@ func ParseInputTime(inputTime string) (time.Time, error) {
 	return time.Now().Add(-duration), nil
 }
 
-// GetGlobalOpts checks all global flags and generates the command string
-// FIXME: Port input to config.Config
-// TODO: Is there a "better" way to reverse values to flags? This seems brittle.
-func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
-	globalFlags := map[string]bool{
-		"cgroup-manager": true, "cni-config-dir": true, "conmon": true, "default-mounts-file": true,
-		"hooks-dir": true, "namespace": true, "root": true, "runroot": true,
-		"runtime": true, "storage-driver": true, "storage-opt": true, "syslog": true,
-		"trace": true, "network-cmd-path": true, "config": true, "cpu-profile": true,
-		"log-level": true, "tmpdir": true}
-	const stringSliceType string = "stringSlice"
-
-	var optsCommand []string
-	c.PodmanCommand.Command.Flags().VisitAll(func(f *pflag.Flag) {
-		if !f.Changed {
-			return
-		}
-		if _, exist := globalFlags[f.Name]; exist {
-			if f.Value.Type() == stringSliceType {
-				flagValue := strings.TrimSuffix(strings.TrimPrefix(f.Value.String(), "["), "]")
-				for _, value := range strings.Split(flagValue, ",") {
-					optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, value))
-				}
-			} else {
-				optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, f.Value.String()))
-			}
-		}
-	})
-	return strings.Join(optsCommand, " ")
-}
-
 // OpenExclusiveFile opens a file for writing and ensure it doesn't already exist
 func OpenExclusiveFile(path string) (*os.File, error) {
 	baseDir := filepath.Dir(path)
@@ -665,4 +645,43 @@ func ValidateSysctls(strSlice []string) (map[string]string, error) {
 		}
 	}
 	return sysctl, nil
+}
+
+// SELinuxKVMLabel returns labels for running kvm isolated containers
+func SELinuxKVMLabel(cLabel string) (string, error) {
+	if cLabel == "" {
+		// selinux is disabled
+		return "", nil
+	}
+	processLabel, _ := selinux.KVMContainerLabels()
+	selinux.ReleaseLabel(processLabel)
+	return swapSELinuxLabel(cLabel, processLabel)
+}
+
+// SELinuxInitLabel returns labels for running systemd based containers
+func SELinuxInitLabel(cLabel string) (string, error) {
+	if cLabel == "" {
+		// selinux is disabled
+		return "", nil
+	}
+	processLabel, _ := selinux.InitContainerLabels()
+	selinux.ReleaseLabel(processLabel)
+	return swapSELinuxLabel(cLabel, processLabel)
+}
+
+func swapSELinuxLabel(cLabel, processLabel string) (string, error) {
+	dcon, err := selinux.NewContext(cLabel)
+	if err != nil {
+		return "", err
+	}
+	scon, err := selinux.NewContext(processLabel)
+	if err != nil {
+		return "", err
+	}
+	dcon["type"] = scon["type"]
+	return dcon.Get(), nil
+}
+
+func DefaultContainerConfig() *config.Config {
+	return containerConfig
 }
