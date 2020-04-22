@@ -161,7 +161,12 @@ func (i *Info) String() string {
 }
 
 func getLinkmode() string {
-	output, err := utils.ExecCmd("ldd", os.Args[0])
+	abspath, err := filepath.Abs(os.Args[0])
+	if err != nil {
+		return fmt.Sprintf("unknown: %v", err)
+	}
+
+	output, err := utils.ExecCmd("ldd", abspath)
 	if err != nil {
 		return fmt.Sprintf("unknown: %v", err)
 	}
