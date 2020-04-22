@@ -18,6 +18,11 @@ const (
 	// CrioSocketPath is where the unix socket is located
 	CrioSocketPath = "/var/run/crio/crio.sock"
 
-	// CrioVersionPath is where the CRI-O version file is located
-	CrioVersionPath = "/var/run/crio/version"
+	// CrioVersionPathTmp is where the CRI-O version file is located on a tmpfs disk
+	// used to check if we should wipe containers
+	CrioVersionPathTmp = "/var/run/crio/version"
+
+	// CrioVersionPathPersist is where the CRI-O version file is located
+	// used to check whether we've upgraded, and thus need to remove images
+	CrioVersionPathPersist = "/var/lib/crio/version"
 )
