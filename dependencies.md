@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 22 Apr 2020 16:20:15 UTC for commit [aa50183][0]._
+_Generated on Wed, 22 Apr 2020 16:38:16 UTC for commit [f72baff][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/aa501838b4355f766ee403f62cceca65df2a28eb
+[0]: https://github.com/cri-o/cri-o/commit/f72baff3b472b98df9ff5b19fda815b81954b6d1
 
 ## Outdated Dependencies
 
@@ -293,7 +293,7 @@ _Generated on Wed, 22 Apr 2020 16:20:15 UTC for commit [aa50183][0]._
 | github.com/kevinburke/ssh_config                        | v0.0.0-20190725054713-01f96b0aa0cd                |                                    | false  | true             |
 | github.com/kisielk/errcheck                             | v1.2.0                                            |                                    | false  | true             |
 | github.com/kisielk/gotool                               | v1.0.0                                            |                                    | false  | true             |
-| github.com/klauspost/compress                           | v1.10.3                                           | v1.10.4                            | false  | true             |
+| github.com/klauspost/compress                           | v1.10.3                                           | v1.10.5                            | false  | true             |
 | github.com/klauspost/cpuid                              | v1.2.0                                            | v1.2.3                             | false  | true             |
 | github.com/klauspost/pgzip                              | v1.2.3                                            |                                    | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences      | v1.0.2                                            |                                    | false  | true             |
