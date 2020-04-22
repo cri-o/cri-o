@@ -141,7 +141,7 @@ lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} run
 
 shellfiles: ${SHFMT}
-	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/))
+	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack))
 
 shfmt: shellfiles
 	${SHFMT} -w -i 4 -d ${SHELLFILES}
@@ -184,8 +184,7 @@ release-note: ${RELEASE_TOOL}
 
 release-notes: ${RELEASE_NOTES}
 	${GO_RUN} ./scripts/release-notes \
-		--output-path ${BUILD_PATH}/release-notes \
-		--tag ${VERSION}
+		--output-path ${BUILD_PATH}/release-notes
 
 dependencies: ${GO_MOD_OUTDATED}
 	${GO_RUN} ./scripts/dependencies \
