@@ -5,6 +5,7 @@
 package ocicnitypesmock
 
 import (
+	context "context"
 	ocicni "github.com/cri-o/ocicni/pkg/ocicni"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
@@ -62,6 +63,21 @@ func (mr *MockCNIPluginMockRecorder) GetPodNetworkStatus(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodNetworkStatus", reflect.TypeOf((*MockCNIPlugin)(nil).GetPodNetworkStatus), arg0)
 }
 
+// GetPodNetworkStatusWithContext mocks base method
+func (m *MockCNIPlugin) GetPodNetworkStatusWithContext(ctx context.Context, arg0 ocicni.PodNetwork) ([]ocicni.NetResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPodNetworkStatusWithContext", ctx, arg0)
+	ret0, _ := ret[0].([]ocicni.NetResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPodNetworkStatusWithContext indicates an expected call of GetPodNetworkStatusWithContext
+func (mr *MockCNIPluginMockRecorder) GetPodNetworkStatusWithContext(ctx context.Context, arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodNetworkStatusWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).GetPodNetworkStatusWithContext), ctx, arg0)
+}
+
 // Name mocks base method
 func (m *MockCNIPlugin) Name() string {
 	m.ctrl.T.Helper()
@@ -89,6 +105,21 @@ func (m *MockCNIPlugin) SetUpPod(arg0 ocicni.PodNetwork) ([]ocicni.NetResult, er
 func (mr *MockCNIPluginMockRecorder) SetUpPod(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUpPod", reflect.TypeOf((*MockCNIPlugin)(nil).SetUpPod), arg0)
+}
+
+// SetUpPodWithContext mocks base method
+func (m *MockCNIPlugin) SetUpPodWithContext(ctx context.Context, arg0 ocicni.PodNetwork) ([]ocicni.NetResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetUpPodWithContext", ctx, arg0)
+	ret0, _ := ret[0].([]ocicni.NetResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetUpPodWithContext indicates an expected call of SetUpPodWithContext
+func (mr *MockCNIPluginMockRecorder) SetUpPodWithContext(ctx context.Context, arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUpPodWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).SetUpPodWithContext), ctx, arg0)
 }
 
 // Shutdown mocks base method
@@ -131,4 +162,18 @@ func (m *MockCNIPlugin) TearDownPod(arg0 ocicni.PodNetwork) error {
 func (mr *MockCNIPluginMockRecorder) TearDownPod(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TearDownPod", reflect.TypeOf((*MockCNIPlugin)(nil).TearDownPod), arg0)
+}
+
+// TearDownPodWithContext mocks base method
+func (m *MockCNIPlugin) TearDownPodWithContext(ctx context.Context, arg0 ocicni.PodNetwork) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TearDownPodWithContext", ctx, arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TearDownPodWithContext indicates an expected call of TearDownPodWithContext
+func (mr *MockCNIPluginMockRecorder) TearDownPodWithContext(ctx context.Context, arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TearDownPodWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).TearDownPodWithContext), ctx, arg0)
 }
