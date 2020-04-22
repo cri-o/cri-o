@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
+_Generated on Wed, 22 Apr 2020 13:49:54 UTC for commit [4fe260a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4ceffa25e734ddfe6872e70dfb97a97f807194de
+[0]: https://github.com/cri-o/cri-o/commit/4fe260ad9cc84d73d56d591ecb1763155036fe78
 
 ## Outdated Dependencies
 
@@ -12,11 +12,13 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | github.com/containerd/release-tool | v0.0.0-20200402162031-a35b5d7ce53d | v0.0.0-20200414154710-2f2f86e47034 | true   | true             |
 | github.com/containers/common       | v0.9.1                             | v1.0.0                             | true   | false            |
 | github.com/containers/storage      | v1.18.2                            | v1.19.0                            | true   | true             |
+| golang.org/x/net                   | v0.0.0-20200324143707-d3edc9973b7e | v0.0.0-20200421231249-e086a090c8fd | true   | true             |
 | golang.org/x/sys                   | v0.0.0-20200408040146-ea54a3c99b9b | v0.0.0-20200420163511-1957bb5e6d1f | true   | true             |
-| k8s.io/api                         | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200420225425-4820b6cbdbf4 | true   | true             |
-| k8s.io/apimachinery                | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200420225425-4820b6cbdbf4 | true   | true             |
-| k8s.io/client-go                   | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200420225425-4820b6cbdbf4 | true   | true             |
-| k8s.io/cri-api                     | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200420225425-4820b6cbdbf4 | true   | true             |
+| google.golang.org/grpc             | v1.28.1                            | v1.29.0                            | true   | true             |
+| k8s.io/api                         | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200422115352-fc9d1741022a | true   | true             |
+| k8s.io/apimachinery                | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200422115352-fc9d1741022a | true   | true             |
+| k8s.io/client-go                   | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200422115352-fc9d1741022a | true   | true             |
+| k8s.io/cri-api                     | v0.0.0-20200408172955-7879fc12a633 | v0.0.0-20200422115352-fc9d1741022a | true   | true             |
 | k8s.io/kubernetes                  | v1.18.1                            | v1.18.2                            | true   | true             |
 | k8s.io/release                     | v0.2.5                             | v0.2.7                             | true   | true             |
 | k8s.io/utils                       | v0.0.0-20200327001022-6496210b90e8 | v0.0.0-20200414100711-2df71ebbae66 | true   | true             |
@@ -29,7 +31,7 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | cloud.google.com/go                                     | v0.44.3                                           | v0.56.0                            | false  | true             |
 | cloud.google.com/go/datastore                           | v1.0.0                                            | v1.1.0                             | false  | true             |
 | github.com/14rcole/gopopulate                           | v0.0.0-20180821133914-b175b219e774                |                                    | false  | true             |
-| github.com/Azure/azure-sdk-for-go                       | v35.0.0+incompatible                              | v41.2.0+incompatible               | false  | true             |
+| github.com/Azure/azure-sdk-for-go                       | v35.0.0+incompatible                              | v41.3.0+incompatible               | false  | true             |
 | github.com/Azure/go-ansiterm                            | v0.0.0-20170929234023-d6e3b3328b78                |                                    | false  | true             |
 | github.com/Azure/go-autorest/autorest                   | v0.9.0                                            | v0.10.0                            | false  | true             |
 | github.com/Azure/go-autorest/autorest/adal              | v0.5.0                                            | v0.8.3                             | false  | true             |
@@ -68,7 +70,7 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | github.com/armon/go-socks5                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                       | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20200108200545-475eaeb16496 | false  | true             |
 | github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20190805220309-36081240882b | false  | true             |
-| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.30.10                           | false  | true             |
+| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.30.11                           | false  | true             |
 | github.com/bazelbuild/bazel-gazelle                     | v0.19.1-0.20191105222053-70208cbdc798             | v0.20.0                            | false  | true             |
 | github.com/bazelbuild/buildtools                        | v0.0.0-20190917191645-69366ca98f89                | v0.0.0-20200417165008-dbd4ef8997ab | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.0.0-20190719190356-6dae44dc5cab                | v0.22.4                            | false  | true             |
@@ -88,7 +90,7 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | github.com/chai2010/gettext-go                          | v0.0.0-20160711120539-c6fed771bfd5                | v1.0.2                             | false  | true             |
 | github.com/checkpoint-restore/go-criu                   | v0.0.0-20190109184317-bdb7599cd87b                | v0.0.0-20191125063657-fcdcd07065c5 | false  | true             |
 | github.com/cheekybits/genny                             | v0.0.0-20170328200008-9127e812e1e9                | v1.0.0                             | false  | true             |
-| github.com/cilium/ebpf                                  | v0.0.0-20191025125908-95b36a581eed                | v0.0.0-20200413170856-48fb86d8a083 | false  | true             |
+| github.com/cilium/ebpf                                  | v0.0.0-20191025125908-95b36a581eed                | v0.0.0-20200421083123-d05ecd062fb1 | false  | true             |
 | github.com/client9/misspell                             | v0.3.4                                            |                                    | false  | true             |
 | github.com/clusterhq/flocker-go                         | v0.0.0-20160920122132-2b8b7259d313                |                                    | false  | true             |
 | github.com/cncf/udpa/go                                 | v0.0.0-20191209042840-269d4d468f6f                | v0.0.0-20200327203949-e8cd3a4bb307 | false  | true             |
@@ -149,7 +151,7 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | github.com/docker/libtrust                              | v0.0.0-20160708172513-aabc10ec26b7                |                                    | false  | true             |
 | github.com/docker/spdystream                            | v0.0.0-20160310174837-449fdfce4d96                | v0.0.0-20181023171402-6480d4af844c | false  | true             |
 | github.com/dustin/go-humanize                           | v1.0.0                                            |                                    | false  | true             |
-| github.com/elazarl/goproxy                              | v0.0.0-20180725130230-947c36da3153                | v0.0.0-20200315184450-1f3cb6622dad | false  | true             |
+| github.com/elazarl/goproxy                              | v0.0.0-20180725130230-947c36da3153                | v0.0.0-20200421181703-e76ad31c14f6 | false  | true             |
 | github.com/emicklei/go-restful                          | v2.9.5+incompatible                               | v2.12.0+incompatible               | false  | true             |
 | github.com/emirpasic/gods                               | v1.12.0                                           |                                    | false  | true             |
 | github.com/envoyproxy/go-control-plane                  | v0.9.4                                            | v0.9.5                             | false  | true             |
@@ -265,7 +267,7 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | github.com/hpcloud/tail                                 | v1.0.0                                            |                                    | true   | true             |
 | github.com/imdario/mergo                                | v0.3.9                                            |                                    | false  | true             |
 | github.com/inconshreveable/mousetrap                    | v1.0.0                                            |                                    | false  | true             |
-| github.com/insomniacslk/dhcp                            | v0.0.0-20200221232812-81b9770086ea                | v0.0.0-20200402185128-5dd7202f1971 | false  | true             |
+| github.com/insomniacslk/dhcp                            | v0.0.0-20200221232812-81b9770086ea                | v0.0.0-20200420235442-ed3125c2efe7 | false  | true             |
 | github.com/ishidawataru/sctp                            | v0.0.0-20191218070446-00ab2ac2db07                |                                    | false  | true             |
 | github.com/j-keck/arping                                | v0.0.0-20160618110441-2cf9dc699c56                | v1.0.1                             | false  | true             |
 | github.com/jamescun/tuntap                              | v0.0.0-20190712092105-cb1fb277045c                |                                    | false  | true             |
@@ -300,7 +302,7 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | github.com/kr/pty                                       | v1.1.8                                            |                                    | false  | true             |
 | github.com/kr/text                                      | v0.2.0                                            |                                    | false  | true             |
 | github.com/kylelemons/godebug                           | v0.0.0-20170820004349-d65d576e9348                | v1.1.0                             | false  | true             |
-| github.com/lib/pq                                       | v1.2.0                                            | v1.3.0                             | false  | true             |
+| github.com/lib/pq                                       | v1.2.0                                            | v1.4.0                             | false  | true             |
 | github.com/libopenstorage/openstorage                   | v1.0.0                                            | v8.0.0+incompatible                | false  | true             |
 | github.com/liggitt/tabwriter                            | v0.0.0-20181228230101-89fcab3d43de                |                                    | false  | true             |
 | github.com/lithammer/dedent                             | v1.1.0                                            |                                    | false  | true             |
@@ -439,7 +441,7 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | github.com/urfave/negroni                               | v1.0.0                                            |                                    | false  | true             |
 | github.com/uudashr/gocognit                             | v1.0.1                                            |                                    | false  | true             |
 | github.com/valyala/bytebufferpool                       | v1.0.0                                            |                                    | false  | true             |
-| github.com/valyala/fasthttp                             | v1.2.0                                            | v1.11.0                            | false  | true             |
+| github.com/valyala/fasthttp                             | v1.2.0                                            | v1.12.0                            | false  | true             |
 | github.com/valyala/quicktemplate                        | v1.2.0                                            | v1.4.1                             | false  | true             |
 | github.com/valyala/tcplisten                            | v0.0.0-20161114210144-ceec8f93295a                |                                    | false  | true             |
 | github.com/varlink/go                                   | v0.0.0-20190502142041-0f1d566d194b                | v0.3.0                             | false  | true             |
@@ -472,7 +474,7 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | golang.org/x/lint                                       | v0.0.0-20190409202823-959b441ac422                | v0.0.0-20200302205851-738671d3881b | false  | true             |
 | golang.org/x/mobile                                     | v0.0.0-20190312151609-d3739f865fa6                | v0.0.0-20200329125638-4c31acba0007 | false  | true             |
 | golang.org/x/mod                                        | v0.1.1-0.20191105210325-c90efee705ee              | v0.2.0                             | false  | true             |
-| golang.org/x/net                                        | v0.0.0-20200324143707-d3edc9973b7e                |                                    | true   | true             |
+| golang.org/x/net                                        | v0.0.0-20200324143707-d3edc9973b7e                | v0.0.0-20200421231249-e086a090c8fd | true   | true             |
 | golang.org/x/oauth2                                     | v0.0.0-20200107190931-bf48bf16ab8d                |                                    | false  | true             |
 | golang.org/x/perf                                       | v0.0.0-20180704124530-6e6d33e29852                | v0.0.0-20200318175901-9c9101da8316 | false  | true             |
 | golang.org/x/sync                                       | v0.0.0-20200317015054-43a5402ce75a                |                                    | true   | true             |
@@ -480,15 +482,15 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.2                                            |                                    | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200416051211-89c76fbcd5d1 | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200102140908-9497f49d5709                | v0.0.0-20200420210619-9f075f7bfe74 | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200102140908-9497f49d5709                | v0.0.0-20200422022333-3d57cf2e726e | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                |                                    | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.7.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200317120129-c5a04cffd98a | false  | true             |
 | gonum.org/v1/plot                                       | v0.0.0-20190515093506-e2840ee46a6b                | v0.7.0                             | false  | true             |
-| google.golang.org/api                                   | v0.9.0                                            | v0.21.0                            | false  | true             |
+| google.golang.org/api                                   | v0.9.0                                            | v0.22.0                            | false  | true             |
 | google.golang.org/appengine                             | v1.6.2                                            | v1.6.5                             | false  | true             |
 | google.golang.org/genproto                              | v0.0.0-20200117163144-32f20d992d24                | v0.0.0-20200420144010-e5e8543f8aeb | false  | true             |
-| google.golang.org/grpc                                  | v1.28.1                                           |                                    | true   | true             |
+| google.golang.org/grpc                                  | v1.28.1                                           | v1.29.0                            | true   | true             |
 | gopkg.in/airbrake/gobrake.v2                            | v2.0.9                                            |                                    | false  | true             |
 | gopkg.in/alecthomas/kingpin.v2                          | v2.2.6                                            |                                    | false  | true             |
 | gopkg.in/check.v1                                       | v1.0.0-20200227125254-8fa46927fb4f                |                                    | false  | true             |
@@ -512,37 +514,37 @@ _Generated on Mon, 20 Apr 2020 23:45:32 UTC for commit [4ceffa2][0]._
 | gopkg.in/warnings.v0                                    | v0.1.2                                            |                                    | false  | true             |
 | gopkg.in/yaml.v2                                        | v2.2.8                                            |                                    | false  | true             |
 | gotest.tools                                            | v2.2.0+incompatible                               |                                    | false  | true             |
-| gotest.tools/gotestsum                                  | v0.3.5                                            | v0.4.1                             | false  | true             |
+| gotest.tools/gotestsum                                  | v0.3.5                                            | v0.4.2                             | false  | true             |
 | grpc.go4.org                                            | v0.0.0-20170609214715-11d0a25b4919                |                                    | false  | true             |
 | honnef.co/go/tools                                      | v0.0.1-2019.2.3                                   | v0.0.1-2020.1.3                    | false  | true             |
-| k8s.io/api                                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | true   | true             |
-| k8s.io/apiextensions-apiserver                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/apimachinery                                     | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | true   | true             |
-| k8s.io/apiserver                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/cli-runtime                                      | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/client-go                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | true   | true             |
-| k8s.io/cloud-provider                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/cluster-bootstrap                                | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/code-generator                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/component-base                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/cri-api                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | true   | true             |
-| k8s.io/csi-translation-lib                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
+| k8s.io/api                                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | true   | true             |
+| k8s.io/apiextensions-apiserver                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/apimachinery                                     | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | true   | true             |
+| k8s.io/apiserver                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/cli-runtime                                      | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/client-go                                        | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | true   | true             |
+| k8s.io/cloud-provider                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/cluster-bootstrap                                | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/code-generator                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/component-base                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/cri-api                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | true   | true             |
+| k8s.io/csi-translation-lib                              | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
 | k8s.io/gengo                                            | v0.0.0-20200114144118-36b2048a9120                | v0.0.0-20200413195148-3a45101e95ac | false  | true             |
 | k8s.io/heapster                                         | v1.2.0-beta.1                                     | v1.5.4                             | false  | true             |
 | k8s.io/klog                                             | v1.0.0                                            |                                    | true   | true             |
-| k8s.io/kube-aggregator                                  | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/kube-controller-manager                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
+| k8s.io/kube-aggregator                                  | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/kube-controller-manager                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
 | k8s.io/kube-openapi                                     | v0.0.0-20200121204235-bf4fb3bd569c                | v0.0.0-20200413232311-afe0b5e9f729 | false  | true             |
-| k8s.io/kube-proxy                                       | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/kube-scheduler                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/kubectl                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/kubelet                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
+| k8s.io/kube-proxy                                       | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/kube-scheduler                                   | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/kubectl                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/kubelet                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
 | k8s.io/kubernetes                                       | v1.18.1                                           | v1.18.2                            | true   | true             |
-| k8s.io/legacy-cloud-providers                           | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
-| k8s.io/metrics                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
+| k8s.io/legacy-cloud-providers                           | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
+| k8s.io/metrics                                          | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
 | k8s.io/release                                          | v0.2.5                                            | v0.2.7                             | true   | true             |
 | k8s.io/repo-infra                                       | v0.0.1-alpha.1                                    | v0.0.3                             | false  | true             |
-| k8s.io/sample-apiserver                                 | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200420225425-4820b6cbdbf4 | false  | true             |
+| k8s.io/sample-apiserver                                 | v0.0.0-20200408172955-7879fc12a633                | v0.0.0-20200422115352-fc9d1741022a | false  | true             |
 | k8s.io/system-validators                                | v1.0.4                                            | v1.1.2                             | false  | true             |
 | k8s.io/utils                                            | v0.0.0-20200327001022-6496210b90e8                | v0.0.0-20200414100711-2df71ebbae66 | true   | true             |
 | modernc.org/cc                                          | v1.0.0                                            |                                    | false  | true             |
