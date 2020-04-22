@@ -611,6 +611,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	newContainer.SetCreated()
 
+	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+		log.Infof(ctx, "createCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+		return nil, ctx.Err()
+	}
+
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	resp := &pb.CreateContainerResponse{
 		ContainerId: ctr.ID(),
