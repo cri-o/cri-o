@@ -83,6 +83,7 @@ h
 --stream-tls-key
 --uid-mappings
 --version-file
+--version-file-persist
 --help
 --version"
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )

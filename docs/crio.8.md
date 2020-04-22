@@ -80,6 +80,7 @@ crio
 [--stream-tls-cert]=[value]
 [--stream-tls-key]=[value]
 [--uid-mappings]=[value]
+[--version-file-persist]=[value]
 [--version-file]=[value]
 [--version|-v]
 ```
@@ -289,7 +290,9 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--version, -v**: print the version
 
-**--version-file**="": Location for CRI-O to lay down the version file (default: /var/run/crio/version)
+**--version-file**="": Location for CRI-O to lay down the temporary version file. It is used to check if crio wipe should wipe containers, which should always happen on a node reboot (default: /var/run/crio/version)
+
+**--version-file-persist**="": Location for CRI-O to lay down the persistent version file. It is used to check if crio wipe should wipe images, which should only happen when CRI-O has been upgraded (default: /var/run/crio/version)
 
 
 # COMMANDS
