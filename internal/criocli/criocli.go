@@ -252,6 +252,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("version-file") {
 		config.VersionFile = ctx.String("version-file")
 	}
+	if ctx.IsSet("version-file-persist") {
+		config.VersionFilePersist = ctx.String("version-file-persist")
+	}
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
@@ -750,9 +753,16 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:      "version-file",
-			Usage:     "Location for CRI-O to lay down the version file",
+			Usage:     "Location for CRI-O to lay down the temporary version file. It is used to check if crio wipe should wipe containers, which should always happen on a node reboot",
 			Value:     defConf.VersionFile,
 			EnvVars:   []string{"CONTAINER_VERSION_FILE"},
+			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:      "version-file-persist",
+			Usage:     "Location for CRI-O to lay down the persistent version file. It is used to check if crio wipe should wipe images, which should only happen when CRI-O has been upgraded",
+			Value:     defConf.VersionFile,
+			EnvVars:   []string{"CONTAINER_VERSION_FILE_PERSIST"},
 			TakesFile: true,
 		},
 	}

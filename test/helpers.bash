@@ -94,11 +94,11 @@ if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
     fi
 fi
 
-# Make sure we have a copy of the k8s.gcr.io/pause:3.1 image.
+# Make sure we have a copy of the k8s.gcr.io/pause:3.2 image.
 if ! [ -d "$ARTIFACTS_PATH"/pause-image ]; then
     mkdir -p "$ARTIFACTS_PATH"/pause-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://k8s.gcr.io/pause:3.1 --export-to=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
-        echo "Error pulling k8s.gcr.io/pause:3.1"
+    if ! "$COPYIMG_BINARY" --import-from=docker://k8s.gcr.io/pause:3.2 --export-to=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
+        echo "Error pulling k8s.gcr.io/pause:3.2"
         rm -fr "$ARTIFACTS_PATH"/pause-image
         exit 1
     fi
@@ -268,7 +268,7 @@ function setup_crio() {
 
     # Don't forget: copyimg and crio have their own default drivers, so if you override any, you probably need to override them all
     # shellcheck disable=SC2086
-    "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=k8s.gcr.io/pause:3.1 --import-from=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json
+    "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=k8s.gcr.io/pause:3.2 --import-from=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json
 
     # shellcheck disable=SC2086
     "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
