@@ -548,6 +548,10 @@ func bringUpLoopback(netns string) error {
 }
 
 func (plugin *cniNetworkPlugin) SetUpPod(podNetwork PodNetwork) ([]NetResult, error) {
+	return plugin.SetUpPodWithContext(context.Background(), podNetwork)
+}
+
+func (plugin *cniNetworkPlugin) SetUpPodWithContext(ctx context.Context, podNetwork PodNetwork) ([]NetResult, error) {
 	if err := plugin.networksAvailable(&podNetwork); err != nil {
 		return nil, err
 	}
@@ -563,7 +567,7 @@ func (plugin *cniNetworkPlugin) SetUpPod(podNetwork PodNetwork) ([]NetResult, er
 
 	results := make([]NetResult, 0)
 	if err := plugin.forEachNetwork(&podNetwork, false, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
-		result, err := network.addToNetwork(rt, plugin.cniConfig)
+		result, err := network.addToNetwork(ctx, rt, plugin.cniConfig)
 		if err != nil {
 			logrus.Errorf("Error while adding pod to CNI network %q: %s", network.name, err)
 			return err
@@ -668,6 +672,10 @@ func tearDownLoopback(netns string) error {
 // TearDownPod tears down pod networks. Prefers cached pod attachment information
 // but falls back to given network attachment information.
 func (plugin *cniNetworkPlugin) TearDownPod(podNetwork PodNetwork) error {
+	return plugin.TearDownPodWithContext(context.Background(), podNetwork)
+}
+
+func (plugin *cniNetworkPlugin) TearDownPodWithContext(ctx context.Context, podNetwork PodNetwork) error {
 	if len(podNetwork.Networks) == 0 {
 		attachments, err := plugin.getCachedNetworkInfo(podNetwork.ID)
 		if err == nil && len(attachments) > 0 {
@@ -688,7 +696,7 @@ func (plugin *cniNetworkPlugin) TearDownPod(podNetwork PodNetwork) error {
 	}
 
 	return plugin.forEachNetwork(&podNetwork, true, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
-		if err := network.deleteFromNetwork(rt, plugin.cniConfig); err != nil {
+		if err := network.deleteFromNetwork(ctx, rt, plugin.cniConfig); err != nil {
 			logrus.Errorf("Error while removing pod from CNI network %q: %s", network.name, err)
 			return err
 		}
@@ -718,6 +726,12 @@ func checkLoopback(netns string) error {
 // GetPodNetworkStatus returns IP addressing and interface details for all
 // networks attached to the pod.
 func (plugin *cniNetworkPlugin) GetPodNetworkStatus(podNetwork PodNetwork) ([]NetResult, error) {
+	return plugin.GetPodNetworkStatusWithContext(context.Background(), podNetwork)
+}
+
+// GetPodNetworkStatusWithContext returns IP addressing and interface details for all
+// networks attached to the pod.
+func (plugin *cniNetworkPlugin) GetPodNetworkStatusWithContext(ctx context.Context, podNetwork PodNetwork) ([]NetResult, error) {
 	plugin.podLock(podNetwork).Lock()
 	defer plugin.podUnlock(podNetwork)
 
@@ -728,7 +742,7 @@ func (plugin *cniNetworkPlugin) GetPodNetworkStatus(podNetwork PodNetwork) ([]Ne
 
 	results := make([]NetResult, 0)
 	if err := plugin.forEachNetwork(&podNetwork, true, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
-		result, err := network.checkNetwork(rt, plugin.cniConfig, plugin.nsManager, podNetwork.NetNS)
+		result, err := network.checkNetwork(ctx, rt, plugin.cniConfig, plugin.nsManager, podNetwork.NetNS)
 		if err != nil {
 			logrus.Errorf("Error while checking pod to CNI network %q: %s", network.name, err)
 			return err
@@ -750,9 +764,9 @@ func (plugin *cniNetworkPlugin) GetPodNetworkStatus(podNetwork PodNetwork) ([]Ne
 	return results, nil
 }
 
-func (network *cniNetwork) addToNetwork(rt *libcni.RuntimeConf, cni *libcni.CNIConfig) (cnitypes.Result, error) {
+func (network *cniNetwork) addToNetwork(ctx context.Context, rt *libcni.RuntimeConf, cni *libcni.CNIConfig) (cnitypes.Result, error) {
 	logrus.Infof("About to add CNI network %s (type=%v)", network.name, network.config.Plugins[0].Network.Type)
-	res, err := cni.AddNetworkList(context.Background(), network.config, rt)
+	res, err := cni.AddNetworkList(ctx, network.config, rt)
 	if err != nil {
 		logrus.Errorf("Error adding network: %v", err)
 		return nil, err
@@ -761,7 +775,7 @@ func (network *cniNetwork) addToNetwork(rt *libcni.RuntimeConf, cni *libcni.CNIC
 	return res, nil
 }
 
-func (network *cniNetwork) checkNetwork(rt *libcni.RuntimeConf, cni *libcni.CNIConfig, nsManager *nsManager, netns string) (cnitypes.Result, error) {
+func (network *cniNetwork) checkNetwork(ctx context.Context, rt *libcni.RuntimeConf, cni *libcni.CNIConfig, nsManager *nsManager, netns string) (cnitypes.Result, error) {
 	logrus.Infof("About to check CNI network %s (type=%v)", network.name, network.config.Plugins[0].Network.Type)
 
 	gtet, err := cniversion.GreaterThanOrEqualTo(network.config.CNIVersion, "0.4.0")
@@ -773,7 +787,7 @@ func (network *cniNetwork) checkNetwork(rt *libcni.RuntimeConf, cni *libcni.CNIC
 
 	// When CNIVersion supports Check, use it.  Otherwise fall back on what was done initially.
 	if gtet {
-		err = cni.CheckNetworkList(context.Background(), network.config, rt)
+		err = cni.CheckNetworkList(ctx, network.config, rt)
 		logrus.Infof("Checking CNI network %s (config version=%v)", network.name, network.config.CNIVersion)
 		if err != nil {
 			logrus.Errorf("Error checking network: %v", err)
@@ -833,9 +847,9 @@ func (network *cniNetwork) checkNetwork(rt *libcni.RuntimeConf, cni *libcni.CNIC
 	return converted, nil
 }
 
-func (network *cniNetwork) deleteFromNetwork(rt *libcni.RuntimeConf, cni *libcni.CNIConfig) error {
+func (network *cniNetwork) deleteFromNetwork(ctx context.Context, rt *libcni.RuntimeConf, cni *libcni.CNIConfig) error {
 	logrus.Infof("About to del CNI network %s (type=%v)", network.name, network.config.Plugins[0].Network.Type)
-	if err := cni.DelNetworkList(context.Background(), network.config, rt); err != nil {
+	if err := cni.DelNetworkList(ctx, network.config, rt); err != nil {
 		logrus.Errorf("Error deleting network: %v", err)
 		return err
 	}
