@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -546,6 +547,13 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	if sb.Stopped() {
 		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %v", sbID)
 	}
+
+	defer func() {
+		if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+			log.Infof(ctx, "createCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+			debug.PrintStack()
+		}
+	}()
 
 	ctr := container.New(ctx)
 	if err := ctr.SetConfig(req.GetConfig()); err != nil {
