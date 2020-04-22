@@ -41,7 +41,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	}()
 
 	podSetUpStart := time.Now()
-	_, err = s.config.CNIPlugin().SetUpPod(podNetwork)
+	_, err = s.config.CNIPlugin().SetUpPodWithContext(ctx, podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
@@ -50,7 +50,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_pod").
 		Observe(metrics.SinceInMicroseconds(podSetUpStart))
 
-	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatus(podNetwork)
+	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatusWithContext(ctx, podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
@@ -148,7 +148,7 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if err != nil {
 		return err
 	}
-	if err := s.config.CNIPlugin().TearDownPod(podNetwork); err != nil {
+	if err := s.config.CNIPlugin().TearDownPodWithContext(ctx, podNetwork); err != nil {
 		return errors.Wrapf(err, "failed to destroy network for pod sandbox %s(%s)", sb.Name(), sb.ID())
 	}
 
