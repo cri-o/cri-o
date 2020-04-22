@@ -14,6 +14,7 @@ This guide will walk you through the installation of [CRI-O](https://github.com/
     + [Debian - Raspbian - Ubuntu](#debian---raspbian---ubuntu)
   * [Get Source Code](#get-source-code)
   * [Build](#build)
+    + [Install with Ansible](#install-with-ansible)
     + [Build Tags](#build-tags)
   * [Static builds](#static-builds)
     + [Creating a release archive](#creating-a-release-archive)
@@ -186,6 +187,20 @@ Otherwise, if you do not want to build `CRI-O` with seccomp support you can add 
 ```bash
 make BUILDTAGS=""
 sudo make install
+```
+
+### Install with Ansible
+
+An [Ansible Role](https://github.com/alvistack/ansible-role-cri_o) is also available to automate the above steps:
+
+``` bash
+sudo su -
+mkdir -p ~/.ansible/roles
+git clone https://github.com/alvistack/ansible-role-cri_o.git cri_o
+cd ~/.ansible/roles/cri_o
+pip3 install --upgrade --ignore-installed --requirement requirements.txt
+molecule converge
+molecule verify
 ```
 
 ### Build Tags
