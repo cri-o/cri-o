@@ -40,6 +40,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 			// since we're in a failing state, give the stop network as much time as the
 			// RunPodSandbox request has (give the full context)
 			// because after that there's some CRI-O cleanup then we will return.
+			log.Infof(ctx, "networkStart: stopping network for sandbox %s", sb.ID())
 			if err2 := s.networkStop(ctx, sb); err2 != nil {
 				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 			}

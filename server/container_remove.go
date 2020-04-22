@@ -9,6 +9,7 @@ import (
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (resp *pb.RemoveContainerResponse, err error) {
+	log.Infof(ctx, "Attempting to remove container: %s", req.GetContainerId())
 	// save container description to print
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
