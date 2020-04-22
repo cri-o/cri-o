@@ -20,6 +20,8 @@ import (
 )
 
 func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (resp *pb.StopPodSandboxResponse, err error) {
+	log.Infof(ctx, "Attempting to stop pod sandbox: %s", req.GetPodSandboxId())
+
 	const operation = "stop_pod_sandbox"
 	defer func() {
 		recordOperation(operation, time.Now())
