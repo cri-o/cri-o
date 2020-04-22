@@ -562,6 +562,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
 			s.ReleaseContainerName(ctr.Name())
 		}
 	}()
@@ -572,6 +573,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
 			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
@@ -582,6 +584,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	s.addContainer(newContainer)
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
 			s.removeContainer(newContainer)
 		}
 	}()
@@ -591,6 +594,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
 			if err2 := s.CtrIDIndex().Delete(ctr.ID()); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
 			}
