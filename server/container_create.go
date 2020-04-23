@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -547,6 +548,13 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %v", sbID)
 	}
 
+	defer func() {
+		if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+			log.Infof(ctx, "createCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+			debug.PrintStack()
+		}
+	}()
+
 	ctr := container.New(ctx)
 	if err := ctr.SetConfig(req.GetConfig()); err != nil {
 		return nil, errors.Wrap(err, "setting container config")
@@ -562,6 +570,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
 			s.ReleaseContainerName(ctr.Name())
 		}
 	}()
@@ -572,6 +581,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
 			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
@@ -582,6 +592,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	s.addContainer(newContainer)
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
 			s.removeContainer(newContainer)
 		}
 	}()
@@ -591,6 +602,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
 			if err2 := s.CtrIDIndex().Delete(ctr.ID()); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
 			}

@@ -34,6 +34,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	// but an error happened between plugin success and the end of networkStart()
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "networkStart: stopping network for sandbox %s", sb.ID())
 			if err2 := s.networkStop(ctx, sb); err2 != nil {
 				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 			}
