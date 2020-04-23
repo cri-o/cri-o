@@ -7,7 +7,7 @@ SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
 UNSIGNED_IMAGE=quay.io/crio/hello-world:latest
 IMAGE_LIST_TAG=docker.io/library/alpine:3.9
 IMAGE_LIST_DIGEST_AMD64=docker.io/library/alpine@sha256:ab3fe83c0696e3f565c9b4a734ec309ae9bd0d74c192de4590fd6dc2ef717815
-IMAGE_LIST_DIGEST=docker.io/library/alpine@sha256:115731bab0862031b44766733890091c17924f9b7781b79997f5f163be262178
+IMAGE_LIST_DIGEST=docker.io/library/alpine@sha256:9e6af17e57acc0fd363f84e60f2c75a9dd372d9398bd3ae21c6c7b8202c19487
 
 function setup() {
 	setup_test
