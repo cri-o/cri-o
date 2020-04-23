@@ -166,13 +166,11 @@ func getLinkmode() string {
 		return fmt.Sprintf("unknown: %v", err)
 	}
 
-	output, err := utils.ExecCmd("ldd", abspath)
-	if err != nil {
+	if _, err := utils.ExecCmd("ldd", abspath); err != nil {
+		if strings.Contains(err.Error(), "not a dynamic executable") {
+			return "static"
+		}
 		return fmt.Sprintf("unknown: %v", err)
-	}
-
-	if strings.Contains(output, "not a dynamic executable") {
-		return "static"
 	}
 
 	return "dynamic"
