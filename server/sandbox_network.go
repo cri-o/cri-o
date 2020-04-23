@@ -20,6 +20,8 @@ import (
 // or an error
 func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, err error) {
 	overallStart := time.Now()
+	// give a network Start call 2 minutes, half of a RunPodSandbox request timeout limit
+	startCtx := cniContext(ctx, 2)
 
 	if sb.HostNetwork() {
 		return nil, nil, nil
@@ -34,14 +36,14 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	// but an error happened between plugin success and the end of networkStart()
 	defer func() {
 		if err != nil {
-			if err2 := s.networkStop(ctx, sb); err2 != nil {
+			if err2 := s.networkStop(startCtx, sb); err2 != nil {
 				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 			}
 		}
 	}()
 
 	podSetUpStart := time.Now()
-	_, err = s.config.CNIPlugin().SetUpPodWithContext(ctx, podNetwork)
+	_, err = s.config.CNIPlugin().SetUpPodWithContext(startCtx, podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
@@ -50,7 +52,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_pod").
 		Observe(metrics.SinceInMicroseconds(podSetUpStart))
 
-	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatusWithContext(ctx, podNetwork)
+	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatusWithContext(startCtx, podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
@@ -134,6 +136,8 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if sb.HostNetwork() || sb.NetworkStopped() {
 		return nil
 	}
+	// give a network stop call 1 minutes, half of a StopPod request timeout limit
+	stopCtx := cniContext(ctx, 1)
 
 	if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
 		Name:         sb.Name(),
@@ -148,9 +152,16 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if err != nil {
 		return err
 	}
-	if err := s.config.CNIPlugin().TearDownPodWithContext(ctx, podNetwork); err != nil {
+	if err := s.config.CNIPlugin().TearDownPodWithContext(stopCtx, podNetwork); err != nil {
 		return errors.Wrapf(err, "failed to destroy network for pod sandbox %s(%s)", sb.Name(), sb.ID())
 	}
 
 	return sb.SetNetworkStopped(true)
+}
+
+// cniContext creates a child context from the parent request context
+// it is for giving a cni call a slice of the total timeout a create or stop request has
+func cniContext(ctx context.Context, timeoutInMinutes time.Duration) context.Context {
+	setupPodContext, _ := context.WithTimeout(ctx, timeoutInMinutes*time.Minute)
+	return setupPodContext
 }
