@@ -8,6 +8,7 @@ import (
 
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
@@ -87,13 +88,13 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.Storage = ctx.String("storage-driver")
 	}
 	if ctx.IsSet("storage-opt") {
-		config.StorageOptions = ctx.StringSlice("storage-opt")
+		config.StorageOptions = StringSliceTrySplit(ctx, "storage-opt")
 	}
 	if ctx.IsSet("insecure-registry") {
-		config.InsecureRegistries = ctx.StringSlice("insecure-registry")
+		config.InsecureRegistries = StringSliceTrySplit(ctx, "insecure-registry")
 	}
 	if ctx.IsSet("registry") {
-		config.Registries = ctx.StringSlice("registry")
+		config.Registries = StringSliceTrySplit(ctx, "registry")
 	}
 	if ctx.IsSet("default-transport") {
 		config.DefaultTransport = ctx.String("default-transport")
@@ -116,7 +117,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 
 	if ctx.IsSet("runtimes") {
-		runtimes := ctx.StringSlice("runtimes")
+		runtimes := StringSliceTrySplit(ctx, "runtimes")
 		for _, r := range runtimes {
 			fields := strings.Split(r, ":")
 			if len(fields) != 3 {
@@ -144,19 +145,19 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.ConmonCgroup = ctx.String("conmon-cgroup")
 	}
 	if ctx.IsSet("hooks-dir") {
-		config.HooksDir = ctx.StringSlice("hooks-dir")
+		config.HooksDir = StringSliceTrySplit(ctx, "hooks-dir")
 	}
 	if ctx.IsSet("default-mounts-file") {
 		config.DefaultMountsFile = ctx.String("default-mounts-file")
 	}
 	if ctx.IsSet("default-capabilities") {
-		config.DefaultCapabilities = ctx.StringSlice("default-capabilities")
+		config.DefaultCapabilities = StringSliceTrySplit(ctx, "default-capabilities")
 	}
 	if ctx.IsSet("default-sysctls") {
-		config.DefaultSysctls = ctx.StringSlice("default-sysctls")
+		config.DefaultSysctls = StringSliceTrySplit(ctx, "default-sysctls")
 	}
 	if ctx.IsSet("default-ulimits") {
-		config.DefaultUlimits = ctx.StringSlice("default-ulimits")
+		config.DefaultUlimits = StringSliceTrySplit(ctx, "default-ulimits")
 	}
 	if ctx.IsSet("pids-limit") {
 		config.PidsLimit = ctx.Int64("pids-limit")
@@ -174,7 +175,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.NetworkDir = ctx.String("cni-config-dir")
 	}
 	if ctx.IsSet("cni-plugin-dir") {
-		config.PluginDirs = ctx.StringSlice("cni-plugin-dir")
+		config.PluginDirs = StringSliceTrySplit(ctx, "cni-plugin-dir")
 	}
 	if ctx.IsSet("image-volumes") {
 		config.ImageVolumes = libconfig.ImageVolumesType(ctx.String("image-volumes"))
@@ -201,13 +202,13 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.LogDir = ctx.String("log-dir")
 	}
 	if ctx.IsSet("additional-devices") {
-		config.AdditionalDevices = ctx.StringSlice("additional-devices")
+		config.AdditionalDevices = StringSliceTrySplit(ctx, "additional-devices")
 	}
 	if ctx.IsSet("conmon-env") {
-		config.ConmonEnv = ctx.StringSlice("conmon-env")
+		config.ConmonEnv = StringSliceTrySplit(ctx, "conmon-env")
 	}
 	if ctx.IsSet("default-env") {
-		config.DefaultEnv = ctx.StringSlice("default-env")
+		config.DefaultEnv = StringSliceTrySplit(ctx, "default-env")
 	}
 	if ctx.IsSet("container-attach-socket-dir") {
 		config.ContainerAttachSocketDir = ctx.String("container-attach-socket-dir")
@@ -757,4 +758,29 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			TakesFile: true,
 		},
 	}
+}
+
+// StringSliceTrySplit parses the string slice from the CLI context.
+// If the parsing returns just a single item, then we try to parse them by `,`
+// to allow users to provide their flags comma separated.
+func StringSliceTrySplit(ctx *cli.Context, name string) []string {
+	values := ctx.StringSlice(name)
+	separator := ","
+
+	// It looks like we only parsed one item, let's see if there are more
+	if len(values) == 1 && strings.Contains(values[0], separator) {
+		values = strings.Split(values[0], separator)
+
+		// Trim whitespace
+		for i := range values {
+			values[i] = strings.TrimSpace(values[i])
+		}
+
+		logrus.Infof(
+			"Parsed commma separated CLI flag %q into dedicated values %v",
+			name, values,
+		)
+	}
+
+	return values
 }
