@@ -151,6 +151,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	err = cmd.Start()
 	if err != nil {
 		childPipe.Close()
+		childStartPipe.Close()
 		return err
 	}
 
