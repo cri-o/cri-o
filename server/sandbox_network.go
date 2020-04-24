@@ -21,7 +21,8 @@ import (
 func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, err error) {
 	overallStart := time.Now()
 	// give a network Start call 2 minutes, half of a RunPodSandbox request timeout limit
-	startCtx := cniContext(ctx, 2)
+	startCtx, startCancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer startCancel()
 
 	if sb.HostNetwork() {
 		return nil, nil, nil
@@ -137,7 +138,8 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 		return nil
 	}
 	// give a network stop call 1 minutes, half of a StopPod request timeout limit
-	stopCtx := cniContext(ctx, 1)
+	stopCtx, stopCancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer stopCancel()
 
 	if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
 		Name:         sb.Name(),
@@ -157,11 +159,4 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	}
 
 	return sb.SetNetworkStopped(true)
-}
-
-// cniContext creates a child context from the parent request context
-// it is for giving a cni call a slice of the total timeout a create or stop request has
-func cniContext(ctx context.Context, timeoutInMinutes time.Duration) context.Context {
-	setupPodContext, _ := context.WithTimeout(ctx, timeoutInMinutes*time.Minute)
-	return setupPodContext
 }

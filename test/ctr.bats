@@ -1566,7 +1566,7 @@ function wait_until_exit() {
 	run crictl start "$ctr_id"
 	[ "$status" -eq 0 ]
 
-	run crictl exec "$ctr_id" grep ro\, /proc/mounts
+	run crictl exec "$ctr_id" grep rw\, /proc/mounts
 	[ "$status" -eq 0 ]
 	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
 		[[ "$output" =~ "/sys/fs/cgroup cgroup2" ]]
