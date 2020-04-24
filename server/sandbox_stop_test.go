@@ -51,7 +51,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			addContainerAndSandbox()
 			gomock.InOrder(
 				cniPluginMock.EXPECT().GetDefaultNetworkName().Return(""),
-				cniPluginMock.EXPECT().TearDownPodWithContext(context.Background(), gomock.Any()).Return(t.TestError),
+				cniPluginMock.EXPECT().TearDownPodWithContext(gomock.Any(), gomock.Any()).Return(t.TestError),
 			)
 
 			// When
