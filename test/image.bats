@@ -7,7 +7,7 @@ SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
 UNSIGNED_IMAGE=quay.io/crio/hello-world:latest
 IMAGE_LIST_TAG=docker.io/library/alpine:3.9
 IMAGE_LIST_DIGEST_AMD64=docker.io/library/alpine@sha256:ab3fe83c0696e3f565c9b4a734ec309ae9bd0d74c192de4590fd6dc2ef717815
-IMAGE_LIST_DIGEST=docker.io/library/alpine@sha256:9e6af17e57acc0fd363f84e60f2c75a9dd372d9398bd3ae21c6c7b8202c19487
+IMAGE_LIST_DIGEST=docker.io/library/alpine@sha256:ab3fe83c0696e3f565c9b4a734ec309ae9bd0d74c192de4590fd6dc2ef717815
 
 function setup() {
 	setup_test
@@ -265,12 +265,18 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
+
 	imageid="$output"
 
 	run crictl images -v ${IMAGE_LIST_DIGEST}
 	[ "$status" -eq 0 ]
 	echo "$output"
-	[ "$output" != "" ]
+	if [ "$output" == "" ]; then
+		echo "NOTE: THIS TEST PROBABLY FAILED BECAUSE DIGEST HAS CHANGED, CONSIDER UPDATING TO MATCH THE FOLLOWING DIGEST:"
+		crictl inspecti ${IMAGE_LIST_TAG} | jq .status.repoDigests
+		echo "$output"
+		exit 1
+	fi
 	[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST}" ]]
 
 	case $(go env GOARCH) in
