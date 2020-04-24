@@ -22,7 +22,8 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
-	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
+	github.com/creack/pty v1.1.9 // indirect
+	github.com/cri-o/ocicni v0.2.1-0.20200422173648-513ef787b8c9
 	github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f
 	github.com/docker/go-units v0.4.0
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
