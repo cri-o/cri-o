@@ -5,7 +5,11 @@ load helpers
 IMAGE=quay.io/crio/pause
 SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
 UNSIGNED_IMAGE=quay.io/crio/hello-world:latest
+
 IMAGE_LIST_TAG=docker.io/library/alpine:3.9
+IMAGE_LIST_DIGEST_FOR_TAG=docker.io/library/alpine@sha256:414e0518bb9228d35e4cd5165567fb91d26c6a214e9c95899e1e056fcd349011
+IMAGE_LIST_DIGEST_FOR_TAG_AMD64=docker.io/library/alpine@sha256:65b3a80ebe7471beecbc090c5b2cdd0aafeaefa0715f8f12e40dc918a3a70e32
+
 IMAGE_LIST_DIGEST_AMD64=docker.io/library/alpine@sha256:ab3fe83c0696e3f565c9b4a734ec309ae9bd0d74c192de4590fd6dc2ef717815
 IMAGE_LIST_DIGEST=docker.io/library/alpine@sha256:ab3fe83c0696e3f565c9b4a734ec309ae9bd0d74c192de4590fd6dc2ef717815
 
@@ -268,7 +272,7 @@ function teardown() {
 
 	imageid="$output"
 
-	run crictl images -v ${IMAGE_LIST_DIGEST}
+	run crictl images -v ${IMAGE_LIST_DIGEST_FOR_TAG}
 	[ "$status" -eq 0 ]
 	echo "$output"
 	if [ "$output" == "" ]; then
@@ -277,15 +281,15 @@ function teardown() {
 		echo "$output"
 		exit 1
 	fi
-	[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST}" ]]
+	[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG}" ]]
 
 	case $(go env GOARCH) in
 	amd64)
-		run crictl images -v ${IMAGE_LIST_DIGEST_AMD64}
+		run crictl images -v ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}" ]]
+		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}" ]]
 		;;
 	arm64)
 		run crictl images -v ${IMAGE_LIST_DIGEST_ARM64}
