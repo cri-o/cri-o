@@ -434,23 +434,29 @@ bundle-test:
 
 install: .gopathok install.bin install.man install.completions install.systemd install.config
 
-install.bin: binaries
+install.bin-nobuild:
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
 	install ${SELINUXOPT} -D -m 755 bin/crio-status $(BINDIR)/crio-status
 	install ${SELINUXOPT} -D -m 755 bin/pinns $(BINDIR)/pinns
 
-install.man: $(MANPAGES)
+install.bin: binaries install.bin-nobuild
+
+install.man-nobuild:
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man8
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 
-install.config: crio.conf
+install.man: $(MANPAGES) install.man-nobuild
+
+install.config-nobuild:
 	install ${SELINUXOPT} -d $(DATAROOTDIR)/oci/hooks.d
 	install ${SELINUXOPT} -d $(ETCDIR_CRIO)/crio.conf.d
 	install ${SELINUXOPT} -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
 	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	install ${SELINUXOPT} -D -m 644 crictl.yaml $(CRICTL_CONFIG_DIR)
+
+install.config: crio.conf install.config-nobuild
 
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
