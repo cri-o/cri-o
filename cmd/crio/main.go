@@ -245,8 +245,15 @@ func main() {
 			logrus.Fatal(err)
 		}
 
-		// Immediately upon start up, write our new version file
+		// Immediately upon start up, write our new version files
+		// we write one to a tmpfs, so we can detect when a node rebooted.
+		// in this sitaution, we want to wipe containers
 		if err := version.WriteVersionFile(config.VersionFile, gitCommit); err != nil {
+			logrus.Fatal(err)
+		}
+		// we then write to a persistent directory. This is to check if crio has upgraded
+		// if it has, we should wipe images
+		if err := version.WriteVersionFile(config.VersionFilePersist, gitCommit); err != nil {
 			logrus.Fatal(err)
 		}
 

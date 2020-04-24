@@ -253,6 +253,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) (string, error) {
 	if ctx.IsSet("version-file") {
 		config.VersionFile = ctx.String("version-file")
 	}
+	if ctx.IsSet("version-file-persist") {
+		config.VersionFilePersist = ctx.String("version-file-persist")
+	}
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
@@ -722,8 +725,14 @@ func getCrioFlags(defConf *libconfig.Config, systemContext *types.SystemContext)
 		},
 		&cli.StringFlag{
 			Name:      "version-file",
-			Usage:     fmt.Sprintf("Location for CRI-O to lay down the version file (default: %s)", defConf.VersionFile),
+			Usage:     fmt.Sprintf("Location for CRI-O to lay down the temporary version file (default: %s)", defConf.VersionFile),
 			EnvVars:   []string{"CONTAINER_VERSION_FILE"},
+			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:      "version-file-persist",
+			Usage:     fmt.Sprintf("Location for CRI-O to lay down the persistent version file (default: %s)", defConf.VersionFilePersist),
+			EnvVars:   []string{"CONTAINER_VERSION_FILE_PERSIST"},
 			TakesFile: true,
 		},
 	}

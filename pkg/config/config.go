@@ -140,7 +140,12 @@ type RootConfig struct {
 	LogDir string `toml:"log_dir"`
 
 	// VersionFile is the location CRI-O will lay down the version file
+	// that checks whether we've rebooted
 	VersionFile string `toml:"version_file"`
+
+	// VersionFilePersist is the location CRI-O will lay down the version file
+	// that checks whether we've upgraded
+	VersionFilePersist string `toml:"version_file_persist"`
 }
 
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
@@ -493,12 +498,13 @@ func DefaultConfig() (*Config, error) {
 	}
 	return &Config{
 		RootConfig: RootConfig{
-			Root:           storeOpts.GraphRoot,
-			RunRoot:        storeOpts.RunRoot,
-			Storage:        storeOpts.GraphDriverName,
-			StorageOptions: storeOpts.GraphDriverOptions,
-			LogDir:         "/var/log/crio/pods",
-			VersionFile:    CrioVersionPath,
+			Root:               storeOpts.GraphRoot,
+			RunRoot:            storeOpts.RunRoot,
+			Storage:            storeOpts.GraphDriverName,
+			StorageOptions:     storeOpts.GraphDriverOptions,
+			LogDir:             "/var/log/crio/pods",
+			VersionFile:        CrioVersionPathTmp,
+			VersionFilePersist: CrioVersionPathPersist,
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,
