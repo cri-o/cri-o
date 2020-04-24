@@ -1483,7 +1483,9 @@ function teardown() {
 	run crictl start "$ctr_id"
 	[ "$status" -eq 0 ]
 
-	run crictl exec "$ctr_id" grep ro\, /proc/mounts
+	# TODO there seems to be a difference in behavior between runc and crun
+	# where crun has this mounted ro, and now runc has it mounted rw
+	run crictl exec "$ctr_id" cat /proc/mounts
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ "tmpfs /sys/fs/cgroup tmpfs" ]]
 
