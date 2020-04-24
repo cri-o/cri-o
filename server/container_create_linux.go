@@ -39,6 +39,9 @@ import (
 // A lower value would result in the container failing to start.
 const minMemoryLimit = 12582912
 
+// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
+const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
+
 type configDevice struct {
 	Device   rspec.LinuxDevice
 	Resource rspec.LinuxDeviceCgroup
@@ -509,6 +512,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			cgPath = filepath.Join(parent, scopePrefix+"-"+containerID)
 		}
 		specgen.SetLinuxCgroupsPath(cgPath)
+
+		if t, ok := kubeAnnotations[podTerminationGracePeriodLabel]; ok {
+			// currently only supported by systemd, see
+			// https://github.com/opencontainers/runc/pull/2224
+			if useSystemd {
+				specgen.AddAnnotation("org.systemd.property.TimeoutStopUSec",
+					"uint64 "+t+"000000") // sec to usec
+			}
+		}
 
 		if privileged {
 			specgen.SetupPrivileged(true)

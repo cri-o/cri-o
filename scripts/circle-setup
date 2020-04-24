@@ -6,7 +6,7 @@ declare -A VERSIONS=(
     ["cni-plugins"]=v0.8.4
     ["conmon"]=v2.0.9
     ["cri-tools"]=v1.17.0
-    ["runc"]=v1.0.0-rc9
+    ["runc"]=13b1603fd0e37db1764433a140d494b2e9f05805
 )
 
 main() {
@@ -109,10 +109,12 @@ install_cni_plugins() {
 }
 
 install_runc() {
-    export GOPATH=/home/circleci/go
-    go get -d github.com/opencontainers/runc
-    pushd $GOPATH/src/github.com/opencontainers/runc
-    git checkout "${VERSIONS["runc"]}"
+    export GOPATH=~/go
+    mkdir -p $GOPATH/src/github.com/opencontainers
+    pushd $GOPATH/src/github.com/opencontainers
+    git clone https://github.com/opencontainers/runc
+    cd runc
+    git reset --hard "${VERSIONS["runc"]}"
     make BUILDTAGS="apparmor selinux seccomp"
     sudo cp runc /usr/sbin
     popd
