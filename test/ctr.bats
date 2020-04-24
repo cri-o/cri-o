@@ -1566,7 +1566,9 @@ function wait_until_exit() {
 	run crictl start "$ctr_id"
 	[ "$status" -eq 0 ]
 
-	run crictl exec "$ctr_id" grep rw\, /proc/mounts
+	# TODO there seems to be a difference in behavior between runc and crun
+	# where crun has this mounted ro, and now runc has it mounted rw
+	run crictl exec "$ctr_id" cat /proc/mounts
 	[ "$status" -eq 0 ]
 	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
 		[[ "$output" =~ "/sys/fs/cgroup cgroup2" ]]
