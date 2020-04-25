@@ -45,7 +45,14 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
   The default log directory where all logs will go unless directly specified by the kubelet. The log directory specified must be an absolute directory.
 
 **version_file**="/var/run/crio/version"
-  Location for crio to lay down the version file.
+  Location for CRI-O to lay down the temporary version file.
+  It is used to check if crio wipe should wipe containers, which should
+  always happen on a node reboot
+
+**version_file_persist**="/var/lib/crio/version"
+  Location for CRI-O to lay down the persistent version file.
+  It is used to check if crio wipe should wipe images, which should
+  only happen when CRI-O has been upgraded
 
 ## CRIO.API TABLE
 The `crio.api` table contains settings for the kubelet/gRPC interface.
