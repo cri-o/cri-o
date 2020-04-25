@@ -425,7 +425,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				"/container/logs", map[string]string{},
 				map[string]string{}, map[string]string{}, "image",
 				"imageName", "imageRef", &pb.ContainerMetadata{},
-				"testsandboxid", false, false, false, false, "",
+				"testsandboxid", false, false, false, "",
 				"/root/for/container", time.Now(), "SIGKILL")
 			Expect(err).To(BeNil())
 			Expect(testContainer).NotTo(BeNil())
