@@ -797,6 +797,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
 	specgen.AddAnnotation(annotations.MountPoint, mountPoint)
+	defer func() {
+		if errRet != nil {
+			if err1 := s.StorageRuntimeServer().StopContainer(containerID); err1 != nil {
+				log.Warnf(ctx, "can't umount container after cwd error %v: %v", err, err1)
+			}
+		}
+	}()
 
 	if containerImageConfig.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
@@ -840,9 +847,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	specgen.SetProcessCwd(containerCwd)
 	if err := setupWorkingDirectory(mountPoint, mountLabel, containerCwd); err != nil {
-		if err1 := s.StorageRuntimeServer().StopContainer(containerID); err1 != nil {
-			return nil, fmt.Errorf("can't umount container after cwd error %v: %v", err, err1)
-		}
 		return nil, err
 	}
 
