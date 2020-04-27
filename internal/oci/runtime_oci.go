@@ -696,69 +696,91 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 		return nil
 	}
 
-	cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id) // nolint: gosec
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
-	}
-	out, err := cmd.Output()
-	if err != nil {
-		// there are many code paths that could lead to have a bad state in the
-		// underlying runtime.
-		// On any error like a container went away or we rebooted and containers
-		// went away we do not error out stopping kubernetes to recover.
-		// We always populate the fields below so kube can restart/reschedule
-		// containers failing.
-		c.state.Status = ContainerStateStopped
-		if err := updateContainerStatusFromExitFile(c); err != nil {
-			c.state.Finished = time.Now()
-			c.state.ExitCode = utils.Int32Ptr(255)
+	stateCmd := func() (*ContainerState, bool, error) {
+		cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id) // nolint: gosec
+		if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 		}
+		out, err := cmd.Output()
+		if err != nil {
+			// there are many code paths that could lead to have a bad state in the
+			// underlying runtime.
+			// On any error like a container went away or we rebooted and containers
+			// went away we do not error out stopping kubernetes to recover.
+			// We always populate the fields below so kube can restart/reschedule
+			// containers failing.
+			c.state.Status = ContainerStateStopped
+			if err := updateContainerStatusFromExitFile(c); err != nil {
+				c.state.Finished = time.Now()
+				c.state.ExitCode = utils.Int32Ptr(255)
+			}
+			return nil, true, nil
+		}
+		state := *c.state
+		if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&state); err != nil {
+			return &state, false, fmt.Errorf("failed to decode container status for %s: %s", c.id, err)
+		}
+		return &state, false, nil
+	}
+	state, canReturn, err := stateCmd()
+	if err != nil {
+		return err
+	}
+	if canReturn {
 		return nil
 	}
-	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&c.state); err != nil {
-		return fmt.Errorf("failed to decode container status for %s: %s", c.id, err)
+
+	if state.Status != ContainerStateStopped {
+		*c.state = *state
+		return nil
+	}
+	// release the lock before waiting
+	c.opLock.Unlock()
+	exitFilePath := c.exitFilePath()
+	var fi os.FileInfo
+	err = kwait.ExponentialBackoff(
+		kwait.Backoff{
+			Duration: 500 * time.Millisecond,
+			Factor:   1.2,
+			Steps:    6,
+		},
+		func() (bool, error) {
+			var err error
+			fi, err = os.Stat(exitFilePath)
+			if err != nil {
+				// wait longer
+				return false, nil
+			}
+			return true, nil
+		})
+	c.opLock.Lock()
+	// run command again
+	state, _, err2 := stateCmd()
+	if err2 != nil {
+		return err2
+	}
+	*c.state = *state
+	if err != nil {
+		logrus.Warnf("failed to find container exit file for %v: %v", c.id, err)
+	} else {
+		c.state.Finished, err = getFinishedTime(fi)
+		if err != nil {
+			return fmt.Errorf("failed to get finished time: %v", err)
+		}
+		statusCodeStr, err := ioutil.ReadFile(exitFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to read exit file: %v", err)
+		}
+		statusCode, err := strconv.Atoi(string(statusCodeStr))
+		if err != nil {
+			return fmt.Errorf("status code conversion failed: %v", err)
+		}
+		c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
 	}
 
-	if c.state.Status == ContainerStateStopped {
-		exitFilePath := c.exitFilePath()
-		var fi os.FileInfo
-		err = kwait.ExponentialBackoff(
-			kwait.Backoff{
-				Duration: 500 * time.Millisecond,
-				Factor:   1.2,
-				Steps:    6,
-			},
-			func() (bool, error) {
-				var err error
-				fi, err = os.Stat(exitFilePath)
-				if err != nil {
-					// wait longer
-					return false, nil
-				}
-				return true, nil
-			})
-		if err != nil {
-			logrus.Warnf("failed to find container exit file for %v: %v", c.id, err)
-		} else {
-			c.state.Finished, err = getFinishedTime(fi)
-			if err != nil {
-				return fmt.Errorf("failed to get finished time: %v", err)
-			}
-			statusCodeStr, err := ioutil.ReadFile(exitFilePath)
-			if err != nil {
-				return fmt.Errorf("failed to read exit file: %v", err)
-			}
-			statusCode, err := strconv.Atoi(string(statusCodeStr))
-			if err != nil {
-				return fmt.Errorf("status code conversion failed: %v", err)
-			}
-			c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
-		}
-
-		oomFilePath := filepath.Join(c.bundlePath, "oom")
-		if _, err = os.Stat(oomFilePath); err == nil {
-			c.state.OOMKilled = true
-		}
+	oomFilePath := filepath.Join(c.bundlePath, "oom")
+	if _, err = os.Stat(oomFilePath); err == nil {
+		c.state.OOMKilled = true
 	}
 
 	return nil
