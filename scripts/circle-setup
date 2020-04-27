@@ -72,8 +72,11 @@ install_packages() {
 }
 
 install_bats() {
-    git clone https://github.com/bats-core/bats-core --depth=1
-    sudo ./bats-core/install.sh /usr/local
+    git clone https://github.com/bats-core/bats-core
+    pushd bats-core
+    git checkout "${VERSIONS["bats"]}"
+    sudo ./install.sh /usr/local
+    popd
     rm -rf bats-core
     mkdir -p ~/.parallel
     touch ~/.parallel/will-cite
