@@ -361,7 +361,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	}()
 
 	// Start the process
-	if err := r.start(ctx, c.ID(), execID); err != nil {
+	if err = r.start(ctx, c.ID(), execID); err != nil {
 		return -1, err
 	}
 
