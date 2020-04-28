@@ -13,10 +13,10 @@ import (
 	"text/tabwriter"
 
 	"github.com/blang/semver"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/google/renameio"
 	"github.com/pkg/errors"
-
-	"github.com/cri-o/cri-o/utils"
+	"github.com/sirupsen/logrus"
 )
 
 // Version is the version of the build.
@@ -167,14 +167,16 @@ func (i *Info) String() string {
 func getLinkmode() string {
 	abspath, err := os.Executable()
 	if err != nil {
-		return fmt.Sprintf("unknown: %v", err)
+		logrus.Warnf("Encountered error finding binary to detect link mode: %v", err)
+		return ""
 	}
 
 	if _, err := utils.ExecCmd("ldd", abspath); err != nil {
 		if strings.Contains(err.Error(), "not a dynamic executable") {
 			return "static"
 		}
-		return fmt.Sprintf("unknown: %v", err)
+		logrus.Warnf("Encountered error detecting link mode of binary: %v", err)
+		return ""
 	}
 
 	return "dynamic"
