@@ -17,7 +17,7 @@ require (
 	github.com/containers/conmon v2.0.15+incompatible
 	github.com/containers/image/v5 v5.3.1
 	github.com/containers/libpod v1.6.3-0.20191101152258-04e8bf3dba50
-	github.com/containers/psgo v1.4.0
+	github.com/containers/psgo v1.4.0 // indirect
 	github.com/containers/storage v1.16.7-0.20200415192751-01ee1656d552
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cpuguy83/go-md2man v1.0.10
