@@ -31,7 +31,7 @@ tar czf "${rpm_tmp_dir}/SOURCES/${OS_RPM_NAME}-test.tar.gz" \
 	.
 cp -r "${ci_data}/." "${rpm_tmp_dir}/SOURCES"
 
-sed -i 's/vault.centos.org\/centos\/$releasever/vault.centos.org\/centos\/7.7.1908/g' /etc/yum.repos.d/CentOS-Sources.repo
+echo "${OS_GIT_COMMIT}"
 yum-builddep -y "${OS_RPM_SPECFILE}"
 
 rpmbuild -ba "${OS_RPM_SPECFILE}" \
