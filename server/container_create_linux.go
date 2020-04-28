@@ -377,6 +377,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	defer func() {
 		if errRet != nil {
+			log.Infof(ctx, "createCtrLinux: deleting container %s from storage", containerInfo.ID)
 			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
@@ -796,6 +797,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
+	defer func() {
+		if errRet != nil {
+			log.Infof(ctx, "createCtrLinux: stopping storage container %s", containerID)
+			if err := s.StorageRuntimeServer().StopContainer(containerID); err != nil {
+				log.Warnf(ctx, "couldn't stop storage container: %v: %v", containerID, err)
+			}
+		}
+	}()
 	specgen.AddAnnotation(annotations.MountPoint, mountPoint)
 
 	if containerImageConfig.Config.StopSignal != "" {

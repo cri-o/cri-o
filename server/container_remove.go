@@ -11,6 +11,8 @@ import (
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *pb.RemoveContainerRequest) (resp *pb.RemoveContainerResponse, err error) {
+	log.Infof(ctx, "Attempting to remove container: %s", req.GetContainerId())
+
 	const operation = "remove_container"
 	defer func() {
 		recordOperation(operation, time.Now())

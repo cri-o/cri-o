@@ -574,6 +574,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: releasing container name %s", containerName)
 			s.ReleaseContainerName(containerName)
 		}
 	}()
@@ -584,6 +585,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: deleting container %s from storage", containerID)
 			err2 := s.StorageRuntimeServer().DeleteContainer(containerID)
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
@@ -594,6 +596,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	s.addContainer(container)
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: removing container %s", container.ID())
 			s.removeContainer(container)
 		}
 	}()
@@ -603,6 +606,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", containerID)
 			if err2 := s.CtrIDIndex().Delete(containerID); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", containerID)
 			}
@@ -626,6 +630,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	log.Infof(ctx, "Created container: %s", container.Description())
 	resp := &pb.CreateContainerResponse{
 		ContainerId: containerID,
+	}
+
+	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+		log.Infof(ctx, "createCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+		return nil, ctx.Err()
 	}
 
 	log.Debugf(ctx, "CreateContainerResponse: %+v", resp)

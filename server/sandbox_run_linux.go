@@ -58,6 +58,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
 	log.Infof(ctx, "attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(req.GetConfig().GetLabels()), leaky.PodInfraContainerName)
+
 	var processLabel, mountLabel, resolvPath string
 	// process req.Name
 	kubeName := req.GetConfig().GetMetadata().GetName()
@@ -74,6 +75,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "runSandbox: releasing pod sandbox name: %s", name)
 			s.ReleasePodName(name)
 		}
 	}()
@@ -84,6 +86,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "runSandbox: releasing container name: %s", containerName)
 			s.ReleaseContainerName(containerName)
 		}
 	}()
@@ -117,6 +120,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "runSandbox: removing pod sandbox from storage: %s", id)
 			if err2 := s.StorageRuntimeServer().RemovePodSandbox(id); err2 != nil {
 				log.Warnf(ctx, "couldn't cleanup pod sandbox %q: %v", id, err2)
 			}
@@ -263,6 +267,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		pathsToChown = append(pathsToChown, shmPath)
 		defer func() {
 			if err != nil {
+				log.Infof(ctx, "runSandbox: unmounting shmPath for sandbox %s", id)
 				if err2 := unix.Unmount(shmPath, unix.MNT_DETACH); err2 != nil {
 					log.Warnf(ctx, "failed to unmount shm for pod: %v", err2)
 				}
@@ -290,6 +295,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "runSandbox: deleting container ID from idIndex for sandbox %s", id)
 			if err2 := s.CtrIDIndex().Delete(id); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", id)
 			}
@@ -390,6 +396,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "runSandbox: removing pod sandbox %s", id)
 			if err := s.removeSandbox(id); err != nil {
 				log.Warnf(ctx, "could not remove pod sandbox: %v", err)
 			}
@@ -402,6 +409,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "runSandbox: deleting pod ID %s from idIndex", id)
 			if err := s.PodIDIndex().Delete(id); err != nil {
 				log.Warnf(ctx, "couldn't delete pod id %s from idIndex", id)
 			}
@@ -457,6 +465,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				return
 			}
 
+			log.Infof(ctx, "runSandbox: cleaning up namespaces after failing to run sandbox %s", id)
 			if netnsErr := sb.NetNsRemove(); netnsErr != nil {
 				log.Warnf(ctx, "Failed to remove networking namespace: %v", netnsErr)
 			}
@@ -494,6 +503,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "runSandbox: stopping storage container for sandbox %s", id)
 			if err2 := s.StorageRuntimeServer().StopContainer(id); err2 != nil {
 				log.Warnf(ctx, "couldn't stop storage container: %v: %v", id, err2)
 			}
@@ -585,6 +595,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 		defer func() {
 			if err != nil {
+				log.Infof(ctx, "runSandbox: in manageNSLifecycle, stopping network for sandbox %s", sb.ID())
 				if err2 := s.networkStop(ctx, sb); err2 != nil {
 					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 				}
@@ -618,6 +629,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	s.addInfraContainer(container)
 	defer func() {
 		if err != nil {
+			log.Infof(ctx, "runSandbox: removing infra container %s", container.ID())
 			s.removeInfraContainer(container)
 		}
 	}()
@@ -643,16 +655,18 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	defer func() {
 		if err != nil {
 			// Clean-up steps from RemovePodSanbox
-			timeout := int64(10)
-			if err2 := s.Runtime().StopContainer(ctx, container, timeout); err2 != nil {
+			log.Infof(ctx, "runSandbox: stopping container %s", container.ID())
+			if err2 := s.Runtime().StopContainer(ctx, container, int64(10)); err2 != nil {
 				log.Warnf(ctx, "failed to stop container %s: %v", container.Name(), err2)
 			}
 			if err2 := s.Runtime().WaitContainerStateStopped(ctx, container); err2 != nil {
 				log.Warnf(ctx, "failed to get container 'stopped' status %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
+			log.Infof(ctx, "runSandbox: deleting container %s", container.ID())
 			if err2 := s.Runtime().DeleteContainer(container); err2 != nil {
 				log.Warnf(ctx, "failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
+			log.Infof(ctx, "runSandbox: writing container %s state to disk", container.ID())
 			if err2 := s.ContainerStateToDisk(container); err2 != nil {
 				log.Warnf(ctx, "failed to write container state %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 			}
@@ -670,6 +684,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 		defer func() {
 			if err != nil {
+				log.Infof(ctx, "runSandbox: in not manageNSLifecycle, stopping network for sandbox %s", sb.ID())
 				if err2 := s.networkStop(ctx, sb); err2 != nil {
 					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 				}
@@ -681,6 +696,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	sb.SetCreated()
 
 	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+		log.Infof(ctx, "runSandbox: context was either canceled or the deadline was exceeded: %v", ctx.Err())
 		return nil, ctx.Err()
 	}
 

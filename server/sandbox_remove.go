@@ -19,6 +19,8 @@ import (
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (resp *pb.RemovePodSandboxResponse, err error) {
+	log.Infof(ctx, "Attempting to remove pod sandbox: %s", req.GetPodSandboxId())
+
 	const operation = "remove_pod_sandbox"
 	defer func() {
 		recordOperation(operation, time.Now())
