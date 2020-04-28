@@ -200,6 +200,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 			return
 		}
 		ch <- syncStruct{si: si}
+		close(ch)
 	}()
 
 	select {
