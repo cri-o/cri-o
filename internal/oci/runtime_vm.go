@@ -243,15 +243,18 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 
 	// Spawn a goroutine waiting for the container to terminate. Once it
 	// happens, the container status is retrieved to be updated.
-	var err error
 	go func() {
-		_, err = r.wait(r.ctx, c.ID(), "")
+		_, err := r.wait(r.ctx, c.ID(), "")
 		if err == nil {
-			err = r.UpdateContainerStatus(c)
+			if err1 := r.UpdateContainerStatus(c); err1 != nil {
+				logrus.Warningf("error updating container status %v", err1)
+			}
+		} else {
+			logrus.Warningf("wait for %s returned: %v", c.ID(), err)
 		}
 	}()
 
-	return errors.Wrap(err, "start container")
+	return nil
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
