@@ -152,9 +152,11 @@ func (i *Info) String() string {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		value := v.FieldByName(field.Name).String()
-		fmt.Fprintf(w, "%s:\t%s", field.Name, value)
-		if i+1 < t.NumField() {
-			fmt.Fprintf(w, "\n")
+		if value != "" {
+			fmt.Fprintf(w, "%s:\t%s", field.Name, value)
+			if i+1 < t.NumField() {
+				fmt.Fprintf(w, "\n")
+			}
 		}
 	}
 
