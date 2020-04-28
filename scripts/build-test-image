@@ -181,8 +181,11 @@ install_packages() {
 }
 
 install_bats() {
-    run git clone https://github.com/bats-core/bats-core --depth=1
-    run ./bats-core/install.sh /usr
+    run git clone https://github.com/bats-core/bats-core
+    run bash -c "\
+        cd bats-core && \
+        git checkout ${VERSIONS["bats"]} && \
+        ./install.sh /usr"
     run rm -rf bats-core
     run mkdir -p ~/.parallel
     run touch ~/.parallel/will-cite
