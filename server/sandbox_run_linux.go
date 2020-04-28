@@ -645,6 +645,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	sb.SetCreated()
 
+	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+		log.Infof(ctx, "runSandbox: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+		return nil, ctx.Err()
+	}
+
 	log.Infof(ctx, "ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: sbox.ID()}
 	return resp, nil
