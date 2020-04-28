@@ -759,6 +759,9 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	if err2 != nil {
 		return err2
 	}
+	if state == nil {
+		return fmt.Errorf("state command returned nil")
+	}
 	*c.state = *state
 	if err != nil {
 		logrus.Warnf("failed to find container exit file for %v: %v", c.id, err)

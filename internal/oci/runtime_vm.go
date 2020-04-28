@@ -413,9 +413,11 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 		return -1, errors.Errorf("ExecSyncContainer timeout (%v)", timeoutDuration)
 	}
 
-	// Delete the process
-	if err := r.remove(ctx, c.ID(), execID); err != nil {
-		return -1, err
+	if err == nil {
+		// Delete the process
+		if err := r.remove(ctx, c.ID(), execID); err != nil {
+			logrus.Debugf("unable to remove container %s: %v", c.ID(), err)
+		}
 	}
 
 	return exitCode, err
