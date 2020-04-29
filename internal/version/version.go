@@ -19,9 +19,11 @@ import (
 	"github.com/cri-o/cri-o/utils"
 )
 
+// Version is the version of the build.
+const Version = "1.19.0-dev"
+
 // Variables injected during build-time
 var (
-	version      string // Version is the version of the build.
 	gitCommit    string // sha1 from git, output of $(git rev-parse HEAD)
 	gitTreeState string // state of git tree, either "clean" or "dirty"
 	buildDate    string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -44,7 +46,7 @@ type Info struct {
 // and returns whether the major and minor versions are the same.
 // If they differ, then crio should wipe.
 func ShouldCrioWipe(versionFileName string) (bool, error) {
-	return shouldCrioWipe(versionFileName, version)
+	return shouldCrioWipe(versionFileName, Version)
 }
 
 // shouldCrioWipe is an internal function for testing purposes
@@ -82,7 +84,7 @@ func shouldCrioWipe(versionFileName, versionString string) (bool, error) {
 // gitCommit is the current git commit version. It will be added to the file
 // to aid in debugging, but will not be used to compare versions
 func WriteVersionFile(file string) error {
-	return writeVersionFile(file, gitCommit, version)
+	return writeVersionFile(file, gitCommit, Version)
 }
 
 // writeVersionFile is an internal function for testing purposes
@@ -129,7 +131,7 @@ func parseVersionConstant(versionString, gitCommit string) (*semver.Version, err
 
 func Get() *Info {
 	return &Info{
-		Version:      version,
+		Version:      Version,
 		GitCommit:    gitCommit,
 		GitTreeState: gitTreeState,
 		BuildDate:    buildDate,
