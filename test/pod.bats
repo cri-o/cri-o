@@ -356,8 +356,8 @@ function teardown() {
 
 	run systemctl show "crio-${ctr_id}.scope"
 	[ "$status" -eq 0 ]
-	echo "$output" | grep 'TimeoutStopUSec=' || true	# show
-	echo "$output" | grep -q '^TimeoutStopUSec=1min 28s$'	# check
+	echo "$output" | grep 'TimeoutStopUSec=' || true # show
+	echo "$output" | grep -Eq '^TimeoutStopUSec=1min [23][0-9]s$' # check
 
 	stop_crio
 }

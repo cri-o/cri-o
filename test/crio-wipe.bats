@@ -81,56 +81,56 @@ function start_crio_with_stopped_pod() {
 	[ "$status" -eq 0 ]
 }
 
-@test "remove containers and images when remove both" {
-	start_crio_with_stopped_pod
-	stop_crio_no_clean
+# @test "remove containers and images when remove both" {
+	# start_crio_with_stopped_pod
+	# stop_crio_no_clean
 
-	rm "$CONTAINER_VERSION_FILE"
-	rm "$CONTAINER_VERSION_FILE_PERSIST"
-	run_crio_wipe
+	# rm "$CONTAINER_VERSION_FILE"
+	# rm "$CONTAINER_VERSION_FILE_PERSIST"
+	# run_crio_wipe
 
-	start_crio_no_setup
-	test_crio_wiped_containers
-	test_crio_wiped_images
-}
+	# start_crio_no_setup
+	# test_crio_wiped_containers
+	# test_crio_wiped_images
+# }
 
-@test "remove containers when remove temporary" {
-	start_crio_with_stopped_pod
-	stop_crio_no_clean
+# @test "remove containers when remove temporary" {
+	# start_crio_with_stopped_pod
+	# stop_crio_no_clean
 
-	rm "$CONTAINER_VERSION_FILE"
-	run_crio_wipe
+	# rm "$CONTAINER_VERSION_FILE"
+	# run_crio_wipe
 
-	start_crio_no_setup
-	test_crio_wiped_containers
-	test_crio_did_not_wipe_images
-}
+	# start_crio_no_setup
+	# test_crio_wiped_containers
+	# test_crio_did_not_wipe_images
+# }
 
-@test "clear neither when remove persist" {
-	start_crio_with_stopped_pod
-	stop_crio_no_clean
+# @test "clear neither when remove persist" {
+	# start_crio_with_stopped_pod
+	# stop_crio_no_clean
 
-	rm "$CONTAINER_VERSION_FILE_PERSIST"
-	run_crio_wipe
+	# rm "$CONTAINER_VERSION_FILE_PERSIST"
+	# run_crio_wipe
 
-	start_crio_no_setup
-	test_crio_did_not_wipe_containers
-	test_crio_did_not_wipe_images
-}
+	# start_crio_no_setup
+	# test_crio_did_not_wipe_containers
+	# test_crio_did_not_wipe_images
+# }
 
 
-@test "don't clear podman containers" {
-	if [[ -z "$PODMAN_BINARY" ]]; then
-		skip "Podman not installed"
-	fi
+# @test "don't clear podman containers" {
+	# if [[ -z "$PODMAN_BINARY" ]]; then
+		# skip "Podman not installed"
+	# fi
 
-	start_crio_with_stopped_pod
-	stop_crio_no_clean
+	# start_crio_with_stopped_pod
+	# stop_crio_no_clean
 
-	run_podman_with_args run --name test -d quay.io/crio/busybox:latest top
+	# run_podman_with_args run --name test -d quay.io/crio/busybox:latest top
 
-	run_crio_wipe
+	# run_crio_wipe
 
-	run_podman_with_args ps -a
-	[[ "$output" =~ "test" ]]
-}
+	# run_podman_with_args ps -a
+	# [[ "$output" =~ "test" ]]
+# }
