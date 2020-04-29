@@ -863,6 +863,7 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 	if outputStream != nil || errorStream != nil {
 		go func() {
 			receiveStdout <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
+			close(receiveStdout)
 		}()
 	}
 
@@ -876,6 +877,7 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 			}
 		}
 		stdinDone <- err
+		close(stdinDone)
 	}()
 
 	select {
@@ -987,6 +989,7 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 				}
 			case err := <-watcher.Errors:
 				errorCh <- fmt.Errorf("watch error for container log reopen %v: %v", c.ID(), err)
+				close(errorCh)
 				return
 			}
 		}
