@@ -56,8 +56,6 @@ install-crio:
 	install $(SELINUX) -D -m 644 -t $(FISHINSTALLDIR) completions/fish/crio.fish
 	install $(SELINUX) -D -m 644 -t $(ZSHINSTALLDIR) completions/zsh/_crio
 	install $(SELINUX) -D -m 644 -t $(CONTAINERS_DIR) contrib/policy.json
-	install $(SELINUX) -D -m 644 -t $(SYSTEMDDIR) contrib/crio-shutdown.service
-	install $(SELINUX) -D -m 644 -t $(SYSTEMDDIR) contrib/crio-wipe.service
 	install $(SELINUX) -D -m 644 -t $(SYSTEMDDIR) contrib/crio.service
 
 .PHONY: install-pinns
@@ -105,8 +103,6 @@ uninstall-crio:
 	rm $(FISHINSTALLDIR)/crio.fish
 	rm $(ZSHINSTALLDIR)/_crio
 	rm $(CONTAINERS_DIR)/policy.json
-	rm $(SYSTEMDDIR)/crio-shutdown.service
-	rm $(SYSTEMDDIR)/crio-wipe.service
 	rm $(SYSTEMDDIR)/crio.service
 
 .PHONY: uninstall-pinns
