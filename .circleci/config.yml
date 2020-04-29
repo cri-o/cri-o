@@ -4,9 +4,9 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.6
-    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.13:master-1.3.6
-    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.6
+    IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.7
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.13:master-1.3.7
+    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.7
     IMAGENIX: &imagenix quay.io/crio/nix:1.3.0
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o

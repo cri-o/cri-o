@@ -4,7 +4,7 @@
   git:
     repo: "https://github.com/bats-core/bats-core.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/bats-core/bats-core"
-    version: v1.2.0
+    version: b615ed8f750e45017b1ad070ef893d1e2552633a
 
 - name: install bats
   command: "./install.sh /usr/local"
