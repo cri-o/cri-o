@@ -92,7 +92,6 @@ else
 GCFLAGS = -gcflags '-N -l'
 endif
 
-VERSION ?= $(shell $(GO_RUN) ./scripts/latest-version)
 DEFAULTS_PATH := ""
 
 BASE_LDFLAGS = ${SHRINKFLAGS} \
@@ -100,7 +99,6 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
 	-X ${PROJECT}/internal/version.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	-X ${PROJECT}/internal/version.gitCommit=${COMMIT_NO} \
 	-X ${PROJECT}/internal/version.gitTreeState=${GIT_TREE_STATE} \
-	-X ${PROJECT}/internal/version.version=${VERSION}
 
 LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
@@ -186,8 +184,7 @@ release-note: ${RELEASE_TOOL}
 
 release-notes: ${RELEASE_NOTES}
 	${GO_RUN} ./scripts/release-notes \
-		--output-path ${BUILD_PATH}/release-notes \
-		--tag ${VERSION}
+		--output-path ${BUILD_PATH}/release-notes
 
 dependencies: ${GO_MOD_OUTDATED}
 	${GO_RUN} ./scripts/dependencies \
