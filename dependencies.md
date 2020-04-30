@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 30 Apr 2020 21:58:16 UTC for commit [a6dd748][0]._
+_Generated on Thu, 30 Apr 2020 22:30:12 UTC for commit [420c082][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a6dd748101b65fadb3f067ee14cb4bb3a029fe81
+[0]: https://github.com/cri-o/cri-o/commit/420c082b542fb8bd2177ff3c1a46b99d0b5c4d49
 
 ## Outdated Dependencies
 
@@ -240,7 +240,7 @@ _Generated on Thu, 30 Apr 2020 21:58:16 UTC for commit [a6dd748][0]._
 | github.com/google/go-querystring                        | v1.0.0                                            |                                    | false  | true             |
 | github.com/google/gofuzz                                | v1.1.0                                            |                                    | false  | true             |
 | github.com/google/martian                               | v2.1.0+incompatible                               |                                    | false  | true             |
-| github.com/google/pprof                                 | v0.0.0-20190515194954-54271f7e092f                | v0.0.0-20200429164031-e11b8033daa0 | false  | true             |
+| github.com/google/pprof                                 | v0.0.0-20190515194954-54271f7e092f                | v0.0.0-20200430221834-fc25d7d30c6d | false  | true             |
 | github.com/google/renameio                              | v0.1.0                                            |                                    | true   | true             |
 | github.com/google/shlex                                 | v0.0.0-20181106134648-c34317bd91bf                | v0.0.0-20191202100458-e7afc7fbc510 | false  | true             |
 | github.com/google/uuid                                  | v1.1.1                                            |                                    | true   | true             |
@@ -483,7 +483,7 @@ _Generated on Thu, 30 Apr 2020 21:58:16 UTC for commit [a6dd748][0]._
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.2                                            |                                    | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200416051211-89c76fbcd5d1 | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200102140908-9497f49d5709                | v0.0.0-20200430192856-2840dafb9ee1 | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200102140908-9497f49d5709                | v0.0.0-20200430221153-f26c0dd9827d | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                |                                    | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.7.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200317120129-c5a04cffd98a | false  | true             |
