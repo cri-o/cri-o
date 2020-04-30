@@ -3,6 +3,7 @@
 package cgroupmanager
 
 import (
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/pkg/errors"
 )
 
@@ -14,18 +15,18 @@ const (
 	// A lower value would result in the container failing to start.
 	minMemoryLimit = 12582912
 	// CgroupfsCgroupManager represents cgroupfs native cgroup manager
-	CgroupfsCgroupManager = "cgroupfs"
+	cgroupfsCgroupManager = "cgroupfs"
 	// SystemdCgroupManager represents systemd native cgroup manager
-	SystemdCgroupManager = "systemd"
+	systemdCgroupManager = "systemd"
 
-	DefaultCgroupManager = SystemdCgroupManager
+	DefaultCgroupManager = systemdCgroupManager
 )
 
 // CgroupManager is an interface to interact with cgroups on a node. CRI-O is configured at startup to either use
 // systemd or cgroupfs, and the node itself is booted with cgroup v1, or cgroup v2. CgroupManager is an interface for
 // the CRI-O server to use cgroups, regardless of how it or the node was configured.
 type CgroupManager interface {
-	// Name returns the name of the cgroup manager (either cgroupfs or systemd)
+	// String returns the name of the cgroup manager (either cgroupfs or systemd)
 	Name() string
 	// IsSystemd returns whether it is a systemd cgroup manager
 	IsSystemd() bool
@@ -41,27 +42,26 @@ type CgroupManager interface {
 	// It attempts to move conmon to the correct cgroup.
 	// It returns the cgroupfs parent that conmon was put into
 	// so that CRI-O can clean the parent cgroup of the newly added conmon once the process terminates (systemd handles this for us)
-	MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) string
+	MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error)
 }
 
 // New creates a new CgroupManager with defaults
 func New() CgroupManager {
 	// we can eat the error here because we control what the DefaultCgroupManager is
-	cm, _ := SetCgroupManager(DefaultCgroupManager)
+	cm, _ := SetCgroupManager(DefaultCgroupManager) // nolint: errcheck
 	return cm
 }
 
 // SetCgroupManager takes a string and branches on it to return
 // the type of cgroup manager configured
 func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
-	initializeCgroups()
 	switch cgroupManager {
-	case SystemdCgroupManager:
-		if CgroupIsV2() {
+	case systemdCgroupManager:
+		if node.CgroupIsV2() {
 			return new(Systemdv2Manager), nil
 		}
 		return new(Systemdv1Manager), nil
-	case CgroupfsCgroupManager:
+	case cgroupfsCgroupManager:
 		return new(CgroupfsManager), nil
 	default:
 		return nil, errors.Errorf("invalid cgroup manager: %s", cgroupManager)

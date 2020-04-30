@@ -3,7 +3,7 @@ package server
 import (
 	"fmt"
 
-	"github.com/cri-o/cri-o/internal/config/cgroupmanager"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -33,7 +33,7 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateCon
 func toOCIResources(r *pb.LinuxContainerResources) *rspec.LinuxResources {
 	var swap int64
 	memory := r.GetMemoryLimitInBytes()
-	if cgroupmanager.CgroupHasMemorySwap() {
+	if node.CgroupHasMemorySwap() {
 		swap = memory
 	}
 	return &rspec.LinuxResources{

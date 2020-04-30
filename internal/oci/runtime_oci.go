@@ -86,14 +86,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	defer parentPipe.Close()
 	defer parentStartPipe.Close()
 
-	var args []string
-	if r.config.CgroupManager().IsSystemd() {
-		args = append(args, "-s")
-	}
-
-	args = append(args, "--syslog")
-
-	args = append(args,
+	args := []string{
 		"-c", c.id,
 		"-n", c.name,
 		"-u", c.id,
@@ -106,7 +99,13 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 		"--exit-dir", r.config.ContainerExitsDir,
 		"--socket-dir-path", r.config.ContainerAttachSocketDir,
 		"--log-level", logrus.GetLevel().String(),
-		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
+		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root),
+		"--syslog"}
+
+	if r.config.CgroupManager().IsSystemd() {
+		args = append(args, "-s")
+	}
+
 	if r.config.LogSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.config.LogSizeMax))
 	}

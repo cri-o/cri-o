@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/pkg/cgroups"
-	"github.com/cri-o/cri-o/internal/config/cgroupmanager"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -21,7 +21,11 @@ import (
 
 func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) {
 	// Move conmon to specified cgroup
-	c.conmonCgroupfsPath = r.config.CgroupManager().MoveConmonToCgroup(c.id, cgroupParent, r.config.ConmonCgroup, pid)
+	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.id, cgroupParent, r.config.ConmonCgroup, pid)
+	if err != nil {
+		logrus.Errorf(err.Error())
+	}
+	c.conmonCgroupfsPath = conmonCgroupfsPath
 }
 
 func sysProcAttrPlatform() *syscall.SysProcAttr {

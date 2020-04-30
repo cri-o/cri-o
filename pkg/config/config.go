@@ -21,6 +21,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/cgroupmanager"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
@@ -597,6 +598,11 @@ func (c *Config) Validate(onExecution bool) error {
 		return fmt.Errorf("unrecognized image volume type specified")
 	}
 
+	if onExecution {
+		if err := node.ValidateConfig(); err != nil {
+			return err
+		}
+	}
 	if err := c.RootConfig.Validate(onExecution); err != nil {
 		return errors.Wrap(err, "validating root config")
 	}

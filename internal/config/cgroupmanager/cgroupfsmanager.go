@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +22,7 @@ const (
 
 // Name returns the name of the cgroup manager (cgroupfs)
 func (*CgroupfsManager) Name() string {
-	return CgroupfsCgroupManager
+	return cgroupfsCgroupManager
 }
 
 // IsSystemd returns that this is not a systemd cgroup manager
@@ -42,7 +43,7 @@ func (*CgroupfsManager) GetContainerCgroupPath(sbParent, containerID string) str
 
 // GetSandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 // returns the cgroup parent, cgroup path, and error.
-func (*CgroupfsManager) GetSandboxCgroupPath(sbParent, sbID string) (string, string, error) {
+func (*CgroupfsManager) GetSandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, err error) {
 	if strings.HasSuffix(path.Base(sbParent), ".slice") {
 		return "", "", fmt.Errorf("cri-o configured with cgroupfs cgroup manager, but received systemd slice as parent: %s", sbParent)
 	}
@@ -53,11 +54,10 @@ func (*CgroupfsManager) GetSandboxCgroupPath(sbParent, sbID string) (string, str
 // It attempts to move conmon to the correct cgroup.
 // It returns the cgroupfs parent that conmon was put into
 // so that CRI-O can clean the cgroup path of the newly added conmon once the process terminates (systemd handles this for us)
-func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) string {
+func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error) {
 	// Move conmon to specified cgroup
 	if conmonCgroup != "pod" && conmonCgroup != "" {
-		logrus.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
-		return ""
+		return "", errors.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
 	}
 
 	cgroupPath := filepath.Join(cgroupParent, "/crio-conmon-"+cid)
@@ -66,7 +66,7 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 	}
 	if control == nil {
-		return cgroupPath
+		return cgroupPath, nil
 	}
 
 	// Record conmon's cgroup path in the container, so we can properly
@@ -78,7 +78,7 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 	// through e.g. runc. This should be handled by implementing a conmon monitoring
 	// routine that does the cgroup cleanup once conmon is terminated.
 	if err := control.AddPid(pid); err != nil {
-		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+		return "", errors.Wrapf(err, "Failed to add conmon to cgroupfs sandbox cgroup")
 	}
-	return cgroupPath
+	return cgroupPath, nil
 }

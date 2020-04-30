@@ -12,6 +12,8 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
+const systemdCgroupDriver = "systemd"
+
 func TestGetInfo(t *testing.T) {
 	c, err := config.DefaultConfig()
 	if err != nil {
@@ -19,11 +21,11 @@ func TestGetInfo(t *testing.T) {
 	}
 	c.RootConfig.Storage = "afoobarstorage"
 	c.RootConfig.Root = "afoobarroot"
-	c.RuntimeConfig.CgroupManager = "systemd"
+	c.RuntimeConfig.CgroupManagerName = systemdCgroupDriver
 	c.APIConfig = config.APIConfig{}
 	s := &Server{config: *c}
 	ci := s.getInfo()
-	if ci.CgroupDriver != "systemd" {
+	if ci.CgroupDriver != systemdCgroupDriver {
 		t.Fatalf("expected 'systemd', got %q", ci.CgroupDriver)
 	}
 	if ci.StorageDriver != "afoobarstorage" {
