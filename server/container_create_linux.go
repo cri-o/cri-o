@@ -15,6 +15,7 @@ import (
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/selinux"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -357,6 +358,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if err != nil {
 		return nil, err
 	}
+
 	mountLabel := containerInfo.MountLabel
 	var processLabel string
 	if !privileged {
@@ -384,8 +386,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			}
 		}
 	}()
-	specgen.SetLinuxMountLabel(mountLabel)
-	specgen.SetProcessSelinuxLabel(processLabel)
 
 	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, &specgen, s.config.RuntimeConfig.BindMountPrefix)
 	if err != nil {
@@ -662,6 +662,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	specgen.SetProcessArgs(processArgs)
 
 	if strings.Contains(processArgs[0], "/sbin/init") || (filepath.Base(processArgs[0]) == oci.SystemdCgroupsManager) {
+		processLabel, err = selinux.InitLabel(processLabel)
+		if err != nil {
+			return nil, err
+		}
 		setupSystemd(specgen.Mounts(), specgen)
 	}
 
@@ -902,6 +906,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if err != nil {
 		return nil, err
 	}
+
+	specgen.SetLinuxMountLabel(mountLabel)
+	specgen.SetProcessSelinuxLabel(processLabel)
 
 	container.SetIDMappings(containerIDMappings)
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
