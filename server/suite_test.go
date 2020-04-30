@@ -162,7 +162,7 @@ var beforeEach = func() {
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", "", "",
 		&pb.ContainerMetadata{}, sandboxID, false, false,
-		false, false, "", "", time.Now(), "")
+		false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
 
 	// Initialize test streaming server
