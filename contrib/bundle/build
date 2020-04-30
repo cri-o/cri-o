@@ -29,8 +29,6 @@ FILES_ETC=(
 FILES_CONTRIB=(
     "$GIT_ROOT/contrib/cni/10-crio-bridge.conf"
     "$GIT_ROOT/contrib/policy.json"
-    "$GIT_ROOT/contrib/systemd/crio-shutdown.service"
-    "$GIT_ROOT/contrib/systemd/crio-wipe.service"
     "$GIT_ROOT/contrib/systemd/crio.service"
 )
 COMPLETIONS="$GIT_ROOT/completions"
