@@ -9,7 +9,10 @@ import (
 // The actual test suite
 var _ = t.Describe("Server", func() {
 	// Prepare the sut
-	BeforeEach(beforeEach)
+	BeforeEach(func() {
+		beforeEach()
+		setupSUT()
+	})
 	AfterEach(afterEach)
 
 	t.Describe("ReserveSandboxContainerIDAndName", func() {
