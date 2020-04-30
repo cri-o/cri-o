@@ -344,7 +344,9 @@ func (s *Sandbox) SetNetworkStopped(createFile bool) error {
 func (s *Sandbox) createFileInInfraDir(filename string) error {
 	infra := s.InfraContainer()
 	f, err := os.Create(filepath.Join(infra.Dir(), filename))
-	f.Close()
+	if err == nil {
+		f.Close()
+	}
 	return err
 }
 
