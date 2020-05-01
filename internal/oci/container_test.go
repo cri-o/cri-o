@@ -141,7 +141,7 @@ var _ = t.Describe("Container", func() {
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
 			"", "", "", &pb.ContainerMetadata{}, "",
-			false, false, false, false, "", "", time.Now(), "SIGNO")
+			false, false, false, "", "", time.Now(), "SIGNO")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())
 
@@ -157,7 +157,7 @@ var _ = t.Describe("Container", func() {
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
 			"", "", "", &pb.ContainerMetadata{}, "",
-			false, false, false, false, "", "", time.Now(), "SIGTRAP")
+			false, false, false, "", "", time.Now(), "SIGTRAP")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())
 
