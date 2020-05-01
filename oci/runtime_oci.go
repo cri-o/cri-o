@@ -830,8 +830,9 @@ func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.Re
 	defer func() {
 		if emptyStreamOnError {
 			go func() {
-				_, copyError := pools.Copy(ioutil.Discard, stream)
-				logrus.Errorf("error closing port forward stream after other error: %v", copyError)
+				if _, copyError := pools.Copy(ioutil.Discard, stream); copyError != nil {
+					logrus.Errorf("error closing port forward stream after other error: %v", copyError)
+				}
 			}()
 		}
 	}()
