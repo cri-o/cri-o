@@ -20,6 +20,9 @@ import (
 // or an error
 func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, err error) {
 	overallStart := time.Now()
+	// give a network Start call 2 minutes, half of a RunPodSandbox request timeout limit
+	startCtx, startCancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer startCancel()
 
 	if sb.HostNetwork() {
 		return nil, nil, nil
@@ -35,14 +38,14 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	defer func() {
 		if err != nil {
 			log.Infof(ctx, "networkStart: stopping network for sandbox %s", sb.ID())
-			if err2 := s.networkStop(ctx, sb); err2 != nil {
+			if err2 := s.networkStop(startCtx, sb); err2 != nil {
 				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 			}
 		}
 	}()
 
 	podSetUpStart := time.Now()
-	_, err = s.config.CNIPlugin().SetUpPod(podNetwork)
+	_, err = s.config.CNIPlugin().SetUpPodWithContext(startCtx, podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
@@ -51,7 +54,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_pod").
 		Observe(metrics.SinceInMicroseconds(podSetUpStart))
 
-	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatus(podNetwork)
+	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatusWithContext(startCtx, podNetwork)
 	if err != nil {
 		err = fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 		return
@@ -135,6 +138,9 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if sb.HostNetwork() || sb.NetworkStopped() {
 		return nil
 	}
+	// give a network stop call 1 minutes, half of a StopPod request timeout limit
+	stopCtx, stopCancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer stopCancel()
 
 	if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
 		Name:         sb.Name(),
@@ -149,7 +155,7 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if err != nil {
 		return err
 	}
-	if err := s.config.CNIPlugin().TearDownPod(podNetwork); err != nil {
+	if err := s.config.CNIPlugin().TearDownPodWithContext(stopCtx, podNetwork); err != nil {
 		return errors.Wrapf(err, "failed to destroy network for pod sandbox %s(%s)", sb.Name(), sb.ID())
 	}
 
