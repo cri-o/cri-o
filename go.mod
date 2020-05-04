@@ -23,6 +23,7 @@ require (
 	github.com/creack/pty v1.1.9
 	github.com/cri-o/ocicni v0.2.1-0.20200422173648-513ef787b8c9
 	github.com/cyphar/filepath-securejoin v0.2.2
+	github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f // indirect
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-zoo/bone v1.3.0
