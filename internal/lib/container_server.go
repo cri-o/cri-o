@@ -308,6 +308,13 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 	if err := c.ctrIDIndex.Add(scontainer.ID()); err != nil {
 		return err
 	}
+	defer func() {
+		if retErr != nil {
+			if err1 := c.ctrIDIndex.Delete(scontainer.ID()); err1 != nil {
+				logrus.Warnf("could not delete container ID %s: %v", scontainer.ID(), err1)
+			}
+		}
+	}()
 	if err := c.podIDIndex.Add(id); err != nil {
 		return err
 	}
