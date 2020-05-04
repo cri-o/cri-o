@@ -196,6 +196,7 @@ An [Ansible Role](https://github.com/alvistack/ansible-role-cri_o) is also avail
 ``` bash
 sudo su -
 mkdir -p ~/.ansible/roles
+cd ~/.ansible/roles
 git clone https://github.com/alvistack/ansible-role-cri_o.git cri_o
 cd ~/.ansible/roles/cri_o
 pip3 install --upgrade --ignore-installed --requirement requirements.txt
