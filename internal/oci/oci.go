@@ -302,18 +302,22 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 
 // DeleteContainer deletes a container.
 func (r *Runtime) DeleteContainer(c *Container) (err error) {
-	impl, err := r.RuntimeImpl(c)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err == nil {
-			r.runtimeImplMapMutex.Lock()
-			delete(r.runtimeImplMap, c.ID())
-			r.runtimeImplMapMutex.Unlock()
+	r.runtimeImplMapMutex.RLock()
+	impl, ok := r.runtimeImplMap[c.ID()]
+	r.runtimeImplMapMutex.RUnlock()
+	if !ok {
+		if impl, err = r.newRuntimeImpl(c); err != nil {
+			return err
 		}
-	}()
+	} else {
+		defer func() {
+			if err == nil {
+				r.runtimeImplMapMutex.Lock()
+				delete(r.runtimeImplMap, c.ID())
+				r.runtimeImplMapMutex.Unlock()
+			}
+		}()
+	}
 
 	return impl.DeleteContainer(c)
 }
