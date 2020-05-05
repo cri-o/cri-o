@@ -47,7 +47,6 @@ const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod
 var (
 	_cgroupv1HasHugetlbOnce sync.Once
 	_cgroupv1HasHugetlb     bool
-	_cgroupv1HasHugetlbErr  error
 	_cgroupv2HasHugetlbOnce sync.Once
 	_cgroupv2HasHugetlb     bool
 	_cgroupv2HasHugetlbErr  error
@@ -58,17 +57,15 @@ var (
 
 // cgroupv1HasHugetlb returns whether the hugetlb controller is present on
 // cgroup v1.
-func cgroupv1HasHugetlb() (bool, error) {
+func cgroupv1HasHugetlb() bool {
 	_cgroupv1HasHugetlbOnce.Do(func() {
 		if _, err := ioutil.ReadDir("/sys/fs/cgroup/hugetlb"); err != nil {
-			_cgroupv1HasHugetlbErr = errors.Wrap(err, "readdir /sys/fs/cgroup/hugetlb")
 			_cgroupv1HasHugetlb = false
 		} else {
-			_cgroupv1HasHugetlbErr = nil
 			_cgroupv1HasHugetlb = true
 		}
 	})
-	return _cgroupv1HasHugetlb, _cgroupv1HasHugetlbErr
+	return _cgroupv1HasHugetlb
 }
 
 // cgroupv2HasHugetlb returns whether the hugetlb controller is present on
@@ -543,10 +540,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 					return nil, err
 				}
 			} else {
-				supportsHugetlb, err = cgroupv1HasHugetlb()
-				if err != nil {
-					return nil, err
-				}
+				supportsHugetlb = cgroupv1HasHugetlb()
 			}
 
 			// If the kernel has no support for hugetlb, silently ignore the limits
