@@ -469,21 +469,49 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 }
 
 func (s *Server) startMetricsServer() error {
-	if s.config.EnableMetrics {
-		me, err := s.CreateMetricsEndpoint()
-		if err != nil {
-			return errors.Wrap(err, "failed to create metrics endpoint")
-		}
-		l, err := net.Listen("tcp", fmt.Sprintf(":%v", s.config.MetricsPort))
-		if err != nil {
-			return errors.Wrap(err, "failed to create listener for metrics")
-		}
-		go func() {
-			if err := http.Serve(l, me); err != nil {
-				logrus.Fatalf("failed to serve metrics endpoint: %v", err)
-			}
-		}()
+	if !s.config.EnableMetrics {
+		return nil
 	}
+
+	me, err := s.CreateMetricsEndpoint()
+	if err != nil {
+		return errors.Wrap(err, "failed to create metrics endpoint")
+	}
+
+	if err := startMetricsEndpoint(
+		"tcp", fmt.Sprintf(":%v", s.config.MetricsPort), me,
+	); err != nil {
+		return errors.Wrap(err, "creating tcp metrics endpoint")
+	}
+
+	metricsSocket := s.config.MetricsSocket
+	if metricsSocket != "" {
+		if err := libconfig.RemoveUnusedSocket(metricsSocket); err != nil {
+			return errors.Wrapf(err, "removing ununsed socket %s", metricsSocket)
+		}
+
+		return errors.Wrap(
+			startMetricsEndpoint("unix", s.config.MetricsSocket, me),
+			"creating path metrics endpoint",
+		)
+	}
+
+	return nil
+}
+
+func startMetricsEndpoint(network, address string, me *http.ServeMux) error {
+	l, err := net.Listen(network, address)
+	if err != nil {
+		return errors.Wrap(err, "creating listener")
+	}
+
+	go func() {
+		logrus.Infof("Serving metrics on %s", address)
+		if err := http.Serve(l, me); err != nil {
+			logrus.Fatalf("failed to serve metrics endpoint %v: %v", l, err)
+		}
+	}()
+
 	return nil
 }
 

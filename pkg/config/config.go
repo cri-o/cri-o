@@ -385,6 +385,9 @@ type MetricsConfig struct {
 
 	// MetricsPort is the port on which the metrics server will listen.
 	MetricsPort int `toml:"metrics_port"`
+
+	// Local socket path to bind the metrics server to
+	MetricsSocket string `toml:"metrics_socket"`
 }
 
 // tomlConfig is another way of looking at a Config, which is
@@ -618,19 +621,27 @@ func (c *APIConfig) Validate(onExecution bool) error {
 	}
 
 	if onExecution {
-		if err := os.MkdirAll(filepath.Dir(c.Listen), 0755); err != nil {
-			return err
+		return RemoveUnusedSocket(c.Listen)
+	}
+
+	return nil
+}
+
+// RemoveUnusedSocket first ensures that the path to the socket exists and
+// removes unused socket connections if available.
+func RemoveUnusedSocket(path string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return errors.Wrap(err, "creating socket directories")
+	}
+
+	// Remove the socket if it already exists
+	if _, err := os.Stat(path); err == nil {
+		if _, err := net.DialTimeout("unix", path, 0); err == nil {
+			return errors.Errorf("already existing connection on %s", path)
 		}
 
-		// Remove the socket if it already exists
-		if _, err := os.Stat(c.Listen); err == nil {
-			if _, err := net.DialTimeout("unix", c.Listen, 0); err == nil {
-				return errors.Errorf("already existing crio connection on %s", c.Listen)
-			}
-
-			if err := os.Remove(c.Listen); err != nil {
-				return err
-			}
+		if err := os.Remove(path); err != nil {
+			return errors.Wrapf(err, "removing %s", path)
 		}
 	}
 
