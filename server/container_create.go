@@ -24,13 +24,12 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	seccomp "github.com/seccomp/containers-golang"
+	k8sV1 "k8s.io/api/core/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (
 	seccompUnconfined      = "unconfined"
-	seccompRuntimeDefault  = "runtime/default"
-	seccompDockerDefault   = "docker/default"
 	seccompLocalhostPrefix = "localhost/"
 
 	scopePrefix           = "crio"
@@ -652,7 +651,7 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 	}
 
 	// Load the default seccomp profile from the server if the profile is a default one
-	if profile == seccompRuntimeDefault || profile == seccompDockerDefault {
+	if profile == k8sV1.SeccompProfileRuntimeDefault || profile == k8sV1.DeprecatedSeccompProfileDockerDefault {
 		linuxSpecs, err := seccomp.LoadProfileFromConfig(s.Config().Seccomp().Profile(), specgen.Config)
 		if err != nil {
 			return err

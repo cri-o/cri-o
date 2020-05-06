@@ -333,7 +333,7 @@ func New(
 		return nil, err
 	}
 
-	iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIpv4)
+	iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIPv4)
 	if _, err := iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain); err != nil {
 		logrus.Warnf("unable to ensure iptables chain: %v", err)
 	}
