@@ -6,7 +6,7 @@ import (
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	k8sAppArmor "k8s.io/kubernetes/pkg/security/apparmor"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -98,10 +98,10 @@ func (c *Config) IsEnabled() bool {
 // Apply returns the trimmed AppArmor profile to be used and reloads if the
 // default profile is specified
 func (c *Config) Apply(profile string) (string, error) {
-	if profile == "" || profile == k8sAppArmor.ProfileRuntimeDefault {
+	if profile == "" || profile == v1.AppArmorBetaProfileRuntimeDefault {
 		return c.defaultProfile, nil
 	}
-	profile = strings.TrimPrefix(profile, k8sAppArmor.ProfileNamePrefix)
+	profile = strings.TrimPrefix(profile, v1.AppArmorBetaProfileNamePrefix)
 
 	// reload the profile if default
 	if profile == DefaultProfile {

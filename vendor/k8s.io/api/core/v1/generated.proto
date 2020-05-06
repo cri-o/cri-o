@@ -459,7 +459,7 @@ message ConfigMap {
   // be updated (only object metadata can be modified).
   // If not set to true, the field can be modified at any time.
   // Defaulted to nil.
-  // This is an alpha field enabled by ImmutableEphemeralVolumes feature gate.
+  // This is a beta field enabled by ImmutableEphemeralVolumes feature gate.
   // +optional
   optional bool immutable = 4;
 
@@ -588,8 +588,10 @@ message ConfigMapVolumeSource {
   // +optional
   repeated KeyToPath items = 2;
 
-  // Optional: mode bits to use on created files by default. Must be a
-  // value between 0 and 0777. Defaults to 0644.
+  // Optional: mode bits used to set permissions on created files by default.
+  // Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+  // YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
+  // Defaults to 0644.
   // Directories within the path are not affected by this setting.
   // This might be in conflict with other options that affect the file
   // mode, like fsGroup, and the result can be other mode bits set.
@@ -957,8 +959,10 @@ message DownwardAPIVolumeFile {
   // +optional
   optional ResourceFieldSelector resourceFieldRef = 3;
 
-  // Optional: mode bits to use on this file, must be a value between 0
-  // and 0777. If not specified, the volume defaultMode will be used.
+  // Optional: mode bits used to set permissions on this file, must be an octal value
+  // between 0000 and 0777 or a decimal value between 0 and 511.
+  // YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
+  // If not specified, the volume defaultMode will be used.
   // This might be in conflict with other options that affect the file
   // mode, like fsGroup, and the result can be other mode bits set.
   // +optional
@@ -973,7 +977,10 @@ message DownwardAPIVolumeSource {
   repeated DownwardAPIVolumeFile items = 1;
 
   // Optional: mode bits to use on created files by default. Must be a
-  // value between 0 and 0777. Defaults to 0644.
+  // Optional: mode bits used to set permissions on created files by default.
+  // Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+  // YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
+  // Defaults to 0644.
   // Directories within the path are not affected by this setting.
   // This might be in conflict with other options that affect the file
   // mode, like fsGroup, and the result can be other mode bits set.
@@ -1048,7 +1055,8 @@ message EndpointPort {
   // RFC-6335 and http://www.iana.org/assignments/service-names).
   // Non-standard protocols should use prefixed names such as
   // mycompany.com/my-custom-protocol.
-  // Field can be enabled with ServiceAppProtocol feature gate.
+  // This is a beta field that is guarded by the ServiceAppProtocol feature
+  // gate and enabled by default.
   // +optional
   optional string appProtocol = 4;
 }
@@ -1447,10 +1455,6 @@ message EventSeries {
 
   // Time of the last occurrence observed
   optional k8s.io.apimachinery.pkg.apis.meta.v1.MicroTime lastObservedTime = 2;
-
-  // State of this Series: Ongoing or Finished
-  // Deprecated. Planned removal for 1.18
-  optional string state = 3;
 }
 
 // EventSource contains information for an event.
@@ -1880,8 +1884,10 @@ message KeyToPath {
   // May not start with the string '..'.
   optional string path = 2;
 
-  // Optional: mode bits to use on this file, must be a value between 0
-  // and 0777. If not specified, the volume defaultMode will be used.
+  // Optional: mode bits used to set permissions on this file.
+  // Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+  // YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
+  // If not specified, the volume defaultMode will be used.
   // This might be in conflict with other options that affect the file
   // mode, like fsGroup, and the result can be other mode bits set.
   // +optional
@@ -2277,7 +2283,7 @@ message NodeProxyOptions {
 }
 
 // NodeResources is an object for conveying resource information about a node.
-// see http://releases.k8s.io/HEAD/docs/design/resources.md for more details.
+// see https://kubernetes.io/docs/concepts/architecture/nodes/#capacity for more details.
 message NodeResources {
   // Capacity represents the available resources of a node
   map<string, k8s.io.apimachinery.pkg.api.resource.Quantity> capacity = 1;
@@ -2431,7 +2437,7 @@ message NodeSystemInfo {
 
   // SystemUUID reported by the node. For unique machine identification
   // MachineID is preferred. This field is specific to Red Hat hosts
-  // https://access.redhat.com/documentation/en-US/Red_Hat_Subscription_Management/1/html/RHSM/getting-system-uuid.html
+  // https://access.redhat.com/documentation/en-us/red_hat_subscription_management/1/html/rhsm/uuid
   optional string systemUUID = 2;
 
   // Boot ID reported by the node.
@@ -3788,8 +3794,9 @@ message ProjectedVolumeSource {
   // list of volume projections
   repeated VolumeProjection sources = 1;
 
-  // Mode bits to use on created files by default. Must be a value between
-  // 0 and 0777.
+  // Mode bits used to set permissions on created files by default.
+  // Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+  // YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
   // Directories within the path are not affected by this setting.
   // This might be in conflict with other options that affect the file
   // mode, like fsGroup, and the result can be other mode bits set.
@@ -4299,7 +4306,7 @@ message Secret {
   // be updated (only object metadata can be modified).
   // If not set to true, the field can be modified at any time.
   // Defaulted to nil.
-  // This is an alpha field enabled by ImmutableEphemeralVolumes feature gate.
+  // This is a beta field enabled by ImmutableEphemeralVolumes feature gate.
   // +optional
   optional bool immutable = 5;
 
@@ -4419,8 +4426,10 @@ message SecretVolumeSource {
   // +optional
   repeated KeyToPath items = 2;
 
-  // Optional: mode bits to use on created files by default. Must be a
-  // value between 0 and 0777. Defaults to 0644.
+  // Optional: mode bits used to set permissions on created files by default.
+  // Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+  // YAML accepts both octal and decimal values, JSON requires decimal values
+  // for mode bits. Defaults to 0644.
   // Directories within the path are not affected by this setting.
   // This might be in conflict with other options that affect the file
   // mode, like fsGroup, and the result can be other mode bits set.
@@ -4634,7 +4643,8 @@ message ServicePort {
   // RFC-6335 and http://www.iana.org/assignments/service-names).
   // Non-standard protocols should use prefixed names such as
   // mycompany.com/my-custom-protocol.
-  // Field can be enabled with ServiceAppProtocol feature gate.
+  // This is a beta field that is guarded by the ServiceAppProtocol feature
+  // gate and enabled by default.
   // +optional
   optional string appProtocol = 6;
 
