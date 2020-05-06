@@ -7,7 +7,6 @@ require (
 	github.com/Microsoft/go-winio v0.4.15-0.20200113171025-3fe6c5262873
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/containerd v1.3.3
-	github.com/containerd/release-tool v0.0.0-20200402162031-a35b5d7ce53d
 	github.com/containerd/ttrpc v1.0.0
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.5

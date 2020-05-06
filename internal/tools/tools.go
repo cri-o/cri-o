@@ -3,7 +3,6 @@
 package tools
 
 import (
-	_ "github.com/containerd/release-tool"
 	_ "github.com/cpuguy83/go-md2man"
 	_ "github.com/golang/mock/mockgen"
 	_ "github.com/onsi/ginkgo/ginkgo"
