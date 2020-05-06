@@ -99,73 +99,7 @@ up a PR and add it to the list.
 ## Getting started
 
 ### Installing CRI-O
-To install CRI-O, you can use your distribution's package manager:
-
-CentOS 7:
-```bash
-sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_7/devel:kubic:libcontainers:stable.repo
-sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION]/CentOS_7/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo
-sudo yum -y install cri-o
-```
-
-CentOS 8:
-```bash
-sudo dnf -y install 'dnf-command(copr)'
-sudo dnf -y copr enable rhcontainerbot/container-selinux
-sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8/devel:kubic:libcontainers:stable.repo
-sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION]/CentOS_8/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo
-sudo dnf -y install cri-o
-```
-
-CentOS Stream:
-```bash
-sudo dnf -y install 'dnf-command(copr)'
-sudo dnf -y copr enable rhcontainerbot/container-selinux
-sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8_Stream/devel:kubic:libcontainers:stable.repo
-sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION]/CentOS_8_Stream/devel:kubic:libcontainers:stable:cri-o:[REQUIRED VERSION].repo
-sudo dnf -y install cri-o
-```
-
-Fedora 30 and later:
-```bash
-sudo dnf module enable cri-o:[REQUIRED VERSION]
-sudo dnf install cri-o
-```
-
-Fedora 29, RHEL, and related distributions:
-```sudo yum install crio```
-openSUSE:
-```sudo zypper install cri-o```
-
-Debian (10 and newer including Raspbian) and Ubuntu (18.04 and newer): Packages are available via the
-[Kubic](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
-project repositories:
-
-```bash
-# Debian Unstable/Sid
-echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Unstable/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Unstable/Release.key -O- | sudo apt-key add -
-
-# Debian Testing
-echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Testing/Release.key -O- | sudo apt-key add -
-
-# Debian 10
-echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_10/Release.key -O- | sudo apt-key add -
-
-# Raspbian 10
-echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Raspbian_10/Release.key -O- | sudo apt-key add -
-
-# Ubuntu (18.04, 19.04, 19.10, and 20.04)
-. /etc/os-release
-sudo sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/x${NAME}_${VERSION_ID}/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list"
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/x${NAME}_${VERSION_ID}/Release.key -O- | sudo apt-key add -
-
-sudo apt-get update -qq
-sudo apt-get install cri-o-[REQUIRED VERSION]
-```
+To install CRI-O, you can use your favourite distribution's package manager, [follow the releases page](tutorials/releases.md).
 
 Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
 guide](tutorials/setup.md). We also provide a way in building [static binaries
