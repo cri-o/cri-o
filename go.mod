@@ -44,7 +44,7 @@ require (
 	github.com/prometheus/client_golang v1.5.1
 	github.com/psampaz/go-mod-outdated v0.6.0
 	github.com/seccomp/containers-golang v0.3.2
-	github.com/sirupsen/logrus v1.5.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/urfave/cli/v2 v2.2.0
@@ -67,7 +67,6 @@ require (
 
 replace (
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2
-	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200505125908-b48f5af2602b
 	k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20200505125908-b48f5af2602b
 	k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20200505125908-b48f5af2602b
