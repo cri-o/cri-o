@@ -195,6 +195,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			ProgressInterval: time.Second,
 			Progress:         progress,
 		})
+		close(progress)
 		if err != nil {
 			log.Debugf(ctx, "error pulling image %s: %v", img, err)
 			continue
