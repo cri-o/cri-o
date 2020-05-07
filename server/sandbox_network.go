@@ -141,9 +141,6 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if sb.HostNetwork() || sb.NetworkStopped() {
 		return nil
 	}
-	// give a network stop call 1 minutes, half of a StopPod request timeout limit
-	stopCtx, stopCancel := context.WithTimeout(ctx, 1*time.Minute)
-	defer stopCancel()
 
 	if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
 		Name:         sb.Name(),
@@ -158,7 +155,7 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if err != nil {
 		return err
 	}
-	if err := s.netPlugin.TearDownPodWithContext(stopCtx, podNetwork); err != nil {
+	if err := s.netPlugin.TearDownPodWithContext(ctx, podNetwork); err != nil {
 		return errors.Wrapf(err, "failed to destroy network for pod sandbox %s(%s)", sb.Name(), sb.ID())
 	}
 
