@@ -47,7 +47,6 @@ GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
-RELEASE_TOOL := ${BUILD_BIN_PATH}/release-tool
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
@@ -186,9 +185,6 @@ release-bundle: clean bin/pinns build-static docs crio.conf bundle
 crio.conf: bin/crio
 	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > crio.conf
 
-release-note: ${RELEASE_TOOL}
-	${RELEASE_TOOL} -n $(release)
-
 release-notes: ${RELEASE_NOTES}
 	${GO_RUN} ./scripts/release-notes \
 		--output-path ${BUILD_PATH}/release-notes
@@ -279,9 +275,6 @@ ${MOCKGEN}:
 
 ${GIT_VALIDATION}:
 	$(call go-build,./vendor/github.com/vbatts/git-validation)
-
-${RELEASE_TOOL}:
-	$(call go-build,./vendor/github.com/containerd/project/cmd/release-tool)
 
 ${RELEASE_NOTES}:
 	$(call go-build,./vendor/k8s.io/release/cmd/release-notes)
