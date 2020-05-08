@@ -20,12 +20,15 @@ if TAG=$(git describe --exact-match --tags 2>/dev/null); then
     if [[ -z $GITHUB_TOKEN ]]; then
         echo GITHUB_TOKEN not set, skipping artifact upload to GitHub
     else
+        UPLOAD_URL=$(curl -sfL https://api.github.com/repos/cri-o/cri-o/releases |
+            jq -r ".[] | select(.tag_name == \"$TAG\") | .upload_url")
+        UPLOAD_URL=${UPLOAD_URL%"{?name,label}"}
         FILE=build/bundle/crio-$TAG.tar.gz
         curl -f \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: $(file -b --mime-type "$FILE")" \
             --data-binary @"$FILE" \
-            "https://uploads.github.com/repos/cri-o/cri-o/releases/$TAG/assets?name=$(basename "$FILE")"
+            "$UPLOAD_URL?name=$(basename "$FILE")"
     fi
 else
     echo "Skipping artifact upload to GitHub (not on a tag)"
