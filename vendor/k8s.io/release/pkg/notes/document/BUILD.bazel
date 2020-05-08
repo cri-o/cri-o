@@ -2,11 +2,16 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
-    srcs = ["document.go"],
+    srcs = [
+        "document.go",
+        "template.go",
+    ],
     importpath = "k8s.io/release/pkg/notes/document",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/notes:go_default_library",
+        "//pkg/notes/options:go_default_library",
+        "//pkg/release:go_default_library",
         "@com_github_pkg_errors//:go_default_library",
     ],
 )
@@ -14,8 +19,15 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = ["document_test.go"],
+    data = [":testdata"],
     embed = [":go_default_library"],
-    deps = ["@com_github_stretchr_testify//require:go_default_library"],
+    deps = [
+        "//pkg/notes:go_default_library",
+        "//pkg/notes/options:go_default_library",
+        "//pkg/release:go_default_library",
+        "@com_github_stretchr_testify//require:go_default_library",
+        "@io_bazel_rules_go//go/tools/bazel:go_default_library",
+    ],
 )
 
 filegroup(
@@ -30,4 +42,10 @@ filegroup(
     srcs = [":package-srcs"],
     tags = ["automanaged"],
     visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "testdata",
+    srcs = glob(["testdata/**"]),
+    visibility = ["//visibility:private"],
 )

@@ -24,7 +24,7 @@ import (
 // `key` or the default value `def` if not set.
 func EnvDefault(key, def string) string {
 	value, ok := os.LookupEnv(key)
-	if !ok {
+	if !ok || value == "" {
 		return def
 	}
 	return value

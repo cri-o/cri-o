@@ -65,6 +65,50 @@ func run() error {
 	}
 	logrus.Infof("Using HEAD commit %s", head)
 
+	templateFile, err := ioutil.TempFile("", "")
+	if err != nil {
+		return errors.Wrap(err, "writing template file")
+	}
+	defer func() { err = os.RemoveAll(templateFile.Name()) }()
+
+	if _, err := templateFile.WriteString(fmt.Sprintf(`# CRI-O %s
+
+The release notes have been generated for the commit range
+[%s...%s](https://github.com/cri-o/cri-o/compare/%s...%s) on %s.
+
+## Downloads
+
+Download the static release bundle via our Google Cloud Bucket:
+[crio-%s.tar.gz][0]
+
+[0]: https://storage.googleapis.com/k8s-conform-cri-o/artifacts/crio-%s.tar.gz
+
+## Changelog since %s
+
+{{with .NotesWithActionRequired -}}
+### Urgent Upgrade Notes
+
+{{range .}} {{println "-" .}} {{end}}
+{{end}}
+
+{{- if .Notes -}}
+### Changes by Kind
+{{ range .Notes}}
+#### {{.Kind | prettyKind}}
+{{range $note := .NoteEntries }}{{println " -" $note}}{{end}}
+{{- end -}}
+{{- end -}}
+`,
+		endTag,
+		startTag, head[:7],
+		startTag, head,
+		time.Now().Format(time.RFC1123),
+		head[:9], head[:9],
+		startTag,
+	)); err != nil {
+		return errors.Wrap(err, "writing tmplate to file")
+	}
+
 	logrus.Infof("Generating release notes")
 	outputFile := endTag + ".md"
 	outputFilePath := filepath.Join(outputPath, outputFile)
@@ -78,44 +122,19 @@ func run() error {
 		"--start-rev="+startTag,
 		"--end-sha="+head,
 		"--output="+outputFilePath,
+		"--toc",
+		"--format=go-template:"+templateFile.Name(),
 	); err != nil {
 		return errors.Wrap(err, "generate release notes")
 	}
 
-	// Postprocess the notes
-	content, err := ioutil.ReadFile(outputFilePath)
-	if err != nil {
-		return errors.Wrap(err, "open generated release notes")
-	}
-
-	finalContent := fmt.Sprintf(`# CRI-O %s
-
-The release notes have been generated for the commit range
-[%s...%s](https://github.com/cri-o/cri-o/compare/%s...%s) on %s.
-
-## Downloads
-
-Download the static release bundle via our Google Cloud Bucket:
-[crio-%s.tar.gz][0]
-
-[0]: https://storage.googleapis.com/k8s-conform-cri-o/artifacts/crio-%s.tar.gz
-
-`+string(content),
-		endTag,
-		startTag, head[:7],
-		startTag, head,
-		time.Now().Format(time.RFC1123),
-		head[:9], head[:9],
-	)
-
-	if err := ioutil.WriteFile(
-		outputFilePath, []byte(finalContent), 0o644,
-	); err != nil {
-		return errors.Wrap(err, "write content to file")
-	}
-
 	// Update gh-pages branch if not a pull request and running in CircleCI
 	if util.IsEnvSet("CIRCLECI") && !util.IsEnvSet("CIRCLE_PULL_REQUEST") {
+		content, err := ioutil.ReadFile(outputFilePath)
+		if err != nil {
+			return errors.Wrap(err, "open generated release notes")
+		}
+
 		currentBranch, err := repo.CurrentBranch()
 		if err != nil {
 			return errors.Wrap(err, "get current branch")
@@ -128,9 +147,7 @@ Download the static release bundle via our Google Cloud Bucket:
 		defer func() { err = repo.Checkout(currentBranch) }()
 
 		// Write the target file
-		if err := ioutil.WriteFile(
-			outputFile, []byte(finalContent), 0o644,
-		); err != nil {
+		if err := ioutil.WriteFile(outputFile, content, 0o644); err != nil {
 			return errors.Wrap(err, "write content to file")
 		}
 

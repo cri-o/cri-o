@@ -30,7 +30,8 @@ import (
 
 // A generic command abstraction
 type Command struct {
-	cmds []*command
+	cmds                         []*command
+	stdErrWriters, stdOutWriters []io.Writer
 }
 
 // The internal command representation
@@ -64,6 +65,8 @@ func NewWithWorkDir(workDir, cmd string, args ...string) *Command {
 			Cmd:        cmdWithDir(workDir, cmd, args...),
 			pipeWriter: nil,
 		}},
+		stdErrWriters: []io.Writer{},
+		stdOutWriters: []io.Writer{},
 	}
 }
 
@@ -85,6 +88,29 @@ func (c *Command) Pipe(cmd string, args ...string) *Command {
 		Cmd:        pipeCmd,
 		pipeWriter: writer,
 	})
+	return c
+}
+
+// AddWriter can be used to add an additional output (stdout) and error
+// (stderr) writer to the command, for example when having the need to log to
+// files.
+func (c *Command) AddWriter(writer io.Writer) *Command {
+	c.AddOutputWriter(writer)
+	c.AddErrorWriter(writer)
+	return c
+}
+
+// AddErrorWriter can be used to add an additional error (stderr) writer to the
+// command, for example when having the need to log to files.
+func (c *Command) AddErrorWriter(writer io.Writer) *Command {
+	c.stdErrWriters = append(c.stdErrWriters, writer)
+	return c
+}
+
+// AddOutputWriter can be used to add an additional output (stdout) writer to
+// the command, for example when having the need to log to files.
+func (c *Command) AddOutputWriter(writer io.Writer) *Command {
+	c.stdOutWriters = append(c.stdOutWriters, writer)
 	return c
 }
 
@@ -190,8 +216,12 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 
 			var stdOutWriter, stdErrWriter io.Writer
 			if printOutput {
-				stdOutWriter = io.MultiWriter(os.Stdout, stdOutBuffer)
-				stdErrWriter = io.MultiWriter(os.Stderr, stdErrBuffer)
+				stdOutWriter = io.MultiWriter(append(
+					[]io.Writer{os.Stdout, stdOutBuffer}, c.stdOutWriters...,
+				)...)
+				stdErrWriter = io.MultiWriter(append(
+					[]io.Writer{os.Stderr, stdErrBuffer}, c.stdErrWriters...,
+				)...)
 			} else {
 				stdOutWriter = stdOutBuffer
 				stdErrWriter = stdErrBuffer
