@@ -258,6 +258,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("metrics-port") {
 		config.MetricsPort = ctx.Int("metrics-port")
 	}
+	if ctx.IsSet("metrics-socket") {
+		config.MetricsSocket = ctx.String("metrics-socket")
+	}
 
 	return nil
 }
@@ -611,6 +614,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   9090,
 			Usage:   "Port for the metrics endpoint",
 			EnvVars: []string{"CONTAINER_METRICS_PORT"},
+		},
+		&cli.StringFlag{
+			Name:    "metrics-socket",
+			Usage:   "Socket for the metrics endpoint",
+			EnvVars: []string{"CONTAINER_METRICS_SOCKET"},
 		},
 		&cli.BoolFlag{
 			Name:    "read-only",

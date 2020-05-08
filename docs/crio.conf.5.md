@@ -286,6 +286,9 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
 **metrics_port**=9090
   The port on which the metrics server will listen.
 
+**metrics_socket**=""
+  The socket on which the metrics server will listen.
+
 # SEE ALSO
 crio.conf.d(5), containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
 

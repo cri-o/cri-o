@@ -54,6 +54,7 @@ crio
 [--manage-network-ns-lifecycle]
 [--manage-ns-lifecycle]
 [--metrics-port]=[value]
+[--metrics-socket]=[value]
 [--namespaces-dir]=[value]
 [--no-pivot]
 [--pause-command]=[value]
@@ -234,6 +235,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--manage-ns-lifecycle**: Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: false)
 
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
+
+**--metrics-socket**="": Socket for the metrics endpoint
 
 **--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: /var/run)
 
