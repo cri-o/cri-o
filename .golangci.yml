@@ -14,6 +14,7 @@ run:
 linters:
   disable-all: true
   enable:
+    - asciicheck
     - bodyclose
     - deadcode
     - depguard
@@ -28,7 +29,6 @@ linters:
     - goimports
     - golint
     - goprintffuncname
-    - gosec
     - gosimple
     - govet
     - ineffassign
@@ -36,6 +36,7 @@ linters:
     - maligned
     - misspell
     - nakedret
+    - nolintlint
     - prealloc
     - rowserrcheck
     - scopelint
@@ -51,9 +52,15 @@ linters:
     # - funlen
     # - gochecknoglobals
     # - gocognit
+    # - godot
     # - godox
+    # - goerr113
     # - gomnd
+    # - gomodguard
+    # - gosec
     # - lll
+    # - nestif
+    # - testpackage
     # - wsl
 linters-settings:
   errcheck:
