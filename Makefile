@@ -3,9 +3,9 @@ GO ?= go
 export GOPROXY=https://proxy.golang.org
 export GOSUMDB=https://sum.golang.org
 
-GO_MOD_VENDOR := --mod=vendor
-GO_BUILD := GO111MODULE=on $(GO) build $(GO_MOD_VENDOR)
-GO_RUN := GO111MODULE=on $(GO) run $(GO_MOD_VENDOR)
+GO_MOD_VENDOR ?= --mod=vendor
+GO_BUILD ?= GO111MODULE=on $(GO) build $(GO_MOD_VENDOR)
+GO_RUN ?= GO111MODULE=on $(GO) run $(GO_MOD_VENDOR)
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
