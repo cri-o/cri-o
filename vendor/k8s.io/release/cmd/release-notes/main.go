@@ -34,12 +34,19 @@ import (
 	"k8s.io/release/pkg/notes"
 	"k8s.io/release/pkg/notes/document"
 	"k8s.io/release/pkg/notes/options"
+	"k8s.io/release/pkg/release"
 	"k8s.io/release/pkg/util"
 )
 
+type releaseNotesOptions struct {
+	outputFile      string
+	tableOfContents bool
+}
+
 var (
-	opts = options.New()
-	cmd  = &cobra.Command{
+	releaseNotesOpts = &releaseNotesOptions{}
+	opts             = options.New()
+	cmd              = &cobra.Command{
 		Short:         "release-notes - The Kubernetes Release Notes Generator",
 		Use:           "release-notes",
 		SilenceUsage:  true,
@@ -71,7 +78,7 @@ func init() {
 	// output contains the path on the filesystem to where the resultant
 	// release notes should be printed.
 	cmd.PersistentFlags().StringVar(
-		&opts.Output,
+		&releaseNotesOpts.outputFile,
 		"output",
 		util.EnvDefault("OUTPUT", ""),
 		"The path to the where the release notes will be printed",
@@ -141,8 +148,15 @@ func init() {
 	cmd.PersistentFlags().StringVar(
 		&opts.Format,
 		"format",
-		util.EnvDefault("FORMAT", "markdown"),
-		"The format for notes output (options: markdown, json)",
+		util.EnvDefault("FORMAT", options.FormatSpecDefaultGoTemplate),
+		fmt.Sprintf("The format for notes output (options: %s)",
+			strings.Join([]string{
+				options.FormatSpecNone,
+				options.FormatSpecMarkdown, //nolint:golint,deprecated // This option internally corresponds to options.FormatSpecGoTemplateDefault
+				options.FormatSpecJSON,
+				options.FormatSpecDefaultGoTemplate,
+			}, ", "),
+		),
 	)
 
 	cmd.PersistentFlags().StringVar(
@@ -176,7 +190,7 @@ func init() {
 	cmd.PersistentFlags().StringVar(
 		&opts.ReleaseBucket,
 		"release-bucket",
-		util.EnvDefault("RELEASE_BUCKET", "kubernetes-release"),
+		util.EnvDefault("RELEASE_BUCKET", release.ProductionBucket),
 		"Specify gs bucket to point to in generated notes",
 	)
 
@@ -188,7 +202,7 @@ func init() {
 	)
 
 	cmd.PersistentFlags().BoolVar(
-		&opts.TableOfContents,
+		&releaseNotesOpts.tableOfContents,
 		"toc",
 		util.IsEnvSet("TOC"),
 		"Enable the rendering of the table of contents",
@@ -212,7 +226,10 @@ func init() {
 func GetReleaseNotes() (notes.ReleaseNotes, notes.ReleaseNotesHistory, error) {
 	logrus.Info("fetching all commits. This might take a while...")
 
-	gatherer := notes.NewGatherer(context.Background(), opts)
+	gatherer, err := notes.NewGatherer(context.Background(), opts)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "retrieving notes gatherer")
+	}
 	releaseNotes, history, err := gatherer.ListReleaseNotes()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "listing release notes")
@@ -228,8 +245,8 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 	var output *os.File
 	var existingNotes notes.ReleaseNotes
 
-	if opts.Output != "" {
-		output, err = os.OpenFile(opts.Output, os.O_RDWR|os.O_CREATE, os.FileMode(0644))
+	if releaseNotesOpts.outputFile != "" {
+		output, err = os.OpenFile(releaseNotesOpts.outputFile, os.O_RDWR|os.O_CREATE, os.FileMode(0644))
 		if err != nil {
 			return errors.Wrapf(err, "opening the supplied output file")
 		}
@@ -241,8 +258,8 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 	}
 
 	// Contextualized release notes can be printed in a variety of formats
-	switch opts.Format {
-	case "json":
+	switch format := opts.Format; {
+	case format == "json":
 		byteValue, err := ioutil.ReadAll(output)
 		if err != nil {
 			return err
@@ -275,20 +292,23 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 		if err := enc.Encode(releaseNotes); err != nil {
 			return errors.Wrapf(err, "encoding JSON output")
 		}
-	case "markdown":
+	case strings.HasPrefix(format, "go-template:"):
 		doc, err := document.CreateDocument(releaseNotes, history)
 		if err != nil {
 			return errors.Wrapf(err, "creating release note document")
 		}
 
-		markdown, err := doc.RenderMarkdown(
-			opts.ReleaseBucket, opts.ReleaseTars, opts.StartRev, opts.EndRev,
-		)
+		// TODO: Not sure these options are guaranteed to be set but we need
+		// them in rendering. Perhaps these should be set in CreateDocument()?
+		doc.PreviousRevision = opts.StartRev
+		doc.CurrentRevision = opts.EndRev
+
+		markdown, err := doc.RenderMarkdownTemplate(opts.ReleaseBucket, opts.ReleaseTars, opts.Format)
 		if err != nil {
-			return errors.Wrapf(err, "rendering release note document to markdown")
+			return errors.Wrapf(err, "rendering release note document with template")
 		}
 
-		if opts.TableOfContents {
+		if releaseNotesOpts.tableOfContents {
 			toc, err := notes.GenerateTOC(markdown)
 			if err != nil {
 				return errors.Wrap(err, "generating table of contents")
