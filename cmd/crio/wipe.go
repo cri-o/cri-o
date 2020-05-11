@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	cstorage "github.com/containers/storage"
@@ -33,18 +32,35 @@ func crioWipe(c *cli.Context) error {
 		return err
 	}
 
-	shouldWipe := true
+	shouldWipeImages := true
+	shouldWipeContainers := true
 	// First, check if we need to upgrade at all
 	if !c.IsSet("force") {
-		shouldWipe, err = version.ShouldCrioWipe(config.VersionFile)
+		// there are two locations we check before wiping:
+		// one in a temporary directory. This is to check whether the node has rebooted.
+		// if so, we should remove containers
+		shouldWipeContainers, err = version.ShouldCrioWipe(config.VersionFile)
 		if err != nil {
-			fmt.Fprint(os.Stderr, err.Error())
+			logrus.Infof("%v: triggering wipe of containers", err.Error())
+		}
+		// another is needed in a persistent directory. This is to check whether we've upgraded
+		// if we've upgraded, we should wipe images
+		shouldWipeImages, err = version.ShouldCrioWipe(config.VersionFilePersist)
+		if err != nil {
+			logrus.Infof("%v: triggering wipe of images", err.Error())
 		}
 	}
 
 	// if we should not wipe, exit with no error
-	if !shouldWipe {
-		fmt.Println("major and minor version unchanged; no wipe needed")
+	if !shouldWipeContainers {
+		// we should not wipe images without wiping containers
+		// in a future release, we should wipe both container and images if only shouldWipeImages is true.
+		// However, now, we cannot expect users to have version-file-persist after having upgraded
+		// to this version. Skip the wipe, for now, and log about it.
+		if shouldWipeImages {
+			logrus.Infof("legacy version-file path found, but new version-file-persist path not. Skipping wipe")
+		}
+		logrus.Infof("version unchanged and node not rebooted; no wipe needed")
 		return nil
 	}
 
@@ -54,7 +70,7 @@ func crioWipe(c *cli.Context) error {
 	}
 
 	cstore := ContainerStore{store}
-	if err := cstore.wipeCrio(); err != nil {
+	if err := cstore.wipeCrio(shouldWipeImages); err != nil {
 		return err
 	}
 
@@ -65,7 +81,7 @@ type ContainerStore struct {
 	store cstorage.Store
 }
 
-func (c ContainerStore) wipeCrio() error {
+func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
 	crioContainers, crioImages, err := c.getCrioContainersAndImages()
 	if err != nil {
 		return err
@@ -73,8 +89,10 @@ func (c ContainerStore) wipeCrio() error {
 	for _, id := range crioContainers {
 		c.deleteContainer(id)
 	}
-	for _, id := range crioImages {
-		c.deleteImage(id)
+	if shouldWipeImages {
+		for _, id := range crioImages {
+			c.deleteImage(id)
+		}
 	}
 	return nil
 }
@@ -85,7 +103,7 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 		if os.IsNotExist(errors.Cause(err)) {
 			return crioContainers, crioImages, err
 		}
-		logrus.Warnf("could not read containers and sandboxes: %v", err)
+		logrus.Errorf("could not read containers and sandboxes: %v", err)
 	}
 
 	for i := range containers {
@@ -109,20 +127,22 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 }
 
 func (c ContainerStore) deleteContainer(id string) {
+	logrus.Infof("wiping containers")
 	if mounted, err := c.store.Unmount(id, true); err != nil || mounted {
-		logrus.Warnf("unable to unmount container %s: %v", id, err)
+		logrus.Errorf("unable to unmount container %s: %v", id, err)
 		return
 	}
 	if err := c.store.DeleteContainer(id); err != nil {
-		logrus.Warnf("unable to delete container %s: %v", id, err)
+		logrus.Errorf("unable to delete container %s: %v", id, err)
 		return
 	}
 	logrus.Infof("deleted container %s", id)
 }
 
 func (c ContainerStore) deleteImage(id string) {
+	logrus.Infof("wiping image")
 	if _, err := c.store.DeleteImage(id, true); err != nil {
-		logrus.Warnf("unable to delete image %s: %v", id, err)
+		logrus.Errorf("unable to delete image %s: %v", id, err)
 		return
 	}
 	logrus.Infof("deleted image %s", id)

@@ -52,8 +52,15 @@ const templateString = `# The CRI-O configuration file specifies all of the avai
 # the kubelet. The log directory specified must be an absolute directory.
 log_dir = "{{ .LogDir }}"
 
-# Location for CRI-O to lay down the version file
+# Location for CRI-O to lay down the temporary version file.
+# It is used to check if crio wipe should wipe containers, which should
+# always happen on a node reboot
 version_file = "{{ .VersionFile }}"
+
+# Location for CRI-O to lay down the persistent version file.
+# It is used to check if crio wipe should wipe images, which should
+# only happen when CRI-O has been upgraded
+version_file_persist = "{{ .VersionFilePersist }}"
 
 # The crio.api table contains settings for the kubelet/gRPC interface.
 [crio.api]
