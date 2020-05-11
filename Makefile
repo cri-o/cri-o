@@ -512,6 +512,17 @@ release-branch-forward:
 upload-artifacts:
 	./scripts/upload-artifacts
 
+bin/metrics-exporter:
+	$(GO_BUILD) -o $@ \
+		-ldflags '-linkmode external -extldflags "-static -lm"' \
+		-tags netgo \
+		$(PROJECT)/contrib/metrics-exporter
+
+metrics-exporter: bin/metrics-exporter
+	$(CONTAINER_RUNTIME) build . \
+		-f contrib/metrics-exporter/Containerfile \
+		-t quay.io/crio/metrics-exporter:latest
+
 .PHONY: \
 	.explicit_phony \
 	git-validation \
@@ -543,4 +554,6 @@ upload-artifacts:
 	vendor \
 	bin/pinns \
 	dependencies \
-	upload-artifacts
+	upload-artifacts \
+	bin/metrics-exporter \
+	metrics-exporter
