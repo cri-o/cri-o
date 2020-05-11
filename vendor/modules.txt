@@ -26,7 +26,8 @@ github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/archive/tar
 github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/Microsoft/hcsshim v0.8.7
+github.com/Microsoft/go-winio/vhd
+# github.com/Microsoft/hcsshim v0.8.9
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/internal/cow
 github.com/Microsoft/hcsshim/internal/hcs
@@ -239,7 +240,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.18.2
+# github.com/containers/storage v1.19.2
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -478,7 +479,7 @@ github.com/jbenet/go-context/io
 github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.10.3
+# github.com/klauspost/compress v1.10.5
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
