@@ -3,7 +3,7 @@
 package cgroupmanager
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 )
 
 type CgroupManager interface {
@@ -13,5 +13,5 @@ type CgroupManager interface {
 }
 
 func InitializeCgroupManager(cgroupManager string) (CgroupManager, error) {
-	return nil, fmt.Errorf("not implemented yet")
+	return nil, errors.New("not implemented yet")
 }

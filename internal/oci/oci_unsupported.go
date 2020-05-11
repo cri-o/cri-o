@@ -7,7 +7,8 @@ import (
 	"syscall"
 )
 
-func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid int) {
+func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
+	return nil
 }
 
 func sysProcAttrPlatform() *syscall.SysProcAttr {

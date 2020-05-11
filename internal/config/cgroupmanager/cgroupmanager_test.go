@@ -82,9 +82,9 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(name).To(Equal(cgroupfsManager))
 		})
-		It("should be systemd when systemd v2", func() {
+		It("should be systemd when systemd V2", func() {
 			// Given
-			sut = new(cgroupmanager.Systemdv2Manager)
+			sut = new(cgroupmanager.SystemdV2Manager)
 			// When
 			name := sut.Name()
 
@@ -113,9 +113,9 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(res).To(Equal(false))
 		})
-		It("should be systemd when systemd v2", func() {
+		It("should be systemd when systemd V2", func() {
 			// Given
-			sut = new(cgroupmanager.Systemdv2Manager)
+			sut = new(cgroupmanager.SystemdV2Manager)
 			// When
 			res := sut.IsSystemd()
 
@@ -184,11 +184,11 @@ var _ = t.Describe("Config", func() {
 			})
 		})
 	})
-	t.Describe("Systemdv1Manager", func() {
-		sharedSystemdManagerTests(new(cgroupmanager.Systemdv1Manager))
+	t.Describe("SystemdV1Manager", func() {
+		sharedSystemdManagerTests(new(cgroupmanager.SystemdV1Manager))
 	})
-	t.Describe("Systemdv2Manager", func() {
-		sharedSystemdManagerTests(new(cgroupmanager.Systemdv2Manager))
+	t.Describe("SystemdV2Manager", func() {
+		sharedSystemdManagerTests(new(cgroupmanager.SystemdV2Manager))
 	})
 })
 

@@ -37,18 +37,21 @@ func CgroupHasHugetlb() bool {
 		if CgroupIsV2() {
 			controllers, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
 			if err != nil {
-				cgroupHasHugetlbErr = errors.Wrap(err, "read /sys/fs/cgroup/cgroup.controllers")
+				cgroupHasHugetlbErr = err
 				return
 			}
 			cgroupHasHugetlb = strings.Contains(string(controllers), "hugetlb")
 			return
 		}
 
-		if _, err := ioutil.ReadDir("/sys/fs/cgroup/hugetlb"); err != nil {
-			cgroupHasHugetlbErr = errors.Wrap(err, "readdir /sys/fs/cgroup/hugetlb")
+		st, err := os.Stat("/sys/fs/cgroup/hugetlb")
+		if err != nil {
+			cgroupHasHugetlbErr = err
 			return
 		}
-		cgroupHasHugetlb = true
+		if st.IsDir() {
+			cgroupHasHugetlb = true
+		}
 	})
 	return cgroupHasHugetlb
 }

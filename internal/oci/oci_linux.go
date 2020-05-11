@@ -19,13 +19,14 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) {
+func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
 	// Move conmon to specified cgroup
 	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.id, cgroupParent, r.config.ConmonCgroup, pid)
 	if err != nil {
-		logrus.Errorf(err.Error())
+		return err
 	}
 	c.conmonCgroupfsPath = conmonCgroupfsPath
+	return nil
 }
 
 func sysProcAttrPlatform() *syscall.SysProcAttr {

@@ -19,59 +19,24 @@ import (
 
 const defaultSystemdParent = "system.slice"
 
-type Systemdv1Manager struct{}
+// SystemdManager is the parent type of SystemdV{1,2}Manager.
+// it defines all of the common functionality between V1 and V2
+type SystemdManager struct{}
 
 // Name returns the name of the cgroup manager (systemd)
-func (*Systemdv1Manager) Name() string {
+func (*SystemdManager) Name() string {
 	return systemdCgroupManager
 }
 
 // IsSystemd returns that it is a systemd cgroup manager
-func (*Systemdv1Manager) IsSystemd() bool {
+func (*SystemdManager) IsSystemd() bool {
 	return true
 }
 
 // GetContainerCgroupPath takes arguments sandbox parent cgroup and container ID and returns
 // the cgroup path for that containerID. If parentCgroup is empty, it
 // uses the default parent system.slice
-func (*Systemdv1Manager) GetContainerCgroupPath(sbParent, containerID string) string {
-	return getContainerCgroupPath(sbParent, containerID)
-}
-
-// GetSandboxCgroupPath takes the sandbox parent, and sandbox ID. It
-// returns the cgroup parent, cgroup path, and error.
-// it also checks there is enough memory in the given cgroup (4mb is needed for the runtime)
-func (*Systemdv1Manager) GetSandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, err error) {
-	return getSandboxCgroupPathForSystemd(sbParent, sbID, cgroupMemorySubsystemMountPathV1, "memory.limit_in_bytes")
-}
-
-// MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID
-// It attempts to move conmon to the correct cgroup.
-func (*Systemdv1Manager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error) {
-	return moveConmonToSystemdCgroup(cid, cgroupParent, conmonCgroup, pid)
-}
-
-type Systemdv2Manager struct{}
-
-// Name returns the name of the cgroup manager (systemd)
-func (*Systemdv2Manager) Name() string {
-	return systemdCgroupManager
-}
-
-// IsSystemd returns that it is a systemd cgroup manager
-func (*Systemdv2Manager) IsSystemd() bool {
-	return true
-}
-
-// GetContainerCgroupPath takes arguments sandbox parent cgroup and container ID and returns
-// the cgroup path for that containerID. If parentCgroup is empty, it
-// uses the default parent system.slice
-func (*Systemdv2Manager) GetContainerCgroupPath(sbParent, containerID string) string {
-	return getContainerCgroupPath(sbParent, containerID)
-}
-
-// systemd cgroups (v1 and v2) have no difference in creating the container cgroup path
-func getContainerCgroupPath(sbParent, containerID string) string {
+func (*SystemdManager) GetContainerCgroupPath(sbParent, containerID string) string {
 	parent := defaultSystemdParent
 	if sbParent != "" {
 		parent = sbParent
@@ -79,10 +44,39 @@ func getContainerCgroupPath(sbParent, containerID string) string {
 	return parent + ":" + scopePrefix + ":" + containerID
 }
 
+// MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID
+// It attempts to move conmon to the correct cgroup.
+func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error) {
+	if strings.HasSuffix(conmonCgroup, ".slice") {
+		cgroupParent = conmonCgroup
+	}
+	conmonUnitName := fmt.Sprintf("crio-conmon-%s.scope", cid)
+	logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, conmonUnitName)
+	if err := utils.RunUnderSystemdScope(pid, cgroupParent, conmonUnitName); err != nil {
+		return "", errors.Wrapf(err, "Failed to add conmon to systemd sandbox cgroup")
+	}
+	return "", nil
+}
+
+type SystemdV1Manager struct {
+	SystemdManager
+}
+
 // GetSandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 // returns the cgroup parent, cgroup path, and error.
 // it also checks there is enough memory in the given cgroup (4mb is needed for the runtime)
-func (*Systemdv2Manager) GetSandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, err error) {
+func (*SystemdV1Manager) GetSandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, err error) {
+	return getSandboxCgroupPathForSystemd(sbParent, sbID, cgroupMemorySubsystemMountPathV1, "memory.limit_in_bytes")
+}
+
+type SystemdV2Manager struct {
+	SystemdManager
+}
+
+// GetSandboxCgroupPath takes the sandbox parent, and sandbox ID. It
+// returns the cgroup parent, cgroup path, and error.
+// it also checks there is enough memory in the given cgroup (4mb is needed for the runtime)
+func (*SystemdV2Manager) GetSandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, err error) {
 	return getSandboxCgroupPathForSystemd(sbParent, sbID, cgroupMemorySubsystemMountPathV2, "memory.max")
 }
 
@@ -91,7 +85,7 @@ func getSandboxCgroupPathForSystemd(sbParent, sbID, memorySubsystemPath, memoryM
 		return "", "", nil
 	}
 
-	if len(sbParent) <= 6 || !strings.HasSuffix(path.Base(sbParent), ".slice") {
+	if !strings.HasSuffix(filepath.Base(sbParent), ".slice") {
 		return "", "", fmt.Errorf("cri-o configured with systemd cgroup manager, but did not receive slice as parent: %s", sbParent)
 	}
 
@@ -121,7 +115,7 @@ func verifyCgroupHasEnoughMemory(cgroupParent, memorySubsystemPath, memoryMaxFil
 			logrus.Warnf("Failed to find %s for slice: %q", memoryMaxFilename, cgroupParent)
 			return nil
 		}
-		return errors.Wrapf(err, "error reading %s file for slice %q", memoryMaxFilename, cgroupParent)
+		return errors.Wrapf(err, "unable to read memory file for cgroup %s", cgroupParent)
 	}
 	// strip off the newline character and convert it to an int
 	strMemory := strings.TrimRight(string(fileData), "\n")
@@ -153,28 +147,4 @@ func convertCgroupFsNameToSystemd(cgroupfsName string) string {
 	// above and beyond the simple assumption here that the base of the path encodes the hierarchy
 	// per systemd convention.
 	return path.Base(cgroupfsName)
-}
-
-func (*Systemdv2Manager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error) {
-	return moveConmonToSystemdCgroup(cid, cgroupParent, conmonCgroup, pid)
-}
-
-func moveConmonToSystemdCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error) {
-	if strings.HasSuffix(conmonCgroup, ".slice") {
-		cgroupParent = conmonCgroup
-	}
-	conmonUnitName := createConmonUnitName(cid)
-	logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, conmonUnitName)
-	if err := utils.RunUnderSystemdScope(pid, cgroupParent, conmonUnitName); err != nil {
-		return "", errors.Wrapf(err, "Failed to add conmon to systemd sandbox cgroup")
-	}
-	return "", nil
-}
-
-func createConmonUnitName(name string) string {
-	return createUnitName("crio-conmon", name)
-}
-
-func createUnitName(prefix, name string) string {
-	return fmt.Sprintf("%s-%s.scope", prefix, name)
 }

@@ -58,9 +58,9 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 	switch cgroupManager {
 	case systemdCgroupManager:
 		if node.CgroupIsV2() {
-			return new(Systemdv2Manager), nil
+			return new(SystemdV2Manager), nil
 		}
-		return new(Systemdv1Manager), nil
+		return new(SystemdV1Manager), nil
 	case cgroupfsCgroupManager:
 		return new(CgroupfsManager), nil
 	default:
