@@ -14,6 +14,7 @@ import (
 	"time"
 
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/log"
@@ -108,6 +109,9 @@ func main() {
 	}
 
 	klog.SetOutput(ioutil.Discard)
+
+	// This must be done before reexec.Init()
+	ioutils.SetDefaultOptions(ioutils.AtomicFileWriterOptions{NoSync: true})
 
 	if reexec.Init() {
 		fmt.Fprintf(os.Stderr, "unable to initialize container storage\n")
