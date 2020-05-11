@@ -11,13 +11,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
+	"github.com/containernetworking/plugins/pkg/ns"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/findprocess"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
@@ -255,9 +256,9 @@ func prepareExec() (pidFile, parentPipe, childPipe *os.File, err error) {
 	return
 }
 
-func parseLog(log []byte) (stdout, stderr []byte) {
+func parseLog(l []byte) (stdout, stderr []byte) {
 	// Split the log on newlines, which is what separates entries.
-	lines := bytes.SplitAfter(log, []byte{'\n'})
+	lines := bytes.SplitAfter(l, []byte{'\n'})
 	for _, line := range lines {
 		// Ignore empty lines.
 		if len(line) == 0 {
@@ -898,73 +899,88 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 	return nil
 }
 
-// PortForwardContainer forwards the specified port provides statistics of a container.
-func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.ReadWriter) error {
-	emptyStreamOnError := true
-	defer func() {
-		if emptyStreamOnError {
-			go func() {
-				if _, copyError := pools.Copy(ioutil.Discard, stream); copyError != nil {
-					logrus.Errorf("error closing port forward stream after other error: %v", copyError)
-				}
-			}()
+// PortForwardContainer forwards the specified port into the provided container.
+func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
+	log.Infof(ctx,
+		"Starting port forward for %s in network namespace %s", c.ID(), netNsPath,
+	)
+
+	// Adapted reference implementation:
+	// https://github.com/containerd/cri/blob/8c366d/pkg/server/sandbox_portforward_unix.go#L65-L120
+	if err := ns.WithNetNSPath(netNsPath, func(_ ns.NetNS) error {
+		defer stream.Close()
+
+		// TODO: hardcoded to tcp4 because localhost resolves to ::1 by default
+		// if the system has IPv6 enabled. However, not all applications are
+		// listening on the IPv6 localhost address. Theoretically happy
+		// eyeballs will try IPv6 first and fallback to IPv4 but resolving
+		// localhost doesn't seem to return and IPv4 address always, thus
+		// failing the connection.
+		conn, err := net.Dial("tcp4", fmt.Sprintf("localhost:%d", port))
+		if err != nil {
+			return errors.Wrapf(err, "dialing %d", port)
 		}
-	}()
-	containerPid := c.State().Pid
-	socatPath, lookupErr := exec.LookPath("socat")
-	if lookupErr != nil {
-		return fmt.Errorf("unable to do port forwarding: socat not found")
+		defer conn.Close()
+
+		errCh := make(chan error, 2)
+
+		debug := func(format string, args ...interface{}) {
+			log.Debugf(ctx, fmt.Sprintf(
+				"PortForward (id: %s, port: %d): %s", c.ID(), port, format,
+			), args...)
+		}
+
+		// Copy from the the namespace port connection to the client stream
+		go func() {
+			debug("copy data from container to client")
+			_, err := io.Copy(stream, conn)
+			errCh <- err
+		}()
+
+		// Copy from the client stream to the namespace port connection
+		go func() {
+			debug("copy data from client to container")
+			_, err := io.Copy(conn, stream)
+			errCh <- err
+		}()
+
+		// Wait until the first error is returned by one of the connections we
+		// use errFwd to store the result of the port forwarding operation if
+		// the context is cancelled close everything and return
+		var errFwd error
+		select {
+		case errFwd = <-errCh:
+			debug("stop forwarding in direction: %v", errFwd)
+		case <-ctx.Done():
+			debug("cancelled: %v", ctx.Err())
+			return ctx.Err()
+		}
+
+		// give a chance to terminate gracefully or timeout
+		const timeout = time.Second
+		select {
+		case e := <-errCh:
+			if errFwd == nil {
+				errFwd = e
+			}
+			debug("stopped forwarding in both directions")
+
+		case <-time.After(timeout):
+			debug("timed out waiting to close the connection")
+
+		case <-ctx.Done():
+			debug("cancelled: %v", ctx.Err())
+			errFwd = ctx.Err()
+		}
+
+		return errFwd
+	}); err != nil {
+		return errors.Wrapf(
+			err, "port forward into network namespace %q", netNsPath,
+		)
 	}
 
-	args := []string{"-t", fmt.Sprintf("%d", containerPid), "-n", socatPath, "-", fmt.Sprintf("TCP4:localhost:%d", port)}
-
-	nsenterPath, lookupErr := exec.LookPath("nsenter")
-	if lookupErr != nil {
-		return fmt.Errorf("unable to do port forwarding: nsenter not found")
-	}
-
-	commandString := fmt.Sprintf("%s %s", nsenterPath, strings.Join(args, " "))
-	logrus.Debugf("executing port forwarding command: %s", commandString)
-
-	command := exec.Command(nsenterPath, args...)
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		command.Env = append(command.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
-	}
-	command.Stdout = stream
-
-	stderr := new(bytes.Buffer)
-	command.Stderr = stderr
-
-	// If we use Stdin, command.Run() won't return until the goroutine that's copying
-	// from stream finishes. Unfortunately, if you have a client like telnet connected
-	// via port forwarding, as long as the user's telnet client is connected to the user's
-	// local listener that port forwarding sets up, the telnet session never exits. This
-	// means that even if socat has finished running, command.Run() won't ever return
-	// (because the client still has the connection and stream open).
-	//
-	// The work around is to use StdinPipe(), as Wait() (called by Run()) closes the pipe
-	// when the command (socat) exits.
-	inPipe, err := command.StdinPipe()
-	if err != nil {
-		return fmt.Errorf("unable to do port forwarding: error creating stdin pipe: %v", err)
-	}
-	var copyError error
-	go func() {
-		emptyStreamOnError = false
-		_, copyError = pools.Copy(inPipe, stream)
-		inPipe.Close()
-	}()
-
-	runErr := command.Run()
-
-	if copyError != nil {
-		return copyError
-	}
-
-	if runErr != nil {
-		return fmt.Errorf("%v: %s", runErr, stderr.String())
-	}
-
+	log.Infof(ctx, "Finished port forwarding for %q on port %d", c.ID(), port)
 	return nil
 }
 

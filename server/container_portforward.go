@@ -6,8 +6,9 @@ import (
 	"io/ioutil"
 
 	"github.com/containers/storage/pkg/pools"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -23,6 +24,8 @@ func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (r
 }
 
 func (s StreamService) PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error {
+	ctx := log.AddRequestNameAndID(context.Background(), "PortForward")
+
 	// if we error in this function before Copying all of the content out of the stream,
 	// this stream will eventually get full, which causes leakages and can eventually brick CRI-O
 	// ref https://bugzilla.redhat.com/show_bug.cgi?id=1798193
@@ -31,7 +34,7 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 		if emptyStreamOnError && stream != nil {
 			go func() {
 				_, copyError := pools.Copy(ioutil.Discard, stream)
-				logrus.Errorf("error closing port forward stream after other error: %v", copyError)
+				log.Errorf(ctx, "error closing port forward stream after other error: %v", copyError)
 			}()
 		}
 	}()
@@ -41,11 +44,12 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 		return fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
 	}
 
-	c := s.runtimeServer.GetSandboxContainer(sandboxID)
-	if c == nil {
-		return fmt.Errorf("could not find container for sandbox %q", podSandboxID)
+	sb := s.runtimeServer.GetSandbox(sandboxID)
+	if sb == nil {
+		return fmt.Errorf("could not find sandbox %s", podSandboxID)
 	}
 
+	c := sb.InfraContainer()
 	if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
 		return err
 	}
@@ -56,5 +60,12 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 	}
 
 	emptyStreamOnError = false
-	return s.runtimeServer.Runtime().PortForwardContainer(c, port, stream)
+
+	if sb.NetNsPath() == "" {
+		return errors.Errorf(
+			"network namespace path of sandbox %s is empty", sb.ID(),
+		)
+	}
+
+	return s.runtimeServer.Runtime().PortForwardContainer(ctx, c, sb.NetNsPath(), port, stream)
 }
