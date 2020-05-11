@@ -7,6 +7,7 @@ declare -A VERSIONS=(
     ["conmon"]=v2.0.9
     ["cri-tools"]=v1.17.0
     ["runc"]=13b1603fd0e37db1764433a140d494b2e9f05805
+    ["bats"]=v1.2.0
 )
 
 main() {
@@ -65,8 +66,11 @@ install_packages() {
 }
 
 install_bats() {
-    git clone https://github.com/bats-core/bats-core --depth=1
-    sudo ./bats-core/install.sh /usr/local
+    git clone https://github.com/bats-core/bats-core
+    pushd bats-core
+    git checkout "${VERSIONS["bats"]}"
+    sudo ./install.sh /usr/local
+    popd
     rm -rf bats-core
     mkdir -p ~/.parallel
     touch ~/.parallel/will-cite

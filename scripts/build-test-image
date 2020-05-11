@@ -11,6 +11,7 @@ declare -A VERSIONS=(
     ["conmon"]=v2.0.15
     ["cri-tools"]=v1.17.0
     ["runc"]=v1.0.0-rc9
+    ["bats"]=v1.2.0
 )
 
 # Available architectures and go versions
@@ -202,8 +203,11 @@ install_packages() {
 }
 
 install_bats() {
-    run git clone https://github.com/bats-core/bats-core --depth=1
-    run ./bats-core/install.sh /usr
+    run git clone https://github.com/bats-core/bats-core
+    run bash -c "\
+        cd bats-core && \
+        git checkout ${VERSIONS["bats"]} && \
+        ./install.sh /usr"
     run rm -rf bats-core
     run mkdir -p ~/.parallel
     run touch ~/.parallel/will-cite
