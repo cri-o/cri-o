@@ -75,6 +75,8 @@ CONTAINER_LOG_SIZE_MAX=${CONTAINER_LOG_SIZE_MAX:--1}
 STREAM_PORT=${STREAM_PORT:-10010}
 # Metrics Port
 CONTAINER_METRICS_PORT=${CONTAINER_METRICS_PORT:-9090}
+# CNI binary dir
+CNI_BIN_DIR=${CNI_BIN_DIR:-/opt/cni/bin}
 
 POD_IPV4_CIDR="10.88.0.0/16"
 POD_IPV4_CIDR_START="10.88"
@@ -212,7 +214,8 @@ function setup_test() {
     # Copy all the CNI dependencies around to ensure encapsulated tests
     CRIO_CNI_PLUGIN="$TESTDIR/cni-bin"
     mkdir "$CRIO_CNI_PLUGIN"
-    cp /opt/cni/bin/* "$CRIO_CNI_PLUGIN"
+    cp "$CNI_BIN_DIR/bridge" "$CRIO_CNI_PLUGIN"
+    cp "$CNI_BIN_DIR/host-local" "$CRIO_CNI_PLUGIN"
     cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
     sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
 
