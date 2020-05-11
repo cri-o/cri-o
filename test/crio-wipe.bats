@@ -28,7 +28,7 @@ function teardown() {
 
 # run crio_wipe calls crio_wipe and tests it succeeded
 function run_crio_wipe() {
-	run $CRIO_BINARY --config "$CRIO_CONFIG" wipe
+	run $CRIO_BINARY_PATH --config "$CRIO_CONFIG" wipe
 	echo "$status"
 	echo "$output"
 	[ "$status" -eq 0 ]
