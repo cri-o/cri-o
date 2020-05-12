@@ -196,6 +196,7 @@ github.com/containers/libpod/pkg/resolvconf/dns
 github.com/containers/libpod/pkg/rootless
 github.com/containers/libpod/pkg/rootlessport
 github.com/containers/libpod/pkg/seccomp
+github.com/containers/libpod/pkg/selinux
 github.com/containers/libpod/pkg/signal
 github.com/containers/libpod/pkg/spec
 github.com/containers/libpod/pkg/sysinfo
