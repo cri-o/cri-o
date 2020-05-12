@@ -28,7 +28,6 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
-	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -370,7 +369,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 
 	// Initialize terminal resizing if necessary
 	if resize != nil {
-		kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+		HandleResizing(resize, func(size remotecommand.TerminalSize) {
 			logrus.Debugf("Got a resize event: %+v", size)
 
 			if err := r.resizePty(ctx, c.ID(), execID, size); err != nil {
@@ -676,7 +675,7 @@ func (r *runtimeVM) AttachContainer(c *Container, inputStream io.Reader, outputS
 	defer logrus.Debug("runtimeVM.AttachContainer() end")
 
 	// Initialize terminal resizing
-	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+	HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		logrus.Debugf("Got a resize event: %+v", size)
 
 		if err := r.resizePty(r.ctx, c.ID(), "", size); err != nil {

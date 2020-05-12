@@ -14,7 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
-	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
 func kill(pid int) error {
@@ -67,7 +66,7 @@ func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-
 	// make sure to close the stdout stream
 	defer stdout.Close()
 
-	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+	HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		if err := setSize(p.Fd(), size); err != nil {
 			logrus.Warnf("unable to set terminal size: %v", err)
 		}

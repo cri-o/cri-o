@@ -22,6 +22,7 @@ import (
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/types"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/sandbox"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -33,12 +34,16 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/leaky"
-	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const cgroupMemorySubsystemMountPathV1 = "/sys/fs/cgroup/memory"
 const cgroupMemorySubsystemMountPathV2 = "/sys/fs/cgroup"
+
+const (
+	// PodInfraContainerName is used in a few places outside of Kubelet, such as indexing
+	// into the container info.
+	PodInfraContainerName = "POD"
+)
 
 func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
 	s.updateLock.RLock()
@@ -52,7 +57,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	pathsToChown := []string{}
 
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
-	log.Infof(ctx, "attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(sbox.Config().GetLabels()), leaky.PodInfraContainerName)
+	log.Infof(ctx, "attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(sbox.Config().GetLabels()), PodInfraContainerName)
 
 	kubeName := sbox.Config().GetMetadata().GetName()
 	namespace := sbox.Config().GetMetadata().GetNamespace()
@@ -193,7 +198,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// Add special container name label for the infra container
 	if labels != nil {
-		labels[types.KubernetesContainerNameLabel] = leaky.PodInfraContainerName
+		labels[types.KubernetesContainerNameLabel] = PodInfraContainerName
 	}
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {

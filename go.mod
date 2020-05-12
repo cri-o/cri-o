@@ -85,7 +85,7 @@ replace (
 	k8s.io/kube-scheduler => k8s.io/kubernetes/staging/src/k8s.io/kube-scheduler v0.0.0-20200505125908-b48f5af2602b
 	k8s.io/kubectl => k8s.io/kubernetes/staging/src/k8s.io/kubectl v0.0.0-20200505125908-b48f5af2602b
 	k8s.io/kubelet => k8s.io/kubernetes/staging/src/k8s.io/kubelet v0.0.0-20200505125908-b48f5af2602b
-	k8s.io/kubernetes => k8s.io/kubernetes v1.19.0-alpha.3
+	k8s.io/kubernetes => github.com/dims/kubernetes v1.3.0-alpha.3.0.20200512203537-c531f002d164
 	k8s.io/legacy-cloud-providers => k8s.io/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20200505125908-b48f5af2602b
 	k8s.io/metrics => k8s.io/kubernetes/staging/src/k8s.io/metrics v0.0.0-20200505125908-b48f5af2602b
 	k8s.io/sample-apiserver => k8s.io/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20200505125908-b48f5af2602b

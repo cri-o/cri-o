@@ -28,7 +28,6 @@ import (
 	"golang.org/x/sys/unix"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
-	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -844,7 +843,7 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 	}
 	defer controlFile.Close()
 
-	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+	HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		logrus.Debugf("Got a resize event: %+v", size)
 		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
 		if err != nil {

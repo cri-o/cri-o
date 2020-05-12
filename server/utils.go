@@ -13,6 +13,7 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	cryptUtils "github.com/containers/ocicrypt/utils"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/types"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	units "github.com/docker/go-units"
@@ -23,7 +24,6 @@ import (
 	"github.com/syndtr/gocapability/capability"
 	"k8s.io/apimachinery/pkg/api/resource"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
