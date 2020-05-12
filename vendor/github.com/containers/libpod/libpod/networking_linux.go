@@ -148,24 +148,36 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 
 	networkStatus := []*cnitypes.Result{}
-	if !rootless.IsRootless() && ctr.config.NetMode != "slirp4netns" {
+	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
 		networkStatus, err = r.configureNetNS(ctr, ctrNS)
 	}
 	return ctrNS, networkStatus, err
 }
 
-func checkSlirpFlags(path string) (bool, bool, bool, error) {
+type slirpFeatures struct {
+	HasDisableHostLoopback bool
+	HasMTU                 bool
+	HasEnableSandbox       bool
+	HasEnableSeccomp       bool
+}
+
+func checkSlirpFlags(path string) (*slirpFeatures, error) {
 	cmd := exec.Command(path, "--help")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, false, false, errors.Wrapf(err, "slirp4netns %q", out)
+		return nil, errors.Wrapf(err, "slirp4netns %q", out)
 	}
-	return strings.Contains(string(out), "--disable-host-loopback"), strings.Contains(string(out), "--mtu"), strings.Contains(string(out), "--enable-sandbox"), nil
+	return &slirpFeatures{
+		HasDisableHostLoopback: strings.Contains(string(out), "--disable-host-loopback"),
+		HasMTU:                 strings.Contains(string(out), "--mtu"),
+		HasEnableSandbox:       strings.Contains(string(out), "--enable-sandbox"),
+		HasEnableSeccomp:       strings.Contains(string(out), "--enable-seccomp"),
+	}, nil
 }
 
 // Configure the network namespace for a rootless container
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
-	path := r.config.NetworkCmdPath
+	path := r.config.Engine.NetworkCmdPath
 
 	if path == "" {
 		var err error
@@ -184,21 +196,24 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer errorhandling.CloseQuiet(syncW)
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
-	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
+	logPath := filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
 	cmdArgs := []string{}
-	dhp, mtu, sandbox, err := checkSlirpFlags(path)
+	slirpFeatures, err := checkSlirpFlags(path)
 	if err != nil {
 		return errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
 	}
-	if dhp {
+	if slirpFeatures.HasDisableHostLoopback {
 		cmdArgs = append(cmdArgs, "--disable-host-loopback")
 	}
-	if mtu {
+	if slirpFeatures.HasMTU {
 		cmdArgs = append(cmdArgs, "--mtu", "65520")
 	}
-	if sandbox {
+	if slirpFeatures.HasEnableSandbox {
 		cmdArgs = append(cmdArgs, "--enable-sandbox")
+	}
+	if slirpFeatures.HasEnableSeccomp {
+		cmdArgs = append(cmdArgs, "--enable-seccomp")
 	}
 
 	// the slirp4netns arguments being passed are describes as follows:
@@ -230,7 +245,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	}
 
 	// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
-	if sandbox {
+	if slirpFeatures.HasEnableSandbox {
 		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
 		cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
 	}
@@ -323,7 +338,7 @@ func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (er
 	defer errorhandling.CloseQuiet(syncR)
 	defer errorhandling.CloseQuiet(syncW)
 
-	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("rootlessport-%s.log", ctr.config.ID))
+	logPath := filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("rootlessport-%s.log", ctr.config.ID))
 	logFile, err := os.Create(logPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open rootlessport log file %s", logPath)
@@ -347,7 +362,7 @@ func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (er
 		NetNSPath: netnsPath,
 		ExitFD:    3,
 		ReadyFD:   4,
-		TmpDir:    ctr.runtime.config.TmpDir,
+		TmpDir:    ctr.runtime.config.Engine.TmpDir,
 	}
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {
@@ -470,7 +485,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
 	// rootless containers do not use the CNI plugin
-	if !rootless.IsRootless() && ctr.config.NetMode != "slirp4netns" {
+	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
 		var requestedIP net.IP
 		if ctr.requestedIP != nil {
 			requestedIP = ctr.requestedIP
@@ -558,8 +573,8 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 
 // Produce an InspectNetworkSettings containing information on the container
 // network.
-func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
-	settings := new(InspectNetworkSettings)
+func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, error) {
+	settings := new(define.InspectNetworkSettings)
 	settings.Ports = []ocicni.PortMapping{}
 	if c.config.PortMappings != nil {
 		// TODO: This may not be safe.
@@ -585,13 +600,13 @@ func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
 			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI networks but have information on %d networks", len(c.config.Networks), len(c.state.NetworkStatus))
 		}
 
-		settings.Networks = make(map[string]*InspectAdditionalNetwork)
+		settings.Networks = make(map[string]*define.InspectAdditionalNetwork)
 
 		// CNI results should be in the same order as the list of
 		// networks we pass into CNI.
 		for index, name := range c.config.Networks {
 			cniResult := c.state.NetworkStatus[index]
-			addedNet := new(InspectAdditionalNetwork)
+			addedNet := new(define.InspectAdditionalNetwork)
 			addedNet.NetworkID = name
 
 			basicConfig, err := resultToBasicNetworkConfig(cniResult)
@@ -625,8 +640,8 @@ func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
 
 // resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
 // result
-func resultToBasicNetworkConfig(result *cnitypes.Result) (InspectBasicNetworkConfig, error) {
-	config := InspectBasicNetworkConfig{}
+func resultToBasicNetworkConfig(result *cnitypes.Result) (define.InspectBasicNetworkConfig, error) {
+	config := define.InspectBasicNetworkConfig{}
 
 	for _, ctrIP := range result.IPs {
 		size, _ := ctrIP.Address.Mask.Size()
@@ -655,6 +670,13 @@ func resultToBasicNetworkConfig(result *cnitypes.Result) (InspectBasicNetworkCon
 	}
 
 	return config, nil
+}
+
+// This is a horrible hack, necessary because CNI does not properly clean up
+// after itself on an unclean reboot. Return what we're pretty sure is the path
+// to CNI's internal files (it's not really exposed to us).
+func getCNINetworksDir() (string, error) {
+	return "/var/lib/cni/networks", nil
 }
 
 type logrusDebugWriter struct {

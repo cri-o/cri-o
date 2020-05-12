@@ -1,3 +1,69 @@
+- Changelog for v1.14.8 (2020-04-09)
+  * Run (make vendor)
+  * Run (make -C tests/tools vendor)
+  * Run (go mod tidy) before (go mod vendor) again
+  * Fix (make vendor)
+  * Bump validation
+  * Bump back to v1.15.0-dev
+
+- Changelog for v1.14.7 (2020-04-07)
+  * Bump github.com/containers/image/v5 from 5.3.1 to 5.4.3
+  * make vendor: run `tidy` after `vendor`
+  * Do not skip the directory when the ignore pattern matches
+  * Bump github.com/containers/common from 0.7.0 to 0.8.1
+  * Downgrade siruspen/logrus from 1.4.2
+  * Fix errorf conventions
+  * dockerignore tests : remove symlinks, rework
+  * Bump back to v1.15.0-dev
+
+- Changelog for v1.14.6 (2020-04-02)
+  * bud.bats - cleanup, refactoring
+  * vendor in latest containers/storage 1.18.0 and containers/common v0.7.0
+  * Bump github.com/spf13/cobra from 0.0.6 to 0.0.7
+  * Bump github.com/containers/storage from 1.16.5 to 1.17.0
+  * Bump github.com/containers/image/v5 from 5.2.1 to 5.3.1
+  * Fix Amazon install step
+  * Bump back to v1.15.0-dev
+  * Fix bud-build-arg-cache test
+  * Make image history work correctly with new args handling
+  * Don't add args to the RUN environment from the Builder
+  * Update github.com/openshift/imagebuilder to v1.1.4
+  * Add .swp files to .gitignore
+
+- Changelog for v1.14.5 (2020-03-26)
+  * revert #2246 FIPS mode change
+  * Bump back to v1.15.0-dev
+  * image with dup layers: we now have one on quay
+  * digest test : make more robust
+
+- Changelog for v1.14.4 (2020-03-25)
+  * Fix fips-mode check for RHEL8 boxes
+  * Fix potential CVE in tarfile w/ symlink
+  * Fix .dockerignore with globs and ! commands
+  * update install steps for Amazon Linux 2
+  * Bump github.com/openshift/imagebuilder from 1.1.2 to 1.1.3
+  * Add comment for RUN command in volume ownership test
+  * Run stat command directly for volume ownership test
+  * vendor in containers/common v0.6.1
+  * Cleanup go.sum
+  * Bump back to v1.15.0-dev
+
+- Changelog for v1.14.3 (2020-03-17)
+  * Update containers/storage to v1.16.5
+  * Bump github.com/containers/storage from 1.16.2 to 1.16.4
+  * Bump github.com/openshift/imagebuilder from 1.1.1 to 1.1.2
+  * Update github.com/openshift/imagebuilder vendoring
+  * Update unshare man page to fix script example
+  * Fix compilation errors on non linux platforms
+  * Bump containers/common and opencontainers/selinux versions
+  * Add tests for volume ownership
+  * Preserve volume uid and gid through subsequent commands
+  * Fix FORWARD_NULL errors found by Coverity
+  * Bump github.com/containers/storage from 1.16.1 to 1.16.2
+  * Fix errors found by codespell
+  * Bump back to v1.15.0-dev
+  * Add Pull Request Template
+
 - Changelog for v1.14.2 (2020-03-03)
   * Add Buildah pull request template
   * Bump to containers/storage v1.16.1

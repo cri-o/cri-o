@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/kubeutils"
@@ -30,7 +31,7 @@ const (
 // Attach to the given container
 // Does not check if state is appropriate
 // started is only required if startContainer is true
-func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, started chan bool) error {
+func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, started chan bool) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
@@ -93,7 +94,7 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 // 4. attachToExec sends on startFd, signalling it has attached to the socket and child is ready to go
 // 5. child receives on startFd, runs the runtime exec command
 // attachToExec is responsible for closing startFd and attachFd
-func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, sessionID string, startFd, attachFd *os.File) error {
+func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
@@ -104,7 +105,11 @@ func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-c
 	defer errorhandling.CloseQuiet(startFd)
 	defer errorhandling.CloseQuiet(attachFd)
 
-	detachKeys, err := processDetachKeys(keys)
+	detachString := config.DefaultDetachKeys
+	if keys != nil {
+		detachString = *keys
+	}
+	detachKeys, err := processDetachKeys(detachString)
 	if err != nil {
 		return err
 	}
@@ -133,10 +138,6 @@ func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-c
 			logrus.Errorf("unable to close socket: %q", err)
 		}
 	}()
-
-	// Register the resize func after we've read the attach socket, as we know at this point the
-	// 'ctl' file has been created in conmon
-	registerResizeFunc(resize, c.execBundlePath(sessionID))
 
 	// start listening on stdio of the process
 	receiveStdoutError, stdinDone := setupStdioChannels(streams, conn, detachKeys)
@@ -188,7 +189,7 @@ func buildSocketPath(socketPath string) string {
 	return socketPath
 }
 
-func setupStdioChannels(streams *AttachStreams, conn *net.UnixConn, detachKeys []byte) (chan error, chan error) {
+func setupStdioChannels(streams *define.AttachStreams, conn *net.UnixConn, detachKeys []byte) (chan error, chan error) {
 	receiveStdoutError := make(chan error)
 	go func() {
 		receiveStdoutError <- redirectResponseToOutputStreams(streams.OutputStream, streams.ErrorStream, streams.AttachOutput, streams.AttachError, conn)
@@ -199,8 +200,10 @@ func setupStdioChannels(streams *AttachStreams, conn *net.UnixConn, detachKeys [
 		var err error
 		if streams.AttachInput {
 			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
-			if connErr := conn.CloseWrite(); connErr != nil {
-				logrus.Errorf("unable to close conn: %q", connErr)
+			if err == nil {
+				if connErr := conn.CloseWrite(); connErr != nil {
+					logrus.Errorf("unable to close conn: %q", connErr)
+				}
 			}
 		}
 		stdinDone <- err
@@ -254,7 +257,7 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeO
 	return err
 }
 
-func readStdio(streams *AttachStreams, receiveStdoutError, stdinDone chan error) error {
+func readStdio(streams *define.AttachStreams, receiveStdoutError, stdinDone chan error) error {
 	var err error
 	select {
 	case err = <-receiveStdoutError:

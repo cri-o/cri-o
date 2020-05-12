@@ -512,8 +512,8 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 	return "@" + imageDigest.Hex(), nil
 }
 
-// normalizedTag returns the canonical version of tag for use in Image.Names()
-func normalizedTag(tag string) (reference.Named, error) {
+// NormalizedTag returns the canonical version of tag for use in Image.Names()
+func NormalizedTag(tag string) (reference.Named, error) {
 	decomposedTag, err := decompose(tag)
 	if err != nil {
 		return nil, err
@@ -541,7 +541,7 @@ func (i *Image) TagImage(tag string) error {
 	if err := i.reloadImage(); err != nil {
 		return err
 	}
-	ref, err := normalizedTag(tag)
+	ref, err := NormalizedTag(tag)
 	if err != nil {
 		return err
 	}
@@ -916,12 +916,7 @@ func (i *Image) imageInspectInfo(ctx context.Context) (*types.ImageInspectInfo, 
 	return i.inspectInfo, nil
 }
 
-// Inspect returns an image's inspect data
-func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspect")
-	span.SetTag("type", "image")
-	defer span.Finish()
-
+func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.ImageData, error) {
 	ociv1Img, err := i.ociv1Image(ctx)
 	if err != nil {
 		ociv1Img = &ociv1.Image{}
@@ -936,8 +931,10 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 	}
 
 	size := int64(-1)
-	if usize, err := i.Size(ctx); err == nil {
-		size = int64(*usize)
+	if calculateSize {
+		if usize, err := i.Size(ctx); err == nil {
+			size = int64(*usize)
+		}
 	}
 
 	repoTags, err := i.RepoTags()
@@ -1000,6 +997,26 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		}
 	}
 	return data, nil
+}
+
+// Inspect returns an image's inspect data
+func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspect")
+
+	span.SetTag("type", "image")
+	defer span.Finish()
+
+	return i.inspect(ctx, true)
+}
+
+// InspectNoSize returns an image's inspect data without calculating the size for the image
+func (i *Image) InspectNoSize(ctx context.Context) (*inspect.ImageData, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspectNoSize")
+
+	span.SetTag("type", "image")
+	defer span.Finish()
+
+	return i.inspect(ctx, false)
 }
 
 // Import imports and image into the store and returns an image
@@ -1395,14 +1412,14 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 		}
 		manifestType = manifest.DockerV2Schema2MediaType
 	case "docker-archive", "":
-		dst := output
 		destImageName := imageNameForSaveDestination(i, source)
-		if destImageName != "" {
-			dst = fmt.Sprintf("%s:%s", dst, destImageName)
-		}
-		destRef, err = dockerarchive.ParseReference(dst) // FIXME? Add dockerarchive.NewReference
+		ref, err := dockerArchiveDstReference(destImageName)
 		if err != nil {
-			return errors.Wrapf(err, "error getting Docker archive ImageReference for %q", dst)
+			return err
+		}
+		destRef, err = dockerarchive.NewReference(output, ref)
+		if err != nil {
+			return errors.Wrapf(err, "error getting Docker archive ImageReference for %s:%v", output, ref)
 		}
 	default:
 		return errors.Errorf("unknown format option %q", format)
@@ -1420,6 +1437,23 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 	}
 	i.newImageEvent(events.Save)
 	return nil
+}
+
+// dockerArchiveDestReference returns a NamedTagged reference for a tagged image and nil for untagged image.
+func dockerArchiveDstReference(normalizedInput string) (reference.NamedTagged, error) {
+	if normalizedInput == "" {
+		return nil, nil
+	}
+	ref, err := reference.ParseNormalizedNamed(normalizedInput)
+	if err != nil {
+		return nil, errors.Wrapf(err, "docker-archive parsing reference %s", normalizedInput)
+	}
+	ref = reference.TagNameOnly(ref)
+	namedTagged, isTagged := ref.(reference.NamedTagged)
+	if !isTagged {
+		namedTagged = nil
+	}
+	return namedTagged, nil
 }
 
 // GetConfigBlob returns a schema2image.  If the image is not a schema2, then

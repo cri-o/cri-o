@@ -4,9 +4,8 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/capabilities"
+	cconfig "github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
-	libpodconfig "github.com/containers/libpod/libpod/config"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/rootless"
@@ -19,7 +18,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-const CpuPeriod = 100000
+const (
+	CpuPeriod        = 100000
+	kernelMax uint64 = 1048576
+)
 
 func GetAvailableGids() (int64, error) {
 	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
@@ -81,6 +83,37 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			g.AddLinuxMaskedPaths("/sys/kernel")
 		}
 	}
+	var runtimeConfig *cconfig.Config
+
+	if runtime != nil {
+		runtimeConfig, err = runtime.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+		g.Config.Process.Capabilities.Bounding = runtimeConfig.Containers.DefaultCapabilities
+		sysctls, err := util.ValidateSysctls(runtimeConfig.Containers.DefaultSysctls)
+		if err != nil {
+			return nil, err
+		}
+
+		for name, val := range config.Security.Sysctl {
+			sysctls[name] = val
+		}
+		config.Security.Sysctl = sysctls
+		if !util.StringInSlice("host", config.Resources.Ulimit) {
+			config.Resources.Ulimit = append(runtimeConfig.Containers.DefaultUlimits, config.Resources.Ulimit...)
+		}
+		if config.Resources.PidsLimit < 0 && !config.cgroupDisabled() {
+			config.Resources.PidsLimit = runtimeConfig.Containers.PidsLimit
+		}
+
+	} else {
+		g.Config.Process.Capabilities.Bounding = cconfig.DefaultCapabilities
+		if config.Resources.PidsLimit < 0 && !config.cgroupDisabled() {
+			config.Resources.PidsLimit = cconfig.DefaultPidsLimit
+		}
+	}
+
 	gid5Available := true
 	if isRootless {
 		nGids, err := GetAvailableGids()
@@ -242,16 +275,6 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		}
 	}
 
-	// SECURITY OPTS
-	var runtimeConfig *libpodconfig.Config
-
-	if runtime != nil {
-		runtimeConfig, err = runtime.GetConfig()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	g.SetProcessNoNewPrivileges(config.Security.NoNewPrivs)
 
 	if !config.Security.Privileged {
@@ -261,7 +284,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	// Unless already set via the CLI, check if we need to disable process
 	// labels or set the defaults.
 	if len(config.Security.LabelOpts) == 0 && runtimeConfig != nil {
-		if !runtimeConfig.EnableLabeling {
+		if !runtimeConfig.Containers.EnableLabeling {
 			// Disabled in the config.
 			config.Security.LabelOpts = append(config.Security.LabelOpts, "disable")
 		} else if err := config.Security.SetLabelOpts(runtime, &config.Pid, &config.Ipc); err != nil {
@@ -284,7 +307,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			if err != nil {
 				return nil, err
 			}
-			if (!cgroup2 || (runtimeConfig != nil && runtimeConfig.CgroupManager != define.SystemdCgroupsManager)) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
+			if (!cgroup2 || (runtimeConfig != nil && runtimeConfig.Engine.CgroupManager != cconfig.SystemdCgroupsManager)) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
 				setPidLimit = false
 			}
 		}
@@ -296,9 +319,15 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 
 	// Make sure to always set the default variables unless overridden in the
 	// config.
-	config.Env = env.Join(env.DefaultEnvVariables, config.Env)
-	for name, val := range config.Env {
-		g.AddProcessEnv(name, val)
+	var defaultEnv map[string]string
+	if runtimeConfig == nil {
+		defaultEnv = env.DefaultEnvVariables
+	} else {
+		defaultEnv, err = env.ParseSlice(runtimeConfig.Containers.Env)
+		if err != nil {
+			return nil, errors.Wrap(err, "Env fields in containers.conf failed ot parse")
+		}
+		defaultEnv = env.Join(env.DefaultEnvVariables, defaultEnv)
 	}
 
 	if err := addRlimits(config, &g); err != nil {
@@ -330,6 +359,11 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	if err := config.Cgroup.ConfigureGenerator(&g); err != nil {
 		return nil, err
 	}
+
+	config.Env = env.Join(defaultEnv, config.Env)
+	for name, val := range config.Env {
+		g.AddProcessEnv(name, val)
+	}
 	configSpec := g.Config
 
 	// If the container image specifies an label with a
@@ -351,11 +385,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	// BIND MOUNTS
 	configSpec.Mounts = SupercedeUserMounts(userMounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
-	finalMounts, err := InitFSMounts(configSpec.Mounts)
-	if err != nil {
+	if err := InitFSMounts(configSpec.Mounts); err != nil {
 		return nil, err
 	}
-	configSpec.Mounts = finalMounts
 
 	// BLOCK IO
 	blkio, err := config.CreateBlockIO()
@@ -376,7 +408,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			configSpec.Linux.Resources = &spec.LinuxResources{}
 		}
 
-		canUseResources := cgroup2 && runtimeConfig != nil && (runtimeConfig.CgroupManager == define.SystemdCgroupsManager)
+		canUseResources := cgroup2 && runtimeConfig != nil && (runtimeConfig.Engine.CgroupManager == cconfig.SystemdCgroupsManager)
 
 		if addedResources && !canUseResources {
 			return nil, errors.New("invalid configuration, cannot specify resource limits without cgroups v2 and --cgroup-manager=systemd")
@@ -433,6 +465,10 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	return configSpec, nil
 }
 
+func (config *CreateConfig) cgroupDisabled() bool {
+	return config.Cgroup.Cgroups == "disabled"
+}
+
 func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, g *generate.Generator) {
 	if !privileged {
 		for _, mp := range []string{
@@ -469,10 +505,8 @@ func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, g *generate.
 
 func addRlimits(config *CreateConfig, g *generate.Generator) error {
 	var (
-		kernelMax  uint64 = 1048576
-		isRootless        = rootless.IsRootless()
-		nofileSet         = false
-		nprocSet          = false
+		nofileSet = false
+		nprocSet  = false
 	)
 
 	for _, u := range config.Resources.Ulimit {
@@ -501,11 +535,13 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 	// If not explicitly overridden by the user, default number of open
 	// files and number of processes to the maximum they can be set to
 	// (without overriding a sysctl)
-	if !nofileSet && !isRootless {
-		g.AddProcessRlimits("RLIMIT_NOFILE", kernelMax, kernelMax)
+	if !nofileSet {
+		current, max := getNOFILESettings()
+		g.AddProcessRlimits("RLIMIT_NOFILE", current, max)
 	}
-	if !nprocSet && !isRootless {
-		g.AddProcessRlimits("RLIMIT_NPROC", kernelMax, kernelMax)
+	if !nprocSet {
+		current, max := getNPROCSettings()
+		g.AddProcessRlimits("RLIMIT_NPROC", current, max)
 	}
 
 	return nil

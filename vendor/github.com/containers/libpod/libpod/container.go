@@ -11,6 +11,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
@@ -181,9 +182,13 @@ type ContainerState struct {
 	PID int `json:"pid,omitempty"`
 	// ConmonPID is the PID of the container's conmon
 	ConmonPID int `json:"conmonPid,omitempty"`
-	// ExecSessions contains active exec sessions for container
-	// Exec session ID is mapped to PID of exec process
-	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
+	// ExecSessions contains all exec sessions that are associated with this
+	// container.
+	ExecSessions map[string]*ExecSession `json:"newExecSessions,omitempty"`
+	// LegacyExecSessions are legacy exec sessions from older versions of
+	// Podman.
+	// These are DEPRECATED and will be removed in a future release.
+	LegacyExecSessions map[string]*legacyExecSession `json:"execSessions,omitempty"`
 	// NetworkStatus contains the configuration results for all networks
 	// the pod is attached to. Only populated if we created a network
 	// namespace for the container, and the network namespace is currently
@@ -214,13 +219,6 @@ type ContainerState struct {
 	containerPlatformState
 }
 
-// ExecSession contains information on an active exec session
-type ExecSession struct {
-	ID      string   `json:"id"`
-	Command []string `json:"command"`
-	PID     int      `json:"pid"`
-}
-
 // ContainerConfig contains all information that was used to create the
 // container. It may not be changed once created.
 // It is stored, read-only, on disk
@@ -238,6 +236,12 @@ type ContainerConfig struct {
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string `json:"CreateCommand,omitempty"`
+
+	// RawImageName is the raw and unprocessed name of the image when creating
+	// the container (as specified by the user).  May or may not be set.  One
+	// use case to store this data are auto-updates where we need the _exact_
+	// name and not some normalized instance of it.
+	RawImageName string `json:"RawImageName,omitempty"`
 
 	// TODO consider breaking these subsections up into smaller structs
 
@@ -503,9 +507,15 @@ func (c *Container) Namespace() string {
 	return c.config.Namespace
 }
 
-// Image returns the ID and name of the image used as the container's rootfs
+// Image returns the ID and name of the image used as the container's rootfs.
 func (c *Container) Image() (string, string) {
 	return c.config.RootfsImageID, c.config.RootfsImageName
+}
+
+// RawImageName returns the unprocessed and not-normalized user-specified image
+// name.
+func (c *Container) RawImageName() string {
+	return c.config.RawImageName
 }
 
 // ShmDir returns the sources path to be mounted on /dev/shm in container
@@ -932,13 +942,13 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 
 	session, ok := c.state.ExecSessions[id]
 	if !ok {
-		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no exec session with ID %s found in container %s", id, c.ID())
+		return nil, errors.Wrapf(define.ErrNoSuchExecSession, "no exec session with ID %s found in container %s", id, c.ID())
 	}
 
 	returnSession := new(ExecSession)
-	returnSession.ID = session.ID
-	returnSession.Command = session.Command
-	returnSession.PID = session.PID
+	if err := JSONDeepCopy(session, returnSession); err != nil {
+		return nil, errors.Wrapf(err, "error copying contents of container %s exec session %s", c.ID(), session.ID())
+	}
 
 	return returnSession, nil
 }
@@ -1074,10 +1084,10 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() (string, error) {
-	switch c.runtime.config.CgroupManager {
-	case define.CgroupfsCgroupsManager:
+	switch c.runtime.config.Engine.CgroupManager {
+	case config.CgroupfsCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
-	case define.SystemdCgroupsManager:
+	case config.SystemdCgroupsManager:
 		if rootless.IsRootless() {
 			uid := rootless.GetRootlessUID()
 			parts := strings.SplitN(c.config.CgroupParent, "/", 2)
@@ -1091,7 +1101,7 @@ func (c *Container) CGroupPath() (string, error) {
 		}
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
-		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
+		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.Engine.CgroupManager)
 	}
 }
 
