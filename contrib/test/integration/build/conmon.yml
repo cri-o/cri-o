@@ -2,9 +2,9 @@
 
 - name: clone conmon source repo
   git:
-    repo: "https://github.com/containers/conmon.git"
+    repo: "https://github.com/giuseppe/conmon.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
-    version: v2.0.15
+    version: fix-fast-write-tty
 
 - name: build conmon
   make:
