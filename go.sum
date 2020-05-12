@@ -131,7 +131,7 @@ github.com/containernetworking/plugins v0.8.5/go.mod h1:UZ2539umj8djuRQmBxuazHeJ
 github.com/containers/buildah v1.14.8 h1:JbMI0QSOmyZ30Mr2633uCXAj+Fajgh/EFS9xX/Y14oQ=
 github.com/containers/buildah v1.14.8/go.mod h1:ytEjHJQnRXC1ygXMyc0FqYkjcoCydqBQkOdxbH563QU=
 github.com/containers/common v0.8.1/go.mod h1:VxDJbaA1k6N1TNv9Rt6bQEF4hyKVHNfOfGA5L91ADEs=
-github.com/containers/common v0.8.2/go.mod h1:VxDJbaA1k6N1TNv9Rt6bQEF4hyKVHNfOfGA5L91ADEs=
+github.com/containers/common v0.8.4/go.mod h1:VxDJbaA1k6N1TNv9Rt6bQEF4hyKVHNfOfGA5L91ADEs=
 github.com/containers/common v0.9.1 h1:S5lkpnycTI29YzpNJ4RLv49g8sksgYNRNsugPmzQCR8=
 github.com/containers/common v0.9.1/go.mod h1:9YGKPwu6NFYQG2NtSP9bRhNGA8mgd1mUCCkOU2tr+Pc=
 github.com/containers/conmon v2.0.14+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
@@ -139,8 +139,8 @@ github.com/containers/conmon v2.0.15+incompatible h1:3CdToyAu/XEiXO2Se/HaOv3TEc1
 github.com/containers/conmon v2.0.15+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.4.3 h1:zn2HR7uu4hpvT5QQHgjqonOzKDuM1I1UHUEmzZT5sbs=
 github.com/containers/image/v5 v5.4.3/go.mod h1:pN0tvp3YbDd7BWavK2aE0mvJUqVd2HmhPjekyWSFm0U=
-github.com/containers/libpod v1.9.1 h1:uimXDEWJfeihzNosPtJ9f7njYZ4RmYD4KPXbwavw020=
-github.com/containers/libpod v1.9.1/go.mod h1:70h+znEanYLSS+qDBgD6eIdQ7xMXVfWYnUDq264UZno=
+github.com/containers/libpod v1.9.2-0.20200512193833-2cacad0f7b17 h1:FwwivXtDoCGnVrc4tVFgMgMtoYRhcpEBfQGy7wSxHPo=
+github.com/containers/libpod v1.9.2-0.20200512193833-2cacad0f7b17/go.mod h1:dwuETW8bj8zjrLFFEIZgTXHJVkvUFAefKRZLFxdScds=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.2 h1:Q0/IPs8ohfbXNxEfyJ2pFVmvJu5BhqJUAmc6ES9NKbo=
@@ -244,8 +244,6 @@ github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa/go.mod h1:KnogPXt
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
-github.com/giuseppe/storage v1.19.2-0.20200511081501-b40be2011f67 h1:4wFbL0C4+Qtcp+LuONNk/d4DzqKoHzl0fKix15IdcHk=
-github.com/giuseppe/storage v1.19.2-0.20200511081501-b40be2011f67/go.mod h1:gYCp3jzgXkvubO0rI14QAjz5Mxm/qKJgLmHFyqayDnw=
 github.com/gliderlabs/ssh v0.2.2/go.mod h1:U7qILu1NlMHj9FlMhZLlkCdDnU1DBEAqr0aevW3Awn0=
 github.com/globalsign/mgo v0.0.0-20180905125535-1ca0a4f7cbcb/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
 github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
