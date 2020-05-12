@@ -17,7 +17,7 @@ import (
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/selinux"
+	selinux "github.com/containers/libpod/pkg/selinux"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/lib"
@@ -722,7 +722,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	specgen.SetProcessArgs(processArgs)
 
 	if strings.Contains(processArgs[0], "/sbin/init") || (filepath.Base(processArgs[0]) == oci.SystemdCgroupsManager) {
-		processLabel, err = selinux.InitLabel(processLabel)
+		processLabel, err = selinux.SELinuxInitLabel(processLabel)
 		if err != nil {
 			return nil, err
 		}
