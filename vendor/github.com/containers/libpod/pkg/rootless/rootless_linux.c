@@ -535,13 +535,41 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
     }
 }
 
+static int
+open_namespace (int pid_to_join, const char *ns_file)
+{
+  char ns_path[PATH_MAX];
+  int ret;
+
+  ret = snprintf (ns_path, PATH_MAX, "/proc/%d/ns/%s", pid_to_join, ns_file);
+  if (ret == PATH_MAX)
+    {
+      fprintf (stderr, "internal error: namespace path too long\n");
+      return -1;
+    }
+
+  return open (ns_path, O_CLOEXEC | O_RDONLY);
+}
+
+static void
+join_namespace_or_die (const char *name, int ns_fd)
+{
+  if (setns (ns_fd, 0) < 0)
+    {
+      fprintf (stderr, "cannot set %s namespace\n", name);
+      _exit (EXIT_FAILURE);
+    }
+}
+
 int
-reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
+reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
 {
   char uid[16];
   char gid[16];
   char **argv;
   int pid;
+  int mnt_ns = -1;
+  int user_ns = -1;
   char *cwd = getcwd (NULL, 0);
   sigset_t sigset, oldsigset;
 
@@ -561,14 +589,28 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
+  user_ns = open_namespace (pid_to_join, "user");
+  if (user_ns < 0)
+    return user_ns;
+  mnt_ns = open_namespace (pid_to_join, "mnt");
+  if (mnt_ns < 0)
+    {
+      close (user_ns);
+      return mnt_ns;
+    }
+
   pid = fork ();
   if (pid < 0)
     fprintf (stderr, "cannot fork: %s\n", strerror (errno));
 
   if (pid)
     {
-      /* We passed down these fds, close them.  */
       int f;
+
+      /* We passed down these fds, close them.  */
+      close (user_ns);
+      close (mnt_ns);
+
       for (f = 3; f < open_files_max_fd; f++)
         if (open_files_set == NULL || FD_ISSET (f % FD_SETSIZE, &(open_files_set[f / FD_SETSIZE])))
           close (f);
@@ -606,19 +648,10 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  if (setns (userns, 0) < 0)
-    {
-      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
-      _exit (EXIT_FAILURE);
-    }
-  close (userns);
-
-  if (mountns >= 0 && setns (mountns, 0) < 0)
-    {
-      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
-      _exit (EXIT_FAILURE);
-    }
-  close (mountns);
+  join_namespace_or_die ("user", user_ns);
+  join_namespace_or_die ("mnt", mnt_ns);
+  close (user_ns);
+  close (mnt_ns);
 
   if (syscall_setresgid (0, 0, 0) < 0)
     {
