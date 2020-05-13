@@ -86,10 +86,16 @@ func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
 	if err != nil {
 		return err
 	}
+	if len(crioContainers) != 0 {
+		logrus.Infof("wiping containers")
+	}
 	for _, id := range crioContainers {
 		c.deleteContainer(id)
 	}
 	if shouldWipeImages {
+		if len(crioImages) != 0 {
+			logrus.Infof("wiping images")
+		}
 		for _, id := range crioImages {
 			c.deleteImage(id)
 		}
@@ -127,7 +133,6 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 }
 
 func (c ContainerStore) deleteContainer(id string) {
-	logrus.Infof("wiping containers")
 	if mounted, err := c.store.Unmount(id, true); err != nil || mounted {
 		logrus.Errorf("unable to unmount container %s: %v", id, err)
 		return
@@ -140,7 +145,6 @@ func (c ContainerStore) deleteContainer(id string) {
 }
 
 func (c ContainerStore) deleteImage(id string) {
-	logrus.Infof("wiping image")
 	if _, err := c.store.DeleteImage(id, true); err != nil {
 		logrus.Errorf("unable to delete image %s: %v", id, err)
 		return
