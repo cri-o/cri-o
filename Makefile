@@ -113,7 +113,7 @@ TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
-TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.3.0
+TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.4.0
 
 all: binaries crio.conf docs
 
@@ -178,7 +178,7 @@ build-static:
 	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(TESTIMAGE_NIX) sh -c \
 		"nix build -f cri-o/nix && \
 		mkdir -p cri-o/bin && \
-		cp result-bin/bin/crio-* cri-o/bin"
+		cp -r result/bin cri-o/bin/static"
 
 release-bundle: clean bin/pinns build-static docs crio.conf bundle
 

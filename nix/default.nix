@@ -1,12 +1,6 @@
 { system ? builtins.currentSystem }:
 let
-  pkgs = import ./nixpkgs.nix {
-    config = {
-      packageOverrides = pkg: {
-        go_1_12 = pkg.go_1_14;
-      };
-    };
-  };
+  pkgs = import ./nixpkgs.nix {};
 
   static = pkg: pkg.overrideAttrs(old: {
     configureFlags = (old.configureFlags or []) ++
@@ -35,20 +29,12 @@ let
   self = {
     cri-o-static = (pkgs.cri-o.overrideAttrs(old: {
       name = "cri-o-static";
-      buildInputs = old.buildInputs ++ (with pkgs; [ systemd ]);
       src = ./..;
-      buildPhase = ''
-        pushd go/src/github.com/cri-o/cri-o
-        make BUILDTAGS="apparmor seccomp selinux containers_image_ostree_stub netgo" \
-          bin/crio \
-          bin/crio-status \
-          bin/pinns
-      '';
+      BUILDTAGS="${old.BUILDTAGS} netgo";
       EXTRA_LDFLAGS = ''-linkmode external -extldflags "-static -lm"'';
       dontStrip = true;
       # DEBUG = 1; # Uncomment this line to enable debug symbols in the binary
     })).override {
-      flavor = "-static";
       gpgme = (static pkgs.gpgme);
       libassuan = (static pkgs.libassuan);
       libgpgerror = (static pkgs.libgpgerror);
