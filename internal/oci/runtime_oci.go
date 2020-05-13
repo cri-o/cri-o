@@ -99,11 +99,12 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 		"--exit-dir", r.config.ContainerExitsDir,
 		"--socket-dir-path", r.config.ContainerAttachSocketDir,
 		"--log-level", logrus.GetLevel().String(),
-		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root),
-		"--syslog"}
+		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root)}
 
 	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "-s")
+	} else {
+		args = append(args, "--syslog")
 	}
 
 	if r.config.LogSizeMax >= 0 {

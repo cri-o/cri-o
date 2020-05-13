@@ -1,6 +1,6 @@
 // +build linux
 
-package cgroupmanager
+package cgmgr
 
 import (
 	"fmt"
@@ -21,7 +21,9 @@ const defaultSystemdParent = "system.slice"
 
 // SystemdManager is the parent type of SystemdV{1,2}Manager.
 // it defines all of the common functionality between V1 and V2
-type SystemdManager struct{}
+type SystemdManager struct {
+	memoryPath, memoryMaxFile string
+}
 
 // Name returns the name of the cgroup manager (systemd)
 func (*SystemdManager) Name() string {
@@ -46,7 +48,10 @@ func (*SystemdManager) GetContainerCgroupPath(sbParent, containerID string) stri
 
 // MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID
 // It attempts to move conmon to the correct cgroup.
-func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error) {
+// cgroupPathToClean should always be returned empty. It is part of the interface to return the cgroup path
+// that cri-o is responsible for cleaning up upon the container's death.
+// Systemd takes care of this cleaning for us, so return an empty string
+func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (cgroupPathToClean string, err error) {
 	if strings.HasSuffix(conmonCgroup, ".slice") {
 		cgroupParent = conmonCgroup
 	}
@@ -55,32 +60,14 @@ func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string
 	if err := utils.RunUnderSystemdScope(pid, cgroupParent, conmonUnitName); err != nil {
 		return "", errors.Wrapf(err, "Failed to add conmon to systemd sandbox cgroup")
 	}
+	// return empty string as path because cgroup cleanup is done by systemd
 	return "", nil
 }
 
-type SystemdV1Manager struct {
-	SystemdManager
-}
-
 // GetSandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 // returns the cgroup parent, cgroup path, and error.
-// it also checks there is enough memory in the given cgroup (4mb is needed for the runtime)
-func (*SystemdV1Manager) GetSandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, err error) {
-	return getSandboxCgroupPathForSystemd(sbParent, sbID, cgroupMemorySubsystemMountPathV1, "memory.limit_in_bytes")
-}
-
-type SystemdV2Manager struct {
-	SystemdManager
-}
-
-// GetSandboxCgroupPath takes the sandbox parent, and sandbox ID. It
-// returns the cgroup parent, cgroup path, and error.
-// it also checks there is enough memory in the given cgroup (4mb is needed for the runtime)
-func (*SystemdV2Manager) GetSandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, err error) {
-	return getSandboxCgroupPathForSystemd(sbParent, sbID, cgroupMemorySubsystemMountPathV2, "memory.max")
-}
-
-func getSandboxCgroupPathForSystemd(sbParent, sbID, memorySubsystemPath, memoryMaxFile string) (cgParent, cgPath string, err error) {
+// It also checks there is enough memory in the given cgroup
+func (m *SystemdManager) GetSandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, err error) {
 	if sbParent == "" {
 		return "", "", nil
 	}
@@ -91,7 +78,7 @@ func getSandboxCgroupPathForSystemd(sbParent, sbID, memorySubsystemPath, memoryM
 
 	cgParent = convertCgroupFsNameToSystemd(sbParent)
 
-	if err := verifyCgroupHasEnoughMemory(cgParent, memorySubsystemPath, memoryMaxFile); err != nil {
+	if err := verifyCgroupHasEnoughMemory(cgParent, m.memoryPath, m.memoryMaxFile); err != nil {
 		return "", "", err
 	}
 
@@ -101,8 +88,6 @@ func getSandboxCgroupPathForSystemd(sbParent, sbID, memorySubsystemPath, memoryM
 }
 
 func verifyCgroupHasEnoughMemory(cgroupParent, memorySubsystemPath, memoryMaxFilename string) error {
-	// check memory limit is greater than the minimum memory limit of 4Mb
-	// expand the cgroup slice path
 	slicePath, err := systemd.ExpandSlice(cgroupParent)
 	if err != nil {
 		return errors.Wrapf(err, "expanding systemd slice path for %q", cgroupParent)
@@ -134,7 +119,7 @@ func verifyCgroupHasEnoughMemory(cgroupParent, memorySubsystemPath, memoryMaxFil
 
 func VerifyMemoryIsEnough(memoryLimit int64) error {
 	if memoryLimit != 0 && memoryLimit < minMemoryLimit {
-		return fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+		return fmt.Errorf("set memory limit %d too low; should be at least %d", memoryLimit, minMemoryLimit)
 	}
 	return nil
 }

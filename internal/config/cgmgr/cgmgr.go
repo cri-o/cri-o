@@ -1,6 +1,6 @@
 // +build linux
 
-package cgroupmanager
+package cgmgr
 
 import (
 	"github.com/cri-o/cri-o/internal/config/node"
@@ -8,18 +8,24 @@ import (
 )
 
 const (
-	cgroupMemorySubsystemMountPathV1 = "/sys/fs/cgroup/memory"
-	cgroupMemorySubsystemMountPathV2 = "/sys/fs/cgroup"
-	scopePrefix                      = "crio"
+	scopePrefix = "crio"
 	// minMemoryLimit is the minimum memory that must be set for a container.
 	// A lower value would result in the container failing to start.
-	minMemoryLimit = 12582912
+	// this value has been arrived at for runc on x86_64 hardware
+	minMemoryLimit = 12 * 1024 * 1024
 	// CgroupfsCgroupManager represents cgroupfs native cgroup manager
 	cgroupfsCgroupManager = "cgroupfs"
 	// SystemdCgroupManager represents systemd native cgroup manager
 	systemdCgroupManager = "systemd"
 
 	DefaultCgroupManager = systemdCgroupManager
+
+	// these constants define the path and name of the memory max file
+	// for v1 and v2 respectively
+	cgroupMemoryPathV1    = "/sys/fs/cgroup/memory"
+	cgroupMemoryMaxFileV1 = "memory.limit_in_bytes"
+	cgroupMemoryPathV2    = "/sys/fs/cgroup"
+	cgroupMemoryMaxFileV2 = "memory.max"
 )
 
 // CgroupManager is an interface to interact with cgroups on a node. CRI-O is configured at startup to either use
@@ -57,10 +63,15 @@ func New() CgroupManager {
 func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 	switch cgroupManager {
 	case systemdCgroupManager:
-		if node.CgroupIsV2() {
-			return new(SystemdV2Manager), nil
+		systemdMgr := SystemdManager{
+			memoryPath:    cgroupMemoryPathV1,
+			memoryMaxFile: cgroupMemoryMaxFileV1,
 		}
-		return new(SystemdV1Manager), nil
+		if node.CgroupIsV2() {
+			systemdMgr.memoryPath = cgroupMemoryPathV2
+			systemdMgr.memoryMaxFile = cgroupMemoryMaxFileV2
+		}
+		return &systemdMgr, nil
 	case cgroupfsCgroupManager:
 		return new(CgroupfsManager), nil
 	default:

@@ -3,7 +3,6 @@
 package node
 
 import (
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,44 +13,30 @@ import (
 // cri-o early, instead of when we're already trying to run containers.
 func ValidateConfig() error {
 	toInit := []struct {
-		name        string
-		initializer func() bool
-		err         *error
-		fatal       bool
+		name string
+		init func() bool
+		err  *error
 	}{
 		{
-			name:        "hugetlb cgroup",
-			initializer: CgroupHasHugetlb,
-			err:         &cgroupHasHugetlbErr,
-			fatal:       false,
+			name: "hugetlb cgroup",
+			init: CgroupHasHugetlb,
+			err:  &cgroupControllerErr,
 		},
 		{
-			name:        "pid cgroup",
-			initializer: CgroupHasPid,
-			err:         &cgroupHasPidErr,
-			fatal:       false,
+			name: "pid cgroup",
+			init: CgroupHasPid,
+			err:  &cgroupControllerErr,
 		},
 		{
-			name:        "cgroupv2",
-			initializer: CgroupIsV2,
-			err:         &cgroupIsV2Err,
-			fatal:       false,
-		},
-		{
-			name:        "memoryswap cgroup",
-			initializer: CgroupHasMemorySwap,
-			err:         &cgroupHasMemorySwapErr,
-			fatal:       false,
+			name: "memoryswap cgroup",
+			init: CgroupHasMemorySwap,
+			err:  &cgroupHasMemorySwapErr,
 		},
 	}
 	for _, i := range toInit {
-		i.initializer()
+		i.init()
 		if *i.err != nil {
-			err := errors.Wrapf(*i.err, "node configuration validation for %s failed", i.name)
-			if i.fatal {
-				return err
-			}
-			logrus.Error(err.Error())
+			logrus.Errorf("node configuration validation for %s failed: %v", i.name, *i.err)
 		}
 	}
 	return nil

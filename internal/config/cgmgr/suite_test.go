@@ -1,4 +1,4 @@
-package cgroupmanager_test
+package cgmgr_test
 
 import (
 	"testing"

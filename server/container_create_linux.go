@@ -18,7 +18,7 @@ import (
 	selinux "github.com/containers/libpod/pkg/selinux"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/cri-o/cri-o/internal/config/cgroupmanager"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -458,9 +458,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			specgen.SetLinuxResourcesCPUShares(uint64(resources.GetCpuShares()))
 
 			memoryLimit := resources.GetMemoryLimitInBytes()
-
 			if memoryLimit != 0 {
-				if err := cgroupmanager.VerifyMemoryIsEnough(memoryLimit); err != nil {
+				if err := cgmgr.VerifyMemoryIsEnough(memoryLimit); err != nil {
 					return nil, err
 				}
 

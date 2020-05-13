@@ -1,6 +1,6 @@
 // +build !linux
 
-package cgroupmanager
+package cgmgr
 
 import (
 	"github.com/pkg/errors"

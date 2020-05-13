@@ -20,7 +20,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
-	"github.com/cri-o/cri-o/internal/config/cgroupmanager"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
@@ -299,7 +299,7 @@ type RuntimeConfig struct {
 	apparmorConfig *apparmor.Config
 
 	// cgroupManager is the internal CgroupManager configuration
-	cgroupManager cgroupmanager.CgroupManager
+	cgroupManager cgmgr.CgroupManager
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -519,7 +519,7 @@ func DefaultConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	cgroupManager := cgroupmanager.New()
+	cgroupManager := cgmgr.New()
 	return &Config{
 		SystemContext: &types.SystemContext{
 			DockerRegistryUserAgent: useragent.Get(),
@@ -786,13 +786,12 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	// check for validation on execution
 	if onExecution {
-		var err error
-		if err = c.ValidateRuntimes(); err != nil {
+		if err := c.ValidateRuntimes(); err != nil {
 			return errors.Wrap(err, "runtime validation")
 		}
 
 		// Validate the system registries configuration
-		if _, err = sysregistriesv2.GetRegistries(systemContext); err != nil {
+		if _, err := sysregistriesv2.GetRegistries(systemContext); err != nil {
 			return errors.Wrap(err, "invalid registries")
 		}
 
@@ -809,12 +808,12 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		c.HooksDir = hooksDirs
 
 		// Validate the conmon path
-		if err = c.ValidateConmonPath("conmon"); err != nil {
+		if err := c.ValidateConmonPath("conmon"); err != nil {
 			return errors.Wrap(err, "conmon validation")
 		}
 
 		// Validate the pinns path
-		if err = c.ValidatePinnsPath("pinns"); err != nil {
+		if err := c.ValidatePinnsPath("pinns"); err != nil {
 			return errors.Wrap(err, "pinns validation")
 		}
 
@@ -822,18 +821,19 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "invalid namespaces_dir")
 		}
 
-		if err = c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
+		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
 			return errors.Wrap(err, "unable to load seccomp profile")
 		}
 
-		if err = c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
+		if err := c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
 			return errors.Wrap(err, "unable to load AppArmor profile")
 		}
 
-		c.cgroupManager, err = cgroupmanager.SetCgroupManager(c.CgroupManagerName)
+		cgroupManager, err := cgmgr.SetCgroupManager(c.CgroupManagerName)
 		if err != nil {
 			return errors.Wrap(err, "unable to update cgroup manager")
 		}
+		c.cgroupManager = cgroupManager
 	}
 
 	return nil
@@ -878,7 +878,7 @@ func (c *RuntimeConfig) AppArmor() *apparmor.Config {
 }
 
 // CgroupManager returns the AppArmor configuration
-func (c *RuntimeConfig) CgroupManager() cgroupmanager.CgroupManager {
+func (c *RuntimeConfig) CgroupManager() cgmgr.CgroupManager {
 	return c.cgroupManager
 }
 

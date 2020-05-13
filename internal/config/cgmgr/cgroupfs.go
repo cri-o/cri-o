@@ -1,6 +1,6 @@
 // +build linux
 
-package cgroupmanager
+package cgmgr
 
 import (
 	"fmt"
@@ -55,12 +55,11 @@ func (*CgroupfsManager) GetSandboxCgroupPath(sbParent, sbID string) (cgParent, c
 // It returns the cgroupfs parent that conmon was put into
 // so that CRI-O can clean the cgroup path of the newly added conmon once the process terminates (systemd handles this for us)
 func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error) {
-	// Move conmon to specified cgroup
 	if conmonCgroup != "pod" && conmonCgroup != "" {
 		return "", errors.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
 	}
 
-	cgroupPath := filepath.Join(cgroupParent, "/crio-conmon-"+cid)
+	cgroupPath := fmt.Sprintf("%s/crio-conmon-%s", cgroupParent, cid)
 	control, err := cgroups.New(cgroupPath, &rspec.LinuxResources{})
 	if err != nil {
 		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
