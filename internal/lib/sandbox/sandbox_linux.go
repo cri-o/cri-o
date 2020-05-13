@@ -129,25 +129,23 @@ func (n *NetNs) Remove() error {
 
 	n.closed = true
 
-	if n.restored {
-		// we got namespaces in the form of
-		// /var/run/netns/cni-0d08effa-06eb-a963-f51a-e2b0eceffc5d
-		// but /var/run on most system is symlinked to /run so we first resolve
-		// the symlink and then try and see if it's mounted
-		fp, err := symlink.FollowSymlinkInScope(n.Path(), "/")
-		if err != nil {
+	// we got namespaces in the form of
+	// /var/run/netns/cni-0d08effa-06eb-a963-f51a-e2b0eceffc5d
+	// but /var/run on most system is symlinked to /run so we first resolve
+	// the symlink and then try and see if it's mounted
+	fp, err := symlink.FollowSymlinkInScope(n.Path(), "/")
+	if err != nil {
+		return err
+	}
+	if mounted, err := mount.Mounted(fp); err == nil && mounted {
+		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
 			return err
 		}
-		if mounted, err := mount.Mounted(fp); err == nil && mounted {
-			if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
-				return err
-			}
-		}
+	}
 
-		if n.Path() != "" {
-			if err := os.RemoveAll(n.Path()); err != nil {
-				return err
-			}
+	if n.Path() != "" {
+		if err := os.RemoveAll(n.Path()); err != nil {
+			return err
 		}
 	}
 
