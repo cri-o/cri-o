@@ -17,7 +17,7 @@ require (
 	github.com/containers/image/v5 v5.4.3
 	github.com/containers/libpod v1.9.2
 	github.com/containers/ocicrypt v1.0.2
-	github.com/containers/storage v1.18.2
+	github.com/containers/storage v1.19.2
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.9
@@ -46,7 +46,7 @@ require (
 	github.com/prometheus/client_golang v1.5.1
 	github.com/psampaz/go-mod-outdated v0.6.0
 	github.com/seccomp/containers-golang v0.3.2
-	github.com/sirupsen/logrus v1.5.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/urfave/cli/v2 v2.2.0
