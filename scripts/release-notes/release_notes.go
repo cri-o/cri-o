@@ -65,6 +65,17 @@ func run() error {
 	}
 	logrus.Infof("Using HEAD commit %s", head)
 
+	targetBranch := git.Master
+	currentBranch, err := repo.CurrentBranch()
+	if err != nil {
+		return errors.Wrap(err, "get current branch")
+	}
+	logrus.Infof("Found current branch %s", currentBranch)
+	if git.IsReleaseBranch(currentBranch) && currentBranch != git.Master {
+		targetBranch = currentBranch
+	}
+	logrus.Infof("Using target branch %s", targetBranch)
+
 	logrus.Infof("Generating release notes")
 	outputFile := endTag + ".md"
 	outputFilePath := filepath.Join(outputPath, outputFile)
@@ -73,6 +84,7 @@ func run() error {
 		"./build/bin/release-notes",
 		"--github-org=cri-o",
 		"--github-repo=cri-o",
+		"--branch="+targetBranch,
 		"--repo-path=/tmp/cri-o-repo",
 		"--required-author=",
 		"--start-rev="+startTag,
@@ -116,11 +128,6 @@ Download the static release bundle via our Google Cloud Bucket:
 
 	// Update gh-pages branch if not a pull request and running in CircleCI
 	if util.IsEnvSet("CIRCLECI") && !util.IsEnvSet("CIRCLE_PULL_REQUEST") {
-		currentBranch, err := repo.CurrentBranch()
-		if err != nil {
-			return errors.Wrap(err, "get current branch")
-		}
-
 		logrus.Infof("Checking out branch %s", branch)
 		if err := repo.Checkout(branch); err != nil {
 			return errors.Wrapf(err, "checkout %s branch", branch)
