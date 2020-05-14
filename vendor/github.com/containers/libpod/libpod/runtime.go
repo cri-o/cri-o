@@ -131,8 +131,9 @@ func NewRuntime(ctx context.Context, options ...RuntimeOption) (runtime *Runtime
 	if err != nil {
 		return nil, err
 	}
+	runtime, err = newRuntimeFromConfig(ctx, conf, options...)
 	conf.CheckCgroupsAndAdjustConfig()
-	return newRuntimeFromConfig(ctx, conf, options...)
+	return runtime, err
 }
 
 // NewRuntimeFromConfig creates a new container runtime using the given
@@ -762,7 +763,7 @@ type DBConfig struct {
 // mergeDBConfig merges the configuration from the database.
 func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) error {
 
-	c := r.config.Engine
+	c := &r.config.Engine
 	if !r.storageSet.RunRootSet && dbConfig.StorageTmp != "" {
 		if r.storageConfig.RunRoot != dbConfig.StorageTmp &&
 			r.storageConfig.RunRoot != "" {

@@ -159,7 +159,7 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
-# github.com/containers/libpod v1.9.0
+# github.com/containers/libpod v1.9.2
 ## explicit
 github.com/containers/libpod/cmd/podman/cliconfig
 github.com/containers/libpod/libpod
@@ -196,6 +196,7 @@ github.com/containers/libpod/pkg/resolvconf/dns
 github.com/containers/libpod/pkg/rootless
 github.com/containers/libpod/pkg/rootlessport
 github.com/containers/libpod/pkg/seccomp
+github.com/containers/libpod/pkg/selinux
 github.com/containers/libpod/pkg/signal
 github.com/containers/libpod/pkg/spec
 github.com/containers/libpod/pkg/sysinfo
