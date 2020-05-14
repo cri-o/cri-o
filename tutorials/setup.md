@@ -285,7 +285,7 @@ image before.
 Note that the container runtime and nix image can be specified here, too. The
 resulting binaries should now be available within:
 
-- `bin/crio-static`
+- `bin/static/crio`
 
 To build the binaries without any prepared container and via the already
 installed nix package manager, simply run the following command from the root

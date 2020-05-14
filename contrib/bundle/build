@@ -12,9 +12,9 @@ cd "$(dirname "$0")"
 source "$GIT_ROOT/scripts/versions"
 
 FILES_BIN=(
-    "$GIT_ROOT/bin/crio-status-static"
-    "$GIT_ROOT/bin/crio-static"
-    "$GIT_ROOT/bin/pinns"
+    "$GIT_ROOT/bin/static/crio-status"
+    "$GIT_ROOT/bin/static/crio"
+    "$GIT_ROOT/bin/static/pinns"
 )
 FILES_MAN=(
     "$GIT_ROOT/docs/crio.8"
