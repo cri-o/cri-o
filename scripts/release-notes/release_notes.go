@@ -65,6 +65,17 @@ func run() error {
 	}
 	logrus.Infof("Using HEAD commit %s", head)
 
+	targetBranch := git.Master
+	currentBranch, err := repo.CurrentBranch()
+	if err != nil {
+		return errors.Wrap(err, "get current branch")
+	}
+	logrus.Infof("Found current branch %s", currentBranch)
+	if git.IsReleaseBranch(currentBranch) && currentBranch != git.Master {
+		targetBranch = currentBranch
+	}
+	logrus.Infof("Using target branch %s", targetBranch)
+
 	templateFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		return errors.Wrap(err, "writing template file")
@@ -117,6 +128,7 @@ Download the static release bundle via our Google Cloud Bucket:
 		"./build/bin/release-notes",
 		"--github-org=cri-o",
 		"--github-repo=cri-o",
+		"--branch="+targetBranch,
 		"--repo-path=/tmp/cri-o-repo",
 		"--required-author=",
 		"--start-rev="+startTag,
@@ -133,11 +145,6 @@ Download the static release bundle via our Google Cloud Bucket:
 		content, err := ioutil.ReadFile(outputFilePath)
 		if err != nil {
 			return errors.Wrap(err, "open generated release notes")
-		}
-
-		currentBranch, err := repo.CurrentBranch()
-		if err != nil {
-			return errors.Wrap(err, "get current branch")
 		}
 
 		logrus.Infof("Checking out branch %s", branch)
