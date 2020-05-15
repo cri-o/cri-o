@@ -752,7 +752,7 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(sut.Runtimes).To(HaveLen(1))
+			Expect(sut.Runtimes).To(HaveLen(2))
 			Expect(sut.Runtimes).To(HaveKey("crun"))
 		})
 
