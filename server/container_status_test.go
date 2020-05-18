@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -32,6 +34,11 @@ var _ = t.Describe("ContainerStatus", func() {
 			testContainer.AddVolume(oci.ContainerVolume{})
 			testContainer.SetState(givenState)
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+
+			gomock.InOrder(
+				runtimeServerMock.EXPECT().GetContainerMetadata(gomock.Any()).
+					Return(storage.RuntimeContainerMetadata{}, nil),
+			)
 
 			// When
 			response, err := sut.ContainerStatus(context.Background(),

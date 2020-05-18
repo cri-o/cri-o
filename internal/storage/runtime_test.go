@@ -567,7 +567,8 @@ var _ = t.Describe("Runtime", func() {
 					"podName", "podID", "imagename",
 					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 					"containerName", "containerID", "",
-					0, &idtools.IDMappings{}, []string{"mountLabel"})
+					0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				)
 			})
 
 			It("should succeed to create a pod sandbox", func() {
@@ -576,7 +577,8 @@ var _ = t.Describe("Runtime", func() {
 					"podName", "podID", "imagename", "",
 					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 					"containerName", "metadataName",
-					"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
+					"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				)
 
 			})
 
@@ -597,7 +599,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"})
+				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -611,7 +614,8 @@ var _ = t.Describe("Runtime", func() {
 				"", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"})
+				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -624,7 +628,8 @@ var _ = t.Describe("Runtime", func() {
 			_, err := sut.CreateContainer(&types.SystemContext{},
 				"podName", "podID", "", "",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"})
+				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -637,7 +642,8 @@ var _ = t.Describe("Runtime", func() {
 			_, err := sut.CreateContainer(&types.SystemContext{},
 				"podName", "podID", "imagename", "imageID",
 				"", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"})
+				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -670,7 +676,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"})
+				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -699,7 +706,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"})
+				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -726,7 +734,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -751,7 +760,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -771,7 +781,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -791,7 +802,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"})
+				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -819,7 +831,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"})
+				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -877,7 +890,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "pauseimagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 		})
 
 		It("should pull pauseImage if not available locally, using provided credential file", func() {
@@ -896,7 +910,8 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "pauseimagename", "/var/non-default/credentials.json",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"})
+				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+			)
 		})
 
 		AfterEach(func() {

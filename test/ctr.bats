@@ -265,6 +265,9 @@ function wait_until_exit() {
 	run crictl inspect "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+	run crictl inspect "$ctr_id" | jq -e ".info.privileged == false"
+	echo "$output"
+	[ "$status" -eq 0 ]
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -1564,6 +1567,10 @@ function wait_until_exit() {
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 	run crictl start "$ctr_id"
+	[ "$status" -eq 0 ]
+
+	run crictl inspect "$ctr_id" | jq -e ".info.privileged == true"
+	echo "$output"
 	[ "$status" -eq 0 ]
 
 	# TODO there seems to be a difference in behavior between runc and crun
