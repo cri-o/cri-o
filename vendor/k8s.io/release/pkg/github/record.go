@@ -147,6 +147,12 @@ func (c *githubNotesRecordClient) ListTags(
 	return tags, resp, nil
 }
 
+func (c *githubNotesRecordClient) CreatePullRequest(
+	ctx context.Context, owner, repo, baseBranchName, headBranchName, title, body string,
+) (*github.PullRequest, error) {
+	return &github.PullRequest{}, nil
+}
+
 // recordAPICall records a single GitHub API call into a JSON file by ensuring
 // naming conventions
 func (c *githubNotesRecordClient) recordAPICall(

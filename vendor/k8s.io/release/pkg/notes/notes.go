@@ -166,6 +166,24 @@ func NewGathererWithClient(ctx context.Context, c github.Client) *Gatherer {
 	}
 }
 
+// GatherReleaseNotes creates a new gatherer and collects the release notes
+// afterwards
+func GatherReleaseNotes(opts *options.Options) (ReleaseNotes, ReleaseNotesHistory, error) {
+	logrus.Info("Gathering release notes")
+	gatherer, err := NewGatherer(context.Background(), opts)
+
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "retrieving notes gatherer")
+	}
+
+	releaseNotes, history, err := gatherer.ListReleaseNotes()
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "listing release notes")
+	}
+
+	return releaseNotes, history, nil
+}
+
 // ListReleaseNotes produces a list of fully contextualized release notes
 // starting from a given commit SHA and ending at starting a given commit SHA.
 func (g *Gatherer) ListReleaseNotes() (ReleaseNotes, ReleaseNotesHistory, error) {
@@ -196,31 +214,6 @@ func (g *Gatherer) ListReleaseNotes() (ReleaseNotes, ReleaseNotesHistory, error)
 				result.commit.GetSHA(),
 				result.pullRequest.GetNumber(),
 				err)
-			continue
-		}
-
-		// exclusionFilters is a list of regular expressions that match notes text that
-		// are deemed to have no content and should NOT be added to release notes.
-		exclusionFilters := []string{
-			"^(?i)(none|n/a)$", // 'none' or 'n/a' case insensitive
-		}
-		excluded := false
-		for _, filter := range exclusionFilters {
-			match, err := regexp.MatchString(filter, strings.ToUpper(strings.TrimSpace(note.Text)))
-			if err != nil {
-				return nil, nil, err
-			}
-			if match {
-				excluded = true
-				logrus.
-					WithField("sha", result.commit.GetSHA()).
-					WithField("func", "ListReleaseNotes").
-					WithField("filter", filter).
-					Debug("Excluding notes that are deemed to have no content based on filter, and should NOT be added to release notes.")
-				break
-			}
-		}
-		if excluded {
 			continue
 		}
 
@@ -485,10 +478,6 @@ var noteExclusionFilters = []*regexp.Regexp{
 	// the 'none','n/a','na' can also optionally be wrapped in quotes ' or "
 	regexp.MustCompile("(?i)```(release-note[s]?\\s*)?('|\")?(none|n/a|na)?('|\")?\\s*```"),
 
-	// This filter is too aggressive within the PR body and picks up matches unrelated to release notes
-	// 'none' or 'n/a' case insensitive wrapped optionally with whitespace
-	// regexp.MustCompile("(?i)\\s*(none|n/a)\\s*"),
-
 	// simple '/release-note-none' tag
 	regexp.MustCompile("/release-note-none"),
 }
@@ -500,20 +489,23 @@ var noteInclusionFilters = []*regexp.Regexp{
 	regexp.MustCompile("Does this PR introduce a user-facing change?"),
 }
 
-func matchesFilter(msg string, filters []*regexp.Regexp) *regexp.Regexp {
-	for _, filter := range filters {
-		if filter.MatchString(msg) {
-			return filter
-		}
-	}
-	return nil
-}
-
-func matchesExcludeFilter(msg string) *regexp.Regexp {
+// MatchesExcludeFilter returns true if the string matches an excluded release note
+func MatchesExcludeFilter(msg string) bool {
 	return matchesFilter(msg, noteExclusionFilters)
 }
-func matchesIncludeFilter(msg string) *regexp.Regexp {
+
+// MatchesIncludeFilter returns true if the string matches an included release note
+func MatchesIncludeFilter(msg string) bool {
 	return matchesFilter(msg, noteInclusionFilters)
+}
+
+func matchesFilter(msg string, filters []*regexp.Regexp) bool {
+	for _, filter := range filters {
+		if filter.MatchString(msg) {
+			return true
+		}
+	}
+	return false
 }
 
 // gatherNotes list commits that have release notes starting from a given
@@ -598,23 +590,20 @@ func (g *Gatherer) notesForCommit(commit *gogithub.RepositoryCommit) (*Result, e
 			WithField("pr body", pr.GetBody()).
 			Debugf("Obtaining PR associated with commit sha %q", commit.GetSHA())
 
-		if re := matchesExcludeFilter(prBody); re != nil {
-			logrus.
-				WithField("func", "listCommitsWithNotes").
-				WithField("filter", re.String()).
-				Debug("Excluding notes for PR based on the exclusion filter.")
-			// try next PR
+		if MatchesExcludeFilter(prBody) {
+			logrus.Debugf(
+				"Excluding note for PR #%d based on the exclusion filter",
+				pr.GetNumber(),
+			)
 			continue
 		}
 
-		if re := matchesIncludeFilter(prBody); re != nil {
+		if MatchesIncludeFilter(prBody) {
 			res := &Result{commit: commit, pullRequest: pr}
-			logrus.
-				WithField("func", "listCommitsWithNotes").
-				WithField("filter", re.String()).
-				Debug("Including notes for PR based on the inclusion filter.")
-
-			// TODO is this really intentional?
+			logrus.Debugf(
+				"Including notes for PR #%d based on the inclusion filter",
+				pr.GetNumber(),
+			)
 			// Do not test further PRs for this commmit as soon as one PR matched
 			return res, nil
 		}

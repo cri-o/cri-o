@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -152,9 +151,9 @@ func init() {
 		fmt.Sprintf("The format for notes output (options: %s)",
 			strings.Join([]string{
 				options.FormatSpecNone,
-				options.FormatSpecMarkdown, //nolint:golint,deprecated // This option internally corresponds to options.FormatSpecGoTemplateDefault
 				options.FormatSpecJSON,
 				options.FormatSpecDefaultGoTemplate,
+				options.FormatSpecGoTemplateInline,
 			}, ", "),
 		),
 	)
@@ -223,21 +222,6 @@ func init() {
 	)
 }
 
-func GetReleaseNotes() (notes.ReleaseNotes, notes.ReleaseNotesHistory, error) {
-	logrus.Info("fetching all commits. This might take a while...")
-
-	gatherer, err := notes.NewGatherer(context.Background(), opts)
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "retrieving notes gatherer")
-	}
-	releaseNotes, history, err := gatherer.ListReleaseNotes()
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "listing release notes")
-	}
-
-	return releaseNotes, history, nil
-}
-
 func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNotesHistory) (err error) {
 	logrus.Info("got the commits, performing rendering")
 
@@ -292,16 +276,11 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 		if err := enc.Encode(releaseNotes); err != nil {
 			return errors.Wrapf(err, "encoding JSON output")
 		}
-	case strings.HasPrefix(format, "go-template:"):
-		doc, err := document.CreateDocument(releaseNotes, history)
+	case strings.HasPrefix(format, options.GoTemplatePrefix):
+		doc, err := document.New(releaseNotes, history, opts.StartRev, opts.EndRev)
 		if err != nil {
 			return errors.Wrapf(err, "creating release note document")
 		}
-
-		// TODO: Not sure these options are guaranteed to be set but we need
-		// them in rendering. Perhaps these should be set in CreateDocument()?
-		doc.PreviousRevision = opts.StartRev
-		doc.CurrentRevision = opts.EndRev
 
 		markdown, err := doc.RenderMarkdownTemplate(opts.ReleaseBucket, opts.ReleaseTars, opts.Format)
 		if err != nil {
@@ -332,9 +311,9 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 }
 
 func run(*cobra.Command, []string) error {
-	releaseNotes, history, err := GetReleaseNotes()
+	releaseNotes, history, err := notes.GatherReleaseNotes(opts)
 	if err != nil {
-		return errors.Wrapf(err, "retrieving release notes")
+		return errors.Wrapf(err, "gathering release notes")
 	}
 
 	return WriteReleaseNotes(releaseNotes, history)

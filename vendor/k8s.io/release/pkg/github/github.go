@@ -77,6 +77,10 @@ type Client interface {
 	ListTags(
 		context.Context, string, string, *github.ListOptions,
 	) ([]*github.RepositoryTag, *github.Response, error)
+
+	CreatePullRequest(
+		context.Context, string, string, string, string, string, string,
+	) (*github.PullRequest, error)
 }
 
 // New creates a new default GitHub client. Tokens set via the $GITHUB_TOKEN
@@ -189,6 +193,26 @@ func (g *githubClient) ListTags(
 	}
 }
 
+func (g *githubClient) CreatePullRequest(
+	ctx context.Context, owner, repo, baseBranchName, headBranchName, title, body string,
+) (*github.PullRequest, error) {
+	newPullRequest := &github.NewPullRequest{
+		Title:               &title,
+		Head:                &headBranchName,
+		Base:                &baseBranchName,
+		Body:                &body,
+		MaintainerCanModify: github.Bool(true),
+	}
+
+	pr, _, err := g.PullRequests.Create(ctx, owner, repo, newPullRequest)
+	if err != nil {
+		return pr, err
+	}
+
+	logrus.Infof("Successfully created PR #%d", pr.GetNumber())
+	return pr, nil
+}
+
 // SetClient can be used to manually set the internal GitHub client
 func (g *GitHub) SetClient(client Client) {
 	g.client = client
@@ -292,4 +316,18 @@ func (g *GitHub) Releases(owner, repo string, includePrereleases bool) ([]*githu
 	}
 
 	return releases, nil
+}
+
+// CreatePullRequest Creates a new pull request in owner/repo:baseBranch to merge changes from headBranchName
+// which is a string containing a branch in the same repository or a user:branch pair
+func (g *GitHub) CreatePullRequest(
+	owner, repo, baseBranchName, headBranchName, title, body string,
+) (*github.PullRequest, error) {
+	// Use the client to create a new PR
+	pr, err := g.Client().CreatePullRequest(context.Background(), owner, repo, baseBranchName, headBranchName, title, body)
+	if err != nil {
+		return pr, err
+	}
+
+	return pr, nil
 }
