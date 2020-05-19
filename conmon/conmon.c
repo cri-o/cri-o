@@ -137,7 +137,7 @@ static GOptionEntry opt_entries[] = {
 #define TSBUFLEN 44
 
 #define CGROUP_ROOT "/sys/fs/cgroup"
-#define OOM_SCORE "-999"
+#define OOM_SCORE "-1000"
 
 static int log_fd = -1;
 
