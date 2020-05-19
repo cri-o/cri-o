@@ -97,7 +97,7 @@ RUN set -x \
        && rm -rf "$GOPATH"
 
 # Install conmon
-RUN VERSION=v2.0.11 &&\
+RUN VERSION=v2.0.12 &&\
     git clone https://github.com/containers/conmon &&\
 	cd conmon && git checkout $VERSION &&\
 	make && make PREFIX=/ install && cd .. && rm -rf conmon/
