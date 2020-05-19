@@ -135,6 +135,12 @@ func (c *githubNotesReplayClient) ListTags(
 	return result, record.response(), nil
 }
 
+func (c *githubNotesReplayClient) CreatePullRequest(
+	ctx context.Context, owner, repo, baseBranchName, headBranchName, title, body string,
+) (*github.PullRequest, error) {
+	return &github.PullRequest{}, nil
+}
+
 func (c *githubNotesReplayClient) readRecordedData(api gitHubAPI) ([]byte, error) {
 	c.replayMutex.Lock()
 	defer c.replayMutex.Unlock()

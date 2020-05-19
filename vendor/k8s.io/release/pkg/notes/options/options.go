@@ -121,13 +121,11 @@ const (
 )
 
 const (
-	FormatSpecNone                    = ""
-	FormatSpecJSON                    = "json"
-	FormatSpecDefaultGoTemplate       = "go-template:default"
-	FormatSpecDefaultGoTemplateInline = "go-template:inline:"
-
-	// Deprecated: This option is internally translated to `FormatSpecDefaultGoTemplate`
-	FormatSpecMarkdown = "markdown"
+	FormatSpecNone              = ""
+	FormatSpecJSON              = "json"
+	FormatSpecDefaultGoTemplate = GoTemplatePrefix + "default"
+	FormatSpecGoTemplateInline  = GoTemplatePrefix + "inline:"
+	GoTemplatePrefix            = "go-template:"
 )
 
 // New creates a new Options instance with the default values
@@ -197,7 +195,7 @@ func (o *Options) ValidateAndFinish() (err error) {
 		if o.StartRev != "" && o.StartSHA == "" {
 			sha, err := repo.RevParse(o.StartRev)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "resolving %s", o.StartRev)
 			}
 			logrus.Infof("using found start SHA: %s", sha)
 			o.StartSHA = sha
@@ -205,7 +203,7 @@ func (o *Options) ValidateAndFinish() (err error) {
 		if o.EndRev != "" && o.EndSHA == "" {
 			sha, err := repo.RevParse(o.EndRev)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "resolving %s", o.EndRev)
 			}
 			logrus.Infof("using found end SHA: %s", sha)
 			o.EndSHA = sha
@@ -221,8 +219,7 @@ func (o *Options) ValidateAndFinish() (err error) {
 	}
 
 	// Set the format
-	// TODO: Remove "markdown" after some time as it is deprecated in PR#1008
-	if o.Format == FormatSpecMarkdown || o.Format == FormatSpecNone {
+	if o.Format == FormatSpecNone {
 		o.Format = FormatSpecDefaultGoTemplate
 	}
 

@@ -201,12 +201,35 @@ var kindMap = map[Kind]Kind{
 	KindFlake:      KindOther,
 }
 
-// CreateDocument assembles an organized document from an unorganized set of
-// release notes
-func CreateDocument(releaseNotes notes.ReleaseNotes, history notes.ReleaseNotesHistory) (*Document, error) {
+// GatherReleaseNotesDocument creates a new gatherer and collects the release
+// notes into a fresh document
+func GatherReleaseNotesDocument(
+	opts *options.Options, previousRev, currentRev string,
+) (*Document, error) {
+	releaseNotes, history, err := notes.GatherReleaseNotes(opts)
+	if err != nil {
+		return nil, errors.Wrapf(err, "gathering release notes")
+	}
+
+	doc, err := New(releaseNotes, history, previousRev, currentRev)
+	if err != nil {
+		return nil, errors.Wrapf(err, "creating release note document")
+	}
+
+	return doc, nil
+}
+
+// New assembles an organized document from an unorganized set of release notes
+func New(
+	releaseNotes notes.ReleaseNotes,
+	history notes.ReleaseNotesHistory,
+	previousRev, currentRev string,
+) (*Document, error) {
 	doc := &Document{
 		NotesWithActionRequired: Notes{},
 		Notes:                   NoteCollection{},
+		CurrentRevision:         currentRev,
+		PreviousRevision:        previousRev,
 	}
 
 	stripRE := regexp.MustCompile(`^([-\*]+\s+)`)
@@ -302,10 +325,10 @@ func (d *Document) template(templateSpec string) (string, error) {
 		return defaultReleaseNotesTemplate, nil
 	}
 
-	if !strings.HasPrefix(templateSpec, "go-template:") {
+	if !strings.HasPrefix(templateSpec, options.GoTemplatePrefix) {
 		return "", errors.Errorf("bad template format: expected format %q, got %q", "go-template:path/to/file.txt", templateSpec)
 	}
-	templatePathOrOnline := strings.TrimPrefix(templateSpec, "go-template:")
+	templatePathOrOnline := strings.TrimPrefix(templateSpec, options.GoTemplatePrefix)
 
 	if strings.HasPrefix(templatePathOrOnline, "inline:") {
 		return strings.TrimPrefix(templatePathOrOnline, "inline:"), nil
@@ -320,70 +343,6 @@ func (d *Document) template(templateSpec string) (string, error) {
 	}
 
 	return string(b), nil
-}
-
-// RenderMarkdown accepts a Document and writes a version of that document to
-// supplied io.Writer in markdown format.
-//
-// Deprecated: Prefer using the golang template instead of markdown. Will be removed in #1019
-func (d *Document) RenderMarkdown(bucket, tars, prevTag, newTag string) (string, error) {
-	o := &strings.Builder{}
-	if err := CreateDownloadsTable(o, bucket, tars, prevTag, newTag); err != nil {
-		return "", err
-	}
-
-	nl := func() {
-		o.WriteRune('\n')
-	}
-	nlnl := func() {
-		nl()
-		nl()
-	}
-
-	// writeNote encapsulates the pre-processing that might happen on a note text
-	// before it gets bulleted and written to the io.Writer
-	writeNote := func(s string) {
-		const prefix = "- "
-		if !strings.HasPrefix(s, prefix) {
-			o.WriteString(prefix)
-		}
-		o.WriteString(s)
-		nl()
-	}
-
-	// notes with action required get their own section
-	if len(d.NotesWithActionRequired) > 0 {
-		o.WriteString("## Urgent Upgrade Notes")
-		nlnl()
-		o.WriteString("### (No, really, you MUST read this before you upgrade)")
-		nlnl()
-		for _, note := range d.NotesWithActionRequired {
-			writeNote(note)
-			nl()
-		}
-	}
-
-	// each Kind gets a section
-	if len(d.Notes) > 0 {
-		o.WriteString("## Changes by Kind")
-		nlnl()
-
-		d.Notes.Sort(kindPriority)
-		for _, category := range d.Notes {
-			o.WriteString("### ")
-			o.WriteString(prettyKind(category.Kind))
-			nlnl()
-
-			sort.Strings(*category.NoteEntries)
-			for _, note := range *category.NoteEntries {
-				writeNote(note)
-			}
-			nl()
-		}
-		nlnl()
-	}
-
-	return strings.TrimSpace(o.String()), nil
 }
 
 // CreateDownloadsTable creates the markdown table with the links to the tarballs.
