@@ -31,7 +31,6 @@ This guide will walk you through the installation of [CRI-O](https://github.com/
 ## Runtime dependencies
 
 - runc, Clear Containers runtime, or any other OCI compatible runtime
-- socat
 - iproute
 - iptables
 
