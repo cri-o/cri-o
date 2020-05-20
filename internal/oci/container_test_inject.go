@@ -6,5 +6,7 @@ package oci
 
 // SetState sets the container state
 func (c *Container) SetState(state *ContainerState) {
+	c.stateLock.Lock()
 	c.state = state
+	c.stateLock.Unlock()
 }

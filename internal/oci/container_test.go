@@ -43,7 +43,7 @@ var _ = t.Describe("Container", func() {
 		Expect(sut.Dir()).To(Equal("dir"))
 		Expect(sut.StatePath()).To(Equal("dir/state.json"))
 		Expect(sut.Metadata()).To(Equal(&pb.ContainerMetadata{}))
-		Expect(sut.StateNoLock().Version).To(BeEmpty())
+		Expect(sut.State().Version).To(BeEmpty())
 		Expect(sut.GetStopSignal()).To(Equal("15"))
 		Expect(sut.CreatedAt().UnixNano()).
 			To(BeNumerically("<", time.Now().UnixNano()))

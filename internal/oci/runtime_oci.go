@@ -233,7 +233,9 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 	); err != nil {
 		return err
 	}
+	c.stateLock.Lock()
 	c.state.Started = time.Now()
+	c.stateLock.Unlock()
 	return nil
 }
 
@@ -555,17 +557,17 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			case <-chControl:
 				return
 			default:
-				process, err := findprocess.FindProcess(c.state.Pid)
+				process, err := findprocess.FindProcess(c.Pid())
 				if err != nil {
 					if err != findprocess.ErrNotFound {
-						logrus.Warnf("failed to find process %d for container %q: %v", c.state.Pid, c.id, err)
+						logrus.Warnf("failed to find process %d for container %q: %v", c.Pid(), c.id, err)
 					}
 					close(done)
 					return
 				}
 				err = process.Release()
 				if err != nil {
-					logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.id, err)
+					logrus.Warnf("failed to release process %d for container %q: %v", c.Pid(), c.id, err)
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -583,33 +585,37 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			return fmt.Errorf("failed to wait process, timeout reached after %.0f seconds",
 				timeout.Seconds())
 		}
-		err := kill(c.state.Pid)
+		err := kill(c.Pid())
 		if err != nil {
 			return fmt.Errorf("failed to kill process: %v", err)
 		}
 	}
 
-	c.state.Finished = time.Now()
 	return nil
 }
 
 // StopContainer stops a container. Timeout is given in seconds.
-func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout int64) error {
+func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout int64) (errRet error) {
 	c.opLock.Lock()
-	defer c.opLock.Unlock()
 
 	// Check if the process is around before sending a signal
-	process, err := findprocess.FindProcess(c.state.Pid)
+	process, err := findprocess.FindProcess(c.Pid())
 	if err == findprocess.ErrNotFound {
-		c.state.Finished = time.Now()
+		c.opLock.Unlock()
+		c.SetFinished(time.Now())
 		return nil
 	}
+	defer func() {
+		if errRet != nil {
+			c.opLock.Unlock()
+		}
+	}()
 	if err != nil {
-		logrus.Warnf("failed to find process %d for container %q: %v", c.state.Pid, c.id, err)
+		logrus.Warnf("failed to find process %d for container %q: %v", c.Pid(), c.id, err)
 	} else {
 		err = process.Release()
 		if err != nil {
-			logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.id, err)
+			logrus.Warnf("failed to release process %d for container %q: %v", c.Pid(), c.id, err)
 		}
 	}
 
@@ -623,6 +629,8 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		}
 		err = waitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
 		if err == nil {
+			c.opLock.Unlock()
+			c.SetFinished(time.Now())
 			return nil
 		}
 		logrus.Warnf("Stop container %q timed out: %v", c.id, err)
@@ -636,19 +644,24 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		}
 	}
 
-	return waitContainerStop(ctx, c, killContainerTimeout, false)
+	err = waitContainerStop(ctx, c, killContainerTimeout, false)
+	if err == nil {
+		c.opLock.Unlock()
+		c.SetFinished(time.Now())
+		return nil
+	}
+	return err
 }
 
 func checkProcessGone(c *Container) error {
-	process, perr := findprocess.FindProcess(c.state.Pid)
+	process, perr := findprocess.FindProcess(c.Pid())
 	if perr == findprocess.ErrNotFound {
-		c.state.Finished = time.Now()
 		return nil
 	}
 	if perr == nil {
 		err := process.Release()
 		if err != nil {
-			logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.id, err)
+			logrus.Warnf("failed to release process %d for container %q: %v", c.Pid(), c.id, err)
 		}
 	}
 	return fmt.Errorf("failed to find process: %v", perr)
@@ -687,9 +700,8 @@ func updateContainerStatusFromExitFile(c *Container) error {
 
 // UpdateContainerStatus refreshes the status of the container.
 func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
-
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
 	if c.state.ExitCode != nil && !c.state.Finished.IsZero() {
 		logrus.Debugf("Skipping status update for: %+v", c.state)
 		return nil
@@ -881,7 +893,7 @@ func (r *runtimeOCI) PortForwardContainer(c *Container, port int32, stream io.Re
 			}()
 		}
 	}()
-	containerPid := c.State().Pid
+	containerPid := c.Pid()
 	socatPath, lookupErr := exec.LookPath("socat")
 	if lookupErr != nil {
 		return fmt.Errorf("unable to do port forwarding: socat not found")
@@ -1048,13 +1060,15 @@ func (c *Container) conmonPidFilePath() string {
 func (r *Runtime) SpoofOOM(c *Container) {
 	ecBytes := []byte{'1', '3', '7'}
 
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
-
+	c.stateLock.Lock()
 	c.state.Status = ContainerStateStopped
 	c.state.Finished = time.Now()
 	c.state.ExitCode = utils.Int32Ptr(137)
 	c.state.OOMKilled = true
+	c.stateLock.Unlock()
+
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
 
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
 	oomFile, err := os.Create(oomFilePath)

@@ -50,6 +50,7 @@ type Container struct {
 	state              *ContainerState
 	metadata           *pb.ContainerMetadata
 	opLock             sync.RWMutex
+	stateLock          sync.RWMutex
 	spec               *specs.Spec
 	idMappings         *idtools.IDMappings
 	terminal           bool
@@ -157,8 +158,15 @@ func (c *Container) FromDisk() error {
 	}
 	defer jsonSource.Close()
 
+	var state ContainerState
 	dec := json.NewDecoder(jsonSource)
-	return dec.Decode(c.state)
+	if err := dec.Decode(&state); err != nil {
+		return err
+	}
+	c.stateLock.Lock()
+	c.state = &state
+	c.stateLock.Unlock()
+	return nil
 }
 
 // StatePath returns the containers state.json path
@@ -168,6 +176,8 @@ func (c *Container) StatePath() string {
 
 // CreatedAt returns the container creation time
 func (c *Container) CreatedAt() time.Time {
+	c.stateLock.RLock()
+	defer c.stateLock.RUnlock()
 	return c.state.Created
 }
 
@@ -267,14 +277,19 @@ func (c *Container) Metadata() *pb.ContainerMetadata {
 
 // State returns the state of the running container
 func (c *Container) State() *ContainerState {
-	c.opLock.RLock()
-	defer c.opLock.RUnlock()
-	return c.state
+	c.stateLock.RLock()
+	defer c.stateLock.RUnlock()
+	if c.state != nil {
+		cs := *c.state
+		return &cs
+	}
+	return nil
 }
 
-// StateNoLock returns the state of a container without using a lock.
-func (c *Container) StateNoLock() *ContainerState {
-	return c.state
+func (c *Container) Pid() int {
+	c.stateLock.RLock()
+	defer c.stateLock.RUnlock()
+	return c.state.Pid
 }
 
 // AddVolume adds a volume to list of container volumes.
@@ -319,13 +334,19 @@ func (c *Container) Created() bool {
 
 // SetStartFailed sets the container state appropriately after a start failure
 func (c *Container) SetStartFailed(err error) {
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
 	// adjust finished and started times
 	c.state.Finished, c.state.Started = c.state.Created, c.state.Created
 	if err != nil {
 		c.state.Error = err.Error()
 	}
+}
+
+func (c *Container) SetFinished(t time.Time) {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+	c.state.Finished = t
 }
 
 // Description returns a description for the container
