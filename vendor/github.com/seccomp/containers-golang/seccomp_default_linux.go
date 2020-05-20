@@ -1,5 +1,9 @@
 // +build seccomp
 
+// SPDX-License-Identifier: Apache-2.0
+
+// Copyright 2013-2018 Docker, Inc.
+
 package seccomp // import "github.com/seccomp/containers-golang"
 
 import (

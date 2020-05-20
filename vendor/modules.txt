@@ -575,7 +575,7 @@ github.com/opencontainers/runc/libcontainer/devices
 github.com/opencontainers/runc/libcontainer/system
 github.com/opencontainers/runc/libcontainer/user
 github.com/opencontainers/runc/libcontainer/utils
-# github.com/opencontainers/runtime-spec v1.0.2
+# github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
@@ -653,7 +653,7 @@ github.com/rootless-containers/rootlesskit/pkg/port/portutil
 github.com/russross/blackfriday
 # github.com/russross/blackfriday/v2 v2.0.1
 github.com/russross/blackfriday/v2
-# github.com/seccomp/containers-golang v0.3.2
+# github.com/seccomp/containers-golang v0.4.1
 ## explicit
 github.com/seccomp/containers-golang
 # github.com/seccomp/libseccomp-golang v0.9.1
