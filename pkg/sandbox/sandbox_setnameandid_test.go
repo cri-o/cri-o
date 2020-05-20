@@ -78,7 +78,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			Expect(sut.ID()).To(Equal(""))
 			Expect(sut.Name()).To(Equal(""))
 		})
-		It("should fail with empty uid in metadata", func() {
+		It("should succeed with empty uid in metadata", func() {
 			// Given
 			config := &pb.PodSandboxConfig{
 				Metadata: &pb.PodSandboxMetadata{
@@ -92,9 +92,9 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			err := sut.SetNameAndID()
 
 			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(sut.ID()).To(Equal(""))
-			Expect(sut.Name()).To(Equal(""))
+			Expect(err).To(BeNil())
+			Expect(sut.ID()).NotTo(Equal(""))
+			Expect(sut.Name()).NotTo(Equal(""))
 		})
 	})
 })
