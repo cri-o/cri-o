@@ -63,7 +63,7 @@ Obsoletes: ocid <= 0.3
 Provides: ocid = %{version}-%{release}
 Provides: %{service_name} = %{version}-%{release}
 Requires: containernetworking-plugins >= 0.7.2-1
-Requires: conmon
+Requires: conmon >= 2.0.16
 
 %description
 %{summary}
