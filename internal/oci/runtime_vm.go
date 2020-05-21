@@ -551,8 +551,8 @@ func (r *runtimeVM) UpdateContainerStatus(c *Container) error {
 	defer logrus.Debug("runtimeVM.UpdateContainerStatus() end")
 
 	// Lock the container
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
 
 	// This can happen on restore, for example if we switch the runtime type
 	// for a container from "oci" to "vm" for the same runtime.

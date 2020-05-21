@@ -386,12 +386,7 @@ func (s *Sandbox) Ready(takeLock bool) bool {
 		// isn't running
 		return true
 	}
-	var cState *oci.ContainerState
-	if takeLock {
-		cState = podInfraContainer.State()
-	} else {
-		cState = podInfraContainer.StateNoLock()
-	}
+	cState := podInfraContainer.State()
 
 	return cState.Status == oci.ContainerStateRunning
 }

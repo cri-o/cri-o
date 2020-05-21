@@ -50,7 +50,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 	resp.Status.Mounts = mounts
 
-	cState := c.StateNoLock()
+	cState := c.State()
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
 
 	// If we defaulted to exit code not set earlier then we attempt to
@@ -63,7 +63,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 		cState = c.State()
 	}
 
-	created := c.CreatedAt().UnixNano()
+	created := cState.Created.UnixNano()
 	switch cState.Status {
 	case oci.ContainerStateCreated:
 		rStatus = pb.ContainerState_CONTAINER_CREATED
