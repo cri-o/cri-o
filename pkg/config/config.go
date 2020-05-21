@@ -34,6 +34,7 @@ const (
 	defaultRuntime         = "runc"
 	DefaultRuntimeType     = "oci"
 	DefaultRuntimeRoot     = "/run/runc"
+	defaultLogDir          = "/var/log/crio/pods"
 	cgroupManager          = "cgroupfs"
 	DefaultApparmorProfile = "crio-default-" + version.Version
 	defaultGRPCMaxMsgSize  = 16 * 1024 * 1024
@@ -465,7 +466,7 @@ func DefaultConfig() (*Config, error) {
 			RunRoot:        storeOpts.RunRoot,
 			Storage:        storeOpts.GraphDriverName,
 			StorageOptions: storeOpts.GraphDriverOptions,
-			LogDir:         "/var/log/crio/pods",
+			LogDir:         defaultLogDir,
 			VersionFile:    CrioVersionPath,
 		},
 		APIConfig: APIConfig{
@@ -598,6 +599,10 @@ func (c *APIConfig) Validate(onExecution bool) error {
 // `nil`.
 func (c *RootConfig) Validate(onExecution bool) error {
 	if onExecution {
+		if c.LogDir == "" {
+			logrus.Debugf("Defaulting to %q as the log-dir since log_dir is not set", defaultLogDir)
+			c.LogDir = defaultLogDir
+		}
 		if !filepath.IsAbs(c.LogDir) {
 			return errors.New("log_dir is not an absolute path")
 		}
