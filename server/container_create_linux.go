@@ -517,8 +517,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	if linux != nil {
 		resources := linux.GetResources()
 		if resources != nil {
-			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.GetCpuPeriod()))
-			specgen.SetLinuxResourcesCPUQuota(resources.GetCpuQuota())
+			// only set period or quota if both are configured, or else the runtime will fail
+			if resources.GetCpuPeriod() != 0 && resources.GetCpuQuota() != 0 {
+				specgen.SetLinuxResourcesCPUPeriod(uint64(resources.GetCpuPeriod()))
+				specgen.SetLinuxResourcesCPUQuota(resources.GetCpuQuota())
+			}
 			specgen.SetLinuxResourcesCPUShares(uint64(resources.GetCpuShares()))
 
 			memoryLimit := resources.GetMemoryLimitInBytes()

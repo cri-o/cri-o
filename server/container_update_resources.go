@@ -30,15 +30,24 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateCon
 
 // toOCIResources converts CRI resource constraints to OCI.
 func toOCIResources(r *pb.LinuxContainerResources) *rspec.LinuxResources {
-	var swap int64
+	var (
+		shares int64
+		swap   int64
+		quota  int64
+	)
 	memory := r.GetMemoryLimitInBytes()
 	if cgroupHasMemorySwap() {
 		swap = memory
 	}
+	// only set period or quota if both are configured, or else the runtime will fail
+	if r.GetCpuShares() != 0 && r.GetCpuQuota() != 0 {
+		shares = r.GetCpuShares()
+		quota = r.GetCpuQuota()
+	}
 	return &rspec.LinuxResources{
 		CPU: &rspec.LinuxCPU{
-			Shares: proto.Uint64(uint64(r.GetCpuShares())),
-			Quota:  proto.Int64(r.GetCpuQuota()),
+			Shares: proto.Uint64(uint64(shares)),
+			Quota:  proto.Int64(quota),
 			Period: proto.Uint64(uint64(r.GetCpuPeriod())),
 			Cpus:   r.GetCpusetCpus(),
 			Mems:   r.GetCpusetMems(),
