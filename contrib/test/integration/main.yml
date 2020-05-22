@@ -42,7 +42,6 @@
 
     - name: clone build and install runc
       include: "build/runc.yml"
-      when: "{{ build_runc | default(True) | bool}}"
 
     - name: install conmon
       include: "build/conmon.yml"
@@ -72,7 +71,6 @@
 
     - name: clone build and install runc
       include: "build/runc.yml"
-      when: "{{ build_runc | default(True) | bool}}"
 
   post_tasks:
     - name: Swap is disused and disabled as required for kubernetes
