@@ -1,4 +1,7 @@
 ---
+# note: the setup tag is only used for AMI generation
+# adding playbooks here will not result in those playbooks
+# running on every PR
 - hosts: all
   remote_user: root
   vars_files:
@@ -16,6 +19,9 @@
 
     - name: clone build and install bats
       include: "build/bats.yml"
+
+    - name: clone build and install networking plugins
+      include: "build/plugins.yml"
 
     - name: clone build and install cri-tools
       include: "build/cri-tools.yml"
@@ -42,9 +48,6 @@
       include: "build/crun.yml"
       when: "{{ build_crun | default(False) | bool}}"
 
-    - name: clone build and install networking plugins
-      include: "build/plugins.yml"
-
     - name: install conmon
       include: build/conmon.yml
 
@@ -52,6 +55,7 @@
       include: "build/jq.yml"
 
 
+# If a playbook should be run for every test on every PR, it should go here
 - hosts: all
   remote_user: root
   vars_files:
@@ -61,7 +65,6 @@
     - userns
     - e2e
     - e2e-features
-    - node-e2e
     - critest
   tasks:
     - name: install Golang tools
@@ -84,6 +87,7 @@
     - name: clone build and install crun
       include: "build/crun.yml"
       when: "{{ build_crun | default(False) | bool}}"
+
   post_tasks:
     - name: Swap is disused and disabled as required for kubernetes
       include: "disable_swap.yml"
@@ -119,23 +123,6 @@
         cri_tools_git_version: f8a6b3dfbb7a54f696be9c6748cbcb830ee32021
     - name: run critest validation and benchmarks
       include: critest.yml
-
-- hosts: all
-  remote_user: root
-  vars_files:
-    - "{{ playbook_dir }}/vars.yml"
-  tags:
-    - node-e2e
-  tasks:
-    - name: clone build and install kubernetes
-      include: "build/kubernetes.yml"
-      vars:
-        force_clone: true
-        k8s_git_version: "master"
-        k8s_github_fork: "kubernetes"
-        crio_socket: "/var/run/crio/crio.sock"
-    - name: run k8s node-e2e tests
-      include: node-e2e.yml
 
 - hosts: all
   remote_user: root
