@@ -45,23 +45,16 @@ const minMemoryLimit = 12582912
 const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
 
 var (
-	_cgroupHasMemorySwapOnce sync.Once
-	_cgroupHasMemorySwap     bool
-
 	_controllerAvailableOnce sync.Once
 	_controllers             map[string]struct{}
 )
 
 func cgroupHasMemorySwap() bool {
-	_cgroupHasMemorySwapOnce.Do(func() {
-		if cgroups.IsCgroup2UnifiedMode() {
-			_cgroupHasMemorySwap = true
-			return
-		}
-		_, err := os.Stat("/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes")
-		_cgroupHasMemorySwap = err == nil
-	})
-	return _cgroupHasMemorySwap
+	if cgroups.IsCgroup2UnifiedMode() {
+		return true
+	}
+	_, err := os.Stat("/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes")
+	return err == nil
 }
 
 type configDevice struct {
