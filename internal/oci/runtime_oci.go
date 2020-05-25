@@ -873,9 +873,9 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 		var err error
 		if inputStream != nil {
 			_, err = utils.CopyDetachable(conn, inputStream, nil)
-			if closeErr := conn.CloseWrite(); closeErr != nil {
-				stdinDone <- closeErr
-			}
+		}
+		if closeErr := conn.CloseWrite(); closeErr != nil {
+			stdinDone <- closeErr
 		}
 		stdinDone <- err
 		close(stdinDone)
@@ -885,9 +885,6 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 	case err := <-receiveStdout:
 		return err
 	case err := <-stdinDone:
-		if !c.StdinOnce() && !tty {
-			return nil
-		}
 		if _, ok := err.(utils.DetachError); ok {
 			return nil
 		}
