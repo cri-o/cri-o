@@ -20,4 +20,4 @@ Note: This file assumes you've set your cgroup_driver as systemd
 # Running kubeadm
 
 Given you've set CIDR, and you've properly set the kubelet file, all you need to do is start crio (as defined [here](setup.md)), and run:
-`kubeadm --pod-network-cidr=$CIDR`
+`kubeadm init --pod-network-cidr=$CIDR`
