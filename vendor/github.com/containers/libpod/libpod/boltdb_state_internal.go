@@ -9,9 +9,9 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
-	bolt "github.com/etcd-io/bbolt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -24,6 +24,7 @@ const (
 	allPodsName       = "allPods"
 	volName           = "vol"
 	allVolsName       = "allVolumes"
+	execName          = "exec"
 	runtimeConfigName = "runtime-config"
 
 	configName         = "config"
@@ -54,6 +55,7 @@ var (
 	allPodsBkt       = []byte(allPodsName)
 	volBkt           = []byte(volName)
 	allVolsBkt       = []byte(allVolsName)
+	execBkt          = []byte(execName)
 	runtimeConfigBkt = []byte(runtimeConfigName)
 
 	configKey          = []byte(configName)
@@ -102,37 +104,37 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 		},
 		{
 			"libpod root directory (staticdir)",
-			rt.config.StaticDir,
+			rt.config.Engine.StaticDir,
 			staticDirKey,
 			"",
 		},
 		{
 			"libpod temporary files directory (tmpdir)",
-			rt.config.TmpDir,
+			rt.config.Engine.TmpDir,
 			tmpDirKey,
 			"",
 		},
 		{
 			"storage temporary directory (runroot)",
-			rt.config.StorageConfig.RunRoot,
+			rt.StorageConfig().RunRoot,
 			runRootKey,
 			storeOpts.RunRoot,
 		},
 		{
 			"storage graph root directory (graphroot)",
-			rt.config.StorageConfig.GraphRoot,
+			rt.StorageConfig().GraphRoot,
 			graphRootKey,
 			storeOpts.GraphRoot,
 		},
 		{
 			"storage graph driver",
-			rt.config.StorageConfig.GraphDriverName,
+			rt.StorageConfig().GraphDriverName,
 			graphDriverKey,
 			storeOpts.GraphDriverName,
 		},
 		{
 			"volume path",
-			rt.config.VolumePath,
+			rt.config.Engine.VolumePath,
 			volPathKey,
 			"",
 		},
@@ -335,6 +337,14 @@ func getAllVolsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(allVolsBkt)
 	if bkt == nil {
 		return nil, errors.Wrapf(define.ErrDBBadConfig, "all volumes bucket not found in DB")
+	}
+	return bkt, nil
+}
+
+func getExecBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(execBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "exec bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -784,6 +794,23 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 			if err := podCtrs.Delete(ctrID); err != nil {
 				return errors.Wrapf(err, "error removing container %s from pod %s", ctr.ID(), pod.ID())
 			}
+		}
+	}
+
+	// Does the container have exec sessions?
+	ctrExecSessionsBkt := ctrExists.Bucket(execBkt)
+	if ctrExecSessionsBkt != nil {
+		sessions := []string{}
+		err = ctrExecSessionsBkt.ForEach(func(id, value []byte) error {
+			sessions = append(sessions, string(id))
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		if len(sessions) > 0 {
+			return errors.Wrapf(define.ErrExecSessionExists, "container %s has active exec sessions: %s", ctr.ID(), strings.Join(sessions, ", "))
 		}
 	}
 

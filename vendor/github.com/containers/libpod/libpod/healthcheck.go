@@ -53,28 +53,6 @@ const (
 	HealthCheckStarting string = "starting"
 )
 
-// HealthCheckResults describes the results/logs from a healthcheck
-type HealthCheckResults struct {
-	// Status healthy or unhealthy
-	Status string `json:"Status"`
-	// FailingStreak is the number of consecutive failed healthchecks
-	FailingStreak int `json:"FailingStreak"`
-	// Log describes healthcheck attempts and results
-	Log []HealthCheckLog `json:"Log"`
-}
-
-// HealthCheckLog describes the results of a single healthcheck
-type HealthCheckLog struct {
-	// Start time as string
-	Start string `json:"Start"`
-	// End time as a string
-	End string `json:"End"`
-	// Exitcode is 0 or 1
-	ExitCode int `json:"ExitCode"`
-	// Output is the stdout/stderr from the healthcheck command
-	Output string `json:"Output"`
-}
-
 // hcWriteCloser allows us to use bufio as a WriteCloser
 type hcWriteCloser struct {
 	*bufio.Writer
@@ -130,7 +108,7 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 	hcw := hcWriteCloser{
 		captureBuffer,
 	}
-	streams := new(AttachStreams)
+	streams := new(define.AttachStreams)
 	streams.OutputStream = hcw
 	streams.ErrorStream = hcw
 
@@ -143,7 +121,9 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 	logrus.Debugf("executing health check command %s for %s", strings.Join(newCommand, " "), c.ID())
 	timeStart := time.Now()
 	hcResult := HealthCheckSuccess
-	_, hcErr := c.Exec(false, false, map[string]string{}, newCommand, "", "", streams, 0, nil, "")
+	config := new(ExecConfig)
+	config.Command = newCommand
+	_, hcErr := c.Exec(config, streams, nil)
 	if hcErr != nil {
 		errCause := errors.Cause(hcErr)
 		hcResult = HealthCheckFailure
@@ -198,8 +178,8 @@ func checkHealthCheckCanBeRun(c *Container) (HealthCheckStatus, error) {
 	return HealthCheckDefined, nil
 }
 
-func newHealthCheckLog(start, end time.Time, exitCode int, log string) HealthCheckLog {
-	return HealthCheckLog{
+func newHealthCheckLog(start, end time.Time, exitCode int, log string) define.HealthCheckLog {
+	return define.HealthCheckLog{
 		Start:    start.Format(time.RFC3339Nano),
 		End:      end.Format(time.RFC3339Nano),
 		ExitCode: exitCode,
@@ -223,7 +203,7 @@ func (c *Container) updateHealthStatus(status string) error {
 }
 
 // UpdateHealthCheckLog parses the health check results and writes the log
-func (c *Container) updateHealthCheckLog(hcl HealthCheckLog, inStartPeriod bool) error {
+func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPeriod bool) error {
 	healthCheck, err := c.GetHealthCheckLog()
 	if err != nil {
 		return err
@@ -258,14 +238,14 @@ func (c *Container) updateHealthCheckLog(hcl HealthCheckLog, inStartPeriod bool)
 
 // HealthCheckLogPath returns the path for where the health check log is
 func (c *Container) healthCheckLogPath() string {
-	return filepath.Join(filepath.Dir(c.LogPath()), "healthcheck.log")
+	return filepath.Join(filepath.Dir(c.state.RunDir), "healthcheck.log")
 }
 
 // GetHealthCheckLog returns HealthCheck results by reading the container's
 // health check log file.  If the health check log file does not exist, then
 // an empty healthcheck struct is returned
-func (c *Container) GetHealthCheckLog() (HealthCheckResults, error) {
-	var healthCheck HealthCheckResults
+func (c *Container) GetHealthCheckLog() (define.HealthCheckResults, error) {
+	var healthCheck define.HealthCheckResults
 	if _, err := os.Stat(c.healthCheckLogPath()); os.IsNotExist(err) {
 		return healthCheck, nil
 	}

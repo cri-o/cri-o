@@ -108,10 +108,9 @@ do_pause ()
 }
 
 static char **
-get_cmd_line_args (pid_t pid)
+get_cmd_line_args ()
 {
   int fd;
-  char path[PATH_MAX];
   char *buffer;
   size_t allocated;
   size_t used = 0;
@@ -119,11 +118,7 @@ get_cmd_line_args (pid_t pid)
   int i, argc = 0;
   char **argv;
 
-  if (pid)
-    sprintf (path, "/proc/%d/cmdline", pid);
-  else
-    strcpy (path, "/proc/self/cmdline");
-  fd = open (path, O_RDONLY);
+  fd = open ("/proc/self/cmdline", O_RDONLY);
   if (fd < 0)
     return NULL;
 
@@ -196,7 +191,7 @@ can_use_shortcut ()
   return false;
 #endif
 
-  argv = get_cmd_line_args (0);
+  argv = get_cmd_line_args ();
   if (argv == NULL)
     return false;
 
@@ -293,6 +288,7 @@ static void __attribute__((constructor)) init()
       char *cwd = getcwd (NULL, 0);
       char uid_fmt[16];
       char gid_fmt[16];
+      size_t len;
 
       if (cwd == NULL)
         {
@@ -300,13 +296,13 @@ static void __attribute__((constructor)) init()
           _exit (EXIT_FAILURE);
         }
 
-      if (strlen (xdg_runtime_dir) >= PATH_MAX - strlen (suffix))
+      len = snprintf (path, PATH_MAX, "%s%s", xdg_runtime_dir, suffix);
+      if (len >= PATH_MAX)
         {
           fprintf (stderr, "invalid value for XDG_RUNTIME_DIR: %s", strerror (ENAMETOOLONG));
           exit (EXIT_FAILURE);
         }
 
-      sprintf (path, "%s%s", xdg_runtime_dir, suffix);
       fd = open (path, O_RDONLY);
       if (fd < 0)
         {
@@ -539,14 +535,41 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
     }
 }
 
-int
-reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
+static int
+open_namespace (int pid_to_join, const char *ns_file)
 {
-  pid_t ppid = getpid ();
+  char ns_path[PATH_MAX];
+  int ret;
+
+  ret = snprintf (ns_path, PATH_MAX, "/proc/%d/ns/%s", pid_to_join, ns_file);
+  if (ret == PATH_MAX)
+    {
+      fprintf (stderr, "internal error: namespace path too long\n");
+      return -1;
+    }
+
+  return open (ns_path, O_CLOEXEC | O_RDONLY);
+}
+
+static void
+join_namespace_or_die (const char *name, int ns_fd)
+{
+  if (setns (ns_fd, 0) < 0)
+    {
+      fprintf (stderr, "cannot set %s namespace\n", name);
+      _exit (EXIT_FAILURE);
+    }
+}
+
+int
+reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
+{
   char uid[16];
   char gid[16];
   char **argv;
   int pid;
+  int mnt_ns = -1;
+  int user_ns = -1;
   char *cwd = getcwd (NULL, 0);
   sigset_t sigset, oldsigset;
 
@@ -559,11 +582,21 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
   sprintf (uid, "%d", geteuid ());
   sprintf (gid, "%d", getegid ());
 
-  argv = get_cmd_line_args (ppid);
+  argv = get_cmd_line_args ();
   if (argv == NULL)
     {
       fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
+    }
+
+  user_ns = open_namespace (pid_to_join, "user");
+  if (user_ns < 0)
+    return user_ns;
+  mnt_ns = open_namespace (pid_to_join, "mnt");
+  if (mnt_ns < 0)
+    {
+      close (user_ns);
+      return mnt_ns;
     }
 
   pid = fork ();
@@ -572,8 +605,12 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
 
   if (pid)
     {
-      /* We passed down these fds, close them.  */
       int f;
+
+      /* We passed down these fds, close them.  */
+      close (user_ns);
+      close (mnt_ns);
+
       for (f = 3; f < open_files_max_fd; f++)
         if (open_files_set == NULL || FD_ISSET (f % FD_SETSIZE, &(open_files_set[f / FD_SETSIZE])))
           close (f);
@@ -611,19 +648,10 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  if (setns (userns, 0) < 0)
-    {
-      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
-      _exit (EXIT_FAILURE);
-    }
-  close (userns);
-
-  if (mountns >= 0 && setns (mountns, 0) < 0)
-    {
-      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
-      _exit (EXIT_FAILURE);
-    }
-  close (mountns);
+  join_namespace_or_die ("user", user_ns);
+  join_namespace_or_die ("mnt", mnt_ns);
+  close (user_ns);
+  close (mnt_ns);
 
   if (syscall_setresgid (0, 0, 0) < 0)
     {
@@ -724,7 +752,6 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   int ret;
   pid_t pid;
   char b;
-  pid_t ppid = getpid ();
   char **argv;
   char uid[16];
   char gid[16];
@@ -801,7 +828,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       _exit (EXIT_FAILURE);
     }
 
-  argv = get_cmd_line_args (ppid);
+  argv = get_cmd_line_args ();
   if (argv == NULL)
     {
       fprintf (stderr, "cannot read argv: %s\n", strerror (errno));

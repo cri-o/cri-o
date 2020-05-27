@@ -23,7 +23,7 @@ const (
 	IDTruncLength = 12
 )
 
-func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID string, config *v1.ImageConfig) (*Container, error) {
+func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawImageName, imgID string, config *v1.ImageConfig) (*Container, error) {
 
 	// Set up generator for infra container defaults
 	g, err := generate.New("linux")
@@ -36,7 +36,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 
 	isRootless := rootless.IsRootless()
 
-	entryCmd := []string{r.config.InfraCommand}
+	entryCmd := []string{r.config.Engine.InfraCommand}
 	var options []CtrCreateOption
 	// I've seen circumstances where config is being passed as nil.
 	// Let's err on the side of safety and make sure it's safe to use.
@@ -127,7 +127,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 
 	containerName := p.ID()[:IDTruncLength] + "-infra"
 	options = append(options, r.WithPod(p))
-	options = append(options, WithRootFSFromImage(imgID, imgName))
+	options = append(options, WithRootFSFromImage(imgID, imgName, rawImageName))
 	options = append(options, WithName(containerName))
 	options = append(options, withIsInfra())
 
@@ -142,17 +142,17 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 		return nil, define.ErrRuntimeStopped
 	}
 
-	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, nil, util.PullImageMissing)
+	newImage, err := r.ImageRuntime().New(ctx, r.config.Engine.InfraImage, "", "", nil, nil, image.SigningOptions{}, nil, util.PullImageMissing)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := newImage.Inspect(ctx)
+	data, err := newImage.InspectNoSize(ctx)
 	if err != nil {
 		return nil, err
 	}
 	imageName := newImage.Names()[0]
 	imageID := data.ID
 
-	return r.makeInfraContainer(ctx, p, imageName, imageID, data.Config)
+	return r.makeInfraContainer(ctx, p, imageName, r.config.Engine.InfraImage, imageID, data.Config)
 }

@@ -19,7 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"syscall"
+	"os/signal"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/reexec"
@@ -29,6 +29,7 @@ import (
 	rkbuiltin "github.com/rootless-containers/rootlesskit/pkg/port/builtin"
 	rkportutil "github.com/rootless-containers/rootlesskit/pkg/port/portutil"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -101,6 +102,30 @@ func parent() error {
 		return err
 	}
 
+	exitC := make(chan os.Signal, 1)
+	defer close(exitC)
+
+	go func() {
+		sigC := make(chan os.Signal, 1)
+		signal.Notify(sigC, unix.SIGPIPE)
+		defer func() {
+			signal.Stop(sigC)
+			close(sigC)
+		}()
+
+		select {
+		case s := <-sigC:
+			if s == unix.SIGPIPE {
+				if f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755); err == nil {
+					unix.Dup2(int(f.Fd()), 1) // nolint:errcheck
+					unix.Dup2(int(f.Fd()), 2) // nolint:errcheck
+					f.Close()
+				}
+			}
+		case <-exitC:
+		}
+	}()
+
 	// create the parent driver
 	stateDir, err := ioutil.TempDir(cfg.TmpDir, "rootlessport")
 	if err != nil {
@@ -160,8 +185,15 @@ func parent() error {
 		return err
 	}
 
+	childErrCh := make(chan error)
+	go func() {
+		err := cmd.Wait()
+		childErrCh <- err
+		close(childErrCh)
+	}()
+
 	defer func() {
-		if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
+		if err := unix.Kill(cmd.Process.Pid, unix.SIGTERM); err != nil {
 			logrus.WithError(err).Warn("kill child process")
 		}
 	}()
@@ -174,6 +206,10 @@ outer:
 		case <-initComplete:
 			logrus.Infof("initComplete is closed; parent and child established the communication channel")
 			break outer
+		case err := <-childErrCh:
+			if err != nil {
+				return err
+			}
 		case err := <-errCh:
 			if err != nil {
 				return err

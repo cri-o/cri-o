@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"syscall"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
@@ -21,6 +22,8 @@ import (
 
 var (
 	// NameRegex is a regular expression to validate container/pod names.
+	// This must NOT be changed from outside of Libpod. It should be a
+	// constant, but Go won't let us do that.
 	NameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
 	// RegexError is thrown in presence of an invalid container/pod name.
 	RegexError = errors.Wrapf(define.ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
@@ -40,48 +43,48 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		setField := false
 
 		if config.RunRoot != "" {
-			rt.config.StorageConfig.RunRoot = config.RunRoot
-			rt.config.StorageConfigRunRootSet = true
+			rt.storageConfig.RunRoot = config.RunRoot
+			rt.storageSet.RunRootSet = true
 			setField = true
 		}
 
 		if config.GraphRoot != "" {
-			rt.config.StorageConfig.GraphRoot = config.GraphRoot
-			rt.config.StorageConfigGraphRootSet = true
+			rt.storageConfig.GraphRoot = config.GraphRoot
+			rt.storageSet.GraphRootSet = true
 
 			// Also set libpod static dir, so we are a subdirectory
 			// of the c/storage store by default
-			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
-			rt.config.StaticDirSet = true
+			rt.config.Engine.StaticDir = filepath.Join(config.GraphRoot, "libpod")
+			rt.storageSet.StaticDirSet = true
 
 			// Also set libpod volume path, so we are a subdirectory
 			// of the c/storage store by default
-			rt.config.VolumePath = filepath.Join(config.GraphRoot, "volumes")
-			rt.config.VolumePathSet = true
+			rt.config.Engine.VolumePath = filepath.Join(config.GraphRoot, "volumes")
+			rt.storageSet.VolumePathSet = true
 
 			setField = true
 		}
 
 		if config.GraphDriverName != "" {
-			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
-			rt.config.StorageConfigGraphDriverNameSet = true
+			rt.storageConfig.GraphDriverName = config.GraphDriverName
+			rt.storageSet.GraphDriverNameSet = true
 			setField = true
 		}
 
 		if config.GraphDriverOptions != nil {
-			rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
-			copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
+			rt.storageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
+			copy(rt.storageConfig.GraphDriverOptions, config.GraphDriverOptions)
 			setField = true
 		}
 
 		if config.UIDMap != nil {
-			rt.config.StorageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
-			copy(rt.config.StorageConfig.UIDMap, config.UIDMap)
+			rt.storageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
+			copy(rt.storageConfig.UIDMap, config.UIDMap)
 		}
 
 		if config.GIDMap != nil {
-			rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
-			copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
+			rt.storageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
+			copy(rt.storageConfig.GIDMap, config.GIDMap)
 		}
 
 		// If any one of runroot, graphroot, graphdrivername,
@@ -92,11 +95,11 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			if err != nil {
 				return err
 			}
-			if rt.config.StorageConfig.GraphRoot == "" {
-				rt.config.StorageConfig.GraphRoot = storeOpts.GraphRoot
+			if rt.storageConfig.GraphRoot == "" {
+				rt.storageConfig.GraphRoot = storeOpts.GraphRoot
 			}
-			if rt.config.StorageConfig.RunRoot == "" {
-				rt.config.StorageConfig.RunRoot = storeOpts.RunRoot
+			if rt.storageConfig.RunRoot == "" {
+				rt.storageConfig.RunRoot = storeOpts.RunRoot
 			}
 		}
 
@@ -111,7 +114,7 @@ func WithDefaultTransport(defaultTransport string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.ImageDefaultTransport = defaultTransport
+		rt.config.Engine.ImageDefaultTransport = defaultTransport
 
 		return nil
 	}
@@ -127,7 +130,7 @@ func WithSignaturePolicy(path string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.SignaturePolicyPath = path
+		rt.config.Engine.SignaturePolicyPath = path
 
 		return nil
 	}
@@ -137,17 +140,17 @@ func WithSignaturePolicy(path string) RuntimeOption {
 // Please note that information is not portable between backing states.
 // As such, if this differs between two libpods running on the same system,
 // they will not share containers, and unspecified behavior may occur.
-func WithStateType(storeType define.RuntimeStateStore) RuntimeOption {
+func WithStateType(storeType config.RuntimeStateStore) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return define.ErrRuntimeFinalized
 		}
 
-		if storeType == define.InvalidStateStore {
+		if storeType == config.InvalidStateStore {
 			return errors.Wrapf(define.ErrInvalidArg, "must provide a valid state store type")
 		}
 
-		rt.config.StateType = storeType
+		rt.config.Engine.StateType = storeType
 
 		return nil
 	}
@@ -164,8 +167,7 @@ func WithOCIRuntime(runtime string) RuntimeOption {
 			return errors.Wrapf(define.ErrInvalidArg, "must provide a valid path")
 		}
 
-		rt.config.OCIRuntime = runtime
-		rt.config.RuntimePath = nil
+		rt.config.Engine.OCIRuntime = runtime
 
 		return nil
 	}
@@ -183,7 +185,7 @@ func WithConmonPath(path string) RuntimeOption {
 			return errors.Wrapf(define.ErrInvalidArg, "must provide a valid path")
 		}
 
-		rt.config.ConmonPath = []string{path}
+		rt.config.Engine.ConmonPath = []string{path}
 
 		return nil
 	}
@@ -196,8 +198,8 @@ func WithConmonEnv(environment []string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.ConmonEnvVars = make([]string, len(environment))
-		copy(rt.config.ConmonEnvVars, environment)
+		rt.config.Engine.ConmonEnvVars = make([]string, len(environment))
+		copy(rt.config.Engine.ConmonEnvVars, environment)
 
 		return nil
 	}
@@ -211,7 +213,7 @@ func WithNetworkCmdPath(path string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.NetworkCmdPath = path
+		rt.config.Engine.NetworkCmdPath = path
 
 		return nil
 	}
@@ -226,12 +228,12 @@ func WithCgroupManager(manager string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		if manager != define.CgroupfsCgroupsManager && manager != define.SystemdCgroupsManager {
+		if manager != config.CgroupfsCgroupsManager && manager != config.SystemdCgroupsManager {
 			return errors.Wrapf(define.ErrInvalidArg, "CGroup manager must be one of %s and %s",
-				define.CgroupfsCgroupsManager, define.SystemdCgroupsManager)
+				config.CgroupfsCgroupsManager, config.SystemdCgroupsManager)
 		}
 
-		rt.config.CgroupManager = manager
+		rt.config.Engine.CgroupManager = manager
 
 		return nil
 	}
@@ -245,8 +247,8 @@ func WithStaticDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.StaticDir = dir
-		rt.config.StaticDirSet = true
+		rt.config.Engine.StaticDir = dir
+		rt.config.Engine.StaticDirSet = true
 
 		return nil
 	}
@@ -265,7 +267,7 @@ func WithHooksDir(hooksDirs ...string) RuntimeOption {
 			}
 		}
 
-		rt.config.HooksDir = hooksDirs
+		rt.config.Engine.HooksDir = hooksDirs
 		return nil
 	}
 }
@@ -283,7 +285,7 @@ func WithDefaultMountsFile(mountsFile string) RuntimeOption {
 		if mountsFile == "" {
 			return define.ErrInvalidArg
 		}
-		rt.config.DefaultMountsFile = mountsFile
+		rt.config.Containers.DefaultMountsFile = mountsFile
 		return nil
 	}
 }
@@ -296,8 +298,8 @@ func WithTmpDir(dir string) RuntimeOption {
 		if rt.valid {
 			return define.ErrRuntimeFinalized
 		}
-		rt.config.TmpDir = dir
-		rt.config.TmpDirSet = true
+		rt.config.Engine.TmpDir = dir
+		rt.config.Engine.TmpDirSet = true
 
 		return nil
 	}
@@ -320,7 +322,7 @@ func WithMaxLogSize(limit int64) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.MaxLogSize = limit
+		rt.config.Containers.LogSizeMax = limit
 
 		return nil
 	}
@@ -334,7 +336,7 @@ func WithNoPivotRoot() RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.NoPivotRoot = true
+		rt.config.Engine.NoPivotRoot = true
 
 		return nil
 	}
@@ -347,7 +349,7 @@ func WithCNIConfigDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.CNIConfigDir = dir
+		rt.config.Network.NetworkConfigDir = dir
 
 		return nil
 	}
@@ -360,7 +362,7 @@ func WithCNIPluginDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.CNIPluginDir = []string{dir}
+		rt.config.Network.CNIPluginDirs = []string{dir}
 
 		return nil
 	}
@@ -380,7 +382,7 @@ func WithNamespace(ns string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.Namespace = ns
+		rt.config.Engine.Namespace = ns
 
 		return nil
 	}
@@ -395,8 +397,8 @@ func WithVolumePath(volPath string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.VolumePath = volPath
-		rt.config.VolumePathSet = true
+		rt.config.Engine.VolumePath = volPath
+		rt.config.Engine.VolumePathSet = true
 
 		return nil
 	}
@@ -413,7 +415,7 @@ func WithDefaultInfraImage(img string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.InfraImage = img
+		rt.config.Engine.InfraImage = img
 
 		return nil
 	}
@@ -427,7 +429,7 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.InfraCommand = cmd
+		rt.config.Engine.InfraCommand = cmd
 
 		return nil
 	}
@@ -450,7 +452,7 @@ func WithRenumber() RuntimeOption {
 }
 
 // WithMigrate instructs libpod to migrate container configurations to account
-// for changes between Libpod versions. All running containers will be stopped
+// for changes between Engine versions. All running containers will be stopped
 // during a migration, then restarted after the migration is complete.
 func WithMigrate() RuntimeOption {
 	return func(rt *Runtime) error {
@@ -464,10 +466,10 @@ func WithMigrate() RuntimeOption {
 	}
 }
 
-// WithMigrateRuntime instructs Libpod to change the default OCI runtime on all
+// WithMigrateRuntime instructs Engine to change the default OCI runtime on all
 // containers during a migration. This is not used if `MigrateRuntime()` is not
 // also passed.
-// Libpod makes no promises that your containers continue to work with the new
+// Engine makes no promises that your containers continue to work with the new
 // runtime - migrations between dissimilar runtimes may well break things.
 // Use with caution.
 func WithMigrateRuntime(requestedRuntime string) RuntimeOption {
@@ -499,7 +501,7 @@ func WithEventsLogger(logger string) RuntimeOption {
 			return errors.Wrapf(define.ErrInvalidArg, "%q is not a valid events backend", logger)
 		}
 
-		rt.config.EventsLogger = logger
+		rt.config.Engine.EventsLogger = logger
 
 		return nil
 	}
@@ -509,7 +511,7 @@ func WithEventsLogger(logger string) RuntimeOption {
 // listening
 func WithEnableSDNotify() RuntimeOption {
 	return func(rt *Runtime) error {
-		rt.config.SDNotify = true
+		rt.config.Engine.SDNotify = true
 		return nil
 	}
 }
@@ -593,7 +595,7 @@ func WithUser(user string) CtrCreateOption {
 // other configuration from the image will be added to the config.
 // TODO: Replace image name and ID with a libpod.Image struct when that is
 // finished.
-func WithRootFSFromImage(imageID string, imageName string) CtrCreateOption {
+func WithRootFSFromImage(imageID, imageName, rawImageName string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -601,7 +603,7 @@ func WithRootFSFromImage(imageID string, imageName string) CtrCreateOption {
 
 		ctr.config.RootfsImageID = imageID
 		ctr.config.RootfsImageName = imageName
-
+		ctr.config.RawImageName = rawImageName
 		return nil
 	}
 }
@@ -1092,7 +1094,8 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 			}
 			dns = append(dns, result)
 		}
-		ctr.config.DNSServer = dns
+		ctr.config.DNSServer = append(ctr.config.DNSServer, dns...)
+
 		return nil
 	}
 }
@@ -1103,7 +1106,10 @@ func WithDNSOption(dnsOptions []string) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		ctr.config.DNSOption = dnsOptions
+		if ctr.config.UseImageResolvConf {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS options if container will not create /etc/resolv.conf")
+		}
+		ctr.config.DNSOption = append(ctr.config.DNSOption, dnsOptions...)
 		return nil
 	}
 }
@@ -1328,7 +1334,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 			}
 			destinations[vol.Dest] = true
 
-			mountOpts, err := util.ProcessOptions(vol.Options, false, nil)
+			mountOpts, err := util.ProcessOptions(vol.Options, false, "")
 			if err != nil {
 				return errors.Wrapf(err, "error processing options for named volume %q mounted at %q", vol.Name, vol.Dest)
 			}

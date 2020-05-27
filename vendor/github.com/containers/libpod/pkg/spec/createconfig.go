@@ -144,6 +144,7 @@ type CreateConfig struct {
 	InitPath          string //init-path
 	Image             string
 	ImageID           string
+	RawImageName      string
 	BuiltinImgVolumes map[string]struct{} // volumes defined in the image config
 	ImageVolumeType   string              // how to handle the image volume, either bind, tmpfs, or ignore
 	Interactive       bool                //interactive
@@ -195,6 +196,7 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 	if err != nil {
 		return nil, err
 	}
+	storageConfig := runtime.StorageConfig()
 
 	// We need a cleanup process for containers in the current model.
 	// But we can't assume that the caller is Podman - it could be another
@@ -207,23 +209,23 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 	}
 
 	command := []string{cmd,
-		"--root", config.StorageConfig.GraphRoot,
-		"--runroot", config.StorageConfig.RunRoot,
+		"--root", storageConfig.GraphRoot,
+		"--runroot", storageConfig.RunRoot,
 		"--log-level", logrus.GetLevel().String(),
-		"--cgroup-manager", config.CgroupManager,
-		"--tmpdir", config.TmpDir,
+		"--cgroup-manager", config.Engine.CgroupManager,
+		"--tmpdir", config.Engine.TmpDir,
 	}
-	if config.OCIRuntime != "" {
-		command = append(command, []string{"--runtime", config.OCIRuntime}...)
+	if config.Engine.OCIRuntime != "" {
+		command = append(command, []string{"--runtime", config.Engine.OCIRuntime}...)
 	}
-	if config.StorageConfig.GraphDriverName != "" {
-		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
+	if storageConfig.GraphDriverName != "" {
+		command = append(command, []string{"--storage-driver", storageConfig.GraphDriverName}...)
 	}
-	for _, opt := range config.StorageConfig.GraphDriverOptions {
+	for _, opt := range storageConfig.GraphDriverOptions {
 		command = append(command, []string{"--storage-opt", opt}...)
 	}
-	if config.EventsLogger != "" {
-		command = append(command, []string{"--events-backend", config.EventsLogger}...)
+	if config.Engine.EventsLogger != "" {
+		command = append(command, []string{"--events-backend", config.Engine.EventsLogger}...)
 	}
 
 	if c.Syslog {
@@ -348,7 +350,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	options = append(options, nsOpts...)
 
 	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image))
+	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image, c.RawImageName))
 	options = append(options, libpod.WithConmonPidFile(c.ConmonPidFile))
 	options = append(options, libpod.WithLabels(c.Labels))
 	options = append(options, libpod.WithShmSize(c.Resources.ShmSize))

@@ -20,10 +20,10 @@ import (
 
 	"github.com/containers/buildah/bind"
 	"github.com/containers/buildah/util"
-	"github.com/containers/common/pkg/unshare"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -656,7 +656,7 @@ func runUsingChrootExecMain() {
 	// Set the hostname.  We're already in a distinct UTS namespace and are admins in the user
 	// namespace which created it, so we shouldn't get a permissions error, but seccomp policy
 	// might deny our attempt to call sethostname() anyway, so log a debug message for that.
-	if options.Spec.Hostname != "" {
+	if options.Spec != nil && options.Spec.Hostname != "" {
 		if err := unix.Sethostname([]byte(options.Spec.Hostname)); err != nil {
 			logrus.Debugf("failed to set hostname %q for process: %v", options.Spec.Hostname, err)
 		}
