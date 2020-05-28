@@ -38,3 +38,11 @@
 
     - name: Re-enable SELinux after integration tests
       command: 'setenforce 1'
+    # this item is only for AMI updates. We get issues of conflicting device names and ip addresses
+    # because we run both integration and e2e tests on the same box.
+    # so we delete the device before running e2e
+    # also, we use the command package, rather than nmcli, because rhel 7 has ansible version 2.4.2, which doesn't
+    # have the fix: https://github.com/ansible/ansible/issues/48055
+    - name: clear
+      command: nmcli dev delete cni0
+      ignore_errors: yes
