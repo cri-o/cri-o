@@ -7,7 +7,7 @@ stdenv: &stdenv
     IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.6
     IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.13:master-1.3.6
     IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.6
-    IMAGENIX: &imagenix quay.io/crio/nix:1.3.0
+    IMAGENIX: &imagenix quay.io/crio/nix:1.4.0
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
     WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
@@ -89,7 +89,7 @@ workflows:
           test_userns: '1'
       - integration:
           name: integration-static
-          crio_binary: crio-static
+          crio_binary: static/crio
           requires:
             - build-static
       - lint
@@ -165,15 +165,15 @@ jobs:
           command: |
             nix-build nix --argstr revision $CIRCLE_SHA1
             mkdir -p bin
-            cp result-*bin/bin/crio-* bin
+            cp -r result/bin bin/static
       - run:
           name: Show CRI-O version for static binaries
           command: |
-            ./bin/crio-static version
+            ./bin/static/crio version
       - persist_to_workspace:
           root: .
           paths:
-            - bin
+            - bin/static
 
   build-test-binaries:
     executor: container
