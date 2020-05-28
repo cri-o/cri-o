@@ -4,10 +4,10 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/crio/crio-build-amd64-go1.13:1.17-1.1.3
-    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.10:1.17-1.1.3
-    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.13:1.17-1.1.3
-    IMAGENIX: &imagenix quay.io/crio/nix:1.1.0
+    IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.6
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.13:master-1.3.6
+    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.6
+    IMAGENIX: &imagenix quay.io/crio/nix:1.4.0
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
     WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
@@ -33,7 +33,7 @@ executors:
 
   container-base:
     docker:
-      - image: circleci/golang:1.13
+      - image: golang:1.14
     <<: *stdenv
     working_directory: *workdir
 
@@ -53,7 +53,7 @@ workflows:
     jobs:
       - build
       - build:
-          name: build-go1.10
+          name: build-go1.13
           executor: container-legacy
       - build:
           name: build-386
@@ -64,9 +64,15 @@ workflows:
           requires:
             - build
             - build-static
+      - bundle-test:
+          requires:
+            - bundle
       - completions-validation:
           requires:
             - build
+      - dependencies:
+          requires:
+            - release-notes
       - docs-generation:
           requires:
             - build
@@ -82,25 +88,31 @@ workflows:
           name: integration-userns
           test_userns: '1'
       - integration:
-          name: integration-static-glibc
-          crio_binary: crio-x86_64-static-glibc
-          requires:
-            - build-static
-      - integration:
-          name: integration-static-musl
-          crio_binary: crio-x86_64-static-musl
+          name: integration-static
+          crio_binary: static/crio
           requires:
             - build-static
       - lint
+      - release-branch-forward:
+          requires:
+            - results
+          filters:
+            branches:
+              only:
+                - master
+      - release-notes:
+          requires:
+            - results
       - results:
           requires:
-            - bundle
+            - bundle-test
             - integration
             - integration-critest
-            - integration-static-glibc
-            - integration-static-musl
+            - integration-static
             - integration-userns
             - unit-tests
+      - shellcheck
+      - shfmt
       - unit-tests
       - vendor
 
@@ -120,6 +132,9 @@ jobs:
       - run: go env
       - run:
           command: make binaries -j $JOBS
+      - run:
+          name: Show CRI-O version
+          command: ./bin/crio version
       - run:
           command: make crio.conf
       - run:
@@ -141,15 +156,24 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Add remote to fetch all tags
+          command: |
+            git remote add base https://github.com/cri-o/cri-o
+            git fetch base
+      - run:
           name: build
           command: |
             nix-build nix --argstr revision $CIRCLE_SHA1
             mkdir -p bin
-            cp result-*bin/bin/crio-* bin
+            cp -r result/bin bin/static
+      - run:
+          name: Show CRI-O version for static binaries
+          command: |
+            ./bin/static/crio version
       - persist_to_workspace:
           root: .
           paths:
-            - bin
+            - bin/static
 
   build-test-binaries:
     executor: container
@@ -183,7 +207,17 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - bundle/*.tar.gz
+            - build/bundle/*.tar.gz
+
+  bundle-test:
+    executor: machine
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: test
+          command: make bundle-test
 
   completions-validation:
     executor: container
@@ -254,6 +288,33 @@ jobs:
             - *gocache
             - build/bin/git-validation
 
+  dependencies:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "go.sum" }}
+      - add_ssh_keys:
+          fingerprints:
+            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
+      - run:
+          name: Generate Dependency Report
+          command: |
+            if [[ -z $GITHUB_TOKEN ]]; then
+              echo Skipping dependencies generation
+            else
+              make dependencies
+            fi
+      - store_artifacts:
+          path: build/dependencies/dependencies.md
+          destination: dependencies.md
+      - save_cache:
+          key: v1-dependencies-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/go-mod-outdated
+
   integration:
     executor: machine
     parameters:
@@ -296,8 +357,6 @@ jobs:
             RUN_CRITEST: "<< parameters.run_critest >>"
             TEST_ARGS: "<< parameters.test_args >>"
             TEST_USERNS: "<< parameters.test_userns >>"
-            # TODO: fix this failing CRI test
-            CRI_SKIP: "should fail with with an unloaded profile"
       - save_cache:
           key: v1-integration-{{ checksum "go.sum" }}
           paths:
@@ -309,20 +368,71 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v2-lint-{{ checksum "go.sum" }}
+            - v4-lint-{{ checksum "go.sum" }}
       - run:
           name: lint
           command: make lint
       - save_cache:
-          key: v2-lint-{{ checksum "go.sum" }}
+          key: v4-lint-{{ checksum "go.sum" }}
           paths:
             - *gocache
 
-  results:
-    executor: container-base
+  release-branch-forward:
+    executor: container
     steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-release-branch-forward-{{ checksum "go.sum" }}
+      - add_ssh_keys:
+          fingerprints:
+            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
+      - run:
+          name: Forward Latest Release Branch
+          command: make release-branch-forward
+          environment:
+            DRY_RUN: false
+      - save_cache:
+          key: v1-release-branch-forward-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+
+  release-notes:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-release-notes-{{ checksum "go.sum" }}
+      - add_ssh_keys:
+          fingerprints:
+            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
+      - run:
+          name: Generate Release Notes
+          command: |
+            if [[ -z $GITHUB_TOKEN ]]; then
+              echo Skipping release notes generation
+            else
+              make release-notes
+            fi
+      - store_artifacts:
+          path: build/release-notes
+          destination: release-notes
+      - save_cache:
+          key: v1-release-notes-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/release-notes
+
+  results:
+    executor: container
+    steps:
+      - checkout
       - attach_workspace:
           at: .
+      - run:
+          name: Upload artifacts
+          command: make upload-artifacts
       - store_test_results:
           path: build/junit
       - store_artifacts:
@@ -330,10 +440,42 @@ jobs:
           destination: bin
       - store_artifacts:
           path: build
-          destination: test
+          destination: build
       - store_artifacts:
           path: bundle
           destination: bundle
+
+  shellcheck:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-shellcheck-{{ checksum "go.sum" }}
+      - run:
+          name: Check shell files
+          command: make shellcheck
+      - save_cache:
+          key: v1-shellcheck-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/shellcheck
+
+  shfmt:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-shfmt-{{ checksum "go.sum" }}
+      - run:
+          name: Format shell files
+          command: make shfmt
+      - save_cache:
+          key: v1-shfmt-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/shfmt
 
   unit-tests:
     executor: container
