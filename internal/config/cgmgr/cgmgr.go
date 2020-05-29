@@ -3,7 +3,7 @@
 package cgmgr
 
 import (
-	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/pkg/errors"
 )
 
@@ -69,7 +69,7 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 			memoryPath:    cgroupMemoryPathV1,
 			memoryMaxFile: cgroupMemoryMaxFileV1,
 		}
-		if cgroups.IsCgroup2UnifiedMode() {
+		if node.CgroupIsV2() {
 			systemdMgr.memoryPath = cgroupMemoryPathV2
 			systemdMgr.memoryMaxFile = cgroupMemoryMaxFileV2
 		}
