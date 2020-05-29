@@ -26,8 +26,11 @@ const (
 	// CRIOImagePullsByNameSkippedKey is the key for CRI-O skipped image pull metrics by name (skipped).
 	CRIOImagePullsByNameSkippedKey = "crio_image_pulls_by_name_skipped"
 
-	// TODO(runcom):
-	// timeouts
+	// CRIOImagePullsFailuresKey is the key for failed image downloads in CRI-O.
+	CRIOImagePullsFailuresKey = "crio_image_pulls_failures"
+
+	// CRIOImagePullsSuccessesKey is the key for successful image downloads in CRI-O.
+	CRIOImagePullsSuccessesKey = "crio_image_pulls_successes"
 
 	subsystem = "container_runtime"
 )
@@ -94,6 +97,26 @@ var (
 		},
 		[]string{"name"},
 	)
+
+	// CRIOImagePullsFailures collects image pull failures
+	CRIOImagePullsFailures = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Subsystem: subsystem,
+			Name:      CRIOImagePullsFailuresKey,
+			Help:      "Cumulative number of CRI-O image pull failures by error.",
+		},
+		[]string{"name", "error"},
+	)
+
+	// CRIOImagePullsSuccesses collects image pull successes
+	CRIOImagePullsSuccesses = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Subsystem: subsystem,
+			Name:      CRIOImagePullsSuccessesKey,
+			Help:      "Cumulative number of CRI-O image pull successes.",
+		},
+		[]string{"name"},
+	)
 )
 
 var registerMetrics sync.Once
@@ -107,6 +130,8 @@ func Register() {
 		prometheus.MustRegister(CRIOImagePullsByDigest)
 		prometheus.MustRegister(CRIOImagePullsByName)
 		prometheus.MustRegister(CRIOImagePullsByNameSkipped)
+		prometheus.MustRegister(CRIOImagePullsFailures)
+		prometheus.MustRegister(CRIOImagePullsSuccesses)
 	})
 }
 
