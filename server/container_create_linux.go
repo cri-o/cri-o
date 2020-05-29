@@ -5,12 +5,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -21,6 +19,7 @@ import (
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -29,7 +28,6 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -42,68 +40,9 @@ import (
 // Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
 const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
 
-var (
-	_cgroupv1HasHugetlbOnce sync.Once
-	_cgroupv1HasHugetlb     bool
-	_cgroupv1HasHugetlbErr  error
-	_cgroupv2HasHugetlbOnce sync.Once
-	_cgroupv2HasHugetlb     bool
-	_cgroupv2HasHugetlbErr  error
-
-	_cgroupHasMemorySwapOnce sync.Once
-	_cgroupHasMemorySwap     bool
-)
-
-// cgroupv1HasHugetlb returns whether the hugetlb controller is present on
-// cgroup v1.
-func cgroupv1HasHugetlb() (bool, error) {
-	_cgroupv1HasHugetlbOnce.Do(func() {
-		if _, err := ioutil.ReadDir("/sys/fs/cgroup/hugetlb"); err != nil {
-			_cgroupv1HasHugetlbErr = errors.Wrap(err, "readdir /sys/fs/cgroup/hugetlb")
-			_cgroupv1HasHugetlb = false
-		} else {
-			_cgroupv1HasHugetlbErr = nil
-			_cgroupv1HasHugetlb = true
-		}
-	})
-	return _cgroupv1HasHugetlb, _cgroupv1HasHugetlbErr
-}
-
-// cgroupv2HasHugetlb returns whether the hugetlb controller is present on
-// cgroup v2.
-func cgroupv2HasHugetlb() (bool, error) {
-	_cgroupv2HasHugetlbOnce.Do(func() {
-		controllers, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
-		if err != nil {
-			_cgroupv2HasHugetlbErr = errors.Wrap(err, "read /sys/fs/cgroup/cgroup.controllers")
-			return
-		}
-		_cgroupv2HasHugetlb = strings.Contains(string(controllers), "hugetlb")
-	})
-	return _cgroupv2HasHugetlb, _cgroupv2HasHugetlbErr
-}
-
-func cgroupHasMemorySwap() bool {
-	_cgroupHasMemorySwapOnce.Do(func() {
-		if cgroups.IsCgroup2UnifiedMode() {
-			_cgroupHasMemorySwap = true
-			return
-		}
-		_, err := os.Stat("/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes")
-		_cgroupHasMemorySwap = err == nil
-	})
-	return _cgroupHasMemorySwap
-}
-
 type configDevice struct {
 	Device   rspec.LinuxDevice
 	Resource rspec.LinuxDeviceCgroup
-}
-
-func findCgroupMountpoint(name string) error {
-	// Set up pids limit if pids cgroup is mounted
-	_, err := cgroups.FindCgroupMountpoint("", name)
-	return err
 }
 
 func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
@@ -524,7 +463,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 					return nil, err
 				}
 				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
-				if cgroupHasMemorySwap() {
+				if node.CgroupHasMemorySwap() {
 					specgen.SetLinuxResourcesMemorySwap(memoryLimit)
 				}
 			}
@@ -533,21 +472,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			specgen.SetLinuxResourcesCPUCpus(resources.GetCpusetCpus())
 			specgen.SetLinuxResourcesCPUMems(resources.GetCpusetMems())
 
-			supportsHugetlb := false
-			if cgroups.IsCgroup2UnifiedMode() {
-				supportsHugetlb, err = cgroupv2HasHugetlb()
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				supportsHugetlb, err = cgroupv1HasHugetlb()
-				if err != nil {
-					return nil, err
-				}
-			}
-
 			// If the kernel has no support for hugetlb, silently ignore the limits
-			if supportsHugetlb {
+			if node.CgroupHasHugetlb() {
 				hugepageLimits := resources.GetHugepageLimits()
 				for _, limit := range hugepageLimits {
 					specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
@@ -713,7 +639,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
-	if !privileged && cgroups.IsCgroup2UnifiedMode() {
+	if !privileged && node.CgroupIsV2() {
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); err != nil {
 			return nil, err
 		}
@@ -936,7 +862,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// Set up pids limit if pids cgroup is mounted
-	if findCgroupMountpoint("pids") == nil {
+	if node.CgroupHasPid() {
 		specgen.SetLinuxResourcesPidsLimit(s.config.PidsLimit)
 	}
 
@@ -1237,7 +1163,7 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 		g.AddMount(tmpfsMnt)
 	}
 
-	if cgroups.IsCgroup2UnifiedMode() {
+	if node.CgroupIsV2() {
 		g.RemoveMount("/sys/fs/cgroup")
 
 		systemdMnt := rspec.Mount{
