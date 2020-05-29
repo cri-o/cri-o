@@ -42,7 +42,7 @@ func (s *Server) getInfo() types.CrioInfo {
 	return types.CrioInfo{
 		StorageDriver:     s.config.Storage,
 		StorageRoot:       s.config.Root,
-		CgroupDriver:      s.config.CgroupManager,
+		CgroupDriver:      s.config.CgroupManager().Name(),
 		DefaultIDMappings: s.getIDMappingsInfo(),
 	}
 }

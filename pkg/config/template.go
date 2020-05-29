@@ -154,7 +154,7 @@ seccomp_profile = "{{ .SeccompProfile }}"
 apparmor_profile = "{{ .ApparmorProfile }}"
 
 # Cgroup management implementation used for the runtime.
-cgroup_manager = "{{ .CgroupManager }}"
+cgroup_manager = "{{ .CgroupManagerName }}"
 
 # List of default capabilities for containers. If it is empty or commented out,
 # only the capabilities defined in the containers json file by the user/kube
