@@ -2,7 +2,6 @@ package server
 
 import (
 	"os"
-	"path"
 
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
@@ -131,16 +130,4 @@ func getLabelOptions(selinuxOptions *pb.SELinuxOption) []string {
 		}
 	}
 	return labels
-}
-
-// convertCgroupFsNameToSystemd converts an expanded cgroupfs name to its systemd name.
-// For example, it will convert test.slice/test-a.slice/test-a-b.slice to become test-a-b.slice
-// NOTE: this is public right now to allow its usage in dockermanager and dockershim, ideally both those
-// code areas could use something from libcontainer if we get this style function upstream.
-func convertCgroupFsNameToSystemd(cgroupfsName string) string {
-	// TODO: see if libcontainer systemd implementation could use something similar, and if so, move
-	// this function up to that library.  At that time, it would most likely do validation specific to systemd
-	// above and beyond the simple assumption here that the base of the path encodes the hierarchy
-	// per systemd convention.
-	return path.Base(cgroupfsName)
 }

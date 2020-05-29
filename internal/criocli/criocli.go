@@ -139,7 +139,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.ApparmorProfile = ctx.String("apparmor-profile")
 	}
 	if ctx.IsSet("cgroup-manager") {
-		config.CgroupManager = ctx.String("cgroup-manager")
+		config.CgroupManagerName = ctx.String("cgroup-manager")
 	}
 	if ctx.IsSet("conmon-cgroup") {
 		config.ConmonCgroup = ctx.String("conmon-cgroup")
@@ -499,7 +499,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.StringFlag{
 			Name:    "cgroup-manager",
 			Usage:   "cgroup manager (cgroupfs or systemd)",
-			Value:   defConf.CgroupManager,
+			Value:   defConf.CgroupManagerName,
 			EnvVars: []string{"CONTAINER_CGROUP_MANAGER"},
 		},
 		&cli.Int64Flag{

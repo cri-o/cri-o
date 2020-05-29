@@ -20,6 +20,7 @@ import (
 	selinux "github.com/containers/libpod/pkg/selinux"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -37,10 +38,6 @@ import (
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
-
-// minMemoryLimit is the minimum memory that must be set for a container.
-// A lower value would result in the container failing to start.
-const minMemoryLimit = 12582912
 
 // Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
 const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
@@ -525,8 +522,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 			memoryLimit := resources.GetMemoryLimitInBytes()
 			if memoryLimit != 0 {
-				if memoryLimit < minMemoryLimit {
-					return nil, fmt.Errorf("set memory limit %v too low; should be at least %v", memoryLimit, minMemoryLimit)
+				if err := cgmgr.VerifyMemoryIsEnough(memoryLimit); err != nil {
+					return nil, err
 				}
 				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
 				if cgroupHasMemorySwap() {
@@ -560,26 +557,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			}
 		}
 
-		var cgPath string
-		parent := defaultCgroupfsParent
-		useSystemd := s.config.CgroupManager == oci.SystemdCgroupsManager
-		if useSystemd {
-			parent = defaultSystemdParent
-		}
-		if sb.CgroupParent() != "" {
-			parent = sb.CgroupParent()
-		}
-		if useSystemd {
-			cgPath = parent + ":" + scopePrefix + ":" + containerID
-		} else {
-			cgPath = filepath.Join(parent, scopePrefix+"-"+containerID)
-		}
-		specgen.SetLinuxCgroupsPath(cgPath)
+		specgen.SetLinuxCgroupsPath(s.config.CgroupManager().ContainerCgroupPath(sb.CgroupParent(), containerID))
 
 		if t, ok := kubeAnnotations[podTerminationGracePeriodLabel]; ok {
 			// currently only supported by systemd, see
 			// https://github.com/opencontainers/runc/pull/2224
-			if useSystemd {
+			if s.config.CgroupManager().IsSystemd() {
 				specgen.AddAnnotation("org.systemd.property.TimeoutStopUSec",
 					"uint64 "+t+"000000") // sec to usec
 			}
@@ -722,7 +705,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 	specgen.SetProcessArgs(processArgs)
 
-	if strings.Contains(processArgs[0], "/sbin/init") || (filepath.Base(processArgs[0]) == oci.SystemdCgroupsManager) {
+	if strings.Contains(processArgs[0], "/sbin/init") || (filepath.Base(processArgs[0]) == "systemd") {
 		processLabel, err = selinux.SELinuxInitLabel(processLabel)
 		if err != nil {
 			return nil, err
