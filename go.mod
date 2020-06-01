@@ -16,10 +16,10 @@ require (
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.14.8
 	github.com/containers/conmon v2.0.15+incompatible
-	github.com/containers/image/v5 v5.4.3
+	github.com/containers/image/v5 v5.4.4
 	github.com/containers/libpod v1.9.2
 	github.com/containers/ocicrypt v1.0.2
-	github.com/containers/storage v1.18.2
+	github.com/containers/storage v1.19.1
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -55,7 +55,7 @@ require (
 	github.com/pkg/profile v1.3.0 // indirect
 	github.com/prometheus/client_golang v1.2.1
 	github.com/seccomp/containers-golang v0.3.1
-	github.com/sirupsen/logrus v1.5.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/uber-go/atomic v1.4.0 // indirect
@@ -67,7 +67,7 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775
+	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
 	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/grpc v1.25.1
 	k8s.io/api v0.17.4
