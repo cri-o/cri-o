@@ -6,7 +6,7 @@ It also assumes you've set up your system to use kubeadm. If you haven't done so
 ### Configuring CNI
 
 You'll need to use your plugins to figure out your pod-network-cidr. If you use the default bridge plugin defined [here](/contrib/cni/10-crio-bridge.conf), set
-```CIDR=10.88.0.0/16```
+```CIDR=10.85.0.0/16```
 If you're using a flannel network, set
 ```CIDR=10.244.0.0/16```
 
