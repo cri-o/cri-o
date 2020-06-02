@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/buildah/pkg/cgroups"
-	"github.com/containers/buildah/pkg/unshare"
+	"github.com/containers/buildah/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,15 +47,17 @@ func hostInfo() map[string]interface{} {
 	info["cpus"] = runtime.NumCPU()
 	info["rootless"] = unshare.IsRootless()
 
-	unified, err := cgroups.IsCgroup2UnifiedMode()
+	unified, err := util.IsCgroup2UnifiedMode()
 	if err != nil {
 		logrus.Error(err, "err reading cgroups mode")
 	}
 	cgroupVersion := "v1"
+	ociruntime := util.Runtime()
 	if unified {
 		cgroupVersion = "v2"
 	}
 	info["CgroupVersion"] = cgroupVersion
+	info["OCIRuntime"] = ociruntime
 
 	mi, err := system.ReadMemInfo()
 	if err != nil {

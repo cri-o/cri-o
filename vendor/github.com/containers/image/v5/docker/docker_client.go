@@ -610,8 +610,12 @@ func (c *dockerClient) getBearerTokenOAuth2(ctx context.Context, challenge chall
 	}
 	params.Add("grant_type", "refresh_token")
 	params.Add("refresh_token", c.auth.IdentityToken)
+	params.Add("client_id", "containers/image")
 
 	authReq.Body = ioutil.NopCloser(bytes.NewBufferString(params.Encode()))
+	if c.sys != nil && c.sys.DockerRegistryUserAgent != "" {
+		authReq.Header.Add("User-Agent", c.sys.DockerRegistryUserAgent)
+	}
 	authReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	logrus.Debugf("%s %s", authReq.Method, authReq.URL.String())
 	res, err := c.client.Do(authReq)
@@ -663,6 +667,9 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge,
 
 	if c.auth.Username != "" && c.auth.Password != "" {
 		authReq.SetBasicAuth(c.auth.Username, c.auth.Password)
+	}
+	if c.sys != nil && c.sys.DockerRegistryUserAgent != "" {
+		authReq.Header.Add("User-Agent", c.sys.DockerRegistryUserAgent)
 	}
 
 	logrus.Debugf("%s %s", authReq.Method, authReq.URL.String())

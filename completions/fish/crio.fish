@@ -10,7 +10,7 @@ function __fish_crio_no_subcommand --description 'Test if there has been any sub
 end
 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l additional-devices -r -d 'devices to add to the containers (default: [])'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l apparmor-profile -r -d 'default apparmor profile name (default: "crio-default-1.16.2")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l apparmor-profile -r -d 'default apparmor profile name (default: "crio-default-1.16.6")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l bind-mount-prefix -r -d 'specify a prefix to prepend to the source of a bind mount (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cgroup-manager -r -d 'cgroup manager (cgroupfs or systemd) (default: "cgroupfs")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-config-dir -r -d 'CNI configuration files directory (default: "/etc/cni/net.d/")'
@@ -64,7 +64,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l seccomp-profile -r -d 'def
 complete -c crio -n '__fish_crio_no_subcommand' -f -l selinux -d 'enable selinux support (default: true)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l signature-policy -r -d 'path to signature policy file (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-driver -s s -r -d 'storage driver (default: "overlay")'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-opt -r -d 'storage driver option (default: ["overlay.mount_program=/usr/bin/fuse-overlayfs"])'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-opt -r -d 'storage driver option (default: ["overlay.mount_program=/usr/bin/fuse-overlayfs" "overlay.mount_program=/usr/bin/fuse-overlayfs"])'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-address -r -d 'bind address for streaming socket (default: "127.0.0.1")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-enable-tls -d 'enable encrypted TLS transport of the stream server (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-port -r -d 'bind port for streaming socket (default: "0")'

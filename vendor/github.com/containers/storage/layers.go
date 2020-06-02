@@ -281,6 +281,8 @@ func copyLayer(l *Layer) *Layer {
 		Flags:              copyStringInterfaceMap(l.Flags),
 		UIDMap:             copyIDMap(l.UIDMap),
 		GIDMap:             copyIDMap(l.GIDMap),
+		UIDs:               copyUint32Slice(l.UIDs),
+		GIDs:               copyUint32Slice(l.GIDs),
 	}
 }
 
@@ -990,6 +992,9 @@ func (r *layerStore) deleteInternal(id string) error {
 	if err == nil {
 		os.Remove(r.tspath(id))
 		delete(r.byid, id)
+		for _, name := range layer.Names {
+			delete(r.byname, name)
+		}
 		r.idindex.Delete(id)
 		mountLabel := layer.MountLabel
 		if layer.MountPoint != "" {
