@@ -327,6 +327,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.Namespace, namespace)
 	g.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeSandbox)
 	g.AddAnnotation(annotations.SandboxID, sbox.ID())
+	g.AddAnnotation(annotations.Image, s.config.PauseImage)
 	g.AddAnnotation(annotations.ContainerName, containerName)
 	g.AddAnnotation(annotations.ContainerID, sbox.ID())
 	g.AddAnnotation(annotations.ShmPath, shmPath)
@@ -486,7 +487,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 
-	container, err := oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, "", "", "", nil, sbox.ID(), false, false, false, sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, s.config.PauseImage, "", "", nil, sbox.ID(), false, false, false, sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
