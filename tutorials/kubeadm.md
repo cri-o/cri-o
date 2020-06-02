@@ -12,7 +12,7 @@ If you're using a flannel network, set
 
 # Configuring kubelet
 
-There is a handy, preprepared `/etc/default/kubelet` file [here](https://gist.githubusercontent.com/haircommander/2c07cc23887fa7c7f083dc61c7ef5791/raw/73e3d27dcd57e7de237c08758f76e0a368547648/cri-o-kubeadm)
+There is a handy, pre-prepared `/etc/default/kubelet` file [here](https://gist.githubusercontent.com/haircommander/2c07cc23887fa7c7f083dc61c7ef5791/raw/73e3d27dcd57e7de237c08758f76e0a368547648/cri-o-kubeadm)
 This will configure kubeadm to run with the correct defaults CRI-O needs to run.
 
 Note: This file assumes you've set your cgroup_driver as systemd
