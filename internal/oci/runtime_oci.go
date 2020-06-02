@@ -855,7 +855,12 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 	case err := <-receiveStdout:
 		return err
 	case err := <-stdinDone:
-		if !c.StdinOnce() && !tty {
+		// This particular case is for when we get a non-tty attach
+		// with --leave-stdin-open=true. We want to return as soon
+		// as we receive EOF from the client. However, we should do
+		// this only when stdin is enabled. If there is no stdin
+		// enabled then we wait for output as usual.
+		if c.stdin && !c.StdinOnce() && !tty {
 			return nil
 		}
 		if _, ok := err.(utils.DetachError); ok {
