@@ -705,6 +705,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddMount(mnt)
 	}
 
+	if !isInCRIMounts("/dev/fuse", containerConfig.GetMounts()) && node.HasFuse() {
+		mnt = rspec.Mount{
+			Type:        "bind",
+			Source:      "/dev/fuse",
+			Destination: "/dev/fuse",
+			Options:     append(options, "bind"),
+		}
+		specgen.AddMount(mnt)
+	}
+
 	if privileged {
 		setOCIBindMountsPrivileged(&specgen)
 	}

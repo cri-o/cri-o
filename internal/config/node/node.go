@@ -41,6 +41,13 @@ func ValidateConfig() error {
 			activated: &cgroupHasMemorySwap,
 			fatal:     false,
 		},
+		{
+			name:      "fuse mount",
+			init:      HasFuse,
+			err:       &hasFuseErr,
+			activated: &hasFuse,
+			fatal:     true,
+		},
 	}
 	for _, i := range toInit {
 		i.init()
