@@ -100,7 +100,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	resp.Status.LogPath = c.LogPath()
 
 	if req.Verbose {
-		info, err := createContainerInfo(c)
+		info, err := s.createContainerInfo(c)
 		if err != nil {
 			return nil, errors.Wrap(err, "creating container info")
 		}
@@ -110,15 +110,22 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	return resp, nil
 }
 
-func createContainerInfo(container *oci.Container) (map[string]string, error) {
+func (s *Server) createContainerInfo(container *oci.Container) (map[string]string, error) {
+	metadata, err := s.StorageRuntimeServer().GetContainerMetadata(container.ID())
+	if err != nil {
+		return nil, errors.Wrap(err, "getting container metadata")
+	}
+
 	info := struct {
 		SandboxID   string    `json:"sandboxID"`
 		Pid         int       `json:"pid"`
 		RuntimeSpec spec.Spec `json:"runtimeSpec"`
+		Privileged  bool      `json:"privileged"`
 	}{
 		container.Sandbox(),
 		container.State().Pid,
 		container.Spec(),
+		metadata.Privileged,
 	}
 	bytes, err := json.Marshal(info)
 	if err != nil {

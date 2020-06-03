@@ -90,6 +90,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if selinuxConfig != nil {
 		labelOptions = getLabelOptions(selinuxConfig)
 	}
+
+	privileged := s.privilegedSandbox(req)
+
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
 		sbox.Name(), sbox.ID(),
 		s.config.PauseImage,
@@ -101,7 +104,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		namespace,
 		attempt,
 		s.defaultIDMappings,
-		labelOptions)
+		labelOptions,
+		privileged,
+	)
 
 	mountLabel := podContainer.MountLabel
 	processLabel := podContainer.ProcessLabel
@@ -219,8 +224,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if !filepath.IsAbs(logDir) {
 		return nil, fmt.Errorf("requested logDir for sbox id %s is a relative path: %s", sbox.ID(), logDir)
 	}
-
-	privileged := s.privilegedSandbox(req)
 
 	// Add capabilities from crio.conf if default_capabilities is defined
 	capabilities := &pb.Capability{}

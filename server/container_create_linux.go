@@ -395,7 +395,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		metadata.Name,
 		metadata.Attempt,
 		containerIDMappings,
-		labelOptions)
+		labelOptions,
+		privileged,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -602,8 +604,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		}
 		specgen.SetProcessNoNewPrivileges(linux.GetSecurityContext().GetNoNewPrivs())
 
-		if containerConfig.GetLinux().GetSecurityContext() != nil &&
-			!containerConfig.GetLinux().GetSecurityContext().Privileged {
+		if !privileged {
 			// TODO(runcom): have just one of this var at the top of the function
 			securityContext := containerConfig.GetLinux().GetSecurityContext()
 			for _, mp := range []string{
