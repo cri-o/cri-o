@@ -1,0 +1,4 @@
+# vim: set syntax=dockerfile:
+FROM scratch
+COPY bin/metrics-exporter /metrics-exporter
+ENTRYPOINT ["/metrics-exporter"]
