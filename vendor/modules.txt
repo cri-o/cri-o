@@ -143,7 +143,7 @@ github.com/containers/common/pkg/sysinfo
 # github.com/containers/conmon v2.0.17+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.4.4
+# github.com/containers/image/v5 v5.5.1
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -252,7 +252,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.19.2
+# github.com/containers/storage v1.20.2
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -553,19 +553,21 @@ github.com/jstemmer/go-junit-report/formatter
 github.com/jstemmer/go-junit-report/parser
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.10.5
+# github.com/klauspost/compress v1.10.8
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/pgzip v1.2.3
+# github.com/klauspost/pgzip v1.2.4
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.3
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
+# github.com/mattn/go-isatty v0.0.12
+github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.9
 github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.10
@@ -784,7 +786,7 @@ github.com/vbatts/git-validation/validate
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v5 v5.0.4
+# github.com/vbauerster/mpb/v5 v5.2.2
 github.com/vbauerster/mpb/v5
 github.com/vbauerster/mpb/v5/cwriter
 github.com/vbauerster/mpb/v5/decor

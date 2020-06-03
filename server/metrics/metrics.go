@@ -32,6 +32,9 @@ const (
 	// CRIOImagePullsSuccessesKey is the key for successful image downloads in CRI-O.
 	CRIOImagePullsSuccessesKey = "crio_image_pulls_successes"
 
+	// CRIOImageLayerReuseKey is the key for the CRI-O image layer reuse metrics.
+	CRIOImageLayerReuseKey = "crio_image_layer_reuse"
+
 	subsystem = "container_runtime"
 )
 
@@ -117,6 +120,16 @@ var (
 		},
 		[]string{"name"},
 	)
+
+	// CRIOImageLayerReuse collects image pull metrics for every resused image layer
+	CRIOImageLayerReuse = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Subsystem: subsystem,
+			Name:      CRIOImageLayerReuseKey,
+			Help:      "Reused (not pulled) local image layer count by name",
+		},
+		[]string{"name"},
+	)
 )
 
 var registerMetrics sync.Once
@@ -132,6 +145,7 @@ func Register() {
 		prometheus.MustRegister(CRIOImagePullsByNameSkipped)
 		prometheus.MustRegister(CRIOImagePullsFailures)
 		prometheus.MustRegister(CRIOImagePullsSuccesses)
+		prometheus.MustRegister(CRIOImageLayerReuse)
 	})
 }
 
