@@ -14,18 +14,21 @@ var _ = t.Describe("Container:SetConfig", func() {
 			Metadata: &pb.ContainerMetadata{Name: "name"},
 		}
 
+		sboxConfig := &pb.PodSandboxConfig{}
+
 		// When
-		err := sut.SetConfig(config)
+		err := sut.SetConfig(config, sboxConfig)
 
 		// Then
 		Expect(err).To(BeNil())
 		Expect(sut.Config()).To(Equal(config))
+		Expect(sut.SandboxConfig()).To(Equal(sboxConfig))
 	})
 
 	It("should fail with nil config", func() {
 		// Given
 		// When
-		err := sut.SetConfig(nil)
+		err := sut.SetConfig(nil, nil)
 
 		// Then
 		Expect(err).NotTo(BeNil())
@@ -37,7 +40,7 @@ var _ = t.Describe("Container:SetConfig", func() {
 		config := &pb.ContainerConfig{}
 
 		// When
-		err := sut.SetConfig(config)
+		err := sut.SetConfig(config, nil)
 
 		// Then
 		Expect(err).NotTo(BeNil())
@@ -51,7 +54,7 @@ var _ = t.Describe("Container:SetConfig", func() {
 		}
 
 		// When
-		err := sut.SetConfig(config)
+		err := sut.SetConfig(config, nil)
 
 		// Then
 		Expect(err).NotTo(BeNil())
@@ -63,14 +66,26 @@ var _ = t.Describe("Container:SetConfig", func() {
 		config := &pb.ContainerConfig{
 			Metadata: &pb.ContainerMetadata{Name: "name"},
 		}
-		err := sut.SetConfig(config)
+		sboxConfig := &pb.PodSandboxConfig{}
+		err := sut.SetConfig(config, sboxConfig)
 		Expect(err).To(BeNil())
 
 		// When
-		err = sut.SetConfig(config)
+		err = sut.SetConfig(config, nil)
 
 		// Then
 		Expect(err).NotTo(BeNil())
 		Expect(sut.Config()).To(Equal(config))
+	})
+
+	It("should fail with empty sandbox config", func() {
+		// Given
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
+		}
+
+		// Then
+		err := sut.SetConfig(config, nil)
+		Expect(err).NotTo(BeNil())
 	})
 })

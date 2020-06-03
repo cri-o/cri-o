@@ -543,7 +543,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	ctr := container.New(ctx)
-	if err := ctr.SetConfig(req.GetConfig()); err != nil {
+	if err := ctr.SetConfig(req.GetConfig(), req.GetSandboxConfig()); err != nil {
 		return nil, errors.Wrap(err, "setting container config")
 	}
 
@@ -562,7 +562,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	newContainer, err := s.createSandboxContainer(ctx, ctr.ID(), ctr.Name(), sb, req.GetSandboxConfig(), ctr.Config())
+	newContainer, err := s.createSandboxContainer(ctx, ctr, sb)
 	if err != nil {
 		return nil, err
 	}
