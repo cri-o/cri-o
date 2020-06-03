@@ -1,6 +1,11 @@
 package server
 
 import (
+	"encoding/json"
+
+	"github.com/cri-o/cri-o/internal/oci"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -49,6 +54,15 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	if len(sb.IPs()) > 1 {
 		resp.Status.Network.AdditionalIps = toPodIPs(sb.IPs()[1:])
 	}
+
+	if req.Verbose {
+		info, err := createSandboxInfo(sb.InfraContainer())
+		if err != nil {
+			return nil, errors.Wrap(err, "creating container info")
+		}
+		resp.Info = info
+	}
+
 	return resp, nil
 }
 
@@ -57,4 +71,21 @@ func toPodIPs(ips []string) (result []*pb.PodIP) {
 		result = append(result, &pb.PodIP{Ip: ip})
 	}
 	return result
+}
+
+func createSandboxInfo(c *oci.Container) (map[string]string, error) {
+	info := struct {
+		Image       string    `json:"image"`
+		Pid         int       `json:"pid"`
+		RuntimeSpec spec.Spec `json:"runtimeSpec"`
+	}{
+		c.Image(),
+		c.State().Pid,
+		c.Spec(),
+	}
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return nil, errors.Wrapf(err, "marshal data: %v", info)
+	}
+	return map[string]string{"info": string(bytes)}, nil
 }

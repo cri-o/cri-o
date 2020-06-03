@@ -361,3 +361,30 @@ function teardown() {
 
 	stop_crio
 }
+
+@test "pod pause image matches configured image in crio.conf" {
+	start_crio
+
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+
+
+	run crictl inspectp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	conf_pause_image=$(grep -oP 'pause_image = \K"[^"]+"' $CRIO_CONFIG)
+	pod_pause_image=$(echo $output | jq -e .info.image)
+	[[ "$conf_pause_image" == "$pod_pause_image" ]]
+
+	run crictl stopp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl rmp "$pod_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+
+	stop_crio
+}
