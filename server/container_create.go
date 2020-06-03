@@ -502,7 +502,7 @@ func ensureSaneLogPath(logPath string) error {
 	if os.IsNotExist(err) {
 		err = os.RemoveAll(logPath)
 		if err != nil {
-			return fmt.Errorf("ensureSaneLogPath remove bad logPath: %s", err)
+			return fmt.Errorf("failed to remove bad log path %s: %v", logPath, err)
 		}
 	}
 	return nil
