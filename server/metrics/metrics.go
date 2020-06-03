@@ -26,6 +26,9 @@ const (
 	// CRIOImagePullsByNameSkippedKey is the key for CRI-O skipped image pull metrics by name (skipped).
 	CRIOImagePullsByNameSkippedKey = "crio_image_pulls_by_name_skipped"
 
+	// CRIOImageLayerReuseKey is the key for the CRI-O image layer reuse metrics.
+	CRIOImageLayerReuseKey = "crio_image_layer_reuse"
+
 	// TODO(runcom):
 	// timeouts
 
@@ -94,6 +97,16 @@ var (
 		},
 		[]string{"name"},
 	)
+
+	// CRIOImageLayerReuse collects image pull metrics for every resused image layer
+	CRIOImageLayerReuse = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Subsystem: subsystem,
+			Name:      CRIOImageLayerReuseKey,
+			Help:      "Reused (not pulled) local image layer count by name",
+		},
+		[]string{"name"},
+	)
 )
 
 var registerMetrics sync.Once
@@ -107,6 +120,7 @@ func Register() {
 		prometheus.MustRegister(CRIOImagePullsByDigest)
 		prometheus.MustRegister(CRIOImagePullsByName)
 		prometheus.MustRegister(CRIOImagePullsByNameSkipped)
+		prometheus.MustRegister(CRIOImageLayerReuse)
 	})
 }
 
