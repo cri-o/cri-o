@@ -18,17 +18,6 @@ var _ = t.Describe("Config", func() {
 		Expect(sut).NotTo(BeNil())
 	})
 
-	t.Describe("IsDisabled", func() {
-		It("should be false per default", func() {
-			// Given
-			// When
-			res := sut.IsDisabled()
-
-			// Then
-			Expect(res).To(BeFalse())
-		})
-	})
-
 	t.Describe("Profile", func() {
 		It("should be the default without any load", func() {
 			// Given
@@ -81,13 +70,15 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should fail with non-existing profile", func() {
-			// Given
-			// When
-			err := sut.LoadProfile("/proc/not/existing/file")
+		if sut != nil && !sut.IsDisabled() {
+			It("should fail with non-existing profile", func() {
+				// Given
+				// When
+				err := sut.LoadProfile("/proc/not/existing/file")
 
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
+				// Then
+				Expect(err).NotTo(BeNil())
+			})
+		}
 	})
 })
