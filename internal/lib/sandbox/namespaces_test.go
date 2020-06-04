@@ -446,8 +446,6 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			for _, ns := range nsPaths {
 				Expect(ns.Path()).To(ContainSubstring("42"))
 			}
-			// we don't have any valid namespaces
-			Expect(len(nsPaths)).To(Equal(0))
 		})
 		It("should get managed path despite infra set", func() {
 			// Given
