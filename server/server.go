@@ -244,6 +244,7 @@ func (s *Server) restore(ctx context.Context) {
 		ips, err := s.getSandboxIPs(sb)
 		if err != nil {
 			logrus.Warnf("could not restore sandbox IP for %v: %v", sb.ID(), err)
+			continue
 		}
 		sb.AddIPs(ips)
 	}
