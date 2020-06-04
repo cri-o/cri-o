@@ -439,16 +439,16 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// set up namespaces
 	cleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sb, g)
 	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
-	for idx := range cleanupFuncs {
-		defer func(currentFunc int) {
-			if err != nil {
-				log.Infof(ctx, "runSandbox: cleaning up namespaces after failing to run sandbox %s", sbox.ID())
-				if err2 := cleanupFuncs[currentFunc](); err2 != nil {
+	defer func() {
+		if err != nil {
+			log.Infof(ctx, "runSandbox: cleaning up namespaces after failing to run sandbox %s", sbox.ID())
+			for idx := range cleanupFuncs {
+				if err2 := cleanupFuncs[idx](); err2 != nil {
 					log.Debugf(ctx, err2.Error())
 				}
 			}
-		}(idx)
-	}
+		}
+	}()
 	if err != nil {
 		return nil, err
 	}
