@@ -87,7 +87,7 @@ level=debug timestamp=2019-07-30T04:02:44.3716249Z caller=notes.go:497 msg="Excl
 | release-tars            | RELEASE_TARS    |                     | No       | Directory of tars to sha512 sum for display                                                                                       |
 | **OUTPUT OPTIONS**      |
 | output                  | OUTPUT          |                     | No       | The path where the release notes will be written                                                                                  |
-| format                  | FORMAT          | go-template:default | Yes      | The format for notes output (options: json, go-template:path/to/template.file)                                                    |
+| format                  | FORMAT          | go-template:default | Yes      | The format for notes output (options: json, go-template:inline:<template-string> go-template:path/to/template.file)               |
 | release-version         | RELEASE_VERSION |                     | No       | The release version to tag the notes with                                                                                         |
 | **LOG OPTIONS**         |
 | debug                   | DEBUG           | false               | No       | Enable debug logging (options: true, false)                                                                                       |
