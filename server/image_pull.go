@@ -12,6 +12,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -129,6 +130,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				}
 			}
 			log.Debugf(ctx, "error preparing image %s: %v", img, err)
+			tryIncrementImagePullFailureMetric(ctx, img, err)
 			continue
 		}
 		defer tmpImg.Close()
@@ -206,6 +208,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		})
 		if err != nil {
 			log.Debugf(ctx, "error pulling image %s: %v", img, err)
+			tryIncrementImagePullFailureMetric(ctx, img, err)
 			continue
 		}
 		pulled = img
@@ -214,6 +217,14 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 
 	if pulled == "" && err != nil {
 		return "", err
+	}
+
+	// Update metric for successful image pulls
+	nameCounter, err := metrics.CRIOImagePullsSuccesses.GetMetricWithLabelValues(pulled)
+	if err != nil {
+		log.Warnf(ctx, "Unable to write image pull success metric: %v", err)
+	} else {
+		nameCounter.Inc()
 	}
 
 	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
@@ -226,6 +237,37 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	}
 
 	return imageRef, nil
+}
+
+func tryIncrementImagePullFailureMetric(ctx context.Context, img string, err error) {
+	// We try to cover some basic use-cases
+	const labelUnknown = "UNKNOWN"
+	label := labelUnknown
+
+	// Docker registry errors
+	for _, desc := range errcode.GetErrorAllDescriptors() {
+		if strings.Contains(err.Error(), desc.Message) {
+			label = desc.Value
+			break
+		}
+	}
+	if label == labelUnknown {
+		if strings.Contains(err.Error(), "connection refused") { // nolint: gocritic
+			label = "CONNECTION_REFUSED"
+		} else if strings.Contains(err.Error(), "connection timed out") {
+			label = "CONNECTION_TIMEOUT"
+		} else if strings.Contains(err.Error(), "404 (Not Found)") {
+			label = "NOT_FOUND"
+		}
+	}
+
+	// Update metric for failed image pulls
+	nameCounter, err := metrics.CRIOImagePullsFailures.GetMetricWithLabelValues(img, label)
+	if err != nil {
+		log.Warnf(ctx, "Unable to write image pull failure metric: %v", err)
+	} else {
+		nameCounter.Inc()
+	}
 }
 
 func decodeDockerAuth(s string) (user, password string, err error) {
