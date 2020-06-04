@@ -81,6 +81,10 @@ type Client interface {
 	CreatePullRequest(
 		context.Context, string, string, string, string, string, string,
 	) (*github.PullRequest, error)
+
+	GetRepository(
+		context.Context, string, string,
+	) (*github.Repository, *github.Response, error)
 }
 
 // New creates a new default GitHub client. Tokens set via the $GITHUB_TOKEN
@@ -206,11 +210,22 @@ func (g *githubClient) CreatePullRequest(
 
 	pr, _, err := g.PullRequests.Create(ctx, owner, repo, newPullRequest)
 	if err != nil {
-		return pr, err
+		return pr, errors.Wrap(err, "creating pull request")
 	}
 
 	logrus.Infof("Successfully created PR #%d", pr.GetNumber())
 	return pr, nil
+}
+
+func (g *githubClient) GetRepository(
+	ctx context.Context, owner, repo string,
+) (*github.Repository, *github.Response, error) {
+	pr, resp, err := g.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		return pr, resp, errors.Wrap(err, "getting repository")
+	}
+
+	return pr, resp, nil
 }
 
 // SetClient can be used to manually set the internal GitHub client
@@ -330,4 +345,41 @@ func (g *GitHub) CreatePullRequest(
 	}
 
 	return pr, nil
+}
+
+// GetRepository gets a repository using the current client
+func (g *GitHub) GetRepository(
+	owner, repo string,
+) (*github.Repository, error) {
+	repository, _, err := g.Client().GetRepository(context.Background(), owner, repo)
+	if err != nil {
+		return repository, err
+	}
+
+	return repository, nil
+}
+
+// RepoIsForkOf Function that checks if a repository is a fork of another
+func (g *GitHub) RepoIsForkOf(
+	forkOwner, forkRepo, parentOwner, parentRepo string,
+) (bool, error) {
+	repository, _, err := g.Client().GetRepository(context.Background(), forkOwner, forkRepo)
+	if err != nil {
+		return false, errors.Wrap(err, "checking if repository is a fork")
+	}
+
+	// First, repo has to be an actual fork
+	if !repository.GetFork() {
+		logrus.Infof("Repository %s/%s is not a fork", forkOwner, forkRepo)
+		return false, nil
+	}
+
+	// Check if the parent repo matches the owner/repo string
+	if repository.GetParent().GetFullName() == fmt.Sprintf("%s/%s", parentOwner, parentRepo) {
+		logrus.Infof("%s/%s is a fork of %s/%s", forkOwner, forkRepo, parentOwner, parentRepo)
+		return true, nil
+	}
+
+	logrus.Infof("%s/%s is not a fork of %s/%s", forkOwner, forkRepo, parentOwner, parentRepo)
+	return false, nil
 }

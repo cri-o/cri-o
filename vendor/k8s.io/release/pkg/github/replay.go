@@ -141,6 +141,21 @@ func (c *githubNotesReplayClient) CreatePullRequest(
 	return &github.PullRequest{}, nil
 }
 
+func (c *githubNotesReplayClient) GetRepository(
+	ctx context.Context, owner, repo string,
+) (*github.Repository, *github.Response, error) {
+	data, err := c.readRecordedData(gitHubAPIGetRepository)
+	if err != nil {
+		return nil, nil, err
+	}
+	repository := &github.Repository{}
+	record := apiRecord{Result: repository}
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, nil, err
+	}
+	return repository, record.response(), nil
+}
+
 func (c *githubNotesReplayClient) readRecordedData(api gitHubAPI) ([]byte, error) {
 	c.replayMutex.Lock()
 	defer c.replayMutex.Unlock()
