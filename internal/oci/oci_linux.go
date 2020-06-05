@@ -6,69 +6,27 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/containers/libpod/pkg/cgroups"
-	"github.com/cri-o/cri-o/utils"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
-func createUnitName(prefix, name string) string {
-	return fmt.Sprintf("%s-%s.scope", prefix, name)
-}
-
-func createConmonUnitName(name string) string {
-	return createUnitName("crio-conmon", name)
-}
-
-func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) {
+func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
 	// Move conmon to specified cgroup
-	if r.config.ConmonCgroup == "pod" || r.config.ConmonCgroup == "" {
-		switch r.config.CgroupManager {
-		case SystemdCgroupsManager:
-			logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, createConmonUnitName(c.id))
-			if err := utils.RunUnderSystemdScope(pid, cgroupParent, createConmonUnitName(c.id)); err != nil {
-				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
-			}
-		case CgroupfsCgroupsManager:
-			cgroupPath := filepath.Join(cgroupParent, "/crio-conmon-"+c.id)
-			control, err := cgroups.New(cgroupPath, &rspec.LinuxResources{})
-			if err != nil {
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-			}
-			if control == nil {
-				break
-			}
-			// Record conmon's cgroup path in the container, so we can properly
-			// clean it up when removing the container.
-			c.conmonCgroupfsPath = cgroupPath
-			// Here we should defer a crio-connmon- cgroup hierarchy deletion, but it will
-			// always fail as conmon's pid is still there.
-			// Fortunately, kubelet takes care of deleting this for us, so the leak will
-			// only happens in corner case where one does a manual deletion of the container
-			// through e.g. runc. This should be handled by implementing a conmon monitoring
-			// routine that does the cgroup cleanup once conmon is terminated.
-			if err := control.AddPid(pid); err != nil {
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-			}
-		default:
-			// error for an unknown cgroups manager
-			logrus.Errorf("unknown cgroups manager %q for sandbox cgroup", r.config.CgroupManager)
-		}
-	} else if strings.HasSuffix(r.config.ConmonCgroup, ".slice") {
-		logrus.Debugf("Running conmon under custom slice %s and unitName %s", r.config.ConmonCgroup, createConmonUnitName(c.id))
-		if err := utils.RunUnderSystemdScope(pid, r.config.ConmonCgroup, createConmonUnitName(c.id)); err != nil {
-			logrus.Warnf("Failed to add conmon to custom systemd sandbox cgroup: %v", err)
-		}
+	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.id, cgroupParent, r.config.ConmonCgroup, pid)
+	if err != nil {
+		return err
 	}
+	c.conmonCgroupfsPath = conmonCgroupfsPath
+	return nil
 }
 
 func sysProcAttrPlatform() *syscall.SysProcAttr {
@@ -100,7 +58,7 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (stats *Conta
 
 	// this correction has to be made because the libpod cgroups package can't find a
 	// systemd cgroup that isn't converted to a fully qualified cgroup path
-	if r.config.CgroupManager == SystemdCgroupsManager {
+	if r.config.CgroupManager().IsSystemd() {
 		logrus.Debugf("Expanding systemd cgroup slice %v", cgroup)
 		cgroup, err = systemd.ExpandSlice(cgroup)
 		if err != nil {
@@ -200,8 +158,8 @@ func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
 // from `/sys/fs/cgroup/memory/memory.stat`. It returns an error if the file is
 // not parsable.
 func getTotalInactiveFile() (uint64, error) {
-	// no cgroupv2 support right now
-	if isV2, err := cgroups.IsCgroup2UnifiedMode(); err == nil || isV2 {
+	// TODO: no cgroupv2 support right now
+	if node.CgroupIsV2() {
 		return 0, nil
 	}
 
