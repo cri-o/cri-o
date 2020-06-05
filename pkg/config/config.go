@@ -20,6 +20,8 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
@@ -204,9 +206,9 @@ type RuntimeConfig struct {
 	// default for the runtime.
 	ApparmorProfile string `toml:"apparmor_profile"`
 
-	// CgroupManager is the manager implementation name which is used to
+	// CgroupManagerName is the manager implementation name which is used to
 	// handle cgroups for containers.
-	CgroupManager string `toml:"cgroup_manager"`
+	CgroupManagerName string `toml:"cgroup_manager"`
 
 	// DefaultMountsFile is the file path for the default mounts to be mounted for the container
 	// Note, for testing purposes mainly
@@ -295,6 +297,9 @@ type RuntimeConfig struct {
 
 	// apparmorConfig is the internal AppArmor configuration
 	apparmorConfig *apparmor.Config
+
+	// cgroupManager is the internal CgroupManager configuration
+	cgroupManager cgmgr.CgroupManager
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -514,6 +519,7 @@ func DefaultConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	cgroupManager := cgmgr.New()
 	return &Config{
 		SystemContext: &types.SystemContext{
 			DockerRegistryUserAgent: useragent.Get(),
@@ -549,7 +555,7 @@ func DefaultConfig() (*Config, error) {
 			ConmonCgroup:             "system.slice",
 			SELinux:                  selinuxEnabled(),
 			ApparmorProfile:          apparmor.DefaultProfile,
-			CgroupManager:            "systemd",
+			CgroupManagerName:        cgroupManager.Name(),
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
 			ContainerAttachSocketDir: conmonconfig.ContainerAttachSocketDir,
@@ -561,6 +567,7 @@ func DefaultConfig() (*Config, error) {
 			NamespacesDir:            "/var/run",
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
+			cgroupManager:            cgroupManager,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
@@ -589,6 +596,12 @@ func (c *Config) Validate(onExecution bool) error {
 	case ImageVolumesBind:
 	default:
 		return fmt.Errorf("unrecognized image volume type specified")
+	}
+
+	if onExecution {
+		if err := node.ValidateConfig(); err != nil {
+			return err
+		}
 	}
 
 	if err := c.RootConfig.Validate(onExecution); err != nil {
@@ -816,6 +829,11 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err := c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
 			return errors.Wrap(err, "unable to load AppArmor profile")
 		}
+		cgroupManager, err := cgmgr.SetCgroupManager(c.CgroupManagerName)
+		if err != nil {
+			return errors.Wrap(err, "unable to update cgroup manager")
+		}
+		c.cgroupManager = cgroupManager
 	}
 
 	return nil
@@ -857,6 +875,11 @@ func (c *RuntimeConfig) Seccomp() *seccomp.Config {
 // AppArmor returns the AppArmor configuration
 func (c *RuntimeConfig) AppArmor() *apparmor.Config {
 	return c.apparmorConfig
+}
+
+// CgroupManager returns the CgroupManager configuration
+func (c *RuntimeConfig) CgroupManager() cgmgr.CgroupManager {
+	return c.cgroupManager
 }
 
 func validateExecutablePath(executable, currentPath string) (string, error) {

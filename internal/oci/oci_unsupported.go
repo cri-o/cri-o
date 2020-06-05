@@ -5,9 +5,12 @@ package oci
 import (
 	"os"
 	"syscall"
+
+	"github.com/pkg/errors"
 )
 
-func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid int) {
+func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
+	return errors.Errorf("not implemented")
 }
 
 func sysProcAttrPlatform() *syscall.SysProcAttr {

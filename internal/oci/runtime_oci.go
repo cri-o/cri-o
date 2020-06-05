@@ -88,10 +88,9 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	defer parentStartPipe.Close()
 
 	var args []string
-	if r.config.CgroupManager == SystemdCgroupsManager {
+	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "-s")
-	}
-	if r.config.CgroupManager == CgroupfsCgroupsManager {
+	} else {
 		args = append(args, "--syslog")
 	}
 
@@ -161,7 +160,9 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 	childStartPipe.Close()
 
 	// Platform specific container setup
-	r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid)
+	if err := r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid); err != nil {
+		return err
+	}
 
 	/* We set the cgroup, now the child can start creating children */
 	someData := []byte{0}
