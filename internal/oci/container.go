@@ -15,6 +15,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -25,6 +26,8 @@ const (
 	defaultStopSignal    = "15"
 	defaultStopSignalInt = 15
 )
+
+var ErrContainerStopped = errors.New("container is already stopped")
 
 // Container represents a runtime container.
 type Container struct {
@@ -339,4 +342,18 @@ func (c *Container) StdinOnce() bool {
 
 func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
+}
+
+// ShouldBeStopped checks whether the container state is in a place
+// where attempting to stop it makes sense
+// a container is not stoppable if it's paused or stopped
+// if it's paused, that's an error, and is reported as such
+func (c *Container) ShouldBeStopped() error {
+	switch c.state.Status {
+	case ContainerStateStopped: // no-op
+		return ErrContainerStopped
+	case ContainerStatePaused:
+		return errors.New("cannot stop paused container")
+	}
+	return nil
 }
