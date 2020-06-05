@@ -25,7 +25,7 @@ executors:
 
   container-base:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.13
     <<: *stdenv
     working_directory: *workdir
 
