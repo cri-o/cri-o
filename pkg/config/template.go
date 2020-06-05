@@ -289,6 +289,10 @@ runtime_type = "{{ $runtime_handler.RuntimeType }}"
 runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
 {{ end }}
 
+# crun is a fast and lightweight fully featured OCI runtime and C library for
+# running containers
+#[crio.runtime.runtimes.crun]
+
 # Kata Containers is an OCI runtime, where containers are run inside lightweight
 # VMs. Kata provides additional isolation towards the host, minimizing the host attack
 # surface and mitigating the consequences of containers breakout.
