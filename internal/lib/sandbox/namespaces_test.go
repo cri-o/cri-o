@@ -420,37 +420,37 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 	})
 	t.Describe("NamespacePaths with infra", func() {
-		BeforeEach(func() {
-			testContainer, err := oci.NewContainer("testid", "testname", "",
-				"/container/logs", map[string]string{},
-				map[string]string{}, map[string]string{}, "image",
-				"imageName", "imageRef", &pb.ContainerMetadata{},
-				"testsandboxid", false, false, false, "",
-				"/root/for/container", time.Now(), "SIGKILL")
-			Expect(err).To(BeNil())
-			Expect(testContainer).NotTo(BeNil())
-
-			cstate := &oci.ContainerState{}
-			cstate.State = specs.State{
-				Pid: 42,
-			}
-			testContainer.SetState(cstate)
-
-			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
-		})
-		It("should get something when infra set", func() {
+		It("should get nothing when infra set but pid 0", func() {
 			// Given
+			setupInfraContainerWithPid(0)
+			// When
+			nsPaths := testSandbox.NamespacePaths()
+			// Then
+			Expect(len(nsPaths)).To(Equal(0))
+		})
+		It("should get something when infra set and pid running", func() {
+			// Given
+			setupInfraContainerWithPid(1)
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
 			for _, ns := range nsPaths {
-				Expect(ns.Path()).To(ContainSubstring("42"))
+				Expect(ns.Path()).To(ContainSubstring("/proc"))
 			}
-			// we don't have any valid namespaces
+			Expect(len(nsPaths)).To(Equal(numManagedNamespaces))
+		})
+		It("should get nothing when infra set with pid not running", func() {
+			// Given
+			// max valid pid is 4194304
+			setupInfraContainerWithPid(4194305)
+			// When
+			nsPaths := testSandbox.NamespacePaths()
+			// Then
 			Expect(len(nsPaths)).To(Equal(0))
 		})
 		It("should get managed path despite infra set", func() {
 			// Given
+			setupInfraContainerWithPid(1)
 			getPath := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
 					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
@@ -465,7 +465,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
 			for _, ns := range nsPaths {
-				Expect(ns.Path()).NotTo(ContainSubstring("42"))
+				Expect(ns.Path()).NotTo(ContainSubstring("/proc"))
 			}
 			Expect(len(nsPaths)).To(Equal(numManagedNamespaces))
 		})
@@ -480,3 +480,22 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 	})
 })
+
+func setupInfraContainerWithPid(pid int) {
+	testContainer, err := oci.NewContainer("testid", "testname", "",
+		"/container/logs", map[string]string{},
+		map[string]string{}, map[string]string{}, "image",
+		"imageName", "imageRef", &pb.ContainerMetadata{},
+		"testsandboxid", false, false, false, "",
+		"/root/for/container", time.Now(), "SIGKILL")
+	Expect(err).To(BeNil())
+	Expect(testContainer).NotTo(BeNil())
+
+	cstate := &oci.ContainerState{}
+	cstate.State = specs.State{
+		Pid: pid,
+	}
+	testContainer.SetState(cstate)
+
+	Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+}

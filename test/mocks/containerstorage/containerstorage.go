@@ -6,12 +6,12 @@ package containerstoragemock
 
 import (
 	storage "github.com/containers/storage"
-	graphdriver "github.com/containers/storage/drivers"
+	drivers "github.com/containers/storage/drivers"
 	archive "github.com/containers/storage/pkg/archive"
 	idtools "github.com/containers/storage/pkg/idtools"
 	lockfile "github.com/containers/storage/pkg/lockfile"
 	gomock "github.com/golang/mock/gomock"
-	digest "github.com/opencontainers/go-digest"
+	go_digest "github.com/opencontainers/go-digest"
 	io "io"
 	reflect "reflect"
 )
@@ -100,10 +100,10 @@ func (mr *MockStoreMockRecorder) ContainerBigData(arg0, arg1 interface{}) *gomoc
 }
 
 // ContainerBigDataDigest mocks base method
-func (m *MockStore) ContainerBigDataDigest(arg0, arg1 string) (digest.Digest, error) {
+func (m *MockStore) ContainerBigDataDigest(arg0, arg1 string) (go_digest.Digest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerBigDataDigest", arg0, arg1)
-	ret0, _ := ret[0].(digest.Digest)
+	ret0, _ := ret[0].(go_digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -411,7 +411,7 @@ func (mr *MockStoreMockRecorder) GIDMap() *gomock.Call {
 }
 
 // GetDigestLock mocks base method
-func (m *MockStore) GetDigestLock(arg0 digest.Digest) (lockfile.Locker, error) {
+func (m *MockStore) GetDigestLock(arg0 go_digest.Digest) (lockfile.Locker, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDigestLock", arg0)
 	ret0, _ := ret[0].(lockfile.Locker)
@@ -426,10 +426,10 @@ func (mr *MockStoreMockRecorder) GetDigestLock(arg0 interface{}) *gomock.Call {
 }
 
 // GraphDriver mocks base method
-func (m *MockStore) GraphDriver() (graphdriver.Driver, error) {
+func (m *MockStore) GraphDriver() (drivers.Driver, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GraphDriver")
-	ret0, _ := ret[0].(graphdriver.Driver)
+	ret0, _ := ret[0].(drivers.Driver)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -513,10 +513,10 @@ func (mr *MockStoreMockRecorder) ImageBigData(arg0, arg1 interface{}) *gomock.Ca
 }
 
 // ImageBigDataDigest mocks base method
-func (m *MockStore) ImageBigDataDigest(arg0, arg1 string) (digest.Digest, error) {
+func (m *MockStore) ImageBigDataDigest(arg0, arg1 string) (go_digest.Digest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImageBigDataDigest", arg0, arg1)
-	ret0, _ := ret[0].(digest.Digest)
+	ret0, _ := ret[0].(go_digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -573,7 +573,7 @@ func (mr *MockStoreMockRecorder) Images() *gomock.Call {
 }
 
 // ImagesByDigest mocks base method
-func (m *MockStore) ImagesByDigest(arg0 digest.Digest) ([]*storage.Image, error) {
+func (m *MockStore) ImagesByDigest(arg0 go_digest.Digest) ([]*storage.Image, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImagesByDigest", arg0)
 	ret0, _ := ret[0].([]*storage.Image)
@@ -664,7 +664,7 @@ func (mr *MockStoreMockRecorder) Layers() *gomock.Call {
 }
 
 // LayersByCompressedDigest mocks base method
-func (m *MockStore) LayersByCompressedDigest(arg0 digest.Digest) ([]storage.Layer, error) {
+func (m *MockStore) LayersByCompressedDigest(arg0 go_digest.Digest) ([]storage.Layer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LayersByCompressedDigest", arg0)
 	ret0, _ := ret[0].([]storage.Layer)
@@ -679,7 +679,7 @@ func (mr *MockStoreMockRecorder) LayersByCompressedDigest(arg0 interface{}) *gom
 }
 
 // LayersByUncompressedDigest mocks base method
-func (m *MockStore) LayersByUncompressedDigest(arg0 digest.Digest) ([]storage.Layer, error) {
+func (m *MockStore) LayersByUncompressedDigest(arg0 go_digest.Digest) ([]storage.Layer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LayersByUncompressedDigest", arg0)
 	ret0, _ := ret[0].([]storage.Layer)
@@ -871,7 +871,7 @@ func (mr *MockStoreMockRecorder) SetContainerRunDirectoryFile(arg0, arg1, arg2 i
 }
 
 // SetImageBigData mocks base method
-func (m *MockStore) SetImageBigData(arg0, arg1 string, arg2 []byte, arg3 func([]byte) (digest.Digest, error)) error {
+func (m *MockStore) SetImageBigData(arg0, arg1 string, arg2 []byte, arg3 func([]byte) (go_digest.Digest, error)) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetImageBigData", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
