@@ -520,7 +520,7 @@ func addSecretsBindMounts(ctx context.Context, mountLabel, ctrRunDir string, def
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
-	log.Infof(ctx, "Attempting to create container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
+	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()

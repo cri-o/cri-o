@@ -16,7 +16,7 @@ import (
 )
 
 func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (resp *pb.StopPodSandboxResponse, err error) {
-	log.Infof(ctx, "Attempting to stop pod sandbox: %s", req.GetPodSandboxId())
+	log.Infof(ctx, "Stopping pod sandbox: %s", req.GetPodSandboxId())
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
@@ -42,6 +42,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 
 	if sb.Stopped() {
+		log.Infof(ctx, "Stopped pod sandbox (already stopped): %s", sb.ID())
 		resp = &pb.StopPodSandboxResponse{}
 		return resp, nil
 	}
@@ -112,7 +113,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		log.Warnf(ctx, "error writing pod infra container %q state to disk: %v", podInfraContainer.ID(), err)
 	}
 
-	log.Infof(ctx, "stopped pod sandbox: %s", sb.ID())
+	log.Infof(ctx, "Stopped pod sandbox: %s", sb.ID())
 	sb.SetStopped(true)
 
 	resp = &pb.StopPodSandboxResponse{}

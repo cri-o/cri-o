@@ -13,6 +13,7 @@ import (
 
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (resp *pb.StartContainerResponse, err error) {
+	log.Infof(ctx, "Starting container: %s", req.GetContainerId())
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
