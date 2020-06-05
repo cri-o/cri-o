@@ -602,6 +602,10 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if err := c.ShouldBeStopped(); err != nil {
+		return err
+	}
+
 	// Check if the process is around before sending a signal
 	process, err := findprocess.FindProcess(c.state.Pid)
 	if err == findprocess.ErrNotFound {
