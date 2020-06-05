@@ -40,6 +40,7 @@ import (
 type releaseNotesOptions struct {
 	outputFile      string
 	tableOfContents bool
+	dependencies    bool
 }
 
 var (
@@ -220,6 +221,13 @@ func init() {
 		util.EnvDefault("REPLAY", ""),
 		"Replay a previously recorded API from a directory",
 	)
+
+	cmd.PersistentFlags().BoolVar(
+		&releaseNotesOpts.dependencies,
+		"dependencies",
+		true,
+		"Add dependency report",
+	)
 }
 
 func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNotesHistory) (err error) {
@@ -287,12 +295,24 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 			return errors.Wrapf(err, "rendering release note document with template")
 		}
 
+		const nl = "\n"
 		if releaseNotesOpts.tableOfContents {
 			toc, err := notes.GenerateTOC(markdown)
 			if err != nil {
 				return errors.Wrap(err, "generating table of contents")
 			}
-			markdown = toc + "\n" + markdown
+			markdown = toc + nl + markdown
+		}
+
+		if releaseNotesOpts.dependencies {
+			url := git.GetRepoURL(opts.GithubOrg, opts.GithubRepo, false)
+			deps, err := notes.NewDependencies().ChangesForURL(
+				url, opts.StartSHA, opts.EndSHA,
+			)
+			if err != nil {
+				return errors.Wrap(err, "generating dependency report")
+			}
+			markdown += strings.Repeat(nl, 2) + deps
 		}
 
 		if _, err := output.WriteString(markdown); err != nil {

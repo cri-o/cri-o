@@ -40,6 +40,7 @@ const (
 	gitHubAPIListPullRequestsWithCommit gitHubAPI = "ListPullRequestsWithCommit"
 	gitHubAPIListReleases               gitHubAPI = "ListReleases"
 	gitHubAPIListTags                   gitHubAPI = "ListTags"
+	gitHubAPIGetRepository              gitHubAPI = "GetRepository"
 )
 
 type apiRecord struct {
@@ -151,6 +152,21 @@ func (c *githubNotesRecordClient) CreatePullRequest(
 	ctx context.Context, owner, repo, baseBranchName, headBranchName, title, body string,
 ) (*github.PullRequest, error) {
 	return &github.PullRequest{}, nil
+}
+
+func (c *githubNotesRecordClient) GetRepository(
+	ctx context.Context, owner, repo string,
+) (*github.Repository, *github.Response, error) {
+	repository, resp, err := c.client.GetRepository(ctx, owner, repo)
+	if err != nil {
+		return repository, resp, err
+	}
+
+	if err := c.recordAPICall(gitHubAPIGetRepository, repository, resp); err != nil {
+		return nil, nil, err
+	}
+
+	return repository, resp, nil
 }
 
 // recordAPICall records a single GitHub API call into a JSON file by ensuring

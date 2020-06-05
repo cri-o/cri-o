@@ -44,9 +44,10 @@ func NewRepo() *Repo {
 type Repository interface {
 	Describe(opts *git.DescribeOptions) (string, error)
 	CurrentBranch() (branch string, err error)
+	Head() (string, error)
 	Remotes() (res []*git.Remote, err error)
 	LsRemote(...string) (string, error)
-	Branch(...string) (string, error)
+	IsDirty() (bool, error)
 }
 
 // Open assumes the current working directory as repository root and tries to
@@ -87,6 +88,17 @@ func (r *Repo) GetTag() (string, error) {
 // CheckState verifies that the repository is in the requested state
 func (r *Repo) CheckState(expOrg, expRepo, expBranch string) error {
 	logrus.Info("Verifying repository state")
+
+	dirty, err := r.repo.IsDirty()
+	if err != nil {
+		return errors.Wrap(err, "checking if repository is dirty")
+	}
+	if dirty {
+		return errors.New(
+			"repository is dirty, please commit and push your changes",
+		)
+	}
+	logrus.Info("Repository is in clean state")
 
 	// Verify the branch
 	branch, err := r.repo.CurrentBranch()
@@ -131,7 +143,7 @@ func (r *Repo) CheckState(expOrg, expRepo, expBranch string) error {
 
 	logrus.Info("Verifying remote HEAD commit")
 	lsRemoteOut, err := r.repo.LsRemote(
-		"--heads", foundRemote.Name(), "refs/heads/master",
+		"--heads", foundRemote.Name(), "refs/heads/"+expBranch,
 	)
 	if err != nil {
 		return errors.Wrap(err, "getting remote HEAD")
@@ -143,9 +155,16 @@ func (r *Repo) CheckState(expOrg, expRepo, expBranch string) error {
 	commit := fields[0]
 	logrus.Infof("Got remote commit: %s", commit)
 
-	logrus.Info("Verifying that remote commit is available locally")
-	if _, err := r.repo.Branch("--contains", commit, branch); err != nil {
-		return errors.Wrapf(err, "checking %s is locally available", commit)
+	logrus.Info("Verifying that remote commit is equal to the local one")
+	head, err := r.repo.Head()
+	if err != nil {
+		return errors.Wrapf(err, "retrieving repository HEAD")
+	}
+	if head != commit {
+		return errors.Errorf(
+			"Local HEAD (%s) is not equal to latest remote commit (%s)",
+			head, commit,
+		)
 	}
 	logrus.Info("Repository is up-to-date")
 

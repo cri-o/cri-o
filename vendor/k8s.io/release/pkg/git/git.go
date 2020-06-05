@@ -28,12 +28,12 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 
 	"k8s.io/release/pkg/command"
 	"k8s.io/release/pkg/util"
@@ -151,8 +151,8 @@ type Repo struct {
 // Repository is the main interface to the git.Repository functionality
 //counterfeiter:generate . Repository
 type Repository interface {
-	CommitObject(plumbing.Hash) (*object.Commit, error)
 	Branches() (storer.ReferenceIter, error)
+	CommitObject(plumbing.Hash) (*object.Commit, error)
 	Head() (*plumbing.Reference, error)
 	Remote(string) (*git.Remote, error)
 	Remotes() ([]*git.Remote, error)
@@ -166,6 +166,7 @@ type Worktree interface {
 	Add(string) (plumbing.Hash, error)
 	Commit(string, *git.CommitOptions) (plumbing.Hash, error)
 	Checkout(*git.CheckoutOptions) error
+	Status() (git.Status, error)
 }
 
 // Dir returns the directory where the repository is stored on disk
@@ -281,6 +282,11 @@ func OpenRepo(repoPath string) (*Repo, error) {
 		return nil, errors.Errorf(
 			"%s executable is not available in $PATH", gitExecutable,
 		)
+	}
+
+	if strings.HasPrefix(repoPath, "~/") {
+		repoPath = os.Getenv("HOME") + repoPath[1:]
+		logrus.Warnf("Normalizing repository to: %s", repoPath)
 	}
 
 	r, err := git.PlainOpenWithOptions(
@@ -915,4 +921,14 @@ func (r *Repo) runGitCmd(cmd string, args ...string) (string, error) {
 		return "", errors.Wrapf(err, "running git %s", cmd)
 	}
 	return res.OutputTrimNL(), nil
+}
+
+// IsDirty returns true if the worktree status is not clean. It can also error
+// if the worktree status is not retrievable.
+func (r *Repo) IsDirty() (bool, error) {
+	status, err := r.worktree.Status()
+	if err != nil {
+		return false, errors.Wrap(err, "retrieving worktree status")
+	}
+	return !status.IsClean(), nil
 }
