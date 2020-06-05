@@ -58,7 +58,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	if req.Verbose {
 		info, err := createSandboxInfo(sb.InfraContainer())
 		if err != nil {
-			return nil, errors.Wrap(err, "creating container info")
+			return nil, errors.Wrap(err, "creating sandbox info")
 		}
 		resp.Info = info
 	}
