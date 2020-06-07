@@ -809,6 +809,9 @@ var _ = t.Describe("ContainerServer", func() {
 			containers, err := sut.ListContainers(
 				func(container *oci.Container) bool {
 					return true
+				},
+				func(container *oci.Container) bool {
+					return true
 				})
 
 			// Then
