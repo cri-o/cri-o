@@ -26,6 +26,7 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	ctrIface "github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/devices"
@@ -202,13 +203,19 @@ func makeAccessible(path string, uid, gid int) error {
 }
 
 // nolint:gocyclo
-func (s *Server) createSandboxContainer(ctx context.Context, containerID, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (cntr *oci.Container, errRet error) {
-	if sb == nil {
-		return nil, errors.New("createSandboxContainer needs a sandbox")
-	}
-
+func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Container, sb *sandbox.Sandbox) (cntr *oci.Container, errRet error) {
 	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
+
+	// eventually, we'd like to access all of these variables through the interface themselves, and do most
+	// of the translation between CRI config -> oci/storage container in the container package
+	containerID := ctr.ID()
+	containerName := ctr.Name()
+	sandboxConfig := ctr.SandboxConfig()
+	containerConfig := ctr.Config()
+	if err := ctr.SetPrivileged(); err != nil {
+		return nil, err
+	}
 
 	// creates a spec Generator with the default spec.
 	specgen, err := generate.New("linux")
@@ -228,16 +235,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	readOnlyRootfs := s.config.ReadOnly
 
-	var privileged bool
 	if containerConfig.GetLinux().GetSecurityContext() != nil {
-		if containerConfig.GetLinux().GetSecurityContext().GetPrivileged() {
-			privileged = true
-		}
-		if privileged {
-			if !sandboxConfig.GetLinux().GetSecurityContext().GetPrivileged() {
-				return nil, errors.New("no privileged container allowed in sandbox")
-			}
-		}
 		if containerConfig.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
 			readOnlyRootfs = true
 		}
@@ -332,7 +330,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		metadata.Attempt,
 		containerIDMappings,
 		labelOptions,
-		privileged,
+		ctr.Privileged(),
 	)
 	if err != nil {
 		return nil, err
@@ -340,7 +338,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	mountLabel := containerInfo.MountLabel
 	var processLabel string
-	if !privileged {
+	if !ctr.Privileged() {
 		processLabel = containerInfo.ProcessLabel
 	}
 	hostIPC := containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE
@@ -413,7 +411,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// set this container's apparmor profile if it is set by sandbox
-	if s.Config().AppArmor().IsEnabled() && !privileged {
+	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
 		profile, err := s.Config().AppArmor().Apply(
 			containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile(),
 		)
@@ -494,7 +492,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			}
 		}
 
-		if privileged {
+		if ctr.Privileged() {
 			specgen.SetupPrivileged(true)
 		} else {
 			capabilities := linux.GetSecurityContext().GetCapabilities()
@@ -513,7 +511,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		}
 		specgen.SetProcessNoNewPrivileges(linux.GetSecurityContext().GetNoNewPrivs())
 
-		if !privileged {
+		if !ctr.Privileged() {
 			// TODO(runcom): have just one of this var at the top of the function
 			securityContext := containerConfig.GetLinux().GetSecurityContext()
 			for _, mp := range []string{
@@ -598,7 +596,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		}
 	}
 
-	if privileged {
+	if ctr.Privileged() {
 		specgen.RemoveMount("/sys")
 		specgen.RemoveMount("/sys/fs/cgroup")
 
@@ -640,7 +638,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
-	if !privileged && node.CgroupIsV2() {
+	if !ctr.Privileged() && node.CgroupIsV2() {
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); err != nil {
 			return nil, err
 		}
@@ -706,7 +704,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		specgen.AddMount(mnt)
 	}
 
-	if privileged {
+	if ctr.Privileged() {
 		setOCIBindMountsPrivileged(&specgen)
 	}
 
@@ -748,7 +746,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
 	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath()
-	if !privileged {
+	if !ctr.Privileged() {
 		if err := s.setupSeccomp(ctx, &specgen, spp); err != nil {
 			return nil, err
 		}
@@ -872,7 +870,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 
 	crioAnnotations := specgen.Config.Annotations
 
-	container, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, kubeAnnotations, image, imageName, imageRef, metadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
@@ -880,7 +878,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	specgen.SetLinuxMountLabel(mountLabel)
 	specgen.SetProcessSelinuxLabel(processLabel)
 
-	container.SetIDMappings(containerIDMappings)
+	ociContainer.SetIDMappings(containerIDMappings)
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		for _, uidmap := range s.defaultIDMappings.UIDs() {
 			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
@@ -904,15 +902,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		return nil, err
 	}
 
-	container.SetSpec(specgen.Config)
-	container.SetMountPoint(mountPoint)
-	container.SetSeccompProfilePath(spp)
+	ociContainer.SetSpec(specgen.Config)
+	ociContainer.SetMountPoint(mountPoint)
+	ociContainer.SetSeccompProfilePath(spp)
 
 	for _, cv := range containerVolumes {
-		container.AddVolume(cv)
+		ociContainer.AddVolume(cv)
 	}
 
-	return container, nil
+	return ociContainer, nil
 }
 
 func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {

@@ -17,7 +17,8 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 		config := &pb.ContainerConfig{
 			Metadata: &pb.ContainerMetadata{Name: "name"},
 		}
-		Expect(sut.SetConfig(config)).To(BeNil())
+		sboxConfig := &pb.PodSandboxConfig{}
+		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 	})
 
 	It("should succeed", func() {
