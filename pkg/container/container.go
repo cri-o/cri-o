@@ -15,7 +15,7 @@ type Container interface {
 	// All set methods are usually called in order of their definition
 
 	// SetConfig sets the configuration to the container and validates it
-	SetConfig(*pb.ContainerConfig) error
+	SetConfig(*pb.ContainerConfig, *pb.PodSandboxConfig) error
 
 	// SetNameAndID sets a container name and ID
 	SetNameAndID(*pb.PodSandboxMetadata) error
@@ -23,19 +23,29 @@ type Container interface {
 	// Config returns the container configuration
 	Config() *pb.ContainerConfig
 
+	SandboxConfig() *pb.PodSandboxConfig
+
 	// ID returns the container ID
 	ID() string
 
 	// Name returns the container name
 	Name() string
+
+	// SetPrivileged sets the privileged bool for the container
+	SetPrivileged() error
+
+	// Privileged returns whether this container is privileged
+	Privileged() bool
 }
 
 // container is the hidden default type behind the Container interface
 type container struct {
-	ctx    context.Context
-	config *pb.ContainerConfig
-	id     string
-	name   string
+	ctx        context.Context
+	config     *pb.ContainerConfig
+	sboxConfig *pb.PodSandboxConfig
+	id         string
+	name       string
+	privileged bool
 }
 
 // New creates a new, empty Sandbox instance
@@ -46,7 +56,7 @@ func New(ctx context.Context) Container {
 }
 
 // SetConfig sets the configuration to the container and validates it
-func (c *container) SetConfig(config *pb.ContainerConfig) error {
+func (c *container) SetConfig(config *pb.ContainerConfig, sboxConfig *pb.PodSandboxConfig) error {
 	if c.config != nil {
 		return errors.New("config already set")
 	}
@@ -63,7 +73,16 @@ func (c *container) SetConfig(config *pb.ContainerConfig) error {
 		return errors.New("name is nil")
 	}
 
+	if sboxConfig == nil {
+		return errors.New("sandbox config is nil")
+	}
+
+	if c.sboxConfig != nil {
+		return errors.New("sandbox config is already set")
+	}
+
 	c.config = config
+	c.sboxConfig = sboxConfig
 	return nil
 }
 
@@ -97,6 +116,11 @@ func (c *container) Config() *pb.ContainerConfig {
 	return c.config
 }
 
+// SandboxConfig returns the sandbox configuration
+func (c *container) SandboxConfig() *pb.PodSandboxConfig {
+	return c.sboxConfig
+}
+
 // ID returns the container ID
 func (c *container) ID() string {
 	return c.id
@@ -105,4 +129,40 @@ func (c *container) ID() string {
 // Name returns the container name
 func (c *container) Name() string {
 	return c.name
+}
+
+func (c *container) SetPrivileged() error {
+	if c.config == nil {
+		return nil
+	}
+	if c.config.GetLinux() == nil {
+		return nil
+	}
+	if c.config.GetLinux().GetSecurityContext() == nil {
+		return nil
+	}
+
+	if c.sboxConfig == nil {
+		return nil
+	}
+
+	if c.sboxConfig.GetLinux() == nil {
+		return nil
+	}
+
+	if c.sboxConfig.GetLinux().GetSecurityContext() == nil {
+		return nil
+	}
+
+	if c.config.GetLinux().GetSecurityContext().GetPrivileged() {
+		if !c.sboxConfig.GetLinux().GetSecurityContext().GetPrivileged() {
+			return errors.New("no privileged container allowed in sandbox")
+		}
+		c.privileged = true
+	}
+	return nil
+}
+
+func (c *container) Privileged() bool {
+	return c.privileged
 }
