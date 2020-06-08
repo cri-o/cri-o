@@ -293,3 +293,26 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 func Int32Ptr(i int32) *int32 {
 	return &i
 }
+
+// EnsureSaneLogPath is a hack to fix https://issues.k8s.io/44043 which causes
+// logPath to be a broken symlink to some magical Docker path. Ideally we
+// wouldn't have to deal with this, but until that issue is fixed we have to
+// remove the path if it's a broken symlink.
+func EnsureSaneLogPath(logPath string) error {
+	// If the path exists but the resolved path does not, then we have a broken
+	// symlink and we need to remove it.
+	fi, err := os.Lstat(logPath)
+	if err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		// Non-existent files and non-symlinks aren't our problem.
+		return nil
+	}
+
+	_, err = os.Stat(logPath)
+	if os.IsNotExist(err) {
+		err = os.RemoveAll(logPath)
+		if err != nil {
+			return fmt.Errorf("failed to remove bad log path %s: %v", logPath, err)
+		}
+	}
+	return nil
+}
