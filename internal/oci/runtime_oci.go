@@ -711,6 +711,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 		// went away we do not error out stopping kubernetes to recover.
 		// We always populate the fields below so kube can restart/reschedule
 		// containers failing.
+		logrus.Errorf("Failed to update container state for %s: %v", c.id, err)
 		c.state.Status = ContainerStateStopped
 		if err := updateContainerStatusFromExitFile(c); err != nil {
 			c.state.Finished = time.Now()
