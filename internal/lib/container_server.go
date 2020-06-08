@@ -601,6 +601,7 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 		for _, filter := range filters {
 			if filter(container) {
 				filteredContainers = append(filteredContainers, container)
+				break
 			}
 		}
 	}
