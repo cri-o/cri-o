@@ -225,12 +225,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
 
-	ulimits, err := getUlimitsFromConfig(&s.config)
-	if err != nil {
-		return nil, err
-	}
-	for _, u := range ulimits {
-		specgen.AddProcessRlimits(u.name, u.hard, u.soft)
+	for _, u := range s.config.Ulimits() {
+		specgen.AddProcessRlimits(u.Name, u.Hard, u.Soft)
 	}
 
 	readOnlyRootfs := s.config.ReadOnly

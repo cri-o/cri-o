@@ -129,12 +129,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.HostSpecific = true
 	g.ClearProcessRlimits()
 
-	ulimits, err := getUlimitsFromConfig(&s.config)
-	if err != nil {
-		return nil, err
-	}
-	for _, u := range ulimits {
-		g.AddProcessRlimits(u.name, u.hard, u.soft)
+	for _, u := range s.config.Ulimits() {
+		g.AddProcessRlimits(u.Name, u.Hard, u.Soft)
 	}
 
 	// setup defaults for the pod sandbox

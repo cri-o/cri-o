@@ -23,10 +23,10 @@ import (
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
+	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -298,6 +298,9 @@ type RuntimeConfig struct {
 	// apparmorConfig is the internal AppArmor configuration
 	apparmorConfig *apparmor.Config
 
+	// ulimitConfig is the internal ulimit configuration
+	ulimitsConfig *ulimits.Config
+
 	// cgroupManager is the internal CgroupManager configuration
 	cgroupManager cgmgr.CgroupManager
 }
@@ -567,6 +570,7 @@ func DefaultConfig() (*Config, error) {
 			NamespacesDir:            "/var/run",
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
+			ulimitsConfig:            ulimits.New(),
 			cgroupManager:            cgroupManager,
 		},
 		ImageConfig: ImageConfig{
@@ -689,21 +693,8 @@ func (c *RootConfig) Validate(onExecution bool) error {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution bool) error {
-	// This is somehow duplicated with server.getUlimitsFromConfig under server/utils.go
-	// but I don't want to export that function for the sake of validation here
-	// so, keep it in mind if things start to blow up.
-	// Reason for having this here is that I don't want people to start crio
-	// with invalid ulimits but realize that only after starting a couple of
-	// containers and watching them fail.
-	for _, u := range c.DefaultUlimits {
-		ul, err := units.ParseUlimit(u)
-		if err != nil {
-			return fmt.Errorf("unrecognized ulimit %s: %v", u, err)
-		}
-		_, err = ul.GetRlimit()
-		if err != nil {
-			return err
-		}
+	if err := c.ulimitsConfig.LoadUlimits(c.DefaultUlimits); err != nil {
+		return err
 	}
 
 	for _, d := range c.AdditionalDevices {
@@ -880,6 +871,11 @@ func (c *RuntimeConfig) AppArmor() *apparmor.Config {
 // CgroupManager returns the CgroupManager configuration
 func (c *RuntimeConfig) CgroupManager() cgmgr.CgroupManager {
 	return c.cgroupManager
+}
+
+// Ulimits returns the Ulimits configuration
+func (c *RuntimeConfig) Ulimits() []ulimits.Ulimit {
+	return c.ulimitsConfig.Ulimits()
 }
 
 func validateExecutablePath(executable, currentPath string) (string, error) {
