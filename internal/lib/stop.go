@@ -16,15 +16,17 @@ func (c *ContainerServer) ContainerStop(ctx context.Context, container string, t
 	}
 	ctrID := ctr.ID()
 
-	cStatus := ctr.State()
-	switch cStatus.Status {
-	case oci.ContainerStateStopped: // no-op
-	case oci.ContainerStatePaused:
-		return "", errors.Errorf("cannot stop paused container %s", ctrID)
-	default:
-		if err := c.runtime.StopContainer(ctx, ctr, timeout); err != nil {
+	err = c.runtime.StopContainer(ctx, ctr, timeout)
+	if err != nil {
+		// only fatally error if the error is not that the container was already stopped
+		// we still want to write container state to disk if the container has already
+		// been stopped
+		if err != oci.ErrContainerStopped {
 			return "", errors.Wrapf(err, "failed to stop container %s", ctrID)
 		}
+	} else {
+		// we only do these operations if StopContainer didn't fail (even if the failure
+		// was the container already being stopped)
 		if err := c.runtime.WaitContainerStateStopped(ctx, ctr); err != nil {
 			return "", errors.Wrapf(err, "failed to get container 'stopped' status %s", ctrID)
 		}

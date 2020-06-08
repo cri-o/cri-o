@@ -460,6 +460,10 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if err := c.ShouldBeStopped(); err != nil {
+		return err
+	}
+
 	// Cancel the context before returning to ensure goroutines are stopped.
 	ctx, cancel := context.WithCancel(r.ctx)
 	defer cancel()
