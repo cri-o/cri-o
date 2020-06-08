@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 08 Jun 2020 17:46:40 UTC for commit [aa2551d][0]._
+_Generated on Mon, 08 Jun 2020 20:23:23 UTC for commit [ed409ae][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/aa2551df6db36c9794e5c5767a90eb1ee2d7a190
+[0]: https://github.com/cri-o/cri-o/commit/ed409ae3fb4591164d763d88cba1409c4c94c6d8
 
 ## Outdated Dependencies
 
@@ -21,7 +21,7 @@ _Generated on Mon, 08 Jun 2020 17:46:40 UTC for commit [aa2551d][0]._
 | golang.org/x/net                     | v0.0.0-20200513185701-a91f0712d120 | v0.0.0-20200602114024-627f9648deb9 | true   | true             |
 | golang.org/x/sys                     | v0.0.0-20200420163511-1957bb5e6d1f | v0.0.0-20200602225109-6fdc65e7d980 | true   | true             |
 | k8s.io/api                           | v0.0.0-20200505125908-b48f5af2602b | v0.0.0-20200608162547-2c7d431a20b9 | true   | true             |
-| k8s.io/apimachinery                  | v0.0.0-20200505125908-b48f5af2602b | v0.0.0-20200608162547-2c7d431a20b9 | true   | true             |
+| k8s.io/apimachinery                  | v0.0.0-20200505125908-b48f5af2602b | v0.0.0-20200608201546-a36b9a992223 | true   | true             |
 | k8s.io/client-go                     | v0.0.0-20200505125908-b48f5af2602b | v0.0.0-20200608162547-2c7d431a20b9 | true   | true             |
 | k8s.io/cri-api                       | v0.0.0-20200505125908-b48f5af2602b | v0.0.0-20200608162547-2c7d431a20b9 | true   | true             |
 | k8s.io/kubernetes                    | v1.19.0-alpha.3                    |                                    | true   | true             |
@@ -33,7 +33,7 @@ _Generated on Mon, 08 Jun 2020 17:46:40 UTC for commit [aa2551d][0]._
 |                         MODULE                          |                      VERSION                      |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |---------------------------------------------------------|---------------------------------------------------|------------------------------------|--------|------------------|
 | bitbucket.org/bertimus9/systemstat                      | v0.0.0-20180207000608-0eeff89b0690                |                                    | false  | true             |
-| cloud.google.com/go                                     | v0.44.3                                           | v0.57.0                            | false  | true             |
+| cloud.google.com/go                                     | v0.44.3                                           | v0.58.0                            | false  | true             |
 | cloud.google.com/go/datastore                           | v1.0.0                                            | v1.1.0                             | false  | true             |
 | github.com/14rcole/gopopulate                           | v0.0.0-20180821133914-b175b219e774                |                                    | false  | true             |
 | github.com/Azure/azure-sdk-for-go                       | v40.2.0+incompatible                              | v43.0.0+incompatible               | false  | true             |
@@ -74,7 +74,7 @@ _Generated on Mon, 08 Jun 2020 17:46:40 UTC for commit [aa2551d][0]._
 | github.com/armon/go-socks5                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                       | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20200428143746-21a406dcc535 | false  | true             |
 | github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20200507191422-d30d7b9ece63 | false  | true             |
-| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.31.12                           | false  | true             |
+| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.31.13                           | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.22.1                                           | v0.23.3                            | false  | true             |
 | github.com/beorn7/perks                                 | v0.0.0-20180321164747-3a771d992973                | v1.0.1                             | false  | true             |
 | github.com/bgentry/speakeasy                            | v0.1.0                                            |                                    | false  | true             |
@@ -404,8 +404,8 @@ _Generated on Mon, 08 Jun 2020 17:46:40 UTC for commit [aa2551d][0]._
 | github.com/seccomp/containers-golang                    | v0.4.1                                            | v0.5.0                             | true   | true             |
 | github.com/seccomp/libseccomp-golang                    | v0.9.1                                            |                                    | false  | true             |
 | github.com/securego/gosec                               | v0.0.0-20200103095621-79fbf3af8d83                | v0.0.0-20200401082031-e946c8c39989 | false  | true             |
-| github.com/sendgrid/rest                                | v2.4.1+incompatible                               |                                    | false  | true             |
-| github.com/sendgrid/sendgrid-go                         | v3.5.0+incompatible                               |                                    | false  | true             |
+| github.com/sendgrid/rest                                | v2.4.1+incompatible                               | v2.6.0+incompatible                | false  | true             |
+| github.com/sendgrid/sendgrid-go                         | v3.5.0+incompatible                               | v3.6.0+incompatible                | false  | true             |
 | github.com/sergi/go-diff                                | v1.1.0                                            |                                    | false  | true             |
 | github.com/shirou/gopsutil                              | v0.0.0-20190901111213-e4ec7b275ada                | v2.20.5+incompatible               | false  | true             |
 | github.com/shirou/w32                                   | v0.0.0-20160930032740-bb4de0191aa4                |                                    | false  | true             |
@@ -488,7 +488,7 @@ _Generated on Mon, 08 Jun 2020 17:46:40 UTC for commit [aa2551d][0]._
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.2                                            |                                    | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200416051211-89c76fbcd5d1 | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200422022333-3d57cf2e726e                | v0.0.0-20200608163737-5123702d8024 | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200422022333-3d57cf2e726e                | v0.0.0-20200608174601-1b747fd94509 | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                |                                    | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.7.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200603212716-16abd5ac5bc7 | false  | true             |
@@ -520,8 +520,8 @@ _Generated on Mon, 08 Jun 2020 17:46:40 UTC for commit [aa2551d][0]._
 | honnef.co/go/tools                                      | v0.0.1-2019.2.3                                   | v0.0.1-2020.1.4                    | false  | true             |
 | k8s.io/api                                              | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200608162547-2c7d431a20b9 | true   | true             |
 | k8s.io/apiextensions-apiserver                          | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200608162547-2c7d431a20b9 | false  | true             |
-| k8s.io/apimachinery                                     | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200608162547-2c7d431a20b9 | true   | true             |
-| k8s.io/apiserver                                        | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200608162547-2c7d431a20b9 | false  | true             |
+| k8s.io/apimachinery                                     | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200608201546-a36b9a992223 | true   | true             |
+| k8s.io/apiserver                                        | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200608201546-a36b9a992223 | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200608162547-2c7d431a20b9 | false  | true             |
 | k8s.io/client-go                                        | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200608162547-2c7d431a20b9 | true   | true             |
 | k8s.io/cloud-provider                                   | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200608162547-2c7d431a20b9 | false  | true             |
