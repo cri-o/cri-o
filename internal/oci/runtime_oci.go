@@ -875,14 +875,20 @@ func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, output
 
 	stdinDone := make(chan error)
 	go func() {
-		var err error
+		var err, closeErr error
 		if inputStream != nil {
 			_, err = utils.CopyDetachable(conn, inputStream, nil)
-			if closeErr := conn.CloseWrite(); closeErr != nil {
-				stdinDone <- closeErr
-			}
+			closeErr = conn.CloseWrite()
 		}
-		stdinDone <- err
+		switch {
+		case err != nil:
+			stdinDone <- err
+		case closeErr != nil:
+			stdinDone <- closeErr
+		default:
+			// neither CopyDetachable nor CloseWrite returned error
+			stdinDone <- nil
+		}
 		close(stdinDone)
 	}()
 
