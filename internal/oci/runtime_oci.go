@@ -557,6 +557,7 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 		for {
 			select {
 			case <-chControl:
+				close(done)
 				return
 			default:
 				process, err := findprocess.FindProcess(c.state.Pid)
