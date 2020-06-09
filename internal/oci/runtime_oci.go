@@ -699,19 +699,30 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 		return nil
 	}
 
-	cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id) // nolint: gosec
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	var out []byte
+	var err error
+	// We have seen cases where this state call fails
+	// with little output, but the container is running and
+	// later calls succeed.
+	// There is little harm in trying again
+	for i := 0; i < 3; i++ {
+		out, err = r.attemptUpdateContainerStatus(c)
+		if err == nil {
+			break
+		}
+		logrus.Errorf("%v: attempt %d", err, i)
+
+		if !c.IsRunning() {
+			break
+		}
 	}
-	out, err := cmd.Output()
-	if err != nil {
-		// there are many code paths that could lead to have a bad state in the
-		// underlying runtime.
-		// On any error like a container went away or we rebooted and containers
-		// went away we do not error out stopping kubernetes to recover.
-		// We always populate the fields below so kube can restart/reschedule
-		// containers failing.
-		logrus.Errorf("Failed to update container state for %s: %v", c.id, err)
+	// there are many code paths that could lead to have a bad state in the
+	// underlying runtime.
+	// On any error like a container went away or we rebooted and containers
+	// went away we do not error out stopping kubernetes to recover.
+	// We always populate the fields below so kube can restart/reschedule
+	// containers failing.
+	if out == nil {
 		c.state.Status = ContainerStateStopped
 		if err := updateContainerStatusFromExitFile(c); err != nil {
 			c.state.Finished = time.Now()
@@ -726,7 +737,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	if c.state.Status == ContainerStateStopped {
 		exitFilePath := c.exitFilePath()
 		var fi os.FileInfo
-		err = kwait.ExponentialBackoff(
+		err := kwait.ExponentialBackoff(
 			kwait.Backoff{
 				Duration: 500 * time.Millisecond,
 				Factor:   1.2,
@@ -766,6 +777,21 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	}
 
 	return nil
+}
+
+func (r runtimeOCI) attemptUpdateContainerStatus(c *Container) ([]byte, error) {
+	cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id) // nolint: gosec
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
+	out, err := cmd.Output()
+	if err != nil {
+		if exitErr, isExitError := err.(*exec.ExitError); isExitError {
+			return nil, errors.Errorf("failed to update container state for %s: stdout: %s, stderr: %s", c.id, string(out), string(exitErr.Stderr))
+		}
+		return nil, errors.Errorf("failed to update container state for %s: %v", c.id, err)
+	}
+	return out, nil
 }
 
 // PauseContainer pauses a container.
