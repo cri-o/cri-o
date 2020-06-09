@@ -104,6 +104,11 @@ curl_to "$TMP_BIN/runc" \
     https://github.com/opencontainers/runc/releases/download/"${VERSIONS["runc"]}"/runc.amd64
 chmod +x "$TMP_BIN/runc"
 
+# crun
+curl_to "$TMP_BIN/crun" \
+    https://github.com/containers/crun/releases/download/"${VERSIONS["crun"]}"/crun-"${VERSIONS["crun"]}"-static-x86_64
+chmod +x "$TMP_BIN/crun"
+
 # CNI plugins
 mkdir -p "$TMPDIR/cni-plugins"
 set -x

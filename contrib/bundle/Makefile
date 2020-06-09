@@ -21,7 +21,8 @@ install: \
 	install-crio \
 	install-crictl \
 	install-pinns \
-	install-runc
+	install-runc \
+	install-crun
 
 .PHONY: install-cni
 install-cni:
@@ -65,6 +66,10 @@ install-pinns:
 install-runc:
 	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/runc
 
+.PHONY: install-crun
+install-crun:
+	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/crun
+
 .PHONY: uninstall
 uninstall: \
 	uninstall-cni \
@@ -72,7 +77,8 @@ uninstall: \
 	uninstall-crio \
 	uninstall-crictl \
 	uninstall-pinns \
-	uninstall-runc
+	uninstall-runc \
+	uninstall-crun
 
 .PHONY: uninstall-cni
 uninstall-cni:
@@ -110,3 +116,7 @@ uninstall-pinns:
 .PHONY: uninstall-runc
 uninstall-runc:
 	rm $(BINDIR)/runc
+
+.PHONY: uninstall-crun
+uninstall-crun:
+	rm $(BINDIR)/crun
