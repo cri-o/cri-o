@@ -13,9 +13,7 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	cryptUtils "github.com/containers/ocicrypt/utils"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	units "github.com/docker/go-units"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/pkg/errors"
@@ -226,29 +224,6 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*pb.KeyValue) []string {
 		}
 	}
 	return envs
-}
-
-type ulimit struct {
-	name string
-	hard uint64
-	soft uint64
-}
-
-func getUlimitsFromConfig(config *libconfig.Config) ([]ulimit, error) {
-	ulimits := make([]ulimit, 0, len(config.RuntimeConfig.DefaultUlimits))
-	for _, u := range config.RuntimeConfig.DefaultUlimits {
-		ul, err := units.ParseUlimit(u)
-		if err != nil {
-			return nil, err
-		}
-		rl, err := ul.GetRlimit()
-		if err != nil {
-			return nil, err
-		}
-		// This sucks, but it's the runtime-tools interface
-		ulimits = append(ulimits, ulimit{name: "RLIMIT_" + strings.ToUpper(ul.Name), hard: rl.Hard, soft: rl.Soft})
-	}
-	return ulimits, nil
 }
 
 // Translate container labels to a description of the container
