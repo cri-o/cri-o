@@ -41,6 +41,13 @@ func ValidateConfig() error {
 			activated: &cgroupHasMemorySwap,
 			fatal:     false,
 		},
+		{
+			name:      "systemd CollectMode",
+			init:      SystemdHasCollectMode,
+			err:       &systemdHasCollectModeErr,
+			activated: &systemdHasCollectMode,
+			fatal:     false,
+		},
 	}
 	for _, i := range toInit {
 		i.init()
