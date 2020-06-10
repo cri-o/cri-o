@@ -5,6 +5,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,12 +19,13 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
-	state := c.State()
-	if state.Status != oci.ContainerStateCreated {
-		return nil, fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
-	}
 
 	defer func() {
+		// we should only do this cleanup if the start actually failed,
+		// rather than failing because the user tried to start a container that wasn't in the created state
+		if errors.Is(err, oci.ErrContainerNotCreated) {
+			return
+		}
 		// if the call to StartContainer fails below we still want to fill
 		// some fields of a container status. In particular, we're going to
 		// adjust container started/finished time and set an error to be

@@ -232,6 +232,10 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if err := c.ShouldBeStarted(); err != nil {
+		return err
+	}
+
 	if _, err := utils.ExecCmd(
 		r.path, rootFlag, r.root, "start", c.id,
 	); err != nil {

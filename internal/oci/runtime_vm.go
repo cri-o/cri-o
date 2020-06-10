@@ -237,6 +237,10 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if err := c.ShouldBeStarted(); err != nil {
+		return err
+	}
+
 	if err := r.start(r.ctx, c.ID(), ""); err != nil {
 		return err
 	}

@@ -26,6 +26,7 @@ const defaultStopSignalInt = 15
 
 var defaultStopSignal = strconv.Itoa(defaultStopSignalInt)
 var ErrContainerStopped = errors.New("container is already stopped")
+var ErrContainerNotCreated = errors.New("container is not in created state")
 
 // Container represents a runtime container.
 type Container struct {
@@ -356,4 +357,11 @@ func (c *Container) ShouldBeStopped() error {
 		return errors.New("cannot stop paused container")
 	}
 	return nil
+}
+
+func (c *Container) ShouldBeStarted() error {
+	if c.state.Status == ContainerStateCreated {
+		return nil
+	}
+	return errors.Wrapf(ErrContainerNotCreated, "invalid state %s for %s", c.state.Status, c.id)
 }

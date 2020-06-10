@@ -6,7 +6,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
-	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/oci"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -41,16 +41,15 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	// Delete all the containers in the sandbox
 	for _, c := range containers {
 		if !sb.Stopped() {
-			cState := c.State()
-			if cState.Status == oci.ContainerStateCreated || cState.Status == oci.ContainerStateRunning {
-				timeout := int64(10)
-				if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
-					// Assume container is already stopped
+			timeout := int64(10)
+			if err := s.Runtime().StopContainer(ctx, c, timeout); err != nil {
+				// Assume container is already stopped
+				if !errors.Is(err, oci.ErrContainerStopped) {
 					log.Warnf(ctx, "failed to stop container %s: %v", c.Name(), err)
 				}
-				if err := s.Runtime().WaitContainerStateStopped(ctx, c); err != nil {
-					return nil, fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-				}
+			}
+			if err := s.Runtime().WaitContainerStateStopped(ctx, c); err != nil {
+				return nil, fmt.Errorf("failed to get container 'stopped' status %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 			}
 		}
 
