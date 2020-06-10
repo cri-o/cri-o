@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -342,6 +343,24 @@ func (c *Container) StdinOnce() bool {
 
 func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
+}
+
+// IsRunning is a function that checks if a specific pid is running
+// it is used to check a container state when we don't want (or don't trust) a `$runtime state` call
+func (c *Container) IsRunning() bool {
+	pid := c.state.Pid
+	if pid == 0 {
+		logrus.Errorf("pid is 0, not running")
+		return false
+	}
+
+	out, err := exec.Command("kill", "-0", strconv.Itoa(pid)).CombinedOutput()
+	if err == nil {
+		return true
+	}
+
+	logrus.Infof("checking if for container %s is running returned: %s", c.id, string(out))
+	return false
 }
 
 // ShouldBeStopped checks whether the container state is in a place
