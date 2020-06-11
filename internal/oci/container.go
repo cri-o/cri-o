@@ -344,6 +344,23 @@ func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
 }
 
+// IsRunning is a function that checks if a specific pid is running
+// it is used to check a container state when we don't want (or don't trust) a `$runtime state` call
+func (c *Container) IsRunning() bool {
+	process, err := os.FindProcess(c.state.Pid)
+	if err != nil {
+		logrus.Infof("container %s not found: %v", c.id, err)
+		return false
+	}
+
+	if err := process.Signal(syscall.Signal(0)); err != nil {
+		logrus.Errorf("container %s not running %v", c.id, err)
+		return false
+	}
+
+	return true
+}
+
 // ShouldBeStopped checks whether the container state is in a place
 // where attempting to stop it makes sense
 // a container is not stoppable if it's paused or stopped

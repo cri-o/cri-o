@@ -238,4 +238,38 @@ var _ = t.Describe("Container", func() {
 		// Then
 		Expect(err).To(BeNil())
 	})
+	It("should be false if pid unintialized", func() {
+		// Given
+		state := &oci.ContainerState{}
+		state.Pid = 0
+		sut.SetState(state)
+		// When
+		err := sut.IsRunning()
+
+		// Then
+		Expect(err).To(Equal(false))
+	})
+	It("should succeed if pid is running", func() {
+		// Given
+		state := &oci.ContainerState{}
+		state.Pid = 1
+		sut.SetState(state)
+		// When
+		err := sut.IsRunning()
+
+		// Then
+		Expect(err).To(Equal(true))
+	})
+	It("should be false if pid is not running", func() {
+		// Given
+		state := &oci.ContainerState{}
+		// the highest allowed pid + 1
+		state.Pid = 4194305
+		sut.SetState(state)
+		// When
+		err := sut.IsRunning()
+
+		// Then
+		Expect(err).To(Equal(false))
+	})
 })
