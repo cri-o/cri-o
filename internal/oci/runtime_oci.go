@@ -712,7 +712,6 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 		}
 		out, err := cmd.Output()
 		if err != nil {
-			logrus.Errorf("Failed to update container state for %s: %v", c.id, err)
 			// there are many code paths that could lead to have a bad state in the
 			// underlying runtime.
 			// On any error like a container went away or we rebooted and containers
