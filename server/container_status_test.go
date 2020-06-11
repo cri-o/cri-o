@@ -32,7 +32,7 @@ var _ = t.Describe("ContainerStatus", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.AddVolume(oci.ContainerVolume{})
-			testContainer.SetState(givenState)
+			testContainer.SetStateAndSpoofPid(givenState)
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
 			gomock.InOrder(

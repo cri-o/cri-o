@@ -17,7 +17,6 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/storage/pkg/pools"
-	"github.com/cri-o/cri-o/internal/findprocess"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
@@ -205,12 +204,14 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (retErr 
 		close(ch)
 	}()
 
+	var pid int
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
 			return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
 		}
 		logrus.Debugf("Received container pid: %d", ss.si.Pid)
+		pid = ss.si.Pid
 		if ss.si.Pid == -1 {
 			if ss.si.Message != "" {
 				logrus.Errorf("Container creation error: %s", ss.si.Message)
@@ -222,6 +223,11 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (retErr 
 	case <-time.After(ContainerCreateTimeout):
 		logrus.Errorf("Container creation timeout (%v)", ContainerCreateTimeout)
 		return fmt.Errorf("create container timeout")
+	}
+
+	// Now we know the container has started, save the pid to verify against future calls.
+	if err := c.state.SetInitPid(pid); err != nil {
+		return err
 	}
 
 	return nil
@@ -561,17 +567,19 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 				close(done)
 				return
 			default:
-				process, err := findprocess.FindProcess(c.state.Pid)
-				if err != nil {
-					if err != findprocess.ErrNotFound {
-						logrus.Warnf("failed to find process %d for container %v: %v", c.state.Pid, c.id, err)
+				found, err := c.findAndReleasePid()
+				// If the process was not found, then we likely have no problem.
+				// Log an error if there is one, but return regardless.
+				if !found {
+					if err != nil {
+						logrus.Warnf("failed to find process for container %v: %v", c.id, err)
 					}
 					close(done)
 					return
 				}
-				err = process.Release()
+				// If the process was found, but we encountered an error in releasing, log it.
 				if err != nil {
-					logrus.Warnf("failed to release process %d for container %v: %v", c.state.Pid, c.id, err)
+					logrus.Warnf("failed to release process for container %v: %v", c.id, err)
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -589,8 +597,11 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			return fmt.Errorf("timeout reached after %.0f seconds waiting for container process to exit",
 				timeout.Seconds())
 		}
-		err := kill(c.state.Pid)
+		pid, err := c.pid()
 		if err != nil {
+			return err
+		}
+		if err := kill(pid); err != nil {
 			return fmt.Errorf("failed to kill process: %v", err)
 		}
 	}
@@ -608,19 +619,15 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		return err
 	}
 
-	// Check if the process is around before sending a signal
-	process, err := findprocess.FindProcess(c.state.Pid)
-	if err == findprocess.ErrNotFound {
+	found, err := c.findAndReleasePid()
+	// if the pid didn't exist, set the state accordingly and return.
+	if !found && err == nil {
 		c.state.Finished = time.Now()
 		return nil
 	}
+	// we somehow failed to find or release the process, just log a warning.
 	if err != nil {
-		logrus.Warnf("failed to find process %d for container %q: %v", c.state.Pid, c.id, err)
-	} else {
-		err = process.Release()
-		if err != nil {
-			logrus.Warnf("failed to release process %d for container %q: %v", c.state.Pid, c.id, err)
-		}
+		logrus.Warnf(err.Error())
 	}
 
 	if timeout > 0 {
@@ -650,18 +657,17 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 }
 
 func checkProcessGone(c *Container) error {
-	process, perr := findprocess.FindProcess(c.state.Pid)
-	if perr == findprocess.ErrNotFound {
+	found, err := c.findAndReleasePid()
+	// if the pid didn't exist, set the state accordingly and return.
+	if !found && err == nil {
 		c.state.Finished = time.Now()
 		return nil
 	}
-	if perr == nil {
-		err := process.Release()
-		if err != nil {
-			logrus.Warnf("failed to release process %d for container %v: %v", c.state.Pid, c.id, err)
-		}
+	// we somehow failed to find or release the process.
+	if err != nil {
+		return fmt.Errorf("failed to find process: %v", err)
 	}
-	return fmt.Errorf("failed to find process: %v", perr)
+	return nil
 }
 
 // DeleteContainer deletes a container.

@@ -527,14 +527,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			return nil, err
 		}
 	} else if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
-		infra := sb.InfraContainer()
-		if infra == nil {
-			return nil, errors.New("PID namespace requested, but sandbox has no infra container")
+		pidNsPath := sb.PidNsPath()
+		if pidNsPath == "" {
+			return nil, errors.New("PID namespace requested, but sandbox infra container invalid")
 		}
 
-		// share Pod PID namespace
-		// SEE NOTE ABOVE
-		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", infra.State().Pid)
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
 			return nil, err
 		}

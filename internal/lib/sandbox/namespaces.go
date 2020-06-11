@@ -18,6 +18,7 @@ const (
 	IPCNS         NSType = "ipc"
 	UTSNS         NSType = "uts"
 	USERNS        NSType = "user"
+	PIDNS         NSType = "pid"
 	numNamespaces        = 4
 )
 
@@ -274,6 +275,14 @@ func (s *Sandbox) UserNsJoin(nspath string) error {
 	return err
 }
 
+// PidNs specific functions
+
+// PidNsPath returns the path to the pid namespace of the sandbox.
+// If the sandbox uses the host namespace, the empty string is returned.
+func (s *Sandbox) PidNsPath() string {
+	return s.nsPath(nil, PIDNS)
+}
+
 // nsJoin checks if the current iface is nil, and if so gets the namespace at nsPath
 func nsJoin(nsPath string, nsType NSType, currentIface NamespaceIface) (NamespaceIface, error) {
 	if currentIface != nil {
@@ -294,7 +303,11 @@ func (s *Sandbox) nsPath(ns NamespaceIface, nsType NSType) string {
 func infraPid(infra *oci.Container) int {
 	pid := -1
 	if infra != nil {
-		pid = infra.State().Pid
+		var err error
+		pid, err = infra.Pid()
+		if err != nil {
+			logrus.Errorf("pid for infra container %s not found: %v", infra.ID(), err)
+		}
 	}
 	return pid
 }

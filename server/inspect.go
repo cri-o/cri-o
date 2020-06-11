@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/go-zoo/bone"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
