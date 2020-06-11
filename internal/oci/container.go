@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/findprocess"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -344,6 +345,17 @@ func (c *Container) StdinOnce() bool {
 
 func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
+}
+
+// IsAlive is a function that checks if a container's init pid exists.
+// It is used to check a container state when we don't want a `$runtime state` call
+func (c *Container) IsAlive() bool {
+	if _, err := findprocess.FindProcess(c.state.Pid); err != nil {
+		logrus.Errorf("container %s not running: %v", c.id, err)
+		return false
+	}
+
+	return true
 }
 
 // ShouldBeStopped checks whether the container state is in a place
