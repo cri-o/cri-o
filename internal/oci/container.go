@@ -79,6 +79,11 @@ type ContainerState struct {
 	ExitCode  *int32    `json:"exitCode,omitempty"`
 	OOMKilled bool      `json:"oomKilled,omitempty"`
 	Error     string    `json:"error,omitempty"`
+	InitPid   int       `json:"initPid,omitempty"`
+	// The unix start time of the container's init PID.
+	// This is used to track whether the PID we have stored
+	// is the same as the corresponding PID on the host.
+	InitStartTime int `json:"initStartTime,omitempty"`
 }
 
 // NewContainer creates a container object.
@@ -155,6 +160,12 @@ func (c *Container) StopSignal() syscall.Signal {
 }
 
 // FromDisk restores container's state from disk
+// Calls to FromDisk should always be preceded by call to Runtime.UpdateContainerStatus.
+// This is because FromDisk() initializes the InitStartTime for the saved container state
+// when CRI-O is being upgraded to a version that supports tracking PID,
+// but does no verification the container is actually still running. If we assume the container
+// is still running, we could incorrectly think a process with the same PID running on the host
+// is our container. A call to `$runtime state` will protect us against this.
 func (c *Container) FromDisk() error {
 	jsonSource, err := os.Open(c.StatePath())
 	if err != nil {
@@ -163,7 +174,37 @@ func (c *Container) FromDisk() error {
 	defer jsonSource.Close()
 
 	dec := json.NewDecoder(jsonSource)
-	return dec.Decode(c.state)
+	tmpState := &ContainerState{}
+	if err := dec.Decode(tmpState); err != nil {
+		return err
+	}
+
+	// this is to handle the situation in which we're upgrading
+	// versions of cri-o, and we didn't used to have this information in the state
+	if tmpState.InitPid == 0 && tmpState.InitStartTime == 0 && tmpState.Pid != 0 {
+		if err := tmpState.SetInitPid(tmpState.Pid); err != nil {
+			return err
+		}
+		logrus.Infof("PID information for container %s updated to %d %d", c.id, tmpState.InitPid, tmpState.InitStartTime)
+	}
+	c.state = tmpState
+	return nil
+}
+
+// SetInitPid initializes the InitPid and InitStartTime for the container state
+// given a PID.
+// These values should be set once, and not changed again.
+func (cstate *ContainerState) SetInitPid(pid int) error {
+	if cstate.InitPid != 0 || cstate.InitStartTime != 0 {
+		return errors.Errorf("pid and start time already initialized: %d %d", cstate.InitPid, cstate.InitStartTime)
+	}
+	cstate.InitPid = pid
+	startTime, err := getPidStartTime(pid)
+	if err != nil {
+		return err
+	}
+	cstate.InitStartTime = startTime
+	return nil
 }
 
 // StatePath returns the containers state.json path
@@ -347,15 +388,101 @@ func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
 }
 
-// IsAlive is a function that checks if a container's init pid exists.
+// IsAlive is a function that checks if a container's init PID exists.
 // It is used to check a container state when we don't want a `$runtime state` call
 func (c *Container) IsAlive() bool {
-	if _, err := findprocess.FindProcess(c.state.Pid); err != nil {
-		logrus.Errorf("container %s not running: %v", c.id, err)
+	_, err := c.pid()
+	if err != nil {
+		logrus.Errorf("checking if PID of %s is running failed: %v", c.id, err)
 		return false
 	}
 
 	return true
+}
+
+// Pid returns the container's init PID.
+// It will fail if the saved PID no longer belongs to the container.
+func (c *Container) Pid() (int, error) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	return c.pid()
+}
+
+// pid returns the container's init PID.
+// It checks that we have an InitPid defined in the state, that PID can be found
+// and it is the same process that was originally started by the runtime.
+func (c *Container) pid() (int, error) {
+	if c.state == nil {
+		return 0, errors.New("state not initialized")
+	}
+	if c.state.InitPid <= 0 {
+		return 0, errors.New("PID not initialized")
+	}
+
+	// container has stopped (as pid is initialized but the runc state has overwritten it)
+	if c.state.Pid == 0 {
+		return 0, findprocess.ErrNotFound
+	}
+
+	if err := c.verifyPid(); err != nil {
+		return 0, err
+	}
+	return c.state.InitPid, nil
+}
+
+// findAndReleasePid attempts to find the container's PID
+// and if it's found, release it. In between these steps,
+// it also verifies the PID running is the same as was originally
+// started by the runtime.
+func (c *Container) findAndReleasePid() (bool, error) {
+	pid := c.state.InitPid
+
+	if err := c.verifyPid(); err != nil {
+		if !errors.Is(err, findprocess.ErrNotFound) {
+			return false, err
+		}
+		return false, nil
+	}
+
+	process, err := findprocess.FindProcess(pid)
+	if err == findprocess.ErrNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	// the process was found, and was the correct one; release it
+	if err := process.Release(); err != nil {
+		return true, err
+	}
+	return true, nil
+}
+
+// verifyPid checks that the start time for the process on the node is the same
+// as the start time we saved after creating the container.
+// This is the simplest way to verify we are operating on the container
+// process, and haven't run into PID wrap.
+func (c *Container) verifyPid() error {
+	startTime, err := getPidStartTime(c.state.InitPid)
+	if err != nil {
+		return err
+	}
+
+	if startTime != c.state.InitStartTime {
+		return errors.New("PID running but not the original container. PID wrap may have occurred")
+	}
+	return nil
+}
+
+// getPidStartTime reads the kernel's /proc entry for stime for PID.
+func getPidStartTime(pid int) (int, error) {
+	var st unix.Stat_t
+	if err := unix.Stat(fmt.Sprintf("/proc/%d", pid), &st); err != nil {
+		return 0, errors.Wrapf(findprocess.ErrNotFound, err.Error())
+	}
+
+	return int(st.Ctim.Sec), nil
 }
 
 // ShouldBeStopped checks whether the container state is in a place

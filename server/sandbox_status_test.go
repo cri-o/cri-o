@@ -24,7 +24,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 		It("should succeed", func() {
 			// Given
 			addContainerAndSandbox()
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 
@@ -75,7 +75,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 		It("should return info as part of a verbose response", func() {
 			// Given
 			addContainerAndSandbox()
-			testContainer.SetState(&oci.ContainerState{
+			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
