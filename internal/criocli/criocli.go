@@ -27,6 +27,14 @@ func GetConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
 	if !ok {
 		return nil, fmt.Errorf("type assertion error when accessing server config")
 	}
+	return config, nil
+}
+
+func GetAndMergeConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
+	config, err := GetConfigFromContext(c)
+	if err != nil {
+		return nil, err
+	}
 	if err := mergeConfig(config, c); err != nil {
 		return nil, err
 	}
