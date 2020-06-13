@@ -100,7 +100,7 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
 	-X ${PROJECT}/internal/version.gitCommit=${COMMIT_NO} \
 	-X ${PROJECT}/internal/version.gitTreeState=${GIT_TREE_STATE} \
 
-LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
+GO_LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
 TESTIMAGE_VERSION := master-1.3.6
 TESTIMAGE_REGISTRY := quay.io/crio
@@ -157,16 +157,16 @@ bin/pinns:
 	$(MAKE) -C pinns
 
 test/copyimg/copyimg: $(GO_FILES) .gopathok
-	$(GO_BUILD) $(GCFLAGS) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
 
 test/checkseccomp/checkseccomp: $(GO_FILES) .gopathok
-	$(GO_BUILD) $(GCFLAGS) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
 bin/crio: $(GO_FILES) .gopathok
-	$(GO_BUILD) $(GCFLAGS) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
 bin/crio-status: $(GO_FILES) .gopathok
-	$(GO_BUILD) $(GCFLAGS) $(LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static:
 	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(TESTIMAGE_NIX) sh -c \
@@ -216,7 +216,7 @@ bin/crio.cross.%: .gopathok .explicit_phony
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO_BUILD) $(LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
+	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
 
 local-image:
 	$(TESTIMAGE_SCRIPT)

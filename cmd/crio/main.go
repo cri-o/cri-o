@@ -120,7 +120,7 @@ func main() {
 	app.Authors = []*cli.Author{{Name: "The CRI-O Maintainers"}}
 	app.UsageText = usage
 	app.Description = app.Usage
-	app.Version = "\n" + version.Get().String()
+	app.Version = version.Version + "\n" + version.Get().String()
 
 	var err error
 	app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
