@@ -23,6 +23,7 @@ func Default() Capabilities {
 		"SETPCAP",
 		"NET_BIND_SERVICE",
 		"KILL",
+                "MKNOD",
 	}
 }
 
