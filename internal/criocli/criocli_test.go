@@ -46,4 +46,16 @@ var _ = t.Describe("CLI", func() {
 		Entry("separated", "a", "b", "c"),
 	)
 
+	It("should return a copy of the slice", func() {
+		// Given
+		slice.Set("value1")
+		slice.Set("value2")
+
+		// When
+		res := criocli.StringSliceTrySplit(ctx, flagName)
+		res[0] = "value3"
+
+		// Then
+		Expect(slice.Value()[0]).To(Equal("value1"))
+	})
 })
