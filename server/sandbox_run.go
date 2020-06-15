@@ -74,9 +74,6 @@ func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
 		if v.HostPort <= 0 {
 			continue
 		}
-		if v.Protocol != pb.Protocol_TCP && v.Protocol != pb.Protocol_UDP {
-			continue
-		}
 		out = append(out, &hostport.PortMapping{
 			HostPort:      v.HostPort,
 			ContainerPort: v.ContainerPort,
