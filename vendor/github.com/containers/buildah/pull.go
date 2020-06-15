@@ -3,12 +3,11 @@ package buildah
 import (
 	"context"
 	"io"
-
 	"strings"
+	"time"
 
 	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/buildah/util"
-	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
@@ -49,6 +48,14 @@ type PullOptions struct {
 	// AllTags is a boolean value that determines if all tagged images
 	// will be downloaded from the repository. The default is false.
 	AllTags bool
+	// RemoveSignatures causes any existing signatures for the image to be
+	// discarded when pulling it.
+	RemoveSignatures bool
+	// MaxRetries is the maximum number of attempts we'll make to pull any
+	// one image from the external registry if the first attempt fails.
+	MaxRetries int
+	// RetryDelay is how long to wait before retrying a pull attempt.
+	RetryDelay time.Duration
 }
 
 func localImageNameForReference(ctx context.Context, store storage.Store, srcRef types.ImageReference) (string, error) {
@@ -63,6 +70,7 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 		if err != nil {
 			return "", errors.Wrapf(err, "error opening tarfile %q as a source image", file)
 		}
+		defer tarSource.Close()
 		manifest, err := tarSource.LoadTarManifest()
 		if err != nil {
 			return "", errors.Errorf("error retrieving manifest.json from tarfile %q: %v", file, err)
@@ -154,6 +162,8 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 		SystemContext:       systemContext,
 		BlobDirectory:       options.BlobDirectory,
 		ReportWriter:        options.ReportWriter,
+		MaxPullRetries:      options.MaxRetries,
+		PullRetryDelay:      options.RetryDelay,
 	}
 
 	storageRef, transport, img, err := resolveImage(ctx, systemContext, options.Store, boptions)
@@ -206,8 +216,13 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 	} else {
 		imageID = img.ID
 	}
+	if errs == nil {
+		err = nil
+	} else {
+		err = errs.ErrorOrNil()
+	}
 
-	return imageID, errs.ErrorOrNil()
+	return imageID, err
 }
 
 func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageReference, options PullOptions, sc *types.SystemContext) (types.ImageReference, error) {
@@ -260,7 +275,7 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	}()
 
 	logrus.Debugf("copying %q to %q", transports.ImageName(srcRef), destName)
-	if _, err := cp.Image(ctx, policyContext, maybeCachedDestRef, srcRef, getCopyOptions(store, options.ReportWriter, sc, nil, "")); err != nil {
+	if _, err := retryCopyImage(ctx, policyContext, maybeCachedDestRef, srcRef, srcRef, "pull", getCopyOptions(store, options.ReportWriter, sc, nil, "", options.RemoveSignatures, ""), options.MaxRetries, options.RetryDelay); err != nil {
 		logrus.Debugf("error copying src image [%q] to dest image [%q] err: %v", transports.ImageName(srcRef), destName, err)
 		return nil, err
 	}

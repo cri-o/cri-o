@@ -9,9 +9,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
@@ -90,17 +93,45 @@ type Executor struct {
 	blobDirectory                  string
 	excludes                       []string
 	unusedArgs                     map[string]struct{}
-	buildArgs                      map[string]string
-	addCapabilities                []string
-	dropCapabilities               []string
+	capabilities                   []string
 	devices                        []configs.Device
+	signBy                         string
+	architecture                   string
+	os                             string
+	maxPullPushRetries             int
+	retryPullPushDelay             time.Duration
 }
 
 // NewExecutor creates a new instance of the imagebuilder.Executor interface.
 func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Node) (*Executor, error) {
+	defaultContainerConfig, err := config.Default()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get container config")
+	}
+
 	excludes, err := imagebuilder.ParseDockerignore(options.ContextDirectory)
 	if err != nil {
 		return nil, err
+	}
+	capabilities := defaultContainerConfig.Capabilities("", options.AddCapabilities, options.DropCapabilities)
+
+	devices := []configs.Device{}
+	for _, device := range append(defaultContainerConfig.Containers.Devices, options.Devices...) {
+		dev, err := parse.DeviceFromPath(device)
+		if err != nil {
+			return nil, err
+		}
+		devices = append(dev, devices...)
+	}
+
+	transientMounts := []Mount{}
+	for _, volume := range append(defaultContainerConfig.Containers.Volumes, options.TransientMounts...) {
+		mount, err := parse.Volume(volume)
+		if err != nil {
+			return nil, err
+		}
+
+		transientMounts = append([]Mount{Mount(mount)}, transientMounts...)
 	}
 
 	exec := Executor{
@@ -113,7 +144,7 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		quiet:                          options.Quiet,
 		runtime:                        options.Runtime,
 		runtimeArgs:                    options.RuntimeArgs,
-		transientMounts:                options.TransientMounts,
+		transientMounts:                transientMounts,
 		compression:                    options.Compression,
 		output:                         options.Output,
 		outputFormat:                   options.OutputFormat,
@@ -147,10 +178,13 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		rootfsMap:                      make(map[string]bool),
 		blobDirectory:                  options.BlobDirectory,
 		unusedArgs:                     make(map[string]struct{}),
-		buildArgs:                      options.Args,
-		addCapabilities:                options.AddCapabilities,
-		dropCapabilities:               options.DropCapabilities,
-		devices:                        options.Devices,
+		capabilities:                   capabilities,
+		devices:                        devices,
+		signBy:                         options.SignBy,
+		architecture:                   options.Architecture,
+		os:                             options.OS,
+		maxPullPushRetries:             options.MaxPullPushRetries,
+		retryPullPushDelay:             options.PullPushRetryDelay,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -196,25 +230,26 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 
 // startStage creates a new stage executor that will be referenced whenever a
 // COPY or ADD statement uses a --from=NAME flag.
-func (b *Executor) startStage(name string, index, stages int, from, output string) *StageExecutor {
+func (b *Executor) startStage(stage *imagebuilder.Stage, stages int, from, output string) *StageExecutor {
 	if b.stages == nil {
 		b.stages = make(map[string]*StageExecutor)
 	}
-	stage := &StageExecutor{
+	stageExec := &StageExecutor{
 		executor:        b,
-		index:           index,
+		index:           stage.Position,
 		stages:          stages,
-		name:            name,
+		name:            stage.Name,
 		volumeCache:     make(map[string]string),
 		volumeCacheInfo: make(map[string]os.FileInfo),
 		output:          output,
+		stage:           stage,
 	}
-	b.stages[name] = stage
-	b.stages[from] = stage
-	if idx := strconv.Itoa(index); idx != name {
-		b.stages[idx] = stage
+	b.stages[stage.Name] = stageExec
+	b.stages[from] = stageExec
+	if idx := strconv.Itoa(stage.Position); idx != stage.Name {
+		b.stages[idx] = stageExec
 	}
-	return stage
+	return stageExec
 }
 
 // resolveNameToImageRef creates a types.ImageReference for the output name in local storage
@@ -255,81 +290,6 @@ func (b *Executor) getImageHistory(ctx context.Context, imageID string) ([]v1.Hi
 	return oci.History, nil
 }
 
-// getCreatedBy returns the command the image at node will be created by.  If
-// the passed-in CompositeDigester is not nil, it is assumed to have the digest
-// information for the content if the node is ADD or COPY.
-func (b *Executor) getCreatedBy(node *parser.Node, addedContentDigest string) string {
-	if node == nil {
-		return "/bin/sh"
-	}
-	switch strings.ToUpper(node.Value) {
-	case "RUN":
-		buildArgs := b.getBuildArgs()
-		if buildArgs != "" {
-			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + node.Original[4:]
-		}
-		return "/bin/sh -c " + node.Original[4:]
-	case "ADD", "COPY":
-		destination := node
-		for destination.Next != nil {
-			destination = destination.Next
-		}
-		return "/bin/sh -c #(nop) " + strings.ToUpper(node.Value) + " " + addedContentDigest + " in " + destination.Value + " "
-	default:
-		return "/bin/sh -c #(nop) " + node.Original
-	}
-}
-
-// historyMatches returns true if a candidate history matches the history of our
-// base image (if we have one), plus the current instruction.
-// Used to verify whether a cache of the intermediate image exists and whether
-// to run the build again.
-func (b *Executor) historyMatches(baseHistory []v1.History, child *parser.Node, history []v1.History, addedContentDigest string) bool {
-	if len(baseHistory) >= len(history) {
-		return false
-	}
-	if len(history)-len(baseHistory) != 1 {
-		return false
-	}
-	for i := range baseHistory {
-		if baseHistory[i].CreatedBy != history[i].CreatedBy {
-			return false
-		}
-		if baseHistory[i].Comment != history[i].Comment {
-			return false
-		}
-		if baseHistory[i].Author != history[i].Author {
-			return false
-		}
-		if baseHistory[i].EmptyLayer != history[i].EmptyLayer {
-			return false
-		}
-		if baseHistory[i].Created != nil && history[i].Created == nil {
-			return false
-		}
-		if baseHistory[i].Created == nil && history[i].Created != nil {
-			return false
-		}
-		if baseHistory[i].Created != nil && history[i].Created != nil && *baseHistory[i].Created != *history[i].Created {
-			return false
-		}
-	}
-	return history[len(baseHistory)].CreatedBy == b.getCreatedBy(child, addedContentDigest)
-}
-
-// getBuildArgs returns a string of the build-args specified during the build process
-// it excludes any build-args that were not used in the build process
-func (b *Executor) getBuildArgs() string {
-	var buildArgs []string
-	for k, v := range b.buildArgs {
-		if _, ok := b.unusedArgs[k]; !ok {
-			buildArgs = append(buildArgs, k+"="+v)
-		}
-	}
-	sort.Strings(buildArgs)
-	return strings.Join(buildArgs, " ")
-}
-
 // Build takes care of the details of running Prepare/Execute/Commit/Delete
 // over each of the one or more parsed Dockerfiles and stages.
 func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (imageID string, ref reference.Canonical, err error) {
@@ -338,6 +298,11 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	}
 	var cleanupImages []string
 	cleanupStages := make(map[int]*StageExecutor)
+
+	stdout := b.out
+	if b.quiet {
+		b.out = ioutil.Discard
+	}
 
 	cleanup := func() error {
 		var lastErr error
@@ -453,7 +418,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			output = b.output
 		}
 
-		stageExecutor := b.startStage(stage.Name, stage.Position, len(stages), base, output)
+		stageExecutor := b.startStage(&stage, len(stages), base, output)
 
 		// If this a single-layer build, or if it's a multi-layered
 		// build and b.forceRmIntermediateCtrs is set, make sure we
@@ -464,7 +429,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		}
 
 		// Build this stage.
-		if imageID, ref, err = stageExecutor.Execute(ctx, stage, base); err != nil {
+		if imageID, ref, err = stageExecutor.Execute(ctx, base); err != nil {
 			lastErr = err
 		}
 		if lastErr != nil {
@@ -522,13 +487,16 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	if err := cleanup(); err != nil {
 		return "", nil, err
 	}
-
+	logrus.Debugf("printing final image id %q", imageID)
 	if b.iidfile != "" {
 		if err = ioutil.WriteFile(b.iidfile, []byte(imageID), 0644); err != nil {
 			return imageID, ref, errors.Wrapf(err, "failed to write image ID to file %q", b.iidfile)
 		}
+	} else {
+		if _, err := stdout.Write([]byte(imageID + "\n")); err != nil {
+			return imageID, ref, errors.Wrapf(err, "failed to write image ID to stdout")
+		}
 	}
-
 	return imageID, ref, nil
 }
 

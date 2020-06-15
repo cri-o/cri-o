@@ -27,8 +27,8 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/vbauerster/mpb/v4"
-	"github.com/vbauerster/mpb/v4/decor"
+	"github.com/vbauerster/mpb/v5"
+	"github.com/vbauerster/mpb/v5/decor"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sync/semaphore"
 )
@@ -484,6 +484,9 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 				return nil, "", errors.Errorf("Error: manifest list must be converted to type %q to be written to destination, but that would invalidate signatures", thisListType)
 			}
 			logrus.Debugf("Manifest list has been updated")
+		} else {
+			// We can just use the original value, so use it instead of the one we just rebuilt, so that we don't change the digest.
+			attemptedManifestList = manifestList
 		}
 
 		// Save the manifest list.
@@ -795,7 +798,6 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 
 	// copyGroup is used to determine if all layers are copied
 	copyGroup := sync.WaitGroup{}
-	copyGroup.Add(numLayers)
 
 	// copySemaphore is used to limit the number of parallel downloads to
 	// avoid malicious images causing troubles and to be nice to servers.
@@ -847,18 +849,22 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 
 	if err := func() error { // A scope for defer
 		progressPool, progressCleanup := ic.c.newProgressPool(ctx)
-		defer progressCleanup()
+		defer func() {
+			// Wait for all layers to be copied. progressCleanup() must not be called while any of the copyLayerHelpers interact with the progressPool.
+			copyGroup.Wait()
+			progressCleanup()
+		}()
 
 		for i, srcLayer := range srcInfos {
 			err = copySemaphore.Acquire(ctx, 1)
 			if err != nil {
 				return errors.Wrapf(err, "Can't acquire semaphore")
 			}
+			copyGroup.Add(1)
 			go copyLayerHelper(i, srcLayer, encLayerBitmap[i], progressPool)
 		}
 
-		// Wait for all layers to be copied
-		copyGroup.Wait()
+		// A call to copyGroup.Wait() is done at this point by the defer above.
 		return nil
 	}(); err != nil {
 		return err
@@ -976,7 +982,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind
 	var bar *mpb.Bar
 	if info.Size > 0 {
 		bar = pool.AddBar(info.Size,
-			mpb.BarClearOnComplete(),
+			mpb.BarFillerClearOnComplete(),
 			mpb.PrependDecorators(
 				decor.OnComplete(decor.Name(prefix), onComplete),
 			),
@@ -987,7 +993,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind
 	} else {
 		bar = pool.AddSpinner(info.Size,
 			mpb.SpinnerOnLeft,
-			mpb.BarClearOnComplete(),
+			mpb.BarFillerClearOnComplete(),
 			mpb.SpinnerStyle([]string{".", "..", "...", "....", ""}),
 			mpb.PrependDecorators(
 				decor.OnComplete(decor.Name(prefix), onComplete),
