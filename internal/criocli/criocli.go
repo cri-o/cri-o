@@ -27,6 +27,14 @@ func GetConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
 	if !ok {
 		return nil, fmt.Errorf("type assertion error when accessing server config")
 	}
+	return config, nil
+}
+
+func GetAndMergeConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
+	config, err := GetConfigFromContext(c)
+	if err != nil {
+		return nil, err
+	}
 	if err := mergeConfig(config, c); err != nil {
 		return nil, err
 	}
@@ -788,6 +796,9 @@ func StringSliceTrySplit(ctx *cli.Context, name string) []string {
 			"Parsed commma separated CLI flag %q into dedicated values %v",
 			name, values,
 		)
+	} else {
+		// Copy the slice to avoid the cli flags being overwritten
+		values = append(values[:0:0], values...)
 	}
 
 	return values
