@@ -52,7 +52,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	pathsToChown := []string{}
 
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
-	log.Infof(ctx, "attempting to run pod sandbox with infra container: %s%s", translateLabelsToDescription(sbox.Config().GetLabels()), leaky.PodInfraContainerName)
+	log.Infof(ctx, "Running pod sandbox: %s%s", translateLabelsToDescription(sbox.Config().GetLabels()), leaky.PodInfraContainerName)
 
 	kubeName := sbox.Config().GetMetadata().GetName()
 	namespace := sbox.Config().GetMetadata().GetNamespace()
@@ -665,7 +665,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, ctx.Err()
 	}
 
-	log.Infof(ctx, "ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
+	log.Infof(ctx, "Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: sbox.ID()}
 	return resp, nil
 }
