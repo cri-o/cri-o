@@ -28,6 +28,11 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*
 			return nil, err
 		}
 	}
+
+	if err != nil {
+		log.Errorf(ctx, "error deleting intermediate image %s: %v", img, err)
+	}
+
 	for _, img := range images {
 		err = s.StorageImageServer().UntagImage(s.config.SystemContext, img)
 		if err != nil {
