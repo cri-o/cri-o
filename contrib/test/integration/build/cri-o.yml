@@ -38,6 +38,13 @@
       [crio.runtime]
       manage_ns_lifecycle = true
 
+- name: set log level to debug
+  copy:
+    dest: /etc/crio/crio.conf.d/01-ns-lifecycle.conf
+    content: |
+      [crio.runtime]
+      log_level = "debug"
+
 - name: use crun
   copy:
     dest: /etc/crio/crio.conf.d/01-crun.conf
