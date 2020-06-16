@@ -48,8 +48,8 @@ var _ = t.Describe("CLI", func() {
 
 	It("should return a copy of the slice", func() {
 		// Given
-		slice.Set("value1")
-		slice.Set("value2")
+		Expect(slice.Set("value1")).To(BeNil())
+		Expect(slice.Set("value2")).To(BeNil())
 
 		// When
 		res := criocli.StringSliceTrySplit(ctx, flagName)
