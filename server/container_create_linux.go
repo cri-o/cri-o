@@ -961,20 +961,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		return nil, err
 	}
 
-	runtimeType, err := s.Runtime().ContainerRuntimeType(ociContainer)
-	if err != nil {
-		return nil, err
-	}
-	// If using kata runtime, the process label should be set to container_kvm_t
-	// Note: the requirement here is that the name used for the runtime class has "kata" in it
-	// or the runtime_type is set to "vm"
-	if runtimeType == libconfig.RuntimeTypeVM || strings.Contains(strings.ToLower(sb.RuntimeHandler()), "kata") {
-		processLabel, err = selinux.SELinuxKVMLabel(processLabel)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	specgen.SetLinuxMountLabel(mountLabel)
 	specgen.SetProcessSelinuxLabel(processLabel)
 
