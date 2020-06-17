@@ -54,7 +54,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	}
 	resp.Status.Mounts = mounts
 
-	cState := s.Runtime().ContainerStatus(c)
+	cState := s.Runtime().CurrentContainerStatus(c)
 	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
 
 	// If we defaulted to exit code -1 earlier then we attempt to
