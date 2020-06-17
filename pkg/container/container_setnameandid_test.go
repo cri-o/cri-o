@@ -14,11 +14,6 @@ import (
 var _ = t.Describe("Container:SetNameAndID", func() {
 	// Setup the SUT
 	BeforeEach(func() {
-		config := &pb.ContainerConfig{
-			Metadata: &pb.ContainerMetadata{Name: "name"},
-		}
-		sboxConfig := &pb.PodSandboxConfig{}
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 	})
 
 	It("should succeed", func() {
@@ -31,9 +26,10 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 		metadata := &pb.PodSandboxMetadata{
 			Name: name, Uid: uid, Namespace: namespace,
 		}
+		setupContainerWithMetadata(metadata)
 
 		// When
-		err := sut.SetNameAndID(metadata)
+		err := sut.SetNameAndID()
 
 		// Then
 		Expect(err).To(BeNil())
@@ -46,9 +42,10 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 	It("should succeed with empty sandbox metadata", func() {
 		// Given
 		metadata := &pb.PodSandboxMetadata{}
+		setupContainerWithMetadata(metadata)
 
 		// When
-		err := sut.SetNameAndID(metadata)
+		err := sut.SetNameAndID()
 
 		// Then
 		Expect(err).To(BeNil())
@@ -57,18 +54,19 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 	It("should fail with config nil", func() {
 		// Given
 		// When
-		err := container.New(context.Background()).SetNameAndID(nil)
-
-		// Then
-		Expect(err).NotTo(BeNil())
-	})
-
-	It("should fail with sandbox metadata nil", func() {
-		// Given
-		// When
-		err := sut.SetNameAndID(nil)
+		err := container.New(context.Background()).SetNameAndID()
 
 		// Then
 		Expect(err).NotTo(BeNil())
 	})
 })
+
+func setupContainerWithMetadata(md *pb.PodSandboxMetadata) {
+	config := &pb.ContainerConfig{
+		Metadata: &pb.ContainerMetadata{Name: "name"},
+	}
+	sboxConfig := &pb.PodSandboxConfig{
+		Metadata: md,
+	}
+	Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+}

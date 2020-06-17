@@ -22,6 +22,7 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/sandbox"
+	"github.com/cri-o/cri-o/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -294,7 +295,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	logPath := filepath.Join(logDir, sbox.ID()+".log")
 
 	// Handle https://issues.k8s.io/44043
-	if err := ensureSaneLogPath(logPath); err != nil {
+	if err := utils.EnsureSaneLogPath(logPath); err != nil {
 		return nil, err
 	}
 

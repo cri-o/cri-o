@@ -481,29 +481,6 @@ func hostNetwork(containerConfig *pb.ContainerConfig) bool {
 	return securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 }
 
-// ensureSaneLogPath is a hack to fix https://issues.k8s.io/44043 which causes
-// logPath to be a broken symlink to some magical Docker path. Ideally we
-// wouldn't have to deal with this, but until that issue is fixed we have to
-// remove the path if it's a broken symlink.
-func ensureSaneLogPath(logPath string) error {
-	// If the path exists but the resolved path does not, then we have a broken
-	// symlink and we need to remove it.
-	fi, err := os.Lstat(logPath)
-	if err != nil || fi.Mode()&os.ModeSymlink == 0 {
-		// Non-existent files and non-symlinks aren't our problem.
-		return nil
-	}
-
-	_, err = os.Stat(logPath)
-	if os.IsNotExist(err) {
-		err = os.RemoveAll(logPath)
-		if err != nil {
-			return fmt.Errorf("failed to remove bad log path %s: %v", logPath, err)
-		}
-	}
-	return nil
-}
-
 // addSecretsBindMounts mounts user defined secrets to the container
 func addSecretsBindMounts(ctx context.Context, mountLabel, ctrRunDir string, defaultMounts []string, specgen generate.Generator) ([]rspec.Mount, error) {
 	containerMounts := specgen.Config.Mounts
@@ -547,7 +524,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, errors.Wrap(err, "setting container config")
 	}
 
-	if err := ctr.SetNameAndID(sb.Metadata()); err != nil {
+	if err := ctr.SetNameAndID(); err != nil {
 		return nil, errors.Wrap(err, "setting container name and ID")
 	}
 

@@ -202,7 +202,6 @@ func makeAccessible(path string, uid, gid int) error {
 	return nil
 }
 
-// nolint:gocyclo
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Container, sb *sandbox.Sandbox) (cntr *oci.Container, errRet error) {
 	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
@@ -419,26 +418,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		specgen.SetProcessApparmorProfile(profile)
 	}
 
-	sboxLogDir := sandboxConfig.GetLogDirectory()
-	if sboxLogDir == "" {
-		sboxLogDir = sb.LogDir()
-	}
-
-	logPath := containerConfig.GetLogPath()
-	if logPath == "" {
-		logPath = filepath.Join(sboxLogDir, containerID+".log")
-	} else {
-		logPath = filepath.Join(sboxLogDir, logPath)
-	}
-
-	// Handle https://issues.k8s.io/44043
-	if err := ensureSaneLogPath(logPath); err != nil {
+	logPath, err := ctr.LogPath(sb.LogDir())
+	if err != nil {
 		return nil, err
 	}
-
-	log.Debugf(ctx, "setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
-		sboxLogDir, containerConfig.GetLogPath(), logPath,
-	)
 
 	specgen.SetProcessTerminal(containerConfig.Tty)
 	if containerConfig.Tty {

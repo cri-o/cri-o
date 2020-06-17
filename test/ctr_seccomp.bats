@@ -64,7 +64,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDIR"/seccomp2.json "$TESTDIR"/seccomp_profile1.json
+	run crictl create "$pod_id" "$TESTDIR"/seccomp2.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -190,7 +190,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDIR"/seccomp2.json "$TESTDIR"/seccomp_profile1.json
+	run crictl create "$pod_id" "$TESTDIR"/seccomp2.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
