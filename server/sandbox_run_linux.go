@@ -9,11 +9,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containers/libpod/pkg/annotations"
+	selinux "github.com/containers/libpod/pkg/selinux"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib"
@@ -482,6 +484,23 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
+
+	runtimeType, err := s.Runtime().ContainerRuntimeType(container)
+	if err != nil {
+		return nil, err
+	}
+	// If using kata runtime, the process label should be set to container_kvm_t
+	// Keep in mind that kata does *not* apply any process label to containers within the VM
+	// Note: the requirement here is that the name used for the runtime class has "kata" in it
+	// or the runtime_type is set to "vm"
+	if runtimeType == libconfig.RuntimeTypeVM || strings.Contains(strings.ToLower(runtimeHandler), "kata") {
+		processLabel, err = selinux.SELinuxKVMLabel(processLabel)
+		if err != nil {
+			return nil, err
+		}
+		g.SetProcessSelinuxLabel(processLabel)
+	}
+
 	container.SetMountPoint(mountPoint)
 
 	container.SetIDMappings(s.defaultIDMappings)
