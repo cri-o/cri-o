@@ -27,6 +27,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 	if img != nil {
 		image = img.Image
 	}
+	log.Infof(ctx, "Pulling image: %s", image)
 
 	pullArgs := pullArguments{image: image}
 	if req.GetAuth() != nil {
@@ -83,6 +84,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 		return nil, pullOp.err
 	}
 
+	log.Infof(ctx, "Pulled image: %v", pullOp.imageRef)
 	resp = &pb.PullImageResponse{
 		ImageRef: pullOp.imageRef,
 	}

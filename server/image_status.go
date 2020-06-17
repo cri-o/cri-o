@@ -25,6 +25,8 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
+
+	log.Infof(ctx, "Checking image status: %s", image)
 	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		if err == pkgstorage.ErrCannotParseImageID {
@@ -84,8 +86,11 @@ func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (r
 		return nil, lastErr
 	}
 	if notfound && resp == nil {
+		log.Infof(ctx, "Image %s not found", image)
 		return &pb.ImageStatusResponse{}, nil
 	}
+
+	log.Infof(ctx, "Image status: %v", resp)
 	return resp, nil
 }
 
