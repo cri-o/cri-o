@@ -20,7 +20,7 @@ import (
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/config"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/sandbox"
 	"github.com/cri-o/cri-o/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -675,7 +675,7 @@ func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
 }
 
 // PauseCommand returns the pause command for the provided image configuration.
-func PauseCommand(cfg *config.Config, image *v1.Image) ([]string, error) {
+func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("provided configuration is nil")
 	}
