@@ -14,10 +14,11 @@ import (
 type NSType string
 
 const (
-	NETNS  NSType = "net"
-	IPCNS  NSType = "ipc"
-	UTSNS  NSType = "uts"
-	USERNS NSType = "user"
+	NETNS         NSType = "net"
+	IPCNS         NSType = "ipc"
+	UTSNS         NSType = "uts"
+	USERNS        NSType = "user"
+	numNamespaces        = 4
 )
 
 // NamespaceIface provides a generic namespace interface
@@ -134,7 +135,7 @@ func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, cfg *conf
 func (s *Sandbox) NamespacePaths() []*ManagedNamespace {
 	pid := infraPid(s.InfraContainer())
 
-	typesAndPaths := make([]*ManagedNamespace, 0, 3)
+	typesAndPaths := make([]*ManagedNamespace, 0, numNamespaces)
 
 	if ipc := nsPathGivenInfraPid(s.ipcns, IPCNS, pid); ipc != "" {
 		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
