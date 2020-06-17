@@ -3,10 +3,13 @@ package container
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -18,11 +21,12 @@ type Container interface {
 	SetConfig(*pb.ContainerConfig, *pb.PodSandboxConfig) error
 
 	// SetNameAndID sets a container name and ID
-	SetNameAndID(*pb.PodSandboxMetadata) error
+	SetNameAndID() error
 
-	// Config returns the container configuration
+	// Config returns the container CRI configuration
 	Config() *pb.ContainerConfig
 
+	// SandboxConfig returns the sandbox CRI configuration
 	SandboxConfig() *pb.PodSandboxConfig
 
 	// ID returns the container ID
@@ -36,6 +40,11 @@ type Container interface {
 
 	// Privileged returns whether this container is privileged
 	Privileged() bool
+
+	// LogPath returns the log path for the container
+	// It takes as input the LogDir of the sandbox, which is used
+	// if there is no LogDir configured in the sandbox CRI config
+	LogPath(string) (string, error)
 }
 
 // container is the hidden default type behind the Container interface
@@ -87,12 +96,16 @@ func (c *container) SetConfig(config *pb.ContainerConfig, sboxConfig *pb.PodSand
 }
 
 // SetNameAndID sets a container name and ID
-func (c *container) SetNameAndID(sandboxMetadata *pb.PodSandboxMetadata) error {
+func (c *container) SetNameAndID() error {
 	if c.config == nil {
 		return errors.New("config is not set")
 	}
 
-	if sandboxMetadata == nil {
+	if c.sboxConfig == nil {
+		return errors.New("sandbox config is nil")
+	}
+
+	if c.sboxConfig.Metadata == nil {
 		return errors.New("sandbox metadata is nil")
 	}
 
@@ -100,9 +113,9 @@ func (c *container) SetNameAndID(sandboxMetadata *pb.PodSandboxMetadata) error {
 	name := strings.Join([]string{
 		"k8s",
 		c.config.Metadata.Name,
-		sandboxMetadata.Name,
-		sandboxMetadata.Namespace,
-		sandboxMetadata.Uid,
+		c.sboxConfig.Metadata.Name,
+		c.sboxConfig.Metadata.Namespace,
+		c.sboxConfig.Metadata.Uid,
 		fmt.Sprintf("%d", c.config.Metadata.Attempt),
 	}, "_")
 
@@ -131,6 +144,7 @@ func (c *container) Name() string {
 	return c.name
 }
 
+// SetPrivileged sets the privileged bool for the container
 func (c *container) SetPrivileged() error {
 	if c.config == nil {
 		return nil
@@ -163,6 +177,38 @@ func (c *container) SetPrivileged() error {
 	return nil
 }
 
+// Privileged returns whether this container is privileged
 func (c *container) Privileged() bool {
 	return c.privileged
+}
+
+// LogPath returns the log path for the container
+// It takes as input the LogDir of the sandbox, which is used
+// if there is no LogDir configured in the sandbox CRI config
+func (c *container) LogPath(sboxLogDir string) (string, error) {
+	sboxLogDirConfig := c.sboxConfig.GetLogDirectory()
+	if sboxLogDirConfig != "" {
+		sboxLogDir = sboxLogDirConfig
+	}
+
+	if sboxLogDir == "" {
+		return "", errors.Errorf("container %s has a sandbox with an empty log path", sboxLogDir)
+	}
+
+	logPath := c.config.GetLogPath()
+	if logPath == "" {
+		logPath = filepath.Join(sboxLogDir, c.ID()+".log")
+	} else {
+		logPath = filepath.Join(sboxLogDir, logPath)
+	}
+
+	// Handle https://issues.k8s.io/44043
+	if err := utils.EnsureSaneLogPath(logPath); err != nil {
+		return "", err
+	}
+
+	logrus.Debugf("setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
+		sboxLogDir, c.config.GetLogPath(), logPath,
+	)
+	return logPath, nil
 }
