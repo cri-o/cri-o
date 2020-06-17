@@ -144,7 +144,7 @@ func main() {
 	}...)
 
 	app.Before = func(c *cli.Context) (err error) {
-		config, err := criocli.GetConfigFromContext(c)
+		config, err := criocli.GetAndMergeConfigFromContext(c)
 		if err != nil {
 			return err
 		}
