@@ -48,6 +48,9 @@ type Container interface {
 
 	// DisableFips returns whether the container should disable fips mode
 	DisableFips() bool
+
+	// Image returns the image specified in the container spec, or an error
+	Image() (string, error)
 }
 
 // container is the hidden default type behind the Container interface
@@ -222,4 +225,18 @@ func (c *container) DisableFips() bool {
 		return true
 	}
 	return false
+}
+
+// Image returns the image specified in the container spec, or an error
+func (c *container) Image() (string, error) {
+	imageSpec := c.config.GetImage()
+	if imageSpec == nil {
+		return "", errors.New("CreateContainerRequest.ContainerConfig.Image is nil")
+	}
+
+	image := imageSpec.Image
+	if image == "" {
+		return "", errors.New("CreateContainerRequest.ContainerConfig.Image.Image is empty")
+	}
+	return image, nil
 }

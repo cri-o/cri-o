@@ -50,4 +50,44 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.DisableFips()).To(Equal(false))
 		})
 	})
+	t.Describe("Image", func() {
+		It("should fail when spec not set", func() {
+			// Given
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+
+			// Then
+			img, err := ctr.Image()
+			Expect(err).NotTo(BeNil())
+			Expect(img).To(BeEmpty())
+		})
+		It("should fail when image not set", func() {
+			// Given
+			config.Image = &pb.ImageSpec{}
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+
+			// Then
+			img, err := ctr.Image()
+			Expect(err).NotTo(BeNil())
+			Expect(img).To(BeEmpty())
+		})
+		It("should be succeed when set", func() {
+			// Given
+			testImage := "img"
+			config.Image = &pb.ImageSpec{
+				Image: testImage,
+			}
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+
+			// Then
+			img, err := ctr.Image()
+			Expect(err).To(BeNil())
+			Expect(img).To(Equal(testImage))
+		})
+	})
 })

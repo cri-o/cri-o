@@ -260,14 +260,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		}
 	}
 
-	imageSpec := containerConfig.GetImage()
-	if imageSpec == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image is nil")
-	}
-
-	image := imageSpec.Image
-	if image == "" {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
+	image, err := ctr.Image()
+	if err != nil {
+		return nil, err
 	}
 	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
