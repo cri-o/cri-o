@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -57,6 +58,10 @@ type Container interface {
 	// be readonly, which it defaults to if the container wasn't
 	// specifically asked to be read only
 	ReadOnly(bool) bool
+
+	// SelinuxLabel returns the container's SelinuxLabel
+	// it takes the sandbox's label, which it falls back upon
+	SelinuxLabel(string) ([]string, error)
 }
 
 // container is the hidden default type behind the Container interface
@@ -247,9 +252,27 @@ func (c *container) Image() (string, error) {
 	return image, nil
 }
 
+// ReadOnly returns whether the rootfs should be readonly
+// it takes a bool as to whether crio was configured to
+// be readonly, which it defaults to if the container wasn't
+// specifically asked to be read only
 func (c *container) ReadOnly(serverIsReadOnly bool) bool {
 	if c.config.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
 		return true
 	}
 	return serverIsReadOnly
+}
+
+// SelinuxLabel returns the container's SelinuxLabel
+// it takes the sandbox's label, which it falls back upon
+func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
+	selinuxConfig := c.config.GetLinux().GetSecurityContext().GetSelinuxOptions()
+	if selinuxConfig != nil {
+		return utils.GetLabelOptions(selinuxConfig), nil
+	}
+	labelOptions, err := label.DupSecOpt(sboxLabel)
+	if err != nil {
+		return nil, err
+	}
+	return labelOptions, nil
 }

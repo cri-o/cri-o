@@ -109,22 +109,3 @@ func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
 	storageMetadata.SetMountLabel(mountLabel)
 	return s.StorageRuntimeServer().SetContainerMetadata(id, &storageMetadata)
 }
-
-func getLabelOptions(selinuxOptions *pb.SELinuxOption) []string {
-	labels := []string{}
-	if selinuxOptions != nil {
-		if selinuxOptions.User != "" {
-			labels = append(labels, "user:"+selinuxOptions.User)
-		}
-		if selinuxOptions.Role != "" {
-			labels = append(labels, "role:"+selinuxOptions.Role)
-		}
-		if selinuxOptions.Type != "" {
-			labels = append(labels, "type:"+selinuxOptions.Type)
-		}
-		if selinuxOptions.Level != "" {
-			labels = append(labels, "level:"+selinuxOptions.Level)
-		}
-	}
-	return labels
-}

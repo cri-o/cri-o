@@ -32,7 +32,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -202,7 +201,6 @@ func makeAccessible(path string, uid, gid int) error {
 	return nil
 }
 
-// nolint:gocyclo
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
 	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
@@ -292,15 +290,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	specgen.AddAnnotation(annotations.ImageName, imageName)
 	specgen.AddAnnotation(annotations.ImageRef, imageRef)
 
-	selinuxConfig := containerConfig.GetLinux().GetSecurityContext().GetSelinuxOptions()
-	var labelOptions []string
-	if selinuxConfig == nil {
-		labelOptions, err = label.DupSecOpt(sb.ProcessLabel())
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		labelOptions = getLabelOptions(selinuxConfig)
+	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
+	if err != nil {
+		return nil, err
 	}
 
 	containerIDMappings := s.defaultIDMappings

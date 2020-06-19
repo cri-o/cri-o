@@ -125,4 +125,50 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.ReadOnly(true)).To(Equal(true))
 		})
 	})
+	t.Describe("SelinuxLabel", func() {
+		BeforeEach(func() {
+			config.Linux = &pb.LinuxContainerConfig{
+				SecurityContext: &pb.LinuxContainerSecurityContext{},
+			}
+		})
+		It("should be empty by default", func() {
+			// Given
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+
+			// Then
+			labels, err := sut.SelinuxLabel("")
+			Expect(labels).To(BeEmpty())
+			Expect(err).To(BeNil())
+		})
+		It("should not be empty when specified in config", func() {
+			// Given
+			config.Linux.SecurityContext.SelinuxOptions = &pb.SELinuxOption{
+				User:  "a_u",
+				Role:  "a_r",
+				Type:  "a_t",
+				Level: "a_l",
+			}
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+
+			// Then
+			labels, err := sut.SelinuxLabel("")
+			Expect(len(labels)).To(Equal(4))
+			Expect(err).To(BeNil())
+		})
+		It("should not be empty when specified in sandbox", func() {
+			// Given
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+
+			// Then
+			labels, err := sut.SelinuxLabel("a_u:a_t:a_r")
+			Expect(len(labels)).To(Equal(3))
+			Expect(err).To(BeNil())
+		})
+	})
 })

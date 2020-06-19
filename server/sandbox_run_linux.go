@@ -85,7 +85,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	securityContext := sbox.Config().GetLinux().GetSecurityContext()
 	selinuxConfig := securityContext.GetSelinuxOptions()
 	if selinuxConfig != nil {
-		labelOptions = getLabelOptions(selinuxConfig)
+		labelOptions = utils.GetLabelOptions(selinuxConfig)
 	}
 
 	privileged := s.privilegedSandbox(req)
