@@ -45,6 +45,9 @@ type Container interface {
 	// It takes as input the LogDir of the sandbox, which is used
 	// if there is no LogDir configured in the sandbox CRI config
 	LogPath(string) (string, error)
+
+	// DisableFips returns whether the container should disable fips mode
+	DisableFips() bool
 }
 
 // container is the hidden default type behind the Container interface
@@ -211,4 +214,12 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 		sboxLogDir, c.config.GetLogPath(), logPath,
 	)
 	return logPath, nil
+}
+
+// DisableFips returns whether the container should disable fips mode
+func (c *container) DisableFips() bool {
+	if value, ok := c.sboxConfig.GetLabels()["FIPS_DISABLE"]; ok && value == "true" {
+		return true
+	}
+	return false
 }

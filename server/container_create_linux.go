@@ -211,7 +211,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	// of the translation between CRI config -> oci/storage container in the container package
 	containerID := ctr.ID()
 	containerName := ctr.Name()
-	sandboxConfig := ctr.SandboxConfig()
 	containerConfig := ctr.Config()
 	if err := ctr.SetPrivileged(); err != nil {
 		return nil, err
@@ -805,13 +804,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			return nil, fmt.Errorf("failed to mount secrets: %v", err)
 		}
 	}
-	// Check for FIPS_DISABLE label in the pod config
-	disableFips := false
-	if value, ok := sandboxConfig.GetLabels()["FIPS_DISABLE"]; ok && value == "true" {
-		disableFips = true
-	}
 	// Add secrets from the default and override mounts.conf files
-	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless(), disableFips)...)
+	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless(), ctr.DisableFips())...)
 
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)
