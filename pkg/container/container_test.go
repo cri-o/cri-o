@@ -58,7 +58,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 
 			// Then
-			img, err := ctr.Image()
+			img, err := sut.Image()
 			Expect(err).NotTo(BeNil())
 			Expect(img).To(BeEmpty())
 		})
@@ -70,7 +70,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 
 			// Then
-			img, err := ctr.Image()
+			img, err := sut.Image()
 			Expect(err).NotTo(BeNil())
 			Expect(img).To(BeEmpty())
 		})
@@ -85,9 +85,44 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 
 			// Then
-			img, err := ctr.Image()
+			img, err := sut.Image()
 			Expect(err).To(BeNil())
 			Expect(img).To(Equal(testImage))
+		})
+	})
+	t.Describe("ReadOnly", func() {
+		BeforeEach(func() {
+			config.Linux = &pb.LinuxContainerConfig{
+				SecurityContext: &pb.LinuxContainerSecurityContext{},
+			}
+		})
+		It("should not be readonly by default", func() {
+			// Given
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+
+			// Then
+			Expect(sut.ReadOnly(false)).To(Equal(false))
+		})
+		It("should be readonly when specified", func() {
+			// Given
+			config.Linux.SecurityContext.ReadonlyRootfs = true
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+
+			// Then
+			Expect(sut.ReadOnly(false)).To(Equal(true))
+		})
+		It("should be readonly when server is", func() {
+			// Given
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+
+			// Then
+			Expect(sut.ReadOnly(true)).To(Equal(true))
 		})
 	})
 })

@@ -51,6 +51,12 @@ type Container interface {
 
 	// Image returns the image specified in the container spec, or an error
 	Image() (string, error)
+
+	// ReadOnly returns whether the rootfs should be readonly
+	// it takes a bool as to whether crio was configured to
+	// be readonly, which it defaults to if the container wasn't
+	// specifically asked to be read only
+	ReadOnly(bool) bool
 }
 
 // container is the hidden default type behind the Container interface
@@ -239,4 +245,11 @@ func (c *container) Image() (string, error) {
 		return "", errors.New("CreateContainerRequest.ContainerConfig.Image.Image is empty")
 	}
 	return image, nil
+}
+
+func (c *container) ReadOnly(serverIsReadOnly bool) bool {
+	if c.config.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
+		return true
+	}
+	return serverIsReadOnly
 }
