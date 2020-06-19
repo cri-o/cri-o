@@ -147,7 +147,7 @@ lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} run
 
 shellfiles: ${SHFMT}
-	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh))
+	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/))
 
 shfmt: shellfiles
 	${SHFMT} -w -i 4 -d ${SHELLFILES}
