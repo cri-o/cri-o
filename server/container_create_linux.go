@@ -202,6 +202,7 @@ func makeAccessible(path string, uid, gid int) error {
 	return nil
 }
 
+// nolint:gocyclo
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Container, sb *sandbox.Sandbox) (cntr *oci.Container, errRet error) {
 	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
