@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 22 Jun 2020 17:39:42 UTC for commit [5f4fa29][0]._
+_Generated on Mon, 22 Jun 2020 19:44:57 UTC for commit [97fdd52][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5f4fa298837515961482456a6519bbc63db54f69
+[0]: https://github.com/cri-o/cri-o/commit/97fdd52c18e97cc1c6eac65c4c108f9f51608361
 
 ## Outdated Dependencies
 
@@ -22,7 +22,7 @@ _Generated on Mon, 22 Jun 2020 17:39:42 UTC for commit [5f4fa29][0]._
 | github.com/prometheus/client_golang  | v0.9.2                             | v1.7.0                             | true   | true             |
 | github.com/seccomp/containers-golang | v0.4.1                             | v0.5.0                             | true   | true             |
 | golang.org/x/net                     | v0.0.0-20200513185701-a91f0712d120 | v0.0.0-20200602114024-627f9648deb9 | true   | true             |
-| golang.org/x/sys                     | v0.0.0-20200420163511-1957bb5e6d1f | v0.0.0-20200620081246-981b61492c35 | true   | true             |
+| golang.org/x/sys                     | v0.0.0-20200420163511-1957bb5e6d1f | v0.0.0-20200622182413-4b0db7f3f76b | true   | true             |
 | google.golang.org/grpc               | v1.29.1                            | v1.30.0                            | true   | true             |
 | k8s.io/api                           | v0.0.0-20200505125908-b48f5af2602b | v0.0.0-20200622162440-9cd906e9322f | true   | true             |
 | k8s.io/apimachinery                  | v0.0.0-20200505125908-b48f5af2602b | v0.0.0-20200622162440-9cd906e9322f | true   | true             |
@@ -78,7 +78,7 @@ _Generated on Mon, 22 Jun 2020 17:39:42 UTC for commit [5f4fa29][0]._
 | github.com/armon/go-socks5                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                       | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20200428143746-21a406dcc535 | false  | true             |
 | github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20200507191422-d30d7b9ece63 | false  | true             |
-| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.32.6                            | false  | true             |
+| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.32.7                            | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.22.1                                           | v0.23.3                            | false  | true             |
 | github.com/beorn7/perks                                 | v0.0.0-20180321164747-3a771d992973                | v1.0.1                             | false  | true             |
 | github.com/bgentry/speakeasy                            | v0.1.0                                            |                                    | false  | true             |
@@ -488,11 +488,11 @@ _Generated on Mon, 22 Jun 2020 17:39:42 UTC for commit [5f4fa29][0]._
 | golang.org/x/net                                        | v0.0.0-20200513185701-a91f0712d120                | v0.0.0-20200602114024-627f9648deb9 | true   | true             |
 | golang.org/x/oauth2                                     | v0.0.0-20200107190931-bf48bf16ab8d                |                                    | false  | true             |
 | golang.org/x/sync                                       | v0.0.0-20200317015054-43a5402ce75a                |                                    | true   | true             |
-| golang.org/x/sys                                        | v0.0.0-20200420163511-1957bb5e6d1f                | v0.0.0-20200620081246-981b61492c35 | true   | true             |
+| golang.org/x/sys                                        | v0.0.0-20200420163511-1957bb5e6d1f                | v0.0.0-20200622182413-4b0db7f3f76b | true   | true             |
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.2                                            | v0.3.3                             | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200416051211-89c76fbcd5d1 | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200422022333-3d57cf2e726e                | v0.0.0-20200622150058-fcc5b64fe1f1 | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200422022333-3d57cf2e726e                | v0.0.0-20200622192924-4fd1c64487bf | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                |                                    | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.7.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200603212716-16abd5ac5bc7 | false  | true             |
