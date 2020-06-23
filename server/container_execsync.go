@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 
-	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -42,6 +41,5 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 		ExitCode: execResp.ExitCode,
 	}
 
-	log.Infof(ctx, "exec'd %s in %s", cmd, c.Description())
 	return resp, nil
 }
