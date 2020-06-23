@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 23 Jun 2020 18:34:08 UTC for commit [904ce0f][0]._
+_Generated on Tue, 23 Jun 2020 19:11:41 UTC for commit [1c60865][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/904ce0f1a13875afaf8db729d0be6dc773c5bed6
+[0]: https://github.com/cri-o/cri-o/commit/1c60865bf5a18571cd99d5f09158752a5d30b2ab
 
 ## Outdated Dependencies
 
@@ -43,13 +43,13 @@ _Generated on Tue, 23 Jun 2020 18:34:08 UTC for commit [904ce0f][0]._
 | github.com/Azure/azure-sdk-for-go                       | v40.2.0+incompatible                              | v43.3.0+incompatible               | false  | true             |
 | github.com/Azure/go-ansiterm                            | v0.0.0-20170929234023-d6e3b3328b78                |                                    | false  | true             |
 | github.com/Azure/go-autorest/autorest                   | v0.9.6                                            | v0.10.2                            | false  | true             |
-| github.com/Azure/go-autorest/autorest/adal              | v0.8.2                                            | v0.8.3                             | false  | true             |
-| github.com/Azure/go-autorest/autorest/date              | v0.2.0                                            |                                    | false  | true             |
-| github.com/Azure/go-autorest/autorest/mocks             | v0.3.0                                            |                                    | false  | true             |
-| github.com/Azure/go-autorest/autorest/to                | v0.2.0                                            | v0.3.0                             | false  | true             |
-| github.com/Azure/go-autorest/autorest/validation        | v0.1.0                                            | v0.2.0                             | false  | true             |
-| github.com/Azure/go-autorest/logger                     | v0.1.0                                            |                                    | false  | true             |
-| github.com/Azure/go-autorest/tracing                    | v0.5.0                                            |                                    | false  | true             |
+| github.com/Azure/go-autorest/autorest/adal              | v0.8.2                                            | v0.9.0                             | false  | true             |
+| github.com/Azure/go-autorest/autorest/date              | v0.2.0                                            | v0.3.0                             | false  | true             |
+| github.com/Azure/go-autorest/autorest/mocks             | v0.3.0                                            | v0.4.0                             | false  | true             |
+| github.com/Azure/go-autorest/autorest/to                | v0.2.0                                            | v0.4.0                             | false  | true             |
+| github.com/Azure/go-autorest/autorest/validation        | v0.1.0                                            | v0.3.0                             | false  | true             |
+| github.com/Azure/go-autorest/logger                     | v0.1.0                                            | v0.2.0                             | false  | true             |
+| github.com/Azure/go-autorest/tracing                    | v0.5.0                                            | v0.6.0                             | false  | true             |
 | github.com/BurntSushi/toml                              | v0.3.1                                            |                                    | true   | true             |
 | github.com/BurntSushi/xgb                               | v0.0.0-20160522181843-27f122750802                | v0.0.0-20200324125942-20f126ea2843 | false  | true             |
 | github.com/GoogleCloudPlatform/k8s-cloud-provider       | v0.0.0-20190822182118-27a4ced34534                | v0.0.0-20200609233750-ea56f58e187a | false  | true             |
@@ -78,7 +78,7 @@ _Generated on Tue, 23 Jun 2020 18:34:08 UTC for commit [904ce0f][0]._
 | github.com/armon/go-socks5                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                       | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20200428143746-21a406dcc535 | false  | true             |
 | github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20200507191422-d30d7b9ece63 | false  | true             |
-| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.32.7                            | false  | true             |
+| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.32.8                            | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.22.1                                           | v0.23.3                            | false  | true             |
 | github.com/beorn7/perks                                 | v0.0.0-20180321164747-3a771d992973                | v1.0.1                             | false  | true             |
 | github.com/bgentry/speakeasy                            | v0.1.0                                            |                                    | false  | true             |
@@ -492,7 +492,7 @@ _Generated on Tue, 23 Jun 2020 18:34:08 UTC for commit [904ce0f][0]._
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.2                                            | v0.3.3                             | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200416051211-89c76fbcd5d1 | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200422022333-3d57cf2e726e                | v0.0.0-20200623045635-ff88973b1e4e | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200422022333-3d57cf2e726e                | v0.0.0-20200623185156-456ad74e1464 | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                |                                    | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.7.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200603212716-16abd5ac5bc7 | false  | true             |
