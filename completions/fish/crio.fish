@@ -106,7 +106,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l read-only -d 'Setup all un
 complete -c crio -n '__fish_crio_no_subcommand' -f -l registry -r -d 'Registry to be prepended when pulling unqualified images, can be specified multiple times'
 complete -c crio -n '__fish_crio_no_subcommand' -l root -s r -r -d 'The CRI-O root directory'
 complete -c crio -n '__fish_crio_no_subcommand' -l runroot -r -d 'The CRI-O state directory'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l runtimes -r -d 'OCI runtimes, format is runtime_name:runtime_path:runtime_root'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l runtimes -r -d 'OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type'
 complete -c crio -n '__fish_crio_no_subcommand' -l seccomp-profile -r -d 'Path to the seccomp.json profile to be used as the runtime\'s default. If not specified, then the internal default seccomp profile will be used. (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l selinux -d 'Enable selinux support (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -l signature-policy -r -d 'Path to signature policy JSON file. (default: "", to use the system-wide default)'

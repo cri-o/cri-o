@@ -41,6 +41,7 @@ OVERRIDE_OPTIONS=${OVERRIDE_OPTIONS:-}
 RUNTIME_PATH=$(command -v "$CONTAINER_RUNTIME" || true)
 RUNTIME_BINARY=${RUNTIME_PATH:-$(command -v runc)}
 RUNTIME_ROOT=${RUNTIME_ROOT:-/run/runc}
+RUNTIME_TYPE=${RUNTIME_TYPE:-oci}
 # Path of the apparmor_parser binary.
 APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
 # Path of the apparmor profile for test.
@@ -303,7 +304,7 @@ function setup_crio() {
         --listen "$CRIO_SOCKET" \
         --registry "quay.io" \
         --registry "docker.io" \
-        --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT" \
+        --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT:$RUNTIME_TYPE" \
         -r "$TESTDIR/crio" \
         --runroot "$TESTDIR/crio-run" \
         --cni-default-network "$CNI_DEFAULT_NETWORK" \
