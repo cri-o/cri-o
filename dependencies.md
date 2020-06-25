@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 25 Jun 2020 19:04:52 UTC for commit [d0dc0d3][0]._
+_Generated on Thu, 25 Jun 2020 19:20:41 UTC for commit [0a84af5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d0dc0d3076367f6a26c46fb6e72d1e582b552599
+[0]: https://github.com/cri-o/cri-o/commit/0a84af5d94aea42388f5ead86cfdf18399b58d31
 
 ## Outdated Dependencies
 
@@ -523,12 +523,12 @@ _Generated on Thu, 25 Jun 2020 19:04:52 UTC for commit [d0dc0d3][0]._
 | gotest.tools/v3                                         | v3.0.2                                            |                                    | false  | true             |
 | honnef.co/go/tools                                      | v0.0.1-2019.2.3                                   | v0.0.1-2020.1.4                    | false  | true             |
 | k8s.io/api                                              | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | true   | true             |
-| k8s.io/apiextensions-apiserver                          | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
+| k8s.io/apiextensions-apiserver                          | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625191238-cb37c0884664 | false  | true             |
 | k8s.io/apimachinery                                     | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | true   | true             |
 | k8s.io/apiserver                                        | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
 | k8s.io/client-go                                        | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | true   | true             |
-| k8s.io/cloud-provider                                   | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
+| k8s.io/cloud-provider                                   | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625191238-cb37c0884664 | false  | true             |
 | k8s.io/cluster-bootstrap                                | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
 | k8s.io/code-generator                                   | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
 | k8s.io/component-base                                   | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
@@ -539,7 +539,7 @@ _Generated on Thu, 25 Jun 2020 19:04:52 UTC for commit [d0dc0d3][0]._
 | k8s.io/klog                                             | v1.0.0                                            |                                    | true   | true             |
 | k8s.io/klog/v2                                          | v2.0.0                                            | v2.2.0                             | false  | true             |
 | k8s.io/kube-aggregator                                  | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
-| k8s.io/kube-controller-manager                          | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
+| k8s.io/kube-controller-manager                          | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625191238-cb37c0884664 | false  | true             |
 | k8s.io/kube-openapi                                     | v0.0.0-20200403204345-e1beb1bd0f35                | v0.0.0-20200615155156-dffdd1682719 | false  | true             |
 | k8s.io/kube-proxy                                       | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
 | k8s.io/kube-scheduler                                   | v0.0.0-20200505125908-b48f5af2602b                | v0.0.0-20200625172251-e5e5ff03ac1b | false  | true             |
