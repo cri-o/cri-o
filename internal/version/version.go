@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -171,6 +172,9 @@ func getLinkmode() string {
 		return ""
 	}
 
+	if _, err = exec.LookPath("ldd"); err != nil {
+		return ""
+	}
 	if _, err = utils.ExecCmd("ldd", abspath); err != nil {
 		if strings.Contains(err.Error(), "not a dynamic executable") {
 			return "static"
