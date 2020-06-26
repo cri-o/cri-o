@@ -667,6 +667,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				}
 			}
 		}()
+	} else if err := sb.CreateManagedPidNamespace(&s.config); err != nil {
+		// now the infra container has started, we can pin the pid namespace
+		// to ease container's access of it later
+		return nil, err
 	}
 	sb.AddIPs(ips)
 

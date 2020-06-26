@@ -1,6 +1,7 @@
 package sandbox_test
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -20,6 +21,10 @@ var (
 		sandbox.NETNS, sandbox.IPCNS, sandbox.UTSNS, sandbox.USERNS,
 	}
 	numManagedNamespaces = 4
+	// max valid pid is 4194304
+	neverRunningPid     = 4194305
+	alwaysRunningPid    = 1
+	pidLocationFilename = "pid-location"
 )
 
 // pinNamespaceFunctor is a way to generically create a mockable pinNamespaces() function
@@ -128,6 +133,72 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			}
 		})
 	})
+	t.Describe("CreateManagedPidNamespace", func() {
+		var tmpDir string
+		BeforeEach(func() {
+			tmpDir = createTmpDir()
+		})
+		AfterEach(func() {
+			Expect(testSandbox.RemoveManagedNamespaces()).To(BeNil())
+			Expect(os.RemoveAll(tmpDir)).To(BeNil())
+		})
+		It("should fail when config is empty", func() {
+			// Given
+			// When
+			err := testSandbox.CreateManagedPidNamespace(nil)
+			// Then
+			Expect(err).To(Not(BeNil()))
+		})
+		It("should fail when infra pid not configured", func() {
+			// Given
+			// When
+			err := testSandbox.CreateManagedPidNamespace(&config.Config{
+				RuntimeConfig: config.RuntimeConfig{
+					NamespacesDir: tmpDir,
+				},
+			})
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should fail when infra pid not running", func() {
+			// Given
+			setupInfraContainerWithPid(neverRunningPid)
+			// When
+			err := testSandbox.CreateManagedPidNamespace(&config.Config{
+				RuntimeConfig: config.RuntimeConfig{
+					NamespacesDir: tmpDir,
+				},
+			})
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should fail when we can't write to infra dir", func() {
+			// Given
+			setupInfraContainerWithPid(alwaysRunningPid)
+			// When
+			err := testSandbox.CreateManagedPidNamespace(&config.Config{
+				RuntimeConfig: config.RuntimeConfig{
+					NamespacesDir: tmpDir,
+				},
+			})
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should succeed when infra pid running", func() {
+			// Given
+			setupInfraContainerWithPidAndTmpDir(alwaysRunningPid, tmpDir)
+			// When
+			err := testSandbox.CreateManagedPidNamespace(&config.Config{
+				RuntimeConfig: config.RuntimeConfig{
+					NamespacesDir: tmpDir,
+				},
+			})
+			// Then
+			Expect(err).To(BeNil())
+			_, err = os.Stat(filepath.Join(tmpDir, pidLocationFilename))
+			Expect(err).To(BeNil())
+		})
+	})
 	t.Describe("RemoveManagedNamespaces", func() {
 		It("should succeed when namespaces nil", func() {
 			// Given
@@ -140,6 +211,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		It("should succeed when namespaces not nil", func() {
 			// Given
 			tmpDir := createTmpDir()
+			defer os.RemoveAll(tmpDir)
 			withTmpDir := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
 					nsType := ifaceMock.Type()
@@ -313,6 +385,56 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			Expect(err).NotTo(BeNil())
 		})
 	})
+	t.Describe("PidNsJoin", func() {
+		var tmpDir string
+		BeforeEach(func() {
+			tmpDir = createTmpDir()
+		})
+		AfterEach(func() {
+			Expect(os.RemoveAll(tmpDir)).To(BeNil())
+		})
+
+		It("should fail to join pidns without infra initialized", func() {
+			// Given
+			err := testSandbox.PidNsJoin()
+
+			// Then
+			Expect(err).To(Equal(sandbox.ErrNamespaceNotManaged))
+		})
+		It("should fail when asked to join a non-namespace", func() {
+			// Given
+			setupInfraContainerWithPidAndTmpDir(alwaysRunningPid, tmpDir)
+			Expect(ioutil.WriteFile(filepath.Join(tmpDir, pidLocationFilename), []byte("/tmp"), 0o644)).To(BeNil())
+
+			// When
+			err := testSandbox.PidNsJoin()
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should fail when sandbox already has pid namespace", func() {
+			// Given
+			setupInfraContainerWithPidAndTmpDir(alwaysRunningPid, tmpDir)
+			Expect(ioutil.WriteFile(filepath.Join(tmpDir, pidLocationFilename), []byte("/proc/self/ns/pid"), 0o644)).To(BeNil())
+
+			// When
+			Expect(testSandbox.PidNsJoin()).To(BeNil())
+
+			// Then
+			Expect(testSandbox.PidNsJoin()).NotTo(BeNil())
+		})
+		It("should succeed", func() {
+			// Given
+			setupInfraContainerWithPidAndTmpDir(alwaysRunningPid, tmpDir)
+			Expect(ioutil.WriteFile(filepath.Join(tmpDir, pidLocationFilename), []byte("/proc/self/ns/pid"), 0o644)).To(BeNil())
+
+			// When
+			err := testSandbox.PidNsJoin()
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+	})
 	t.Describe("*NsPath", func() {
 		It("should get nothing when network not set", func() {
 			// Given
@@ -438,7 +560,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when infra set and pid running", func() {
 			// Given
-			setupInfraContainerWithPid(1)
+			setupInfraContainerWithPid(alwaysRunningPid)
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
@@ -450,8 +572,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get nothing when infra set with pid not running", func() {
 			// Given
-			// max valid pid is 4194304
-			setupInfraContainerWithPid(4194305)
+			setupInfraContainerWithPid(neverRunningPid)
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
@@ -460,7 +581,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get managed path (except pid) despite infra set", func() {
 			// Given
-			setupInfraContainerWithPid(1)
+			setupInfraContainerWithPid(alwaysRunningPid)
 			getPath := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
 					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
@@ -481,6 +602,25 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))
 		})
+		It("should get managed path despite infra set", func() {
+			// Given
+			tmpDir := createTmpDir()
+			defer os.RemoveAll(tmpDir)
+
+			setupInfraContainerWithPidAndTmpDir(alwaysRunningPid, tmpDir)
+			err := testSandbox.CreateManagedPidNamespace(&config.Config{
+				RuntimeConfig: config.RuntimeConfig{
+					NamespacesDir: tmpDir,
+				},
+			})
+			Expect(err).To(BeNil())
+
+			// When
+			path := testSandbox.PidNsPath()
+			// Then
+			Expect(path).ToNot(Equal(""))
+			Expect(testSandbox.PidNsPath()).NotTo(ContainSubstring("/proc"))
+		})
 	})
 	t.Describe("NamespacePaths without infra", func() {
 		It("should get nothing", func() {
@@ -494,12 +634,16 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 })
 
 func setupInfraContainerWithPid(pid int) {
+	setupInfraContainerWithPidAndTmpDir(pid, "/root/for/container")
+}
+
+func setupInfraContainerWithPidAndTmpDir(pid int, tmpDir string) {
 	testContainer, err := oci.NewContainer("testid", "testname", "",
 		"/container/logs", map[string]string{},
 		map[string]string{}, map[string]string{}, "image",
 		"imageName", "imageRef", &pb.ContainerMetadata{},
 		"testsandboxid", false, false, false, "",
-		"/root/for/container", time.Now(), "SIGKILL")
+		tmpDir, time.Now(), "SIGKILL")
 	Expect(err).To(BeNil())
 	Expect(testContainer).NotTo(BeNil())
 

@@ -54,6 +54,31 @@ func (n *Namespace) Initialize() NamespaceIface {
 	return n
 }
 
+type namespaceInfo struct {
+	path   string
+	nsType NSType
+}
+
+func newNamespaceInfo(nsDir, nsFile string, nsType NSType) *namespaceInfo {
+	return &namespaceInfo{
+		path:   filepath.Join(nsDir, fmt.Sprintf("%sns", string(nsType)), nsFile),
+		nsType: nsType,
+	}
+}
+
+func (info *namespaceInfo) toIface() (NamespaceIface, error) {
+	ret, err := nspkg.GetNS(info.path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Namespace{
+		ns:     ret.(NS),
+		nsType: info.nsType,
+		nsPath: info.path,
+	}, nil
+}
+
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
 func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, error) {
@@ -64,27 +89,22 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		NETNS:  "-n",
 	}
 
+	numNSToPin := len(nsTypes)
+
 	pinnedNamespace := uuid.New().String()
 	pinnsArgs := []string{
 		"-d", cfg.NamespacesDir,
 		"-f", pinnedNamespace,
 	}
-	type namespaceInfo struct {
-		path   string
-		nsType NSType
-	}
 
-	mountedNamespaces := make([]namespaceInfo, 0, len(nsTypes))
+	mountedNamespaces := make([]*namespaceInfo, 0, numNSToPin)
 	for _, nsType := range nsTypes {
 		arg, ok := typeToArg[nsType]
 		if !ok {
 			return nil, errors.Errorf("Invalid namespace type: %s", nsType)
 		}
 		pinnsArgs = append(pinnsArgs, arg)
-		mountedNamespaces = append(mountedNamespaces, namespaceInfo{
-			path:   filepath.Join(cfg.NamespacesDir, fmt.Sprintf("%sns", string(nsType)), pinnedNamespace),
-			nsType: nsType,
-		})
+		mountedNamespaces = append(mountedNamespaces, newNamespaceInfo(cfg.NamespacesDir, pinnedNamespace, nsType))
 	}
 	pinns := cfg.PinnsPath
 
@@ -107,20 +127,57 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		return nil, fmt.Errorf("failed to pin namespaces %v: %s %v", nsTypes, output, err)
 	}
 
-	returnedNamespaces := make([]NamespaceIface, 0)
+	returnedNamespaces := make([]NamespaceIface, 0, numNSToPin)
 	for _, info := range mountedNamespaces {
-		ret, err := nspkg.GetNS(info.path)
+		iface, err := info.toIface()
 		if err != nil {
 			return nil, err
 		}
-
-		returnedNamespaces = append(returnedNamespaces, &Namespace{
-			ns:     ret.(NS),
-			nsType: info.nsType,
-			nsPath: info.path,
-		})
+		returnedNamespaces = append(returnedNamespaces, iface)
 	}
 	return returnedNamespaces, nil
+}
+
+func pinPidNamespace(cfg *config.Config, path string) (iface NamespaceIface, errRet error) {
+	pinnedNamespace := uuid.New().String()
+	namespaceInfo := newNamespaceInfo(cfg.NamespacesDir, pinnedNamespace, PIDNS)
+
+	// verify the path we were passed is indeed a namespace
+	if err := nspkg.IsNSorErr(path); err != nil {
+		return nil, err
+	}
+
+	// ensure the parent directory is there
+	if err := os.MkdirAll(filepath.Join(cfg.NamespacesDir, "pidns"), 0o755); err != nil {
+		return nil, err
+	}
+
+	// now create an empty file
+	f, err := os.Create(namespaceInfo.path)
+	if err != nil {
+		return nil, err
+	}
+	f.Close()
+
+	// Ensure the mount point is cleaned up on errors; if the namespace
+	// was successfully mounted this will have no effect because the file
+	// is in-use
+	defer os.RemoveAll(namespaceInfo.path)
+
+	// bind mount the new netns from the pidns entry onto the mount point
+	if err := unix.Mount(path, namespaceInfo.path, "none", unix.MS_BIND, ""); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if errRet != nil {
+			if err := unix.Unmount(namespaceInfo.path, unix.MNT_DETACH); err != nil {
+				logrus.Errorf("failed umount after failed to pin pid namespace: %v", err)
+			}
+		}
+	}()
+
+	return namespaceInfo.toIface()
 }
 
 // getNamespace takes a path, checks if it is a namespace, and if so
