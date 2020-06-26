@@ -25,15 +25,6 @@ func kill(pid int) error {
 	return nil
 }
 
-func getExitCode(err error) int32 {
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		if status, ok := exitErr.Sys().(unix.WaitStatus); ok {
-			return int32(status.ExitStatus())
-		}
-	}
-	return -1
-}
-
 func calculateCPUPercent(stats *cgroups.Metrics) float64 {
 	return genericCalculateCPUPercent(stats.CPU.Usage.Total, stats.CPU.Usage.PerCPU)
 }
