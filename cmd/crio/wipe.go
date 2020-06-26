@@ -106,7 +106,7 @@ func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
 func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages []string, _ error) {
 	containers, err := c.store.Containers()
 	if err != nil {
-		if os.IsNotExist(errors.Cause(err)) {
+		if errors.Is(err, os.ErrNotExist) {
 			return crioContainers, crioImages, err
 		}
 		logrus.Errorf("could not read containers and sandboxes: %v", err)

@@ -9,7 +9,7 @@ import (
 )
 
 func securityLabel(path, secLabel string, shared bool) error {
-	if err := label.Relabel(path, secLabel, shared); err != nil && errors.Cause(err) != unix.ENOTSUP {
+	if err := label.Relabel(path, secLabel, shared); err != nil && !errors.Is(err, unix.ENOTSUP) {
 		return fmt.Errorf("relabel failed %s: %v", path, err)
 	}
 	return nil

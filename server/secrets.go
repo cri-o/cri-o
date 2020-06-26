@@ -144,7 +144,7 @@ func secretMounts(ctx context.Context, defaultMountsPaths []string, mountLabel, 
 				return nil, err
 			}
 		}
-		if err := label.Relabel(ctrDirOnHost, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
+		if err := label.Relabel(ctrDirOnHost, mountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
 			return nil, err
 		}
 

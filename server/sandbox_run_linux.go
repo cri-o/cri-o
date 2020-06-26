@@ -108,7 +108,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	mountLabel := podContainer.MountLabel
 	processLabel := podContainer.ProcessLabel
 
-	if errors.Cause(err) == storage.ErrDuplicateName {
+	if errors.Is(err, storage.ErrDuplicateName) {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", sbox.Name())
 	}
 	if err != nil {
@@ -174,11 +174,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			return nil, err
 		}
-		if err := label.Relabel(resolvPath, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
+		if err := label.Relabel(resolvPath, mountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
 			if err1 := removeFile(resolvPath); err1 != nil {
 				return nil, fmt.Errorf("%v; failed to remove %s: %v", err, resolvPath, err1)
 			}
-			return nil, err
 		}
 		mnt := spec.Mount{
 			Type:        "bind",
@@ -468,7 +467,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0o644); err != nil {
 		return nil, err
 	}
-	if err := label.Relabel(hostnamePath, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
+	if err := label.Relabel(hostnamePath, mountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
 		return nil, err
 	}
 	mnt = spec.Mount{
