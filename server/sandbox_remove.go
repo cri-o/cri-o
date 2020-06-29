@@ -32,7 +32,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
-	if podInfraContainer != nil {
+	if !podInfraContainer.Spoofed() {
 		containers = append(containers, podInfraContainer)
 	}
 
@@ -77,7 +77,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 	}
 
-	if podInfraContainer != nil {
+	if !podInfraContainer.Spoofed() {
 		s.removeInfraContainer(podInfraContainer)
 		podInfraContainer.CleanupConmonCgroup()
 
@@ -99,11 +99,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 	}
 
-	if podInfraContainer != nil {
-		s.ReleaseContainerName(podInfraContainer.Name())
-		if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
-			return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.ID(), err)
-		}
+	s.ReleaseContainerName(podInfraContainer.Name())
+	if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
+		return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.ID(), err)
 	}
 
 	s.ReleasePodName(sb.Name())

@@ -200,7 +200,8 @@ function teardown() {
 }
 
 @test "crio restore with bad state" {
-	start_crio
+	# this test makes no sense with no infra container
+	CONTAINER_DROP_INFRA=false start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -305,7 +306,7 @@ function teardown() {
 }
 
 @test "crio restore first not managing then managing" {
-	CONTAINER_MANAGE_NS_LIFECYCLE=false start_crio
+	CONTAINER_MANAGE_NS_LIFECYCLE=false CONTAINER_DROP_INFRA=false start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -378,7 +379,7 @@ function teardown() {
 }
 
 @test "crio restore first managing then not managing" {
-	CONTAINER_MANAGE_NS_LIFECYCLE=true start_crio
+	CONTAINER_MANAGE_NS_LIFECYCLE=true CONTAINER_DROP_INFRA=true start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -412,7 +413,7 @@ function teardown() {
 
 	stop_crio
 
-	CONTAINER_MANAGE_NS_LIFECYCLE=false start_crio
+	CONTAINER_MANAGE_NS_LIFECYCLE=false CONTAINER_DROP_INFRA=false start_crio
 	run crictl pods --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]

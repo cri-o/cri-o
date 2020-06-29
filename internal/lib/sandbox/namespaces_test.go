@@ -36,7 +36,7 @@ type pinNamespacesFunctor struct {
 
 // pinNamespaces is a spoof of namespaces_linux.go:pinNamespaces.
 // it calls ifaceModifyFunc() to customize the behavior of this functor
-func (p *pinNamespacesFunctor) pinNamespaces(nsTypes []sandbox.NSType, cfg *config.Config) ([]sandbox.NamespaceIface, error) {
+func (p *pinNamespacesFunctor) pinNamespaces(nsTypes []sandbox.NSType, cfg *config.Config, sysctls map[string]string) ([]sandbox.NamespaceIface, error) {
 	ifaces := make([]sandbox.NamespaceIface, 0)
 	for _, nsType := range nsTypes {
 		ifaceMock := sandboxmock.NewMockNamespaceIface(mockCtrl)
@@ -90,7 +90,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			managedNamespaces := make([]sandbox.NSType, 0)
 
 			// When
-			ns, err := testSandbox.CreateManagedNamespaces(managedNamespaces, nil)
+			ns, err := testSandbox.CreateManagedNamespaces(managedNamespaces, nil, nil)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -108,7 +108,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			managedNamespaces := []sandbox.NSType{"invalid"}
 
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, withRemoval.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, nil, withRemoval.pinNamespaces)
 
 			// Then
 			Expect(err).To(Not(BeNil()))
@@ -122,7 +122,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			successful := newGenericFunctor()
 			// When
-			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, nil, successful.pinNamespaces)
+			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, nil, nil, successful.pinNamespaces)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -221,7 +221,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				},
 			}
 
-			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, nil, withTmpDir.pinNamespaces)
+			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, nil, nil, withTmpDir.pinNamespaces)
 			Expect(err).To(BeNil())
 
 			for _, ns := range createdNamespaces {
@@ -305,7 +305,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			successful := newGenericFunctor()
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, successful.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, nil, successful.pinNamespaces)
 			Expect(err).To(BeNil())
 			err = testSandbox.NetNsJoin("/proc/self/ns/net")
 
@@ -318,7 +318,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			successful := newGenericFunctor()
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, successful.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, nil, successful.pinNamespaces)
 			Expect(err).To(BeNil())
 			err = testSandbox.IpcNsJoin("/proc/self/ns/ipc")
 
@@ -331,7 +331,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			successful := newGenericFunctor()
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, successful.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, nil, successful.pinNamespaces)
 			Expect(err).To(BeNil())
 			err = testSandbox.UtsNsJoin("/proc/self/ns/uts")
 
@@ -344,7 +344,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			successful := newGenericFunctor()
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, successful.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, nil, successful.pinNamespaces)
 			Expect(err).To(BeNil())
 			err = testSandbox.UserNsJoin("/proc/self/ns/user")
 
@@ -482,7 +482,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				},
 			}
 
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, getPath.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, nil, getPath.pinNamespaces)
 			Expect(err).To(BeNil())
 
 			// When
@@ -501,7 +501,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				},
 			}
 
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, getPath.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, nil, getPath.pinNamespaces)
 			Expect(err).To(BeNil())
 
 			// When
@@ -520,7 +520,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				},
 			}
 
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, getPath.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, nil, getPath.pinNamespaces)
 			Expect(err).To(BeNil())
 
 			// When
@@ -539,7 +539,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				},
 			}
 
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, getPath.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, nil, nil, getPath.pinNamespaces)
 			Expect(err).To(BeNil())
 
 			// When
@@ -590,7 +590,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				},
 			}
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, nil, getPath.pinNamespaces)
+			_, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, nil, nil, getPath.pinNamespaces)
 			Expect(err).To(BeNil())
 			// When
 			nsPaths := testSandbox.NamespacePaths()

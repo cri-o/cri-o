@@ -245,6 +245,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("manage-ns-lifecycle") {
 		config.ManageNSLifecycle = ctx.Bool("manage-ns-lifecycle")
 	}
+	if ctx.IsSet("drop-infra") {
+		config.DropInfra = ctx.Bool("drop-infra")
+	}
 	if ctx.IsSet("namespaces-dir") {
 		config.NamespacesDir = ctx.String("namespaces-dir")
 	}
@@ -715,6 +718,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "manage-ns-lifecycle",
 			Usage:   fmt.Sprintf("Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: %v)", defConf.ManageNSLifecycle),
 			EnvVars: []string{"CONTAINER_MANAGE_NS_LIFECYCLE"},
+		},
+		&cli.BoolFlag{
+			Name:    "drop-infra",
+			Usage:   fmt.Sprintf("determines whether we drop the infra container when appropriate. Requires ManageNSLifecycle to be true (default: %v)", defConf.DropInfra),
+			EnvVars: []string{"CONTAINER_DROP_INFRA"},
 		},
 		&cli.StringFlag{
 			Name:    "pinns-path",

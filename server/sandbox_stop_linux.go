@@ -48,7 +48,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
-	if podInfraContainer != nil {
+	if !podInfraContainer.Spoofed() {
 		containers = append(containers, podInfraContainer)
 	}
 

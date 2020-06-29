@@ -283,6 +283,10 @@ type RuntimeConfig struct {
 	// and manage their lifecycle
 	ManageNSLifecycle bool `toml:"manage_ns_lifecycle"`
 
+	// DropInfra determines whether the infra container is dropped when appropriate
+	// Requires ManageNSLifecycle to be true
+	DropInfra bool `toml:"drop_infra"`
+
 	// ReadOnly run all pods/containers in read-only mode.
 	// This mode will mount tmpfs on /run, /tmp and /var/tmp, if those are not mountpoints
 	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
@@ -566,6 +570,7 @@ func DefaultConfig() (*Config, error) {
 			HooksDir:                 []string{hooks.DefaultDir},
 			NamespacesDir:            "/var/run",
 			ManageNSLifecycle:        true,
+			DropInfra:                true,
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
 			ulimitsConfig:            ulimits.New(),
@@ -748,6 +753,9 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	}
 	if c.GIDMappings != "" && c.ManageNSLifecycle {
 		return fmt.Errorf("cannot use GIDMappings with ManageNSLifecycle")
+	}
+	if c.DropInfra && !c.ManageNSLifecycle {
+		return fmt.Errorf("cannot drop infra without ManageNSLifecycle")
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {

@@ -619,6 +619,12 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		return err
 	}
 
+	if c.Spoofed() {
+		c.state.Status = ContainerStateStopped
+		c.state.Finished = time.Now()
+		return nil
+	}
+
 	found, err := c.findAndReleasePid()
 	// if the pid didn't exist, set the state accordingly and return.
 	if !found && err == nil {
@@ -705,6 +711,9 @@ func updateContainerStatusFromExitFile(c *Container) error {
 func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+	if c.Spoofed() {
+		return nil
+	}
 
 	if c.state.ExitCode != nil && !c.state.Finished.IsZero() {
 		logrus.Debugf("Skipping status update for: %+v", c.state)

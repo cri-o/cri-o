@@ -106,6 +106,8 @@ const (
 	// ContainerManager is the annotation key for indicating the creator and
 	// manager of the container
 	ContainerManager = "io.container.manager"
+
+	SpoofedContainer = "io.kubernetes.cri-o.Spoofed"
 )
 
 // ContainerType values

@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include "utils.h"
+#include "sysctl.h"
 
 static int bind_ns(const char *pin_path, const char *filename, const char *ns_name);
 static int directory_exists_or_create(const char* path);
@@ -28,6 +29,7 @@ int main(int argc, char **argv) {
   bool bind_ipc = false;
   bool bind_user = false;
   bool bind_cgroup = false;
+  char *sysctls = NULL;
 
   static const struct option long_options[] = {
       {"help", no_argument, NULL, 'h'},
@@ -38,9 +40,10 @@ int main(int argc, char **argv) {
       {"cgroup", optional_argument, NULL, 'c'},
       {"dir", required_argument, NULL, 'd'},
       {"filename", required_argument, NULL, 'f'},
+      {"sysctl", optional_argument, NULL, 's'},
   };
 
-  while ((c = getopt_long(argc, argv, "pchuUind:f:", long_options, NULL)) != -1) {
+  while ((c = getopt_long(argc, argv, "pchuUind:f:s:", long_options, NULL)) != -1) {
     switch (c) {
     case 'u':
       unshare_flags |= CLONE_NEWUTS;
@@ -67,11 +70,14 @@ int main(int argc, char **argv) {
       unshare_flags |= CLONE_NEWCGROUP;
       bind_cgroup = true;
       num_unshares++;
+      break;
 #endif
       pexit("unsharing cgroups is not supported by this pinns version");
-      break;
     case 'd':
       pin_path = optarg;
+      break;
+    case 's':
+	  sysctls = optarg;
       break;
     case 'f':
       filename = optarg;
@@ -102,6 +108,11 @@ int main(int argc, char **argv) {
 
   if (unshare(unshare_flags) < 0) {
     pexit("Failed to unshare namespaces");
+  }
+
+  if (sysctls && configure_sysctls(sysctls) < 0) {
+    pexit("Failed to configure sysctls after unshare");
+    return EXIT_FAILURE;
   }
 
   if (bind_uts) {

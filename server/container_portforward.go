@@ -50,13 +50,15 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 	}
 
 	c := sb.InfraContainer()
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
-		return err
-	}
+	if !c.Spoofed() {
+		if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
+			return err
+		}
 
-	cState := c.State()
-	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
-		return fmt.Errorf("container is not created or running")
+		cState := c.State()
+		if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
+			return fmt.Errorf("container is not created or running")
+		}
 	}
 
 	emptyStreamOnError = false

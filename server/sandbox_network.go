@@ -110,6 +110,7 @@ func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Debugf(context.Background(), "%v", podNetwork)
 	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatus(podNetwork)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)

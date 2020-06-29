@@ -3,6 +3,7 @@
 load helpers
 
 function setup() {
+	export CONTAINER_MANAGE_NS_LIFECYCLE=false
 	setup_test
 }
 

@@ -3,10 +3,12 @@
 package sandbox
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
@@ -82,7 +84,7 @@ func (info *namespaceInfo) toIface() (NamespaceIface, error) {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, error) {
+func pinNamespaces(nsTypes []NSType, cfg *config.Config, sysctls map[string]string) ([]NamespaceIface, error) {
 	typeToArg := map[NSType]string{
 		IPCNS:  "-i",
 		UTSNS:  "-u",
@@ -97,6 +99,9 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		"-d", cfg.NamespacesDir,
 		"-f", pinnedNamespace,
 	}
+	if len(sysctls) != 0 {
+		pinnsArgs = append(pinnsArgs, "-s", getSysctlForPinns(sysctls))
+	}
 
 	mountedNamespaces := make([]*namespaceInfo, 0, numNSToPin)
 	for _, nsType := range nsTypes {
@@ -110,7 +115,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 	pinns := cfg.PinnsPath
 
 	logrus.Debugf("calling pinns with %v", pinnsArgs)
-	output, err := exec.Command(pinns, pinnsArgs...).Output()
+	output, err := exec.Command(pinns, pinnsArgs...).CombinedOutput()
 	if len(output) != 0 {
 		logrus.Debugf("pinns output: %s", string(output))
 	}
@@ -137,6 +142,14 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		returnedNamespaces = append(returnedNamespaces, iface)
 	}
 	return returnedNamespaces, nil
+}
+
+func getSysctlForPinns(sysctls map[string]string) string {
+	g := new(bytes.Buffer)
+	for key, value := range sysctls {
+		fmt.Fprintf(g, "'%s=%s':", key, value)
+	}
+	return strings.TrimSuffix(g.String(), ":")
 }
 
 func pinPidNamespace(cfg *config.Config, path string) (iface NamespaceIface, errRet error) {

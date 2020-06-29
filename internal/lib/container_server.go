@@ -229,7 +229,9 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 		return err
 	}
 
-	cname, err := c.ReserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
+	cID := m.Annotations[annotations.ContainerID]
+
+	cname, err := c.ReserveContainerName(cID, m.Annotations[annotations.ContainerName])
 	if err != nil {
 		return err
 	}
@@ -239,22 +241,53 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 		}
 	}()
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], "", "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
-	if err != nil {
-		return err
+	var scontainer *oci.Container
+
+	// we should not take whether the server actively has DropInfra specified, but rather
+	// whether the server used to.
+	wasSpoofed := false
+	if spoofed, ok := m.Annotations[annotations.SpoofedContainer]; ok && spoofed == "true" {
+		wasSpoofed = true
+	}
+
+	if !wasSpoofed {
+		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], "", "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+		if err != nil {
+			return err
+		}
+		scontainer.SetSpec(&m)
+		scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
+
+		if m.Annotations[annotations.Volumes] != "" {
+			containerVolumes := []oci.ContainerVolume{}
+			if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
+				return fmt.Errorf("failed to unmarshal container volumes: %v", err)
+			}
+			for _, cv := range containerVolumes {
+				scontainer.AddVolume(cv)
+			}
+		}
+
+		if err := c.ContainerStateFromDisk(scontainer); err != nil {
+			return fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
+		}
+
+		// We write back the state because it is possible that crio did not have a chance to
+		// read the exit file and persist exit code into the state on reboot.
+		if err := c.ContainerStateToDisk(scontainer); err != nil {
+			return fmt.Errorf("failed to write container state to disk %q: %v", scontainer.ID(), err)
+		}
+	} else {
+		scontainer = oci.NewSpoofedContainer(cID, cname, labels, created, sandboxPath)
 	}
 
 	if err := sb.SetInfraContainer(scontainer); err != nil {
 		return err
 	}
 
-	if err := c.ContainerStateFromDisk(scontainer); err != nil {
-		return fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
-	}
-
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	if c.config.ManageNSLifecycle {
+	if c.config.ManageNSLifecycle || wasSpoofed {
 		namespacesToJoin := []struct {
 			rspecNS  rspec.LinuxNamespaceType
 			joinFunc func(string) error
@@ -279,25 +312,6 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 				return err
 			}
 		}
-	}
-
-	scontainer.SetSpec(&m)
-	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
-
-	if m.Annotations[annotations.Volumes] != "" {
-		containerVolumes := []oci.ContainerVolume{}
-		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
-			return fmt.Errorf("failed to unmarshal container volumes: %v", err)
-		}
-		for _, cv := range containerVolumes {
-			scontainer.AddVolume(cv)
-		}
-	}
-
-	// We write back the state because it is possible that crio did not have a chance to
-	// read the exit file and persist exit code into the state on reboot.
-	if err := c.ContainerStateToDisk(scontainer); err != nil {
-		return fmt.Errorf("failed to write container state to disk %q: %v", scontainer.ID(), err)
 	}
 
 	sb.SetCreated()
@@ -466,7 +480,7 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
 func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
-	if ctr == nil {
+	if ctr.Spoofed() {
 		return nil
 	}
 	if err := c.Runtime().UpdateContainerStatus(ctr); err != nil {

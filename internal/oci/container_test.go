@@ -55,6 +55,7 @@ var _ = t.Describe("Container", func() {
 		Expect(sut.GetStopSignal()).To(Equal("15"))
 		Expect(sut.CreatedAt().UnixNano()).
 			To(BeNumerically("<", time.Now().UnixNano()))
+		Expect(sut.Spoofed()).To(Equal(false))
 	})
 
 	It("should succeed to set the spec", func() {
@@ -475,5 +476,22 @@ var _ = t.Describe("Container", func() {
 			// Then
 			Expect(state.SetInitPid(state.Pid)).NotTo(BeNil())
 		})
+	})
+})
+
+var _ = t.Describe("SpoofedContainer", func() {
+	It("should succeed to get the container fields", func() {
+		sut := oci.NewSpoofedContainer("id", "name", map[string]string{"key": "label"}, time.Now(), "dir")
+		// Given
+		// When
+		// Then
+		Expect(sut.ID()).To(Equal("id"))
+		Expect(sut.Name()).To(Equal("name"))
+		labels := sut.Labels()
+		Expect(labels["key"]).To(Equal("label"))
+		Expect(sut.Spoofed()).To(Equal(true))
+		Expect(sut.CreatedAt().UnixNano()).
+			To(BeNumerically("<", time.Now().UnixNano()))
+		Expect(sut.Dir()).To(Equal("dir"))
 	})
 })
