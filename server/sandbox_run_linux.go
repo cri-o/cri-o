@@ -261,7 +261,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		defer func() {
 			if retErr != nil {
 				log.Infof(ctx, "runSandbox: unmounting shmPath for sandbox %s", sbox.ID())
-				if err2 := unix.Unmount(shmPath, unix.MNT_DETACH); err2 != nil {
+				if err2 := utils.Unmount(shmPath, unix.MNT_DETACH); err2 != nil {
 					log.Warnf(ctx, "failed to unmount shm for pod: %v", err2)
 				}
 			}

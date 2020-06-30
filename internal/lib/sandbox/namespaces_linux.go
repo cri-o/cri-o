@@ -12,6 +12,7 @@ import (
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -117,7 +118,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		// cleanup after ourselves
 		failedUmounts := make([]string, 0)
 		for _, info := range mountedNamespaces {
-			if unmountErr := unix.Unmount(info.path, unix.MNT_DETACH); unmountErr != nil {
+			if unmountErr := utils.Unmount(info.path, unix.MNT_DETACH); unmountErr != nil {
 				failedUmounts = append(failedUmounts, info.path)
 			}
 		}
@@ -139,13 +140,12 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 }
 
 func pinPidNamespace(cfg *config.Config, path string) (iface NamespaceIface, errRet error) {
-	pinnedNamespace := uuid.New().String()
-	namespaceInfo := newNamespaceInfo(cfg.NamespacesDir, pinnedNamespace, PIDNS)
-
 	// verify the path we were passed is indeed a namespace
 	if err := nspkg.IsNSorErr(path); err != nil {
 		return nil, err
 	}
+	pinnedNamespace := uuid.New().String()
+	namespaceInfo := newNamespaceInfo(cfg.NamespacesDir, pinnedNamespace, PIDNS)
 
 	// ensure the parent directory is there
 	if err := os.MkdirAll(filepath.Join(cfg.NamespacesDir, "pidns"), 0o755); err != nil {
@@ -165,13 +165,13 @@ func pinPidNamespace(cfg *config.Config, path string) (iface NamespaceIface, err
 	defer os.RemoveAll(namespaceInfo.path)
 
 	// bind mount the new netns from the pidns entry onto the mount point
-	if err := unix.Mount(path, namespaceInfo.path, "none", unix.MS_BIND, ""); err != nil {
+
+	if err := utils.Mount(path, namespaceInfo.path, "none", unix.MS_BIND, ""); err != nil {
 		return nil, err
 	}
-
 	defer func() {
 		if errRet != nil {
-			if err := unix.Unmount(namespaceInfo.path, unix.MNT_DETACH); err != nil {
+			if err := utils.Unmount(namespaceInfo.path, unix.MNT_DETACH); err != nil {
 				logrus.Errorf("failed umount after failed to pin pid namespace: %v", err)
 			}
 		}
@@ -246,7 +246,7 @@ func (n *Namespace) Remove() error {
 		return errors.Wrap(err, "unable to check if path is mounted")
 	}
 	if mounted {
-		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
+		if err := utils.Unmount(fp, unix.MNT_DETACH); err != nil {
 			return err
 		}
 	}

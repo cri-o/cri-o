@@ -297,6 +297,7 @@ func (s *Sandbox) CreateManagedPidNamespace(cfg *config.Config) (retErr error) {
 	if cfg == nil {
 		return errors.New("given config is nil")
 	}
+
 	podPidnsProc := s.nsPath(nil, PIDNS)
 	// pid must have stopped or be incorrect, report error
 	if podPidnsProc == "" {

@@ -20,6 +20,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -339,4 +340,25 @@ func GetLabelOptions(selinuxOptions *pb.SELinuxOption) []string {
 		}
 	}
 	return labels
+}
+
+// go 1.14 changed the way it handles EINTR (it no longer does). as such, we need to add EINTR handling to mount and unmount
+func Mount(source, target, fstype string, flags uintptr, data string) (err error) {
+	err = syscall.EINTR
+	for err == syscall.EINTR {
+		if err = unix.Mount(source, target, fstype, flags, data); err != nil && err != syscall.EINTR {
+			return err
+		}
+	}
+	return nil
+}
+
+func Unmount(path string, flags int) (err error) {
+	err = syscall.EINTR
+	for err == syscall.EINTR {
+		if err = unix.Unmount(path, flags); err != nil && err != syscall.EINTR {
+			return err
+		}
+	}
+	return nil
 }

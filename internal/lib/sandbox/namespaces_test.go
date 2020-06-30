@@ -602,7 +602,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))
 		})
-		It("should get managed path despite infra set", func() {
+		It("should get managed pid path despite infra set", func() {
 			// Given
 			tmpDir := createTmpDir()
 			defer os.RemoveAll(tmpDir)

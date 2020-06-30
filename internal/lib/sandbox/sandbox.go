@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -413,7 +414,7 @@ func (s *Sandbox) UnmountShm() error {
 		return err
 	}
 	if mounted, err := mount.Mounted(fp); err == nil && mounted {
-		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
+		if err := utils.Unmount(fp, unix.MNT_DETACH); err != nil {
 			return errors.Wrapf(err, "unable to unmount %s", fp)
 		}
 	}
