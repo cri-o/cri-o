@@ -1,0 +1,7 @@
+{
+  "firecracker_binary_path": "/opt/firecracker/bin/firecracker",
+  "socket_path": "/tmp/firecracker.socket",
+  "kernel_image_path": "/opt/firecracker/bin/hello-vmlinux.bin",
+  "kernel_args": "console=ttyS0 noapic reboot=k panic=1 pci=off nomodules rw",
+  "root_drive": "/opt/firecracker/bin/hello-rootfs.ext4"
+}
