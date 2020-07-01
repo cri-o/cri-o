@@ -10,6 +10,8 @@
 - name: build cri-tools
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools"
+  environment:
+    GODEBUG: asyncpreemptoff=1
 
 - name: link crictl and critest
   file:

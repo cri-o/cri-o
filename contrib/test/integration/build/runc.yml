@@ -10,6 +10,8 @@
   make:
     params: BUILDTAGS="seccomp selinux"
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
+  environment:
+    GODEBUG: asyncpreemptoff=1
 
 - name: install runc
   make:
