@@ -90,6 +90,10 @@
       include: "build/crun.yml"
       when: "build_crun | bool"
 
+    - name: clone build and install podman
+      include: "build/podman.yml"
+      when: "build_runc | bool"
+
     - name: clone build and install runc
       include: "build/runc.yml"
       when: "build_runc | bool"
