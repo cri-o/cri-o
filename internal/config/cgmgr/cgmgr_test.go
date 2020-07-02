@@ -1,6 +1,8 @@
 package cgmgr_test
 
 import (
+	"path/filepath"
+
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -186,6 +188,34 @@ var _ = t.Describe("Config", func() {
 				Expect(cgroupPath).To(ContainSubstring(cID))
 				Expect(cgroupPath).To(ContainSubstring(genericSandboxParent))
 			})
+		})
+		t.Describe("ContainerCgroupAbsolutePath", func() {
+			It("should contain default system.slice", func() {
+				// Given
+				// When
+				cgroupPath, err := sut.ContainerCgroupAbsolutePath("", cID)
+				// Then
+				Expect(err).To(BeNil())
+				Expect(cgroupPath).To(ContainSubstring(cID))
+				Expect(cgroupPath).To(ContainSubstring("system.slice"))
+			})
+			It("should be an absolute path", func() {
+				// Given
+				// When
+				cgroupPath, err := sut.ContainerCgroupAbsolutePath("", cID)
+				// Then
+				Expect(err).To(BeNil())
+				Expect(filepath.IsAbs(cgroupPath)).To(BeTrue())
+			})
+			It("should fail to expand slice", func() {
+				// Given
+				// When
+				cgroupPath, err := sut.ContainerCgroupAbsolutePath("::::", cID)
+				// Then
+				Expect(err).To(Not(BeNil()))
+				Expect(cgroupPath).To(Equal(""))
+			})
+
 		})
 		t.Describe("SandboxCgroupPath", func() {
 			It("should fail when parent too short", func() {

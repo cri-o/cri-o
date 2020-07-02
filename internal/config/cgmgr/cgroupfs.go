@@ -41,6 +41,12 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 	return filepath.Join(parent, crioPrefix+"-"+containerID)
 }
 
+// ContainerCgroupAbsolutePath just calls ContainerCgroupPath,
+// because they both return the absolute path
+func (m *CgroupfsManager) ContainerCgroupAbsolutePath(sbParent, containerID string) (string, error) {
+	return m.ContainerCgroupPath(sbParent, containerID), nil
+}
+
 // SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 // returns the cgroup parent, cgroup path, and error.
 func (*CgroupfsManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, _ error) {

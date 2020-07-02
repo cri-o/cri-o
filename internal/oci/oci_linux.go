@@ -13,7 +13,6 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
-	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -56,18 +55,13 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerSt
 	if cgroup == "" {
 		return stats, nil
 	}
-
-	// this correction has to be made because the libpod cgroups package can't find a
-	// systemd cgroup that isn't converted to a fully qualified cgroup path
-	if r.config.CgroupManager().IsSystemd() {
-		logrus.Debugf("Expanding systemd cgroup slice %v", cgroup)
-		cgroup, err = systemd.ExpandSlice(cgroup)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error expanding systemd slice to get container %s stats", ctr.ID())
-		}
+	// gets the real path of the cgroup on disk
+	cgroupPath, err := r.config.CgroupManager().ContainerCgroupAbsolutePath(cgroup, ctr.ID())
+	if err != nil {
+		return nil, err
 	}
-
-	cg, err := cgroups.Load(cgroup)
+	// checks cgroup just for the container, not the entire pod
+	cg, err := cgroups.Load(cgroupPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to load cgroup at %s", cgroup)
 	}

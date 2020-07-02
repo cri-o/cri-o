@@ -40,6 +40,10 @@ type CgroupManager interface {
 	// the cgroup path for that containerID. If parentCgroup is empty, it
 	// uses the default parent for that particular manager
 	ContainerCgroupPath(string, string) string
+	// ContainerCgroupAbsolutePath takes arguments sandbox parent cgroup and container ID and
+	// returns the cgroup path on disk for that containerID. If parentCgroup is empty, it
+	// uses the default parent for that particular manager
+	ContainerCgroupAbsolutePath(string, string) (string, error)
 	// SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 	// returns the cgroup parent, cgroup path, and error. For systemd cgroups,
 	// it also checks there is enough memory in the given cgroup
