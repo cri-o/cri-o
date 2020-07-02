@@ -540,7 +540,7 @@ func (r *runtimeVM) DeleteContainer(c *Container) error {
 		return err
 	}
 
-	if _, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()}); err != nil {
+	if _, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()}); err != nil && !errors.Is(err, ttrpc.ErrClosed) {
 		return err
 	}
 
