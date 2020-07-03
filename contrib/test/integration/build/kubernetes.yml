@@ -65,6 +65,7 @@
       export KUBE_ENABLE_CLUSTER_DNS=true
       export ENABLE_HOSTPATH_PROVISIONER=true
       export KUBE_ENABLE_CLUSTER_DASHBOARD=true
+      export DBUS_SESSION_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket
       ./hack/local-up-cluster.sh
     mode: "u=rwx,g=rwx,o=x"
 
