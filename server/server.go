@@ -39,6 +39,7 @@ import (
 const (
 	shutdownFile        = "/var/lib/crio/crio.shutdown"
 	certRefreshInterval = time.Minute * 5
+	rootlessEnvName     = "_CRIO_ROOTLESS"
 )
 
 // StreamService implements streaming.Runtime.
@@ -343,6 +344,12 @@ func New(
 	idMappings, err := getIDMappings(config)
 	if err != nil {
 		return nil, err
+	}
+
+	if os.Getenv(rootlessEnvName) == "" {
+		// Not running as rootless, reset XDG_RUNTIME_DIR and DBUS_SESSION_BUS_ADDRESS
+		os.Unsetenv("XDG_RUNTIME_DIR")
+		os.Unsetenv("DBUS_SESSION_BUS_ADDRESS")
 	}
 
 	s := &Server{
