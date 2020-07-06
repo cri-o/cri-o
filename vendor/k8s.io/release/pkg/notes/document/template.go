@@ -68,14 +68,15 @@ filename | sha512 hash
 
 ### (No, really, you MUST read this before you upgrade)
 
-{{range .}} {{println "-" .}} {{end}}
+{{range .}}{{println "-" .}} {{end}}
 {{end}}
 
 {{- if .Notes -}}
 ## Changes by Kind
 {{ range .Notes}}
 ### {{.Kind | prettyKind}}
-{{range $note := .NoteEntries }}{{println " -" $note}}{{end}}
+
+{{range $note := .NoteEntries }}{{println "-" $note}}{{end}}
 {{- end -}}
 {{- end -}}
 `

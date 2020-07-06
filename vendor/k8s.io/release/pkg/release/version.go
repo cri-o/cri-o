@@ -26,11 +26,12 @@ import (
 	"k8s.io/release/pkg/http"
 )
 
-// GitHub is a wrapper around GitHub related functionality
+// Version is a wrapper around version related functionality
 type Version struct {
 	client VersionClient
 }
 
+// VersionClient is a client for getting Kubernetes versions
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 //counterfeiter:generate . VersionClient
 type VersionClient interface {
@@ -47,15 +48,15 @@ func (*versionClient) GetURLResponse(url string) (string, error) {
 type VersionType string
 
 const (
-	// VersionStable references the latest stable Kubernetes version,
-	// for example `v1.17.3`
+	// VersionTypeStable references the latest stable Kubernetes
+	// version, for example `v1.17.3`
 	VersionTypeStable VersionType = "release/stable"
 
-	// VersionStablePreRelease references the latest stable pre release
-	// Kubernetes version, for example `v1.19.0-alpha.0`
+	// VersionTypeStablePreRelease references the latest stable pre
+	// release Kubernetes version, for example `v1.19.0-alpha.0`
 	VersionTypeStablePreRelease VersionType = "release/latest"
 
-	// VersionStable references the latest CI Kubernetes version,
+	// VersionTypeCILatest references the latest CI Kubernetes version,
 	// for example `v1.19.0-alpha.0.721+f8ff8f44206ff4`
 	VersionTypeCILatest VersionType = "ci/latest"
 
@@ -73,7 +74,7 @@ func (v *Version) SetClient(client VersionClient) {
 	v.client = client
 }
 
-// url retrieves the full URL of the Kubernetes release version
+// URL retrieves the full URL of the Kubernetes release version
 func (t VersionType) URL(version string) string {
 	url := baseURL + string(t)
 

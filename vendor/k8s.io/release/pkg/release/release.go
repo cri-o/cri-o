@@ -82,13 +82,13 @@ const (
 	ProductionBucketURL = "https://dl.k8s.io"
 )
 
-// GetDefaultKubernetesRepoURL returns the default HTTPS repo URL for Release Engineering tools.
+// GetDefaultToolRepoURL returns the default HTTPS repo URL for Release Engineering tools.
 // Expected: https://github.com/kubernetes/release
 func GetDefaultToolRepoURL() string {
 	return GetToolRepoURL(DefaultToolOrg, DefaultToolRepo, false)
 }
 
-// GetKubernetesRepoURL takes a GitHub org and repo, and useSSH as a boolean and
+// GetToolRepoURL takes a GitHub org and repo, and useSSH as a boolean and
 // returns a repo URL for Release Engineering tools.
 // Expected result is one of the following:
 // - https://github.com/<org>/release
@@ -190,7 +190,7 @@ func GetKubecrossVersion(branches ...string) (string, error) {
 
 // URLPrefixForBucket returns the URL prefix for the provided bucket string
 func URLPrefixForBucket(bucket string) string {
-	urlPrefix := fmt.Sprintf("https://storage.googleapis.com/%s/release", bucket)
+	urlPrefix := fmt.Sprintf("https://storage.googleapis.com/%s", bucket)
 	if bucket == ProductionBucket {
 		urlPrefix = ProductionBucketURL
 	}
