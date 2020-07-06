@@ -51,7 +51,6 @@ h
 --log-journald
 --log-level
 --log-size-max
---manage-network-ns-lifecycle
 --manage-ns-lifecycle
 --metrics-port
 --metrics-socket

@@ -90,7 +90,7 @@ var _ = BeforeSuite(func() {
 		},
 		"linux": {
 			"namespaces": [
-				{"type": "network", "path": "default"}
+				{"type": "network", "path": "/proc/self/ns/net"}
 			]
 		},
 		"process": {

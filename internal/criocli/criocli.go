@@ -712,11 +712,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars: []string{"CONTAINER_GRPC_MAX_SEND_MSG_SIZE"},
 		},
 		&cli.BoolFlag{
-			Name:    "manage-network-ns-lifecycle",
-			Usage:   "Deprecated: this option is being replaced by `manage_ns_lifecycle`, which is described below",
-			EnvVars: []string{"CONTAINER_MANAGE_NETWORK_NS_LIFECYCLE"},
-		},
-		&cli.BoolFlag{
 			Name:    "manage-ns-lifecycle",
 			Usage:   fmt.Sprintf("Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: %v)", defConf.ManageNSLifecycle),
 			EnvVars: []string{"CONTAINER_MANAGE_NS_LIFECYCLE"},
