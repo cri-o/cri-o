@@ -16,7 +16,8 @@ import (
 )
 
 // ImageStatus returns the status of the image.
-func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (resp *pb.ImageStatusResponse, err error) {
+func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*pb.ImageStatusResponse, error) {
+	var resp *pb.ImageStatusResponse
 	image := ""
 	img := req.GetImage()
 	if img != nil {

@@ -15,11 +15,11 @@ import (
 type errorReaderWriter struct {
 }
 
-func (m *errorReaderWriter) Write(p []byte) (n int, err error) {
+func (m *errorReaderWriter) Write(p []byte) (int, error) {
 	return 0, t.TestError
 }
 
-func (m *errorReaderWriter) Read(p []byte) (n int, err error) {
+func (m *errorReaderWriter) Read(p []byte) (int, error) {
 	return 0, t.TestError
 }
 

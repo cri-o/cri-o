@@ -17,6 +17,6 @@ func sysProcAttrPlatform() *syscall.SysProcAttr {
 	return &syscall.SysProcAttr{}
 }
 
-func newPipe() (parent *os.File, child *os.File, err error) {
+func newPipe() (*os.File, *os.File, error) {
 	return os.Pipe()
 }

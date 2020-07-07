@@ -48,7 +48,7 @@ func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerSt
 
 // ContainerStats returns stats of the container. If the container does not
 // exist, the call returns an error.
-func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsRequest) (resp *pb.ContainerStatsResponse, err error) {
+func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsRequest) (*pb.ContainerStatsResponse, error) {
 	container, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err

@@ -10,7 +10,7 @@ import (
 )
 
 // RemoveImage removes the image.
-func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (resp *pb.RemoveImageResponse, err error) {
+func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*pb.RemoveImageResponse, error) {
 	image := ""
 	img := req.GetImage()
 	if img != nil {
@@ -19,11 +19,8 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (r
 	if image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
-	var (
-		images  []string
-		deleted bool
-	)
-	images, err = s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
+	var deleted bool
+	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -43,6 +40,5 @@ func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (r
 	if !deleted && err != nil {
 		return nil, err
 	}
-	resp = &pb.RemoveImageResponse{}
-	return resp, nil
+	return &pb.RemoveImageResponse{}, nil
 }

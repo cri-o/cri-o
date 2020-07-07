@@ -27,7 +27,7 @@ func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 }
 
 // ListPodSandbox returns a list of SandBoxes.
-func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (resp *pb.ListPodSandboxResponse, err error) {
+func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
 	var pods []*pb.PodSandbox
 	var podList []*sandbox.Sandbox
 	podList = append(podList, s.ContainerServer.ListSandboxes()...)
@@ -79,8 +79,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 		}
 	}
 
-	resp = &pb.ListPodSandboxResponse{
+	return &pb.ListPodSandboxResponse{
 		Items: pods,
-	}
-	return resp, nil
+	}, nil
 }

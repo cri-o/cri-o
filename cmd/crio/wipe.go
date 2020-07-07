@@ -103,7 +103,7 @@ func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
 	return nil
 }
 
-func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages []string, err error) {
+func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages []string, _ error) {
 	containers, err := c.store.Containers()
 	if err != nil {
 		if os.IsNotExist(errors.Cause(err)) {

@@ -129,7 +129,7 @@ func getMountInfo(mountInfos []*mount.Info, dir string) *mount.Info {
 	return nil
 }
 
-func getSourceMount(source string, mountInfos []*mount.Info) (path, optionalMountInfo string, errRet error) {
+func getSourceMount(source string, mountInfos []*mount.Info) (path, optionalMountInfo string, _ error) {
 	mountinfo := getMountInfo(mountInfos, source)
 	if mountinfo != nil {
 		return source, mountinfo.Optional, nil
