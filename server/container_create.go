@@ -519,7 +519,7 @@ func addSecretsBindMounts(ctx context.Context, mountLabel, ctrRunDir string, def
 }
 
 // CreateContainer creates a new container in specified PodSandbox
-func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
+func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, retErr error) {
 	log.Infof(ctx, "Attempting to create container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	s.updateLock.RLock()
@@ -567,7 +567,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtr: releasing container name %s", containerName)
 			s.ReleaseContainerName(containerName)
 		}
@@ -578,7 +578,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtr: deleting container %s from storage", containerID)
 			err2 := s.StorageRuntimeServer().DeleteContainer(containerID)
 			if err2 != nil {
@@ -589,7 +589,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	s.addContainer(container)
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtr: removing container %s", container.ID())
 			s.removeContainer(container)
 		}
@@ -599,7 +599,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", containerID)
 			if err2 := s.CtrIDIndex().Delete(containerID); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", containerID)
@@ -623,11 +623,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	log.Infof(ctx, "Created container %s: %s", container.ID(), container.Description())
-	resp := &pb.CreateContainerResponse{
-		ContainerId: containerID,
-	}
 
-	return resp, nil
+	return &pb.CreateContainerResponse{
+		ContainerId: containerID,
+	}, nil
 }
 
 func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
