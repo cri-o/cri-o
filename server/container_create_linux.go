@@ -263,7 +263,7 @@ func makeAccessible(path string, uid, gid int) error {
 }
 
 // nolint:gocyclo
-func (s *Server) createSandboxContainer(ctx context.Context, containerID, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (cntr *oci.Container, errRet error) {
+func (s *Server) createSandboxContainer(ctx context.Context, containerID, containerName string, sb *sandbox.Sandbox, sandboxConfig *pb.PodSandboxConfig, containerConfig *pb.ContainerConfig) (cntr *oci.Container, retErr error) {
 	if sb == nil {
 		return nil, errors.New("createSandboxContainer needs a sandbox")
 	}
@@ -416,7 +416,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 	}
 
 	defer func() {
-		if errRet != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtrLinux: deleting container %s from storage", containerInfo.ID)
 			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
 			if err2 != nil {
@@ -844,7 +844,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
 	defer func() {
-		if errRet != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtrLinux: stopping storage container %s", containerID)
 			if err := s.StorageRuntimeServer().StopContainer(containerID); err != nil {
 				log.Warnf(ctx, "couldn't stop storage container: %v: %v", containerID, err)
