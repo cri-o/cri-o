@@ -77,7 +77,7 @@ func newRuntimeVM(path string) RuntimeImpl {
 }
 
 // CreateContainer creates a container.
-func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (err error) {
+func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (retErr error) {
 	logrus.Debug("runtimeVM.createContainer() start")
 	defer logrus.Debug("runtimeVM.createContainer() end")
 
@@ -98,7 +98,7 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (err erro
 	}
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			containerIO.Close()
 		}
 	}()
@@ -118,7 +118,7 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (err erro
 	r.Unlock()
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			logrus.WithError(err).Warnf("Cleaning up container %s", c.ID())
 			if cleanupErr := r.deleteContainer(c, true); cleanupErr != nil {
 				logrus.WithError(cleanupErr).Infof("deleteContainer failed for container %s", c.ID())
@@ -309,7 +309,7 @@ func (r *runtimeVM) ExecSyncContainer(c *Container, command []string, timeout in
 	}, nil
 }
 
-func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) (exitCode int32, err error) {
+func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) (exitCode int32, retErr error) {
 	logrus.Debug("runtimeVM.execContainer() start")
 	defer logrus.Debug("runtimeVM.execContainer() end")
 
@@ -365,7 +365,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	}
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			if err := r.remove(ctx, c.ID(), execID); err != nil {
 				logrus.Debugf("unable to remove container %s: %v", c.ID(), err)
 			}
