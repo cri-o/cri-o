@@ -20,14 +20,14 @@ const (
 )
 
 // ContainerStatus returns status of the container.
-func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (resp *pb.ContainerStatusResponse, err error) {
+func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
 	containerID := c.ID()
-	resp = &pb.ContainerStatusResponse{
+	resp := &pb.ContainerStatusResponse{
 		Status: &pb.ContainerStatus{
 			Id:          containerID,
 			Metadata:    c.Metadata(),

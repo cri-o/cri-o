@@ -17,8 +17,8 @@ var ErrNotFound = errors.New("process not found")
 // and only if the returned err is non-nil.
 //
 // [1]: https://golang.org/pkg/os/#FindProcess
-func FindProcess(pid int) (process *os.Process, err error) {
-	process, err = findProcess(pid)
+func FindProcess(pid int) (*os.Process, error) {
+	process, err := findProcess(pid)
 	if err != nil {
 		releaseErr := process.Release()
 		process = nil

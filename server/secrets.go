@@ -83,7 +83,7 @@ func readFile(root, name string) ([]SecretData, error) {
 }
 
 // getMountsMap separates the host:container paths
-func getMountsMap(path string) (host, container string, err error) {
+func getMountsMap(path string) (host, container string, _ error) {
 	arr := strings.SplitN(path, ":", 2)
 	if len(arr) == 2 {
 		return arr[0], arr[1], nil

@@ -11,7 +11,7 @@ import (
 const networkNotReadyReason = "NetworkPluginNotReady"
 
 // Status returns the status of the runtime
-func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.StatusResponse, err error) {
+func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
 	runtimeCondition := &pb.RuntimeCondition{
 		Type:   pb.RuntimeReady,
 		Status: true,
@@ -27,14 +27,12 @@ func (s *Server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.St
 		networkCondition.Message = fmt.Sprintf("Network plugin returns error: %v", err)
 	}
 
-	resp = &pb.StatusResponse{
+	return &pb.StatusResponse{
 		Status: &pb.RuntimeStatus{
 			Conditions: []*pb.RuntimeCondition{
 				runtimeCondition,
 				networkCondition,
 			},
 		},
-	}
-
-	return resp, nil
+	}, nil
 }

@@ -235,6 +235,6 @@ func (f *fifo) Close() (retErr error) {
 	}
 }
 
-func mkfifo(path string, mode uint32) (err error) {
+func mkfifo(path string, mode uint32) error {
 	return syscall.Mkfifo(path, mode)
 }

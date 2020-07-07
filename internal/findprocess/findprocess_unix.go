@@ -7,8 +7,8 @@ import (
 	"syscall"
 )
 
-func findProcess(pid int) (process *os.Process, err error) {
-	process, err = os.FindProcess(pid)
+func findProcess(pid int) (*os.Process, error) {
+	process, err := os.FindProcess(pid)
 	if err != nil {
 		return process, err
 	}

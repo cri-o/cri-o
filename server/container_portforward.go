@@ -14,8 +14,8 @@ import (
 )
 
 // PortForward prepares a streaming endpoint to forward ports from a PodSandbox.
-func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (resp *pb.PortForwardResponse, err error) {
-	resp, err = s.getPortForward(req)
+func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+	resp, err := s.getPortForward(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare portforward endpoint")
 	}

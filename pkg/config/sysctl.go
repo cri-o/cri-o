@@ -22,7 +22,8 @@ func (s *Sysctl) Value() string {
 }
 
 // Sysctls returns the parsed sysctl slice and an error if not parsable
-func (c *RuntimeConfig) Sysctls() (sysctls []Sysctl, err error) {
+func (c *RuntimeConfig) Sysctls() ([]Sysctl, error) {
+	sysctls := make([]Sysctl, 0, len(c.DefaultSysctls))
 	for _, sysctl := range c.DefaultSysctls {
 		// skip empty values for sake of backwards compatibility
 		if sysctl == "" {

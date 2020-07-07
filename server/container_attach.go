@@ -13,8 +13,8 @@ import (
 )
 
 // Attach prepares a streaming endpoint to attach to a running container.
-func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (resp *pb.AttachResponse, err error) {
-	resp, err = s.getAttach(req)
+func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (*pb.AttachResponse, error) {
+	resp, err := s.getAttach(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare attach endpoint")
 	}

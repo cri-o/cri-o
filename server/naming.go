@@ -25,13 +25,13 @@ func makeSandboxContainerName(sandboxConfig *pb.PodSandboxConfig) string {
 	}, nameDelimiter)
 }
 
-func (s *Server) ReserveSandboxContainerIDAndName(config *pb.PodSandboxConfig) (name string, err error) {
+func (s *Server) ReserveSandboxContainerIDAndName(config *pb.PodSandboxConfig) (string, error) {
 	if config == nil || config.Metadata == nil {
 		return "", fmt.Errorf("cannot generate sandbox container name without metadata")
 	}
 
 	id := stringid.GenerateNonCryptoID()
-	name, err = s.ReserveContainerName(id, makeSandboxContainerName(config))
+	name, err := s.ReserveContainerName(id, makeSandboxContainerName(config))
 	if err != nil {
 		return "", err
 	}

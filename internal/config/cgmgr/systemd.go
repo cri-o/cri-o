@@ -51,7 +51,7 @@ func (*SystemdManager) ContainerCgroupPath(sbParent, containerID string) string 
 // cgroupPathToClean should always be returned empty. It is part of the interface to return the cgroup path
 // that cri-o is responsible for cleaning up upon the container's death.
 // Systemd takes care of this cleaning for us, so return an empty string
-func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (cgroupPathToClean string, err error) {
+func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (cgroupPathToClean string, _ error) {
 	if strings.HasSuffix(conmonCgroup, ".slice") {
 		cgroupParent = conmonCgroup
 	}
@@ -67,7 +67,7 @@ func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string
 // SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 // returns the cgroup parent, cgroup path, and error.
 // It also checks there is enough memory in the given cgroup
-func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, err error) {
+func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, _ error) {
 	if sbParent == "" {
 		return "", "", nil
 	}

@@ -21,8 +21,9 @@ import (
 var localRegistryPrefix = libpodImage.DefaultLocalRegistry + "/"
 
 // PullImage pulls a image with authentication config.
-func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp *pb.PullImageResponse, err error) {
+func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.PullImageResponse, error) {
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
+	var err error
 	image := ""
 	img := req.GetImage()
 	if img != nil {
@@ -86,10 +87,9 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (resp 
 	}
 
 	log.Infof(ctx, "Pulled image: %v", pullOp.imageRef)
-	resp = &pb.PullImageResponse{
+	return &pb.PullImageResponse{
 		ImageRef: pullOp.imageRef,
-	}
-	return resp, nil
+	}, nil
 }
 
 // pullImage performs the actual pull operation of PullImage. Used to separate
@@ -272,7 +272,7 @@ func tryIncrementImagePullFailureMetric(ctx context.Context, img string, err err
 	}
 }
 
-func decodeDockerAuth(s string) (user, password string, err error) {
+func decodeDockerAuth(s string) (user, password string, _ error) {
 	decoded, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
 		return "", "", err

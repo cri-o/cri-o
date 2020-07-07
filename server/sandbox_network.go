@@ -101,7 +101,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 }
 
 // getSandboxIP retrieves the IP address for the sandbox
-func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) (podIPs []string, err error) {
+func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) ([]string, error) {
 	if sb.HostNetwork() {
 		return nil, nil
 	}
@@ -120,6 +120,7 @@ func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) (podIPs []string, err error)
 		return nil, fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 	}
 
+	podIPs := make([]string, 0, len(res.IPs))
 	for _, podIPConfig := range res.IPs {
 		podIPs = append(podIPs, strings.Split(podIPConfig.Address.String(), "/")[0])
 	}

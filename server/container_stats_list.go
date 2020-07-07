@@ -7,7 +7,7 @@ import (
 )
 
 // ListContainerStats returns stats of all running containers.
-func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerStatsRequest) (resp *pb.ListContainerStatsResponse, err error) {
+func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerStatsRequest) (*pb.ListContainerStatsResponse, error) {
 	ctrList, err := s.ContainerServer.ListContainers()
 	if err != nil {
 		return nil, err

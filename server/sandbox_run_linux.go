@@ -680,7 +680,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	return resp, nil
 }
 
-func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
+func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, _ error) {
 	shmPath = filepath.Join(podSandboxRunDir, "shm")
 	if err := os.Mkdir(shmPath, 0700); err != nil {
 		return "", err
