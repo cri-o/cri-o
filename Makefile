@@ -349,6 +349,12 @@ mock-containerstorage: ${MOCKGEN}
 		-destination ${MOCK_PATH}/containerstorage/containerstorage.go \
 		github.com/containers/storage Store
 
+mock-cmdrunner: ${MOCKGEN}
+	${MOCKGEN} \
+		-package cmdrunnermock \
+		-destination ${MOCK_PATH}/cmdrunner/cmdrunner.go \
+		github.com/cri-o/cri-o/utils/cmdrunner CommandRunner
+
 mock-criostorage: ${MOCKGEN}
 	${MOCKGEN} \
 		-package criostoragemock \

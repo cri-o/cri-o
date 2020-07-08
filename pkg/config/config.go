@@ -21,6 +21,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/conmonmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
@@ -300,6 +301,9 @@ type RuntimeConfig struct {
 
 	// cgroupManager is the internal CgroupManager configuration
 	cgroupManager cgmgr.CgroupManager
+
+	// conmonManager is the internal ConmonManager configuration
+	conmonManager *conmonmgr.ConmonManager
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -854,8 +858,16 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 func (c *RuntimeConfig) ValidateConmonPath(executable string) error {
 	var err error
 	c.Conmon, err = validateExecutablePath(executable, c.Conmon)
+	if err != nil {
+		return err
+	}
+	c.conmonManager, err = conmonmgr.New(c.Conmon)
 
 	return err
+}
+
+func (c *RuntimeConfig) ConmonSupportsSync() bool {
+	return c.conmonManager.SupportsSync()
 }
 
 func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
