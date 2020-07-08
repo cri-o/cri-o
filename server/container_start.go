@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
@@ -23,6 +24,11 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		return nil, fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
 	}
 
+	sandbox := s.getSandbox(c.Sandbox())
+	useHighPerformanceRuntimeHandler := strings.Contains(
+		sandbox.RuntimeHandler(),
+		runtimeHandlerHighPerformance,
+	)
 	defer func() {
 		// if the call to StartContainer fails below we still want to fill
 		// some fields of a container status. In particular, we're going to
@@ -34,7 +40,19 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		if err := s.ContainerStateToDisk(c); err != nil {
 			log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
 		}
+
+		if useHighPerformanceRuntimeHandler && shouldCPULoadBalancingBeDisabled(sandbox.Annotations()) {
+			if err := setCPUSLoadBalancing(c, true, schedDomainDir); err != nil {
+				log.Warnf(ctx, "failed to set the container %q CPUs load balancing to true: %v", c.ID(), err)
+			}
+		}
 	}()
+
+	if useHighPerformanceRuntimeHandler && shouldCPULoadBalancingBeDisabled(sandbox.Annotations()) {
+		if err := setCPUSLoadBalancing(c, false, schedDomainDir); err != nil {
+			return nil, fmt.Errorf("failed to set the container %q CPUs load balancing to false: %v", c.ID(), err)
+		}
+	}
 
 	if err := s.Runtime().StartContainer(c); err != nil {
 		return nil, fmt.Errorf("failed to start container %s: %v", c.ID(), err)
