@@ -510,7 +510,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with valid file outside $PATH", func() {
 			// Given
-			sut.RuntimeConfig.Conmon = validDirPath
+			sut.RuntimeConfig.Conmon = validFilePath
 
 			// When
 			err := sut.RuntimeConfig.ValidateConmonPath("")
