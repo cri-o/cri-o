@@ -168,9 +168,6 @@ func (s *Server) createContainerPlatform(container *oci.Container, cgroupParent 
 		rootPair := s.defaultIDMappings.RootPair()
 
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
-			if err := os.Chown(path, rootPair.UID, rootPair.GID); err != nil {
-				return errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
-			}
 			if err := makeAccessible(path, rootPair.UID, rootPair.GID); err != nil {
 				return errors.Wrapf(err, "cannot make %s accessible to %d:%d", path, rootPair.UID, rootPair.GID)
 			}
@@ -181,6 +178,9 @@ func (s *Server) createContainerPlatform(container *oci.Container, cgroupParent 
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
 func makeAccessible(path string, uid, gid int) error {
+	if err := os.Chown(path, uid, gid); err != nil {
+		return errors.Wrapf(err, "cannot chown %s to %d:%d", path, uid, gid)
+	}
 	for ; path != "/"; path = filepath.Dir(path) {
 		st, err := os.Stat(path)
 		if err != nil {

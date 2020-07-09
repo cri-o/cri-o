@@ -610,7 +610,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		rootPair := s.defaultIDMappings.RootPair()
 		for _, path := range pathsToChown {
-			if err := os.Chown(path, rootPair.UID, rootPair.GID); err != nil {
+			if err := makeAccessible(path, rootPair.UID, rootPair.GID); err != nil {
 				return nil, errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
 			}
 		}
