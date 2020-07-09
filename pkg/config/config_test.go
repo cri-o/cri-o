@@ -422,6 +422,17 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
+
+		It("should fail on invalid conmon cgroup", func() {
+			// Given
+			sut.ConmonCgroup = "invalid"
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 	})
 
 	t.Describe("ValidateRuntimes", func() {
