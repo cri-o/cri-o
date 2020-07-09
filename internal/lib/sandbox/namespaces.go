@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/pkg/errors"
@@ -68,19 +69,19 @@ func (m *ManagedNamespace) Path() string {
 
 // CreateManagedNamespaces calls pinnsPath on all the managed namespaces for the sandbox.
 // It returns a slice of ManagedNamespaces it created.
-func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []NSType, cfg *config.Config) ([]*ManagedNamespace, error) {
-	return s.CreateNamespacesWithFunc(managedNamespaces, cfg, pinNamespaces)
+func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []NSType, idMappings *idtools.IDMappings, cfg *config.Config) ([]*ManagedNamespace, error) {
+	return s.CreateNamespacesWithFunc(managedNamespaces, idMappings, cfg, pinNamespaces)
 }
 
 // CreateManagedNamespacesWithFunc is mainly added for testing purposes. There's no point in actually calling the pinns binary
 // in unit tests, so this function allows the actual pin func to be abstracted out. Every other caller should use CreateManagedNamespaces
-func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, cfg *config.Config, pinFunc func([]NSType, *config.Config) ([]NamespaceIface, error)) (mns []*ManagedNamespace, retErr error) {
+func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, idMappings *idtools.IDMappings, cfg *config.Config, pinFunc func([]NSType, *config.Config, *idtools.IDMappings) ([]NamespaceIface, error)) (mns []*ManagedNamespace, retErr error) {
 	typesAndPaths := make([]*ManagedNamespace, 0, 4)
 	if len(managedNamespaces) == 0 {
 		return typesAndPaths, nil
 	}
 
-	namespaces, err := pinFunc(managedNamespaces, cfg)
+	namespaces, err := pinFunc(managedNamespaces, cfg, idMappings)
 	if err != nil {
 		return nil, err
 	}
@@ -115,11 +116,13 @@ func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, cfg *conf
 				nsPath: namespace.Path(),
 			})
 		case USERNS:
-			s.userns = namespaceIface
-			typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-				nsType: USERNS,
-				nsPath: namespace.Path(),
-			})
+			if idMappings != nil {
+				s.userns = namespaceIface
+				typesAndPaths = append(typesAndPaths, &ManagedNamespace{
+					nsType: USERNS,
+					nsPath: namespace.Path(),
+				})
+			}
 		default:
 			// This should never happen
 			err = errors.New("Invalid namespace type")

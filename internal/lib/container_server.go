@@ -31,6 +31,10 @@ import (
 // `io.container.manager`.
 const ContainerManagerCRIO = "cri-o"
 
+// UsernsMode is the user namespace mode to use
+// TODO: move to the annotations pkg.
+const UsernsModeAnnotation = "io.kubernetes.cri-o.userns-mode"
+
 // ContainerServer implements the ImageServer
 type ContainerServer struct {
 	runtime              *oci.Runtime
@@ -199,7 +203,7 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 		return errors.Wrap(err, "parsing created timestamp annotation")
 	}
 
-	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created)
+	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[UsernsModeAnnotation])
 	if err != nil {
 		return err
 	}

@@ -290,6 +290,11 @@ type RuntimeConfig struct {
 	// will only be able to write to volumes mounted into them
 	ReadOnly bool `toml:"read_only"`
 
+	// AllowUsernsAnnotation specifies whether CRI-O honors the io.kubernetes.cri-o.userns-mode
+	// annotation.  This is an experimental feature, do not enable in production.
+	// It might be changed in future.
+	AllowUsernsAnnotation bool `toml:"allow_userns_annotation"`
+
 	// seccompConfig is the internal seccomp configuration
 	seccompConfig *seccomp.Config
 
