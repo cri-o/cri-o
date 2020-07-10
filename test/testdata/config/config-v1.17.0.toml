@@ -229,7 +229,7 @@ ctr_stop_timeout = 0
 
 # manage_ns_lifecycle determines whether we pin and remove namespaces
 # and manage their lifecycle
-manage_ns_lifecycle = false
+manage_ns_lifecycle = true
 
 # The directory where the state of the managed namespaces gets tracked.
 # Only used when manage_ns_lifecycle is true.
