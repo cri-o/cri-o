@@ -11,6 +11,14 @@
         runtime_type = "oci"
         runtime_root = "/run/runc"
 
+- name: set manage network ns lifecycle
+  copy:
+    dest: /etc/crio/crio.conf.d/01-ns-lifecycle.conf
+    content: |
+      [crio.runtime]
+      cgroup_manager = "cgroupfs"
+      conmon_cgroup = "pod"
+
 - name: create ssh keys
   shell: ssh-keygen -b 2048 -t rsa -f "{{ ssh_location }}" -q -N ""
   args:
