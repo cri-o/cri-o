@@ -1,11 +1,11 @@
 package conmonmgr
 
 import (
-	"bytes"
-	"os/exec"
+	"path"
 	"regexp"
 	"strconv"
 
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -26,34 +26,45 @@ type ConmonManager struct {
 
 // this function is heavily based on github.com/containers/common#probeConmon
 func New(conmonPath string) (*ConmonManager, error) {
-	c := &ConmonManager{}
-	var out bytes.Buffer
+	return newWithCommandRunner(conmonPath, &cmdrunner.RealCommandRunner{})
+}
 
-	cmd := exec.Command(conmonPath, "--version")
-	cmd.Stdout = &out
-	err := cmd.Run()
+func newWithCommandRunner(conmonPath string, runner cmdrunner.CommandRunner) (*ConmonManager, error) {
+	if !path.IsAbs(conmonPath) {
+		return nil, errors.Errorf("conmon path is not absolute: %s", conmonPath)
+	}
+	out, err := runner.CombinedOutput(conmonPath, "--version")
 	if err != nil {
 		return nil, err
 	}
 	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
 
-	matches := r.FindStringSubmatch(out.String())
+	matches := r.FindStringSubmatch(string(out))
 	if len(matches) != 4 {
-		return nil, err
+		return nil, errors.Errorf("conmon version returned unexpected output %s", string(out))
 	}
 
-	if c.majorVersion, err = strconv.Atoi(matches[1]); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse major version of conmon")
-	}
-	if c.minorVersion, err = strconv.Atoi(matches[2]); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse minor version of conmon")
-	}
-	if c.patchVersion, err = strconv.Atoi(matches[3]); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse patch version of conmon")
+	c := new(ConmonManager)
+	if err := c.parseConmonVersion(matches[1], matches[2], matches[3]); err != nil {
+		return nil, err
 	}
 
 	c.initializeSupportsSync()
 	return c, nil
+}
+
+func (c *ConmonManager) parseConmonVersion(major, minor, patch string) error {
+	var err error
+	if c.majorVersion, err = strconv.Atoi(major); err != nil {
+		return errors.Wrapf(err, "failed to parse major version of conmon")
+	}
+	if c.minorVersion, err = strconv.Atoi(minor); err != nil {
+		return errors.Wrapf(err, "failed to parse minor version of conmon")
+	}
+	if c.patchVersion, err = strconv.Atoi(patch); err != nil {
+		return errors.Wrapf(err, "failed to parse patch version of conmon")
+	}
+	return nil
 }
 
 func (c *ConmonManager) initializeSupportsSync() {
