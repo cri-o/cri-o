@@ -18,6 +18,7 @@
       [crio.runtime]
       cgroup_manager = "cgroupfs"
       conmon_cgroup = "pod"
+  when: "(cgroupv2 is undefined) or (cgroupv2 == False) | bool"
 
 - name: create ssh keys
   shell: ssh-keygen -b 2048 -t rsa -f "{{ ssh_location }}" -q -N ""
