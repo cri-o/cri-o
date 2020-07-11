@@ -1,0 +1,15 @@
+---
+- name: clone podman repo
+  git:
+    repo: "https://github.com/containers/libpod.git"
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/libpod"
+    version: "v1.9"
+
+- name: build podman
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/libpod"
+
+- name: install podman
+  make:
+    target: install
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/libpod"
