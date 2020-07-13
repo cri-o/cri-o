@@ -82,6 +82,19 @@ func run() error {
 	}
 	defer func() { err = os.RemoveAll(templateFile.Name()) }()
 
+	// Check if we're on a tag and adapt variables if necessary
+	bundleVersion := head[:9]
+	shortHead := head[:7]
+	endRev := head
+	if output, err := command.New(
+		"git", "describe", "--exact-match",
+	).RunSilentSuccessOutput(); err == nil {
+		foundTag := output.OutputTrimNL()
+		bundleVersion = foundTag
+		shortHead = foundTag
+		endRev = foundTag
+	}
+
 	if _, err := templateFile.WriteString(fmt.Sprintf(`# CRI-O %s
 
 The release notes have been generated for the commit range
@@ -111,10 +124,10 @@ Download the static release bundle via our Google Cloud Bucket:
 {{- end -}}
 `,
 		endTag,
-		startTag, head[:7],
-		startTag, head,
+		startTag, shortHead,
+		startTag, endRev,
 		time.Now().Format(time.RFC1123),
-		head[:9], head[:9],
+		bundleVersion, bundleVersion,
 		startTag,
 	)); err != nil {
 		return errors.Wrap(err, "writing tmplate to file")
