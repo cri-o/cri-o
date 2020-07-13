@@ -711,6 +711,11 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 		// went away we do not error out stopping kubernetes to recover.
 		// We always populate the fields below so kube can restart/reschedule
 		// containers failing.
+		if exitErr, isExitError := err.(*exec.ExitError); isExitError {
+			logrus.Errorf("failed to update container state for %s: stdout: %s, stderr: %s", c.id, string(out), string(exitErr.Stderr))
+		} else {
+			logrus.Errorf("failed to update container state for %s: %v", c.id, err)
+		}
 		c.state.Status = ContainerStateStopped
 		if err := updateContainerStatusFromExitFile(c); err != nil {
 			c.state.Finished = time.Now()
@@ -756,6 +761,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 				return fmt.Errorf("status code conversion failed: %v", err)
 			}
 			c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
+			logrus.Debugf("found exit code for %s: %d", c.id, statusCode)
 		}
 
 		oomFilePath := filepath.Join(c.bundlePath, "oom")
