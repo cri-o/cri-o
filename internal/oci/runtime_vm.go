@@ -113,12 +113,6 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (err erro
 		cio: containerIO,
 	}
 
-	defer func() {
-		if err != nil {
-			delete(r.ctrs, c.ID())
-		}
-	}()
-
 	// We can now create the container, interacting with the server
 	request := &task.CreateTaskRequest{
 		ID:       c.ID(),
