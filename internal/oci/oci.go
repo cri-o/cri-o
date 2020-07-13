@@ -126,11 +126,10 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 				// Check if the container is stopped
 				if err := impl.UpdateContainerStatus(c); err != nil {
 					done <- err
-					close(done)
 					return
 				}
 				if c.State().Status == ContainerStateStopped {
-					close(done)
+					done <- nil
 					return
 				}
 				time.Sleep(100 * time.Millisecond)
@@ -139,6 +138,7 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) (
 	}()
 	select {
 	case err = <-done:
+		close(done)
 		break
 	case <-ctx.Done():
 		close(chControl)
