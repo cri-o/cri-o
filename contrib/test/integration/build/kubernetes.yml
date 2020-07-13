@@ -55,7 +55,7 @@
       export PATH=/usr/local/go/bin:/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/root/bin:{{ ansible_env.GOPATH }}/bin:{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/third_party/etcd:{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/local/bin/linux/amd64/
       export FEATURE_GATES="AllAlpha=false,RunAsGroup=true"
       export CONTAINER_RUNTIME=remote
-      export CGROUP_DRIVER=cgroupfs
+      export CGROUP_DRIVER=systemd
       export CONTAINER_RUNTIME_ENDPOINT='{{ crio_socket }}'
       export ALLOW_SECURITY_CONTEXT=","
       export ALLOW_PRIVILEGED=1
