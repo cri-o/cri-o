@@ -825,6 +825,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "unable to update cgroup manager")
 		}
 		c.cgroupManager = cgroupManager
+
+		if !c.cgroupManager.IsSystemd() && c.ConmonCgroup != "pod" && c.ConmonCgroup != "" {
+			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
+		}
 	}
 
 	return nil
