@@ -24,7 +24,7 @@ func SystemdHasCollectMode() bool {
 			systemdHasCollectModeErr = err
 			return
 		}
-		matches := regexp.MustCompile(`^systemd (?P<Version>\d+) .*`).FindStringSubmatch(string(stdout))
+		matches := regexp.MustCompile(`^systemd (?P<Version>\d+)`).FindStringSubmatch(string(stdout))
 
 		if len(matches) != 2 {
 			systemdHasCollectModeErr = errors.Errorf("systemd version command returned incompatible formatted information: %v", string(stdout))
