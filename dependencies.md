@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 13 Jul 2020 19:33:27 UTC for commit [ce8dc56][0]._
+_Generated on Mon, 13 Jul 2020 20:50:25 UTC for commit [e8f8348][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ce8dc56425179212032f006dd11dc32cf51624a4
+[0]: https://github.com/cri-o/cri-o/commit/e8f8348bd339c48961ebef212685b0744c8da662
 
 ## Outdated Dependencies
 
@@ -16,7 +16,7 @@ _Generated on Mon, 13 Jul 2020 19:33:27 UTC for commit [ce8dc56][0]._
 | github.com/containers/image/v5       | v5.4.4                               | v5.5.1                             | true   | true             |
 | github.com/containers/libpod         | v1.9.2                               | v1.9.3                             | true   | true             |
 | github.com/containers/ocicrypt       | v1.0.2                               | v1.0.3                             | true   | true             |
-| github.com/containers/storage        | v1.19.2                              | v1.21.0                            | true   | true             |
+| github.com/containers/storage        | v1.19.2                              | v1.21.1                            | true   | true             |
 | github.com/coreos/go-systemd/v22     | v22.0.0                              | v22.1.0                            | true   | true             |
 | github.com/creack/pty                | v1.1.10                              | v1.1.11                            | true   | true             |
 | github.com/onsi/ginkgo               | v1.12.1                              | v1.14.0                            | true   | true             |
@@ -126,7 +126,7 @@ _Generated on Mon, 13 Jul 2020 19:33:27 UTC for commit [ce8dc56][0]._
 | github.com/containers/libtrust                          | v0.0.0-20190913040956-14b96171aa3b                | v0.0.0-20200511145503-9c3a6c22cd9a | false  | true             |
 | github.com/containers/ocicrypt                          | v1.0.2                                            | v1.0.3                             | true   | true             |
 | github.com/containers/psgo                              | v1.4.0                                            | v1.5.1                             | false  | true             |
-| github.com/containers/storage                           | v1.19.2                                           | v1.21.0                            | true   | true             |
+| github.com/containers/storage                           | v1.19.2                                           | v1.21.1                            | true   | true             |
 | github.com/coredns/corefile-migration                   | v1.0.6                                            | v1.0.10                            | false  | true             |
 | github.com/coreos/bbolt                                 | v1.3.2                                            | v1.3.5                             | false  | true             |
 | github.com/coreos/etcd                                  | v3.3.10+incompatible                              | v3.3.22+incompatible               | false  | true             |
@@ -446,7 +446,7 @@ _Generated on Mon, 13 Jul 2020 19:33:27 UTC for commit [ce8dc56][0]._
 | github.com/tmc/grpc-websocket-proxy                     | v0.0.0-20190109142713-0ad062ec5ee5                | v0.0.0-20200427203606-3cfed13b9966 | false  | true             |
 | github.com/tommy-muehle/go-mnd                          | v1.3.1-0.20200224220436-e6f9a994e8fa              |                                    | false  | true             |
 | github.com/u-root/u-root                                | v6.0.0+incompatible                               |                                    | false  | true             |
-| github.com/uber/jaeger-client-go                        | v2.22.1+incompatible                              | v2.24.0+incompatible               | false  | true             |
+| github.com/uber/jaeger-client-go                        | v2.22.1+incompatible                              | v2.25.0+incompatible               | false  | true             |
 | github.com/uber/jaeger-lib                              | v2.2.0+incompatible                               |                                    | false  | true             |
 | github.com/ugorji/go                                    | v1.1.4                                            | v1.1.7                             | false  | true             |
 | github.com/ugorji/go/codec                              | v0.0.0-20181204163529-d75b2dcb6bc8                | v1.1.7                             | false  | true             |
@@ -497,7 +497,7 @@ _Generated on Mon, 13 Jul 2020 19:33:27 UTC for commit [ce8dc56][0]._
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.2                                            | v0.3.3                             | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200630173020-3af7569d3a1e | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200422022333-3d57cf2e726e                | v0.0.0-20200713190748-01425d701627 | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200422022333-3d57cf2e726e                | v0.0.0-20200713195033-f8240f79c3d3 | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                |                                    | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.7.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200603212716-16abd5ac5bc7 | false  | true             |
