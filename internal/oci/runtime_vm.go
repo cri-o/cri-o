@@ -774,7 +774,7 @@ func (r *runtimeVM) remove(ctx context.Context, ctrID, execID string) error {
 	return nil
 }
 
-func (r runtimeVM) resizePty(ctx context.Context, ctrID, execID string, size remotecommand.TerminalSize) error {
+func (r *runtimeVM) resizePty(ctx context.Context, ctrID, execID string, size remotecommand.TerminalSize) error {
 	_, err := r.task.ResizePty(ctx, &task.ResizePtyRequest{
 		ID:     ctrID,
 		ExecID: execID,
