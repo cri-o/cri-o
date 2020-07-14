@@ -235,7 +235,7 @@ func translateLabelsToDescription(labels map[string]string) string {
 func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
 	if _, err := os.Stat(keysPath); os.IsNotExist(err) {
 		logrus.Debugf("skipping non-existing decryption_keys_path: %s", keysPath)
-		return nil, nil
+		return &encconfig.DecryptConfig{}, nil
 	}
 
 	base64Keys := []string{}
