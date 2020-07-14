@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -43,6 +44,7 @@ type runtimeVM struct {
 	client *ttrpc.Client
 	task   task.TaskService
 
+	sync.Mutex
 	ctrs map[string]containerInfo
 }
 
@@ -109,13 +111,17 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (err erro
 	containerIO.AddOutput("logfile", f, f)
 	containerIO.Pipe()
 
+	r.Lock()
 	r.ctrs[c.ID()] = containerInfo{
 		cio: containerIO,
 	}
+	r.Unlock()
 
 	defer func() {
 		if err != nil {
+			r.Lock()
 			delete(r.ctrs, c.ID())
+			r.Unlock()
 		}
 	}()
 
@@ -527,7 +533,9 @@ func (r *runtimeVM) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	r.Lock()
 	cInfo, ok := r.ctrs[c.ID()]
+	r.Unlock()
 	if !ok {
 		return errors.New("Could not retrieve container information")
 	}
@@ -544,7 +552,9 @@ func (r *runtimeVM) DeleteContainer(c *Container) error {
 		return err
 	}
 
+	r.Lock()
 	delete(r.ctrs, c.ID())
+	r.Unlock()
 
 	return nil
 }
@@ -688,7 +698,9 @@ func (r *runtimeVM) AttachContainer(c *Container, inputStream io.Reader, outputS
 		}
 	})
 
+	r.Lock()
 	cInfo, ok := r.ctrs[c.ID()]
+	r.Unlock()
 	if !ok {
 		return errors.New("Could not retrieve container information")
 	}
