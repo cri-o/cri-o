@@ -1,4 +1,4 @@
-package server_test
+package server
 
 import (
 	"context"
@@ -39,6 +39,23 @@ var _ = t.Describe("ContainerStart", func() {
 			// When
 			response, err := sut.StartContainer(context.Background(),
 				&pb.StartContainerRequest{})
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(response).To(BeNil())
+		})
+
+		It("should fail with invalid container state", func() {
+			// Given
+			addContainerAndSandbox()
+			testContainer.State().Status = ""
+
+			// When
+			response, err := sut.StartContainer(context.Background(),
+				&pb.StartContainerRequest{
+					ContainerId: testContainer.ID(),
+				},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())

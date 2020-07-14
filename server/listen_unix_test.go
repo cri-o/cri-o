@@ -1,9 +1,8 @@
-package server_test
+package server
 
 import (
 	"os"
 
-	"github.com/cri-o/cri-o/server"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -16,7 +15,7 @@ var _ = t.Describe("Listen", func() {
 			defer os.Remove("address")
 
 			// When
-			listener, err := server.Listen("unix", "address")
+			listener, err := Listen("unix", "address")
 
 			// Then
 			Expect(err).To(BeNil())
@@ -26,12 +25,12 @@ var _ = t.Describe("Listen", func() {
 		It("should fail when already bound", func() {
 			// Given
 			defer os.Remove("address")
-			listener, err := server.Listen("unix", "address")
+			listener, err := Listen("unix", "address")
 			Expect(err).To(BeNil())
 			Expect(listener).NotTo(BeNil())
 
 			// When
-			listener, err = server.Listen("unix", "address")
+			listener, err = Listen("unix", "address")
 
 			// Then
 			Expect(err).NotTo(BeNil())

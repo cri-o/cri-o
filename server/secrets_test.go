@@ -1,9 +1,8 @@
-package server_test
+package server
 
 import (
 	"os"
 
-	"github.com/cri-o/cri-o/server"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -20,7 +19,7 @@ var _ = t.Describe("Secrets", func() {
 	t.Describe("SaveTo", func() {
 		It("should succeed", func() {
 			// Given
-			sut := server.SecretData{}
+			sut := SecretData{}
 			secretsDir := "secrets"
 			defer os.RemoveAll(secretsDir)
 
@@ -33,7 +32,7 @@ var _ = t.Describe("Secrets", func() {
 
 		It("should fail with invalid dir", func() {
 			// Given
-			sut := server.SecretData{}
+			sut := SecretData{}
 			secretsDir := "/proc/invalid" // nolint: gosec
 
 			// When

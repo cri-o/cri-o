@@ -1,11 +1,10 @@
-package server_test
+package server
 
 import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -150,7 +149,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 
 		It("should succeed with default config", func() {
 			// When
-			res, err := server.PauseCommand(cfg, nil)
+			res, err := PauseCommand(cfg, nil)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -164,7 +163,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 			image := &v1.Image{Config: v1.ImageConfig{Entrypoint: entrypoint}}
 
 			// When
-			res, err := server.PauseCommand(cfg, image)
+			res, err := PauseCommand(cfg, image)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -178,7 +177,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 			image := &v1.Image{Config: v1.ImageConfig{Cmd: cmd}}
 
 			// When
-			res, err := server.PauseCommand(cfg, image)
+			res, err := PauseCommand(cfg, image)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -196,7 +195,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 			}}
 
 			// When
-			res, err := server.PauseCommand(cfg, image)
+			res, err := PauseCommand(cfg, image)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -207,7 +206,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 
 		It("should fail if config is nil", func() {
 			// When
-			res, err := server.PauseCommand(nil, nil)
+			res, err := PauseCommand(nil, nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -219,7 +218,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 			cfg.PauseCommand = ""
 
 			// When
-			res, err := server.PauseCommand(cfg, nil)
+			res, err := PauseCommand(cfg, nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())

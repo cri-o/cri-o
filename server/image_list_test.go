@@ -1,10 +1,9 @@
-package server_test
+package server
 
 import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -86,7 +85,7 @@ var _ = t.Describe("ImageList", func() {
 			image := &storage.ImageResult{}
 
 			// When
-			result := server.ConvertImage(image)
+			result := ConvertImage(image)
 
 			// Then
 			Expect(result).NotTo(BeNil())
@@ -107,7 +106,7 @@ var _ = t.Describe("ImageList", func() {
 			}
 
 			// When
-			result := server.ConvertImage(image)
+			result := ConvertImage(image)
 
 			// Then
 			Expect(result).NotTo(BeNil())
@@ -124,7 +123,7 @@ var _ = t.Describe("ImageList", func() {
 			image := &storage.ImageResult{PreviousName: "1"}
 
 			// When
-			result := server.ConvertImage(image)
+			result := ConvertImage(image)
 
 			// Then
 			Expect(result).NotTo(BeNil())
@@ -135,7 +134,7 @@ var _ = t.Describe("ImageList", func() {
 		It("should return nil if input image is nil", func() {
 			// Given
 			// When
-			result := server.ConvertImage(nil)
+			result := ConvertImage(nil)
 
 			// Then
 			Expect(result).To(BeNil())

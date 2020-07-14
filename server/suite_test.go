@@ -1,4 +1,4 @@
-package server_test
+package server
 
 import (
 	"context"
@@ -13,7 +13,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server"
 	. "github.com/cri-o/cri-o/test/framework"
 	imagetypesmock "github.com/cri-o/cri-o/test/mocks/containers/image/v5"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
@@ -46,13 +45,13 @@ var (
 	imageCloserMock   *imagetypesmock.MockImageCloser
 	cniPluginMock     *ocicnitypesmock.MockCNIPlugin
 	ociRuntimeMock    *ocimock.MockRuntimeImpl
-	sut               *server.Server
+	sut               *Server
 	t                 *TestFramework
 	testContainer     *oci.Container
 	testManifest      []byte
 	testPath          string
 	testSandbox       *sandbox.Sandbox
-	testStreamService server.StreamService
+	testStreamService StreamService
 
 	emptyDir string
 )
@@ -167,7 +166,7 @@ var beforeEach = func() {
 
 	// Initialize test streaming server
 	streamServerConfig := streaming.DefaultConfig
-	testStreamService = server.StreamService{}
+	testStreamService = StreamService{}
 	testStreamService.SetRuntimeServer(sut)
 	server, err := streaming.NewServer(streamServerConfig, testStreamService)
 	Expect(err).To(BeNil())
@@ -183,7 +182,7 @@ var afterEach = func() {
 var setupSUT = func() {
 	var err error
 	mockNewServer()
-	sut, err = server.New(context.Background(), libMock)
+	sut, err = New(context.Background(), libMock)
 	Expect(err).To(BeNil())
 	Expect(sut).NotTo(BeNil())
 
