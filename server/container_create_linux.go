@@ -873,7 +873,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	if os.Getenv("_CRIO_ROOTLESS") != "" {
+	if os.Getenv(rootlessEnvName) != "" {
 		makeOCIConfigurationRootless(&specgen)
 	}
 

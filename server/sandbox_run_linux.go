@@ -540,7 +540,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	g.SetRootPath(mountPoint)
 
-	if os.Getenv("_CRIO_ROOTLESS") != "" {
+	if os.Getenv(rootlessEnvName) != "" {
 		makeOCIConfigurationRootless(&g)
 	}
 

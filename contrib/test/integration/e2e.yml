@@ -14,7 +14,7 @@
 - name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
   set_fact:
     e2e_shell_cmd: >
-        KUBE_CONTAINER_RUNTIME="remote" GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y KUBE_SSH_USER="{{ ssh_user }}" LOCAL_SSH_KEY="{{ ssh_location }}"
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket" KUBE_CONTAINER_RUNTIME="remote" GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y KUBE_SSH_USER="{{ ssh_user }}" LOCAL_SSH_KEY="{{ ssh_location }}"
             "{{ ansible_env.GOPATH }}"/bin/kubetest
             --provider=local
             --test
