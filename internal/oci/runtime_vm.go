@@ -141,10 +141,12 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (err erro
 
 	select {
 	case err = <-createdCh:
+		f.Close()
 		if err != nil {
 			return errors.Errorf("CreateContainer failed: %v", err)
 		}
 	case <-time.After(ContainerCreateTimeout):
+		f.Close()
 		if err := r.remove(r.ctx, c.ID(), ""); err != nil {
 			return err
 		}
