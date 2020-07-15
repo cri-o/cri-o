@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -39,6 +40,22 @@ var _ = t.Describe("ContainerStart", func() {
 			// When
 			response, err := sut.StartContainer(context.Background(),
 				&pb.StartContainerRequest{})
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(response).To(BeNil())
+		})
+
+		It("should fail with invalid container state", func() {
+			// Given
+			addContainerAndSandbox()
+
+			// When
+			response, err := sut.StartContainer(context.Background(),
+				&pb.StartContainerRequest{
+					ContainerId: testContainer.ID(),
+				},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
