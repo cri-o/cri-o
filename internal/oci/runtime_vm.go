@@ -119,9 +119,10 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (err erro
 
 	defer func() {
 		if err != nil {
-			r.Lock()
-			delete(r.ctrs, c.ID())
-			r.Unlock()
+			logrus.WithError(err).Warnf("Cleaning up container %s", c.ID())
+			if cleanupErr := r.deleteContainer(c, true); cleanupErr != nil {
+				logrus.WithError(cleanupErr).Infof("deleteContainer failed for container %s", c.ID())
+			}
 		}
 	}()
 
