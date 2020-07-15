@@ -120,7 +120,10 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (retErr e
 	defer func() {
 		if retErr != nil {
 			r.Lock()
-			delete(r.ctrs, c.ID())
+			logrus.WithError(err).Warnf("Cleaning up container %s", c.ID())
+			if cleanupErr := r.deleteContainer(c, true); cleanupErr != nil {
+				logrus.WithError(cleanupErr).Infof("deleteContainer failed for container %s", c.ID())
+			}
 			r.Unlock()
 		}
 	}()
