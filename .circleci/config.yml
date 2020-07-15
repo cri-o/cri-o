@@ -92,6 +92,9 @@ workflows:
           crio_binary: static/crio
           requires:
             - build-static
+      - integration:
+          name: integration-cgroupfs
+          cgroup_manager: cgroupfs
       - lint
       - release-branch-forward:
           requires:
@@ -330,6 +333,14 @@ jobs:
       test_userns:
         type: string
         default: ''
+      cgroup_manager:
+        type: string
+        default: 'systemd'
+      # default is system.slice, if we want to
+      # use cgroupfs, that is an invalid value
+      conmon_cgroup:
+        type: string
+        default: 'pod'
       jobs:
         type: integer
         default: *jobs
@@ -349,14 +360,21 @@ jobs:
           environment:
             GOPATH: /home/circleci/go
       - run:
+          name: setup environment
+          command: scripts/circle-setup-cgroup_manager
+          environment:
+            CONTAINER_CGROUP_MANAGER: "<< parameters.cgroup_manager >>"
+      - run:
           name: integration test
-          command: sudo -E test/test_runner.sh $TEST_ARGS
+          command: sudo -E test/test_runner.sh $TEST_ARGS 2>&1 | tee -a /tmp/testout
           environment:
             JOBS: "<< parameters.jobs >>"
             CRIO_BINARY: "<< parameters.crio_binary >>"
             RUN_CRITEST: "<< parameters.run_critest >>"
             TEST_ARGS: "<< parameters.test_args >>"
             TEST_USERNS: "<< parameters.test_userns >>"
+            CONTAINER_CGROUP_MANAGER: "<< parameters.cgroup_manager >>"
+            CONTAINER_CONMON_CGROUP: "<< parameters.conmon_cgroup >>"
       - save_cache:
           key: v1-integration-{{ checksum "go.sum" }}
           paths:
