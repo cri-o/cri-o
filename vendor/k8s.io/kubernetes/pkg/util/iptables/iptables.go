@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	utilexec "k8s.io/utils/exec"
 	utiltrace "k8s.io/utils/trace"
 )
@@ -607,6 +607,9 @@ func (runner *runner) chainExists(table Table, chain Chain) (bool, error) {
 	runner.mu.Lock()
 	defer runner.mu.Unlock()
 
+	trace := utiltrace.New("iptables Monitor CANARY check")
+	defer trace.LogIfLong(2 * time.Second)
+
 	_, err := runner.run(opListChain, fullArgs)
 	return err == nil, err
 }
@@ -617,7 +620,7 @@ const (
 	opCreateChain operation = "-N"
 	opFlushChain  operation = "-F"
 	opDeleteChain operation = "-X"
-	opListChain   operation = "-L"
+	opListChain   operation = "-S"
 	opAppendRule  operation = "-A"
 	opCheckRule   operation = "-C"
 	opDeleteRule  operation = "-D"

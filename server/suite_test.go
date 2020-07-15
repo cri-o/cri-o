@@ -26,8 +26,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	"k8s.io/kubernetes/pkg/kubelet/cri/streaming"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
-	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 )
 
 // TestServer runs the created specs
