@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 15 Jul 2020 20:37:49 UTC for commit [ebf296d][0]._
+_Generated on Wed, 15 Jul 2020 22:28:44 UTC for commit [2b905fb][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ebf296d8826d71a433dcfd327f712d21d9c36885
+[0]: https://github.com/cri-o/cri-o/commit/2b905fb6b2c3c74798bb869b99549a8f13c72435
 
 ## Outdated Dependencies
 
