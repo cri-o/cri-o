@@ -535,22 +535,30 @@ func (r *runtimeVM) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	return r.deleteContainer(c, false)
+}
+
+// deleteContainer performs all the operations needed to delete a container.
+// force must only be used on clean-up cases.
+// It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
+func (r *runtimeVM) deleteContainer(c *Container, force bool) error {
 	r.Lock()
 	cInfo, ok := r.ctrs[c.ID()]
 	r.Unlock()
-	if !ok {
+	if !ok && !force {
 		return errors.New("Could not retrieve container information")
 	}
 
-	if err := cInfo.cio.Close(); err != nil {
+	if err := cInfo.cio.Close(); err != nil && !force {
 		return err
 	}
 
-	if err := r.remove(r.ctx, c.ID(), ""); err != nil {
+	if err := r.remove(r.ctx, c.ID(), ""); err != nil && !force {
 		return err
 	}
 
-	if _, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()}); err != nil && !errors.Is(err, ttrpc.ErrClosed) {
+	_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
+	if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
 		return err
 	}
 
