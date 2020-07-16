@@ -22,7 +22,7 @@ var _ = t.Describe("Config", func() {
 		}
 		sut.PinnsPath = validFilePath
 		sut.NamespacesDir = os.TempDir()
-		sut.Conmon = validFilePath
+		sut.Conmon = validConmonPath
 		tmpDir := t.MustTempDir("cni-test")
 		sut.NetworkConfig.PluginDirs = []string{tmpDir}
 		sut.NetworkDir = os.TempDir()
@@ -90,7 +90,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid network config", func() {
 			// Given
 			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validDirPath}
-			sut.Conmon = validFilePath
+			sut.Conmon = validConmonPath
 			sut.NetworkConfig.NetworkDir = invalidPath
 
 			// When
@@ -213,7 +213,7 @@ var _ = t.Describe("Config", func() {
 			}
 			sut.PinnsPath = validFilePath
 			sut.NamespacesDir = os.TempDir()
-			sut.Conmon = validFilePath
+			sut.Conmon = validConmonPath
 			sut.HooksDir = []string{validDirPath, validDirPath, validDirPath}
 
 			// When
@@ -227,7 +227,7 @@ var _ = t.Describe("Config", func() {
 		It("should sort out invalid hooks directories", func() {
 			// Given
 			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
-			sut.Conmon = validFilePath
+			sut.Conmon = validConmonPath
 			sut.PinnsPath = validFilePath
 			sut.NamespacesDir = os.TempDir()
 			sut.HooksDir = []string{invalidPath, validDirPath, validDirPath}
@@ -490,11 +490,11 @@ var _ = t.Describe("Config", func() {
 			sut.RuntimeConfig.Conmon = ""
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath(validFilePath)
+			err := sut.RuntimeConfig.ValidateConmonPath(validConmonPath)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(sut.RuntimeConfig.Conmon).To(Equal(validFilePath))
+			Expect(sut.RuntimeConfig.Conmon).To(Equal(validConmonPath))
 		})
 
 		It("should fail with invalid file in $PATH", func() {
@@ -510,7 +510,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with valid file outside $PATH", func() {
 			// Given
-			sut.RuntimeConfig.Conmon = validDirPath
+			sut.RuntimeConfig.Conmon = validConmonPath
 
 			// When
 			err := sut.RuntimeConfig.ValidateConmonPath("")
