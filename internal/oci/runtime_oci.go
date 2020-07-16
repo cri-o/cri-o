@@ -1024,6 +1024,7 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 	defer watcher.Close()
 
 	done := make(chan struct{})
+	doneClosed := false
 	errorCh := make(chan error)
 	go func() {
 		for {
@@ -1034,7 +1035,7 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 					logrus.Debugf("file created %s", event.Name)
 					if event.Name == c.LogPath() {
 						logrus.Debugf("expected log file created")
-						close(done)
+						done <- struct{}{}
 						return
 					}
 				}
@@ -1049,6 +1050,7 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 	if err := watcher.Add(cLogDir); err != nil {
 		logrus.Errorf("watcher.Add(%q) failed: %s", cLogDir, err)
 		close(done)
+		doneClosed = true
 	}
 
 	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
@@ -1057,8 +1059,14 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 
 	select {
 	case err := <-errorCh:
+		if !doneClosed {
+			close(done)
+		}
 		return err
 	case <-done:
+		if !doneClosed {
+			close(done)
+		}
 		break
 	}
 
