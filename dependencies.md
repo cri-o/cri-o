@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 16 Jul 2020 16:03:32 UTC for commit [c47527a][0]._
+_Generated on Thu, 16 Jul 2020 16:23:07 UTC for commit [77968ac][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c47527a611e4b170d80a4b262bd84081012a9dae
+[0]: https://github.com/cri-o/cri-o/commit/77968ac9e1d89351cfa97d33531325ab9e7b175f
 
 ## Outdated Dependencies
 
@@ -26,8 +26,8 @@ _Generated on Thu, 16 Jul 2020 16:03:32 UTC for commit [c47527a][0]._
 | golang.org/x/sys                     | v0.0.0-20200622214017-ed371f2e16b4 | v0.0.0-20200625212154-ddb9806d33ae | true   | true             |
 | google.golang.org/grpc               | v1.29.1                            | v1.30.0                            | true   | true             |
 | k8s.io/api                           | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200716133156-75b555241578 | true   | true             |
-| k8s.io/apimachinery                  | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200716133156-75b555241578 | true   | true             |
-| k8s.io/client-go                     | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200716133156-75b555241578 | true   | true             |
+| k8s.io/apimachinery                  | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200716161142-96c057ab48a3 | true   | true             |
+| k8s.io/client-go                     | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200716161142-96c057ab48a3 | true   | true             |
 | k8s.io/cri-api                       | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200716133156-75b555241578 | true   | true             |
 | k8s.io/kubernetes                    | v1.19.0-rc.1                       |                                    | true   | true             |
 | k8s.io/release                       | v0.3.2                             | v0.3.4                             | true   | true             |
@@ -543,10 +543,10 @@ _Generated on Thu, 16 Jul 2020 16:03:32 UTC for commit [c47527a][0]._
 | honnef.co/go/tools                                      | v0.0.1-2019.2.3                                   | v0.0.1-2020.1.4                    | false  | true             |
 | k8s.io/api                                              | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716133156-75b555241578 | true   | true             |
 | k8s.io/apiextensions-apiserver                          | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716133156-75b555241578 | false  | true             |
-| k8s.io/apimachinery                                     | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716133156-75b555241578 | true   | true             |
+| k8s.io/apimachinery                                     | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716161142-96c057ab48a3 | true   | true             |
 | k8s.io/apiserver                                        | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716133156-75b555241578 | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716133156-75b555241578 | false  | true             |
-| k8s.io/client-go                                        | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716133156-75b555241578 | true   | true             |
+| k8s.io/client-go                                        | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716161142-96c057ab48a3 | true   | true             |
 | k8s.io/cloud-provider                                   | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716133156-75b555241578 | false  | true             |
 | k8s.io/cluster-bootstrap                                | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716133156-75b555241578 | false  | true             |
 | k8s.io/code-generator                                   | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200716133156-75b555241578 | false  | true             |
