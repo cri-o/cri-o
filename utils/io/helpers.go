@@ -96,7 +96,7 @@ type stdioPipes struct {
 }
 
 // newStdioPipes creates actual fifos for stdio.
-func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, err error) {
+func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, retErr error) {
 	var (
 		f           io.ReadWriteCloser
 		set         []io.Closer
@@ -104,7 +104,7 @@ func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, err error) {
 		p           = &stdioPipes{}
 	)
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			for _, f := range set {
 				f.Close()
 			}
@@ -113,20 +113,23 @@ func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, err error) {
 	}()
 
 	if fifos.Stdin != "" {
-		if f, err = fifo.OpenFifo(ctx, fifos.Stdin, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700); err != nil {
+		f, err := fifo.OpenFifo(ctx, fifos.Stdin, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+		if err != nil {
 			return nil, nil, err
 		}
 		p.stdin = f
 		set = append(set, f)
 	}
 
-	if f, err = fifo.OpenFifo(ctx, fifos.Stdout, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700); err != nil {
+	f, err := fifo.OpenFifo(ctx, fifos.Stdout, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	if err != nil {
 		return nil, nil, err
 	}
 	p.stdout = f
 	set = append(set, f)
 
-	if f, err = fifo.OpenFifo(ctx, fifos.Stderr, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700); err != nil {
+	f, err = fifo.OpenFifo(ctx, fifos.Stderr, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	if err != nil {
 		return nil, nil, err
 	}
 	p.stderr = f

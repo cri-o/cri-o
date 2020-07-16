@@ -18,7 +18,7 @@ import (
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error
-func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, err error) {
+func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, retErr error) {
 	overallStart := time.Now()
 	// give a network Start call 2 minutes, half of a RunPodSandbox request timeout limit
 	startCtx, startCancel := context.WithTimeout(ctx, 2*time.Minute)
@@ -30,13 +30,13 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 
 	podNetwork, err := s.newPodNetwork(sb)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
 
 	// Ensure network resources are cleaned up if the plugin succeeded
 	// but an error happened between plugin success and the end of networkStart()
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			log.Infof(ctx, "networkStart: stopping network for sandbox %s", sb.ID())
 			if err2 := s.networkStop(ctx, sb); err2 != nil {
 				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
@@ -47,8 +47,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	podSetUpStart := time.Now()
 	_, err = s.config.CNIPlugin().SetUpPodWithContext(startCtx, podNetwork)
 	if err != nil {
-		err = fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
-		return
+		return nil, nil, fmt.Errorf("failed to create pod network sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 	}
 	// metric about the CNI network setup operation
 	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_pod").
@@ -56,8 +55,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 
 	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatusWithContext(startCtx, podNetwork)
 	if err != nil {
-		err = fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
-		return
+		return nil, nil, fmt.Errorf("failed to get network status for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 	}
 
 	// only one cnitypes.Result is returned since newPodNetwork sets Networks list empty
@@ -66,8 +64,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 
 	network, err := cnicurrent.GetResult(result)
 	if err != nil {
-		err = fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
-		return
+		return nil, nil, fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 	}
 
 	for idx, podIPConfig := range network.IPs {
@@ -78,8 +75,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 		if idx == 0 && len(sb.PortMappings()) > 0 {
 			ip := net.ParseIP(podIP)
 			if ip == nil {
-				err = fmt.Errorf("failed to get valid ip address for sandbox %s(%s)", sb.Name(), sb.ID())
-				return
+				return nil, nil, fmt.Errorf("failed to get valid ip address for sandbox %s(%s)", sb.Name(), sb.ID())
 			}
 
 			err = s.hostportManager.Add(sb.ID(), &hostport.PodPortMapping{
@@ -89,8 +85,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 				HostNetwork:  false,
 			}, "lo")
 			if err != nil {
-				err = fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
-				return
+				return nil, nil, fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 			}
 		}
 
