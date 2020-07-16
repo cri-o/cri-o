@@ -296,14 +296,6 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 		}
 
 		const nl = "\n"
-		if releaseNotesOpts.tableOfContents {
-			toc, err := notes.GenerateTOC(markdown)
-			if err != nil {
-				return errors.Wrap(err, "generating table of contents")
-			}
-			markdown = toc + nl + markdown
-		}
-
 		if releaseNotesOpts.dependencies {
 			url := git.GetRepoURL(opts.GithubOrg, opts.GithubRepo, false)
 			deps, err := notes.NewDependencies().ChangesForURL(
@@ -313,6 +305,14 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 				return errors.Wrap(err, "generating dependency report")
 			}
 			markdown += strings.Repeat(nl, 2) + deps
+		}
+
+		if releaseNotesOpts.tableOfContents {
+			toc, err := notes.GenerateTOC(markdown)
+			if err != nil {
+				return errors.Wrap(err, "generating table of contents")
+			}
+			markdown = toc + nl + markdown
 		}
 
 		if _, err := output.WriteString(markdown); err != nil {

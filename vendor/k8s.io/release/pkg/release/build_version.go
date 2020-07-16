@@ -24,6 +24,7 @@ import (
 	"k8s.io/release/pkg/testgrid"
 )
 
+// SetBuildVersion sets the build version for a branch
 func SetBuildVersion(
 	branch string,
 ) error {
