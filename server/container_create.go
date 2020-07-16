@@ -482,7 +482,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %v", sbID)
 	}
 
-	ctr := container.New(ctx)
+	ctr, err := container.New(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create container")
+	}
+
 	if err := ctr.SetConfig(req.GetConfig(), req.GetSandboxConfig()); err != nil {
 		return nil, errors.Wrap(err, "setting container config")
 	}
