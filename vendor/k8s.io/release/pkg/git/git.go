@@ -699,12 +699,15 @@ func (r *Repo) PreviousTag(tag, branch string) (string, error) {
 		return "", err
 	}
 
-	idx := 0
+	idx := -1
 	for i, t := range tags {
 		if t == tag {
 			idx = i
 			break
 		}
+	}
+	if idx == -1 {
+		return "", errors.New("could not find specified tag in branch")
 	}
 	if len(tags) < idx+1 {
 		return "", errors.New("unable to find previous tag")

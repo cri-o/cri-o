@@ -112,7 +112,7 @@ type Documentation struct {
 	// The url to be linked
 	URL string `json:"url"`
 
-	// Clssifies the link as something special, like a KEP
+	// Classifies the link as something special, like a KEP
 	Type DocType `json:"type"`
 }
 
@@ -604,7 +604,7 @@ func (g *Gatherer) notesForCommit(commit *gogithub.RepositoryCommit) (*Result, e
 				"Including notes for PR #%d based on the inclusion filter",
 				pr.GetNumber(),
 			)
-			// Do not test further PRs for this commmit as soon as one PR matched
+			// Do not test further PRs for this commit as soon as one PR matched
 			return res, nil
 		}
 	}

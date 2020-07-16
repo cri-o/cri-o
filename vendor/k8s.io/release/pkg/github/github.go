@@ -19,8 +19,10 @@ package github
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/go-github/v29/github"
@@ -28,6 +30,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
+	errorUtils "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/release/pkg/git"
 	"k8s.io/release/pkg/github/internal"
 	"k8s.io/release/pkg/util"
@@ -74,9 +77,21 @@ type Client interface {
 		context.Context, string, string, *github.ListOptions,
 	) ([]*github.RepositoryRelease, *github.Response, error)
 
+	GetReleaseByTag(
+		context.Context, string, string, string,
+	) (*github.RepositoryRelease, *github.Response, error)
+
+	DownloadReleaseAsset(
+		context.Context, string, string, int64,
+	) (io.ReadCloser, string, error)
+
 	ListTags(
 		context.Context, string, string, *github.ListOptions,
 	) ([]*github.RepositoryTag, *github.Response, error)
+
+	ListBranches(
+		context.Context, string, string, *github.BranchListOptions,
+	) ([]*github.Branch, *github.Response, error)
 
 	CreatePullRequest(
 		context.Context, string, string, string, string, string, string,
@@ -186,6 +201,30 @@ func (g *githubClient) ListReleases(
 	}
 }
 
+func (g *githubClient) GetReleaseByTag(
+	ctx context.Context, owner, repo, tag string,
+) (*github.RepositoryRelease, *github.Response, error) {
+	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+		release, resp, err := g.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
+		if !shouldRetry(err) {
+			return release, resp, err
+		}
+	}
+}
+
+func (g *githubClient) DownloadReleaseAsset(
+	ctx context.Context, owner, repo string, assetID int64,
+) (io.ReadCloser, string, error) {
+	// TODO: Should we be getting this http client from somewhere else?
+	httpClient := http.DefaultClient
+	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+		assetBody, redirectURL, err := g.Repositories.DownloadReleaseAsset(ctx, owner, repo, assetID, httpClient)
+		if !shouldRetry(err) {
+			return assetBody, redirectURL, err
+		}
+	}
+}
+
 func (g *githubClient) ListTags(
 	ctx context.Context, owner, repo string, opt *github.ListOptions,
 ) ([]*github.RepositoryTag, *github.Response, error) {
@@ -195,6 +234,17 @@ func (g *githubClient) ListTags(
 			return tags, resp, err
 		}
 	}
+}
+
+func (g *githubClient) ListBranches(
+	ctx context.Context, owner, repo string, opt *github.BranchListOptions,
+) ([]*github.Branch, *github.Response, error) {
+	branches, response, err := g.Repositories.ListBranches(ctx, owner, repo, opt)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "fetching brnaches from repo")
+	}
+
+	return branches, response, nil
 }
 
 func (g *githubClient) CreatePullRequest(
@@ -274,8 +324,8 @@ func (g *GitHub) LatestGitHubTagsPerBranch() (TagsPerBranch, error) {
 	for _, t := range allTags {
 		tag := t.GetName()
 
-		// Alpha releases are only available on the master branch
-		if strings.Contains(tag, "alpha") {
+		// alpha and beta releases are only available on the master branch
+		if strings.Contains(tag, "beta") || strings.Contains(tag, "alpha") {
 			releases.addIfNotExisting(git.Master, tag)
 			continue
 		}
@@ -311,6 +361,7 @@ func (t TagsPerBranch) addIfNotExisting(branch, tag string) {
 // Releases returns a list of GitHub releases for the provided `owner` and
 // `repo`. If `includePrereleases` is `true`, then the resulting slice will
 // also contain pre/drafted releases.
+// TODO: Create a more descriptive method name and update references
 func (g *GitHub) Releases(owner, repo string, includePrereleases bool) ([]*github.RepositoryRelease, error) {
 	allReleases, _, err := g.client.ListReleases(
 		context.Background(), owner, repo, nil,
@@ -331,6 +382,106 @@ func (g *GitHub) Releases(owner, repo string, includePrereleases bool) ([]*githu
 	}
 
 	return releases, nil
+}
+
+// GetReleaseTags returns a list of GitHub release tags for the provided
+// `owner` and `repo`. If `includePrereleases` is `true`, then the resulting
+// slice will also contain pre/drafted releases.
+func (g *GitHub) GetReleaseTags(owner, repo string, includePrereleases bool) ([]string, error) {
+	releases, err := g.Releases(owner, repo, includePrereleases)
+	if err != nil {
+		return nil, errors.Wrap(err, "getting releases")
+	}
+
+	releaseTags := []string{}
+	for _, release := range releases {
+		releaseTags = append(releaseTags, *release.TagName)
+	}
+
+	return releaseTags, nil
+}
+
+// DownloadReleaseAssets downloads a set of GitHub release assets to an
+// `outputDir`. Assets to download are derived from the `releaseTags`.
+func (g *GitHub) DownloadReleaseAssets(owner, repo string, releaseTags []string, outputDir string) error {
+	var releases []*github.RepositoryRelease
+
+	if len(releaseTags) > 0 {
+		for _, tag := range releaseTags {
+			release, _, err := g.client.GetReleaseByTag(context.Background(), owner, repo, tag)
+			if err != nil {
+				return errors.Wrap(err, "getting release tags")
+			}
+
+			releases = append(releases, release)
+		}
+	} else {
+		return errors.New("no release tags were populated")
+	}
+
+	funcs := []func() error{}
+	for i := range releases {
+		release := releases[i]
+		funcs = append(funcs, func() error {
+			releaseTag := release.GetTagName()
+			logrus.Infof("Download assets for %s/%s@%s", owner, repo, releaseTag)
+
+			assets := release.Assets
+			if len(assets) == 0 {
+				logrus.Infof("Skipping download for %s/%s@%s as no release assets were found", owner, repo, releaseTag)
+				return nil
+			}
+
+			releaseDir := filepath.Join(outputDir, owner, repo, releaseTag)
+			if err := os.MkdirAll(releaseDir, os.FileMode(0o775)); err != nil {
+				return errors.Wrap(err, "creating output directory for release assets")
+			}
+
+			logrus.Infof("Writing assets to %s", releaseDir)
+			err := g.downloadAssetsParallel(assets, owner, repo, releaseDir)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+	}
+
+	return errorUtils.AggregateGoroutines(funcs...)
+}
+
+func (g *GitHub) downloadAssetsParallel(assets []github.ReleaseAsset, owner, repo, releaseDir string) error {
+	funcs := []func() error{}
+	for i := range assets {
+		asset := assets[i]
+		funcs = append(funcs, func() error {
+			if asset.GetID() == 0 {
+				return errors.New("asset ID should never be zero")
+			}
+
+			logrus.Infof("GitHub asset ID: %v, download URL: %s", *asset.ID, *asset.BrowserDownloadURL)
+			assetBody, _, err := g.client.DownloadReleaseAsset(context.Background(), owner, repo, asset.GetID())
+			if err != nil {
+				return errors.Wrap(err, "downloading release assets")
+			}
+
+			absFile := filepath.Join(releaseDir, asset.GetName())
+			defer assetBody.Close()
+			assetFile, err := os.Create(absFile)
+			if err != nil {
+				return errors.Wrap(err, "creating release asset file")
+			}
+
+			defer assetFile.Close()
+			if _, err := io.Copy(assetFile, assetBody); err != nil {
+				return errors.Wrap(err, "copying release asset to file")
+			}
+
+			return nil
+		})
+	}
+
+	return errorUtils.AggregateGoroutines(funcs...)
 }
 
 // CreatePullRequest Creates a new pull request in owner/repo:baseBranch to merge changes from headBranchName
@@ -359,6 +510,18 @@ func (g *GitHub) GetRepository(
 	return repository, nil
 }
 
+// ListBranches gets a repository using the current client
+func (g *GitHub) ListBranches(
+	owner, repo string,
+) ([]*github.Branch, error) {
+	branches, _, err := g.Client().ListBranches(context.Background(), owner, repo, &github.BranchListOptions{})
+	if err != nil {
+		return branches, errors.Wrap(err, "getting branches from client")
+	}
+
+	return branches, nil
+}
+
 // RepoIsForkOf Function that checks if a repository is a fork of another
 func (g *GitHub) RepoIsForkOf(
 	forkOwner, forkRepo, parentOwner, parentRepo string,
@@ -376,10 +539,30 @@ func (g *GitHub) RepoIsForkOf(
 
 	// Check if the parent repo matches the owner/repo string
 	if repository.GetParent().GetFullName() == fmt.Sprintf("%s/%s", parentOwner, parentRepo) {
-		logrus.Infof("%s/%s is a fork of %s/%s", forkOwner, forkRepo, parentOwner, parentRepo)
+		logrus.Debugf("%s/%s is a fork of %s/%s", forkOwner, forkRepo, parentOwner, parentRepo)
 		return true, nil
 	}
 
 	logrus.Infof("%s/%s is not a fork of %s/%s", forkOwner, forkRepo, parentOwner, parentRepo)
+	return false, nil
+}
+
+// BranchExists checks if a branch exists in a given repo
+func (g *GitHub) BranchExists(
+	owner, repo, branchname string,
+) (isBranch bool, err error) {
+	branches, err := g.ListBranches(owner, repo)
+	if err != nil {
+		return false, errors.Wrap(err, "while listing repository branches")
+	}
+
+	for _, branch := range branches {
+		if branch.GetName() == branchname {
+			logrus.Debugf("Branch %s already exists in %s/%s", branchname, owner, repo)
+			return true, nil
+		}
+	}
+
+	logrus.Debugf("Repository %s/%s does not have a branch named %s", owner, repo, branchname)
 	return false, nil
 }
