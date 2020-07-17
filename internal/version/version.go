@@ -176,7 +176,8 @@ func getLinkmode() string {
 		return ""
 	}
 	if _, err = utils.ExecCmd("ldd", abspath); err != nil {
-		if strings.Contains(err.Error(), "not a dynamic executable") {
+		if strings.Contains(err.Error(), "not a dynamic executable") ||
+			strings.Contains(strings.ToLower(err.Error()), "not a valid dynamic program") {
 			return "static"
 		}
 		logrus.Warnf("Encountered error detecting link mode of binary: %v", err)
