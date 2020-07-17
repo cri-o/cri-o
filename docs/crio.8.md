@@ -51,7 +51,6 @@ crio
 [--log-level|-l]=[value]
 [--log-size-max]=[value]
 [--log]=[value]
-[--manage-network-ns-lifecycle]
 [--manage-ns-lifecycle]
 [--metrics-port]=[value]
 [--metrics-socket]=[value]
@@ -231,9 +230,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer (default: -1)
 
-**--manage-network-ns-lifecycle**: Deprecated: this option is being replaced by `manage_ns_lifecycle`, which is described below
-
-**--manage-ns-lifecycle**: Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: false)
+**--manage-ns-lifecycle**: Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: true)
 
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
 
