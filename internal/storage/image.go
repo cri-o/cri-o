@@ -15,7 +15,7 @@ import (
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"

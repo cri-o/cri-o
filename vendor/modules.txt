@@ -89,7 +89,7 @@ github.com/containerd/containerd/runtime/v2/shim
 github.com/containerd/containerd/runtime/v2/task
 github.com/containerd/containerd/sys
 github.com/containerd/containerd/sys/reaper
-# github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc
+# github.com/containerd/continuity v0.0.0-20200228182428-0f16d7a0959c
 github.com/containerd/continuity/fs
 github.com/containerd/continuity/pathdriver
 github.com/containerd/continuity/syscallx
@@ -115,7 +115,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.6
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.14.9
+# github.com/containers/buildah v1.15.1
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -125,7 +125,6 @@ github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/manifests
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
-github.com/containers/buildah/pkg/cli
 github.com/containers/buildah/pkg/manifests
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
@@ -133,17 +132,18 @@ github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.9.1
+# github.com/containers/common v0.16.0
 ## explicit
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/cgroupv2
 github.com/containers/common/pkg/config
 github.com/containers/common/pkg/sysinfo
-# github.com/containers/conmon v2.0.17+incompatible
+github.com/containers/common/version
+# github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.5.1
+# github.com/containers/image/v5 v5.5.2
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -185,52 +185,50 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
-# github.com/containers/libpod v1.9.2
+# github.com/containers/libpod/v2 v2.0.4
 ## explicit
-github.com/containers/libpod/cmd/podman/cliconfig
-github.com/containers/libpod/libpod
-github.com/containers/libpod/libpod/define
-github.com/containers/libpod/libpod/driver
-github.com/containers/libpod/libpod/events
-github.com/containers/libpod/libpod/image
-github.com/containers/libpod/libpod/layers
-github.com/containers/libpod/libpod/lock
-github.com/containers/libpod/libpod/lock/file
-github.com/containers/libpod/libpod/lock/shm
-github.com/containers/libpod/libpod/logs
-github.com/containers/libpod/libpod/logs/reversereader
-github.com/containers/libpod/pkg/annotations
-github.com/containers/libpod/pkg/apparmor
-github.com/containers/libpod/pkg/cgroups
-github.com/containers/libpod/pkg/criu
-github.com/containers/libpod/pkg/ctime
-github.com/containers/libpod/pkg/env
-github.com/containers/libpod/pkg/errorhandling
-github.com/containers/libpod/pkg/hooks
-github.com/containers/libpod/pkg/hooks/0.1.0
-github.com/containers/libpod/pkg/hooks/1.0.0
-github.com/containers/libpod/pkg/hooks/exec
-github.com/containers/libpod/pkg/inspect
-github.com/containers/libpod/pkg/kubeutils
-github.com/containers/libpod/pkg/lookup
-github.com/containers/libpod/pkg/namespaces
-github.com/containers/libpod/pkg/netns
-github.com/containers/libpod/pkg/registrar
-github.com/containers/libpod/pkg/registries
-github.com/containers/libpod/pkg/resolvconf
-github.com/containers/libpod/pkg/resolvconf/dns
-github.com/containers/libpod/pkg/rootless
-github.com/containers/libpod/pkg/rootlessport
-github.com/containers/libpod/pkg/seccomp
-github.com/containers/libpod/pkg/selinux
-github.com/containers/libpod/pkg/signal
-github.com/containers/libpod/pkg/spec
-github.com/containers/libpod/pkg/sysinfo
-github.com/containers/libpod/pkg/systemd
-github.com/containers/libpod/pkg/timetype
-github.com/containers/libpod/pkg/util
-github.com/containers/libpod/utils
-github.com/containers/libpod/version
+github.com/containers/libpod/v2/libpod
+github.com/containers/libpod/v2/libpod/define
+github.com/containers/libpod/v2/libpod/driver
+github.com/containers/libpod/v2/libpod/events
+github.com/containers/libpod/v2/libpod/image
+github.com/containers/libpod/v2/libpod/layers
+github.com/containers/libpod/v2/libpod/linkmode
+github.com/containers/libpod/v2/libpod/lock
+github.com/containers/libpod/v2/libpod/lock/file
+github.com/containers/libpod/v2/libpod/lock/shm
+github.com/containers/libpod/v2/libpod/logs
+github.com/containers/libpod/v2/libpod/logs/reversereader
+github.com/containers/libpod/v2/pkg/annotations
+github.com/containers/libpod/v2/pkg/cgroups
+github.com/containers/libpod/v2/pkg/criu
+github.com/containers/libpod/v2/pkg/ctime
+github.com/containers/libpod/v2/pkg/env
+github.com/containers/libpod/v2/pkg/errorhandling
+github.com/containers/libpod/v2/pkg/hooks
+github.com/containers/libpod/v2/pkg/hooks/0.1.0
+github.com/containers/libpod/v2/pkg/hooks/1.0.0
+github.com/containers/libpod/v2/pkg/hooks/exec
+github.com/containers/libpod/v2/pkg/inspect
+github.com/containers/libpod/v2/pkg/kubeutils
+github.com/containers/libpod/v2/pkg/lookup
+github.com/containers/libpod/v2/pkg/namespaces
+github.com/containers/libpod/v2/pkg/netns
+github.com/containers/libpod/v2/pkg/registrar
+github.com/containers/libpod/v2/pkg/registries
+github.com/containers/libpod/v2/pkg/resolvconf
+github.com/containers/libpod/v2/pkg/resolvconf/dns
+github.com/containers/libpod/v2/pkg/rootless
+github.com/containers/libpod/v2/pkg/rootlessport
+github.com/containers/libpod/v2/pkg/seccomp
+github.com/containers/libpod/v2/pkg/selinux
+github.com/containers/libpod/v2/pkg/signal
+github.com/containers/libpod/v2/pkg/spec
+github.com/containers/libpod/v2/pkg/systemd
+github.com/containers/libpod/v2/pkg/timetype
+github.com/containers/libpod/v2/pkg/util
+github.com/containers/libpod/v2/utils
+github.com/containers/libpod/v2/version
 # github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b
 github.com/containers/libtrust
 # github.com/containers/ocicrypt v1.0.3
@@ -244,7 +242,7 @@ github.com/containers/ocicrypt/keywrap/pgp
 github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
-# github.com/containers/psgo v1.4.0
+# github.com/containers/psgo v1.5.1
 github.com/containers/psgo
 github.com/containers/psgo/internal/capabilities
 github.com/containers/psgo/internal/cgroups
@@ -252,7 +250,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.20.2
+# github.com/containers/storage v1.23.1
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -400,7 +398,7 @@ github.com/emirpasic/gods/utils
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.6.3
+# github.com/fsouza/go-dockerclient v1.6.5
 github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
@@ -522,7 +520,7 @@ github.com/gorilla/mux
 github.com/grpc-ecosystem/go-grpc-middleware
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-multierror v1.0.0
+# github.com/hashicorp/go-multierror v1.1.0
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-version v1.2.0
 github.com/hashicorp/go-version
@@ -553,7 +551,7 @@ github.com/jstemmer/go-junit-report/formatter
 github.com/jstemmer/go-junit-report/parser
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.10.8
+# github.com/klauspost/compress v1.10.11
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -672,14 +670,12 @@ github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/validate
-# github.com/opencontainers/selinux v1.5.2
+# github.com/opencontainers/selinux v1.6.0
 ## explicit
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316
-github.com/openshift/api/config/v1
-# github.com/openshift/imagebuilder v1.1.4
+# github.com/openshift/imagebuilder v1.1.6
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/dockerfile/parser
@@ -723,7 +719,7 @@ github.com/prometheus/procfs/internal/util
 github.com/psampaz/go-mod-outdated
 github.com/psampaz/go-mod-outdated/internal/mod
 github.com/psampaz/go-mod-outdated/internal/runner
-# github.com/rootless-containers/rootlesskit v0.9.3
+# github.com/rootless-containers/rootlesskit v0.10.0
 github.com/rootless-containers/rootlesskit/pkg/msgutil
 github.com/rootless-containers/rootlesskit/pkg/port
 github.com/rootless-containers/rootlesskit/pkg/port/builtin
@@ -741,7 +737,7 @@ github.com/russross/blackfriday
 github.com/russross/blackfriday/v2
 # github.com/saschagrunert/go-modiff v1.2.0
 github.com/saschagrunert/go-modiff/pkg/modiff
-# github.com/seccomp/containers-golang v0.4.1
+# github.com/seccomp/containers-golang v0.5.0
 ## explicit
 github.com/seccomp/containers-golang
 # github.com/seccomp/libseccomp-golang v0.9.1
@@ -797,6 +793,8 @@ github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20200520041808-52d707b772fe
 github.com/vishvananda/netns
+# github.com/willf/bitset v1.1.11-0.20200630133818-d5bec3311243
+github.com/willf/bitset
 # github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
 # github.com/xeipuuv/gojsonpointer v0.0.0-20190809123943-df4f5c81cb3b
@@ -1089,7 +1087,7 @@ honnef.co/go/tools/staticcheck/vrp
 honnef.co/go/tools/stylecheck
 honnef.co/go/tools/unused
 honnef.co/go/tools/version
-# k8s.io/api v0.17.4 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200804142048-1afc53514032
+# k8s.io/api v0.18.4 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200804142048-1afc53514032
 ## explicit
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
@@ -1132,7 +1130,7 @@ k8s.io/api/settings/v1alpha1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apimachinery v0.18.3 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20200804142048-1afc53514032
+# k8s.io/apimachinery v0.18.4 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20200804142048-1afc53514032
 ## explicit
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta

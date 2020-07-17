@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/containers/libpod/pkg/apparmor"
+	"github.com/containers/common/pkg/apparmor"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

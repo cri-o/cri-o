@@ -3,7 +3,7 @@ package apparmor
 import (
 	"strings"
 
-	"github.com/containers/libpod/pkg/apparmor"
+	"github.com/containers/common/pkg/apparmor"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
