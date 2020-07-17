@@ -6,7 +6,7 @@ import (
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/pkg/rootless"
 	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/storage"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"

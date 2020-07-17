@@ -5,7 +5,7 @@ import (
 	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/v2/pkg/cgroups"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"

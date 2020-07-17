@@ -6,12 +6,12 @@ package containerstoragemock
 
 import (
 	storage "github.com/containers/storage"
-	drivers "github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	archive "github.com/containers/storage/pkg/archive"
 	idtools "github.com/containers/storage/pkg/idtools"
 	lockfile "github.com/containers/storage/pkg/lockfile"
 	gomock "github.com/golang/mock/gomock"
-	go_digest "github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	io "io"
 	reflect "reflect"
 )
@@ -100,10 +100,10 @@ func (mr *MockStoreMockRecorder) ContainerBigData(arg0, arg1 interface{}) *gomoc
 }
 
 // ContainerBigDataDigest mocks base method
-func (m *MockStore) ContainerBigDataDigest(arg0, arg1 string) (go_digest.Digest, error) {
+func (m *MockStore) ContainerBigDataDigest(arg0, arg1 string) (digest.Digest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerBigDataDigest", arg0, arg1)
-	ret0, _ := ret[0].(go_digest.Digest)
+	ret0, _ := ret[0].(digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -366,6 +366,18 @@ func (mr *MockStoreMockRecorder) Exists(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockStore)(nil).Exists), arg0)
 }
 
+// Free mocks base method
+func (m *MockStore) Free() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Free")
+}
+
+// Free indicates an expected call of Free
+func (mr *MockStoreMockRecorder) Free() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Free", reflect.TypeOf((*MockStore)(nil).Free))
+}
+
 // FromContainerDirectory mocks base method
 func (m *MockStore) FromContainerDirectory(arg0, arg1 string) ([]byte, error) {
 	m.ctrl.T.Helper()
@@ -411,7 +423,7 @@ func (mr *MockStoreMockRecorder) GIDMap() *gomock.Call {
 }
 
 // GetDigestLock mocks base method
-func (m *MockStore) GetDigestLock(arg0 go_digest.Digest) (lockfile.Locker, error) {
+func (m *MockStore) GetDigestLock(arg0 digest.Digest) (lockfile.Locker, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDigestLock", arg0)
 	ret0, _ := ret[0].(lockfile.Locker)
@@ -426,10 +438,10 @@ func (mr *MockStoreMockRecorder) GetDigestLock(arg0 interface{}) *gomock.Call {
 }
 
 // GraphDriver mocks base method
-func (m *MockStore) GraphDriver() (drivers.Driver, error) {
+func (m *MockStore) GraphDriver() (graphdriver.Driver, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GraphDriver")
-	ret0, _ := ret[0].(drivers.Driver)
+	ret0, _ := ret[0].(graphdriver.Driver)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -513,10 +525,10 @@ func (mr *MockStoreMockRecorder) ImageBigData(arg0, arg1 interface{}) *gomock.Ca
 }
 
 // ImageBigDataDigest mocks base method
-func (m *MockStore) ImageBigDataDigest(arg0, arg1 string) (go_digest.Digest, error) {
+func (m *MockStore) ImageBigDataDigest(arg0, arg1 string) (digest.Digest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImageBigDataDigest", arg0, arg1)
-	ret0, _ := ret[0].(go_digest.Digest)
+	ret0, _ := ret[0].(digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -573,7 +585,7 @@ func (mr *MockStoreMockRecorder) Images() *gomock.Call {
 }
 
 // ImagesByDigest mocks base method
-func (m *MockStore) ImagesByDigest(arg0 go_digest.Digest) ([]*storage.Image, error) {
+func (m *MockStore) ImagesByDigest(arg0 digest.Digest) ([]*storage.Image, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImagesByDigest", arg0)
 	ret0, _ := ret[0].([]*storage.Image)
@@ -664,7 +676,7 @@ func (mr *MockStoreMockRecorder) Layers() *gomock.Call {
 }
 
 // LayersByCompressedDigest mocks base method
-func (m *MockStore) LayersByCompressedDigest(arg0 go_digest.Digest) ([]storage.Layer, error) {
+func (m *MockStore) LayersByCompressedDigest(arg0 digest.Digest) ([]storage.Layer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LayersByCompressedDigest", arg0)
 	ret0, _ := ret[0].([]storage.Layer)
@@ -679,7 +691,7 @@ func (mr *MockStoreMockRecorder) LayersByCompressedDigest(arg0 interface{}) *gom
 }
 
 // LayersByUncompressedDigest mocks base method
-func (m *MockStore) LayersByUncompressedDigest(arg0 go_digest.Digest) ([]storage.Layer, error) {
+func (m *MockStore) LayersByUncompressedDigest(arg0 digest.Digest) ([]storage.Layer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LayersByUncompressedDigest", arg0)
 	ret0, _ := ret[0].([]storage.Layer)
@@ -766,6 +778,21 @@ func (m *MockStore) Mount(arg0, arg1 string) (string, error) {
 func (mr *MockStoreMockRecorder) Mount(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mount", reflect.TypeOf((*MockStore)(nil).Mount), arg0, arg1)
+}
+
+// MountImage mocks base method
+func (m *MockStore) MountImage(arg0 string, arg1 []string, arg2 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MountImage", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MountImage indicates an expected call of MountImage
+func (mr *MockStoreMockRecorder) MountImage(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MountImage", reflect.TypeOf((*MockStore)(nil).MountImage), arg0, arg1, arg2)
 }
 
 // Mounted mocks base method
@@ -871,7 +898,7 @@ func (mr *MockStoreMockRecorder) SetContainerRunDirectoryFile(arg0, arg1, arg2 i
 }
 
 // SetImageBigData mocks base method
-func (m *MockStore) SetImageBigData(arg0, arg1 string, arg2 []byte, arg3 func([]byte) (go_digest.Digest, error)) error {
+func (m *MockStore) SetImageBigData(arg0, arg1 string, arg2 []byte, arg3 func([]byte) (digest.Digest, error)) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetImageBigData", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
@@ -969,6 +996,21 @@ func (m *MockStore) Unmount(arg0 string, arg1 bool) (bool, error) {
 func (mr *MockStoreMockRecorder) Unmount(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unmount", reflect.TypeOf((*MockStore)(nil).Unmount), arg0, arg1)
+}
+
+// UnmountImage mocks base method
+func (m *MockStore) UnmountImage(arg0 string, arg1 bool) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnmountImage", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnmountImage indicates an expected call of UnmountImage
+func (mr *MockStoreMockRecorder) UnmountImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnmountImage", reflect.TypeOf((*MockStore)(nil).UnmountImage), arg0, arg1)
 }
 
 // Version mocks base method

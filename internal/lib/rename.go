@@ -6,7 +6,7 @@ import (
 
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
-	"github.com/containers/libpod/pkg/annotations"
+	"github.com/containers/libpod/v2/pkg/annotations"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/opencontainers/runtime-tools/generate"

@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/v2/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/pkg/errors"

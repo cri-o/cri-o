@@ -101,6 +101,7 @@ type DeviceSet struct {
 
 	// Options
 	dataLoopbackSize      int64
+	metaDataSize          string
 	metaDataLoopbackSize  int64
 	baseFsSize            uint64
 	filesystem            string
@@ -272,7 +273,7 @@ func (devices *DeviceSet) ensureImage(name string, size int64) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := idtools.MkdirAllAs(dirname, 0700, uid, gid); err != nil && !os.IsExist(err) {
+	if err := idtools.MkdirAllAs(dirname, 0700, uid, gid); err != nil {
 		return "", err
 	}
 
@@ -1544,8 +1545,8 @@ func getDeviceMajorMinor(file *os.File) (uint64, uint64, error) {
 	}
 
 	dev := stat.Rdev
-	majorNum := major(dev)
-	minorNum := minor(dev)
+	majorNum := major(uint64(dev))
+	minorNum := minor(uint64(dev))
 
 	logrus.Debugf("devmapper: Major:Minor for device: %s is:%v:%v", file.Name(), majorNum, minorNum)
 	return majorNum, minorNum, nil
@@ -1701,10 +1702,10 @@ func (devices *DeviceSet) initDevmapper(doInit bool) (retErr error) {
 	if err != nil {
 		return err
 	}
-	if err := idtools.MkdirAs(devices.root, 0700, uid, gid); err != nil && !os.IsExist(err) {
+	if err := idtools.MkdirAs(devices.root, 0700, uid, gid); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(devices.metadataDir(), 0700); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(devices.metadataDir(), 0700); err != nil {
 		return err
 	}
 
@@ -2708,6 +2709,8 @@ func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps [
 			devices.mountOptions = joinMountOptions(devices.mountOptions, val)
 		case "dm.metadatadev":
 			devices.metadataDevice = val
+		case "dm.metadata_size":
+			devices.metaDataSize = val
 		case "dm.datadev":
 			devices.dataDevice = val
 		case "dm.thinpooldev":
@@ -2743,6 +2746,8 @@ func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps [
 				return nil, err
 			}
 
+		case "dm.metaDataSize":
+			lvmSetupConfig.MetaDataSize = val
 		case "dm.min_free_space":
 			if !strings.HasSuffix(val, "%") {
 				return nil, fmt.Errorf("devmapper: Option dm.min_free_space requires %% suffix")
