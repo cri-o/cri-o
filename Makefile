@@ -287,7 +287,7 @@ ${GO_MOD_OUTDATED}:
 
 ${GOLANGCI_LINT}:
 	export \
-		VERSION=v1.26.0 \
+		VERSION=v1.28.3 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sfL $$URL/$$VERSION/install.sh | sh -s $$VERSION

@@ -21,11 +21,13 @@ linters:
     - dogsled
     - dupl
     - errcheck
+    - exportloopref
     - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
     - gofmt
+    - goheader
     - goimports
     - golint
     - goprintffuncname
@@ -40,6 +42,7 @@ linters:
     - prealloc
     - rowserrcheck
     - scopelint
+    - sqlclosecheck
     - staticcheck
     - structcheck
     - stylecheck
@@ -49,17 +52,20 @@ linters:
     - unused
     - varcheck
     - whitespace
+    # - exhaustive
     # - funlen
     # - gochecknoglobals
     # - gocognit
     # - godot
     # - godox
     # - goerr113
+    # - gofumpt
     # - gomnd
     # - gomodguard
     # - gosec
     # - lll
     # - nestif
+    # - noctx
     # - testpackage
     # - wsl
 linters-settings:
