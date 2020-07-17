@@ -129,7 +129,7 @@ func getMountInfo(mountInfos []*mount.Info, dir string) *mount.Info {
 	return nil
 }
 
-func getSourceMount(source string, mountInfos []*mount.Info) (path, optionalMountInfo string, err error) {
+func getSourceMount(source string, mountInfos []*mount.Info) (path, optionalMountInfo string, errRet error) {
 	mountinfo := getMountInfo(mountInfos, source)
 	if mountinfo != nil {
 		return source, mountinfo.Optional, nil
@@ -492,7 +492,7 @@ func addSecretsBindMounts(ctx context.Context, mountLabel, ctrRunDir string, def
 }
 
 // CreateContainer creates a new container in specified PodSandbox
-func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, err error) {
+func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, retErr error) {
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	s.updateLock.RLock()
@@ -533,7 +533,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
 			s.ReleaseContainerName(ctr.Name())
 		}
@@ -544,7 +544,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
 			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
 			if err2 != nil {
@@ -555,7 +555,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	s.addContainer(newContainer)
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
 			s.removeContainer(newContainer)
 		}
@@ -565,7 +565,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, err
 	}
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
 			if err2 := s.CtrIDIndex().Delete(ctr.ID()); err2 != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
@@ -589,11 +589,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
-	resp := &pb.CreateContainerResponse{
+	return &pb.CreateContainerResponse{
 		ContainerId: ctr.ID(),
-	}
-
-	return resp, nil
+	}, nil
 }
 
 func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
