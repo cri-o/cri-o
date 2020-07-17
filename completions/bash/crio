@@ -16,6 +16,7 @@ h
 --apparmor-profile
 --bind-mount-prefix
 --cgroup-manager
+--clean-shutdown-file
 --cni-config-dir
 --cni-default-network
 --cni-plugin-dir

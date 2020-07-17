@@ -247,6 +247,19 @@ func main() {
 			logrus.Fatal(err)
 		}
 
+		if config.CleanShutdownFile != "" {
+			// clear out the shutdown file
+			if err := os.Remove(config.CleanShutdownFile); err != nil {
+				// not a fatal error, as it could have been cleaned up
+				logrus.Error(err)
+			}
+
+			// and sync the changes to disk
+			if err := utils.SyncParent(config.CleanShutdownFile); err != nil {
+				logrus.Errorf("failed to sync parent directory of clean shutdown file: %v", err)
+			}
+		}
+
 		runtime.RegisterRuntimeServiceServer(grpcServer, service)
 		runtime.RegisterImageServiceServer(grpcServer, service)
 

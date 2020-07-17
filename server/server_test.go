@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"context"
+	"os"
 
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/server"
@@ -251,12 +252,17 @@ var _ = t.Describe("Server", func() {
 			// Given
 			gomock.InOrder(
 				storeMock.EXPECT().Shutdown(gomock.Any()).Return(nil, nil),
+				storeMock.EXPECT().GraphRoot().Return(emptyDir),
 			)
 
 			// When
 			err := sut.Shutdown(context.Background())
 
 			// Then
+			Expect(err).To(BeNil())
+
+			// expect cri-o to have created the clean shutdown file
+			_, err = os.Stat(sut.Config().CleanShutdownFile)
 			Expect(err).To(BeNil())
 		})
 	})

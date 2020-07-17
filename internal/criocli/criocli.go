@@ -263,6 +263,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("version-file-persist") {
 		config.VersionFilePersist = ctx.String("version-file-persist")
 	}
+	if ctx.IsSet("clean-shutdown-file") {
+		config.CleanShutdownFile = ctx.String("clean-shutdown-file")
+	}
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
@@ -763,6 +766,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     "Location for CRI-O to lay down the persistent version file. It is used to check if crio wipe should wipe images, which should only happen when CRI-O has been upgraded",
 			Value:     defConf.VersionFile,
 			EnvVars:   []string{"CONTAINER_VERSION_FILE_PERSIST"},
+			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:      "clean-shutdown-file",
+			Usage:     "Location for CRI-O to lay down the clean shutdown file. It indicates whether we've had time to sync changes to disk before shutting down. If not found, crio wipe will clear the storage directory",
+			Value:     defConf.CleanShutdownFile,
+			EnvVars:   []string{"CONTAINER_CLEAN_SHUTDOWN_FILE"},
 			TakesFile: true,
 		},
 	}

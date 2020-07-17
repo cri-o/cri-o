@@ -159,6 +159,8 @@ fi
 function setup_test() {
     TESTDIR=$(mktemp -d)
     RANDOM_CNI_NETWORK=${TESTDIR: -10}
+    NAMESPACES_DIR=$TESTDIR/ns
+    mkdir "$NAMESPACES_DIR"
 
     # Setup default hooks dir
     HOOKSDIR=$TESTDIR/hooks

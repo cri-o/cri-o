@@ -136,6 +136,10 @@ type RootConfig struct {
 	// VersionFilePersist is the location CRI-O will lay down the version file
 	// that checks whether we've upgraded
 	VersionFilePersist string `toml:"version_file_persist"`
+
+	// CleanShutdownFile is the location CRI-O will lay down the clean shutdown file
+	// that checks whether we've had time to sync before shutting down
+	CleanShutdownFile string `toml:"clean_shutdown_file"`
 }
 
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
@@ -527,6 +531,7 @@ func DefaultConfig() (*Config, error) {
 			LogDir:             "/var/log/crio/pods",
 			VersionFile:        CrioVersionPathTmp,
 			VersionFilePersist: CrioVersionPathPersist,
+			CleanShutdownFile:  CrioCleanShutdownFile,
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,

@@ -62,6 +62,11 @@ version_file = "{{ .VersionFile }}"
 # only happen when CRI-O has been upgraded
 version_file_persist = "{{ .VersionFilePersist }}"
 
+# Location for CRI-O to lay down the clean shutdown file.
+# It is used to check whether crio had time to sync before shutting down.
+# If not found, crio wipe will clear the storage directory.
+clean_shutdown_file = "{{ .CleanShutdownFile }}"
+
 # The crio.api table contains settings for the kubelet/gRPC interface.
 [crio.api]
 

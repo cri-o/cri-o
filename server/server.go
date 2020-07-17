@@ -24,6 +24,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -270,7 +271,38 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// crio.service restart!!!
 	s.cleanupSandboxesOnShutdown(ctx)
 
-	return s.ContainerServer.Shutdown()
+	if err := s.ContainerServer.Shutdown(); err != nil {
+		return err
+	}
+
+	// first, make sure we sync all storage changes
+	if err := utils.Sync(s.Store().GraphRoot()); err != nil {
+		return errors.Wrapf(err, "failed to sync graph root after shutting down")
+	}
+
+	if s.config.CleanShutdownFile != "" {
+		// then, we write the CleanShutdownFile
+		// we do this after the sync, to ensure ordering.
+		// Otherwise, we may run into situations where the CleanShutdownFile
+		// is written before storage, causing us to think a corrupted storage
+		// is not so.
+		f, err := os.Create(s.config.CleanShutdownFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed to write file to indicate a clean shutdown")
+		}
+		f.Close()
+
+		// finally, attempt to sync the newly created file to disk.
+		// It's still possible we crash after Create but before this Sync,
+		// which will lead us to think storage wasn't synced.
+		// However, that's much less likely than if we don't have a second Sync,
+		// and less risky than if we don't Sync after the Create
+		if err := utils.SyncParent(s.config.CleanShutdownFile); err != nil {
+			return errors.Wrapf(err, "failed to sync clean shutdown file")
+		}
+	}
+
+	return nil
 }
 
 // configureMaxThreads sets the Go runtime max threads threshold

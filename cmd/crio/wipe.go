@@ -32,6 +32,26 @@ func crioWipe(c *cli.Context) error {
 		return err
 	}
 
+	store, err := config.GetStore()
+	if err != nil {
+		return err
+	}
+
+	// first, check whether crio has shutdown with time to sync
+	// if not, we should clear the storage directory
+	if config.CleanShutdownFile != "" {
+		if _, err := os.Stat(config.CleanShutdownFile); err != nil {
+			logrus.Infof("file %s not found. Wiping storage directory %s because of suspected dirty shutdown", config.CleanShutdownFile, store.GraphRoot())
+			if _, err := store.Shutdown(false); err != nil {
+				return errors.Errorf("failed to shutdown storage before wiping: %v", err)
+			}
+			if err := os.RemoveAll(store.GraphRoot()); err != nil {
+				return errors.Errorf("failed to remove storage directory: %v", err)
+			}
+			return nil
+		}
+	}
+
 	shouldWipeImages := true
 	shouldWipeContainers := true
 	// First, check if we need to upgrade at all
@@ -64,11 +84,6 @@ func crioWipe(c *cli.Context) error {
 		return nil
 	}
 
-	store, err := config.GetStore()
-	if err != nil {
-		return err
-	}
-
 	cstore := ContainerStore{store}
 	if err := cstore.wipeCrio(shouldWipeImages); err != nil {
 		return err
@@ -86,10 +101,16 @@ func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
 	if err != nil {
 		return err
 	}
+	if len(crioContainers) != 0 {
+		logrus.Infof("Wiping containers")
+	}
 	for _, id := range crioContainers {
 		c.deleteContainer(id)
 	}
 	if shouldWipeImages {
+		if len(crioImages) != 0 {
+			logrus.Infof("Wiping images")
+		}
 		for _, id := range crioImages {
 			c.deleteImage(id)
 		}
@@ -127,7 +148,6 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 }
 
 func (c ContainerStore) deleteContainer(id string) {
-	logrus.Infof("wiping containers")
 	if mounted, err := c.store.Unmount(id, true); err != nil || mounted {
 		logrus.Errorf("unable to unmount container %s: %v", id, err)
 		return
@@ -140,7 +160,6 @@ func (c ContainerStore) deleteContainer(id string) {
 }
 
 func (c ContainerStore) deleteImage(id string) {
-	logrus.Infof("wiping image")
 	if _, err := c.store.DeleteImage(id, true); err != nil {
 		logrus.Errorf("unable to delete image %s: %v", id, err)
 		return

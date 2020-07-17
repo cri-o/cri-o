@@ -15,6 +15,7 @@ crio
 [--apparmor-profile]=[value]
 [--bind-mount-prefix]=[value]
 [--cgroup-manager]=[value]
+[--clean-shutdown-file]=[value]
 [--cni-config-dir]=[value]
 [--cni-default-network]=[value]
 [--cni-plugin-dir]=[value]
@@ -116,6 +117,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--bind-mount-prefix**="": A prefix to use for the source of the bind mounts. This option would be useful if you were running CRI-O in a container. And had `/` mounted on `/host` in your container. Then if you ran CRI-O with the `--bind-mount-prefix=/host` option, CRI-O would add /host to any bind mounts it is handed over CRI. If Kubernetes asked to have `/var/lib/foobar` bind mounted into the container, then CRI-O would bind mount `/host/var/lib/foobar`. Since CRI-O itself is running in a container with `/` or the host mounted on `/host`, the container would end up with `/var/lib/foobar` from the host mounted in the container rather then `/var/lib/foobar` from the CRI-O container. (default: "")
 
 **--cgroup-manager**="": cgroup manager (cgroupfs or systemd) (default: systemd)
+
+**--clean-shutdown-file**="": Location for CRI-O to lay down the clean shutdown file. It indicates whether we've had time to sync changes to disk before shutting down. If not found, crio wipe will clear the storage directory (default: /var/lib/crio/clean.shutdown)
 
 **--cni-config-dir**="": CNI configuration files directory (default: /etc/cni/net.d/)
 
