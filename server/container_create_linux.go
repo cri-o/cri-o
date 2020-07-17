@@ -203,7 +203,7 @@ func makeAccessible(path string, uid, gid int) error {
 }
 
 // nolint:gocyclo
-func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Container, sb *sandbox.Sandbox) (cntr *oci.Container, errRet error) {
+func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
 	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
 
@@ -351,7 +351,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	defer func() {
-		if errRet != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtrLinux: deleting container %s from storage", containerInfo.ID)
 			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
 			if err2 != nil {
@@ -741,7 +741,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
 	defer func() {
-		if errRet != nil {
+		if retErr != nil {
 			log.Infof(ctx, "createCtrLinux: stopping storage container %s", containerID)
 			if err := s.StorageRuntimeServer().StopContainer(containerID); err != nil {
 				log.Warnf(ctx, "couldn't stop storage container: %v: %v", containerID, err)
