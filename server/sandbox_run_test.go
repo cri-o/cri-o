@@ -28,6 +28,10 @@ var _ = t.Describe("RunPodSandbox", func() {
 		// cyclomatic complexity and test it separately
 		It("should fail when container creation errors", func() {
 			// Given
+			// when we ManageNSLifecycle, we do networking setup before we do container creation
+			// mocking the networking setup blows up complexity of this test, which is really
+			// not testing the behavior of managing ns lifecycle. Override default for this test
+			sut.SetManageNSLifecycle(false)
 			gomock.InOrder(
 				runtimeServerMock.EXPECT().CreatePodSandbox(gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),

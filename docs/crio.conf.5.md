@@ -215,11 +215,8 @@ the container runtime configuration.
 **ctr_stop_timeout**=30
   The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container.
 
-**manage_network_ns_lifecycle**=false
-  **DEPRECATED** this option is being replaced by manage_ns_lifecycle, which is described below.
-
-**manage_ns_lifecycle**=false
-  Determines whether we pin and remove namespaces and manage their lifecycle
+**manage_ns_lifecycle**=true
+  Determines whether we pin and remove namespaces and manage their lifecycle.
 
 **namespaces_dir**="/var/run"
   The directory where the state of the managed namespaces gets tracked. Only used when manage_ns_lifecycle is true

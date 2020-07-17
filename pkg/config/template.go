@@ -247,9 +247,6 @@ gid_mappings = "{{ .GIDMappings }}"
 # value is 30s, whereas lower values are not considered by CRI-O.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
 
-# **DEPRECATED** this option is being replaced by manage_ns_lifecycle, which is described below.
-# manage_network_ns_lifecycle = {{ .ManageNSLifecycle }}
-
 # manage_ns_lifecycle determines whether we pin and remove namespaces
 # and manage their lifecycle
 manage_ns_lifecycle = {{ .ManageNSLifecycle }}
