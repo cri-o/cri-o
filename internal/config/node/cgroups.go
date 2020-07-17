@@ -6,7 +6,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
+	libpodcgroups "github.com/containers/libpod/pkg/cgroups"
+	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/pkg/errors"
 )
 
@@ -19,9 +20,15 @@ var (
 	cgroupControllerErr  error
 	cgroupHasHugetlb     bool
 	cgroupHasPid         bool
+
+	cgroupIsV2Err error
 )
 
-var CgroupIsV2 = cgroups.IsCgroup2UnifiedMode
+func CgroupIsV2() bool {
+	var cgroupIsV2 bool
+	cgroupIsV2, cgroupIsV2Err = libpodcgroups.IsCgroup2UnifiedMode()
+	return cgroupIsV2
+}
 
 // CgroupHasMemorySwap returns whether the memory swap controller is present
 func CgroupHasMemorySwap() bool {
@@ -70,7 +77,7 @@ func checkRelevantControllers() {
 				enabled: &cgroupHasHugetlb,
 			},
 		}
-		ctrls, err := cgroups.GetAllSubsystems()
+		ctrls, err := libctrcgroups.GetAllSubsystems()
 		if err != nil {
 			cgroupControllerErr = err
 			return

@@ -42,6 +42,13 @@ func ValidateConfig() error {
 			fatal:     false,
 		},
 		{
+			name:      "cgroup v2",
+			init:      CgroupIsV2,
+			err:       &cgroupIsV2Err,
+			activated: nil,
+			fatal:     false,
+		},
+		{
 			name:      "systemd CollectMode",
 			init:      SystemdHasCollectMode,
 			err:       &systemdHasCollectModeErr,
@@ -58,7 +65,9 @@ func ValidateConfig() error {
 			}
 			logrus.Error(err.Error())
 		}
-		logrus.Infof("node configuration value for %s is %v", i.name, *i.activated)
+		if i.activated != nil {
+			logrus.Infof("node configuration value for %s is %v", i.name, *i.activated)
+		}
 	}
 	return nil
 }
