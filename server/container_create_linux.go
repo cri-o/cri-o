@@ -1139,4 +1139,5 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 		g.AddMount(systemdMnt)
 		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 	}
+	g.AddProcessEnv("container", "crio")
 }
