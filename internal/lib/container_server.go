@@ -668,3 +668,52 @@ func (c *ContainerServer) StopContainerAndWait(ctx context.Context, ctr *oci.Con
 	}
 	return nil
 }
+
+func (c *ContainerServer) UpdateContainerLinuxResources(ctr *oci.Container, resources *rspec.LinuxResources) {
+	updatedSpec := ctr.Spec()
+	if updatedSpec.Linux == nil {
+		updatedSpec.Linux = &rspec.Linux{}
+	}
+
+	if updatedSpec.Linux.Resources == nil {
+		updatedSpec.Linux.Resources = &rspec.LinuxResources{}
+	}
+
+	if updatedSpec.Linux.Resources.CPU == nil {
+		updatedSpec.Linux.Resources.CPU = &rspec.LinuxCPU{}
+	}
+
+	if *resources.CPU.Shares != 0 {
+		updatedSpec.Linux.Resources.CPU.Shares = resources.CPU.Shares
+	}
+
+	if *resources.CPU.Quota != 0 {
+		updatedSpec.Linux.Resources.CPU.Quota = resources.CPU.Quota
+	}
+
+	if *resources.CPU.Period != 0 {
+		updatedSpec.Linux.Resources.CPU.Period = resources.CPU.Period
+	}
+
+	if resources.CPU.Cpus != "" {
+		updatedSpec.Linux.Resources.CPU.Cpus = resources.CPU.Cpus
+	}
+
+	if resources.CPU.Mems != "" {
+		updatedSpec.Linux.Resources.CPU.Mems = resources.CPU.Mems
+	}
+
+	if updatedSpec.Linux.Resources.Memory == nil {
+		updatedSpec.Linux.Resources.Memory = &rspec.LinuxMemory{}
+	}
+
+	if *resources.Memory.Limit != 0 {
+		updatedSpec.Linux.Resources.Memory.Limit = resources.Memory.Limit
+	}
+
+	updatedSpec.Linux.Resources.Memory.Swap = resources.Memory.Swap
+
+	ctr.SetSpec(&updatedSpec)
+
+	c.state.containers.Add(ctr.ID(), ctr)
+}

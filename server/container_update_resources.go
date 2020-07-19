@@ -7,7 +7,9 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+
 	"golang.org/x/net/context"
+
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -26,6 +28,10 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateCon
 	if err := s.Runtime().UpdateContainer(c, resources); err != nil {
 		return nil, err
 	}
+
+	// update memory store with updated resources
+	s.UpdateContainerLinuxResources(c, resources)
+
 	return &pb.UpdateContainerResourcesResponse{}, nil
 }
 
