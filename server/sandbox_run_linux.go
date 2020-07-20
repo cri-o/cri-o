@@ -163,6 +163,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			return nil, err
 		}
 		if err := label.Relabel(resolvPath, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
+			if err1 := removeFile(resolvPath); err1 != nil {
+				return nil, fmt.Errorf("%v; failed to remove %s: %v", err, resolvPath, err1)
+			}
 			return nil, err
 		}
 		mnt := spec.Mount{
