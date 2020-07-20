@@ -13,7 +13,7 @@
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
                         --ginkgo.noColor
                         --ginkgo.succinct
-                        --ginkgo.focus=\[NodeFeature:.*\]|\[Feature:\(Seccomp|SCTP\)\]
+                        --ginkgo.focus=\[NodeFeature:.*\]|\[Feature:(Seccomp|ScopeSelectors|PodPriority|Ingress|ComprehensiveNamespaceDraining|Networking-IPv4|TokenRequestProjection)\]
                         --ginkgo.skip=\[(Slow|Flaky)\]
                         --report-dir={{ artifacts }}"
             &> {{ artifacts }}/e2e.log
