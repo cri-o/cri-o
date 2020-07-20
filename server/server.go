@@ -20,6 +20,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
@@ -251,27 +252,27 @@ func (s *Server) restore(ctx context.Context) {
 	}
 }
 
-// cleanupSandboxesOnShutdown Remove all running Sandboxes on system shutdown
-func (s *Server) cleanupSandboxesOnShutdown(ctx context.Context) {
-	_, err := os.Stat(shutdownFile)
-	if err == nil || !os.IsNotExist(err) {
-		logrus.Debugf("shutting down all sandboxes, on shutdown")
+// stopSandboxesIfShutdownFileExists stops all running Sandboxes on system
+// shutdown if the shutdownFile is present.
+func (s *Server) stopSandboxesIfShutdownFileExists(ctx context.Context) {
+	if _, err := os.Stat(shutdownFile); err == nil || !os.IsNotExist(err) {
+		log.Infof(ctx,
+			"Found shutdown file in %s, stopping all sandboxes", shutdownFile,
+		)
+
 		s.stopAllPodSandboxes(ctx)
-		err = os.Remove(shutdownFile)
-		if err != nil {
-			logrus.Warnf("Failed to remove %q", shutdownFile)
+
+		if err := os.Remove(shutdownFile); err != nil {
+			log.Warnf(ctx,
+				"Failed to remove shutdown file %q: %v", shutdownFile, err,
+			)
 		}
 	}
 }
 
 // Shutdown attempts to shut down the server's storage cleanly
 func (s *Server) Shutdown(ctx context.Context) error {
-	// why do this on clean shutdown! we want containers left running when crio
-	// is down for whatever reason no?!
-	// notice this won't trigger just on system halt but also on normal
-	// crio.service restart!!!
-	s.cleanupSandboxesOnShutdown(ctx)
-
+	s.stopSandboxesIfShutdownFileExists(ctx)
 	return s.ContainerServer.Shutdown()
 }
 
@@ -366,7 +367,7 @@ func New(
 	}
 
 	s.restore(ctx)
-	s.cleanupSandboxesOnShutdown(ctx)
+	s.stopSandboxesIfShutdownFileExists(ctx)
 
 	var bindAddressStr string
 	bindAddress := net.ParseIP(config.StreamAddress)

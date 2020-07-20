@@ -13,9 +13,9 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	return s.stopPodSandbox(ctx, req)
 }
 
-// stopAllPodSandboxes removes all pod sandboxes
+// stopAllPodSandboxes stops all pod sandboxes
 func (s *Server) stopAllPodSandboxes(ctx context.Context) {
-	log.Debugf(ctx, "stopAllPodSandboxes")
+	log.Debugf(ctx, "Stopping all pod sandboxes")
 	for _, sb := range s.ContainerServer.ListSandboxes() {
 		pod := &pb.StopPodSandboxRequest{
 			PodSandboxId: sb.ID(),
