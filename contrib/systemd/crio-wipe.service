@@ -11,7 +11,7 @@ ExecStart=/usr/local/bin/crio \
           $CRIO_STORAGE_OPTIONS \
           $CRIO_NETWORK_OPTIONS \
           $CRIO_METRICS_OPTIONS \
-		  wipe
+          wipe
 
 Type=oneshot
 
