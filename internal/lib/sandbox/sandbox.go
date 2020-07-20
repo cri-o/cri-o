@@ -7,12 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/oci"
-	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
@@ -402,20 +400,5 @@ func (s *Sandbox) UnmountShm() error {
 	if s.ShmPath() == DevShmPath {
 		return nil
 	}
-
-	// we got namespaces in the form of
-	// /var/run/containers/storage/overlay-containers/CID/userdata/shm
-	// but /var/run on most system is symlinked to /run so we first resolve
-	// the symlink and then try and see if it's mounted
-	fp, err := securejoin.SecureJoin("/", s.ShmPath())
-	if err != nil {
-		return err
-	}
-	if mounted, err := mount.Mounted(fp); err == nil && mounted {
-		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
-			return errors.Wrapf(err, "unable to unmount %s", fp)
-		}
-	}
-
-	return nil
+	return utils.Unmount(s.ShmPath())
 }

@@ -16,14 +16,14 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/pkg/lookup"
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-
-	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
-	"github.com/godbus/dbus/v5"
 )
 
 // ExecCmd executes a command with args and returns its output as a string along
@@ -339,4 +339,21 @@ func GetLabelOptions(selinuxOptions *pb.SELinuxOption) []string {
 		}
 	}
 	return labels
+}
+
+// Unmount is a helper function that unmounts
+// a path, accounting for symlinks
+func Unmount(path string) error {
+	// we may get files that are symlinked
+	// so we first resolve the symlink
+	fp, err := securejoin.SecureJoin("/", path)
+	if err != nil {
+		return err
+	}
+	// then umount unconditionally, ignoring EINVAL (mount point is not mounted)
+	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL && err != unix.ENOENT {
+		return errors.Wrapf(err, "unable to unmount %s", fp)
+	}
+
+	return nil
 }
