@@ -20,6 +20,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
@@ -315,4 +316,23 @@ func EnsureSaneLogPath(logPath string) error {
 		}
 	}
 	return nil
+}
+
+func GetLabelOptions(selinuxOptions *pb.SELinuxOption) []string {
+	labels := []string{}
+	if selinuxOptions != nil {
+		if selinuxOptions.User != "" {
+			labels = append(labels, "user:"+selinuxOptions.User)
+		}
+		if selinuxOptions.Role != "" {
+			labels = append(labels, "role:"+selinuxOptions.Role)
+		}
+		if selinuxOptions.Type != "" {
+			labels = append(labels, "type:"+selinuxOptions.Type)
+		}
+		if selinuxOptions.Level != "" {
+			labels = append(labels, "level:"+selinuxOptions.Level)
+		}
+	}
+	return labels
 }
