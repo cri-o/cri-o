@@ -258,7 +258,9 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 	go func() {
 		_, err = r.wait(r.ctx, c.ID(), "")
 		if err == nil {
-			err = r.UpdateContainerStatus(c)
+			if err1 := r.updateContainerStatus(c); err1 != nil {
+				logrus.Warningf("error updating container status %v", err1)
+			}
 		}
 	}()
 
@@ -575,6 +577,16 @@ func (r *runtimeVM) UpdateContainerStatus(c *Container) error {
 	// Lock the container
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	return r.updateContainerStatus(c)
+}
+
+// updateContainerStatus is a UpdateContainerStatus helper, which actually does the container's
+// status refresh.
+// It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
+func (r *runtimeVM) updateContainerStatus(c *Container) error {
+	logrus.Debug("runtimeVM.updateContainerStatus() start")
+	defer logrus.Debug("runtimeVM.updateContainerStatus() end")
 
 	// This can happen on restore, for example if we switch the runtime type
 	// for a container from "oci" to "vm" for the same runtime.
