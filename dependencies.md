@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 21 Jul 2020 05:03:24 UTC for commit [8cc5808][0]._
+_Generated on Tue, 21 Jul 2020 09:03:57 UTC for commit [d3bee57][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8cc5808bbebaf4ec312ae6bf90147d3050d38dbe
+[0]: https://github.com/cri-o/cri-o/commit/d3bee57675a8b29a2774afcb3c662c605c8068d5
 
 ## Outdated Dependencies
 
@@ -88,7 +88,7 @@ _Generated on Tue, 21 Jul 2020 05:03:24 UTC for commit [8cc5808][0]._
 | github.com/buger/jsonparser                             | v0.0.0-20180808090653-f4dd9f5a6b44                | v1.0.0                             | false  | true             |
 | github.com/caddyserver/caddy                            | v1.0.3                                            | v1.0.5                             | false  | true             |
 | github.com/cenkalti/backoff                             | v2.1.1+incompatible                               | v2.2.1+incompatible                | false  | true             |
-| github.com/census-instrumentation/opencensus-proto      | v0.2.1                                            |                                    | false  | true             |
+| github.com/census-instrumentation/opencensus-proto      | v0.2.1                                            | v0.3.0                             | false  | true             |
 | github.com/cespare/xxhash                               | v1.1.0                                            |                                    | false  | true             |
 | github.com/cespare/xxhash/v2                            | v2.1.1                                            |                                    | false  | true             |
 | github.com/chai2010/gettext-go                          | v0.0.0-20160711120539-c6fed771bfd5                | v1.0.2                             | false  | true             |
