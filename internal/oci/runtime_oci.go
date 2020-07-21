@@ -241,7 +241,8 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 	return nil
 }
 
-func prepareExec() (pidFile, parentPipe, childPipe *os.File, err error) {
+func prepareExec() (pidFile, parentPipe, childPipe *os.File, _ error) {
+	var err error
 	parentPipe, childPipe, err = os.Pipe()
 	if err != nil {
 		return nil, nil, nil, err

@@ -36,7 +36,7 @@ func sysProcAttrPlatform() *syscall.SysProcAttr {
 }
 
 // newPipe creates a unix socket pair for communication
-func newPipe() (parent, child *os.File, err error) {
+func newPipe() (parent, child *os.File, _ error) {
 	fds, err := unix.Socketpair(unix.AF_LOCAL, unix.SOCK_STREAM|unix.SOCK_CLOEXEC, 0)
 	if err != nil {
 		return nil, nil, err
@@ -44,8 +44,9 @@ func newPipe() (parent, child *os.File, err error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
-func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (stats *ContainerStats, err error) {
-	stats = &ContainerStats{}
+func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerStats, error) {
+	stats := &ContainerStats{}
+	var err error
 	stats.Container = ctr.ID()
 	stats.SystemNano = time.Now().UnixNano()
 

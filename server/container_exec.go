@@ -13,8 +13,8 @@ import (
 )
 
 // Exec prepares a streaming endpoint to execute a command in the container.
-func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (resp *pb.ExecResponse, err error) {
-	resp, err = s.getExec(req)
+func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (*pb.ExecResponse, error) {
+	resp, err := s.getExec(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare exec endpoint: %v", err)
 	}

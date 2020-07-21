@@ -93,7 +93,11 @@ func (DetachError) Error() string {
 }
 
 // CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
-func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
+func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (int64, error) {
+	var (
+		written int64
+		err     error
+	)
 	// Sanity check interfaces
 	if dst == nil || src == nil {
 		return 0, fmt.Errorf("src/dst reader/writer nil")
@@ -202,7 +206,7 @@ func openContainerFile(rootfs, path string) (io.ReadCloser, error) {
 
 // GetUserInfo returns UID, GID and additional groups for specified user
 // by looking them up in /etc/passwd and /etc/group
-func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uint32, err error) {
+func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uint32, _ error) {
 	// We don't care if we can't open the file because
 	// not all images will have these files
 	passwdFile, err := openContainerFile(rootfs, "/etc/passwd")

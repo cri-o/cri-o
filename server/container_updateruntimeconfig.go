@@ -6,6 +6,6 @@ import (
 )
 
 // UpdateRuntimeConfig updates the configuration of a running container.
-func (s *Server) UpdateRuntimeConfig(ctx context.Context, req *pb.UpdateRuntimeConfigRequest) (resp *pb.UpdateRuntimeConfigResponse, err error) {
+func (s *Server) UpdateRuntimeConfig(ctx context.Context, req *pb.UpdateRuntimeConfigRequest) (*pb.UpdateRuntimeConfigResponse, error) {
 	return &pb.UpdateRuntimeConfigResponse{}, nil
 }

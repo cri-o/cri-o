@@ -683,13 +683,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	return resp, nil
 }
 
-func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, err error) {
+func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, _ error) {
 	shmPath = filepath.Join(podSandboxRunDir, "shm")
 	if err := os.Mkdir(shmPath, 0700); err != nil {
 		return "", err
 	}
 	shmOptions := "mode=1777,size=" + strconv.Itoa(libsandbox.DefaultShmSize)
-	if err = unix.Mount("shm", shmPath, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
+	if err := unix.Mount("shm", shmPath, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 		label.FormatMountLabel(shmOptions, mountLabel)); err != nil {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
 	}

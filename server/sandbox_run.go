@@ -63,7 +63,7 @@ func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
 }
 
 // RunPodSandbox creates and runs a pod-level sandbox.
-func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, err error) {
+func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (*pb.RunPodSandboxResponse, error) {
 	// platform dependent call
 	return s.runPodSandbox(ctx, req)
 }

@@ -12,7 +12,7 @@ import (
 )
 
 // StartContainer starts the container.
-func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (resp *pb.StartContainerResponse, err error) {
+func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerRequest) (resp *pb.StartContainerResponse, retErr error) {
 	log.Infof(ctx, "Starting container: %s", req.GetContainerId())
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
@@ -28,20 +28,18 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		// some fields of a container status. In particular, we're going to
 		// adjust container started/finished time and set an error to be
 		// returned in the Reason field for container status call.
-		if err != nil {
-			c.SetStartFailed(err)
+		if retErr != nil {
+			c.SetStartFailed(retErr)
 		}
 		if err := s.ContainerStateToDisk(c); err != nil {
 			log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
 		}
 	}()
 
-	err = s.Runtime().StartContainer(c)
-	if err != nil {
+	if err := s.Runtime().StartContainer(c); err != nil {
 		return nil, fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}
 
 	log.Infof(ctx, "Started container %s: %s", c.ID(), c.Description())
-	resp = &pb.StartContainerResponse{}
-	return resp, nil
+	return &pb.StartContainerResponse{}, nil
 }

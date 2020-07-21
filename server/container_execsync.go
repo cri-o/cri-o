@@ -11,7 +11,7 @@ import (
 )
 
 // ExecSync runs a command in a container synchronously.
-func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *pb.ExecSyncResponse, err error) {
+func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.ExecSyncResponse, error) {
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
@@ -35,11 +35,9 @@ func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (resp *p
 	if err != nil {
 		return nil, err
 	}
-	resp = &pb.ExecSyncResponse{
+	return &pb.ExecSyncResponse{
 		Stdout:   execResp.Stdout,
 		Stderr:   execResp.Stderr,
 		ExitCode: execResp.ExitCode,
-	}
-
-	return resp, nil
+	}, nil
 }
