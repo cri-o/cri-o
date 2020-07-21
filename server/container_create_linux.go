@@ -32,7 +32,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -202,7 +201,6 @@ func makeAccessible(path string, uid, gid int) error {
 	return nil
 }
 
-// nolint:gocyclo
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
 	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
@@ -211,7 +209,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	// of the translation between CRI config -> oci/storage container in the container package
 	containerID := ctr.ID()
 	containerName := ctr.Name()
-	sandboxConfig := ctr.SandboxConfig()
 	containerConfig := ctr.Config()
 	if err := ctr.SetPrivileged(); err != nil {
 		return nil, err
@@ -229,13 +226,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		specgen.AddProcessRlimits(u.Name, u.Hard, u.Soft)
 	}
 
-	readOnlyRootfs := s.config.ReadOnly
-
-	if containerConfig.GetLinux().GetSecurityContext() != nil {
-		if containerConfig.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
-			readOnlyRootfs = true
-		}
-	}
+	readOnlyRootfs := ctr.ReadOnly(s.config.ReadOnly)
 	specgen.SetRootReadonly(readOnlyRootfs)
 
 	if s.config.ReadOnly {
@@ -261,14 +252,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		}
 	}
 
-	imageSpec := containerConfig.GetImage()
-	if imageSpec == nil {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image is nil")
-	}
-
-	image := imageSpec.Image
-	if image == "" {
-		return nil, fmt.Errorf("CreateContainerRequest.ContainerConfig.Image.Image is empty")
+	image, err := ctr.Image()
+	if err != nil {
+		return nil, err
 	}
 	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
@@ -304,15 +290,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	specgen.AddAnnotation(annotations.ImageName, imageName)
 	specgen.AddAnnotation(annotations.ImageRef, imageRef)
 
-	selinuxConfig := containerConfig.GetLinux().GetSecurityContext().GetSelinuxOptions()
-	var labelOptions []string
-	if selinuxConfig == nil {
-		labelOptions, err = label.DupSecOpt(sb.ProcessLabel())
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		labelOptions = getLabelOptions(selinuxConfig)
+	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
+	if err != nil {
+		return nil, err
 	}
 
 	containerIDMappings := s.defaultIDMappings
@@ -805,13 +785,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			return nil, fmt.Errorf("failed to mount secrets: %v", err)
 		}
 	}
-	// Check for FIPS_DISABLE label in the pod config
-	disableFips := false
-	if value, ok := sandboxConfig.GetLabels()["FIPS_DISABLE"]; ok && value == "true" {
-		disableFips = true
-	}
 	// Add secrets from the default and override mounts.conf files
-	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless(), disableFips)...)
+	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless(), ctr.DisableFips())...)
 
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -45,6 +46,22 @@ type Container interface {
 	// It takes as input the LogDir of the sandbox, which is used
 	// if there is no LogDir configured in the sandbox CRI config
 	LogPath(string) (string, error)
+
+	// DisableFips returns whether the container should disable fips mode
+	DisableFips() bool
+
+	// Image returns the image specified in the container spec, or an error
+	Image() (string, error)
+
+	// ReadOnly returns whether the rootfs should be readonly
+	// it takes a bool as to whether crio was configured to
+	// be readonly, which it defaults to if the container wasn't
+	// specifically asked to be read only
+	ReadOnly(bool) bool
+
+	// SelinuxLabel returns the container's SelinuxLabel
+	// it takes the sandbox's label, which it falls back upon
+	SelinuxLabel(string) ([]string, error)
 }
 
 // container is the hidden default type behind the Container interface
@@ -211,4 +228,51 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 		sboxLogDir, c.config.GetLogPath(), logPath,
 	)
 	return logPath, nil
+}
+
+// DisableFips returns whether the container should disable fips mode
+func (c *container) DisableFips() bool {
+	if value, ok := c.sboxConfig.GetLabels()["FIPS_DISABLE"]; ok && value == "true" {
+		return true
+	}
+	return false
+}
+
+// Image returns the image specified in the container spec, or an error
+func (c *container) Image() (string, error) {
+	imageSpec := c.config.GetImage()
+	if imageSpec == nil {
+		return "", errors.New("CreateContainerRequest.ContainerConfig.Image is nil")
+	}
+
+	image := imageSpec.Image
+	if image == "" {
+		return "", errors.New("CreateContainerRequest.ContainerConfig.Image.Image is empty")
+	}
+	return image, nil
+}
+
+// ReadOnly returns whether the rootfs should be readonly
+// it takes a bool as to whether crio was configured to
+// be readonly, which it defaults to if the container wasn't
+// specifically asked to be read only
+func (c *container) ReadOnly(serverIsReadOnly bool) bool {
+	if c.config.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
+		return true
+	}
+	return serverIsReadOnly
+}
+
+// SelinuxLabel returns the container's SelinuxLabel
+// it takes the sandbox's label, which it falls back upon
+func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
+	selinuxConfig := c.config.GetLinux().GetSecurityContext().GetSelinuxOptions()
+	if selinuxConfig != nil {
+		return utils.GetLabelOptions(selinuxConfig), nil
+	}
+	labelOptions, err := label.DupSecOpt(sboxLabel)
+	if err != nil {
+		return nil, err
+	}
+	return labelOptions, nil
 }
