@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 21 Jul 2020 16:30:10 UTC for commit [3809a51][0]._
+_Generated on Tue, 21 Jul 2020 16:46:35 UTC for commit [988f60e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3809a510453693e6cd7dbc08d75ad016ba748f63
+[0]: https://github.com/cri-o/cri-o/commit/988f60ebbba7e33ae8ff7ad6631ebfe6465336cc
 
 ## Outdated Dependencies
 
@@ -19,7 +19,7 @@ _Generated on Tue, 21 Jul 2020 16:30:10 UTC for commit [3809a51][0]._
 | golang.org/x/sys                     | v0.0.0-20200625212154-ddb9806d33ae | v0.0.0-20200720211630-cb9d2d5c5666 | true   | true             |
 | k8s.io/api                           | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200721161515-a1a2f8c5f854 | true   | true             |
 | k8s.io/apimachinery                  | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200721161515-a1a2f8c5f854 | true   | true             |
-| k8s.io/client-go                     | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200721113517-b6174e605fd6 | true   | true             |
+| k8s.io/client-go                     | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200721161515-a1a2f8c5f854 | true   | true             |
 | k8s.io/cri-api                       | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200721161515-a1a2f8c5f854 | true   | true             |
 | k8s.io/kubernetes                    | v1.19.0-rc.1                       |                                    | true   | true             |
 | k8s.io/utils                         | v0.0.0-20200619165400-6e3d28b6ed19 | v0.0.0-20200720150651-0bdb4ca86cbc | true   | true             |
@@ -501,7 +501,7 @@ _Generated on Tue, 21 Jul 2020 16:30:10 UTC for commit [3809a51][0]._
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.3                                            |                                    | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200630173020-3af7569d3a1e | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200602230032-c00d67ef29d0                | v0.0.0-20200721154406-b8e13e1a4d3b | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200602230032-c00d67ef29d0                | v0.0.0-20200721163027-5ea363182e19 | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                |                                    | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.7.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200603212716-16abd5ac5bc7 | false  | true             |
@@ -538,7 +538,7 @@ _Generated on Tue, 21 Jul 2020 16:30:10 UTC for commit [3809a51][0]._
 | k8s.io/apimachinery                                     | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200721161515-a1a2f8c5f854 | true   | true             |
 | k8s.io/apiserver                                        | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200721161515-a1a2f8c5f854 | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200721161515-a1a2f8c5f854 | false  | true             |
-| k8s.io/client-go                                        | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200721113517-b6174e605fd6 | true   | true             |
+| k8s.io/client-go                                        | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200721161515-a1a2f8c5f854 | true   | true             |
 | k8s.io/cloud-provider                                   | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200721161515-a1a2f8c5f854 | false  | true             |
 | k8s.io/cluster-bootstrap                                | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200721161515-a1a2f8c5f854 | false  | true             |
 | k8s.io/code-generator                                   | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200721161515-a1a2f8c5f854 | false  | true             |
