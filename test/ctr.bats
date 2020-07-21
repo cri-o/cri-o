@@ -853,6 +853,26 @@ function wait_until_exit() {
 	[ "$status" -eq 0 ]
 }
 
+@test "ctr execsync should not overwrite initial spec args" {
+    start_crio
+
+    run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+    [ "$status" -eq 0 ]
+    CTR="$output"
+
+    run crictl inspect $CTR | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
+    [ "$status" -eq 0 ]
+
+    run crictl exec --sync $CTR echo Hello
+    [ "$status" -eq 0 ]
+
+    run crictl inspect $CTR | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
+    [ "$status" -eq 0 ]
+
+    run crictl rm -f $CTR
+    [ "$status" -eq 0 ]
+}
+
 @test "ctr device add" {
 	# In an user namespace we can only bind mount devices from the host, not mknod
 	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481
