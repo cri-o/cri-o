@@ -110,6 +110,7 @@ workflows:
           requires:
             - bundle-test
             - integration
+            - integration-cgroupfs
             - integration-critest
             - integration-static
             - integration-userns
