@@ -123,6 +123,19 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
+	// set log directory
+	logDir := sbox.Config().GetLogDirectory()
+	if logDir == "" {
+		logDir = filepath.Join(s.config.LogDir, sbox.ID())
+	}
+	// This should always be absolute from k8s.
+	if !filepath.IsAbs(logDir) {
+		return nil, fmt.Errorf("requested logDir for sbox id %s is a relative path: %s", sbox.ID(), logDir)
+	}
+	if err := os.MkdirAll(logDir, 0700); err != nil {
+		return nil, err
+	}
+
 	// TODO: factor generating/updating the spec into something other projects can vendor
 
 	// creates a spec Generator with the default spec.
@@ -206,19 +219,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
 	if err != nil {
 		return nil, err
-	}
-
-	// set log directory
-	logDir := sbox.Config().GetLogDirectory()
-	if logDir == "" {
-		logDir = filepath.Join(s.config.LogDir, sbox.ID())
-	}
-	if err := os.MkdirAll(logDir, 0700); err != nil {
-		return nil, err
-	}
-	// This should always be absolute from k8s.
-	if !filepath.IsAbs(logDir) {
-		return nil, fmt.Errorf("requested logDir for sbox id %s is a relative path: %s", sbox.ID(), logDir)
 	}
 
 	// Add capabilities from crio.conf if default_capabilities is defined
