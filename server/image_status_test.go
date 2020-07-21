@@ -31,8 +31,10 @@ var _ = t.Describe("ImageStatus", func() {
 					Return([]string{"image"}, nil),
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
-					Return(&storage.ImageResult{ID: "image",
-						User: "10", Size: &size}, nil),
+					Return(&storage.ImageResult{
+						ID:   "image",
+						User: "10", Size: &size,
+					}, nil),
 			)
 
 			// When

@@ -24,8 +24,10 @@ import (
 
 const defaultStopSignalInt = 15
 
-var defaultStopSignal = strconv.Itoa(defaultStopSignalInt)
-var ErrContainerStopped = errors.New("container is already stopped")
+var (
+	defaultStopSignal   = strconv.Itoa(defaultStopSignalInt)
+	ErrContainerStopped = errors.New("container is already stopped")
+)
 
 // Container represents a runtime container.
 type Container struct {

@@ -95,7 +95,8 @@ var _ = t.Describe("Image", func() {
 			imageService, err := storage.GetImageService(
 				context.Background(),
 				&types.SystemContext{
-					SystemRegistriesConfPath: "../../test/registries.conf"},
+					SystemRegistriesConfPath: "../../test/registries.conf",
+				},
 				storeMock, "", []string{}, []string{},
 			)
 
@@ -391,10 +392,12 @@ var _ = t.Describe("Image", func() {
 				storeMock.EXPECT().Image(testNormalizedImageName).
 					Return(&cs.Image{
 						ID: testSHA256,
-						Names: []string{testNormalizedImageName,
+						Names: []string{
+							testNormalizedImageName,
 							"localhost/a@sha256:" + testSHA256,
 							"localhost/b@sha256:" + testSHA256,
-							"localhost/c:latest"},
+							"localhost/c:latest",
+						},
 					}, nil),
 				// buildImageCacheItem
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
@@ -486,7 +489,8 @@ var _ = t.Describe("Image", func() {
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{
 						{ID: testSHA256, Names: []string{"a", "b", "c@sha256:" + testSHA256}},
-						{ID: testSHA256}},
+						{ID: testSHA256},
+					},
 					nil),
 				mockParseStoreReference(storeMock, "@"+testSHA256),
 				mockLoop(),
@@ -617,7 +621,6 @@ var _ = t.Describe("Image", func() {
 			Expect(err).NotTo(BeNil())
 			Expect(res).To(BeNil())
 		})
-
 	})
 
 	t.Describe("PrepareImage", func() {

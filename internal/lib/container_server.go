@@ -471,7 +471,7 @@ func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
 		logrus.Warnf("error updating the container status %q: %v", ctr.ID(), err)
 	}
 
-	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0644)
+	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0o644)
 	if err != nil {
 		return err
 	}

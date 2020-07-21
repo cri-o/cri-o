@@ -102,11 +102,11 @@ func writeVersionFile(file, gitCommit, version string) error {
 	}
 
 	// Create the top level directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 		return err
 	}
 
-	return renameio.WriteFile(file, j, 0644)
+	return renameio.WriteFile(file, j, 0o644)
 }
 
 // parseVersionConstant parses the Version variable above

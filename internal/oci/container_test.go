@@ -170,9 +170,9 @@ var _ = t.Describe("Container", func() {
 
 	It("should succeed to get the state from disk", func() {
 		// Given
-		Expect(os.MkdirAll(sut.Dir(), 0755)).To(BeNil())
+		Expect(os.MkdirAll(sut.Dir(), 0o755)).To(BeNil())
 		Expect(ioutil.WriteFile(path.Join(sut.Dir(), "state.json"),
-			[]byte("{}"), 0644)).To(BeNil())
+			[]byte("{}"), 0o644)).To(BeNil())
 		defer os.RemoveAll(sut.Dir())
 
 		// When
@@ -184,9 +184,9 @@ var _ = t.Describe("Container", func() {
 
 	It("should fail to get the state from disk if invalid json", func() {
 		// Given
-		Expect(os.MkdirAll(sut.Dir(), 0755)).To(BeNil())
+		Expect(os.MkdirAll(sut.Dir(), 0o755)).To(BeNil())
 		Expect(ioutil.WriteFile(path.Join(sut.Dir(), "state.json"),
-			[]byte("invalid"), 0644)).To(BeNil())
+			[]byte("invalid"), 0o644)).To(BeNil())
 		defer os.RemoveAll(sut.Dir())
 
 		// When

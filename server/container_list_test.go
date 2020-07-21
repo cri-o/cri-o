@@ -145,7 +145,8 @@ var _ = t.Describe("ContainerList", func() {
 					&pb.ListContainersRequest{Filter: &pb.ContainerFilter{
 						State: &pb.ContainerStateValue{
 							State: pb.ContainerState_CONTAINER_RUNNING,
-						}}})
+						},
+					}})
 
 				// Then
 				Expect(err).To(BeNil())

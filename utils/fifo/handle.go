@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const oPathFlags = 010000000
+const oPathFlags = 0o10000000
 
 type handle struct {
 	f         *os.File

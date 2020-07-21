@@ -26,7 +26,6 @@ var _ = t.Describe("Inspect", func() {
 		mux = sut.GetInfoMux()
 		Expect(mux).NotTo(BeNil())
 		Expect(recorder).NotTo(BeNil())
-
 	})
 	AfterEach(afterEach)
 
@@ -124,6 +123,5 @@ var _ = t.Describe("Inspect", func() {
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
-
 	})
 })

@@ -58,6 +58,5 @@ var _ = t.Describe("Metrics", func() {
 			// Then
 			Expect(res).To(BeZero())
 		})
-
 	})
 })

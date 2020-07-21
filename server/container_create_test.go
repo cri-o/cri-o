@@ -25,12 +25,14 @@ var _ = t.Describe("ContainerCreate", func() {
 
 			// When
 			response, err := sut.CreateContainer(context.Background(),
-				&pb.CreateContainerRequest{PodSandboxId: testSandbox.ID(),
+				&pb.CreateContainerRequest{
+					PodSandboxId: testSandbox.ID(),
 					Config: &pb.ContainerConfig{
 						Metadata: &pb.ContainerMetadata{
 							Name: "name",
 						},
-					}})
+					},
+				})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -43,10 +45,12 @@ var _ = t.Describe("ContainerCreate", func() {
 
 			// When
 			response, err := sut.CreateContainer(context.Background(),
-				&pb.CreateContainerRequest{PodSandboxId: testSandbox.ID(),
+				&pb.CreateContainerRequest{
+					PodSandboxId: testSandbox.ID(),
 					Config: &pb.ContainerConfig{
 						Metadata: &pb.ContainerMetadata{},
-					}})
+					},
+				})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -59,8 +63,10 @@ var _ = t.Describe("ContainerCreate", func() {
 
 			// When
 			response, err := sut.CreateContainer(context.Background(),
-				&pb.CreateContainerRequest{PodSandboxId: testSandbox.ID(),
-					Config: &pb.ContainerConfig{}})
+				&pb.CreateContainerRequest{
+					PodSandboxId: testSandbox.ID(),
+					Config:       &pb.ContainerConfig{},
+				})
 
 			// Then
 			Expect(err).NotTo(BeNil())

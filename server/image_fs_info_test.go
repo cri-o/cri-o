@@ -28,7 +28,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 				storeMock.EXPECT().GraphDriverName().Return("test"),
 			)
 			testImageDir := "test-images"
-			Expect(os.MkdirAll(testImageDir, 0755)).To(BeNil())
+			Expect(os.MkdirAll(testImageDir, 0o755)).To(BeNil())
 			defer os.RemoveAll(testImageDir)
 
 			// When
@@ -39,7 +39,6 @@ var _ = t.Describe("ImageFsInfo", func() {
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.ImageFilesystems)).To(BeEquivalentTo(1))
-
 		})
 
 		It("should fail on invalid image dir", func() {

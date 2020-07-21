@@ -192,8 +192,8 @@ func makeAccessible(path string, uid, gid int) error {
 		if int(st.Sys().(*syscall.Stat_t).Uid) == uid && int(st.Sys().(*syscall.Stat_t).Gid) == gid {
 			continue
 		}
-		if st.Mode()&0111 != 0111 {
-			if err := os.Chmod(path, st.Mode()|0111); err != nil {
+		if st.Mode()&0o111 != 0o111 {
+			if err := os.Chmod(path, st.Mode()|0o111); err != nil {
 				return err
 			}
 		}
@@ -876,7 +876,7 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(fp, 0755); err != nil {
+	if err := os.MkdirAll(fp, 0o755); err != nil {
 		return err
 	}
 	if mountLabel != "" {
@@ -962,7 +962,7 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		} else {
 			if !os.IsNotExist(err) {
 				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
-			} else if err = os.MkdirAll(src, 0755); err != nil {
+			} else if err = os.MkdirAll(src, 0o755); err != nil {
 				return nil, nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
 			}
 		}

@@ -19,7 +19,6 @@ var t *TestFramework
 var _ = BeforeSuite(func() {
 	t = NewTestFramework(NilFunc, NilFunc)
 	t.Setup()
-
 })
 
 var _ = AfterSuite(func() {

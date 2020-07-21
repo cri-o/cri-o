@@ -31,7 +31,8 @@ var _ = t.Describe("ContainerStop", func() {
 			// When
 			response, err := sut.StopContainer(context.Background(),
 				&pb.StopContainerRequest{
-					ContainerId: testContainer.ID()})
+					ContainerId: testContainer.ID(),
+				})
 
 			// Then
 			Expect(err).To(BeNil())

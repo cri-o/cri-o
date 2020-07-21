@@ -12,7 +12,6 @@ import (
 
 // The actual test suite
 var _ = t.Describe("CLI", func() {
-
 	const flagName = "flag"
 
 	var (

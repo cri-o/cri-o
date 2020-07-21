@@ -42,7 +42,7 @@ func run() error {
 	}
 
 	logrus.Infof("Ensuring output path %s", outputPath)
-	if err := os.MkdirAll(outputPath, 0755); err != nil {
+	if err := os.MkdirAll(outputPath, 0o755); err != nil {
 		return errors.Wrap(err, "create output path")
 	}
 
