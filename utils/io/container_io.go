@@ -72,7 +72,7 @@ func WithNewFIFOs(root string, tty, stdin bool) ContainerIOOpts {
 }
 
 // NewContainerIO creates container io.
-func NewContainerIO(id string, opts ...ContainerIOOpts) (_ *ContainerIO, err error) {
+func NewContainerIO(id string, opts ...ContainerIOOpts) (*ContainerIO, error) {
 	c := &ContainerIO{
 		id:          id,
 		stdoutGroup: cioutil.NewWriterGroup(),

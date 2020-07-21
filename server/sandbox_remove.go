@@ -15,7 +15,7 @@ import (
 
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
-func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (resp *pb.RemovePodSandboxResponse, err error) {
+func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxRequest) (*pb.RemovePodSandboxResponse, error) {
 	log.Infof(ctx, "Removing pod sandbox: %s", req.GetPodSandboxId())
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
@@ -26,10 +26,8 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		// If the sandbox isn't found we just return an empty response to adhere
 		// the CRI interface which expects to not error out in not found
 		// cases.
-
-		resp = &pb.RemovePodSandboxResponse{}
 		log.Warnf(ctx, "could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxId, err)
-		return resp, nil
+		return &pb.RemovePodSandboxResponse{}, nil
 	}
 
 	podInfraContainer := sb.InfraContainer()
@@ -117,6 +115,5 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	}
 
 	log.Infof(ctx, "Removed pod sandbox: %s", sb.ID())
-	resp = &pb.RemovePodSandboxResponse{}
-	return resp, nil
+	return &pb.RemovePodSandboxResponse{}, nil
 }

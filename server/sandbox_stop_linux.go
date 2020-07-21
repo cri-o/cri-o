@@ -15,9 +15,10 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
-func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (resp *pb.StopPodSandboxResponse, err error) {
+func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
 	log.Infof(ctx, "Stopping pod sandbox: %s", req.GetPodSandboxId())
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
+	resp := &pb.StopPodSandboxResponse{}
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
@@ -27,7 +28,6 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		// the CRI interface which expects to not error out in not found
 		// cases.
 
-		resp = &pb.StopPodSandboxResponse{}
 		log.Warnf(ctx, "could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxId, err)
 		log.Debugf(ctx, "StopPodSandboxResponse %s: %+v", req.PodSandboxId, resp)
 		return resp, nil
@@ -43,7 +43,6 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 	if sb.Stopped() {
 		log.Infof(ctx, "Stopped pod sandbox (already stopped): %s", sb.ID())
-		resp = &pb.StopPodSandboxResponse{}
 		return resp, nil
 	}
 
@@ -110,6 +109,5 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	log.Infof(ctx, "Stopped pod sandbox: %s", sb.ID())
 	sb.SetStopped(true)
 
-	resp = &pb.StopPodSandboxResponse{}
 	return resp, nil
 }

@@ -61,7 +61,7 @@ func (s *Server) filterContainerList(ctx context.Context, filter *pb.ContainerFi
 }
 
 // ListContainers lists all containers by filters.
-func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (resp *pb.ListContainersResponse, err error) {
+func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersRequest) (*pb.ListContainersResponse, error) {
 	var ctrs []*pb.Container
 	filter := req.GetFilter()
 	ctrList, err := s.ContainerServer.ListContainers()
@@ -113,8 +113,7 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 		}
 	}
 
-	resp = &pb.ListContainersResponse{
+	return &pb.ListContainersResponse{
 		Containers: ctrs,
-	}
-	return resp, nil
+	}, nil
 }

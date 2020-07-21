@@ -12,7 +12,7 @@ import (
 )
 
 // UpdateContainerResources updates ContainerConfig of the container.
-func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateContainerResourcesRequest) (resp *pb.UpdateContainerResourcesResponse, err error) {
+func (s *Server) UpdateContainerResources(ctx context.Context, req *pb.UpdateContainerResourcesRequest) (*pb.UpdateContainerResourcesResponse, error) {
 	c, err := s.GetContainerFromShortID(req.GetContainerId())
 	if err != nil {
 		return nil, err

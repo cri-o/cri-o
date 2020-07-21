@@ -9,7 +9,7 @@ import (
 )
 
 // ReopenContainerLog reopens the containers log file
-func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainerLogRequest) (resp *pb.ReopenContainerLogResponse, err error) {
+func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainerLogRequest) (*pb.ReopenContainerLogResponse, error) {
 	containerID := req.ContainerId
 	c := s.GetContainer(containerID)
 
@@ -26,10 +26,8 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainer
 		return nil, fmt.Errorf("container is not created or running")
 	}
 
-	err = s.ContainerServer.Runtime().ReopenContainerLog(c)
-	if err == nil {
-		resp = &pb.ReopenContainerLogResponse{}
+	if err := s.ContainerServer.Runtime().ReopenContainerLog(c); err != nil {
+		return nil, err
 	}
-
-	return resp, err
+	return &pb.ReopenContainerLogResponse{}, nil
 }

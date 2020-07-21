@@ -15,8 +15,11 @@ type FilterHook struct {
 }
 
 // NewFilterHook creates a new default FilterHook
-func NewFilterHook(filter string) (hook *FilterHook, err error) {
-	var custom *regexp.Regexp
+func NewFilterHook(filter string) (*FilterHook, error) {
+	var (
+		custom *regexp.Regexp
+		err    error
+	)
 	if filter != "" {
 		custom, err = regexp.Compile(filter)
 		logrus.Debugf("Using log filter: %q", custom)

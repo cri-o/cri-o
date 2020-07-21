@@ -7,7 +7,7 @@ import (
 )
 
 // ListImages lists existing images.
-func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (resp *pb.ListImagesResponse, err error) {
+func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (*pb.ListImagesResponse, error) {
 	filter := ""
 	reqFilter := req.GetFilter()
 	if reqFilter != nil {
@@ -20,7 +20,7 @@ func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (res
 	if err != nil {
 		return nil, err
 	}
-	resp = &pb.ListImagesResponse{}
+	resp := &pb.ListImagesResponse{}
 	for i := range results {
 		image := ConvertImage(&results[i])
 		resp.Images = append(resp.Images, image)

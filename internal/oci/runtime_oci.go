@@ -241,7 +241,8 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 	return nil
 }
 
-func prepareExec() (pidFile, parentPipe, childPipe *os.File, err error) {
+func prepareExec() (pidFile, parentPipe, childPipe *os.File, _ error) {
+	var err error
 	parentPipe, childPipe, err = os.Pipe()
 	if err != nil {
 		return nil, nil, nil, err
@@ -1081,7 +1082,9 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) 
 		return nil, err
 	}
 
-	pspec := c.Spec().Process
+	// It's important to make a spec copy here to not overwrite the initial
+	// process spec
+	pspec := *c.Spec().Process
 	pspec.Args = cmd
 	// We need to default this to false else it will inherit terminal as true
 	// from the container.
