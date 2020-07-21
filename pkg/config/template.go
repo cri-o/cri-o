@@ -358,6 +358,8 @@ image_volumes = "{{ .ImageVolumes }}"
 #registries = [
 # {{ range $opt := .Registries }}{{ printf "\t%q,\n#" $opt }}{{ end }}]
 
+# Temporary directory to use for storing big files
+big_files_temporary_dir = "{{ .BigFilesTemporaryDir }}"
 
 # The crio.network table containers settings pertaining to the management of
 # CNI plugins.

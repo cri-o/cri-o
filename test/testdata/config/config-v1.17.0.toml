@@ -334,6 +334,9 @@ image_volumes = "mkdir"
 #registries = [
 # ]
 
+# Temporary directory to use for storing big files
+big_files_temporary_dir = ""
+
 
 # The crio.network table containers settings pertaining to the management of
 # CNI plugins.
