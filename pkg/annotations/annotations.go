@@ -6,4 +6,7 @@ const (
 
 	// SpoofedContainer indicates a container was spoofed in the runtime
 	SpoofedContainer = "io.kubernetes.cri-o.Spoofed"
+
+	// ShmSizeAnnotation is the K8S annotation used to set custom shm size
+	ShmSizeAnnotation = "io.kubernetes.cri-o.ShmSize"
 )

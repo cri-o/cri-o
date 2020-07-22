@@ -38,6 +38,7 @@ h
 --default-transport
 --default-ulimits
 --drop-infra-ctr
+--enable-custom-shm-size
 --enable-metrics
 --gid-mappings
 --global-auth-file

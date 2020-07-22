@@ -298,6 +298,9 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
 **enable_metrics**=false
   Globally enable or disable metrics support.
 
+**enable_custom_shm_size**=false
+If set to true, enable users to set a custom shm size instead of using the default value of 64M. The shm size can be set through K8S annotation with the key "io.kubernetes.cri-o.ShmSize", and the value representing the size in human readable format. For example: "io.kubernetes.cri-o.ShmSize: 128Mi"
+
 **metrics_port**=9090
   The port on which the metrics server will listen.
 
