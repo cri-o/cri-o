@@ -258,8 +258,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		shmSize := int64(libsandbox.DefaultShmSize)
 		if s.config.EnableCustomShmSize {
 			if shmSizeStr, ok := kubeAnnotations[libsandbox.ShmSizeAnnotation]; ok {
-				quantity, err := resource.ParseQuantity(shmSizeStr)
-				if err != nil {
+				if quantity, err := resource.ParseQuantity(shmSizeStr); err != nil {
 					return nil, fmt.Errorf("failed to parse shm size '%s': %v", shmSizeStr, err)
 				} else {
 					shmSize = quantity.Value()

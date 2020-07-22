@@ -167,6 +167,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
 
+**--enable-custom-shm-size**: Enable users to set a custom shm size instead of using the default value of 64M
+
 **--gid-mappings**="": Specify the GID mappings to use for the user namespace (default: "")
 
 **--global-auth-file**="": Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries (default: "")
