@@ -60,7 +60,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	if _, err := s.ReservePodName(sbox.ID(), sbox.Name()); err != nil {
-		return nil, errors.Wrap(err, "reserving pod sandbox name")
+		return nil, errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
 	}
 
 	defer func() {

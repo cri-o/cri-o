@@ -529,7 +529,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}
 
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		return nil, errors.Wrap(err, "reserving container name")
+		return nil, errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
 	}
 
 	defer func() {
