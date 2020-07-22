@@ -258,6 +258,12 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 			if err1 := r.updateContainerStatus(c); err1 != nil {
 				logrus.Warningf("error updating container status %v", err1)
 			}
+
+			if c.state.Status == ContainerStateStopped {
+				if err1 := r.deleteContainer(c, true); err1 != nil {
+					logrus.WithError(err1).Infof("deleteContainer failed for container %s", c.ID())
+				}
+			}
 		} else {
 			logrus.Warningf("wait for %s returned: %v", c.ID(), err)
 		}
