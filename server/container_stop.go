@@ -1,10 +1,14 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -15,6 +19,15 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
+	}
+
+	sandbox := s.getSandbox(c.Sandbox())
+	hooks := runtimehandlerhooks.GetRuntimeHandlerHooks(sandbox.RuntimeHandler())
+
+	if hooks != nil {
+		if err := hooks.PreStop(ctx, c, sandbox); err != nil {
+			return nil, fmt.Errorf("failed to run pre-stop hook for container %q: %v", c.ID(), err)
+		}
 	}
 
 	_, err = s.ContainerServer.ContainerStop(ctx, req.ContainerId, req.Timeout)
