@@ -2,13 +2,14 @@ package server
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -25,10 +26,8 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 	}
 
 	sandbox := s.getSandbox(c.Sandbox())
-	useHighPerformanceRuntimeHandler := strings.Contains(
-		sandbox.RuntimeHandler(),
-		runtimeHandlerHighPerformance,
-	)
+	hooks := runtimehandlerhooks.GetRuntimeHandlerHooks(sandbox.RuntimeHandler())
+
 	defer func() {
 		// if the call to StartContainer fails below we still want to fill
 		// some fields of a container status. In particular, we're going to
@@ -41,16 +40,16 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 			log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
 		}
 
-		if useHighPerformanceRuntimeHandler && shouldCPULoadBalancingBeDisabled(sandbox.Annotations()) {
-			if err := setCPUSLoadBalancing(c, true, schedDomainDir); err != nil {
-				log.Warnf(ctx, "failed to set the container %q CPUs load balancing to true: %v", c.ID(), err)
+		if hooks != nil {
+			if err := hooks.PreStop(ctx, c, sandbox); err != nil {
+				log.Warnf(ctx, "failed to run pre-stop hook for container %q: %v", c.ID(), err)
 			}
 		}
 	}()
 
-	if useHighPerformanceRuntimeHandler && shouldCPULoadBalancingBeDisabled(sandbox.Annotations()) {
-		if err := setCPUSLoadBalancing(c, false, schedDomainDir); err != nil {
-			return nil, fmt.Errorf("failed to set the container %q CPUs load balancing to false: %v", c.ID(), err)
+	if hooks != nil {
+		if err := hooks.PreStart(ctx, c, sandbox); err != nil {
+			return nil, fmt.Errorf("failed to run pre-start hook for container %q: %v", c.ID(), err)
 		}
 	}
 
