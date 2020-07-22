@@ -175,7 +175,7 @@ bin/crio-status: $(GO_FILES) .gopathok
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static:
-	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o $(TESTIMAGE_NIX) sh -c \
+	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o:Z $(TESTIMAGE_NIX) sh -c \
 		"nix build -f cri-o/nix && \
 		mkdir -p cri-o/bin && \
 		cp -r result/bin cri-o/bin/static"
