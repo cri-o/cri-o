@@ -69,6 +69,9 @@ type Sandbox struct {
 // DefaultShmSize is the default shm size
 const DefaultShmSize = 64 * 1024 * 1024
 
+// ShmSizeAnnotation is the K8S annotation used to set custom shm size
+const ShmSizeAnnotation = "io.kubernetes.cri-o.ShmSize"
+
 // ErrIDEmpty is the error returned when the id of the sandbox is empty
 var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 

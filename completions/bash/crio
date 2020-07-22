@@ -36,6 +36,7 @@ h
 --default-transport
 --default-ulimits
 --enable-metrics
+--enable-custom-shm-size
 --gid-mappings
 --global-auth-file
 --grpc-max-recv-msg-size

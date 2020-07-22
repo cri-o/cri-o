@@ -289,6 +289,12 @@ type RuntimeConfig struct {
 	// will only be able to write to volumes mounted into them
 	ReadOnly bool `toml:"read_only"`
 
+	// If set to true, enable users to set a custom shm size instead of using the default value of 64M.
+	// The shm size can be set through K8S annotation with the key "io.kubernetes.cri-o.ShmSize",
+	// and the value representing the size in human readable format.
+	// For example: "io.kubernetes.cri-o.ShmSize: 128Mi"
+	EnableCustomShmSize bool `toml:"enable_custom_shm_size"`
+
 	// seccompConfig is the internal seccomp configuration
 	seccompConfig *seccomp.Config
 

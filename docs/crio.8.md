@@ -35,6 +35,7 @@ crio
 [--default-transport]=[value]
 [--default-ulimits]=[value]
 [--enable-metrics]
+[--enable-custom-shm-size]
 [--gid-mappings]=[value]
 [--global-auth-file]=[value]
 [--grpc-max-recv-msg-size]=[value]

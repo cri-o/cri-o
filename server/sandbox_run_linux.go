@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
+	"k8s.io/apimachinery/pkg/api/resource"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/leaky"
 	"k8s.io/kubernetes/pkg/kubelet/types"
@@ -254,7 +255,18 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if hostIPC {
 		shmPath = libsandbox.DevShmPath
 	} else {
-		shmPath, err = setupShm(podContainer.RunDir, mountLabel)
+		shmSize := int64(libsandbox.DefaultShmSize)
+		if s.config.EnableCustomShmSize {
+			if shmSizeStr, ok := kubeAnnotations[libsandbox.ShmSizeAnnotation]; ok {
+				quantity, err := resource.ParseQuantity(shmSizeStr)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse shm size '%s': %v", shmSizeStr, err)
+				} else {
+					shmSize = quantity.Value()
+				}
+			}
+		}
+		shmPath, err = setupShm(podContainer.RunDir, mountLabel, shmSize)
 		if err != nil {
 			return nil, err
 		}
@@ -683,12 +695,16 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	return resp, nil
 }
 
-func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, _ error) {
+func setupShm(podSandboxRunDir, mountLabel string, shmSize int64) (shmPath string, _ error) {
+	if shmSize <= 0 {
+		return "", fmt.Errorf("shm size %d must be greater than 0", shmSize)
+	}
+
 	shmPath = filepath.Join(podSandboxRunDir, "shm")
 	if err := os.Mkdir(shmPath, 0700); err != nil {
 		return "", err
 	}
-	shmOptions := "mode=1777,size=" + strconv.Itoa(libsandbox.DefaultShmSize)
+	shmOptions := "mode=1777,size=" + strconv.FormatInt(shmSize, 10)
 	if err := unix.Mount("shm", shmPath, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 		label.FormatMountLabel(shmOptions, mountLabel)); err != nil {
 		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
