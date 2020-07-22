@@ -7,7 +7,6 @@ stdenv: &stdenv
     IMAGE: &image quay.io/crio/crio-build-amd64-go1.14:master-1.3.7
     IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.13:master-1.3.7
     IMAGE386: &image386 quay.io/crio/crio-build-386-go1.14:master-1.3.7
-    IMAGENIX: &imagenix quay.io/crio/nix:1.4.0
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
     WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
@@ -36,10 +35,6 @@ executors:
       - image: golang:1.14
     <<: *stdenv
     working_directory: *workdir
-
-  nix:
-    docker:
-      - image: *imagenix
 
   machine:
     machine:
@@ -155,18 +150,18 @@ jobs:
             - docs
 
   build-static:
-    executor: nix
+    executor: machine
     steps:
       - checkout
-      - run:
-          name: Add remote to fetch all tags
-          command: |
-            git remote add base https://github.com/cri-o/cri-o
-            git fetch base
+      - attach_workspace:
+          at: .
       - run:
           name: build
           command: |
-            nix-build nix --argstr revision $CIRCLE_SHA1
+            set -ex
+            sudo mkdir -p /nix
+            sudo docker run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix
+            sudo docker run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
             mkdir -p bin
             cp -r result/bin bin/static
       - run:
@@ -177,6 +172,12 @@ jobs:
           root: .
           paths:
             - bin/static
+      - store_artifacts:
+          path: result/bin/crio
+      - store_artifacts:
+          path: result/bin/crio-status
+      - store_artifacts:
+          path: result/bin/pinns
 
   build-test-binaries:
     executor: container
