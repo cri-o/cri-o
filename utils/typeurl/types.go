@@ -17,7 +17,6 @@
 package typeurl
 
 import (
-	"encoding/json"
 	"path"
 	"reflect"
 	"sync"
@@ -25,6 +24,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
+	json "github.com/pquerna/ffjson/ffjson"
 )
 
 var (

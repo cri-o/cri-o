@@ -1,10 +1,10 @@
 package seccomp
 
 import (
-	"encoding/json"
 	"io/ioutil"
 
 	"github.com/pkg/errors"
+	json "github.com/pquerna/ffjson/ffjson"
 	seccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
 )

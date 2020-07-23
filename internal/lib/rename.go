@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"encoding/json"
 	"path/filepath"
 
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -10,6 +9,7 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/opencontainers/runtime-tools/generate"
+	json "github.com/pquerna/ffjson/ffjson"
 )
 
 const configFile = "config.json"

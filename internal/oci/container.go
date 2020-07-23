@@ -1,7 +1,6 @@
 package oci
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	json "github.com/pquerna/ffjson/ffjson"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
@@ -161,8 +161,7 @@ func (c *Container) FromDisk() error {
 	}
 	defer jsonSource.Close()
 
-	dec := json.NewDecoder(jsonSource)
-	return dec.Decode(c.state)
+	return json.NewDecoder().DecodeReader(jsonSource, c.state)
 }
 
 // StatePath returns the containers state.json path

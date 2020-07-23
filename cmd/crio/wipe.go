@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 
 	cstorage "github.com/containers/storage"
@@ -9,6 +8,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/pkg/errors"
+	json "github.com/pquerna/ffjson/ffjson"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )

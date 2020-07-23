@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	json "github.com/pquerna/ffjson/ffjson"
 	"github.com/sirupsen/logrus"
 )
 

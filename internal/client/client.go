@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/cri-o/cri-o/server"
+	json "github.com/pquerna/ffjson/ffjson"
 )
 
 const (
@@ -83,7 +83,7 @@ func (c *crioClientImpl) DaemonInfo() (types.CrioInfo, error) {
 		return info, err
 	}
 	defer resp.Body.Close()
-	err = json.NewDecoder(resp.Body).Decode(&info)
+	err = json.NewDecoder().DecodeReader(resp.Body, &info)
 	return info, err
 }
 
@@ -100,7 +100,7 @@ func (c *crioClientImpl) ContainerInfo(id string) (*types.ContainerInfo, error) 
 	}
 	defer resp.Body.Close()
 	cInfo := types.ContainerInfo{}
-	if err := json.NewDecoder(resp.Body).Decode(&cInfo); err != nil {
+	if err := json.NewDecoder().DecodeReader(resp.Body, &cInfo); err != nil {
 		return nil, err
 	}
 	return &cInfo, nil

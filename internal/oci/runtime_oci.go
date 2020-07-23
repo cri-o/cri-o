@@ -2,7 +2,6 @@ package oci
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -24,6 +23,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	json "github.com/pquerna/ffjson/ffjson"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -197,7 +197,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (retErr 
 	ch := make(chan syncStruct)
 	go func() {
 		var si *syncInfo
-		if err = json.NewDecoder(parentPipe).Decode(&si); err != nil {
+		if err = json.NewDecoder().DecodeReader(parentPipe, &si); err != nil {
 			ch <- syncStruct{err: err}
 			return
 		}
@@ -466,7 +466,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	}
 
 	var ec *exitCodeInfo
-	if err := json.NewDecoder(parentPipe).Decode(&ec); err != nil {
+	if err := json.NewDecoder().DecodeReader(parentPipe, &ec); err != nil {
 		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
@@ -732,7 +732,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 			return nil, true, nil
 		}
 		state := *c.state
-		if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&state); err != nil {
+		if err := json.NewDecoder().Decode(out, &state); err != nil {
 			return &state, false, fmt.Errorf("failed to decode container status for %s: %s", c.id, err)
 		}
 		return &state, false, nil
