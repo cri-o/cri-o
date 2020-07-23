@@ -65,7 +65,7 @@ var _ = Describe("setCPUSLoadBalancing", func() {
 			err = os.MkdirAll(flagsDir, os.ModePerm)
 			Expect(err).To(BeNil())
 
-			err = ioutil.WriteFile(filepath.Join(flagsDir, "flags"), []byte(flags), 0644)
+			err = ioutil.WriteFile(filepath.Join(flagsDir, "flags"), []byte(flags), 0o644)
 			Expect(err).To(BeNil())
 		}
 	})
