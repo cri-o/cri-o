@@ -345,11 +345,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	volumesJSON, err := json.Marshal(containerVolumes)
-	if err != nil {
+	if volumesJSON, err := json.Marshal(containerVolumes); err != nil {
 		return nil, err
+	} else { // nolint: golint
+		specgen.AddAnnotation(annotations.Volumes, string(volumesJSON))
+		json.Pool(volumesJSON)
 	}
-	specgen.AddAnnotation(annotations.Volumes, string(volumesJSON))
 
 	configuredDevices, err := getDevicesFromConfig(ctx, &s.config)
 	if err != nil {
@@ -690,23 +691,26 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	created := time.Now()
 	specgen.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
-	metadataJSON, err := json.Marshal(metadata)
-	if err != nil {
+	if metadataJSON, err := json.Marshal(metadata); err != nil {
 		return nil, err
+	} else { // nolint: golint
+		specgen.AddAnnotation(annotations.Metadata, string(metadataJSON))
+		json.Pool(metadataJSON)
 	}
-	specgen.AddAnnotation(annotations.Metadata, string(metadataJSON))
 
-	labelsJSON, err := json.Marshal(labels)
-	if err != nil {
+	if labelsJSON, err := json.Marshal(labels); err != nil {
 		return nil, err
+	} else { // nolint: golint
+		specgen.AddAnnotation(annotations.Labels, string(labelsJSON))
+		json.Pool(labelsJSON)
 	}
-	specgen.AddAnnotation(annotations.Labels, string(labelsJSON))
 
-	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
-	if err != nil {
+	if kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations); err != nil {
 		return nil, err
+	} else { // nolint: golint
+		specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
+		json.Pool(kubeAnnotationsJSON)
 	}
-	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
 	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath()
 	if !ctr.Privileged() {

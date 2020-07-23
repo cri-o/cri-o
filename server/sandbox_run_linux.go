@@ -193,9 +193,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// add metadata
 	metadata := sbox.Config().GetMetadata()
-	metadataJSON, err := json.Marshal(metadata)
-	if err != nil {
+	if metadataJSON, err := json.Marshal(metadata); err != nil {
 		return nil, err
+	} else { // nolint: golint
+		g.AddAnnotation(annotations.Metadata, string(metadataJSON))
+		json.Pool(metadataJSON)
 	}
 
 	// add labels
@@ -209,16 +211,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if labels != nil {
 		labels[types.KubernetesContainerNameLabel] = leaky.PodInfraContainerName
 	}
-	labelsJSON, err := json.Marshal(labels)
-	if err != nil {
+
+	if labelsJSON, err := json.Marshal(labels); err != nil {
 		return nil, err
+	} else { // nolint: golint
+		g.AddAnnotation(annotations.Labels, string(labelsJSON))
+		json.Pool(labelsJSON)
 	}
 
 	// add annotations
 	kubeAnnotations := sbox.Config().GetAnnotations()
-	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
-	if err != nil {
+	if kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations); err != nil {
 		return nil, err
+	} else { // nolint: golint
+		g.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
+		json.Pool(kubeAnnotationsJSON)
 	}
 
 	// Add capabilities from crio.conf if default_capabilities is defined
@@ -231,9 +238,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	nsOptsJSON, err := json.Marshal(securityContext.GetNamespaceOptions())
-	if err != nil {
+	if nsOptsJSON, err := json.Marshal(securityContext.GetNamespaceOptions()); err != nil {
 		return nil, err
+	} else { // nolint: golint
+		g.AddAnnotation(annotations.NamespaceOptions, string(nsOptsJSON))
+		json.Pool(nsOptsJSON)
 	}
 
 	hostIPC := securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE
@@ -318,9 +327,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	g.AddAnnotation(annotations.Metadata, string(metadataJSON))
-	g.AddAnnotation(annotations.Labels, string(labelsJSON))
-	g.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 	g.AddAnnotation(annotations.LogPath, logPath)
 	g.AddAnnotation(annotations.Name, sbox.Name())
 	g.AddAnnotation(annotations.Namespace, namespace)
@@ -334,7 +340,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.RuntimeHandler, runtimeHandler)
 	g.AddAnnotation(annotations.ResolvPath, resolvPath)
 	g.AddAnnotation(annotations.HostName, hostname)
-	g.AddAnnotation(annotations.NamespaceOptions, string(nsOptsJSON))
 	g.AddAnnotation(annotations.KubeName, kubeName)
 	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
 	g.AddAnnotation(annotations.ContainerManager, lib.ContainerManagerCRIO)
@@ -351,11 +356,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
 	portMappings := convertPortMappings(sbox.Config().GetPortMappings())
-	portMappingsJSON, err := json.Marshal(portMappings)
-	if err != nil {
+	if portMappingsJSON, err := json.Marshal(portMappings); err != nil {
 		return nil, err
+	} else { // nolint: golint
+		g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
+		json.Pool(portMappingsJSON)
 	}
-	g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
 
 	cgroupParent, cgroupPath, err := s.config.CgroupManager().SandboxCgroupPath(sbox.Config().GetLinux().GetCgroupParent(), sbox.ID())
 	if err != nil {
@@ -566,11 +572,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			if err != nil {
 				return nil, err
 			}
-			cniResultJSON, err := json.Marshal(resultCurrent)
-			if err != nil {
+			if cniResultJSON, err := json.Marshal(resultCurrent); err != nil {
 				return nil, err
+			} else { // nolint: golint
+				g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
+				json.Pool(cniResultJSON)
 			}
-			g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
 		}
 		defer func() {
 			if retErr != nil {

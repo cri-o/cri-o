@@ -124,6 +124,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		defer json.Pool(js)
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write(js); err != nil {
 			http.Error(w, fmt.Sprintf("unable to write JSON: %v", err), http.StatusInternalServerError)
@@ -151,6 +152,7 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		defer json.Pool(js)
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write(js); err != nil {
 			http.Error(w, fmt.Sprintf("unable to write JSON: %v", err), http.StatusInternalServerError)

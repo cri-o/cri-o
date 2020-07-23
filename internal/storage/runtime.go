@@ -256,6 +256,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	if err != nil {
 		return ContainerInfo{}, err
 	}
+	defer json.Pool(mdata)
 
 	// Build the container.
 	names := []string{metadata.ContainerName}
@@ -392,6 +393,7 @@ func (r *runtimeService) SetContainerMetadata(idOrName string, metadata *Runtime
 		logrus.Debugf("failed to encode metadata for %q: %v", idOrName, err)
 		return err
 	}
+	defer json.Pool(mdata)
 	return r.storageImageServer.GetStore().SetMetadata(idOrName, string(mdata))
 }
 

@@ -126,5 +126,6 @@ func createImageInfo(result *pkgstorage.ImageResult) (map[string]string, error) 
 	if err != nil {
 		return nil, errors.Wrapf(err, "marshal data: %v", info)
 	}
+	defer json.Pool(bytes)
 	return map[string]string{"info": string(bytes)}, nil
 }

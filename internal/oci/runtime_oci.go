@@ -537,6 +537,7 @@ func (r *runtimeOCI) UpdateContainer(c *Container, res *rspec.LinuxResources) er
 	if err != nil {
 		return err
 	}
+	defer json.Pool(jsonResources)
 	cmd.Stdin = bytes.NewReader(jsonResources)
 
 	if err := cmd.Run(); err != nil {
@@ -1096,6 +1097,7 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) 
 	if err != nil {
 		return nil, err
 	}
+	defer json.Pool(processJSON)
 
 	if err := ioutil.WriteFile(f.Name(), processJSON, 0o644); err != nil {
 		return nil, err
