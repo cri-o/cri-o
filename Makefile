@@ -113,8 +113,6 @@ TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
 
-TESTIMAGE_NIX ?= $(TESTIMAGE_REGISTRY)/nix:1.4.0
-
 all: binaries crio.conf docs
 
 default: help
@@ -175,10 +173,9 @@ bin/crio-status: $(GO_FILES) .gopathok
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static:
-	$(CONTAINER_RUNTIME) run --rm -it -v $(shell pwd):/cri-o:Z $(TESTIMAGE_NIX) sh -c \
-		"nix build -f cri-o/nix && \
-		mkdir -p cri-o/bin && \
-		cp -r result/bin cri-o/bin/static"
+	nix build -f nix
+	mkdir -p bin
+	cp -r result/bin bin/static
 
 release-bundle: clean bin/pinns build-static docs crio.conf bundle
 
@@ -232,10 +229,6 @@ test-images:
 nixpkgs:
 	@nix run -f channel:nixos-20.03 nix-prefetch-git -c nix-prefetch-git \
 		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
-
-test-image-nix:
-	time $(CONTAINER_RUNTIME) build -t $(TESTIMAGE_NIX) \
-		--build-arg COMMIT=$(COMMIT_NO) -f Dockerfile-nix .
 
 dbuild:
 	$(CONTAINER_RUNTIME) run --rm --name=${CRIO_INSTANCE} --privileged \
@@ -549,7 +542,6 @@ metrics-exporter: bin/metrics-exporter
 	testunit \
 	testunit-bin \
 	test-images \
-	test-image-nix \
 	uninstall \
 	vendor \
 	bin/pinns \
