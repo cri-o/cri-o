@@ -37,12 +37,13 @@ var _ = t.Describe("Sandbox", func() {
 			hostname := "hostname"
 			portMappings := []*hostport.PortMapping{{}, {}}
 			hostNetwork := false
+			createdAt := time.Now()
 
 			// When
 			sandbox, err := sandbox.New(id, namespace, name, kubeName, logDir,
 				labels, annotations, processLabel, mountLabel, &metadata,
 				shmPath, cgroupParent, privileged, runtimeHandler,
-				resolvPath, hostname, portMappings, hostNetwork)
+				resolvPath, hostname, portMappings, hostNetwork, createdAt)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -67,6 +68,7 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(sandbox.HostNetwork()).To(Equal(hostNetwork))
 			Expect(sandbox.StopMutex()).NotTo(BeNil())
 			Expect(sandbox.Containers()).NotTo(BeNil())
+			Expect(sandbox.CreatedAt()).To(Equal(createdAt))
 		})
 	})
 
