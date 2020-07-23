@@ -36,6 +36,12 @@ executors:
     <<: *stdenv
     working_directory: *workdir
 
+  container-nix:
+    docker:
+      - image: nixos/nix:latest
+    <<: *stdenv
+    working_directory: *workdir
+
   machine:
     machine:
       image: ubuntu-1604:201903-01
@@ -151,20 +157,24 @@ jobs:
             - docs
 
   build-static:
-    executor: machine
+    executor: container-nix
     steps:
       - checkout
       - attach_workspace:
           at: .
+      - restore_cache:
+          keys:
+            - v1-build-static-{{ checksum "nix/nixpkgs.json" }}
       - run:
           name: build
           command: |
-            set -ex
-            sudo mkdir -p /nix
-            sudo docker run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix
-            sudo docker run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
+            nix-build nix
             mkdir -p bin
             cp -r result/bin bin/static
+      - save_cache:
+          key: v1-build-static-{{ checksum "nix/nixpkgs.json" }}
+          paths:
+            - /nix
       - run:
           name: Show CRI-O version for static binaries
           command: |
