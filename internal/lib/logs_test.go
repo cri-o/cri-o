@@ -31,8 +31,8 @@ var _ = t.Describe("ContainerServer", func() {
 				"WRONG_DATE Invalid\n" +
 				"WRONG\n")
 			logFile := path.Join(sandboxID, containerID+".log")
-			Expect(os.MkdirAll(sandboxID, 0755)).To(BeNil())
-			Expect(ioutil.WriteFile(logFile, logString, 0644)).To(BeNil())
+			Expect(os.MkdirAll(sandboxID, 0o755)).To(BeNil())
+			Expect(ioutil.WriteFile(logFile, logString, 0o644)).To(BeNil())
 			defer os.RemoveAll(sandboxID)
 
 			// When

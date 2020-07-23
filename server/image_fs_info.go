@@ -34,7 +34,6 @@ func getStorageFsInfo(store storage.Store) (*pb.FilesystemUsage, error) {
 func (s *Server) ImageFsInfo(ctx context.Context, req *pb.ImageFsInfoRequest) (*pb.ImageFsInfoResponse, error) {
 	store := s.StorageImageServer().GetStore()
 	fsUsage, err := getStorageFsInfo(store)
-
 	if err != nil {
 		return nil, err
 	}

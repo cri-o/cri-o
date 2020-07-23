@@ -7,8 +7,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type ID struct{}
-type Name struct{}
+type (
+	ID   struct{}
+	Name struct{}
+)
 
 func Debugf(ctx context.Context, format string, args ...interface{}) {
 	entry(ctx).Debugf(format, args...)

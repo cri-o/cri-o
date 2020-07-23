@@ -170,7 +170,7 @@ func main() {
 		logrus.AddHook(filterHook)
 
 		if path := c.String("log"); path != "" {
-			f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0666)
+			f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0o666)
 			if err != nil {
 				return err
 			}

@@ -67,7 +67,10 @@ var _ = t.Describe("RunPodSandbox", func() {
 						SecurityContext: &pb.LinuxSandboxSecurityContext{
 							NamespaceOptions: &pb.NamespaceOption{
 								Ipc: pb.NamespaceMode_NODE,
-							}}}}})
+							},
+						},
+					},
+				}})
 
 			// Then
 			Expect(err).NotTo(BeNil())

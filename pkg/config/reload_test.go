@@ -14,7 +14,7 @@ var _ = t.Describe("Config", func() {
 	BeforeEach(beforeEach)
 
 	t.Describe("Reload", func() {
-		var modifyDefaultConfig = func(old, new string) {
+		modifyDefaultConfig := func(old, new string) {
 			filePath := t.MustTempFile("config")
 			Expect(sut.ToFile(filePath)).To(BeNil())
 			Expect(sut.UpdateFromFile(filePath)).To(BeNil())
@@ -245,7 +245,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail if registries file is invalid", func() {
 			// Given
 			regConf := t.MustTempFile("reload-registries")
-			Expect(ioutil.WriteFile(regConf, []byte("invalid"), 0755)).To(BeNil())
+			Expect(ioutil.WriteFile(regConf, []byte("invalid"), 0o755)).To(BeNil())
 			sut.SystemContext.SystemRegistriesConfPath = regConf
 
 			// When
@@ -269,7 +269,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with config change", func() {
 			// Given
 			filePath := t.MustTempFile("seccomp")
-			Expect(ioutil.WriteFile(filePath, []byte(`{}`), 0644)).To(BeNil())
+			Expect(ioutil.WriteFile(filePath, []byte(`{}`), 0o644)).To(BeNil())
 
 			newConfig := defaultConfig()
 			newConfig.SeccompProfile = filePath

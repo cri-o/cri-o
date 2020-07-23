@@ -8,7 +8,6 @@ import (
 
 // The actual test suite
 var _ = t.Describe("Useragent", func() {
-
 	t.Describe("Get", func() {
 		It("should succeed", func() {
 			// Given

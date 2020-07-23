@@ -76,7 +76,7 @@ func (g *wgCloser) Cancel() {
 // newFifos creates fifos directory for a container.
 func newFifos(root, id string, tty, stdin bool) (*cio.FIFOSet, error) {
 	root = filepath.Join(root, "io")
-	if err := os.MkdirAll(root, 0700); err != nil {
+	if err := os.MkdirAll(root, 0o700); err != nil {
 		return nil, err
 	}
 	fifos, err := cio.NewFIFOSetInDir(root, id, tty)
@@ -113,7 +113,7 @@ func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, retErr error
 	}()
 
 	if fifos.Stdin != "" {
-		f, err := fifo.OpenFifo(ctx, fifos.Stdin, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+		f, err := fifo.OpenFifo(ctx, fifos.Stdin, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0o700)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -121,14 +121,14 @@ func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, retErr error
 		set = append(set, f)
 	}
 
-	f, err := fifo.OpenFifo(ctx, fifos.Stdout, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	f, err := fifo.OpenFifo(ctx, fifos.Stdout, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0o700)
 	if err != nil {
 		return nil, nil, err
 	}
 	p.stdout = f
 	set = append(set, f)
 
-	f, err = fifo.OpenFifo(ctx, fifos.Stderr, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	f, err = fifo.OpenFifo(ctx, fifos.Stderr, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0o700)
 	if err != nil {
 		return nil, nil, err
 	}

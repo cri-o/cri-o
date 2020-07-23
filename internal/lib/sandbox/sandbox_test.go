@@ -171,7 +171,6 @@ var _ = t.Describe("Sandbox", func() {
 				To(Equal(newNamespaceOption.Pid))
 			Expect(testSandbox.NamespaceOptions().Ipc).
 				To(Equal(newNamespaceOption.Ipc))
-
 		})
 	})
 
@@ -188,7 +187,6 @@ var _ = t.Describe("Sandbox", func() {
 				"/root/for/container", time.Now(), "SIGKILL")
 			Expect(err).To(BeNil())
 			Expect(testContainer).NotTo(BeNil())
-
 		})
 
 		It("should succeed to add and remove a container", func() {

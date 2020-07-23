@@ -494,7 +494,7 @@ func (c *Config) ToFile(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, b, 0644)
+	return ioutil.WriteFile(path, b, 0o644)
 }
 
 // ToBytes encodes the config into a byte slice. It errors if the encoding
@@ -678,7 +678,7 @@ func (c *RootConfig) Validate(onExecution bool) error {
 		if !filepath.IsAbs(c.LogDir) {
 			return errors.New("log_dir is not an absolute path")
 		}
-		if err := os.MkdirAll(c.LogDir, 0700); err != nil {
+		if err := os.MkdirAll(c.LogDir, 0o700); err != nil {
 			return errors.Wrap(err, "invalid log_dir")
 		}
 	}
@@ -803,7 +803,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "pinns validation")
 		}
 
-		if err := os.MkdirAll(c.NamespacesDir, 0755); err != nil {
+		if err := os.MkdirAll(c.NamespacesDir, 0o755); err != nil {
 			return errors.Wrap(err, "invalid namespaces_dir")
 		}
 
@@ -901,7 +901,7 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 		err := utils.IsDirectory(c.NetworkDir)
 		if err != nil {
 			if os.IsNotExist(err) {
-				if err = os.MkdirAll(c.NetworkDir, 0755); err != nil {
+				if err = os.MkdirAll(c.NetworkDir, 0o755); err != nil {
 					return errors.Wrapf(err, "Cannot create network_dir: %s", c.NetworkDir)
 				}
 			} else {
@@ -910,14 +910,14 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 		}
 
 		for _, pluginDir := range c.PluginDirs {
-			if err := os.MkdirAll(pluginDir, 0755); err != nil {
+			if err := os.MkdirAll(pluginDir, 0o755); err != nil {
 				return errors.Wrap(err, "invalid plugin_dirs entry")
 			}
 		}
 		// While the plugin_dir option is being deprecated, we need this check
 		if c.PluginDir != "" {
 			logrus.Warnf("The config field plugin_dir is being deprecated. Please use plugin_dirs instead")
-			if err := os.MkdirAll(c.PluginDir, 0755); err != nil {
+			if err := os.MkdirAll(c.PluginDir, 0o755); err != nil {
 				return errors.Wrap(err, "invalid plugin_dir entry")
 			}
 			// Append PluginDir to PluginDirs, so from now on we can operate in terms of PluginDirs and not worry

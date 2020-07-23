@@ -1097,7 +1097,7 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) 
 		return nil, err
 	}
 
-	if err := ioutil.WriteFile(f.Name(), processJSON, 0644); err != nil {
+	if err := ioutil.WriteFile(f.Name(), processJSON, 0o644); err != nil {
 		return nil, err
 	}
 	return f, nil

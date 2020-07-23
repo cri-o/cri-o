@@ -15,6 +15,7 @@ func hasNetworkNamespace(config *rspec.Spec) bool {
 	}
 	return false
 }
+
 func makeOCIConfigurationRootless(g *generate.Generator) {
 	g.Config.Linux.Resources = nil
 	g.Config.Process.OOMScoreAdj = nil

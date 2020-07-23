@@ -30,7 +30,8 @@ var _ = t.Describe("ImageList", func() {
 				imageServerMock.EXPECT().ListImages(
 					gomock.Any(), gomock.Any()).
 					Return([]storage.ImageResult{
-						{ID: imageID, Size: &size, User: "10"}}, nil),
+						{ID: imageID, Size: &size, User: "10"},
+					}, nil),
 			)
 
 			// When
@@ -55,7 +56,8 @@ var _ = t.Describe("ImageList", func() {
 			// When
 			response, err := sut.ListImages(context.Background(),
 				&pb.ListImagesRequest{Filter: &pb.ImageFilter{
-					Image: &pb.ImageSpec{Image: "image"}}})
+					Image: &pb.ImageSpec{Image: "image"},
+				}})
 
 			// Then
 			Expect(err).To(BeNil())

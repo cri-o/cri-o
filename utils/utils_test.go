@@ -487,11 +487,11 @@ nobody:x:65534:`
 
 	dir, err := ioutil.TempDir("/tmp", "uid-test")
 	Expect(err).To(BeNil())
-	err = os.Mkdir(filepath.Join(dir, "etc"), 0755)
+	err = os.Mkdir(filepath.Join(dir, "etc"), 0o755)
 	Expect(err).To(BeNil())
-	err = ioutil.WriteFile(filepath.Join(dir, "etc", "passwd"), []byte(alpinePasswdFile), 0755)
+	err = ioutil.WriteFile(filepath.Join(dir, "etc", "passwd"), []byte(alpinePasswdFile), 0o755)
 	Expect(err).To(BeNil())
-	err = ioutil.WriteFile(filepath.Join(dir, "etc", "group"), []byte(alpineGroupFile), 0755)
+	err = ioutil.WriteFile(filepath.Join(dir, "etc", "group"), []byte(alpineGroupFile), 0o755)
 	Expect(err).To(BeNil())
 	return dir
 }

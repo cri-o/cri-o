@@ -100,7 +100,8 @@ var _ = t.Describe("ListPodSandbox", func() {
 				&pb.ListPodSandboxRequest{Filter: &pb.PodSandboxFilter{
 					Id: sandboxID,
 					State: &pb.PodSandboxStateValue{
-						State: pb.PodSandboxState_SANDBOX_READY},
+						State: pb.PodSandboxState_SANDBOX_READY,
+					},
 				}})
 
 			// Then

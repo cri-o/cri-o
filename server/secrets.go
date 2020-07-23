@@ -24,10 +24,10 @@ type SecretData struct {
 // SaveTo saves secret data to given directory
 func (s SecretData) SaveTo(dir string) error {
 	path := filepath.Join(dir, s.Name)
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil && !os.IsExist(err) {
 		return err
 	}
-	return ioutil.WriteFile(path, s.Data, 0700)
+	return ioutil.WriteFile(path, s.Data, 0o700)
 }
 
 func readAll(root, prefix string) ([]SecretData, error) {
@@ -126,7 +126,7 @@ func secretMounts(ctx context.Context, defaultMountsPaths []string, mountLabel, 
 			return nil, fmt.Errorf("remove container directory failed: %v", err)
 		}
 
-		if err := os.MkdirAll(ctrDirOnHost, 0755); err != nil {
+		if err := os.MkdirAll(ctrDirOnHost, 0o755); err != nil {
 			return nil, fmt.Errorf("making container directory failed: %v", err)
 		}
 
