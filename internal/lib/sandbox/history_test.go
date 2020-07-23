@@ -1,6 +1,8 @@
 package sandbox_test
 
 import (
+	"time"
+
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,7 +20,7 @@ var _ = t.Describe("History", func() {
 		otherTestSandbox, err := sandbox.New("sandboxID", "", "", "", "",
 			make(map[string]string), make(map[string]string), "", "",
 			&pb.PodSandboxMetadata{}, "", "", false, "", "", "",
-			[]*hostport.PortMapping{}, false)
+			[]*hostport.PortMapping{}, false, time.Now())
 		Expect(err).To(BeNil())
 		Expect(testSandbox).NotTo(BeNil())
 		sut = &sandbox.History{testSandbox, otherTestSandbox}
