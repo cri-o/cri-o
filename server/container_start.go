@@ -35,15 +35,14 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 		// returned in the Reason field for container status call.
 		if retErr != nil {
 			c.SetStartFailed(retErr)
+			if hooks != nil {
+				if err := hooks.PreStop(ctx, c, sandbox); err != nil {
+					log.Warnf(ctx, "failed to run pre-stop hook for container %q: %v", c.ID(), err)
+				}
+			}
 		}
 		if err := s.ContainerStateToDisk(c); err != nil {
 			log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
-		}
-
-		if hooks != nil {
-			if err := hooks.PreStop(ctx, c, sandbox); err != nil {
-				log.Warnf(ctx, "failed to run pre-stop hook for container %q: %v", c.ID(), err)
-			}
 		}
 	}()
 
