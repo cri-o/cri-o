@@ -194,7 +194,12 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.NamespaceOptions)
 	}
 
-	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork)
+	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
+	if err != nil {
+		return errors.Wrap(err, "parsing created timestamp annotation")
+	}
+
+	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created)
 	if err != nil {
 		return err
 	}
@@ -262,11 +267,6 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 			c.ReleaseContainerName(cname)
 		}
 	}()
-
-	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
-	if err != nil {
-		return err
-	}
 
 	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], "", "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
