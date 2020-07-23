@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -254,14 +253,8 @@ func (n *Namespace) Remove() error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to join '/' with %s path", n.Path())
 	}
-	mounted, err := mount.Mounted(fp)
-	if err != nil {
-		return errors.Wrap(err, "unable to check if path is mounted")
-	}
-	if mounted {
-		if err := utils.Unmount(fp, unix.MNT_DETACH); err != nil {
-			return err
-		}
+	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
+		return err
 	}
 
 	if n.Path() != "" {
