@@ -92,7 +92,8 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			// When
 			response, err := sut.UpdateContainerResources(context.Background(),
 				&pb.UpdateContainerResourcesRequest{
-					ContainerId: testContainer.ID()})
+					ContainerId: testContainer.ID(),
+				})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -104,7 +105,8 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			// When
 			response, err := sut.UpdateContainerResources(context.Background(),
 				&pb.UpdateContainerResourcesRequest{
-					ContainerId: testContainer.ID()})
+					ContainerId: testContainer.ID(),
+				})
 
 			// Then
 			Expect(err).NotTo(BeNil())

@@ -35,7 +35,6 @@ func StreamInterceptor() grpc.StreamServerInterceptor {
 		newStream.NewContext = newCtx
 
 		err := handler(srv, newStream)
-
 		if err != nil {
 			Debugf(newCtx, "stream error: %+v", err)
 		}

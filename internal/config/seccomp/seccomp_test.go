@@ -61,7 +61,7 @@ var _ = t.Describe("Config", func() {
 				"excludes": {
 					"caps": ["CAP_SYS_ADMIN"]
 				}
-			}`), 0644)).To(BeNil())
+			}`), 0o644)).To(BeNil())
 
 			// When
 			err := sut.LoadProfile(file)

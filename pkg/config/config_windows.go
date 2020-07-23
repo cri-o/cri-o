@@ -11,7 +11,7 @@ const (
 	containerExitsDir        = "C:\\crio\\run\\exits\\"
 	ContainerAttachSocketDir = "C:\\crio\\run\\"
 
-	//CrioConfigPath is the default location for the conf file
+	// CrioConfigPath is the default location for the conf file
 	CrioConfigPath = "C:\\crio\\etc\\crio.conf"
 
 	// CrioConfigDropInPath is the default location for the drop-in config files

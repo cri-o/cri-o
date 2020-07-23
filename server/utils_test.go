@@ -1,13 +1,12 @@
 package server
 
 import (
-	"io/ioutil"
-	"os"
-	"testing"
-
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"io/ioutil"
+	"os"
+	"testing"
 
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -98,7 +97,7 @@ func TestGetDecryptionKeys(t *testing.T) {
 	}
 	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
 
-	err = ioutil.WriteFile(keysDir+"/private.key", privateKeyBytes, 0644)
+	err = ioutil.WriteFile(keysDir+"/private.key", privateKeyBytes, 0o644)
 	if err != nil {
 		t.Fatalf("Unable to write a private key %v", err)
 	}

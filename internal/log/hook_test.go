@@ -9,7 +9,6 @@ import (
 
 var _ = t.Describe("Hook", func() {
 	t.Describe("RemoveHook", func() {
-
 		var (
 			logger       *logrus.Logger
 			filterHook   *log.FilterHook

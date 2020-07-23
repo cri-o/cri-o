@@ -322,12 +322,12 @@ func New(
 	config.SystemContext.AuthFilePath = config.GlobalAuthFile
 	config.SystemContext.SignaturePolicyPath = config.SignaturePolicyPath
 
-	if err := os.MkdirAll(config.ContainerAttachSocketDir, 0755); err != nil {
+	if err := os.MkdirAll(config.ContainerAttachSocketDir, 0o755); err != nil {
 		return nil, err
 	}
 
 	// This is used to monitor container exits using inotify
-	if err := os.MkdirAll(config.ContainerExitsDir, 0755); err != nil {
+	if err := os.MkdirAll(config.ContainerExitsDir, 0o755); err != nil {
 		return nil, err
 	}
 	containerServer, err := lib.New(ctx, configIface)

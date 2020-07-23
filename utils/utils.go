@@ -173,7 +173,7 @@ func WriteGoroutineStacks(w io.Writer) error {
 // WriteGoroutineStacksToFile write goroutine stacks
 // to the specified file.
 func WriteGoroutineStacksToFile(path string) error {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o666)
 	if err != nil {
 		return err
 	}
@@ -259,13 +259,13 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		return "", errors.Wrapf(err, "unable to stat passwd file %s", originPasswdFile)
 	}
 	// Check if passwd file is world writable
-	if info.Mode().Perm()&(0022) != 0 {
+	if info.Mode().Perm()&(0o022) != 0 {
 		return "", nil
 	}
 	passwdUID := info.Sys().(*syscall.Stat_t).Uid
 	passwdGID := info.Sys().(*syscall.Stat_t).Gid
 
-	if uid == passwdUID && info.Mode().Perm()&(0200) != 0 {
+	if uid == passwdUID && info.Mode().Perm()&(0o200) != 0 {
 		return "", nil
 	}
 

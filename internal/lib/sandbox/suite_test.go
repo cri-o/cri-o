@@ -59,7 +59,7 @@ func beforeEach() {
 
 func createTmpDir() (tmpDir string) {
 	tmpDir = fmt.Sprintf("/tmp/crio-ns-test-%d", rand.Intn(100))
-	err := os.MkdirAll(tmpDir, 0755)
+	err := os.MkdirAll(tmpDir, 0o755)
 	Expect(err).To(BeNil())
 	return tmpDir
 }

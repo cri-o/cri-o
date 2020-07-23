@@ -132,7 +132,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if !filepath.IsAbs(logDir) {
 		return nil, fmt.Errorf("requested logDir for sbox id %s is a relative path: %s", sbox.ID(), logDir)
 	}
-	if err := os.MkdirAll(logDir, 0700); err != nil {
+	if err := os.MkdirAll(logDir, 0o700); err != nil {
 		return nil, err
 	}
 
@@ -466,7 +466,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 
 	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
-	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
+	if err := ioutil.WriteFile(hostnamePath, []byte(hostname+"\n"), 0o644); err != nil {
 		return nil, err
 	}
 	if err := label.Relabel(hostnamePath, mountLabel, false); err != nil && errors.Cause(err) != unix.ENOTSUP {
@@ -685,7 +685,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 func setupShm(podSandboxRunDir, mountLabel string) (shmPath string, _ error) {
 	shmPath = filepath.Join(podSandboxRunDir, "shm")
-	if err := os.Mkdir(shmPath, 0700); err != nil {
+	if err := os.Mkdir(shmPath, 0o700); err != nil {
 		return "", err
 	}
 	shmOptions := "mode=1777,size=" + strconv.Itoa(libsandbox.DefaultShmSize)

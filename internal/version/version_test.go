@@ -150,7 +150,7 @@ func TestUpgradeWithEmptyVersionFile(t *testing.T) {
 func TestFailUpgradeWithFaultyVersionFile(t *testing.T) {
 	tmpFile := createTempFile(t)
 	defer os.Remove(tmpFile.Name())
-	err := ioutil.WriteFile(tmpFile.Name(), []byte("bad version file"), 0644)
+	err := ioutil.WriteFile(tmpFile.Name(), []byte("bad version file"), 0o644)
 	if err != nil {
 		t.Skip()
 	}

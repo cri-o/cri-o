@@ -103,7 +103,7 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (retErr e
 		}
 	}()
 
-	f, err := os.OpenFile(c.LogPath(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
+	f, err := os.OpenFile(c.LogPath(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func (r *runtimeVM) startRuntimeDaemon(c *Container) error {
 
 	// Create the log file expected by shim-v2 API
 	f, err := fifo.OpenFifo(r.ctx, filepath.Join(c.BundlePath(), "log"),
-		unix.O_RDONLY|unix.O_CREAT|unix.O_NONBLOCK, 0700)
+		unix.O_RDONLY|unix.O_CREAT|unix.O_NONBLOCK, 0o700)
 	if err != nil {
 		return err
 	}

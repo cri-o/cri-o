@@ -173,5 +173,5 @@ func addContainerAndSandbox() {
 }
 
 func createDummyState() {
-	Expect(ioutil.WriteFile("state.json", []byte("{}"), 0644)).To(BeNil())
+	Expect(ioutil.WriteFile("state.json", []byte("{}"), 0o644)).To(BeNil())
 }

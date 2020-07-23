@@ -70,7 +70,7 @@ func (c *ContainerServer) updateStateName(ctr *oci.Container, name string) error
 		ctr.State().Annotations[annotations.Metadata] = updateMetadata(ctr.State().Annotations, name)
 	}
 	// This is taken directly from c.ContainerStateToDisk(), which can't be used because of the call to UpdateStatus() in the first line
-	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0644)
+	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0o644)
 	if err != nil {
 		return err
 	}

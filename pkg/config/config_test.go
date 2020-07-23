@@ -16,7 +16,7 @@ import (
 var _ = t.Describe("Config", func() {
 	BeforeEach(beforeEach)
 
-	var runtimeValidConfig = func() *config.Config {
+	runtimeValidConfig := func() *config.Config {
 		sut.Runtimes["runc"] = &config.RuntimeHandler{
 			RuntimePath: validFilePath, RuntimeType: config.DefaultRuntimeType,
 		}
@@ -121,7 +121,6 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
-
 	})
 
 	t.Describe("ValidateAPIConfig", func() {
@@ -852,12 +851,12 @@ var _ = t.Describe("Config", func() {
 			Expect(ioutil.WriteFile(
 				filepath.Join(configDir, "00-default"),
 				[]byte("[crio.runtime]\nlog_level = \"debug\"\n"),
-				0644,
+				0o644,
 			)).To(BeNil())
 			Expect(ioutil.WriteFile(
 				filepath.Join(configDir, "01-my-config"),
 				[]byte("[crio.runtime]\nlog_level = \"warning\"\n"),
-				0644,
+				0o644,
 			)).To(BeNil())
 
 			// When
@@ -874,7 +873,7 @@ var _ = t.Describe("Config", func() {
 			Expect(ioutil.WriteFile(
 				filepath.Join(configDir, "00-default"),
 				[]byte("[crio.runtime]\nlog_level = true\n"),
-				0644,
+				0o644,
 			)).To(BeNil())
 
 			// When
