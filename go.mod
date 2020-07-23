@@ -42,6 +42,7 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200714183735-07406c5828aa
 	github.com/opencontainers/selinux v1.5.2
 	github.com/pkg/errors v0.9.1
+	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
 	github.com/prometheus/client_golang v1.7.1
 	github.com/psampaz/go-mod-outdated v0.6.0
 	github.com/seccomp/containers-golang v0.4.1

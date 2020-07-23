@@ -695,7 +695,9 @@ github.com/pkg/diff
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/pquerna/ffjson v0.0.0-20190813045741-dac163c6c0a9
+# github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
+## explicit
+github.com/pquerna/ffjson/ffjson
 github.com/pquerna/ffjson/fflib/v1
 github.com/pquerna/ffjson/fflib/v1/internal
 github.com/pquerna/ffjson/inception
