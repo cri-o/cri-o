@@ -170,7 +170,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			err1 := removeFile(resolvPath)
 			if err1 != nil {
-				err = err1
 				return nil, fmt.Errorf("%v; failed to remove %s: %v", err, resolvPath, err1)
 			}
 			return nil, err
