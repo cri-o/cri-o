@@ -156,29 +156,42 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+      - restore_cache:
+          keys:
+            - nix-v1-{{ checksum "nix/nixpkgs.json" }}
       - run:
           name: build
           command: |
             set -ex
             sudo mkdir -p /nix
-            sudo docker run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix
+            sudo mkdir -p .cache
+            sudo mount --bind .cache /nix
+            if [[ -z $(ls -A /nix) ]]; then sudo docker run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix; fi
             sudo docker run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
-            mkdir -p bin
-            cp -r result/bin bin/static
+            sudo chown -Rf $(whoami) .cache
+      - save_cache:
+          key: nix-v1-{{ checksum "nix/nixpkgs.json" }}
+          paths:
+            - .cache
       - run:
           name: Show CRI-O version for static binaries
           command: |
-            ./bin/static/crio version
-      - persist_to_workspace:
-          root: .
-          paths:
-            - bin/static
+            ./result/bin/crio version
       - store_artifacts:
           path: result/bin/crio
       - store_artifacts:
           path: result/bin/crio-status
       - store_artifacts:
           path: result/bin/pinns
+      - run:
+          name: persist_to_workspace
+          command: |
+            mkdir -p bin/static
+            cp -rfT result/bin bin/static
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bin/static
 
   build-test-binaries:
     executor: container
