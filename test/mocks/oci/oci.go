@@ -8,7 +8,7 @@ import (
 	context "context"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	gomock "github.com/golang/mock/gomock"
-	specs_go "github.com/opencontainers/runtime-spec/specs-go"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	io "io"
 	remotecommand "k8s.io/client-go/tools/remotecommand"
 	reflect "reflect"
@@ -223,7 +223,7 @@ func (mr *MockRuntimeImplMockRecorder) UnpauseContainer(arg0 interface{}) *gomoc
 }
 
 // UpdateContainer mocks base method
-func (m *MockRuntimeImpl) UpdateContainer(arg0 *oci.Container, arg1 *specs_go.LinuxResources) error {
+func (m *MockRuntimeImpl) UpdateContainer(arg0 *oci.Container, arg1 *specs.LinuxResources) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateContainer", arg0, arg1)
 	ret0, _ := ret[0].(error)
