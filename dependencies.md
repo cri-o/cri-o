@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 24 Jul 2020 17:56:22 UTC for commit [f1b2152][0]._
+_Generated on Fri, 24 Jul 2020 19:10:25 UTC for commit [59427fe][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f1b21522c7da942663f2d7ff5e1a34b3ce49cbce
+[0]: https://github.com/cri-o/cri-o/commit/59427fee16bc85d72cf161428a95f953d966d3d6
 
 ## Outdated Dependencies
 
@@ -88,9 +88,9 @@ _Generated on Fri, 24 Jul 2020 17:56:22 UTC for commit [f1b2152][0]._
 | github.com/armon/go-socks5                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                       | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20200428143746-21a406dcc535 | false  | true             |
 | github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20200507191422-d30d7b9ece63 | false  | true             |
-| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.33.11                           | false  | true             |
+| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.33.12                           | false  | true             |
 | github.com/bazelbuild/bazel-gazelle                     | v0.19.1-0.20191105222053-70208cbdc798             | v0.21.1                            | false  | true             |
-| github.com/bazelbuild/buildtools                        | v0.0.0-20190917191645-69366ca98f89                | v0.0.0-20200718160251-b1667ff58f71 | false  | true             |
+| github.com/bazelbuild/buildtools                        | v0.0.0-20190917191645-69366ca98f89                | v0.0.0-20200724180157-f76b57a9805f | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.0.0-20190719190356-6dae44dc5cab                | v0.23.6                            | false  | true             |
 | github.com/beorn7/perks                                 | v0.0.0-20180321164747-3a771d992973                | v1.0.1                             | false  | true             |
 | github.com/bgentry/speakeasy                            | v0.1.0                                            |                                    | false  | true             |
@@ -485,7 +485,7 @@ _Generated on Fri, 24 Jul 2020 17:56:22 UTC for commit [f1b2152][0]._
 | go.uber.org/multierr                                    | v1.1.0                                            | v1.5.0                             | false  | true             |
 | go.uber.org/zap                                         | v1.10.0                                           | v1.15.0                            | false  | true             |
 | go4.org                                                 | v0.0.0-20180809161055-417644f6feb5                | v0.0.0-20200411211856-f5505b9728dd | false  | true             |
-| golang.org/x/build                                      | v0.0.0-20190927031335-2835ba2e683f                | v0.0.0-20200722200005-70303fc210d1 | false  | true             |
+| golang.org/x/build                                      | v0.0.0-20190927031335-2835ba2e683f                | v0.0.0-20200724174700-b405858d8368 | false  | true             |
 | golang.org/x/crypto                                     | v0.0.0-20200423211502-4bdfaf469ed5                | v0.0.0-20200709230013-948cd5f35899 | false  | true             |
 | golang.org/x/exp                                        | v0.0.0-20190510132918-efd6b22b2522                | v0.0.0-20200513190911-00229845015e | false  | true             |
 | golang.org/x/image                                      | v0.0.0-20190227222117-0694c2d4d067                | v0.0.0-20200618115811-c13761719519 | false  | true             |
