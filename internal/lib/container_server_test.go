@@ -245,21 +245,6 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
-		It("should fail with wrong creation time", func() {
-			// Given
-			manifest := bytes.Replace(testManifest,
-				[]byte(`"io.kubernetes.cri-o.Created": "2006-01-02T15:04:05.999999999Z",`),
-				[]byte(`"io.kubernetes.cri-o.Created": "wrong",`), 1,
-			)
-			mockDirs(manifest)
-
-			// When
-			err := sut.LoadSandbox("id")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
 		It("should fail with failing container directory", func() {
 			// Given
 			gomock.InOrder(
