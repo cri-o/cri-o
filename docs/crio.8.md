@@ -167,7 +167,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
 
-**--enable-custom-shm-size**: Enable users to set a custom shm size instead of using the default value of 64M
+**--enable-custom-shm-size**: If set to true, enable users to set a custom shm size instead of using the default value of 64M. The shm size can be set through K8S annotation with the key "io.kubernetes.cri-o.ShmSize", and the value representing the size in human readable format. For example: "io.kubernetes.cri-o.ShmSize: 128Mi"
 
 **--gid-mappings**="": Specify the GID mappings to use for the user namespace (default: "")
 
