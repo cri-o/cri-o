@@ -251,6 +251,7 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 	if err := r.start(r.ctx, c.ID(), ""); err != nil {
 		return err
 	}
+	c.state.Started = time.Now()
 
 	// Spawn a goroutine waiting for the container to terminate. Once it
 	// happens, the container status is retrieved to be updated.
