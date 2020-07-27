@@ -2,9 +2,9 @@
 
 - name: clone conmon source repo
   git:
-    repo: "https://github.com/containers/conmon.git"
+    repo: "https://github.com/haircommander/conmon.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
-    version: v2.0.15
+    version: gate-drop-sync
 
 - name: build conmon
   make:
