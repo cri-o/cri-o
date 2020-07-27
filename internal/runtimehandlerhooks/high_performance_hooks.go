@@ -104,8 +104,7 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 				newContent = strconv.Itoa(flags & 32766)
 			}
 
-			err = ioutil.WriteFile(path, []byte(newContent), 0o644)
-			return err
+			return ioutil.WriteFile(path, []byte(newContent), 0o644)
 		})
 		if err != nil {
 			return err
