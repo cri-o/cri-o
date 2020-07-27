@@ -56,12 +56,7 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 }
 
 func shouldCPULoadBalancingBeDisabled(annotations fields.Set) bool {
-	value, ok := annotations[annotationCPULoadBalancing]
-	if !ok {
-		return false
-	}
-
-	return value == "true"
+	return annotations[annotationCPULoadBalancing] == "true"
 }
 
 func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) error {
