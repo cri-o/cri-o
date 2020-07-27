@@ -1,9 +1,9 @@
 package seccomp
 
 import (
-	"encoding/json"
 	"io/ioutil"
 
+	json "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	seccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
