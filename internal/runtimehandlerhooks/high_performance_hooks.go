@@ -79,15 +79,9 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 			if err != nil {
 				return err
 			}
-
-			if path == cpuSchedDomainDir {
+			if !info.Mode().IsRegular() || info.Name() != "flags" {
 				return nil
 			}
-
-			if !strings.Contains(path, "flags") {
-				return nil
-			}
-
 			content, err := ioutil.ReadFile(path)
 			if err != nil {
 				return err
