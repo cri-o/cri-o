@@ -60,14 +60,15 @@ func shouldCPULoadBalancingBeDisabled(annotations fields.Set) bool {
 }
 
 func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) error {
-	if c.Spec().Linux == nil ||
-		c.Spec().Linux.Resources == nil ||
-		c.Spec().Linux.Resources.CPU == nil ||
-		c.Spec().Linux.Resources.CPU.Cpus == "" {
+	lspec := c.Spec().Linux
+	if lspec == nil ||
+		lspec.Resources == nil ||
+		lspec.Resources.CPU == nil ||
+		lspec.Resources.CPU.Cpus == "" {
 		return fmt.Errorf("failed to find the container %q CPUs", c.ID())
 	}
 
-	cpus, err := cpuset.Parse(c.Spec().Linux.Resources.CPU.Cpus)
+	cpus, err := cpuset.Parse(lspec.Resources.CPU.Cpus)
 	if err != nil {
 		return err
 	}
