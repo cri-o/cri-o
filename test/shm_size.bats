@@ -26,7 +26,7 @@ function teardown() {
 	run crictl start "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" df -h | grep /dev/shm | awk '{print $2}'
+	run crictl exec --sync "$ctr_id" df | grep /dev/shm | awk '{print $2}'
 	echo "$output"
 	[[ "$output" == "16384" ]]
 }
