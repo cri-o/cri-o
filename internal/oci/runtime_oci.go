@@ -241,21 +241,23 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 	return nil
 }
 
-func prepareExec() (pidFile, parentPipe, childPipe *os.File, _ error) {
+func prepareExec() (pidFileName string, parentPipe, childPipe *os.File, _ error) {
 	var err error
 	parentPipe, childPipe, err = os.Pipe()
 	if err != nil {
-		return nil, nil, nil, err
+		return "", nil, nil, err
 	}
 
-	pidFile, err = ioutil.TempFile("", "pidfile")
+	pidFile, err := ioutil.TempFile("", "pidfile")
 	if err != nil {
 		parentPipe.Close()
 		childPipe.Close()
-		return nil, nil, nil, err
+		return "", nil, nil, err
 	}
+	pidFile.Close()
+	pidFileName = pidFile.Name()
 
-	return
+	return pidFileName, parentPipe, childPipe, nil
 }
 
 func parseLog(l []byte) (stdout, stderr []byte) {
@@ -308,10 +310,10 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(processFile.Name())
+	defer os.RemoveAll(processFile)
 
 	args := []string{rootFlag, r.root, "exec"}
-	args = append(args, "--process", processFile.Name(), c.ID())
+	args = append(args, "--process", processFile, c.ID())
 	execCmd := exec.Command(r.path, args...) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
@@ -379,8 +381,8 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	}
 	defer parentPipe.Close()
 	defer func() {
-		if e := os.Remove(pidFile.Name()); e != nil {
-			logrus.Warnf("could not remove temporary PID file %s", pidFile.Name())
+		if e := os.Remove(pidFile); e != nil {
+			logrus.Warnf("could not remove temporary PID file %s", pidFile)
 		}
 	}()
 
@@ -391,9 +393,10 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 			Err:      err,
 		}
 	}
+	logFile.Close()
+
 	logPath := logFile.Name()
 	defer func() {
-		logFile.Close()
 		os.RemoveAll(logPath)
 	}()
 
@@ -402,7 +405,7 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 		"-c", c.id,
 		"-n", c.name,
 		"-r", r.path,
-		"-p", pidFile.Name(),
+		"-p", pidFile,
 		"-e")
 	if c.terminal {
 		args = append(args, "-t")
@@ -422,10 +425,10 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 			Err:      err,
 		}
 	}
-	defer os.RemoveAll(processFile.Name())
+	defer os.RemoveAll(processFile)
 
 	args = append(args,
-		"--exec-process-spec", processFile.Name(),
+		"--exec-process-spec", processFile,
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 
 	cmd := exec.Command(r.config.Conmon, args...) // nolint: gosec
@@ -1075,12 +1078,19 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 }
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
-// caller is responsible to close the returned *os.File if needed.
-func prepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) {
+// caller is responsible for removing the returned file, if prepareProcessExec succeeds
+func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile string, retErr error) {
 	f, err := ioutil.TempFile("", "exec-process-")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
+	f.Close()
+	processFile = f.Name()
+	defer func() {
+		if retErr != nil {
+			os.RemoveAll(processFile)
+		}
+	}()
 
 	// It's important to make a spec copy here to not overwrite the initial
 	// process spec
@@ -1094,13 +1104,13 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (*os.File, error) 
 	}
 	processJSON, err := json.Marshal(pspec)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	if err := ioutil.WriteFile(f.Name(), processJSON, 0o644); err != nil {
-		return nil, err
+	if err := ioutil.WriteFile(processFile, processJSON, 0o644); err != nil {
+		return "", err
 	}
-	return f, nil
+	return processFile, nil
 }
 
 // ReadConmonPidFile attempts to read conmon's pid from its pid file
