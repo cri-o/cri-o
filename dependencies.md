@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 29 Jul 2020 13:29:15 UTC for commit [5024317][0]._
+_Generated on Wed, 29 Jul 2020 14:32:35 UTC for commit [44e69bf][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/502431702242348300fafc19b45f92f753b0d2c6
+[0]: https://github.com/cri-o/cri-o/commit/44e69bf91b847bdb85062d1f4b29dccf4d1e738c
 
 ## Outdated Dependencies
 
@@ -23,7 +23,7 @@ _Generated on Wed, 29 Jul 2020 13:29:15 UTC for commit [5024317][0]._
 | k8s.io/client-go                     | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200729090413-8e8b6a01cf6b | true   | true             |
 | k8s.io/cri-api                       | v0.0.0-20200714150352-2cbdfecbbd57 | v0.0.0-20200729090413-8e8b6a01cf6b | true   | true             |
 | k8s.io/kubernetes                    | v1.19.0-rc.1                       |                                    | true   | true             |
-| k8s.io/utils                         | v0.0.0-20200619165400-6e3d28b6ed19 | v0.0.0-20200724153422-f32512634ab7 | true   | true             |
+| k8s.io/utils                         | v0.0.0-20200619165400-6e3d28b6ed19 | v0.0.0-20200729134348-d5654de09c73 | true   | true             |
 
 ## All Dependencies
 
@@ -563,7 +563,7 @@ _Generated on Wed, 29 Jul 2020 13:29:15 UTC for commit [5024317][0]._
 | k8s.io/release                                          | v0.3.4                                            |                                    | true   | true             |
 | k8s.io/sample-apiserver                                 | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200729090413-8e8b6a01cf6b | false  | true             |
 | k8s.io/system-validators                                | v1.1.2                                            |                                    | false  | true             |
-| k8s.io/utils                                            | v0.0.0-20200619165400-6e3d28b6ed19                | v0.0.0-20200724153422-f32512634ab7 | true   | true             |
+| k8s.io/utils                                            | v0.0.0-20200619165400-6e3d28b6ed19                | v0.0.0-20200729134348-d5654de09c73 | true   | true             |
 | modernc.org/cc                                          | v1.0.0                                            |                                    | false  | true             |
 | modernc.org/golex                                       | v1.0.0                                            |                                    | false  | true             |
 | modernc.org/mathutil                                    | v1.0.0                                            | v1.1.1                             | false  | true             |
