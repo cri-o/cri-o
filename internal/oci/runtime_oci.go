@@ -75,7 +75,7 @@ type exitCodeInfo struct {
 }
 
 // CreateContainer creates a container.
-func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err error) {
+func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (retErr error) {
 	var stderrBuf bytes.Buffer
 	parentPipe, childPipe, err := newPipe()
 	childStartPipe, parentStartPipe, err := newPipe()
@@ -178,7 +178,7 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (err err
 
 	// We will delete all container resources if creation fails
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			if err := r.DeleteContainer(c); err != nil {
 				logrus.Warnf("unable to delete container %s: %v", c.ID(), err)
 			}
@@ -362,7 +362,7 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout int64) (resp *ExecSyncResponse, err error) {
+func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
 	pidFile, parentPipe, childPipe, err := prepareExec()
 	if err != nil {
 		return nil, &ExecSyncError{
