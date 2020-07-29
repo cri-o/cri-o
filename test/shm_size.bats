@@ -28,5 +28,5 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	run crictl exec --sync "$ctr_id" df | grep /dev/shm | awk '{print $2}'
 	echo "$output"
-	[[ "$output" == "16384" ]]
+	[[ "$output" =~ "16384" ]]
 }
