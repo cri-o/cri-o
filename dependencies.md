@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 29 Jul 2020 14:32:35 UTC for commit [44e69bf][0]._
+_Generated on Wed, 29 Jul 2020 15:33:44 UTC for commit [f71f879][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/44e69bf91b847bdb85062d1f4b29dccf4d1e738c
+[0]: https://github.com/cri-o/cri-o/commit/f71f879c748832fe053d9c70f0765af54fda0408
 
 ## Outdated Dependencies
 
@@ -463,7 +463,7 @@ _Generated on Wed, 29 Jul 2020 14:32:35 UTC for commit [44e69bf][0]._
 | github.com/uudashr/gocognit                             | v1.0.1                                            |                                    | false  | true             |
 | github.com/valyala/bytebufferpool                       | v1.0.0                                            |                                    | false  | true             |
 | github.com/valyala/fasthttp                             | v1.2.0                                            | v1.15.1                            | false  | true             |
-| github.com/valyala/quicktemplate                        | v1.2.0                                            | v1.5.1                             | false  | true             |
+| github.com/valyala/quicktemplate                        | v1.2.0                                            | v1.5.2                             | false  | true             |
 | github.com/valyala/tcplisten                            | v0.0.0-20161114210144-ceec8f93295a                |                                    | false  | true             |
 | github.com/varlink/go                                   | v0.0.0-20190502142041-0f1d566d194b                | v0.3.0                             | false  | true             |
 | github.com/vbatts/git-validation                        | v1.1.0                                            |                                    | true   | true             |
