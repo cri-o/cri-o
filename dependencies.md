@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 30 Jul 2020 07:05:46 UTC for commit [7318847][0]._
+_Generated on Thu, 30 Jul 2020 07:30:45 UTC for commit [5d0b286][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/731884774a78eee2ff8ca1c2664fb2f6ee8e5bd3
+[0]: https://github.com/cri-o/cri-o/commit/5d0b2863974a41eedc2b49e5f16cdc721d6d8868
 
 ## Outdated Dependencies
 
@@ -558,7 +558,7 @@ _Generated on Thu, 30 Jul 2020 07:05:46 UTC for commit [7318847][0]._
 | k8s.io/kubectl                                          | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200730064430-db28b0239a1d | false  | true             |
 | k8s.io/kubelet                                          | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200730064430-db28b0239a1d | false  | true             |
 | k8s.io/kubernetes                                       | v1.19.0-rc.1                                      |                                    | true   | true             |
-| k8s.io/legacy-cloud-providers                           | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200730000803-0c642b6ef010 | false  | true             |
+| k8s.io/legacy-cloud-providers                           | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200730064430-db28b0239a1d | false  | true             |
 | k8s.io/metrics                                          | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200730064430-db28b0239a1d | false  | true             |
 | k8s.io/release                                          | v0.3.4                                            |                                    | true   | true             |
 | k8s.io/sample-apiserver                                 | v0.0.0-20200714150352-2cbdfecbbd57                | v0.0.0-20200730064430-db28b0239a1d | false  | true             |
