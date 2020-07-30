@@ -1,7 +1,6 @@
 package oci
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
+	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

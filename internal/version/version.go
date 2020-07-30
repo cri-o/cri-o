@@ -2,7 +2,6 @@ package version
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/google/renameio"
+	json "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

@@ -17,13 +17,13 @@
 package typeurl
 
 import (
-	"encoding/json"
 	"path"
 	"reflect"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
+	json "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
 

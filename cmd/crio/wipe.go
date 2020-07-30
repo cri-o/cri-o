@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/version"
+	json "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"

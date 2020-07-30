@@ -3,7 +3,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,6 +28,7 @@ import (
 	ctrIface "github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"

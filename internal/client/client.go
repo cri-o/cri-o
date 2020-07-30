@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/cri-o/cri-o/server"
+	json "github.com/json-iterator/go"
 )
 
 const (

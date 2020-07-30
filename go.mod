@@ -33,6 +33,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/hpcloud/tail v1.0.0
+	github.com/json-iterator/go v1.1.10
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0
