@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/log"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
+	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
