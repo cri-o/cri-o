@@ -567,20 +567,15 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 				close(done)
 				return
 			default:
-				found, err := c.findAndReleasePid()
-				// If the process was not found, then we likely have no problem.
-				// Log an error if there is one, but return regardless.
-				if !found {
-					if err != nil {
-						logrus.Warnf("failed to find process for container %v: %v", c.id, err)
+				if err := c.verifyPid(); err != nil {
+					// The initial container process either doesn't exist, or isn't ours.
+					if !errors.Is(err, ErrNotFound) {
+						logrus.Warnf("failed to find process for container %s: %v", c.id, err)
 					}
 					close(done)
 					return
 				}
-				// If the process was found, but we encountered an error in releasing, log it.
-				if err != nil {
-					logrus.Warnf("failed to release process for container %v: %v", c.id, err)
-				}
+				// the PID is still active and belongs to the container, continue to wait
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
@@ -619,26 +614,19 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		return err
 	}
 
-	found, err := c.findAndReleasePid()
-	// if the pid didn't exist, set the state accordingly and return.
-	if !found && err == nil {
+	// The initial container process either doesn't exist, or isn't ours.
+	if err := c.verifyPid(); err != nil {
 		c.state.Finished = time.Now()
 		return nil
-	}
-	// we somehow failed to find or release the process, just log a warning.
-	if err != nil {
-		logrus.Warnf(err.Error())
 	}
 
 	if timeout > 0 {
 		if _, err := utils.ExecCmd(
 			r.path, rootFlag, r.root, "kill", c.id, c.GetStopSignal(),
 		); err != nil {
-			if err := checkProcessGone(c); err != nil {
-				return fmt.Errorf("failed to stop container %q: %v", c.id, err)
-			}
+			checkProcessGone(c)
 		}
-		err = waitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
+		err := waitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
 		if err == nil {
 			return nil
 		}
@@ -648,26 +636,18 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	if _, err := utils.ExecCmd(
 		r.path, rootFlag, r.root, "kill", c.id, "KILL",
 	); err != nil {
-		if err := checkProcessGone(c); err != nil {
-			return fmt.Errorf("failed to stop container %v: %v", c.id, err)
-		}
+		checkProcessGone(c)
 	}
 
 	return waitContainerStop(ctx, c, killContainerTimeout, false)
 }
 
-func checkProcessGone(c *Container) error {
-	found, err := c.findAndReleasePid()
-	// if the pid didn't exist, set the state accordingly and return.
-	if !found && err == nil {
+func checkProcessGone(c *Container) {
+	if err := c.verifyPid(); err != nil {
+		// The initial container process either doesn't exist, or isn't ours.
+		// Set state accordingly.
 		c.state.Finished = time.Now()
-		return nil
 	}
-	// we somehow failed to find or release the process.
-	if err != nil {
-		return fmt.Errorf("failed to find process: %v", err)
-	}
-	return nil
 }
 
 // DeleteContainer deletes a container.

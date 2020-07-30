@@ -12,7 +12,6 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/internal/findprocess"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -28,6 +27,7 @@ const defaultStopSignalInt = 15
 var (
 	defaultStopSignal   = strconv.Itoa(defaultStopSignalInt)
 	ErrContainerStopped = errors.New("container is already stopped")
+	ErrNotFound         = errors.New("container process not found")
 )
 
 // Container represents a runtime container.
@@ -421,42 +421,13 @@ func (c *Container) pid() (int, error) {
 
 	// container has stopped (as pid is initialized but the runc state has overwritten it)
 	if c.state.Pid == 0 {
-		return 0, findprocess.ErrNotFound
+		return 0, ErrNotFound
 	}
 
 	if err := c.verifyPid(); err != nil {
 		return 0, err
 	}
 	return c.state.InitPid, nil
-}
-
-// findAndReleasePid attempts to find the container's PID
-// and if it's found, release it. In between these steps,
-// it also verifies the PID running is the same as was originally
-// started by the runtime.
-func (c *Container) findAndReleasePid() (bool, error) {
-	pid := c.state.InitPid
-
-	if err := c.verifyPid(); err != nil {
-		if !errors.Is(err, findprocess.ErrNotFound) {
-			return false, err
-		}
-		return false, nil
-	}
-
-	process, err := findprocess.FindProcess(pid)
-	if err == findprocess.ErrNotFound {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-
-	// the process was found, and was the correct one; release it
-	if err := process.Release(); err != nil {
-		return true, err
-	}
-	return true, nil
 }
 
 // verifyPid checks that the start time for the process on the node is the same
@@ -479,7 +450,7 @@ func (c *Container) verifyPid() error {
 func getPidStartTime(pid int) (int, error) {
 	var st unix.Stat_t
 	if err := unix.Stat(fmt.Sprintf("/proc/%d", pid), &st); err != nil {
-		return 0, errors.Wrapf(findprocess.ErrNotFound, err.Error())
+		return 0, errors.Wrapf(ErrNotFound, err.Error())
 	}
 
 	return int(st.Ctim.Sec), nil

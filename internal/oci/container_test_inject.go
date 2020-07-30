@@ -22,7 +22,3 @@ func (c *Container) SetStateAndSpoofPid(state *ContainerState) {
 	}
 	c.state = state
 }
-
-func (c *Container) FindAndReleasePid() (bool, error) {
-	return c.findAndReleasePid()
-}

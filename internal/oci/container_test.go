@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/internal/findprocess"
 	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -373,7 +372,7 @@ var _ = t.Describe("Container", func() {
 			pid, err := sut.Pid()
 			// Then
 			Expect(pid).To(Equal(0))
-			Expect(errors.Is(err, findprocess.ErrNotFound)).To(Equal(true))
+			Expect(errors.Is(err, oci.ErrNotFound)).To(Equal(true))
 		})
 		It("should fail if process is not found", func() {
 			// Given
@@ -386,7 +385,7 @@ var _ = t.Describe("Container", func() {
 			pid, err := sut.Pid()
 			// Then
 			Expect(pid).To(Equal(0))
-			Expect(errors.Is(err, findprocess.ErrNotFound)).To(Equal(true))
+			Expect(errors.Is(err, oci.ErrNotFound)).To(Equal(true))
 		})
 		It("should fail when pid has wrapped", func() {
 			// Given
@@ -416,37 +415,6 @@ var _ = t.Describe("Container", func() {
 			// Then
 			Expect(pid).To(Equal(alwaysRunningPid))
 			Expect(err).To(BeNil())
-		})
-	})
-	t.Describe("findAndReleasePid", func() {
-		It("should not be found nor fail if pid doesn't exist", func() {
-			// Given
-			state := &oci.ContainerState{}
-			state.Pid = neverRunningPid
-			Expect(state.SetInitPid(state.Pid)).NotTo(BeNil())
-			sut.SetState(state)
-
-			// When
-			found, err := sut.FindAndReleasePid()
-			// Then
-			Expect(found).To(Equal(false))
-			Expect(err).To(BeNil())
-		})
-		It("should not be found but should fail when pid wrap occurs", func() {
-			// Given
-			state := &oci.ContainerState{}
-			state.Pid = alwaysRunningPid
-			Expect(state.SetInitPid(state.Pid)).To(BeNil())
-			// if InitStartTime != the time the state.InitPid started
-			// pid wrap is assumed to have happened
-			state.InitStartTime = 0
-			sut.SetState(state)
-
-			// When
-			found, err := sut.FindAndReleasePid()
-			// Then
-			Expect(found).To(Equal(false))
-			Expect(err).NotTo(BeNil())
 		})
 	})
 	t.Describe("SetInitPid", func() {
