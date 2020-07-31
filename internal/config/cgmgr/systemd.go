@@ -46,6 +46,23 @@ func (*SystemdManager) ContainerCgroupPath(sbParent, containerID string) string 
 	return parent + ":" + crioPrefix + ":" + containerID
 }
 
+// ContainerCgroupAbsolutePath takes arguments sandbox parent cgroup and container ID and
+// returns the cgroup path on disk for that containerID. If parentCgroup is empty, it
+// uses the default parent system.slice
+func (*SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID string) (string, error) {
+	parent := defaultSystemdParent
+	if sbParent != "" {
+		parent = sbParent
+	}
+	logrus.Debugf("Expanding systemd cgroup slice %v", parent)
+	cgroup, err := systemd.ExpandSlice(parent)
+	if err != nil {
+		return "", errors.Wrapf(err, "error expanding systemd slice to get container %s stats", containerID)
+	}
+
+	return filepath.Join(cgroup, crioPrefix+"-"+containerID+".scope"), nil
+}
+
 // MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID
 // It attempts to move conmon to the correct cgroup.
 // cgroupPathToClean should always be returned empty. It is part of the interface to return the cgroup path
