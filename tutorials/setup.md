@@ -60,7 +60,7 @@ yum install -y \
   libselinux-devel \
   pkgconfig \
   make \
-  runc
+  containerd.io
 ```
 
 **Please note**:
