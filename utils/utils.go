@@ -341,18 +341,12 @@ func GetLabelOptions(selinuxOptions *pb.SELinuxOption) []string {
 	return labels
 }
 
-// Unmount is a helper function that unmounts
-// a path, accounting for symlinks
+// Unmount is a helper function that unmounts a path
+// and ignores situations in which it is not mounted
 func Unmount(path string) error {
-	// we may get files that are symlinked
-	// so we first resolve the symlink
-	fp, err := securejoin.SecureJoin("/", path)
-	if err != nil {
-		return err
-	}
 	// then umount unconditionally, ignoring EINVAL (mount point is not mounted)
-	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL && err != unix.ENOENT {
-		return errors.Wrapf(err, "unable to unmount %s", fp)
+	if err := unix.Unmount(path, unix.MNT_DETACH); err != nil && err != unix.EINVAL && err != unix.ENOENT {
+		return errors.Wrapf(err, "unable to unmount %s", path)
 	}
 
 	return nil

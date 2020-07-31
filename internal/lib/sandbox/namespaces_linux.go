@@ -8,7 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"time"
 
+	"k8s.io/release/pkg/command"
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
@@ -175,15 +177,46 @@ func (n *Namespace) Remove() error {
 
 	n.closed = true
 
-	if err := utils.Unmount(n.Path()); err != nil {
-		return errors.Wrapf(err, "failed to umount namespace path")
-	}
-
 	if n.Path() != "" {
-		if err := os.RemoveAll(n.Path()); err != nil {
+		if err := retryPathOperation(n.Path(), utils.Unmount); err != nil {
+			printMountInfo(n.Path())
+			return errors.Wrapf(err, "failed to umount namespace path")
+		}
+
+		if err := retryPathOperation(n.Path(), os.RemoveAll); err != nil {
+			printMountInfo(n.Path())
 			return errors.Wrapf(err, "failed to remove namespace path")
 		}
 	}
 
 	return nil
+}
+
+func printMountInfo(path string) {
+	output, err := command.
+		New(
+			"cat", "/proc/*/mountinfo",
+		).Pipe(
+			"grep", path,
+		).RunSuccessOutput()
+	if err != nil {
+		logrus.Errorf("XXXX FAILED %v", err)
+		return
+	}
+	logrus.Errorf("mount info %s %s", output.Output(), output.Error())
+}
+
+func retryPathOperation(path string, op func(string)error) error {
+	var err error
+	for retry := 0; retry < 4; retry++ {
+		// we should only retry on EBUSY
+		err = op(path)
+		if errors.Is(err, unix.EBUSY) {
+			logrus.Errorf("%d: mount %s was busy, trying in a second", retry, path)
+			time.Sleep(1 * time.Millisecond)
+			continue
+		}
+		break
+	}
+	return err
 }
