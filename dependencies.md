@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 31 Jul 2020 22:24:07 UTC for commit [c5101e9][0]._
+_Generated on Sat, 01 Aug 2020 15:18:21 UTC for commit [a1fa693][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c5101e9c0d1620a1dd364ec56d6396ed26b8d133
+[0]: https://github.com/cri-o/cri-o/commit/a1fa6935a3abe574cddf7873ea51e48293b87de6
 
 ## Outdated Dependencies
 
@@ -330,7 +330,7 @@ _Generated on Fri, 31 Jul 2020 22:24:07 UTC for commit [c5101e9][0]._
 | github.com/mailru/easyjson                              | v0.7.0                                            | v0.7.2                             | false  | true             |
 | github.com/maratori/testpackage                         | v1.0.1                                            |                                    | false  | true             |
 | github.com/marten-seemann/qtls                          | v0.2.3                                            | v0.10.0                            | false  | true             |
-| github.com/matoous/godox                                | v0.0.0-20190911065817-5d6d842e92eb                |                                    | false  | true             |
+| github.com/matoous/godox                                | v0.0.0-20190911065817-5d6d842e92eb                | v0.0.0-20200801072554-4fb83dc2941e | false  | true             |
 | github.com/mattn/go-colorable                           | v0.1.4                                            | v0.1.7                             | false  | true             |
 | github.com/mattn/go-isatty                              | v0.0.11                                           | v0.0.12                            | false  | true             |
 | github.com/mattn/go-runewidth                           | v0.0.9                                            |                                    | false  | true             |
@@ -340,7 +340,7 @@ _Generated on Fri, 31 Jul 2020 22:24:07 UTC for commit [c5101e9][0]._
 | github.com/matttproud/golang_protobuf_extensions        | v1.0.2-0.20181231171920-c182affec369              |                                    | false  | true             |
 | github.com/maxbrunsfeld/counterfeiter/v6                | v6.2.3                                            |                                    | false  | true             |
 | github.com/mholt/certmagic                              | v0.6.2-0.20190624175158-6a42ef9fe8c2              | v0.11.2                            | false  | true             |
-| github.com/miekg/dns                                    | v1.1.4                                            | v1.1.30                            | false  | true             |
+| github.com/miekg/dns                                    | v1.1.4                                            | v1.1.31                            | false  | true             |
 | github.com/mindprince/gonvml                            | v0.0.0-20190828220739-9ebdce4bb989                |                                    | false  | true             |
 | github.com/mistifyio/go-zfs                             | v2.1.2-0.20190413222219-f784269be439+incompatible |                                    | false  | true             |
 | github.com/mitchellh/go-homedir                         | v1.1.0                                            |                                    | false  | true             |
@@ -492,9 +492,9 @@ _Generated on Fri, 31 Jul 2020 22:24:07 UTC for commit [c5101e9][0]._
 | go.uber.org/zap                                         | v1.10.0                                           | v1.15.0                            | false  | true             |
 | golang.org/x/crypto                                     | v0.0.0-20200622213623-75b288015ac9                | v0.0.0-20200728195943-123391ffb6de | false  | true             |
 | golang.org/x/exp                                        | v0.0.0-20191227195350-da58074b4299                | v0.0.0-20200513190911-00229845015e | false  | true             |
-| golang.org/x/image                                      | v0.0.0-20190802002840-cff245a6509b                | v0.0.0-20200618115811-c13761719519 | false  | true             |
+| golang.org/x/image                                      | v0.0.0-20190802002840-cff245a6509b                | v0.0.0-20200801110659-972c09e46d76 | false  | true             |
 | golang.org/x/lint                                       | v0.0.0-20191125180803-fdd1cda4f05f                | v0.0.0-20200302205851-738671d3881b | false  | true             |
-| golang.org/x/mobile                                     | v0.0.0-20190719004257-d2bd2a29d028                | v0.0.0-20200721161523-bcce01171201 | false  | true             |
+| golang.org/x/mobile                                     | v0.0.0-20190719004257-d2bd2a29d028                | v0.0.0-20200801112145-973feb4309de | false  | true             |
 | golang.org/x/mod                                        | v0.2.0                                            | v0.3.0                             | false  | true             |
 | golang.org/x/net                                        | v0.0.0-20200707034311-ab3426394381                |                                    | true   | true             |
 | golang.org/x/oauth2                                     | v0.0.0-20200107190931-bf48bf16ab8d                |                                    | false  | true             |
