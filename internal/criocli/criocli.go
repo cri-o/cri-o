@@ -281,6 +281,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("metrics-socket") {
 		config.MetricsSocket = ctx.String("metrics-socket")
 	}
+	if ctx.IsSet("big-files-temporary-dir") {
+		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
+	}
 
 	return nil
 }
@@ -639,6 +642,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "metrics-socket",
 			Usage:   "Socket for the metrics endpoint",
 			EnvVars: []string{"CONTAINER_METRICS_SOCKET"},
+		},
+		&cli.StringFlag{
+			Name:    "big-files-temporary-dir",
+			Usage:   `Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.`,
+			EnvVars: []string{"CONTAINER_BIG_FILES_TEMPORARY_DIR"},
 		},
 		&cli.BoolFlag{
 			Name:    "read-only",
