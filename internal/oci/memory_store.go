@@ -92,5 +92,3 @@ func (c *memoryStore) all() []*Container {
 	c.RUnlock()
 	return containers
 }
-
-var _ ContainerStorer = &memoryStore{}
