@@ -89,5 +89,3 @@ func (c *memoryStore) all() []*Sandbox {
 	c.RUnlock()
 	return sandboxes
 }
-
-var _ Storer = &memoryStore{}
