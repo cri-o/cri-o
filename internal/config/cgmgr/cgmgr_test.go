@@ -215,7 +215,6 @@ var _ = t.Describe("Config", func() {
 				Expect(err).To(Not(BeNil()))
 				Expect(cgroupPath).To(Equal(""))
 			})
-
 		})
 		t.Describe("SandboxCgroupPath", func() {
 			It("should fail when parent too short", func() {
