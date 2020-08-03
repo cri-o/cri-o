@@ -562,9 +562,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			parent = sb.CgroupParent()
 		}
 		if useSystemd {
-			cgPath = parent + ":" + scopePrefix + ":" + containerID
+			cgPath = parent + ":" + oci.CrioScopePrefix + ":" + containerID
 		} else {
-			cgPath = filepath.Join(parent, scopePrefix+"-"+containerID)
+			cgPath = filepath.Join(parent, oci.CrioScopePrefix+"-"+containerID)
 		}
 		specgen.SetLinuxCgroupsPath(cgPath)
 

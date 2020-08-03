@@ -736,7 +736,7 @@ func AddCgroupAnnotation(ctx context.Context, g generate.Generator, mountPath, c
 			if strings.HasSuffix(path.Base(cgroupParent), ".slice") {
 				return "", fmt.Errorf("cri-o configured with cgroupfs cgroup manager, but received systemd slice as parent: %s", cgroupParent)
 			}
-			cgPath := filepath.Join(cgroupParent, scopePrefix+"-"+id)
+			cgPath := filepath.Join(cgroupParent, oci.CrioScopePrefix+"-"+id)
 			g.SetLinuxCgroupsPath(cgPath)
 		}
 	}
