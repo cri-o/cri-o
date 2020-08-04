@@ -377,15 +377,6 @@ function start_crio() {
     pull_test_containers
 }
 
-# Start crio with journald logging
-function start_crio_journald() {
-    setup_crio "$@"
-    "$CRIO_BINARY_PATH" --log-journald -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" &
-    CRIO_PID=$!
-    wait_until_reachable
-    pull_test_containers
-}
-
 function check_journald() {
     if ! pkg-config --exists libsystemd-journal; then
         if ! pkg-config --exists libsystemd; then
@@ -399,15 +390,6 @@ function check_journald() {
         return
     fi
     echo "0"
-}
-
-# Start crio with metrics enable
-function start_crio_metrics() {
-    setup_crio "$@"
-    "$CRIO_BINARY_PATH" --enable-metrics -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" &
-    CRIO_PID=$!
-    wait_until_reachable
-    pull_test_containers
 }
 
 # Check whether metrics port is listening
