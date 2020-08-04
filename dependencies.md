@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 04 Aug 2020 21:52:39 UTC for commit [245b9cc][0]._
+_Generated on Tue, 04 Aug 2020 22:13:27 UTC for commit [daba997][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/245b9cc1c80c9913d99ca08491e80e610199b69f
+[0]: https://github.com/cri-o/cri-o/commit/daba997bbcb944f30bc03552cbb1e4d44462509a
 
 ## Outdated Dependencies
 
@@ -410,7 +410,7 @@ _Generated on Tue, 04 Aug 2020 21:52:39 UTC for commit [245b9cc][0]._
 | github.com/russross/blackfriday                         | v1.5.2                                            |                                    | false  | true             |
 | github.com/russross/blackfriday/v2                      | v2.0.1                                            |                                    | false  | true             |
 | github.com/ryancurrah/gomodguard                        | v1.0.2                                            | v1.1.0                             | false  | true             |
-| github.com/safchain/ethtool                             | v0.0.0-20190326074333-42ed695e3de8                | v0.0.0-20200609180057-ab94f15152e7 | false  | true             |
+| github.com/safchain/ethtool                             | v0.0.0-20190326074333-42ed695e3de8                | v0.0.0-20200804214954-8f958a28363a | false  | true             |
 | github.com/saschagrunert/ccli                           | v1.0.2-0.20200423111659-b68f755cc0f5              |                                    | false  | true             |
 | github.com/saschagrunert/go-modiff                      | v1.2.0                                            |                                    | false  | true             |
 | github.com/satori/go.uuid                               | v1.2.0                                            |                                    | false  | true             |
