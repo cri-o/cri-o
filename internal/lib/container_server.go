@@ -524,7 +524,7 @@ func recoverLogError() {
 func (c *ContainerServer) Shutdown() error {
 	defer recoverLogError()
 	_, err := c.store.Shutdown(false)
-	if err != nil && errors.Cause(err) != cstorage.ErrLayerUsedByContainer {
+	if err != nil && !errors.Is(err, cstorage.ErrLayerUsedByContainer) {
 		return err
 	}
 	return nil

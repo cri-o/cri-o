@@ -153,7 +153,7 @@ func (s *Server) getPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResp
 
 func (s *Server) restore(ctx context.Context) {
 	containers, err := s.Store().Containers()
-	if err != nil && !os.IsNotExist(errors.Cause(err)) {
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		logrus.Warnf("could not read containers and sandboxes: %v", err)
 	}
 	pods := map[string]*storage.RuntimeContainerMetadata{}
