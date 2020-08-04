@@ -606,7 +606,7 @@ func (r *runtimeVM) updateContainerStatus(c *Container) error {
 		ID: c.ID(),
 	})
 	if err != nil {
-		if errors.Cause(err) != ttrpc.ErrClosed {
+		if errors.Is(err, ttrpc.ErrClosed) {
 			return errdefs.FromGRPC(err)
 		}
 		return errdefs.ErrNotFound
