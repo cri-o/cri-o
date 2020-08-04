@@ -185,6 +185,9 @@ release-bundle: clean bin/pinns build-static docs crio.conf bundle
 crio.conf: bin/crio
 	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > crio.conf
 
+release:
+	${GO_RUN} ./scripts/release
+
 release-notes: ${RELEASE_NOTES}
 	${GO_RUN} ./scripts/release-notes \
 		--output-path ${BUILD_PATH}/release-notes
@@ -551,4 +554,5 @@ metrics-exporter: bin/metrics-exporter
 	dependencies \
 	upload-artifacts \
 	bin/metrics-exporter \
-	metrics-exporter
+	metrics-exporter \
+	release
