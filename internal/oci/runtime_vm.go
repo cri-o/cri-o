@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -43,6 +44,7 @@ type runtimeVM struct {
 	client *ttrpc.Client
 	task   task.TaskService
 
+	sync.Mutex
 	ctrs map[string]containerInfo
 }
 
@@ -109,13 +111,20 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (retErr e
 	containerIO.AddOutput("logfile", f, f)
 	containerIO.Pipe()
 
+	r.Lock()
 	r.ctrs[c.ID()] = containerInfo{
 		cio: containerIO,
 	}
+	r.Unlock()
 
 	defer func() {
 		if retErr != nil {
-			delete(r.ctrs, c.ID())
+			r.Lock()
+			logrus.WithError(err).Warnf("Cleaning up container %s", c.ID())
+			if cleanupErr := r.deleteContainer(c, true); cleanupErr != nil {
+				logrus.WithError(cleanupErr).Infof("deleteContainer failed for container %s", c.ID())
+			}
+			r.Unlock()
 		}
 	}()
 
@@ -242,6 +251,7 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 	if err := r.start(r.ctx, c.ID(), ""); err != nil {
 		return err
 	}
+	c.state.Started = time.Now()
 
 	// Spawn a goroutine waiting for the container to terminate. Once it
 	// happens, the container status is retrieved to be updated.
@@ -249,7 +259,15 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 	go func() {
 		_, err = r.wait(r.ctx, c.ID(), "")
 		if err == nil {
-			err = r.UpdateContainerStatus(c)
+			if err1 := r.updateContainerStatus(c); err1 != nil {
+				logrus.Warningf("error updating container status %v", err1)
+			}
+
+			if c.state.Status == ContainerStateStopped {
+				if err1 := r.deleteContainer(c, true); err1 != nil {
+					logrus.WithError(err1).Infof("deleteContainer failed for container %s", c.ID())
+				}
+			}
 		}
 	}()
 
@@ -524,24 +542,36 @@ func (r *runtimeVM) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	return r.deleteContainer(c, false)
+}
+
+// deleteContainer performs all the operations needed to delete a container.
+// force must only be used on clean-up cases.
+// It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
+func (r *runtimeVM) deleteContainer(c *Container, force bool) error {
+	r.Lock()
 	cInfo, ok := r.ctrs[c.ID()]
-	if !ok {
+	r.Unlock()
+	if !ok && !force {
 		return errors.New("Could not retrieve container information")
 	}
 
-	if err := cInfo.cio.Close(); err != nil {
+	if err := cInfo.cio.Close(); err != nil && !force {
 		return err
 	}
 
-	if err := r.remove(r.ctx, c.ID(), ""); err != nil {
+	if err := r.remove(r.ctx, c.ID(), ""); err != nil && !force {
 		return err
 	}
 
-	if _, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()}); err != nil && !errors.Is(err, ttrpc.ErrClosed) {
+	_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
+	if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
 		return err
 	}
 
+	r.Lock()
 	delete(r.ctrs, c.ID())
+	r.Unlock()
 
 	return nil
 }
@@ -554,6 +584,16 @@ func (r *runtimeVM) UpdateContainerStatus(c *Container) error {
 	// Lock the container
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	return r.updateContainerStatus(c)
+}
+
+// updateContainerStatus is a UpdateContainerStatus helper, which actually does the container's
+// status refresh.
+// It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
+func (r *runtimeVM) updateContainerStatus(c *Container) error {
+	logrus.Debug("runtimeVM.updateContainerStatus() start")
+	defer logrus.Debug("runtimeVM.updateContainerStatus() end")
 
 	// This can happen on restore, for example if we switch the runtime type
 	// for a container from "oci" to "vm" for the same runtime.
@@ -685,7 +725,9 @@ func (r *runtimeVM) AttachContainer(c *Container, inputStream io.Reader, outputS
 		}
 	})
 
+	r.Lock()
 	cInfo, ok := r.ctrs[c.ID()]
+	r.Unlock()
 	if !ok {
 		return errors.New("Could not retrieve container information")
 	}
@@ -771,7 +813,7 @@ func (r *runtimeVM) remove(ctx context.Context, ctrID, execID string) error {
 	return nil
 }
 
-func (r runtimeVM) resizePty(ctx context.Context, ctrID, execID string, size remotecommand.TerminalSize) error {
+func (r *runtimeVM) resizePty(ctx context.Context, ctrID, execID string, size remotecommand.TerminalSize) error {
 	_, err := r.task.ResizePty(ctx, &task.ResizePtyRequest{
 		ID:     ctrID,
 		ExecID: execID,
