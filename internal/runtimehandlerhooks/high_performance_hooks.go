@@ -56,23 +56,19 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 }
 
 func shouldCPULoadBalancingBeDisabled(annotations fields.Set) bool {
-	value, ok := annotations[annotationCPULoadBalancing]
-	if !ok {
-		return false
-	}
-
-	return value == "true"
+	return annotations[annotationCPULoadBalancing] == "true"
 }
 
 func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) error {
-	if c.Spec().Linux == nil ||
-		c.Spec().Linux.Resources == nil ||
-		c.Spec().Linux.Resources.CPU == nil ||
-		c.Spec().Linux.Resources.CPU.Cpus == "" {
+	lspec := c.Spec().Linux
+	if lspec == nil ||
+		lspec.Resources == nil ||
+		lspec.Resources.CPU == nil ||
+		lspec.Resources.CPU.Cpus == "" {
 		return fmt.Errorf("failed to find the container %q CPUs", c.ID())
 	}
 
-	cpus, err := cpuset.Parse(c.Spec().Linux.Resources.CPU.Cpus)
+	cpus, err := cpuset.Parse(lspec.Resources.CPU.Cpus)
 	if err != nil {
 		return err
 	}
@@ -83,15 +79,9 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 			if err != nil {
 				return err
 			}
-
-			if path == cpuSchedDomainDir {
+			if !info.Mode().IsRegular() || info.Name() != "flags" {
 				return nil
 			}
-
-			if !strings.Contains(path, "flags") {
-				return nil
-			}
-
 			content, err := ioutil.ReadFile(path)
 			if err != nil {
 				return err
@@ -114,8 +104,7 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 				newContent = strconv.Itoa(flags & 32766)
 			}
 
-			err = ioutil.WriteFile(path, []byte(newContent), 0o644)
-			return err
+			return ioutil.WriteFile(path, []byte(newContent), 0o644)
 		})
 		if err != nil {
 			return err

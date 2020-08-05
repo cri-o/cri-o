@@ -805,14 +805,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		specgen.AddMount(mnt)
 	}
 
-	newAnnotations := map[string]string{}
-	for key, value := range containerConfig.GetAnnotations() {
-		newAnnotations[key] = value
-	}
-	for key, value := range sb.Annotations() {
-		newAnnotations[key] = value
-	}
 	if s.ContainerServer.Hooks != nil {
+		newAnnotations := map[string]string{}
+		for key, value := range containerConfig.GetAnnotations() {
+			newAnnotations[key] = value
+		}
+		for key, value := range sb.Annotations() {
+			newAnnotations[key] = value
+		}
+
 		if _, err := s.ContainerServer.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.GetMounts()) > 0); err != nil {
 			return nil, err
 		}
