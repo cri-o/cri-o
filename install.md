@@ -1,4 +1,4 @@
-![CRI-O logo](../logo/crio-logo.svg)
+![CRI-O logo](https://github.com/cri-o/cri-o/blob/master/logo/crio-logo.svg?raw=true)
 # CRI-O Installation Instructions
 
 This guide will walk you through the installation of [CRI-O](https://github.com/cri-o/cri-o), an Open Container Initiative-based implementation of the [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md).

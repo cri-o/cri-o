@@ -1,4 +1,4 @@
-![CRI-O logo](logo/crio-logo.svg)
+![CRI-O logo](https://github.com/cri-o/cri-o/blob/master/logo/crio-logo.svg?raw=true)
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
 [![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
@@ -114,7 +114,7 @@ This means that the latest commit can be downloaded via:
 
 ### Running kubernetes with CRI-O
 
-Before you begin, you'll need to [start CRI-O](install.md#starting-cri-o) 
+Before you begin, you'll need to [start CRI-O](install.md#starting-cri-o)
 
 You can run a local version of Kubernetes with `CRI-O` using `local-up-cluster.sh`:
 
