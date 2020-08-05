@@ -2,26 +2,19 @@ package conmonmgr
 
 import (
 	"path"
-	"regexp"
-	"strconv"
+	"strings"
 
+	"github.com/blang/semver"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	majorVersionSupportsSync = 2
-	minorVersionSupportsSync = 0
-	patchVersionSupportsSync = 19
-)
+var versionSupportsSync = semver.MustParse("2.0.19")
 
 type ConmonManager struct {
-	majorVersion int
-	minorVersion int
-	patchVersion int
-
-	supportsSync bool
+	conmonVersion *semver.Version
+	supportsSync  bool
 }
 
 // this function is heavily based on github.com/containers/common#probeConmon
@@ -35,71 +28,39 @@ func newWithCommandRunner(conmonPath string, runner cmdrunner.CommandRunner) (*C
 	}
 	out, err := runner.CombinedOutput(conmonPath, "--version")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "get conmon version")
 	}
-	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
-
-	matches := r.FindStringSubmatch(string(out))
-	if len(matches) != 4 {
-		return nil, errors.Errorf("conmon version returned unexpected output %s", string(out))
+	fields := strings.Fields(string(out))
+	if len(fields) < 3 {
+		return nil, errors.Errorf("conmon version output too short: expected three fields, got %d in %s", len(fields), out)
 	}
 
 	c := new(ConmonManager)
-	if err := c.parseConmonVersion(matches[1], matches[2], matches[3]); err != nil {
-		return nil, err
+	if err := c.parseConmonVersion(fields[2]); err != nil {
+		return nil, errors.Wrapf(err, "get conmon version")
 	}
 
 	c.initializeSupportsSync()
 	return c, nil
 }
 
-func (c *ConmonManager) parseConmonVersion(major, minor, patch string) error {
-	var err error
-	if c.majorVersion, err = strconv.Atoi(major); err != nil {
-		return errors.Wrapf(err, "failed to parse major version of conmon")
+func (c *ConmonManager) parseConmonVersion(versionString string) error {
+	parsedVersion, err := semver.New(versionString)
+	if err != nil {
+		return err
 	}
-	if c.minorVersion, err = strconv.Atoi(minor); err != nil {
-		return errors.Wrapf(err, "failed to parse minor version of conmon")
-	}
-	if c.patchVersion, err = strconv.Atoi(patch); err != nil {
-		return errors.Wrapf(err, "failed to parse patch version of conmon")
-	}
+	c.conmonVersion = parsedVersion
 	return nil
 }
 
 func (c *ConmonManager) initializeSupportsSync() {
-	defer func() {
-		verb := "does not"
-		if c.supportsSync {
-			verb = "does"
-		}
+	c.supportsSync = c.conmonVersion.GTE(versionSupportsSync)
+	verb := "does not"
+	if c.supportsSync {
+		verb = "does"
+	}
 
-		logrus.Infof("conmon %s support the --sync option", verb)
-	}()
-
-	if c.majorVersion < majorVersionSupportsSync {
-		return
-	}
-	if c.majorVersion > majorVersionSupportsSync {
-		c.supportsSync = true
-		return
-	}
-	if c.minorVersion < minorVersionSupportsSync {
-		return
-	}
-	if c.minorVersion > minorVersionSupportsSync {
-		c.supportsSync = true
-		return
-	}
-	if c.patchVersion < patchVersionSupportsSync {
-		return
-	}
-	if c.patchVersion > patchVersionSupportsSync {
-		c.supportsSync = true
-		return
-	}
-	// version exactly matches
-	c.supportsSync = true
+	logrus.Infof("conmon %s support the --sync option", verb)
 }
 
 func (c *ConmonManager) SupportsSync() bool {

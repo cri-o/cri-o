@@ -85,32 +85,18 @@ var _ = t.Describe("ConmonManager", func() {
 	})
 	t.Describe("parseConmonVersion", func() {
 		var mgr *ConmonManager
-		const invalidNumber = "invalid"
-		const validNumber = "0"
 		BeforeEach(func() {
 			mgr = new(ConmonManager)
 		})
-		It("should fail when major not number", func() {
+		It("should fail when not number", func() {
 			// When
-			err := mgr.parseConmonVersion(invalidNumber, validNumber, validNumber)
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-		It("should fail when minor not number", func() {
-			// When
-			err := mgr.parseConmonVersion(validNumber, invalidNumber, validNumber)
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-		It("should fail when patch not number", func() {
-			// When
-			err := mgr.parseConmonVersion(validNumber, validNumber, invalidNumber)
+			err := mgr.parseConmonVersion("invalid.0.0")
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
 		It("should succeed when all are numbers", func() {
 			// When
-			err := mgr.parseConmonVersion(validNumber, validNumber, validNumber)
+			err := mgr.parseConmonVersion("0.0.0")
 			// Then
 			Expect(err).To(BeNil())
 		})
@@ -122,8 +108,8 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should be false when major version less", func() {
 			// Given
-			mgr.majorVersion = majorVersionSupportsSync - 1
-
+			err := mgr.parseConmonVersion("1.0.19")
+			Expect(err).To(BeNil())
 			// When
 			mgr.initializeSupportsSync()
 
@@ -132,7 +118,8 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should be true when major version greater", func() {
 			// Given
-			mgr.majorVersion = majorVersionSupportsSync + 1
+			err := mgr.parseConmonVersion("3.0.19")
+			Expect(err).To(BeNil())
 
 			// When
 			mgr.initializeSupportsSync()
@@ -140,21 +127,10 @@ var _ = t.Describe("ConmonManager", func() {
 			// Then
 			Expect(mgr.SupportsSync()).To(Equal(true))
 		})
-		It("should be false when minor version less", func() {
-			// Given
-			mgr.majorVersion = majorVersionSupportsSync
-			mgr.minorVersion = minorVersionSupportsSync - 1
-
-			// When
-			mgr.initializeSupportsSync()
-
-			// Then
-			Expect(mgr.SupportsSync()).To(Equal(false))
-		})
 		It("should be true when minor version greater", func() {
 			// Given
-			mgr.majorVersion = majorVersionSupportsSync
-			mgr.minorVersion = minorVersionSupportsSync + 1
+			err := mgr.parseConmonVersion("2.1.18")
+			Expect(err).To(BeNil())
 
 			// When
 			mgr.initializeSupportsSync()
@@ -164,9 +140,8 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should be false when patch version less", func() {
 			// Given
-			mgr.majorVersion = majorVersionSupportsSync
-			mgr.minorVersion = minorVersionSupportsSync
-			mgr.patchVersion = patchVersionSupportsSync - 1
+			err := mgr.parseConmonVersion("2.0.18")
+			Expect(err).To(BeNil())
 
 			// When
 			mgr.initializeSupportsSync()
@@ -176,9 +151,8 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should be true when patch version greater", func() {
 			// Given
-			mgr.majorVersion = majorVersionSupportsSync
-			mgr.minorVersion = minorVersionSupportsSync
-			mgr.patchVersion = patchVersionSupportsSync + 1
+			err := mgr.parseConmonVersion("2.0.20")
+			Expect(err).To(BeNil())
 
 			// When
 			mgr.initializeSupportsSync()
@@ -188,9 +162,8 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should be true when version equal", func() {
 			// Given
-			mgr.majorVersion = majorVersionSupportsSync
-			mgr.minorVersion = minorVersionSupportsSync
-			mgr.patchVersion = patchVersionSupportsSync
+			err := mgr.parseConmonVersion("2.0.19")
+			Expect(err).To(BeNil())
 
 			// When
 			mgr.initializeSupportsSync()
