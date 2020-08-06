@@ -33,6 +33,7 @@ COVERAGE_PATH := ${BUILD_PATH}/coverage
 JUNIT_PATH := ${BUILD_PATH}/junit
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
+GINKGO_FOCUS ?= ""
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 FISHINSTALLDIR=${PREFIX}/share/fish/completions
@@ -318,6 +319,7 @@ testunit: ${GINKGO}
 		--coverprofile coverprofile \
 		--tags "test $(BUILDTAGS)" \
 		$(GO_MOD_VENDOR) \
+		--focus $(GINKGO_FOCUS) \
 		--succinct
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
 	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
