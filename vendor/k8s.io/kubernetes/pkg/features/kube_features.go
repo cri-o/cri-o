@@ -435,6 +435,12 @@ const (
 	// Expects vSphere CSI Driver to be installed and configured on all nodes.
 	CSIMigrationvSphereComplete featuregate.Feature = "CSIMigrationvSphereComplete"
 
+	// owner: @huffmanca
+	// alpha: v1.19
+	//
+	// Determines if a CSI Driver supports applying fsGroup.
+	CSIVolumeFSGroupPolicy featuregate.Feature = "CSIVolumeFSGroupPolicy"
+
 	// owner: @gnufied
 	// alpha: v1.18
 	// Allows user to configure volume permission change policy for fsGroups when mounting
@@ -633,6 +639,12 @@ const (
 	//
 	// Allows kube-proxy to create DSR loadbalancers for Windows
 	WinDSR featuregate.Feature = "WinDSR"
+
+	// owner: @RenaudWasTaken @dashpole
+	// alpha: v1.19
+	//
+	// Disables Accelerator Metrics Collected by Kubelet
+	DisableAcceleratorUsageMetrics featuregate.Feature = "DisableAcceleratorUsageMetrics"
 )
 
 func init() {
@@ -697,6 +709,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	CSIInlineVolume:                {Default: true, PreRelease: featuregate.Beta},
 	CSIStorageCapacity:             {Default: false, PreRelease: featuregate.Alpha},
 	GenericEphemeralVolume:         {Default: false, PreRelease: featuregate.Alpha},
+	CSIVolumeFSGroupPolicy:         {Default: false, PreRelease: featuregate.Alpha},
 	RuntimeClass:                   {Default: true, PreRelease: featuregate.Beta},
 	NodeLease:                      {Default: true, PreRelease: featuregate.GA, LockToDefault: true},
 	SCTPSupport:                    {Default: true, PreRelease: featuregate.Beta},
@@ -730,6 +743,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	SetHostnameAsFQDN:                              {Default: false, PreRelease: featuregate.Alpha},
 	WinOverlay:                                     {Default: false, PreRelease: featuregate.Alpha},
 	WinDSR:                                         {Default: false, PreRelease: featuregate.Alpha},
+	DisableAcceleratorUsageMetrics:                 {Default: false, PreRelease: featuregate.Alpha},
 
 	// inherited features from generic apiserver, relisted here to get a conflict if it is changed
 	// unintentionally on either side:
