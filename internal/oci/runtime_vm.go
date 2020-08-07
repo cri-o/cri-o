@@ -338,6 +338,14 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	}
 	defer execIO.Close()
 
+	// chan to notify that can call runtime's CloseIO API
+	closeIOChan := make(chan bool)
+	defer func() {
+		if closeIOChan != nil {
+			close(closeIOChan)
+		}
+	}()
+
 	execIO.Attach(cio.AttachOptions{
 		Stdin:     stdin,
 		Stdout:    stdout,
@@ -345,6 +353,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 		Tty:       tty,
 		StdinOnce: true,
 		CloseStdin: func() error {
+			<-closeIOChan
 			return r.closeIO(ctx, c.ID(), execID)
 		},
 	})
@@ -384,6 +393,10 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	if err := r.start(ctx, c.ID(), execID); err != nil {
 		return -1, err
 	}
+
+	// close closeIOChan to notify execIO exec has started.
+	close(closeIOChan)
+	closeIOChan = nil
 
 	// Initialize terminal resizing if necessary
 	if resize != nil {
