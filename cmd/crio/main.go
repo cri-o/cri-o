@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	gruntime "runtime"
 	"sort"
 	"strings"
 	"time"
@@ -45,7 +46,7 @@ func writeCrioGoroutineStacks() {
 
 func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
 	sig := make(chan os.Signal, 2048)
-	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGPIPE, signals.Hup)
+	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGUSR2, unix.SIGPIPE, signals.Hup)
 	go func() {
 		for s := range sig {
 			logrus.WithFields(logrus.Fields{
@@ -54,6 +55,9 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			switch s {
 			case unix.SIGUSR1:
 				writeCrioGoroutineStacks()
+				continue
+			case unix.SIGUSR2:
+				gruntime.GC()
 				continue
 			case unix.SIGPIPE:
 				continue
