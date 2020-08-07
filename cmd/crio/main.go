@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	goflag "flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -32,7 +31,7 @@ import (
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func writeCrioGoroutineStacks() {
@@ -97,18 +96,8 @@ scope of the CRI.
 6. Resource isolation as required by the CRI.`
 
 func main() {
-	// Unfortunately, there's no way to ask klog to not write to tmp without this kludge.
-	// Until something like https://github.com/kubernetes/klog/pull/100 is merged, this will have to do.
-	klogFlagSet := goflag.NewFlagSet("klog", goflag.ExitOnError)
-	klog.InitFlags(klogFlagSet)
-
-	if err := klogFlagSet.Set("logtostderr", "false"); err != nil {
-		fmt.Fprintf(os.Stderr, "unable to set logtostderr for klog: %v\n", err)
-	}
-	if err := klogFlagSet.Set("alsologtostderr", "false"); err != nil {
-		fmt.Fprintf(os.Stderr, "unable to set alsologtostderr for klog: %v\n", err)
-	}
-
+	// Configure klog to not write any output
+	klog.LogToStderr(true)
 	klog.SetOutput(ioutil.Discard)
 
 	// This must be done before reexec.Init()
