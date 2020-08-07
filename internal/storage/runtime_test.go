@@ -409,6 +409,8 @@ var _ = t.Describe("Runtime", func() {
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Layer("").Return(nil, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(nil),
 			)
@@ -452,6 +454,8 @@ var _ = t.Describe("Runtime", func() {
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Layer("").Return(nil, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(t.TestError),
 			)
@@ -471,6 +475,8 @@ var _ = t.Describe("Runtime", func() {
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Layer("").Return(nil, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(nil),
@@ -520,6 +526,8 @@ var _ = t.Describe("Runtime", func() {
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Layer("").Return(nil, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(t.TestError),

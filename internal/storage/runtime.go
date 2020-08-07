@@ -356,6 +356,33 @@ func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, pod
 	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, "", imageID, containerName, containerID, metadataName, "", "", attempt, idMappingsOptions, labelOptions, false, privileged)
 }
 
+func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
+	if layerID == "" {
+		return
+	}
+	store := r.storageImageServer.GetStore()
+
+	image, err := store.Image(imageID)
+	if err != nil {
+		logrus.Debugf("failed to retrieve image %q: %v", imageID, err)
+		return
+	}
+
+	// ignore if it is the top layer.  It was pulled already with the specified
+	// mapping.  In this case we don't delete it.
+	if image.TopLayer == layerID {
+		return
+	}
+	for _, ml := range image.MappedTopLayers {
+		if ml == layerID {
+			// if the layer is used by other containers, DeleteLayer
+			// will fail.
+			store.DeleteLayer(layerID) // nolint: errcheck
+			return
+		}
+	}
+}
+
 func (r *runtimeService) RemovePodSandbox(idOrName string) error {
 	container, err := r.storageImageServer.GetStore().Container(idOrName)
 	if err != nil {
@@ -364,10 +391,17 @@ func (r *runtimeService) RemovePodSandbox(idOrName string) error {
 		}
 		return err
 	}
+	layer, err := r.storageImageServer.GetStore().Layer(container.LayerID)
+	if err != nil {
+		logrus.Debugf("failed to retrieve layer %q: %v", container.LayerID, err)
+	}
 	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
 	if err != nil {
 		logrus.Debugf("failed to delete pod sandbox %q: %v", container.ID, err)
 		return err
+	}
+	if layer != nil {
+		r.deleteLayerIfMapped(container.ImageID, layer.Parent)
 	}
 	return nil
 }
@@ -380,10 +414,17 @@ func (r *runtimeService) DeleteContainer(idOrName string) error {
 	if err != nil {
 		return err
 	}
+	layer, err := r.storageImageServer.GetStore().Layer(container.LayerID)
+	if err != nil {
+		logrus.Debugf("failed to retrieve layer %q: %v", container.LayerID, err)
+	}
 	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
 	if err != nil {
 		logrus.Debugf("failed to delete container %q: %v", container.ID, err)
 		return err
+	}
+	if layer != nil {
+		r.deleteLayerIfMapped(container.ImageID, layer.Parent)
 	}
 	return nil
 }
