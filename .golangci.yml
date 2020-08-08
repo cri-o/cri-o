@@ -55,6 +55,7 @@ linters:
     - whitespace
     # - exhaustive
     # - funlen
+    # - gci
     # - gochecknoglobals
     # - gocognit
     # - godot
@@ -65,6 +66,7 @@ linters:
     # - gosec
     # - lll
     # - nestif
+    # - nlreturn
     # - noctx
     # - testpackage
     # - wsl
