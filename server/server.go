@@ -74,8 +74,9 @@ type Server struct {
 // pullArguments are used to identify a pullOperation via an input image name and
 // possibly specified credentials.
 type pullArguments struct {
-	image       string
-	credentials types.DockerAuthConfig
+	image         string
+	sandboxCgroup string
+	credentials   types.DockerAuthConfig
 }
 
 // pullOperation is used to synchronize parallel pull operations via the
