@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 
-	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/v2/pkg/rootless"
 	cs "github.com/containers/storage"
@@ -652,7 +651,7 @@ var _ = t.Describe("Image", func() {
 			// Given
 			// When
 			res, err := sut.PullImage(&types.SystemContext{}, "",
-				&copy.Options{})
+				&storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -664,7 +663,7 @@ var _ = t.Describe("Image", func() {
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "/not-existing",
-			}, "", &copy.Options{})
+			}, "", &storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -679,7 +678,7 @@ var _ = t.Describe("Image", func() {
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "../../test/policy.json",
-			}, imageName, &copy.Options{})
+			}, imageName, &storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -694,7 +693,7 @@ var _ = t.Describe("Image", func() {
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "../../test/policy.json",
-			}, imageName, &copy.Options{})
+			}, imageName, &storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())

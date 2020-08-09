@@ -1,12 +1,16 @@
 package storage
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker/reference"
@@ -16,7 +20,10 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/v2/pkg/rootless"
+	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/reexec"
+	json "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -68,15 +75,29 @@ type imageCacheItem struct {
 
 type imageCache map[string]imageCacheItem
 
+type imageLookupService struct {
+	DefaultTransport            string
+	InsecureRegistryCIDRs       []*net.IPNet
+	IndexConfigs                map[string]*indexInfo
+	UnqualifiedSearchRegistries []string
+}
+
 type imageService struct {
-	store                       storage.Store
-	defaultTransport            string
-	insecureRegistryCIDRs       []*net.IPNet
-	indexConfigs                map[string]*indexInfo
-	unqualifiedSearchRegistries []string
-	imageCache                  imageCache
-	imageCacheLock              sync.Mutex
-	ctx                         context.Context
+	lookup         *imageLookupService
+	store          storage.Store
+	imageCache     imageCache
+	imageCacheLock sync.Mutex
+	ctx            context.Context
+}
+
+// subset of copy.Options that is supported by reexec.
+type ImageCopyOptions struct {
+	SourceCtx        *types.SystemContext
+	DestinationCtx   *types.SystemContext
+	OciDecryptConfig *encconfig.DecryptConfig
+	ProgressInterval time.Duration
+	Progress         chan types.ProgressProperties `json:"-"`
+	UseNewProcess    bool
 }
 
 // ImageServer wraps up various CRI-related activities into a reusable
@@ -90,7 +111,7 @@ type ImageServer interface {
 	// for further analysis. Call Close() on the resulting image.
 	PrepareImage(systemContext *types.SystemContext, imageName string) (types.ImageCloser, error)
 	// PullImage imports an image from the specified location.
-	PullImage(systemContext *types.SystemContext, imageName string, options *copy.Options) (types.ImageReference, error)
+	PullImage(systemContext *types.SystemContext, imageName string, options *ImageCopyOptions) (types.ImageReference, error)
 	// UntagImage removes a name from the specified image, and if it was
 	// the only name the image had, removes the image.
 	UntagImage(systemContext *types.SystemContext, imageName string) error
@@ -325,17 +346,17 @@ func imageSize(img types.Image) *uint64 {
 }
 
 // remoteImageReference creates an image reference from an image string
-func (svc *imageService) remoteImageReference(imageName string) (types.ImageReference, error) {
+func (svc *imageLookupService) remoteImageReference(imageName string) (types.ImageReference, error) {
 	if imageName == "" {
 		return nil, storage.ErrNotAnImage
 	}
 
 	srcRef, err := alltransports.ParseImageName(imageName)
 	if err != nil {
-		if svc.defaultTransport == "" {
+		if svc.DefaultTransport == "" {
 			return nil, err
 		}
-		srcRef2, err2 := alltransports.ParseImageName(svc.defaultTransport + imageName)
+		srcRef2, err2 := alltransports.ParseImageName(svc.DefaultTransport + imageName)
 		if err2 != nil {
 			return nil, err
 		}
@@ -345,7 +366,7 @@ func (svc *imageService) remoteImageReference(imageName string) (types.ImageRefe
 }
 
 // prepareReference creates an image reference from an image string and returns an updated types.SystemContext (never nil) for the image
-func (svc *imageService) prepareReference(inputSystemContext *types.SystemContext, imageName string) (*types.SystemContext, types.ImageReference, error) {
+func (svc *imageLookupService) prepareReference(inputSystemContext *types.SystemContext, imageName string) (*types.SystemContext, types.ImageReference, error) {
 	srcRef, err := svc.remoteImageReference(imageName)
 	if err != nil {
 		return nil, nil, err
@@ -365,7 +386,7 @@ func (svc *imageService) prepareReference(inputSystemContext *types.SystemContex
 }
 
 func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, imageName string) (types.ImageCloser, error) {
-	systemContext, srcRef, err := svc.prepareReference(inputSystemContext, imageName)
+	systemContext, srcRef, err := svc.lookup.prepareReference(inputSystemContext, imageName)
 	if err != nil {
 		return nil, err
 	}
@@ -373,36 +394,212 @@ func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, i
 	return srcRef.NewImage(svc.ctx, systemContext)
 }
 
-func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, inputOptions *copy.Options) (types.ImageReference, error) {
-	policy, err := signature.DefaultPolicy(systemContext)
+func init() {
+	reexec.Register("crio-copy-image", copyImageChild)
+}
+
+type copyImageArgs struct {
+	Lookup        *imageLookupService
+	ImageName     string
+	SystemContext *types.SystemContext
+	Options       *ImageCopyOptions
+
+	StoreOptions storage.StoreOptions
+}
+
+func copyImageChild() {
+	var args copyImageArgs
+
+	if err := json.NewDecoder(os.NewFile(0, "stdin")).Decode(&args); err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
+	}
+
+	store, err := storage.GetStore(args.StoreOptions)
 	if err != nil {
-		return nil, err
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
+	}
+
+	policy, err := signature.DefaultPolicy(args.SystemContext)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
 	}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
-		return nil, err
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
 	}
 
+	srcSystemContext, srcRef, destRef, err := args.Lookup.getReferences(args.Options.SourceCtx, store, args.ImageName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
+	}
+
+	progress := make(chan types.ProgressProperties)
+	go func() {
+		stream := json.NewStream(json.ConfigDefault, os.Stdout, 4096)
+		for p := range progress {
+			stream.WriteVal(p)
+			stream.WriteRaw("\n")
+			if err := stream.Flush(); err != nil {
+				fmt.Fprintf(os.Stderr, "%v", err)
+				os.Exit(1)
+			}
+		}
+	}()
+
+	options := toCopyOptions(args.Options, progress)
+	options.SourceCtx = srcSystemContext
+	if _, err := copy.Image(context.Background(), policyContext, destRef, srcRef, options); err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func toCopyOptions(options *ImageCopyOptions, progress chan types.ProgressProperties) *copy.Options {
+	return &copy.Options{
+		SourceCtx:        options.SourceCtx,
+		DestinationCtx:   options.DestinationCtx,
+		OciDecryptConfig: options.OciDecryptConfig,
+		ProgressInterval: options.ProgressInterval,
+		Progress:         progress,
+	}
+}
+
+func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName string, options *ImageCopyOptions) error {
+	progress := options.Progress
+	dest := imageName
+	// the first argument DEST is not used by the re-execed command but it is useful for debugging as it
+	// shows in the ps output.
+	cmd := reexec.CommandContext(svc.ctx, "crio-copy-image", dest)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return errors.Wrap(err, "error getting stdout pipe for image copy process")
+	}
+	defer stdout.Close()
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return errors.Wrap(err, "error getting stderr pipe for image copy process")
+	}
+	defer stderr.Close()
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return errors.Wrap(err, "error getting stdin pipe for image copy process")
+	}
+
+	if _, err := alltransports.ParseImageName(imageName); err != nil {
+		if svc.lookup.DefaultTransport == "" {
+			return err
+		}
+		imageName = svc.lookup.DefaultTransport + imageName
+	}
+
+	stdinArguments := copyImageArgs{
+		Lookup:        svc.lookup,
+		SystemContext: systemContext,
+		Options:       options,
+		ImageName:     imageName,
+		StoreOptions: storage.StoreOptions{
+			RunRoot:            svc.store.RunRoot(),
+			GraphRoot:          svc.store.GraphRoot(),
+			GraphDriverName:    svc.store.GraphDriverName(),
+			GraphDriverOptions: svc.store.GraphOptions(),
+			UIDMap:             svc.store.UIDMap(),
+			GIDMap:             svc.store.GIDMap(),
+		},
+	}
+
+	stdinArguments.Options.Progress = nil
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	if err := json.NewEncoder(stdin).Encode(&stdinArguments); err != nil {
+		stdin.Close()
+		return errors.Wrap(err, "json encode to pipe failed")
+	}
+	stdin.Close()
+
+	go func() {
+		decoder := json.NewDecoder(bufio.NewReader(stdout))
+		if progress != nil {
+			defer close(progress)
+		}
+		for decoder.More() {
+			var p types.ProgressProperties
+			if err := decoder.Decode(&p); err != nil {
+				break
+			}
+
+			if progress != nil {
+				progress <- p
+			}
+		}
+	}()
+	errOutput, _ := ioutil.ReadAll(stderr)
+	if err := cmd.Wait(); err != nil {
+		if len(errOutput) > 0 {
+			return errors.New(string(errOutput))
+		}
+		return err
+	}
+	return nil
+}
+
+func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, inputOptions *ImageCopyOptions) (types.ImageReference, error) {
 	options := *inputOptions // A shallow copy
-	srcSystemContext, srcRef, err := svc.prepareReference(options.SourceCtx, imageName)
+
+	srcSystemContext, srcRef, destRef, err := svc.lookup.getReferences(options.SourceCtx, svc.store, imageName)
 	if err != nil {
 		return nil, err
 	}
 	options.SourceCtx = srcSystemContext
 
+	if inputOptions.UseNewProcess {
+		if err := svc.copyImage(systemContext, imageName, &options); err != nil {
+			return nil, err
+		}
+	} else {
+		policy, err := signature.DefaultPolicy(systemContext)
+		if err != nil {
+			return nil, err
+		}
+		policyContext, err := signature.NewPolicyContext(policy)
+		if err != nil {
+			return nil, err
+		}
+
+		copyOptions := toCopyOptions(&options, inputOptions.Progress)
+
+		if _, err = copy.Image(svc.ctx, policyContext, destRef, srcRef, copyOptions); err != nil {
+			return nil, err
+		}
+	}
+	return destRef, nil
+}
+
+func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName string) (*types.SystemContext, types.ImageReference, types.ImageReference, error) {
+	srcSystemContext, srcRef, err := svc.prepareReference(inputSystemContext, imageName)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	dest := imageName
 	if srcRef.DockerReference() != nil {
 		dest = srcRef.DockerReference().String()
 	}
-	destRef, err := istorage.Transport.ParseStoreReference(svc.store, dest)
+
+	destRef, err := istorage.Transport.ParseStoreReference(store, dest)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-	_, err = copy.Image(svc.ctx, policyContext, destRef, srcRef, &options)
-	if err != nil {
-		return nil, err
-	}
-	return destRef, nil
+	return srcSystemContext, srcRef, destRef, nil
 }
 
 func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID string) error {
@@ -416,7 +613,7 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID
 	}
 
 	if !strings.HasPrefix(img.ID, nameOrID) {
-		namedRef, err := svc.remoteImageReference(nameOrID)
+		namedRef, err := svc.lookup.remoteImageReference(nameOrID)
 		if err != nil {
 			return err
 		}
@@ -445,8 +642,8 @@ func (svc *imageService) GetStore() storage.Store {
 	return svc.store
 }
 
-func (svc *imageService) isSecureIndex(indexName string) bool {
-	if index, ok := svc.indexConfigs[indexName]; ok {
+func (svc *imageLookupService) isSecureIndex(indexName string) bool {
+	if index, ok := svc.IndexConfigs[indexName]; ok {
 		return index.secure
 	}
 
@@ -470,7 +667,7 @@ func (svc *imageService) isSecureIndex(indexName string) bool {
 
 	// Try CIDR notation only if addrs has any elements, i.e. if `host`'s IP could be determined.
 	for _, addr := range addrs {
-		for _, ipnet := range svc.insecureRegistryCIDRs {
+		for _, ipnet := range svc.InsecureRegistryCIDRs {
 			// check if the addr falls in the subnet
 			if ipnet.Contains(addr) {
 				return false
@@ -547,20 +744,20 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		}
 		return imageNamesWithDigestOrTag([]string{imageName})
 	}
-	unqualifiedSearchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
+	UnqualifiedSearchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
 	if err != nil {
 		return nil, err
 	}
 	// we got an unqualified image here, we can't go ahead w/o registries configured
 	// properly.
-	if len(svc.unqualifiedSearchRegistries) == 0 && len(unqualifiedSearchRegistries) == 0 {
+	if len(svc.lookup.UnqualifiedSearchRegistries) == 0 && len(UnqualifiedSearchRegistries) == 0 {
 		return nil, ErrNoRegistriesConfigured
 	}
 	// this means we got an image in the form of "busybox"
 	// we need to use additional registries...
 	// normalize the unqualified image to be domain/repo/image...
 	images := []string{}
-	for _, r := range append(svc.unqualifiedSearchRegistries, unqualifiedSearchRegistries...) {
+	for _, r := range append(svc.lookup.UnqualifiedSearchRegistries, UnqualifiedSearchRegistries...) {
 		rem := remainder
 		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
 			rem = "library/" + rem
@@ -582,10 +779,10 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 }
 
 // GetImageService returns an ImageServer that uses the passed-in store, and
-// which will prepend the passed-in defaultTransport value to an image name if
+// which will prepend the passed-in DefaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport string, insecureRegistries, registries []string) (ImageServer, error) {
+func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, DefaultTransport string, insecureRegistries, registries []string) (ImageServer, error) {
 	if store == nil {
 		var err error
 		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
@@ -597,14 +794,16 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 			return nil, err
 		}
 	}
-
+	ils := &imageLookupService{
+		DefaultTransport:      DefaultTransport,
+		IndexConfigs:          make(map[string]*indexInfo),
+		InsecureRegistryCIDRs: make([]*net.IPNet, 0),
+	}
 	is := &imageService{
-		store:                 store,
-		defaultTransport:      defaultTransport,
-		indexConfigs:          make(map[string]*indexInfo),
-		insecureRegistryCIDRs: make([]*net.IPNet, 0),
-		imageCache:            make(map[string]imageCacheItem),
-		ctx:                   ctx,
+		lookup:     ils,
+		store:      store,
+		imageCache: make(map[string]imageCacheItem),
+		ctx:        ctx,
 	}
 
 	if len(registries) != 0 {
@@ -618,13 +817,13 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 			seenRegistries[r] = true
 		}
 
-		is.unqualifiedSearchRegistries = cleanRegistries
+		is.lookup.UnqualifiedSearchRegistries = cleanRegistries
 	} else {
 		systemRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(sc)
 		if err != nil {
 			return nil, err
 		}
-		is.unqualifiedSearchRegistries = systemRegistries
+		is.lookup.UnqualifiedSearchRegistries = systemRegistries
 	}
 
 	insecureRegistries = append(insecureRegistries, "127.0.0.0/8")
@@ -634,10 +833,10 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 		_, ipnet, err := net.ParseCIDR(r)
 		if err == nil {
 			// Valid CIDR.
-			is.insecureRegistryCIDRs = append(is.insecureRegistryCIDRs, ipnet)
+			is.lookup.InsecureRegistryCIDRs = append(is.lookup.InsecureRegistryCIDRs, ipnet)
 		} else {
 			// Assume `host:port` if not CIDR.
-			is.indexConfigs[r] = &indexInfo{
+			is.lookup.IndexConfigs[r] = &indexInfo{
 				name:   r,
 				secure: false,
 			}

@@ -3,7 +3,6 @@ package storage_test
 import (
 	"context"
 
-	"github.com/containers/image/v5/copy"
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
@@ -849,7 +848,7 @@ var _ = t.Describe("Runtime", func() {
 		var info storage.ContainerInfo
 		var err error
 
-		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *copy.Options) {
+		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *storage.ImageCopyOptions) {
 			mockParseStoreReference(storeMock, "pauseimagename")
 			pulledRef, err := istorage.Transport.ParseStoreReference(storeMock, "pauseimagename")
 			Expect(err).To(BeNil())
@@ -886,7 +885,7 @@ var _ = t.Describe("Runtime", func() {
 			Expect(sut).NotTo(BeNil())
 
 			// Given
-			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{
+			mockCreatePodSandboxExpectingCopyOptions(&storage.ImageCopyOptions{
 				SourceCtx:      &types.SystemContext{},
 				DestinationCtx: &types.SystemContext{},
 			})
@@ -906,7 +905,7 @@ var _ = t.Describe("Runtime", func() {
 			Expect(sut).NotTo(BeNil())
 
 			// Given
-			mockCreatePodSandboxExpectingCopyOptions(&copy.Options{
+			mockCreatePodSandboxExpectingCopyOptions(&storage.ImageCopyOptions{
 				SourceCtx:      &types.SystemContext{AuthFilePath: "/var/non-default/credentials.json"},
 				DestinationCtx: &types.SystemContext{},
 			})

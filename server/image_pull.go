@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
 	libpodImage "github.com/containers/libpod/v2/libpod/image"
 	"github.com/cri-o/cri-o/internal/log"
@@ -208,12 +207,13 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				}
 			}
 		}()
-		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &copy.Options{
+		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &storage.ImageCopyOptions{
 			SourceCtx:        &sourceCtx,
 			DestinationCtx:   s.config.SystemContext,
 			OciDecryptConfig: decryptConfig,
 			ProgressInterval: time.Second,
 			Progress:         progress,
+			UseNewProcess:    false,
 		})
 		if err != nil {
 			log.Debugf(ctx, "error pulling image %s: %v", img, err)
