@@ -60,7 +60,7 @@ function teardown() {
     [ "$status" -eq 0 ]
     ctr1_stats_JSON="$output"
 
-    run crictl stats -o json "$crt2_id"
+    run crictl stats -o json "$ctr2_id"
     echo "$output"
     [ "$status" -eq 0 ]
     ctr2_stats_JSON="$output"
