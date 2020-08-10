@@ -16,6 +16,7 @@ function teardown() {
     # given
     run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
     [ "$status" -eq 0 ]
+    id="$output"
 
     # when
     run crictl stats -o json
@@ -23,21 +24,11 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # then
-    JSON="$output"
-    run echo $JSON | jq -e '.stats[0].attributes.id != ""'
-    [ "$status" -eq 0 ]
-
-    run echo $JSON | jq -e '.stats[0].cpu.timestamp > 0'
-    [ "$status" -eq 0 ]
-
-    run echo $JSON | jq -e '.stats[0].cpu.usageCoreNanoSeconds.value > 0'
-    [ "$status" -eq 0 ]
-
-    run echo $JSON | jq -e '.stats[0].memory.timestamp > 0'
-    [ "$status" -eq 0 ]
-
-    run echo $JSON | jq -e '.stats[0].memory.workingSetBytes.value > 0'
-    [ "$status" -eq 0 ]
+    jq -e '.stats[0].attributes.id = "'"$id"'"' <<< "$output"
+    jq -e '.stats[0].cpu.timestamp > 0' <<< "$output"
+    jq -e '.stats[0].cpu.usageCoreNanoSeconds.value > 0' <<< "$output"
+    jq -e '.stats[0].memory.timestamp > 0' <<< "$output"
+    jq -e '.stats[0].memory.workingSetBytes.value > 0' <<< "$output"
 }
 
 @test "container stats" {
