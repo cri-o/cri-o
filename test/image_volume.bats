@@ -11,7 +11,7 @@ function teardown() {
 }
 
 @test "image volume ignore" {
-	CONTAINER_IMAGE_VOLUMES=ignore start_crio
+	CONTAINER_IMAGE_VOLUMES="ignore" start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -41,7 +41,7 @@ function teardown() {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
-	CONTAINER_IMAGE_VOLUMES=bind start_crio
+	CONTAINER_IMAGE_VOLUMES="bind" start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -71,7 +71,7 @@ function teardown() {
 	if test -n "$UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
-	IMAGE_VOLUMES=mkdir start_crio
+	CONTAINER_IMAGE_VOLUMES="mkdir" start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -99,7 +99,4 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
 }
