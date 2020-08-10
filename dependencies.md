@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 10 Aug 2020 15:11:13 UTC for commit [0abf75a][0]._
+_Generated on Mon, 10 Aug 2020 15:47:06 UTC for commit [66c5b77][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0abf75ae06e98c586e45828f7080c99d49177c78
+[0]: https://github.com/cri-o/cri-o/commit/66c5b77a33e7c8e529007787f957e26d0771bac1
 
 ## Outdated Dependencies
 
@@ -18,13 +18,14 @@ _Generated on Mon, 10 Aug 2020 15:11:13 UTC for commit [0abf75a][0]._
 | github.com/golang/mock               | v1.4.3                             | v1.4.4                             | true   | true             |
 | github.com/opencontainers/selinux    | v1.5.2                             | v1.6.0                             | true   | true             |
 | github.com/seccomp/containers-golang | v0.4.1                             | v0.6.0                             | true   | true             |
-| golang.org/x/sys                     | v0.0.0-20200625212154-ddb9806d33ae | v0.0.0-20200808120158-1030fc2bf1d9 | true   | true             |
+| golang.org/x/sys                     | v0.0.0-20200625212154-ddb9806d33ae | v0.0.0-20200810151505-1b9f1253b3ed | true   | true             |
 | google.golang.org/grpc               | v1.30.0                            | v1.31.0                            | true   | true             |
 | k8s.io/api                           | v0.0.0-20200804142048-1afc53514032 | v0.0.0-20200810053020-7740b8124c2f | true   | true             |
 | k8s.io/apimachinery                  | v0.0.0-20200804142048-1afc53514032 | v0.0.0-20200810053020-7740b8124c2f | true   | true             |
 | k8s.io/client-go                     | v0.0.0-20200804142048-1afc53514032 | v0.0.0-20200810053020-7740b8124c2f | true   | true             |
 | k8s.io/cri-api                       | v0.0.0-20200804142048-1afc53514032 | v0.0.0-20200810053020-7740b8124c2f | true   | true             |
 | k8s.io/kubernetes                    | v1.19.0-rc.4                       |                                    | true   | true             |
+| k8s.io/release                       | v0.3.4                             | v0.4.0                             | true   | true             |
 
 ## All Dependencies
 
@@ -76,7 +77,7 @@ _Generated on Mon, 10 Aug 2020 15:11:13 UTC for commit [0abf75a][0]._
 | github.com/armon/consul-api                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                       | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20200428143746-21a406dcc535 | false  | true             |
-| github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20200507191422-d30d7b9ece63 | false  | true             |
+| github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20200810150920-a32d7af194d1 | false  | true             |
 | github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.34.0                            | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.23.3                                           | v0.23.7                            | false  | true             |
 | github.com/beorn7/perks                                 | v1.0.1                                            |                                    | false  | true             |
@@ -499,11 +500,11 @@ _Generated on Mon, 10 Aug 2020 15:11:13 UTC for commit [0abf75a][0]._
 | golang.org/x/net                                        | v0.0.0-20200707034311-ab3426394381                |                                    | true   | true             |
 | golang.org/x/oauth2                                     | v0.0.0-20200107190931-bf48bf16ab8d                |                                    | false  | true             |
 | golang.org/x/sync                                       | v0.0.0-20200625203802-6e8e738ad208                |                                    | true   | true             |
-| golang.org/x/sys                                        | v0.0.0-20200625212154-ddb9806d33ae                | v0.0.0-20200808120158-1030fc2bf1d9 | true   | true             |
+| golang.org/x/sys                                        | v0.0.0-20200625212154-ddb9806d33ae                | v0.0.0-20200810151505-1b9f1253b3ed | true   | true             |
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.3                                            |                                    | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200630173020-3af7569d3a1e | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200809012840-6f4f008689da | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200810151852-978e77c45515 | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                | v0.0.0-20200804184101-5ec99f83aff1 | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.7.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200603212716-16abd5ac5bc7 | false  | true             |
@@ -561,7 +562,7 @@ _Generated on Mon, 10 Aug 2020 15:11:13 UTC for commit [0abf75a][0]._
 | k8s.io/kubernetes                                       | v1.19.0-rc.4                                      |                                    | true   | true             |
 | k8s.io/legacy-cloud-providers                           | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200810053020-7740b8124c2f | false  | true             |
 | k8s.io/metrics                                          | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200810053020-7740b8124c2f | false  | true             |
-| k8s.io/release                                          | v0.3.4                                            |                                    | true   | true             |
+| k8s.io/release                                          | v0.3.4                                            | v0.4.0                             | true   | true             |
 | k8s.io/sample-apiserver                                 | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200810053020-7740b8124c2f | false  | true             |
 | k8s.io/system-validators                                | v1.1.2                                            |                                    | false  | true             |
 | k8s.io/utils                                            | v0.0.0-20200731180307-f00132d28269                |                                    | true   | true             |
