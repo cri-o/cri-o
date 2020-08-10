@@ -766,7 +766,7 @@ function wait_until_exit() {
 	[[ "$output" != "" ]]
 	[[ "$output" == *"$ctr1_id"* ]]
 	[[ "$output" == *"$ctr2_id"* ]]
-	[[ "$output" != "$ctr3_id" ]]
+	[[ "$output" != *"$ctr3_id"* ]]
 	run crictl ps --label "group=test" --quiet --all
 	echo "$output"
 	[ "$status" -eq 0 ]

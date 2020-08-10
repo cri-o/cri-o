@@ -104,7 +104,7 @@ function teardown() {
 	[[ "$output" != "" ]]
 	[[ "$output" == *"$pod1_id"* ]]
 	[[ "$output" == *"$pod2_id"* ]]
-	[[ "$output" != "$pod3_id" ]]
+	[[ "$output" != *"$pod3_id"* ]]
 	run crictl pods --label "group=test" --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
