@@ -156,8 +156,8 @@ function wait_until_exit() {
 @test "additional devices permissions" {
 	# We need a ubiquitously configured device that isn't in the
 	# OCI spec default set.
-	local readonly device="/dev/loop-control"
-	local readonly timeout=30
+	declare -r device="/dev/loop-control"
+	declare -r timeout=30
 
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
