@@ -42,17 +42,17 @@ function teardown() {
 
 @test "container stats" {
     # given
-    container2config=$(cat "$TESTDATA"/container_redis.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["name"] = ["podsandbox1-redis2"];obj["metadata"]["name"] = "podsandbox1-redis2"; json.dump(obj, sys.stdout)')
-    echo "$container2config" > "$TESTDIR"/container_redis2.json
+    container2config=$(cat "$TESTDATA"/container_config_sleep.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["name"] = ["container10000"];obj["metadata"]["name"] = "container10000"; json.dump(obj, sys.stdout)')
+    echo "$container2config" > "$TESTDIR"/container_config_sleep2.json
     run crictl runp "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
-    run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+    run crictl create "$pod_id" "$TESTDATA"/container_config_sleep.json "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     ctr1_id="$output"
-    run crictl create "$pod_id" "$TESTDIR"/container_redis2.json "$TESTDATA"/sandbox_config.json
+    run crictl create "$pod_id" "$TESTDIR"/container_config_sleep2.json "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     ctr2_id="$output"
@@ -64,23 +64,14 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # when
-    run crictl stats -o json "$ctr1_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    ctr1_stats_JSON="$output"
+    ctr1_stats_JSON=$(crictl stats -o json --id "$ctr1_id")
+    echo $ctr1_stats_JSON
+    ctr2_stats_JSON=$(crictl stats -o json --id "$ctr2_id")
+    echo $ctr2_stats_JSON
 
-    run crictl stats -o json "$crt2_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    ctr2_stats_JSON="$output"
+    ctr1_memory_bytes=$(echo $ctr1_stats_JSON | jq -e '.stats[0].memory.workingSetBytes.value')
+    ctr2_memory_bytes=$(echo $ctr2_stats_JSON | jq -e '.stats[0].memory.workingSetBytes.value')
 
-    run echo $ctr1_stats_JSON | jq -e '.stats[0].memory.workingSetBytes.value'
-    [ "$status" -eq 0 ]
-    ctr1_memory_bytes="$output"
-    run echo $ctr2_stats_JSON | jq -e '.stats[0].memory.workingSetBytes.value'
-    [ "$status" -eq 0 ]
-    ctr2_memory_bytes="$output"
-
-    run echo $ctr1_memory_bytes != $ctr2_memory_bytes
-    [ "$status" -eq 0 ]
+    # then
+    [[ $ctr1_memory_bytes != $ctr2_memory_bytes ]]
 }
