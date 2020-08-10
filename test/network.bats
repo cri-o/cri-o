@@ -28,15 +28,15 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" sh -c "hostname"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "crictl_host" ]]
+	[[ "$output" == *"crictl_host"* ]]
 	run crictl exec --sync "$ctr_id" sh -c "echo \$HOSTNAME"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "crictl_host" ]]
+	[[ "$output" == *"crictl_host"* ]]
 	run crictl exec --sync "$ctr_id" sh -c "cat /etc/hostname"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "crictl_host" ]]
+	[[ "$output" == *"crictl_host"* ]]
 }
 
 @test "ensure correct hostname for hostnetwork:true" {
@@ -58,15 +58,15 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" sh -c "hostname"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "$HOSTNAME" ]]
+	[[ "$output" == *"$HOSTNAME"* ]]
 	run crictl exec --sync "$ctr_id" sh -c "echo \$HOSTNAME"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "$HOSTNAME" ]]
+	[[ "$output" == *"$HOSTNAME"* ]]
 	run crictl exec --sync "$ctr_id" sh -c "cat /etc/hostname"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "$HOSTNAME" ]]
+	[[ "$output" == *"$HOSTNAME"* ]]
 }
 
 @test "Check for valid pod netns CIDR" {

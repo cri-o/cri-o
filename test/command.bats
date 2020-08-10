@@ -15,11 +15,11 @@ load helpers
 	run ${CRIO_BINARY_PATH} --default-ulimits doesntexist=2042
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "invalid ulimit type: doesntexist" ]]
+	[[ "$output" == *"invalid ulimit type: doesntexist"* ]]
 	run ${CRIO_BINARY_PATH} --default-ulimits nproc=2042:42
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "ulimit soft limit must be less than or equal to hard limit: 2042 > 42" ]]
+	[[ "$output" == *"ulimit soft limit must be less than or equal to hard limit: 2042 > 42"* ]]
 	# can't cover everything here, ulimits parsing is tested in
 	# github.com/docker/go-units package
 }
@@ -28,15 +28,15 @@ load helpers
 	run ${CRIO_BINARY_PATH} --additional-devices /dev/sda:/dev/foo:123
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "invalid device mode:" ]]
+	[[ "$output" == *"invalid device mode:"* ]]
 	run ${CRIO_BINARY_PATH} --additional-devices /dev/sda:/dee/foo:rm
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "invalid device mode:" ]]
+	[[ "$output" == *"invalid device mode:"* ]]
 	run ${CRIO_BINARY_PATH} --additional-devices /dee/sda:rmw
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "invalid device mode:" ]]
+	[[ "$output" == *"invalid device mode:"* ]]
 }
 
 @test "invalid metrics port" {
@@ -45,11 +45,11 @@ load helpers
 	run ${CRIO_BINARY_PATH} ${opt} --metrics-port foo --enable-metrics
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "invalid value \"foo\" for flag" ]]
+	[[ "$output" == *'invalid value "foo" for flag'* ]]
 	run ${CRIO_BINARY_PATH} ${opt} --metrics-port 18446744073709551616 --enable-metrics
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "value out of range" ]]
+	[[ "$output" == *"value out of range"* ]]
 }
 
 @test "invalid log max" {
@@ -58,7 +58,7 @@ load helpers
 	run ${CRIO_BINARY_PATH} ${opt} --log-size-max foo
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "invalid value \"foo\" for flag" ]]
+	[[ "$output" == *'invalid value "foo" for flag'* ]]
 }
 
 @test "log max boundary testing" {
@@ -68,15 +68,15 @@ load helpers
 	run ${CRIO_BINARY_PATH} ${opt} --log-size-max 0
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "log size max should be negative or >= 8192" ]]
+	[[ "$output" == *"log size max should be negative or >= 8192"* ]]
 	# log size max is less than 8192 and more than 0
 	run ${CRIO_BINARY_PATH} ${opt} --log-size-max 8191
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "log size max should be negative or >= 8192" ]]
+	[[ "$output" == *"log size max should be negative or >= 8192"* ]]
 	# log size max is out of the range of 64-bit signed integers
 	run ${CRIO_BINARY_PATH} ${opt} --log-size-max 18446744073709551616
 	echo $output
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "value out of range" ]]
+	[[ "$output" == *"value out of range"* ]]
 }

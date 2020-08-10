@@ -102,16 +102,16 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" != "" ]]
-	[[ "$output" =~ "$pod1_id" ]]
-	[[ "$output" =~ "$pod2_id" ]]
+	[[ "$output" == *"$pod1_id"* ]]
+	[[ "$output" == *"$pod2_id"* ]]
 	[[ "$output" != "$pod3_id" ]]
 	run crictl pods --label "group=test" --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" != "" ]]
-	[[ "$output" =~ "$pod1_id" ]]
-	[[ "$output" =~ "$pod2_id" ]]
-	[[ "$output" =~ "$pod3_id" ]]
+	[[ "$output" == *"$pod1_id"* ]]
+	[[ "$output" == *"$pod2_id"* ]]
+	[[ "$output" == *"$pod3_id"* ]]
 	run crictl pods --id "$pod1_id" --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -176,19 +176,19 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# TODO: expected value should not hard coded here
-	[[ "$output" =~ "Name: podsandbox1" ]]
-	[[ "$output" =~ "UID: redhat-test-crio" ]]
-	[[ "$output" =~ "Namespace: redhat.test.crio" ]]
-	[[ "$output" =~ "Attempt: 1" ]]
+	[[ "$output" == *"Name: podsandbox1"* ]]
+	[[ "$output" == *"UID: redhat-test-crio"* ]]
+	[[ "$output" == *"Namespace: redhat.test.crio"* ]]
+	[[ "$output" == *"Attempt: 1"* ]]
 
 	run crictl inspectp --output=table "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# TODO: expected value should not hard coded here
-	[[ "$output" =~ "Name: podsandbox1" ]]
-	[[ "$output" =~ "UID: redhat-test-crio" ]]
-	[[ "$output" =~ "Namespace: redhat.test.crio" ]]
-	[[ "$output" =~ "Attempt: 1" ]]
+	[[ "$output" == *"Name: podsandbox1"* ]]
+	[[ "$output" == *"UID: redhat-test-crio"* ]]
+	[[ "$output" == *"Namespace: redhat.test.crio"* ]]
+	[[ "$output" == *"Attempt: 1"* ]]
 }
 
 @test "pass pod sysctls to runtime" {
@@ -214,22 +214,22 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" sysctl kernel.shm_rmid_forced
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "kernel.shm_rmid_forced = 1" ]]
+	[[ "$output" == *"kernel.shm_rmid_forced = 1"* ]]
 
 	run crictl exec --sync "$ctr_id" sysctl kernel.msgmax
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "kernel.msgmax = 8192" ]]
+	[[ "$output" == *"kernel.msgmax = 8192"* ]]
 
 	run crictl exec --sync "$ctr_id" sysctl net.ipv4.ip_local_port_range
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "net.ipv4.ip_local_port_range = 1024	65000" ]]
+	[[ "$output" == *"net.ipv4.ip_local_port_range = 1024	65000"* ]]
 
 	run crictl exec --sync "$ctr_id" sysctl net.ipv4.ip_forward
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "net.ipv4.ip_forward = 1" ]]
+	[[ "$output" == *"net.ipv4.ip_forward = 1"* ]]
 }
 
 @test "pod stop idempotent" {
@@ -331,7 +331,7 @@ function teardown() {
 	run systemctl list-units --type=slice
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "Burstable-pod_integration_tests-123.slice" ]]
+	[[ "$output" == *"Burstable-pod_integration_tests-123.slice"* ]]
 }
 
 @test "kubernetes pod terminationGracePeriod passthru" {

@@ -58,7 +58,7 @@ function test_crio_wiped_images() {
 	run crictl images
 	echo "$output"
 	[ "$status" == 0 ]
-	[[ ! "$output" =~ "pause" ]]
+	[[ ! "$output" == *"pause"* ]]
 }
 
 function test_crio_did_not_wipe_images() {
@@ -66,7 +66,7 @@ function test_crio_did_not_wipe_images() {
 	run crictl images
 	echo "$output"
 	[ "$status" == 0 ]
-	[[ "$output" =~ "pause" ]]
+	[[ "$output" == *"pause"* ]]
 }
 
 function start_crio_with_stopped_pod() {
@@ -132,5 +132,5 @@ function start_crio_with_stopped_pod() {
 	run_crio_wipe
 
 	run_podman_with_args ps -a
-	[[ "$output" =~ "test" ]]
+	[[ "$output" == *"test"* ]]
 }

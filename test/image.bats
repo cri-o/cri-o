@@ -55,8 +55,8 @@ function teardown() {
 	run crictl inspect -o yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
-	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
+	[[ "$output" == *"image: quay.io/crio/redis:alpine"* ]]
+	[[ "$output" == *"imageRef: $REDIS_IMAGEREF"* ]]
 }
 
 @test "container status when created by image tagged reference" {
@@ -77,8 +77,8 @@ function teardown() {
 	run crictl inspect -o yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
-	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
+	[[ "$output" == *"image: quay.io/crio/redis:alpine"* ]]
+	[[ "$output" == *"imageRef: $REDIS_IMAGEREF"* ]]
 }
 
 @test "container status when created by image canonical reference" {
@@ -103,8 +103,8 @@ function teardown() {
 	run crictl inspect -o yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "image: quay.io/crio/redis:alpine" ]]
-	[[ "$output" =~ "imageRef: $REDIS_IMAGEREF" ]]
+	[[ "$output" == *"image: quay.io/crio/redis:alpine"* ]]
+	[[ "$output" == *"imageRef: $REDIS_IMAGEREF"* ]]
 }
 
 @test "container status when created by image list canonical reference" {
@@ -129,8 +129,8 @@ function teardown() {
 	run crictl inspect -o yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "image: $IMAGE_LIST_DIGEST" ]]
-	[[ "$output" =~ "imageRef: $IMAGE_LIST_DIGEST" ]]
+	[[ "$output" == *"image: $IMAGE_LIST_DIGEST"* ]]
+	[[ "$output" == *"imageRef: $IMAGE_LIST_DIGEST"* ]]
 }
 
 @test "image pull and list" {
@@ -147,7 +147,7 @@ function teardown() {
 
 	run crictl images @"$imageid"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "$IMAGE" ]]
+	[[ "$output" == *"$IMAGE"* ]]
 
 	run crictl images --quiet "$imageid"
 	[ "$status" -eq 0 ]
@@ -232,7 +232,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
-	[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST}" ]]
+	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
 
 	case $(go env GOARCH) in
 	amd64)
@@ -240,7 +240,7 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
 	esac
 
@@ -281,7 +281,7 @@ function teardown() {
 		echo "$output"
 		exit 1
 	fi
-	[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG}" ]]
+	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG}"* ]]
 
 	case $(go env GOARCH) in
 	amd64)
@@ -289,28 +289,28 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}"* ]]
 		;;
 	arm64)
 		run crictl images -v ${IMAGE_LIST_DIGEST_ARM64}
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
 		;;
 	ppc64le)
 		run crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE}
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
 		;;
 	s390x)
 		run crictl images -v ${IMAGE_LIST_DIGEST_S390X}
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_S390X}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
 		;;
 	esac
 
@@ -348,7 +348,7 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
 	arm64)
 		run crictl pull ${IMAGE_LIST_DIGEST_ARM64}
@@ -356,7 +356,7 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
 		;;
 	ppc64le)
 		run crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
@@ -364,7 +364,7 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
 		;;
 	s390x)
 		run crictl pull ${IMAGE_LIST_DIGEST_S390X}
@@ -372,7 +372,7 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_S390X}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
 		;;
 	esac
 
@@ -380,7 +380,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
-	[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST}" ]]
+	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
 
 	run crictl images --quiet @"$imageid"
 	[ "$status" -eq 0 ]
@@ -406,7 +406,7 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
 	arm64)
 		run crictl pull ${IMAGE_LIST_DIGEST_ARM64}
@@ -414,7 +414,7 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
 		;;
 	ppc64le)
 		run crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
@@ -422,7 +422,7 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
 		;;
 	s390x)
 		run crictl pull ${IMAGE_LIST_DIGEST_S390X}
@@ -430,7 +430,7 @@ function teardown() {
 		[ "$status" -eq 0 ]
 		echo "$output"
 		[ "$output" != "" ]
-		[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST_S390X}" ]]
+		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
 		;;
 	esac
 
@@ -448,7 +448,7 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	echo "$output"
 	[ "$output" != "" ]
-	[[ "$output" =~ "RepoDigests: ${IMAGE_LIST_DIGEST}" ]]
+	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
 
 	run crictl images --quiet @"$imageid"
 	[ "$status" -eq 0 ]

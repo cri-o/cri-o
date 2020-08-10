@@ -28,7 +28,7 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" ls /imagevolume
 	echo "$output"
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "ls: /imagevolume: No such file or directory" ]]
+	[[ "$output" == *"ls: /imagevolume: No such file or directory"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -92,7 +92,7 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" id
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "uid=1000 gid=0(root)" ]]
+	[[ "$output" == *"uid=1000 gid=0(root)"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]

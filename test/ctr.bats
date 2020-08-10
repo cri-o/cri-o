@@ -21,8 +21,8 @@ function wait_until_exit() {
         run crictl inspect -o table "$ctr_id"
         echo "$output"
         [ "$status" -eq 0 ]
-        if [[ "$output" =~ "State: CONTAINER_EXITED" ]]; then
-            [[ "$output" =~ "Exit Code: ${EXPECTED_EXIT_STATUS:-0}" ]]
+        if [[ "$output" == *"State: CONTAINER_EXITED"* ]]; then
+            [[ "$output" == *"Exit Code: ${EXPECTED_EXIT_STATUS:-0}"* ]]
             return 0
         fi
         sleep 1
@@ -57,7 +57,7 @@ function wait_until_exit() {
 	run crictl inspect --output yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "reason: Completed" ]]
+	[[ "$output" == *"reason: Completed"* ]]
 }
 
 @test "ctr termination reason Error" {
@@ -80,7 +80,7 @@ function wait_until_exit() {
 	run crictl inspect --output yaml "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "reason: Error" ]]
+	[[ "$output" == *"reason: Error"* ]]
 }
 
 @test "ulimits" {
@@ -103,16 +103,16 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" sh -c "ulimit -n"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "42" ]]
+	[[ "$output" == "42" ]]
 	run crictl exec --sync "$ctr_id" sh -c "ulimit -p"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "1024" ]]
+	[[ "$output" == "1024" ]]
 
 	run crictl exec --sync "$ctr_id" sh -c "ulimit -Hp"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "2048" ]]
+	[[ "$output" == "2048" ]]
 
 	run crictl stopp "$pod_id"
 	echo "$output"
@@ -195,21 +195,21 @@ function wait_until_exit() {
 		# Dump the deviced cgroup configuration for debugging.
 		run crictl exec --timeout=$timeout --sync "$ctr_id" cat /sys/fs/cgroup/devices/devices.list
 		echo $output
-		[[ "$output" =~ "c 10:237 w" ]]
+		[[ "$output" == *"c 10:237 w"* ]]
 	fi
 
         # Opening the device in read mode should fail because the device
         # cgroup access only allows writes.
 	run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=$device of=/dev/null count=1
 	echo $output
-	[[ "$output" =~ "Operation not permitted" ]]
+	[[ "$output" == *"Operation not permitted"* ]]
 
     # The write should be allowed by the devices cgroup policy, so we
     # should see an EINVAL from the device when the device fails it.
     # TODO: fix that test, currently fails with "dd: can't open '/dev/loop-control': No such device non-zero exit code"
     # run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=/dev/zero of=$device count=1
     # echo $output
-    # [[ "$output" =~ "Invalid argument" ]]
+    # [[ "$output" == *"Invalid argument"* ]]
 
 	run crictl stopp "$pod_id"
 	echo "$output"
@@ -427,7 +427,7 @@ function wait_until_exit() {
 	run crictl logs "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "here is some output" ]]
+	[[ "$output" == *"here is some output"* ]]
 
 	run crictl rm "$ctr_id"
 	echo "$output"
@@ -764,16 +764,16 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" != "" ]]
-	[[ "$output" =~ "$ctr1_id" ]]
-	[[ "$output" =~ "$ctr2_id" ]]
+	[[ "$output" == *"$ctr1_id"* ]]
+	[[ "$output" == *"$ctr2_id"* ]]
 	[[ "$output" != "$ctr3_id" ]]
 	run crictl ps --label "group=test" --quiet --all
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" != "" ]]
-	[[ "$output" =~ "$ctr1_id"  ]]
-	[[ "$output" =~ "$ctr2_id"  ]]
-	[[ "$output" =~ "$ctr3_id"  ]]
+	[[ "$output" == *"$ctr1_id"* ]]
+	[[ "$output" == *"$ctr2_id"* ]]
+	[[ "$output" == *"$ctr3_id"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -797,15 +797,15 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# TODO: expected value should not hard coded here
-	[[ "$output" =~ "name: container1" ]]
-	[[ "$output" =~ "attempt: 1" ]]
+	[[ "$output" == *"name: container1"* ]]
+	[[ "$output" == *"attempt: 1"* ]]
 
 	run crictl inspect -o table "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# TODO: expected value should not hard coded here
-	[[ "$output" =~ "Name: container1" ]]
-	[[ "$output" =~ "Attempt: 1" ]]
+	[[ "$output" == *"Name: container1"* ]]
+	[[ "$output" == *"Attempt: 1"* ]]
 }
 
 @test "ctr execsync conflicting with conmon flags parsing" {
@@ -846,7 +846,7 @@ function wait_until_exit() {
 	[[ "$output" == "HELLO" ]]
 	run crictl exec --sync --timeout 1 "$ctr_id" sleep 3
 	echo "$output"
-	[[ "$output" =~ "command timed out" ]]
+	[[ "$output" == *"command timed out"* ]]
 	[ "$status" -ne 0 ]
 	run crictl stopp "$pod_id"
 	echo "$output"
@@ -903,7 +903,7 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" ls /dev/mynull
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "/dev/mynull" ]]
+	[[ "$output" == *"/dev/mynull"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -938,7 +938,7 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" ls /dev/mynull
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "/dev/mynull" ]]
+	[[ "$output" == *"/dev/mynull"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -981,7 +981,7 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" env
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "HOSTNAME" ]]
+	[[ "$output" == *"HOSTNAME"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -1045,7 +1045,7 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" echo hello0 stdout
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "hello0 stdout" ]]
+	[[ "$output" == *"hello0 stdout"* ]]
 
 	stderrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/stderr-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
 	echo "$stderrconfig" > "$TESTDIR"/container_config_stderr.json
@@ -1059,7 +1059,7 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" stderr
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "this goes to stderr" ]]
+	[[ "$output" == *"this goes to stderr"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -1202,12 +1202,12 @@ function wait_until_exit() {
 		run crictl inspect --output yaml "$ctr_id"
 		echo "$output"
 		[ "$status" -eq 0 ]
-		if [[ "$output" =~ "OOMKilled" ]]; then
+		if [[ "$output" == *"OOMKilled"* ]]; then
 			break
 		fi
 		sleep 10
 	done
-	[[ "$output" =~ "OOMKilled" ]]
+	[[ "$output" == *"OOMKilled"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -1252,7 +1252,7 @@ function wait_until_exit() {
 	echo "$newconfig" > "$TESTDIR"/container_nonexistent.json
 	run crictl create "$pod_id" "$TESTDIR"/container_nonexistent.json "$TESTDATA"/sandbox_config.json
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "executable file not found" ]]
+	[[ "$output" == *"executable file not found"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -1271,7 +1271,7 @@ function wait_until_exit() {
 	echo "$newconfig" > "$TESTDIR"/container_nonexistent.json
 	run crictl create "$pod_id" "$TESTDIR"/container_nonexistent.json "$TESTDATA"/sandbox_config.json
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "executable file not found" ]]
+	[[ "$output" == *"executable file not found"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -1305,7 +1305,7 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "209715200" ]]
+	[[ "$output" == *"209715200"* ]]
 
 
 	# we can only rely on these files being here if cgroup memory swap is enabled
@@ -1321,26 +1321,26 @@ function wait_until_exit() {
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
 		echo "$output"
 		[ "$status" -eq 0 ]
-		[[ "$output" =~ "20000 10000" ]]
+		[[ "$output" == *"20000 10000"* ]]
 
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.weight"
 		echo "$output"
 		[ "$status" -eq 0 ]
 		# 512 shares are converted to cpu.weight 20
-		[[ "$output" =~ "20" ]]
+		[[ "$output" == *"20"* ]]
 	else
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
 		echo "$output"
 		[ "$status" -eq 0 ]
-		[[ "$output" =~ "512" ]]
+		[[ "$output" == *"512"* ]]
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
 		echo "$output"
 		[ "$status" -eq 0 ]
-		[[ "$output" =~ "10000" ]]
+		[[ "$output" == *"10000"* ]]
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
 		echo "$output"
 		[ "$status" -eq 0 ]
-		[[ "$output" =~ "20000" ]]
+		[[ "$output" == *"20000"* ]]
 	fi
 
 	run crictl update --memory 524288000 --cpu-period 20000 --cpu-quota 10000 --cpu-share 256 "$ctr_id"
@@ -1350,7 +1350,7 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "524288000" ]]
+	[[ "$output" == *"524288000"* ]]
 
 	if test -r "$CGROUP_MEM_SWAP_FILE" ; then
 		run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE"
@@ -1363,26 +1363,26 @@ function wait_until_exit() {
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
 		echo "$output"
 		[ "$status" -eq 0 ]
-		[[ "$output" =~ "10000 20000" ]]
+		[[ "$output" == *"10000 20000"* ]]
 
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.weight"
 		echo "$output"
 		[ "$status" -eq 0 ]
 		# 256 shares are converted to cpu.weight 10
-		[[ "$output" =~ "10" ]]
+		[[ "$output" == *"10"* ]]
 	else
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
 		echo "$output"
 		[ "$status" -eq 0 ]
-		[[ "$output" =~ "256" ]]
+		[[ "$output" == *"256"* ]]
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
 		echo "$output"
 		[ "$status" -eq 0 ]
-		[[ "$output" =~ "20000" ]]
+		[[ "$output" == *"20000"* ]]
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
 		echo "$output"
 		[ "$status" -eq 0 ]
-		[[ "$output" =~ "10000" ]]
+		[[ "$output" == *"10000"* ]]
 	fi
 }
 
@@ -1408,7 +1408,7 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -ne 0 ]
 	ctr_id="$output"
-	[[ "$output" =~ "not a directory" ]]
+	[[ "$output" == *"not a directory"* ]]
 }
 
 @test "ctr execsync conflicting with conmon env" {
@@ -1428,11 +1428,11 @@ function wait_until_exit() {
 	echo "$output"
 	echo "$status"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "acustompathinpath" ]]
+	[[ "$output" == *"acustompathinpath"* ]]
 	run crictl exec --sync "$ctr_id" env
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "acustompathinpath" ]]
+	[[ "$output" == *"acustompathinpath"* ]]
 }
 
 @test "ctr resources" {
@@ -1452,11 +1452,11 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.cpus || cat /sys/fs/cgroup/cpuset.cpus"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "0" ]]
+	[[ "$output" == *"0"* ]]
 	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.mems || cat /sys/fs/cgroup/cpuset.mems"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "0" ]]
+	[[ "$output" == *"0"* ]]
 }
 
 @test "ctr with non-root user has no effective capabilities" {
@@ -1598,9 +1598,9 @@ function wait_until_exit() {
 	run crictl exec "$ctr_id" cat /proc/mounts
 	[ "$status" -eq 0 ]
 	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
-		[[ "$output" =~ "/sys/fs/cgroup cgroup2" ]]
+		[[ "$output" == *"/sys/fs/cgroup cgroup2"* ]]
 	else
-		[[ "$output" =~ "/sys/fs/cgroup tmpfs" ]]
+		[[ "$output" == *"/sys/fs/cgroup tmpfs"* ]]
 	fi
 
 	run crictl stopp "$pod_id"
@@ -1642,7 +1642,7 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" env
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "NSS_SDB_USE_CACHE=no" ]]
+	[[ "$output" == *"NSS_SDB_USE_CACHE=no"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
