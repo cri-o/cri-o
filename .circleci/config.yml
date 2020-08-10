@@ -163,16 +163,10 @@ jobs:
           name: build
           command: |
             set -ex
-            sudo mkdir -p /nix
             sudo mkdir -p .cache
-            sudo mount --bind .cache /nix
+            sudo mv .cache /nix
             if [[ -z $(ls -A /nix) ]]; then sudo docker run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix; fi
             sudo docker run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
-            sudo chown -Rf $(whoami) .cache
-      - save_cache:
-          key: nix-v1-{{ checksum "nix/nixpkgs.json" }}
-          paths:
-            - .cache
       - run:
           name: Show CRI-O version for static binaries
           command: |
@@ -192,6 +186,15 @@ jobs:
           root: .
           paths:
             - bin/static
+      - run:
+          name: save_cache
+          command: |
+            sudo mv /nix .cache
+            sudo chown -Rf $(whoami) .cache
+      - save_cache:
+          key: nix-v1-{{ checksum "nix/nixpkgs.json" }}
+          paths:
+            - .cache
 
   build-test-binaries:
     executor: container
