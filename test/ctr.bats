@@ -1005,10 +1005,7 @@ function wait_until_exit() {
 	[ "$status" -eq 0 ]
 	run crictl exec --sync "$ctr_id" doesnotexist
 	echo "$output"
-	[ "$status" -ne 0 ] || [ "$output" =~ "Exit code: 1" ]
-	cleanup_ctrs
-	cleanup_pods
-	stop_crio
+	[ "$status" -ne 0 ]
 }
 
 @test "ctr execsync exit code" {
