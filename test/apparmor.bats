@@ -17,6 +17,8 @@ load helpers
 # 1. test running with loading the default apparmor profile.
 # test that we can run with the default apparmor profile which will not block touching a file in `.`
 load_default_apparmor_profile_and_run_a_container_with_it() {
+    local output status
+
     setup_test
     start_crio
 
@@ -40,6 +42,8 @@ load_default_apparmor_profile_and_run_a_container_with_it() {
 # 2. test running with loading a specific apparmor profile as crio default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.` as crio default apparmor profile.
 load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it() {
+    local output status
+
     setup_test
     load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
     start_crio "$APPARMOR_TEST_PROFILE_NAME"
@@ -66,6 +70,8 @@ load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it
 # 3. test running with loading a specific apparmor profile but not as crio default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.`
 load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile() {
+    local output status
+
     setup_test
     load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
     start_crio
@@ -92,6 +98,8 @@ load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile(
 # 4. test running with wrong apparmor profile name.
 # test that we can will fail when running a ctr with wrong apparmor profile name.
 run_a_container_with_wrong_apparmor_profile_name() {
+    local output status
+
     setup_test
     start_crio
 
@@ -113,6 +121,8 @@ run_a_container_with_wrong_apparmor_profile_name() {
 # 5. test running with default apparmor profile unloaded.
 # test that we can will fail when running a ctr with wrong apparmor profile name.
 run_a_container_after_unloading_default_apparmor_profile() {
+    local output status
+
     load_apparmor_profile "$FAKE_CRIO_DEFAULT_PROFILE_PATH"
     setup_test
     start_crio "$FAKE_CRIO_DEFAULT_PROFILE_NAME"
