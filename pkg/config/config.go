@@ -780,15 +780,25 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "invalid registries")
 		}
 
-		// Sort out invalid hooks directories
+		// we should use a hooks directory if
+		// it exists and is a directory
+		// it does not exist but can be created
+		// otherwise, we skip
 		hooksDirs := []string{}
 		for _, hooksDir := range c.HooksDir {
 			if err := utils.IsDirectory(hooksDir); err != nil {
-				logrus.Warnf("skipping invalid hooks directory: %v", err)
-				continue
+				if !os.IsNotExist(err) {
+					logrus.Warnf("skipping invalid hooks directory: %s exists but is not a directory", hooksDir)
+					continue
+				}
+				if err := os.MkdirAll(hooksDir, 0o755); err != nil {
+					logrus.Debugf("failed to create requested hooks dir: %v", err)
+					continue
+				}
 			}
-			logrus.Debugf("using  hooks directory: %s", hooksDir)
+			logrus.Debugf("using hooks directory: %s", hooksDir)
 			hooksDirs = append(hooksDirs, hooksDir)
+			continue
 		}
 		c.HooksDir = hooksDirs
 

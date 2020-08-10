@@ -239,6 +239,22 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.HooksDir).To(HaveLen(2))
 		})
 
+		It("should create non-existent hooks directory", func() {
+			// Given
+			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
+			sut.Conmon = validFilePath
+			sut.PinnsPath = validFilePath
+			sut.NamespacesDir = os.TempDir()
+			sut.HooksDir = []string{filepath.Join(validDirPath, "new")}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, true)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.HooksDir).To(HaveLen(1))
+		})
+
 		It("should fail on invalid conmon path", func() {
 			// Given
 			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
