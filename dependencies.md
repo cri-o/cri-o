@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 11 Aug 2020 15:52:51 UTC for commit [45c387d][0]._
+_Generated on Tue, 11 Aug 2020 18:15:38 UTC for commit [267aa23][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/45c387dcf17aa16ea7012af0ce8282de9b50e0ad
+[0]: https://github.com/cri-o/cri-o/commit/267aa23eb538c3292ac4d254b8fb1b0ff6209697
 
 ## Outdated Dependencies
 
@@ -470,7 +470,7 @@ _Generated on Tue, 11 Aug 2020 15:52:51 UTC for commit [45c387d][0]._
 | github.com/varlink/go                                   | v0.0.0-20190502142041-0f1d566d194b                | v0.3.0                             | false  | true             |
 | github.com/vbatts/git-validation                        | v1.1.0                                            |                                    | true   | true             |
 | github.com/vbatts/tar-split                             | v0.11.1                                           |                                    | false  | true             |
-| github.com/vbauerster/mpb/v5                            | v5.0.4                                            | v5.2.4                             | false  | true             |
+| github.com/vbauerster/mpb/v5                            | v5.0.4                                            | v5.3.0                             | false  | true             |
 | github.com/vektah/gqlparser                             | v1.1.2                                            | v1.3.1                             | false  | true             |
 | github.com/vishvananda/netlink                          | v1.1.0                                            |                                    | true   | true             |
 | github.com/vishvananda/netns                            | v0.0.0-20200520041808-52d707b772fe                | v0.0.0-20200728191858-db3c7e526aae | false  | true             |
@@ -504,7 +504,7 @@ _Generated on Tue, 11 Aug 2020 15:52:51 UTC for commit [45c387d][0]._
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.3                                            |                                    | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200630173020-3af7569d3a1e | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200811153730-74512f09e4b0 | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200811172722-d77521d07411 | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                | v0.0.0-20200804184101-5ec99f83aff1 | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.7.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200603212716-16abd5ac5bc7 | false  | true             |
@@ -554,7 +554,7 @@ _Generated on Tue, 11 Aug 2020 15:52:51 UTC for commit [45c387d][0]._
 | k8s.io/klog/v2                                          | v2.3.0                                            |                                    | true   | true             |
 | k8s.io/kube-aggregator                                  | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200811041217-04362870ad9f | false  | true             |
 | k8s.io/kube-controller-manager                          | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200811041217-04362870ad9f | false  | true             |
-| k8s.io/kube-openapi                                     | v0.0.0-20200427153329-656914f816f9                | v0.0.0-20200727223308-4c7aaf529f79 | false  | true             |
+| k8s.io/kube-openapi                                     | v0.0.0-20200427153329-656914f816f9                | v0.0.0-20200811164617-37f25a7e63d9 | false  | true             |
 | k8s.io/kube-proxy                                       | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200811041217-04362870ad9f | false  | true             |
 | k8s.io/kube-scheduler                                   | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200811041217-04362870ad9f | false  | true             |
 | k8s.io/kubectl                                          | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200811041217-04362870ad9f | false  | true             |
