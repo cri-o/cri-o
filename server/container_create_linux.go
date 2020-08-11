@@ -487,6 +487,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 				"/proc/sched_debug",
 				"/proc/scsi",
 				"/sys/firmware",
+				"/sys/dev",
 			} {
 				specgen.AddLinuxMaskedPaths(mp)
 			}
