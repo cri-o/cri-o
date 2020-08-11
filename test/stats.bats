@@ -33,15 +33,15 @@ function teardown() {
 
 @test "container stats" {
     # given
-    python -c 'import json,sys;obj=json.load(sys.stdin);obj["name"] = ["podsandbox1-redis2"];obj["metadata"]["name"] = "podsandbox1-redis2"; json.dump(obj, sys.stdout)' \
-        < "$TESTDATA"/container_redis.json > "$TESTDIR"/container_redis2.json
+    python -c 'import json,sys;obj=json.load(sys.stdin);obj["name"] = ["podsandbox1-sleep2"];obj["metadata"]["name"] = "podsandbox1-sleep2"; json.dump(obj, sys.stdout)' \
+        < "$TESTDATA"/container_sleep.json > "$TESTDIR"/container_sleep2.json
 
     pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-    ctr1_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+    ctr1_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
     crictl start "$ctr1_id"
 
-    ctr2_id=$(crictl create "$pod_id" "$TESTDIR"/container_redis2.json "$TESTDATA"/sandbox_config.json)
+    ctr2_id=$(crictl create "$pod_id" "$TESTDIR"/container_sleep2.json "$TESTDATA"/sandbox_config.json)
     crictl start "$ctr2_id"
 
     # when
