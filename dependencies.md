@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 11 Aug 2020 18:15:38 UTC for commit [267aa23][0]._
+_Generated on Tue, 11 Aug 2020 18:41:17 UTC for commit [d00b217][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/267aa23eb538c3292ac4d254b8fb1b0ff6209697
+[0]: https://github.com/cri-o/cri-o/commit/d00b217c70105c07941e89760eda9914dee4462e
 
 ## Outdated Dependencies
 
@@ -78,7 +78,7 @@ _Generated on Tue, 11 Aug 2020 18:15:38 UTC for commit [267aa23][0]._
 | github.com/armon/go-socks5                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                       | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20200428143746-21a406dcc535 | false  | true             |
 | github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20200810150920-a32d7af194d1 | false  | true             |
-| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.34.1                            | false  | true             |
+| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.34.2                            | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.23.3                                           | v0.23.7                            | false  | true             |
 | github.com/beorn7/perks                                 | v1.0.1                                            |                                    | false  | true             |
 | github.com/bgentry/speakeasy                            | v0.1.0                                            |                                    | false  | true             |
