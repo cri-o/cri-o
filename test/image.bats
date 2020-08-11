@@ -480,10 +480,7 @@ function teardown() {
 	run crictl images --quiet
 	echo "$output"
 	[ "$status" -eq 0 ]
-	printf '%s\n' "$output" | while IFS= read -r id; do
-		echo "$id"
-		status=1
-	done
+
 	cleanup_images
 }
 
@@ -505,10 +502,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" = "" ]
-	printf '%s\n' "$output" | while IFS= read -r id; do
-		echo "$id"
-		status=1
-	done
+
 	cleanup_images
 }
 
@@ -534,9 +528,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[ "$output" = "" ]
-	printf '%s\n' "$output" | while IFS= read -r id; do
-		echo "$id"
-		status=1
-	done
+
 	cleanup_images
 }
