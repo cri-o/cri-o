@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/go-zoo/bone"
 	json "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
