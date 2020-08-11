@@ -86,27 +86,27 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (retErr 
 	defer parentPipe.Close()
 	defer parentStartPipe.Close()
 
-	var args []string
+	args := []string{
+		"-b", c.bundlePath,
+		"-c", c.id,
+		"--exit-dir", r.config.ContainerExitsDir,
+		"-l", c.logPath,
+		"--log-level", logrus.GetLevel().String(),
+		"-n", c.name,
+		"-P", c.conmonPidFilePath(),
+		"-p", filepath.Join(c.bundlePath, "pidfile"),
+		"--persist-dir", c.dir,
+		"-r", r.path,
+		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root),
+		"--socket-dir-path", r.config.ContainerAttachSocketDir,
+		"-u", c.id,
+	}
+
 	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "-s")
 	} else {
 		args = append(args, "--syslog")
 	}
-
-	args = append(args,
-		"-c", c.id,
-		"-n", c.name,
-		"-u", c.id,
-		"-r", r.path,
-		"-b", c.bundlePath,
-		"--persist-dir", c.dir,
-		"-p", filepath.Join(c.bundlePath, "pidfile"),
-		"-P", c.conmonPidFilePath(),
-		"-l", c.logPath,
-		"--exit-dir", r.config.ContainerExitsDir,
-		"--socket-dir-path", r.config.ContainerAttachSocketDir,
-		"--log-level", logrus.GetLevel().String(),
-		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 	if r.config.LogSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.config.LogSizeMax))
 	}
