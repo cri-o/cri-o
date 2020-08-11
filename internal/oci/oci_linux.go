@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -88,13 +89,13 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerSt
 		stats.NetInput, stats.NetOutput = getContainerNetIO(netNsPath)
 	}
 
-	totalInactiveFile, err := getTotalInactiveFile()
+	totalInactiveFile, err := getTotalInactiveFile(cgroupPath)
 	if err != nil { // nolint: gocritic
 		logrus.Warnf("error in memory working set stats retrieval: %v", err)
 	} else if stats.MemUsage > totalInactiveFile {
 		stats.WorkingSetBytes = stats.MemUsage - totalInactiveFile
 	} else {
-		logrus.Debugf(
+		logrus.Warnf(
 			"unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
 			totalInactiveFile, stats.MemUsage,
 		)
@@ -154,15 +155,15 @@ func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
 }
 
 // getTotalInactiveFile returns the value if `total_inactive_file` as integer
-// from `/sys/fs/cgroup/memory/memory.stat`. It returns an error if the file is
-// not parsable.
-func getTotalInactiveFile() (uint64, error) {
+// from cgroup's memory.stat. Returns an error if the file does not exists,
+// not parsable, or the value is not found.
+func getTotalInactiveFile(path string) (uint64, error) {
 	// TODO: no cgroupv2 support right now
 	if node.CgroupIsV2() {
 		return 0, nil
 	}
 
-	const memoryStat = "/sys/fs/cgroup/memory/memory.stat"
+	memoryStat := filepath.Join("/sys/fs/cgroup/memory", path, "memory.stat")
 	const totalInactiveFilePrefix = "total_inactive_file "
 	f, err := os.Open(memoryStat)
 	if err != nil {
@@ -172,7 +173,7 @@ func getTotalInactiveFile() (uint64, error) {
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		if strings.Contains(scanner.Text(), totalInactiveFilePrefix) {
+		if strings.HasPrefix(scanner.Text(), totalInactiveFilePrefix) {
 			val, err := strconv.Atoi(
 				strings.TrimPrefix(scanner.Text(), totalInactiveFilePrefix),
 			)
@@ -182,7 +183,6 @@ func getTotalInactiveFile() (uint64, error) {
 			return uint64(val), nil
 		}
 	}
-
 	if err := scanner.Err(); err != nil {
 		return 0, err
 	}
