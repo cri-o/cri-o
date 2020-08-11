@@ -79,8 +79,12 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerSt
 	stats.PIDs = cgroupStats.Pids.Current
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)
 
-	if ctr.state != nil {
-		netNsPath := fmt.Sprintf("/proc/%d/ns/net", ctr.state.Pid)
+	// Try our best to get the net namespace path.
+	// If pid() errors, the container has stopped, and the /proc entry
+	// won't exist anyway.
+	pid, _ := ctr.pid() // nolint:errcheck
+	if pid > 0 {
+		netNsPath := fmt.Sprintf("/proc/%d/ns/net", pid)
 		stats.NetInput, stats.NetOutput = getContainerNetIO(netNsPath)
 	}
 

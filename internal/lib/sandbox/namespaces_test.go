@@ -342,6 +342,13 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// Then
 			Expect(ns).To(Equal(""))
 		})
+		It("should get nothing when pid not set", func() {
+			// Given
+			// When
+			ns := testSandbox.PidNsPath()
+			// Then
+			Expect(ns).To(Equal(""))
+		})
 		It("should get something when network is set", func() {
 			// Given
 			managedNamespaces := []sandbox.NSType{"net"}
@@ -427,6 +434,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
 			Expect(len(nsPaths)).To(Equal(0))
+			Expect(testSandbox.PidNsPath()).To(BeEmpty())
 		})
 		It("should get something when infra set and pid running", func() {
 			// Given
@@ -438,6 +446,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				Expect(ns.Path()).To(ContainSubstring("/proc"))
 			}
 			Expect(len(nsPaths)).To(Equal(numManagedNamespaces))
+			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))
 		})
 		It("should get nothing when infra set with pid not running", func() {
 			// Given
@@ -447,8 +456,9 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
 			Expect(len(nsPaths)).To(Equal(0))
+			Expect(testSandbox.PidNsPath()).To(BeEmpty())
 		})
-		It("should get managed path despite infra set", func() {
+		It("should get managed path (except pid) despite infra set", func() {
 			// Given
 			setupInfraContainerWithPid(1)
 			getPath := pinNamespacesFunctor{
@@ -468,6 +478,8 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 				Expect(ns.Path()).NotTo(ContainSubstring("/proc"))
 			}
 			Expect(len(nsPaths)).To(Equal(numManagedNamespaces))
+
+			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))
 		})
 	})
 	t.Describe("NamespacePaths without infra", func() {
@@ -495,6 +507,8 @@ func setupInfraContainerWithPid(pid int) {
 	cstate.State = specs.State{
 		Pid: pid,
 	}
+	// eat error here because callers may send invalid pids to test against
+	_ = cstate.SetInitPid(pid) // nolint:errcheck
 	testContainer.SetState(cstate)
 
 	Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
