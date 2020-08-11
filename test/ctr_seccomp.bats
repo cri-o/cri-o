@@ -3,6 +3,10 @@
 load helpers
 
 function setup() {
+	if ! "$CHECKSECCOMP_BINARY"; then
+		skip "seccomp is not enabled"
+	fi
+
 	setup_test
 }
 
@@ -13,12 +17,6 @@ function teardown() {
 # 1. test running with ctr unconfined
 # test that we can run with a syscall which would be otherwise blocked
 @test "ctr seccomp profiles unconfined" {
-	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=$(is_seccomp_enabled)
-	if [[ "$enabled" -eq 0 ]]; then
-		skip "skip this test since seccomp is not enabled."
-	fi
-
 	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
@@ -46,12 +44,6 @@ function teardown() {
 # 2. test running with ctr runtime/default
 # test that we cannot run with a syscall blocked by the default seccomp profile
 @test "ctr seccomp profiles runtime/default" {
-	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=$(is_seccomp_enabled)
-	if [[ "$enabled" -eq 0 ]]; then
-		skip "skip this test since seccomp is not enabled."
-	fi
-
 	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
@@ -80,12 +72,6 @@ function teardown() {
 # 3. test running with ctr unconfined and profile empty
 # test that we can run with a syscall which would be otherwise blocked
 @test "ctr seccomp profiles unconfined by empty field" {
-	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=$(is_seccomp_enabled)
-	if [[ "$enabled" -eq 0 ]]; then
-		skip "skip this test since seccomp is not enabled."
-	fi
-
 	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
@@ -112,12 +98,6 @@ function teardown() {
 
 # 4. test running with ctr wrong profile name
 @test "ctr seccomp profiles wrong profile name" {
-	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=$(is_seccomp_enabled)
-	if [[ "$enabled" -eq 0 ]]; then
-		skip "skip this test since seccomp is not enabled."
-	fi
-
 	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
@@ -139,12 +119,6 @@ function teardown() {
 
 # 5. test running with ctr localhost/profile_name
 @test "ctr seccomp profiles localhost/profile_name" {
-	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=$(is_seccomp_enabled)
-	if [[ "$enabled" -eq 0 ]]; then
-		skip "skip this test since seccomp is not enabled."
-	fi
-
 	start_crio
 
 	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
@@ -172,12 +146,6 @@ function teardown() {
 # 6. test running with ctr docker/default
 # test that we cannot run with a syscall blocked by the default seccomp profile
 @test "ctr seccomp profiles docker/default" {
-	# this test requires seccomp, so skip this test if seccomp is not enabled.
-	enabled=$(is_seccomp_enabled)
-	if [[ "$enabled" -eq 0 ]]; then
-		skip "skip this test since seccomp is not enabled."
-	fi
-
 	sed -e 's/"chmod",//' "$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmod",//' "$TESTDIR"/seccomp_profile1.json
 	sed -i 's/"fchmodat",//g' "$TESTDIR"/seccomp_profile1.json
