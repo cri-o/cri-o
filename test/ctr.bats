@@ -1132,8 +1132,7 @@ function wait_until_exit() {
 }
 
 @test "ctr with list of capabilities given by user in crio.conf" {
-	export CONTAINER_DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID"
-	start_crio
+	CONTAINER_DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID" start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -1626,8 +1625,7 @@ function wait_until_exit() {
 }
 
 @test "ctr with default_env set in configuration" {
-	export CONTAINER_DEFAULT_ENV="NSS_SDB_USE_CACHE=no"
-	start_crio
+	CONTAINER_DEFAULT_ENV="NSS_SDB_USE_CACHE=no" start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
