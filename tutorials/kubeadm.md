@@ -21,3 +21,42 @@ Note: This file assumes you've set your cgroup_driver as systemd
 
 Given you've set CIDR, and you've properly set the kubelet file, all you need to do is start crio (as defined [here](setup.md)), and run:
 `kubeadm init --pod-network-cidr=$CIDR`
+
+# Running kubeadm in a off line network
+
+We will assume that the user has installed CRI-O and alls necessary packages. We will also assume that all necessary components are configured and everything is working as expected. The user should have a private repo where the docker images are pushed. Sample of images fot version 1.18.2:
+
+```bash
+$ kubeadm config images list --image-repository user.private.repo --kubernetes-version=v1.18.2
+user.private.repo/kube-apiserver:v1.18.2
+user.private.repo/kube-controller-manager:v1.18.2
+user.private.repo/kube-scheduler:v1.18.2
+user.private.repo/kube-proxy:v1.18.2
+user.private.repo/pause:3.2
+user.private.repo/etcd:3.4.3-0
+user.private.repo/coredns:1.6.7
+```
+
+The user needs to configure the [registries.conf](https://www.mankier.com/5/containers-registries.conf) file.
+
+Sample of configurations:
+
+```bash
+$ cat /etc/containers/registries.conf
+[[registry]]
+prefix = "k8s.gcr.io/pause:3.2"
+insecure = false
+blocked = false
+location = "user.private.repo/pause:3.2"
+```
+
+Next the user should reload and restart CRI-O service to load the configurations.
+
+Last step the user also should add the cgroup driver on the configuration file or pass it as a parameter when starting kubeadm for the master node sample of parameters for configuration file:
+
+```bash
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+```
