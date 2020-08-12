@@ -154,18 +154,19 @@ func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
 	}
 }
 
-// getTotalInactiveFile returns the value if `total_inactive_file` as integer
+// getTotalInactiveFile returns the value if inactive_file as integer
 // from cgroup's memory.stat. Returns an error if the file does not exists,
 // not parsable, or the value is not found.
 func getTotalInactiveFile(path string) (uint64, error) {
-	// TODO: no cgroupv2 support right now
+	var filename, varPrefix string
 	if node.CgroupIsV2() {
-		return 0, nil
+		filename = filepath.Join("/sys/fs/cgroup", path, "memory.stat")
+		varPrefix = "inactive_file "
+	} else {
+		filename = filepath.Join("/sys/fs/cgroup/memory", path, "memory.stat")
+		varPrefix = "total_inactive_file "
 	}
-
-	memoryStat := filepath.Join("/sys/fs/cgroup/memory", path, "memory.stat")
-	const totalInactiveFilePrefix = "total_inactive_file "
-	f, err := os.Open(memoryStat)
+	f, err := os.Open(filename)
 	if err != nil {
 		return 0, err
 	}
@@ -173,9 +174,9 @@ func getTotalInactiveFile(path string) (uint64, error) {
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), totalInactiveFilePrefix) {
+		if strings.HasPrefix(scanner.Text(), varPrefix) {
 			val, err := strconv.Atoi(
-				strings.TrimPrefix(scanner.Text(), totalInactiveFilePrefix),
+				strings.TrimPrefix(scanner.Text(), varPrefix),
 			)
 			if err != nil {
 				return 0, errors.Wrap(err, "unable to parse total inactive file value")
@@ -187,5 +188,5 @@ func getTotalInactiveFile(path string) (uint64, error) {
 		return 0, err
 	}
 
-	return 0, errors.Errorf("%q not found in %v", totalInactiveFilePrefix, memoryStat)
+	return 0, errors.Errorf("%q not found in %v", varPrefix, filename)
 }
