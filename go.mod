@@ -13,10 +13,10 @@ require (
 	github.com/containers/buildah v1.14.9
 	github.com/containers/common v0.9.1
 	github.com/containers/conmon v2.0.17+incompatible
-	github.com/containers/image/v5 v5.4.4
+	github.com/containers/image/v5 v5.5.1
 	github.com/containers/libpod v1.9.2
 	github.com/containers/ocicrypt v1.0.3
-	github.com/containers/storage v1.19.2
+	github.com/containers/storage v1.20.2
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
