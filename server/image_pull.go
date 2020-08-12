@@ -149,6 +149,9 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				log.Debugf(ctx, "image %s already in store, skipping pull", img)
 				pulled = img
 
+				// Skipped digests metrics
+				tryRecordSkippedMetric(ctx, img, tmpImgConfigDigest.String())
+
 				// Skipped bytes metrics
 				if storedImage.Size != nil {
 					counter, err := metrics.CRIOImagePullsByNameSkipped.GetMetricWithLabelValues(img)
@@ -168,6 +171,10 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		progress := make(chan types.ProgressProperties)
 		go func() {
 			for p := range progress {
+				if p.Event == types.ProgressEventSkipped {
+					// Skipped digests metrics
+					tryRecordSkippedMetric(ctx, img, p.Artifact.Digest.String())
+				}
 				if p.Artifact.Size > 0 {
 					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes (%.2f%%)",
 						p.Event, img, p.Artifact.Digest, p.Offset,
@@ -269,6 +276,18 @@ func tryIncrementImagePullFailureMetric(ctx context.Context, img string, err err
 		log.Warnf(ctx, "Unable to write image pull failure metric: %v", err)
 	} else {
 		nameCounter.Inc()
+	}
+}
+
+func tryRecordSkippedMetric(ctx context.Context, name, digest string) {
+	layer := fmt.Sprintf("%s@%s", name, digest)
+	log.Debugf(ctx, "Skipped layer %s", layer)
+
+	counter, err := metrics.CRIOImageLayerReuse.GetMetricWithLabelValues(layer)
+	if err != nil {
+		log.Warnf(ctx, "Unable to write image layer reuse metrics: %v", err)
+	} else {
+		counter.Inc()
 	}
 }
 

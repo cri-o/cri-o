@@ -60,7 +60,6 @@
     - name: install jq
       include: "build/jq.yml"
 
-
 - hosts: all
   remote_user: root
   vars_files:
@@ -76,7 +75,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-        version: "1.14.4"
+        version: "1.15"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
 
@@ -126,7 +125,7 @@
       include: "build/cri-tools.yml"
       vars:
         force_clone: true
-        cri_tools_git_version: v1.18.0
+        cri_tools_git_version: master
     - name: run critest validation and benchmarks
       include: critest.yml
 
