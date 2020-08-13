@@ -22,7 +22,7 @@ Note: This file assumes you've set your cgroup_driver as systemd
 Given you've set CIDR, and you've properly set the kubelet file, all you need to do is start crio (as defined [here](setup.md)), and run:
 `kubeadm init --pod-network-cidr=$CIDR`
 
-# Running kubeadm in a off line network
+# Running kubeadm in an off line network
 
 We will assume that the user has installed CRI-O and alls necessary packages. We will also assume that all necessary components are configured and everything is working as expected. The user should have a private repo where the docker images are pushed. Sample of images fot version 1.18.2:
 
