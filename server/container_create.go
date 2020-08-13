@@ -28,11 +28,6 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
-const (
-	seccompUnconfined      = "unconfined"
-	seccompLocalhostPrefix = "localhost/"
-)
-
 type orderedMounts []rspec.Mount
 
 // Len returns the number of mounts. Used in sorting.
@@ -610,12 +605,12 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 		return nil
 	}
 	if s.Config().Seccomp().IsDisabled() {
-		if profile != seccompUnconfined {
+		if profile != k8sV1.SeccompProfileNameUnconfined {
 			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
 		}
 		log.Warnf(ctx, "seccomp is not enabled in your kernel, running container without profile")
 	}
-	if profile == seccompUnconfined {
+	if profile == k8sV1.SeccompProfileNameUnconfined {
 		// running w/o seccomp, aka unconfined
 		specgen.Config.Linux.Seccomp = nil
 		return nil
@@ -632,10 +627,10 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 	}
 
 	// Load local seccomp profiles including their availability validation
-	if !strings.HasPrefix(profile, seccompLocalhostPrefix) {
+	if !strings.HasPrefix(profile, k8sV1.SeccompLocalhostProfileNamePrefix) {
 		return fmt.Errorf("unknown seccomp profile option: %q", profile)
 	}
-	fname := strings.TrimPrefix(profile, seccompLocalhostPrefix)
+	fname := strings.TrimPrefix(profile, k8sV1.SeccompLocalhostProfileNamePrefix)
 	file, err := ioutil.ReadFile(filepath.FromSlash(fname))
 	if err != nil {
 		return fmt.Errorf("cannot load seccomp profile %q: %v", fname, err)
