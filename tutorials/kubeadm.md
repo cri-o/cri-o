@@ -52,7 +52,7 @@ location = "user.private.repo/pause:3.2"
 
 Next the user should reload and restart the CRI-O service to load the configurations.
 
-Last step the user also should add the cgroup driver on the configuration file or pass it as a parameter when starting kubeadm for the master node sample of parameters for configuration file:
+Last step. The user also should add the cgroup driver to the configuration file or pass it as a parameter when starting kubeadm for the master node.  The following are samples of parameters for the configuration file:
 
 ```bash
 ---
