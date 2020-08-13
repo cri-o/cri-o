@@ -78,8 +78,8 @@ func newRuntimeVM(path string) RuntimeImpl {
 
 // CreateContainer creates a container.
 func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (retErr error) {
-	logrus.Debug("runtimeVM.createContainer() start")
-	defer logrus.Debug("runtimeVM.createContainer() end")
+	logrus.Debug("runtimeVM.CreateContainer() start")
+	defer logrus.Debug("runtimeVM.CreateContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -241,8 +241,8 @@ func (r *runtimeVM) startRuntimeDaemon(c *Container) error {
 
 // StartContainer starts a container.
 func (r *runtimeVM) StartContainer(c *Container) error {
-	logrus.Debug("runtimeVM.startContainer() start")
-	defer logrus.Debug("runtimeVM.startContainer() end")
+	logrus.Debug("runtimeVM.StartContainer() start")
+	defer logrus.Debug("runtimeVM.StartContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -276,8 +276,8 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
 func (r *runtimeVM) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	logrus.Debug("runtimeVM.execContainer() start")
-	defer logrus.Debug("runtimeVM.execContainer() end")
+	logrus.Debug("runtimeVM.ExecContainer() start")
+	defer logrus.Debug("runtimeVM.ExecContainer() end")
 
 	exitCode, err := r.execContainerCommon(c, cmd, 0, stdin, stdout, stderr, tty, resize)
 	if err != nil {
@@ -295,8 +295,8 @@ func (r *runtimeVM) ExecContainer(c *Container, cmd []string, stdin io.Reader, s
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *runtimeVM) ExecSyncContainer(c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
-	logrus.Debug("runtimeVM.execSyncContainer() start")
-	defer logrus.Debug("runtimeVM.execSyncContainer() end")
+	logrus.Debug("runtimeVM.ExecSyncContainer() start")
+	defer logrus.Debug("runtimeVM.ExecSyncContainer() end")
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	stdout := cioutil.NewNopWriteCloser(&stdoutBuf)
@@ -318,8 +318,8 @@ func (r *runtimeVM) ExecSyncContainer(c *Container, command []string, timeout in
 }
 
 func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) (exitCode int32, retErr error) {
-	logrus.Debug("runtimeVM.execContainer() start")
-	defer logrus.Debug("runtimeVM.execContainer() end")
+	logrus.Debug("runtimeVM.execContainerCommon() start")
+	defer logrus.Debug("runtimeVM.execContainerCommon() end")
 
 	// Cancel the context before returning to ensure goroutines are stopped.
 	ctx, cancel := context.WithCancel(r.ctx)
@@ -338,6 +338,14 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	}
 	defer execIO.Close()
 
+	// chan to notify that can call runtime's CloseIO API
+	closeIOChan := make(chan bool)
+	defer func() {
+		if closeIOChan != nil {
+			close(closeIOChan)
+		}
+	}()
+
 	execIO.Attach(cio.AttachOptions{
 		Stdin:     stdin,
 		Stdout:    stdout,
@@ -345,6 +353,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 		Tty:       tty,
 		StdinOnce: true,
 		CloseStdin: func() error {
+			<-closeIOChan
 			return r.closeIO(ctx, c.ID(), execID)
 		},
 	})
@@ -384,6 +393,10 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	if err := r.start(ctx, c.ID(), execID); err != nil {
 		return -1, err
 	}
+
+	// close closeIOChan to notify execIO exec has started.
+	close(closeIOChan)
+	closeIOChan = nil
 
 	// Initialize terminal resizing if necessary
 	if resize != nil {
@@ -443,8 +456,8 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 
 // UpdateContainer updates container resources
 func (r *runtimeVM) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
-	logrus.Debug("runtimeVM.updateContainer() start")
-	defer logrus.Debug("runtimeVM.updateContainer() end")
+	logrus.Debug("runtimeVM.UpdateContainer() start")
+	defer logrus.Debug("runtimeVM.UpdateContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
