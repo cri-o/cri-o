@@ -50,7 +50,7 @@ blocked = false
 location = "user.private.repo/pause:3.2"
 ```
 
-Next the user should reload and restart CRI-O service to load the configurations.
+Next the user should reload and restart the CRI-O service to load the configurations.
 
 Last step the user also should add the cgroup driver on the configuration file or pass it as a parameter when starting kubeadm for the master node sample of parameters for configuration file:
 
