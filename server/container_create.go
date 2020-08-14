@@ -115,38 +115,6 @@ func ensureSharedOrSlave(path string, mountInfos []*mount.Info) error {
 	return fmt.Errorf("path %q is mounted on %q but it is not a shared or slave mount", path, sourceMount)
 }
 
-func getMountInfo(mountInfos []*mount.Info, dir string) *mount.Info {
-	for _, m := range mountInfos {
-		if m.Mountpoint == dir {
-			return m
-		}
-	}
-	return nil
-}
-
-func getSourceMount(source string, mountInfos []*mount.Info) (path, optionalMountInfo string, _ error) {
-	mountinfo := getMountInfo(mountInfos, source)
-	if mountinfo != nil {
-		return source, mountinfo.Optional, nil
-	}
-
-	path = source
-	for {
-		path = filepath.Dir(path)
-		mountinfo = getMountInfo(mountInfos, path)
-		if mountinfo != nil {
-			return path, mountinfo.Optional, nil
-		}
-
-		if path == "/" {
-			break
-		}
-	}
-
-	// If we are here, we did not find parent mount. Something is wrong.
-	return "", "", fmt.Errorf("could not find source mount of %s", source)
-}
-
 func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string, specgen *generate.Generator) ([]rspec.Mount, error) {
 	mounts := []rspec.Mount{}
 	for dest := range containerInfo.Config.Config.Volumes {
