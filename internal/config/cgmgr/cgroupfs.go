@@ -38,7 +38,7 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 	if sbParent != "" {
 		parent = sbParent
 	}
-	return filepath.Join(parent, crioPrefix+"-"+containerID)
+	return filepath.Join("/", parent, crioPrefix+"-"+containerID)
 }
 
 // ContainerCgroupAbsolutePath just calls ContainerCgroupPath,
