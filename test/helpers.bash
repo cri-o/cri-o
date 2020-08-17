@@ -577,27 +577,15 @@ function get_host_ip() {
 
 function ping_pod() {
     ipv4=$(parse_pod_ipv4 "$1")
-    if output=$(ping -W 1 -c 5 "$ipv4"); then
-        echo "$output"
-    else
-        exit 1
-    fi
+    ping -W 1 -c 5 "$ipv4"
 
     ipv6=$(parse_pod_ipv6 "$1")
-    if output=$(ping6 -W 1 -c 5 "$ipv6"); then
-        echo "$output"
-    else
-        exit 1
-    fi
+    ping6 -W 1 -c 5 "$ipv6"
 }
 
 function ping_pod_from_pod() {
     ipv4=$(parse_pod_ipv4 "$1")
-    if output=$(run crictl exec --sync "$2" ping -W 1 -c 2 "$ipv4"); then
-        echo "$output"
-    else
-        exit 1
-    fi
+    crictl exec --sync "$2" ping -W 1 -c 2 "$ipv4"
 
     # since RHEL kernels don't mirror ipv4.ip_forward sysctl to ipv6, this fails
     # in such an environment without giving all containers NET_RAW capability
@@ -607,11 +595,7 @@ function ping_pod_from_pod() {
         return
     fi
     ipv6=$(parse_pod_ipv6 "$1")
-    if output=$(run crictl exec --sync "$2" ping6 -W 1 -c 2 "$ipv6"); then
-        echo "$output"
-    else
-        exit 1
-    fi
+    crictl exec --sync "$2" ping6 -W 1 -c 2 "$ipv6"
 }
 
 function cleanup_network_conf() {
