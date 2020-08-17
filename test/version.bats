@@ -10,16 +10,16 @@ load helpers
 
     # then
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "Version:" ]]
-    [[ "$output" =~ "GitCommit:" ]]
-    [[ "$output" =~ "GitTreeState:" ]]
-    if [[ "$output" =~ "Linkmode: dynamic" ]]; then
-        [[ "$output" =~ "BuildDate:" ]]
+    [[ "$output" == *"Version:"* ]]
+    [[ "$output" == *"GitCommit:"* ]]
+    [[ "$output" == *"GitTreeState:"* ]]
+    if [[ "$output" == *"Linkmode: dynamic"* ]]; then
+        [[ "$output" == *"BuildDate:"* ]]
     fi
-    [[ "$output" =~ "GoVersion:" ]]
-    [[ "$output" =~ "Compiler:" ]]
-    [[ "$output" =~ "Platform:" ]]
-    [[ "$output" =~ "Linkmode:" ]]
+    [[ "$output" == *"GoVersion:"* ]]
+    [[ "$output" == *"Compiler:"* ]]
+    [[ "$output" == *"Platform:"* ]]
+    [[ "$output" == *"Linkmode:"* ]]
 }
 
 @test "version should succeed with JSON" {

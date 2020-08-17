@@ -14,8 +14,8 @@ function teardown() {
 	start_crio
 	out=`echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
 	echo "$out"
-	[[ "$out" =~ "\"cgroup_driver\":\"$CONTAINER_CGROUP_MANAGER\"" ]]
-	[[ "$out" =~ "\"storage_root\":\"$TESTDIR/crio\"" ]]
+	[[ "$out" == *"\"cgroup_driver\":\"$CONTAINER_CGROUP_MANAGER\""* ]]
+	[[ "$out" == *"\"storage_root\":\"$TESTDIR/crio\""* ]]
 
 	stop_crio
 }
@@ -33,16 +33,16 @@ function teardown() {
 
 	out=`echo -e "GET /containers/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
 	echo "$out"
-	[[ "$out" =~ "\"sandbox\":\"$pod_id\"" ]]
-	[[ "$out" =~ "\"image\":\"quay.io/crio/redis:alpine\"" ]]
-	[[ "$out" =~ "\"image_ref\":\"$REDIS_IMAGEREF\"" ]]
+	[[ "$out" == *"\"sandbox\":\"$pod_id\""* ]]
+	[[ "$out" == *"\"image\":\"quay.io/crio/redis:alpine\""* ]]
+	[[ "$out" == *"\"image_ref\":\"$REDIS_IMAGEREF\""* ]]
 
 	run crictl inspect --output json "$ctr_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "\"id\": \"$ctr_id\"" ]]
-	[[ "$output" =~ "\"image\": \"quay.io/crio/redis:alpine\"" ]]
-	[[ "$output" =~ "\"imageRef\": \"$REDIS_IMAGEREF\"" ]]
+	[[ "$output" == *"\"id\": \"$ctr_id\""* ]]
+	[[ "$output" == *"\"image\": \"quay.io/crio/redis:alpine\""* ]]
+	[[ "$output" == *"\"imageRef\": \"$REDIS_IMAGEREF\""* ]]
 
 	run crictl inspectp --output json "$pod_id"
 	echo "$output"
@@ -50,8 +50,8 @@ function teardown() {
 
 	ipv4=$(parse_pod_ipv4 "$ctr_id")
 	ipv6=$(parse_pod_ipv6 "$ctr_id")
-	[[ "$out" =~ "\"ip_addresses\":[\"$ipv4\",\"$ipv6\"]" ]]
-	[[ "$output" =~ "\"ip\": \"$ipv4\"" ]]
+	[[ "$out" == *"\"ip_addresses\":[\"$ipv4\",\"$ipv6\"]"* ]]
+	[[ "$output" == *"\"ip\": \"$ipv4\""* ]]
 
 
 # TODO: add some other check based on the json below:
@@ -63,7 +63,7 @@ function teardown() {
 	start_crio
 	out=`echo -e "GET /containers/notexists HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
 	echo "$out"
-	[[ "$out" =~ "can't find the container with id notexists" ]]
+	[[ "$out" == *"can't find the container with id notexists"* ]]
 
 	stop_crio
 }

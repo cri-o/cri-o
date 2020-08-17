@@ -48,6 +48,6 @@ function teardown() {
 
 	out=`echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
 	echo "$out"
-	[[ "$out" =~ "100000" ]]
-	[[ "$out" =~ "200000" ]]
+	[[ "$out" == *"100000"* ]]
+	[[ "$out" == *"200000"* ]]
 }

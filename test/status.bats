@@ -31,7 +31,7 @@ function run_crio_status() {
 
     # then
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "[crio]" ]]
+    [[ "$output" == *"[crio]"* ]]
 }
 
 @test "status should fail to retrieve the config with invalid socket" {
@@ -50,7 +50,7 @@ function run_crio_status() {
 
     # then
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "storage driver" ]]
+    [[ "$output" == *"storage driver"* ]]
 }
 
 @test "status should fail to retrieve the info with invalid socket" {
@@ -82,7 +82,7 @@ function run_crio_status() {
 
     # then
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "sandbox: $pod" ]]
+    [[ "$output" == *"sandbox: $pod"* ]]
 }
 
 @test "should fail to retrieve the container info without ID" {

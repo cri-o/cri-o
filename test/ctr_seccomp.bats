@@ -74,7 +74,7 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "Operation not permitted" ]]
+	[[ "$output" == *"Operation not permitted"* ]]
 }
 
 # 3. test running with ctr unconfined and profile empty
@@ -166,7 +166,7 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "Operation not permitted" ]]
+	[[ "$output" == *"Operation not permitted"* ]]
 }
 
 # 6. test running with ctr docker/default
@@ -200,5 +200,5 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	echo "$output"
 	[ "$status" -ne 0 ]
-	[[ "$output" =~ "Operation not permitted" ]]
+	[[ "$output" == *"Operation not permitted"* ]]
 }

@@ -31,7 +31,7 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" cat /sys/fs/cgroup/pids/pids.max
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" =~ "1234" ]]
+	[[ "$output" == "1234" ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -50,7 +50,7 @@ function teardown() {
 	pod_id="$output"
 	scope_name="crio-conmon-$pod_id.scope"
 	run systemctl status $scope_name
-	[[ "$output" =~ "customcrioconmon.slice" ]]
+	[[ "$output" == *"customcrioconmon.slice"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
