@@ -108,7 +108,7 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
 
 GO_LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
-TESTIMAGE_VERSION := master-1.3.7
+TESTIMAGE_VERSION := master-1.4.0
 TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
@@ -228,9 +228,9 @@ local-image:
 	$(TESTIMAGE_SCRIPT)
 
 test-images:
+	$(TESTIMAGE_SCRIPT) -g 1.15 -a amd64
+	$(TESTIMAGE_SCRIPT) -g 1.15 -a 386
 	$(TESTIMAGE_SCRIPT) -g 1.14 -a amd64
-	$(TESTIMAGE_SCRIPT) -g 1.14 -a 386
-	$(TESTIMAGE_SCRIPT) -g 1.13 -a amd64
 
 nixpkgs:
 	@nix run -f channel:nixos-20.03 nix-prefetch-git -c nix-prefetch-git \
