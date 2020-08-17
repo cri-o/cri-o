@@ -24,7 +24,7 @@ Given you've set CIDR, and you've properly set the kubelet file, all you need to
 
 # Running kubeadm in an off line network
 
-We will assume that the user has installed CRI-O and alls necessary packages. We will also assume that all necessary components are configured and everything is working as expected. The user should have a private repo where the docker images are pushed. Sample of images fot version 1.18.2:
+We will assume that the user has installed CRI-O and all necessary packages. We will also assume that all necessary components are configured and everything is working as expected. The user should have a private repo where the container images are pushed. An example of container images for Kubernetes version 1.18.2:
 
 ```bash
 $ kubeadm config images list --image-repository user.private.repo --kubernetes-version=v1.18.2
