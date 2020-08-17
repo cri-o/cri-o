@@ -30,7 +30,14 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	}
 	log.Infof(ctx, "Pulling image: %s", image)
 
-	pullArgs := pullArguments{image: image}
+	sandboxCgroup := ""
+	if req.SandboxConfig != nil && req.SandboxConfig.Linux != nil {
+		sandboxCgroup = req.SandboxConfig.Linux.CgroupParent
+	}
+	pullArgs := pullArguments{
+		image:         image,
+		sandboxCgroup: sandboxCgroup,
+	}
 	if req.GetAuth() != nil {
 		username := req.GetAuth().Username
 		password := req.GetAuth().Password
@@ -207,13 +214,33 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				}
 			}
 		}()
+
+		cgroup := ""
+
+		if s.config.SeparatePullCgroup != "" {
+			if !s.config.CgroupManager().IsSystemd() {
+				return "", errors.New("--separate-pull-cgroup is supported only with systemd")
+			}
+			if s.config.SeparatePullCgroup == "pod" {
+				cgroup = pullArgs.sandboxCgroup
+			} else {
+				cgroup = s.config.SeparatePullCgroup
+				if !strings.Contains(cgroup, ".slice") {
+					return "", fmt.Errorf("invalid systemd cgroup %q", cgroup)
+				}
+			}
+		}
+
 		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &storage.ImageCopyOptions{
 			SourceCtx:        &sourceCtx,
 			DestinationCtx:   s.config.SystemContext,
 			OciDecryptConfig: decryptConfig,
 			ProgressInterval: time.Second,
 			Progress:         progress,
-			UseNewProcess:    false,
+			CgroupPull: storage.CgroupPullConfiguration{
+				UseNewCgroup: s.config.SeparatePullCgroup != "",
+				ParentCgroup: cgroup,
+			},
 		})
 		if err != nil {
 			log.Debugf(ctx, "error pulling image %s: %v", img, err)

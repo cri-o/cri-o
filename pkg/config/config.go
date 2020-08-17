@@ -270,6 +270,9 @@ type RuntimeConfig struct {
 	// error because the container state is still tagged as "running".
 	CtrStopTimeout int64 `toml:"ctr_stop_timeout"`
 
+	// SeparatePullCgroup specifies whether an image pull must be performed in a separate cgroup
+	SeparatePullCgroup string `toml:"separate_pull_cgroup"`
+
 	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
 	NoPivot bool `toml:"no_pivot"`
 

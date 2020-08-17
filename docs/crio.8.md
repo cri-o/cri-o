@@ -74,6 +74,7 @@ crio
 [--runtimes]=[value]
 [--seccomp-profile]=[value]
 [--selinux]
+[--separate-pull-cgroup]=[value]
 [--signature-policy]=[value]
 [--storage-driver|-s]=[value]
 [--storage-opt]=[value]
@@ -279,6 +280,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used. (default: "")
 
 **--selinux**: Enable selinux support (default: false)
+
+**--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup (default: "")
 
 **--signature-policy**="": Path to signature policy JSON file. (default: "", to use the system-wide default)
 

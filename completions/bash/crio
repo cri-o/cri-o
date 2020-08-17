@@ -75,6 +75,7 @@ h
 --runtimes
 --seccomp-profile
 --selinux
+--separate-pull-cgroup
 --signature-policy
 --storage-driver
 --storage-opt

@@ -279,6 +279,8 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **big_files_temporary_dir**=""
   Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.
 
+**separate_pull_cgroup**=""
+  [EXPERIMENTAL] If its value is set, then images are pulled into the specified cgroup.  If its value is set to "pod", then the pod's cgroup is used.  It is currently supported only with the systemd cgroup manager.
 
 ## CRIO.NETWORK TABLE
 The `crio.network` table containers settings pertaining to the management of CNI plugins.
