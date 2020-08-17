@@ -25,7 +25,7 @@ function teardown() {
 
     # then
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "pids_limit = 5678" ]]
+    [[ "$output" == *"pids_limit = 5678"* ]]
 }
 
 @test "config dir should fail with invalid option" {
@@ -38,5 +38,5 @@ function teardown() {
     RES=$(cat "$CRIO_LOG")
 
     # then
-    [[ "$RES" =~ "unable to decode configuration" ]]
+    [[ "$RES" == *"unable to decode configuration"* ]]
 }

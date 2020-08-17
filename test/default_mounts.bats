@@ -33,11 +33,11 @@ function teardown() {
     run crictl exec --sync "$ctr_id" ls /run/secrets
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "test.txt" ]]
+    [[ "$output" == *"test.txt"* ]]
     run crictl exec --sync "$ctr_id" ls /run/secrets/mysymlink
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "key.pem" ]]
+    [[ "$output" == *"key.pem"* ]]
 }
 
 @test "default mounts correctly sorted with other mounts" {
@@ -64,14 +64,14 @@ function teardown() {
     run crictl exec --sync "$ctr_id" cat /run/secrets/clash/clashing.txt
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "clashing..." ]]
+    [[ "$output" == *"clashing..."* ]]
     run crictl exec --sync "$ctr_id" ls -la /run/secrets
     echo "$output"
     [ "$status" -eq 0 ]
     run crictl exec --sync "$ctr_id" cat /run/secrets/test.txt
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "Testing secrets mounts. I am mounted!" ]]
+    [[ "$output" == *"Testing secrets mounts. I am mounted!"* ]]
 }
 
 @test "test deprecated --default-mounts flag" {
@@ -87,5 +87,5 @@ function teardown() {
     run crictl exec --sync "$ctr_id" ls /container/path1
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "test.txt" ]]
+    [[ "$output" == *"test.txt"* ]]
 }

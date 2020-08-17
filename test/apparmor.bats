@@ -57,7 +57,7 @@ load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it
     ctr_id="$output"
     run crictl exec --sync "$ctr_id" touch test.txt
     echo "$output"
-    [[ "$output" =~ "Permission denied" ]]
+    [[ "$output" == *"Permission denied"* ]]
 
     remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
     cleanup_test
@@ -83,7 +83,7 @@ load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile(
     ctr_id="$output"
     run crictl exec --sync "$ctr_id" touch test.txt
     echo "$output"
-    [[ "$output" =~ "Permission denied" ]]
+    [[ "$output" == *"Permission denied"* ]]
 
     remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
     cleanup_test
@@ -105,7 +105,7 @@ run_a_container_with_wrong_apparmor_profile_name() {
     run crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
     echo "$output"
     [ "$status" -ne 0 ]
-    [[ "$output" =~ "Creating container failed" ]]
+    [[ "$output" == *"Creating container failed"* ]]
 
     cleanup_test
 }
