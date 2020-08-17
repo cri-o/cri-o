@@ -108,7 +108,23 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (retErr e
 		return err
 	}
 
-	containerIO.AddOutput("logfile", f, f)
+	var stdoutCh, stderrCh <-chan struct{}
+	wc := cioutil.NewSerialWriteCloser(f)
+	stdout, stdoutCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stdout, -1)
+	stderr, stderrCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stderr, -1)
+
+	go func() {
+		if stdoutCh != nil {
+			<-stdoutCh
+		}
+		if stderrCh != nil {
+			<-stderrCh
+		}
+		logrus.Debugf("Finish redirecting log file %q, closing it", c.LogPath())
+		f.Close()
+	}()
+
+	containerIO.AddOutput(c.LogPath(), stdout, stderr)
 	containerIO.Pipe()
 
 	r.Lock()
@@ -148,12 +164,10 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (retErr e
 
 	select {
 	case err = <-createdCh:
-		f.Close()
 		if err != nil {
 			return errors.Errorf("CreateContainer failed: %v", err)
 		}
 	case <-time.After(ContainerCreateTimeout):
-		f.Close()
 		if err := r.remove(r.ctx, c.ID(), ""); err != nil {
 			return err
 		}
