@@ -325,7 +325,7 @@ function setup_crio() {
 }
 
 function pull_test_containers() {
-    if ! run crictl inspecti quay.io/crio/redis:alpine; then
+    if ! crictl inspecti quay.io/crio/redis:alpine; then
         crictl pull quay.io/crio/redis:alpine
     fi
     REDIS_IMAGEID=$(crictl inspecti --output=table quay.io/crio/redis:alpine | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
@@ -333,25 +333,25 @@ function pull_test_containers() {
     REDIS_IMAGEREF=$(crictl inspecti --output=table quay.io/crio/redis:alpine | grep ^Digest: | head -n 1 | sed -e "s/Digest: //g")
     export REDIS_IMAGEREF
 
-    if ! run crictl inspecti quay.io/crio/oom; then
+    if ! crictl inspecti quay.io/crio/oom; then
         crictl pull quay.io/crio/oom
     fi
     OOM_IMAGEID=$(crictl inspecti quay.io/crio/oom | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
     export OOM_IMAGEID
 
-    if ! run crictl inspecti quay.io/crio/stderr-test; then
+    if ! crictl inspecti quay.io/crio/stderr-test; then
         crictl pull quay.io/crio/stderr-test:latest
     fi
     STDERR_IMAGEID=$(crictl inspecti quay.io/crio/stderr-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
     export STDERR_IMAGEID
 
-    if ! run crictl inspecti quay.io/crio/busybox; then
+    if ! crictl inspecti quay.io/crio/busybox; then
         crictl pull quay.io/crio/busybox:latest
     fi
     BUSYBOX_IMAGEID=$(crictl inspecti quay.io/crio/busybox | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
     export BUSYBOX_IMAGEID
 
-    if ! run crictl inspecti quay.io/crio/image-volume-test; then
+    if ! crictl inspecti quay.io/crio/image-volume-test; then
         crictl pull quay.io/crio/image-volume-test:latest
     fi
     VOLUME_IMAGEID=$(crictl inspecti quay.io/crio/image-volume-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
