@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 17 Aug 2020 20:23:00 UTC for commit [24d947e][0]._
+_Generated on Mon, 17 Aug 2020 21:11:59 UTC for commit [13c889a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/24d947e891c1091593d82092ff63315957a0de62
+[0]: https://github.com/cri-o/cri-o/commit/13c889a606c99fd5a8f9bf3af4c9848c621b21cb
 
 ## Outdated Dependencies
 
@@ -542,7 +542,7 @@ _Generated on Mon, 17 Aug 2020 20:23:00 UTC for commit [24d947e][0]._
 | k8s.io/api                                              | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200817185331-0d1d65661ca0 | true   | true             |
 | k8s.io/apiextensions-apiserver                          | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200817185331-0d1d65661ca0 | false  | true             |
 | k8s.io/apimachinery                                     | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200817185331-0d1d65661ca0 | true   | true             |
-| k8s.io/apiserver                                        | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200817185331-0d1d65661ca0 | false  | true             |
+| k8s.io/apiserver                                        | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200817210530-f55eac08c7db | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200817185331-0d1d65661ca0 | false  | true             |
 | k8s.io/client-go                                        | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200817185331-0d1d65661ca0 | true   | true             |
 | k8s.io/cloud-provider                                   | v0.0.0-20200804142048-1afc53514032                | v0.0.0-20200817185331-0d1d65661ca0 | false  | true             |
