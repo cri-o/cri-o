@@ -223,7 +223,7 @@ function setup_test() {
 # Run crio using the binary specified by $CRIO_BINARY_PATH.
 # This must ONLY be run on engines created with `start_crio`.
 function crio() {
-    "$CRIO_BINARY_PATH" --listen "$CRIO_SOCKET" "$@"
+    "$CRIO_BINARY_PATH" --listen "$CRIO_SOCKET" --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT:$RUNTIME_TYPE" "$@"
 }
 
 # Run crictl using the binary specified by $CRICTL_BINARY.
