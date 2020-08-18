@@ -467,12 +467,22 @@ function cleanup_lvm() {
     fi
 }
 
+function cleanup_testdir() {
+    # shellcheck disable=SC2013
+    for mnt in $(awk '{print $2}' /proc/self/mounts | grep ^"$TESTDIR" | sort); do
+        umount "$mnt"
+    done
+    rm -rf "$TESTDIR" || true
+    unset TESTDIR
+}
+
 function cleanup_test() {
+    [ -z "$TESTDIR" ] && return
     cleanup_ctrs
     cleanup_pods
     stop_crio
     cleanup_lvm
-    rm -r "$TESTDIR" || true
+    cleanup_testdir
 }
 
 function load_apparmor_profile() {
