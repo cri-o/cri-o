@@ -24,7 +24,5 @@ function teardown() {
                 --ginkgo.skip="${CRI_SKIP}" \
                 --ginkgo.flakeAttempts=3 >&3
 
-    [ "$status" -eq 0 ]
-
     stop_crio
 }
