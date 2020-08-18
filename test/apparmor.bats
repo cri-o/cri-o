@@ -2,6 +2,10 @@
 
 load helpers
 
+function teardown() {
+    cleanup_test
+}
+
 # AppArmor tests have to run in sequence since they modify the system state
 @test "apparmor tests (in sequence)" {
     if [[ $(is_apparmor_enabled) -eq 0 ]]; then
