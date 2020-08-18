@@ -267,12 +267,27 @@ func (c *container) ReadOnly(serverIsReadOnly bool) bool {
 // it takes the sandbox's label, which it falls back upon
 func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
 	selinuxConfig := c.config.GetLinux().GetSecurityContext().GetSelinuxOptions()
-	if selinuxConfig != nil {
-		return utils.GetLabelOptions(selinuxConfig), nil
-	}
+
+	labels := map[string]string{}
+
 	labelOptions, err := label.DupSecOpt(sboxLabel)
 	if err != nil {
 		return nil, err
 	}
-	return labelOptions, nil
+	for _, r := range labelOptions {
+		k := strings.Split(r, ":")[0]
+		labels[k] = r
+	}
+
+	if selinuxConfig != nil {
+		for _, r := range utils.GetLabelOptions(selinuxConfig) {
+			k := strings.Split(r, ":")[0]
+			labels[k] = r
+		}
+	}
+	ret := []string{}
+	for _, v := range labels {
+		ret = append(ret, v)
+	}
+	return ret, nil
 }
