@@ -11,8 +11,8 @@ function teardown() {
 }
 
 @test "pids limit" {
-	if ! grep pids /proc/self/cgroup; then
-		skip "pids cgroup controller is not mounted"
+	if ! grep -qEw ^pids /proc/cgroups; then
+		skip "pids cgroup controller is not available"
 	fi
 	CONTAINER_PIDS_LIMIT=1234 start_crio
 
@@ -21,7 +21,7 @@ function teardown() {
 
 	ctr_id=$(crictl run "$TESTDIR"/container_pids_limit.json "$TESTDATA"/sandbox_config.json)
 
-	run crictl exec --sync "$ctr_id" cat /sys/fs/cgroup/pids/pids.max
+	run crictl exec --sync "$ctr_id" sh -c 'cat /sys/fs/cgroup/pids/pids.max 2>/dev/null || cat /sys/fs/cgroup/pids.max'
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "1234" ]]
