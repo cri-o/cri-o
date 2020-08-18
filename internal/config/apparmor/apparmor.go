@@ -1,6 +1,9 @@
 package apparmor
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/libpod/pkg/apparmor"
@@ -9,12 +12,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-const (
-	// DefaultProfile is the default profile name
-	DefaultProfile = "crio-default"
-
-	unconfined = "unconfined"
-)
+// DefaultProfile is the default profile name
+const DefaultProfile = "crio-default"
 
 // Config is the global AppArmor configuration type
 type Config struct {
@@ -38,9 +37,9 @@ func (c *Config) LoadProfile(profile string) error {
 		return nil
 	}
 
-	if profile == unconfined {
+	if profile == v1.AppArmorBetaProfileNameUnconfined {
 		logrus.Info("AppArmor profile is unconfined which basically disables it")
-		c.defaultProfile = unconfined
+		c.defaultProfile = v1.AppArmorBetaProfileNameUnconfined
 		return nil
 	}
 
@@ -131,4 +130,33 @@ func reloadDefaultProfile() error {
 		}
 	}
 	return nil
+}
+
+// Validate checks if the prerequisites for running AppArmor profiles are met.
+func (c *Config) Validate() error {
+	if !c.IsEnabled() {
+		return nil
+	}
+
+	const (
+		binary = "apparmor_parser"
+		sbin   = "/sbin"
+	)
+
+	// `/sbin` is not always in `$PATH`, so we check it explicitly
+	sbinBinaryPath := filepath.Join(sbin, binary)
+	if _, err := os.Stat(sbinBinaryPath); err == nil {
+		logrus.Infof("Found %s binary in %s", binary, sbinBinaryPath)
+		return nil
+	}
+
+	// Fallback to checking $PATH
+	if path, err := exec.LookPath(binary); err == nil {
+		logrus.Infof("Found %s binary in %s", binary, path)
+		return nil
+	}
+
+	return errors.Errorf(
+		"%s binary neither found in %s nor $PATH", binary, sbin,
+	)
 }

@@ -832,6 +832,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if !c.cgroupManager.IsSystemd() && c.ConmonCgroup != "pod" && c.ConmonCgroup != "" {
 			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
 		}
+
+		if err := c.apparmorConfig.Validate(); err != nil {
+			return errors.Wrap(err, "validate AppArmor config")
+		}
 	}
 
 	return nil
