@@ -452,9 +452,15 @@ func (c *Config) UpdateFromFile(path string) error {
 	t := new(tomlConfig)
 	t.fromConfig(c)
 
-	_, err = toml.Decode(string(data), t)
+	metadata, err := toml.Decode(string(data), t)
 	if err != nil {
 		return fmt.Errorf("unable to decode configuration %v: %v", path, err)
+	}
+
+	runtimesKey := []string{"crio", "runtime", "default_runtime"}
+	if metadata.IsDefined(runtimesKey...) &&
+		t.Crio.Runtime.RuntimeConfig.DefaultRuntime != defaultRuntime {
+		delete(c.Runtimes, defaultRuntime)
 	}
 
 	t.toConfig(c)
