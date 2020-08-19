@@ -9,12 +9,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-const (
-	// DefaultProfile is the default profile name
-	DefaultProfile = "crio-default"
-
-	unconfined = "unconfined"
-)
+// DefaultProfile is the default profile name
+const DefaultProfile = "crio-default"
 
 // Config is the global AppArmor configuration type
 type Config struct {
@@ -38,9 +34,9 @@ func (c *Config) LoadProfile(profile string) error {
 		return nil
 	}
 
-	if profile == unconfined {
+	if profile == v1.AppArmorBetaProfileNameUnconfined {
 		logrus.Info("AppArmor profile is unconfined which basically disables it")
-		c.defaultProfile = unconfined
+		c.defaultProfile = v1.AppArmorBetaProfileNameUnconfined
 		return nil
 	}
 
