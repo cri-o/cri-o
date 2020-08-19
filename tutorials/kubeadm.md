@@ -57,7 +57,7 @@ location = "user.private.repo"
 
 Next the user should reload and restart the CRI-O service to load the configurations.
 
-The user should not forget to add the cgroup driver. The following are samples of parameters for the configuration file as documented also at [Configure cgroup driver used by kubelet on control-plane node](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#configure-cgroup-driver-used-by-kubelet-on-control-plane-node):
+The user needs to add the cgroup driver to the configuration file or pass it as a parameter when starting kubeadm for the master node. The following are samples of parameters for the configuration file:
 
 ```bash
 ---
