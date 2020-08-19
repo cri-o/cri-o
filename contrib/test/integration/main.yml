@@ -33,8 +33,8 @@
     - name: clone build and install kubernetes for cgroup v2
       include: "build/kubernetes.yml"
       vars:
-        k8s_git_version: "master"
-        k8s_github_fork: "kubernetes"
+        k8s_git_version: "fix-cgroup-v2-cgroupfs-path"
+        k8s_github_fork: "giuseppe"
         crio_socket: "/var/run/crio/crio.sock"
       when: "cgroupv2 | bool"
 
