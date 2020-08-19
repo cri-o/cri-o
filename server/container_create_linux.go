@@ -1102,7 +1102,7 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 			Destination: dest,
 			Type:        "tmpfs",
 			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup", "size=65536k"),
+			Options:     append(options, "tmpcopyup"),
 		}
 		g.AddMount(tmpfsMnt)
 	}

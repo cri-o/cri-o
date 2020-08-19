@@ -7,9 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/oci"
-	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -399,22 +397,14 @@ func (s *Sandbox) Ready(takeLock bool) bool {
 // UnmountShm removes the shared memory mount for the sandbox and returns an
 // error if any failure occurs.
 func (s *Sandbox) UnmountShm() error {
-	if s.ShmPath() == DevShmPath {
+	fp := s.ShmPath()
+	if fp == DevShmPath {
 		return nil
 	}
 
-	// we got namespaces in the form of
-	// /var/run/containers/storage/overlay-containers/CID/userdata/shm
-	// but /var/run on most system is symlinked to /run so we first resolve
-	// the symlink and then try and see if it's mounted
-	fp, err := securejoin.SecureJoin("/", s.ShmPath())
-	if err != nil {
-		return err
-	}
-	if mounted, err := mount.Mounted(fp); err == nil && mounted {
-		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil {
-			return errors.Wrapf(err, "unable to unmount %s", fp)
-		}
+	// try to unmount, ignoring "not mounted" (EINVAL) error
+	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
+		return errors.Wrapf(err, "unable to unmount %s", fp)
 	}
 
 	return nil

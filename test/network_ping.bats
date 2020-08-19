@@ -3,8 +3,8 @@
 load helpers
 
 function setup() {
-    export CONTAINER_DEFAULT_SYSCTLS='net.ipv4.ping_group_range=0   2147483647'
     setup_test
+    CONTAINER_DEFAULT_SYSCTLS='net.ipv4.ping_group_range=0   2147483647' start_crio
 }
 
 function teardown() {
@@ -13,7 +13,6 @@ function teardown() {
 }
 
 @test "Ping pod from the host" {
-    start_crio
     run crictl runp "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
@@ -30,7 +29,6 @@ function teardown() {
 }
 
 @test "Ping pod from another pod" {
-    start_crio
     run crictl runp "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
