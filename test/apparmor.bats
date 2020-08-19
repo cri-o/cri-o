@@ -13,6 +13,7 @@ function teardown() {
     fi
 
     load_default_apparmor_profile_and_run_a_container_with_it
+    load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it
     load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile
     run_a_container_with_wrong_apparmor_profile_name
     run_a_container_after_unloading_default_apparmor_profile
