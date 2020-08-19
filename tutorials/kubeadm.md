@@ -37,7 +37,7 @@ user.private.repo/etcd:3.4.3-0
 user.private.repo/coredns:1.6.7
 ```
 
-The user needs to configure the [registries.conf](https://www.mankier.com/5/containers-registries.conf) file.
+The user needs to configure the [registries.conf](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md) file.
 
 Sample of configurations:
 
