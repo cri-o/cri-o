@@ -22,8 +22,9 @@ var (
 )
 
 const (
-	validFilePath = "/bin/sh"
-	invalidPath   = "/proc/invalid"
+	validFilePath   = "/bin/sh"
+	invalidPath     = "/proc/invalid"
+	validConmonPath = "/bin/conmon"
 )
 
 var _ = BeforeSuite(func() {
