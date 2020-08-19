@@ -305,7 +305,14 @@ func infraPid(infra *oci.Container) int {
 	if infra != nil {
 		var err error
 		pid, err = infra.Pid()
-		if err != nil {
+		// There are some cases where ErrNotInitialized is expected.
+		// For instance, when we're creating a pod sandbox while managing namespace lifecycle,
+		// we create the network stack before we create the infra container.
+		// Since we're pinning namespaces, we already have the namespace we need.
+		// Later users of this pid will either find we have a valid pinned namespace (which we will in this case),
+		// or find we have an invalid /proc entry (a negative pid).
+		// Thus, we don't need to error here if the pid is not initialized
+		if err != nil && err != oci.ErrNotInitialized {
 			logrus.Errorf("pid for infra container %s not found: %v", infra.ID(), err)
 		}
 	}

@@ -28,6 +28,7 @@ var (
 	defaultStopSignal   = strconv.Itoa(defaultStopSignalInt)
 	ErrContainerStopped = errors.New("container is already stopped")
 	ErrNotFound         = errors.New("container process not found")
+	ErrNotInitialized   = errors.New("container PID not initialized")
 )
 
 // Container represents a runtime container.
@@ -413,10 +414,10 @@ func (c *Container) Pid() (int, error) {
 // and it is the same process that was originally started by the runtime.
 func (c *Container) pid() (int, error) {
 	if c.state == nil {
-		return 0, errors.New("state not initialized")
+		return 0, ErrNotInitialized
 	}
 	if c.state.InitPid <= 0 {
-		return 0, errors.New("PID not initialized")
+		return 0, ErrNotInitialized
 	}
 
 	// container has stopped (as pid is initialized but the runc state has overwritten it)
