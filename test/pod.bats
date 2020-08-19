@@ -195,8 +195,7 @@ function teardown() {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
-	export CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward=1"
-	start_crio
+	CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward=1" start_crio
 	run crictl runp "$TESTDATA"/sandbox_config_sysctl.json
 	echo "$output"
 	[ "$status" -eq 0 ]

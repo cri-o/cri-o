@@ -483,14 +483,6 @@ function remove_apparmor_profile() {
     "$APPARMOR_PARSER_BINARY" -R "$1"
 }
 
-function is_seccomp_enabled() {
-    if ! "$CHECKSECCOMP_BINARY"; then
-        echo 0
-        return
-    fi
-    echo 1
-}
-
 function is_apparmor_enabled() {
     if [[ -f "$APPARMOR_PARAMETERS_FILE_PATH" ]]; then
         out=$(cat "$APPARMOR_PARAMETERS_FILE_PATH")
