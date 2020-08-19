@@ -35,16 +35,9 @@ CONTAINER_UID_MAPPINGS=${CONTAINER_UID_MAPPINGS:-}
 CONTAINER_GID_MAPPINGS=${CONTAINER_GID_MAPPINGS:-}
 OVERRIDE_OPTIONS=${OVERRIDE_OPTIONS:-}
 # Runtime
-CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-runc}
 CONTAINER_DEFAULT_RUNTIME=${CONTAINER_DEFAULT_RUNTIME:-runc}
-RUNTIME_NAME=${RUNTIME_NAME:-runc}
-RUNTIME_PATH=$(command -v "$CONTAINER_RUNTIME" || true)
-RUNTIME_BINARY=${RUNTIME_PATH:-$(command -v runc)}
+RUNTIME_BINARY_PATH=$(command -v "$CONTAINER_DEFAULT_RUNTIME")
 RUNTIME_TYPE=${RUNTIME_TYPE:-oci}
-if [[ $CONTAINER_RUNTIME == "kata-runtime" ]]; then
-    export RUNTIME_NAME="$CONTAINER_RUNTIME"
-    export CONTAINER_DEFAULT_RUNTIME="$RUNTIME_NAME"
-fi
 # Path of the apparmor_parser binary.
 APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
 # Path of the apparmor profile for test.
@@ -200,7 +193,7 @@ function crictl() {
 
 # Run the runtime binary with the specified RUNTIME_ROOT
 function runtime() {
-    "$CONTAINER_RUNTIME" --root "$RUNTIME_ROOT" "$@"
+    "$RUNTIME_BINARY_PATH" --root "$RUNTIME_ROOT" "$@"
 }
 
 # Communicate with Docker on the host machine.
@@ -268,7 +261,9 @@ function setup_crio() {
     CNI_DEFAULT_NETWORK=${CNI_DEFAULT_NETWORK:-crio}
     CNI_TYPE=${CNI_TYPE:-bridge}
 
-    RUNTIME_ROOT="$TESTDIR/crio-runtime-root"
+    RUNTIME_ROOT=${RUNTIME_ROOT:-"$TESTDIR/crio-runtime-root"}
+    # export here so direct calls to crio later inherit the variable
+    export CONTAINER_RUNTIMES=${CONTAINER_RUNTIMES:-$CONTAINER_DEFAULT_RUNTIME:$RUNTIME_BINARY_PATH:$RUNTIME_ROOT:$RUNTIME_TYPE}
 
     # shellcheck disable=SC2086
     "$CRIO_BINARY_PATH" \
@@ -279,7 +274,6 @@ function setup_crio() {
         --listen "$CRIO_SOCKET" \
         --registry "quay.io" \
         --registry "docker.io" \
-        --runtimes "$RUNTIME_NAME:$RUNTIME_BINARY:$RUNTIME_ROOT:$RUNTIME_TYPE" \
         -r "$TESTDIR/crio" \
         --runroot "$TESTDIR/crio-run" \
         --cni-default-network "$CNI_DEFAULT_NETWORK" \

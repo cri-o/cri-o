@@ -20,7 +20,7 @@ function create_device_runtime() {
 [crio.runtime]
 default_runtime = "device"
 [crio.runtime.runtimes.device]
-runtime_path = "$RUNTIME_BINARY"
+runtime_path = "$RUNTIME_BINARY_PATH"
 runtime_root = "$RUNTIME_ROOT"
 runtime_type = "$RUNTIME_TYPE"
 allowed_annotations = ["io.kubernetes.cri-o.Devices"]
