@@ -86,27 +86,27 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (retErr 
 	defer parentPipe.Close()
 	defer parentStartPipe.Close()
 
-	var args []string
+	args := []string{
+		"-b", c.bundlePath,
+		"-c", c.id,
+		"--exit-dir", r.config.ContainerExitsDir,
+		"-l", c.logPath,
+		"--log-level", logrus.GetLevel().String(),
+		"-n", c.name,
+		"-P", c.conmonPidFilePath(),
+		"-p", filepath.Join(c.bundlePath, "pidfile"),
+		"--persist-dir", c.dir,
+		"-r", r.path,
+		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root),
+		"--socket-dir-path", r.config.ContainerAttachSocketDir,
+		"-u", c.id,
+	}
+
 	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "-s")
 	} else {
 		args = append(args, "--syslog")
 	}
-
-	args = append(args,
-		"-c", c.id,
-		"-n", c.name,
-		"-u", c.id,
-		"-r", r.path,
-		"-b", c.bundlePath,
-		"--persist-dir", c.dir,
-		"-p", filepath.Join(c.bundlePath, "pidfile"),
-		"-P", c.conmonPidFilePath(),
-		"-l", c.logPath,
-		"--exit-dir", r.config.ContainerExitsDir,
-		"--socket-dir-path", r.config.ContainerAttachSocketDir,
-		"--log-level", logrus.GetLevel().String(),
-		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 	if r.config.LogSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.config.LogSizeMax))
 	}
@@ -406,23 +406,26 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 		os.RemoveAll(logPath)
 	}()
 
-	var args []string
-	args = append(args,
+	args := []string{
 		"-c", c.id,
 		"-n", c.name,
 		"-r", r.path,
 		"-p", pidFile,
-		"-e")
+		"-e",
+		"-l", logPath,
+		"--socket-dir-path", r.config.ContainerAttachSocketDir,
+		"--log-level", logrus.GetLevel().String(),
+	}
+
+	if r.config.ConmonSupportsSync() {
+		args = append(args, "--sync")
+	}
 	if c.terminal {
 		args = append(args, "-t")
 	}
 	if timeout > 0 {
 		args = append(args, "-T", fmt.Sprintf("%d", timeout))
 	}
-	args = append(args,
-		"-l", logPath,
-		"--socket-dir-path", r.config.ContainerAttachSocketDir,
-		"--log-level", logrus.GetLevel().String())
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
 	if err != nil {
@@ -464,38 +467,49 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	// We don't need childPipe on the parent side
 	childPipe.Close()
 
-	err = cmd.Wait()
-	if err != nil {
-		return nil, &ExecSyncError{
-			Stdout:   stdoutBuf,
-			Stderr:   stderrBuf,
-			ExitCode: getExitCode(err),
-			Err:      err,
-		}
-	}
+	// first, wait till the command is done
+	waitErr := cmd.Wait()
 
+	// regardless of what is in waitErr
+	// we should attempt to decode the output of the parent pipe
+	// this allows us to catch TimedOutMessage, which will cause waitErr to not be nil
 	var ec *exitCodeInfo
-	if err := json.NewDecoder(parentPipe).Decode(&ec); err != nil {
+	decodeErr := json.NewDecoder(parentPipe).Decode(&ec)
+	if decodeErr == nil {
+		logrus.Debugf("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
+
+		// When we timeout the command in conmon then we should return
+		// an ExecSyncResponse with a non-zero exit code because
+		// the prober code in the kubelet checks for it. If we return
+		// a custom error, then the probes transition into Unknown status
+		// and the container isn't restarted as expected.
+		if ec.ExitCode == -1 && ec.Message == conmonconfig.TimedOutMessage {
+			return &ExecSyncResponse{
+				Stderr:   []byte(conmonconfig.TimedOutMessage),
+				ExitCode: -1,
+			}, nil
+		}
+	}
+
+	if waitErr != nil {
+		// if we aren't a ExitError, some I/O problems probably occurred
+		if _, ok := waitErr.(*exec.ExitError); !ok {
+			return nil, &ExecSyncError{
+				Stdout:   stdoutBuf,
+				Stderr:   stderrBuf,
+				ExitCode: -1,
+				Err:      waitErr,
+			}
+		}
+	}
+
+	if decodeErr != nil {
 		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
 			ExitCode: -1,
-			Err:      err,
+			Err:      decodeErr,
 		}
-	}
-
-	logrus.Debugf("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
-
-	// When we timeout the command in conmon then we should return
-	// an ExecSyncResponse with a non-zero exit code because
-	// the prober code in the kubelet checks for it. If we return
-	// a custom error, then the probes transition into Unknown status
-	// and the container isn't restarted as expected.
-	if ec.ExitCode == -1 && ec.Message == conmonconfig.TimedOutMessage {
-		return &ExecSyncResponse{
-			Stderr:   []byte(conmonconfig.TimedOutMessage),
-			ExitCode: -1,
-		}, nil
 	}
 
 	if ec.ExitCode == -1 {
@@ -512,7 +526,6 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	// ExecSyncResponse we have to read the logfile.
 	// XXX: Currently runC dups the same console over both stdout and stderr,
 	//      so we can't differentiate between the two.
-
 	logBytes, err := ioutil.ReadFile(logPath)
 	if err != nil {
 		return nil, &ExecSyncError{
