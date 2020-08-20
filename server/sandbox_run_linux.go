@@ -444,10 +444,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	if s.Config().Seccomp().IsDisabled() {
-		g.Config.Linux.Seccomp = nil
-	}
-
 	saveOptions := generate.ExportOptions{}
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(sbox.ID())
 	if err != nil {
