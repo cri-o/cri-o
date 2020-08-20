@@ -944,6 +944,10 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		specgen.AddMount(m)
 	}
 
+	mountInfos, err := mount.GetMounts()
+	if err != nil {
+		return nil, nil, err
+	}
 	for _, m := range mounts {
 		dest := m.GetContainerPath()
 		if dest == "" {
@@ -973,10 +977,6 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		options = append(options, "rbind")
 
 		// mount propagation
-		mountInfos, err := mount.GetMounts()
-		if err != nil {
-			return nil, nil, err
-		}
 		switch m.GetPropagation() {
 		case pb.MountPropagation_PROPAGATION_PRIVATE:
 			options = append(options, "rprivate")
