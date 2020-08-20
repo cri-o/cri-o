@@ -69,7 +69,6 @@ h
 --registry
 --root
 --runroot
---runtime
 --runtimes
 --seccomp-profile
 --selinux
