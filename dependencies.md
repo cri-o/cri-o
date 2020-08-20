@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 19 Aug 2020 23:04:07 UTC for commit [73f7f7b][0]._
+_Generated on Thu, 20 Aug 2020 01:39:51 UTC for commit [b0bd085][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/73f7f7b15381926a3d9f9bbc3dd2e68de1c8e82b
+[0]: https://github.com/cri-o/cri-o/commit/b0bd085867167804d33ebe6a32c532d1c4756d25
 
 ## Outdated Dependencies
 
@@ -508,7 +508,7 @@ _Generated on Wed, 19 Aug 2020 23:04:07 UTC for commit [73f7f7b][0]._
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.3                                            |                                    | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200630173020-3af7569d3a1e | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200819193742-d088b475e336 | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200820010801-b793a1359eac | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                | v0.0.0-20200804184101-5ec99f83aff1 | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.8.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200819091640-a20ca940cc7e | false  | true             |
