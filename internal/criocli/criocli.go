@@ -481,13 +481,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage: "Path to load keys for image decryption.",
 			Value: defConf.DecryptionKeysPath,
 		},
-		// XXX: DEPRECATED
-		&cli.StringFlag{
-			Name:    "runtime",
-			Usage:   "OCI runtime path",
-			Hidden:  true,
-			EnvVars: []string{"CONTAINER_RUNTIME"},
-		},
 		&cli.StringFlag{
 			Name:    "default-runtime",
 			Usage:   "Default OCI runtime from the runtimes config",
