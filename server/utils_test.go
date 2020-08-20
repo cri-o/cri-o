@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/containers/storage/pkg/mount"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -106,5 +107,47 @@ func TestGetDecryptionKeys(t *testing.T) {
 
 	if err != nil && cc != nil {
 		t.Fatalf("Unable to find the expected keys")
+	}
+}
+
+func TestGetSourceMount(t *testing.T) {
+	mountinfo := []*mount.Info{
+		{Mountpoint: "/"},
+		{Mountpoint: "/sys"},
+		{Mountpoint: "/sys/fs/cgroup"},
+		{Mountpoint: "/other/dir"},
+	}
+
+	cases := []struct {
+		in, out string
+		err     bool
+	}{
+		{in: "/sys/fs/cgroup/aaa/bbb", out: "/sys/fs/cgroup"},
+		{in: "/some/weird/dir", out: "/"},
+		{in: "/sys/fs/foo/bar", out: "/sys"},
+		{in: "/other/dir/yeah", out: "/other/dir"},
+		{in: "/other/dir", out: "/other/dir"},
+		{in: "/other", out: "/"},
+		{in: "/", out: "/"},
+		{in: "bad/path", err: true},
+		{in: "", err: true},
+	}
+
+	for _, tc := range cases {
+		out, _, err := getSourceMount(tc.in, mountinfo)
+		if tc.err {
+			if err == nil {
+				t.Errorf("input: %q, expected error, got nil", tc.in)
+			}
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("input: %q, expected no error, got %v", tc.in, err)
+			continue
+		}
+		if out != tc.out {
+			t.Errorf("input: %q, expected %q, got %q", tc.in, tc.out, out)
+		}
 	}
 }
