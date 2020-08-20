@@ -118,6 +118,7 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) e
 	done := make(chan error)
 	chControl := make(chan struct{})
 	go func() {
+		defer close(done)
 		for {
 			select {
 			case <-chControl:
@@ -138,15 +139,12 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) e
 	}()
 	select {
 	case err = <-done:
-		close(done)
 		break
 	case <-ctx.Done():
 		close(chControl)
-		close(done)
 		return ctx.Err()
 	case <-time.After(time.Duration(r.config.CtrStopTimeout) * time.Second):
 		close(chControl)
-		close(done)
 		return fmt.Errorf(
 			"failed to get container stopped status: %ds timeout reached",
 			r.config.CtrStopTimeout,
