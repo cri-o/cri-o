@@ -501,14 +501,7 @@ function remove_apparmor_profile() {
 }
 
 function is_apparmor_enabled() {
-    if [[ -f "$APPARMOR_PARAMETERS_FILE_PATH" ]]; then
-        out=$(cat "$APPARMOR_PARAMETERS_FILE_PATH")
-        if [[ "$out" =~ "Y" ]]; then
-            echo 1
-            return
-        fi
-    fi
-    echo 0
+    grep -q Y "$APPARMOR_PARAMETERS_FILE_PATH" 2>/dev/null
 }
 
 function prepare_network_conf() {

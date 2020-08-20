@@ -8,8 +8,8 @@ function teardown() {
 
 # AppArmor tests have to run in sequence since they modify the system state
 @test "apparmor tests (in sequence)" {
-    if [[ $(is_apparmor_enabled) -eq 0 ]]; then
-        skip "skip test since apparmor is not enabled."
+    if ! is_apparmor_enabled; then
+        skip "apparmor not enabled"
     fi
 
     load_default_apparmor_profile_and_run_a_container_with_it
