@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 20 Aug 2020 12:27:55 UTC for commit [56f7938][0]._
+_Generated on Thu, 20 Aug 2020 22:06:15 UTC for commit [445854e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/56f7938eb559d630b89483f8ab40b614596d7e08
+[0]: https://github.com/cri-o/cri-o/commit/445854e00a400a92e2d26fdb4f8f82e4515b62f4
 
 ## Outdated Dependencies
 
@@ -21,7 +21,7 @@ _Generated on Thu, 20 Aug 2020 12:27:55 UTC for commit [56f7938][0]._
 | github.com/seccomp/containers-golang         | v0.4.1                             | v0.6.0                             | true   | true             |
 | github.com/syndtr/gocapability               | v0.0.0-20180916011248-d98352740cb2 | v0.0.0-20200815063812-42c35b437635 | true   | true             |
 | golang.org/x/net                             | v0.0.0-20200707034311-ab3426394381 | v0.0.0-20200813134508-3edf25e44fcc | true   | true             |
-| golang.org/x/sys                             | v0.0.0-20200625212154-ddb9806d33ae | v0.0.0-20200819171115-d785dc25833f | true   | true             |
+| golang.org/x/sys                             | v0.0.0-20200625212154-ddb9806d33ae | v0.0.0-20200820212457-1fb795427249 | true   | true             |
 | google.golang.org/grpc                       | v1.30.0                            | v1.31.0                            | true   | true             |
 | k8s.io/api                                   | v0.0.0-20200804142048-1afc53514032 | v0.0.0-20200820115523-1c548c328a32 | true   | true             |
 | k8s.io/apimachinery                          | v0.0.0-20200804142048-1afc53514032 | v0.0.0-20200820115523-1c548c328a32 | true   | true             |
@@ -82,7 +82,7 @@ _Generated on Thu, 20 Aug 2020 12:27:55 UTC for commit [56f7938][0]._
 | github.com/armon/go-socks5                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                       | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20200819183940-29e1ff8eb0bb | false  | true             |
 | github.com/auth0/go-jwt-middleware                      | v0.0.0-20170425171159-5493cabe49f7                | v0.0.0-20200810150920-a32d7af194d1 | false  | true             |
-| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.34.8                            | false  | true             |
+| github.com/aws/aws-sdk-go                               | v1.28.2                                           | v1.34.9                            | false  | true             |
 | github.com/bazelbuild/rules_go                          | v0.23.3                                           | v0.23.8                            | false  | true             |
 | github.com/beorn7/perks                                 | v1.0.1                                            |                                    | false  | true             |
 | github.com/bgentry/speakeasy                            | v0.1.0                                            |                                    | false  | true             |
@@ -173,7 +173,7 @@ _Generated on Thu, 20 Aug 2020 12:27:55 UTC for commit [56f7938][0]._
 | github.com/envoyproxy/protoc-gen-validate               | v0.1.0                                            | v0.4.1                             | false  | true             |
 | github.com/etcd-io/bbolt                                | v1.3.3                                            | v1.3.5                             | false  | true             |
 | github.com/euank/go-kmsg-parser                         | v2.0.0+incompatible                               |                                    | false  | true             |
-| github.com/evanphx/json-patch                           | v0.0.0-20190815234213-e83c0a1c26c8                |                                    | false  | true             |
+| github.com/evanphx/json-patch                           | v0.0.0-20190815234213-e83c0a1c26c8                | v4.9.0+incompatible                | false  | true             |
 | github.com/exponent-io/jsonpath                         | v0.0.0-20151013193312-d6023ce2651d                |                                    | false  | true             |
 | github.com/fatih/camelcase                              | v1.0.0                                            |                                    | false  | true             |
 | github.com/fatih/color                                  | v1.9.0                                            |                                    | false  | true             |
@@ -495,7 +495,7 @@ _Generated on Thu, 20 Aug 2020 12:27:55 UTC for commit [56f7938][0]._
 | go.uber.org/atomic                                      | v1.4.0                                            | v1.6.0                             | false  | true             |
 | go.uber.org/multierr                                    | v1.1.0                                            | v1.5.0                             | false  | true             |
 | go.uber.org/zap                                         | v1.10.0                                           | v1.15.0                            | false  | true             |
-| golang.org/x/crypto                                     | v0.0.0-20200622213623-75b288015ac9                | v0.0.0-20200728195943-123391ffb6de | false  | true             |
+| golang.org/x/crypto                                     | v0.0.0-20200622213623-75b288015ac9                | v0.0.0-20200820211705-5c72a883971a | false  | true             |
 | golang.org/x/exp                                        | v0.0.0-20191227195350-da58074b4299                | v0.0.0-20200819202907-27b6b2ade93b | false  | true             |
 | golang.org/x/image                                      | v0.0.0-20190802002840-cff245a6509b                | v0.0.0-20200801110659-972c09e46d76 | false  | true             |
 | golang.org/x/lint                                       | v0.0.0-20191125180803-fdd1cda4f05f                | v0.0.0-20200302205851-738671d3881b | false  | true             |
@@ -504,11 +504,11 @@ _Generated on Thu, 20 Aug 2020 12:27:55 UTC for commit [56f7938][0]._
 | golang.org/x/net                                        | v0.0.0-20200707034311-ab3426394381                | v0.0.0-20200813134508-3edf25e44fcc | true   | true             |
 | golang.org/x/oauth2                                     | v0.0.0-20200107190931-bf48bf16ab8d                |                                    | false  | true             |
 | golang.org/x/sync                                       | v0.0.0-20200625203802-6e8e738ad208                |                                    | true   | true             |
-| golang.org/x/sys                                        | v0.0.0-20200625212154-ddb9806d33ae                | v0.0.0-20200819171115-d785dc25833f | true   | true             |
+| golang.org/x/sys                                        | v0.0.0-20200625212154-ddb9806d33ae                | v0.0.0-20200820212457-1fb795427249 | true   | true             |
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.3                                            |                                    | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200630173020-3af7569d3a1e | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200820010801-b793a1359eac | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200820180210-c8f393745106 | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                | v0.0.0-20200804184101-5ec99f83aff1 | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.8.0                             | false  | true             |
 | gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200819091640-a20ca940cc7e | false  | true             |
