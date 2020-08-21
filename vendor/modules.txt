@@ -89,7 +89,7 @@ github.com/containerd/containerd/runtime/v2/shim
 github.com/containerd/containerd/runtime/v2/task
 github.com/containerd/containerd/sys
 github.com/containerd/containerd/sys/reaper
-# github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc
+# github.com/containerd/continuity v0.0.0-20200228182428-0f16d7a0959c
 github.com/containerd/continuity/fs
 github.com/containerd/continuity/pathdriver
 github.com/containerd/continuity/syscallx
@@ -115,7 +115,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v0.8.6
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.14.9
+# github.com/containers/buildah v1.15.1
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -133,13 +133,14 @@ github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.9.1
+# github.com/containers/common v0.14.7
 ## explicit
 github.com/containers/common/pkg/apparmor
+github.com/containers/common/pkg/auth
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/cgroupv2
 github.com/containers/common/pkg/config
-github.com/containers/common/pkg/sysinfo
+github.com/containers/common/version
 # github.com/containers/conmon v2.0.17+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
@@ -400,7 +401,7 @@ github.com/emirpasic/gods/utils
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.6.3
+# github.com/fsouza/go-dockerclient v1.6.5
 github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
@@ -677,9 +678,7 @@ github.com/opencontainers/runtime-tools/validate
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316
-github.com/openshift/api/config/v1
-# github.com/openshift/imagebuilder v1.1.4
+# github.com/openshift/imagebuilder v1.1.5
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/dockerfile/parser
@@ -741,7 +740,7 @@ github.com/russross/blackfriday
 github.com/russross/blackfriday/v2
 # github.com/saschagrunert/go-modiff v1.2.0
 github.com/saschagrunert/go-modiff/pkg/modiff
-# github.com/seccomp/containers-golang v0.4.1
+# github.com/seccomp/containers-golang v0.5.0
 ## explicit
 github.com/seccomp/containers-golang
 # github.com/seccomp/libseccomp-golang v0.9.1
