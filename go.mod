@@ -10,8 +10,8 @@ require (
 	github.com/containerd/ttrpc v1.0.1
 	github.com/containernetworking/cni v0.8.0
 	github.com/containernetworking/plugins v0.8.6
-	github.com/containers/buildah v1.14.9
-	github.com/containers/common v0.9.1
+	github.com/containers/buildah v1.15.1
+	github.com/containers/common v0.14.7
 	github.com/containers/conmon v2.0.17+incompatible
 	github.com/containers/image/v5 v5.5.1
 	github.com/containers/libpod v1.9.2
@@ -45,7 +45,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
 	github.com/psampaz/go-mod-outdated v0.6.0
-	github.com/seccomp/containers-golang v0.4.1
+	github.com/seccomp/containers-golang v0.5.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
