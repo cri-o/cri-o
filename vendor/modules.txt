@@ -268,7 +268,7 @@ github.com/cpuguy83/go-md2man
 github.com/cpuguy83/go-md2man/md2man
 # github.com/cpuguy83/go-md2man/v2 v2.0.0
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/creack/pty v1.1.9
+# github.com/creack/pty v1.1.11
 github.com/creack/pty
 # github.com/cri-o/ocicni v0.2.1-0.20200422173648-513ef787b8c9
 github.com/cri-o/ocicni/pkg/ocicni
@@ -432,8 +432,6 @@ github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/kr/pty v1.1.8
-github.com/kr/pty
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
 # github.com/mattn/go-shellwords v1.0.10
