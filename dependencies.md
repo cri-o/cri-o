@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Sun, 23 Aug 2020 00:23:27 UTC for commit [ac7f451][0]._
+_Generated on Mon, 24 Aug 2020 17:06:55 UTC for commit [ac7f451][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/ac7f451ebaf722dc1995420f141ce9579b86d868
 
@@ -21,7 +21,7 @@ _Generated on Sun, 23 Aug 2020 00:23:27 UTC for commit [ac7f451][0]._
 | github.com/seccomp/containers-golang         | v0.4.1                             | v0.6.0                             | true   | true             |
 | github.com/syndtr/gocapability               | v0.0.0-20180916011248-d98352740cb2 | v0.0.0-20200815063812-42c35b437635 | true   | true             |
 | golang.org/x/net                             | v0.0.0-20200707034311-ab3426394381 | v0.0.0-20200822124328-c89045814202 | true   | true             |
-| golang.org/x/sys                             | v0.0.0-20200625212154-ddb9806d33ae | v0.0.0-20200821140526-fda516888d29 | true   | true             |
+| golang.org/x/sys                             | v0.0.0-20200625212154-ddb9806d33ae | v0.0.0-20200824131525-c12d262b63d8 | true   | true             |
 | google.golang.org/grpc                       | v1.30.0                            | v1.31.0                            | true   | true             |
 | k8s.io/api                                   | v0.0.0-20200804142048-1afc53514032 | v0.0.0-20200821235539-14a11060a077 | true   | true             |
 | k8s.io/apimachinery                          | v0.0.0-20200804142048-1afc53514032 | v0.0.0-20200821235539-14a11060a077 | true   | true             |
@@ -43,7 +43,7 @@ _Generated on Sun, 23 Aug 2020 00:23:27 UTC for commit [ac7f451][0]._
 | cloud.google.com/go/storage                             | v1.0.0                                            | v1.10.0                            | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                            | v0.0.0-20190408044501-666a987793e9                | v0.0.0-20191203043605-d42048ed14fd | false  | true             |
 | github.com/14rcole/gopopulate                           | v0.0.0-20180821133914-b175b219e774                |                                    | false  | true             |
-| github.com/Azure/azure-sdk-for-go                       | v43.0.0+incompatible                              | v45.1.0+incompatible               | false  | true             |
+| github.com/Azure/azure-sdk-for-go                       | v43.0.0+incompatible                              | v46.0.0+incompatible               | false  | true             |
 | github.com/Azure/go-ansiterm                            | v0.0.0-20170929234023-d6e3b3328b78                |                                    | false  | true             |
 | github.com/Azure/go-autorest/autorest                   | v0.9.6                                            | v0.11.4                            | false  | true             |
 | github.com/Azure/go-autorest/autorest/adal              | v0.8.2                                            | v0.9.2                             | false  | true             |
@@ -112,7 +112,7 @@ _Generated on Sun, 23 Aug 2020 00:23:27 UTC for commit [ac7f451][0]._
 | github.com/codahale/hdrhistogram                        | v0.0.0-20161010025455-3a0bb77429bd                |                                    | false  | true             |
 | github.com/codegangsta/negroni                          | v1.0.0                                            |                                    | false  | true             |
 | github.com/container-storage-interface/spec             | v1.2.0                                            | v1.3.0                             | false  | true             |
-| github.com/containerd/cgroups                           | v0.0.0-20200531161412-0dbf7f05ba59                | v0.0.0-20200817152742-7a3c009711fb | false  | true             |
+| github.com/containerd/cgroups                           | v0.0.0-20200531161412-0dbf7f05ba59                | v0.0.0-20200824123100-0b889c03f102 | false  | true             |
 | github.com/containerd/console                           | v0.0.0-20180822173158-c12b1e7919c1                | v1.0.0                             | false  | true             |
 | github.com/containerd/containerd                        | v1.3.6                                            | v1.4.0                             | true   | true             |
 | github.com/containerd/continuity                        | v0.0.0-20190426062206-aaeac12a7ffc                | v0.0.0-20200710164510-efbc4488d8fe | false  | true             |
@@ -193,7 +193,7 @@ _Generated on Sun, 23 Aug 2020 00:23:27 UTC for commit [ac7f451][0]._
 | github.com/go-git/go-git-fixtures/v4                    | v4.0.1                                            |                                    | false  | true             |
 | github.com/go-git/go-git/v5                             | v5.1.0                                            |                                    | false  | true             |
 | github.com/go-gl/glfw/v3.3/glfw                         | v0.0.0-20191125211704-12ad95a8df72                | v0.0.0-20200707082815-5321531c36a2 | false  | true             |
-| github.com/go-ini/ini                                   | v1.9.0                                            | v1.60.0                            | false  | true             |
+| github.com/go-ini/ini                                   | v1.9.0                                            | v1.60.1                            | false  | true             |
 | github.com/go-kit/kit                                   | v0.9.0                                            | v0.10.0                            | false  | true             |
 | github.com/go-lintpack/lintpack                         | v0.5.2                                            |                                    | false  | true             |
 | github.com/go-logfmt/logfmt                             | v0.4.0                                            | v0.5.0                             | false  | true             |
@@ -504,14 +504,14 @@ _Generated on Sun, 23 Aug 2020 00:23:27 UTC for commit [ac7f451][0]._
 | golang.org/x/net                                        | v0.0.0-20200707034311-ab3426394381                | v0.0.0-20200822124328-c89045814202 | true   | true             |
 | golang.org/x/oauth2                                     | v0.0.0-20200107190931-bf48bf16ab8d                |                                    | false  | true             |
 | golang.org/x/sync                                       | v0.0.0-20200625203802-6e8e738ad208                |                                    | true   | true             |
-| golang.org/x/sys                                        | v0.0.0-20200625212154-ddb9806d33ae                | v0.0.0-20200821140526-fda516888d29 | true   | true             |
+| golang.org/x/sys                                        | v0.0.0-20200625212154-ddb9806d33ae                | v0.0.0-20200824131525-c12d262b63d8 | true   | true             |
 | golang.org/x/term                                       | v0.0.0-20191110171634-ad39bd3f0407                |                                    | false  | true             |
 | golang.org/x/text                                       | v0.3.3                                            |                                    | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20191024005414-555d28b269f0                | v0.0.0-20200630173020-3af7569d3a1e | false  | true             |
-| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200822203824-307de81be3f4 | false  | true             |
+| golang.org/x/tools                                      | v0.0.0-20200616133436-c1934b75d054                | v0.0.0-20200823205832-c024452afbcd | false  | true             |
 | golang.org/x/xerrors                                    | v0.0.0-20191204190536-9bdfabe68543                | v0.0.0-20200804184101-5ec99f83aff1 | false  | true             |
 | gonum.org/v1/gonum                                      | v0.6.2                                            | v0.8.1                             | false  | true             |
-| gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200819091640-a20ca940cc7e | false  | true             |
+| gonum.org/v1/netlib                                     | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20200824093956-f0ca4b3a5ef5 | false  | true             |
 | gonum.org/v1/plot                                       | v0.0.0-20190515093506-e2840ee46a6b                | v0.7.0                             | false  | true             |
 | google.golang.org/api                                   | v0.21.0                                           | v0.30.0                            | false  | true             |
 | google.golang.org/appengine                             | v1.6.5                                            | v1.6.6                             | false  | true             |
@@ -527,7 +527,7 @@ _Generated on Sun, 23 Aug 2020 00:23:27 UTC for commit [ac7f451][0]._
 | gopkg.in/gcfg.v1                                        | v1.2.0                                            | v1.2.3                             | false  | true             |
 | gopkg.in/gemnasium/logrus-airbrake-hook.v2              | v2.1.2                                            |                                    | false  | true             |
 | gopkg.in/inf.v0                                         | v0.9.1                                            |                                    | false  | true             |
-| gopkg.in/ini.v1                                         | v1.51.0                                           | v1.60.0                            | false  | true             |
+| gopkg.in/ini.v1                                         | v1.51.0                                           | v1.60.1                            | false  | true             |
 | gopkg.in/mcuadros/go-syslog.v2                          | v2.2.1                                            | v2.3.0                             | false  | true             |
 | gopkg.in/mgo.v2                                         | v2.0.0-20180705113604-9856a29383ce                | v2.0.0-20190816093944-a6b53ec6cb22 | false  | true             |
 | gopkg.in/natefinch/lumberjack.v2                        | v2.0.0                                            |                                    | false  | true             |
