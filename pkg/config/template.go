@@ -110,7 +110,8 @@ grpc_max_recv_msg_size = {{ .GRPCMaxRecvMsgSize }}
 {{ range $ulimit := .DefaultUlimits }}{{ printf "#\t%q,\n" $ulimit }}{{ end }}#]
 
 # default_runtime is the _name_ of the OCI runtime to be used as the default.
-# The name is matched against the runtimes map below.
+# The name is matched against the runtimes map below. If this value is changed,
+# the corresponding existing entry from the runtimes map below will be ignored.
 default_runtime = "{{ .DefaultRuntime }}"
 
 # If true, the runtime will not use pivot_root, but instead use MS_MOVE.
