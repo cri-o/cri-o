@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/creack/pty"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/docker/docker/pkg/term"
-	"github.com/kr/pty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
