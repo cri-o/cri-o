@@ -25,7 +25,7 @@ import (
 	dockermounts "github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/symlink"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -509,60 +509,87 @@ func addOCIHook(specgen *generate.Generator, hook lib.HookParams) error {
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
 func setupContainerUser(specgen *generate.Generator, rootfs string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
-	if sc != nil {
-		containerUser := ""
-		// Case 1: run as user is set by kubelet
-		if sc.GetRunAsUser() != nil {
-			containerUser = strconv.FormatInt(sc.GetRunAsUser().GetValue(), 10)
-		} else {
-			// Case 2: run as username is set by kubelet
-			userName := sc.GetRunAsUsername()
-			if userName != "" {
-				containerUser = userName
-			} else {
-				// Case 3: get user from image config
-				if imageConfig != nil {
-					imageUser := imageConfig.Config.User
-					if imageUser != "" {
-						containerUser = imageUser
-					}
-				}
-			}
-		}
-		if sc.GetRunAsUser() == nil && sc.GetRunAsUsername() == "" && sc.GetRunAsGroup() != nil {
-			return fmt.Errorf("RunAsGroup should be specified only with RunAsUser or RunAsUsername")
-		}
+	if sc == nil {
+		return nil
+	}
+	imageUser := ""
+	if imageConfig != nil {
+		imageUser = imageConfig.Config.User
+	}
+	containerUser, err := generateUserString(
+		sc.GetRunAsUsername(),
+		imageUser,
+		sc.GetRunAsUser(),
+		sc.GetRunAsGroup(),
+	)
+	if err != nil {
+		return err
+	}
 
-		var groupstr string
-		if sc.GetRunAsGroup() != nil {
-			groupstr = strconv.FormatInt(sc.GetRunAsGroup().GetValue(), 10)
-		}
-		if groupstr != "" {
-			containerUser = containerUser + ":" + groupstr
-		}
+	logrus.Debugf("CONTAINER USER: %+v", containerUser)
 
-		logrus.Debugf("CONTAINER USER: %+v", containerUser)
+	// Add uid, gid and groups from user
+	uid, gid, addGroups, err := getUserInfo(rootfs, containerUser)
+	if err != nil {
+		return err
+	}
 
-		// Add uid, gid and groups from user
-		uid, gid, addGroups, err1 := getUserInfo(rootfs, containerUser)
-		if err1 != nil {
-			return err1
-		}
+	logrus.Debugf("UID: %v, GID: %v, Groups: %+v", uid, gid, addGroups)
+	specgen.SetProcessUID(uid)
+	specgen.SetProcessGID(gid)
 
-		logrus.Debugf("UID: %v, GID: %v, Groups: %+v", uid, gid, addGroups)
-		specgen.SetProcessUID(uid)
-		specgen.SetProcessGID(gid)
-		for _, group := range addGroups {
-			specgen.AddProcessAdditionalGid(group)
-		}
+	if sc.GetRunAsUsername() != "" {
+		containerUser = sc.GetRunAsUsername()
+	} else {
+		containerUser = strconv.FormatInt(sc.GetRunAsUser().GetValue(), 10)
+	}
 
-		// Add groups from CRI
-		groups := sc.GetSupplementalGroups()
-		for _, group := range groups {
-			specgen.AddProcessAdditionalGid(uint32(group))
-		}
+	_, _, addGroups2, err := getUserInfo(rootfs, containerUser)
+	if err != nil {
+		return err
+	}
+
+	for _, group := range addGroups {
+		specgen.AddProcessAdditionalGid(group)
+	}
+	for _, group := range addGroups2 {
+		specgen.AddProcessAdditionalGid(group)
+	}
+
+	// Add groups from CRI
+	groups := sc.GetSupplementalGroups()
+	for _, group := range groups {
+		specgen.AddProcessAdditionalGid(uint32(group))
 	}
 	return nil
+}
+
+// generateUserString generates valid user string based on OCI Image Spec v1.0.0.
+func generateUserString(username, imageUser string, uid, gid *pb.Int64Value) (string, error) {
+	var userstr, groupstr string
+	if uid != nil {
+		userstr = strconv.FormatInt(uid.GetValue(), 10)
+	}
+	if username != "" {
+		userstr = username
+	}
+	if gid != nil {
+		groupstr = strconv.FormatInt(gid.GetValue(), 10)
+	}
+	// We use the user from the image config if nothing is provided
+	if userstr == "" {
+		userstr = imageUser
+	}
+	if userstr == "" {
+		if groupstr != "" {
+			return "", fmt.Errorf("user group %q is specified without user", groupstr)
+		}
+		return "", nil
+	}
+	if groupstr != "" {
+		userstr = userstr + ":" + groupstr
+	}
+	return userstr, nil
 }
 
 // setupCapabilities sets process.capabilities in the OCI runtime config.
