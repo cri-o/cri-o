@@ -16,6 +16,7 @@ function teardown() {
     # given
     run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
     [ "$status" -eq 0 ]
+    id="$output"
 
     # when
     run crictl stats -o json
@@ -23,64 +24,38 @@ function teardown() {
     [ "$status" -eq 0 ]
 
     # then
-    JSON="$output"
-    run echo $JSON | jq -e '.stats[0].attributes.id != ""'
-    [ "$status" -eq 0 ]
-
-    run echo $JSON | jq -e '.stats[0].cpu.timestamp > 0'
-    [ "$status" -eq 0 ]
-
-    run echo $JSON | jq -e '.stats[0].cpu.usageCoreNanoSeconds.value > 0'
-    [ "$status" -eq 0 ]
-
-    run echo $JSON | jq -e '.stats[0].memory.timestamp > 0'
-    [ "$status" -eq 0 ]
-
-    run echo $JSON | jq -e '.stats[0].memory.workingSetBytes.value > 0'
-    [ "$status" -eq 0 ]
+    jq -e '.stats[0].attributes.id = "'"$id"'"' <<< "$output"
+    jq -e '.stats[0].cpu.timestamp > 0' <<< "$output"
+    jq -e '.stats[0].cpu.usageCoreNanoSeconds.value > 0' <<< "$output"
+    jq -e '.stats[0].memory.timestamp > 0' <<< "$output"
+    jq -e '.stats[0].memory.workingSetBytes.value > 0' <<< "$output"
 }
 
 @test "container stats" {
     # given
-    container2config=$(cat "$TESTDATA"/container_redis.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["name"] = ["podsandbox1-redis2"];obj["metadata"]["name"] = "podsandbox1-redis2"; json.dump(obj, sys.stdout)')
-    echo "$container2config" > "$TESTDIR"/container_redis2.json
-    run crictl runp "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    pod_id="$output"
-    run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    ctr1_id="$output"
-    run crictl create "$pod_id" "$TESTDIR"/container_redis2.json "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    ctr2_id="$output"
-    run crictl start "$ctr1_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    run crictl start "$ctr2_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
+    python -c 'import json,sys;obj=json.load(sys.stdin);obj["name"] = ["podsandbox1-sleep2"];obj["metadata"]["name"] = "podsandbox1-sleep2"; json.dump(obj, sys.stdout)' \
+        < "$TESTDATA"/container_sleep.json > "$TESTDIR"/container_sleep2.json
+
+    pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+    ctr1_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+    crictl start "$ctr1_id"
+
+    ctr2_id=$(crictl create "$pod_id" "$TESTDIR"/container_sleep2.json "$TESTDATA"/sandbox_config.json)
+    crictl start "$ctr2_id"
 
     # when
-    run crictl stats -o json "$ctr1_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    ctr1_stats_JSON="$output"
+    json=$(crictl stats -o json "$ctr1_id")
+    echo "$json"
+    jq -e '.stats[0].attributes.id == "'"$ctr1_id"'"' <<< "$json"
+    ctr1_mem=$(jq -e '.stats[0].memory.workingSetBytes.value' <<< "$json")
 
-    run crictl stats -o json "$crt2_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    ctr2_stats_JSON="$output"
+    json=$(crictl stats -o json "$ctr2_id")
+    echo "$json"
+    jq -e '.stats[0].attributes.id == "'"$ctr2_id"'"' <<< "$json"
+    ctr2_mem=$(jq -e '.stats[0].memory.workingSetBytes.value' <<< "$json")
 
-    run echo $ctr1_stats_JSON | jq -e '.stats[0].memory.workingSetBytes.value'
-    [ "$status" -eq 0 ]
-    ctr1_memory_bytes="$output"
-    run echo $ctr2_stats_JSON | jq -e '.stats[0].memory.workingSetBytes.value'
-    [ "$status" -eq 0 ]
-    ctr2_memory_bytes="$output"
-
-    run echo $ctr1_memory_bytes != $ctr2_memory_bytes
-    [ "$status" -eq 0 ]
+    # Assuming the two containers can't have exactly same memory usage
+    echo "checking $ctr1_mem != $ctr2_mem"
+    [ "$ctr1_mem" != "$ctr2_mem" ]
 }
