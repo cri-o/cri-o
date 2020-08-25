@@ -199,7 +199,10 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 
 .install.release:
 	if [ ! -x "$(GOPATH)/bin/release-tool" ]; then \
-		go get -u github.com/containerd/release-tool; \
+		go get -d github.com/containerd/release-tool \
+		&& cd $(GOPATH)/src/github.com/containerd/release-tool \
+		&& git checkout 1808a54cbad02b6c565f0175e98a43e7497a9318 \
+		&& go install github.com/containerd/release-tool; \
 	fi
 
 .install.gitvalidation: .gopathok
