@@ -8,7 +8,6 @@ import (
 	copy "github.com/containers/image/v5/copy"
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
-	idtools "github.com/containers/storage/pkg/idtools"
 	storage0 "github.com/cri-o/cri-o/internal/storage"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
@@ -164,7 +163,7 @@ func (m *MockRuntimeServer) EXPECT() *MockRuntimeServerMockRecorder {
 }
 
 // CreateContainer mocks base method
-func (m *MockRuntimeServer) CreateContainer(arg0 *types.SystemContext, arg1, arg2, arg3, arg4, arg5, arg6, arg7 string, arg8 uint32, arg9 *idtools.IDMappings, arg10 []string, arg11 bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreateContainer(arg0 *types.SystemContext, arg1, arg2, arg3, arg4, arg5, arg6, arg7 string, arg8 uint32, arg9 *storage.IDMappingOptions, arg10 []string, arg11 bool) (storage0.ContainerInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateContainer", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)
 	ret0, _ := ret[0].(storage0.ContainerInfo)
@@ -179,7 +178,7 @@ func (mr *MockRuntimeServerMockRecorder) CreateContainer(arg0, arg1, arg2, arg3,
 }
 
 // CreatePodSandbox mocks base method
-func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9 string, arg10 uint32, arg11 *idtools.IDMappings, arg12 []string, arg13 bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9 string, arg10 uint32, arg11 *storage.IDMappingOptions, arg12 []string, arg13 bool) (storage0.ContainerInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreatePodSandbox", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13)
 	ret0, _ := ret[0].(storage0.ContainerInfo)

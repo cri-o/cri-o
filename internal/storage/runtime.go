@@ -10,7 +10,6 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/idtools"
 	json "github.com/json-iterator/go"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -72,7 +71,7 @@ type RuntimeServer interface {
 	// both its pod's ID and its container ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
 	// omitted, but not both.  All other arguments are required.
-	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, privileged bool) (ContainerInfo, error)
+	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
 	// RemovePodSandbox deletes a pod sandbox's infrastructure container.
 	// The CRI expects that a sandbox can't be removed unless its only
 	// container is its infrastructure container, but we don't enforce that
@@ -87,7 +86,7 @@ type RuntimeServer interface {
 	// CreateContainer creates a container with the specified ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
 	// omitted, but not both.  All other arguments are required.
-	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, privileged bool) (ContainerInfo, error)
+	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
 	DeleteContainer(idOrName string) error
 
@@ -148,7 +147,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 	metadata.MountLabel = mountLabel
 }
 
-func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, isPauseImage, privileged bool) (ci ContainerInfo, retErr error) {
+func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, isPauseImage, privileged bool) (ci ContainerInfo, retErr error) {
 	var ref types.ImageReference
 	if podName == "" || podID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
@@ -266,8 +265,8 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	coptions := storage.ContainerOptions{
 		LabelOpts: labelOptions,
 	}
-	if idMappings != nil {
-		coptions.IDMappingOptions = storage.IDMappingOptions{UIDMap: idMappings.UIDs(), GIDMap: idMappings.GIDs()}
+	if idMappingsOptions != nil {
+		coptions.IDMappingOptions = *idMappingsOptions
 	}
 	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, img.ID, "", string(mdata), &coptions)
 	if err != nil {
@@ -277,6 +276,9 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 			logrus.Debugf("failed to create container %s(%s): %v", metadata.ContainerName, containerID, err)
 		}
 		return ContainerInfo{}, err
+	}
+	if idMappingsOptions != nil {
+		*idMappingsOptions = coptions.IDMappingOptions
 	}
 	if metadata.Pod {
 		logrus.Debugf("created pod sandbox %q", container.ID)
@@ -346,12 +348,39 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	}, nil
 }
 
-func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, privileged bool) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappings, labelOptions, true, privileged)
+func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, true, privileged)
 }
 
-func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappings *idtools.IDMappings, labelOptions []string, privileged bool) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, "", imageID, containerName, containerID, metadataName, "", "", attempt, idMappings, labelOptions, false, privileged)
+func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, "", imageID, containerName, containerID, metadataName, "", "", attempt, idMappingsOptions, labelOptions, false, privileged)
+}
+
+func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
+	if layerID == "" {
+		return
+	}
+	store := r.storageImageServer.GetStore()
+
+	image, err := store.Image(imageID)
+	if err != nil {
+		logrus.Debugf("failed to retrieve image %q: %v", imageID, err)
+		return
+	}
+
+	// ignore if it is the top layer.  It was pulled already with the specified
+	// mapping.  In this case we don't delete it.
+	if image.TopLayer == layerID {
+		return
+	}
+	for _, ml := range image.MappedTopLayers {
+		if ml == layerID {
+			// if the layer is used by other containers, DeleteLayer
+			// will fail.
+			store.DeleteLayer(layerID) // nolint: errcheck
+			return
+		}
+	}
 }
 
 func (r *runtimeService) RemovePodSandbox(idOrName string) error {
@@ -362,10 +391,17 @@ func (r *runtimeService) RemovePodSandbox(idOrName string) error {
 		}
 		return err
 	}
+	layer, err := r.storageImageServer.GetStore().Layer(container.LayerID)
+	if err != nil {
+		logrus.Debugf("failed to retrieve layer %q: %v", container.LayerID, err)
+	}
 	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
 	if err != nil {
 		logrus.Debugf("failed to delete pod sandbox %q: %v", container.ID, err)
 		return err
+	}
+	if layer != nil {
+		r.deleteLayerIfMapped(container.ImageID, layer.Parent)
 	}
 	return nil
 }
@@ -378,10 +414,17 @@ func (r *runtimeService) DeleteContainer(idOrName string) error {
 	if err != nil {
 		return err
 	}
+	layer, err := r.storageImageServer.GetStore().Layer(container.LayerID)
+	if err != nil {
+		logrus.Debugf("failed to retrieve layer %q: %v", container.LayerID, err)
+	}
 	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
 	if err != nil {
 		logrus.Debugf("failed to delete container %q: %v", container.ID, err)
 		return err
+	}
+	if layer != nil {
+		r.deleteLayerIfMapped(container.ImageID, layer.Parent)
 	}
 	return nil
 }
