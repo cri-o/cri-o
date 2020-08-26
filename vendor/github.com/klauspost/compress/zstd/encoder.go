@@ -190,6 +190,7 @@ func (e *Encoder) nextBlock(final bool) error {
 			s.filling = s.filling[:0]
 			s.headerWritten = true
 			s.fullFrameWritten = true
+			s.eofWritten = true
 			return nil
 		}
 
@@ -280,7 +281,7 @@ func (e *Encoder) nextBlock(final bool) error {
 			// If we got the exact same number of literals as input,
 			// assume the literals cannot be compressed.
 			if len(src) != len(blk.literals) || len(src) != e.o.blockSize {
-				err = blk.encode(e.o.noEntropy)
+				err = blk.encode(e.o.noEntropy, !e.o.allLitEntropy)
 			}
 			switch err {
 			case errIncompressible:
@@ -491,7 +492,7 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 		if len(blk.literals) != len(src) || len(src) != e.o.blockSize {
 			// Output directly to dst
 			blk.output = dst
-			err = blk.encode(e.o.noEntropy)
+			err = blk.encode(e.o.noEntropy, !e.o.allLitEntropy)
 		}
 
 		switch err {
@@ -528,7 +529,7 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 			// If we got the exact same number of literals as input,
 			// assume the literals cannot be compressed.
 			if len(blk.literals) != len(todo) || len(todo) != e.o.blockSize {
-				err = blk.encode(e.o.noEntropy)
+				err = blk.encode(e.o.noEntropy, !e.o.allLitEntropy)
 			}
 
 			switch err {

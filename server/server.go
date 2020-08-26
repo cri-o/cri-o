@@ -52,9 +52,10 @@ type StreamService struct {
 
 // Server implements the RuntimeService and ImageService
 type Server struct {
-	config          libconfig.Config
-	stream          StreamService
-	hostportManager hostport.HostPortManager
+	config            libconfig.Config
+	stream            StreamService
+	hostportManager   hostport.HostPortManager
+	hostportManagerv6 hostport.HostPortManager
 
 	*lib.ContainerServer
 	monitorsChan      chan struct{}
@@ -341,6 +342,12 @@ func New(
 	}
 	hostportManager := hostport.NewHostportManager(iptInterface)
 
+	ip6tInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIPv6)
+	if _, err := ip6tInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain); err != nil {
+		logrus.Warnf("unable to ensure ip6tables chain: %v", err)
+	}
+	hostportManagerv6 := hostport.NewHostportManager(ip6tInterface)
+
 	idMappings, err := getIDMappings(config)
 	if err != nil {
 		return nil, err
@@ -355,6 +362,7 @@ func New(
 	s := &Server{
 		ContainerServer:          containerServer,
 		hostportManager:          hostportManager,
+		hostportManagerv6:        hostportManagerv6,
 		config:                   *config,
 		monitorsChan:             make(chan struct{}),
 		defaultIDMappings:        idMappings,

@@ -3,6 +3,7 @@
 package sandbox
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 	"sync"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -52,9 +54,17 @@ func (n *Namespace) Initialize() NamespaceIface {
 	return n
 }
 
+func getMappingsForPinns(mappings []idtools.IDMap) string {
+	g := new(bytes.Buffer)
+	for _, m := range mappings {
+		fmt.Fprintf(g, "%d-%d-%d@", m.ContainerID, m.HostID, m.Size)
+	}
+	return g.String()
+}
+
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, error) {
+func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDMappings) ([]NamespaceIface, error) {
 	typeToArg := map[NSType]string{
 		IPCNS:  "-i",
 		UTSNS:  "-u",
@@ -73,17 +83,45 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 	}
 
 	mountedNamespaces := make([]namespaceInfo, 0, len(nsTypes))
+
+	var rootPair idtools.IDPair
+	if idMappings != nil {
+		rootPair = idMappings.RootPair()
+	}
+
 	for _, nsType := range nsTypes {
 		arg, ok := typeToArg[nsType]
 		if !ok {
 			return nil, errors.Errorf("Invalid namespace type: %s", nsType)
 		}
 		pinnsArgs = append(pinnsArgs, arg)
+		pinPath := filepath.Join(cfg.NamespacesDir, fmt.Sprintf("%sns", string(nsType)), pinnedNamespace)
 		mountedNamespaces = append(mountedNamespaces, namespaceInfo{
-			path:   filepath.Join(cfg.NamespacesDir, fmt.Sprintf("%sns", string(nsType)), pinnedNamespace),
+			path:   pinPath,
 			nsType: nsType,
 		})
+		if idMappings != nil {
+			err := os.MkdirAll(filepath.Dir(pinPath), 0o755)
+			if err != nil {
+				return nil, err
+			}
+			f, err := os.Create(pinPath)
+			if err != nil {
+				return nil, err
+			}
+			f.Close()
+			if err := os.Chown(pinPath, rootPair.UID, rootPair.GID); err != nil {
+				return nil, err
+			}
+		}
 	}
+
+	if idMappings != nil {
+		pinnsArgs = append(pinnsArgs,
+			fmt.Sprintf("--uid-mapping=%s", getMappingsForPinns(idMappings.UIDs())),
+			fmt.Sprintf("--gid-mapping=%s", getMappingsForPinns(idMappings.GIDs())))
+	}
+
 	pinns := cfg.PinnsPath
 
 	logrus.Debugf("calling pinns with %v", pinnsArgs)

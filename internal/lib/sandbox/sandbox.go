@@ -62,6 +62,7 @@ type Sandbox struct {
 	networkStopped     bool
 	privileged         bool
 	hostNetwork        bool
+	usernsMode         string
 }
 
 // DefaultShmSize is the default shm size
@@ -73,7 +74,7 @@ var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 // New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
 // An infra container must be attached before the sandbox is added to the state
-func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time) (*Sandbox, error) {
+func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string) (*Sandbox, error) {
 	sb := new(Sandbox)
 	sb.id = id
 	sb.namespace = namespace
@@ -95,6 +96,7 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.portMappings = portMappings
 	sb.createdAt = createdAt
 	sb.hostNetwork = hostNetwork
+	sb.usernsMode = usernsMode
 
 	return sb, nil
 }
@@ -141,6 +143,11 @@ func (s *Sandbox) IPs() []string {
 // ID returns the id of the sandbox
 func (s *Sandbox) ID() string {
 	return s.id
+}
+
+// UsernsMode returns the mode for setting the user namespace, if any.
+func (s *Sandbox) UsernsMode() string {
+	return s.usernsMode
 }
 
 // Namespace returns the namespace for the sandbox

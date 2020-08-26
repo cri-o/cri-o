@@ -12,6 +12,7 @@ crio
 
 ```
 [--additional-devices]=[value]
+[--allow-userns-annotation]
 [--apparmor-profile]=[value]
 [--big-files-temporary-dir]=[value]
 [--bind-mount-prefix]=[value]
@@ -111,6 +112,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 # GLOBAL OPTIONS
 
 **--additional-devices**="": Devices to add to the containers  (default: [])
+
+**--allow-userns-annotation**: [EXPERIMENTAL] Allow usage of the annotation to setup user namespaces (default: false)
 
 **--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation. (default: crio-default)
 

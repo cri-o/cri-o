@@ -48,6 +48,30 @@ func (m *MockStore) ApplyDiff(arg0 string, arg1 io.Reader) (int64, error) {
 	return ret0, ret1
 }
 
+// MountImage mocks base method
+func (m *MockStore) MountImage(arg0 string, arg1 []string, arg2 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MountImage", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnmountImage mocks base method
+func (m *MockStore) UnmountImage(arg0 string, arg1 bool) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnmountImage", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Free mocks base method
+func (m *MockStore) Free() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Free")
+}
+
 // ApplyDiff indicates an expected call of ApplyDiff
 func (mr *MockStoreMockRecorder) ApplyDiff(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()

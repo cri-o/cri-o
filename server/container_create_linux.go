@@ -12,10 +12,13 @@ import (
 	"time"
 
 	"github.com/containers/buildah/pkg/secrets"
+	"github.com/containers/buildah/util"
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/rootless"
 	selinux "github.com/containers/libpod/pkg/selinux"
 	createconfig "github.com/containers/libpod/pkg/spec"
+	cstorage "github.com/containers/storage"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
@@ -163,24 +166,28 @@ func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfi
 }
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
-func (s *Server) createContainerPlatform(container *oci.Container, cgroupParent string) error {
-	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		rootPair := s.defaultIDMappings.RootPair()
-
+func (s *Server) createContainerPlatform(container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
+	if idMappings != nil {
+		rootPair := idMappings.RootPair()
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
-			if err := os.Chown(path, rootPair.UID, rootPair.GID); err != nil {
-				return errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
-			}
-			if err := makeAccessible(path, rootPair.UID, rootPair.GID); err != nil {
+			if err := makeAccessible(path, rootPair.UID, rootPair.GID, false); err != nil {
 				return errors.Wrapf(err, "cannot make %s accessible to %d:%d", path, rootPair.UID, rootPair.GID)
 			}
+		}
+		if err := makeMountsAccessible(rootPair.UID, rootPair.GID, container.Spec().Mounts); err != nil {
+			return err
 		}
 	}
 	return s.Runtime().CreateContainer(container, cgroupParent)
 }
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
-func makeAccessible(path string, uid, gid int) error {
+func makeAccessible(path string, uid, gid int, doChown bool) error {
+	if doChown {
+		if err := os.Chown(path, uid, gid); err != nil {
+			return errors.Wrapf(err, "cannot chown %s to %d:%d", path, uid, gid)
+		}
+	}
 	for ; path != "/"; path = filepath.Dir(path) {
 		st, err := os.Stat(path)
 		if err != nil {
@@ -197,6 +204,64 @@ func makeAccessible(path string, uid, gid int) error {
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+// makeMountsAccessible makes sure all the mounts are accessible from the user namespace
+func makeMountsAccessible(uid, gid int, mounts []rspec.Mount) error {
+	for _, m := range mounts {
+		if m.Type == "bind" || util.StringInSlice("bind", m.Options) {
+			if err := makeAccessible(m.Source, uid, gid, false); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func toContainer(id uint32, idMap []idtools.IDMap) (uint32, error) {
+	hostID := int(id)
+	if idMap == nil {
+		return uint32(hostID), nil
+	}
+	for _, m := range idMap {
+		if hostID >= m.HostID && hostID < m.HostID+m.Size {
+			contID := m.ContainerID + (hostID - m.HostID)
+			return uint32(contID), nil
+		}
+	}
+	return 0, fmt.Errorf("host ID %d cannot be mapped to a container ID", hostID)
+}
+
+// finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
+func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idtools.IDMappings) error {
+	var err error
+
+	if mappings == nil {
+		return nil
+	}
+
+	// if the namespace was configured because of a static configuration, do not attempt any mapping
+	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
+		return nil
+	}
+
+	specgen.Config.Process.User.UID, err = toContainer(specgen.Config.Process.User.UID, mappings.UIDs())
+	if err != nil {
+		return err
+	}
+	gids := mappings.GIDs()
+	specgen.Config.Process.User.GID, err = toContainer(specgen.Config.Process.User.GID, gids)
+	if err != nil {
+		return err
+	}
+	for i := range specgen.Config.Process.User.AdditionalGids {
+		gid, err := toContainer(specgen.Config.Process.User.AdditionalGids[i], gids)
+		if err != nil {
+			return err
+		}
+		specgen.Config.Process.User.AdditionalGids[i] = gid
 	}
 	return nil
 }
@@ -295,7 +360,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	containerIDMappings := s.defaultIDMappings
+	containerIDMappings, err := s.getSandboxIDMappings(sb)
+	if err != nil {
+		return nil, err
+	}
+
+	var idMappingOptions *cstorage.IDMappingOptions
+	if containerIDMappings != nil {
+		idMappingOptions = &cstorage.IDMappingOptions{UIDMap: containerIDMappings.UIDs(), GIDMap: containerIDMappings.GIDs()}
+	}
+
 	metadata := containerConfig.GetMetadata()
 
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
@@ -304,7 +378,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		containerName, containerID,
 		metadata.Name,
 		metadata.Attempt,
-		containerIDMappings,
+		idMappingOptions,
 		labelOptions,
 		ctr.Privileged(),
 	)
@@ -836,12 +910,28 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	specgen.SetProcessSelinuxLabel(processLabel)
 
 	ociContainer.SetIDMappings(containerIDMappings)
-	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		for _, uidmap := range s.defaultIDMappings.UIDs() {
+	if containerIDMappings != nil {
+		if err := s.finalizeUserMapping(&specgen, containerIDMappings); err != nil {
+			return nil, err
+		}
+
+		for _, uidmap := range containerIDMappings.UIDs() {
 			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
 		}
-		for _, gidmap := range s.defaultIDMappings.GIDs() {
+		for _, gidmap := range containerIDMappings.GIDs() {
 			specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+		}
+
+		rootPair := containerIDMappings.RootPair()
+
+		pathsToChown := []string{mountPoint, containerInfo.RunDir}
+		for _, m := range secretMounts {
+			pathsToChown = append(pathsToChown, m.Source)
+		}
+		for _, path := range pathsToChown {
+			if err := makeAccessible(path, rootPair.UID, rootPair.GID, true); err != nil {
+				return nil, errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
+			}
 		}
 	} else if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
 		return nil, err
@@ -855,6 +945,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	if err := specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
 		return nil, err
 	}
+
 	if err := specgen.SaveToFile(filepath.Join(containerInfo.RunDir, "config.json"), saveOptions); err != nil {
 		return nil, err
 	}
@@ -1139,4 +1230,5 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 		g.AddMount(systemdMnt)
 		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 	}
+	g.AddProcessEnv("container", "crio")
 }
