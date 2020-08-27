@@ -46,7 +46,6 @@ SOURCE_DATE_EPOCH ?= $(shell date +%s)
 GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
-GIT_VALIDATION := ${BUILD_BIN_PATH}/git-validation
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
@@ -271,9 +270,6 @@ ${GINKGO}:
 
 ${MOCKGEN}:
 	$(call go-build,./vendor/github.com/golang/mock/mockgen)
-
-${GIT_VALIDATION}:
-	$(call go-build,./vendor/github.com/vbatts/git-validation)
 
 ${RELEASE_NOTES}:
 	$(call go-build,./vendor/k8s.io/release/cmd/release-notes)
@@ -502,11 +498,6 @@ uninstall:
 	rm -rf $(ETCDIR_CRIO)/crio.conf.d
 	rm -f $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	rm -f $(CRICTL_CONFIG_DIR)/crictl.yaml
-
-git-validation: .gopathok ${GIT_VALIDATION}
-	GIT_CHECK_EXCLUDE="vendor" \
-		${GIT_VALIDATION} -v -run DCO,short-subject,dangling-whitespace \
-			-range ${GIT_MERGE_BASE}..HEAD
 
 docs-validation:
 	$(GO_RUN) -tags "$(BUILDTAGS)" ./test/docs-validation
