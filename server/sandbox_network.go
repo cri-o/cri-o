@@ -13,7 +13,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/pkg/errors"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
@@ -78,21 +77,15 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 				return nil, nil, fmt.Errorf("failed to get valid ip address for sandbox %s(%s)", sb.Name(), sb.ID())
 			}
 
-			err = s.hostportManager.Add(sb.ID(), &hostport.PodPortMapping{
-				Name:         sb.Name(),
-				PortMappings: sb.PortMappings(),
-				IP:           ip,
-				HostNetwork:  false,
-			}, "lo")
-			if err != nil {
-				return nil, nil, fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+			if err := s.hostportManager.Add(sb, ip); err != nil {
+				return nil, nil, err
 			}
 		}
 
 		podIPs = append(podIPs, podIP)
 	}
 
-	log.Debugf(ctx, "found POD IPs: %v", podIPs)
+	log.Debugf(ctx, "Found POD IPs: %v", podIPs)
 
 	// metric about the whole network setup operation
 	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_overall").
@@ -138,13 +131,8 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	stopCtx, stopCancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer stopCancel()
 
-	if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
-		Name:         sb.Name(),
-		PortMappings: sb.PortMappings(),
-		HostNetwork:  false,
-	}); err != nil {
-		log.Warnf(ctx, "failed to remove hostport for pod sandbox %s(%s): %v",
-			sb.Name(), sb.ID(), err)
+	if err := s.hostportManager.Remove(sb); err != nil {
+		log.Warnf(ctx, "Hostport remove failed: %v", err)
 	}
 
 	podNetwork, err := s.newPodNetwork(sb)
