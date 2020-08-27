@@ -43,7 +43,7 @@ var _ = t.Describe("Sandbox", func() {
 			sandbox, err := sandbox.New(id, namespace, name, kubeName, logDir,
 				labels, annotations, processLabel, mountLabel, &metadata,
 				shmPath, cgroupParent, privileged, runtimeHandler,
-				resolvPath, hostname, portMappings, hostNetwork, createdAt)
+				resolvPath, hostname, portMappings, hostNetwork, createdAt, "")
 
 			// Then
 			Expect(err).To(BeNil())

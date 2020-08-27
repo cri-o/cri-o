@@ -536,7 +536,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		}
 	}()
 
-	if err := s.createContainerPlatform(newContainer, sb.CgroupParent()); err != nil {
+	mappings, err := s.getSandboxIDMappings(sb)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.createContainerPlatform(newContainer, sb.CgroupParent(), mappings); err != nil {
 		return nil, err
 	}
 

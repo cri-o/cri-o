@@ -9,6 +9,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
@@ -40,6 +41,9 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	if err := s.networkStop(ctx, sb); err != nil {
 		return nil, err
 	}
+
+	// Get high-performance runtime hook to trigger preStop step for each container
+	hooks := runtimehandlerhooks.GetRuntimeHandlerHooks(sb.RuntimeHandler())
 
 	if sb.Stopped() {
 		log.Infof(ctx, "Stopped pod sandbox (already stopped): %s", sb.ID())
@@ -79,6 +83,11 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 					}
 					return nil
 				})
+			}
+			if hooks != nil {
+				if err := hooks.PreStop(ctx, ctr, sb); err != nil {
+					log.Warnf(ctx, "failed to run PreStop hook for container %s in pod sandbox %s: %v", ctr.Name(), sb.ID(), err)
+				}
 			}
 		}
 		if err := waitGroup.Wait(); err != nil {

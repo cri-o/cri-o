@@ -142,7 +142,7 @@ func beforeEach() {
 	mySandbox, err = sandbox.New(sandboxID, "", "", "", "",
 		make(map[string]string), make(map[string]string), "", "",
 		&pb.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now())
+		[]*hostport.PortMapping{}, false, time.Now(), "")
 	Expect(err).To(BeNil())
 
 	myContainer, err = oci.NewContainer(containerID, "", "", "",

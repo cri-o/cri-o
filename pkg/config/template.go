@@ -110,7 +110,8 @@ grpc_max_recv_msg_size = {{ .GRPCMaxRecvMsgSize }}
 {{ range $ulimit := .DefaultUlimits }}{{ printf "#\t%q,\n" $ulimit }}{{ end }}#]
 
 # default_runtime is the _name_ of the OCI runtime to be used as the default.
-# The name is matched against the runtimes map below.
+# The name is matched against the runtimes map below. If this value is changed,
+# the corresponding existing entry from the runtimes map below will be ignored.
 default_runtime = "{{ .DefaultRuntime }}"
 
 # If true, the runtime will not use pivot_root, but instead use MS_MOVE.
@@ -231,6 +232,11 @@ log_level = "{{ .LogLevel }}"
 # Filter the log messages by the provided regular expression.
 # This option supports live configuration reload.
 log_filter = "{{ .LogFilter }}"
+
+# Allow usage of the annotation io.kubernetes.cri-o.userns-mode
+# for setting up a user namespace.  This feature is experimental, do not use
+# in production.  It might be changed in future without notice.
+allow_userns_annotation = {{ .AllowUsernsAnnotation }}
 
 # The UID mappings for the user namespace of each container. A range is
 # specified in the form containerUID:HostUID:Size. Multiple ranges must be

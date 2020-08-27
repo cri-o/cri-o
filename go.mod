@@ -16,7 +16,7 @@ require (
 	github.com/containers/image/v5 v5.5.1
 	github.com/containers/libpod v1.9.2
 	github.com/containers/ocicrypt v1.0.3
-	github.com/containers/storage v1.20.2
+	github.com/containers/storage v1.23.1
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
@@ -38,10 +38,10 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
-	github.com/opencontainers/runc v1.0.0-rc91.0.20200707015106-819fcc687efb
-	github.com/opencontainers/runtime-spec v1.0.3-0.20200710190001-3e4195d92445
+	github.com/opencontainers/runc v1.0.0-rc92
+	github.com/opencontainers/runtime-spec v1.0.3-0.20200728170252-4d89ac9fbff6
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200714183735-07406c5828aa
-	github.com/opencontainers/selinux v1.5.2
+	github.com/opencontainers/selinux v1.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
 	github.com/psampaz/go-mod-outdated v0.6.0
@@ -54,8 +54,9 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
+	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1
 	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc/examples v0.0.0-20200721210703-a5a36bd3f0bb // indirect
 	k8s.io/api v0.17.4
 	k8s.io/apimachinery v0.18.3
 	k8s.io/client-go v0.0.0
@@ -81,6 +82,8 @@ replace (
 	k8s.io/component-base => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20200804142048-1afc53514032
 	k8s.io/cri-api => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20200804142048-1afc53514032
 	k8s.io/csi-translation-lib => k8s.io/kubernetes/staging/src/k8s.io/csi-translation-lib v0.0.0-20200804142048-1afc53514032
+	k8s.io/cri-api => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20200804142048-1afc53514032
+	k8s.io/csi-translation-lib => k8s.io/kubernetes/staging/src/k8s.io/csi-translation-lib v0.0.0-20200804142048-1afc53514032
 	k8s.io/kube-aggregator => k8s.io/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20200804142048-1afc53514032
 	k8s.io/kube-controller-manager => k8s.io/kubernetes/staging/src/k8s.io/kube-controller-manager v0.0.0-20200804142048-1afc53514032
 	k8s.io/kube-proxy => k8s.io/kubernetes/staging/src/k8s.io/kube-proxy v0.0.0-20200804142048-1afc53514032
@@ -91,4 +94,5 @@ replace (
 	k8s.io/legacy-cloud-providers => k8s.io/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20200804142048-1afc53514032
 	k8s.io/metrics => k8s.io/kubernetes/staging/src/k8s.io/metrics v0.0.0-20200804142048-1afc53514032
 	k8s.io/sample-apiserver => k8s.io/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20200804142048-1afc53514032
+	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20200710190001-3e4195d92445
 )

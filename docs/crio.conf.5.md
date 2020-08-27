@@ -206,6 +206,10 @@ the container runtime configuration.
 **read_only**=false
   If set to true, all containers will run in read-only mode.
 
+**allow_userns_annotation**=false
+  [EXPERIMENTAL] Allow usage of the experimental feature for setting user namespaces through the io.kubernetes.cri-o.userns-mode annotation.  This is an experimental feature,
+  do not enable in production.  It may be changed in the future without any notice.
+
 **uid_mappings**=""
   The UID mappings for the user namespace of each container. A range is specified in the form containerUID:HostUID:Size. Multiple ranges must be separated by comma.
 

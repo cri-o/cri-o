@@ -290,6 +290,11 @@ type RuntimeConfig struct {
 	// will only be able to write to volumes mounted into them
 	ReadOnly bool `toml:"read_only"`
 
+	// AllowUsernsAnnotation specifies whether CRI-O honors the io.kubernetes.cri-o.userns-mode
+	// annotation.  This is an experimental feature, do not enable in production.
+	// It might be changed in future.
+	AllowUsernsAnnotation bool `toml:"allow_userns_annotation"`
+
 	// seccompConfig is the internal seccomp configuration
 	seccompConfig *seccomp.Config
 
@@ -456,9 +461,15 @@ func (c *Config) UpdateFromFile(path string) error {
 	t := new(tomlConfig)
 	t.fromConfig(c)
 
-	_, err = toml.Decode(string(data), t)
+	metadata, err := toml.Decode(string(data), t)
 	if err != nil {
 		return fmt.Errorf("unable to decode configuration %v: %v", path, err)
+	}
+
+	runtimesKey := []string{"crio", "runtime", "default_runtime"}
+	if metadata.IsDefined(runtimesKey...) &&
+		t.Crio.Runtime.RuntimeConfig.DefaultRuntime != defaultRuntime {
+		delete(c.Runtimes, defaultRuntime)
 	}
 
 	t.toConfig(c)

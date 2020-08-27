@@ -7,7 +7,6 @@ import (
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
-	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/storage"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
@@ -410,6 +409,8 @@ var _ = t.Describe("Runtime", func() {
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Layer("").Return(nil, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(nil),
 			)
@@ -453,6 +454,8 @@ var _ = t.Describe("Runtime", func() {
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Layer("").Return(nil, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(t.TestError),
 			)
@@ -472,6 +475,8 @@ var _ = t.Describe("Runtime", func() {
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Layer("").Return(nil, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(nil),
@@ -522,6 +527,8 @@ var _ = t.Describe("Runtime", func() {
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Layer("").Return(nil, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(t.TestError),
 			)
@@ -567,7 +574,7 @@ var _ = t.Describe("Runtime", func() {
 					"podName", "podID", "imagename",
 					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 					"containerName", "containerID", "",
-					0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+					0, nil, []string{"mountLabel"}, false,
 				)
 			})
 
@@ -577,7 +584,7 @@ var _ = t.Describe("Runtime", func() {
 					"podName", "podID", "imagename", "",
 					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 					"containerName", "metadataName",
-					"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+					"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 				)
 			})
 
@@ -598,7 +605,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -613,7 +620,7 @@ var _ = t.Describe("Runtime", func() {
 				"", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -627,7 +634,7 @@ var _ = t.Describe("Runtime", func() {
 			_, err := sut.CreateContainer(&types.SystemContext{},
 				"podName", "podID", "", "",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -641,7 +648,7 @@ var _ = t.Describe("Runtime", func() {
 			_, err := sut.CreateContainer(&types.SystemContext{},
 				"podName", "podID", "imagename", "imageID",
 				"", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -675,7 +682,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -705,7 +712,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -733,7 +740,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -759,7 +766,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -780,7 +787,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -801,7 +808,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -830,7 +837,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "imagename",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "containerID", "metadataName",
-				0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				0, nil, []string{"mountLabel"}, false,
 			)
 
 			// Then
@@ -889,7 +896,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "pauseimagename", "",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
 		})
 
@@ -909,7 +916,7 @@ var _ = t.Describe("Runtime", func() {
 				"podName", "podID", "pauseimagename", "/var/non-default/credentials.json",
 				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, &idtools.IDMappings{}, []string{"mountLabel"}, false,
+				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
 		})
 
