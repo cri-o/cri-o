@@ -681,7 +681,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			log.Infof(ctx, "runSandbox: cleaning up namespaces after failing to run sandbox %s", sbox.ID())
 			for idx := range cleanupFuncs {
 				if err2 := cleanupFuncs[idx](); err2 != nil {
-					log.Debugf(ctx, err2.Error())
+					log.Infof(ctx, "runSandbox: failed to cleanup namespace: %s", err2.Error())
 				}
 			}
 		}
