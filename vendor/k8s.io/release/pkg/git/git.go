@@ -36,6 +36,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/release/pkg/command"
+	"k8s.io/release/pkg/release/regex"
 	"k8s.io/release/pkg/util"
 )
 
@@ -47,7 +48,6 @@ const (
 	DefaultMasterRef         = "HEAD"
 	Master                   = "master"
 
-	branchRE              = `master|release-([0-9]{1,})\.([0-9]{1,})(\.([0-9]{1,}))*$`
 	defaultGithubAuthRoot = "git@github.com:"
 	gitExecutable         = "git"
 )
@@ -356,7 +356,7 @@ func (r *Repo) LatestReleaseBranchMergeBaseToLatest() (DiscoverResult, error) {
 	}
 	version := versions[0]
 	versionTag := util.SemverToTagString(version)
-	logrus.Debugf("latest non patch version %s", versionTag)
+	logrus.Debugf("Latest non patch version %s", versionTag)
 
 	base, err := r.MergeBase(
 		Master,
@@ -393,7 +393,7 @@ func (r *Repo) LatestNonPatchFinalToMinor() (DiscoverResult, error) {
 
 	latestVersion := versions[0]
 	latestVersionTag := util.SemverToTagString(latestVersion)
-	logrus.Debugf("latest non patch version %s", latestVersionTag)
+	logrus.Debugf("Latest non patch version %s", latestVersionTag)
 	end, err := r.RevParse(latestVersionTag)
 	if err != nil {
 		return DiscoverResult{}, err
@@ -401,7 +401,7 @@ func (r *Repo) LatestNonPatchFinalToMinor() (DiscoverResult, error) {
 
 	previousVersion := versions[1]
 	previousVersionTag := util.SemverToTagString(previousVersion)
-	logrus.Debugf("previous non patch version %s", previousVersionTag)
+	logrus.Debugf("Previous non patch version %s", previousVersionTag)
 	start, err := r.RevParse(previousVersionTag)
 	if err != nil {
 		return DiscoverResult{}, err
@@ -447,13 +447,13 @@ func (r *Repo) releaseBranchOrMasterRev(major, minor uint64) (sha, rev string, e
 	relBranch := fmt.Sprintf("release-%d.%d", major, minor)
 	sha, err = r.RevParse(relBranch)
 	if err == nil {
-		logrus.Debugf("found release branch %s", relBranch)
+		logrus.Debugf("Found release branch %s", relBranch)
 		return sha, relBranch, nil
 	}
 
 	sha, err = r.RevParse(Master)
 	if err == nil {
-		logrus.Debug("no release branch found, using master")
+		logrus.Debug("No release branch found, using master")
 		return sha, Master, nil
 	}
 
@@ -499,8 +499,7 @@ func (r *Repo) Checkout(rev string, args ...string) error {
 // IsReleaseBranch returns true if the provided branch is a Kubernetes release
 // branch
 func IsReleaseBranch(branch string) bool {
-	re := regexp.MustCompile(branchRE)
-	if !re.MatchString(branch) {
+	if !regex.BranchRegex.MatchString(branch) {
 		logrus.Warnf("%s is not a release branch", branch)
 		return false
 	}
@@ -512,7 +511,7 @@ func (r *Repo) MergeBase(from, to string) (string, error) {
 	masterRef := Remotify(from)
 	releaseRef := Remotify(to)
 
-	logrus.Debugf("masterRef: %s, releaseRef: %s", masterRef, releaseRef)
+	logrus.Debugf("MasterRef: %s, releaseRef: %s", masterRef, releaseRef)
 
 	commitRevs := []string{masterRef, releaseRef}
 	var res []*object.Commit
@@ -545,7 +544,7 @@ func (r *Repo) MergeBase(from, to string) (string, error) {
 	}
 
 	mergeBase := res[0].Hash.String()
-	logrus.Infof("merge base is %s", mergeBase)
+	logrus.Infof("Merge base is %s", mergeBase)
 
 	return mergeBase, nil
 }
@@ -615,14 +614,14 @@ func (r *Repo) LatestPatchToPatch(branch string) (DiscoverResult, error) {
 		Patch: latestTag.Patch - 1,
 	}
 
-	logrus.Debugf("parsing latest tag %s%v", util.TagPrefix, latestTag)
+	logrus.Debugf("Parsing latest tag %s%v", util.TagPrefix, latestTag)
 	latestVersionTag := util.SemverToTagString(latestTag)
 	end, err := r.RevParse(latestVersionTag)
 	if err != nil {
 		return DiscoverResult{}, errors.Wrapf(err, "parsing version %v", latestTag)
 	}
 
-	logrus.Debugf("parsing previous tag %s%v", util.TagPrefix, prevTag)
+	logrus.Debugf("Parsing previous tag %s%v", util.TagPrefix, prevTag)
 	previousVersionTag := util.SemverToTagString(prevTag)
 	start, err := r.RevParse(previousVersionTag)
 	if err != nil {
@@ -651,7 +650,7 @@ func (r *Repo) LatestPatchToLatest(branch string) (DiscoverResult, error) {
 		latestTag.Pre = nil
 	}
 
-	logrus.Debugf("parsing latest tag %s%v", util.TagPrefix, latestTag)
+	logrus.Debugf("Parsing latest tag %s%v", util.TagPrefix, latestTag)
 	latestVersionTag := util.SemverToTagString(latestTag)
 	start, err := r.RevParse(latestVersionTag)
 	if err != nil {
@@ -748,27 +747,50 @@ func (r *Repo) Add(filename string) error {
 	)
 }
 
-// UserCommit makes a commit using the local user's config
-func (r *Repo) UserCommit(msg string) error {
-	// amend the latest commit
-	userName, err := command.New("git", "config", "--get", "user.name").RunSuccessOutput()
+// GetUserName Reads the local user's name from the git configuration
+func GetUserName() (string, error) {
+	// Retrieve username from git
+	userName, err := command.New(gitExecutable, "config", "--get", "user.name").RunSilentSuccessOutput()
 	if err != nil {
-		return errors.Wrap(err, "while trying to get the user's name")
+		return "", errors.Wrap(err, "reading the user name from git")
+	}
+	return userName.OutputTrimNL(), nil
+}
+
+// GetUserEmail reads the user's name from git
+func GetUserEmail() (string, error) {
+	userEmail, err := command.New(gitExecutable, "config", "--get", "user.email").RunSilentSuccessOutput()
+	if err != nil {
+		return "", errors.Wrap(err, "reading the user's email from git")
+	}
+	return userEmail.OutputTrimNL(), nil
+}
+
+// UserCommit makes a commit using the local user's config as well as adding
+// the Signed-off-by line to the commit message
+func (r *Repo) UserCommit(msg string) error {
+	// Retrieve username and mail
+	userName, err := GetUserName()
+	if err != nil {
+		return errors.Wrap(err, "getting the user's name")
 	}
 
-	userEmail, err := command.New("git", "config", "--get", "user.email").RunSuccessOutput()
+	userEmail, err := GetUserEmail()
 	if err != nil {
-		return errors.Wrap(err, "while trying to get the user's name")
+		return errors.Wrap(err, "getting the user's email")
 	}
+
+	// Add signed-off-by line
+	msg += fmt.Sprintf("\n\nSigned-off-by: %s <%s>", userName, userEmail)
 
 	if err := r.CommitWithOptions(msg, &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  userName.OutputTrimNL(),
-			Email: userEmail.OutputTrimNL(),
+			Name:  userName,
+			Email: userEmail,
 			When:  time.Now(),
 		},
 	}); err != nil {
-		return err
+		return errors.Wrap(err, "commit changes")
 	}
 
 	return nil

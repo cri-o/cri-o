@@ -121,11 +121,19 @@ func (c *githubNotesReplayClient) ListReleases(
 	return result, record.response(), nil
 }
 
-// TODO: Complete logic
 func (c *githubNotesReplayClient) GetReleaseByTag(
 	ctx context.Context, owner, repo, tag string,
 ) (*github.RepositoryRelease, *github.Response, error) {
-	return nil, nil, nil
+	data, err := c.readRecordedData(gitHubAPIGetReleaseByTag)
+	if err != nil {
+		return nil, nil, err
+	}
+	result := &github.RepositoryRelease{}
+	record := apiRecord{Result: result}
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, nil, err
+	}
+	return result, record.response(), nil
 }
 
 // TODO: Complete logic

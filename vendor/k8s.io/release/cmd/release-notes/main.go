@@ -148,13 +148,25 @@ func init() {
 	cmd.PersistentFlags().StringVar(
 		&opts.Format,
 		"format",
-		util.EnvDefault("FORMAT", options.FormatSpecDefaultGoTemplate),
+		util.EnvDefault("FORMAT", options.FormatMarkdown),
 		fmt.Sprintf("The format for notes output (options: %s)",
 			strings.Join([]string{
-				options.FormatSpecNone,
-				options.FormatSpecJSON,
-				options.FormatSpecDefaultGoTemplate,
-				options.FormatSpecGoTemplateInline,
+				options.FormatJSON,
+				options.FormatMarkdown,
+			}, ", "),
+		),
+	)
+
+	// go-template is the go template to be used when the format is markdown
+	cmd.PersistentFlags().StringVar(
+		&opts.GoTemplate,
+		"go-template",
+		util.EnvDefault("GO_TEMPLATE", options.GoTemplateDefault),
+		fmt.Sprintf("The go template to be used if --format=markdown (options: %s)",
+			strings.Join([]string{
+				options.GoTemplateDefault,
+				options.GoTemplateInline + "<template>",
+				options.GoTemplatePrefix + "<file.template>",
 			}, ", "),
 		),
 	)
@@ -228,17 +240,30 @@ func init() {
 		true,
 		"Add dependency report",
 	)
+
+	cmd.PersistentFlags().StringSliceVarP(
+		&opts.MapProviderStrings,
+		"maps-from",
+		"m",
+		[]string{},
+		"specify a location to recursively look for release notes *.y[a]ml file mappings",
+	)
 }
 
-func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNotesHistory) (err error) {
-	logrus.Info("got the commits, performing rendering")
+func WriteReleaseNotes(releaseNotes *notes.ReleaseNotes) (err error) {
+	logrus.Infof(
+		"Got %d release notes, performing rendering",
+		len(releaseNotes.History()),
+	)
 
-	// Open a handle to the file which will contain the release notes output
-	var output *os.File
-	var existingNotes notes.ReleaseNotes
+	var (
+		// Open a handle to the file which will contain the release notes output
+		output        *os.File
+		existingNotes notes.ReleaseNotesByPR
+	)
 
 	if releaseNotesOpts.outputFile != "" {
-		output, err = os.OpenFile(releaseNotesOpts.outputFile, os.O_RDWR|os.O_CREATE, os.FileMode(0644))
+		output, err = os.OpenFile(releaseNotesOpts.outputFile, os.O_RDWR|os.O_CREATE, os.FileMode(0o644))
 		if err != nil {
 			return errors.Wrapf(err, "opening the supplied output file")
 		}
@@ -250,8 +275,7 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 	}
 
 	// Contextualized release notes can be printed in a variety of formats
-	switch format := opts.Format; {
-	case format == "json":
+	if opts.Format == options.FormatJSON {
 		byteValue, err := ioutil.ReadAll(output)
 		if err != nil {
 			return err
@@ -272,25 +296,25 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 			}
 
 			for i := 0; i < len(existingNotes); i++ {
-				_, ok := releaseNotes[existingNotes[i].PrNumber]
-				if !ok {
-					releaseNotes[existingNotes[i].PrNumber] = existingNotes[i]
+				pr := existingNotes[i].PrNumber
+				if releaseNotes.Get(pr) == nil {
+					releaseNotes.Set(pr, existingNotes[i])
 				}
 			}
 		}
 
 		enc := json.NewEncoder(output)
 		enc.SetIndent("", "  ")
-		if err := enc.Encode(releaseNotes); err != nil {
+		if err := enc.Encode(releaseNotes.ByPR()); err != nil {
 			return errors.Wrapf(err, "encoding JSON output")
 		}
-	case strings.HasPrefix(format, options.GoTemplatePrefix):
-		doc, err := document.New(releaseNotes, history, opts.StartRev, opts.EndRev)
+	} else {
+		doc, err := document.New(releaseNotes, opts.StartRev, opts.EndRev)
 		if err != nil {
 			return errors.Wrapf(err, "creating release note document")
 		}
 
-		markdown, err := doc.RenderMarkdownTemplate(opts.ReleaseBucket, opts.ReleaseTars, opts.Format)
+		markdown, err := doc.RenderMarkdownTemplate(opts.ReleaseBucket, opts.ReleaseTars, opts.GoTemplate)
 		if err != nil {
 			return errors.Wrapf(err, "rendering release note document with template")
 		}
@@ -318,25 +342,19 @@ func WriteReleaseNotes(releaseNotes notes.ReleaseNotes, history notes.ReleaseNot
 		if _, err := output.WriteString(markdown); err != nil {
 			return errors.Wrap(err, "writing output file")
 		}
-
-	default:
-		return errors.Errorf("%q is an unsupported format", opts.Format)
 	}
 
-	logrus.
-		WithField("path", output.Name()).
-		WithField("format", opts.Format).
-		Info("release notes written to file")
+	logrus.Infof("Release notes written to file: %s", output.Name())
 	return nil
 }
 
 func run(*cobra.Command, []string) error {
-	releaseNotes, history, err := notes.GatherReleaseNotes(opts)
+	releaseNotes, err := notes.GatherReleaseNotes(opts)
 	if err != nil {
 		return errors.Wrapf(err, "gathering release notes")
 	}
 
-	return WriteReleaseNotes(releaseNotes, history)
+	return WriteReleaseNotes(releaseNotes)
 }
 
 func main() {

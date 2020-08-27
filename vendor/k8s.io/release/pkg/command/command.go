@@ -32,6 +32,7 @@ import (
 type Command struct {
 	cmds                         []*command
 	stdErrWriters, stdOutWriters []io.Writer
+	verbose                      bool
 }
 
 // The internal command representation
@@ -52,6 +53,9 @@ type Stream struct {
 	stdErr string
 }
 
+// Commands is an abstraction over multiple Command structures
+type Commands []*Command
+
 // New creates a new command from the provided arguments.
 func New(cmd string, args ...string) *Command {
 	return NewWithWorkDir("", cmd, args...)
@@ -67,6 +71,7 @@ func NewWithWorkDir(workDir, cmd string, args ...string) *Command {
 		}},
 		stdErrWriters: []io.Writer{},
 		stdOutWriters: []io.Writer{},
+		verbose:       false,
 	}
 }
 
@@ -89,6 +94,26 @@ func (c *Command) Pipe(cmd string, args ...string) *Command {
 		pipeWriter: writer,
 	})
 	return c
+}
+
+// Verbose enables verbose output aka printing the command before executing it.
+func (c *Command) Verbose() *Command {
+	c.verbose = true
+	return c
+}
+
+// isVerbose returns true if the command is in verbose mode, either set locally
+// or global
+func (c *Command) isVerbose() bool {
+	return GetGlobalVerbose() || c.verbose
+}
+
+// Add a command with the same working directory as well as verbosity mode.
+// Returns a new Commands instance.
+func (c *Command) Add(cmd string, args ...string) Commands {
+	addCmd := NewWithWorkDir(c.cmds[0].Dir, cmd, args...)
+	addCmd.verbose = c.verbose
+	return Commands{c, addCmd}
 }
 
 // AddWriter can be used to add an additional output (stdout) and error
@@ -190,7 +215,6 @@ func (c *Command) RunSilentSuccess() error {
 
 // run is the internal run method
 func (c *Command) run(printOutput bool) (res *Status, err error) {
-	logrus.Debugf("Running command: %v", c.String())
 	var runErr error
 	stdOutBuffer := &bytes.Buffer{}
 	stdErrBuffer := &bytes.Buffer{}
@@ -202,6 +226,7 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 	}
 	doneChan := make(chan done, 1)
 
+	var stdOutWriter io.Writer
 	for i, cmd := range c.cmds {
 		// Last command handling
 		if i+1 == len(c.cmds) {
@@ -214,7 +239,7 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 				return nil, err
 			}
 
-			var stdOutWriter, stdErrWriter io.Writer
+			var stdErrWriter io.Writer
 			if printOutput {
 				stdOutWriter = io.MultiWriter(append(
 					[]io.Writer{os.Stdout, stdOutBuffer}, c.stdOutWriters...,
@@ -231,6 +256,10 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 				_, stderrErr := io.Copy(stdErrWriter, stderr)
 				doneChan <- done{stdoutErr, stderrErr}
 			}()
+		}
+
+		if c.isVerbose() {
+			logrus.Infof("+ %s", c.String())
 		}
 
 		if err := cmd.Start(); err != nil {
@@ -330,4 +359,26 @@ func Available(commands ...string) (ok bool) {
 		}
 	}
 	return ok
+}
+
+// Add adds another command with the same working directory as well as
+// verbosity mode to the Commands.
+func (c Commands) Add(cmd string, args ...string) Commands {
+	addCmd := NewWithWorkDir(c[0].cmds[0].Dir, cmd, args...)
+	addCmd.verbose = c[0].verbose
+	return append(c, addCmd)
+}
+
+// Run executes all commands sequentially and abort if any of those fails.
+func (c Commands) Run() (*Status, error) {
+	res := &Status{Stream: &Stream{}}
+	for _, cmd := range c {
+		output, err := cmd.RunSuccessOutput()
+		if err != nil {
+			return nil, errors.Wrapf(err, "running command %q", cmd.String())
+		}
+		res.stdOut += "\n" + output.stdOut
+		res.stdErr += "\n" + output.stdErr
+	}
+	return res, nil
 }

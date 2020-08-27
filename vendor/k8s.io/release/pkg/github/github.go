@@ -39,6 +39,8 @@ import (
 const (
 	// TokenEnvKey is the default GitHub token environemt variable key
 	TokenEnvKey = "GITHUB_TOKEN"
+	// GitHubURL Prefix for github URLs
+	GitHubURL = "https://github.com/"
 )
 
 // GitHub is a wrapper around GitHub related functionality
