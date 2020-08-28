@@ -342,6 +342,9 @@ func GetBindMount(args []string) (specs.Mount, error) {
 			// TODO: detect duplication of these options.
 			// (Is this necessary?)
 			newMount.Options = append(newMount.Options, kv[0])
+		case "readonly":
+			// Alias for "ro"
+			newMount.Options = append(newMount.Options, "ro")
 		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z":
 			newMount.Options = append(newMount.Options, kv[0])
 		case "bind-propagation":
@@ -367,6 +370,10 @@ func GetBindMount(args []string) (specs.Mount, error) {
 			}
 			newMount.Destination = kv[1]
 			setDest = true
+		case "consistency":
+			// Option for OS X only, has no meaning on other platforms
+			// and can thus be safely ignored.
+			// See also the handling of the equivalent "delegated" and "cached" in ValidateVolumeOpts
 		default:
 			return newMount, errors.Wrapf(errBadMntOption, kv[0])
 		}
@@ -403,6 +410,9 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 		switch kv[0] {
 		case "ro", "nosuid", "nodev", "noexec":
 			newMount.Options = append(newMount.Options, kv[0])
+		case "readonly":
+			// Alias for "ro"
+			newMount.Options = append(newMount.Options, "ro")
 		case "tmpfs-mode":
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
@@ -925,25 +935,6 @@ func IsolationOption(isolation string) (buildah.Isolation, error) {
 		}
 	}
 	return defaultIsolation()
-}
-
-// ScrubServer removes 'http://' or 'https://' from the front of the
-// server/registry string if either is there.  This will be mostly used
-// for user input from 'buildah login' and 'buildah logout'.
-func ScrubServer(server string) string {
-	server = strings.TrimPrefix(server, "https://")
-	return strings.TrimPrefix(server, "http://")
-}
-
-// RegistryFromFullName gets the registry from the input. If the input is of the form
-// quay.io/myuser/myimage, it will parse it and just return quay.io
-// It also returns true if a full image name was given
-func RegistryFromFullName(input string) string {
-	split := strings.Split(input, "/")
-	if len(split) > 1 {
-		return split[0]
-	}
-	return split[0]
 }
 
 // Device parses device mapping string to a src, dest & permissions string

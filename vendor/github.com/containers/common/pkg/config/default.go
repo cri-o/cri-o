@@ -11,7 +11,6 @@ import (
 
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
-	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -53,9 +52,6 @@ var (
 	// DefaultDetachKeys is the default keys sequence for detaching a
 	// container
 	DefaultDetachKeys = "ctrl-p,ctrl-q"
-)
-
-var (
 	// ErrConmonOutdated indicates the version of conmon found (whether via the configuration or $PATH)
 	// is out of date for the current podman version
 	ErrConmonOutdated = errors.New("outdated conmon version")
@@ -80,15 +76,24 @@ var (
 		"CAP_SETUID",
 		"CAP_SYS_CHROOT",
 	}
+
+	cniBinDir = []string{
+		"/usr/libexec/cni",
+		"/usr/lib/cni",
+		"/usr/local/lib/cni",
+		"/opt/cni/bin",
+	}
 )
 
 const (
-	// EtcDir is the sysconfdir where podman should look for system config files.
+	// _etcDir is the sysconfdir where podman should look for system config files.
 	// It can be overridden at build time.
 	_etcDir = "/etc"
 	// InstallPrefix is the prefix where podman will be installed.
 	// It can be overridden at build time.
 	_installPrefix = "/usr"
+	// _cniConfigDir is the directory where cni plugins are found
+	_cniConfigDir = "/etc/cni/net.d/"
 	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
@@ -105,6 +110,9 @@ const (
 	DefaultPidsLimit = 2048
 	// DefaultPullPolicy pulls the image if it does not exist locally
 	DefaultPullPolicy = "missing"
+	// DefaultSignaturePolicyPath is the default value for the
+	// policy.json file.
+	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
 	// DefaultRootlessSignaturePolicyPath is the default value for the
 	// rootless policy.json file.
 	DefaultRootlessSignaturePolicyPath = ".config/containers/policy.json"
@@ -129,16 +137,26 @@ func DefaultConfig() (*Config, error) {
 	}
 
 	netns := "bridge"
+
+	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 	if unshare.IsRootless() {
 		home, err := unshare.HomeDir()
 		if err != nil {
 			return nil, err
 		}
 		sigPath := filepath.Join(home, DefaultRootlessSignaturePolicyPath)
-		if _, err := os.Stat(sigPath); err == nil {
-			defaultEngineConfig.SignaturePolicyPath = sigPath
+		defaultEngineConfig.SignaturePolicyPath = sigPath
+		if _, err := os.Stat(sigPath); err != nil {
+			if _, err := os.Stat(DefaultSignaturePolicyPath); err == nil {
+				defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
+			}
 		}
 		netns = "slirp4netns"
+	}
+
+	cgroupNS := "host"
+	if cgroup2, _ := cgroupv2.Enabled(); cgroup2 {
+		cgroupNS = "private"
 	}
 
 	return &Config{
@@ -147,7 +165,7 @@ func DefaultConfig() (*Config, error) {
 			Volumes:             []string{},
 			Annotations:         []string{},
 			ApparmorProfile:     DefaultApparmorProfile,
-			CgroupNS:            "private",
+			CgroupNS:            cgroupNS,
 			Cgroups:             "enabled",
 			DefaultCapabilities: DefaultCapabilities,
 			DefaultSysctls:      []string{},
@@ -158,6 +176,7 @@ func DefaultConfig() (*Config, error) {
 			EnableLabeling:      selinuxEnabled(),
 			Env: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+				"TERM=xterm",
 			},
 			EnvHost:        false,
 			HTTPProxy:      false,
@@ -173,12 +192,12 @@ func DefaultConfig() (*Config, error) {
 			SeccompProfile: SeccompDefaultPath,
 			ShmSize:        DefaultShmSize,
 			UTSNS:          "private",
-			UserNS:         "private",
+			UserNS:         "host",
 			UserNSSize:     DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:   "podman",
-			NetworkConfigDir: cniConfigDir,
+			NetworkConfigDir: _cniConfigDir,
 			CNIPluginDirs:    cniBinDir,
 		},
 		Engine: *defaultEngineConfig,
@@ -220,6 +239,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.CgroupManager = defaultCgroupManager()
 	c.StopTimeout = uint(10)
 
+	c.Remote = isRemote()
 	c.OCIRuntimes = map[string][]string{
 		"runc": {
 			"/usr/bin/runc",
@@ -463,12 +483,16 @@ func (c *Config) Ulimits() []string {
 // PidsLimit returns the default maximum number of pids to use in containers
 func (c *Config) PidsLimit() int64 {
 	if unshare.IsRootless() {
+		if c.Engine.CgroupManager != SystemdCgroupsManager {
+			return 0
+		}
 		cgroup2, _ := cgroupv2.Enabled()
-		if cgroup2 {
-			return c.Containers.PidsLimit
+		if !cgroup2 {
+			return 0
 		}
 	}
-	return sysinfo.GetDefaultPidsLimit()
+
+	return c.Containers.PidsLimit
 }
 
 // DetachKeys returns the default detach keys to detach from a container
