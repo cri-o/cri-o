@@ -14,7 +14,6 @@ import (
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/pkg/errors"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
-	utilnet "k8s.io/utils/net"
 )
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
@@ -79,19 +78,12 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 				return nil, nil, fmt.Errorf("failed to get valid ip address for sandbox %s(%s)", sb.Name(), sb.ID())
 			}
 
-			mapping := &hostport.PodPortMapping{
+			err = s.hostportManager.Add(sb.ID(), &hostport.PodPortMapping{
 				Name:         sb.Name(),
 				PortMappings: sb.PortMappings(),
 				IP:           ip,
 				HostNetwork:  false,
-			}
-
-			// use the corresponding IP family hostportManager for the IP
-			if utilnet.IsIPv6(ip) {
-				err = s.hostportManagerv6.Add(sb.ID(), mapping, "")
-			} else {
-				err = s.hostportManager.Add(sb.ID(), mapping, "")
-			}
+			}, "lo")
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 			}
@@ -146,25 +138,13 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	stopCtx, stopCancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer stopCancel()
 
-	// If there are no IPs registered we can't teardown pod IP dependencies
-	ips := sb.IPs()
-	if len(ips) > 0 {
-		// we only allocated portmappings for the first ip
-		mapping := &hostport.PodPortMapping{
-			Name:         sb.Name(),
-			PortMappings: sb.PortMappings(),
-			HostNetwork:  false,
-		}
-		var err error
-		if utilnet.IsIPv6String(ips[0]) {
-			err = s.hostportManagerv6.Remove(sb.ID(), mapping)
-		} else {
-			err = s.hostportManager.Remove(sb.ID(), mapping)
-		}
-		if err != nil {
-			log.Warnf(ctx, "failed to remove hostport for pod sandbox %s(%s): %v",
-				sb.Name(), sb.ID(), err)
-		}
+	if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
+		Name:         sb.Name(),
+		PortMappings: sb.PortMappings(),
+		HostNetwork:  false,
+	}); err != nil {
+		log.Warnf(ctx, "failed to remove hostport for pod sandbox %s(%s): %v",
+			sb.Name(), sb.ID(), err)
 	}
 
 	podNetwork, err := s.newPodNetwork(sb)
