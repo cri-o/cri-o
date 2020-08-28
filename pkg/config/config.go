@@ -64,7 +64,7 @@ type Iface interface {
 }
 
 // GetStore returns the container storage for a given configuration
-func (c *Config) GetStore() (storage.Store, error) {
+func (c *RootConfig) GetStore() (storage.Store, error) {
 	return storage.GetStore(storage.StoreOptions{
 		RunRoot:            c.RunRoot,
 		GraphRoot:          c.Root,
@@ -659,6 +659,18 @@ func (c *RootConfig) Validate(onExecution bool) error {
 		if err := os.MkdirAll(c.LogDir, 0700); err != nil {
 			return errors.Wrap(err, "invalid log_dir")
 		}
+		store, err := c.GetStore()
+		if err != nil {
+			return errors.Wrapf(err, "failed to get store to set defaults")
+		}
+		// This step merges the /etc/container/storage.conf with the
+		// storage configuration in crio.conf
+		// If we don't do this step, we risk returning the incorrect info
+		// on Inspect (/info) requests
+		c.RunRoot = store.RunRoot()
+		c.Root = store.GraphRoot()
+		c.Storage = store.GraphDriverName()
+		c.StorageOptions = store.GraphOptions()
 	}
 
 	return nil
