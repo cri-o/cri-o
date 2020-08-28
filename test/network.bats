@@ -8,7 +8,7 @@ function setup() {
 
 function teardown() {
 	cleanup_test
-	rm -f /var/lib/cni/networks/$RANDOM_CNI_NETWORK/*
+	rm -f /var/lib/cni/networks/"$CNI_DEFAULT_NETWORK"/*
 }
 
 @test "ensure correct hostname" {
@@ -126,6 +126,16 @@ function teardown() {
 	[ "$status" -eq 0 ]
 }
 
+# ensure that the server cleaned up sandbox networking
+# if the sandbox failed after network setup
+function check_networking() {
+	# shellcheck disable=SC2010
+	if ls /var/lib/cni/networks/"$CNI_DEFAULT_NETWORK" | \
+			grep -Ev '^lock|^last_reserved_ip'; then
+		fail "unexpected networks"
+	fi
+}
+
 @test "Clean up network if pod sandbox fails" {
 	# TODO FIXME find a way for sandbox setup to fail if manage ns is true
 	cp $(which conmon) "$TESTDIR"/conmon
@@ -142,11 +152,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -ne 0 ]
 
-	# ensure that the server cleaned up sandbox networking if the sandbox
-	# failed after network setup
-	rm -f /var/lib/cni/networks/$RANDOM_CNI_NETWORK/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/$RANDOM_CNI_NETWORK | grep -v lock | wc -l)
-	[[ "${num_allocated}" == "0" ]]
+	check_networking
 }
 
 @test "Clean up network if pod sandbox fails after plugin success" {
@@ -156,9 +162,5 @@ function teardown() {
 	echo "$output"
 	[ "$status" -ne 0 ]
 
-	# ensure that the server cleaned up sandbox networking if the sandbox
-	# failed during network setup after the CNI plugin itself succeeded
-	rm -f /var/lib/cni/networks/$RANDOM_CNI_NETWORK/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/$RANDOM_CNI_NETWORK | grep -v lock | wc -l)
-	[[ "${num_allocated}" == "0" ]]
+	check_networking
 }

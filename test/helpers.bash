@@ -161,7 +161,6 @@ fi
 
 function setup_test() {
     TESTDIR=$(mktemp -d)
-    RANDOM_CNI_NETWORK=${TESTDIR: -10}
 
     # Setup default hooks dir
     HOOKSDIR=$TESTDIR/hooks
@@ -299,7 +298,7 @@ function setup_crio() {
     netfunc="prepare_network_conf"
     if [[ -n "$2" ]]; then
         netfunc="$2"
-        CNI_DEFAULT_NETWORK="crio-$RANDOM_CNI_NETWORK"
+        CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
     fi
 
     # shellcheck disable=SC2086
@@ -534,16 +533,14 @@ function prepare_network_conf() {
     }
 }
 EOF
-
-    echo 0
 }
 
-function write_plugin_test_args_network_conf() {
+function prepare_plugin_test_args_network_conf() {
     mkdir -p "$CRIO_CNI_CONFIG"
     cat >"$CRIO_CNI_CONFIG/10-plugin-test-args.conf" <<-EOF
 {
     "cniVersion": "0.3.1",
-    "name": "crio-$RANDOM_CNI_NETWORK",
+    "name": "$CNI_DEFAULT_NETWORK",
     "type": "cni_plugin_helper.bash",
     "bridge": "cni0",
     "isGateway": true,
@@ -557,20 +554,11 @@ function write_plugin_test_args_network_conf() {
     }
 }
 EOF
-
-    if [[ -n "$1" ]]; then
-        echo "DEBUG_ARGS=$1" >"$TESTDIR"/cni_plugin_helper_input.env
-    fi
-
-    echo 0
-}
-
-function prepare_plugin_test_args_network_conf() {
-    write_plugin_test_args_network_conf
 }
 
 function prepare_plugin_test_args_network_conf_malformed_result() {
-    write_plugin_test_args_network_conf "malformed-result"
+    prepare_plugin_test_args_network_conf
+    echo "DEBUG_ARGS=malformed-result" >"$TESTDIR"/cni_plugin_helper_input.env
 }
 
 function parse_pod_ip() {
@@ -648,4 +636,10 @@ function wait_for_log() {
 
 function replace_config() {
     sed -i -e 's;\('"$1"' = "\).*\("\);\1'"$2"'\2;' "$CRIO_CONFIG"
+}
+
+# Fails the current test, providing the error given.
+function fail() {
+    echo "$@" >&2
+    exit 1
 }
