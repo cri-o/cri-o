@@ -91,13 +91,14 @@ workflows:
           name: integration-cgroupfs
           cgroup_manager: cgroupfs
       - lint
-      - release-branch-forward:
-          requires:
-            - results
-          filters:
-            branches:
-              only:
-                - master
+      # TODO: re-enable after when we branch for 1.20
+      # - release-branch-forward:
+      #     requires:
+      #       - results
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
       - release-notes:
           requires:
             - results
