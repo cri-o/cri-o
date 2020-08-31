@@ -441,7 +441,10 @@ func (c *Container) verifyPid() error {
 	}
 
 	if startTime != c.state.InitStartTime {
-		return errors.New("PID running but not the original container. PID wrap may have occurred")
+		return errors.Errorf(
+			"PID %d is running but has start time of %d, whereas the saved start time is %d. PID wrap may have occurred",
+			c.state.InitPid, startTime, c.state.InitStartTime,
+		)
 	}
 	return nil
 }
