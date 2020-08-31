@@ -82,11 +82,9 @@ STREAM_PORT=${STREAM_PORT:-10010}
 CONTAINER_METRICS_PORT=${CONTAINER_METRICS_PORT:-9090}
 
 POD_IPV4_CIDR="10.88.0.0/16"
-POD_IPV4_CIDR_START="10.88"
 POD_IPV4_DEF_ROUTE="0.0.0.0/0"
 
 POD_IPV6_CIDR="1100:200::/24"
-POD_IPV6_CIDR_START="1100:200::"
 POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
 # Make sure we have a copy of the redis:alpine image.
@@ -561,17 +559,12 @@ function prepare_plugin_test_args_network_conf_malformed_result() {
     echo "DEBUG_ARGS=malformed-result" >"$TESTDIR"/cni_plugin_helper_input.env
 }
 
-function parse_pod_ip() {
-    inet=$(crictl exec --sync "$1" ip addr show dev eth0 scope global 2>&1 | grep "$2")
-    echo "$inet" | sed -n 's;.*\('"$3"'.*\)/.*;\1;p'
-}
-
-function parse_pod_ipv4() {
-    parse_pod_ip "$1" 'inet ' $POD_IPV4_CIDR_START
-}
-
-function parse_pod_ipv6() {
-    parse_pod_ip "$1" inet6 $POD_IPV6_CIDR_START
+# Usage: ip=$(pod_ip -4|-6 $POD_ID)
+function pod_ip() {
+    [ $# -eq 2 ]
+    [ "$1" = "-4" ] || [ "$1" = "-6" ]
+    crictl exec --sync "$2" ip "$1" addr show dev eth0 scope global |
+        awk '/^ +inet/ {sub("/.*","",$2); print $2; exit}'
 }
 
 function get_host_ip() {
@@ -581,31 +574,37 @@ function get_host_ip() {
 }
 
 function ping_pod() {
-    ipv4=$(parse_pod_ipv4 "$1")
-    ping -W 1 -c 5 "$ipv4"
+    local ip proto
 
-    ipv6=$(parse_pod_ipv6 "$1")
-    ping6 -W 1 -c 5 "$ipv6"
+    for proto in 4 6; do
+        ip=$(pod_ip -"$proto" "$1")
+        [ -z "$ip" ] && fail "can't find ipv$proto address"
+        diag ping -W 1 -c 5 "$ip"
+        ping -W 1 -c 5 "$ip" >&3
+    done
 }
 
 function ping_pod_from_pod() {
-    ipv4=$(parse_pod_ipv4 "$1")
-    crictl exec --sync "$2" ping -W 1 -c 2 "$ipv4"
+    local ip proto
+    [ $# -eq 2 ]
 
-    # since RHEL kernels don't mirror ipv4.ip_forward sysctl to ipv6, this fails
-    # in such an environment without giving all containers NET_RAW capability
-    # rather than reducing the security of the tests for all cases, skip this check
-    # instead
-    if (grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep " 7"); then
-        return
-    fi
-    ipv6=$(parse_pod_ipv6 "$1")
-    crictl exec --sync "$2" ping6 -W 1 -c 2 "$ipv6"
+    for proto in 4 6; do
+        ip=$(pod_ip -"$proto" "$1")
+        [ -z "$ip" ] && fail "can't find ipv$proto address"
+        diag crictl exec --sync "$2" ping -W 1 -c 2 "$ip"
+        crictl exec --sync "$2" ping -W 1 -c 2 "$ip" >&3
+
+        # Since RHEL7 kernels don't mirror ipv4.ip_forward sysctl to ipv6, this fails
+        # in such an environment without giving all containers NET_RAW capability.
+        # Rather than reducing the security of the tests for all cases, skip this check.
+        if grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep -q " 7"; then
+            return
+        fi
+    done
 }
 
 function cleanup_network_conf() {
     rm -rf "$CRIO_CNI_CONFIG"
-    echo 0
 }
 
 function temp_sandbox_conf() {
@@ -640,6 +639,12 @@ function replace_config() {
 
 # Fails the current test, providing the error given.
 function fail() {
-    echo "$@" >&2
+    echo "FAIL [${BATS_TEST_NAME} ${BASH_SOURCE[0]##*/}:${BASH_LINENO[0]}] $*" >&2
     exit 1
+}
+
+# Adds some diagnostics to aid in tests debugging.
+# (as per https://github.com/bats-core/bats-core#printing-to-the-terminal)
+function diag() {
+    echo "# [${BATS_TEST_NAME} ${BASH_SOURCE[0]##*/}:${BASH_LINENO[0]}] $*" >&3
 }

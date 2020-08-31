@@ -12,40 +12,27 @@ function teardown() {
 }
 
 @test "Ping pod from the host" {
-    run crictl runp "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    pod_id="$output"
+    pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+    diag "pod $pod_id created"
+    ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json)
+    diag "ctr $ctr_id created"
 
-    run crictl create "$pod_id" "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0  ]
-    ctr_id="$output"
-
-    ping_pod $ctr_id
+    ping_pod "$ctr_id"
 }
 
 @test "Ping pod from another pod" {
-    run crictl runp "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    pod1_id="$output"
-    run crictl create "$pod1_id" "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0  ]
-    ctr1_id="$output"
+    pod1_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+    diag "pod1 $pod1_id created"
+    ctr1_id=$(crictl create "$pod1_id" "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json)
+    diag "ctr1 $ctr1_id created"
 
     temp_sandbox_conf cni_test
 
-    run crictl runp "$TESTDIR"/sandbox_config_cni_test.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    pod2_id="$output"
-    run crictl create "$pod2_id" "$TESTDATA"/container_config_ping.json "$TESTDIR"/sandbox_config_cni_test.json
-    echo "$output"
-    [ "$status" -eq 0  ]
-    ctr2_id="$output"
+    pod2_id=$(crictl runp "$TESTDIR"/sandbox_config_cni_test.json)
+    diag "pod2 $pod2_id created"
+    ctr2_id=$(crictl create "$pod2_id" "$TESTDATA"/container_config_ping.json "$TESTDIR"/sandbox_config_cni_test.json)
+    diag "ctr2 $ctr2_id created"
 
-    ping_pod_from_pod $ctr1_id $ctr2_id
-    ping_pod_from_pod $ctr2_id $ctr1_id
+    ping_pod_from_pod "$ctr1_id" "$ctr2_id"
+    ping_pod_from_pod "$ctr2_id" "$ctr1_id"
 }
