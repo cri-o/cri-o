@@ -390,14 +390,9 @@ func (c *Container) exitFilePath() string {
 
 // IsAlive is a function that checks if a container's init PID exists.
 // It is used to check a container state when we don't want a `$runtime state` call
-func (c *Container) IsAlive() bool {
+func (c *Container) IsAlive() error {
 	_, err := c.pid()
-	if err != nil {
-		logrus.Errorf("checking if PID of %s is running failed: %v", c.id, err)
-		return false
-	}
-
-	return true
+	return errors.Wrapf(err, "checking if PID of %s is running failed", c.id)
 }
 
 // Pid returns the container's init PID.
