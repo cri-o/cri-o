@@ -122,24 +122,17 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDM
 			fmt.Sprintf("--gid-mapping=%s", getMappingsForPinns(idMappings.GIDs())))
 	}
 
-	pinns := cfg.PinnsPath
-
 	logrus.Debugf("calling pinns with %v", pinnsArgs)
-	output, err := exec.Command(pinns, pinnsArgs...).Output()
-	if len(output) != 0 {
-		logrus.Debugf("pinns output: %s", string(output))
-	}
+	output, err := exec.Command(cfg.PinnsPath, pinnsArgs...).CombinedOutput()
 	if err != nil {
-		// cleanup after ourselves
-		failedUmounts := make([]string, 0)
+		logrus.Warnf("pinns %v failed: %s (%v)", pinnsArgs, string(output), err)
+		// cleanup the mounts
 		for _, info := range mountedNamespaces {
-			if unmountErr := unix.Unmount(info.path, unix.MNT_DETACH); unmountErr != nil {
-				failedUmounts = append(failedUmounts, info.path)
+			if mErr := unix.Unmount(info.path, unix.MNT_DETACH); mErr != nil && mErr != unix.EINVAL {
+				logrus.Warnf("failed to unmount %s: %v", info.path, mErr)
 			}
 		}
-		if len(failedUmounts) != 0 {
-			return nil, fmt.Errorf("failed to cleanup %v after pinns failure %s %v", failedUmounts, output, err)
-		}
+
 		return nil, fmt.Errorf("failed to pin namespaces %v: %s %v", nsTypes, output, err)
 	}
 
