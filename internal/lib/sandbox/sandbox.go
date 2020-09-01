@@ -409,8 +409,9 @@ func (s *Sandbox) UnmountShm() error {
 		return nil
 	}
 
-	// try to unmount, ignoring "not mounted" (EINVAL) error
-	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
+	// try to unmount, ignoring "not mounted" (EINVAL) error and
+	// "already unmounted" (ENOENT) error
+	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL && err != unix.ENOENT {
 		return errors.Wrapf(err, "unable to unmount %s", fp)
 	}
 
