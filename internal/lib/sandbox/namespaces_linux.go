@@ -143,7 +143,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDM
 		return nil, fmt.Errorf("failed to pin namespaces %v: %s %v", nsTypes, output, err)
 	}
 
-	returnedNamespaces := make([]NamespaceIface, 0)
+	returnedNamespaces := make([]NamespaceIface, 0, len(nsTypes))
 	for _, info := range mountedNamespaces {
 		ret, err := nspkg.GetNS(info.path)
 		if err != nil {
