@@ -95,7 +95,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDM
 			return nil, errors.Errorf("Invalid namespace type: %s", nsType)
 		}
 		pinnsArgs = append(pinnsArgs, arg)
-		pinPath := filepath.Join(cfg.NamespacesDir, fmt.Sprintf("%sns", string(nsType)), pinnedNamespace)
+		pinPath := filepath.Join(cfg.NamespacesDir, string(nsType)+"ns", pinnedNamespace)
 		mountedNamespaces = append(mountedNamespaces, namespaceInfo{
 			path:   pinPath,
 			nsType: nsType,
