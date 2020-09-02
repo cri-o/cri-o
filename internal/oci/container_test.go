@@ -306,7 +306,7 @@ var _ = t.Describe("Container", func() {
 			err := sut.IsAlive()
 
 			// Then
-			Expect(err).To(Equal(false))
+			Expect(err).NotTo(BeNil())
 		})
 		It("should succeed if pid is running", func() {
 			// Given
@@ -318,7 +318,7 @@ var _ = t.Describe("Container", func() {
 			err := sut.IsAlive()
 
 			// Then
-			Expect(err).To(Equal(true))
+			Expect(err).To(BeNil())
 		})
 		It("should be false if pid is not running", func() {
 			// Given
@@ -331,7 +331,7 @@ var _ = t.Describe("Container", func() {
 			err := sut.IsAlive()
 
 			// Then
-			Expect(err).To(Equal(false))
+			Expect(err).NotTo(BeNil())
 		})
 	})
 	t.Describe("Pid", func() {
