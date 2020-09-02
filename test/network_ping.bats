@@ -8,8 +8,7 @@ function setup() {
 }
 
 function teardown() {
-    stop_crio
-    rm -r "$TESTDIR" || true
+    cleanup_test
 }
 
 @test "Ping pod from the host" {
@@ -24,8 +23,6 @@ function teardown() {
     ctr_id="$output"
 
     ping_pod $ctr_id
-
-    crictl rmp -f $pod_id
 }
 
 @test "Ping pod from another pod" {
@@ -51,6 +48,4 @@ function teardown() {
 
     ping_pod_from_pod $ctr1_id $ctr2_id
     ping_pod_from_pod $ctr2_id $ctr1_id
-
-    crictl rmp -f $pod1_id $pod2_id
 }
