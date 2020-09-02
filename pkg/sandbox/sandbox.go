@@ -72,7 +72,7 @@ func (s *sandbox) SetConfig(config *pb.PodSandboxConfig) error {
 	}
 
 	if config.GetMetadata().GetName() == "" {
-		return errors.New("PodSandboxConfig.Name should not be empty")
+		return errors.New("PodSandboxConfig.Metadata.Name should not be empty")
 	}
 	s.config = config
 	return nil
