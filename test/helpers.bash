@@ -217,6 +217,9 @@ function setup_test() {
     cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
     sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
 
+    # configure crictl globally
+    crictl config --set pull-image-on-create=true || true
+
     PATH=$PATH:$TESTDIR
 }
 

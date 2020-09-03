@@ -99,7 +99,6 @@ run_a_container_with_wrong_apparmor_profile_name() {
     run crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
     echo "$output"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"Creating container failed"* ]]
 
     cleanup_test
 }
