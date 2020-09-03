@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 
 	. "github.com/onsi/ginkgo"
@@ -703,6 +704,44 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should get default storage options when options are empty", func() {
+			// Given
+			defaultStore, err := storage.GetStore(storage.StoreOptions{})
+			Expect(err).To(BeNil())
+
+			sut.RootConfig.RunRoot = ""
+			sut.RootConfig.Root = ""
+			sut.RootConfig.Storage = ""
+			sut.RootConfig.StorageOptions = make([]string, 0)
+
+			// When
+			err = sut.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.RootConfig.RunRoot).To(Equal(defaultStore.RunRoot()))
+			Expect(sut.RootConfig.Root).To(Equal(defaultStore.GraphRoot()))
+			Expect(sut.RootConfig.Storage).To(Equal(defaultStore.GraphDriverName()))
+			Expect(sut.RootConfig.StorageOptions).To(Equal(defaultStore.GraphOptions()))
+		})
+
+		It("should override default storage options", func() {
+			// Given
+			defaultStore, err := storage.GetStore(storage.StoreOptions{})
+			Expect(err).To(BeNil())
+
+			sut.RootConfig.RunRoot = "/tmp"
+			sut.RootConfig.Root = "/tmp"
+
+			// When
+			err = sut.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.RootConfig.RunRoot).NotTo(Equal(defaultStore.RunRoot()))
+			Expect(sut.RootConfig.Root).NotTo(Equal(defaultStore.GraphRoot()))
 		})
 	})
 
