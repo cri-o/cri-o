@@ -278,6 +278,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	if err := ctr.SetPrivileged(); err != nil {
 		return nil, err
 	}
+	securityContext := containerConfig.GetLinux().GetSecurityContext()
 
 	// creates a spec Generator with the default spec.
 	specgen, err := generate.New("linux")
@@ -391,9 +392,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	if !ctr.Privileged() {
 		processLabel = containerInfo.ProcessLabel
 	}
-	hostIPC := containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE
-	hostPID := containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE
-	hostNet := containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
+	hostIPC := securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE
+	hostPID := securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE
+	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
 	if hostPID || hostIPC {
@@ -463,7 +464,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	// set this container's apparmor profile if it is set by sandbox
 	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
 		profile, err := s.Config().AppArmor().Apply(
-			containerConfig.GetLinux().GetSecurityContext().GetApparmorProfile(),
+			securityContext.GetApparmorProfile(),
 		)
 		if err != nil {
 			return nil, errors.Wrapf(err, "applying apparmor profile to container %s", containerID)
@@ -532,7 +533,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		if ctr.Privileged() {
 			specgen.SetupPrivileged(true)
 		} else {
-			capabilities := linux.GetSecurityContext().GetCapabilities()
+			capabilities := securityContext.GetCapabilities()
 			// Ensure we don't get a nil pointer error if the config
 			// doesn't set any capabilities
 			if capabilities == nil {
@@ -546,11 +547,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 				return nil, err
 			}
 		}
-		specgen.SetProcessNoNewPrivileges(linux.GetSecurityContext().GetNoNewPrivs())
+		specgen.SetProcessNoNewPrivileges(securityContext.GetNoNewPrivs())
 
 		if !ctr.Privileged() {
-			// TODO(runcom): have just one of this var at the top of the function
-			securityContext := containerConfig.GetLinux().GetSecurityContext()
 			for _, mp := range []string{
 				"/proc/acpi",
 				"/proc/kcore",
@@ -596,12 +595,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, errors.Wrap(err, "failed to configure namespaces in container create")
 	}
 
-	if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
+	if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_NODE {
 		// kubernetes PodSpec specify to use Host PID namespace
 		if err := specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace)); err != nil {
 			return nil, err
 		}
-	} else if containerConfig.GetLinux().GetSecurityContext().GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
+	} else if securityContext.GetNamespaceOptions().GetPid() == pb.NamespaceMode_POD {
 		pidNsPath := sb.PidNsPath()
 		if pidNsPath == "" {
 			return nil, errors.New("PID namespace requested, but sandbox infra container invalid")
@@ -780,7 +779,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 	specgen.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
-	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath()
+	spp := securityContext.GetSeccompProfilePath()
 	if !ctr.Privileged() {
 		if err := s.setupSeccomp(ctx, &specgen, spp); err != nil {
 			return nil, err
@@ -820,7 +819,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	// Setup user and groups
 	if linux != nil {
-		if err := setupContainerUser(ctx, &specgen, mountPoint, mountLabel, containerInfo.RunDir, linux.GetSecurityContext(), containerImageConfig); err != nil {
+		if err := setupContainerUser(ctx, &specgen, mountPoint, mountLabel, containerInfo.RunDir, securityContext, containerImageConfig); err != nil {
 			return nil, err
 		}
 	}
