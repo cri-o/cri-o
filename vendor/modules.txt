@@ -525,8 +525,6 @@ github.com/grpc-ecosystem/go-grpc-middleware
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.1.0
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/go-version v1.2.0
-github.com/hashicorp/go-version
 # github.com/hashicorp/golang-lru v0.5.1
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
@@ -772,15 +770,6 @@ github.com/ulikunitz/xz/lzma
 # github.com/urfave/cli/v2 v2.2.0
 ## explicit
 github.com/urfave/cli/v2
-# github.com/vbatts/git-validation v1.1.0
-## explicit
-github.com/vbatts/git-validation
-github.com/vbatts/git-validation/git
-github.com/vbatts/git-validation/rules/danglingwhitespace
-github.com/vbatts/git-validation/rules/dco
-github.com/vbatts/git-validation/rules/messageregexp
-github.com/vbatts/git-validation/rules/shortsubject
-github.com/vbatts/git-validation/validate
 # github.com/vbatts/tar-split v0.11.1
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
