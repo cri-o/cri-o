@@ -17,12 +17,13 @@ import (
 	current "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/cgroups"
+	selinux "github.com/containers/libpod/pkg/selinux"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/config"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/sandbox"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
@@ -487,10 +488,27 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 
-	container, err := oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, s.config.PauseImage, "", "", nil, sbox.ID(), false, false, false, sb.RuntimeHandler(), podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+	container, err := oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, s.config.PauseImage, "", "", nil, sbox.ID(), false, false, false, runtimeHandler, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
+
+	runtimeType, err := s.Runtime().ContainerRuntimeType(container)
+	if err != nil {
+		return nil, err
+	}
+	// If using kata runtime, the process label should be set to container_kvm_t
+	// Keep in mind that kata does *not* apply any process label to containers within the VM
+	// Note: the requirement here is that the name used for the runtime class has "kata" in it
+	// or the runtime_type is set to "vm"
+	if runtimeType == libconfig.RuntimeTypeVM || strings.Contains(strings.ToLower(runtimeHandler), "kata") {
+		processLabel, err = selinux.SELinuxKVMLabel(processLabel)
+		if err != nil {
+			return nil, err
+		}
+		g.SetProcessSelinuxLabel(processLabel)
+	}
+
 	container.SetMountPoint(mountPoint)
 
 	container.SetIDMappings(s.defaultIDMappings)
@@ -746,7 +764,7 @@ func AddCgroupAnnotation(ctx context.Context, g generate.Generator, mountPath, c
 }
 
 // PauseCommand returns the pause command for the provided image configuration.
-func PauseCommand(cfg *config.Config, image *v1.Image) ([]string, error) {
+func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("provided configuration is nil")
 	}
