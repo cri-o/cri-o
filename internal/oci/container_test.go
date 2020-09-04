@@ -205,7 +205,7 @@ var _ = t.Describe("Container", func() {
 			// Then
 			Expect(err).To(BeNil())
 			sutState := sut.State()
-			Expect(sutState.InitStartTime).NotTo(Equal(0))
+			Expect(sutState.InitStartTime).NotTo(Equal(""))
 			Expect(sutState.InitPid).To(Equal(alwaysRunningPid))
 		})
 		It("should succeed when pid set but initialPid not set", func() {
@@ -220,7 +220,7 @@ var _ = t.Describe("Container", func() {
 			// Then
 			Expect(err).To(BeNil())
 			sutState := sut.State()
-			Expect(sutState.InitStartTime).NotTo(Equal(0))
+			Expect(sutState.InitStartTime).NotTo(Equal(""))
 			Expect(sutState.InitPid).To(Equal(alwaysRunningPid))
 		})
 		It("should fail when pid set and not running", func() {
@@ -235,7 +235,7 @@ var _ = t.Describe("Container", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 			sutState := sut.State()
-			Expect(sutState.InitStartTime).To(Equal(0))
+			Expect(sutState.InitStartTime).To(Equal(""))
 			Expect(sutState.InitPid).To(Equal(0))
 		})
 
@@ -394,7 +394,7 @@ var _ = t.Describe("Container", func() {
 			Expect(state.SetInitPid(state.Pid)).To(BeNil())
 			// if InitStartTime != the time the state.InitPid started
 			// pid wrap is assumed to have happened
-			state.InitStartTime = 0
+			state.InitStartTime = ""
 			sut.SetState(state)
 
 			// When
@@ -442,6 +442,53 @@ var _ = t.Describe("Container", func() {
 			state.Pid = neverRunningPid
 			// Then
 			Expect(state.SetInitPid(state.Pid)).NotTo(BeNil())
+		})
+	})
+	t.Describe("GetPidStartTimeFromFile", func() {
+		var statFile string
+		BeforeEach(func() {
+			statFile = t.MustTempFile("stat")
+		})
+		It("should fail if file doesn't exist", func() {
+			// When
+			stime, err := oci.GetPidStartTimeFromFile("not-there")
+
+			// Then
+			Expect(stime).To(BeEmpty())
+			Expect(err).NotTo(BeNil())
+		})
+		It("should fail when there are no parenthesis", func() {
+			contents := []byte("1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52")
+			Expect(ioutil.WriteFile(statFile, contents, 0o644)).To(BeNil())
+
+			// When
+			stime, err := oci.GetPidStartTimeFromFile(statFile)
+
+			// Then
+			Expect(stime).To(BeEmpty())
+			Expect(err).NotTo(BeNil())
+		})
+		It("should fail with short file", func() {
+			contents := []byte("1 (2) 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21")
+			Expect(ioutil.WriteFile(statFile, contents, 0o644)).To(BeNil())
+
+			// When
+			stime, err := oci.GetPidStartTimeFromFile(statFile)
+
+			// Then
+			Expect(stime).To(BeEmpty())
+			Expect(err).NotTo(BeNil())
+		})
+		It("should succeed to get start time", func() {
+			contents := []byte("1 (2) 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52")
+			Expect(ioutil.WriteFile(statFile, contents, 0o644)).To(BeNil())
+
+			// When
+			stime, err := oci.GetPidStartTimeFromFile(statFile)
+
+			// Then
+			Expect(stime).To(Equal("22"))
+			Expect(err).To(BeNil())
 		})
 	})
 })

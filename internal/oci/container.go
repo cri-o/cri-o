@@ -1,7 +1,9 @@
 package oci
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -22,7 +24,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
-const defaultStopSignalInt = 15
+const (
+	defaultStopSignalInt = 15
+	// the following values can be verified here: https://man7.org/linux/man-pages/man5/proc.5.html
+	// the 22nd field is the process starttime
+	statStartTimeLocation = 22
+	// The 2nd field is the command, wrapped by ()
+	statCommField = 2
+)
 
 var (
 	defaultStopSignal   = strconv.Itoa(defaultStopSignalInt)
@@ -84,7 +93,7 @@ type ContainerState struct {
 	// The unix start time of the container's init PID.
 	// This is used to track whether the PID we have stored
 	// is the same as the corresponding PID on the host.
-	InitStartTime int `json:"initStartTime,omitempty"`
+	InitStartTime string `json:"initStartTime,omitempty"`
 }
 
 // NewContainer creates a container object.
@@ -182,11 +191,11 @@ func (c *Container) FromDisk() error {
 
 	// this is to handle the situation in which we're upgrading
 	// versions of cri-o, and we didn't used to have this information in the state
-	if tmpState.InitPid == 0 && tmpState.InitStartTime == 0 && tmpState.Pid != 0 {
+	if tmpState.InitPid == 0 && tmpState.InitStartTime == "" && tmpState.Pid != 0 {
 		if err := tmpState.SetInitPid(tmpState.Pid); err != nil {
 			return err
 		}
-		logrus.Infof("PID information for container %s updated to %d %d", c.id, tmpState.InitPid, tmpState.InitStartTime)
+		logrus.Infof("PID information for container %s updated to %d %s", c.id, tmpState.InitPid, tmpState.InitStartTime)
 	}
 	c.state = tmpState
 	return nil
@@ -196,8 +205,8 @@ func (c *Container) FromDisk() error {
 // given a PID.
 // These values should be set once, and not changed again.
 func (cstate *ContainerState) SetInitPid(pid int) error {
-	if cstate.InitPid != 0 || cstate.InitStartTime != 0 {
-		return errors.Errorf("pid and start time already initialized: %d %d", cstate.InitPid, cstate.InitStartTime)
+	if cstate.InitPid != 0 || cstate.InitStartTime != "" {
+		return errors.Errorf("pid and start time already initialized: %d %s", cstate.InitPid, cstate.InitStartTime)
 	}
 	cstate.InitPid = pid
 	startTime, err := getPidStartTime(pid)
@@ -438,7 +447,7 @@ func (c *Container) verifyPid() error {
 
 	if startTime != c.state.InitStartTime {
 		return errors.Errorf(
-			"PID %d is running but has start time of %d, whereas the saved start time is %d. PID wrap may have occurred",
+			"PID %d is running but has start time of %s, whereas the saved start time is %s. PID wrap may have occurred",
 			c.state.InitPid, startTime, c.state.InitStartTime,
 		)
 	}
@@ -446,13 +455,41 @@ func (c *Container) verifyPid() error {
 }
 
 // getPidStartTime reads the kernel's /proc entry for stime for PID.
-func getPidStartTime(pid int) (int, error) {
-	var st unix.Stat_t
-	if err := unix.Stat(fmt.Sprintf("/proc/%d", pid), &st); err != nil {
-		return 0, errors.Wrapf(ErrNotFound, err.Error())
+// inspiration for this function came from https://github.com/containers/psgo/blob/master/internal/proc/stat.go
+// some credit goes to the psgo authors
+func getPidStartTime(pid int) (string, error) {
+	return GetPidStartTimeFromFile(fmt.Sprintf("/proc/%d/stat", pid))
+}
+
+// GetPidStartTime reads a file as if it were a /proc/$pid/stat file, looking for stime for PID.
+// It is abstracted out to allow for unit testing
+func GetPidStartTimeFromFile(file string) (string, error) {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", errors.Wrapf(ErrNotFound, err.Error())
+	}
+	// The command (2nd field) can have spaces, but is wrapped in ()
+	// first, trim it
+	commEnd := bytes.LastIndexByte(data, ')')
+	if commEnd == -1 {
+		return "", errors.Wrapf(ErrNotFound, "unable to find ')' in stat file")
 	}
 
-	return int(st.Ctim.Sec), nil
+	// start on the space after the command
+	iter := commEnd + 1
+	// for the number of fields between command and stime, trim the beginning word
+	for field := 0; field < statStartTimeLocation-statCommField; field++ {
+		// trim from the beginning to the character after the last space
+		data = data[iter+1:]
+		// find the next space
+		iter = bytes.IndexByte(data, ' ')
+		if iter == -1 {
+			return "", errors.Wrapf(ErrNotFound, "invalid number of entries found in stat file %s: %d", file, field-1)
+		}
+	}
+
+	// and return the startTime (not including the following space)
+	return string(data[:iter]), nil
 }
 
 // ShouldBeStopped checks whether the container state is in a place
