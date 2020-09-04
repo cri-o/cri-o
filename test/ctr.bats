@@ -1248,7 +1248,7 @@ function wait_until_exit() {
 	echo "$newconfig" > "$TESTDIR"/container_nonexistent.json
 	run crictl create "$pod_id" "$TESTDIR"/container_nonexistent.json "$TESTDATA"/sandbox_config.json
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"executable file not found"* ]]
+	[[ "$output" == *"not found"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -1267,7 +1267,7 @@ function wait_until_exit() {
 	echo "$newconfig" > "$TESTDIR"/container_nonexistent.json
 	run crictl create "$pod_id" "$TESTDIR"/container_nonexistent.json "$TESTDATA"/sandbox_config.json
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"executable file not found"* ]]
+	[[ "$output" == *"not found"* ]]
 	run crictl stopp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
