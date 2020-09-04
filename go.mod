@@ -70,6 +70,9 @@ require (
 replace (
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc90
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20200710190001-3e4195d92445
+	github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
+	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
+	google.golang.org/grpc => google.golang.org/grpc v1.26.0
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200826142205-e19964183377
 	k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20200826142205-e19964183377
 	k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20200826142205-e19964183377

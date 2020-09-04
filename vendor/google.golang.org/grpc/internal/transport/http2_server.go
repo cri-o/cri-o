@@ -35,9 +35,11 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 
+	spb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/internal"
 	"google.golang.org/grpc/internal/channelz"
 	"google.golang.org/grpc/internal/grpcrand"
 	"google.golang.org/grpc/keepalive"
@@ -55,6 +57,9 @@ var (
 	// ErrHeaderListSizeLimitViolation indicates that the header list size is larger
 	// than the limit set by peer.
 	ErrHeaderListSizeLimitViolation = errors.New("transport: trying to send header list size larger than the limit set by peer")
+	// statusRawProto is a function to get to the raw status proto wrapped in a
+	// status.Status without a proto.Clone().
+	statusRawProto = internal.StatusRawProto.(func(*status.Status) *spb.Status)
 )
 
 // serverConnectionCounter counts the number of connections a server has seen
@@ -808,11 +813,10 @@ func (t *http2Server) writeHeaderLocked(s *Stream) error {
 		return ErrHeaderListSizeLimitViolation
 	}
 	if t.stats != nil {
-		// Note: Headers are compressed with hpack after this call returns.
-		// No WireLength field is set here.
+		// Note: WireLength is not set in outHeader.
+		// TODO(mmukhi): Revisit this later, if needed.
 		outHeader := &stats.OutHeader{
-			Header:      s.header.Copy(),
-			Compression: s.sendCompress,
+			Header: s.header.Copy(),
 		}
 		t.stats.HandleRPC(s.Context(), outHeader)
 	}
@@ -845,7 +849,7 @@ func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
 	headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-status", Value: strconv.Itoa(int(st.Code()))})
 	headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-message", Value: encodeGrpcMessage(st.Message())})
 
-	if p := st.Proto(); p != nil && len(p.Details) > 0 {
+	if p := statusRawProto(st); p != nil && len(p.Details) > 0 {
 		stBytes, err := proto.Marshal(p)
 		if err != nil {
 			// TODO: return error instead, when callers are able to handle it.
@@ -876,8 +880,6 @@ func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
 	rst := s.getState() == streamActive
 	t.finishStream(s, rst, http2.ErrCodeNo, trailingHeader, true)
 	if t.stats != nil {
-		// Note: The trailer fields are compressed with hpack after this call returns.
-		// No WireLength field is set here.
 		t.stats.HandleRPC(s.Context(), &stats.OutTrailer{
 			Trailer: s.trailer.Copy(),
 		})
@@ -909,6 +911,13 @@ func (t *http2Server) Write(s *Stream, hdr []byte, data []byte, opts *Options) e
 			return ContextErr(s.ctx.Err())
 		}
 	}
+	// Add some data to header frame so that we can equally distribute bytes across frames.
+	emptyLen := http2MaxFrameLen - len(hdr)
+	if emptyLen > len(data) {
+		emptyLen = len(data)
+	}
+	hdr = append(hdr, data[:emptyLen]...)
+	data = data[emptyLen:]
 	df := &dataFrame{
 		streamID:    s.id,
 		h:           hdr,
