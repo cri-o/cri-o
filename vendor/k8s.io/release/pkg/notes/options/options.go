@@ -18,6 +18,7 @@ package options
 
 import (
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -67,8 +68,13 @@ type Options struct {
 	ReleaseVersion string
 
 	// Format specifies the format of the release notes. Can be either
-	// FormatSpecNone, FormatSpecJSON, or FormatSpecDefaultGoTemplate
+	// `json` or `markdown`.
 	Format string
+
+	// If the `Format` is `markdown`, then this specifies the selected go
+	// template. Can be `go-template:default`, `go-template:<file.template>` or
+	// `go-template:inline:<template>`.
+	GoTemplate string
 
 	// RequiredAuthor can be used to filter the release notes by the commit
 	// author
@@ -108,6 +114,9 @@ type Options struct {
 
 	githubToken string
 	gitCloneFn  func(string, string, string, bool) (*git.Repo, error)
+
+	// MapProviders list of release notes map providers to query during generations
+	MapProviderStrings []string
 }
 
 type RevisionDiscoveryMode string
@@ -121,11 +130,13 @@ const (
 )
 
 const (
-	FormatSpecNone              = ""
-	FormatSpecJSON              = "json"
-	FormatSpecDefaultGoTemplate = GoTemplatePrefix + "default"
-	FormatSpecGoTemplateInline  = GoTemplatePrefix + "inline:"
-	GoTemplatePrefix            = "go-template:"
+	FormatJSON     = "json"
+	FormatMarkdown = "markdown"
+
+	GoTemplatePrefix       = "go-template:"
+	GoTemplatePrefixInline = "inline:"
+	GoTemplateDefault      = GoTemplatePrefix + "default"
+	GoTemplateInline       = GoTemplatePrefix + GoTemplatePrefixInline
 )
 
 // New creates a new Options instance with the default values
@@ -134,6 +145,8 @@ func New() *Options {
 		DiscoverMode: RevisionDiscoveryModeNONE,
 		GithubOrg:    git.DefaultGithubOrg,
 		GithubRepo:   git.DefaultGithubRepo,
+		Format:       FormatMarkdown,
+		GoTemplate:   GoTemplateDefault,
 		Pull:         true,
 		gitCloneFn:   git.CloneOrOpenGitHubRepo,
 	}
@@ -154,7 +167,7 @@ func (o *Options) ValidateAndFinish() (err error) {
 
 	// Recover for replay if needed
 	if o.ReplayDir != "" {
-		logrus.Info("using replay mode")
+		logrus.Info("Using replay mode")
 		return nil
 	}
 
@@ -197,7 +210,7 @@ func (o *Options) ValidateAndFinish() (err error) {
 			if err != nil {
 				return errors.Wrapf(err, "resolving %s", o.StartRev)
 			}
-			logrus.Infof("using found start SHA: %s", sha)
+			logrus.Infof("Using found start SHA: %s", sha)
 			o.StartSHA = sha
 		}
 		if o.EndRev != "" && o.EndSHA == "" {
@@ -205,24 +218,52 @@ func (o *Options) ValidateAndFinish() (err error) {
 			if err != nil {
 				return errors.Wrapf(err, "resolving %s", o.EndRev)
 			}
-			logrus.Infof("using found end SHA: %s", sha)
+			logrus.Infof("Using found end SHA: %s", sha)
 			o.EndSHA = sha
 		}
 	}
 
 	// Create the record dir
 	if o.RecordDir != "" {
-		logrus.Info("using record mode")
+		logrus.Info("Using record mode")
 		if err := os.MkdirAll(o.RecordDir, os.FileMode(0755)); err != nil {
 			return err
 		}
 	}
 
-	// Set the format
-	if o.Format == FormatSpecNone {
-		o.Format = FormatSpecDefaultGoTemplate
+	if err := o.checkFormatOptions(); err != nil {
+		return errors.Wrap(err, "while checking format flags")
 	}
+	return nil
+}
 
+// checkFormatOptions verifies that template related options are sane
+func (o *Options) checkFormatOptions() error {
+	// Validate the output format and template
+	logrus.Infof("Using output format: %s", o.Format)
+	if o.Format == FormatMarkdown && o.GoTemplate != GoTemplateDefault {
+		if !strings.HasPrefix(o.GoTemplate, GoTemplatePrefix) {
+			return errors.Errorf("go template has to be prefixed with %q", GoTemplatePrefix)
+		}
+
+		templatePathOrOnline := strings.TrimPrefix(o.GoTemplate, GoTemplatePrefix)
+		// Verify if template file exists
+		if !strings.HasPrefix(templatePathOrOnline, GoTemplatePrefixInline) {
+			fileStats, err := os.Stat(templatePathOrOnline)
+			if os.IsNotExist(err) {
+				return errors.Errorf("could not find template file (%s)", templatePathOrOnline)
+			}
+			if fileStats.Size() == 0 {
+				return errors.Errorf("template file %s is empty", templatePathOrOnline)
+			}
+		}
+	}
+	if o.Format == FormatJSON && o.GoTemplate != GoTemplateDefault {
+		return errors.New("go-template cannot be defined when in JSON mode")
+	}
+	if o.Format != FormatJSON && o.Format != FormatMarkdown {
+		return errors.Errorf("invalid format: %s", o.Format)
+	}
 	return nil
 }
 
@@ -251,18 +292,18 @@ func (o *Options) resolveDiscoverMode() error {
 	o.EndSHA = result.EndSHA()
 	o.EndRev = result.EndRev()
 
-	logrus.Infof("discovered start SHA %s", o.StartSHA)
-	logrus.Infof("discovered end SHA %s", o.EndSHA)
+	logrus.Infof("Discovered start SHA %s", o.StartSHA)
+	logrus.Infof("Discovered end SHA %s", o.EndSHA)
 
-	logrus.Infof("using start revision %s", o.StartRev)
-	logrus.Infof("using end revision %s", o.EndRev)
+	logrus.Infof("Using start revision %s", o.StartRev)
+	logrus.Infof("Using end revision %s", o.EndRev)
 
 	return nil
 }
 
 func (o *Options) repo() (repo *git.Repo, err error) {
 	if o.Pull {
-		logrus.Infof("cloning/updating repository %s/%s", o.GithubOrg, o.GithubRepo)
+		logrus.Infof("Cloning/updating repository %s/%s", o.GithubOrg, o.GithubRepo)
 		repo, err = o.gitCloneFn(
 			o.RepoPath,
 			o.GithubOrg,
@@ -270,7 +311,7 @@ func (o *Options) repo() (repo *git.Repo, err error) {
 			false,
 		)
 	} else {
-		logrus.Infof("re-using local repo %s", o.RepoPath)
+		logrus.Infof("Re-using local repo %s", o.RepoPath)
 		repo, err = git.OpenRepo(o.RepoPath)
 	}
 	if err != nil {

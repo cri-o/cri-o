@@ -43,6 +43,7 @@ const (
 	gitHubAPIListTags                   gitHubAPI = "ListTags"
 	gitHubAPIGetRepository              gitHubAPI = "GetRepository"
 	gitHubAPIListBranches               gitHubAPI = "ListBranches"
+	gitHubAPIGetReleaseByTag            gitHubAPI = "GetReleaseByTag"
 )
 
 type apiRecord struct {
@@ -137,11 +138,17 @@ func (c *githubNotesRecordClient) ListReleases(
 	return releases, resp, nil
 }
 
-// TODO: Complete logic
 func (c *githubNotesRecordClient) GetReleaseByTag(
 	ctx context.Context, owner, repo, tag string,
 ) (*github.RepositoryRelease, *github.Response, error) {
-	return nil, nil, nil
+	release, resp, err := c.client.GetReleaseByTag(ctx, owner, repo, tag)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := c.recordAPICall(gitHubAPIGetReleaseByTag, release, resp); err != nil {
+		return nil, nil, err
+	}
+	return release, resp, nil
 }
 
 // TODO: Complete logic
@@ -208,7 +215,7 @@ func (c *githubNotesRecordClient) recordAPICall(
 	if result == nil {
 		return errors.New("no result to record")
 	}
-	logrus.Debugf("recording API call %s to %s", api, c.recordDir)
+	logrus.Debugf("Recording API call %s to %s", api, c.recordDir)
 
 	c.recordMutex.Lock()
 	defer c.recordMutex.Unlock()

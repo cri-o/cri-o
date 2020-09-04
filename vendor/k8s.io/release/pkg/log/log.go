@@ -17,79 +17,24 @@ limitations under the License.
 package log
 
 import (
-	"io/ioutil"
-	"strings"
-
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-)
 
-const (
-	logTraceKey = "trace"
-	logTraceSep = "."
+	"k8s.io/release/pkg/command"
 )
 
 func SetupGlobalLogger(level string) error {
 	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
 	lvl, err := logrus.ParseLevel(level)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "setting log level to %s", level)
 	}
 	logrus.SetLevel(lvl)
+	if lvl >= logrus.DebugLevel {
+		logrus.Debug("Setting commands globally into verbose mode")
+		command.SetGlobalVerbose(true)
+	}
 	logrus.AddHook(NewFilenameHook())
 	logrus.Debugf("Using log level %q", lvl)
 	return nil
-}
-
-// AddTracePath adds a path element to the logrus entry's field 'trace'. This
-// is meant to be done everytime you hand off a logger/entry to a different
-// component to have a clear trace how we ended up here. When logs are emitted
-// by this logger entry, the field might look something like:
-//   trace=patch-announce.announcer.release-noter
-func AddTracePath(l *logrus.Entry, newPathElement string) *logrus.Entry {
-	if newPathElement == "" {
-		// get a copy with the same data, err, context, ...
-		return l.WithFields(l.Data)
-	}
-
-	newPath := ""
-
-	curPathInt, ok := l.Data[logTraceKey]
-	if !ok {
-		newPath = newPathElement
-	} else {
-		curPath, ok := curPathInt.(string)
-		if !ok {
-			newPath = "<unkn>" + logTraceSep + newPathElement
-		} else {
-			newPath = curPath + logTraceSep + newPathElement
-		}
-	}
-
-	return l.WithField(logTraceKey, newPath)
-}
-
-func NullLogger() *logrus.Entry {
-	logger := logrus.New()
-	logger.SetOutput(ioutil.Discard)
-	logger.SetLevel(logrus.PanicLevel)
-	return logrus.NewEntry(logger)
-}
-
-// Logger can be embedded in other struct to enable logging and keep the
-// zero-value of the struct useful.
-// Examples of the usage can be found in k8s.io/release/pkg/patch/...
-type Mixin struct {
-	logger *logrus.Entry
-}
-
-func (l *Mixin) Logger() *logrus.Entry {
-	if l.logger == nil {
-		l.logger = NullLogger()
-	}
-	return l.logger
-}
-
-func (l *Mixin) SetLogger(logger *logrus.Entry, tracePaths ...string) {
-	p := strings.Join(tracePaths, logTraceSep)
-	l.logger = AddTracePath(logger, p)
 }

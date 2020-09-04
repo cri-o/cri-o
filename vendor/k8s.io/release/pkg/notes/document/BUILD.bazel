@@ -13,6 +13,7 @@ go_library(
         "//pkg/notes/options:go_default_library",
         "//pkg/release:go_default_library",
         "@com_github_pkg_errors//:go_default_library",
+        "@com_github_sirupsen_logrus//:go_default_library",
     ],
 )
 
