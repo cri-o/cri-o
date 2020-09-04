@@ -23,10 +23,10 @@ import (
 	"path"
 	"unsafe"
 
+	"github.com/fgiudici/ttrpc-dep/grpc/status"
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type Method func(ctx context.Context, unmarshal func(interface{}) error) (interface{}, error)

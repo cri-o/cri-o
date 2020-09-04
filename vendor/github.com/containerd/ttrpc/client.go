@@ -26,11 +26,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fgiudici/ttrpc-dep/grpc/status"
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // ErrClosed is returned by client methods when the underlying connection is
@@ -339,7 +339,8 @@ func filterCloseErr(err error) error {
 		return ErrClosed
 	default:
 		// if we have an epipe on a write or econnreset on a read , we cast to errclosed
-		if oerr, ok := err.(*net.OpError); ok && (oerr.Op == "write" || oerr.Op == "read") {
+		var oerr *net.OpError
+		if errors.As(err, &oerr) && (oerr.Op == "write" || oerr.Op == "read") {
 			serr, sok := oerr.Err.(*os.SyscallError)
 			if sok && ((serr.Err == syscall.EPIPE && oerr.Op == "write") ||
 				(serr.Err == syscall.ECONNRESET && oerr.Op == "read")) {

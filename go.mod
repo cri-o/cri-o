@@ -68,6 +68,7 @@ require (
 )
 
 replace (
+	github.com/containerd/ttrpc => github.com/fgiudici/ttrpc v1.0.1-4
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc90
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20200710190001-3e4195d92445
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200826142205-e19964183377

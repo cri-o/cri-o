@@ -101,7 +101,7 @@ github.com/containerd/continuity/sysx
 github.com/containerd/fifo
 # github.com/containerd/go-runc v0.0.0-20180907222934-5a6d9f37cfa3
 github.com/containerd/go-runc
-# github.com/containerd/ttrpc v1.0.1
+# github.com/containerd/ttrpc v1.0.1 => github.com/fgiudici/ttrpc v1.0.1-4
 ## explicit
 github.com/containerd/ttrpc
 # github.com/containerd/typeurl v1.0.0
@@ -401,6 +401,9 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
+# github.com/fgiudici/ttrpc-dep v0.0.3
+github.com/fgiudici/ttrpc-dep/grpc/internal/status
+github.com/fgiudici/ttrpc-dep/grpc/status
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit
 github.com/fsnotify/fsnotify
@@ -472,6 +475,8 @@ github.com/godbus/dbus
 # github.com/godbus/dbus/v5 v5.0.3
 ## explicit
 github.com/godbus/dbus/v5
+# github.com/gogo/googleapis v1.4.0
+github.com/gogo/googleapis/google/rpc
 # github.com/gogo/protobuf v1.3.1
 ## explicit
 github.com/gogo/protobuf/gogoproto
@@ -1443,6 +1448,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 sigs.k8s.io/yaml
 # vbom.ml/util v0.0.0-20180919145318-efcd4e0f9787
 vbom.ml/util/sortorder
+# github.com/containerd/ttrpc => github.com/fgiudici/ttrpc v1.0.1-4
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc90
 # github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20200710190001-3e4195d92445
 # k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20200826142205-e19964183377
