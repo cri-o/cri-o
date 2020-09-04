@@ -9,14 +9,14 @@ require (
 	github.com/containerd/containerd v1.4.0
 	github.com/containerd/ttrpc v1.0.1
 	github.com/containernetworking/cni v0.8.0
-	github.com/containernetworking/plugins v0.8.6
-	github.com/containers/buildah v1.15.1
-	github.com/containers/common v0.14.7
-	github.com/containers/conmon v2.0.17+incompatible
-	github.com/containers/image/v5 v5.5.1
-	github.com/containers/libpod v1.9.2
+	github.com/containernetworking/plugins v0.8.7
+	github.com/containers/buildah v1.15.2
+	github.com/containers/common v0.21.0
+	github.com/containers/conmon v2.0.20+incompatible
+	github.com/containers/image/v5 v5.5.2
+	github.com/containers/libpod/v2 v2.0.6
 	github.com/containers/ocicrypt v1.0.3
-	github.com/containers/storage v1.23.1
+	github.com/containers/storage v1.23.3
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
@@ -45,7 +45,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
 	github.com/psampaz/go-mod-outdated v0.6.0
-	github.com/seccomp/containers-golang v0.5.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
@@ -55,9 +54,8 @@ require (
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1
 	google.golang.org/grpc v1.30.0
-	google.golang.org/grpc/examples v0.0.0-20200721210703-a5a36bd3f0bb // indirect
 	k8s.io/api v0.19.0
-	k8s.io/apimachinery v0.18.3
+	k8s.io/apimachinery v0.18.6
 	k8s.io/client-go v0.0.0
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog/v2 v2.3.0

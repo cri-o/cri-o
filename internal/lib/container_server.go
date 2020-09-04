@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/libpod/pkg/annotations"
-	"github.com/containers/libpod/pkg/hooks"
-	"github.com/containers/libpod/pkg/registrar"
+	"github.com/containers/libpod/v2/pkg/annotations"
+	"github.com/containers/libpod/v2/pkg/hooks"
+	"github.com/containers/libpod/v2/pkg/registrar"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/truncindex"

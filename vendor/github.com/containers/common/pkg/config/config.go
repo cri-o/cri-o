@@ -165,6 +165,12 @@ type ContainersConfig struct {
 	// ShmSize holds the size of /dev/shm.
 	ShmSize string `toml:"shm_size,omitempty"`
 
+	// TZ sets the timezone inside the container
+	TZ string `toml:"tz,omitempty"`
+
+	// Umask is the umask inside the container.
+	Umask string `toml:"umask,omitempty"`
+
 	// UTSNS indicates how to create a UTS namespace for the container
 	UTSNS string `toml:"utsns,omitempty"`
 
@@ -207,6 +213,9 @@ type EngineConfig struct {
 	// memory.
 	EnablePortReservation bool `toml:"enable_port_reservation,omitempty"`
 
+	// Environment variables to be used when running the container engine (e.g., Podman, Buildah). For example "http_proxy=internal.proxy.company.com"
+	Env []string `toml:"env,omitempty"`
+
 	// EventsLogFilePath is where the events log is stored.
 	EventsLogFilePath string `toml:"events_logfile_path,omitempty"`
 
@@ -234,6 +243,11 @@ type EngineConfig struct {
 
 	// LockType is the type of locking to use.
 	LockType string `toml:"lock_type,omitempty"`
+
+	// MultiImageArchive - if true, the container engine allows for storing
+	// archives (e.g., of the docker-archive transport) with multiple
+	// images.  By default, Podman creates single-image archives.
+	MultiImageArchive bool `toml:"multi_image_archive,omitempty"`
 
 	// Namespace is the engine namespace to use. Namespaces are used to create
 	// scopes to separate containers and pods in the state. When namespace is
@@ -433,11 +447,10 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		// Merge changes in later configs with the previous configs.
 		// Each config file that specified fields, will override the
 		// previous fields.
-		config, err := readConfigFromFile(path, config)
-		if err != nil {
+		if err = readConfigFromFile(path, config); err != nil {
 			return nil, errors.Wrapf(err, "error reading system config %q", path)
 		}
-		logrus.Debugf("Merged system config %q: %v", path, config)
+		logrus.Debugf("Merged system config %q: %+v", path, config)
 	}
 
 	// If the caller specified a config path to use, then we read it to
@@ -446,11 +459,10 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		var err error
 		// readConfigFromFile reads in container config in the specified
 		// file and then merge changes with the current default.
-		config, err = readConfigFromFile(userConfigPath, config)
-		if err != nil {
+		if err = readConfigFromFile(userConfigPath, config); err != nil {
 			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
 		}
-		logrus.Debugf("Merged user config %q: %v", userConfigPath, config)
+		logrus.Debugf("Merged user config %q: %+v", userConfigPath, config)
 	}
 	config.addCAPPrefix()
 
@@ -465,13 +477,12 @@ func NewConfig(userConfigPath string) (*Config, error) {
 // unmarshal its content into a Config. The config param specifies the previous
 // default config. If the path, only specifies a few fields in the Toml file
 // the defaults from the config parameter will be used for all other fields.
-func readConfigFromFile(path string, config *Config) (*Config, error) {
+func readConfigFromFile(path string, config *Config) error {
 	logrus.Debugf("Reading configuration file %q", path)
-	_, err := toml.DecodeFile(path, config)
-	if err != nil {
-		return nil, fmt.Errorf("unable to decode configuration %v: %v", path, err)
+	if _, err := toml.DecodeFile(path, config); err != nil {
+		return errors.Wrapf(err, "unable to decode configuration %v", path)
 	}
-	return config, err
+	return nil
 }
 
 // Returns the list of configuration files, if they exist in order of hierarchy.
@@ -482,7 +493,7 @@ func systemConfigs() ([]string, error) {
 	path := os.Getenv("CONTAINERS_CONF")
 	if path != "" {
 		if _, err := os.Stat(path); err != nil {
-			return nil, errors.Wrap(err, "failed to stat of %s from CONTAINERS_CONF environment variable")
+			return nil, errors.Wrapf(err, "failed to stat of %s from CONTAINERS_CONF environment variable", path)
 		}
 		return append(configs, path), nil
 	}
@@ -592,12 +603,20 @@ func (c *ContainersConfig) Validate() error {
 		return err
 	}
 
+	if err := c.validateTZ(); err != nil {
+		return err
+	}
+
+	if err := c.validateUmask(); err != nil {
+		return err
+	}
+
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
-		return fmt.Errorf("log size max should be negative or >= %d", OCIBufSize)
+		return errors.Errorf("log size max should be negative or >= %d", OCIBufSize)
 	}
 
 	if _, err := units.FromHumanSize(c.ShmSize); err != nil {
-		return fmt.Errorf("invalid --shm-size %s, %q", c.ShmSize, err)
+		return errors.Errorf("invalid --shm-size %s, %q", c.ShmSize, err)
 	}
 
 	return nil
@@ -608,9 +627,17 @@ func (c *ContainersConfig) Validate() error {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *NetworkConfig) Validate() error {
-	if c.NetworkConfigDir != _cniConfigDir {
-		err := isDirectory(c.NetworkConfigDir)
+	expectedConfigDir := _cniConfigDir
+	if unshare.IsRootless() {
+		home, err := unshare.HomeDir()
 		if err != nil {
+			return err
+		}
+		expectedConfigDir = filepath.Join(home, _cniConfigDirRootless)
+	}
+	if c.NetworkConfigDir != expectedConfigDir {
+		err := isDirectory(c.NetworkConfigDir)
+		if err != nil && !os.IsNotExist(err) {
 			return errors.Wrapf(err, "invalid network_config_dir: %s", c.NetworkConfigDir)
 		}
 	}
@@ -732,15 +759,13 @@ func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []s
 //    '/dev/sdc:/dev/xvdc"
 //    '/dev/sdc:/dev/xvdc:rwm"
 //    '/dev/sdc:rm"
-func Device(device string) (string, string, string, error) {
-	src := ""
-	dst := ""
-	permissions := "rwm"
+func Device(device string) (src, dst, permissions string, err error) {
+	permissions = "rwm"
 	split := strings.Split(device, ":")
 	switch len(split) {
 	case 3:
 		if !IsValidDeviceMode(split[2]) {
-			return "", "", "", fmt.Errorf("invalid device mode: %s", split[2])
+			return "", "", "", errors.Errorf("invalid device mode: %s", split[2])
 		}
 		permissions = split[2]
 		fallthrough
@@ -748,19 +773,19 @@ func Device(device string) (string, string, string, error) {
 		if IsValidDeviceMode(split[1]) {
 			permissions = split[1]
 		} else {
-			if len(split[1]) == 0 || split[1][0] != '/' {
-				return "", "", "", fmt.Errorf("invalid device mode: %s", split[1])
+			if split[1] == "" || split[1][0] != '/' {
+				return "", "", "", errors.Errorf("invalid device mode: %s", split[1])
 			}
 			dst = split[1]
 		}
 		fallthrough
 	case 1:
 		if !strings.HasPrefix(split[0], "/dev/") {
-			return "", "", "", fmt.Errorf("invalid device mode: %s", split[0])
+			return "", "", "", errors.Errorf("invalid device mode: %s", split[0])
 		}
 		src = split[0]
 	default:
-		return "", "", "", fmt.Errorf("invalid device specification: %s", device)
+		return "", "", "", errors.Errorf("invalid device specification: %s", device)
 	}
 
 	if dst == "" {
@@ -838,9 +863,9 @@ func stringsEq(a, b []string) bool {
 }
 
 var (
-	configOnce sync.Once
-	configErr  error
-	config     *Config
+	configErr   error
+	configMutex sync.Mutex
+	config      *Config
 )
 
 // Default returns the default container config.
@@ -855,9 +880,16 @@ var (
 // The system defaults container config files can be overwritten using the
 // CONTAINERS_CONF environment variable.  This is usually done for testing.
 func Default() (*Config, error) {
-	configOnce.Do(func() {
-		config, configErr = NewConfig("")
-	})
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	if config != nil || configErr != nil {
+		return config, configErr
+	}
+	return defConfig()
+}
+
+func defConfig() (*Config, error) {
+	config, configErr = NewConfig("")
 	return config, configErr
 }
 
@@ -872,21 +904,6 @@ func Path() string {
 		return "$HOME/" + UserOverrideContainersConfig
 	}
 	return OverrideContainersConfig
-}
-
-func customConfigFile() (string, error) {
-	path := os.Getenv("CONTAINERS_CONF")
-	if path != "" {
-		return path, nil
-	}
-	if unshare.IsRootless() {
-		path, err := rootlessConfigPath()
-		if err != nil {
-			return "", err
-		}
-		return path, nil
-	}
-	return OverrideContainersConfig, nil
 }
 
 // ReadCustomConfig reads the custom config and only generates a config based on it
@@ -909,8 +926,7 @@ func ReadCustomConfig() (*Config, error) {
 
 	newConfig := &Config{}
 	if _, err := os.Stat(path); err == nil {
-		newConfig, err = readConfigFromFile(path, newConfig)
-		if err != nil {
+		if err := readConfigFromFile(path, newConfig); err != nil {
 			return nil, err
 		}
 	} else {
@@ -948,23 +964,21 @@ func (c *Config) Write() error {
 	return nil
 }
 
-// Reload reloads the configuration from containers.conf files
+// Reload clean the cached config and reloads the configuration from containers.conf files
+// This function is meant to be used for long-running processes that need to reload potential changes made to
+// the cached containers.conf files.
 func Reload() (*Config, error) {
-	var err error
-	config, err = NewConfig("")
-	if err != nil {
-		return nil, errors.Wrapf(err, "containers.conf reload failed")
-	}
-	return Default()
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	return defConfig()
 }
 
-func (c *Config) ActiveDestination() (string, string, error){
+func (c *Config) ActiveDestination() (uri, identity string, err error) {
 	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
-		var ident string
 		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
-			ident = v
+			identity = v
 		}
-		return uri, ident, nil
+		return uri, identity, nil
 	}
 
 	switch {

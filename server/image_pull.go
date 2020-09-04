@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/types"
-	libpodImage "github.com/containers/libpod/libpod/image"
+	libpodImage "github.com/containers/libpod/v2/libpod/image"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"

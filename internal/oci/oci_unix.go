@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/v2/pkg/cgroups"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"

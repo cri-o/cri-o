@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
+	_ "github.com/containers/libpod/v2/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/log"

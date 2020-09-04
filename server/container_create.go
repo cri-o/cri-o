@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/seccomp"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
@@ -23,7 +24,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
-	seccomp "github.com/seccomp/containers-golang"
 	k8sV1 "k8s.io/api/core/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )

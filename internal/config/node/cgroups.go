@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	libpodcgroups "github.com/containers/libpod/pkg/cgroups"
+	libpodcgroups "github.com/containers/libpod/v2/pkg/cgroups"
 	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/pkg/errors"
 )
