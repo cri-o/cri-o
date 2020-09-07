@@ -21,7 +21,7 @@
       libseccomp-devel \
       libselinux-devel \
       go-md2man \
-      glibc-static \
+      glibc-devel \
       python3-libmount \
       libtool \
       pkgconf-pkg-config \
