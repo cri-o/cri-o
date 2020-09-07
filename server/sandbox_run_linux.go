@@ -13,9 +13,9 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containers/libpod/pkg/annotations"
-	"github.com/containers/libpod/pkg/rootless"
-	selinux "github.com/containers/libpod/pkg/selinux"
+	"github.com/containers/libpod/v2/pkg/annotations"
+	"github.com/containers/libpod/v2/pkg/rootless"
+	selinux "github.com/containers/libpod/v2/pkg/selinux"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/node"
@@ -737,7 +737,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// Note: the requirement here is that the name used for the runtime class has "kata" in it
 	// or the runtime_type is set to "vm"
 	if runtimeType == libconfig.RuntimeTypeVM || strings.Contains(strings.ToLower(runtimeHandler), "kata") {
-		processLabel, err = selinux.SELinuxKVMLabel(processLabel)
+		processLabel, err = selinux.KVMLabel(processLabel)
 		if err != nil {
 			return nil, err
 		}

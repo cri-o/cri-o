@@ -1,3 +1,5 @@
+go 1.15
+
 module github.com/containers/storage
 
 require (
@@ -10,6 +12,7 @@ require (
 	github.com/klauspost/pgzip v1.2.4
 	github.com/mattn/go-shellwords v1.0.10
 	github.com/mistifyio/go-zfs v2.1.1+incompatible
+	github.com/moby/sys/mountinfo v0.1.3
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/runc v1.0.0-rc91
 	github.com/opencontainers/runtime-spec v1.0.3-0.20200520003142-237cc4f519e2
@@ -25,5 +28,3 @@ require (
 	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775
 	gotest.tools v2.2.0+incompatible
 )
-
-go 1.13

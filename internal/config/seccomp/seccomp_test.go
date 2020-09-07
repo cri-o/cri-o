@@ -3,10 +3,10 @@ package seccomp_test
 import (
 	"io/ioutil"
 
+	containers_seccomp "github.com/containers/common/pkg/seccomp"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	containers_seccomp "github.com/seccomp/containers-golang"
 )
 
 // The actual test suite

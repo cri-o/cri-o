@@ -9,7 +9,7 @@ import (
 	"github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/pkg/rootless"
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"

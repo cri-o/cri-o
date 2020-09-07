@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/v2/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
