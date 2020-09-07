@@ -72,7 +72,6 @@ workflows:
           requires:
             - build
       - docs-validation
-      - git-validation
       - integration
       - integration:
           name: integration-critest
@@ -289,22 +288,6 @@ jobs:
           key: v1-docs-validation-{{ checksum "go.sum" }}
           paths:
             - *gocache
-
-  git-validation:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-git-validation-{{ checksum "go.sum" }}
-      - run:
-          name: git validation
-          command: make git-validation
-      - save_cache:
-          key: v1-git-validation-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/git-validation
 
   dependencies:
     executor: container
