@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
+	ann "github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -71,6 +72,7 @@ type Container struct {
 	stdin              bool
 	stdinOnce          bool
 	created            bool
+	spoofed            bool
 }
 
 // ContainerVolume is a bind mount for the container.
@@ -122,6 +124,24 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		stopSignal:      stopSignal,
 	}
 	return c, nil
+}
+
+func NewSpoofedContainer(id, name string, labels map[string]string, created time.Time, dir string) *Container {
+	state := &ContainerState{}
+	state.Created = created
+	state.Started = created
+	c := &Container{
+		id:      id,
+		name:    name,
+		labels:  labels,
+		spoofed: true,
+		state:   state,
+		dir:     dir,
+	}
+	c.annotations = map[string]string{
+		ann.SpoofedContainer: "true",
+	}
+	return c
 }
 
 // SetSpec loads the OCI spec in the container struct
@@ -234,14 +254,14 @@ func (c *Container) Name() string {
 
 // ID returns the id of the container.
 func (c *Container) ID() string {
-	if c == nil {
-		return ""
-	}
 	return c.id
 }
 
 // CleanupConmonCgroup cleans up conmon's group when using cgroupfs.
 func (c *Container) CleanupConmonCgroup() {
+	if c.spoofed {
+		return
+	}
 	path := c.ConmonCgroupfsPath()
 	if path == "" {
 		return
@@ -509,4 +529,12 @@ func (c *Container) ShouldBeStopped() error {
 		return errors.New("cannot stop paused container")
 	}
 	return nil
+}
+
+// Spoofed returns whether this container is spoofed.
+// A container should be spoofed when it doesn't have to exist in the container runtime,
+// but does need to exist in the storage. The main use of this is when an infra container
+// is not needed, but sandbox metadata should be stored with a spoofed infra container.
+func (c *Container) Spoofed() bool {
+	return c.spoofed
 }
