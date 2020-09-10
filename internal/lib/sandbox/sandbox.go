@@ -375,15 +375,20 @@ func (s *Sandbox) Created() bool {
 }
 
 // Ready returns whether the sandbox should be marked as ready to the kubelet
-// if there is no infra container, it is always considered ready
-// takeLock should be set if we need to take the lock to get the infra container's state
+// if there is no infra container, it is always considered ready.
+// `takeLock` should be set if we need to take the lock to get the infra container's state.
+// If there is no infra container, it is never considered ready.
+// If the infra container is spoofed, the pod is considered ready when it has been created, but not stopped.
 func (s *Sandbox) Ready(takeLock bool) bool {
 	podInfraContainer := s.InfraContainer()
 	if podInfraContainer == nil {
-		// Assume the sandbox is ready, unless it has an infra container that
-		// isn't running
-		return true
+		return false
 	}
+	if podInfraContainer.Spoofed() {
+		return s.created && !s.stopped
+	}
+	// Assume the sandbox is ready, unless it has an infra container that
+	// isn't running
 	var cState *oci.ContainerState
 	if takeLock {
 		cState = podInfraContainer.State()
@@ -409,4 +414,11 @@ func (s *Sandbox) UnmountShm() error {
 	}
 
 	return nil
+}
+
+// NeedsInfra is a function that returns whether the sandbox will need an infra container.
+// If the server manages the namespace lifecycles, and the Pid option on the sandbox
+// is node or container level, the infra container is not needed
+func (s *Sandbox) NeedsInfra(serverDropsInfra bool) bool {
+	return !serverDropsInfra || s.nsOpts.GetPid() == pb.NamespaceMode_POD
 }
