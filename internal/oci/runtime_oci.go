@@ -77,6 +77,10 @@ type exitCodeInfo struct {
 
 // CreateContainer creates a container.
 func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (retErr error) {
+	if c.Spoofed() {
+		return nil
+	}
+
 	var stderrBuf bytes.Buffer
 	parentPipe, childPipe, err := newPipe()
 	childStartPipe, parentStartPipe, err := newPipe()
@@ -238,6 +242,10 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if c.Spoofed() {
+		return nil
+	}
+
 	if _, err := utils.ExecCmd(
 		r.path, rootFlag, r.root, "start", c.id,
 	); err != nil {
@@ -312,6 +320,10 @@ func parseLog(l []byte) (stdout, stderr []byte) {
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
 func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	if c.Spoofed() {
+		return nil
+	}
+
 	processFile, err := prepareProcessExec(c, cmd, tty)
 	if err != nil {
 		return err
@@ -378,6 +390,10 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
+	if c.Spoofed() {
+		return nil, nil
+	}
+
 	pidFile, parentPipe, childPipe, err := prepareExec()
 	if err != nil {
 		return nil, &ExecSyncError{
@@ -547,6 +563,10 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 
 // UpdateContainer updates container resources
 func (r *runtimeOCI) UpdateContainer(c *Container, res *rspec.LinuxResources) error {
+	if c.Spoofed() {
+		return nil
+	}
+
 	cmd := exec.Command(r.path, rootFlag, r.root, "update", "--resources", "-", c.id) // nolint: gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -630,6 +650,12 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		return err
 	}
 
+	if c.Spoofed() {
+		c.state.Status = ContainerStateStopped
+		c.state.Finished = time.Now()
+		return nil
+	}
+
 	// The initial container process either doesn't exist, or isn't ours.
 	if err := c.verifyPid(); err != nil {
 		c.state.Finished = time.Now()
@@ -671,6 +697,10 @@ func (r *runtimeOCI) DeleteContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if c.Spoofed() {
+		return nil
+	}
+
 	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "delete", "--force", c.id)
 	return err
 }
@@ -701,6 +731,10 @@ func updateContainerStatusFromExitFile(c *Container) error {
 func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	if c.Spoofed() {
+		return nil
+	}
 
 	if c.state.ExitCode != nil && !c.state.Finished.IsZero() {
 		logrus.Debugf("Skipping status update for: %+v", c.state)
@@ -811,6 +845,10 @@ func (r *runtimeOCI) PauseContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if c.Spoofed() {
+		return nil
+	}
+
 	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "pause", c.id)
 	return err
 }
@@ -819,6 +857,10 @@ func (r *runtimeOCI) PauseContainer(c *Container) error {
 func (r *runtimeOCI) UnpauseContainer(c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	if c.Spoofed() {
+		return nil
+	}
 
 	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "resume", c.id)
 	return err
@@ -832,7 +874,6 @@ func (r *runtimeOCI) WaitContainerStateStopped(ctx context.Context, c *Container
 func (r *runtimeOCI) ContainerStats(c *Container, cgroup string) (*ContainerStats, error) {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-
 	return r.containerStats(c, cgroup)
 }
 
@@ -840,6 +881,10 @@ func (r *runtimeOCI) ContainerStats(c *Container, cgroup string) (*ContainerStat
 func (r *runtimeOCI) SignalContainer(c *Container, sig syscall.Signal) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	if c.Spoofed() {
+		return nil
+	}
 
 	if unix.SignalName(sig) == "" {
 		return errors.Errorf("unable to find signal %s", sig.String())
@@ -853,6 +898,10 @@ func (r *runtimeOCI) SignalContainer(c *Container, sig syscall.Signal) error {
 
 // AttachContainer attaches IO to a running container.
 func (r *runtimeOCI) AttachContainer(c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	if c.Spoofed() {
+		return nil
+	}
+
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {
@@ -1012,6 +1061,10 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 
 // ReopenContainerLog reopens the log file of a container.
 func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
+	if c.Spoofed() {
+		return nil
+	}
+
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {

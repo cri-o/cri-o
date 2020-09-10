@@ -20,6 +20,9 @@ import (
 )
 
 func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
+	if c.Spoofed() {
+		return nil
+	}
 	// Move conmon to specified cgroup
 	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.id, cgroupParent, r.config.ConmonCgroup, pid)
 	if err != nil {
@@ -49,6 +52,10 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerSt
 	var err error
 	stats.Container = ctr.ID()
 	stats.SystemNano = time.Now().UnixNano()
+
+	if ctr.Spoofed() {
+		return stats, nil
+	}
 
 	// technically, the CRI does not mandate a CgroupParent is given to a pod
 	// this situation should never happen in production, but some test suites

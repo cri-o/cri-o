@@ -73,10 +73,13 @@ func toPodIPs(ips []string) (result []*pb.PodIP) {
 }
 
 func createSandboxInfo(c *oci.Container) (map[string]string, error) {
+	if c.Spoofed() {
+		return map[string]string{"info": "{}"}, nil
+	}
 	info := struct {
 		Image       string    `json:"image"`
 		Pid         int       `json:"pid"`
-		RuntimeSpec spec.Spec `json:"runtimeSpec"`
+		RuntimeSpec spec.Spec `json:"runtimeSpec,omitempty"`
 	}{
 		c.Image(),
 		c.State().Pid,
