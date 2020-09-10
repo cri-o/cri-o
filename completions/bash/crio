@@ -37,6 +37,7 @@ h
 --default-sysctls
 --default-transport
 --default-ulimits
+--drop-infra-ctr
 --enable-metrics
 --gid-mappings
 --global-auth-file
