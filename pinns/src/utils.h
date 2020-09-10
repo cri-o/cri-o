@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <sys/uio.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -92,5 +93,8 @@ static inline void fclosep(FILE **fp) {
 #define _cleanup_free_ _cleanup_(freep)
 #define _cleanup_close_ _cleanup_(closep)
 #define _cleanup_fclose_ _cleanup_(fclosep)
+
+# define LIKELY(x) __builtin_expect((x),1)
+# define UNLIKELY(x) __builtin_expect((x),0)
 
 #endif /* !defined(UTILS_H) */
