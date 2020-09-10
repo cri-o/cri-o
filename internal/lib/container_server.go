@@ -16,6 +16,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -30,10 +31,6 @@ import (
 // container has been created by CRI-O. Usually used together with the key
 // `io.container.manager`.
 const ContainerManagerCRIO = "cri-o"
-
-// UsernsMode is the user namespace mode to use
-// TODO: move to the annotations pkg.
-const UsernsModeAnnotation = "io.kubernetes.cri-o.userns-mode"
 
 // ContainerServer implements the ImageServer
 type ContainerServer struct {
@@ -203,7 +200,7 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 		return errors.Wrap(err, "parsing created timestamp annotation")
 	}
 
-	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[UsernsModeAnnotation])
+	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[crioann.UsernsModeAnnotation])
 	if err != nil {
 		return err
 	}
@@ -262,7 +259,9 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 		return err
 	}
 
-	cname, err := c.ReserveContainerName(m.Annotations[annotations.ContainerID], m.Annotations[annotations.ContainerName])
+	cID := m.Annotations[annotations.ContainerID]
+
+	cname, err := c.ReserveContainerName(cID, m.Annotations[annotations.ContainerName])
 	if err != nil {
 		return err
 	}
@@ -272,21 +271,34 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 		}
 	}()
 
-	scontainer, err := oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], "", "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
-	if err != nil {
-		return err
-	}
-	scontainer.SetSpec(&m)
-	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
+	var scontainer *oci.Container
 
-	if m.Annotations[annotations.Volumes] != "" {
-		containerVolumes := []oci.ContainerVolume{}
-		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
-			return fmt.Errorf("failed to unmarshal container volumes: %v", err)
+	// We should not take whether the server currently has DropInfraCtr specified, but rather
+	// whether the server used to.
+	wasSpoofed := false
+	if spoofed, ok := m.Annotations[crioann.SpoofedContainer]; ok && spoofed == "true" {
+		wasSpoofed = true
+	}
+
+	if !wasSpoofed {
+		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], "", "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+		if err != nil {
+			return err
 		}
-		for _, cv := range containerVolumes {
-			scontainer.AddVolume(cv)
+		scontainer.SetSpec(&m)
+		scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
+
+		if m.Annotations[annotations.Volumes] != "" {
+			containerVolumes := []oci.ContainerVolume{}
+			if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
+				return fmt.Errorf("failed to unmarshal container volumes: %v", err)
+			}
+			for _, cv := range containerVolumes {
+				scontainer.AddVolume(cv)
+			}
 		}
+	} else {
+		scontainer = oci.NewSpoofedContainer(cID, cname, labels, created, sandboxPath)
 	}
 
 	if err := c.ContainerStateFromDisk(scontainer); err != nil {
@@ -296,14 +308,37 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 	// We write back the state because it is possible that crio did not have a chance to
 	// read the exit file and persist exit code into the state on reboot.
 	if err := c.ContainerStateToDisk(scontainer); err != nil {
-		return fmt.Errorf("failed to write container state to disk %q: %v", scontainer.ID(), err)
+		return fmt.Errorf("failed to write container %q state to disk: %v", scontainer.ID(), err)
+	}
+
+	if err := sb.SetInfraContainer(scontainer); err != nil {
+		return err
+	}
+
+	// We add an NS only if we can load a permanent one.
+	// Otherwise, the sandbox will live in the host namespace.
+	if c.config.ManageNSLifecycle || wasSpoofed {
+		namespacesToJoin := []struct {
+			rspecNS  rspec.LinuxNamespaceType
+			joinFunc func(string) error
+		}{
+			{rspecNS: rspec.NetworkNamespace, joinFunc: sb.NetNsJoin},
+			{rspecNS: rspec.IPCNamespace, joinFunc: sb.IpcNsJoin},
+			{rspecNS: rspec.UTSNamespace, joinFunc: sb.UtsNsJoin},
+			{rspecNS: rspec.UserNamespace, joinFunc: sb.UserNsJoin},
+		}
+		for _, namespaceToJoin := range namespacesToJoin {
+			path, err := configNsPath(&m, namespaceToJoin.rspecNS)
+			if err == nil {
+				if nsErr := namespaceToJoin.joinFunc(path); err != nil {
+					return nsErr
+				}
+			}
+		}
 	}
 
 	sb.SetCreated()
 	if err := label.ReserveLabel(processLabel); err != nil {
-		return err
-	}
-	if err := sb.SetInfraContainer(scontainer); err != nil {
 		return err
 	}
 
@@ -468,9 +503,6 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
 func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
-	if ctr == nil {
-		return nil
-	}
 	if err := c.Runtime().UpdateContainerStatus(ctr); err != nil {
 		logrus.Warnf("error updating the container status %q: %v", ctr.ID(), err)
 	}
