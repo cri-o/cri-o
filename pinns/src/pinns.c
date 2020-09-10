@@ -70,9 +70,9 @@ int main(int argc, char **argv) {
       unshare_flags |= CLONE_NEWCGROUP;
       bind_cgroup = true;
       num_unshares++;
+      break;
 #endif
       pexit("unsharing cgroups is not supported by this pinns version");
-      break;
     case 'd':
       pin_path = optarg;
       break;
