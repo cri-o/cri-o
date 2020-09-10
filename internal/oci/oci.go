@@ -189,11 +189,11 @@ func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
 	return rh.PrivilegedWithoutHostDevices, nil
 }
 
-// ContainerRuntimeType returns the type of runtime configured.
+// RuntimeType returns the type of runtimeHandler
 // This is needed when callers need to do specific work for oci vs vm
 // containers, like monitor an oci container's conmon.
-func (r *Runtime) ContainerRuntimeType(c *Container) (string, error) {
-	rh, err := r.getRuntimeHandler(c.runtimeHandler)
+func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
+	rh, err := r.getRuntimeHandler(runtimeHandler)
 	if err != nil {
 		return "", err
 	}

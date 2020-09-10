@@ -21,6 +21,7 @@ import (
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	ann "github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/sandbox"
 	"github.com/cri-o/cri-o/utils"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
+// nolint:gocyclo
 func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, retErr error) {
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
@@ -70,6 +72,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}()
 
+	kubeAnnotations := sbox.Config().GetAnnotations()
 	containerName, err := s.ReserveSandboxContainerIDAndName(sbox.Config())
 	if err != nil {
 		return nil, err
@@ -213,7 +216,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// add annotations
-	kubeAnnotations := sbox.Config().GetAnnotations()
 	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
 	if err != nil {
 		return nil, err
@@ -414,12 +416,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 
 	// Add default sysctls given in crio.conf
-	s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC)
-	// extract linux sysctls from annotations and pass down to oci runtime
-	// Will override any duplicate default systcl from crio.conf
-	for key, value := range sbox.Config().GetLinux().GetSysctls() {
-		g.AddLinuxSysctl(key, value)
-	}
+	sysctls := s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC, req.GetConfig().GetLinux().GetSysctls())
 
 	// Set OOM score adjust of the infra container to be very low
 	// so it doesn't get killed.
@@ -428,7 +425,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 
 	// set up namespaces
-	cleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sb, g)
+	cleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sysctls, sb, g)
 	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
 	defer func() {
 		if retErr != nil {
@@ -477,31 +474,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
 
-	container, err := oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, s.config.PauseImage, "", "", nil, sbox.ID(), false, false, false, runtimeHandler, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
-	if err != nil {
-		return nil, err
-	}
-
-	runtimeType, err := s.Runtime().ContainerRuntimeType(container)
-	if err != nil {
-		return nil, err
-	}
-	// If using kata runtime, the process label should be set to container_kvm_t
-	// Keep in mind that kata does *not* apply any process label to containers within the VM
-	// Note: the requirement here is that the name used for the runtime class has "kata" in it
-	// or the runtime_type is set to "vm"
-	if runtimeType == libconfig.RuntimeTypeVM || strings.Contains(strings.ToLower(runtimeHandler), "kata") {
-		processLabel, err = selinux.SELinuxKVMLabel(processLabel)
-		if err != nil {
-			return nil, err
-		}
-		g.SetProcessSelinuxLabel(processLabel)
-	}
-
-	container.SetMountPoint(mountPoint)
-
-	container.SetIDMappings(s.defaultIDMappings)
-
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
 		if securityContext.GetNamespaceOptions().GetIpc() == pb.NamespaceMode_NODE {
 			g.RemoveMount("/dev/mqueue")
@@ -534,6 +506,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			g.AddMount(proc)
 		}
+		rootPair := s.defaultIDMappings.RootPair()
+		for _, path := range pathsToChown {
+			if err := os.Chown(path, rootPair.UID, rootPair.GID); err != nil {
+				return nil, errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
+			}
+		}
 	}
 	g.SetRootPath(mountPoint)
 
@@ -541,7 +519,55 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		makeOCIConfigurationRootless(&g)
 	}
 
-	container.SetSpec(g.Config)
+	sb.SetNamespaceOptions(securityContext.GetNamespaceOptions())
+
+	spp := securityContext.GetSeccompProfilePath()
+	g.AddAnnotation(annotations.SeccompProfilePath, spp)
+	sb.SetSeccompProfilePath(spp)
+	if !privileged {
+		if err := s.setupSeccomp(ctx, &g, spp); err != nil {
+			return nil, err
+		}
+	}
+
+	runtimeType, err := s.Runtime().RuntimeType(runtimeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	// A container is kernel separated if we're using shimv2, or we're using a kata v1 binary
+	podIsKernelSeparated := runtimeType == libconfig.RuntimeTypeVM ||
+		strings.Contains(strings.ToLower(runtimeHandler), "kata") ||
+		(runtimeHandler == "" && strings.Contains(strings.ToLower(s.config.DefaultRuntime), "kata"))
+
+	var container *oci.Container
+	// In the case of kernel separated containers, we need the infra container to create the VM for the pod
+	if sb.NeedsInfra(s.config.DropInfraCtr) || podIsKernelSeparated {
+		log.Debugf(ctx, "keeping infra container for pod %s", sbox.ID())
+		container, err = oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, s.config.PauseImage, "", "", nil, sbox.ID(), false, false, false, runtimeHandler, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+		if err != nil {
+			return nil, err
+		}
+		// If using a kernel separated container runtime, the process label should be set to container_kvm_t
+		// Keep in mind that kata does *not* apply any process label to containers within the VM
+		if podIsKernelSeparated {
+			processLabel, err = selinux.SELinuxKVMLabel(processLabel)
+			if err != nil {
+				return nil, err
+			}
+			g.SetProcessSelinuxLabel(processLabel)
+		}
+
+		container.SetMountPoint(mountPoint)
+
+		container.SetIDMappings(s.defaultIDMappings)
+
+		container.SetSpec(g.Config)
+	} else {
+		log.Debugf(ctx, "dropping infra container for pod %s", sbox.ID())
+		container = oci.NewSpoofedContainer(sbox.ID(), containerName, labels, created, podContainer.RunDir)
+		g.AddAnnotation(ann.SpoofedContainer, "true")
+	}
 
 	if err := sb.SetInfraContainer(container); err != nil {
 		return nil, err
@@ -580,19 +606,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
 	}
 	sb.AddIPs(ips)
-	sb.SetNamespaceOptions(securityContext.GetNamespaceOptions())
 
-	spp := securityContext.GetSeccompProfilePath()
-	g.AddAnnotation(annotations.SeccompProfilePath, spp)
-	sb.SetSeccompProfilePath(spp)
-	if !privileged {
-		if err := s.setupSeccomp(ctx, &g, spp); err != nil {
-			return nil, err
-		}
-	}
-
-	err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions)
-	if err != nil {
+	if err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions); err != nil {
 		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), sbox.ID(), err)
 	}
 	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
@@ -715,26 +730,36 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	return []string{cfg.PauseCommand}, nil
 }
 
-func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Generator, hostNetwork, hostIPC bool) {
-	sysctls, err := s.config.RuntimeConfig.Sysctls()
+func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Generator, hostNetwork, hostIPC bool, sysctls map[string]string) map[string]string {
+	sysctlsToReturn := make(map[string]string)
+	defaultSysctls, err := s.config.RuntimeConfig.Sysctls()
 	if err != nil {
 		log.Warnf(ctx, "sysctls invalid: %v", err)
 	}
 
-	for _, sysctl := range sysctls {
+	for _, sysctl := range defaultSysctls {
 		if err := sysctl.Validate(hostNetwork, hostIPC); err != nil {
 			log.Warnf(ctx, "skipping invalid sysctl %s: %v", sysctl, err)
 			continue
 		}
 		g.AddLinuxSysctl(sysctl.Key(), sysctl.Value())
+		sysctlsToReturn[sysctl.Key()] = sysctl.Value()
 	}
+
+	// extract linux sysctls from annotations and pass down to oci runtime
+	// Will override any duplicate default systcl from crio.conf
+	for key, value := range sysctls {
+		g.AddLinuxSysctl(key, value)
+		sysctlsToReturn[key] = value
+	}
+	return sysctlsToReturn
 }
 
 // configureGeneratorForSandboxNamespaces set the linux namespaces for the generator, based on whether the pod is sharing namespaces with the host,
 // as well as whether CRI-O should be managing the namespace lifecycle.
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
 // The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
-func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, sb *libsandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, retErr error) {
+func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, sysctls map[string]string, sb *libsandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, retErr error) {
 	managedNamespaces := make([]libsandbox.NSType, 0, 3)
 	if hostNetwork {
 		if err := g.RemoveLinuxNamespace(string(spec.NetworkNamespace)); err != nil {
@@ -764,7 +789,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		managedNamespaces = append(managedNamespaces, libsandbox.UTSNS)
 
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
-		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, &s.config)
+		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, sysctls, &s.config)
 		if err != nil {
 			return nil, err
 		}
