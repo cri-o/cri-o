@@ -7,7 +7,6 @@ import (
 
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -49,23 +48,19 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 		return fmt.Errorf("could not find sandbox %s", podSandboxID)
 	}
 
-	c := sb.InfraContainer()
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
-		return err
+	if !sb.Ready(true) {
+		return fmt.Errorf("sandbox %s is not running", podSandboxID)
 	}
 
-	cState := c.State()
-	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
-		return fmt.Errorf("container is not created or running")
-	}
-
-	emptyStreamOnError = false
-
-	if sb.NetNsPath() == "" {
+	netNsPath := sb.NetNsPath()
+	if netNsPath == "" {
 		return errors.Errorf(
 			"network namespace path of sandbox %s is empty", sb.ID(),
 		)
 	}
 
-	return s.runtimeServer.Runtime().PortForwardContainer(ctx, c, sb.NetNsPath(), port, stream)
+	// defer responsibility of emptying stream to PortForwardContainer
+	emptyStreamOnError = false
+
+	return s.runtimeServer.Runtime().PortForwardContainer(ctx, sb.InfraContainer(), netNsPath, port, stream)
 }
