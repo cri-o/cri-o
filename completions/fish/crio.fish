@@ -42,6 +42,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l default-runtime -r -d 'Def
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-sysctls -r -d 'Sysctls to add to the containers'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-transport -r -d 'A prefix to prepend to image names that cannot be pulled as-is'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-ulimits -r -d 'Ulimits to apply to containers by default (name=soft:hard) (default: [])'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l drop-infra-ctr -d 'Determines whether pods are created without an infra container (when the pod is not using a pod level PID namespace). Requires ManageNSLifecycle to be true (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-metrics -d 'Enable metrics endpoint for the server on localhost:9090'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l gid-mappings -r -d 'Specify the GID mappings to use for the user namespace (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -l global-auth-file -r -d 'Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries (default: "")'

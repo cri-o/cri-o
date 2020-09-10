@@ -252,6 +252,12 @@ ctr_stop_timeout = {{ .CtrStopTimeout }}
 # and manage their lifecycle
 manage_ns_lifecycle = {{ .ManageNSLifecycle }}
 
+# drop_infra_ctr determines whether CRI-O drops the infra container
+# when a pod does not have a private PID namespace, and does not use
+# a kernel separating runtime (like kata).
+# It requires manage_ns_lifecycle to be true.
+drop_infra_ctr = {{ .DropInfraCtr }}
+
 # The directory where the state of the managed namespaces gets tracked.
 # Only used when manage_ns_lifecycle is true.
 namespaces_dir = "{{ .NamespacesDir }}"
