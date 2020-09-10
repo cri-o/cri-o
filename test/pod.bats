@@ -305,7 +305,8 @@ function teardown() {
 	wrong_cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "podsandbox1.slice:container:infra"; json.dump(obj, sys.stdout)')
 	echo "$wrong_cgroup_parent_config" > "$TESTDIR"/sandbox_wrong_cgroup_parent.json
 
-	start_crio
+	# kubelet is technically responsible for creating this cgroup. it is created in cri-o if there's an infra container
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp "$TESTDIR"/sandbox_wrong_cgroup_parent.json
 	echo "$output"
 	[ "$status" -eq 1 ]
@@ -321,7 +322,8 @@ function teardown() {
 	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "Burstable-pod_integration_tests-123.slice"; json.dump(obj, sys.stdout)')
 	echo "$cgroup_parent_config" > "$TESTDIR"/sandbox_systemd_cgroup_parent.json
 
-	start_crio
+	# kubelet is technically responsible for creating this cgroup. it is created in cri-o if there's an infra container
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp "$TESTDIR"/sandbox_systemd_cgroup_parent.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -364,7 +366,7 @@ function teardown() {
 }
 
 @test "pod pause image matches configured image in crio.conf" {
-	start_crio
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
