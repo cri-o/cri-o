@@ -3,8 +3,16 @@
 package cgmgr
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -79,8 +87,50 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 		}
 		return &systemdMgr, nil
 	case cgroupfsCgroupManager:
-		return new(CgroupfsManager), nil
+		cgroupfsMgr := CgroupfsManager{
+			memoryPath:    cgroupMemoryPathV1,
+			memoryMaxFile: cgroupMemoryMaxFileV1,
+		}
+		if node.CgroupIsV2() {
+			cgroupfsMgr.memoryPath = cgroupMemoryPathV2
+			cgroupfsMgr.memoryMaxFile = cgroupMemoryMaxFileV2
+		}
+		return &cgroupfsMgr, nil
 	default:
 		return nil, errors.Errorf("invalid cgroup manager: %s", cgroupManager)
 	}
+}
+
+func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilename string) error {
+	// read in the memory limit from memory max file
+	fileData, err := ioutil.ReadFile(filepath.Join(memorySubsystemPath, slicePath, memoryMaxFilename))
+	if err != nil {
+		if os.IsNotExist(err) {
+			logrus.Warnf("Failed to find %s at path: %q", memoryMaxFilename, slicePath)
+			return nil
+		}
+		return errors.Wrapf(err, "unable to read memory file for cgroups at %s", slicePath)
+	}
+
+	// strip off the newline character and convert it to an int
+	strMemory := strings.TrimRight(string(fileData), "\n")
+	if strMemory != "" && strMemory != "max" {
+		memoryLimit, err := strconv.ParseInt(strMemory, 10, 64)
+		if err != nil {
+			return errors.Wrapf(err, "error converting cgroup memory value from string to int %q", strMemory)
+		}
+		// Compare with the minimum allowed memory limit
+		if err := VerifyMemoryIsEnough(memoryLimit); err != nil {
+			return errors.Errorf("pod %v", err)
+		}
+	}
+	return nil
+}
+
+// VerifyMemoryIsEnough verifies that the cgroup memory limit is above a specified minimum memory limit.
+func VerifyMemoryIsEnough(memoryLimit int64) error {
+	if memoryLimit != 0 && memoryLimit < minMemoryLimit {
+		return fmt.Errorf("set memory limit %d too low; should be at least %d", memoryLimit, minMemoryLimit)
+	}
+	return nil
 }
