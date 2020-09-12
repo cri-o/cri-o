@@ -127,9 +127,12 @@ function teardown() {
 }
 
 @test "Clean up network if pod sandbox fails" {
+	# TODO FIXME find a way for sandbox setup to fail if manage ns is true
 	cp $(which conmon) "$TESTDIR"/conmon
-	CONMON_BINARY="$TESTDIR"/conmon
-	start_crio "" "prepare_plugin_test_args_network_conf"
+	CONTAINER_MANAGE_NS_LIFECYCLE=false \
+		CONTAINER_DROP_INFRA_CTR=false \
+		CONMON_BINARY="$TESTDIR"/conmon \
+		start_crio "" "prepare_plugin_test_args_network_conf"
 
 	# make conmon non-executable to cause the sandbox setup to fail after
 	# networking has been configured

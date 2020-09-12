@@ -3,10 +3,12 @@
 package sandbox
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
@@ -54,7 +56,7 @@ func (n *Namespace) Initialize() NamespaceIface {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, error) {
+func pinNamespaces(nsTypes []NSType, cfg *config.Config, sysctls map[string]string) ([]NamespaceIface, error) {
 	typeToArg := map[NSType]string{
 		IPCNS:  "-i",
 		UTSNS:  "-u",
@@ -67,6 +69,11 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		"-d", cfg.NamespacesDir,
 		"-f", pinnedNamespace,
 	}
+
+	if len(sysctls) != 0 {
+		pinnsArgs = append(pinnsArgs, "-s", getSysctlForPinns(sysctls))
+	}
+
 	type namespaceInfo struct {
 		path   string
 		nsType NSType
@@ -119,6 +126,16 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config) ([]NamespaceIface, erro
 		})
 	}
 	return returnedNamespaces, nil
+}
+
+func getSysctlForPinns(sysctls map[string]string) string {
+	// this assumes there's no sysctl with a `+` in it
+	const pinnsSysctlDelim = "+"
+	g := new(bytes.Buffer)
+	for key, value := range sysctls {
+		fmt.Fprintf(g, "'%s=%s'%s", key, value, pinnsSysctlDelim)
+	}
+	return strings.TrimSuffix(g.String(), pinnsSysctlDelim)
 }
 
 // getNamespace takes a path, checks if it is a namespace, and if so
