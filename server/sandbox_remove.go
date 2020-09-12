@@ -32,9 +32,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 
 	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
-	if podInfraContainer != nil {
-		containers = append(containers, podInfraContainer)
-	}
+	containers = append(containers, podInfraContainer)
 
 	// Delete all the containers in the sandbox
 	for _, c := range containers {
@@ -77,10 +75,11 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 	}
 
-	if podInfraContainer != nil {
-		s.removeInfraContainer(podInfraContainer)
-		podInfraContainer.CleanupConmonCgroup()
+	s.removeInfraContainer(podInfraContainer)
+	podInfraContainer.CleanupConmonCgroup()
 
+	// StorageRuntimeServer won't know about this container, as it wasn't created in storage
+	if !podInfraContainer.Spoofed() {
 		if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
 			log.Warnf(ctx, "failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 		}
@@ -99,11 +98,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		}
 	}
 
-	if podInfraContainer != nil {
-		s.ReleaseContainerName(podInfraContainer.Name())
-		if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
-			return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.ID(), err)
-		}
+	s.ReleaseContainerName(podInfraContainer.Name())
+	if err := s.CtrIDIndex().Delete(podInfraContainer.ID()); err != nil {
+		return nil, fmt.Errorf("failed to delete infra container %s in pod sandbox %s from index: %v", podInfraContainer.ID(), sb.ID(), err)
 	}
 
 	s.ReleasePodName(sb.Name())

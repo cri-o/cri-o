@@ -257,4 +257,61 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(err).NotTo(BeNil())
 		})
 	})
+	t.Describe("NeedsInfra", func() {
+		It("should not need when managing NS and NS mode NODE", func() {
+			// Given
+			manageNS := true
+			newNamespaceOption := &pb.NamespaceOption{
+				Pid: pb.NamespaceMode_NODE,
+			}
+
+			// When
+			testSandbox.SetNamespaceOptions(newNamespaceOption)
+
+			// Then
+			Expect(testSandbox.NeedsInfra(manageNS)).To(Equal(false))
+		})
+
+		It("should not need when managing NS and NS mode CONTAINER", func() {
+			// Given
+			manageNS := true
+			newNamespaceOption := &pb.NamespaceOption{
+				Pid: pb.NamespaceMode_CONTAINER,
+			}
+
+			// When
+			testSandbox.SetNamespaceOptions(newNamespaceOption)
+
+			// Then
+			Expect(testSandbox.NeedsInfra(manageNS)).To(Equal(false))
+		})
+
+		It("should need when namespace mode POD", func() {
+			// Given
+			manageNS := false
+			newNamespaceOption := &pb.NamespaceOption{
+				Pid: pb.NamespaceMode_POD,
+			}
+
+			// When
+			testSandbox.SetNamespaceOptions(newNamespaceOption)
+
+			// Then
+			Expect(testSandbox.NeedsInfra(manageNS)).To(Equal(true))
+		})
+
+		It("should need when not managing NS", func() {
+			// Given
+			manageNS := true
+			newNamespaceOption := &pb.NamespaceOption{
+				Pid: pb.NamespaceMode_CONTAINER,
+			}
+
+			// When
+			testSandbox.SetNamespaceOptions(newNamespaceOption)
+
+			// Then
+			Expect(testSandbox.NeedsInfra(manageNS)).To(Equal(false))
+		})
+	})
 })

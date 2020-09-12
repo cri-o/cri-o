@@ -69,19 +69,21 @@ func (m *ManagedNamespace) Path() string {
 
 // CreateManagedNamespaces calls pinnsPath on all the managed namespaces for the sandbox.
 // It returns a slice of ManagedNamespaces it created.
-func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []NSType, idMappings *idtools.IDMappings, cfg *config.Config) ([]*ManagedNamespace, error) {
-	return s.CreateNamespacesWithFunc(managedNamespaces, idMappings, cfg, pinNamespaces)
+func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []NSType, idMappings *idtools.IDMappings, sysctls map[string]string, cfg *config.Config) ([]*ManagedNamespace, error) {
+	return s.CreateNamespacesWithFunc(managedNamespaces, idMappings, sysctls, cfg, pinNamespaces)
 }
+
+type namespacePinner func([]NSType, *config.Config, *idtools.IDMappings, map[string]string) ([]NamespaceIface, error)
 
 // CreateManagedNamespacesWithFunc is mainly added for testing purposes. There's no point in actually calling the pinns binary
 // in unit tests, so this function allows the actual pin func to be abstracted out. Every other caller should use CreateManagedNamespaces
-func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, idMappings *idtools.IDMappings, cfg *config.Config, pinFunc func([]NSType, *config.Config, *idtools.IDMappings) ([]NamespaceIface, error)) (mns []*ManagedNamespace, retErr error) {
+func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, idMappings *idtools.IDMappings, sysctls map[string]string, cfg *config.Config, pinFunc namespacePinner) (mns []*ManagedNamespace, retErr error) {
 	typesAndPaths := make([]*ManagedNamespace, 0, 4)
 	if len(managedNamespaces) == 0 {
 		return typesAndPaths, nil
 	}
 
-	namespaces, err := pinFunc(managedNamespaces, cfg, idMappings)
+	namespaces, err := pinFunc(managedNamespaces, cfg, idMappings, sysctls)
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +307,7 @@ func (s *Sandbox) nsPath(ns NamespaceIface, nsType NSType) string {
 // if the infra container is nil, pid is returned negative
 func infraPid(infra *oci.Container) int {
 	pid := -1
-	if infra != nil {
+	if infra != nil && !infra.Spoofed() {
 		var err error
 		pid, err = infra.Pid()
 		// There are some cases where ErrNotInitialized is expected.

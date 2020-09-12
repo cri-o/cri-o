@@ -28,7 +28,7 @@ function teardown() {
 }
 
 @test "conmon custom cgroup" {
-	CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_CONMON_CGROUP="customcrioconmon.slice" start_crio
+	CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_DROP_INFRA_CTR=false CONTAINER_MANAGE_NS_LIFECYCLE=false CONTAINER_CONMON_CGROUP="customcrioconmon.slice" start_crio
 
 	python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "Burstablecriotest123.slice"; json.dump(obj, sys.stdout)' \
 		< "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_config_slice.json

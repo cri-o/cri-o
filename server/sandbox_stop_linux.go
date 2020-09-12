@@ -52,9 +52,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 
 	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
-	if podInfraContainer != nil {
-		containers = append(containers, podInfraContainer)
-	}
+	containers = append(containers, podInfraContainer)
 
 	const maxWorkers = 128
 	var waitGroup errgroup.Group
