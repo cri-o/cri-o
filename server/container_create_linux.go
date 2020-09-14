@@ -372,6 +372,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if retErr != nil {
+			log.Infof(ctx, "createCtrLinux: deleting container %s from storage", containerInfo.ID)
+			if err := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID); err != nil {
+				log.Warnf(ctx, "Failed to cleanup container directory: %v", err)
+			}
+		}
+	}()
 
 	mountLabel := containerInfo.MountLabel
 	var processLabel string
@@ -390,16 +398,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	if hostNet {
 		processLabel = ""
 	}
-
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtrLinux: deleting container %s from storage", containerInfo.ID)
-			err2 := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID)
-			if err2 != nil {
-				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
-			}
-		}
-	}()
 
 	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, specgen, s.config.RuntimeConfig.BindMountPrefix)
 	if err != nil {
