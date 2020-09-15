@@ -30,6 +30,9 @@ func main() {
 	flag.Parse()
 
 	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
+	logrus.SetLevel(logrus.DebugLevel)
+	command.SetGlobalVerbose(true)
+
 	if err := run(); err != nil {
 		logrus.Fatalf("unable to %v", err)
 	}
