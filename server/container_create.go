@@ -527,7 +527,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
-			if err2 := s.CtrIDIndex().Delete(ctr.ID()); err2 != nil {
+			if err := s.CtrIDIndex().Delete(ctr.ID()); err != nil {
 				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
 			}
 		}
@@ -541,6 +541,14 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	if err := s.createContainerPlatform(newContainer, sb.CgroupParent(), mappings); err != nil {
 		return nil, err
 	}
+	defer func() {
+		if retErr != nil {
+			log.Infof(ctx, "createCtr: removing container ID %s from runtime", ctr.ID())
+			if err := s.Runtime().DeleteContainer(newContainer); err != nil {
+				log.Warnf(ctx, "failed to delete container in runtime %s: %v", ctr.ID(), err)
+			}
+		}
+	}()
 
 	if err := s.ContainerStateToDisk(newContainer); err != nil {
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
