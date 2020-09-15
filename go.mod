@@ -6,6 +6,8 @@ require (
 	github.com/BurntSushi/toml v1.2.0
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/blang/semver/v4 v4.0.0
+	github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0
+	github.com/checkpoint-restore/go-criu/v5 v5.3.0
 	github.com/container-orchestrated-devices/container-device-interface v0.5.0
 	github.com/containerd/cgroups v1.0.4
 	github.com/containerd/containerd v1.6.8
@@ -111,7 +113,6 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
-	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.44.55 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.16.5 // indirect
@@ -136,8 +137,6 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0 // indirect
-	github.com/checkpoint-restore/go-criu/v5 v5.3.0 // indirect
 	github.com/cheggaaa/pb/v3 v3.0.8 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20220119192733-fe33c00cee21 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect

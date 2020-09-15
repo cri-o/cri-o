@@ -80,7 +80,7 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 	}, nil
 }
 
-func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupParent string) error {
+func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) error {
 	// If this container is the infra container, all that needs to be done is move conmonrs to the pod cgroup
 	if c.IsInfra() {
 		v, err := r.client.Version(ctx)
@@ -133,6 +133,25 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 func (r *runtimePod) StartContainer(ctx context.Context, c *Container) error {
 	return r.oci.StartContainer(ctx, c)
+}
+
+func (r *runtimePod) CheckpointContainer(
+	ctx context.Context,
+	c *Container,
+	specgen *rspec.Spec,
+	leaveRunning bool,
+) error {
+	return r.oci.CheckpointContainer(ctx, c, specgen, leaveRunning)
+}
+
+func (r *runtimePod) RestoreContainer(
+	ctx context.Context,
+	c *Container,
+	sbSpec *rspec.Spec,
+	infraPid int,
+	cgroupParent string,
+) error {
+	return r.oci.RestoreContainer(ctx, c, sbSpec, infraPid, cgroupParent)
 }
 
 func (r *runtimePod) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {

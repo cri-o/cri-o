@@ -290,6 +290,45 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
+	// Check if image is a file. If it is a file it might be a checkpoint archive.
+	checkpointImage := func() bool {
+		if req.Config == nil ||
+			req.Config.Image == nil ||
+			req.SandboxConfig == nil ||
+			req.SandboxConfig.Metadata == nil {
+			return false
+		}
+		if _, err := os.Stat(req.Config.Image.Image); err == nil {
+			log.Debugf(
+				ctx,
+				"%q is a file. Assuming it is a checkpoint archive",
+				req.Config.Image.Image,
+			)
+			return true
+		}
+		return false
+	}()
+	if checkpointImage {
+		// This might be a checkpoint image. Let's pass
+		// it to the checkpoint code.
+		ctrID, err := s.CRImportCheckpoint(
+			ctx,
+			req.Config.Image.Image,
+			req.PodSandboxId,
+			req.SandboxConfig.Metadata.Uid,
+			req.Config.Mounts,
+			req.Config.Annotations,
+		)
+		if err != nil {
+			return nil, err
+		}
+		log.Debugf(ctx, "Prepared %s for restore\n", ctrID)
+
+		return &types.CreateContainerResponse{
+			ContainerId: ctrID,
+		}, nil
+	}
+
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
@@ -314,7 +353,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, fmt.Errorf("setting container config: %w", err)
 	}
 
-	if err := ctr.SetNameAndID(); err != nil {
+	if err := ctr.SetNameAndID(""); err != nil {
 		return nil, fmt.Errorf("setting container name and ID: %w", err)
 	}
 

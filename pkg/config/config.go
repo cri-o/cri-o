@@ -363,6 +363,10 @@ type RuntimeConfig struct {
 	// to manage namespace lifecycle
 	PinnsPath string `toml:"pinns_path"`
 
+	// CriuPath is the path to find the criu binary, which is needed
+	// to checkpoint and restore containers
+	EnableCriuSupport bool `toml:"enable_criu_support"`
+
 	// Runtimes defines a list of OCI compatible runtimes. The runtime to
 	// use is picked based on the runtime_handler provided by the CRI. If
 	// no runtime_handler is provided, the runtime will be picked based on
@@ -1067,6 +1071,16 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return fmt.Errorf("initialize nsmgr: %w", err)
 		}
 
+		if c.EnableCriuSupport {
+			if err := validateCriuInPath(); err != nil {
+				c.EnableCriuSupport = false
+				return errors.New("cannot enable checkpoint/restore support without the criu binary in $PATH")
+			}
+			logrus.Infof("Checkpoint/restore support enabled")
+		} else {
+			logrus.Infof("Checkpoint/restore support disabled")
+		}
+
 		c.seccompConfig.SetUseDefaultWhenEmpty(c.SeccompUseDefaultWhenEmpty)
 
 		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
@@ -1199,6 +1213,12 @@ func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
 	return err
 }
 
+func validateCriuInPath() error {
+	_, err := validateExecutablePath("criu", "")
+
+	return err
+}
+
 // Seccomp returns the seccomp configuration
 func (c *RuntimeConfig) Seccomp() *seccomp.Config {
 	return c.seccompConfig
@@ -1236,6 +1256,10 @@ func (c *RuntimeConfig) Ulimits() []ulimits.Ulimit {
 
 func (c *RuntimeConfig) Devices() []device.Device {
 	return c.deviceConfig.Devices()
+}
+
+func (c *RuntimeConfig) CheckpointRestore() bool {
+	return c.EnableCriuSupport
 }
 
 func validateExecutablePath(executable, currentPath string) (string, error) {

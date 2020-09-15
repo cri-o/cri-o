@@ -225,8 +225,6 @@ github.com/acarl005/stripansi
 # github.com/acomagu/bufpipe v1.0.3
 ## explicit; go 1.12
 github.com/acomagu/bufpipe
-# github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
-## explicit; go 1.13
 # github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 ## explicit; go 1.13
 github.com/asaskevich/govalidator
