@@ -90,8 +90,6 @@ popd
 ln -s vendor src
 export GOPATH=$(pwd)/_output:$(pwd)
 export BUILDTAGS="selinux seccomp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_ostree_stub"
-# build crio, crio-status, and pinns
-export GO111MODULE=off
 make bin/crio bin/crio-status bin/pinns
 
 # build docs
