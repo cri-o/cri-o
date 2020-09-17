@@ -282,6 +282,7 @@ type RuntimeConfig struct {
 
 	// ManageNSLifecycle determines whether we pin and remove namespaces
 	// and manage their lifecycle
+	// This option is being deprecated
 	ManageNSLifecycle bool `toml:"manage_ns_lifecycle"`
 
 	// DropInfraCtr determines whether the infra container is dropped when appropriate.
@@ -771,6 +772,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	if !(c.ConmonCgroup == "pod" || strings.HasSuffix(c.ConmonCgroup, ".slice")) {
 		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
+	}
+
+	if !c.ManageNSLifecycle {
+		logrus.Infof("The manage-ns-lifecycle option is being deprecated, and will be unconditionally true in the future")
 	}
 
 	if c.UIDMappings != "" && c.ManageNSLifecycle {

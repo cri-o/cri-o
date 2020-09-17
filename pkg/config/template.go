@@ -254,7 +254,8 @@ gid_mappings = "{{ .GIDMappings }}"
 ctr_stop_timeout = {{ .CtrStopTimeout }}
 
 # manage_ns_lifecycle determines whether we pin and remove namespaces
-# and manage their lifecycle
+# and manage their lifecycle.
+# This option is being deprecated, and will be unconditionally true in the future.
 manage_ns_lifecycle = {{ .ManageNSLifecycle }}
 
 # drop_infra_ctr determines whether CRI-O drops the infra container

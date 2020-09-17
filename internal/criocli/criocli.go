@@ -725,7 +725,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:    "manage-ns-lifecycle",
-			Usage:   fmt.Sprintf("Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle (default: %v)", defConf.ManageNSLifecycle),
+			Usage:   fmt.Sprintf("Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle. This option is being deprecated, and will be unconditionally true in the future. (default: %v)", defConf.ManageNSLifecycle),
 			EnvVars: []string{"CONTAINER_MANAGE_NS_LIFECYCLE"},
 		},
 		&cli.BoolFlag{
