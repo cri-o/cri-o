@@ -72,11 +72,10 @@ Some maintainers add themselves to [`CODEOWNERS`](.github/CODEOWNERS) to manage 
 
 ### Dependency management
 
-In order to add or update a dependency to this project run:
+In order to add or update a dependency to this project, run:
 
-```
-> export GO111MODULE=on
-> go get -u [DEPENDENCY]
+```console
+$ go get -u [DEPENDENCY]
 ```
 
 Since CRI-O uses go modules we highly recommend reading the [go modules
@@ -85,8 +84,8 @@ section](https://github.com/golang/go/wiki/Modules#daily-workflow).
 
 To ensure the working directory contains all necessary files afterwards, run:
 
-```
-> make vendor
+```console
+$ make vendor
 ```
 
 ### Sign your PRs
