@@ -72,6 +72,7 @@ h
 --runroot
 --runtimes
 --seccomp-profile
+--seccomp-use-default-when-empty
 --selinux
 --signature-policy
 --storage-driver

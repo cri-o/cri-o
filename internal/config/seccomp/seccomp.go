@@ -11,8 +11,9 @@ import (
 
 // Config is the global seccomp configuration type
 type Config struct {
-	enabled bool
-	profile *seccomp.Seccomp
+	enabled          bool
+	defaultWhenEmpty bool
+	profile          *seccomp.Seccomp
 }
 
 // New creates a new default seccomp configuration instance
@@ -21,6 +22,18 @@ func New() *Config {
 		enabled: seccomp.IsEnabled(),
 		profile: seccomp.DefaultProfile(),
 	}
+}
+
+// Set the seccomp config to use default profile
+// when the profile is empty
+func (c *Config) SetDefaultWhenEmpty() {
+	c.defaultWhenEmpty = true
+}
+
+// Returns whether the seccomp config is set to
+// use default profile when the profile is empty
+func (c *Config) UseDefaultWhenEmpty() bool {
+	return c.defaultWhenEmpty
 }
 
 // LoadProfile can be used to load a seccomp profile from the provided path.

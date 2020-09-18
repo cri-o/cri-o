@@ -156,6 +156,35 @@ type Runtimes map[string]*RuntimeHandler
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
+	// SeccompUseDefaultWhenEmpty specifies whether the default profile
+	// should be used when an empty one is specified.
+	SeccompUseDefaultWhenEmpty bool `toml:"seccomp_use_default_when_empty"`
+
+	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
+	NoPivot bool `toml:"no_pivot"`
+
+	// SELinux determines whether or not SELinux is used for pod separation.
+	SELinux bool `toml:"selinux"`
+
+	// Whether container output should be logged to journald in addition
+	// to the kubernetes log file
+	LogToJournald bool `toml:"log_to_journald"`
+
+	// ManageNSLifecycle determines whether we pin and remove namespaces
+	// and manage their lifecycle
+	// This option is being deprecated
+	ManageNSLifecycle bool `toml:"manage_ns_lifecycle"`
+
+	// DropInfraCtr determines whether the infra container is dropped when appropriate.
+	// Requires ManageNSLifecycle to be true.
+	DropInfraCtr bool `toml:"drop_infra_ctr"`
+
+	// ReadOnly run all pods/containers in read-only mode.
+	// This mode will mount tmpfs on /run, /tmp and /var/tmp, if those are not mountpoints
+	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
+	// will only be able to write to volumes mounted into them
+	ReadOnly bool `toml:"read_only"`
+
 	// ConmonEnv is the environment variable list for conmon process.
 	ConmonEnv []string `toml:"conmon_env"`
 
@@ -269,30 +298,6 @@ type RuntimeConfig struct {
 	// CtrStopTimeout specifies the time to wait before to generate an
 	// error because the container state is still tagged as "running".
 	CtrStopTimeout int64 `toml:"ctr_stop_timeout"`
-
-	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
-	NoPivot bool `toml:"no_pivot"`
-
-	// SELinux determines whether or not SELinux is used for pod separation.
-	SELinux bool `toml:"selinux"`
-
-	// Whether container output should be logged to journald in addition
-	// to the kubernetes log file
-	LogToJournald bool `toml:"log_to_journald"`
-
-	// ManageNSLifecycle determines whether we pin and remove namespaces
-	// and manage their lifecycle
-	ManageNSLifecycle bool `toml:"manage_ns_lifecycle"`
-
-	// DropInfraCtr determines whether the infra container is dropped when appropriate.
-	// Requires ManageNSLifecycle to be true.
-	DropInfraCtr bool `toml:"drop_infra_ctr"`
-
-	// ReadOnly run all pods/containers in read-only mode.
-	// This mode will mount tmpfs on /run, /tmp and /var/tmp, if those are not mountpoints
-	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
-	// will only be able to write to volumes mounted into them
-	ReadOnly bool `toml:"read_only"`
 
 	// seccompConfig is the internal seccomp configuration
 	seccompConfig *seccomp.Config
@@ -846,6 +851,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 		if err := os.MkdirAll(c.NamespacesDir, 0o755); err != nil {
 			return errors.Wrap(err, "invalid namespaces_dir")
+		}
+
+		if c.SeccompUseDefaultWhenEmpty {
+			c.seccompConfig.SetDefaultWhenEmpty()
 		}
 
 		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
