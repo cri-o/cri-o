@@ -30,13 +30,13 @@ function teardown() {
 
 @test "config dir should fail with invalid option" {
     # given
-    printf "[crio.runtime]\nlog_level = info\n" > "$CRIO_CONFIG"
-    printf "[crio.runtime]\nlog_level = wrong\n" > "$CRIO_CONFIG_DIR"/00-default
+    printf '[crio.runtime]\nlog_level = "info"\n' > "$CRIO_CONFIG"
+    printf '[crio.runtime]\nlog_level = "wrong-level"\n' > "$CRIO_CONFIG_DIR"/00-default
 
     # when
-    "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" &> >(tee "$CRIO_LOG") || true
-    RES=$(cat "$CRIO_LOG")
+    run "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR"
 
     # then
-    [[ "$RES" =~ "unable to decode configuration" ]]
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not a valid logrus"*"wrong-level"* ]]
 }
