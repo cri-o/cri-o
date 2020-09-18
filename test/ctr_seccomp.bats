@@ -134,3 +134,28 @@ function teardown() {
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"Operation not permitted"* ]]
 }
+
+# 7. test running with ctr runtime/default if seccomp_override_empty is true
+# test that we cannot run with a syscall blocked by the default seccomp profile
+@test "ctr seccomp overrides unconfined profile with runtime/default when overridden" {
+	export CONTAINER_SECCOMP_USE_DEFAULT_WHEN_EMPTY=true
+	export CONTAINER_SECCOMP_PROFILE="$TESTDIR"/seccomp_profile1.json
+	restart_crio
+
+	sed -e 's/%VALUE%//g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+	run crictl start "$ctr_id"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	run crictl exec --sync "$ctr_id" chmod 777 .
+	echo "$output"
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"Operation not permitted"* ]]
+}

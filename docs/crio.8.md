@@ -73,6 +73,7 @@ crio
 [--runroot]=[value]
 [--runtimes]=[value]
 [--seccomp-profile]=[value]
+[--seccomp-use-default-when-empty]=[value]
 [--selinux]
 [--separate-pull-cgroup]=[value]
 [--signature-policy]=[value]
@@ -278,6 +279,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type (default: [])
 
 **--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used. (default: "")
+
+**--seccomp-use-default-when-empty**="": Use the default seccomp profile when an empty one is specified (default: false)
 
 **--selinux**: Enable selinux support (default: false)
 

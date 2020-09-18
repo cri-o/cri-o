@@ -570,9 +570,12 @@ func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
 
 func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, profile string) error {
 	if profile == "" {
-		// running w/o seccomp, aka unconfined
-		specgen.Config.Linux.Seccomp = nil
-		return nil
+		if !s.Config().Seccomp().UseDefaultWhenEmpty() {
+			// running w/o seccomp, aka unconfined
+			specgen.Config.Linux.Seccomp = nil
+			return nil
+		}
+		profile = k8sV1.SeccompProfileRuntimeDefault
 	}
 	if s.Config().Seccomp().IsDisabled() {
 		if profile != k8sV1.SeccompProfileNameUnconfined {
