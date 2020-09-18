@@ -230,5 +230,9 @@ func (n *Namespace) Remove() error {
 	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
 		return errors.Wrapf(err, "unable to unmount %s", fp)
 	}
-	return os.RemoveAll(fp)
+	out, execErr := exec.Command("sh", "-c", "grep "+filepath.Base(fp)+" /proc/*/mountinfo").CombinedOutput()
+	if err := os.Remove(fp); err != nil {
+		return errors.Wrapf(err, "can't remove ns mount file; mountinfo shows: %s (err: %v)", out, execErr)
+	}
+	return nil
 }
