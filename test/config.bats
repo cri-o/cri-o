@@ -20,7 +20,7 @@ function teardown() {
 
     # when
     start_crio_no_setup
-    run ${CRIO_STATUS_BINARY_PATH} --socket=${CRIO_SOCKET} config
+    run "${CRIO_STATUS_BINARY_PATH}" --socket="${CRIO_SOCKET}" config
     echo "$output"
 
     # then
