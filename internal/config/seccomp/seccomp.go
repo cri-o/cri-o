@@ -34,7 +34,14 @@ func (c *Config) LoadProfile(profilePath string) error {
 	if profilePath == "" {
 		c.profile = seccomp.DefaultProfile()
 		logrus.Info("No seccomp profile specified, using the internal default")
-		logrus.Debugf("Current seccomp profile content: %+v", c.profile)
+
+		if logrus.IsLevelEnabled(logrus.TraceLevel) {
+			profileString, err := json.MarshalToString(c.profile)
+			if err != nil {
+				return errors.Wrap(err, "marshal default seccomp profile to string")
+			}
+			logrus.Tracef("Current seccomp profile content: %s", profileString)
+		}
 		return nil
 	}
 
@@ -50,7 +57,7 @@ func (c *Config) LoadProfile(profilePath string) error {
 
 	c.profile = tmpProfile
 	logrus.Infof("Successfully loaded seccomp profile %q", profilePath)
-	logrus.Debugf("Current seccomp profile content: %+v", c.profile)
+	logrus.Tracef("Current seccomp profile content: %s", profile)
 	return nil
 }
 
