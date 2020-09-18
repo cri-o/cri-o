@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-set -e
+
+set -x
+uname -a
+tail /proc/sys/fs/may_detach_mounts
+grep may_detach_mounts /etc/sysctl.conf /etc/sysctl.d/*
+exit 0
 
 TEST_USERNS=${TEST_USERNS:-}
 
