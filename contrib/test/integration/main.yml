@@ -94,6 +94,14 @@
       include: "build/runc.yml"
       when: "build_runc | bool"
 
+    - name: set fs.may_detach_mounts = 1
+      sysctl:
+        name: fs.may_detach_mounts
+        state: absent
+        value: 1
+        sysctl_set: yes
+        ignoreerrors: yes
+
   post_tasks:
     - name: Swap is disused and disabled as required for kubernetes
       include: "disable_swap.yml"
