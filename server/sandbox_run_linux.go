@@ -314,14 +314,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	containerName, err := s.ReserveSandboxContainerIDAndName(sbox.Config())
+	reservedName, err := s.ReserveContainerName(sbox.ID(), sbox.Name())
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if retErr != nil {
-			log.Infof(ctx, "runSandbox: releasing container name: %s", containerName)
-			s.ReleaseContainerName(containerName)
+			log.Infof(ctx, "runSandbox: releasing container name: %s", reservedName)
+			s.ReleaseContainerName(reservedName)
 		}
 	}()
 
@@ -339,7 +339,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		s.config.PauseImage,
 		s.config.PauseImageAuthFile,
 		"",
-		containerName,
+		reservedName,
 		kubeName,
 		sbox.Config().GetMetadata().GetUid(),
 		namespace,

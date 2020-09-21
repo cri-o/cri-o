@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -126,7 +125,6 @@ func (c *container) SetNameAndID() error {
 		return errors.New("sandbox metadata is nil")
 	}
 
-	id := stringid.GenerateNonCryptoID()
 	name := strings.Join([]string{
 		"k8s",
 		c.config.Metadata.Name,
@@ -136,7 +134,7 @@ func (c *container) SetNameAndID() error {
 		fmt.Sprintf("%d", c.config.Metadata.Attempt),
 	}, "_")
 
-	c.id = id
+	c.id = c.sboxConfig.Metadata.Uid
 	c.name = name
 	return nil
 }

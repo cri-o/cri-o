@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/pkg/errors"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -92,9 +91,10 @@ func (s *sandbox) SetNameAndID() error {
 		return errors.New("cannot generate pod name without name in metadata")
 	}
 
-	s.id = stringid.GenerateNonCryptoID()
+	s.id = s.config.GetMetadata().GetUid()
 	s.name = strings.Join([]string{
 		"k8s",
+		"POD",
 		s.config.GetMetadata().GetName(),
 		s.config.GetMetadata().GetNamespace(),
 		s.config.GetMetadata().GetUid(),

@@ -190,7 +190,7 @@ func (s *Server) restore(ctx context.Context) {
 				logrus.Warnf("unable to delete container %s: %v", n, err)
 			}
 			// Release the infra container name and the pod name for future use
-			if strings.Contains(n, infraName) {
+			if strings.Contains(n, "POD") {
 				s.ReleaseContainerName(n)
 			} else {
 				s.ReleasePodName(n)
