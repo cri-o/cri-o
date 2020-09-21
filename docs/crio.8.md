@@ -37,6 +37,7 @@ crio
 [--default-transport]=[value]
 [--default-ulimits]=[value]
 [--drop-infra-ctr]
+[--enable-custom-shm-size]
 [--enable-metrics]
 [--gid-mappings]=[value]
 [--global-auth-file]=[value]
@@ -172,6 +173,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: []) (default: [])
 
 **--drop-infra-ctr**: Determines whether pods are created without an infra container (when the pod is not using a pod level PID namespace). Requires ManageNSLifecycle to be true (default: false)
+
+**--enable-custom-shm-size**: Enable users to set a custom shm size instead of using the default value of 64M
 
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
 
