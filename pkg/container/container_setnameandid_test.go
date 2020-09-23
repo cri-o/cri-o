@@ -54,9 +54,13 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 	It("should fail with config nil", func() {
 		// Given
 		// When
-		err := container.New(context.Background()).SetNameAndID()
+		container, err := container.New(context.Background())
+		Expect(err).To(BeNil())
+
+		err = container.SetNameAndID()
 
 		// Then
+		Expect(container).ToNot(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
 })

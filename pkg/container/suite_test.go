@@ -31,5 +31,7 @@ var _ = AfterSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	sut = container.New(context.Background())
+	var err error
+	sut, err = container.New(context.Background())
+	Expect(err).To(BeNil())
 })
