@@ -11,7 +11,6 @@ import (
 	"path"
 
 	"github.com/containers/image/internal/tmpdir"
-	"github.com/containers/image/internal/iolimits"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/pkg/compression"
 	"github.com/containers/image/types"
@@ -185,13 +184,13 @@ func findTarComponent(inputFile io.Reader, path string) (*tar.Reader, *tar.Heade
 }
 
 // readTarComponent returns full contents of componentPath.
-func (s *Source) readTarComponent(path string, limit int) ([]byte, error) {
+func (s *Source) readTarComponent(path string) ([]byte, error) {
 	file, err := s.openTarComponent(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error loading tar component %s", path)
 	}
 	defer file.Close()
-	bytes, err := iolimits.ReadAtMost(file, limit)
+	bytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
@@ -214,8 +213,9 @@ func (s *Source) ensureCachedDataIsPresent() error {
 	if len(tarManifest) != 1 {
 		return errors.Errorf("Unexpected tar manifest.json: expected 1 item, got %d", len(tarManifest))
 	}
+
 	// Read and parse config.
-	configBytes, err := s.readTarComponent(tarManifest[0].Config, iolimits.MaxConfigBodySize)
+	configBytes, err := s.readTarComponent(tarManifest[0].Config)
 	if err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func (s *Source) ensureCachedDataIsPresent() error {
 // loadTarManifest loads and decodes the manifest.json.
 func (s *Source) loadTarManifest() ([]ManifestItem, error) {
 	// FIXME? Do we need to deal with the legacy format?
-	bytes, err := s.readTarComponent(manifestFileName, iolimits.MaxTarFileManifestSize)
+	bytes, err := s.readTarComponent(manifestFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -398,7 +398,9 @@ func (r uncompressedReadCloser) Close() error {
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
-func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
+// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
+// May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
+func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	if err := s.ensureCachedDataIsPresent(); err != nil {
 		return nil, 0, err
 	}

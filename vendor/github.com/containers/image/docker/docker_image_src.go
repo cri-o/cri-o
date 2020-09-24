@@ -12,7 +12,6 @@ import (
 	"strconv"
 
 	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/internal/iolimits"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/docker/distribution/registry/client"
@@ -98,8 +97,7 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	if res.StatusCode != http.StatusOK {
 		return nil, "", errors.Wrapf(client.HandleErrorResponse(res), "Error reading manifest %s in %s", tagOrDigest, s.ref.ref.Name())
 	}
-
-	manblob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxManifestBodySize)
+	manblob, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, "", err
 	}
@@ -142,7 +140,7 @@ func (s *dockerImageSource) getExternalBlob(ctx context.Context, urls []string) 
 		resp, err = s.c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth)
 		if err == nil {
 			if resp.StatusCode != http.StatusOK {
-				err = errors.Errorf("error fetching external blob from %q: %d", url, resp.StatusCode)
+				err = errors.Errorf("error fetching external blob from %q: %d (%s)", url, resp.StatusCode, http.StatusText(resp.StatusCode))
 				logrus.Debug(err)
 				continue
 			}
@@ -164,7 +162,9 @@ func getBlobSize(resp *http.Response) int64 {
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
-func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
+// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
+// May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
+func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	if len(info.URLs) != 0 {
 		return s.getExternalBlob(ctx, info.URLs)
 	}
@@ -177,8 +177,9 @@ func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (i
 	}
 	if res.StatusCode != http.StatusOK {
 		// print url also
-		return nil, 0, errors.Errorf("Invalid status code returned when fetching blob %d", res.StatusCode)
+		return nil, 0, errors.Errorf("Invalid status code returned when fetching blob %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
 	}
+	cache.RecordKnownLocation(s.ref.Transport(), bicTransportScope(s.ref), info.Digest, newBICLocationReference(s.ref))
 	return res.Body, getBlobSize(res), nil
 }
 
@@ -276,9 +277,9 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 		if res.StatusCode == http.StatusNotFound {
 			return nil, true, nil
 		} else if res.StatusCode != http.StatusOK {
-			return nil, false, errors.Errorf("Error reading signature from %s: status %d", url.String(), res.StatusCode)
+			return nil, false, errors.Errorf("Error reading signature from %s: status %d (%s)", url.String(), res.StatusCode, http.StatusText(res.StatusCode))
 		}
-		sig, err := iolimits.ReadAtMost(res.Body, iolimits.MaxSignatureBodySize)
+		sig, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return nil, false, err
 		}
@@ -339,7 +340,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 		return err
 	}
 	defer get.Body.Close()
-	manifestBody, err := iolimits.ReadAtMost(get.Body, iolimits.MaxManifestBodySize)
+	manifestBody, err := ioutil.ReadAll(get.Body)
 	if err != nil {
 		return err
 	}
@@ -362,7 +363,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 	}
 	defer delete.Body.Close()
 
-	body, err := iolimits.ReadAtMost(delete.Body, iolimits.MaxErrorBodySize)
+	body, err := ioutil.ReadAll(delete.Body)
 	if err != nil {
 		return err
 	}

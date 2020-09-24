@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/containers/image/docker"
 	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/internal/iolimits"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/image/version"
@@ -96,13 +96,13 @@ func (c *openshiftClient) doRequest(ctx context.Context, method, path string, re
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	logrus.Debugf("%s %s", method, url)
+	logrus.Debugf("%s %s", method, url.String())
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
-	body, err := iolimits.ReadAtMost(res.Body, iolimits.MaxOpenShiftStatusBody)
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (c *openshiftClient) doRequest(ctx context.Context, method, path string, re
 		if statusValid {
 			return nil, errors.New(status.Message)
 		}
-		return nil, errors.Errorf("HTTP error: status code: %d, body: %s", res.StatusCode, string(body))
+		return nil, errors.Errorf("HTTP error: status code: %d (%s), body: %s", res.StatusCode, http.StatusText(res.StatusCode), string(body))
 	}
 
 	return body, nil
@@ -212,11 +212,13 @@ func (s *openshiftImageSource) GetManifest(ctx context.Context, instanceDigest *
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
-func (s *openshiftImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
+// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
+// May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
+func (s *openshiftImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	if err := s.ensureImageIsResolved(ctx); err != nil {
 		return nil, 0, err
 	}
-	return s.docker.GetBlob(ctx, info)
+	return s.docker.GetBlob(ctx, info, cache)
 }
 
 // GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
@@ -379,23 +381,23 @@ func (d *openshiftImageDestination) IgnoresEmbeddedDockerReference() bool {
 // PutBlob writes contents of stream and returns data representing the result (with all data filled in).
 // inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
 // inputInfo.Size is the expected length of stream, if known.
+// May update cache.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *openshiftImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
-	return d.docker.PutBlob(ctx, stream, inputInfo, isConfig)
+func (d *openshiftImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
+	return d.docker.PutBlob(ctx, stream, inputInfo, cache, isConfig)
 }
 
-// HasBlob returns true iff the image destination already contains a blob with the matching digest which can be reapplied using ReapplyBlob.
-// Unlike PutBlob, the digest can not be empty.  If HasBlob returns true, the size of the blob must also be returned.
-// If the destination does not contain the blob, or it is unknown, HasBlob ordinarily returns (false, -1, nil);
-// it returns a non-nil error only on an unexpected failure.
-func (d *openshiftImageDestination) HasBlob(ctx context.Context, info types.BlobInfo) (bool, int64, error) {
-	return d.docker.HasBlob(ctx, info)
-}
-
-func (d *openshiftImageDestination) ReapplyBlob(ctx context.Context, info types.BlobInfo) (types.BlobInfo, error) {
-	return d.docker.ReapplyBlob(ctx, info)
+// TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
+// (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
+// info.Digest must not be empty.
+// If canSubstitute, TryReusingBlob can use an equivalent equivalent of the desired blob; in that case the returned info may not match the input.
+// If the blob has been succesfully reused, returns (true, info, nil); info must contain at least a digest and size.
+// If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
+// May use and/or update cache.
+func (d *openshiftImageDestination) TryReusingBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
+	return d.docker.TryReusingBlob(ctx, info, cache, canSubstitute)
 }
 
 // PutManifest writes manifest to the destination.

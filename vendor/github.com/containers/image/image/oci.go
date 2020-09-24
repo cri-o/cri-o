@@ -3,10 +3,11 @@ package image
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 
 	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/internal/iolimits"
 	"github.com/containers/image/manifest"
+	"github.com/containers/image/pkg/blobinfocache"
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -60,12 +61,12 @@ func (m *manifestOCI1) ConfigBlob(ctx context.Context) ([]byte, error) {
 		if m.src == nil {
 			return nil, errors.Errorf("Internal error: neither src nor configBlob set in manifestOCI1")
 		}
-		stream, _, err := m.src.GetBlob(ctx, manifest.BlobInfoFromOCI1Descriptor(m.m.Config))
+		stream, _, err := m.src.GetBlob(ctx, manifest.BlobInfoFromOCI1Descriptor(m.m.Config), blobinfocache.NoCache)
 		if err != nil {
 			return nil, err
 		}
 		defer stream.Close()
-		blob, err := iolimits.ReadAtMost(stream, iolimits.MaxConfigBodySize)
+		blob, err := ioutil.ReadAll(stream)
 		if err != nil {
 			return nil, err
 		}
