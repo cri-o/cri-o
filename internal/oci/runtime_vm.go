@@ -157,8 +157,10 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (retErr e
 	createdCh := make(chan error)
 	go func() {
 		// Create the container
-		if _, err := r.task.Create(r.ctx, request); err != nil {
+		if resp, err := r.task.Create(r.ctx, request); err != nil {
 			createdCh <- errdefs.FromGRPC(err)
+		} else if err := c.state.SetInitPid(int(resp.Pid)); err != nil {
+			createdCh <- err
 		}
 
 		close(createdCh)
@@ -648,6 +650,7 @@ func (r *runtimeVM) updateContainerStatus(c *Container) error {
 	c.state.Finished = response.ExitedAt
 	exitCode := int32(response.ExitStatus)
 	c.state.ExitCode = &exitCode
+	c.state.Pid = int(response.Pid)
 
 	return nil
 }
