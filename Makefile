@@ -3,9 +3,8 @@ GO ?= go
 export GOPROXY=https://proxy.golang.org
 export GOSUMDB=https://sum.golang.org
 
-GO_MOD_VENDOR ?= --mod=vendor
-GO_BUILD ?= GO111MODULE=on $(GO) build $(GO_MOD_VENDOR)
-GO_RUN ?= GO111MODULE=on $(GO) run $(GO_MOD_VENDOR)
+GO_BUILD ?= $(GO) build
+GO_RUN ?= $(GO) run
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
@@ -295,11 +294,11 @@ ${SHELLCHECK}:
 	curl -sfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$$VERSION/shellcheck && \
 	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
 
+vendor: export GOSUMDB := ""
 vendor:
-	export GO111MODULE=on GOSUMDB= \
-		$(GO) mod tidy && \
-		$(GO) mod vendor && \
-		$(GO) mod verify
+	$(GO) mod tidy
+	$(GO) mod vendor
+	$(GO) mod verify
 
 testunit: ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
