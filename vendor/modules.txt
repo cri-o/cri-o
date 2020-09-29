@@ -566,8 +566,6 @@ github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/pgzip v1.2.4
 github.com/klauspost/pgzip
-# github.com/konsorten/go-windows-terminal-sequences v1.0.3
-github.com/konsorten/go-windows-terminal-sequences
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
 # github.com/mattn/go-isatty v0.0.12
@@ -753,7 +751,7 @@ github.com/seccomp/libseccomp-golang
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
 github.com/shurcooL/sanitized_anchor_name
-# github.com/sirupsen/logrus v1.6.0
+# github.com/sirupsen/logrus v1.7.0
 ## explicit
 github.com/sirupsen/logrus
 # github.com/soheilhy/cmux v0.1.4
