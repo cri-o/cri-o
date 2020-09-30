@@ -40,7 +40,6 @@ CONTAINER_DEFAULT_RUNTIME=${CONTAINER_DEFAULT_RUNTIME:-runc}
 RUNTIME_NAME=${RUNTIME_NAME:-runc}
 RUNTIME_PATH=$(command -v "$CONTAINER_RUNTIME" || true)
 RUNTIME_BINARY=${RUNTIME_PATH:-$(command -v runc)}
-RUNTIME_ROOT=${RUNTIME_ROOT:-/run/runc}
 RUNTIME_TYPE=${RUNTIME_TYPE:-oci}
 if [[ $CONTAINER_RUNTIME == "kata-runtime" ]]; then
     export RUNTIME_NAME="$CONTAINER_RUNTIME"
@@ -268,6 +267,8 @@ function setup_crio() {
     # networking by default
     CNI_DEFAULT_NETWORK=${CNI_DEFAULT_NETWORK:-crio}
     CNI_TYPE=${CNI_TYPE:-bridge}
+
+    RUNTIME_ROOT="$TESTDIR/crio-runtime-root"
 
     # shellcheck disable=SC2086
     "$CRIO_BINARY_PATH" \
