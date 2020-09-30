@@ -4,11 +4,8 @@ package cgmgr
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/cri-o/cri-o/utils"
@@ -94,51 +91,18 @@ func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgP
 	}
 
 	cgParent = convertCgroupFsNameToSystemd(sbParent)
+	slicePath, err := systemd.ExpandSlice(cgParent)
+	if err != nil {
+		return "", "", errors.Wrapf(err, "expanding systemd slice path for %q", cgParent)
+	}
 
-	if err := verifyCgroupHasEnoughMemory(cgParent, m.memoryPath, m.memoryMaxFile); err != nil {
+	if err := verifyCgroupHasEnoughMemory(slicePath, m.memoryPath, m.memoryMaxFile); err != nil {
 		return "", "", err
 	}
 
 	cgPath = cgParent + ":" + crioPrefix + ":" + sbID
 
 	return cgParent, cgPath, nil
-}
-
-func verifyCgroupHasEnoughMemory(cgroupParent, memorySubsystemPath, memoryMaxFilename string) error {
-	slicePath, err := systemd.ExpandSlice(cgroupParent)
-	if err != nil {
-		return errors.Wrapf(err, "expanding systemd slice path for %q", cgroupParent)
-	}
-
-	// read in the memory limit from the memory.limit_in_bytes file
-	fileData, err := ioutil.ReadFile(filepath.Join(memorySubsystemPath, slicePath, memoryMaxFilename))
-	if err != nil {
-		if os.IsNotExist(err) {
-			logrus.Warnf("Failed to find %s for slice: %q", memoryMaxFilename, cgroupParent)
-			return nil
-		}
-		return errors.Wrapf(err, "unable to read memory file for cgroup %s", cgroupParent)
-	}
-	// strip off the newline character and convert it to an int
-	strMemory := strings.TrimRight(string(fileData), "\n")
-	if strMemory != "" && strMemory != "max" {
-		memoryLimit, err := strconv.ParseInt(strMemory, 10, 64)
-		if err != nil {
-			return errors.Wrapf(err, "error converting cgroup memory value from string to int %q", strMemory)
-		}
-		// Compare with the minimum allowed memory limit
-		if err := VerifyMemoryIsEnough(memoryLimit); err != nil {
-			return errors.Errorf("pod %v", err)
-		}
-	}
-	return nil
-}
-
-func VerifyMemoryIsEnough(memoryLimit int64) error {
-	if memoryLimit != 0 && memoryLimit < minMemoryLimit {
-		return fmt.Errorf("set memory limit %d too low; should be at least %d", memoryLimit, minMemoryLimit)
-	}
-	return nil
 }
 
 // convertCgroupFsNameToSystemd converts an expanded cgroupfs name to its systemd name.
