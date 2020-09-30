@@ -55,6 +55,13 @@ func ValidateConfig() error {
 			activated: &systemdHasCollectMode,
 			fatal:     false,
 		},
+		{
+			name:      "fs.may_detach_mounts sysctl",
+			init:      checkFsMayDetachMounts,
+			err:       &checkFsMayDetachMountsErr,
+			activated: nil,
+			fatal:     true,
+		},
 	}
 	for _, i := range toInit {
 		i.init()
