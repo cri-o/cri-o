@@ -92,12 +92,18 @@ func (s *sandbox) SetNameAndID() error {
 		return errors.New("cannot generate pod name without name in metadata")
 	}
 
-	s.id = stringid.GenerateNonCryptoID()
+	if s.config.GetMetadata().GetUid() == "" {
+		s.id = stringid.GenerateNonCryptoID()
+	} else {
+		s.id = s.config.GetMetadata().GetUid()
+	}
+
 	s.name = strings.Join([]string{
 		"k8s",
+		"POD",
 		s.config.GetMetadata().GetName(),
 		s.config.GetMetadata().GetNamespace(),
-		s.config.GetMetadata().GetUid(),
+		s.ID(),
 		fmt.Sprintf("%d", s.config.GetMetadata().GetAttempt()),
 	}, "_")
 

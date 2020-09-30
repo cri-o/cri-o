@@ -1,7 +1,6 @@
 {
 	"metadata": {
 		"name": "${NAME}",
-		"uid": "${CUID}",
 		"namespace": "${NAMESPACE}",
 		"attempt": 1
 	},

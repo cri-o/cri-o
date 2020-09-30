@@ -1,7 +1,6 @@
 {
   "metadata": {
     "name": "podsandbox1",
-    "uid": "redhat-test-crio",
     "namespace": "redhat.test.crio",
     "attempt": 1
   },

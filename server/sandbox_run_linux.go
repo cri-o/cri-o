@@ -315,6 +315,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
+	// TODO: consider passing the name here
 	containerName, err := s.ReserveSandboxContainerIDAndName(sbox.Config())
 	if err != nil {
 		return nil, err
@@ -342,7 +343,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		"",
 		containerName,
 		kubeName,
-		sbox.Config().GetMetadata().GetUid(),
+		sbox.ID(),
 		namespace,
 		attempt,
 		idMappingsOptions,
