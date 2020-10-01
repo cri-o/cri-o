@@ -604,6 +604,14 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	if err := s.createContainerPlatform(newContainer, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
+	defer func() {
+		if retErr != nil {
+			log.Infof(ctx, "createCtr: removing container ID %s from runtime", ctr.ID())
+			if err2 := s.Runtime().DeleteContainer(newContainer); err2 != nil {
+				log.Warnf(ctx, "failed to delete container in runtime %s: %v", ctr.ID(), err)
+			}
+		}
+	}()
 
 	if err := s.ContainerStateToDisk(newContainer); err != nil {
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
