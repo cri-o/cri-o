@@ -114,7 +114,7 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleanu
 	rc.Lock()
 	defer rc.Unlock()
 
-	if r, ok := rc.resources[name]; ok {
+	if _, ok := rc.resources[name]; ok {
 		return errors.Errorf("failed to add entry %s to ResourceCache; entry already exists", name)
 	}
 	rc.resources[name] = &Resource{
