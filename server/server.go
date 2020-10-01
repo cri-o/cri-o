@@ -22,6 +22,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -66,6 +67,8 @@ type Server struct {
 	pullOperationsInProgress map[pullArguments]*pullOperation
 	// pullOperationsLock is used to synchronize pull operations.
 	pullOperationsLock sync.Mutex
+
+	resourceStore *resourcestore.ResourceStore
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -355,6 +358,7 @@ func New(
 		monitorsChan:             make(chan struct{}),
 		defaultIDMappings:        idMappings,
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
+		resourceStore:            resourcestore.New(),
 	}
 
 	if err := configureMaxThreads(); err != nil {

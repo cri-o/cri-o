@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	b64 "encoding/base64"
 	"fmt"
 	"io"
@@ -294,4 +295,8 @@ func getSourceMount(source string, mountinfos []*mount.Info) (path, optional str
 	}
 
 	return res.Mountpoint, res.Optional, nil
+}
+
+func isContextError(err error) bool {
+	return err == context.Canceled || err == context.DeadlineExceeded
 }
