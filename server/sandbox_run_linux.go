@@ -701,6 +701,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		if err != nil {
 			return nil, err
 		}
+		defer func() {
+			if retErr != nil {
+				log.Infof(ctx, "runSandbox: in manageNSLifecycle, stopping network for sandbox %s", sb.ID())
+				if err2 := s.networkStop(ctx, sb); err2 != nil {
+					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
+				}
+			}
+		}()
 		if result != nil {
 			resultCurrent, err := current.NewResultFromResult(result)
 			if err != nil {
@@ -712,14 +720,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			}
 			g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
 		}
-		defer func() {
-			if retErr != nil {
-				log.Infof(ctx, "runSandbox: in manageNSLifecycle, stopping network for sandbox %s", sb.ID())
-				if err2 := s.networkStop(ctx, sb); err2 != nil {
-					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
-				}
-			}
-		}()
 	}
 
 	// Set OOM score adjust of the infra container to be very low
