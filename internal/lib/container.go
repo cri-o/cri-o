@@ -100,6 +100,11 @@ func (c *ContainerServer) GetContainerFromShortID(cid string) (*oci.Container, e
 	if ctr == nil {
 		return nil, fmt.Errorf("specified container not found: %s", containerID)
 	}
+
+	if !ctr.Created() {
+		return nil, fmt.Errorf("specified container %s is not yet created", containerID)
+	}
+
 	return ctr, nil
 }
 
