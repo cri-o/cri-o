@@ -22,6 +22,9 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
 		}
+		if err == errSandboxNotCreated {
+			return nil, fmt.Errorf("sandbox %s is not yet created", req.PodSandboxId)
+		}
 
 		// If the sandbox isn't found we just return an empty response to adhere
 		// the CRI interface which expects to not error out in not found

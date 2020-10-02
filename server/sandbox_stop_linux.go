@@ -24,6 +24,9 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
 		}
+		if err == errSandboxNotCreated {
+			return nil, fmt.Errorf("StopPodSandbox failed as the sandbox is not created: %s", sb.ID())
+		}
 
 		// If the sandbox isn't found we just return an empty response to adhere
 		// the CRI interface which expects to not error out in not found

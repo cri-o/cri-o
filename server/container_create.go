@@ -460,26 +460,19 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
-
-	sbID := req.PodSandboxId
-	if sbID == "" {
-		return nil, fmt.Errorf("PodSandboxId should not be empty")
-	}
-
-	sandboxID, err := s.PodIDIndex().Get(sbID)
+	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", sbID, err)
+		if err == sandbox.ErrIDEmpty {
+			return nil, err
+		}
+		return nil, errors.Wrapf(err, "specified sandbox not found: %s", sb.ID())
 	}
 
-	sb := s.getSandbox(sandboxID)
-	if sb == nil {
-		return nil, fmt.Errorf("specified sandbox not found: %s", sandboxID)
-	}
 	stopMutex := sb.StopMutex()
 	stopMutex.RLock()
 	defer stopMutex.RUnlock()
 	if sb.Stopped() {
-		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %v", sbID)
+		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %s", sb.ID())
 	}
 
 	ctr, err := container.New(ctx)
