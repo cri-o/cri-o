@@ -465,7 +465,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "specified sandbox not found: %s", sb.ID())
+		return nil, errors.Wrapf(err, "specified sandbox not found: %s", req.PodSandboxId)
 	}
 
 	stopMutex := sb.StopMutex()

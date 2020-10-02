@@ -33,23 +33,20 @@ func filterContainer(c *pb.Container, filter *pb.ContainerFilter) bool {
 func (s *Server) filterContainerList(ctx context.Context, filter *pb.ContainerFilter, origCtrList []*oci.Container) []*oci.Container {
 	// Filter using container id and pod id first.
 	if filter.Id != "" {
-		id, err := s.CtrIDIndex().Get(filter.Id)
+		c, err := s.ContainerServer.GetContainerFromShortID(filter.Id)
 		if err != nil {
 			// If we don't find a container ID with a filter, it should not
 			// be considered an error.  Log a warning and return an empty struct
 			log.Warnf(ctx, "Unable to find container ID %s", filter.Id)
 			return nil
 		}
-		c := s.ContainerServer.GetContainer(id)
-		if c != nil {
-			switch {
-			case filter.PodSandboxId == "":
-				return []*oci.Container{c}
-			case strings.HasPrefix(c.Sandbox(), filter.PodSandboxId):
-				return []*oci.Container{c}
-			default:
-				return nil
-			}
+		switch {
+		case filter.PodSandboxId == "":
+			return []*oci.Container{c}
+		case strings.HasPrefix(c.Sandbox(), filter.PodSandboxId):
+			return []*oci.Container{c}
+		default:
+			return nil
 		}
 	} else if filter.PodSandboxId != "" {
 		sb, err := s.getPodSandboxFromRequest(filter.PodSandboxId)
