@@ -42,6 +42,8 @@ const (
 	rootlessEnvName     = "_CRIO_ROOTLESS"
 )
 
+var errSandboxNotCreated = errors.New("sandbox not created")
+
 // StreamService implements streaming.Runtime.
 type StreamService struct {
 	runtimeServer       *Server // needed by Exec() endpoint
@@ -472,6 +474,9 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 	sb := s.getSandbox(sandboxID)
 	if sb == nil {
 		return nil, fmt.Errorf("specified pod sandbox not found: %s", sandboxID)
+	}
+	if !sb.Created() {
+		return nil, errSandboxNotCreated
 	}
 	return sb, nil
 }

@@ -170,6 +170,7 @@ func addContainerAndSandbox() {
 	sut.AddContainer(myContainer)
 	Expect(sut.CtrIDIndex().Add(containerID)).To(BeNil())
 	Expect(sut.PodIDIndex().Add(sandboxID)).To(BeNil())
+	myContainer.SetCreated()
 }
 
 func createDummyState() {

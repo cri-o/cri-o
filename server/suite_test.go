@@ -209,6 +209,8 @@ func addContainerAndSandbox() {
 	sut.AddContainer(testContainer)
 	Expect(sut.CtrIDIndex().Add(testContainer.ID())).To(BeNil())
 	Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
+	testContainer.SetCreated()
+	testSandbox.SetCreated()
 }
 
 var mockDirs = func(manifest []byte) {

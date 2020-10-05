@@ -121,6 +121,21 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(err).NotTo(BeNil())
 			Expect(container).To(BeNil())
 		})
+
+		It("should fail if container is not created", func() {
+			// Given
+			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
+			sut.AddContainer(myContainer)
+			Expect(sut.CtrIDIndex().Add(containerID)).To(BeNil())
+			Expect(sut.PodIDIndex().Add(sandboxID)).To(BeNil())
+
+			// When
+			container, err := sut.GetContainerFromShortID(containerID)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(container).To(BeNil())
+		})
 	})
 
 	t.Describe("GetContainerRootFsSize", func() {
