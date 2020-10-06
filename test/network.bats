@@ -8,7 +8,6 @@ function setup() {
 
 function teardown() {
 	cleanup_test
-	rm -f /var/lib/cni/networks/$RANDOM_CNI_NETWORK/*
 }
 
 @test "ensure correct hostname" {
@@ -71,7 +70,10 @@ function teardown() {
 }
 
 @test "Ensure correct CNI plugin namespace/name/container-id arguments" {
-	start_crio "" "prepare_plugin_test_args_network_conf"
+	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
+	CNI_TYPE="cni_plugin_helper.bash"
+	start_crio
+
 	crictl runp "$TESTDATA"/sandbox_config.json
 
 	# shellcheck disable=SC1091
@@ -96,34 +98,42 @@ function teardown() {
 	[ "$status" -eq 0 ]
 }
 
+# ensure that the server cleaned up sandbox networking
+# if the sandbox failed after network setup
+function check_networking() {
+	# shellcheck disable=SC2010
+	if ls /var/lib/cni/networks/"$CNI_DEFAULT_NETWORK" | grep -Ev '^lock|^last_reserved_ip'; then
+		echo "unexpected networks found" 1>&2
+		exit 1
+	fi
+}
+
 @test "Clean up network if pod sandbox fails" {
 	# TODO FIXME find a way for sandbox setup to fail if manage ns is true
 	CONMON_BINARY="$TESTDIR"/conmon
 	cp "$(which conmon)" "$CONMON_BINARY"
+	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
 	CONTAINER_MANAGE_NS_LIFECYCLE=false \
 		CONTAINER_DROP_INFRA_CTR=false \
-		start_crio "" "prepare_plugin_test_args_network_conf"
+		start_crio
 
 	# make conmon non-executable to cause the sandbox setup to fail after
 	# networking has been configured
 	chmod 0644 "$CONMON_BINARY"
 	crictl runp "$TESTDATA"/sandbox_config.json && fail "expected runp to fail"
 
-	# ensure that the server cleaned up sandbox networking if the sandbox
-	# failed after network setup
-	rm -f /var/lib/cni/networks/$RANDOM_CNI_NETWORK/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/$RANDOM_CNI_NETWORK | grep -v lock | wc -l)
-	[[ "${num_allocated}" == "0" ]]
+	check_networking
 }
 
 @test "Clean up network if pod sandbox fails after plugin success" {
-	start_crio "" "prepare_plugin_test_args_network_conf_malformed_result"
+	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
+	CNI_TYPE="cni_plugin_helper.bash"
+	setup_crio
+	echo "DEBUG_ARGS=malformed-result" > "$TESTDIR"/cni_plugin_helper_input.env
+	start_crio_no_setup
+	pull_test_containers
 
 	crictl runp "$TESTDATA"/sandbox_config.json && fail "expected runp to fail"
 
-	# ensure that the server cleaned up sandbox networking if the sandbox
-	# failed during network setup after the CNI plugin itself succeeded
-	rm -f /var/lib/cni/networks/$RANDOM_CNI_NETWORK/last_reserved_ip*
-	num_allocated=$(ls /var/lib/cni/networks/$RANDOM_CNI_NETWORK | grep -v lock | wc -l)
-	[[ "${num_allocated}" == "0" ]]
+	check_networking
 }
