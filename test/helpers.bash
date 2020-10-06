@@ -534,8 +534,6 @@ function prepare_network_conf() {
     }
 }
 EOF
-
-    echo 0
 }
 
 function write_plugin_test_args_network_conf() {
@@ -561,8 +559,6 @@ EOF
     if [[ -n "$1" ]]; then
         echo "DEBUG_ARGS=$1" >"$TESTDIR"/cni_plugin_helper_input.env
     fi
-
-    echo 0
 }
 
 function prepare_plugin_test_args_network_conf() {
@@ -617,7 +613,6 @@ function ping_pod_from_pod() {
 
 function cleanup_network_conf() {
     rm -rf "$CRIO_CNI_CONFIG"
-    echo 0
 }
 
 function temp_sandbox_conf() {
