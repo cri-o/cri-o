@@ -26,10 +26,7 @@ function teardown() {
 
 # run crio_wipe calls crio_wipe and tests it succeeded
 function run_crio_wipe() {
-	run $CRIO_BINARY_PATH --config "$CRIO_CONFIG" wipe
-	echo "$status"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	"$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" wipe
 }
 
 # test_crio_wiped_containers checks if a running crio instance
@@ -70,13 +67,8 @@ function test_crio_did_not_wipe_images() {
 function start_crio_with_stopped_pod() {
 	start_crio
 
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-
-	run crictl stopp "$output"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl runp "$TESTDATA"/sandbox_config.json
+	crictl stopp "$output"
 }
 
 @test "remove containers and images when remove both" {
