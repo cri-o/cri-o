@@ -12,6 +12,10 @@ function teardown() {
 	cleanup_test
 }
 
+function is_v2() {
+	test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
+}
+
 function wait_until_exit() {
     ctr_id=$1
     # Wait for container to exit
@@ -176,7 +180,7 @@ function wait_until_exit() {
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$device" ]]
 
-	if test $(stat -f -c%T /sys/fs/cgroup) != cgroup2fs; then
+	if ! is_v2; then
 		# Dump the deviced cgroup configuration for debugging.
 		run crictl exec --timeout=$timeout --sync "$ctr_id" cat /sys/fs/cgroup/devices/devices.list
 		echo $output
@@ -1132,7 +1136,7 @@ function wait_until_exit() {
 	# set memory {,swap} max file for cgroupv1 or v2
 	CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
 	CGROUP_MEM_FILE="/sys/fs/cgroup/memory/memory.limit_in_bytes"
-	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+	if is_v2; then
 		CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory.swap.max"
 		CGROUP_MEM_FILE="/sys/fs/cgroup/memory.max"
 	fi
@@ -1152,7 +1156,7 @@ function wait_until_exit() {
 		[ "$output" -eq "209715200" ]
 	fi
 
-	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+	if is_v2; then
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
 		echo "$output"
 		[ "$status" -eq 0 ]
@@ -1194,7 +1198,7 @@ function wait_until_exit() {
 		[ "$output" -eq "524288000" ]
 	fi
 
-	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+	if is_v2; then
 		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
 		echo "$output"
 		[ "$status" -eq 0 ]
@@ -1405,7 +1409,7 @@ function wait_until_exit() {
 	# where crun has this mounted ro, and now runc has it mounted rw
 	run crictl exec "$ctr_id" cat /proc/mounts
 	[ "$status" -eq 0 ]
-	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+	if is_v2; then
 		[[ "$output" == *"/sys/fs/cgroup cgroup2"* ]]
 	else
 		[[ "$output" == *"/sys/fs/cgroup tmpfs"* ]]
