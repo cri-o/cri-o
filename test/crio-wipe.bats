@@ -13,10 +13,8 @@ function setup() {
 }
 
 function run_podman_with_args() {
-	if [[ ! -z "$PODMAN_BINARY" ]]; then
-		run "$PODMAN_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" "$@"
-		echo "$output"
-		[ "$status" -eq 0 ]
+	if [ -n "$PODMAN_BINARY" ]; then
+		"$PODMAN_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" "$@"
 	fi
 }
 
@@ -118,9 +116,8 @@ function start_crio_with_stopped_pod() {
 	test_crio_did_not_wipe_images
 }
 
-
 @test "don't clear podman containers" {
-	if [[ -z "$PODMAN_BINARY" ]]; then
+	if [ -z "$PODMAN_BINARY" ]; then
 		skip "Podman not installed"
 	fi
 
@@ -131,6 +128,5 @@ function start_crio_with_stopped_pod() {
 
 	run_crio_wipe
 
-	run_podman_with_args ps -a
-	[[ "$output" == *"test"* ]]
+	run_podman_with_args ps -a | grep test
 }
