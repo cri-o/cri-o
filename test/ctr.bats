@@ -1418,12 +1418,9 @@ function wait_until_exit() {
 
 @test "annotations passed through" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl inspectp $pod_id | run grep '"owner": "hmeng"'
-	run crictl inspectp $pod_id | run grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	crictl inspectp "$pod_id" | grep '"owner": "hmeng"'
+	crictl inspectp "$pod_id" | grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
 }
 
 @test "ctr with default_env set in configuration" {
