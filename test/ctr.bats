@@ -35,8 +35,6 @@ function wait_until_exit() {
 	run crictl inspect "container_not_exist"
 	echo "$output"
 	[ "$status" -eq 1 ]
-
-	stop_crio
 }
 
 @test "ctr termination reason Completed" {
@@ -114,13 +112,6 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "2048" ]]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "additional devices support" {
@@ -145,13 +136,6 @@ function wait_until_exit() {
 	echo $output
 	[ "$status" -eq 0 ]
 	[ "$output" == "/dev/qifoo" ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "additional devices permissions" {
@@ -211,13 +195,6 @@ function wait_until_exit() {
     # run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=/dev/zero of=$device count=1
     # echo $output
     # [[ "$output" == *"Invalid argument"* ]]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 
@@ -235,12 +212,6 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run crictl rm -f "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
 }
@@ -345,13 +316,6 @@ function wait_until_exit() {
 	echo "$logpath :: $(cat "$logpath")"
 	grep -E "^[^\n]+ stdout F here is some output$" "$logpath"
 	grep -E "^[^\n]+ stderr F and some from stderr$" "$logpath"
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr journald logging" {
@@ -391,13 +355,6 @@ function wait_until_exit() {
 	journalctl -t conmon -p info CONTAINER_ID_FULL="$ctr_id" | grep -E "$stdout"
 	# priority of 3 is LOG_ERR
 	journalctl -t conmon -p err CONTAINER_ID_FULL="$ctr_id" | grep -E "$stderr"
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr logging [tty=true]" {
@@ -429,16 +386,6 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"here is some output"* ]]
-
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr log max" {
@@ -470,13 +417,6 @@ function wait_until_exit() {
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
 	[ $len -lt 250 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr log max with default value" {
@@ -509,13 +449,6 @@ function wait_until_exit() {
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
 	[ $len -eq 250 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr log max with minimum value" {
@@ -548,13 +481,6 @@ function wait_until_exit() {
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
 	[ $len -lt 250 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr partial line logging" {
@@ -585,13 +511,6 @@ function wait_until_exit() {
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
 	grep -E "^[^\n]+ stdout P hello$" "$logpath"
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 # regression test for #127
@@ -700,24 +619,6 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "$ctr3_id" ]]
-	run crictl stopp "$pod1_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod1_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod2_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod2_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod3_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod3_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr list label filtering" {
@@ -775,12 +676,6 @@ function wait_until_exit() {
 	[[ "$output" == *"$ctr1_id"* ]]
 	[[ "$output" == *"$ctr2_id"* ]]
 	[[ "$output" == *"$ctr3_id"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr metadata in list & status" {
@@ -849,12 +744,6 @@ function wait_until_exit() {
 	echo "$output"
 	[[ "$output" == *"command timed out"* ]]
 	[ "$status" -ne 0 ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr execsync should not overwrite initial spec args" {
@@ -905,12 +794,6 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"/dev/mynull"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "privileged ctr device add" {
@@ -940,12 +823,6 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"/dev/mynull"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "privileged ctr add duplicate device as host" {
@@ -983,12 +860,6 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"HOSTNAME"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr execsync failure" {
@@ -1058,12 +929,6 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"this goes to stderr"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr stop idempotent" {
@@ -1124,13 +989,6 @@ function wait_until_exit() {
     # It represents the bitflag of the effective capabilities available to the
     # process.
     [[ "$output" =~ 00000000002005fb ]]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr with list of capabilities given by user in crio.conf" {
@@ -1150,13 +1008,6 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" =~ 00000000002020db ]]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "run ctr with image with Config.Volumes" {
@@ -1208,12 +1059,6 @@ function wait_until_exit() {
 		sleep 10
 	done
 	[[ "$output" == *"OOMKilled"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr /etc/resolv.conf rw/ro mode" {
@@ -1254,12 +1099,6 @@ function wait_until_exit() {
 	run crictl create "$pod_id" "$TESTDIR"/container_nonexistent.json "$TESTDATA"/sandbox_config.json
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"not found"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr create with non-existent command [tty]" {
@@ -1274,12 +1113,6 @@ function wait_until_exit() {
 	run crictl create "$pod_id" "$TESTDIR"/container_nonexistent.json "$TESTDATA"/sandbox_config.json
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"not found"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr update resources" {
@@ -1481,13 +1314,6 @@ function wait_until_exit() {
 	run crictl exec --sync "$ctr_id" grep "CapEff:\s0000000000000000" /proc/1/status
 	echo "$output"
 	[ "$status" -eq 0 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr with low memory configured should not be created" {
@@ -1502,13 +1328,6 @@ function wait_until_exit() {
 	run crictl create "$pod_id" "$TESTDIR"/container_config_low_mem.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ ! "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr expose metrics with default port" {
@@ -1535,13 +1354,6 @@ function wait_until_exit() {
 	# get metrics
 	run curl http://localhost:$port/metrics -k
 	[ "$status" -eq 0 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr expose metrics with custom port" {
@@ -1567,13 +1379,6 @@ function wait_until_exit() {
 
 	# get metrics
 	run curl http://localhost:$port/metrics -k
-	[ "$status" -eq 0 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
 	[ "$status" -eq 0 ]
 }
 
@@ -1605,13 +1410,6 @@ function wait_until_exit() {
 	else
 		[[ "$output" == *"/sys/fs/cgroup tmpfs"* ]]
 	fi
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "annotations passed through" {
@@ -1622,13 +1420,6 @@ function wait_until_exit() {
 	pod_id="$output"
 	run crictl inspectp $pod_id | run grep '"owner": "hmeng"'
 	run crictl inspectp $pod_id | run grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	stop_crio
 }
 
 @test "ctr with default_env set in configuration" {
@@ -1645,10 +1436,4 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"NSS_SDB_USE_CACHE=no"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
