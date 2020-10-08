@@ -222,71 +222,38 @@ function wait_until_exit() {
 
 @test "ctr lifecycle" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl pods --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	output=$(crictl pods --quiet)
 	[[ "$output" == "$pod_id" ]]
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl ps --quiet --state created
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	output=$(crictl ps --quiet --state created)
 	[[ "$output" == "$ctr_id" ]]
-	run crictl inspect "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl inspect "$ctr_id" | jq -e ".info.privileged == false"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl inspect "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl ps --quiet --state running
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	output=$(crictl inspect "$ctr_id")
+	[ -n "$output" ]
+	echo "$output" | jq -e ".info.privileged == false"
+
+	crictl start "$ctr_id"
+	crictl inspect "$ctr_id"
+	output=$(crictl ps --quiet --state running)
 	[[ "$output" == "$ctr_id" ]]
-	run crictl stop "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl inspect "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl ps --quiet --state exited
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	crictl stop "$ctr_id"
+	crictl inspect "$ctr_id"
+	output=$(crictl ps --quiet --state exited)
 	[[ "$output" == "$ctr_id" ]]
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl ps --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl pods --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	crictl rm "$ctr_id"
+	crictl ps --quiet
+	crictl stopp "$pod_id"
+	output=$(crictl pods --quiet)
 	[[ "$output" == "$pod_id" ]]
-	run crictl ps --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl ps --quiet)
 	[[ "$output" == "" ]]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl pods --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	crictl rmp "$pod_id"
+	output=$(crictl pods --quiet)
 	[[ "$output" == "" ]]
 }
 
@@ -751,23 +718,21 @@ function wait_until_exit() {
 }
 
 @test "ctr execsync should not overwrite initial spec args" {
-    start_crio
+	start_crio
 
-    run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-    [ "$status" -eq 0 ]
-    CTR="$output"
+	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
-    run crictl inspect $CTR | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
-    [ "$status" -eq 0 ]
+	output=$(crictl inspect "$ctr_id")
+	[ -n "$output" ]
+	echo "$output" | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
 
-    run crictl exec --sync $CTR echo Hello
-    [ "$status" -eq 0 ]
+	crictl exec --sync "$ctr_id" echo Hello
 
-    run crictl inspect $CTR | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
-    [ "$status" -eq 0 ]
+	output=$(crictl inspect "$ctr_id")
+	[ -n "$output" ]
+	echo "$output" | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
 
-    run crictl rm -f $CTR
-    [ "$status" -eq 0 ]
+	crictl rm -f "$ctr_id"
 }
 
 @test "ctr device add" {
@@ -1386,30 +1351,20 @@ function wait_until_exit() {
 	[ "$status" -eq 0 ]
 }
 
-
 @test "privileged ctr -- check for rw mounts" {
 	start_crio
 
-	run crictl runp "$TESTDATA"/sandbox_config_privileged.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
 	edit_json '.linux.security_context.privileged |= true' \
 		"$TESTDATA"/container_redis.json "$TESTDIR"/ctr_config.json
-	run crictl create "$pod_id" "$TESTDIR"/ctr_config.json "$TESTDATA"/sandbox_config_privileged.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_config.json "$TESTDATA"/sandbox_config_privileged.json)
+	crictl start "$ctr_id"
 
-	run crictl inspect "$ctr_id" | jq -e ".info.privileged == true"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl inspect "$ctr_id")
+	[ -n "$output" ]
+	echo "$output" | jq -e ".info.privileged == true"
 
-	run crictl exec "$ctr_id" grep rw\, /proc/mounts
-	[ "$status" -eq 0 ]
+	output=$(crictl exec "$ctr_id" grep rw\, /proc/mounts)
 	if is_cgroup_v2; then
 		[[ "$output" == *"/sys/fs/cgroup cgroup2"* ]]
 	else
