@@ -503,6 +503,10 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
 func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
+	if ctr == nil {
+		return nil
+	}
+
 	if err := c.Runtime().UpdateContainerStatus(ctr); err != nil {
 		logrus.Warnf("error updating the container status %q: %v", ctr.ID(), err)
 	}

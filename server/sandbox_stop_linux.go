@@ -112,6 +112,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
 		log.Warnf(ctx, "failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
+
 	if err := s.ContainerStateToDisk(podInfraContainer); err != nil {
 		log.Warnf(ctx, "error writing pod infra container %q state to disk: %v", podInfraContainer.ID(), err)
 	}
