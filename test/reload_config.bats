@@ -184,8 +184,8 @@ function expect_log_failure() {
 }
 
 @test "reload config should succeed with 'apparmor_profile'" {
-    if [[ $(is_apparmor_enabled) -eq 0 ]]; then
-        skip "skip test since AppArmor is not enabled."
+    if ! is_apparmor_enabled; then
+        skip "apparmor not enabled"
     fi
 
     # given
@@ -201,8 +201,8 @@ function expect_log_failure() {
 }
 
 @test "reload config should fail with invalid 'apparmor_profile'" {
-    if [[ $(is_apparmor_enabled) -eq 0 ]]; then
-        skip "skip test since AppArmor is not enabled."
+    if ! is_apparmor_enabled; then
+        skip "apparmor not enabled"
     fi
 
     # given

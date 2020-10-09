@@ -13,10 +13,8 @@ function setup() {
 }
 
 function run_podman_with_args() {
-	if [[ ! -z "$PODMAN_BINARY" ]]; then
-		run "$PODMAN_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" "$@"
-		echo "$output"
-		[ "$status" -eq 0 ]
+	if [ -n "$PODMAN_BINARY" ]; then
+		"$PODMAN_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" "$@"
 	fi
 }
 
@@ -28,10 +26,7 @@ function teardown() {
 
 # run crio_wipe calls crio_wipe and tests it succeeded
 function run_crio_wipe() {
-	run $CRIO_BINARY_PATH --config "$CRIO_CONFIG" wipe
-	echo "$status"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	"$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" wipe
 }
 
 # test_crio_wiped_containers checks if a running crio instance
@@ -72,13 +67,9 @@ function test_crio_did_not_wipe_images() {
 function start_crio_with_stopped_pod() {
 	start_crio
 
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-
-	run crictl stopp "$output"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	local pod_id
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	crictl stopp "$pod_id"
 }
 
 @test "remove containers and images when remove both" {
@@ -118,9 +109,8 @@ function start_crio_with_stopped_pod() {
 	test_crio_did_not_wipe_images
 }
 
-
 @test "don't clear podman containers" {
-	if [[ -z "$PODMAN_BINARY" ]]; then
+	if [ -z "$PODMAN_BINARY" ]; then
 		skip "Podman not installed"
 	fi
 
@@ -131,6 +121,5 @@ function start_crio_with_stopped_pod() {
 
 	run_crio_wipe
 
-	run_podman_with_args ps -a
-	[[ "$output" == *"test"* ]]
+	run_podman_with_args ps -a | grep test
 }
