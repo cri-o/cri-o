@@ -642,3 +642,10 @@ function wait_for_log() {
 function replace_config() {
     sed -i -e 's;\('"$1"' = "\).*\("\);\1'"$2"'\2;' "$CRIO_CONFIG"
 }
+
+# Helper function to create a modified json file, using jq syntax.
+# Usage: edit_json 'jq script ...' input.json output.json
+function edit_json() {
+	[ $# -eq 3 ]
+        jq "$1" "$2" | awk 'BEGIN{RS="";getline<"-";print>ARGV[1]}' "$3"
+}

@@ -1394,7 +1394,10 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+
+	edit_json '.linux.security_context.privileged |= true' \
+		"$TESTDATA"/container_redis.json "$TESTDIR"/ctr_config.json
+	run crictl create "$pod_id" "$TESTDIR"/ctr_config.json "$TESTDATA"/sandbox_config_privileged.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -1405,9 +1408,7 @@ function wait_until_exit() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	# TODO there seems to be a difference in behavior between runc and crun
-	# where crun has this mounted ro, and now runc has it mounted rw
-	run crictl exec "$ctr_id" cat /proc/mounts
+	run crictl exec "$ctr_id" grep rw\, /proc/mounts
 	[ "$status" -eq 0 ]
 	if is_v2; then
 		[[ "$output" == *"/sys/fs/cgroup cgroup2"* ]]
