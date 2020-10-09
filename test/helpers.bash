@@ -161,7 +161,6 @@ fi
 
 function setup_test() {
     TESTDIR=$(mktemp -d)
-    RANDOM_CNI_NETWORK=${TESTDIR: -10}
 
     # Setup default hooks dir
     HOOKSDIR=$TESTDIR/hooks
@@ -295,12 +294,8 @@ function setup_crio() {
 
     # Prepare the CNI configuration files, we're running with non host
     # networking by default
-    CNI_DEFAULT_NETWORK=crio
-    netfunc="prepare_network_conf"
-    if [[ -n "$2" ]]; then
-        netfunc="$2"
-        CNI_DEFAULT_NETWORK="crio-$RANDOM_CNI_NETWORK"
-    fi
+    CNI_DEFAULT_NETWORK=${CNI_DEFAULT_NETWORK:-crio}
+    CNI_TYPE=${CNI_TYPE:-bridge}
 
     # shellcheck disable=SC2086
     "$CRIO_BINARY_PATH" \
@@ -328,7 +323,7 @@ function setup_crio() {
     sed -r -e 's/nodev(,)?//g' -i "$CRIO_CONFIG"
     sed -i -e 's;\(container_exits_dir =\) \(.*\);\1 "'"$CONTAINER_EXITS_DIR"'";g' "$CRIO_CONFIG"
     sed -i -e 's;\(container_attach_socket_dir =\) \(.*\);\1 "'"$CONTAINER_ATTACH_SOCKET_DIR"'";g' "$CRIO_CONFIG"
-    ${netfunc}
+    prepare_network_conf
 }
 
 function pull_test_containers() {
@@ -516,8 +511,8 @@ function prepare_network_conf() {
     cat >"$CRIO_CNI_CONFIG/10-crio.conf" <<-EOF
 {
     "cniVersion": "0.3.1",
-    "name": "crio",
-    "type": "bridge",
+    "name": "$CNI_DEFAULT_NETWORK",
+    "type": "$CNI_TYPE",
     "bridge": "cni0",
     "isGateway": true,
     "ipMasq": true,
@@ -534,43 +529,6 @@ function prepare_network_conf() {
     }
 }
 EOF
-
-    echo 0
-}
-
-function write_plugin_test_args_network_conf() {
-    mkdir -p "$CRIO_CNI_CONFIG"
-    cat >"$CRIO_CNI_CONFIG/10-plugin-test-args.conf" <<-EOF
-{
-    "cniVersion": "0.3.1",
-    "name": "crio-$RANDOM_CNI_NETWORK",
-    "type": "cni_plugin_helper.bash",
-    "bridge": "cni0",
-    "isGateway": true,
-    "ipMasq": true,
-    "ipam": {
-        "type": "host-local",
-        "subnet": "$POD_IPV4_CIDR",
-        "routes": [
-            { "dst": "$POD_IPV4_DEF_ROUTE"  }
-        ]
-    }
-}
-EOF
-
-    if [[ -n "$1" ]]; then
-        echo "DEBUG_ARGS=$1" >"$TESTDIR"/cni_plugin_helper_input.env
-    fi
-
-    echo 0
-}
-
-function prepare_plugin_test_args_network_conf() {
-    write_plugin_test_args_network_conf
-}
-
-function prepare_plugin_test_args_network_conf_malformed_result() {
-    write_plugin_test_args_network_conf "malformed-result"
 }
 
 function parse_pod_ip() {
@@ -617,7 +575,6 @@ function ping_pod_from_pod() {
 
 function cleanup_network_conf() {
     rm -rf "$CRIO_CNI_CONFIG"
-    echo 0
 }
 
 function temp_sandbox_conf() {
@@ -648,4 +605,10 @@ function wait_for_log() {
 
 function replace_config() {
     sed -i -e 's;\('"$1"' = "\).*\("\);\1'"$2"'\2;' "$CRIO_CONFIG"
+}
+
+# Fails the current test, providing the error given.
+function fail() {
+    echo "FAIL [${BATS_TEST_NAME} ${BASH_SOURCE[0]##*/}:${BASH_LINENO[0]}] $*" >&2
+    exit 1
 }
