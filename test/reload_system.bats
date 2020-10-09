@@ -8,7 +8,7 @@ function setup() {
     export TEST_IMAGE=quay.io/saschagrunert/hello-world \
            CONTAINER_REGISTRIES_CONF="$TESTDIR/containers/registries.conf"
     printf "[[registry]]\nlocation = 'quay.io/saschagrunert'\nblocked = true" \
-        >> $CONTAINER_REGISTRIES_CONF
+        >> "$CONTAINER_REGISTRIES_CONF"
 }
 
 function teardown() {
@@ -26,7 +26,7 @@ function expect_log_failure() {
 function expect_pull_image() {
     run crictl pull "$TEST_IMAGE"
     echo "$output"
-    [ "$status" -eq $1 ]
+    [ "$status" -eq "$1" ]
 }
 
 @test "reload system registries should succeed" {

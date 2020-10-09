@@ -4,9 +4,9 @@ load helpers
 
 function setup() {
 	setup_test
-	sed "s|HOOKSCHECK|${HOOKSCHECK}|" "$INTEGRATION_ROOT"/hooks/checkhook.sh > ${HOOKSDIR}/checkhook.sh
-	chmod +x ${HOOKSDIR}/checkhook.sh
-	sed "s|HOOKSDIR|${HOOKSDIR}|" "$INTEGRATION_ROOT"/hooks/checkhook.json > ${HOOKSDIR}/checkhook.json
+	sed "s|HOOKSCHECK|${HOOKSCHECK}|" "$INTEGRATION_ROOT"/hooks/checkhook.sh > "${HOOKSDIR}"/checkhook.sh
+	chmod +x "${HOOKSDIR}"/checkhook.sh
+	sed "s|HOOKSDIR|${HOOKSDIR}|" "$INTEGRATION_ROOT"/hooks/checkhook.json > "${HOOKSDIR}"/checkhook.json
 
 }
 
@@ -15,7 +15,7 @@ function teardown() {
 }
 
 @test "pod test hooks" {
-	rm -f ${HOOKSCHECK}
+	rm -f "${HOOKSCHECK}"
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -34,7 +34,7 @@ function teardown() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run cat ${HOOKSCHECK}
+	run cat "${HOOKSCHECK}"
 	echo "$output"
 	[ "$status" -eq 0 ]
 }

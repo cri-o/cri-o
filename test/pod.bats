@@ -349,12 +349,12 @@ function teardown() {
 	pod_id="$output"
 
 	run crictl create "$pod_id" "$TESTDATA"/container_config_sleep.json "$TESTDIR"/sandbox_config-systemd.json
-	echo $output
+	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
 	run crictl start "$ctr_id"
-	echo $output
+	echo "$output"
 	[ "$status" -eq 0 ]
 
 	run systemctl show "crio-${ctr_id}.scope"
@@ -378,8 +378,8 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	conf_pause_image=$(grep -oP 'pause_image = \K"[^"]+"' $CRIO_CONFIG)
-	pod_pause_image=$(echo $output | jq -e .info.image)
+	conf_pause_image=$(grep -oP 'pause_image = \K"[^"]+"' "$CRIO_CONFIG")
+	pod_pause_image=$(echo "$output" | jq -e .info.image)
 	[[ "$conf_pause_image" == "$pod_pause_image" ]]
 
 	run crictl stopp "$pod_id"

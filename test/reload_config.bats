@@ -17,7 +17,7 @@ function teardown() {
 }
 
 function expect_log_success() {
-    wait_for_log '"set config '$1' to \\"'$2'\\""'
+    wait_for_log '"set config '"$1"' to \\"'"$2"'\\""'
 }
 
 function expect_log_failure() {
@@ -29,7 +29,7 @@ function expect_log_failure() {
     reload_crio
 
     # then
-    ps --pid $CRIO_PID &>/dev/null
+    ps --pid "$CRIO_PID" &>/dev/null
 }
 
 @test "reload config should succeed with 'log_level'" {
@@ -94,14 +94,14 @@ function expect_log_failure() {
     # given
     NEW_OPTION="$TESTDIR/auth_file"
     OPTION="pause_image_auth_file"
-    touch $NEW_OPTION
+    touch "$NEW_OPTION"
 
     # when
-    replace_config $OPTION $NEW_OPTION
+    replace_config $OPTION "$NEW_OPTION"
     reload_crio
 
     # then
-    expect_log_success $OPTION $NEW_OPTION
+    expect_log_success $OPTION "$NEW_OPTION"
 }
 
 @test "reload config should fail with non existing 'pause_image_auth_file'" {
@@ -110,7 +110,7 @@ function expect_log_failure() {
     OPTION="pause_image_auth_file"
 
     # when
-    replace_config $OPTION $NEW_OPTION
+    replace_config $OPTION "$NEW_OPTION"
     reload_crio
 
     # then
@@ -163,11 +163,11 @@ function expect_log_failure() {
     OPTION="seccomp_profile"
 
     # when
-    replace_config $OPTION $NEW_SECCOMP_PROFILE
+    replace_config $OPTION "$NEW_SECCOMP_PROFILE"
     reload_crio
 
     # then
-    expect_log_success $OPTION $NEW_SECCOMP_PROFILE
+    expect_log_success $OPTION "$NEW_SECCOMP_PROFILE"
 }
 
 @test "reload config should fail with invalid 'seccomp_profile'" {
