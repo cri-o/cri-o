@@ -5,7 +5,6 @@
 package criostoragemock
 
 import (
-	copy "github.com/containers/image/v5/copy"
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
 	storage0 "github.com/cri-o/cri-o/internal/storage"
@@ -96,7 +95,7 @@ func (mr *MockImageServerMockRecorder) PrepareImage(arg0, arg1 interface{}) *gom
 }
 
 // PullImage mocks base method
-func (m *MockImageServer) PullImage(arg0 *types.SystemContext, arg1 string, arg2 *copy.Options) (types.ImageReference, error) {
+func (m *MockImageServer) PullImage(arg0 *types.SystemContext, arg1 string, arg2 *storage0.ImageCopyOptions) (types.ImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(types.ImageReference)

@@ -293,6 +293,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
 	}
+	if ctx.IsSet("separate-pull-cgroup") {
+		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
+	}
 
 	return nil
 }
@@ -418,6 +421,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     fmt.Sprintf("Path to a config file containing credentials for --pause-image (default: %q)", defConf.PauseImageAuthFile),
 			EnvVars:   []string{"CONTAINER_PAUSE_IMAGE_AUTH_FILE"},
 			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:    "separate-pull-cgroup",
+			Usage:   fmt.Sprintf("[EXPERIMENTAL] Pull in new cgroup (default: %q)", defConf.SeparatePullCgroup),
+			EnvVars: []string{"PULL_IN_A_CGROUP"},
 		},
 		&cli.StringFlag{
 			Name:      "global-auth-file",

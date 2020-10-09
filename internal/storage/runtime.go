@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/containers/image/v5/copy"
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -195,7 +194,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		if imageAuthFile != "" {
 			sourceCtx.AuthFilePath = imageAuthFile
 		}
-		ref, err = r.storageImageServer.PullImage(systemContext, image, &copy.Options{
+		ref, err = r.storageImageServer.PullImage(systemContext, image, &ImageCopyOptions{
 			SourceCtx:      &sourceCtx,
 			DestinationCtx: systemContext,
 		})
