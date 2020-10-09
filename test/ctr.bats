@@ -272,7 +272,7 @@ function wait_until_exit() {
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
-	[ $len -lt 250 ]
+	[ "$len" -lt 250 ]
 }
 
 @test "ctr log max with default value" {
@@ -294,7 +294,7 @@ function wait_until_exit() {
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
-	[ $len -eq 250 ]
+	[ "$len" -eq 250 ]
 }
 
 @test "ctr log max with minimum value" {
@@ -316,7 +316,7 @@ function wait_until_exit() {
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
-	[ $len -lt 250 ]
+	[ "$len" -lt 250 ]
 }
 
 @test "ctr partial line logging" {
@@ -628,7 +628,7 @@ function wait_until_exit() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
-	output=$(crictl exec --sync $ctr_id grep Cap /proc/1/status)
+	output=$(crictl exec --sync "$ctr_id" grep Cap /proc/1/status)
 
 	# This magic value originates from the output of
 	# `grep CapEff /proc/self/status`
@@ -644,7 +644,7 @@ function wait_until_exit() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 
-	output=$(crictl exec --sync $ctr_id grep Cap /proc/1/status)
+	output=$(crictl exec --sync "$ctr_id" grep Cap /proc/1/status)
 	[[ "$output" =~ 00000000002020db ]]
 }
 
