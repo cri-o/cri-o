@@ -2,8 +2,6 @@
 
 load helpers
 
-IMAGE=quay.io/crio/pause
-
 function setup() {
 	setup_test
 }
@@ -12,64 +10,32 @@ function teardown() {
 	cleanup_test
 }
 
-@test "image remove with multiple names, by name" {
+function remove_images_by() {
+	local by="$1"
+	local image=quay.io/crio/busybox
+
 	start_crio
-	# Pull the image, giving it one name.
-	run crictl pull "$IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
 	# Add a second name to the image.
-	copyimg --image-name="$IMAGE":latest --add-name="$IMAGE":othertag
+	copyimg --image-name="$image":latest --add-name="$image":othertag
 	# Get the list of image names and IDs.
-	run crictl images -v
+	output=$(crictl images -v)
 	echo "$output"
-	[ "$status" -eq 0 ]
 	[ "$output" != "" ]
-	# Cycle through each name, removing it by name.  The image that we assigned a second
-	# name to should still be around when we get to removing its second name.
-	grep ^RepoTags: <<< "$output" | while read -r header tag ignored ; do
-		run crictl rmi "$tag"
-		echo "$output"
-		[ "$status" -eq 0 ]
+	# Cycle through each name, removing it by either name or id.
+	# When removing by name, the image that we assigned a second name to
+	# should still be around when we get to removing its second name.
+	for tag in $(echo "$output" | awk '$1 == "'"$by"'" {print $2}'); do
+		crictl rmi "$tag"
 	done
 	# List all images and their names.  There should be none now.
-	run crictl images --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl images --quiet)
 	[ "$output" = "" ]
-	printf '%s\n' "$output" | while IFS= read -r id; do
-		echo "$id"
-	done
-	# All done.
-	cleanup_images
-	stop_crio
+}
+
+@test "image remove with multiple names, by name" {
+	remove_images_by "RepoTags:"
 }
 
 @test "image remove with multiple names, by ID" {
-	start_crio
-	# Pull the image, giving it one name.
-	run crictl pull "$IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	# Add a second name to the image.
-	copyimg --image-name="$IMAGE":latest --add-name="$IMAGE":othertag
-	# Get the list of the image's names and its ID.
-	run crictl images -v "$IMAGE":latest
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[ "$output" != "" ]
-	# Try to remove the image using its ID.  That should succeed.
-	grep ^ID: <<< "$output" | while read -r header id ; do
-		run crictl rmi "$id"
-		echo "$output"
-		[ "$status" -eq 0 ]
-	done
-	# The image should be gone now.
-	run crictl images -v "$IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[ "$output" = "" ]
-	# All done.
-	cleanup_images
-	stop_crio
+	remove_images_by "ID:"
 }
