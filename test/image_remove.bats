@@ -19,9 +19,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# Add a second name to the image.
-	run "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name="$IMAGE":latest --add-name="$IMAGE":othertag --signature-policy="$INTEGRATION_ROOT"/policy.json
-	echo "$output"
-	[ "$status" -eq 0 ]
+	copyimg --image-name="$IMAGE":latest --add-name="$IMAGE":othertag
 	# Get the list of image names and IDs.
 	run crictl images -v
 	echo "$output"
@@ -54,9 +52,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	# Add a second name to the image.
-	run "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name="$IMAGE":latest --add-name="$IMAGE":othertag --signature-policy="$INTEGRATION_ROOT"/policy.json
-	echo "$output"
-	[ "$status" -eq 0 ]
+	copyimg --image-name="$IMAGE":latest --add-name="$IMAGE":othertag
 	# Get the list of the image's names and its ID.
 	run crictl images -v "$IMAGE":latest
 	echo "$output"
