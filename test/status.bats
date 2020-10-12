@@ -60,17 +60,9 @@ function run_crio_status() {
 
 @test "succeed to retrieve the container info" {
     # given
-    run crictl runp "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    pod="$output"
-    run crictl create "$pod" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    ctr="$output"
-    run crictl start "$ctr"
-    echo "$output"
-    [ "$status" -eq 0 ]
+    pod=$(crictl runp "$TESTDATA"/sandbox_config.json)
+    ctr=$(crictl create "$pod" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+    crictl start "$ctr"
 
     # when
     run_crio_status --socket="${CRIO_SOCKET}" containers --id "$ctr"
