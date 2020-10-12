@@ -12,13 +12,13 @@ function teardown() {
 }
 
 function run_crio_status() {
-    run "${CRIO_STATUS_BINARY_PATH}" $@
+    run "${CRIO_STATUS_BINARY_PATH}" "$@"
+    echo "$output"
 }
 
 @test "status should fail if no subcommand is provided" {
     # when
     run_crio_status
-    echo "$output"
 
     # then
     [ "$status" -eq 1 ]
@@ -27,7 +27,6 @@ function run_crio_status() {
 @test "status should succeed to retrieve the config" {
     # when
     run_crio_status --socket="${CRIO_SOCKET}" config
-    echo "$output"
 
     # then
     [ "$status" -eq 0 ]
@@ -37,7 +36,6 @@ function run_crio_status() {
 @test "status should fail to retrieve the config with invalid socket" {
     # when
     run_crio_status --socket wrong.sock c
-    echo "$output"
 
     # then
     [ "$status" -eq 1 ]
@@ -46,7 +44,6 @@ function run_crio_status() {
 @test "status should succeed to retrieve the info" {
     # when
     run_crio_status --socket="${CRIO_SOCKET}" info
-    echo "$output"
 
     # then
     [ "$status" -eq 0 ]
@@ -56,7 +53,6 @@ function run_crio_status() {
 @test "status should fail to retrieve the info with invalid socket" {
     # when
     run_crio_status --socket wrong.sock i
-    echo "$output"
 
     # then
     [ "$status" -eq 1 ]
@@ -78,7 +74,6 @@ function run_crio_status() {
 
     # when
     run_crio_status --socket="${CRIO_SOCKET}" containers --id "$ctr"
-    echo "$output"
 
     # then
     [ "$status" -eq 0 ]
@@ -88,7 +83,6 @@ function run_crio_status() {
 @test "should fail to retrieve the container info without ID" {
     # when
     run_crio_status --socket="${CRIO_SOCKET}" containers
-    echo "$output"
 
     # then
     [ "$status" -eq 1 ]
@@ -97,7 +91,6 @@ function run_crio_status() {
 @test "should fail to retrieve the container with invalid socket" {
     # when
     run_crio_status --socket wrong.sock s
-    echo "$output"
 
     # then
     [ "$status" -eq 1 ]
