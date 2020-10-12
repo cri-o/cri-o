@@ -12,15 +12,17 @@ function teardown() {
 	cleanup_test
 }
 
+function is_cgroup_v2() {
+	test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
+}
+
 function wait_until_exit() {
     ctr_id=$1
     # Wait for container to exit
     attempt=0
     while [ $attempt -le 100 ]; do
         attempt=$((attempt + 1))
-        run crictl inspect -o table "$ctr_id"
-        echo "$output"
-        [ "$status" -eq 0 ]
+        output=$(crictl inspect -o table "$ctr_id")
         if [[ "$output" == *"State: CONTAINER_EXITED"* ]]; then
             [[ "$output" == *"Exit Code: ${EXPECTED_EXIT_STATUS:-0}"* ]]
             return 0
@@ -32,94 +34,52 @@ function wait_until_exit() {
 
 @test "ctr not found correct error message" {
 	start_crio
-	run crictl inspect "container_not_exist"
-	echo "$output"
-	[ "$status" -eq 1 ]
-
-	stop_crio
+	! crictl inspect "container_not_exist"
 }
 
 @test "ctr termination reason Completed" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
-	run crictl inspect --output yaml "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	output=$(crictl inspect --output yaml "$ctr_id")
 	[[ "$output" == *"reason: Completed"* ]]
 }
 
 @test "ctr termination reason Error" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	errorconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["command"] = ["false"]; json.dump(obj, sys.stdout)')
-	echo "$errorconfig" > "$TESTDIR"/container_config_error.json
-	run crictl create "$pod_id" "$TESTDIR"/container_config_error.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["command"] = ["false"]; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_config_error.json
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_config_error.json "$TESTDATA"/sandbox_config.json)
+
+	crictl start "$ctr_id"
 	EXPECTED_EXIT_STATUS=1 wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
-	run crictl inspect --output yaml "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	output=$(crictl inspect --output yaml "$ctr_id")
 	[[ "$output" == *"reason: Error"* ]]
 }
 
 @test "ulimits" {
 	OVERRIDE_OPTIONS="--default-ulimits nofile=42:42 --default-ulimits nproc=1024:2048" start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	ulimits=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin); obj["command"] = ["/bin/sh", "-c", "sleep 600"]; json.dump(obj, sys.stdout)')
-	echo "$ulimits" > "$TESTDIR"/container_config_ulimits.json
-	run crictl create "$pod_id" "$TESTDIR"/container_config_ulimits.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	python -c 'import json,sys;obj=json.load(sys.stdin); obj["command"] = ["/bin/sh", "-c", "sleep 600"]; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_config_ulimits.json
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_config_ulimits.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 
-	run crictl exec --sync "$ctr_id" sh -c "ulimit -n"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "42" ]]
-	run crictl exec --sync "$ctr_id" sh -c "ulimit -p"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "1024" ]]
+	output=$(crictl exec --sync "$ctr_id" sh -c "ulimit -n")
+	[ "$output" == "42" ]
 
-	run crictl exec --sync "$ctr_id" sh -c "ulimit -Hp"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "2048" ]]
+	output=$(crictl exec --sync "$ctr_id" sh -c "ulimit -p")
+	[ "$output" == "1024" ]
 
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "ulimit -Hp")
+	[ "$output" == "2048" ]
 }
 
 @test "additional devices support" {
@@ -127,30 +87,13 @@ function wait_until_exit() {
 		skip "userNS enabled"
 	fi
 	OVERRIDE_OPTIONS="--additional-devices /dev/null:/dev/qifoo:rwm" start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 
-	run crictl exec --sync "$ctr_id" sh -c "ls /dev/qifoo"
-	echo $output
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "ls /dev/qifoo")
 	[ "$output" == "/dev/qifoo" ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "additional devices permissions" {
@@ -172,36 +115,22 @@ function wait_until_exit() {
 	fi
 
 	OVERRIDE_OPTIONS="--additional-devices ${device}:${device}:w" start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 
         # Ensure the device is there.
-	run crictl exec --timeout=$timeout --sync "$ctr_id" ls $device
-	echo $output
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$device" ]]
+	crictl exec --timeout=$timeout --sync "$ctr_id" ls $device
 
-	if test $(stat -f -c%T /sys/fs/cgroup) != cgroup2fs; then
+	if ! is_cgroup_v2; then
 		# Dump the deviced cgroup configuration for debugging.
-		run crictl exec --timeout=$timeout --sync "$ctr_id" cat /sys/fs/cgroup/devices/devices.list
-		echo $output
+		output=$(crictl exec --timeout=$timeout --sync "$ctr_id" cat /sys/fs/cgroup/devices/devices.list)
 		[[ "$output" == *"c 10:237 w"* ]]
 	fi
 
         # Opening the device in read mode should fail because the device
         # cgroup access only allows writes.
 	run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=$device of=/dev/null count=1
-	echo $output
 	[[ "$output" == *"Operation not permitted"* ]]
 
     # The write should be allowed by the devices cgroup policy, so we
@@ -210,133 +139,64 @@ function wait_until_exit() {
     # run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=/dev/zero of=$device count=1
     # echo $output
     # [[ "$output" == *"Invalid argument"* ]]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
-
 
 @test "ctr remove" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rm -f "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	crictl rm -f "$ctr_id"
 }
 
 @test "ctr lifecycle" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl pods --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	output=$(crictl pods --quiet)
 	[[ "$output" == "$pod_id" ]]
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl ps --quiet --state created
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	output=$(crictl ps --quiet --state created)
 	[[ "$output" == "$ctr_id" ]]
-	run crictl inspect "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl inspect "$ctr_id" | jq -e ".info.privileged == false"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl inspect "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl ps --quiet --state running
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	output=$(crictl inspect "$ctr_id")
+	[ -n "$output" ]
+	echo "$output" | jq -e ".info.privileged == false"
+
+	crictl start "$ctr_id"
+	crictl inspect "$ctr_id"
+	output=$(crictl ps --quiet --state running)
 	[[ "$output" == "$ctr_id" ]]
-	run crictl stop "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl inspect "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl ps --quiet --state exited
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	crictl stop "$ctr_id"
+	crictl inspect "$ctr_id"
+	output=$(crictl ps --quiet --state exited)
 	[[ "$output" == "$ctr_id" ]]
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl ps --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl pods --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	crictl rm "$ctr_id"
+	crictl ps --quiet
+	crictl stopp "$pod_id"
+	output=$(crictl pods --quiet)
 	[[ "$output" == "$pod_id" ]]
-	run crictl ps --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl ps --quiet)
 	[[ "$output" == "" ]]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl pods --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	crictl rmp "$pod_id"
+	output=$(crictl pods --quiet)
 	[[ "$output" == "" ]]
 }
 
-
 @test "ctr logging" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"echo here is some output \&\& echo and some from stderr >\&2"|' "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
+	crictl rm "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
@@ -344,27 +204,17 @@ function wait_until_exit() {
 	echo "$logpath :: $(cat "$logpath")"
 	grep -E "^[^\n]+ stdout F here is some output$" "$logpath"
 	grep -E "^[^\n]+ stderr F and some from stderr$" "$logpath"
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr journald logging" {
 	# ensure we have journald logging capability
 	enabled=$(check_journald)
-	if [[ "$enabled" -ne 0 ]]; then
+	if [ "$enabled" -ne 0 ]; then
 		skip "journald not enabled"
 	fi
 
 	CONTAINER_LOG_JOURNALD=true start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	stdout="here is some output"
 	stderr="here is some error"
@@ -373,249 +223,132 @@ function wait_until_exit() {
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"echo '"$stdout"' \&\& echo '"$stderr"' >\&2"|' "$newconfig"
 	cat "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
+	crictl rm "$ctr_id"
 
 	# priority of 5 is LOG_NOTICE
 	journalctl -t conmon -p info CONTAINER_ID_FULL="$ctr_id" | grep -E "$stdout"
 	# priority of 3 is LOG_ERR
 	journalctl -t conmon -p err CONTAINER_ID_FULL="$ctr_id" | grep -E "$stderr"
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr logging [tty=true]" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"echo here is some output"|' "$newconfig"
 	sed -i 's|"tty": false,|"tty": true,|' "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
-	run crictl logs "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == *"here is some output"* ]]
 
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl logs "$ctr_id")
+	[[ "$output" == *"here is some output"* ]]
 }
 
 @test "ctr log max" {
 	CONTAINER_LOG_SIZE_MAX=10000 start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
+	crictl rm "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
-	[ $len -lt 250 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	[ "$len" -lt 250 ]
 }
 
 @test "ctr log max with default value" {
 	# Start crio with default log size max value -1
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
+	crictl rm "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
-	[ $len -eq 250 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	[ "$len" -eq 250 ]
 }
 
 @test "ctr log max with minimum value" {
 	# Start crio with minimum log size max value 8192
 	CONTAINER_LOG_SIZE_MAX=8192 start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
+	crictl rm "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
 	len=$(wc -l "$logpath" | awk '{print $1}')
-	[ $len -lt 250 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	[ "$len" -lt 250 ]
 }
 
 @test "ctr partial line logging" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
 	cp "$TESTDATA"/container_config_logging.json "$newconfig"
 	sed -i 's|"%shellcommand%"|"echo -n hello"|' "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
-	run crictl rm "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
+	crictl rm "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
 	grep -E "^[^\n]+ stdout P hello$" "$logpath"
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 # regression test for #127
 @test "ctrs status for a pod" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-
-	run crictl ps --quiet --state created
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" != "" ]]
-	[[ "$output" == "$ctr_id" ]]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	output=$(crictl ps --quiet --state created)
+	[ "$output" = "$ctr_id" ]
 
 	printf '%s\n' "$output" | while IFS= read -r id
 	do
-		run crictl inspect "$id"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		crictl inspect "$id"
 	done
 }
 
@@ -625,98 +358,47 @@ function wait_until_exit() {
 	# pod2 ctr2 create
 	# pod3 ctr3 create & start & stop
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox1_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod1_id="$output"
-	run crictl create "$pod1_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox1_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr1_id="$output"
-	run crictl start "$ctr1_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl runp "$TESTDATA"/sandbox2_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod2_id="$output"
-	run crictl create "$pod2_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox2_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr2_id="$output"
-	run crictl runp "$TESTDATA"/sandbox3_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod3_id="$output"
-	run crictl create "$pod3_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox3_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr3_id="$output"
-	run crictl start "$ctr3_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stop "$ctr3_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod1_id=$(crictl runp "$TESTDATA"/sandbox1_config.json)
+	ctr1_id=$(crictl create "$pod1_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox1_config.json)
+	crictl start "$ctr1_id"
 
-	run crictl ps --id "$ctr1_id" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr1_id" ]]
-	run crictl ps --id "${ctr1_id:0:4}" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr1_id" ]]
-	run crictl ps --id "$ctr2_id" --pod "$pod2_id" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr2_id" ]]
-	run crictl ps --id "$ctr2_id" --pod "$pod3_id" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "" ]]
-	run crictl ps --state created --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr2_id" ]]
-	run crictl ps --state running --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr1_id" ]]
-	run crictl ps --state exited --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr3_id" ]]
-	run crictl ps --pod "$pod1_id" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr1_id" ]]
-	run crictl ps --pod "$pod2_id" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr2_id" ]]
-	run crictl ps --pod "$pod3_id" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr3_id" ]]
-	run crictl stopp "$pod1_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod1_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod2_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod2_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod3_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod3_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod2_id=$(crictl runp "$TESTDATA"/sandbox2_config.json)
+	ctr2_id=$(crictl create "$pod2_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox2_config.json)
+
+	pod3_id=$(crictl runp "$TESTDATA"/sandbox3_config.json)
+	ctr3_id=$(crictl create "$pod3_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox3_config.json)
+	crictl start "$ctr3_id"
+	crictl stop "$ctr3_id"
+
+	output=$(crictl ps --id "$ctr1_id" --quiet --all)
+	[ "$output" = "$ctr1_id" ]
+
+	output=$(crictl ps --id "${ctr1_id:0:4}" --quiet --all)
+	[ "$output" = "$ctr1_id" ]
+
+	output=$(crictl ps --id "$ctr2_id" --pod "$pod2_id" --quiet --all)
+	[ "$output" = "$ctr2_id" ]
+
+	output=$(crictl ps --id "$ctr2_id" --pod "$pod3_id" --quiet --all)
+	[ "$output" = "" ]
+
+	output=$(crictl ps --state created --quiet)
+	[ "$output" = "$ctr2_id" ]
+
+	output=$(crictl ps --state running --quiet)
+	[ "$output" = "$ctr1_id" ]
+
+	output=$(crictl ps --state exited --quiet)
+	[ "$output" = "$ctr3_id" ]
+
+	output=$(crictl ps --pod "$pod1_id" --quiet --all)
+	[ "$output" = "$ctr1_id" ]
+
+	output=$(crictl ps --pod "$pod2_id" --quiet --all)
+	[ "$output" == "$ctr2_id" ]
+
+	output=$(crictl ps --pod "$pod3_id" --quiet --all)
+	[ "$output" == "$ctr3_id" ]
 }
 
 @test "ctr list label filtering" {
@@ -726,83 +408,50 @@ function wait_until_exit() {
 	# ctr3 with labels: group=test container=redis version=v1.1.0
 	start_crio
 
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	ctrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["metadata"]["name"] = "ctr1";obj["labels"]["group"] = "test";obj["labels"]["name"] = "ctr1";obj["labels"]["version"] = "v1.0.0"; json.dump(obj, sys.stdout)')
-	echo "$ctrconfig" > "$TESTDATA"/labeled_container_redis.json
-	run crictl create "$pod_id" "$TESTDATA"/labeled_container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr1_id="$output"
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["metadata"]["name"] = "ctr1";obj["labels"]["group"] = "test";obj["labels"]["name"] = "ctr1";obj["labels"]["version"] = "v1.0.0"; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDATA"/labeled_container_redis.json
+	ctr1_id=$(crictl create "$pod_id" "$TESTDATA"/labeled_container_redis.json "$TESTDATA"/sandbox_config.json)
 
-	ctrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["metadata"]["name"] = "ctr2";obj["labels"]["group"] = "test";obj["labels"]["name"] = "ctr2";obj["labels"]["version"] = "v1.0.0"; json.dump(obj, sys.stdout)')
-	echo "$ctrconfig" > "$TESTDATA"/labeled_container_redis.json
-	run crictl create "$pod_id" "$TESTDATA"/labeled_container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr2_id="$output"
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["metadata"]["name"] = "ctr2";obj["labels"]["group"] = "test";obj["labels"]["name"] = "ctr2";obj["labels"]["version"] = "v1.0.0"; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDATA"/labeled_container_redis.json
+	ctr2_id=$(crictl create "$pod_id" "$TESTDATA"/labeled_container_redis.json "$TESTDATA"/sandbox_config.json)
 
-	ctrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["metadata"]["name"] = "ctr3";obj["labels"]["group"] = "test";obj["labels"]["name"] = "ctr3";obj["labels"]["version"] = "v1.1.0"; json.dump(obj, sys.stdout)')
-	echo "$ctrconfig" > "$TESTDATA"/labeled_container_redis.json
-	run crictl create "$pod_id" "$TESTDATA"/labeled_container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr3_id="$output"
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["metadata"]["name"] = "ctr3";obj["labels"]["group"] = "test";obj["labels"]["name"] = "ctr3";obj["labels"]["version"] = "v1.1.0"; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDATA"/labeled_container_redis.json
+	ctr3_id=$(crictl create "$pod_id" "$TESTDATA"/labeled_container_redis.json "$TESTDATA"/sandbox_config.json)
 
-	run crictl ps --label "group=test" --label "name=ctr1" --label "version=v1.0.0" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "$ctr1_id" ]]
-	run crictl ps --label "group=production" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "" ]]
-	run crictl ps --label "group=test" --label "version=v1.0.0" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl ps --label "group=test" --label "name=ctr1" --label "version=v1.0.0" --quiet --all)
+	[ "$output" = "$ctr1_id" ]
+
+	output=$(crictl ps --label "group=production" --quiet --all)
+	[ "$output" == "" ]
+
+	output=$(crictl ps --label "group=test" --label "version=v1.0.0" --quiet --all)
 	[[ "$output" != "" ]]
 	[[ "$output" == *"$ctr1_id"* ]]
 	[[ "$output" == *"$ctr2_id"* ]]
 	[[ "$output" != *"$ctr3_id"* ]]
-	run crictl ps --label "group=test" --quiet --all
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	output=$(crictl ps --label "group=test" --quiet --all)
 	[[ "$output" != "" ]]
 	[[ "$output" == *"$ctr1_id"* ]]
 	[[ "$output" == *"$ctr2_id"* ]]
 	[[ "$output" == *"$ctr3_id"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr metadata in list & status" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
 
-	run crictl ps --id "$ctr_id" --output yaml --state created
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl ps --id "$ctr_id" --output yaml --state created)
 	# TODO: expected value should not hard coded here
 	[[ "$output" == *"name: container1"* ]]
 	[[ "$output" == *"attempt: 1"* ]]
 
-	run crictl inspect -o table "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl inspect -o table "$ctr_id")
 	# TODO: expected value should not hard coded here
 	[[ "$output" == *"Name: container1"* ]]
 	[[ "$output" == *"Attempt: 1"* ]]
@@ -810,70 +459,45 @@ function wait_until_exit() {
 
 @test "ctr execsync conflicting with conmon flags parsing" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" sh -c "echo hello world"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "hello world" ]]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl exec --sync "$ctr_id" sh -c "echo hello world")
+	[ "$output" = "hello world" ]
 }
 
 @test "ctr execsync" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" echo HELLO
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" == "HELLO" ]]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl exec --sync "$ctr_id" echo HELLO)
+	[ "$output" = "HELLO" ]
+
 	run crictl exec --sync --timeout 1 "$ctr_id" sleep 3
 	echo "$output"
 	[[ "$output" == *"command timed out"* ]]
 	[ "$status" -ne 0 ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr execsync should not overwrite initial spec args" {
-    start_crio
+	start_crio
 
-    run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-    [ "$status" -eq 0 ]
-    CTR="$output"
+	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
-    run crictl inspect $CTR | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
-    [ "$status" -eq 0 ]
+	output=$(crictl inspect "$ctr_id")
+	[ -n "$output" ]
+	echo "$output" | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
 
-    run crictl exec --sync $CTR echo Hello
-    [ "$status" -eq 0 ]
+	crictl exec --sync "$ctr_id" echo Hello
 
-    run crictl inspect $CTR | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
-    [ "$status" -eq 0 ]
+	output=$(crictl inspect "$ctr_id")
+	[ -n "$output" ]
+	echo "$output" | jq -e '.info.runtimeSpec.process.args[2] == "redis-server"'
 
-    run crictl rm -f $CTR
-    [ "$status" -eq 0 ]
+	crictl rm -f "$ctr_id"
 }
 
 @test "ctr device add" {
@@ -882,34 +506,18 @@ function wait_until_exit() {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
+
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	cp "$TESTDATA"/container_redis_device.json "$newconfig"
 	sed -i 's|"%containerdevicepath%"|"/dev/mynull"|' "$newconfig"
-
 	sed -i 's|"%privilegedboolean%"|false|' "$newconfig"
 
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" ls /dev/mynull
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	output=$(crictl exec --sync "$ctr_id" ls /dev/mynull)
 	[[ "$output" == *"/dev/mynull"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "privileged ctr device add" {
@@ -918,33 +526,19 @@ function wait_until_exit() {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
+
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config_privileged.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
 
 	cp "$TESTDATA"/container_redis_device.json "$newconfig"
 	sed -i 's|"%containerdevicepath%"|"/dev/mynull"|' "$newconfig"
 	sed -i 's|"%privilegedboolean%"|true|' "$newconfig"
 
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" ls /dev/mynull
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl exec --sync "$ctr_id" ls /dev/mynull)
 	[[ "$output" == *"/dev/mynull"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "privileged ctr add duplicate device as host" {
@@ -953,555 +547,311 @@ function wait_until_exit() {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
+
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config_privileged.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
 
 	cp "$TESTDATA"/container_redis_device.json "$newconfig"
 	sed -i 's|"%containerdevicepath%"|"/dev/random"|' "$newconfig"
 	sed -i 's|"%privilegedboolean%"|true|' "$newconfig"
 
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json
-	echo "$output"
-	[ "$status" -ne 0 ]
+	# Error is "configured with a device container path that already exists on the host"
+	! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json
 }
 
 @test "ctr hostname env" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl exec --sync "$ctr_id" env
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	output=$(crictl exec --sync "$ctr_id" env)
 	[[ "$output" == *"HOSTNAME"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr execsync failure" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" doesnotexist
-	echo "$output"
-	[ "$status" -ne 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	! crictl exec --sync "$ctr_id" doesnotexist
 }
 
 @test "ctr execsync exit code" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" false
-	echo "$output"
-	[ "$status" -ne 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	! crictl exec --sync "$ctr_id" false
 }
 
 @test "ctr execsync std{out,err}" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" echo hello0 stdout
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl exec --sync "$ctr_id" echo hello0 stdout)
 	[[ "$output" == *"hello0 stdout"* ]]
 
-	stderrconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/stderr-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
-	echo "$stderrconfig" > "$TESTDIR"/container_config_stderr.json
-	run crictl create "$pod_id" "$TESTDIR"/container_config_stderr.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" stderr
-	echo "$output"
-	[ "$status" -eq 0 ]
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/stderr-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_config_stderr.json
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_config_stderr.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl exec --sync "$ctr_id" stderr)
 	[[ "$output" == *"this goes to stderr"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr stop idempotent" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stop "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stop "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	crictl stop "$ctr_id"
+	crictl stop "$ctr_id"
 }
 
 @test "ctr caps drop" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	capsconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["capabilities"] = {u"add_capabilities": [], u"drop_capabilities": [u"mknod", u"kill", u"sys_chroot", u"setuid", u"setgid"]}; json.dump(obj, sys.stdout)')
-	echo "$capsconfig" > "$TESTDIR"/container_config_caps.json
-	run crictl create "$TESTDIR"/container_config_caps.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["capabilities"] = {u"add_capabilities": [], u"drop_capabilities": [u"mknod", u"kill", u"sys_chroot", u"setuid", u"setgid"]}; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_config_caps.json
+
+	crictl create "$TESTDIR"/container_config_caps.json "$TESTDATA"/sandbox_config.json
 }
 
 @test "ctr with default list of capabilities from crio.conf" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync $ctr_id grep Cap /proc/1/status
-	echo "$output"
-	[ "$status" -eq 0 ]
 
-    # This magic values originates from the output of
-    # `grep CapEff /proc/self/status`
-    #
-    # It represents the bitflag of the effective capabilities available to the
-    # process.
-    [[ "$output" =~ 00000000002005fb ]]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	output=$(crictl exec --sync "$ctr_id" grep Cap /proc/1/status)
 
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	# This magic value originates from the output of
+	# `grep CapEff /proc/self/status`
+	#
+	# It represents the bitflag of the effective capabilities
+	# available to the process.
+	[[ "$output" =~ 00000000002005fb ]]
 }
 
 @test "ctr with list of capabilities given by user in crio.conf" {
 	CONTAINER_DEFAULT_CAPABILITIES="CHOWN,DAC_OVERRIDE,FSETID,FOWNER,NET_RAW,SETGID,SETUID" start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync $ctr_id grep Cap /proc/1/status
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ 00000000002020db ]]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" grep Cap /proc/1/status)
+	[[ "$output" =~ 00000000002020db ]]
 }
 
 @test "run ctr with image with Config.Volumes" {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
+
 	start_crio
-	run crictl pull gcr.io/k8s-testimages/redis:e2e
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	volumesconfig=$(cat "$TESTDATA"/container_redis.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "gcr.io/k8s-testimages/redis:e2e"; obj["args"] = []; json.dump(obj, sys.stdout)')
-	echo "$volumesconfig" > "$TESTDIR"/container_config_volumes.json
-	run crictl create "$pod_id" "$TESTDIR"/container_config_volumes.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	crictl pull gcr.io/k8s-testimages/redis:e2e
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "gcr.io/k8s-testimages/redis:e2e"; obj["args"] = []; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_redis.json > "$TESTDIR"/container_config_volumes.json
+
+	crictl create "$pod_id" "$TESTDIR"/container_config_volumes.json "$TESTDATA"/sandbox_config.json
 }
 
 @test "ctr oom" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	oomconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/oom"; obj["linux"]["resources"]["memory_limit_in_bytes"] = 25165824; obj["command"] = ["/oom"]; json.dump(obj, sys.stdout)')
-	echo "$oomconfig" > "$TESTDIR"/container_config_oom.json
-	run crictl create "$pod_id" "$TESTDIR"/container_config_oom.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/oom"; obj["linux"]["resources"]["memory_limit_in_bytes"] = 25165824; obj["command"] = ["/oom"]; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_config_oom.json
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_config_oom.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
 	# Wait for container to OOM
 	attempt=0
 	while [ $attempt -le 100 ]; do
 		attempt=$((attempt+1))
-		run crictl inspect --output yaml "$ctr_id"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		output=$(crictl inspect --output yaml "$ctr_id")
 		if [[ "$output" == *"OOMKilled"* ]]; then
 			break
 		fi
 		sleep 10
 	done
 	[[ "$output" == *"OOMKilled"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr /etc/resolv.conf rw/ro mode" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config_resolvconf.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
-	run crictl create "$pod_id" "$TESTDATA"/container_config_resolvconf_ro.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run wait_until_exit "$ctr_id"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_resolvconf.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_resolvconf_ro.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
 }
 
 @test "ctr create with non-existent command" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	newconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["command"] = ["nonexistent"]; json.dump(obj, sys.stdout)')
-	echo "$newconfig" > "$TESTDIR"/container_nonexistent.json
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["command"] = ["nonexistent"]; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_nonexistent.json
 	run crictl create "$pod_id" "$TESTDIR"/container_nonexistent.json "$TESTDATA"/sandbox_config.json
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"not found"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr create with non-existent command [tty]" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	newconfig=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["command"] = ["nonexistent"]; obj["tty"] = True; json.dump(obj, sys.stdout)')
-	echo "$newconfig" > "$TESTDIR"/container_nonexistent.json
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["command"] = ["nonexistent"]; obj["tty"] = True; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_nonexistent.json
 	run crictl create "$pod_id" "$TESTDIR"/container_nonexistent.json "$TESTDATA"/sandbox_config.json
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"not found"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "ctr update resources" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 
 	# set memory {,swap} max file for cgroupv1 or v2
 	CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
 	CGROUP_MEM_FILE="/sys/fs/cgroup/memory/memory.limit_in_bytes"
-	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
+	if is_cgroup_v2; then
 		CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory.swap.max"
 		CGROUP_MEM_FILE="/sys/fs/cgroup/memory.max"
 	fi
 
-	run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE")
 	[[ "$output" == *"209715200"* ]]
-
 
 	# we can only rely on these files being here if cgroup memory swap is enabled
 	# otherwise this test fails
 	if test -r "$CGROUP_MEM_SWAP_FILE" ; then
-		run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE")
 		[ "$output" -eq "209715200" ]
 	fi
 
-	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
-		echo "$output"
-		[ "$status" -eq 0 ]
+	if is_cgroup_v2; then
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max")
 		[[ "$output" == *"20000 10000"* ]]
 
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.weight"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.weight")
 		# 512 shares are converted to cpu.weight 20
 		[[ "$output" == *"20"* ]]
 	else
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares")
 		[[ "$output" == *"512"* ]]
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
-		echo "$output"
-		[ "$status" -eq 0 ]
+
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us")
 		[[ "$output" == *"10000"* ]]
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
-		echo "$output"
-		[ "$status" -eq 0 ]
+
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us")
 		[[ "$output" == *"20000"* ]]
 	fi
 
-	run crictl update --memory 524288000 --cpu-period 20000 --cpu-quota 10000 --cpu-share 256 "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl update --memory 524288000 --cpu-period 20000 --cpu-quota 10000 --cpu-share 256 "$ctr_id"
 
-	run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE")
 	[[ "$output" == *"524288000"* ]]
 
 	if test -r "$CGROUP_MEM_SWAP_FILE" ; then
-		run crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE")
 		[ "$output" -eq "524288000" ]
 	fi
 
-	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max"
-		echo "$output"
-		[ "$status" -eq 0 ]
+	if is_cgroup_v2; then
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.max")
 		[[ "$output" == *"10000 20000"* ]]
 
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.weight"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.weight")
 		# 256 shares are converted to cpu.weight 10
 		[[ "$output" == *"10"* ]]
 	else
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares")
 		[[ "$output" == *"256"* ]]
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us"
-		echo "$output"
-		[ "$status" -eq 0 ]
+
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_period_us")
 		[[ "$output" == *"20000"* ]]
-		run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us"
-		echo "$output"
-		[ "$status" -eq 0 ]
+
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us")
 		[[ "$output" == *"10000"* ]]
 	fi
 }
 
 @test "ctr correctly setup working directory" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	notexistcwd=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["working_dir"] = "/thisshouldntexistatall"; json.dump(obj, sys.stdout)')
-	echo "$notexistcwd" > "$TESTDIR"/container_cwd_notexist.json
-	run crictl create "$pod_id" "$TESTDIR"/container_cwd_notexist.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	filecwd=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["working_dir"] = "/etc/passwd"; obj["metadata"]["name"] = "container2"; json.dump(obj, sys.stdout)')
-	echo "$filecwd" > "$TESTDIR"/container_cwd_file.json
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["working_dir"] = "/thisshouldntexistatall"; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_cwd_notexist.json
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_cwd_notexist.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["working_dir"] = "/etc/passwd"; obj["metadata"]["name"] = "container2"; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_cwd_file.json
 	run crictl create "$pod_id" "$TESTDIR"/container_cwd_file.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
 	[ "$status" -ne 0 ]
-	ctr_id="$output"
 	[[ "$output" == *"not a directory"* ]]
 }
 
 @test "ctr execsync conflicting with conmon env" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis_env_custom.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec "$ctr_id" env
-	echo "$output"
-	echo "$status"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis_env_custom.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl exec "$ctr_id" env)
 	[[ "$output" == *"acustompathinpath"* ]]
-	run crictl exec --sync "$ctr_id" env
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	output=$(crictl exec --sync "$ctr_id" env)
 	[[ "$output" == *"acustompathinpath"* ]]
 }
 
 @test "ctr resources" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.cpus || cat /sys/fs/cgroup/cpuset.cpus"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.cpus || cat /sys/fs/cgroup/cpuset.cpus")
 	[[ "$output" == *"0"* ]]
-	run crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.mems || cat /sys/fs/cgroup/cpuset.mems"
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.mems || cat /sys/fs/cgroup/cpuset.mems")
 	[[ "$output" == *"0"* ]]
 }
 
 @test "ctr with non-root user has no effective capabilities" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	newconfig=$(cat "$TESTDATA"/container_redis.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["run_as_username"] = "redis"; json.dump(obj, sys.stdout)')
-	echo "$newconfig" > "$TESTDIR"/container_user.json
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["run_as_username"] = "redis"; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_redis.json > "$TESTDIR"/container_user.json
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_user.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 
-	run crictl create "$pod_id" "$TESTDIR"/container_user.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	[ "$status" -eq 0 ]
-
-	run crictl exec --sync "$ctr_id" grep "CapEff:\s0000000000000000" /proc/1/status
-	echo "$output"
-	[ "$status" -eq 0 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl exec --sync "$ctr_id" grep "CapEff:\s0000000000000000" /proc/1/status
 }
 
 @test "ctr with low memory configured should not be created" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	low_mem_config=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["resources"]["memory_limit_in_bytes"] = 2000; json.dump(obj, sys.stdout)')
-	echo "$low_mem_config" > "$TESTDIR"/container_config_low_mem.json
-	run crictl create "$pod_id" "$TESTDIR"/container_config_low_mem.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ ! "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["resources"]["memory_limit_in_bytes"] = 2000; json.dump(obj, sys.stdout)' \
+		< "$TESTDATA"/container_config.json > "$TESTDIR"/container_config_low_mem.json
+	! crictl create "$pod_id" "$TESTDIR"/container_config_low_mem.json "$TESTDATA"/sandbox_config.json
 }
 
 @test "ctr expose metrics with default port" {
@@ -1514,27 +864,12 @@ function wait_until_exit() {
 		skip "$CONTAINER_METRICS_PORT is not listening"
 	fi
 
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 
 	# get metrics
-	run curl http://localhost:$port/metrics -k
-	[ "$status" -eq 0 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	curl http://localhost:$port/metrics -k
 }
 
 @test "ctr expose metrics with custom port" {
@@ -1547,101 +882,47 @@ function wait_until_exit() {
 		skip "$CONTAINER_METRICS_PORT is not listening"
 	fi
 
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 
 	# get metrics
-	run curl http://localhost:$port/metrics -k
-	[ "$status" -eq 0 ]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	curl http://localhost:$port/metrics -k
 }
-
 
 @test "privileged ctr -- check for rw mounts" {
 	start_crio
 
-	run crictl runp "$TESTDATA"/sandbox_config_privileged.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
+	edit_json '.linux.security_context.privileged |= true' \
+		"$TESTDATA"/container_redis.json "$TESTDIR"/ctr_config.json
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_config.json "$TESTDATA"/sandbox_config_privileged.json)
+	crictl start "$ctr_id"
 
-	run crictl inspect "$ctr_id" | jq -e ".info.privileged == true"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl inspect "$ctr_id")
+	[ -n "$output" ]
+	echo "$output" | jq -e ".info.privileged == true"
 
-	# TODO there seems to be a difference in behavior between runc and crun
-	# where crun has this mounted ro, and now runc has it mounted rw
-	run crictl exec "$ctr_id" cat /proc/mounts
-	[ "$status" -eq 0 ]
-	if test $(stat -f -c%T /sys/fs/cgroup) = cgroup2fs; then
-		[[ "$output" == *"/sys/fs/cgroup cgroup2"* ]]
+	output=$(crictl exec "$ctr_id" grep rw\, /proc/mounts)
+	if is_cgroup_v2; then
+		[[ "$output" == *" /sys/fs/cgroup cgroup2 "* ]]
 	else
-		[[ "$output" == *"/sys/fs/cgroup tmpfs"* ]]
+		[[ "$output" == *" /sys/fs/cgroup tmpfs "* ]]
 	fi
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "annotations passed through" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl inspectp $pod_id | run grep '"owner": "hmeng"'
-	run crictl inspectp $pod_id | run grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	stop_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	crictl inspectp "$pod_id" | grep '"owner": "hmeng"'
+	crictl inspectp "$pod_id" | grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
 }
 
 @test "ctr with default_env set in configuration" {
 	CONTAINER_DEFAULT_ENV="NSS_SDB_USE_CACHE=no" start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl exec --sync "$ctr_id" env
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+
+	output=$(crictl exec --sync "$ctr_id" env)
 	[[ "$output" == *"NSS_SDB_USE_CACHE=no"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
