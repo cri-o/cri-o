@@ -131,7 +131,7 @@ function check_networking() {
 	setup_crio
 	echo "DEBUG_ARGS=malformed-result" > "$TESTDIR"/cni_plugin_helper_input.env
 	start_crio_no_setup
-	pull_test_containers
+	check_images
 
 	crictl runp "$TESTDATA"/sandbox_config.json && fail "expected runp to fail"
 

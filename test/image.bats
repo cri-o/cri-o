@@ -4,7 +4,6 @@ load helpers
 
 IMAGE=quay.io/crio/pause
 SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
-UNSIGNED_IMAGE=quay.io/crio/hello-world:latest
 
 IMAGE_LIST_TAG=docker.io/library/alpine:3.9
 IMAGE_LIST_DIGEST_FOR_TAG=docker.io/library/alpine@sha256:414e0518bb9228d35e4cd5165567fb91d26c6a214e9c95899e1e056fcd349011
