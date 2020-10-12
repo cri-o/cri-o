@@ -4,7 +4,6 @@
 # the test environment is not to be trusted (i.e. bogus failures are
 # quite possible), and the test environment need to be fixed.
 
-
 # RHEL7 kernels should have this sysctl enabled, otherwise
 # we can see EBUSY on mount point removal, container removal
 # etc. It is set in production via runc rpm %postin script,

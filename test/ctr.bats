@@ -17,19 +17,19 @@ function is_cgroup_v2() {
 }
 
 function wait_until_exit() {
-    ctr_id=$1
-    # Wait for container to exit
-    attempt=0
-    while [ $attempt -le 100 ]; do
-        attempt=$((attempt + 1))
-        output=$(crictl inspect -o table "$ctr_id")
-        if [[ "$output" == *"State: CONTAINER_EXITED"* ]]; then
-            [[ "$output" == *"Exit Code: ${EXPECTED_EXIT_STATUS:-0}"* ]]
-            return 0
-        fi
-        sleep 1
-    done
-    return 1
+	ctr_id=$1
+	# Wait for container to exit
+	attempt=0
+	while [ $attempt -le 100 ]; do
+		attempt=$((attempt + 1))
+		output=$(crictl inspect -o table "$ctr_id")
+		if [[ "$output" == *"State: CONTAINER_EXITED"* ]]; then
+			[[ "$output" == *"Exit Code: ${EXPECTED_EXIT_STATUS:-0}"* ]]
+			return 0
+		fi
+		sleep 1
+	done
+	return 1
 }
 
 @test "ctr not found correct error message" {
@@ -106,11 +106,11 @@ function wait_until_exit() {
 		skip "userNS enabled"
 	fi
 
-	if ! test -r $device ; then
+	if ! test -r $device; then
 		skip "$device not readable"
 	fi
 
-	if ! test -w $device ; then
+	if ! test -w $device; then
 		skip "$device not writeable"
 	fi
 
@@ -119,7 +119,7 @@ function wait_until_exit() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 
-        # Ensure the device is there.
+	# Ensure the device is there.
 	crictl exec --timeout=$timeout --sync "$ctr_id" ls $device
 
 	if ! is_cgroup_v2; then
@@ -128,17 +128,17 @@ function wait_until_exit() {
 		[[ "$output" == *"c 10:237 w"* ]]
 	fi
 
-        # Opening the device in read mode should fail because the device
-        # cgroup access only allows writes.
+	# Opening the device in read mode should fail because the device
+	# cgroup access only allows writes.
 	run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=$device of=/dev/null count=1
 	[[ "$output" == *"Operation not permitted"* ]]
 
-    # The write should be allowed by the devices cgroup policy, so we
-    # should see an EINVAL from the device when the device fails it.
-    # TODO: fix that test, currently fails with "dd: can't open '/dev/loop-control': No such device non-zero exit code"
-    # run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=/dev/zero of=$device count=1
-    # echo $output
-    # [[ "$output" == *"Invalid argument"* ]]
+	# The write should be allowed by the devices cgroup policy, so we
+	# should see an EINVAL from the device when the device fails it.
+	# TODO: fix that test, currently fails with "dd: can't open '/dev/loop-control': No such device non-zero exit code"
+	# run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=/dev/zero of=$device count=1
+	# echo $output
+	# [[ "$output" == *"Invalid argument"* ]]
 }
 
 @test "ctr remove" {
@@ -346,8 +346,7 @@ function wait_until_exit() {
 	output=$(crictl ps --quiet --state created)
 	[ "$output" = "$ctr_id" ]
 
-	printf '%s\n' "$output" | while IFS= read -r id
-	do
+	printf '%s\n' "$output" | while IFS= read -r id; do
 		crictl inspect "$id"
 	done
 }
@@ -676,7 +675,7 @@ function wait_until_exit() {
 	# Wait for container to OOM
 	attempt=0
 	while [ $attempt -le 100 ]; do
-		attempt=$((attempt+1))
+		attempt=$((attempt + 1))
 		output=$(crictl inspect --output yaml "$ctr_id")
 		if [[ "$output" == *"OOMKilled"* ]]; then
 			break
@@ -739,7 +738,7 @@ function wait_until_exit() {
 
 	# we can only rely on these files being here if cgroup memory swap is enabled
 	# otherwise this test fails
-	if test -r "$CGROUP_MEM_SWAP_FILE" ; then
+	if test -r "$CGROUP_MEM_SWAP_FILE"; then
 		output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE")
 		[ "$output" -eq "209715200" ]
 	fi
@@ -767,7 +766,7 @@ function wait_until_exit() {
 	output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE")
 	[[ "$output" == *"524288000"* ]]
 
-	if test -r "$CGROUP_MEM_SWAP_FILE" ; then
+	if test -r "$CGROUP_MEM_SWAP_FILE"; then
 		output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE")
 		[ "$output" -eq "524288000" ]
 	fi
