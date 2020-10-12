@@ -347,6 +347,14 @@ func (s *Sandbox) SetNetworkStopped(createFile bool) error {
 }
 
 func (s *Sandbox) createFileInInfraDir(filename string) error {
+	// If the sandbox is not yet created,
+	// this function is being called when
+	// cleaning up a failed sandbox creation.
+	// We don't need to create the file, as there will be no
+	// sandbox to restore
+	if !s.created {
+		return nil
+	}
 	infra := s.InfraContainer()
 	f, err := os.Create(filepath.Join(infra.Dir(), filename))
 	if err == nil {
