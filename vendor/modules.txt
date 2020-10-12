@@ -693,8 +693,13 @@ github.com/opentracing/opentracing-go/log
 # github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913
 github.com/ostreedev/ostree-go/pkg/glibobject
 github.com/ostreedev/ostree-go/pkg/otbuiltin
-# github.com/pkg/diff v0.0.0-20190930165518-531926345625
+# github.com/pkg/diff v0.0.0-20200914180035-5b29258ca4f7
 github.com/pkg/diff
+github.com/pkg/diff/ctxt
+github.com/pkg/diff/edit
+github.com/pkg/diff/intern
+github.com/pkg/diff/myers
+github.com/pkg/diff/write
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -876,7 +881,7 @@ golang.org/x/oauth2/jwt
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1
+# golang.org/x/sys v0.0.0-20200929083018-4d22bbb62b3c
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
@@ -932,7 +937,7 @@ golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/packagesinternal
 golang.org/x/tools/internal/typesinternal
-# golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
+# golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # google.golang.org/api v0.21.0
@@ -1392,7 +1397,7 @@ k8s.io/utils/path
 k8s.io/utils/trace
 # mvdan.cc/editorconfig v0.1.1-0.20200121172147-e40951bde157
 mvdan.cc/editorconfig
-# mvdan.cc/sh/v3 v3.1.2
+# mvdan.cc/sh/v3 v3.1.1-0.20200930173521-08ecaf9adf4b
 ## explicit
 mvdan.cc/sh/v3/cmd/shfmt
 mvdan.cc/sh/v3/fileutil

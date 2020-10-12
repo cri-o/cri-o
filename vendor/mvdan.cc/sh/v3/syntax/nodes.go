@@ -178,6 +178,7 @@ func (*DeclClause) commandNode()   {}
 func (*LetClause) commandNode()    {}
 func (*TimeClause) commandNode()   {}
 func (*CoprocClause) commandNode() {}
+func (*TestDecl) commandNode()     {}
 
 // Assign represents an assignment to a variable.
 //
@@ -372,7 +373,8 @@ func (w *WordIter) End() Pos {
 //
 // This node will only appear with LangBash.
 type CStyleLoop struct {
-	Lparen, Rparen   Pos
+	Lparen, Rparen Pos
+	// Init, Cond, Post can each be nil, if the for loop construct omits it.
 	Init, Cond, Post ArithmExpr
 }
 
@@ -392,7 +394,8 @@ func (b *BinaryCmd) End() Pos { return b.Y.End() }
 // FuncDecl represents the declaration of a function.
 type FuncDecl struct {
 	Position Pos
-	RsrvWord bool // non-posix "function f()" style
+	RsrvWord bool // non-posix "function f" style
+	Parens   bool // with () parentheses, only meaningful with RsrvWord=true
 	Name     *Lit
 	Body     *Stmt
 }
@@ -876,6 +879,16 @@ func (b *BraceExp) Pos() Pos {
 func (b *BraceExp) End() Pos {
 	return posAddCol(wordLastEnd(b.Elems), 1)
 }
+
+// TestDecl represents the declaration of a Bats test function.
+type TestDecl struct {
+	Position    Pos
+	Description *Word
+	Body        *Stmt
+}
+
+func (f *TestDecl) Pos() Pos { return f.Position }
+func (f *TestDecl) End() Pos { return f.Body.End() }
 
 func wordLastEnd(ws []*Word) Pos {
 	if len(ws) == 0 {

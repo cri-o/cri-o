@@ -171,11 +171,9 @@ func (p *Parser) nextKeepSpaces() {
 			p.advanceLitDquote(r)
 		}
 	case hdocBody, hdocBodyTabs:
-		switch {
-		case r == '`' || r == '$':
+		switch r {
+		case '`', '$':
 			p.tok = p.dqToken(r)
-		case p.hdocStops[:len(p.hdocStops)-1] == nil:
-			p.tok = _Newl
 		default:
 			p.advanceLitHdoc(r)
 		}
@@ -301,7 +299,7 @@ skipSpace:
 		p.tok = p.arithmToken(r)
 	case p.quote&allParamExp != 0 && paramOps(r):
 		p.tok = p.paramToken(r)
-	case p.quote == testRegexp:
+	case p.quote == testExprRegexp:
 		if !p.rxFirstPart && p.spaced {
 			p.quote = noState
 			goto skipSpace
@@ -403,7 +401,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if p.lang != LangBash || p.quote == paramExpName {
+			if !p.lang.isBash() || p.quote == paramExpName {
 				// latter to not tokenise ${$[@]} as $[
 				break
 			}
@@ -418,7 +416,7 @@ func (p *Parser) regToken(r rune) token {
 		}
 		return dollar
 	case '(':
-		if p.rune() == '(' && p.lang != LangPOSIX {
+		if p.rune() == '(' && p.lang != LangPOSIX && p.quote != testExpr {
 			p.rune()
 			return dblLeftParen
 		}
@@ -429,7 +427,7 @@ func (p *Parser) regToken(r rune) token {
 	case ';':
 		switch p.rune() {
 		case ';':
-			if p.rune() == '&' && p.lang == LangBash {
+			if p.rune() == '&' && p.lang.isBash() {
 				p.rune()
 				return dblSemiAnd
 			}
@@ -466,7 +464,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return dplIn
 		case '(':
-			if p.lang != LangBash {
+			if !p.lang.isBash() {
 				break
 			}
 			p.rune()
@@ -485,7 +483,7 @@ func (p *Parser) regToken(r rune) token {
 			p.rune()
 			return clbOut
 		case '(':
-			if p.lang != LangBash {
+			if !p.lang.isBash() {
 				break
 			}
 			p.rune()
@@ -510,7 +508,7 @@ func (p *Parser) dqToken(r rune) token {
 			p.rune()
 			return dollBrace
 		case '[':
-			if p.lang != LangBash {
+			if !p.lang.isBash() {
 				break
 			}
 			p.rune()
@@ -809,7 +807,7 @@ loop:
 		switch r {
 		case '\\': // escaped byte follows
 			p.rune()
-		case '"', '`', '$':
+		case '\'', '"', '`', '$':
 			tok = _Lit
 			break loop
 		case '}':
@@ -833,7 +831,7 @@ loop:
 			if p.quote&allParamReg != 0 {
 				break loop
 			}
-		case '\'', '+', '-', ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\n', '\r':
+		case '+', '-', ' ', '\t', ';', '&', '>', '<', '|', '(', ')', '\n', '\r':
 			if p.quote&allKeepSpaces == 0 {
 				break loop
 			}

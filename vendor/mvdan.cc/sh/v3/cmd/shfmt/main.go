@@ -5,7 +5,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -18,12 +17,15 @@ import (
 
 	"github.com/google/renameio"
 	"github.com/pkg/diff"
+	diffwrite "github.com/pkg/diff/write"
 	"golang.org/x/term"
 	"mvdan.cc/editorconfig"
 
 	"mvdan.cc/sh/v3/fileutil"
 	"mvdan.cc/sh/v3/syntax"
 )
+
+const unsetLang = syntax.LangVariant(-1)
 
 var (
 	showVersion = flag.Bool("version", false, "")
@@ -38,8 +40,9 @@ var (
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
 
-	langStr = flag.String("ln", "", "")
-	posix   = flag.Bool("p", false, "")
+	lang     = unsetLang
+	posix    = flag.Bool("p", false, "")
+	filename = flag.String("filename", "", "")
 
 	indent      = flag.Uint("i", 0, "")
 	binNext     = flag.Bool("bn", false, "")
@@ -63,6 +66,8 @@ var (
 	version = "(devel)" // to match the default from runtime/debug
 )
 
+func init() { flag.Var(&lang, "ln", "") }
+
 func main() {
 	os.Exit(main1())
 }
@@ -85,8 +90,9 @@ for shell files - both by filename extension and by shebang.
 
 Parser options:
 
-  -ln str   language variant to parse (bash/posix/mksh, default "bash")
-  -p        shorthand for -ln=posix
+  -ln str        language variant to parse (bash/posix/mksh/bats, default "bash")
+  -p             shorthand for -ln=posix
+  -filename str  provide a name for the standard input file
 
 Printer options:
 
@@ -117,7 +123,7 @@ Utilities:
 		fmt.Println(version)
 		return 0
 	}
-	if *posix && *langStr != "" {
+	if *posix && lang != unsetLang {
 		fmt.Fprintf(os.Stderr, "-p and -ln=lang cannot coexist\n")
 		return 1
 	}
@@ -136,18 +142,7 @@ Utilities:
 	parser = syntax.NewParser(syntax.KeepComments(true))
 	printer = syntax.NewPrinter(syntax.Minify(*minify))
 
-	lang := syntax.LangBash
 	if !useEditorConfig {
-		switch *langStr {
-		case "bash", "":
-		case "posix":
-			lang = syntax.LangPOSIX
-		case "mksh":
-			lang = syntax.LangMirBSDKorn
-		default:
-			fmt.Fprintf(os.Stderr, "unknown shell language: %s\n", *langStr)
-			return 1
-		}
 		if *posix {
 			lang = syntax.LangPOSIX
 		}
@@ -170,7 +165,11 @@ Utilities:
 		color = true
 	}
 	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {
-		if err := formatStdin(); err != nil {
+		name := "<standard input>"
+		if *filename != "" {
+			name = *filename
+		}
+		if err := formatStdin(name); err != nil {
 			if err != errChangedWithDiff {
 				fmt.Fprintln(os.Stderr, err)
 			}
@@ -178,25 +177,55 @@ Utilities:
 		}
 		return 0
 	}
+	if *filename != "" {
+		fmt.Fprintln(os.Stderr, "-filename can only be used with stdin")
+		return 1
+	}
 	if *toJSON {
-		fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin/out")
+		fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin")
 		return 1
 	}
 	status := 0
 	for _, path := range flag.Args() {
-		walk(path, func(err error) {
-			if err != errChangedWithDiff {
+		if info, err := os.Stat(path); err == nil && !info.IsDir() && !*find {
+			// When given paths to files directly, always format
+			// them, no matter their extension or shebang.
+			//
+			// The only exception is the -f flag; in that case, we
+			// do want to report whether the file is a shell script.
+			if err := formatPath(path, false); err != nil {
 				fmt.Fprintln(os.Stderr, err)
+				return 1
 			}
-			status = 1
-		})
+			continue
+		}
+		if err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			switch err := walkPath(path, info); err {
+			case nil:
+			case filepath.SkipDir:
+				return err
+			case errChangedWithDiff:
+				status = 1
+			default:
+				fmt.Fprintln(os.Stderr, err)
+				status = 1
+			}
+			return nil
+		}); err != nil {
+			// Something went wrong walking the filesystem; stop.
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
 	}
 	return status
 }
 
 var errChangedWithDiff = fmt.Errorf("")
 
-func formatStdin() error {
+func formatStdin(name string) error {
 	if *write {
 		return fmt.Errorf("-w cannot be used on standard input")
 	}
@@ -204,62 +233,37 @@ func formatStdin() error {
 	if err != nil {
 		return err
 	}
-	return formatBytes(src, "<standard input>")
+	return formatBytes(src, name)
 }
 
 var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
 
-func walk(path string, onError func(error)) {
-	info, err := os.Stat(path)
-	if err != nil {
-		onError(err)
-		return
+func walkPath(path string, info os.FileInfo) error {
+	if info.IsDir() && vcsDir.MatchString(info.Name()) {
+		return filepath.SkipDir
 	}
-	if !info.IsDir() {
-		checkShebang := false
-		if *find {
-			conf := fileutil.CouldBeScript(info)
-			if conf == fileutil.ConfNotScript {
-				return
-			}
-			checkShebang = conf == fileutil.ConfIfShebang
-		}
-		if err := formatPath(path, checkShebang); err != nil {
-			onError(err)
-		}
-		return
-	}
-	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+	if useEditorConfig {
+		props, err := ecQuery.Find(path)
 		if err != nil {
-			onError(err)
-			return nil
+			return err
 		}
-		if info.IsDir() && vcsDir.MatchString(info.Name()) {
-			return filepath.SkipDir
-		}
-		if useEditorConfig {
-			props, err := ecQuery.Find(path)
-			if err != nil {
-				return err
-			}
-			if props.Get("ignore") == "true" {
-				if info.IsDir() {
-					return filepath.SkipDir
-				} else {
-					return nil
-				}
+		if props.Get("ignore") == "true" {
+			if info.IsDir() {
+				return filepath.SkipDir
+			} else {
+				return nil
 			}
 		}
-		conf := fileutil.CouldBeScript(info)
-		if conf == fileutil.ConfNotScript {
-			return nil
-		}
-		err = formatPath(path, conf == fileutil.ConfIfShebang)
-		if err != nil && !os.IsNotExist(err) {
-			onError(err)
-		}
+	}
+	conf := fileutil.CouldBeScript(info)
+	if conf == fileutil.ConfNotScript {
 		return nil
-	})
+	}
+	err := formatPath(path, conf == fileutil.ConfIfShebang)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 var ecQuery = editorconfig.Query{
@@ -269,12 +273,7 @@ var ecQuery = editorconfig.Query{
 
 func propsOptions(props editorconfig.Section) {
 	lang := syntax.LangBash
-	switch props.Get("shell_variant") {
-	case "posix":
-		lang = syntax.LangPOSIX
-	case "mksh":
-		lang = syntax.LangMirBSDKorn
-	}
+	lang.Set(props.Get("shell_variant"))
 	syntax.Variant(lang)(parser)
 
 	size := uint(0)
@@ -366,7 +365,11 @@ func formatBytes(src []byte, path string) error {
 			}
 		}
 		if *diffOut {
-			if err := diffBytes(src, res, path); err != nil {
+			opts := []diffwrite.Option{}
+			if color {
+				opts = append(opts, diffwrite.TerminalColor())
+			}
+			if err := diff.Text(path+".orig", path, src, res, out, opts...); err != nil {
 				return fmt.Errorf("computing diff: %s", err)
 			}
 			return errChangedWithDiff
@@ -376,21 +379,6 @@ func formatBytes(src []byte, path string) error {
 		if _, err := out.Write(res); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func diffBytes(b1, b2 []byte, path string) error {
-	a := bytes.Split(b1, []byte("\n"))
-	b := bytes.Split(b2, []byte("\n"))
-	ab := diff.Bytes(a, b)
-	e := diff.Myers(context.Background(), ab)
-	opts := []diff.WriteOpt{diff.Names(path+".orig", path)}
-	if color {
-		opts = append(opts, diff.TerminalColor())
-	}
-	if _, err := e.WriteUnified(out, ab, opts...); err != nil {
-		return err
 	}
 	return nil
 }

@@ -23,12 +23,37 @@ func KeepComments(enabled bool) ParserOption {
 	return func(p *Parser) { p.keepComments = enabled }
 }
 
+// LangVariant describes a shell language variant to use when tokenizing and
+// parsing shell code. The zero value is Bash.
 type LangVariant int
 
 const (
+	// LangBash corresponds to the GNU Bash language, as described in its
+	// manual at https://www.gnu.org/software/bash/manual/bash.html.
+	//
+	// Its string representation is "bash".
 	LangBash LangVariant = iota
+
+	// LangPOSIX corresponds to the POSIX Shell language, as described at
+	// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html.
+	//
+	// Its string representation is "posix" or "sh".
 	LangPOSIX
+
+	// LangMirBSDKorn corresponds to the MirBSD Korn Shell, also known as
+	// mksh, as described at http://www.mirbsd.org/htman/i386/man1/mksh.htm.
+	// Note that it shares some features with Bash, due to the the shared
+	// ancestry that is ksh.
+	//
+	// Its string representation is "mksh".
 	LangMirBSDKorn
+
+	// LangBats corresponds to the Bash Automated Testing System language,
+	// as described at https://github.com/bats-core/bats-core. Note that
+	// it's just a small extension of the Bash language.
+	//
+	// Its string representation is "bats".
+	LangBats
 )
 
 // Variant changes the shell language variant that the parser will
@@ -45,8 +70,30 @@ func (l LangVariant) String() string {
 		return "posix"
 	case LangMirBSDKorn:
 		return "mksh"
+	case LangBats:
+		return "bats"
 	}
 	return "unknown shell language variant"
+}
+
+func (l *LangVariant) Set(s string) error {
+	switch s {
+	case "bash":
+		*l = LangBash
+	case "posix", "sh":
+		*l = LangPOSIX
+	case "mksh":
+		*l = LangMirBSDKorn
+	case "bats":
+		*l = LangBats
+	default:
+		return fmt.Errorf("unknown shell language variant: %q", s)
+	}
+	return nil
+}
+
+func (l LangVariant) isBash() bool {
+	return l == LangBash || l == LangBats
 }
 
 // StopAt configures the lexer to stop at an arbitrary word, treating it
@@ -258,7 +305,7 @@ func (p *Parser) Arithmetic(r io.Reader) (ArithmExpr, error) {
 	p.rune()
 	p.quote = arithmExpr
 	p.next()
-	expr := p.arithmExpr(0, false, false)
+	expr := p.arithmExpr(false)
 	return expr, p.err
 }
 
@@ -454,7 +501,8 @@ const (
 	arithmExprLet
 	arithmExprCmd
 	arithmExprBrack
-	testRegexp
+	testExpr
+	testExprRegexp
 	switchCase
 	paramExpName
 	paramExpSlice
@@ -465,7 +513,7 @@ const (
 	allKeepSpaces = paramExpRepl | dblQuotes | hdocBody |
 		hdocBodyTabs | paramExpExp
 	allRegTokens = noState | subCmd | subCmdBckquo | hdocWord |
-		switchCase | arrayElems
+		switchCase | arrayElems | testExpr
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
 		arithmExprBrack | paramExpSlice
 	allParamReg = paramExpName | paramExpSlice
@@ -946,7 +994,7 @@ func (p *Parser) wordPart() WordPart {
 		ar.X = p.followArithm(left, ar.Left)
 		if ar.Bracket {
 			if p.tok != rightBrack {
-				p.matchingErr(ar.Left, dollBrack, rightBrack)
+				p.arithmMatchingErr(ar.Left, dollBrack, rightBrack)
 			}
 			p.postNested(old)
 			ar.Right = p.pos
@@ -1109,207 +1157,6 @@ func (p *Parser) dblQuoted() *DblQuoted {
 	return q
 }
 
-func arithmOpLevel(op BinAritOperator) int {
-	switch op {
-	case Comma:
-		return 0
-	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
-		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn:
-		return 1
-	case Assgn:
-		return 2
-	case TernQuest, TernColon:
-		return 3
-	case AndArit, OrArit:
-		return 4
-	case And, Or, Xor:
-		return 5
-	case Eql, Neq:
-		return 6
-	case Lss, Gtr, Leq, Geq:
-		return 7
-	case Shl, Shr:
-		return 8
-	case Add, Sub:
-		return 9
-	case Mul, Quo, Rem:
-		return 10
-	case Pow:
-		return 11
-	}
-	return -1
-}
-
-func (p *Parser) followArithm(ftok token, fpos Pos) ArithmExpr {
-	x := p.arithmExpr(0, false, false)
-	if x == nil {
-		p.followErrExp(fpos, ftok.String())
-	}
-	return x
-}
-
-func (p *Parser) arithmExpr(level int, compact, tern bool) ArithmExpr {
-	if p.tok == _EOF || p.peekArithmEnd() {
-		return nil
-	}
-	var left ArithmExpr
-	if level > 11 {
-		left = p.arithmExprBase(compact)
-	} else {
-		left = p.arithmExpr(level+1, compact, false)
-	}
-	if compact && p.spaced {
-		return left
-	}
-	p.got(_Newl)
-	newLevel := arithmOpLevel(BinAritOperator(p.tok))
-	if !tern && p.tok == colon && p.quote == paramExpSlice {
-		newLevel = -1
-	}
-	if newLevel < 0 {
-		switch p.tok {
-		case _Lit, _LitWord:
-			p.curErr("not a valid arithmetic operator: %s", p.val)
-			return nil
-		case leftBrack:
-			p.curErr("[ must follow a name")
-			return nil
-		case rightParen, _EOF:
-		default:
-			if p.quote == arithmExpr {
-				p.curErr("not a valid arithmetic operator: %v", p.tok)
-				return nil
-			}
-		}
-	}
-	if newLevel < level {
-		return left
-	}
-	if left == nil {
-		p.curErr("%s must follow an expression", p.tok.String())
-		return nil
-	}
-	b := &BinaryArithm{
-		OpPos: p.pos,
-		Op:    BinAritOperator(p.tok),
-		X:     left,
-	}
-	switch b.Op {
-	case TernColon:
-		if !tern {
-			p.posErr(b.Pos(), "ternary operator missing ? before :")
-		}
-	case AddAssgn, SubAssgn, MulAssgn, QuoAssgn, RemAssgn, AndAssgn,
-		OrAssgn, XorAssgn, ShlAssgn, ShrAssgn, Assgn:
-		if !isArithName(b.X) {
-			p.posErr(b.OpPos, "%s must follow a name", b.Op.String())
-		}
-	}
-	if p.next(); compact && p.spaced {
-		p.followErrExp(b.OpPos, b.Op.String())
-	}
-	b.Y = p.arithmExpr(newLevel, compact, b.Op == TernQuest)
-	if b.Y == nil {
-		p.followErrExp(b.OpPos, b.Op.String())
-	}
-	if b.Op == TernQuest {
-		if b2, ok := b.Y.(*BinaryArithm); !ok || b2.Op != TernColon {
-			p.posErr(b.Pos(), "ternary operator missing : after ?")
-		}
-	}
-	return b
-}
-
-func isArithName(left ArithmExpr) bool {
-	w, ok := left.(*Word)
-	if !ok || len(w.Parts) != 1 {
-		return false
-	}
-	switch x := w.Parts[0].(type) {
-	case *Lit:
-		return ValidName(x.Value)
-	case *ParamExp:
-		return x.nakedIndex()
-	default:
-		return false
-	}
-}
-
-func (p *Parser) arithmExprBase(compact bool) ArithmExpr {
-	p.got(_Newl)
-	var x ArithmExpr
-	switch p.tok {
-	case exclMark, tilde:
-		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
-		p.next()
-		if ue.X = p.arithmExprBase(compact); ue.X == nil {
-			p.followErrExp(ue.OpPos, ue.Op.String())
-		}
-		return ue
-	case addAdd, subSub:
-		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
-		p.next()
-		if p.tok != _LitWord {
-			p.followErr(ue.OpPos, token(ue.Op).String(), "a literal")
-		}
-		ue.X = p.arithmExprBase(compact)
-		return ue
-	case leftParen:
-		pe := &ParenArithm{Lparen: p.pos}
-		p.next()
-		pe.X = p.followArithm(leftParen, pe.Lparen)
-		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
-		x = pe
-	case plus, minus:
-		ue := &UnaryArithm{OpPos: p.pos, Op: UnAritOperator(p.tok)}
-		if p.next(); compact && p.spaced {
-			p.followErrExp(ue.OpPos, ue.Op.String())
-		}
-		ue.X = p.arithmExprBase(compact)
-		if ue.X == nil {
-			p.followErrExp(ue.OpPos, ue.Op.String())
-		}
-		x = ue
-	case _LitWord:
-		l := p.getLit()
-		if p.tok != leftBrack {
-			x = p.word(p.wps(l))
-			break
-		}
-		pe := &ParamExp{Dollar: l.ValuePos, Short: true, Param: l}
-		pe.Index = p.eitherIndex()
-		x = p.word(p.wps(pe))
-	case bckQuote:
-		if p.quote == arithmExprLet && p.openBquotes > 0 {
-			return nil
-		}
-		fallthrough
-	default:
-		if w := p.getWord(); w != nil {
-			// we want real nil, not (*Word)(nil) as that
-			// sets the type to non-nil and then x != nil
-			x = w
-		}
-	}
-	if compact && p.spaced {
-		return x
-	}
-	if p.tok == addAdd || p.tok == subSub {
-		if !isArithName(x) {
-			p.curErr("%s must follow a name", p.tok.String())
-		}
-		u := &UnaryArithm{
-			Post:  true,
-			OpPos: p.pos,
-			Op:    UnAritOperator(p.tok),
-			X:     x,
-		}
-		p.next()
-		return u
-	}
-	return x
-}
-
 func singleRuneParam(r rune) bool {
 	switch r {
 	case '@', '*', '#', '$', '?', '!', '-',
@@ -1431,9 +1278,15 @@ func (p *Parser) paramExp() *ParamExp {
 		if p.got(colon) {
 			pe.Slice.Length = p.followArithm(colon, colonPos)
 		}
+		// Need to use a different matched style so arithm errors
+		// get reported correctly
+		p.quote = old
+		pe.Rbrace = p.pos
+		p.matchedArithm(pe.Dollar, dollBrace, rightBrace)
+		return pe
 	case caret, dblCaret, comma, dblComma:
 		// upper/lower case
-		if p.lang != LangBash {
+		if !p.lang.isBash() {
 			p.langErr(p.pos, "this expansion operator", LangBash)
 		}
 		pe.Exp = p.paramExpExp()
@@ -1491,23 +1344,8 @@ func (p *Parser) eitherIndex() ArithmExpr {
 	}
 	expr := p.followArithm(leftBrack, lpos)
 	p.quote = old
-	p.matched(lpos, leftBrack, rightBrack)
+	p.matchedArithm(lpos, leftBrack, rightBrack)
 	return expr
-}
-
-func (p *Parser) peekArithmEnd() bool {
-	return p.tok == rightParen && p.r == ')'
-}
-
-func (p *Parser) arithmEnd(ltok token, lpos Pos, old saveState) Pos {
-	if !p.peekArithmEnd() {
-		p.matchingErr(lpos, ltok, dblRightParen)
-	}
-	p.rune()
-	p.postNested(old)
-	pos := p.pos
-	p.next()
-	return pos
 }
 
 func stopToken(tok token) bool {
@@ -1630,7 +1468,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		}
 		as.Array = &ArrayExpr{Lparen: p.pos}
 		newQuote := p.quote
-		if p.lang == LangBash {
+		if p.lang.isBash() {
 			newQuote = arrayElems
 		}
 		old := p.preNested(newQuote)
@@ -1703,7 +1541,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 		s.Redirs = append(s.Redirs, r)
 	}
 	r.N = p.getLit()
-	if p.lang != LangBash && r.N != nil && r.N.Value[0] == '{' {
+	if !p.lang.isBash() && r.N != nil && r.N.Value[0] == '{' {
 		p.langErr(r.N.Pos(), "{varname} redirects", LangBash)
 	}
 	r.Op, r.OpPos = RedirOperator(p.tok), p.pos
@@ -1845,7 +1683,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.bashFuncDecl(s)
 			}
 		case "declare":
-			if p.lang == LangBash {
+			if p.lang.isBash() {
 				p.declClause(s)
 			}
 		case "local", "export", "readonly", "typeset", "nameref":
@@ -1857,12 +1695,16 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.timeClause(s)
 			}
 		case "coproc":
-			if p.lang == LangBash {
+			if p.lang.isBash() {
 				p.coprocClause(s)
 			}
 		case "select":
 			if p.lang != LangPOSIX {
 				p.selectClause(s)
+			}
+		case "@test":
+			if p.lang == LangBats {
+				p.testDecl(s)
 			}
 		}
 		if s.Cmd != nil {
@@ -1878,7 +1720,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			if p.lang == LangPOSIX && !ValidName(name.Value) {
 				p.posErr(name.Pos(), "invalid func name")
 			}
-			p.funcDecl(s, name, name.ValuePos)
+			p.funcDecl(s, name, name.ValuePos, true)
 		} else {
 			p.callExpr(s, p.word(p.wps(name)), false)
 		}
@@ -2058,7 +1900,7 @@ func (p *Parser) forClause(s *Stmt) {
 }
 
 func (p *Parser) loop(fpos Pos) Loop {
-	if p.lang != LangBash {
+	if !p.lang.isBash() {
 		switch p.tok {
 		case leftParen, dblLeftParen:
 			p.langErr(p.pos, "c-style fors", LangBash)
@@ -2068,13 +1910,13 @@ func (p *Parser) loop(fpos Pos) Loop {
 		cl := &CStyleLoop{Lparen: p.pos}
 		old := p.preNested(arithmExprCmd)
 		p.next()
-		cl.Init = p.arithmExpr(0, false, false)
+		cl.Init = p.arithmExpr(false)
 		if !p.got(dblSemicolon) {
 			p.follow(p.pos, "expr", semicolon)
-			cl.Cond = p.arithmExpr(0, false, false)
+			cl.Cond = p.arithmExpr(false)
 			p.follow(p.pos, "expr", semicolon)
 		}
-		cl.Post = p.arithmExpr(0, false, false)
+		cl.Post = p.arithmExpr(false)
 		cl.Rparen = p.arithmEnd(dblLeftParen, cl.Lparen, old)
 		p.got(semicolon)
 		p.got(_Newl)
@@ -2201,15 +2043,20 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 
 func (p *Parser) testClause(s *Stmt) {
 	tc := &TestClause{Left: p.pos}
+	old := p.preNested(testExpr)
 	p.next()
 	if _, ok := p.gotRsrv("]]"); ok || p.tok == _EOF {
 		p.posErr(tc.Left, "test clause requires at least one expression")
 	}
 	tc.X = p.testExpr(dblLeftBrack, tc.Left, false)
+	if tc.X == nil {
+		p.followErrExp(tc.Left, "[[")
+	}
 	tc.Right = p.pos
 	if _, ok := p.gotRsrv("]]"); !ok {
 		p.matchingErr(tc.Left, "[[", "]]")
 	}
+	p.postNested(old)
 	s.Cmd = tc
 }
 
@@ -2231,6 +2078,9 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 		if p.val == "]]" {
 			return left
 		}
+		if p.tok = token(testBinaryOp(p.val)); p.tok == illegalTok {
+			p.curErr("not a valid test operator: %s", p.val)
+		}
 	case rdrIn, rdrOut:
 	case _EOF, rightParen:
 		return left
@@ -2238,11 +2088,6 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 		p.curErr("test operator words must consist of a single literal")
 	default:
 		p.curErr("not a valid test operator: %v", p.tok)
-	}
-	if p.tok == _LitWord {
-		if p.tok = token(testBinaryOp(p.val)); p.tok == illegalTok {
-			p.curErr("not a valid test operator: %s", p.val)
-		}
 	}
 	b := &BinaryTest{
 		OpPos: p.pos,
@@ -2259,7 +2104,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 			p.followErrExp(b.OpPos, b.Op.String())
 		}
 	case TsReMatch:
-		if p.lang != LangBash {
+		if !p.lang.isBash() {
 			p.langErr(p.pos, "regex tests", LangBash)
 		}
 		p.rxOpenParens = 0
@@ -2267,7 +2112,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 		// TODO(mvdan): Using nested states within a regex will break in
 		// all sorts of ways. The better fix is likely to use a stop
 		// token, like we do with heredocs.
-		p.quote = testRegexp
+		p.quote = testExprRegexp
 		fallthrough
 	default:
 		if _, ok := b.X.(*Word); !ok {
@@ -2290,7 +2135,7 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		switch op {
 		case illegalTok:
 		case tsRefVar, tsModif: // not available in mksh
-			if p.lang == LangBash {
+			if p.lang.isBash() {
 				p.tok = op
 			}
 		default:
@@ -2321,8 +2166,17 @@ func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
 		}
 		pe.Rparen = p.matched(pe.Lparen, leftParen, rightParen)
 		return pe
+	case _LitWord:
+		if p.val == "]]" {
+			return nil
+		}
+		fallthrough
 	default:
-		return p.followWordTok(ftok, fpos)
+		if w := p.getWord(); w != nil {
+			return w
+		}
+		// otherwise we'd return a typed nil above
+		return nil
 	}
 }
 
@@ -2410,7 +2264,7 @@ func (p *Parser) letClause(s *Stmt) {
 	old := p.preNested(arithmExprLet)
 	p.next()
 	for !stopToken(p.tok) && !p.peekRedir() {
-		x := p.arithmExpr(0, true, false)
+		x := p.arithmExpr(true)
 		if x == nil {
 			break
 		}
@@ -2429,10 +2283,24 @@ func (p *Parser) bashFuncDecl(s *Stmt) {
 		p.followErr(fpos, "function", "a name")
 	}
 	name := p.lit(p.pos, p.val)
+	hasParens := false
 	if p.next(); p.got(leftParen) {
+		hasParens = true
 		p.follow(name.ValuePos, "foo(", rightParen)
 	}
-	p.funcDecl(s, name, fpos)
+	p.funcDecl(s, name, fpos, hasParens)
+}
+
+func (p *Parser) testDecl(s *Stmt) {
+	td := &TestDecl{Position: p.pos}
+	p.next()
+	if td.Description = p.getWord(); td.Description == nil {
+		p.followErr(td.Position, "@test", "a description word")
+	}
+	if td.Body = p.getStmt(false, false, true); td.Body == nil {
+		p.followErr(td.Position, `@test "desc"`, "a statement")
+	}
+	s.Cmd = td
 }
 
 func (p *Parser) callExpr(s *Stmt, w *Word, assign bool) {
@@ -2484,7 +2352,7 @@ loop:
 			}
 			fallthrough
 		default:
-			p.curErr("a command can only contain words and redirects")
+			p.curErr("a command can only contain words and redirects; encountered %s", p.tok)
 		}
 	}
 	if len(ce.Assigns) == 0 && len(ce.Args) == 0 {
@@ -2502,10 +2370,11 @@ loop:
 	s.Cmd = ce
 }
 
-func (p *Parser) funcDecl(s *Stmt, name *Lit, pos Pos) {
+func (p *Parser) funcDecl(s *Stmt, name *Lit, pos Pos, withParens bool) {
 	fd := &FuncDecl{
 		Position: pos,
 		RsrvWord: pos != name.ValuePos,
+		Parens:   withParens,
 		Name:     name,
 	}
 	p.got(_Newl)

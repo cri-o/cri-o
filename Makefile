@@ -146,7 +146,7 @@ shellfiles: ${SHFMT}
 	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh))
 
 shfmt: shellfiles
-	${SHFMT} -w -i 4 -d ${SHELLFILES}
+	${SHFMT} -ln bash -w -i 4 -d ${SHELLFILES}
 
 shellcheck: shellfiles ${SHELLCHECK}
 	${SHELLCHECK} \
