@@ -41,13 +41,13 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	state=$(crictl inspect "$ctr_id")
-	pid=$(echo $state | jq .info.pid)
-	grep 100000 /proc/$pid/uid_map
+	pid=$(echo "$state" | jq .info.pid)
+	grep 100000 /proc/"$pid"/uid_map
 	[ "$status" -eq 0 ]
-	grep 200000 /proc/$pid/gid_map
+	grep 200000 /proc/"$pid"/gid_map
 	[ "$status" -eq 0 ]
 
-	out=`echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET`
+	out=$(echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	echo "$out"
 	[[ "$out" == *"100000"* ]]
 	[[ "$out" == *"200000"* ]]
