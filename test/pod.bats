@@ -26,13 +26,6 @@ function teardown() {
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
-	id="$output"
-	run crictl stopp "$id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "pod remove" {
@@ -145,24 +138,6 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	[[ "$output" == "" ]]
-	run crictl stopp "$pod1_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod1_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod2_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod2_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod3_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod3_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
 }
 
 @test "pod metadata in list & status" {
@@ -380,13 +355,4 @@ function teardown() {
 	conf_pause_image=$(grep -oP 'pause_image = \K"[^"]+"' "$CRIO_CONFIG")
 	pod_pause_image=$(echo "$output" | jq -e .info.image)
 	[[ "$conf_pause_image" == "$pod_pause_image" ]]
-
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-
-	stop_crio
 }
