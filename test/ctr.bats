@@ -834,8 +834,10 @@ function wait_until_exit() {
 @test "ctr execsync conflicting with conmon env" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis_env_custom.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
+	# XXX: this relies on PATH being the first element in envs[]
+	jq '	  .envs[0].value += ":/acustompathinpath"' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl exec "$ctr_id" env)
 	[[ "$output" == *"acustompathinpath"* ]]
