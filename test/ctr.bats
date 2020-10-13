@@ -893,8 +893,8 @@ function wait_until_exit() {
 	start_crio
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
-	edit_json '.linux.security_context.privileged |= true' \
-		"$TESTDATA"/container_redis.json "$TESTDIR"/ctr_config.json
+	jq '.linux.security_context.privileged = true' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR"/ctr_config.json
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_config.json "$TESTDATA"/sandbox_config_privileged.json)
 	crictl start "$ctr_id"
 
