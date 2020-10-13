@@ -35,7 +35,7 @@ function teardown() {
 @test "ensure correct hostname for hostnetwork:true" {
 	start_crio
 	python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["namespace_options"]["network"] = 2; obj["annotations"] = {}; obj["hostname"] = ""; json.dump(obj, sys.stdout)' \
-	< "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_hostnetwork_config.json
+		< "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_hostnetwork_config.json
 
 	pod_id=$(crictl runp "$TESTDIR"/sandbox_hostnetwork_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_hostnetwork_config.json)
@@ -92,7 +92,7 @@ function teardown() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_hostport.json "$TESTDATA"/sandbox_config_hostport.json)
 	crictl start "$ctr_id"
 
-	run nc -w 5 "$host_ip" 4888 </dev/null
+	run nc -w 5 "$host_ip" 4888 < /dev/null
 	echo "$output"
 	[ "$output" = "crictl_host" ]
 	[ "$status" -eq 0 ]

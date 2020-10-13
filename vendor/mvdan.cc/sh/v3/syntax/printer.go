@@ -269,16 +269,16 @@ func (p *Printer) space() {
 }
 
 func (p *Printer) spacePad(pos Pos) {
-	if p.cols.lineStart {
-		// Never add padding at the start of a line, since this may
-		// result in broken indentation or mixing of spaces and tabs.
+	if p.cols.lineStart && p.indentSpaces == 0 {
+		// Never add padding at the start of a line unless we are indenting
+		// with spaces, since this may result in mixing of spaces and tabs.
 		return
 	}
 	if p.wantSpace {
 		p.WriteByte(' ')
 		p.wantSpace = false
 	}
-	for !p.cols.lineStart && p.cols.column > 0 && p.cols.column < int(pos.col) {
+	for p.cols.column > 0 && p.cols.column < int(pos.col) {
 		p.WriteByte(' ')
 	}
 }
@@ -327,20 +327,14 @@ func (p *Printer) semiOrNewl(s string, pos Pos) {
 }
 
 func (p *Printer) writeLit(s string) {
-	if !strings.Contains(s, "\t") {
-		p.WriteString(s)
-		return
+	// If p.tabWriter is nil, this is the nested printer being used to print
+	// <<- heredoc bodies, so the parent printer will add the escape bytes
+	// later.
+	if p.tabWriter != nil && strings.Contains(s, "\t") {
+		p.WriteByte(tabwriter.Escape)
+		defer p.WriteByte(tabwriter.Escape)
 	}
-	p.WriteByte(tabwriter.Escape)
-	for i := 0; i < len(s); i++ {
-		b := s[i]
-		if b != '\t' {
-			p.WriteByte(b)
-			continue
-		}
-		p.WriteByte(b)
-	}
-	p.WriteByte(tabwriter.Escape)
+	p.WriteString(s)
 }
 
 func (p *Printer) incLevel() {
@@ -427,7 +421,17 @@ func (p *Printer) flushHeredocs() {
 				}
 				p.tabsPrinter = &Printer{
 					bufWriter: &extra,
-					line:      r.Hdoc.Pos().Line(),
+
+					// The options need to persist.
+					indentSpaces:   p.indentSpaces,
+					binNextLine:    p.binNextLine,
+					swtCaseIndent:  p.swtCaseIndent,
+					spaceRedirects: p.spaceRedirects,
+					keepPadding:    p.keepPadding,
+					minify:         p.minify,
+					funcNextLine:   p.funcNextLine,
+
+					line: r.Hdoc.Pos().Line(),
 				}
 				p.tabsPrinter.wordParts(r.Hdoc.Parts, true)
 			}
@@ -507,6 +511,8 @@ func (p *Printer) flushComments() {
 				p.WriteByte('\n')
 			}
 			p.indent()
+			p.wantSpace = false
+			p.spacePad(c.Pos())
 		case p.wantSpace:
 			if p.keepPadding {
 				p.spacePad(c.Pos())
@@ -788,6 +794,7 @@ func (p *Printer) testExpr(expr TestExpr) {
 		p.testExpr(x.X)
 	case *ParenTest:
 		p.WriteByte('(')
+		p.wantSpace = startsWithLparen(x.X)
 		p.testExpr(x.X)
 		p.WriteByte(')')
 	}
@@ -828,9 +835,8 @@ func (p *Printer) wordJoin(ws []*Word) {
 				anyNewline = true
 			}
 			p.bslashNewl()
-		} else {
-			p.spacePad(w.Pos())
 		}
+		p.spacePad(w.Pos())
 		p.word(w)
 	}
 	if anyNewline {
@@ -873,6 +879,7 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 		}
 		if el.Pos().Line() > p.line {
 			p.newlines(el.Pos())
+			p.spacePad(el.Pos())
 		} else if p.wantSpace {
 			p.space()
 		}
@@ -1058,11 +1065,13 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.WriteString("function ")
 		}
 		p.writeLit(x.Name.Value)
-		p.WriteString("()")
+		if !x.RsrvWord || x.Parens {
+			p.WriteString("()")
+		}
 		if p.funcNextLine {
 			p.newline(Pos{})
 			p.indent()
-		} else if !p.minify {
+		} else if !x.Parens || !p.minify {
 			p.space()
 		}
 		p.line = x.Body.Pos().Line()
@@ -1150,6 +1159,14 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.space()
 			p.arithmExpr(n, true, false)
 		}
+	case *TestDecl:
+		p.spacedString("@test", x.Pos())
+		p.space()
+		p.word(x.Description)
+		p.space()
+		p.stmt(x.Body)
+	default:
+		panic(fmt.Sprintf("syntax.Printer: unexpected node type %T", x))
 	}
 	return startRedirs
 }
@@ -1192,12 +1209,16 @@ func (p *Printer) ifClause(ic *IfClause, elif bool) {
 	p.semiRsrv("fi", ic.FiPos)
 }
 
-func startsWithLparen(s *Stmt) bool {
-	switch x := s.Cmd.(type) {
-	case *Subshell:
-		return true
+func startsWithLparen(node Node) bool {
+	switch node := node.(type) {
+	case *Stmt:
+		return startsWithLparen(node.Cmd)
 	case *BinaryCmd:
-		return startsWithLparen(x.X)
+		return startsWithLparen(node.X)
+	case *Subshell:
+		return true // keep ( (
+	case *ArithmCmd:
+		return true // keep ( ((
 	}
 	return false
 }
@@ -1251,12 +1272,7 @@ func (e *extraIndenter) WriteByte(b byte) error {
 	if b != '\n' {
 		return nil
 	}
-	line := e.curLine
-	if bytes.HasPrefix(e.curLine, []byte("\xff")) {
-		// beginning a multiline sequence, with the leading escape
-		line = line[1:]
-	}
-	trimmed := bytes.TrimLeft(line, "\t")
+	trimmed := bytes.TrimLeft(e.curLine, "\t")
 	if len(trimmed) == 1 {
 		// no tabs if this is an empty line, i.e. "\n"
 		e.bufWriter.Write(trimmed)
@@ -1264,21 +1280,28 @@ func (e *extraIndenter) WriteByte(b byte) error {
 		return nil
 	}
 
-	lineIndent := len(line) - len(trimmed)
+	lineIndent := len(e.curLine) - len(trimmed)
 	if e.firstIndent < 0 {
+		// This is the first heredoc line we add extra indentation to.
+		// Keep track of how much we indented.
 		e.firstIndent = lineIndent
 		e.firstChange = e.baseIndent - lineIndent
 		lineIndent = e.baseIndent
+
+	} else if lineIndent < e.firstIndent {
+		// This line did not have enough indentation; simply indent it
+		// like the first line.
+		lineIndent = e.firstIndent
 	} else {
-		if lineIndent < e.firstIndent {
-			lineIndent = e.firstIndent
-		} else {
-			lineIndent += e.firstChange
-		}
+		// This line had plenty of indentation. Add the extra
+		// indentation that the first line had, for consistency.
+		lineIndent += e.firstChange
 	}
+	e.bufWriter.WriteByte(tabwriter.Escape)
 	for i := 0; i < lineIndent; i++ {
 		e.bufWriter.WriteByte('\t')
 	}
+	e.bufWriter.WriteByte(tabwriter.Escape)
 	e.bufWriter.Write(trimmed)
 	e.curLine = e.curLine[:0]
 	return nil

@@ -50,6 +50,7 @@ GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
+BATS_FILES := $(wildcard test/*.bats)
 
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
 	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
@@ -146,7 +147,8 @@ shellfiles: ${SHFMT}
 	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh))
 
 shfmt: shellfiles
-	${SHFMT} -w -i 4 -d ${SHELLFILES}
+	${SHFMT} -ln bash -w -i 4 -d ${SHELLFILES}
+	${SHFMT} -ln bats -w -sr -d $(BATS_FILES)
 
 shellcheck: shellfiles ${SHELLCHECK}
 	${SHELLCHECK} \
