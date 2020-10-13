@@ -3,12 +3,11 @@
 load helpers
 
 function setup() {
-	newconfig=$(mktemp --tmpdir crio-config.XXXXXX.json)
 	setup_test
+	newconfig="$TESTDIR/config.json"
 }
 
 function teardown() {
-	rm -f "$newconfig"
 	cleanup_test
 }
 
@@ -190,8 +189,8 @@ function wait_until_exit() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
-	cp "$TESTDATA"/container_config_logging.json "$newconfig"
-	sed -i 's|"%shellcommand%"|"echo here is some output \&\& echo and some from stderr >\&2"|' "$newconfig"
+	jq '	  .command = ["sh", "-c", "echo here is some output && echo and some from stderr >&2"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
@@ -215,22 +214,18 @@ function wait_until_exit() {
 	CONTAINER_LOG_JOURNALD=true start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	stdout="here is some output"
-	stderr="here is some error"
-
 	# Create a new container.
-	cp "$TESTDATA"/container_config_logging.json "$newconfig"
-	sed -i 's|"%shellcommand%"|"echo '"$stdout"' \&\& echo '"$stderr"' >\&2"|' "$newconfig"
-	cat "$newconfig"
+	jq '	  .command = ["sh", "-c", "echo here is some output && echo and some from stderr >&2"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
 	crictl rm "$ctr_id"
 
 	# priority of 5 is LOG_NOTICE
-	journalctl -t conmon -p info CONTAINER_ID_FULL="$ctr_id" | grep -E "$stdout"
+	journalctl -t conmon -p info CONTAINER_ID_FULL="$ctr_id" | grep -F "here is some output"
 	# priority of 3 is LOG_ERR
-	journalctl -t conmon -p err CONTAINER_ID_FULL="$ctr_id" | grep -E "$stderr"
+	journalctl -t conmon -p err CONTAINER_ID_FULL="$ctr_id" | grep -F "and some from stderr"
 }
 
 @test "ctr logging [tty=true]" {
@@ -238,9 +233,9 @@ function wait_until_exit() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
-	cp "$TESTDATA"/container_config_logging.json "$newconfig"
-	sed -i 's|"%shellcommand%"|"echo here is some output"|' "$newconfig"
-	sed -i 's|"tty": false,|"tty": true,|' "$newconfig"
+	jq '	  .command = ["sh", "-c", "echo here is some output && echo and some from stderr >&2"]
+		| .tty = true' \
+		"$TESTDATA"/container_config.json > "$newconfig"
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
@@ -259,8 +254,8 @@ function wait_until_exit() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
-	cp "$TESTDATA"/container_config_logging.json "$newconfig"
-	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
+	jq '	  .command = ["sh", "-c", "for i in $(seq 250); do echo $i; done"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
@@ -280,8 +275,8 @@ function wait_until_exit() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
-	cp "$TESTDATA"/container_config_logging.json "$newconfig"
-	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
+	jq '	  .command = ["sh", "-c", "for i in $(seq 250); do echo $i; done"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	crictl start "$ctr_id"
@@ -302,8 +297,8 @@ function wait_until_exit() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
-	cp "$TESTDATA"/container_config_logging.json "$newconfig"
-	sed -i 's|"%shellcommand%"|"for i in $(seq 250); do echo $i; done"|' "$newconfig"
+	jq '	  .command = ["sh", "-c", "for i in $(seq 250); do echo $i; done"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	crictl start "$ctr_id"
@@ -323,8 +318,8 @@ function wait_until_exit() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	# Create a new container.
-	cp "$TESTDATA"/container_config_logging.json "$newconfig"
-	sed -i 's|"%shellcommand%"|"echo -n hello"|' "$newconfig"
+	jq '	  .command = ["sh", "-c", "echo -n hello"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
@@ -517,9 +512,13 @@ function wait_until_exit() {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	cp "$TESTDATA"/container_redis_device.json "$newconfig"
-	sed -i 's|"%containerdevicepath%"|"/dev/mynull"|' "$newconfig"
-	sed -i 's|"%privilegedboolean%"|false|' "$newconfig"
+	jq '	  .devices = [ {
+			host_path: "/dev/null",
+			container_path: "/dev/mynull",
+			permissions: "rwm"
+		} ]
+		| .linux.security_context.privileged = false' \
+		"$TESTDATA"/container_redis.json > "$newconfig"
 
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
@@ -537,9 +536,13 @@ function wait_until_exit() {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
 
-	cp "$TESTDATA"/container_redis_device.json "$newconfig"
-	sed -i 's|"%containerdevicepath%"|"/dev/mynull"|' "$newconfig"
-	sed -i 's|"%privilegedboolean%"|true|' "$newconfig"
+	jq '	  .devices = [ {
+			host_path: "/dev/null",
+			container_path: "/dev/mynull",
+			permissions: "rwm"
+		} ]
+		| .linux.security_context.privileged = true' \
+		"$TESTDATA"/container_redis.json > "$newconfig"
 
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json)
 	crictl start "$ctr_id"
@@ -558,9 +561,14 @@ function wait_until_exit() {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
 
-	cp "$TESTDATA"/container_redis_device.json "$newconfig"
-	sed -i 's|"%containerdevicepath%"|"/dev/random"|' "$newconfig"
-	sed -i 's|"%privilegedboolean%"|true|' "$newconfig"
+	jq '	  .devices = [ {
+			host_path: "/dev/null",
+			container_path: "/dev/random",
+			permissions: "rwm"
+		} ]
+		| .linux.security_context.privileged = true
+		| del(.linux.security_context.capabilities)' \
+		"$TESTDATA"/container_redis.json > "$newconfig"
 
 	# Error is "configured with a device container path that already exists on the host"
 	! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json
