@@ -564,10 +564,3 @@ function fail() {
     echo "FAIL [${BATS_TEST_NAME} ${BASH_SOURCE[0]##*/}:${BASH_LINENO[0]}] $*" >&2
     exit 1
 }
-
-# Helper function to create a modified json file, using jq syntax.
-# Usage: edit_json 'jq script ...' input.json output.json
-function edit_json() {
-    [ $# -eq 3 ]
-    jq "$1" "$2" | awk 'BEGIN{RS="";getline<"-";print>ARGV[1]}' "$3"
-}
