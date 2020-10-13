@@ -719,11 +719,17 @@ function wait_until_exit() {
 @test "ctr /etc/resolv.conf rw/ro mode" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_resolvconf.json "$TESTDATA"/sandbox_config.json)
+	jq '	  .command = ["sh", "-c", "echo test >> /etc/resolv.conf"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
 
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_resolvconf_ro.json "$TESTDATA"/sandbox_config.json)
+	jq '	  .command = ["sh", "-c", "echo test >> /etc/resolv.conf"]
+		| .linux.security_context.readonly_rootfs = true
+		| .metadata.name = "test-resolv-ro"' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
 }
