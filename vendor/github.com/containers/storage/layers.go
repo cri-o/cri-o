@@ -832,6 +832,27 @@ func (r *layerStore) tspath(id string) string {
 	return filepath.Join(r.layerdir, id+tarSplitSuffix)
 }
 
+func (r *layerStore) deleteInDigestMap(id string) {
+	for digest, layers := range r.bycompressedsum {
+		for i, layerID := range layers {
+			if layerID == id {
+				layers = append(layers[:i], layers[i+1:]...)
+				r.bycompressedsum[digest] = layers
+				break
+			}
+		}
+	}
+	for digest, layers := range r.byuncompressedsum {
+		for i, layerID := range layers {
+			if layerID == id {
+				layers = append(layers[:i], layers[i+1:]...)
+				r.byuncompressedsum[digest] = layers
+				break
+			}
+		}
+	}
+}
+
 func (r *layerStore) Delete(id string) error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to delete layers at %q", r.layerspath())
@@ -857,6 +878,7 @@ func (r *layerStore) Delete(id string) error {
 		if layer.MountPoint != "" {
 			delete(r.bymount, layer.MountPoint)
 		}
+		r.deleteInDigestMap(id)
 		toDeleteIndex := -1
 		for i, candidate := range r.layers {
 			if candidate.ID == id {
