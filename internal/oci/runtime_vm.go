@@ -837,7 +837,7 @@ func (r *runtimeVM) remove(ctx context.Context, ctrID, execID string) error {
 	if _, err := r.task.Delete(ctx, &task.DeleteRequest{
 		ID:     ctrID,
 		ExecID: execID,
-	}); err != nil {
+	}); err != nil && !errors.Is(err, ttrpc.ErrClosed) {
 		return errdefs.FromGRPC(err)
 	}
 
