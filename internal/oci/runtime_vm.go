@@ -804,7 +804,10 @@ func (r *runtimeVM) wait(ctx context.Context, ctrID, execID string) (int32, erro
 		ExecID: execID,
 	})
 	if err != nil {
-		return -1, errdefs.FromGRPC(err)
+		if !errors.Is(err, ttrpc.ErrClosed) {
+			return -1, errdefs.FromGRPC(err)
+		}
+		return -1, errdefs.ErrNotFound
 	}
 
 	return int32(resp.ExitStatus), nil
