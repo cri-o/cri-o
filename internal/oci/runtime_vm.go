@@ -506,7 +506,10 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 
 	stopCh := make(chan error)
 	go func() {
-		if _, err := r.wait(ctx, c.ID(), ""); err != nil {
+		// errdefs.ErrNotFound actually comes from a closed connection, which is expected
+		// when stoping the container, with the agent and the VM going off. In such case.
+		// let's just ignore the error.
+		if _, err := r.wait(ctx, c.ID(), ""); err != nil && !errors.Is(err, errdefs.ErrNotFound) {
 			stopCh <- errdefs.FromGRPC(err)
 		}
 
