@@ -534,7 +534,11 @@ function wait_until_exit() {
 	fi
 
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
+	sandbox_config="$TESTDIR"/sandbox_config.json
+
+	jq '	  .linux.security_context.privileged = true' \
+		"$TESTDATA"/sandbox_config.json > "$sandbox_config"
+	pod_id=$(crictl runp "$sandbox_config")
 
 	jq '	  .devices = [ {
 			host_path: "/dev/null",
@@ -544,7 +548,7 @@ function wait_until_exit() {
 		| .linux.security_context.privileged = true' \
 		"$TESTDATA"/container_redis.json > "$newconfig"
 
-	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json)
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$sandbox_config")
 	crictl start "$ctr_id"
 
 	output=$(crictl exec --sync "$ctr_id" ls /dev/mynull)
@@ -559,7 +563,11 @@ function wait_until_exit() {
 	fi
 
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
+	sandbox_config="$TESTDIR"/sandbox_config.json
+
+	jq '	  .linux.security_context.privileged = true' \
+		"$TESTDATA"/sandbox_config.json > "$sandbox_config"
+	pod_id=$(crictl runp "$sandbox_config")
 
 	jq '	  .devices = [ {
 			host_path: "/dev/null",
@@ -571,7 +579,7 @@ function wait_until_exit() {
 		"$TESTDATA"/container_redis.json > "$newconfig"
 
 	# Error is "configured with a device container path that already exists on the host"
-	! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json
+	! crictl create "$pod_id" "$newconfig" "$sandbox_config"
 }
 
 @test "ctr hostname env" {
@@ -919,10 +927,15 @@ function wait_until_exit() {
 @test "privileged ctr -- check for rw mounts" {
 	start_crio
 
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_privileged.json)
+	sandbox_config="$TESTDIR"/sandbox_config.json
+
+	jq '	  .linux.security_context.privileged = true' \
+		"$TESTDATA"/sandbox_config.json > "$sandbox_config"
+	pod_id=$(crictl runp "$sandbox_config")
+
 	jq '	  .linux.security_context.privileged = true' \
 		"$TESTDATA"/container_redis.json > "$newconfig"
-	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config_privileged.json)
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$sandbox_config")
 	crictl start "$ctr_id"
 
 	output=$(crictl inspect "$ctr_id")
