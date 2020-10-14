@@ -353,13 +353,9 @@ function check_journald() {
     echo "0"
 }
 
-# Check whether metrics port is listening
-function check_metrics_port() {
-    if ! netstat -lanp | grep "$1" >/dev/null; then
-        echo "1"
-        return
-    fi
-    echo "0"
+# Check whether a port is listening
+function port_listens() {
+    netstat -ln46 | grep -q ":$1\b"
 }
 
 function cleanup_ctrs() {
