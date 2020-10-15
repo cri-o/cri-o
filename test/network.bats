@@ -65,8 +65,8 @@ function teardown() {
 	run crictl exec --sync "$ctr_id" ip addr show dev eth0 scope global
 	echo "$output"
 	[ "$status" -eq 0 ]
-	[[ "$output" = *"$POD_IPV4_CIDR_START"* ]]
-	[[ "$output" = *"$POD_IPV6_CIDR_START"* ]]
+	[[ "$output" = *" inet $POD_IPV4_CIDR_START"* ]]
+	[[ "$output" = *" inet6 $POD_IPV6_CIDR_START"* ]]
 }
 
 @test "Ensure correct CNI plugin namespace/name/container-id arguments" {
