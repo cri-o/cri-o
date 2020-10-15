@@ -338,19 +338,14 @@ function start_crio() {
     check_images
 }
 
+# Check if journald is supported by runtime.
 function check_journald() {
-    if ! pkg-config --exists libsystemd-journal; then
-        if ! pkg-config --exists libsystemd; then
-            echo "1"
-            return
-        fi
-    fi
-
-    if ! journalctl --version; then
-        echo "1"
-        return
-    fi
-    echo "0"
+    "$CONMON_BINARY" \
+        -l journald:42 \
+        --cid 1234567890123 \
+        --cuuid 42 \
+        --runtime /bin/true &&
+        journalctl --version
 }
 
 # Check whether a port is listening

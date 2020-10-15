@@ -205,10 +205,8 @@ function wait_until_exit() {
 }
 
 @test "ctr journald logging" {
-	# ensure we have journald logging capability
-	enabled=$(check_journald)
-	if [ "$enabled" -ne 0 ]; then
-		skip "journald not enabled"
+	if ! check_journald; then
+		skip "journald logging not supported"
 	fi
 
 	CONTAINER_LOG_JOURNALD=true start_crio
