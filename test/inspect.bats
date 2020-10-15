@@ -48,8 +48,8 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 
-	ipv4=$(parse_pod_ipv4 "$ctr_id")
-	ipv6=$(parse_pod_ipv6 "$ctr_id")
+	ipv4=$(pod_ip -4 "$ctr_id")
+	ipv6=$(pod_ip -6 "$ctr_id")
 	[[ "$out" == *"\"ip_addresses\":[\"$ipv4\",\"$ipv6\"]"* ]]
 	[[ "$output" == *"\"ip\": \"$ipv4\""* ]]
 

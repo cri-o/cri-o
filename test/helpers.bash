@@ -82,11 +82,13 @@ STREAM_PORT=${STREAM_PORT:-10010}
 CONTAINER_METRICS_PORT=${CONTAINER_METRICS_PORT:-9090}
 
 POD_IPV4_CIDR="10.88.0.0/16"
-POD_IPV4_CIDR_START="10.88"
+# shellcheck disable=SC2034
+POD_IPV4_CIDR_START="10.88."
 POD_IPV4_DEF_ROUTE="0.0.0.0/0"
 
 POD_IPV6_CIDR="1100:200::/24"
-POD_IPV6_CIDR_START="1100:200::"
+# shellcheck disable=SC2034
+POD_IPV6_CIDR_START="1100:2"
 POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
 IMAGES=(
@@ -480,17 +482,12 @@ function prepare_network_conf() {
 EOF
 }
 
-function parse_pod_ip() {
-    inet=$(crictl exec --sync "$1" ip addr show dev eth0 scope global 2>&1 | grep "$2")
-    echo "$inet" | sed -n 's;.*\('"$3"'.*\)/.*;\1;p'
-}
-
-function parse_pod_ipv4() {
-    parse_pod_ip "$1" 'inet ' $POD_IPV4_CIDR_START
-}
-
-function parse_pod_ipv6() {
-    parse_pod_ip "$1" inet6 $POD_IPV6_CIDR_START
+# Usage: ip=$(pod_ip -4|-6 "$ctr_id")
+function pod_ip() {
+    [ $# -eq 2 ]
+    [ "$1" = "-4" ] || [ "$1" = "-6" ]
+    crictl exec --sync "$2" ip "$1" addr show dev eth0 scope global |
+        awk '/^ +inet/ {sub("/.*","",$2); print $2; exit}'
 }
 
 function get_host_ip() {
@@ -500,16 +497,18 @@ function get_host_ip() {
 }
 
 function ping_pod() {
-    ipv4=$(parse_pod_ipv4 "$1")
-    ping -W 1 -c 5 "$ipv4"
+    local ip
 
-    ipv6=$(parse_pod_ipv6 "$1")
-    ping6 -W 1 -c 5 "$ipv6"
+    ip=$(pod_ip -4 "$1")
+    ping -W 1 -c 2 "$ip"
+
+    ip=$(pod_ip -6 "$1")
+    ping6 -W 1 -c 2 "$ip"
 }
 
 function ping_pod_from_pod() {
-    ipv4=$(parse_pod_ipv4 "$1")
-    crictl exec --sync "$2" ping -W 1 -c 2 "$ipv4"
+    ip=$(pod_ip -4 "$1")
+    crictl exec --sync "$2" ping -W 1 -c 2 "$ip"
 
     # since RHEL kernels don't mirror ipv4.ip_forward sysctl to ipv6, this fails
     # in such an environment without giving all containers NET_RAW capability
@@ -518,8 +517,9 @@ function ping_pod_from_pod() {
     if grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep -q " 7"; then
         return
     fi
-    ipv6=$(parse_pod_ipv6 "$1")
-    crictl exec --sync "$2" ping6 -W 1 -c 2 "$ipv6"
+
+    ip=$(pod_ip -6 "$1")
+    crictl exec --sync "$2" ping6 -W 1 -c 2 "$ip"
 }
 
 function cleanup_network_conf() {
