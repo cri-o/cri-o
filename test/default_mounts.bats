@@ -15,28 +15,15 @@ function teardown() {
 		skip "userNS enabled"
 	fi
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl exec --sync "$ctr_id" cat /proc/mounts
-	echo "$output"
-	[ "$status" -eq 0 ]
-	mount_info="$output"
-	run grep /container/path1 <<< "$mount_info"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" ls /run/secrets
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+
+	crictl exec --sync "$ctr_id" cat /proc/mounts | grep /container/path1
+
+	output=$(crictl exec --sync "$ctr_id" ls /run/secrets)
 	[[ "$output" == *"test.txt"* ]]
-	run crictl exec --sync "$ctr_id" ls /run/secrets/mysymlink
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	output=$(crictl exec --sync "$ctr_id" ls /run/secrets/mysymlink)
 	[[ "$output" == *"key.pem"* ]]
 }
 
@@ -45,47 +32,31 @@ function teardown() {
 		skip "userNS enabled"
 	fi
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
 	host_path="$TESTDIR"/clash
 	mkdir "$host_path"
 	echo "clashing..." > "$host_path"/clashing.txt
 	sed -e "s,%HPATH%,$host_path,g" "$TESTDATA"/container_redis_default_mounts.json > "$TESTDIR"/defmounts_pre.json
 	sed -e 's,%CPATH%,\/run\/secrets\/clash,g' "$TESTDIR"/defmounts_pre.json > "$TESTDIR"/defmounts.json
-	run crictl create "$pod_id" "$TESTDIR"/defmounts.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl exec --sync "$ctr_id" ls -la /run/secrets/clash
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" cat /run/secrets/clash/clashing.txt
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/defmounts.json "$TESTDATA"/sandbox_config.json)
+
+	crictl exec --sync "$ctr_id" ls -la /run/secrets/clash
+
+	output=$(crictl exec --sync "$ctr_id" cat /run/secrets/clash/clashing.txt)
 	[[ "$output" == *"clashing..."* ]]
-	run crictl exec --sync "$ctr_id" ls -la /run/secrets
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" cat /run/secrets/test.txt
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	crictl exec --sync "$ctr_id" ls -la /run/secrets
+	output=$(crictl exec --sync "$ctr_id" cat /run/secrets/test.txt)
 	[[ "$output" == *"Testing secrets mounts. I am mounted!"* ]]
 }
 
 @test "test deprecated --default-mounts flag" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl exec --sync "$ctr_id" ls /container/path1
-	echo "$output"
-	[ "$status" -eq 0 ]
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+
+	output=$(crictl exec --sync "$ctr_id" ls /container/path1)
 	[[ "$output" == *"test.txt"* ]]
 }
