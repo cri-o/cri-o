@@ -444,16 +444,6 @@ func hostNetwork(containerConfig *pb.ContainerConfig) bool {
 	return securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
 }
 
-// addSecretsBindMounts mounts user defined secrets to the container
-func addSecretsBindMounts(ctx context.Context, mountLabel, ctrRunDir string, defaultMounts []string, specgen generate.Generator) ([]rspec.Mount, error) {
-	containerMounts := specgen.Config.Mounts
-	mounts, err := secretMounts(ctx, defaultMounts, mountLabel, ctrRunDir, containerMounts)
-	if err != nil {
-		return nil, err
-	}
-	return mounts, nil
-}
-
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, retErr error) {
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
