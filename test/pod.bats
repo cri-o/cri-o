@@ -38,39 +38,72 @@ function teardown() {
 
 @test "pod list filtering" {
 	start_crio
-	pod1_id=$(crictl runp "$TESTDATA"/sandbox1_config.json)
-	pod2_id=$(crictl runp "$TESTDATA"/sandbox2_config.json)
-	pod3_id=$(crictl runp "$TESTDATA"/sandbox3_config.json)
+	pod_config="$TESTDIR"/sandbox_config.json
+
+	jq '	  .metadata.name = "podsandbox1"
+		| .metadata.uid = "redhat-test-crio-1"
+		| .labels.group = "test"
+		| .labels.name = "podsandbox1"
+		| .labels.version = "v1.0.0"' \
+		"$TESTDATA"/sandbox_config.json > "$pod_config"
+	pod1_id=$(crictl runp "$pod_config")
+
+	jq '	  .metadata.name = "podsandbox2"
+		| .metadata.uid = "redhat-test-crio-2"
+		| .labels.group = "test"
+		| .labels.name = "podsandbox2"
+		| .labels.version = "v1.0.0"' \
+		"$TESTDATA"/sandbox_config.json > "$pod_config"
+	pod2_id=$(crictl runp "$pod_config")
+
+	jq '	  .metadata.name = "podsandbox3"
+		| .metadata.uid = "redhat-test-crio-3"
+		| .labels.group = "test"
+		| .labels.name = "podsandbox3"
+		| .labels.version = "v1.1.0"' \
+		"$TESTDATA"/sandbox_config.json > "$pod_config"
+	pod3_id=$(crictl runp "$pod_config")
+
 	output=$(crictl pods --label "name=podsandbox3" --quiet)
-	#[[ "$output" != "" ]]
 	[[ "$output" == "$pod3_id" ]]
+
 	output=$(crictl pods --label "label=not-exist" --quiet)
 	[[ "$output" == "" ]]
+
 	output=$(crictl pods --label "group=test" --label "version=v1.0.0" --quiet)
 	[[ "$output" != "" ]]
 	[[ "$output" == *"$pod1_id"* ]]
 	[[ "$output" == *"$pod2_id"* ]]
 	[[ "$output" != *"$pod3_id"* ]]
+
 	output=$(crictl pods --label "group=test" --quiet)
 	[[ "$output" != "" ]]
 	[[ "$output" == *"$pod1_id"* ]]
 	[[ "$output" == *"$pod2_id"* ]]
 	[[ "$output" == *"$pod3_id"* ]]
+
 	output=$(crictl pods --id "$pod1_id" --quiet)
 	[[ "$output" == "$pod1_id" ]]
+
 	# filter by truncated id should work as well
 	output=$(crictl pods --id "${pod1_id:0:4}" --quiet)
 	[[ "$output" == "$pod1_id" ]]
+
 	output=$(crictl pods --id "$pod2_id" --quiet)
 	[[ "$output" == "$pod2_id" ]]
+
 	output=$(crictl pods --id "$pod3_id" --quiet)
 	[[ "$output" == "$pod3_id" ]]
+
 	output=$(crictl pods --id "$pod1_id" --label "group=test" --quiet)
 	[[ "$output" == "$pod1_id" ]]
+
 	output=$(crictl pods --id "$pod2_id" --label "group=test" --quiet)
 	[[ "$output" == "$pod2_id" ]]
+
 	output=$(crictl pods --id "$pod3_id" --label "group=test" --quiet)
 	[[ "$output" == "$pod3_id" ]]
+
 	output=$(crictl pods --id "$pod3_id" --label "group=production" --quiet)
 	[[ "$output" == "" ]]
 }
