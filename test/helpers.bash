@@ -520,10 +520,6 @@ function cleanup_network_conf() {
     rm -rf "$CRIO_CNI_CONFIG"
 }
 
-function temp_sandbox_conf() {
-    sed -e s/\"namespace\":.*/\"namespace\":\ \""$1"\",/g "$TESTDATA"/sandbox_config.json >"$TESTDIR/sandbox_config_$1.json"
-}
-
 function reload_crio() {
     kill -HUP $CRIO_PID
 }
