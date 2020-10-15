@@ -325,7 +325,7 @@ function start_crio_no_setup() {
         -l debug \
         -c "$CRIO_CONFIG" \
         -d "$CRIO_CONFIG_DIR" \
-        &> >(tee "$CRIO_LOG") &
+        &>"$CRIO_LOG" &
     CRIO_PID=$!
     wait_until_reachable
 }
@@ -430,6 +430,12 @@ function cleanup_testdir() {
 
 function cleanup_test() {
     [ -z "$TESTDIR" ] && return
+    # show crio log (only shown by bats in case of test failure)
+    if [ -f "$CRIO_LOG" ]; then
+        echo "# --- crio.log :: ---"
+        cat "$CRIO_LOG"
+        echo "# --- --- ---"
+    fi
     cleanup_ctrs
     cleanup_pods
     stop_crio
