@@ -11,15 +11,10 @@ function teardown() {
 	cleanup_test
 }
 
-@test "Ping pod from the host" {
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json)
-	ping_pod "$ctr_id"
-}
-
-@test "Ping pod from another pod" {
+@test "Ping pod from the host / another pod" {
 	pod1_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr1_id=$(crictl create "$pod1_id" "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json)
+	ping_pod "$ctr1_id"
 
 	sandbox_config="$TESTDIR"/sandbox_config.json
 	jq '	  .metadata.namespace="cni_test"' \
