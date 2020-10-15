@@ -515,7 +515,7 @@ function ping_pod_from_pod() {
     # in such an environment without giving all containers NET_RAW capability
     # rather than reducing the security of the tests for all cases, skip this check
     # instead
-    if (grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep " 7"); then
+    if grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep -q " 7"; then
         return
     fi
     ipv6=$(parse_pod_ipv6 "$1")
