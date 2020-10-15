@@ -647,7 +647,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			Destination: "/etc/resolv.conf",
 			Type:        "bind",
 			Source:      sb.ResolvPath(),
-			Options:     []string{"bind", "nodev", "nosuid", "noexec"},
+			Options:     append(options, []string{"bind", "nodev", "nosuid", "noexec"}...),
 		})
 	}
 

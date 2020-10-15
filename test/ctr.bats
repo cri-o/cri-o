@@ -731,7 +731,7 @@ function wait_until_exit() {
 		"$TESTDATA"/container_config.json > "$newconfig"
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
-	wait_until_exit "$ctr_id"
+	EXPECTED_EXIT_STATUS=1 wait_until_exit "$ctr_id"
 }
 
 @test "ctr create with non-existent command" {
