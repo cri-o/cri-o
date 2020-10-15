@@ -219,13 +219,13 @@ function retry() {
     local i
 
     for ((i = 0; i < attempts; i++)); do
-        if "$@"; then
+        if output=$("$@"); then
             return 0
         fi
         sleep "$delay"
     done
 
-    echo "Command \"$*\" failed $attempts times"
+    echo "Command \"$*\" failed $attempts times; last output :: $output"
     false
 }
 
