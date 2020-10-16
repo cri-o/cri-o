@@ -4,6 +4,30 @@ load helpers
 
 function setup() {
 	setup_test
+
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+
+	MOUNT_PATH="$TESTDIR/secrets"
+	mkdir "$MOUNT_PATH"
+	MOUNT_FILE="$MOUNT_PATH/test.txt"
+	touch "$MOUNT_FILE"
+	echo "Testing secrets mounts!" > "$MOUNT_FILE"
+
+	# Setup default secrets mounts
+	mkdir "$TESTDIR/containers"
+	touch "$TESTDIR/containers/mounts.conf"
+	echo "$TESTDIR/rhel/secrets:/run/secrets" > "$TESTDIR/containers/mounts.conf"
+	echo "$MOUNT_PATH:/container/path1" >> "$TESTDIR/containers/mounts.conf"
+	mkdir -p "$TESTDIR/rhel/secrets"
+	touch "$TESTDIR/rhel/secrets/test.txt"
+	echo "Testing secrets mounts. I am mounted!" > "$TESTDIR/rhel/secrets/test.txt"
+	mkdir -p "$TESTDIR/symlink/target"
+	touch "$TESTDIR/symlink/target/key.pem"
+	ln -s "$TESTDIR/symlink/target" "$TESTDIR/rhel/secrets/mysymlink"
+
+	start_crio
 }
 
 function teardown() {
@@ -11,10 +35,6 @@ function teardown() {
 }
 
 @test "bind secrets mounts to container" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
@@ -28,10 +48,6 @@ function teardown() {
 }
 
 @test "default mounts correctly sorted with other mounts" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	host_path="$TESTDIR"/clash

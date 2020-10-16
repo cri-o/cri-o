@@ -137,24 +137,6 @@ function setup_test() {
     CONTAINER_EXITS_DIR=$TESTDIR/containers/exits
     CONTAINER_ATTACH_SOCKET_DIR=$TESTDIR/containers
 
-    MOUNT_PATH="$TESTDIR/secrets"
-    mkdir "$MOUNT_PATH"
-    MOUNT_FILE="$MOUNT_PATH/test.txt"
-    touch "$MOUNT_FILE"
-    echo "Testing secrets mounts!" >"$MOUNT_FILE"
-
-    # Setup default secrets mounts
-    mkdir "$TESTDIR/containers"
-    touch "$TESTDIR/containers/mounts.conf"
-    echo "$TESTDIR/rhel/secrets:/run/secrets" >"$TESTDIR/containers/mounts.conf"
-    echo "$MOUNT_PATH:/container/path1" >>"$TESTDIR/containers/mounts.conf"
-    mkdir -p "$TESTDIR/rhel/secrets"
-    touch "$TESTDIR/rhel/secrets/test.txt"
-    echo "Testing secrets mounts. I am mounted!" >"$TESTDIR/rhel/secrets/test.txt"
-    mkdir -p "$TESTDIR/symlink/target"
-    touch "$TESTDIR/symlink/target/key.pem"
-    ln -s "$TESTDIR/symlink/target" "$TESTDIR/rhel/secrets/mysymlink"
-
     # We may need to set some default storage options.
     case "$(stat -f -c %T "$TESTDIR")" in
     aufs)
