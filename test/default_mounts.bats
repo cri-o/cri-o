@@ -50,13 +50,3 @@ function teardown() {
 	output=$(crictl exec --sync "$ctr_id" cat /run/secrets/test.txt)
 	[[ "$output" == *"Testing secrets mounts. I am mounted!"* ]]
 }
-
-@test "test deprecated --default-mounts flag" {
-	start_crio
-
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
-
-	output=$(crictl exec --sync "$ctr_id" ls /container/path1)
-	[[ "$output" == *"test.txt"* ]]
-}
