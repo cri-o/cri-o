@@ -205,10 +205,8 @@ function wait_until_exit() {
 }
 
 @test "ctr journald logging" {
-	# ensure we have journald logging capability
-	enabled=$(check_journald)
-	if [ "$enabled" -ne 0 ]; then
-		skip "journald not enabled"
+	if ! check_journald; then
+		skip "journald logging not supported"
 	fi
 
 	CONTAINER_LOG_JOURNALD=true start_crio
@@ -898,10 +896,8 @@ function wait_until_exit() {
 	# start crio with default port 9090
 	port="9090"
 	CONTAINER_ENABLE_METRICS=true start_crio
-	# ensure metrics port is listening
-	listened=$(check_metrics_port $port)
-	if [[ "$listened" -ne 0 ]]; then
-		skip "$CONTAINER_METRICS_PORT is not listening"
+	if ! port_listens "$port"; then
+		skip "Metrics port $port not listening"
 	fi
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
@@ -916,10 +912,8 @@ function wait_until_exit() {
 	# start crio with custom port
 	port="4321"
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$port start_crio
-	# ensure metrics port is listening
-	listened=$(check_metrics_port $port)
-	if [[ "$listened" -ne 0 ]]; then
-		skip "$CONTAINER_METRICS_PORT is not listening"
+	if ! port_listens "$port"; then
+		skip "Metrics port $port not listening"
 	fi
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
