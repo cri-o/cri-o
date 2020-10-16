@@ -53,16 +53,22 @@ function teardown() {
 	host_path="$TESTDIR"/clash
 	mkdir "$host_path"
 	echo "clashing..." > "$host_path"/clashing.txt
-	sed -e "s,%HPATH%,$host_path,g" "$TESTDATA"/container_redis_default_mounts.json > "$TESTDIR"/defmounts_pre.json
-	sed -e 's,%CPATH%,\/run\/secrets\/clash,g' "$TESTDIR"/defmounts_pre.json > "$TESTDIR"/defmounts.json
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/defmounts.json "$TESTDATA"/sandbox_config.json)
+
+	config="$TESTDIR"/config.json
+	jq --arg host_path "$host_path" --arg ctr_path /run/secrets/clash \
+		'  .mounts = [ {
+			host_path: $host_path,
+			container_path: $ctr_path
+		} ]' \
+		"$TESTDATA"/container_redis.json > "$config"
+	ctr_id=$(crictl create "$pod_id" "$config" "$TESTDATA"/sandbox_config.json)
 
 	crictl exec --sync "$ctr_id" ls -la /run/secrets/clash
 
 	output=$(crictl exec --sync "$ctr_id" cat /run/secrets/clash/clashing.txt)
-	[[ "$output" == *"clashing..."* ]]
+	[[ "$output" == "clashing..."* ]]
 
 	crictl exec --sync "$ctr_id" ls -la /run/secrets
 	output=$(crictl exec --sync "$ctr_id" cat /run/secrets/test.txt)
-	[[ "$output" == *"Testing secrets mounts. I am mounted!"* ]]
+	[[ "$output" == "Testing secrets mounts. I am mounted!"* ]]
 }
