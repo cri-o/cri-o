@@ -236,14 +236,16 @@ github.com/containers/libpod/v2/utils
 github.com/containers/libpod/v2/version
 # github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b
 github.com/containers/libtrust
-# github.com/containers/ocicrypt v1.0.3
+# github.com/containers/ocicrypt v1.0.3 => github.com/containers/ocicrypt v1.0.4-0.20201019180856-379abb478f0d
 ## explicit
 github.com/containers/ocicrypt
 github.com/containers/ocicrypt/blockcipher
 github.com/containers/ocicrypt/config
+github.com/containers/ocicrypt/crypto/pkcs11
 github.com/containers/ocicrypt/keywrap
 github.com/containers/ocicrypt/keywrap/jwe
 github.com/containers/ocicrypt/keywrap/pgp
+github.com/containers/ocicrypt/keywrap/pkcs11
 github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
@@ -497,7 +499,7 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/go-cmp v0.4.0
+# github.com/google/go-cmp v0.5.2
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
@@ -576,6 +578,8 @@ github.com/mattn/go-runewidth
 github.com/mattn/go-shellwords
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/miekg/pkcs11 v1.0.3
+github.com/miekg/pkcs11
 # github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
 github.com/mistifyio/go-zfs
 # github.com/mitchellh/go-homedir v1.1.0
@@ -766,6 +770,8 @@ github.com/soheilhy/cmux
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
+# github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980
+github.com/stefanberger/go-pkcs11uri
 # github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 ## explicit
 github.com/syndtr/gocapability/capability
@@ -825,7 +831,7 @@ go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+# golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
@@ -1012,7 +1018,7 @@ google.golang.org/grpc/tap
 gopkg.in/fsnotify.v1
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
-# gopkg.in/square/go-jose.v2 v2.3.1
+# gopkg.in/square/go-jose.v2 v2.5.1
 gopkg.in/square/go-jose.v2
 gopkg.in/square/go-jose.v2/cipher
 gopkg.in/square/go-jose.v2/json
@@ -1408,6 +1414,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 sigs.k8s.io/yaml
 # vbom.ml/util v0.0.0-20180919145318-efcd4e0f9787
 vbom.ml/util/sortorder
+# github.com/containers/ocicrypt => github.com/containers/ocicrypt v1.0.4-0.20201019180856-379abb478f0d
 # github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc90
 # github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20200710190001-3e4195d92445
