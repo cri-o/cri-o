@@ -248,6 +248,9 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
 **runtime_type**="oci"
   Type of the runtime used for this runtime handler. "oci", "vm"
 
+**privileged_without_host_devices**=false
+  Whether this runtime handler prevents host devices from being passed to privileged containers.
+
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.
 

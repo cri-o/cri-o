@@ -290,7 +290,7 @@ default_runtime = "{{ .DefaultRuntime }}"
 #  runtime_path = "/path/to/the/executable"
 #  runtime_type = "oci"
 #  runtime_root = "/path/to/the/root"
-#
+#  privileged_without_host_devices = false
 # Where:
 # - runtime-handler: name used to identify the runtime
 # - runtime_path (optional, string): absolute path to the runtime executable in
@@ -301,12 +301,17 @@ default_runtime = "{{ .DefaultRuntime }}"
 #   omitted, an "oci" runtime is assumed.
 # - runtime_root (optional, string): root directory for storage of containers
 #   state.
+# - privileged_without_host_devices (optional, bool): an option for restricting
+#   host devices from being passed to privileged containers.
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 [crio.runtime.runtimes.{{ $runtime_name }}]
 runtime_path = "{{ $runtime_handler.RuntimePath }}"
 runtime_type = "{{ $runtime_handler.RuntimeType }}"
 runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
+{{ if $runtime_handler.PrivilegedWithoutHostDevices }}
+privileged_without_host_devices = "{{ $runtime_handler.PrivilegedWithoutHostDevices }}"
+{{ end }}
 {{ end }}
 
 # crun is a fast and lightweight fully featured OCI runtime and C library for
