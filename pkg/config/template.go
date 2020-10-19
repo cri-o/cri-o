@@ -238,9 +238,10 @@ log_level = "{{ .LogLevel }}"
 # This option supports live configuration reload.
 log_filter = "{{ .LogFilter }}"
 
-# Allow usage of the annotation io.kubernetes.cri-o.userns-mode
-# for setting up a user namespace.  This feature is experimental, do not use
-# in production.  It might be changed in future without notice.
+# Allow usage of the annotation io.kubernetes.cri-o.userns-mode for setting up a user namespace.
+# A runtime class must be configured with "runtime_allow_userns_annotation" for this option to
+# have any effect.
+# This feature is experimental, do not use in production. It might be changed in future without notice.
 allow_userns_annotation = {{ .AllowUsernsAnnotation }}
 
 # The UID mappings for the user namespace of each container. A range is
@@ -291,6 +292,7 @@ default_runtime = "{{ .DefaultRuntime }}"
 #  runtime_type = "oci"
 #  runtime_root = "/path/to/the/root"
 #  privileged_without_host_devices = false
+#  allowed_annotations = []
 # Where:
 # - runtime-handler: name used to identify the runtime
 # - runtime_path (optional, string): absolute path to the runtime executable in
@@ -303,6 +305,10 @@ default_runtime = "{{ .DefaultRuntime }}"
 #   state.
 # - privileged_without_host_devices (optional, bool): an option for restricting
 #   host devices from being passed to privileged containers.
+# - allowed_annotations (optional, array of strings): an option for specifying
+#   a list of experimental annotations that this runtime handler is allowed to process.
+#   The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring
+#   a usernamespace for the pod.
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 [crio.runtime.runtimes.{{ $runtime_name }}]
@@ -311,6 +317,10 @@ runtime_type = "{{ $runtime_handler.RuntimeType }}"
 runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
 {{ if $runtime_handler.PrivilegedWithoutHostDevices }}
 privileged_without_host_devices = "{{ $runtime_handler.PrivilegedWithoutHostDevices }}"
+{{ end }}
+{{ if $runtime_handler.AllowedAnnotations }}
+allowed_annotations = [
+{{ range $opt := $runtime_handler.AllowedAnnotations }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 {{ end }}
 {{ end }}
 

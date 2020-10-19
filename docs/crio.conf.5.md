@@ -251,6 +251,10 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
 **privileged_without_host_devices**=false
   Whether this runtime handler prevents host devices from being passed to privileged containers.
 
+**allowed_annotations**=[]
+  A list of experimental annotations this runtime handler is allowed to process.
+  The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring a usernamespace for the pod.
+
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.
 

@@ -148,7 +148,10 @@ type RuntimeHandler struct {
 	RuntimeRoot string `toml:"runtime_root"`
 	// PrivilegedWithoutHostDevices can be used to restrict passing host devices
 	// to a container running as privileged.
-	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices"`
+	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices,omitempty"`
+	// AllowedAnnotations is a slice of experimental annotations that this runtime handler is allowed to process.
+	// The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring a usernamespace for the pod
+	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 }
 
 // Multiple runtime Handlers in a map

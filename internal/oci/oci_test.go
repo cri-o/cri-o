@@ -2,6 +2,7 @@ package oci_test
 
 import (
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,6 +32,7 @@ var _ = t.Describe("Oci", func() {
 		const (
 			invalidRuntime = "invalid"
 			defaultRuntime = "runc"
+			usernsRuntime  = "userns"
 		)
 		runtimes := config.Runtimes{
 			defaultRuntime: {
@@ -38,6 +40,12 @@ var _ = t.Describe("Oci", func() {
 				RuntimeType: "",
 				RuntimeRoot: "/run/runc",
 			}, invalidRuntime: {},
+			usernsRuntime: {
+				RuntimePath:        "/bin/sh",
+				RuntimeType:        "",
+				RuntimeRoot:        "/run/runc",
+				AllowedAnnotations: []string{annotations.UsernsModeAnnotation},
+			},
 		}
 
 		BeforeEach(func() {
@@ -67,6 +75,33 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(handler).To(Equal(runtimes[defaultRuntime]))
+		})
+		It("AllowUsernsAnnotation should be true when set", func() {
+			// Given
+			// When
+			allowed, err := sut.AllowUsernsAnnotation(usernsRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(allowed).To(Equal(true))
+		})
+		It("AllowUsernsAnnotation should be false when not set", func() {
+			// Given
+			// When
+			allowed, err := sut.AllowUsernsAnnotation(defaultRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(allowed).To(Equal(false))
+		})
+		It("AllowUsernsAnnotation should be false when runtime invalid", func() {
+			// Given
+			// When
+			allowed, err := sut.AllowUsernsAnnotation(invalidRuntime)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(allowed).To(Equal(false))
 		})
 	})
 
