@@ -12,29 +12,16 @@ function teardown() {
 
 @test "image volume ignore" {
 	CONTAINER_IMAGE_VOLUMES="ignore" start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	image_volume_config=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/image-volume-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
 	echo "$image_volume_config" > "$TESTDIR"/container_image_volume.json
-	run crictl create "$pod_id" "$TESTDIR"/container_image_volume.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_image_volume.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 	run crictl exec --sync "$ctr_id" ls /imagevolume
-	echo "$output"
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"ls: /imagevolume: No such file or directory"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
 }
 
 @test "image volume bind" {
@@ -42,29 +29,15 @@ function teardown() {
 		skip "userNS enabled"
 	fi
 	CONTAINER_IMAGE_VOLUMES="bind" start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	image_volume_config=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/image-volume-test"; obj["command"] = ["/bin/sleep", "600"]; json.dump(obj, sys.stdout)')
 	echo "$image_volume_config" > "$TESTDIR"/container_image_volume.json
-	run crictl create "$pod_id" "$TESTDIR"/container_image_volume.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" touch /imagevolume/test_file
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_image_volume.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	output=$(crictl exec --sync "$ctr_id" touch /imagevolume/test_file)
 	[ "$output" = "" ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
 }
 
 @test "image volume user mkdir" {
@@ -72,31 +45,15 @@ function teardown() {
 		skip "userNS enabled"
 	fi
 	CONTAINER_IMAGE_VOLUMES="mkdir" start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	image_volume_config=$(cat "$TESTDATA"/container_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["image"]["image"] = "quay.io/crio/image-volume-test"; obj["command"] = ["/bin/sleep", "600"]; obj["linux"]["security_context"]["run_as_user"]["value"] = 1000; json.dump(obj, sys.stdout)')
 	echo "$image_volume_config" > "$TESTDIR"/container_image_volume.json
-	run crictl create "$pod_id" "$TESTDIR"/container_image_volume.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" touch /imagevolume/test_file
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_image_volume.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	output=$(crictl exec --sync "$ctr_id" touch /imagevolume/test_file)
 	[ "$output" = "" ]
-	run crictl exec --sync "$ctr_id" id
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" id)
 	[[ "$output" == *"uid=1000 gid=0(root)"* ]]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
 }

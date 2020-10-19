@@ -14,9 +14,7 @@ function teardown() {
 
 @test "stats" {
 	# given
-	run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	[ "$status" -eq 0 ]
-	id="$output"
+	id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
 	# when
 	run crictl stats -o json

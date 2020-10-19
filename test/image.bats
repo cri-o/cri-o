@@ -22,38 +22,22 @@ function teardown() {
 
 @test "run container in pod with image ID" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	sed -e "s/%VALUE%/$REDIS_IMAGEID/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
-	run crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 }
 
 @test "container status when created by image ID" {
 	start_crio
 
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	sed -e "s/%VALUE%/$REDIS_IMAGEID/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
 
-	run crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
+	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json)
 
-	run crictl inspect -o yaml "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl inspect -o yaml "$ctr_id")
 	[[ "$output" == *"image: quay.io/crio/redis:alpine"* ]]
 	[[ "$output" == *"imageRef: $REDIS_IMAGEREF"* ]]
 }
@@ -61,21 +45,13 @@ function teardown() {
 @test "container status when created by image tagged reference" {
 	start_crio
 
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	sed -e "s/%VALUE%/quay.io\/crio\/redis:alpine/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagetag.json
 
-	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imagetag.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_by_imagetag.json "$TESTDATA"/sandbox_config.json)
 
-	run crictl inspect -o yaml "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl inspect -o yaml "$ctr_id")
 	[[ "$output" == *"image: quay.io/crio/redis:alpine"* ]]
 	[[ "$output" == *"imageRef: $REDIS_IMAGEREF"* ]]
 }
@@ -83,25 +59,14 @@ function teardown() {
 @test "container status when created by image canonical reference" {
 	start_crio
 
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	sed -e "s|%VALUE%|$REDIS_IMAGEREF|g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageref.json
 
-	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imageref.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_by_imageref.json "$TESTDATA"/sandbox_config.json)
 
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-
-	run crictl inspect -o yaml "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl start "$ctr_id"
+	output=$(crictl inspect -o yaml "$ctr_id")
 	[[ "$output" == *"image: quay.io/crio/redis:alpine"* ]]
 	[[ "$output" == *"imageRef: $REDIS_IMAGEREF"* ]]
 }
@@ -109,48 +74,28 @@ function teardown() {
 @test "container status when created by image list canonical reference" {
 	start_crio
 
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	sed -e "s|%VALUE%|$IMAGE_LIST_DIGEST|g" -e 's|"/bin/ls"|"/bin/sleep", "1d"|g' "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagelistref.json
 
-	run crictl create "$pod_id" "$TESTDIR"/ctr_by_imagelistref.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_by_imagelistref.json "$TESTDATA"/sandbox_config.json)
 
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-
-	run crictl inspect -o yaml "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl start "$ctr_id"
+	output=$(crictl inspect -o yaml "$ctr_id")
 	[[ "$output" == *"image: $IMAGE_LIST_DIGEST"* ]]
 	[[ "$output" == *"imageRef: $IMAGE_LIST_DIGEST"* ]]
 }
 
 @test "image pull and list" {
 	start_crio
-	run crictl pull "$IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull "$IMAGE"
+	imageid=$(crictl images --quiet "$IMAGE")
+	[ "$imageid" != "" ]
 
-	run crictl images --quiet "$IMAGE"
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	imageid="$output"
-
-	run crictl images @"$imageid"
-	[ "$status" -eq 0 ]
+	output=$(crictl images @"$imageid")
 	[[ "$output" == *"$IMAGE"* ]]
 
-	run crictl images --quiet "$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 	cleanup_images
 }
@@ -158,32 +103,21 @@ function teardown() {
 @test "image pull with signature" {
 	skip "registry has some issues"
 	start_crio
-	run crictl pull "$SIGNED_IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull "$SIGNED_IMAGE"
 	cleanup_images
 }
 
 @test "image pull and list by tag and ID" {
 	start_crio
-	run crictl pull "$IMAGE:go"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull "$IMAGE:go"
 
-	run crictl images --quiet "$IMAGE:go"
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	imageid="$output"
+	imageid=$(crictl images --quiet "$IMAGE:go")
+	[ "$imageid" != "" ]
 
-	run crictl images --quiet @"$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet @"$imageid")
 	[ "$output" != "" ]
 
-	run crictl images --quiet "$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
 	cleanup_images
@@ -191,24 +125,14 @@ function teardown() {
 
 @test "image pull and list by digest and ID" {
 	start_crio
-	run crictl pull quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3
 
-	run crictl images --quiet quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	imageid="$output"
-
-	run crictl images --quiet @"$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	imageid=$(crictl images --quiet quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3)
+	[ "$imageid" != "" ]
+	output=$(crictl images --quiet @"$imageid")
 	[ "$output" != "" ]
 
-	run crictl images --quiet "$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
 	cleanup_images
@@ -217,40 +141,27 @@ function teardown() {
 @test "image pull and list by manifest list digest" {
 	start_crio
 
-	run crictl pull ${IMAGE_LIST_DIGEST}
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull ${IMAGE_LIST_DIGEST}
 
-	run crictl images --quiet ${IMAGE_LIST_DIGEST}
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	imageid="$output"
+	imageid=$(crictl images --quiet ${IMAGE_LIST_DIGEST})
+	[ "$imageid" != "" ]
 
-	run crictl images -v ${IMAGE_LIST_DIGEST}
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images -v ${IMAGE_LIST_DIGEST})
 	[ "$output" != "" ]
 	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
 
 	case $(go env GOARCH) in
 	amd64)
-		run crictl images -v ${IMAGE_LIST_DIGEST_AMD64}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
 	esac
 
-	run crictl images --quiet @"$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet @"$imageid")
 	[ "$output" != "" ]
 
-	run crictl images --quiet "$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
 	cleanup_images
@@ -260,20 +171,11 @@ function teardown() {
 @test "image pull and list by manifest list tag" {
 	start_crio
 
-	run crictl pull ${IMAGE_LIST_TAG}
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull ${IMAGE_LIST_TAG}
+	imageid=$(crictl images --quiet ${IMAGE_LIST_TAG})
+	[ "$imageid" != "" ]
 
-	run crictl images --quiet ${IMAGE_LIST_TAG}
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-
-	imageid="$output"
-
-	run crictl images -v ${IMAGE_LIST_DIGEST_FOR_TAG}
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images -v ${IMAGE_LIST_DIGEST_FOR_TAG})
 	if [ "$output" == "" ]; then
 		echo "NOTE: THIS TEST PROBABLY FAILED BECAUSE DIGEST HAS CHANGED, CONSIDER UPDATING TO MATCH THE FOLLOWING DIGEST:"
 		crictl inspecti ${IMAGE_LIST_TAG} | jq .status.repoDigests
@@ -284,43 +186,31 @@ function teardown() {
 
 	case $(go env GOARCH) in
 	amd64)
-		run crictl images -v ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}"* ]]
 		;;
 	arm64)
-		run crictl images -v ${IMAGE_LIST_DIGEST_ARM64}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_ARM64})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
 		;;
 	ppc64le)
-		run crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
 		;;
 	s390x)
-		run crictl images -v ${IMAGE_LIST_DIGEST_S390X}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_S390X})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
 		;;
 	esac
 
-	run crictl images --quiet @"$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet @"$imageid")
 	[ "$output" != "" ]
 
-	run crictl images --quiet "$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
 	cleanup_images
@@ -330,65 +220,45 @@ function teardown() {
 @test "image pull and list by manifest list and individual digest" {
 	start_crio
 
-	run crictl pull ${IMAGE_LIST_DIGEST}
-	echo "$output"
-	[ "$status" -eq 0 ]
-
-	run crictl images --quiet ${IMAGE_LIST_DIGEST}
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	imageid="$output"
+	crictl pull ${IMAGE_LIST_DIGEST}
+	imageid=$(crictl images --quiet ${IMAGE_LIST_DIGEST})
+	[ "$imageid" != "" ]
 
 	case $(go env GOARCH) in
 	amd64)
-		run crictl pull ${IMAGE_LIST_DIGEST_AMD64}
-		run crictl images -v ${IMAGE_LIST_DIGEST_AMD64}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		crictl pull ${IMAGE_LIST_DIGEST_AMD64}
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
 	arm64)
-		run crictl pull ${IMAGE_LIST_DIGEST_ARM64}
-		run crictl images -v ${IMAGE_LIST_DIGEST_ARM64}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		crictl pull ${IMAGE_LIST_DIGEST_ARM64}
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_ARM64})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
 		;;
 	ppc64le)
-		run crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
-		run crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
 		;;
 	s390x)
-		run crictl pull ${IMAGE_LIST_DIGEST_S390X}
-		run crictl images -v ${IMAGE_LIST_DIGEST_S390X}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		crictl pull ${IMAGE_LIST_DIGEST_S390X}
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_S390X})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
 		;;
 	esac
 
-	run crictl images -v ${IMAGE_LIST_DIGEST}
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images -v ${IMAGE_LIST_DIGEST})
 	[ "$output" != "" ]
 	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
 
-	run crictl images --quiet @"$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet @"$imageid")
 	[ "$output" != "" ]
 
-	run crictl images --quiet "$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
 	cleanup_images
@@ -400,63 +270,44 @@ function teardown() {
 
 	case $(go env GOARCH) in
 	amd64)
-		run crictl pull ${IMAGE_LIST_DIGEST_AMD64}
-		run crictl images -v ${IMAGE_LIST_DIGEST_AMD64}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		crictl pull ${IMAGE_LIST_DIGEST_AMD64}
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
 	arm64)
-		run crictl pull ${IMAGE_LIST_DIGEST_ARM64}
-		run crictl images -v ${IMAGE_LIST_DIGEST_ARM64}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		crictl pull ${IMAGE_LIST_DIGEST_ARM64}
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_ARM64})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
 		;;
 	ppc64le)
-		run crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
-		run crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
 		;;
 	s390x)
-		run crictl pull ${IMAGE_LIST_DIGEST_S390X}
-		run crictl images -v ${IMAGE_LIST_DIGEST_S390X}
-		[ "$status" -eq 0 ]
-		echo "$output"
+		crictl pull ${IMAGE_LIST_DIGEST_S390X}
+		output=$(crictl images -v ${IMAGE_LIST_DIGEST_S390X})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
 		;;
 	esac
 
-	run crictl pull ${IMAGE_LIST_DIGEST}
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull ${IMAGE_LIST_DIGEST}
 
-	run crictl images --quiet ${IMAGE_LIST_DIGEST}
-	[ "$status" -eq 0 ]
-	echo "$output"
-	[ "$output" != "" ]
-	imageid="$output"
+	imageid=$(crictl images --quiet ${IMAGE_LIST_DIGEST})
+	[ "$imageid" != "" ]
 
-	run crictl images -v ${IMAGE_LIST_DIGEST}
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images -v ${IMAGE_LIST_DIGEST})
 	[ "$output" != "" ]
 	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
 
-	run crictl images --quiet @"$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet @"$imageid")
 	[ "$output" != "" ]
 
-	run crictl images --quiet "$imageid"
-	[ "$status" -eq 0 ]
-	echo "$output"
+	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
 	cleanup_images
@@ -465,41 +316,25 @@ function teardown() {
 
 @test "image list with filter" {
 	start_crio
-	run crictl pull "$IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl images --quiet "$IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull "$IMAGE"
+	output=$(crictl images --quiet "$IMAGE")
 	printf '%s\n' "$output" | while IFS= read -r id; do
-		run crictl rmi "$id"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		crictl rmi "$id"
 	done
-	run crictl images --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl images --quiet
 
 	cleanup_images
 }
 
 @test "image list/remove" {
 	start_crio
-	run crictl pull "$IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl images --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull "$IMAGE"
+	output=$(crictl images --quiet)
 	[ "$output" != "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
-		run crictl rmi "$id"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		crictl rmi "$id"
 	done
-	run crictl images --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl images --quiet)
 	[ "$output" = "" ]
 
 	cleanup_images
@@ -507,25 +342,15 @@ function teardown() {
 
 @test "image status/remove" {
 	start_crio
-	run crictl pull "$IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl images --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	crictl pull "$IMAGE"
+	output=$(crictl images --quiet)
 	[ "$output" != "" ]
 	printf '%s\n' "$output" | while IFS= read -r id; do
-		run crictl images -v "$id"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		output=$(crictl images -v "$id")
 		[ "$output" != "" ]
-		run crictl rmi "$id"
-		echo "$output"
-		[ "$status" -eq 0 ]
+		crictl rmi "$id"
 	done
-	run crictl images --quiet
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl images --quiet)
 	[ "$output" = "" ]
 
 	cleanup_images

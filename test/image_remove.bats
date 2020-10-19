@@ -19,7 +19,6 @@ function remove_images_by() {
 	copyimg --image-name="$image":latest --add-name="$image":othertag
 	# Get the list of image names and IDs.
 	output=$(crictl images -v)
-	echo "$output"
 	[ "$output" != "" ]
 	# Cycle through each name, removing it by either name or id.
 	# When removing by name, the image that we assigned a second name to

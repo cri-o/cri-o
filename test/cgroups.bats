@@ -21,9 +21,7 @@ function teardown() {
 
 	ctr_id=$(crictl run "$TESTDIR"/container_pids_limit.json "$TESTDATA"/sandbox_config.json)
 
-	run crictl exec --sync "$ctr_id" sh -c 'cat /sys/fs/cgroup/pids/pids.max 2>/dev/null || cat /sys/fs/cgroup/pids.max'
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c 'cat /sys/fs/cgroup/pids/pids.max 2>/dev/null || cat /sys/fs/cgroup/pids.max')
 	[[ "$output" == "1234" ]]
 }
 
@@ -35,8 +33,6 @@ function teardown() {
 
 	pod_id=$(crictl runp "$TESTDIR"/sandbox_config_slice.json)
 
-	run systemctl status "crio-conmon-$pod_id.scope"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(systemctl status "crio-conmon-$pod_id.scope")
 	[[ "$output" == *"customcrioconmon.slice"* ]]
 }

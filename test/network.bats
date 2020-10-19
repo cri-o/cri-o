@@ -16,19 +16,13 @@ function teardown() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 
-	run crictl exec --sync "$ctr_id" sh -c "hostname"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "hostname")
 	[[ "$output" == *"crictl_host"* ]]
 
-	run crictl exec --sync "$ctr_id" sh -c "echo \$HOSTNAME"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "echo \$HOSTNAME")
 	[[ "$output" == *"crictl_host"* ]]
 
-	run crictl exec --sync "$ctr_id" sh -c "cat /etc/hostname"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /etc/hostname")
 	[[ "$output" == *"crictl_host"* ]]
 }
 
@@ -41,19 +35,13 @@ function teardown() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_hostnetwork_config.json)
 	crictl start "$ctr_id"
 
-	run crictl exec --sync "$ctr_id" sh -c "hostname"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "hostname")
 	[[ "$output" == *"$HOSTNAME"* ]]
 
-	run crictl exec --sync "$ctr_id" sh -c "echo \$HOSTNAME"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "echo \$HOSTNAME")
 	[[ "$output" == *"$HOSTNAME"* ]]
 
-	run crictl exec --sync "$ctr_id" sh -c "cat /etc/hostname"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /etc/hostname")
 	[[ "$output" == *"$HOSTNAME"* ]]
 }
 
@@ -62,9 +50,7 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
-	run crictl exec --sync "$ctr_id" ip addr show dev eth0 scope global
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl exec --sync "$ctr_id" ip addr show dev eth0 scope global)
 	[[ "$output" = *" inet $POD_IPV4_CIDR_START"* ]]
 	[[ "$output" = *" inet6 $POD_IPV6_CIDR_START"* ]]
 }
