@@ -747,18 +747,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	var secretMounts []rspec.Mount
-	if len(s.config.DefaultMounts) > 0 {
-		// This option has been deprecated, once it is removed in the later versions, delete the server/secrets.go file as well
-		log.Warnf(ctx, "--default-mounts has been deprecated and will be removed in future versions. Add mounts to either %q or %q", secrets.DefaultMountsFile, secrets.OverrideMountsFile)
-		var err error
-		secretMounts, err = addSecretsBindMounts(ctx, mountLabel, containerInfo.RunDir, s.config.DefaultMounts, *specgen)
-		if err != nil {
-			return nil, fmt.Errorf("failed to mount secrets: %v", err)
-		}
-	}
 	// Add secrets from the default and override mounts.conf files
-	secretMounts = append(secretMounts, secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless(), ctr.DisableFips())...)
+	secretMounts := secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless(), ctr.DisableFips())
 
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)

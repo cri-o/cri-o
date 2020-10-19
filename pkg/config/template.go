@@ -183,11 +183,6 @@ additional_devices = [
 hooks_dir = [
 {{ range $hooksDir := .HooksDir }}{{ printf "\t%q,\n" $hooksDir}}{{ end }}]
 
-# List of default mounts for each container. **Deprecated:** this option will
-# be removed in future versions in favor of default_mounts_file.
-default_mounts = [
-{{ range $mount := .DefaultMounts }}{{ printf "\t%q,\n" $mount }}{{ end }}]
-
 # Path to the file specifying the defaults mounts for each container. The
 # format of the config is /SRC:/DST, one mount per line. Notice that CRI-O reads
 # its default mounts from the following two files:

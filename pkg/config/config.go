@@ -165,10 +165,6 @@ type RuntimeConfig struct {
 	// this slice takes precedence.
 	HooksDir []string `toml:"hooks_dir"`
 
-	// DefaultMounts is the list of mounts to be mounted for each container
-	// The format of each mount is "host-path:container-path"
-	DefaultMounts []string `toml:"default_mounts"`
-
 	// Capabilities to add to all containers.
 	DefaultCapabilities capabilities.Capabilities `toml:"default_capabilities"`
 
