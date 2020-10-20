@@ -109,11 +109,6 @@ grpc_max_recv_msg_size = {{ .GRPCMaxRecvMsgSize }}
 #default_ulimits = [
 {{ range $ulimit := .DefaultUlimits }}{{ printf "#\t%q,\n" $ulimit }}{{ end }}#]
 
-# default_runtime is the _name_ of the OCI runtime to be used as the default.
-# The name is matched against the runtimes map below. If this value is changed,
-# the corresponding existing entry from the runtimes map below will be ignored.
-default_runtime = "{{ .DefaultRuntime }}"
-
 # If true, the runtime will not use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
 
@@ -280,6 +275,11 @@ namespaces_dir = "{{ .NamespacesDir }}"
 
 # pinns_path is the path to find the pinns binary, which is needed to manage namespace lifecycle
 pinns_path = "{{ .PinnsPath }}"
+
+# default_runtime is the _name_ of the OCI runtime to be used as the default.
+# The name is matched against the runtimes map below. If this value is changed,
+# the corresponding existing entry from the runtimes map below will be ignored.
+default_runtime = "{{ .DefaultRuntime }}"
 
 # The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
 # The runtime to use is picked based on the runtime_handler provided by the CRI.
