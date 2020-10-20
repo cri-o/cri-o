@@ -506,7 +506,10 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 
 	stopCh := make(chan error)
 	go func() {
-		if _, err := r.wait(ctx, c.ID(), ""); err != nil {
+		// errdefs.ErrNotFound actually comes from a closed connection, which is expected
+		// when stoping the container, with the agent and the VM going off. In such case.
+		// let's just ignore the error.
+		if _, err := r.wait(ctx, c.ID(), ""); err != nil && !errors.Is(err, errdefs.ErrNotFound) {
 			stopCh <- errdefs.FromGRPC(err)
 		}
 
@@ -626,7 +629,7 @@ func (r *runtimeVM) updateContainerStatus(c *Container) error {
 		ID: c.ID(),
 	})
 	if err != nil {
-		if errors.Cause(err) != ttrpc.ErrClosed {
+		if !errors.Is(err, ttrpc.ErrClosed) {
 			return errdefs.FromGRPC(err)
 		}
 		return errdefs.ErrNotFound
@@ -804,7 +807,10 @@ func (r *runtimeVM) wait(ctx context.Context, ctrID, execID string) (int32, erro
 		ExecID: execID,
 	})
 	if err != nil {
-		return -1, errdefs.FromGRPC(err)
+		if !errors.Is(err, ttrpc.ErrClosed) {
+			return -1, errdefs.FromGRPC(err)
+		}
+		return -1, errdefs.ErrNotFound
 	}
 
 	return int32(resp.ExitStatus), nil
@@ -827,7 +833,7 @@ func (r *runtimeVM) remove(ctx context.Context, ctrID, execID string) error {
 	if _, err := r.task.Delete(ctx, &task.DeleteRequest{
 		ID:     ctrID,
 		ExecID: execID,
-	}); err != nil {
+	}); err != nil && !errors.Is(err, ttrpc.ErrClosed) {
 		return errdefs.FromGRPC(err)
 	}
 
