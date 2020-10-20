@@ -180,6 +180,11 @@ default UID mappings (format <container>:<host>:<size>):
 
 Please refer to the [CRI-O Metrics guide](tutorials/metrics.md).
 
+## Adopters
+
+An incomplete list of adopters of CRI-O in production environments can be found [here](ADOPTERS.md).
+If you're a user, please help us complete it by submitting a pull-request!
+
 ## Weekly Meeting
 A weekly meeting is held to discuss CRI-O development. It is open to everyone.
 The details to join the meeting are on the [wiki](https://github.com/cri-o/cri-o/wiki/CRI-O-Weekly-Meeting).
