@@ -147,6 +147,12 @@ selinux = {{ .SELinux }}
 # will be used. This option supports live configuration reload.
 seccomp_profile = "{{ .SeccompProfile }}"
 
+# Changes the meaning of an empty seccomp profile. By default
+# (and according to CRI spec), an empty profile means unconfined.
+# This option tells CRI-O to treat an empty profile as the default profile,
+# which might increase security.
+seccomp_use_default_when_empty = {{ .SeccompUseDefaultWhenEmpty }}
+
 # Used to change the name of the default AppArmor profile of CRI-O. The default
 # profile name is "crio-default". This profile only takes effect if the user
 # does not specify a profile via the Kubernetes Pod's metadata annotation. If
