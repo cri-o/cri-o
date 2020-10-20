@@ -349,15 +349,26 @@ function wait_until_exit() {
 	# pod2 ctr2 create
 	# pod3 ctr3 create & start & stop
 	start_crio
-	pod1_id=$(crictl runp "$TESTDATA"/sandbox1_config.json)
-	ctr1_id=$(crictl create "$pod1_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox1_config.json)
+	pod_config="$TESTDIR"/sandbox_config.json
+
+	jq '	  .metadata.name = "podsandbox1"
+		| .metadata.uid = "redhat-test-crio-1"' \
+		"$TESTDATA"/sandbox_config.json > "$pod_config"
+	pod1_id=$(crictl runp "$pod_config")
+	ctr1_id=$(crictl create "$pod1_id" "$TESTDATA"/container_redis.json "$pod_config")
 	crictl start "$ctr1_id"
 
-	pod2_id=$(crictl runp "$TESTDATA"/sandbox2_config.json)
-	ctr2_id=$(crictl create "$pod2_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox2_config.json)
+	jq '	  .metadata.name = "podsandbox2"
+		| .metadata.uid = "redhat-test-crio-2"' \
+		"$TESTDATA"/sandbox_config.json > "$pod_config"
+	pod2_id=$(crictl runp "$pod_config")
+	ctr2_id=$(crictl create "$pod2_id" "$TESTDATA"/container_redis.json "$pod_config")
 
-	pod3_id=$(crictl runp "$TESTDATA"/sandbox3_config.json)
-	ctr3_id=$(crictl create "$pod3_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox3_config.json)
+	jq '	  .metadata.name = "podsandbox3"
+		| .metadata.uid = "redhat-test-crio-3"' \
+		"$TESTDATA"/sandbox_config.json > "$pod_config"
+	pod3_id=$(crictl runp "$pod_config")
+	ctr3_id=$(crictl create "$pod3_id" "$TESTDATA"/container_redis.json "$pod_config")
 	crictl start "$ctr3_id"
 	crictl stop "$ctr3_id"
 

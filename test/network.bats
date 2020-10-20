@@ -87,15 +87,28 @@ function teardown() {
 
 @test "Connect to pod hostport from the host" {
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_hostport.json)
-	host_ip=$(get_host_ip)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_hostport.json "$TESTDATA"/sandbox_config_hostport.json)
+
+	pod_config="$TESTDIR"/sandbox_config.json
+	jq '	  .port_mappings = [ {
+			protocol: 0,
+			container_port: 80,
+			host_port: 4888
+		} ]
+		| .hostname = "very.unique.name" ' \
+		"$TESTDATA"/sandbox_config.json > "$pod_config"
+
+	ctr_config="$TESTDIR"/container_config.json
+	jq '	  .image.image = "quay.io/crio/busybox:latest"
+		| .command = [ "/bin/nc", "-ll", "-p", "80", "-e", "/bin/hostname" ]' \
+		"$TESTDATA"/container_config.json > "$ctr_config"
+
+	pod_id=$(crictl runp "$pod_config")
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
 	crictl start "$ctr_id"
 
-	run nc -w 5 "$host_ip" 4888 < /dev/null
-	echo "$output"
-	[ "$output" = "crictl_host" ]
-	[ "$status" -eq 0 ]
+	host_ip=$(get_host_ip)
+	output=$(nc -w 5 "$host_ip" 4888 < /dev/null)
+	[ "$output" = "very.unique.name" ]
 }
 
 # ensure that the server cleaned up sandbox networking

@@ -12,26 +12,23 @@ function teardown() {
 
 @test "pid_namespace_mode_pod_test" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_pidnamespacemode_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis_namespace.json "$TESTDATA"/sandbox_pidnamespacemode_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	[ "$status" -eq 0 ]
 
-	run crictl exec --sync "$ctr_id" cat /proc/1/cmdline
-	echo "$output"
-	[ "$status" -eq 0 ]
-	[[ "$output" =~ pause ]]
+	pod_config="$TESTDIR"/sandbox_config.json
+	jq '	  .linux.security_context.namespace_options = {
+			pid: 0,
+			host_network: false,
+			host_pid: false,
+			host_ipc: false
+		}' \
+		"$TESTDATA"/sandbox_config.json > "$pod_config"
+	pod_id=$(crictl runp "$pod_config")
 
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_config="$TESTDIR"/config.json
+	jq '	  del(.linux.security_context.namespace_options)' \
+		"$TESTDATA"/container_redis.json > "$ctr_config"
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
+	crictl start "$ctr_id"
+
+	output=$(crictl exec --sync "$ctr_id" cat /proc/1/cmdline)
+	[[ "$output" == *"pause"* ]]
 }
