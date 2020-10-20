@@ -188,11 +188,6 @@ type RuntimeConfig struct {
 	// will only be able to write to volumes mounted into them
 	ReadOnly bool `toml:"read_only"`
 
-	// AllowUsernsAnnotation specifies whether CRI-O honors the io.kubernetes.cri-o.userns-mode
-	// annotation.  This is an experimental feature, do not enable in production.
-	// It might be changed in future.
-	AllowUsernsAnnotation bool `toml:"allow_userns_annotation"`
-
 	// If set to true, enable users to set a custom shm size instead of using the default value of 64M.
 	// The shm size can be set through K8S annotation with the key "io.kubernetes.cri-o.ShmSize",
 	// and the value representing the size in human readable format.

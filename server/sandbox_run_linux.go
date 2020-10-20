@@ -66,13 +66,13 @@ func addToMappingsIfMissing(ids []idtools.IDMap, id int64) []idtools.IDMap {
 
 func (s *Server) configureSandboxIDMappings(mode string, sc *pb.LinuxSandboxSecurityContext, runtimeHandler string) (*storage.IDMappingOptions, error) {
 	// find out whether the runtime handler is configured to interpret these annotations
-	runtimeAllowUsernsAnnotation, err := s.Runtime().AllowUsernsAnnotation(runtimeHandler)
+	allowUsernsAnnotation, err := s.Runtime().AllowUsernsAnnotation(runtimeHandler)
 	if err != nil {
 		return nil, err
 	}
 
 	// Ignore the annotation if not explicitly set in the config file.
-	if !s.config.AllowUsernsAnnotation || !runtimeAllowUsernsAnnotation || mode == "" {
+	if !allowUsernsAnnotation || mode == "" {
 		// No mode specified but mappings set in the config file, let's use them.
 		if s.defaultIDMappings != nil {
 			uids := s.defaultIDMappings.UIDs()
@@ -256,8 +256,15 @@ func (s *Server) getSandboxIDMappings(sb *libsandbox.Sandbox) (*idtools.IDMappin
 	if sb.UsernsMode() == "" && s.defaultIDMappings == nil {
 		return nil, nil
 	}
+
+	// find out whether the runtime handler is configured to interpret these annotations
+	allowUsernsAnnotation, err := s.Runtime().AllowUsernsAnnotation(sb.RuntimeHandler())
+	if err != nil {
+		return nil, err
+	}
+
 	// Ignore the annotation if not explicitly set in the config file.
-	if s.defaultIDMappings == nil && !s.config.AllowUsernsAnnotation {
+	if s.defaultIDMappings == nil && !allowUsernsAnnotation {
 		return nil, nil
 	}
 	if ic == nil {

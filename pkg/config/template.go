@@ -238,12 +238,6 @@ log_level = "{{ .LogLevel }}"
 # This option supports live configuration reload.
 log_filter = "{{ .LogFilter }}"
 
-# Allow usage of the annotation io.kubernetes.cri-o.userns-mode for setting up a user namespace.
-# A runtime class must be configured with "runtime_allow_userns_annotation" for this option to
-# have any effect.
-# This feature is experimental, do not use in production. It might be changed in future without notice.
-allow_userns_annotation = {{ .AllowUsernsAnnotation }}
-
 # The UID mappings for the user namespace of each container. A range is
 # specified in the form containerUID:HostUID:Size. Multiple ranges must be
 # separated by comma.
