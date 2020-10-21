@@ -9,6 +9,8 @@ run:
     # containers/storage currently has btrfs included, but the images don't, so
     # the linter fails.
     - exclude_graphdriver_btrfs
+  skip-dirs:
+    - internal/ffi
   concurrency: 6
   deadline: 5m
 linters:

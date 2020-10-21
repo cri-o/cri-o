@@ -18,6 +18,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/ffi"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -317,6 +318,8 @@ func New(
 	ctx context.Context,
 	configIface libconfig.Iface,
 ) (*Server, error) {
+	ffi.Hello()
+
 	if configIface == nil || configIface.GetData() == nil {
 		return nil, fmt.Errorf("provided configuration interface or its data is nil")
 	}

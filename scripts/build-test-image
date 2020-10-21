@@ -111,6 +111,7 @@ main() {
 
     set -x
     install_packages
+    install_rust
     install_bats
     install_conmon
     install_cri_tools
@@ -146,6 +147,7 @@ install_packages() {
         build-essential \
         clang-format \
         conntrack \
+        curl \
         e2fslibs-dev \
         gawk \
         gettext \
@@ -178,6 +180,12 @@ install_packages() {
         socat
     run apt-get clean
     rm -rf "$MOUNT_DIR"/var/lib/apt/lists/*
+}
+
+install_rust() {
+    run bash -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |\
+        sh -s -- --profile=complete -y"
+    buildah config -e PATH=/root/.cargo/bin:\$PATH "$WORK_CTR"
 }
 
 install_bats() {

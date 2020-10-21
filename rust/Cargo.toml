@@ -1,0 +1,16 @@
+[package]
+name = "example"
+version = "0.1.0"
+authors = ["Sascha Grunert <sgrunert@suse.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.release]
+lto = true
+opt-level = 'z'
+
+[build-dependencies]
+anyhow = "1.0.33"
+cbindgen = "0.15.0"

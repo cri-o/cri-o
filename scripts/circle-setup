@@ -10,6 +10,7 @@ main() {
     prepare_system
 
     install_packages
+    install_rust
     install_bats
     install_conmon
     install_cri_tools
@@ -49,6 +50,7 @@ install_packages() {
         apparmor \
         btrfs-tools \
         conntrack \
+        curl \
         e2fslibs-dev \
         golang-go \
         jq \
@@ -69,6 +71,13 @@ install_packages() {
 
     go version
     go env
+}
+
+install_rust() {
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
+        sh -s -- --profile=complete -y
+    echo "export PATH=/home/circleci/.cargo/bin:$PATH" >>~/.bashrc
+    . ~/.bash_rc
 }
 
 install_bats() {

@@ -107,10 +107,12 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
 
 GO_LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
-TESTIMAGE_VERSION := master-1.5.0
+TESTIMAGE_VERSION := master-1.6.0
 TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
+
+RUSTLIB := ./rust/target/release/libexample.a
 
 all: binaries crio.conf docs
 
@@ -166,10 +168,10 @@ test/copyimg/copyimg: $(GO_FILES) .gopathok
 test/checkseccomp/checkseccomp: $(GO_FILES) .gopathok
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
-bin/crio: $(GO_FILES) .gopathok
+bin/crio: $(RUSTLIB) $(GO_FILES) .gopathok
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
-bin/crio-status: $(GO_FILES) .gopathok
+bin/crio-status: $(RUSTLIB) $(GO_FILES) .gopathok
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static:
@@ -179,6 +181,9 @@ build-static:
 		nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
 	mkdir -p bin
 	cp -r result/bin bin/static
+
+$(RUSTLIB):
+	cd rust && cargo build --release
 
 release-bundle: clean bin/pinns build-static docs crio.conf bundle
 
@@ -210,6 +215,7 @@ endif
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 	rm -rf ${BUILD_BIN_PATH}
+	rm -rf rust/target
 
 # the approach here, rather than this target depending on the build targets
 # directly, is such that each target should try to build regardless if it
