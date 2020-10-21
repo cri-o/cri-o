@@ -19,10 +19,6 @@ function teardown() {
 	export CONTAINER_UID_MAPPINGS="0:100000:100000"
 	export CONTAINER_GID_MAPPINGS="0:200000:100000"
 
-	# Workaround for https://github.com/opencontainers/runc/pull/1562
-	# Remove once the fix hits the CI
-	export OVERRIDE_OPTIONS="--selinux=false"
-
 	# Needed for RHEL
 	if test -e /proc/sys/user/max_user_namespaces; then
 		echo 15000 > /proc/sys/user/max_user_namespaces
