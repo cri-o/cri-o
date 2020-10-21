@@ -151,7 +151,7 @@ Download the static release bundle via our Google Cloud Bucket:
 		"--end-sha="+head,
 		"--output="+outputFilePath,
 		"--toc",
-		"--format=go-template:"+templateFile.Name(),
+		"--go-template=go-template:"+templateFile.Name(),
 	); err != nil {
 		return errors.Wrap(err, "generate release notes")
 	}
