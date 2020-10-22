@@ -38,6 +38,8 @@ collects useful resources about CRI-O.
 
 ### Videos
 
+- [CRI-O: Deep Diving into the Security (Aug 19, 2020)](https://youtu.be/RoiIx8mcECY)
+- [CRI-O: Development Process & How to Contribute (Aug 18, 2020)](https://youtu.be/0MB5tUT4u3Q)
 - [CRI-O: Under the Hood (Nov 20, 2019)](https://www.youtube.com/watch?v=3kz-pERV6Qg)
 - [Introduction to CRI-O (Nov 19, 2019)](https://www.youtube.com/watch?v=V53nSS2mnsM)
 - [CRI-O: All the Runtime Kubernetes Needs (Dec 15, 2017)](https://www.youtube.com/watch?v=NVa8xR4Eyj8)
