@@ -214,24 +214,24 @@ func makeMountsAccessible(uid, gid int, mounts []rspec.Mount) error {
 	return nil
 }
 
-func toContainer(id uint32, idMap []idtools.IDMap) (uint32, error) {
+func toContainer(id uint32, idMap []idtools.IDMap) uint32 {
 	hostID := int(id)
 	if idMap == nil {
-		return uint32(hostID), nil
+		return uint32(hostID)
 	}
 	for _, m := range idMap {
 		if hostID >= m.HostID && hostID < m.HostID+m.Size {
 			contID := m.ContainerID + (hostID - m.HostID)
-			return uint32(contID), nil
+			return uint32(contID)
 		}
 	}
-	return 0, fmt.Errorf("host ID %d cannot be mapped to a container ID", hostID)
+	// If the ID cannot be mapped, it means the RunAsUser or RunAsGroup was not specified
+	// so just use the original value.
+	return id
 }
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
 func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idtools.IDMappings) error {
-	var err error
-
 	if mappings == nil {
 		return nil
 	}
@@ -241,20 +241,11 @@ func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idto
 		return nil
 	}
 
-	specgen.Config.Process.User.UID, err = toContainer(specgen.Config.Process.User.UID, mappings.UIDs())
-	if err != nil {
-		return err
-	}
+	specgen.Config.Process.User.UID = toContainer(specgen.Config.Process.User.UID, mappings.UIDs())
 	gids := mappings.GIDs()
-	specgen.Config.Process.User.GID, err = toContainer(specgen.Config.Process.User.GID, gids)
-	if err != nil {
-		return err
-	}
+	specgen.Config.Process.User.GID = toContainer(specgen.Config.Process.User.GID, gids)
 	for i := range specgen.Config.Process.User.AdditionalGids {
-		gid, err := toContainer(specgen.Config.Process.User.AdditionalGids[i], gids)
-		if err != nil {
-			return err
-		}
+		gid := toContainer(specgen.Config.Process.User.AdditionalGids[i], gids)
 		specgen.Config.Process.User.AdditionalGids[i] = gid
 	}
 	return nil
