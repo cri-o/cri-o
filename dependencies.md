@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 22 Oct 2020 18:13:16 UTC for commit [ec53db4][0]._
+_Generated on Thu, 22 Oct 2020 19:53:23 UTC for commit [ec53db4][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/ec53db4d7259a8c5e8fe4b0e503272c75663a599
 
@@ -518,7 +518,7 @@ _Generated on Thu, 22 Oct 2020 18:13:16 UTC for commit [ec53db4][0]._
 | gonum.org/v1/plot                                       | v0.0.0-20190515093506-e2840ee46a6b                | v0.8.0                             | false  | true             |
 | google.golang.org/api                                   | v0.21.0                                           | v0.33.0                            | false  | true             |
 | google.golang.org/appengine                             | v1.6.5                                            | v1.6.7                             | false  | true             |
-| google.golang.org/genproto                              | v0.0.0-20200117163144-32f20d992d24                | v0.0.0-20201021134325-0d71844de594 | false  | true             |
+| google.golang.org/genproto                              | v0.0.0-20200117163144-32f20d992d24                | v0.0.0-20201022181438-0ff5f38871d5 | false  | true             |
 | google.golang.org/grpc                                  | v1.27.0                                           | v1.33.1                            | true   | true             |
 | google.golang.org/protobuf                              | v1.24.0                                           | v1.25.0                            | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                            | v2.0.9                                            |                                    | false  | true             |
