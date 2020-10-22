@@ -231,14 +231,14 @@ func toContainer(id uint32, idMap []idtools.IDMap) uint32 {
 }
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
-func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idtools.IDMappings) error {
+func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idtools.IDMappings) {
 	if mappings == nil {
-		return nil
+		return
 	}
 
 	// if the namespace was configured because of a static configuration, do not attempt any mapping
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		return nil
+		return
 	}
 
 	specgen.Config.Process.User.UID = toContainer(specgen.Config.Process.User.UID, mappings.UIDs())
@@ -248,7 +248,6 @@ func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idto
 		gid := toContainer(specgen.Config.Process.User.AdditionalGids[i], gids)
 		specgen.Config.Process.User.AdditionalGids[i] = gid
 	}
-	return nil
 }
 
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
@@ -792,9 +791,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	ociContainer.SetIDMappings(containerIDMappings)
 	if containerIDMappings != nil {
-		if err := s.finalizeUserMapping(specgen, containerIDMappings); err != nil {
-			return nil, err
-		}
+		s.finalizeUserMapping(specgen, containerIDMappings)
 
 		for _, uidmap := range containerIDMappings.UIDs() {
 			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
