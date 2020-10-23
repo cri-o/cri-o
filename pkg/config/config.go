@@ -148,7 +148,10 @@ type RuntimeHandler struct {
 	RuntimeRoot string `toml:"runtime_root"`
 	// PrivilegedWithoutHostDevices can be used to restrict passing host devices
 	// to a container running as privileged.
-	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices"`
+	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices,omitempty"`
+	// AllowedAnnotations is a slice of experimental annotations that this runtime handler is allowed to process.
+	// The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring a usernamespace for the pod
+	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 }
 
 // Multiple runtime Handlers in a map
@@ -184,11 +187,6 @@ type RuntimeConfig struct {
 	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
 	// will only be able to write to volumes mounted into them
 	ReadOnly bool `toml:"read_only"`
-
-	// AllowUsernsAnnotation specifies whether CRI-O honors the io.kubernetes.cri-o.userns-mode
-	// annotation.  This is an experimental feature, do not enable in production.
-	// It might be changed in future.
-	AllowUsernsAnnotation bool `toml:"allow_userns_annotation"`
 
 	// If set to true, enable users to set a custom shm size instead of using the default value of 64M.
 	// The shm size can be set through K8S annotation with the key "io.kubernetes.cri-o.ShmSize",

@@ -109,11 +109,6 @@ grpc_max_recv_msg_size = {{ .GRPCMaxRecvMsgSize }}
 #default_ulimits = [
 {{ range $ulimit := .DefaultUlimits }}{{ printf "#\t%q,\n" $ulimit }}{{ end }}#]
 
-# default_runtime is the _name_ of the OCI runtime to be used as the default.
-# The name is matched against the runtimes map below. If this value is changed,
-# the corresponding existing entry from the runtimes map below will be ignored.
-default_runtime = "{{ .DefaultRuntime }}"
-
 # If true, the runtime will not use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
 
@@ -243,11 +238,6 @@ log_level = "{{ .LogLevel }}"
 # This option supports live configuration reload.
 log_filter = "{{ .LogFilter }}"
 
-# Allow usage of the annotation io.kubernetes.cri-o.userns-mode
-# for setting up a user namespace.  This feature is experimental, do not use
-# in production.  It might be changed in future without notice.
-allow_userns_annotation = {{ .AllowUsernsAnnotation }}
-
 # The UID mappings for the user namespace of each container. A range is
 # specified in the form containerUID:HostUID:Size. Multiple ranges must be
 # separated by comma.
@@ -281,6 +271,11 @@ namespaces_dir = "{{ .NamespacesDir }}"
 # pinns_path is the path to find the pinns binary, which is needed to manage namespace lifecycle
 pinns_path = "{{ .PinnsPath }}"
 
+# default_runtime is the _name_ of the OCI runtime to be used as the default.
+# The name is matched against the runtimes map below. If this value is changed,
+# the corresponding existing entry from the runtimes map below will be ignored.
+default_runtime = "{{ .DefaultRuntime }}"
+
 # The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
 # The runtime to use is picked based on the runtime_handler provided by the CRI.
 # If no runtime_handler is provided, the runtime will be picked based on the level
@@ -290,7 +285,8 @@ pinns_path = "{{ .PinnsPath }}"
 #  runtime_path = "/path/to/the/executable"
 #  runtime_type = "oci"
 #  runtime_root = "/path/to/the/root"
-#
+#  privileged_without_host_devices = false
+#  allowed_annotations = []
 # Where:
 # - runtime-handler: name used to identify the runtime
 # - runtime_path (optional, string): absolute path to the runtime executable in
@@ -301,12 +297,25 @@ pinns_path = "{{ .PinnsPath }}"
 #   omitted, an "oci" runtime is assumed.
 # - runtime_root (optional, string): root directory for storage of containers
 #   state.
+# - privileged_without_host_devices (optional, bool): an option for restricting
+#   host devices from being passed to privileged containers.
+# - allowed_annotations (optional, array of strings): an option for specifying
+#   a list of experimental annotations that this runtime handler is allowed to process.
+#   The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring
+#   a usernamespace for the pod.
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 [crio.runtime.runtimes.{{ $runtime_name }}]
 runtime_path = "{{ $runtime_handler.RuntimePath }}"
 runtime_type = "{{ $runtime_handler.RuntimeType }}"
 runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
+{{ if $runtime_handler.PrivilegedWithoutHostDevices }}
+privileged_without_host_devices = "{{ $runtime_handler.PrivilegedWithoutHostDevices }}"
+{{ end }}
+{{ if $runtime_handler.AllowedAnnotations }}
+allowed_annotations = [
+{{ range $opt := $runtime_handler.AllowedAnnotations }}{{ printf "\t%q,\n" $opt }}{{ end }}]
+{{ end }}
 {{ end }}
 
 # crun is a fast and lightweight fully featured OCI runtime and C library for

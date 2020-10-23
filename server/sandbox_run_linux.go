@@ -64,9 +64,15 @@ func addToMappingsIfMissing(ids []idtools.IDMap, id int64) []idtools.IDMap {
 	return append(ids, newMapping)
 }
 
-func (s *Server) configureSandboxIDMappings(mode string, sc *pb.LinuxSandboxSecurityContext) (*storage.IDMappingOptions, error) {
+func (s *Server) configureSandboxIDMappings(mode string, sc *pb.LinuxSandboxSecurityContext, runtimeHandler string) (*storage.IDMappingOptions, error) {
+	// find out whether the runtime handler is configured to interpret these annotations
+	allowUsernsAnnotation, err := s.Runtime().AllowUsernsAnnotation(runtimeHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	// Ignore the annotation if not explicitly set in the config file.
-	if !s.config.AllowUsernsAnnotation || mode == "" {
+	if !allowUsernsAnnotation || mode == "" {
 		// No mode specified but mappings set in the config file, let's use them.
 		if s.defaultIDMappings != nil {
 			uids := s.defaultIDMappings.UIDs()
@@ -250,8 +256,15 @@ func (s *Server) getSandboxIDMappings(sb *libsandbox.Sandbox) (*idtools.IDMappin
 	if sb.UsernsMode() == "" && s.defaultIDMappings == nil {
 		return nil, nil
 	}
+
+	// find out whether the runtime handler is configured to interpret these annotations
+	allowUsernsAnnotation, err := s.Runtime().AllowUsernsAnnotation(sb.RuntimeHandler())
+	if err != nil {
+		return nil, err
+	}
+
 	// Ignore the annotation if not explicitly set in the config file.
-	if s.defaultIDMappings == nil && !s.config.AllowUsernsAnnotation {
+	if s.defaultIDMappings == nil && !allowUsernsAnnotation {
 		return nil, nil
 	}
 	if ic == nil {
@@ -310,7 +323,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	usernsMode := kubeAnnotations[ann.UsernsModeAnnotation]
 
-	idMappingsOptions, err := s.configureSandboxIDMappings(usernsMode, sbox.Config().GetLinux().GetSecurityContext())
+	// validate the runtime handler
+	runtimeHandler, err := s.runtimeHandler(req)
+	if err != nil {
+		return nil, err
+	}
+
+	idMappingsOptions, err := s.configureSandboxIDMappings(usernsMode, sbox.Config().GetLinux().GetSecurityContext(), runtimeHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -568,12 +587,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 	g.SetHostname(hostname)
-
-	// validate the runtime handler
-	runtimeHandler, err := s.runtimeHandler(req)
-	if err != nil {
-		return nil, err
-	}
 
 	g.AddAnnotation(annotations.Metadata, string(metadataJSON))
 	g.AddAnnotation(annotations.Labels, string(labelsJSON))

@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
@@ -187,6 +188,22 @@ func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
 	}
 
 	return rh.PrivilegedWithoutHostDevices, nil
+}
+
+// AllowUsernsAnnotation searches through the AllowedAnnotations for
+// the userns annotation, checking whether this runtime allows processing of "io.kubernetes.cri-o.userns-mode"
+func (r *Runtime) AllowUsernsAnnotation(handler string) (bool, error) {
+	rh, err := r.getRuntimeHandler(handler)
+	if err != nil {
+		return false, err
+	}
+	for _, ann := range rh.AllowedAnnotations {
+		if ann == annotations.UsernsModeAnnotation {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // RuntimeType returns the type of runtimeHandler

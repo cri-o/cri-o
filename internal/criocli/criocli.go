@@ -203,9 +203,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("read-only") {
 		config.ReadOnly = ctx.Bool("read-only")
 	}
-	if ctx.IsSet("allow-userns-annotation") {
-		config.AllowUsernsAnnotation = ctx.Bool("allow-userns-annotation")
-	}
 	if ctx.IsSet("bind-mount-prefix") {
 		config.BindMountPrefix = ctx.String("bind-mount-prefix")
 	}
@@ -680,11 +677,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "bind-mount-prefix",
 			Usage:   fmt.Sprintf("A prefix to use for the source of the bind mounts. This option would be useful if you were running CRI-O in a container. And had `/` mounted on `/host` in your container. Then if you ran CRI-O with the `--bind-mount-prefix=/host` option, CRI-O would add /host to any bind mounts it is handed over CRI. If Kubernetes asked to have `/var/lib/foobar` bind mounted into the container, then CRI-O would bind mount `/host/var/lib/foobar`. Since CRI-O itself is running in a container with `/` or the host mounted on `/host`, the container would end up with `/var/lib/foobar` from the host mounted in the container rather then `/var/lib/foobar` from the CRI-O container. (default: %q)", defConf.BindMountPrefix),
 			EnvVars: []string{"CONTAINER_BIND_MOUNT_PREFIX"},
-		},
-		&cli.BoolFlag{
-			Name:    "allow-userns-annotation",
-			Usage:   fmt.Sprintf("[EXPERIMENTAL] Allow usage of the annotation to setup user namespaces (default: %t)", defConf.AllowUsernsAnnotation),
-			EnvVars: []string{"ALLOW_USERNS_ANNOTATION"},
 		},
 		&cli.StringFlag{
 			Name:    "uid-mappings",
