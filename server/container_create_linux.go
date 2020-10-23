@@ -15,7 +15,6 @@ import (
 	"github.com/containers/buildah/util"
 	"github.com/containers/libpod/v2/pkg/rootless"
 	selinux "github.com/containers/libpod/v2/pkg/selinux"
-	createconfig "github.com/containers/libpod/v2/pkg/spec"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
@@ -25,7 +24,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
-	libconfig "github.com/cri-o/cri-o/pkg/config"
 	ctrIface "github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -36,11 +34,6 @@ import (
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
-
-type configDevice struct {
-	Device   rspec.LinuxDevice
-	Resource rspec.LinuxDeviceCgroup
-}
 
 func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
 	sp := specgen.Config
@@ -394,12 +387,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	configuredDevices, err := getDevicesFromConfig(ctx, &s.config)
-	if err != nil {
-		return nil, err
-	}
+	configuredDevices := s.config.Devices()
 
-	for i := range configuredDevices {
+	for i := range s.config.Devices() {
 		d := &configuredDevices[i]
 
 		specgen.AddDevice(d.Device)
@@ -1005,48 +995,6 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 	}
 
 	return volumes, ociMounts, nil
-}
-
-func getDevicesFromConfig(ctx context.Context, config *libconfig.Config) ([]configDevice, error) {
-	linuxdevs := make([]configDevice, 0, len(config.RuntimeConfig.AdditionalDevices))
-
-	for _, d := range config.RuntimeConfig.AdditionalDevices {
-		src, dst, permissions, err := createconfig.ParseDevice(d)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Debugf(ctx, "adding device src=%s dst=%s mode=%s", src, dst, permissions)
-
-		dev, err := devices.DeviceFromPath(src, permissions)
-		if err != nil {
-			return nil, errors.Wrapf(err, "%s is not a valid device", src)
-		}
-
-		dev.Path = dst
-
-		linuxdevs = append(linuxdevs,
-			configDevice{
-				Device: rspec.LinuxDevice{
-					Path:     dev.Path,
-					Type:     string(dev.Type),
-					Major:    dev.Major,
-					Minor:    dev.Minor,
-					FileMode: &dev.FileMode,
-					UID:      &dev.Uid,
-					GID:      &dev.Gid,
-				},
-				Resource: rspec.LinuxDeviceCgroup{
-					Allow:  true,
-					Type:   string(dev.Type),
-					Major:  &dev.Major,
-					Minor:  &dev.Minor,
-					Access: permissions,
-				},
-			})
-	}
-
-	return linuxdevs, nil
 }
 
 // mountExists returns true if dest exists in the list of mounts
