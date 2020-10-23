@@ -38,7 +38,7 @@ executors:
 
   machine:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     <<: *stdenv
     working_directory: *workdir_vm
 
