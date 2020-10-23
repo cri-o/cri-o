@@ -214,50 +214,40 @@ func makeMountsAccessible(uid, gid int, mounts []rspec.Mount) error {
 	return nil
 }
 
-func toContainer(id uint32, idMap []idtools.IDMap) (uint32, error) {
+func toContainer(id uint32, idMap []idtools.IDMap) uint32 {
 	hostID := int(id)
 	if idMap == nil {
-		return uint32(hostID), nil
+		return uint32(hostID)
 	}
 	for _, m := range idMap {
 		if hostID >= m.HostID && hostID < m.HostID+m.Size {
 			contID := m.ContainerID + (hostID - m.HostID)
-			return uint32(contID), nil
+			return uint32(contID)
 		}
 	}
-	return 0, fmt.Errorf("host ID %d cannot be mapped to a container ID", hostID)
+	// If the ID cannot be mapped, it means the RunAsUser or RunAsGroup was not specified
+	// so just use the original value.
+	return id
 }
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
-func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idtools.IDMappings) error {
-	var err error
-
+func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idtools.IDMappings) {
 	if mappings == nil {
-		return nil
+		return
 	}
 
 	// if the namespace was configured because of a static configuration, do not attempt any mapping
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
-		return nil
+		return
 	}
 
-	specgen.Config.Process.User.UID, err = toContainer(specgen.Config.Process.User.UID, mappings.UIDs())
-	if err != nil {
-		return err
-	}
+	specgen.Config.Process.User.UID = toContainer(specgen.Config.Process.User.UID, mappings.UIDs())
 	gids := mappings.GIDs()
-	specgen.Config.Process.User.GID, err = toContainer(specgen.Config.Process.User.GID, gids)
-	if err != nil {
-		return err
-	}
+	specgen.Config.Process.User.GID = toContainer(specgen.Config.Process.User.GID, gids)
 	for i := range specgen.Config.Process.User.AdditionalGids {
-		gid, err := toContainer(specgen.Config.Process.User.AdditionalGids[i], gids)
-		if err != nil {
-			return err
-		}
+		gid := toContainer(specgen.Config.Process.User.AdditionalGids[i], gids)
 		specgen.Config.Process.User.AdditionalGids[i] = gid
 	}
-	return nil
 }
 
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
@@ -801,9 +791,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	ociContainer.SetIDMappings(containerIDMappings)
 	if containerIDMappings != nil {
-		if err := s.finalizeUserMapping(specgen, containerIDMappings); err != nil {
-			return nil, err
-		}
+		s.finalizeUserMapping(specgen, containerIDMappings)
 
 		for _, uidmap := range containerIDMappings.UIDs() {
 			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
