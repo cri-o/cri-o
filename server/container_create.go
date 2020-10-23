@@ -179,10 +179,6 @@ func resolveSymbolicLink(path, scope string) (string, error) {
 	return securejoin.SecureJoin(scope, path)
 }
 
-func addDevices(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
-	return addDevicesPlatform(ctx, sb, containerConfig, privilegedWithoutHostDevices, specgen)
-}
-
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
 func buildOCIProcessArgs(ctx context.Context, containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
 	// # Start the nginx container using the default command, but use custom

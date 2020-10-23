@@ -17,10 +17,6 @@ func findCgroupMountpoint(name string) error {
 	return fmt.Errorf("no cgroups on this platform")
 }
 
-func addDevicesPlatform(sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
-	return nil
-}
-
 func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Container, sb *sandbox.Sandbox) (*oci.Container, error) {
 	return nil, fmt.Errorf("not implemented yet")
 }

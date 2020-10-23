@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/libpod/v2/pkg/annotations"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
@@ -85,6 +86,9 @@ type Container interface {
 
 	// SpecAddAnnotations adds annotations to the spec.
 	SpecAddAnnotations(sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) error
+
+	// SpecAddDevices adds devices from the server config, and container CRI config
+	SpecAddDevices([]device.Device, bool) error
 }
 
 // container is the hidden default type behind the Container interface
