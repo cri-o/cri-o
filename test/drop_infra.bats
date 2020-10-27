@@ -3,6 +3,11 @@
 load helpers
 
 function setup() {
+	# TODO: drop this skip once userns works with CONTAINER_MANAGE_NS_LIFECYCLE=true
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+
 	setup_test
 	CONTAINER_MANAGE_NS_LIFECYCLE=true CONTAINER_DROP_INFRA_CTR=true start_crio
 }
