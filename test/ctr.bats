@@ -936,6 +936,10 @@ function wait_until_exit() {
 }
 
 @test "privileged ctr -- check for rw mounts" {
+	# Can't run privileged container in userns
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
 	start_crio
 
 	sandbox_config="$TESTDIR"/sandbox_config.json
