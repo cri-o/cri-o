@@ -17,24 +17,10 @@ function teardown() {
 @test "pod test hooks" {
 	rm -f "${HOOKSCHECK}"
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl stopp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl rmp "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run cat "${HOOKSCHECK}"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+	cat "${HOOKSCHECK}"
 }

@@ -13,6 +13,8 @@ function teardown() {
 }
 
 @test "inspect image should succed contain all necessary information" {
-	run crictl inspecti quay.io/crio/redis:alpine | jq -e .status.size
-	run crictl inspecti quay.io/crio/redis:alpine | jq -e .info.imageSpec.config.Cmd
+	output=$(crictl inspecti quay.io/crio/redis:alpine)
+	[ "$output" != "" ]
+	jq -e '.status.size' <<< "$output"
+	jq -e '.info.imageSpec.config.Cmd' <<< "$output"
 }

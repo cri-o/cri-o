@@ -20,8 +20,7 @@ function teardown() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 
 	# Start the container by its ID
-	run crictl start "$ctr_id"
-	[ "$status" -eq 0 ]
+	crictl start "$ctr_id"
 
 	# Confirm that the new size is applied
 	df=$(crictl exec --sync "$ctr_id" df | grep /dev/shm)

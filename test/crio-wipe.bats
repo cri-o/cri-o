@@ -32,35 +32,27 @@ function run_crio_wipe() {
 # test_crio_wiped_containers checks if a running crio instance
 # has no containers or pods
 function test_crio_wiped_containers() {
-	run crictl pods -v
-	[ "$status" -eq 0 ]
+	output=$(crictl pods -v)
 	[ "$output" == "" ]
-
-	run crictl ps -v
-	[ "$status" -eq 0 ]
+	output=$(crictl ps -v)
 	[ "$output" == "" ]
 }
 
 function test_crio_did_not_wipe_containers() {
-	run crictl pods -v
-	[ "$status" -eq 0 ]
+	output=$(crictl pods -v)
 	[ "$output" != "" ]
 }
 
 function test_crio_wiped_images() {
 	# check that the pause image was removed, as we removed a pod
 	# that used it
-	run crictl images
-	echo "$output"
-	[ "$status" == 0 ]
+	output=$(crictl images)
 	[[ ! "$output" == *"pause"* ]]
 }
 
 function test_crio_did_not_wipe_images() {
 	# check that the pause image was not removed
-	run crictl images
-	echo "$output"
-	[ "$status" == 0 ]
+	output=$(crictl images)
 	[[ "$output" == *"pause"* ]]
 }
 
