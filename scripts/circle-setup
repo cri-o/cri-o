@@ -10,6 +10,7 @@ main() {
     prepare_system
 
     install_packages
+    install_golang
     install_bats
     install_conmon
     install_cri_tools
@@ -35,7 +36,7 @@ prepare_system() {
     sudo iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE
 }
 
-install_packages() {
+install_golang() {
     # remove old golang version
     sudo rm -rf /usr/local/go
     sudo rm -rf /usr/local/bin/go
@@ -43,14 +44,19 @@ install_packages() {
     # set GOPATH
     echo "export GOPATH=/home/circleci/go" >>~/.bashrc
 
-    sudo add-apt-repository -y ppa:longsleep/golang-backports
+    curl -fsSL "https://dl.google.com/go/go${VERSIONS["go"]}.linux-amd64.tar.gz" | sudo tar Cxz /usr/local
+
+    go version
+    go env
+}
+
+install_packages() {
     sudo apt-get update
     sudo apt-get install -y \
         apparmor \
         btrfs-tools \
         conntrack \
         e2fslibs-dev \
-        golang-go \
         jq \
         libaio-dev \
         libapparmor-dev \
@@ -66,9 +72,6 @@ install_packages() {
         libseccomp-dev \
         libsystemd-dev \
         libudev-dev
-
-    go version
-    go env
 }
 
 install_bats() {
