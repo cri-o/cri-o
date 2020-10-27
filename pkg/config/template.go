@@ -301,8 +301,9 @@ default_runtime = "{{ .DefaultRuntime }}"
 #   host devices from being passed to privileged containers.
 # - allowed_annotations (optional, array of strings): an option for specifying
 #   a list of experimental annotations that this runtime handler is allowed to process.
-#   The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring
-#   a usernamespace for the pod.
+#   The currently recognized values are:
+#   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
+#   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 [crio.runtime.runtimes.{{ $runtime_name }}]

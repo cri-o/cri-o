@@ -88,7 +88,7 @@ type Container interface {
 	SpecAddAnnotations(sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) error
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
-	SpecAddDevices([]device.Device, bool) error
+	SpecAddDevices([]device.Device, []device.Device, bool) error
 }
 
 // container is the hidden default type behind the Container interface

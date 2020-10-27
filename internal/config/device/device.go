@@ -9,6 +9,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// DeviceAnnotationDelim is the character
+// used to separate devices in the annotation
+// `io.kubernetes.cri-o.Devices`
+const DeviceAnnotationDelim = ","
+
 // Config is the internal device configuration
 // it holds onto the contents of the additional_devices
 // field, allowing admins to configure devices that are given
@@ -42,6 +47,13 @@ func (d *Config) LoadDevices(devsFromConfig []string) error {
 	}
 	d.devices = devs
 	return nil
+}
+
+// DevicesFromAnnotation takes an annotation string of the form
+// io.kubernetes.cri-o.Device=$PATH:$PATH:$MODE,$PATH...
+// and returns a Device object that can be passed to a create config
+func DevicesFromAnnotation(annotation string) ([]Device, error) {
+	return devicesFromStrings(strings.Split(annotation, DeviceAnnotationDelim))
 }
 
 // devicesFromStrings takes a slice of strings in the form $PATH{:$PATH}{:$MODE}

@@ -150,7 +150,9 @@ type RuntimeHandler struct {
 	// to a container running as privileged.
 	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices,omitempty"`
 	// AllowedAnnotations is a slice of experimental annotations that this runtime handler is allowed to process.
-	// The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring a usernamespace for the pod
+	// The currently recognized values are:
+	// "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
+	// "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 }
 

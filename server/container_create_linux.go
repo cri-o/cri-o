@@ -19,11 +19,13 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	ctrIface "github.com/cri-o/cri-o/pkg/container"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -275,7 +277,20 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	if err := ctr.SpecAddDevices(configuredDevices, privilegedWithoutHostDevices); err != nil {
+	allowDeviceAnnotations, err := s.Runtime().AllowDevicesAnnotation(sb.RuntimeHandler())
+	if err != nil {
+		return nil, err
+	}
+
+	annotationDevices := []device.Device{}
+	if allowDeviceAnnotations {
+		annotationDevices, err = device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices); err != nil {
 		return nil, err
 	}
 

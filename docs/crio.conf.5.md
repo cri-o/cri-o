@@ -249,7 +249,9 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
 
 **allowed_annotations**=[]
   A list of experimental annotations this runtime handler is allowed to process.
-  The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring a usernamespace for the pod.
+  The currently recognized values are:
+  "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
+  "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
 
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.
