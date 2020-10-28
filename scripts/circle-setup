@@ -31,9 +31,10 @@ prepare_system() {
 
     # enable necessary sysctls
     sudo sysctl -w net.ipv4.conf.all.route_localnet=1
-    sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
     sudo sysctl -w net.ipv4.ip_forward=1
-    sudo iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE
+    # needed for crictl test
+    sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
+    sudo iptables -t nat -I POSTROUTING -s 127.0.0.0/8 ! -d 127.0.0.0/8 -j MASQUERADE
 }
 
 install_golang() {
@@ -51,15 +52,14 @@ install_golang() {
 }
 
 install_packages() {
-    sudo apt-get update
-    sudo apt-get install -y \
+    sudo apt update
+    sudo apt install -y \
         apparmor \
-        btrfs-tools \
         conntrack \
-        e2fslibs-dev \
         jq \
         libaio-dev \
         libapparmor-dev \
+        libbtrfs-dev \
         libcap-dev \
         libdevmapper-dev \
         libfuse-dev \
@@ -71,7 +71,8 @@ install_packages() {
         libprotobuf-dev \
         libseccomp-dev \
         libsystemd-dev \
-        libudev-dev
+        libudev-dev \
+        uuid-dev
 }
 
 install_bats() {
