@@ -114,6 +114,7 @@ function teardown() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 	pod_id="$output"
+	crictl pull "$IMAGE_LIST_DIGEST"
 
 	sed -e "s|%VALUE%|$IMAGE_LIST_DIGEST|g" -e 's|"/bin/ls"|"/bin/sleep", "1d"|g' "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagelistref.json
 
