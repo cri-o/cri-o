@@ -370,6 +370,7 @@ jobs:
       - run:
           name: integration test
           command: sudo -E test/test_runner.sh $TEST_ARGS 2>&1 | tee -a /tmp/testout
+          no_output_timeout: 30m
           environment:
             JOBS: "<< parameters.jobs >>"
             CRIO_BINARY: "<< parameters.crio_binary >>"
