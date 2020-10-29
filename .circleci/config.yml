@@ -102,7 +102,6 @@ workflows:
             - results
       - results:
           requires:
-            - bundle-test
             - integration
             - integration-cgroupfs
             - integration-critest
@@ -112,6 +111,9 @@ workflows:
       - shellcheck
       - shfmt
       - unit-tests
+      - upload-artifacts:
+          requires:
+            - bundle-test
       - vendor
 
 jobs:
@@ -449,9 +451,6 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - run:
-          name: Upload artifacts
-          command: make upload-artifacts
       - store_test_results:
           path: build/junit
       - store_artifacts:
@@ -535,6 +534,16 @@ jobs:
           paths:
             - build/coverage
             - build/junit
+
+  upload-artifacts:
+    executor: container
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Upload artifacts
+          command: make upload-artifacts
 
   vendor:
     executor: container-base
