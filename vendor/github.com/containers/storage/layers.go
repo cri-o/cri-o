@@ -907,11 +907,11 @@ func (r *layerStore) ParentOwners(id string) (uids, gids []int, err error) {
 	for dir := filepath.Dir(layer.MountPoint); dir != "" && dir != string(os.PathSeparator); dir = filepath.Dir(dir) {
 		st, err := system.Stat(dir)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "error reading ownership of directory %q", dir)
+			return nil, nil, errors.Wrap(err, "read directory ownership")
 		}
 		lst, err := system.Lstat(dir)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "error reading ownership of directory-in-case-it's-a-symlink %q", dir)
+			return nil, nil, err
 		}
 		fsuid := int(st.UID())
 		fsgid := int(st.GID())
@@ -1342,6 +1342,7 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 	if err != nil {
 		return -1, err
 	}
+	defer idLogger.Close()
 	payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, io.MultiWriter(uncompressedCounter, idLogger)), metadata, storage.NewDiscardFilePutter())
 	if err != nil {
 		return -1, err
@@ -1356,7 +1357,6 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 		return -1, err
 	}
 	compressor.Close()
-	idLogger.Close()
 	if err == nil {
 		if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0700); err != nil {
 			return -1, err

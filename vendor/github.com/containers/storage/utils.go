@@ -76,7 +76,7 @@ func GetRootlessRuntimeDir(rootlessUID int) (string, error) {
 	}
 	path = filepath.Join(path, "containers")
 	if err := os.MkdirAll(path, 0700); err != nil {
-		return "", errors.Wrapf(err, "unable to make rootless runtime dir %s", path)
+		return "", errors.Wrapf(err, "unable to make rootless runtime")
 	}
 	return path, nil
 }
@@ -154,7 +154,7 @@ func getRootlessRuntimeDirIsolated(env rootlessRuntimeDirEnvironment) (string, e
 	}
 	resolvedHomeDir, err := filepath.EvalSymlinks(homeDir)
 	if err != nil {
-		return "", errors.Wrapf(err, "cannot resolve %s", homeDir)
+		return "", err
 	}
 	return filepath.Join(resolvedHomeDir, "rundir"), nil
 }
@@ -190,7 +190,7 @@ func getRootlessDirInfo(rootlessUID int) (string, string, error) {
 	// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
 	resolvedHome, err := filepath.EvalSymlinks(home)
 	if err != nil {
-		return "", "", errors.Wrapf(err, "cannot resolve %s", home)
+		return "", "", err
 	}
 	dataDir = filepath.Join(resolvedHome, ".local", "share")
 
@@ -198,7 +198,7 @@ func getRootlessDirInfo(rootlessUID int) (string, string, error) {
 }
 
 // getRootlessStorageOpts returns the storage opts for containers running as non root
-func getRootlessStorageOpts(rootlessUID int) (StoreOptions, error) {
+func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOptions, error) {
 	var opts StoreOptions
 
 	dataDir, rootlessRuntime, err := getRootlessDirInfo(rootlessUID)
@@ -206,11 +206,20 @@ func getRootlessStorageOpts(rootlessUID int) (StoreOptions, error) {
 		return opts, err
 	}
 	opts.RunRoot = rootlessRuntime
-	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
-	opts.RootlessStoragePath = opts.GraphRoot
+	if systemOpts.RootlessStoragePath != "" {
+		opts.GraphRoot = systemOpts.RootlessStoragePath
+	} else {
+		opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
+	}
 	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
 		opts.GraphDriverName = "overlay"
 		opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
+		for _, o := range systemOpts.GraphDriverOptions {
+			if strings.Contains(o, "ignore_chown_errors") {
+				opts.GraphDriverOptions = append(opts.GraphDriverOptions, o)
+				break
+			}
+		}
 	} else {
 		opts.GraphDriverName = "vfs"
 	}
@@ -242,20 +251,31 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 	)
 	storageOpts := defaultStoreOptions
 	if rootless && rootlessUID != 0 {
-		storageOpts, err = getRootlessStorageOpts(rootlessUID)
+		storageOpts, err = getRootlessStorageOpts(rootlessUID, storageOpts)
 		if err != nil {
 			return storageOpts, err
 		}
 	}
 	_, err = os.Stat(storageConf)
 	if err != nil && !os.IsNotExist(err) {
-		return storageOpts, errors.Wrapf(err, "cannot stat %s", storageConf)
+		return storageOpts, err
 	}
-	if err == nil {
+	if err == nil && !defaultConfigFileSet {
 		defaultRootlessRunRoot = storageOpts.RunRoot
 		defaultRootlessGraphRoot = storageOpts.GraphRoot
 		storageOpts = StoreOptions{}
 		reloadConfigurationFileIfNeeded(storageConf, &storageOpts)
+		if rootless && rootlessUID != 0 {
+			// If the file did not specify a graphroot or runroot,
+			// set sane defaults so we don't try and use root-owned
+			// directories
+			if storageOpts.RunRoot == "" {
+				storageOpts.RunRoot = defaultRootlessRunRoot
+			}
+			if storageOpts.GraphRoot == "" {
+				storageOpts.GraphRoot = defaultRootlessGraphRoot
+			}
+		}
 	}
 	if storageOpts.RunRoot != "" {
 		runRoot, err := expandEnvPath(storageOpts.RunRoot, rootlessUID)
@@ -272,26 +292,6 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 		storageOpts.GraphRoot = graphRoot
 	}
 
-	if rootless && rootlessUID != 0 {
-		if err == nil {
-			// If the file did not specify a graphroot or runroot,
-			// set sane defaults so we don't try and use root-owned
-			// directories
-			if storageOpts.RunRoot == "" {
-				storageOpts.RunRoot = defaultRootlessRunRoot
-			}
-			if storageOpts.GraphRoot == "" {
-				storageOpts.GraphRoot = defaultRootlessGraphRoot
-			}
-			if storageOpts.RootlessStoragePath != "" {
-				rootlessStoragePath, err := expandEnvPath(storageOpts.RootlessStoragePath, rootlessUID)
-				if err != nil {
-					return storageOpts, err
-				}
-				storageOpts.GraphRoot = rootlessStoragePath
-			}
-		}
-	}
 	return storageOpts, nil
 }
 
