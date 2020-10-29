@@ -1,0 +1,9 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+  labels:
+    - "release-note-none"
+  open-pull-requests-limit: 10
