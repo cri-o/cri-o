@@ -67,6 +67,7 @@
       export KUBELET_FLAGS="--enable-debugging-handlers=true --enable-server=true --anonymous-auth=true"
       export KUBE_ENABLE_CLUSTER_DASHBOARD=true
       export DBUS_SESSION_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket
+      export API_PORT=0 # as of https://github.com/kubernetes/kubernetes/commit/cfc2b330a7027e109ac26fc6a86b68898883099e, API_PORT must be 0, and is otherwise not used
       ./hack/local-up-cluster.sh
     mode: "u=rwx,g=rwx,o=x"
 
