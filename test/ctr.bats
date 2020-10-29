@@ -798,7 +798,9 @@ function wait_until_exit() {
 		# 512 shares are converted to cpu.weight 20
 		[[ "$output" == *"20"* ]]
 	else
+		semodule -DB
 		crictl exec --sync "$ctr_id" sh -cx "cd /sys/fs/cgroup; ls -l; cd cpu; ls -l" || true
+                cat /var/log/audit/audit.log
 
 		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares")
 		[[ "$output" == *"512"* ]]
