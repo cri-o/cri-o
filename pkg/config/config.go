@@ -785,12 +785,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		logrus.Infof("The manage-ns-lifecycle option is being deprecated, and will be unconditionally true in the future")
 	}
 
-	if c.UIDMappings != "" && c.ManageNSLifecycle {
-		return errors.New("cannot use UIDMappings with ManageNSLifecycle")
-	}
-	if c.GIDMappings != "" && c.ManageNSLifecycle {
-		return errors.New("cannot use GIDMappings with ManageNSLifecycle")
-	}
 	if c.DropInfraCtr && !c.ManageNSLifecycle {
 		return errors.New("cannot drop infra without ManageNSLifecycle")
 	}

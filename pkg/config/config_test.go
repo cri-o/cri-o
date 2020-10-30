@@ -357,30 +357,6 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
-		It("should fail wrong UID mappings", func() {
-			// Given
-			sut.UIDMappings = "value"
-			sut.ManageNSLifecycle = true
-
-			// When
-			err := sut.Validate(false)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("should fail wrong GID mappings", func() {
-			// Given
-			sut.GIDMappings = "value"
-			sut.ManageNSLifecycle = true
-
-			// When
-			err := sut.Validate(false)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
 		It("should fail wrong max log size", func() {
 			// Given
 			sut.LogSizeMax = 1
