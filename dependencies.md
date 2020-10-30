@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 30 Oct 2020 12:24:15 UTC for commit [bfa194c][0]._
+_Generated on Fri, 30 Oct 2020 12:56:42 UTC for commit [bfa194c][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/bfa194c3c92ab35003f5ce1508684fb103836fe3
 
