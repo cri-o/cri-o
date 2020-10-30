@@ -792,7 +792,7 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		}
 		src := filepath.Join(bindMountPrefix, m.GetHostPath())
 
-		resolvedSrc, err := resolveSymbolicLink(src, bindMountPrefix)
+		resolvedSrc, err := resolveSymbolicLink(bindMountPrefix, src)
 		if err == nil {
 			src = resolvedSrc
 		} else {
