@@ -9,7 +9,7 @@ This document outlines useful information for operations and development transfe
 The `crio` daemon is intended to provide the CRI socket needed for Kubernetes to use for automating deployment, scaling, and management of containerized applications (See the document for [configuring kubernetes to use CRI-O](./tutorials/kubernetes.md) for more information).
 Therefore the [crictl][1] command line is a client that interfaces to the same gRPC socket as the kubernetes daemon would, for talking to the `crio` daemon.
 In many ways [crictl][1] is only as feature rich as the Kubernetes CRI requires.
-There are additional tools e.g. [Podman](https://github.com/containers/libpod) and [Buildah](https://github.com/projectatomic/buildah) that provide a feature rich set of commands for all operational needs in a Kubernetes environment.
+There are additional tools e.g. [Podman](https://github.com/containers/podman) and [Buildah](https://github.com/projectatomic/buildah) that provide a feature rich set of commands for all operational needs in a Kubernetes environment.
 
 Please note that the full interoperability between CRI-O and Podman cannot be
 guaranteed at this time. For example, it is not possible to interact with CRI-O

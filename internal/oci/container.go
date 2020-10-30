@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/v2/pkg/cgroups"
+	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"

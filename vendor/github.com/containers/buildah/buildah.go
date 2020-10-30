@@ -28,7 +28,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.15.2"
+	Version = "1.16.1"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -310,6 +310,9 @@ type CommonBuildOptions struct {
 	// LabelOpts is the a slice of fields of an SELinux context, given in "field:pair" format, or "disable".
 	// Recognized field names are "role", "type", and "level".
 	LabelOpts []string
+	// OmitTimestamp forces epoch 0 as created timestamp to allow for
+	// deterministic, content-addressable builds.
+	OmitTimestamp bool
 	// SeccompProfilePath is the pathname of a seccomp profile.
 	SeccompProfilePath string
 	// ApparmorProfile is the name of an apparmor profile.

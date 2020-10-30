@@ -13,9 +13,9 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containers/libpod/v2/pkg/annotations"
-	"github.com/containers/libpod/v2/pkg/rootless"
-	selinux "github.com/containers/libpod/v2/pkg/selinux"
+	"github.com/containers/podman/v2/pkg/annotations"
+	"github.com/containers/podman/v2/pkg/rootless"
+	selinux "github.com/containers/podman/v2/pkg/selinux"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/node"

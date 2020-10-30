@@ -13,9 +13,9 @@ import (
 
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/buildah/util"
-	"github.com/containers/libpod/v2/pkg/rootless"
-	selinux "github.com/containers/libpod/v2/pkg/selinux"
-	createconfig "github.com/containers/libpod/v2/pkg/spec"
+	"github.com/containers/podman/v2/pkg/rootless"
+	selinux "github.com/containers/podman/v2/pkg/selinux"
+	createconfig "github.com/containers/podman/v2/pkg/spec"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
@@ -113,7 +113,7 @@ func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfi
 				Type:   string(dev.Type),
 				Major:  &dev.Major,
 				Minor:  &dev.Minor,
-				Access: dev.Permissions,
+				Access: string(dev.Permissions),
 			})
 			continue
 		}
@@ -148,7 +148,7 @@ func addDevicesPlatform(ctx context.Context, sb *sandbox.Sandbox, containerConfi
 						Type:   string(childDevice.Type),
 						Major:  &childDevice.Major,
 						Minor:  &childDevice.Minor,
-						Access: childDevice.Permissions,
+						Access: string(childDevice.Permissions),
 					})
 
 					return nil

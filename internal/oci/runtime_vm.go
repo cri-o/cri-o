@@ -16,7 +16,7 @@ import (
 	client "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/containerd/runtime/v2/task"
 	"github.com/containerd/ttrpc"
-	"github.com/containers/libpod/v2/pkg/cgroups"
+	"github.com/containers/podman/v2/pkg/cgroups"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
 	"github.com/cri-o/cri-o/utils/fifo"
