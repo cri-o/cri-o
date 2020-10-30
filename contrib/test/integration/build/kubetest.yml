@@ -1,0 +1,16 @@
+---
+
+- name: clone test-infra source repo
+  git:
+    repo: "https://github.com/kubernetes/test-infra.git"
+    dest: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
+    force: "{{ force_clone | default(False) | bool}}"
+
+# per https://github.com/kubernetes/test-infra/issues/14070 we need to download
+# kubetest with go module 1.11 on and without -u. As of the time of writing this,
+# neither are happening in hack/e2e.go. instead, add this, and set --get=false when
+# running e2e
+- name: install kubetest
+  shell: GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org GO111MODULE=on go get ./kubetest
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"

@@ -1,0 +1,45 @@
+---
+
+- name: include base e2e setup
+  include: "e2e-base.yml"
+
+- name: Increase inotify user watches
+  sysctl:
+    name: fs.inotify.max_user_watches
+    state: present
+    value: 1048576
+
+# TODO remove the second to last test skipped once https://github.com/cri-o/cri-o/pull/1217 is merged
+# TODO remove the last six tests once the newtworking issue with AWS is figured out https://github.com/cri-o/cri-o/issues/1529
+- name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
+  set_fact:
+    e2e_shell_cmd: >
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket" KUBE_CONTAINER_RUNTIME="remote" GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y KUBE_SSH_USER="{{ ssh_user }}" LOCAL_SSH_KEY="{{ ssh_location }}"
+            "{{ ansible_env.GOPATH }}"/bin/kubetest
+            --provider=local
+            --test
+            --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
+                        --ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|PersistentVolumes|\[HPA\]|should.support.building.a.client.with.a.CSR|should.propagate.mounts.to.the.host|for.NodePort.service|type.clusterIP|unready.pods|ExternalName.services|Guestbook.application|in-cluster.config|Pods.should.support.pod.readiness.gates|\[sig-storage\].In-tree.Volumes.\[Driver:.local\]|\[sig-storage\].CSI.Volumes.CSI.Topology.test.using.GCE.PD.driver|\[sig\-storage\]\sCSI\sVolumes\s\[Driver\:\scsi\-hostpath\]\s\[Testpattern\:\sDynamic\sPV\s\(block\svolmode\)\]\svolumes\sshould\sstore\sdata|\[sig\-storage\]\sCSI\sVolumes\s\[Driver\:\scsi\-hostpath\]\s\[Testpattern\:\sDynamic\sPV\s\(block\svolmode\)\]\sprovisioning\sshould\sprovision\sstorage\swith\spvc\sdata\ssource|\[sig-network\]\sServices\sshould\sbe\sable\sto\spreserve\sUDP\straffic\swhen\sserver\spod\scycles\sfor\sa\sNodePort\sservice|Events.should.be.sent.by.kubelets.and.the.scheduler.about.pods.scheduling.and.running|\[sig\-apps\].DisruptionController.should.block.an.eviction.until.the.PDB.is.updated.to.allow.it|\[sig\-instrumentation\].MetricsGrabber
+                        --ginkgo.noColor
+                        --ginkgo.succinct
+                        --report-dir={{ artifacts }}"
+            &> {{ artifacts }}/e2e.log
+  # Fix vim syntax highlighting: "
+
+- block:
+
+    - name: Disable selinux during e2e tests
+      command: 'setenforce 0'
+      when: not e2e_selinux_enabled
+
+    - name: run e2e tests
+      shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
+      args:
+        chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+      async: '{{ 60 * 60 * 4 }}'  # seconds
+      poll: 60
+
+  always:
+
+    - name: Re-enable SELinux after e2e tests
+      command: 'setenforce 1'

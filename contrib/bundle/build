@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Global vars to be used
+# shellcheck source=vars
+source "$(dirname "${BASH_SOURCE[0]}")"/vars
+
+cd "$(dirname "$0")"
+
+# Versions to be used
+# shellcheck source=../../scripts/versions
+source "$GIT_ROOT/scripts/versions"
+
+FILES_BIN=(
+    "$GIT_ROOT/bin/static/crio-status"
+    "$GIT_ROOT/bin/static/crio"
+    "$GIT_ROOT/bin/static/pinns"
+)
+FILES_MAN=(
+    "$GIT_ROOT/docs/crio.8"
+    "$GIT_ROOT/docs/crio.conf.5"
+    "$GIT_ROOT/docs/crio.conf.d.5"
+)
+FILES_ETC=(
+    "$GIT_ROOT/crictl.yaml"
+    "$GIT_ROOT/crio-umount.conf"
+    "$GIT_ROOT/crio.conf"
+)
+FILES_CONTRIB=(
+    "$GIT_ROOT/contrib/cni/10-crio-bridge.conf"
+    "$GIT_ROOT/contrib/policy.json"
+    "$GIT_ROOT/contrib/systemd/crio.service"
+)
+COMPLETIONS="$GIT_ROOT/completions"
+
+TMPDIR="$ARCHIVE_PATH/tmp"
+rm -rf "$TMPDIR"
+mkdir -p "$TMPDIR"/{bin,contrib,etc,man}
+
+cp -r "$COMPLETIONS" "$TMPDIR"
+
+ERRORED=0
+for FILE in "${FILES_BIN[@]}"; do
+    if [[ ! -f "$FILE" ]]; then
+        echo "File '$FILE' does not exist"
+        ERRORED=1
+    elif [[ ! -x "$FILE" ]]; then
+        echo "File '$FILE' is not exectuable"
+        ERRORED=1
+    elif ! file "$FILE" | grep "statically linked" | grep -q stripped; then
+        echo "Binary '$FILE' is not statically linked and stripped"
+        ERRORED=1
+    else
+        cp "$FILE" "$TMPDIR/bin"
+    fi
+done
+
+for FILE in "${FILES_MAN[@]}"; do
+    if [[ ! -f "$FILE" ]]; then
+        echo "File '$FILE' does not exist"
+        ERRORED=1
+    else
+        cp "$FILE" "$TMPDIR/man"
+    fi
+done
+
+for FILE in "${FILES_ETC[@]}"; do
+    if [[ ! -f "$FILE" ]]; then
+        echo "File '$FILE' does not exist"
+        ERRORED=1
+    else
+        cp "$FILE" "$TMPDIR/etc"
+    fi
+done
+for FILE in "${FILES_CONTRIB[@]}"; do
+    if [[ ! -f "$FILE" ]]; then
+        echo "File '$FILE' does not exist"
+        ERRORED=1
+    else
+        cp "$FILE" "$TMPDIR/contrib"
+    fi
+done
+
+if [[ $ERRORED == 1 ]]; then
+    exit 1
+fi
+
+# Local assets
+cp "$GIT_ROOT/contrib/bundle/Makefile" "$TMPDIR"
+cp "$GIT_ROOT/contrib/bundle/README.md" "$TMPDIR"
+
+curl_to() {
+    curl -sfL -o "$1" "$2"
+}
+TMP_BIN=$TMPDIR/bin
+
+# conmon
+curl_to "$TMP_BIN/conmon" \
+    https://github.com/containers/conmon/releases/download/"${VERSIONS["conmon"]}"/conmon
+chmod +x "$TMP_BIN/conmon"
+
+# runc
+curl_to "$TMP_BIN/runc" \
+    https://github.com/opencontainers/runc/releases/download/"${VERSIONS["runc"]}"/runc.amd64
+chmod +x "$TMP_BIN/runc"
+
+# crun
+curl_to "$TMP_BIN/crun" \
+    https://github.com/containers/crun/releases/download/"${VERSIONS["crun"]}"/crun-"${VERSIONS["crun"]}"-static-x86_64
+chmod +x "$TMP_BIN/crun"
+
+# CNI plugins
+mkdir -p "$TMPDIR/cni-plugins"
+set -x
+curl_to - \
+    https://github.com/containernetworking/plugins/releases/download/"${VERSIONS["cni-plugins"]}"/cni-plugins-linux-amd64-"${VERSIONS["cni-plugins"]}".tgz |
+    tar xfz - -C "$TMPDIR/cni-plugins"
+
+# crictl
+curl_to - \
+    https://github.com/kubernetes-sigs/cri-tools/releases/download/"${VERSIONS["cri-tools"]}"/crictl-"${VERSIONS["cri-tools"]}"-linux-amd64.tar.gz |
+    tar xfz - -C "$TMP_BIN"
+
+# Create the archive
+pushd "$ARCHIVE_PATH"
+rm -f "$ARCHIVE"
+tar cfz "$ARCHIVE" tmp --transform s/tmp/"$BUNDLE"/
+rm -rf "$TMPDIR"
+echo "Created $ARCHIVE_PATH/$ARCHIVE"
+
+# Test the archive
+echo "Testing archive"
+tar xf "$ARCHIVE"
+pushd "$BUNDLE"
+make DESTDIR=test
+popd
+rm -rf "$BUNDLE"

@@ -1,0 +1,27 @@
+[Unit]
+Description=Container Runtime Interface for OCI (CRI-O)
+Documentation=https://github.com/cri-o/cri-o
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=notify
+EnvironmentFile=-/etc/sysconfig/crio
+Environment=GOTRACEBACK=crash
+ExecStart=/usr/local/bin/crio \
+          $CRIO_CONFIG_OPTIONS \
+          $CRIO_RUNTIME_OPTIONS \
+          $CRIO_STORAGE_OPTIONS \
+          $CRIO_NETWORK_OPTIONS \
+          $CRIO_METRICS_OPTIONS
+ExecReload=/bin/kill -s HUP $MAINPID
+TasksMax=infinity
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=infinity
+OOMScoreAdjust=-999
+TimeoutStartSec=0
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target
