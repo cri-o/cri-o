@@ -106,7 +106,7 @@ chmod +x "$TMP_BIN/runc"
 
 # crun
 curl_to "$TMP_BIN/crun" \
-    https://github.com/containers/crun/releases/download/"${VERSIONS["crun"]}"/crun-"${VERSIONS["crun"]}"-static-x86_64
+    https://github.com/containers/crun/releases/download/"${VERSIONS["crun"]}"/crun-"${VERSIONS["crun"]}"-linux-amd64
 chmod +x "$TMP_BIN/crun"
 
 # CNI plugins
