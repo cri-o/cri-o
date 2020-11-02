@@ -27,6 +27,10 @@ function teardown() {
 }
 
 @test "ensure correct hostname for hostnetwork:true" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+
 	start_crio
 	python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["namespace_options"]["network"] = 2; obj["annotations"] = {}; obj["hostname"] = ""; json.dump(obj, sys.stdout)' \
 		< "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_hostnetwork_config.json

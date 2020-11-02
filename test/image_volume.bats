@@ -41,7 +41,7 @@ function teardown() {
 }
 
 @test "image volume user mkdir" {
-	if test -n "$UID_MAPPINGS"; then
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
 	CONTAINER_IMAGE_VOLUMES="mkdir" start_crio
