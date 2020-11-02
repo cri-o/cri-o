@@ -265,6 +265,15 @@ type Store interface {
 	// Wipe removes all known layers, images, and containers.
 	Wipe() error
 
+	// MountImage mounts an image to temp directory and returns the mount point.
+	// MountImage allows caller to mount an image. Images will always
+	// be mounted read/only
+	MountImage(id string, mountOptions []string, mountLabel string) (string, error)
+
+	// Unmount attempts to unmount an image, given an ID.
+	// Returns whether or not the layer is still mounted.
+	UnmountImage(id string, force bool) (bool, error)
+
 	// Mount attempts to mount a layer, image, or container for access, and
 	// returns the pathname if it succeeds.
 	// Note if the mountLabel == "", the default label for the container
@@ -345,6 +354,9 @@ type Store interface {
 
 	// Names returns the list of names for a layer, image, or container.
 	Names(id string) ([]string, error)
+
+	// Free removes the store from the list of stores
+	Free()
 
 	// SetNames changes the list of names for a layer, image, or container.
 	// Duplicate names are removed from the list automatically.
@@ -601,14 +613,14 @@ func GetStore(options StoreOptions) (Store, error) {
 	if options.GraphRoot != "" {
 		dir, err := filepath.Abs(options.GraphRoot)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error deriving an absolute path from %q", options.GraphRoot)
+			return nil, err
 		}
 		options.GraphRoot = dir
 	}
 	if options.RunRoot != "" {
 		dir, err := filepath.Abs(options.RunRoot)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error deriving an absolute path from %q", options.RunRoot)
+			return nil, err
 		}
 		options.RunRoot = dir
 	}
@@ -2211,16 +2223,23 @@ func (s *store) DeleteLayer(id string) error {
 		}
 		for _, layer := range layers {
 			if layer.Parent == id {
-				return ErrLayerHasChildren
+				return errors.Wrapf(ErrLayerHasChildren, "used by layer %v", layer.ID)
 			}
 		}
 		images, err := ristore.Images()
 		if err != nil {
 			return err
 		}
+
 		for _, image := range images {
-			if image.TopLayer == id || stringutils.InSlice(image.MappedTopLayers, id) {
-				return errors.Wrapf(ErrLayerUsedByImage, "Layer %v used by image %v", id, image.ID)
+			if image.TopLayer == id {
+				return errors.Wrapf(ErrLayerUsedByImage, "layer %v used by image %v", id, image.ID)
+			}
+			if stringutils.InSlice(image.MappedTopLayers, id) {
+				// No write access to the image store, fail before the layer is deleted
+				if _, ok := ristore.(*imageStore); !ok {
+					return errors.Wrapf(ErrLayerUsedByImage, "layer %v used by image %v", id, image.ID)
+				}
 			}
 		}
 		containers, err := rcstore.Containers()
@@ -2229,10 +2248,25 @@ func (s *store) DeleteLayer(id string) error {
 		}
 		for _, container := range containers {
 			if container.LayerID == id {
-				return errors.Wrapf(ErrLayerUsedByContainer, "Layer %v used by container %v", id, container.ID)
+				return errors.Wrapf(ErrLayerUsedByContainer, "layer %v used by container %v", id, container.ID)
 			}
 		}
-		return rlstore.Delete(id)
+		if err := rlstore.Delete(id); err != nil {
+			return errors.Wrapf(err, "delete layer %v", id)
+		}
+
+		// The check here is used to avoid iterating the images if we don't need to.
+		// There is already a check above for the imageStore to be writeable when the layer is part of MappedTopLayers.
+		if istore, ok := ristore.(*imageStore); ok {
+			for _, image := range images {
+				if stringutils.InSlice(image.MappedTopLayers, id) {
+					if err = istore.removeMappedTopLayer(image.ID, id); err != nil {
+						return errors.Wrapf(err, "remove mapped top layer %v from image %v", id, image.ID)
+					}
+				}
+			}
+		}
+		return nil
 	}
 	return ErrNotALayer
 }
@@ -2591,17 +2625,7 @@ func (s *store) Version() ([][2]string, error) {
 	return [][2]string{}, nil
 }
 
-func (s *store) Mount(id, mountLabel string) (string, error) {
-	container, err := s.Container(id)
-	var (
-		uidMap, gidMap []idtools.IDMap
-		mountOpts      []string
-	)
-	if err == nil {
-		uidMap, gidMap = container.UIDMap, container.GIDMap
-		id = container.LayerID
-		mountOpts = container.MountOpts()
-	}
+func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 	rlstore, err := s.LayerStore()
 	if err != nil {
 		return "", err
@@ -2609,7 +2633,6 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 
 	s.graphLock.Lock()
 	defer s.graphLock.Unlock()
-
 	rlstore.Lock()
 	defer rlstore.Unlock()
 	if modified, err := rlstore.Modified(); modified || err != nil {
@@ -2630,15 +2653,42 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 	}
 
 	if rlstore.Exists(id) {
-		options := drivers.MountOpts{
-			MountLabel: mountLabel,
-			UidMaps:    uidMap,
-			GidMaps:    gidMap,
-			Options:    mountOpts,
-		}
 		return rlstore.Mount(id, options)
 	}
 	return "", ErrLayerUnknown
+}
+
+func (s *store) MountImage(id string, mountOpts []string, mountLabel string) (string, error) {
+	// Append ReadOnly option to mountOptions
+	img, err := s.Image(id)
+	if err != nil {
+		return "", err
+	}
+
+	if err := validateMountOptions(mountOpts); err != nil {
+		return "", err
+	}
+	options := drivers.MountOpts{
+		MountLabel: mountLabel,
+		Options:    append(mountOpts, "ro"),
+	}
+
+	return s.mount(img.TopLayer, options)
+}
+
+func (s *store) Mount(id, mountLabel string) (string, error) {
+	options := drivers.MountOpts{
+		MountLabel: mountLabel,
+	}
+	// check if `id` is a container, then grab the LayerID, uidmap and gidmap, along with
+	// otherwise we assume the id is a LayerID and attempt to mount it.
+	if container, err := s.Container(id); err == nil {
+		id = container.LayerID
+		options.UidMaps = container.UIDMap
+		options.GidMaps = container.GIDMap
+		options.Options = container.MountOpts()
+	}
+	return s.mount(id, options)
 }
 
 func (s *store) Mounted(id string) (int, error) {
@@ -2658,6 +2708,14 @@ func (s *store) Mounted(id string) (int, error) {
 	}
 
 	return rlstore.Mounted(id)
+}
+
+func (s *store) UnmountImage(id string, force bool) (bool, error) {
+	img, err := s.Image(id)
+	if err != nil {
+		return false, err
+	}
+	return s.Unmount(img.TopLayer, force)
 }
 
 func (s *store) Unmount(id string, force bool) (bool, error) {
@@ -3397,7 +3455,10 @@ func copyStringInterfaceMap(m map[string]interface{}) map[string]interface{} {
 }
 
 // defaultConfigFile path to the system wide storage.conf file
-var defaultConfigFile = "/etc/containers/storage.conf"
+var (
+	defaultConfigFile    = "/etc/containers/storage.conf"
+	defaultConfigFileSet = false
+)
 
 // AutoUserNsMinSize is the minimum size for automatically created user namespaces
 const AutoUserNsMinSize = 1024
@@ -3412,21 +3473,24 @@ const RootAutoUserNsUser = "containers"
 // SetDefaultConfigFilePath sets the default configuration to the specified path
 func SetDefaultConfigFilePath(path string) {
 	defaultConfigFile = path
+	defaultConfigFileSet = true
+	reloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions)
 }
 
 // DefaultConfigFile returns the path to the storage config file used
 func DefaultConfigFile(rootless bool) (string, error) {
-	if rootless {
-		if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
-			return filepath.Join(configHome, "containers/storage.conf"), nil
-		}
-		home := homedir.Get()
-		if home == "" {
-			return "", errors.New("cannot determine user's homedir")
-		}
-		return filepath.Join(home, ".config/containers/storage.conf"), nil
+	if defaultConfigFileSet || !rootless {
+		return defaultConfigFile, nil
 	}
-	return defaultConfigFile, nil
+
+	if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
+		return filepath.Join(configHome, "containers/storage.conf"), nil
+	}
+	home := homedir.Get()
+	if home == "" {
+		return "", errors.New("cannot determine user's homedir")
+	}
+	return filepath.Join(home, ".config/containers/storage.conf"), nil
 }
 
 // TOML-friendly explicit tables used for conversions.
@@ -3600,4 +3664,14 @@ func GetMountOptions(driver string, graphDriverOptions []string) ([]string, erro
 		}
 	}
 	return nil, nil
+}
+
+// Free removes the store from the list of stores
+func (s *store) Free() {
+	for i := 0; i < len(stores); i++ {
+		if stores[i] == s {
+			stores = append(stores[:i], stores[i+1:]...)
+			return
+		}
+	}
 }

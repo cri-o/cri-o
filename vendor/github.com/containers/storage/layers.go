@@ -772,7 +772,20 @@ func (r *layerStore) Mounted(id string) (int, error) {
 }
 
 func (r *layerStore) Mount(id string, options drivers.MountOpts) (string, error) {
-	if !r.IsReadWrite() {
+
+	// check whether options include ro option
+	hasReadOnlyOpt := func(opts []string) bool {
+		for _, item := range opts {
+			if item == "ro" {
+				return true
+			}
+		}
+		return false
+	}
+
+	// You are not allowed to mount layers from readonly stores if they
+	// are not mounted read/only.
+	if !r.IsReadWrite() && !hasReadOnlyOpt(options.Options) {
 		return "", errors.Wrapf(ErrStoreIsReadOnly, "not allowed to update mount locations for layers at %q", r.mountspath())
 	}
 	r.mountsLockfile.Lock()
@@ -894,11 +907,11 @@ func (r *layerStore) ParentOwners(id string) (uids, gids []int, err error) {
 	for dir := filepath.Dir(layer.MountPoint); dir != "" && dir != string(os.PathSeparator); dir = filepath.Dir(dir) {
 		st, err := system.Stat(dir)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "error reading ownership of directory %q", dir)
+			return nil, nil, errors.Wrap(err, "read directory ownership")
 		}
 		lst, err := system.Lstat(dir)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "error reading ownership of directory-in-case-it's-a-symlink %q", dir)
+			return nil, nil, err
 		}
 		fsuid := int(st.UID())
 		fsgid := int(st.GID())
@@ -1000,6 +1013,7 @@ func (r *layerStore) deleteInternal(id string) error {
 		if layer.MountPoint != "" {
 			delete(r.bymount, layer.MountPoint)
 		}
+		r.deleteInDigestMap(id)
 		toDeleteIndex := -1
 		for i, candidate := range r.layers {
 			if candidate.ID == id {
@@ -1029,6 +1043,27 @@ func (r *layerStore) deleteInternal(id string) error {
 		}
 	}
 	return err
+}
+
+func (r *layerStore) deleteInDigestMap(id string) {
+	for digest, layers := range r.bycompressedsum {
+		for i, layerID := range layers {
+			if layerID == id {
+				layers = append(layers[:i], layers[i+1:]...)
+				r.bycompressedsum[digest] = layers
+				break
+			}
+		}
+	}
+	for digest, layers := range r.byuncompressedsum {
+		for i, layerID := range layers {
+			if layerID == id {
+				layers = append(layers[:i], layers[i+1:]...)
+				r.byuncompressedsum[digest] = layers
+				break
+			}
+		}
+	}
 }
 
 func (r *layerStore) Delete(id string) error {
@@ -1294,6 +1329,7 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 	if err != nil {
 		return -1, err
 	}
+	defer uncompressed.Close()
 	uncompressedDigest := digest.Canonical.Digester()
 	uncompressedCounter := ioutils.NewWriteCounter(uncompressedDigest.Hash())
 	uidLog := make(map[uint32]struct{})
@@ -1307,6 +1343,7 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 	if err != nil {
 		return -1, err
 	}
+	defer idLogger.Close()
 	payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, io.MultiWriter(uncompressedCounter, idLogger)), metadata, storage.NewDiscardFilePutter())
 	if err != nil {
 		return -1, err
@@ -1321,7 +1358,6 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 		return -1, err
 	}
 	compressor.Close()
-	idLogger.Close()
 	if err == nil {
 		if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0700); err != nil {
 			return -1, err

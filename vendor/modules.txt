@@ -252,7 +252,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.20.2
+# github.com/containers/storage v1.23.8
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -525,7 +525,7 @@ github.com/gorilla/mux
 github.com/grpc-ecosystem/go-grpc-middleware
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-multierror v1.0.0
+# github.com/hashicorp/go-multierror v1.1.0
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/golang-lru v0.5.1
 github.com/hashicorp/golang-lru
@@ -554,17 +554,15 @@ github.com/jstemmer/go-junit-report/formatter
 github.com/jstemmer/go-junit-report/parser
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.10.8
+# github.com/klauspost/compress v1.11.2
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/pgzip v1.2.4
+# github.com/klauspost/pgzip v1.2.5
 github.com/klauspost/pgzip
-# github.com/konsorten/go-windows-terminal-sequences v1.0.3
-github.com/konsorten/go-windows-terminal-sequences
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
 # github.com/mattn/go-isatty v0.0.12
@@ -579,6 +577,8 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/mistifyio/go-zfs
 # github.com/mitchellh/go-homedir v1.1.0
 github.com/mitchellh/go-homedir
+# github.com/moby/sys/mountinfo v0.4.0
+github.com/moby/sys/mountinfo
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
@@ -673,7 +673,7 @@ github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/validate
-# github.com/opencontainers/selinux v1.5.2
+# github.com/opencontainers/selinux v1.6.0
 ## explicit
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
@@ -751,7 +751,7 @@ github.com/seccomp/libseccomp-golang
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
 github.com/shurcooL/sanitized_anchor_name
-# github.com/sirupsen/logrus v1.6.0
+# github.com/sirupsen/logrus v1.7.0
 ## explicit
 github.com/sirupsen/logrus
 # github.com/soheilhy/cmux v0.1.4
@@ -789,6 +789,8 @@ github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20200520041808-52d707b772fe
 github.com/vishvananda/netns
+# github.com/willf/bitset v1.1.11-0.20200630133818-d5bec3311243
+github.com/willf/bitset
 # github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
 # github.com/xeipuuv/gojsonpointer v0.0.0-20190809123943-df4f5c81cb3b
@@ -874,7 +876,7 @@ golang.org/x/oauth2/jwt
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
+# golang.org/x/sys v0.0.0-20200909081042-eff7692f9009
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader

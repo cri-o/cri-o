@@ -139,6 +139,7 @@ func IsArchivePath(path string) bool {
 	if err != nil {
 		return false
 	}
+	defer rdr.Close()
 	r := tar.NewReader(rdr)
 	_, err = r.Next()
 	return err == nil
@@ -390,16 +391,20 @@ func fillGo18FileTypeBits(mode int64, fi os.FileInfo) int64 {
 	return mode
 }
 
-// ReadSecurityXattrToTarHeader reads security.capability xattr from filesystem
-// to a tar header
+// ReadSecurityXattrToTarHeader reads security.capability, security,image
+// xattrs from filesystem to a tar header
 func ReadSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
-	capability, err := system.Lgetxattr(path, "security.capability")
-	if err != nil && err != system.EOPNOTSUPP && err != system.ErrNotSupportedPlatform {
-		return err
-	}
-	if capability != nil {
+	if hdr.Xattrs == nil {
 		hdr.Xattrs = make(map[string]string)
-		hdr.Xattrs["security.capability"] = string(capability)
+	}
+	for _, xattr := range []string{"security.capability", "security.ima"} {
+		capability, err := system.Lgetxattr(path, xattr)
+		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
+			return errors.Wrapf(err, "failed to read %q attribute from %q", xattr, path)
+		}
+		if capability != nil {
+			hdr.Xattrs[xattr] = string(capability)
+		}
 	}
 	return nil
 }
@@ -407,17 +412,17 @@ func ReadSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
 // ReadUserXattrToTarHeader reads user.* xattr from filesystem to a tar header
 func ReadUserXattrToTarHeader(path string, hdr *tar.Header) error {
 	xattrs, err := system.Llistxattr(path)
-	if err != nil && err != system.EOPNOTSUPP && err != system.ErrNotSupportedPlatform {
+	if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
 		return err
 	}
 	for _, key := range xattrs {
 		if strings.HasPrefix(key, "user.") {
 			value, err := system.Lgetxattr(path, key)
-			if err == system.E2BIG {
-				logrus.Errorf("archive: Skipping xattr for file %s since value is too big: %s", path, key)
-				continue
-			}
 			if err != nil {
+				if errors.Is(err, system.E2BIG) {
+					logrus.Errorf("archive: Skipping xattr for file %s since value is too big: %s", path, key)
+					continue
+				}
 				return err
 			}
 			if hdr.Xattrs == nil {
@@ -598,7 +603,7 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	return nil
 }
 
-func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool) error {
+func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool, buffer []byte) error {
 	// hdr.Mode is in linux format, which we can use for sycalls,
 	// but for os.Foo() calls we need the mode converted to os.FileMode,
 	// so use hdrInfo.Mode() (they differ for e.g. setuid bits)
@@ -622,7 +627,7 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 		if err != nil {
 			return err
 		}
-		if _, err := io.Copy(file, reader); err != nil {
+		if _, err := io.CopyBuffer(file, reader, buffer); err != nil {
 			file.Close()
 			return err
 		}
@@ -690,29 +695,6 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 		}
 	}
 
-	var errors []string
-	for key, value := range hdr.Xattrs {
-		if err := system.Lsetxattr(path, key, []byte(value), 0); err != nil {
-			if err == syscall.ENOTSUP || (err == syscall.EPERM && inUserns) {
-				// We ignore errors here because not all graphdrivers support
-				// xattrs *cough* old versions of AUFS *cough*. However only
-				// ENOTSUP should be emitted in that case, otherwise we still
-				// bail.  We also ignore EPERM errors if we are running in a
-				// user namespace.
-				errors = append(errors, err.Error())
-				continue
-			}
-			return err
-		}
-
-	}
-
-	if len(errors) > 0 {
-		logrus.WithFields(logrus.Fields{
-			"errors": errors,
-		}).Warn("ignored xattrs in archive: underlying filesystem doesn't support them")
-	}
-
 	// There is no LChmod, so ignore mode for symlink. Also, this
 	// must happen after chown, as that can modify the file mode
 	if err := handleLChmod(hdr, path, hdrInfo); err != nil {
@@ -742,6 +724,30 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 			return err
 		}
 	}
+
+	var errs []string
+	for key, value := range hdr.Xattrs {
+		if err := system.Lsetxattr(path, key, []byte(value), 0); err != nil {
+			if errors.Is(err, syscall.ENOTSUP) || (inUserns && errors.Is(err, syscall.EPERM)) {
+				// We ignore errors here because not all graphdrivers support
+				// xattrs *cough* old versions of AUFS *cough*. However only
+				// ENOTSUP should be emitted in that case, otherwise we still
+				// bail.  We also ignore EPERM errors if we are running in a
+				// user namespace.
+				errs = append(errs, err.Error())
+				continue
+			}
+			return err
+		}
+
+	}
+
+	if len(errs) > 0 {
+		logrus.WithFields(logrus.Fields{
+			"errors": errs,
+		}).Warn("ignored xattrs in archive: underlying filesystem doesn't support them")
+	}
+
 	return nil
 }
 
@@ -938,6 +944,7 @@ func Unpack(decompressedArchive io.Reader, dest string, options *TarOptions) err
 	idMappings := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
 	rootIDs := idMappings.RootPair()
 	whiteoutConverter := getWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
+	buffer := make([]byte, 1<<20)
 
 	// Iterate through the files in the archive.
 loop:
@@ -1034,7 +1041,7 @@ loop:
 			chownOpts = &idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 		}
 
-		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown, chownOpts, options.InUserNS, options.IgnoreChownErrors); err != nil {
+		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown, chownOpts, options.InUserNS, options.IgnoreChownErrors, buffer); err != nil {
 			return err
 		}
 
@@ -1242,10 +1249,11 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 	}()
 
 	options := &TarOptions{
-		UIDMaps:   archiver.UntarIDMappings.UIDs(),
-		GIDMaps:   archiver.UntarIDMappings.GIDs(),
-		ChownOpts: archiver.ChownOpts,
-		InUserNS:  rsystem.RunningInUserNS(),
+		UIDMaps:              archiver.UntarIDMappings.UIDs(),
+		GIDMaps:              archiver.UntarIDMappings.GIDs(),
+		ChownOpts:            archiver.ChownOpts,
+		InUserNS:             rsystem.RunningInUserNS(),
+		NoOverwriteDirNonDir: true,
 	}
 	err = archiver.Untar(r, filepath.Dir(dst), options)
 	if err != nil {
