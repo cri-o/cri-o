@@ -22,10 +22,9 @@ github.com/GoogleCloudPlatform/testgrid/pb/config
 github.com/GoogleCloudPlatform/testgrid/pb/custom_evaluator
 github.com/GoogleCloudPlatform/testgrid/pb/test_status
 github.com/GoogleCloudPlatform/testgrid/util/gcs
-# github.com/Microsoft/go-winio v0.4.15-0.20200113171025-3fe6c5262873
+# github.com/Microsoft/go-winio v0.4.15
 ## explicit
 github.com/Microsoft/go-winio
-github.com/Microsoft/go-winio/archive/tar
 github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/vhd
@@ -255,7 +254,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.23.7
+# github.com/containers/storage v1.24.0
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -557,7 +556,7 @@ github.com/jstemmer/go-junit-report/formatter
 github.com/jstemmer/go-junit-report/parser
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.11.1
+# github.com/klauspost/compress v1.11.2
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
