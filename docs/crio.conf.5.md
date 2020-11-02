@@ -224,7 +224,7 @@ the container runtime configuration.
 
 **drop_infra_ctr**=false
   Determines whether we drop the infra container when a pod does not have a private PID namespace, and does not use a kernel separating runtime (like kata).
-  Requies **manage_ns_lifecycle** to be true.
+  Requires **manage_ns_lifecycle** to be true.
 
 **namespaces_dir**="/var/run"
   The directory where the state of the managed namespaces gets tracked. Only used when manage_ns_lifecycle is true
