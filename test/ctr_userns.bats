@@ -3,8 +3,6 @@
 load helpers
 
 function setup() {
-	export CONTAINER_MANAGE_NS_LIFECYCLE=false
-	export CONTAINER_DROP_INFRA_CTR=false
 	setup_test
 }
 
