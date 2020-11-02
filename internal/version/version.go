@@ -88,6 +88,11 @@ func WriteVersionFile(file string) error {
 	return writeVersionFile(file, gitCommit, Version)
 }
 
+// LogVersion logs the version and git information of this build
+func LogVersion() {
+	logrus.Infof("Starting CRI-O, version: %s, git: %v(%s)", Version, gitCommit, gitTreeState)
+}
+
 // writeVersionFile is an internal function for testing purposes
 func writeVersionFile(file, gitCommit, version string) error {
 	current, err := parseVersionConstant(version, gitCommit)
