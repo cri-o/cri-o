@@ -3,9 +3,11 @@
 load helpers
 
 function setup() {
-	export CONTAINER_MANAGE_NS_LIFECYCLE=false
-	export CONTAINER_DROP_INFRA_CTR=false
+	if [ -z "$CONTAINER_UID_MAPPINGS" ]; then
+		skip "userns testing not enabled"
+	fi
 	setup_test
+	start_crio
 }
 
 function teardown() {
@@ -13,18 +15,6 @@ function teardown() {
 }
 
 @test "ctr_userns run container" {
-	if test \! -e /proc/self/uid_map; then
-		skip "userNS not available"
-	fi
-	export CONTAINER_UID_MAPPINGS="0:100000:100000"
-	export CONTAINER_GID_MAPPINGS="0:200000:100000"
-
-	# Needed for RHEL
-	if test -e /proc/sys/user/max_user_namespaces; then
-		echo 15000 > /proc/sys/user/max_user_namespaces
-	fi
-
-	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
