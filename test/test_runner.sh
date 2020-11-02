@@ -21,10 +21,6 @@ if [[ -n "$TEST_USERNS" ]]; then
     fi
 fi
 
-# Workaround for https://github.com/opencontainers/runc/pull/1562
-# Remove once the fix hits the CI
-export OVERRIDE_OPTIONS="--selinux=false"
-
 # Load the helpers.
 . helpers.bash
 
