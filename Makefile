@@ -286,14 +286,14 @@ ${GOLANGCI_LINT}:
 		VERSION=v1.30.0 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
-	curl -sfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
+	curl -sSfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
 
 ${SHELLCHECK}:
 	mkdir -p ${BUILD_BIN_PATH} && \
 	VERSION=v0.7.0 \
 	URL=https://github.com/koalaman/shellcheck/releases/download/$$VERSION/shellcheck-$$VERSION.linux.x86_64.tar.xz \
 	SHA256SUM=c37d4f51e26ec8ab96b03d84af8c050548d7288a47f755ffb57706c6c458e027 && \
-	curl -sfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$$VERSION/shellcheck && \
+	curl -sSfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$$VERSION/shellcheck && \
 	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
 
 vendor: export GOSUMDB := ""
