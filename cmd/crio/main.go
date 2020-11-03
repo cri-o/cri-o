@@ -327,6 +327,9 @@ func main() {
 		return nil
 	}
 
+	// Log our version early at startup
+	version.LogVersion()
+
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
 	}
