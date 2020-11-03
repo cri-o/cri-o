@@ -488,12 +488,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}()
 
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		if cachedID := s.resourceStore.Get(ctr.Name()); cachedID != "" {
-			log.Infof(ctx, "Found container %s with ID %s in resource cache; using it", ctr.Name(), cachedID)
+		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
+		if resourceErr == nil {
 			return &pb.CreateContainerResponse{ContainerId: cachedID}, nil
 		}
-		log.Infof(ctx, "Container %s not found in cache yet; creation not yet finished", ctr.Name())
-		return nil, errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
+		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
 
 	cleanupFuncs = append(cleanupFuncs, func() {
