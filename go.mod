@@ -17,13 +17,12 @@ require (
 	github.com/containers/image/v5 v5.4.4
 	github.com/containers/libpod v1.9.2
 	github.com/containers/ocicrypt v1.0.2
-	github.com/containers/storage v1.19.2
+	github.com/containers/storage v1.20.5
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
 	github.com/cri-o/ocicni v0.2.1-0.20200422173648-513ef787b8c9
 	github.com/cyphar/filepath-securejoin v0.2.2
-	github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f // indirect
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-zoo/bone v1.3.0
@@ -36,12 +35,12 @@ require (
 	github.com/hpcloud/tail v1.0.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
-	github.com/opencontainers/go-digest v1.0.0-rc1
+	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
-	github.com/opencontainers/runc v1.0.0-rc9
+	github.com/opencontainers/runc v1.0.0-rc90
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
-	github.com/opencontainers/selinux v1.5.1
+	github.com/opencontainers/selinux v1.5.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.5.1
 	github.com/psampaz/go-mod-outdated v0.6.0
