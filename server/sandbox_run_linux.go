@@ -319,13 +319,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}()
 
 	if _, err := s.ReservePodName(sbox.ID(), sbox.Name()); err != nil {
-		if cachedID := s.resourceStore.Get(sbox.Name()); cachedID != "" {
-			log.Infof(ctx, "Found sandbox %s with ID %s in resource cache; using it", sbox.Name(), cachedID)
+		cachedID, resourceErr := s.getResourceOrWait(ctx, sbox.Name(), "sandbox")
+		if resourceErr == nil {
 			return &pb.RunPodSandboxResponse{PodSandboxId: cachedID}, nil
 		}
-		log.Infof(ctx, "Sandbox %s not found in cache yet; creation not yet finished", sbox.Name())
-
-		return nil, errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
+		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
 
 	cleanupFuncs = append(cleanupFuncs, func() {

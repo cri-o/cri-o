@@ -24,7 +24,8 @@ type ResourceStore struct {
 }
 
 // Resource contains the actual resource itself (which must implement the IdentifiableCreatable interface),
-// as well as stores function pointers that pertain to how that resource should be cleaned up.
+// as well as stores function pointers that pertain to how that resource should be cleaned up,
+// and keeps track of other requests that are watching for the successful creation of this resource.
 type Resource struct {
 	resource     IdentifiableCreatable
 	cleanupFuncs []func()
@@ -114,14 +115,44 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleanu
 	rc.Lock()
 	defer rc.Unlock()
 
-	if _, ok := rc.resources[name]; ok {
-		return errors.Errorf("failed to add entry %s to ResourceCache; entry already exists", name)
+	r, ok := rc.resources[name]
+	// if we don't already have a resource, create it
+	if !ok {
+		r = &Resource{}
+		rc.resources[name] = r
 	}
-	rc.resources[name] = &Resource{
-		resource:     resource,
-		cleanupFuncs: cleanupFuncs,
-		name:         name,
+	// make sure the resource hasn't already been added to the store
+	if r.resource != nil || r.cleanupFuncs != nil {
+		return errors.Errorf("failed to add entry %s to ResourceStore; entry already exists", name)
 	}
 
+	r.resource = resource
+	r.cleanupFuncs = cleanupFuncs
+	r.name = name
+
+	// now the resource is created, notify the watchers
+	for _, w := range r.watchers {
+		w <- struct{}{}
+	}
 	return nil
+}
+
+// WatcherForResource looks up a Resource by name, and gives it a watcher if it's found.
+// A watcher can be used for concurrent processes to wait for the resource to be created.
+// This is useful for situations where clients retry requests quickly after they "fail" because
+// they've taken too long. Adding a watcher allows the server to slow down the client, but still
+// return the resource in a timely manner once it's actually created.
+func (rc *ResourceStore) WatcherForResource(name string) chan struct{} {
+	rc.Lock()
+	defer rc.Unlock()
+	watcher := make(chan struct{}, 1)
+	r, ok := rc.resources[name]
+	if !ok {
+		rc.resources[name] = &Resource{
+			watchers: []chan struct{}{watcher},
+		}
+		return watcher
+	}
+	r.watchers = append(r.watchers, watcher)
+	return watcher
 }
