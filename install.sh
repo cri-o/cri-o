@@ -1,7 +1,7 @@
 #!/bin/sh -ex
 
 # package installer for *cri-o* container runtime <https://cri-o.io>
-# executable version of install.md, needs root so run it with "sudo"
+sudo -v
 
 # systemd distro
 . /etc/os-release
@@ -42,19 +42,19 @@ NAME="cri-o"
 CHANNEL="stable"
 
 if [ "$PKG" = "yum" ]; then
-	curl -L "$SLASH:/$CHANNEL/$OS/$FILE:$CHANNEL.repo" -o /etc/yum.repos.d/$FILE:$CHANNEL.repo
-	curl -L "$REPO:$CHANNEL:$NAME:$VERSION/$OS/$FILE:$CHANNEL:$NAME:$VERSION.repo" -o /etc/yum.repos.d/$FILE:$CHANNEL:$NAME:$VERSION.repo
+	curl -L "$SLASH:/$CHANNEL/$OS/$FILE:$CHANNEL.repo" | sudo tee /etc/yum.repos.d/$FILE:$CHANNEL.repo
+	curl -L "$REPO:$CHANNEL:$NAME:$VERSION/$OS/$FILE:$CHANNEL:$NAME:$VERSION.repo" | sudo tee /etc/yum.repos.d/$FILE:$CHANNEL:$NAME:$VERSION.repo
 
-	yum install -y cri-o
+	sudo yum install -y cri-o
 fi
 
 if [ "$PKG" = "apt" ]; then
-	echo "deb $SLASH:/$CHANNEL/$OS/ /" > /etc/apt/sources.list.d/$FILE:$CHANNEL.list
-	echo "deb $SLASH:/$CHANNEL:/$NAME:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/$FILE:$CHANNEL:$NAME:$VERSION.list
+	echo "deb $SLASH:/$CHANNEL/$OS/ /" | sudo tee /etc/apt/sources.list.d/$FILE:$CHANNEL.list
+	echo "deb $SLASH:/$CHANNEL:/$NAME:/$VERSION/$OS/ /" | sudo tee /etc/apt/sources.list.d/$FILE:$CHANNEL:$NAME:$VERSION.list
 
-	curl -L "$REPO:$CHANNEL:$NAME:$VERSION/$OS/Release.key" | apt-key add -
-	curl -L "$SLASH:/$CHANNEL/$OS/Release.key" | apt-key add -
+	curl -L "$REPO:$CHANNEL:$NAME:$VERSION/$OS/Release.key" | sudo apt-key add -
+	curl -L "$SLASH:/$CHANNEL/$OS/Release.key" | sudo apt-key add -
 
-	apt-get update
-	apt-get install -y cri-o cri-o-runc
+	sudo apt-get update
+	sudo apt-get install -y cri-o cri-o-runc
 fi
