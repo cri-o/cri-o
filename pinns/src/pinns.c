@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
   bool bind_user = false;
   bool bind_cgroup = false;
   char *sysctls = NULL;
+  char res;
 
   static const struct option long_options[] = {
       {"help", no_argument, NULL, 'h'},
@@ -151,11 +152,31 @@ int main(int argc, char **argv) {
 
     if (pid == 0) {
       close(p[0]);
+
       if (prctl(PR_SET_PDEATHSIG, SIGKILL) < 0)
         pexit("Failed to prctl");
-      if (unshare(unshare_flags) < 0) {
+      if (unshare(CLONE_NEWUSER) < 0)
         pexit("Failed to unshare namespaces");
-      }
+
+      /* Notify that the user namespace is created.  */
+      if (TEMP_FAILURE_RETRY(write(p[1], "0", 1)) < 0)
+        pexit("Failed to write on sync pipe");
+
+      /* Wait for the mappings to be written.  */
+      res = '1';
+      if (TEMP_FAILURE_RETRY(read(p[1], &res, 1)) < 0 || res != '0')
+        pexit("Failed to read from the sync pipe");
+
+      if (TEMP_FAILURE_RETRY(setresuid(0, 0, 0)) < 0)
+        pexit("Failed to setresuid");
+      if (TEMP_FAILURE_RETRY(setresgid(0, 0, 0)) < 0)
+        pexit("Failed to setresgid");
+
+      /* Now create all the other namespaces that are owned by the correct user.  */
+      if (unshare(unshare_flags & ~CLONE_NEWUSER) < 0)
+        pexit("Failed to unshare namespaces");
+
+      /* Notify that the namespaces are created.  */
       if (TEMP_FAILURE_RETRY(write(p[1], "0", 1)) < 0)
         pexit("Failed to write on sync pipe");
 
@@ -168,16 +189,28 @@ int main(int argc, char **argv) {
     }
     if (TEMP_FAILURE_RETRY(close(p[1])) < 0)
       pexit("Failed to close pipe");
-    /* Namespaces created.  */
-    if (TEMP_FAILURE_RETRY(read (p[0], &c, 1)) < 0)
+
+    /* Wait for user namespace creation.  */
+    res = '1';
+    if (TEMP_FAILURE_RETRY(read(p[0], &res, 1)) < 0 || res != '0')
       pexit("Failed to read from the sync pipe");
-    close(p[0]);
 
     if (gid_mapping && write_mapping_file(pid, gid_mapping, true) < 0)
       pexit("Cannot write gid mappings");
 
     if (uid_mapping && write_mapping_file(pid, uid_mapping, false) < 0)
       pexit("Cannot write gid mappings");
+
+    /* Notify that the mappings were written.  */
+    if (TEMP_FAILURE_RETRY(write(p[0], "0", 1)) < 0)
+      pexit("Failed to write on sync pipe");
+
+    /* Wait for namespaces creation.  */
+    res = '1';
+    if (TEMP_FAILURE_RETRY(read(p[0], &res, 1)) < 0 || res != '0')
+      pexit("Failed to read from the sync pipe");
+
+    close(p[0]);
   }
 
   if (sysctls && configure_sysctls(sysctls) < 0) {
