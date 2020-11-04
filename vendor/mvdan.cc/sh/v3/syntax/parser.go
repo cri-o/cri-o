@@ -58,7 +58,15 @@ const (
 
 // Variant changes the shell language variant that the parser will
 // accept.
+//
+// The passed language variant must be one of the constant values defined in
+// this package.
 func Variant(l LangVariant) ParserOption {
+	switch l {
+	case LangBash, LangPOSIX, LangMirBSDKorn, LangBats:
+	default:
+		panic(fmt.Sprintf("unknown shell language variant: %d", l))
+	}
 	return func(p *Parser) { p.lang = l }
 }
 
@@ -332,6 +340,11 @@ type Parser struct {
 	pos  Pos // position of tok
 	npos Pos // next position (of r)
 
+	// TODO: Guard against offset overflow too. Less likely as it's 32-bit,
+	// whereas line and col are 16-bit.
+	lineOverflow bool
+	colOverflow  bool
+
 	quote   quoteState // current lexer state
 	eqlOffs int        // position of '=' in val (a literal)
 
@@ -413,8 +426,15 @@ func (p *Parser) reset() {
 }
 
 func (p *Parser) getPos() Pos {
-	p.npos.offs = uint32(p.offs + p.bsp - int(p.w))
-	return p.npos
+	pos := p.npos
+	if p.lineOverflow {
+		pos.line = 0
+	}
+	if p.colOverflow {
+		pos.col = 0
+	}
+	pos.offs = uint32(p.offs + p.bsp - int(p.w))
+	return pos
 }
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
