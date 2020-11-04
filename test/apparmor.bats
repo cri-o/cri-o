@@ -96,9 +96,7 @@ run_a_container_with_wrong_apparmor_profile_name() {
 
 	pod_id=$(crictl runp "$TESTDIR"/apparmor4.json)
 
-	run crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
-	echo "$output"
-	[ "$status" -ne 0 ]
+	! crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
 
 	cleanup_test
 }
