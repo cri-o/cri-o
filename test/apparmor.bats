@@ -27,8 +27,8 @@ load_default_apparmor_profile_and_run_a_container_with_it() {
 	setup_test
 	start_crio
 
-	sed -e 's/%VALUE%/runtime\/default/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor1.json
-
+	jq '	  .linux.security_context.apparmor_profile = "runtime/default"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/apparmor1.json
 	pod_id=$(crictl runp "$TESTDIR"/apparmor1.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/apparmor1.json)
 
@@ -46,8 +46,10 @@ load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it
 	load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
 	start_crio "$APPARMOR_TEST_PROFILE_NAME"
 
-	sed -e 's/%VALUE%/apparmor-test-deny-write/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor2.json
-	sed -e 's/%VALUE%/apparmor-test-deny-write/g' "$TESTDATA"/container_redis_apparmor.json > "$TESTDIR"/apparmor_container2.json
+	jq '	  .linux.security_context.apparmor_profile = "apparmor-test-deny-write"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/apparmor2.json
+	jq '	  .linux.security_context.apparmor_profile = "apparmor-test-deny-write"' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR"/apparmor_container2.json
 
 	pod_id=$(crictl runp "$TESTDIR"/apparmor2.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/apparmor_container2.json "$TESTDIR"/apparmor2.json)
@@ -69,8 +71,10 @@ load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile(
 	load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
 	start_crio
 
-	sed -e 's/%VALUE%/apparmor-test-deny-write/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor3.json
-	sed -e 's/%VALUE%/apparmor-test-deny-write/g' "$TESTDATA"/container_redis_apparmor.json > "$TESTDIR"/apparmor_container3.json
+	jq '	  .linux.security_context.apparmor_profile = "apparmor-test-deny-write"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/apparmor3.json
+	jq '	  .linux.security_context.apparmor_profile = "apparmor-test-deny-write"' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR"/apparmor_container3.json
 
 	pod_id=$(crictl runp "$TESTDIR"/apparmor3.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/apparmor_container3.json "$TESTDIR"/apparmor3.json)
@@ -91,8 +95,11 @@ run_a_container_with_wrong_apparmor_profile_name() {
 	setup_test
 	start_crio
 
-	sed -e 's/%VALUE%/not-exists/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor4.json
-	sed -e 's/%VALUE%/not-exists/g' "$TESTDATA"/container_redis_apparmor.json > "$TESTDIR"/apparmor_container4.json
+	jq '	  .linux.security_context.apparmor_profile = "not-exists"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/apparmor4.json
+
+	jq '	  .linux.security_context.apparmor_profile = "not-exists"' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR"/apparmor_container4.json
 
 	pod_id=$(crictl runp "$TESTDIR"/apparmor4.json)
 
@@ -111,8 +118,10 @@ run_a_container_after_unloading_default_apparmor_profile() {
 	start_crio "$FAKE_CRIO_DEFAULT_PROFILE_NAME"
 	remove_apparmor_profile "$FAKE_CRIO_DEFAULT_PROFILE_PATH"
 
-	sed -e 's/%VALUE%/runtime\/default/g' "$TESTDATA"/sandbox_config_apparmor.json > "$TESTDIR"/apparmor5.json
-	sed -e 's/%VALUE%/runtime\/default/g' "$TESTDATA"/container_redis_apparmor.json > "$TESTDIR"/apparmor_container5.json
+	jq '	  .linux.security_context.apparmor_profile = "runtime/default"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/apparmor5.json
+	jq '	  .linux.security_context.apparmor_profile = "runtime/default"' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR"/apparmor_container5.json
 
 	pod_id=$(crictl runp "$TESTDIR"/apparmor5.json)
 

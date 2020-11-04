@@ -23,7 +23,8 @@ function teardown() {
 @test "run container in pod with image ID" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	sed -e "s/%VALUE%/$REDIS_IMAGEID/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
+	jq '.image.image = "'"$REDIS_IMAGEID"'"' \
+		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
 	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 }
@@ -33,8 +34,8 @@ function teardown() {
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	sed -e "s/%VALUE%/$REDIS_IMAGEID/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
-
+	jq '.image.image = "'"$REDIS_IMAGEID"'"' \
+		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
 	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl inspect -o yaml "$ctr_id")
@@ -47,7 +48,8 @@ function teardown() {
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	sed -e "s/%VALUE%/quay.io\/crio\/redis:alpine/g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagetag.json
+	jq '.image.image = "quay.io/crio/redis:alpine"' \
+		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagetag.json
 
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_by_imagetag.json "$TESTDATA"/sandbox_config.json)
 
@@ -61,7 +63,8 @@ function teardown() {
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	sed -e "s|%VALUE%|$REDIS_IMAGEREF|g" "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageref.json
+	jq '.image.image = "'"$REDIS_IMAGEREF"'"' \
+		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageref.json
 
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_by_imageref.json "$TESTDATA"/sandbox_config.json)
 
@@ -77,7 +80,8 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	crictl pull "$IMAGE_LIST_DIGEST"
 
-	sed -e "s|%VALUE%|$IMAGE_LIST_DIGEST|g" -e 's|"/bin/ls"|"/bin/sleep", "1d"|g' "$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagelistref.json
+	jq '.image.image = "'"$IMAGE_LIST_DIGEST"'"' \
+		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagelistref.json
 
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_by_imagelistref.json "$TESTDATA"/sandbox_config.json)
 
