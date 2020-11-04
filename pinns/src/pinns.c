@@ -142,8 +142,8 @@ int main(int argc, char **argv) {
     }
   } else {
     /* if we create a user namespace, we need a new process.  */
-    if (pipe2(p, O_DIRECT) < 0)
-      pexit("pipe");
+    if (socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, p))
+      pexit("socketpair");
 
     pid = fork();
     if (pid < 0)
