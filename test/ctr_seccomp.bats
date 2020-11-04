@@ -92,19 +92,10 @@ function teardown() {
 	restart_crio
 
 	sed -e 's/%VALUE%//g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run crictl exec --sync "$ctr_id" chmod 777 .
-	echo "$output"
+    pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	crictl exec --sync "$ctr_id" chmod 777 .
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"Operation not permitted"* ]]
 }

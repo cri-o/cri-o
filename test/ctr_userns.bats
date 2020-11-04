@@ -15,17 +15,9 @@ function teardown() {
 }
 
 @test "ctr_userns run container" {
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config_sleep.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 	state=$(crictl inspect "$ctr_id")
 	pid=$(echo "$state" | jq .info.pid)
 	grep 100000 /proc/"$pid"/uid_map
@@ -34,7 +26,6 @@ function teardown() {
 	[ "$status" -eq 0 ]
 
 	out=$(echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
-	echo "$out"
 	[[ "$out" == *"100000"* ]]
 	[[ "$out" == *"200000"* ]]
 }

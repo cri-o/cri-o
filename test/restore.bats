@@ -197,7 +197,6 @@ function teardown() {
 	pod_ip=$(echo "$output" | grep ^IP)
 
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
-
 	ctr_list_info=$(crictl ps --quiet --id "$ctr_id" --all)
 
 	output=$(crictl inspect -o table "$ctr_id")
