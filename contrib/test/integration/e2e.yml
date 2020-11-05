@@ -9,7 +9,6 @@
     state: present
     value: 1048576
 
-# TODO remove the second to last test skipped once https://github.com/cri-o/cri-o/pull/1217 is merged
 # TODO remove the last six tests once the newtworking issue with AWS is figured out https://github.com/cri-o/cri-o/issues/1529
 - name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
   set_fact:
