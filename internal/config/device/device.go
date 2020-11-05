@@ -1,6 +1,8 @@
 package device
 
 import (
+	"strings"
+
 	createconfig "github.com/containers/libpod/v2/pkg/spec"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -59,6 +61,11 @@ func devicesFromStrings(devsFromConfig []string) ([]Device, error) {
 		src, dst, permissions, err := createconfig.ParseDevice(d)
 		if err != nil {
 			return nil, err
+		}
+		// ParseDevice does not check the destination is in /dev,
+		// but it should be checked
+		if !strings.HasPrefix(dst, "/dev/") {
+			return nil, errors.Errorf("invalid device mode: %s", dst)
 		}
 
 		dev, err := devices.DeviceFromPath(src, permissions)
