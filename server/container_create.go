@@ -163,9 +163,11 @@ func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInf
 	return mounts, nil
 }
 
-// resolveSymbolicLink resolves a possbile symlink path. If the path is a symlink, returns resolved
+// resolveSymbolicLink resolves a possible symlink path. If the path is a symlink, returns resolved
 // path; if not, returns the original path.
-func resolveSymbolicLink(path, scope string) (string, error) {
+// note: strictly SecureJoin is not sufficient, as it does not error when a part of the path doesn't exist
+// but simply moves on. If the last part of the path doesn't exist, it may need to be created.
+func resolveSymbolicLink(scope, path string) (string, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return "", err
@@ -177,10 +179,6 @@ func resolveSymbolicLink(path, scope string) (string, error) {
 		scope = "/"
 	}
 	return securejoin.SecureJoin(scope, path)
-}
-
-func addDevices(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
-	return addDevicesPlatform(ctx, sb, containerConfig, privilegedWithoutHostDevices, specgen)
 }
 
 // buildOCIProcessArgs build an OCI compatible process arguments slice.

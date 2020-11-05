@@ -16,12 +16,12 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/v2/pkg/hooks"
 	"github.com/containers/libpod/v2/pkg/rootless"
-	createconfig "github.com/containers/libpod/v2/pkg/spec"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/conmonmgr"
+	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
@@ -316,6 +316,9 @@ type RuntimeConfig struct {
 	// ulimitConfig is the internal ulimit configuration
 	ulimitsConfig *ulimits.Config
 
+	// deviceConfig is the internal additional devices configuration
+	deviceConfig *device.Config
+
 	// cgroupManager is the internal CgroupManager configuration
 	cgroupManager cgmgr.CgroupManager
 
@@ -596,6 +599,7 @@ func DefaultConfig() (*Config, error) {
 			apparmorConfig:           apparmor.New(),
 			ulimitsConfig:            ulimits.New(),
 			cgroupManager:            cgroupManager,
+			deviceConfig:             device.New(),
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
@@ -733,27 +737,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		return err
 	}
 
-	for _, d := range c.AdditionalDevices {
-		split := strings.Split(d, ":")
-		switch len(split) {
-		case 3:
-			if !createconfig.IsValidDeviceMode(split[2]) {
-				return fmt.Errorf("invalid device mode: %s", split[2])
-			}
-			fallthrough
-		case 2:
-			if (!createconfig.IsValidDeviceMode(split[1]) && !strings.HasPrefix(split[1], "/dev/")) ||
-				(len(split) == 3 && createconfig.IsValidDeviceMode(split[1])) {
-				return fmt.Errorf("invalid device mode: %s", split[1])
-			}
-			fallthrough
-		case 1:
-			if !strings.HasPrefix(split[0], "/dev/") {
-				return fmt.Errorf("invalid device mode: %s", split[0])
-			}
-		default:
-			return fmt.Errorf("invalid device specification: %s", d)
-		}
+	if err := c.deviceConfig.LoadDevices(c.AdditionalDevices); err != nil {
+		return err
 	}
 
 	// check we do have at least a runtime
@@ -941,6 +926,10 @@ func (c *RuntimeConfig) CgroupManager() cgmgr.CgroupManager {
 // Ulimits returns the Ulimits configuration
 func (c *RuntimeConfig) Ulimits() []ulimits.Ulimit {
 	return c.ulimitsConfig.Ulimits()
+}
+
+func (c *RuntimeConfig) Devices() []device.Device {
+	return c.deviceConfig.Devices()
 }
 
 func validateExecutablePath(executable, currentPath string) (string, error) {
