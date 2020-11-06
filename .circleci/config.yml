@@ -32,7 +32,7 @@ executors:
 
   container-base:
     docker:
-      - image: golang:1.14
+      - image: golang:1.15
     <<: *stdenv
     working_directory: *workdir
 
