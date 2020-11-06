@@ -11,10 +11,6 @@ function teardown() {
 	cleanup_test
 }
 
-function is_cgroup_v2() {
-	test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
-}
-
 function wait_until_exit() {
 	ctr_id=$1
 	# Wait for container to exit

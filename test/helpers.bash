@@ -542,3 +542,8 @@ function fail() {
     echo "FAIL [${BATS_TEST_NAME} ${BASH_SOURCE[0]##*/}:${BASH_LINENO[0]}] $*" >&2
     exit 1
 }
+
+# tests whether the node is configured to use cgroupv2
+function is_cgroup_v2() {
+    test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
+}
