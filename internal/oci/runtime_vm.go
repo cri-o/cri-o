@@ -361,7 +361,9 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 		Tty:       tty,
 		StdinOnce: true,
 		CloseStdin: func() error {
-			<-closeIOChan
+			if closeIOChan != nil {
+				<-closeIOChan
+			}
 			return r.closeIO(ctx, c.ID(), execID)
 		},
 	})
