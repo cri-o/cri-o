@@ -51,8 +51,9 @@ require (
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200929083018-4d22bbb62b3c
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/sys v0.0.0-20201029080932-201ba4db2418
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/grpc v1.30.0
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
@@ -62,7 +63,7 @@ require (
 	k8s.io/kubernetes v1.19.2
 	k8s.io/release v0.4.0
 	k8s.io/utils v0.0.0-20200912215256-4140de9c8800
-	mvdan.cc/sh/v3 v3.1.1-0.20200930173521-08ecaf9adf4b
+	mvdan.cc/sh/v3 v3.2.0
 )
 
 replace (
