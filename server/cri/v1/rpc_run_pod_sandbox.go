@@ -62,6 +62,18 @@ func (s *service) RunPodSandbox(
 					NamespaceOptions:   &types.NamespaceOption{},
 					SelinuxOptions:     &types.SELinuxOption{},
 				}
+				if req.Config.Linux.SecurityContext.Seccomp != nil {
+					r.Config.Linux.SecurityContext.Seccomp = &types.SecurityProfile{
+						ProfileType:  types.SecurityProfileType(req.Config.Linux.SecurityContext.Seccomp.ProfileType),
+						LocalhostRef: req.Config.Linux.SecurityContext.Seccomp.LocalhostRef,
+					}
+				}
+				if req.Config.Linux.SecurityContext.Apparmor != nil {
+					r.Config.Linux.SecurityContext.Apparmor = &types.SecurityProfile{
+						ProfileType:  types.SecurityProfileType(req.Config.Linux.SecurityContext.Apparmor.ProfileType),
+						LocalhostRef: req.Config.Linux.SecurityContext.Apparmor.LocalhostRef,
+					}
+				}
 				if req.Config.Linux.SecurityContext.NamespaceOptions != nil {
 					r.Config.Linux.SecurityContext.NamespaceOptions = &types.NamespaceOption{
 						Network:  types.NamespaceMode(req.Config.Linux.SecurityContext.NamespaceOptions.Network),

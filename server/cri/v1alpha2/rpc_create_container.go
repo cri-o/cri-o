@@ -82,6 +82,18 @@ func (s *service) CreateContainer(
 						DropCapabilities: req.Config.Linux.SecurityContext.Capabilities.DropCapabilities,
 					}
 				}
+				if req.Config.Linux.SecurityContext.Seccomp != nil {
+					r.Config.Linux.SecurityContext.Seccomp = &types.SecurityProfile{
+						ProfileType:  types.SecurityProfileType(req.Config.Linux.SecurityContext.Seccomp.ProfileType),
+						LocalhostRef: req.Config.Linux.SecurityContext.Seccomp.LocalhostRef,
+					}
+				}
+				if req.Config.Linux.SecurityContext.Apparmor != nil {
+					r.Config.Linux.SecurityContext.Apparmor = &types.SecurityProfile{
+						ProfileType:  types.SecurityProfileType(req.Config.Linux.SecurityContext.Apparmor.ProfileType),
+						LocalhostRef: req.Config.Linux.SecurityContext.Apparmor.LocalhostRef,
+					}
+				}
 				if req.Config.Linux.SecurityContext.NamespaceOptions != nil {
 					r.Config.Linux.SecurityContext.NamespaceOptions = &types.NamespaceOption{
 						Network:  types.NamespaceMode(req.Config.Linux.SecurityContext.NamespaceOptions.Network),
@@ -188,6 +200,18 @@ func (s *service) CreateContainer(
 					Privileged:         req.SandboxConfig.Linux.SecurityContext.Privileged,
 					NamespaceOptions:   &types.NamespaceOption{},
 					SelinuxOptions:     &types.SELinuxOption{},
+				}
+				if req.SandboxConfig.Linux.SecurityContext.Seccomp != nil {
+					r.SandboxConfig.Linux.SecurityContext.Seccomp = &types.SecurityProfile{
+						ProfileType:  types.SecurityProfileType(req.SandboxConfig.Linux.SecurityContext.Seccomp.ProfileType),
+						LocalhostRef: req.SandboxConfig.Linux.SecurityContext.Seccomp.LocalhostRef,
+					}
+				}
+				if req.SandboxConfig.Linux.SecurityContext.Apparmor != nil {
+					r.SandboxConfig.Linux.SecurityContext.Apparmor = &types.SecurityProfile{
+						ProfileType:  types.SecurityProfileType(req.SandboxConfig.Linux.SecurityContext.Apparmor.ProfileType),
+						LocalhostRef: req.SandboxConfig.Linux.SecurityContext.Apparmor.LocalhostRef,
+					}
 				}
 				if req.SandboxConfig.Linux.SecurityContext.NamespaceOptions != nil {
 					r.SandboxConfig.Linux.SecurityContext.NamespaceOptions = &types.NamespaceOption{

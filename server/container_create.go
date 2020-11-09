@@ -3,13 +3,11 @@ package server
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/pkg/seccomp"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
@@ -25,7 +23,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
-	k8sV1 "k8s.io/api/core/v1"
 )
 
 type orderedMounts []rspec.Mount
@@ -572,60 +569,4 @@ func isInCRIMounts(dst string, mounts []*types.Mount) bool {
 		}
 	}
 	return false
-}
-
-func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, profile string) error {
-	if profile == "" {
-		if !s.Config().Seccomp().UseDefaultWhenEmpty() {
-			// running w/o seccomp, aka unconfined
-			specgen.Config.Linux.Seccomp = nil
-			return nil
-		}
-		// default to SeccompProfileRuntimeDefault if user sets UseDefaultWhenEmpty
-		profile = k8sV1.SeccompProfileRuntimeDefault
-	}
-	// kubelet defaults sandboxes to run as `runtime/default`, we consider the default profile as unconfined if Seccomp disabled
-	// https://github.com/kubernetes/kubernetes/blob/12d9183da03d86c65f9f17e3e28be3c7c18ed22a/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L162-L163
-	if s.Config().Seccomp().IsDisabled() {
-		if profile == k8sV1.SeccompProfileRuntimeDefault {
-			// running w/o seccomp, aka unconfined
-			specgen.Config.Linux.Seccomp = nil
-			return nil
-		}
-		if profile != k8sV1.SeccompProfileNameUnconfined {
-			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
-		}
-		log.Warnf(ctx, "seccomp is not enabled in your kernel, running container without profile")
-	}
-	if profile == k8sV1.SeccompProfileNameUnconfined {
-		// running w/o seccomp, aka unconfined
-		specgen.Config.Linux.Seccomp = nil
-		return nil
-	}
-
-	// Load the default seccomp profile from the server if the profile is a default one
-	if profile == k8sV1.SeccompProfileRuntimeDefault || profile == k8sV1.DeprecatedSeccompProfileDockerDefault {
-		linuxSpecs, err := seccomp.LoadProfileFromConfig(s.Config().Seccomp().Profile(), specgen.Config)
-		if err != nil {
-			return err
-		}
-		specgen.Config.Linux.Seccomp = linuxSpecs
-		return nil
-	}
-
-	// Load local seccomp profiles including their availability validation
-	if !strings.HasPrefix(profile, k8sV1.SeccompLocalhostProfileNamePrefix) {
-		return fmt.Errorf("unknown seccomp profile option: %q", profile)
-	}
-	fname := strings.TrimPrefix(profile, k8sV1.SeccompLocalhostProfileNamePrefix)
-	file, err := ioutil.ReadFile(filepath.FromSlash(fname))
-	if err != nil {
-		return fmt.Errorf("cannot load seccomp profile %q: %v", fname, err)
-	}
-	linuxSpecs, err := seccomp.LoadProfileFromBytes(file, specgen.Config)
-	if err != nil {
-		return err
-	}
-	specgen.Config.Linux.Seccomp = linuxSpecs
-	return nil
 }

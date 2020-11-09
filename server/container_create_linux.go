@@ -561,10 +561,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	specgen.AddProcessEnv("HOSTNAME", sb.Hostname())
 
 	created := time.Now()
-	spp := containerConfig.Linux.SecurityContext.SeccompProfilePath
 	if !ctr.Privileged() {
-		if err := s.setupSeccomp(ctx, specgen, spp); err != nil {
-			return nil, err
+		if err := s.Config().Seccomp().Setup(
+			ctx,
+			specgen,
+			securityContext.Seccomp,
+			containerConfig.Linux.SecurityContext.SeccompProfilePath,
+		); err != nil {
+			return nil, errors.Wrap(err, "setup seccomp")
 		}
 	}
 
@@ -723,7 +727,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	ociContainer.SetSpec(specgen.Config)
 	ociContainer.SetMountPoint(mountPoint)
-	ociContainer.SetSeccompProfilePath(spp)
+	ociContainer.SetSeccompProfilePath(containerConfig.Linux.SecurityContext.SeccompProfilePath)
 
 	for _, cv := range containerVolumes {
 		ociContainer.AddVolume(cv)
