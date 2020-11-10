@@ -830,14 +830,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 		container.SetMountPoint(mountPoint)
 
-		container.SetIDMappings(sandboxIDMappings)
-
 		container.SetSpec(g.Config)
 	} else {
 		log.Debugf(ctx, "dropping infra container for pod %s", sbox.ID())
 		container = oci.NewSpoofedContainer(sbox.ID(), containerName, labels, created, podContainer.RunDir)
 		g.AddAnnotation(ann.SpoofedContainer, "true")
 	}
+	// needed for getSandboxIDMappings()
+	container.SetIDMappings(sandboxIDMappings)
 
 	if err := sb.SetInfraContainer(container); err != nil {
 		return nil, err

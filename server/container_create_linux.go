@@ -35,7 +35,7 @@ import (
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
 func (s *Server) createContainerPlatform(container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
-	if idMappings != nil {
+	if idMappings != nil && !container.Spoofed() {
 		rootPair := idMappings.RootPair()
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
 			if err := makeAccessible(path, rootPair.UID, rootPair.GID, false); err != nil {
