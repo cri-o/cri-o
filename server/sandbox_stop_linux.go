@@ -4,6 +4,7 @@ package server
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -15,6 +16,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
+
+const defaultTerminationGracePeriod = int64(10)
+const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
 
 func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
 	log.Infof(ctx, "Stopping pod sandbox: %s", req.GetPodSandboxId())
@@ -72,7 +76,16 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 				}
 				c := ctr
 				waitGroup.Go(func() error {
-					if err := s.StopContainerAndWait(ctx, c, int64(10)); err != nil {
+					timeout := defaultTerminationGracePeriod
+					if gracePeriod, ok := c.Labels()[podTerminationGracePeriodLabel]; ok {
+						n, err := strconv.ParseInt(gracePeriod, 10, 64)
+						if err != nil {
+							log.Warnf(ctx, "failed to parse podTerminationGracePeriodLabel %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+						} else {
+							timeout = n
+						}
+					}
+					if err := s.StopContainerAndWait(ctx, c, timeout); err != nil {
 						return fmt.Errorf("failed to stop container for pod sandbox %s: %v", sb.ID(), err)
 					}
 					if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
