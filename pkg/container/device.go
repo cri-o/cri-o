@@ -13,13 +13,21 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *container) SpecAddDevices(configuredDevices []devicecfg.Device, privilegedWithoutHostDevices bool) error {
+func (c *container) SpecAddDevices(configuredDevices, annotationDevices []devicecfg.Device, privilegedWithoutHostDevices bool) error {
 	// First, clear the existing devices from the spec
 	c.Spec().Config.Linux.Devices = []rspec.LinuxDevice{}
 
 	// After that, add additional_devices from config
 	for i := range configuredDevices {
 		d := &configuredDevices[i]
+
+		c.Spec().AddDevice(d.Device)
+		c.Spec().AddLinuxResourcesDevice(d.Resource.Allow, d.Resource.Type, d.Resource.Major, d.Resource.Minor, d.Resource.Access)
+	}
+
+	// Next, verify and add the devices from annotations
+	for i := range annotationDevices {
+		d := &annotationDevices[i]
 
 		c.Spec().AddDevice(d.Device)
 		c.Spec().AddLinuxResourcesDevice(d.Resource.Allow, d.Resource.Type, d.Resource.Major, d.Resource.Minor, d.Resource.Access)

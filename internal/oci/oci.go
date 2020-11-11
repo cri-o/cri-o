@@ -193,12 +193,22 @@ func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
 // AllowUsernsAnnotation searches through the AllowedAnnotations for
 // the userns annotation, checking whether this runtime allows processing of "io.kubernetes.cri-o.userns-mode"
 func (r *Runtime) AllowUsernsAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.UsernsModeAnnotation)
+}
+
+// AllowDevicesAnnotation searches through the AllowedAnnotations for
+// the devices annotation, checking whether this runtime allows processing of "io.kubernetes.cri-o.Devices"
+func (r *Runtime) AllowDevicesAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.DevicesAnnotation)
+}
+
+func (r *Runtime) allowAnnotation(handler, annotation string) (bool, error) {
 	rh, err := r.getRuntimeHandler(handler)
 	if err != nil {
 		return false, err
 	}
 	for _, ann := range rh.AllowedAnnotations {
-		if ann == annotations.UsernsModeAnnotation {
+		if ann == annotation {
 			return true, nil
 		}
 	}

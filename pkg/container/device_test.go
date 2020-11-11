@@ -71,7 +71,7 @@ var _ = t.Describe("Container", func() {
 				Expect(len(hostDevices)).NotTo(Equal(0))
 
 				// When
-				err := sut.SpecAddDevices(nil, test.privilegedWithoutHostDevices)
+				err := sut.SpecAddDevices(nil, nil, test.privilegedWithoutHostDevices)
 				// Then
 				Expect(err).To(BeNil())
 
