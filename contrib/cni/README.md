@@ -8,12 +8,17 @@ example directories).
 ### Configuration Directory
 
 By default, your CNI configurations are read from `/etc/cni/net.d`.
-This can be overwritten by specifying `crio.network.network_dir` in your override of `/etc/crio/crio.conf.d`
+This can be overwritten by specifying `crio.network.network_dir` in your override of `/etc/crio/crio.conf.d`.
 
 CRI-O chooses a CNI configuration from this directory with lexicographic precidence (10-config will be chosen over 99-config).
 However, CRI-O will only choose a network whose name matches the value of `crio.networkcni_default_network` (default value is `crio`).
 
-Unless you have a specific networking configuration you'd like to use, we recommend installing either [10-crio-bridge.conf][dual-stack], or [11-crio-ipv4-bridge.conf][ipv4-only]
+Unless you have a specific networking configuration you'd like to use, we recommend installing either [10-crio-bridge.conf][dual-stack], or [11-crio-ipv4-bridge.conf][ipv4-only].
+Installing in this case means: Copy the respective files to the configuration directory like so:
+
+```bash
+sudo cp 10-crio-bridge.conf /etc/cni/net.d
+```
 
 By default, we install the dual stack version: [10-crio-bridge.conf][dual-stack]
 
@@ -24,7 +29,7 @@ Otherwise, you'll run into an error similar to:
 Interface vetha38a080a Mac doesn't match: ee:7b:4d:57:3a:d9 not found
 ```
 
-Our packaging solutions assume ipv6 is available
+Our packaging solutions assume ipv6 is available.
 
 [dual-stack]: 10-crio-bridge.conf
 [ipv4-only]: 11-crio-ipv4-bridge.conf
@@ -40,19 +45,19 @@ two plugins necessary for the example CNI configurations are `loopback` and
 
 #### CNI Plugin Installation From Source
 
-This tutorial will use the latest version of `CNI` plugins from the master branch and build it from source.
+This tutorial will use the latest version of `CNI` and build it from source.
 
 Download the `CNI` plugins source tree:
 
 ```bash
 git clone https://github.com/containernetworking/plugins
 cd plugins
-git checkout v0.8.1
+git checkout v0.8.7
 ```
 
 Build the `CNI` plugins:
 
-```
+```bash
 ./build_linux.sh # or build_windows.sh
 ```
 
@@ -80,7 +85,7 @@ Building plugins
 
 Install the `CNI` plugins:
 
-```
+```bash
 sudo mkdir -p /opt/cni/bin
 sudo cp bin/* /opt/cni/bin/
 ```
