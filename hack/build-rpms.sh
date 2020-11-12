@@ -28,6 +28,11 @@ tar czf "${rpm_tmp_dir}/SOURCES/${OS_RPM_NAME}-test.tar.gz" \
     .
 cp -r "${ci_data}/." "${rpm_tmp_dir}/SOURCES"
 
+# for file in /etc/yum.repos.d/*; do sed "s#vault.centos.org/centos/7#vault.centos.org/centos/7.8.2003#g" $file -i; done
+echo $releasever
+export releasever=7.8.2003
+echo $releasever
+for file in /etc/yum.repos.d/*; do cat $file; done
 yum-builddep -y "${OS_RPM_SPECFILE}"
 
 rpmbuild -ba "${OS_RPM_SPECFILE}" \
