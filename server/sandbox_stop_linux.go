@@ -67,7 +67,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 		for _, ctr := range containers[i:max] {
 			cStatus := ctr.State()
 			if cStatus.Status != oci.ContainerStateStopped {
-				if ctr.ID() == podInfraContainer.ID() {
+				if podInfraContainer != nil && ctr.ID() == podInfraContainer.ID() {
 					continue
 				}
 				c := ctr
