@@ -2,9 +2,9 @@
 
 - name: clone cri-tools source repo
   git:
-    repo: "https://github.com/kubernetes-sigs/cri-tools.git"
+    repo: "https://github.com/kolyshkin/cri-tools.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools"
-    version: "{{ cri_tools_git_version }}"
+    version: test-my-fixes
     force: "{{ force_clone | default(False) | bool}}"
 
 - name: build cri-tools
