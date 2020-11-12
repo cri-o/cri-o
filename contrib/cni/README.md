@@ -45,7 +45,7 @@ two plugins necessary for the example CNI configurations are `loopback` and
 
 #### CNI Plugin Installation From Source
 
-This tutorial will use the latest version of `CNI` and build it from source.
+This tutorial will use the latest version of `CNI` plugins and build it from source.
 
 Download the `CNI` plugins source tree:
 
