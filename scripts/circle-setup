@@ -13,7 +13,7 @@ main() {
     install_golang
     install_bats
     install_conmon
-    install_cri_tools
+    install_critools
     install_runc
     install_ginkgo
     install_cni_plugins
@@ -95,20 +95,17 @@ install_conmon() {
     sudo rm -rf conmon
 }
 
-install_cri_tools() {
-    ARCHIVE=${VERSIONS["cri-tools"]}-linux-amd64.tar.gz
-    URL=https://github.com/kubernetes-sigs/cri-tools/releases/download
+install_critools() {
+    URL=https://github.com/kubernetes-sigs/cri-tools
 
-    BINARIES=(crictl critest)
-    for BINARY in "${BINARIES[@]}"; do
-        TARBALL=$BINARY-$ARCHIVE
-        echo "Downloading $TARBALL"
-        wget -O "$TARBALL" $URL/"${VERSIONS["cri-tools"]}"/"$TARBALL"
-        sudo tar xf "$TARBALL" --no-same-owner -C /usr/bin
-        sudo chown root:root /usr/bin/"$BINARY"
-        sudo "$BINARY" --version
-        rm "$TARBALL"
-    done
+    git clone $URL
+    pushd cri-tools
+    make binaries
+    sudo make BINDIR=/usr/bin install
+    popd
+    rm -rf cri-tools
+    sudo critest --version
+    sudo crictl --version
 }
 
 install_cni_plugins() {
