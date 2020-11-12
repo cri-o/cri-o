@@ -24,8 +24,8 @@ sudo crictl --runtime-endpoint unix:///var/run/crio/crio.sock version
 ```
 ```
 Version:  0.1.0
-RuntimeName:  CRI-O
-RuntimeVersion:  1.10.0-dev
+RuntimeName:  cri-o
+RuntimeVersion:  1.20.0-dev
 RuntimeApiVersion:  v1alpha1
 ```
 
@@ -70,22 +70,21 @@ sudo crictl inspectp --output table $POD_ID
 Output:
 
 ```
-ID: cd6c0883663c6f4f99697aaa15af8219e351e03696bd866bc3ac055ef289702a
+ID: 3cf919ba84af36642e6cdb55e157a62407dec99d3cd319f46dd8883163048330
 Name: podsandbox1
 UID: redhat-test-crio
 Namespace: redhat.test.crio
 Attempt: 1
 Status: SANDBOX_READY
-Created: 2016-12-14 15:59:04.373680832 +0000 UTC
-Network namespace: /var/run/netns/cni-bc37b858-fb4d-41e6-58b0-9905d0ba23f8
-IP Address: 10.88.0.2
+Created: 2020-11-12 12:53:41.345961219 +0100 CET
+IP Addresses: 10.85.0.7
 Labels:
 	group -> test
+	io.kubernetes.container.name -> POD
 Annotations:
 	owner -> hmeng
 	security.alpha.kubernetes.io/seccomp/pod -> unconfined
-	security.alpha.kubernetes.io/sysctls -> kernel.shm_rmid_forced=1,net.ipv4.ip_local_port_range=1024 65000
-	security.alpha.kubernetes.io/unsafe-sysctls -> kernel.msgmax=8192
+Info: # Redacted
 ```
 
 ### Create a Redis container inside the Pod
@@ -93,10 +92,8 @@ Annotations:
 Use the `crictl` command to pull the Redis image, create a Redis container from a container configuration and attach it to the Pod created earlier, while capturing the container ID:
 
 ```
-sudo crictl pull quay.io/crio/redis:alpine
 CONTAINER_ID=$(sudo crictl create $POD_ID test/testdata/container_redis.json test/testdata/sandbox_config.json)
 ```
-
 
 The `crictl create` command  will take a few seconds to return because the Redis container needs to be pulled.
 
@@ -115,44 +112,36 @@ sudo crictl inspect $CONTAINER_ID
 Output:
 
 ```
-ID: d0147eb67968d81aaddbccc46cf1030211774b5280fad35bce2fdb0a507a2e7a
+ID: f70e2a71239c6724a897da98ffafdfa4ad850944098680b82d381d757f4bcbe1
 Name: podsandbox1-redis
-Status: CONTAINER_RUNNING
-Created: 2016-12-14 16:00:42.889089352 +0000 UTC
-Started: 2016-12-14 16:01:56.733704267 +0000 UTC
+State: CONTAINER_RUNNING
+Created: 32 seconds ago
+Started: 16 seconds ago
+Labels:
+	tier -> backend
+Annotations:
+	pod -> podsandbox1
+Info: # Redacted
 ```
 
 ### Test the Redis container
 
-Connect to the Pod IP on port 6379:
+Fetch the Pod IP (can also be obtained via the `inspectp` output above):
 
 ```
-telnet 10.88.0.2 6379
+POD_IP=$(sudo crictl inspectp --output go-template --template '{{.status.network.ip}}' $POD_ID)
 ```
 
-```
-Trying 10.88.0.2...
-Connected to 10.88.0.2.
-Escape character is '^]'.
-```
-
-At the prompt type `MONITOR`:
+Verify the Redis server is responding to `MONITOR` commands:
 
 ```
-Trying 10.88.0.2...
-Connected to 10.88.0.2.
-Escape character is '^]'.
-MONITOR
+echo MONITOR | ncat $POD_IP 6379
+```
+
+Output:
+
+```
 +OK
-```
-
-Exit the telnet session by typing `ctrl-]` and `quit` at the prompt:
-
-```
-^]
-
-telnet> quit
-Connection closed.
 ```
 
 #### Viewing the Redis logs
@@ -163,28 +152,28 @@ The Redis logs are logged to the stderr of the crio service, which can be viewed
 sudo journalctl -u crio --no-pager
 ```
 
-### Stop the Redis container and delete the Pod
+### Stop and delete the Redis container
 
 ```
 sudo crictl stop $CONTAINER_ID
-```
-
-```
 sudo crictl rm $CONTAINER_ID
 ```
 
-```
-sudo crictl stopp $POD_ID
-```
-
-```
-sudo crictl rmp $POD_ID
-```
-
-```
-sudo crictl pods
-```
+Verify the container is gone via:
 
 ```
 sudo crictl ps
+```
+
+### Stop and delete the Pod
+
+```
+sudo crictl stopp $POD_ID
+sudo crictl rmp $POD_ID
+```
+
+Verify the pod is gone via:
+
+```
+sudo crictl pods
 ```
