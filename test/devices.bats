@@ -3,6 +3,10 @@
 load helpers
 
 function setup() {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+
 	setup_test
 	newconfig="$TESTDIR/config.json"
 }
@@ -24,9 +28,6 @@ EOF
 }
 
 @test "additional devices support" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
 	OVERRIDE_OPTIONS="--additional-devices /dev/null:/dev/qifoo:rwm" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
@@ -42,10 +43,6 @@ EOF
 	# OCI spec default set.
 	declare -r device="/dev/loop-control"
 	declare -r timeout=30
-
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
 
 	if ! test -r $device; then
 		skip "$device not readable"
@@ -83,9 +80,6 @@ EOF
 }
 
 @test "annotation devices support" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
 	create_device_runtime
 	start_crio
 
@@ -102,10 +96,6 @@ EOF
 }
 
 @test "annotation should not be processed if not allowed" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-
 	start_crio
 
 	jq '      .annotations."io.kubernetes.cri-o.Devices" = "/dev/null:/dev/qifoo:rwm"' \
@@ -121,9 +111,6 @@ EOF
 }
 
 @test "annotation should override configured additional_devices" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
 	create_device_runtime
 
 	OVERRIDE_OPTIONS="--additional-devices /dev/urandom:/dev/qifoo:rwm" start_crio
@@ -142,9 +129,6 @@ EOF
 }
 
 @test "annotation should configure multiple devices" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
 	create_device_runtime
 	start_crio
 
@@ -164,9 +148,6 @@ EOF
 }
 
 @test "annotation should fail if one device is invalid" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
 	create_device_runtime
 	start_crio
 
