@@ -69,6 +69,7 @@ EOF
 	# Opening the device in read mode should fail because the device
 	# cgroup access only allows writes.
 	run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=$device of=/dev/null count=1
+	[ "$status" -ne 0 ]
 	[[ "$output" == *"Operation not permitted"* ]]
 
 	# The write should be allowed by the devices cgroup policy, so we
@@ -106,8 +107,7 @@ EOF
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 
-	run crictl exec --sync "$ctr_id" sh -c "ls /dev/qifoo"
-	[ "$status" -ne 0 ]
+	! crictl exec --sync "$ctr_id" sh -c "ls /dev/qifoo"
 }
 
 @test "annotation should override configured additional_devices" {
@@ -156,6 +156,5 @@ EOF
 
 	pod_id=$(crictl runp "$newconfig")
 
-	run crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
-	[ "$status" -ne 0 ]
+	! crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 }
