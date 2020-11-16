@@ -88,7 +88,6 @@ workflows:
       - integration:
           name: integration-cgroupfs
           cgroup_manager: cgroupfs
-      - lint
       - release-branch-forward:
           requires:
             - results
@@ -360,21 +359,6 @@ jobs:
             CONTAINER_CONMON_CGROUP: "<< parameters.conmon_cgroup >>"
       - save_cache:
           key: v1-integration-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-
-  lint:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v4-lint-{{ checksum "go.sum" }}
-      - run:
-          name: lint
-          command: make lint
-      - save_cache:
-          key: v4-lint-{{ checksum "go.sum" }}
           paths:
             - *gocache
 
