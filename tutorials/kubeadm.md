@@ -1,6 +1,6 @@
 # Running CRI-O with kubeadm
 
-This tutorial assumes you've already installed and setup CRI-O. If you have not, start [here](setup.md).
+This tutorial assumes you've already installed and setup CRI-O. If you have not, start [here](/install.md).
 It also assumes you've set up your system to use kubeadm. If you haven't done so, [here is a good tutorial](https://www.mirantis.com/blog/how-install-kubernetes-kubeadm/)
 
 ### Configuring CNI
@@ -19,7 +19,7 @@ Note: This file assumes you've set your cgroup_driver as systemd
 
 # Running kubeadm
 
-Given you've set CIDR, and you've properly set the kubelet file, all you need to do is start crio (as defined [here](setup.md)), and run:
+Given you've set CIDR, and you've properly set the kubelet file, all you need to do is start crio (as defined [here](/install.md)), and run:
 `kubeadm init --pod-network-cidr=$CIDR`
 
 # Running kubeadm in an off line network

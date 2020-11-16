@@ -2,7 +2,7 @@
 
 This tutorial will walk you through the creation of [Redis](https://redis.io/) server running in a [Pod](http://kubernetes.io/docs/user-guide/pods/) using [crictl](https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md)
 
-It assumes you've already downloaded and configured `CRI-O`. If not, see [here for CRI-O](setup.md).
+It assumes you've already downloaded and configured `CRI-O`. If not, see [here for CRI-O](/install.md).
 It also assumes you've set up CNI, and are using the default plugins as described [here](/contrib/cni/README.md). If you are using a different configuration, results may vary.
 
 ## Installation
