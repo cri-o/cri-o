@@ -2,7 +2,7 @@
 
 package config
 
-import "github.com/cri-o/cri-o/internal/oci"
+import "github.com/cri-o/cri-o/v1/oci"
 
 // Defaults for linux/unix if none are specified
 const (

@@ -99,7 +99,7 @@ Beside the [default golang based metrics][2], CRI-O provides the following addit
 [0]: https://prometheus.io
 [1]: https://github.com/curl/curl
 [2]: https://github.com/prometheus/client_golang/blob/b8b56b52bdb3a79ab877c873463cadc841133360/prometheus/go_collector.go#L65-L281
-[3]: https://github.com/kubernetes/cri-api/blob/a6f63f369f6d50e9d0886f2eda63d585fbd1ab6a/pkg/apis/runtime/v1alpha2/api.proto#L34-L128
+[3]: https://github.com/kubernetes/cri-api/blob/a6f63f369f6d50e9d0886f2eda63d585fbd1ab6a/pkg/apis/runtime/v1/api.proto#L34-L128
 
 ## Exporting Metrics via Prometheus
 

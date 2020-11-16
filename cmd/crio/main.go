@@ -21,16 +21,18 @@ import (
 	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server"
-	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
+	serverV1 "github.com/cri-o/cri-o/v1/server"
+	"github.com/cri-o/cri-o/v1/server/metrics"
+	serverV1alpha2 "github.com/cri-o/cri-o/v1alpha2/server"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
-	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	runtimeV1 "k8s.io/cri-api/pkg/apis/runtime/v1"
+	runtimeV1alpha2 "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog/v2"
 )
 
@@ -44,7 +46,15 @@ func writeCrioGoroutineStacks() {
 	}
 }
 
-func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
+func catchShutdown(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	gserver *grpc.Server,
+	sserverV1 *serverV1.Server,
+	sserverV1alpha2 *serverV1alpha2.Server,
+	hserver *http.Server,
+	signalled *bool,
+) {
 	sig := make(chan os.Signal, 2048)
 	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGUSR2, unix.SIGPIPE, signals.Hup)
 	go func() {
@@ -71,12 +81,19 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			*signalled = true
 			gserver.GracefulStop()
 			hserver.Shutdown(ctx) // nolint: errcheck
-			if err := sserver.StopStreamServer(); err != nil {
+			if err := sserverV1.StopStreamServer(); err != nil {
 				logrus.Warnf("error shutting down streaming server: %v", err)
 			}
-			sserver.StopMonitors()
+			sserverV1.StopMonitors()
+			if err := sserverV1alpha2.StopStreamServer(); err != nil {
+				logrus.Warnf("error shutting down streaming server: %v", err)
+			}
+			sserverV1alpha2.StopMonitors()
 			cancel()
-			if err := sserver.Shutdown(ctx); err != nil {
+			if err := sserverV1.Shutdown(ctx); err != nil {
+				logrus.Warnf("error shutting down main service %v", err)
+			}
+			if err := sserverV1alpha2.Shutdown(ctx); err != nil {
 				logrus.Warnf("error shutting down main service %v", err)
 			}
 			return
@@ -209,7 +226,7 @@ func main() {
 			return err
 		}
 
-		lis, err := server.Listen("unix", config.Listen)
+		lis, err := serverV1.Listen("unix", config.Listen)
 		if err != nil {
 			logrus.Fatalf("failed to listen: %v", err)
 		}
@@ -224,7 +241,12 @@ func main() {
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
 
-		service, err := server.New(ctx, config)
+		serviceV1, err := serverV1.New(ctx, config)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		serviceV1alpha2, err := serverV1alpha2.New(ctx, config)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -241,21 +263,35 @@ func main() {
 			logrus.Fatal(err)
 		}
 
-		runtime.RegisterRuntimeServiceServer(grpcServer, service)
-		runtime.RegisterImageServiceServer(grpcServer, service)
+		runtimeV1.RegisterRuntimeServiceServer(grpcServer, serviceV1)
+		runtimeV1.RegisterImageServiceServer(grpcServer, serviceV1)
+		runtimeV1alpha2.RegisterRuntimeServiceServer(grpcServer, serviceV1alpha2)
+		runtimeV1alpha2.RegisterImageServiceServer(grpcServer, serviceV1alpha2)
 
 		// after the daemon is done setting up we can notify systemd api
 		notifySystem()
 
-		go func() {
-			service.StartExitMonitor()
-		}()
-		hookSync := make(chan error, 2)
-		if service.ContainerServer.Hooks == nil {
-			hookSync <- err // so we don't block during cleanup
+		go func() { serviceV1.StartExitMonitor() }()
+		go func() { serviceV1alpha2.StartExitMonitor() }()
+
+		hookSyncV1 := make(chan error, 2)
+		if serviceV1.ContainerServer.Hooks == nil {
+			hookSyncV1 <- err // so we don't block during cleanup
 		} else {
-			go service.ContainerServer.Hooks.Monitor(ctx, hookSync)
-			err = <-hookSync
+			go serviceV1.ContainerServer.Hooks.Monitor(ctx, hookSyncV1)
+			err = <-hookSyncV1
+			if err != nil {
+				cancel()
+				logrus.Fatal(err)
+			}
+		}
+
+		hookSyncV1alpha2 := make(chan error, 2)
+		if serviceV1alpha2.ContainerServer.Hooks == nil {
+			hookSyncV1alpha2 <- err // so we don't block during cleanup
+		} else {
+			go serviceV1alpha2.ContainerServer.Hooks.Monitor(ctx, hookSyncV1alpha2)
+			err = <-hookSyncV1alpha2
 			if err != nil {
 				cancel()
 				logrus.Fatal(err)
@@ -266,14 +302,14 @@ func main() {
 		grpcL := m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
 		httpL := m.Match(cmux.HTTP1Fast())
 
-		infoMux := service.GetInfoMux()
+		infoMux := serviceV1.GetInfoMux()
 		httpServer := &http.Server{
 			Handler:     infoMux,
 			ReadTimeout: 5 * time.Second,
 		}
 
 		graceful := false
-		catchShutdown(ctx, cancel, grpcServer, service, httpServer, &graceful)
+		catchShutdown(ctx, cancel, grpcServer, serviceV1, serviceV1alpha2, httpServer, &graceful)
 
 		go func() {
 			if err := grpcServer.Serve(grpcL); err != nil {
@@ -298,29 +334,50 @@ func main() {
 			}
 		}()
 
-		streamServerCloseCh := service.StreamingServerCloseChan()
-		serverMonitorsCh := service.MonitorsCloseChan()
+		streamServerCloseChV1 := serviceV1.StreamingServerCloseChan()
+		serverMonitorsChV1 := serviceV1.MonitorsCloseChan()
+		streamServerCloseChV1alpha2 := serviceV1alpha2.StreamingServerCloseChan()
+		serverMonitorsChV1alpha2 := serviceV1alpha2.MonitorsCloseChan()
 		select {
-		case <-streamServerCloseCh:
-		case <-serverMonitorsCh:
+		case <-streamServerCloseChV1:
+		case <-serverMonitorsChV1:
+		case <-streamServerCloseChV1alpha2:
+		case <-serverMonitorsChV1alpha2:
 		case <-serverCloseCh:
 		}
 
-		if err := service.Shutdown(ctx); err != nil {
-			logrus.Warnf("error shutting down service: %v", err)
+		if err := serviceV1.Shutdown(ctx); err != nil {
+			logrus.Warnf("error shutting down v1 service: %v", err)
+		}
+		if err := serviceV1alpha2.Shutdown(ctx); err != nil {
+			logrus.Warnf("error shutting down v1alpha2 service: %v", err)
 		}
 		cancel()
 
-		<-streamServerCloseCh
-		logrus.Debug("closed stream server")
-		<-serverMonitorsCh
-		logrus.Debug("closed monitors")
-		err = <-hookSync
+		<-streamServerCloseChV1
+		logrus.Debug("closed v1 stream server")
+		<-serverMonitorsChV1
+		logrus.Debug("closed v1 monitors")
+
+		<-streamServerCloseChV1alpha2
+		logrus.Debug("closed v1alpha2 stream server")
+		<-serverMonitorsChV1alpha2
+		logrus.Debug("closed v1alpha2 monitors")
+
+		err = <-hookSyncV1
 		if err == nil || err == context.Canceled {
-			logrus.Debug("closed hook monitor")
+			logrus.Debug("closed v1 hook monitor")
 		} else {
-			logrus.Errorf("hook monitor failed: %v", err)
+			logrus.Errorf("hook v1 monitor failed: %v", err)
 		}
+
+		err = <-hookSyncV1alpha2
+		if err == nil || err == context.Canceled {
+			logrus.Debug("closed v1alpha2 hook monitor")
+		} else {
+			logrus.Errorf("hook v1alpha2 monitor failed: %v", err)
+		}
+
 		<-serverCloseCh
 		logrus.Debug("closed main server")
 

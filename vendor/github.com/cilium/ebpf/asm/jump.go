@@ -95,7 +95,7 @@ func (op JumpOp) Label(label string) Instruction {
 	if op == Call {
 		return Instruction{
 			OpCode:    OpCode(JumpClass).SetJumpOp(Call),
-			Src:       PseudoCall,
+			Src:       R1,
 			Constant:  -1,
 			Reference: label,
 		}

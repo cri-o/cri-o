@@ -335,8 +335,10 @@ mockgen: \
 	mock-containerstorage \
 	mock-criostorage \
 	mock-lib-config \
-	mock-oci \
-	mock-sandbox \
+	mock-oci-v1 \
+	mock-oci-v1alpha2 \
+	mock-sandbox-v1 \
+	mock-sandbox-v1alpha2 \
 	mock-image-types \
 	mock-ocicni-types
 
@@ -364,17 +366,29 @@ mock-lib-config: ${MOCKGEN}
 		-destination ${MOCK_PATH}/lib/lib.go \
 		github.com/cri-o/cri-o/pkg/config Iface
 
-mock-oci: ${MOCKGEN}
+mock-oci-v1: ${MOCKGEN}
 	${MOCKGEN} \
 		-package ocimock \
-		-destination ${MOCK_PATH}/oci/oci.go \
-		github.com/cri-o/cri-o/internal/oci RuntimeImpl
+		-destination ${MOCK_PATH}/oci/v1/oci.go \
+		github.com/cri-o/cri-o/v1/oci RuntimeImpl
 
-mock-sandbox: ${MOCKGEN}
+mock-oci-v1alpha2: ${MOCKGEN}
+	${MOCKGEN} \
+		-package ocimock \
+		-destination ${MOCK_PATH}/oci/v1alpha2/oci.go \
+		github.com/cri-o/cri-o/v1alpha2/oci RuntimeImpl
+
+mock-sandbox-v1: ${MOCKGEN}
 	${MOCKGEN} \
 		-package sandboxmock \
-		-destination ${MOCK_PATH}/sandbox/sandbox.go \
-		github.com/cri-o/cri-o/internal/lib/sandbox NamespaceIface
+		-destination ${MOCK_PATH}/sandbox/v1/sandbox.go \
+		github.com/cri-o/cri-o/v1/lib/sandbox NamespaceIface
+
+mock-sandbox-v1alpha2: ${MOCKGEN}
+	${MOCKGEN} \
+		-package sandboxmock \
+		-destination ${MOCK_PATH}/sandbox/v1alpha2/sandbox.go \
+		github.com/cri-o/cri-o/v1alpha2/lib/sandbox NamespaceIface
 
 mock-image-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \

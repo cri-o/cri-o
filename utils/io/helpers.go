@@ -26,7 +26,7 @@ import (
 	"github.com/containerd/containerd/cio"
 	"github.com/cri-o/cri-o/utils/fifo"
 	"golang.org/x/net/context"
-	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // AttachOptions specifies how to attach to a container.

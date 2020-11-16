@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/pkg/types"
-	"github.com/cri-o/cri-o/server"
+	"github.com/cri-o/cri-o/v1/server"
 	json "github.com/json-iterator/go"
 )
 

@@ -13,6 +13,17 @@ run:
     - exclude_graphdriver_devicemapper
   concurrency: 6
   deadline: 5m
+issues:
+  exclude-rules:
+    - path: .*/streaming/.*
+      linters:
+        - dupl
+        - errcheck
+        - gocritic
+        - gofumpt
+        - staticcheck
+        - unparam
+        - unused
 linters:
   disable-all: true
   enable:
