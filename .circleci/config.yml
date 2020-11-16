@@ -54,7 +54,6 @@ workflows:
           name: build-386
           executor: container-386
       - build-static
-      - build-test-binaries
       - bundle:
           requires:
             - build
@@ -196,26 +195,6 @@ jobs:
           key: nix-v1-{{ checksum "nix/nixpkgs.json" }}
           paths:
             - .cache
-
-  build-test-binaries:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-build-test-binaries-{{ checksum "go.sum" }}
-      - run:
-          name: build
-          command: make test-binaries -j $JOBS
-      - save_cache:
-          key: v1-build-test-binaries-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-      - persist_to_workspace:
-          root: .
-          paths:
-            - test/checkseccomp/checkseccomp
-            - test/copyimg/copyimg
 
   bundle:
     executor: container
