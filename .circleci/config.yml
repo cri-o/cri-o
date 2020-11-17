@@ -106,7 +106,6 @@ workflows:
             - integration-static
             - integration-userns
             - unit-tests
-      - shfmt
       - unit-tests
       - upload-artifacts:
           requires:
@@ -425,22 +424,6 @@ jobs:
       - store_artifacts:
           path: bundle
           destination: bundle
-
-  shfmt:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-shfmt-{{ checksum "go.sum" }}
-      - run:
-          name: Format shell files
-          command: make shfmt
-      - save_cache:
-          key: v1-shfmt-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/shfmt
 
   unit-tests:
     executor: container

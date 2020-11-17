@@ -29,3 +29,11 @@ jobs:
     - uses: lumaxis/shellcheck-problem-matchers@v1
     - name: shellcheck
       run: make shellcheck
+
+  shfmt:
+    name: shfmt
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: shfmt
+      run: make shfmt
