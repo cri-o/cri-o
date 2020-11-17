@@ -70,7 +70,6 @@ workflows:
       - docs-generation:
           requires:
             - build
-      - docs-validation
       - integration
       - integration:
           name: integration-critest
@@ -252,21 +251,6 @@ jobs:
             hack/tree_status.sh
       - save_cache:
           key: v1-docs-generation-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-
-  docs-validation:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-docs-validation-{{ checksum "go.sum" }}
-      - run:
-          name: doc validation
-          command: make docs-validation
-      - save_cache:
-          key: v1-docs-validation-{{ checksum "go.sum" }}
           paths:
             - *gocache
 
