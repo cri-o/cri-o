@@ -219,4 +219,100 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 		})
 	})
+
+	Describe("setRPSLoadBalancing", func() {
+		rpsFile := filepath.Join(fixturesDir, "rps_cpus")
+		onlineCPUsFile := filepath.Join(fixturesDir, "online_cpus")
+		var onlineCPUs string
+
+		verifySetRPSLoadBalancing := func(enabled bool, expected string) {
+			err := setRPSLoadBalancing(container, fixturesDir, onlineCPUsFile, enabled)
+			Expect(err).To(BeNil())
+
+			content, err := ioutil.ReadFile(rpsFile)
+			Expect(err).To(BeNil())
+
+			Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
+		}
+
+		JustBeforeEach(func() {
+			// set container CPUs
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus: "1,2",
+							},
+						},
+					},
+				},
+			)
+
+			// create the test rps file
+			err = ioutil.WriteFile(rpsFile, []byte(flags), 0o644)
+			Expect(err).To(BeNil())
+
+			// create cpus online file
+			err = ioutil.WriteFile(onlineCPUsFile, []byte(onlineCPUs), 0o644)
+			Expect(err).To(BeNil())
+		})
+
+		AfterEach(func() {
+			if err := os.Remove(rpsFile); err != nil {
+				log.Errorf(context.TODO(), "failed to remove temporary test files: %v", err)
+			}
+			if err := os.Remove(onlineCPUsFile); err != nil {
+				log.Errorf(context.TODO(), "failed to remove temporary test files: %v", err)
+			}
+		})
+
+		Context("single guaranteed pod, container start", func() {
+			BeforeEach(func() {
+				onlineCPUs = "0-3"
+				flags = "0" // rps disabled
+			})
+
+			It("should mask the container cpus from rps", func() {
+				expected := "00000000,00000009" // rps set to 0,3 (pod cpus are 1,2)
+				verifySetRPSLoadBalancing(true, expected)
+			})
+		})
+
+		Context("single guaranteed pod, container termination", func() {
+			BeforeEach(func() {
+				onlineCPUs = "0-3"
+				flags = "9" // rps set by the pod to cpus 0,3
+			})
+
+			It("should clear the rps bit mask", func() {
+				expected := "0" // no other pods, the rps should be disabled
+				verifySetRPSLoadBalancing(false, expected)
+			})
+		})
+
+		Context("existing guaranteed pod, container start", func() {
+			BeforeEach(func() {
+				onlineCPUs = "0-32"
+				flags = "1,feffffff" // rps set by a guaranteed pod on cpu 24
+			})
+
+			It("should mask the container cpus from rps", func() {
+				expected := "00000001,fefffff9" // both pods cpus 0,3,24 should not be set
+				verifySetRPSLoadBalancing(true, expected)
+			})
+		})
+
+		Context("existing guaranteed pod, container termination", func() {
+			BeforeEach(func() {
+				onlineCPUs = "0-32"
+				flags = "1,fefffff9" // rps set by both pods to cpus 0,3,24
+			})
+
+			It("should clear the rps bit mask", func() {
+				expected := "00000001,feffffff" // previous pod cpu 24 should not be set
+				verifySetRPSLoadBalancing(false, expected)
+			})
+		})
+	})
 })
