@@ -211,7 +211,7 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile strin
 		return err
 	}
 	currentIRQSMPSetting := strings.TrimSpace(string(content))
-	newIRQSMPSetting, newIRQBalanceSetting, err := UpdateIRQSmpAffinityMask(lspec.Resources.CPU.Cpus, currentIRQSMPSetting, enable)
+	newIRQSMPSetting, newIRQBalanceSetting, err := computeCPUmask(lspec.Resources.CPU.Cpus, currentIRQSMPSetting, enable)
 	if err != nil {
 		return err
 	}

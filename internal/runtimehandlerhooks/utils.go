@@ -75,42 +75,41 @@ func invertByteArray(in []byte) (out []byte) {
 	return
 }
 
-// UpdateIRQSmpAffinityMask take input cpus that need to change irq affinity mask and
-// the current mask string, return an update mask string and inverted mask, with those cpus
-// enabled or disable in the mask.
-func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
-	podcpuset, err := cpuset.Parse(cpus)
+// computeCPUmask takes input a set of cpus and a mask returning a CPU mask
+// with the masked cpus included/excluded based on the set argument and the inverted mask
+func computeCPUmask(cpus, mask string, set bool) (cpuMask, invertedCPUMask string, err error) {
+	inputCPUs, err := cpuset.Parse(cpus)
 	if err != nil {
 		return cpus, "", err
 	}
 
 	// only ascii string supported
-	if !isASCII(current) {
-		return cpus, "", fmt.Errorf("non ascii character detected: %s", current)
+	if !isASCII(mask) {
+		return cpus, "", fmt.Errorf("non ascii character detected: %s", mask)
 	}
 
 	// remove ","; now each element is "0-9,a-f"
-	s := strings.ReplaceAll(current, ",", "")
+	s := strings.ReplaceAll(mask, ",", "")
 
 	// the index 0 corresponds to the cpu 0-7
-	currentMaskArray, err := mapHexCharToByte(s)
+	maskArray, err := mapHexCharToByte(s)
 	if err != nil {
 		return cpus, "", err
 	}
-	invertedMaskArray := invertByteArray(currentMaskArray)
+	invertedMaskArray := invertByteArray(maskArray)
 
-	for _, cpu := range podcpuset.ToSlice() {
+	for _, cpu := range inputCPUs.ToSlice() {
 		if set {
 			// each byte represent 8 cpus
-			currentMaskArray[cpu/8] |= cpuMaskByte(cpu % 8)
+			maskArray[cpu/8] |= cpuMaskByte(cpu % 8)
 			invertedMaskArray[cpu/8] &^= cpuMaskByte(cpu % 8)
 		} else {
-			currentMaskArray[cpu/8] &^= cpuMaskByte(cpu % 8)
+			maskArray[cpu/8] &^= cpuMaskByte(cpu % 8)
 			invertedMaskArray[cpu/8] |= cpuMaskByte(cpu % 8)
 		}
 	}
 
-	maskString := mapByteToHexChar(currentMaskArray)
+	maskString := mapByteToHexChar(maskArray)
 	invertedMaskString := mapByteToHexChar(invertedMaskArray)
 
 	maskStringWithComma := maskString[0:8]
