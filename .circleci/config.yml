@@ -106,7 +106,6 @@ workflows:
             - integration-static
             - integration-userns
             - unit-tests
-      - shellcheck
       - shfmt
       - unit-tests
       - upload-artifacts:
@@ -426,22 +425,6 @@ jobs:
       - store_artifacts:
           path: bundle
           destination: bundle
-
-  shellcheck:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-shellcheck-{{ checksum "go.sum" }}
-      - run:
-          name: Check shell files
-          command: make shellcheck
-      - save_cache:
-          key: v1-shellcheck-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/shellcheck
 
   shfmt:
     executor: container

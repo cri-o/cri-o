@@ -20,3 +20,12 @@ jobs:
 
           # Only show new issues for a pull request.
           only-new-issues: true
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: lumaxis/shellcheck-problem-matchers@v1
+    - name: shellcheck
+      run: make shellcheck
