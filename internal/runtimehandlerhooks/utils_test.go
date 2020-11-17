@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
 var _ = Describe("Utils", func() {
@@ -58,5 +59,32 @@ var _ = Describe("Utils", func() {
 				expected: Expected{mask: "0000ffff,ffffffff", invMask: "00000000,00000000"},
 			}),
 		)
+	})
+	Describe("cpuMaskToCPUSet", func() {
+		type listToMask struct {
+			cpuList string
+			cpuMask string
+		}
+
+		cpuListToMask := []listToMask{
+			{"0", "00000001"},
+			{"2-3", "0000000c"},
+			{"3,4,53-55,61-63", "e0e00000,00000018"},
+			{"0-127", "ffffffff,ffffffff,ffffffff,ffffffff"},
+			{"0-255", "ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff"},
+		}
+
+		Context("convert CPU mask to CPU set", func() {
+			It("should generate a valid CPU set from a CPU mask", func() {
+				for _, cpuEntry := range cpuListToMask {
+					cpuSetFromList, err := cpuset.Parse(cpuEntry.cpuList)
+					Expect(err).ToNot(HaveOccurred())
+					cpuSetFromMask, err := cpuMaskToCPUSet(cpuEntry.cpuMask)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(cpuSetFromList).Should(Equal(cpuSetFromMask))
+				}
+			})
+		})
 	})
 })

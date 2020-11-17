@@ -31,10 +31,13 @@ const (
 	annotationCPULoadBalancing = "cpu-load-balancing.crio.io"
 	annotationCPUQuota         = "cpu-quota.crio.io"
 	annotationIRQLoadBalancing = "irq-load-balancing.crio.io"
+	annotationRPSLoadBalancing = "rps-load-balancing.crio.io"
 	annotationTrue             = "true"
 	schedDomainDir             = "/proc/sys/kernel/sched_domain"
 	irqSmpAffinityProcFile     = "/proc/irq/default_smp_affinity"
+	onlineCPUsSysFile          = "/sys/devices/system/cpu/online"
 	cgroupMountPoint           = "/sys/fs/cgroup"
+	sysDevicesDir              = "/sys/devices/"
 )
 
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads
@@ -81,6 +84,13 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 			return errors.Wrap(err, "set CPU CFS quota")
 		}
 	}
+	// enable RPS not allowing the container CPUs to be used by the existing net devices soft IRQs
+	if shouldRPSLoadBalancingBeEnabled(s.Annotations()) {
+		log.Infof(ctx, "Enable RPS excluding the container CPUs usage for container %q", c.ID())
+		if err := setRPSLoadBalancing(c, sysDevicesDir, onlineCPUsSysFile, true); err != nil {
+			return errors.Wrap(err, "set RPS load balancing")
+		}
+	}
 
 	return nil
 }
@@ -115,6 +125,13 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 	}
 	// no need to reverse the cgroup CPU CFS quota setting as the pod cgroup will be deleted anyway
 
+	// Allow the container CPUs to be used by the net devices soft IRQs
+	if shouldRPSLoadBalancingBeEnabled(s.Annotations()) {
+		if err := setRPSLoadBalancing(c, sysDevicesDir, onlineCPUsSysFile, false); err != nil {
+			return errors.Wrap(err, "set RPS load balancing")
+		}
+	}
+
 	return nil
 }
 
@@ -128,6 +145,10 @@ func shouldCPUQuotaBeDisabled(annotations fields.Set) bool {
 
 func shouldIRQLoadBalancingBeDisabled(annotations fields.Set) bool {
 	return annotations[annotationIRQLoadBalancing] == annotationTrue
+}
+
+func shouldRPSLoadBalancingBeEnabled(annotations fields.Set) bool {
+	return annotations[annotationRPSLoadBalancing] == annotationTrue
 }
 
 func isCgroupParentBurstable(s *sandbox.Sandbox) bool {
@@ -288,4 +309,64 @@ func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool)
 	}
 
 	return nil
+}
+
+func setRPSLoadBalancing(c *oci.Container, sysDevicesDir, onlineCPUsSysFile string, enable bool) error {
+	lspec := c.Spec().Linux
+	if lspec == nil ||
+		lspec.Resources == nil ||
+		lspec.Resources.CPU == nil ||
+		lspec.Resources.CPU.Cpus == "" {
+		return errors.Errorf("cannot find container %s CPUs", c.ID())
+	}
+
+	content, err := ioutil.ReadFile(onlineCPUsSysFile)
+	if err != nil {
+		return err
+	}
+	cpus := strings.Trim(string(content), "\n")
+
+	machineCPUs, err := cpuset.Parse(cpus)
+	if err != nil {
+		return err
+	}
+
+	machineCPUsMask, _, err := computeCPUmask(cpus, "", true)
+	if err != nil {
+		return err
+	}
+
+	return filepath.Walk(sysDevicesDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() || info.Name() != "rps_cpus" {
+			return nil
+		}
+
+		content, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		rps := strings.TrimSpace(string(content))
+		if rps == "0" {
+			rps = machineCPUsMask
+		}
+
+		newRPS, _, err := computeCPUmask(lspec.Resources.CPU.Cpus, rps, !enable)
+		if err != nil {
+			return err
+		}
+
+		newRPSCPUs, err := cpuMaskToCPUSet(newRPS)
+		if err != nil {
+			return err
+		}
+
+		if newRPSCPUs.Equals(machineCPUs) {
+			newRPS = "0"
+		}
+		return ioutil.WriteFile(path, []byte(newRPS), 0o644)
+	})
 }

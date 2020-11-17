@@ -3,6 +3,7 @@ package runtimehandlerhooks
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -131,4 +132,32 @@ func computeCPUmask(cpus, mask string, set bool) (cpuMask, invertedCPUMask strin
 		invertedMaskStringWithComma = invertedMaskStringWithComma + "," + invertedMaskString[i:i+8]
 	}
 	return maskStringWithComma, invertedMaskStringWithComma, nil
+}
+
+// cpuMaskToCPUSet parses a CPUSet received in a Mask Format, see:
+// https://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS
+func cpuMaskToCPUSet(cpuMask string) (cpuset.CPUSet, error) {
+	chunks := strings.Split(cpuMask, ",")
+
+	// reverse the chunks order
+	n := len(chunks)
+	for i := 0; i < n/2; i++ {
+		chunks[i], chunks[n-i-1] = chunks[n-i-1], chunks[i]
+	}
+
+	builder := cpuset.NewBuilder()
+	for i, chunk := range chunks {
+		mask, err := strconv.ParseUint(chunk, 16, 32)
+		if err != nil {
+			return cpuset.NewCPUSet(), fmt.Errorf("failed to parse the CPU mask %s: %v", cpuMask, err)
+		}
+		for j := 0; j < 32; j++ {
+			if mask&1 == 1 {
+				builder.Add(i*32 + j)
+			}
+			mask >>= 1
+		}
+	}
+
+	return builder.Result(), nil
 }
