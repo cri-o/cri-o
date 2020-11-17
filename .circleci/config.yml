@@ -54,7 +54,6 @@ workflows:
           name: build-386
           executor: container-386
       - build-static
-      - build-test-binaries
       - bundle:
           requires:
             - build
@@ -71,7 +70,6 @@ workflows:
       - docs-generation:
           requires:
             - build
-      - docs-validation
       - integration
       - integration:
           name: integration-critest
@@ -89,7 +87,6 @@ workflows:
       - integration:
           name: integration-cgroupfs
           cgroup_manager: cgroupfs
-      - lint
       - release-branch-forward:
           requires:
             - results
@@ -108,8 +105,6 @@ workflows:
             - integration-static
             - integration-userns
             - unit-tests
-      - shellcheck
-      - shfmt
       - unit-tests
       - upload-artifacts:
           requires:
@@ -197,26 +192,6 @@ jobs:
           paths:
             - .cache
 
-  build-test-binaries:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-build-test-binaries-{{ checksum "go.sum" }}
-      - run:
-          name: build
-          command: make test-binaries -j $JOBS
-      - save_cache:
-          key: v1-build-test-binaries-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-      - persist_to_workspace:
-          root: .
-          paths:
-            - test/checkseccomp/checkseccomp
-            - test/copyimg/copyimg
-
   bundle:
     executor: container
     steps:
@@ -276,21 +251,6 @@ jobs:
             hack/tree_status.sh
       - save_cache:
           key: v1-docs-generation-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-
-  docs-validation:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-docs-validation-{{ checksum "go.sum" }}
-      - run:
-          name: doc validation
-          command: make docs-validation
-      - save_cache:
-          key: v1-docs-validation-{{ checksum "go.sum" }}
           paths:
             - *gocache
 
@@ -384,21 +344,6 @@ jobs:
           paths:
             - *gocache
 
-  lint:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v4-lint-{{ checksum "go.sum" }}
-      - run:
-          name: lint
-          command: make lint
-      - save_cache:
-          key: v4-lint-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-
   release-branch-forward:
     executor: container
     steps:
@@ -463,38 +408,6 @@ jobs:
       - store_artifacts:
           path: bundle
           destination: bundle
-
-  shellcheck:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-shellcheck-{{ checksum "go.sum" }}
-      - run:
-          name: Check shell files
-          command: make shellcheck
-      - save_cache:
-          key: v1-shellcheck-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/shellcheck
-
-  shfmt:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-shfmt-{{ checksum "go.sum" }}
-      - run:
-          name: Format shell files
-          command: make shfmt
-      - save_cache:
-          key: v1-shfmt-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/shfmt
 
   unit-tests:
     executor: container

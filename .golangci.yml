@@ -3,12 +3,14 @@ run:
   build-tags:
     - apparmor
     - containers_image_ostree_stub
-    - seccomp
+    # containers/image would use mtrmac/gpgme otherwise, which requires gpgme C headers
+    - containers_image_openpgp
     - selinux
     - test
-    # containers/storage currently has btrfs included, but the images don't, so
-    # the linter fails.
+    # needs btrfs headers installed
     - exclude_graphdriver_btrfs
+    # needs devmapper headers installed
+    - exclude_graphdriver_devicemapper
   concurrency: 6
   deadline: 5m
 linters:

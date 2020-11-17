@@ -1,0 +1,47 @@
+name: verify
+on:
+  push:
+    tags:
+      - v*
+    branches:
+      - master
+  pull_request:
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # must be specified without patch version
+          version: v1.32
+
+          # Only show new issues for a pull request.
+          only-new-issues: true
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: lumaxis/shellcheck-problem-matchers@v1
+    - name: shellcheck
+      run: make shellcheck
+
+  shfmt:
+    name: shfmt
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: shfmt
+      run: make shfmt
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: validate-docs
+      run: make docs-validation
