@@ -96,6 +96,18 @@ func computeCPUmask(cpus, mask string, set bool) (cpuMask, invertedCPUMask strin
 	if err != nil {
 		return cpus, "", err
 	}
+
+	// handle empty input mask, prepare an empty array
+	if len(maskArray) == 0 {
+		slice := inputCPUs.ToSlice()
+		maxCPUs := slice[len(slice)-1] + 1
+		maskLen := maxCPUs / 8
+		if maxCPUs%8 != 0 {
+			maskLen++
+		}
+		maskArray = make([]byte, maskLen)
+	}
+
 	invertedMaskArray := invertByteArray(maskArray)
 
 	for _, cpu := range inputCPUs.ToSlice() {

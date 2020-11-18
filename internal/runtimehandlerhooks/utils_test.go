@@ -29,6 +29,18 @@ var _ = Describe("Utils", func() {
 				Expect(mask).To(Equal(c.expected.mask))
 				Expect(invMask).To(Equal(c.expected.invMask))
 			},
+			Entry("empty mask, set is true", TestData{
+				input:    Input{cpus: "0-7", mask: "", set: true},
+				expected: Expected{mask: "00000000,000000ff", invMask: "00000000,00000000"},
+			}),
+			Entry("empty mask, set is false", TestData{
+				input:    Input{cpus: "0-7", mask: "", set: false},
+				expected: Expected{mask: "00000000,00000000", invMask: "00000000,000000ff"},
+			}),
+			Entry("empty mask, nonsequencial cpus, set is true", TestData{
+				input:    Input{cpus: "7,31-33", mask: "", set: true},
+				expected: Expected{mask: "00000003,80000080", invMask: "000000fc,7fffff7f"},
+			}),
 			Entry("clear a single bit that was one", TestData{
 				input:    Input{cpus: "0", mask: "0000,00003003", set: false},
 				expected: Expected{mask: "00000000,00003002", invMask: "0000ffff,ffffcffd"},
