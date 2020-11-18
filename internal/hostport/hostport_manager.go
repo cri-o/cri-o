@@ -237,6 +237,11 @@ func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (er
 		}
 	}
 
+	// exit if there is nothing to remove
+	if len(existingChainsToRemove) == 0 {
+		return nil
+	}
+
 	natChains := bytes.NewBuffer(nil)
 	natRules := bytes.NewBuffer(nil)
 	writeLine(natChains, "*nat")
