@@ -55,11 +55,9 @@ BATS_FILES := $(wildcard test/*.bats)
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
 	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
 	GIT_TREE_STATE := $(if $(shell git status --porcelain --untracked-files=no),dirty,clean)
-	GIT_MERGE_BASE := $(shell git merge-base origin/master $(shell git rev-parse --abbrev-ref HEAD))
 else
 	COMMIT_NO := unknown
 	GIT_TREE_STATE := unknown
-	GIT_MERGE_BASE := HEAD^
 endif
 
 # pass crio CLI options to generate custom configuration options at build time
