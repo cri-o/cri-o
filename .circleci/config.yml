@@ -109,7 +109,6 @@ workflows:
       - upload-artifacts:
           requires:
             - bundle-test
-      - vendor
 
 jobs:
   build:
@@ -458,20 +457,3 @@ jobs:
       - run:
           name: Upload artifacts
           command: make upload-artifacts
-
-  vendor:
-    executor: container-base
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-vendor-{{ checksum "go.sum" }}
-      - run:
-          name: check vendoring
-          command: |
-            make vendor
-            hack/tree_status.sh
-      - save_cache:
-          key: v1-vendor-{{ checksum "go.sum" }}
-          paths:
-            - /go/pkg

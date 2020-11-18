@@ -300,6 +300,9 @@ vendor:
 	$(GO) mod vendor
 	$(GO) mod verify
 
+check-vendor: vendor
+	./hack/tree_status.sh
+
 testunit: ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	rm -rf ${JUNIT_PATH} && mkdir -p ${JUNIT_PATH}
@@ -546,6 +549,7 @@ metrics-exporter: bin/metrics-exporter
 	test-images \
 	uninstall \
 	vendor \
+	check-vendor \
 	bin/pinns \
 	dependencies \
 	upload-artifacts \
