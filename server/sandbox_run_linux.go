@@ -688,12 +688,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	// Add default sysctls given in crio.conf
 	sysctls := s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC, req.GetConfig().GetLinux().GetSysctls())
 
-	// Set OOM score adjust of the infra container to be very low
-	// so it doesn't get killed.
-	g.SetProcessOOMScoreAdj(PodInfraOOMAdj)
-
-	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
-
 	// set up namespaces
 	cleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sandboxIDMappings, sysctls, sb, g)
 	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
@@ -710,6 +704,42 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if err != nil {
 		return nil, err
 	}
+
+	// now that we have the namespaces, we should create the network if we're managing namespace Lifecycle
+	var ips []string
+	var result cnitypes.Result
+
+	if s.config.ManageNSLifecycle {
+		ips, result, err = s.networkStart(ctx, sb)
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if retErr != nil {
+				log.Infof(ctx, "runSandbox: in manageNSLifecycle, stopping network for sandbox %s", sb.ID())
+				if err2 := s.networkStop(ctx, sb); err2 != nil {
+					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
+				}
+			}
+		}()
+		if result != nil {
+			resultCurrent, err := current.NewResultFromResult(result)
+			if err != nil {
+				return nil, err
+			}
+			cniResultJSON, err := json.Marshal(resultCurrent)
+			if err != nil {
+				return nil, err
+			}
+			g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
+		}
+	}
+
+	// Set OOM score adjust of the infra container to be very low
+	// so it doesn't get killed.
+	g.SetProcessOOMScoreAdj(PodInfraOOMAdj)
+
+	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 
 	saveOptions := generate.ExportOptions{}
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(sbox.ID())
@@ -843,40 +873,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		return nil, err
 	}
 
-	var ips []string
-	var result cnitypes.Result
-
-	if s.config.ManageNSLifecycle {
-		ips, result, err = s.networkStart(ctx, sb)
-		if err != nil {
-			return nil, err
-		}
-		defer func() {
-			if retErr != nil {
-				log.Infof(ctx, "runSandbox: in manageNSLifecycle, stopping network for sandbox %s", sb.ID())
-				if err2 := s.networkStop(ctx, sb); err2 != nil {
-					log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
-				}
-			}
-		}()
-		if result != nil {
-			resultCurrent, err := current.NewResultFromResult(result)
-			if err != nil {
-				return nil, err
-			}
-			cniResultJSON, err := json.Marshal(resultCurrent)
-			if err != nil {
-				return nil, err
-			}
-			g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
-		}
-	}
-
-	for idx, ip := range ips {
-		g.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
-	}
-	sb.AddIPs(ips)
-
 	if err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions); err != nil {
 		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %v", sb.Name(), sbox.ID(), err)
 	}
@@ -950,6 +946,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 				}
 			}
 		}()
+	}
+
+	for idx, ip := range ips {
+		g.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
 	}
 	sb.AddIPs(ips)
 
