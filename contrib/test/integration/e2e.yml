@@ -23,6 +23,8 @@
       - "PersistentVolumes-local"
       - "CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source"
       - "CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volumes should store data"
+      # TODO: remove once https://github.com/kubernetes/kubernetes/issues/96565 is fixed
+      - "Pods Extended [k8s.io] Pod Container Status should never report success for a pending container"
   set_fact:
     e2e_shell_cmd: >
         DBUS_SESSION_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket" KUBE_CONTAINER_RUNTIME="remote" GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y KUBE_SSH_USER="{{ ssh_user }}" LOCAL_SSH_KEY="{{ ssh_location }}"
