@@ -4,6 +4,11 @@
   include: "e2e-base.yml"
 
 - name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
+  vars:
+    skip_tests:
+      - "[Slow]"
+      - "[Flaky]"
+      - "[Serial]"
   set_fact:
     e2e_shell_cmd: >
         KUBE_CONTAINER_RUNTIME="remote" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y
@@ -14,7 +19,7 @@
                         --ginkgo.noColor
                         --ginkgo.succinct
                         --ginkgo.focus=\[NodeFeature:.*\]|\[Feature:(Seccomp|ScopeSelectors|PodPriority|Ingress|ComprehensiveNamespaceDraining|Networking-IPv4|TokenRequestProjection)\]
-                        --ginkgo.skip=\[(Slow|Flaky)\]
+                        --ginkgo.skip={{ skip_tests | join('|') | replace(' ', '\\s') | regex_replace('([][)(])', '\\\\\1') }}
                         --report-dir={{ artifacts }}"
             &> {{ artifacts }}/e2e.log
   # Fix vim syntax hilighting: "
