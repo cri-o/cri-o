@@ -107,7 +107,7 @@ func parseDNSOptions(servers, searches, options []string, path string) error {
 func (s *Server) newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 	var egress, ingress int64 = 0, 0
 
-	if val, ok := sb.Annotations()["kubernetes.io/egress-bandwidth"]; ok {
+	if val, ok := sb.Annotations()["kubernetes.io/egress-bandwidth"]; ok == true {
 		egressQ, err := resource.ParseQuantity(val)
 		if err != nil {
 			return ocicni.PodNetwork{}, fmt.Errorf("failed to parse egress bandwidth: %v", err)
@@ -115,7 +115,7 @@ func (s *Server) newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 			egress = iegress
 		}
 	}
-	if val, ok := sb.Annotations()["kubernetes.io/ingress-bandwidth"]; ok {
+	if val, ok := sb.Annotations()["kubernetes.io/ingress-bandwidth"]; ok == true {
 		ingressQ, err := resource.ParseQuantity(val)
 		if err != nil {
 			return ocicni.PodNetwork{}, fmt.Errorf("failed to parse ingress bandwidth: %v", err)
