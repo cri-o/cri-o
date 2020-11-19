@@ -571,9 +571,17 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 			specgen.Config.Linux.Seccomp = nil
 			return nil
 		}
+		// default to SeccompProfileRuntimeDefault if user sets UseDefaultWhenEmpty
 		profile = k8sV1.SeccompProfileRuntimeDefault
 	}
+	// kubelet defaults sandboxes to run as `runtime/default`, we consider the default profile as unconfined if Seccomp disabled
+	// https://github.com/kubernetes/kubernetes/blob/12d9183da03d86c65f9f17e3e28be3c7c18ed22a/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L162-L163
 	if s.Config().Seccomp().IsDisabled() {
+		if profile == k8sV1.SeccompProfileRuntimeDefault {
+			// running w/o seccomp, aka unconfined
+			specgen.Config.Linux.Seccomp = nil
+			return nil
+		}
 		if profile != k8sV1.SeccompProfileNameUnconfined {
 			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
 		}
