@@ -8,6 +8,7 @@
     skip_tests:
       - "[Slow]"
       - "[Flaky]"
+      - "[Serial]"
   set_fact:
     e2e_shell_cmd: >
         KUBE_CONTAINER_RUNTIME="remote" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y
