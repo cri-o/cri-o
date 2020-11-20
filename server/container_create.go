@@ -504,7 +504,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
 		err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
 		if err2 != nil {
-			log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
+			log.Warnf(ctx, "Failed to cleanup container storage: %v", err2)
 		}
 	})
 

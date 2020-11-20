@@ -387,7 +387,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	cleanupFuncs = append(cleanupFuncs, func() {
 		log.Infof(ctx, "runSandbox: removing pod sandbox from storage: %s", sbox.ID())
 		if err2 := s.StorageRuntimeServer().RemovePodSandbox(sbox.ID()); err2 != nil {
-			log.Warnf(ctx, "couldn't cleanup pod sandbox %q: %v", sbox.ID(), err2)
+			log.Warnf(ctx, "could not cleanup pod sandbox %q: %v", sbox.ID(), err2)
 		}
 	})
 
@@ -398,7 +398,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	// This should always be absolute from k8s.
 	if !filepath.IsAbs(logDir) {
-		return nil, fmt.Errorf("requested logDir for sbox id %s is a relative path: %s", sbox.ID(), logDir)
+		return nil, fmt.Errorf("requested logDir for sbox ID %s is a relative path: %s", sbox.ID(), logDir)
 	}
 	if err := os.MkdirAll(logDir, 0o700); err != nil {
 		return nil, err
@@ -542,7 +542,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		cleanupFuncs = append(cleanupFuncs, func() {
 			log.Infof(ctx, "runSandbox: unmounting shmPath for sandbox %s", sbox.ID())
 			if err2 := unix.Unmount(shmPath, unix.MNT_DETACH); err2 != nil {
-				log.Warnf(ctx, "failed to unmount shm for pod: %v", err2)
+				log.Warnf(ctx, "failed to unmount shm for sandbox: %v", err2)
 			}
 		})
 	}
@@ -568,7 +568,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	cleanupFuncs = append(cleanupFuncs, func() {
 		log.Infof(ctx, "runSandbox: deleting container ID from idIndex for sandbox %s", sbox.ID())
 		if err2 := s.CtrIDIndex().Delete(sbox.ID()); err2 != nil {
-			log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", sbox.ID())
+			log.Warnf(ctx, "could not delete ctr id %s from idIndex", sbox.ID())
 		}
 	})
 
@@ -670,7 +670,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	cleanupFuncs = append(cleanupFuncs, func() {
 		log.Infof(ctx, "runSandbox: deleting pod ID %s from idIndex", sbox.ID())
 		if err := s.PodIDIndex().Delete(sbox.ID()); err != nil {
-			log.Warnf(ctx, "couldn't delete pod id %s from idIndex", sbox.ID())
+			log.Warnf(ctx, "could not delete pod id %s from idIndex", sbox.ID())
 		}
 	})
 
@@ -741,7 +741,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	cleanupFuncs = append(cleanupFuncs, func() {
 		log.Infof(ctx, "runSandbox: stopping storage container for sandbox %s", sbox.ID())
 		if err2 := s.StorageRuntimeServer().StopContainer(sbox.ID()); err2 != nil {
-			log.Warnf(ctx, "couldn't stop storage container: %v: %v", sbox.ID(), err2)
+			log.Warnf(ctx, "could not stop storage container: %v: %v", sbox.ID(), err2)
 		}
 	})
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
@@ -925,7 +925,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			return nil, err
 		}
 		cleanupFuncs = append(cleanupFuncs, func() {
-			log.Infof(ctx, "runSandbox: in not manageNSLifecycle, stopping network for sandbox %s", sb.ID())
+			log.Infof(ctx, "runSandbox: stopping network for sandbox %s when not manageNSLifecycle", sb.ID())
 			if err2 := s.networkStop(ctx, sb); err2 != nil {
 				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 			}
