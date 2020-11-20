@@ -45,3 +45,21 @@ jobs:
     - uses: actions/checkout@v2
     - name: validate-docs
       run: make docs-validation
+
+  vendor:
+    name: vendor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - name: cache go modules
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-
+      - name: vendor
+        run: make check-vendor
