@@ -23,14 +23,17 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 		rStatus = pb.PodSandboxState_SANDBOX_READY
 	}
 
-	linux := &pb.LinuxPodSandboxStatus{
-		Namespaces: &pb.Namespace{
-			Options: &pb.NamespaceOption{
-				Network: sb.NamespaceOptions().GetNetwork(),
-				Ipc:     sb.NamespaceOptions().GetIpc(),
-				Pid:     sb.NamespaceOptions().GetPid(),
+	var linux *pb.LinuxPodSandboxStatus
+	if sb.NamespaceOptions() != nil {
+		linux = &pb.LinuxPodSandboxStatus{
+			Namespaces: &pb.Namespace{
+				Options: &pb.NamespaceOption{
+					Network: pb.NamespaceMode(sb.NamespaceOptions().Network),
+					Ipc:     pb.NamespaceMode(sb.NamespaceOptions().Ipc),
+					Pid:     pb.NamespaceMode(sb.NamespaceOptions().Pid),
+				},
 			},
-		},
+		}
 	}
 
 	sandboxID := sb.ID()

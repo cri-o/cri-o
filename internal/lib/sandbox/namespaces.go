@@ -11,6 +11,53 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// A NamespaceMode describes the intended namespace configuration for each
+// of the namespaces (Network, PID, IPC) in NamespaceOption. Runtimes should
+// map these modes as appropriate for the technology underlying the runtime.
+type NamespaceMode int32
+
+const (
+	// A pod namespace is common to all containers in a pod.
+	// For example, a container with a pid namespace of pod expects to view
+	// all of the processes in all of the containers in the pod.
+	NamespaceModePod NamespaceMode = 0
+
+	// A container namespace is restricted to a single container.
+	// For example, a container with a pid namespace of container expects to
+	// view only the processes in that container.
+	NamespaceModeContainer NamespaceMode = 1
+
+	// A node namespace is the namespace of the Kubernetes node.
+	// For example, a container with a pid namespace of node expects to view
+	// all of the processes on the host running the kubelet.
+	NamespaceModeNode NamespaceMode = 2
+
+	// NamespaceModeTarget targets the namespace of another container. When
+	// this is specified, a target_id must be specified in NamespaceOption and
+	// refer to a container previously created with NamespaceModeContainer.
+	// This containers namespace will be made to match that of container
+	// target_id.  For example, a container with a pid namespace of
+	// NamespaceModeTarget expects to view all of the processes that container
+	// target_id can view.
+	NamespaceModeTarget NamespaceMode = 3
+)
+
+type NamespaceOption struct {
+	// Network namespace for this container/sandbox.
+	Network NamespaceMode `json:"network,omitempty"`
+
+	// PID namespace for this container/sandbox.
+	Pid NamespaceMode `json:"pid,omitempty"`
+
+	// IPC namespace for this container/sandbox.
+	Ipc NamespaceMode `json:"ipc,omitempty"`
+
+	// Target Container ID for NamespaceModeTarget. This container must have
+	// been previously created in the same pod. It is not possible to specify
+	// different targets for each namespace.
+	TargetID string `json:"target_id,omitempty"`
+}
+
 // NSType is an abstraction about available namespace types
 type NSType string
 

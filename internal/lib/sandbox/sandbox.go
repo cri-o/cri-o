@@ -55,7 +55,7 @@ type Sandbox struct {
 	annotations        map[string]string
 	infraContainer     *oci.Container
 	metadata           *pb.PodSandboxMetadata
-	nsOpts             *pb.NamespaceOption
+	nsOpts             *NamespaceOption
 	stopMutex          sync.RWMutex
 	created            bool
 	stopped            bool
@@ -121,12 +121,12 @@ func (s *Sandbox) AddIPs(ips []string) {
 }
 
 // SetNamespaceOptions sets whether the pod is running using host network
-func (s *Sandbox) SetNamespaceOptions(nsOpts *pb.NamespaceOption) {
+func (s *Sandbox) SetNamespaceOptions(nsOpts *NamespaceOption) {
 	s.nsOpts = nsOpts
 }
 
 // NamespaceOptions returns the namespace options for the sandbox
-func (s *Sandbox) NamespaceOptions() *pb.NamespaceOption {
+func (s *Sandbox) NamespaceOptions() *NamespaceOption {
 	return s.nsOpts
 }
 
@@ -435,5 +435,5 @@ func (s *Sandbox) UnmountShm() error {
 // If the server manages the namespace lifecycles, and the Pid option on the sandbox
 // is node or container level, the infra container is not needed
 func (s *Sandbox) NeedsInfra(serverDropsInfra bool) bool {
-	return !serverDropsInfra || s.nsOpts.GetPid() == pb.NamespaceMode_POD
+	return !serverDropsInfra || s.nsOpts.Pid == NamespaceModePod
 }
