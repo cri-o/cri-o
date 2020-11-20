@@ -819,7 +819,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		makeOCIConfigurationRootless(&g)
 	}
 
-	sb.SetNamespaceOptions(securityContext.GetNamespaceOptions())
+	namespaceOpts := securityContext.GetNamespaceOptions()
+	sb.SetNamespaceOptions(
+		&libsandbox.NamespaceOption{
+			Network:  libsandbox.NamespaceMode(namespaceOpts.GetNetwork()),
+			Pid:      libsandbox.NamespaceMode(namespaceOpts.GetPid()),
+			Ipc:      libsandbox.NamespaceMode(namespaceOpts.GetIpc()),
+			TargetID: namespaceOpts.GetTargetId(),
+		},
+	)
 
 	spp := securityContext.GetSeccompProfilePath()
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)

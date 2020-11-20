@@ -156,7 +156,7 @@ var _ = t.Describe("Sandbox", func() {
 	t.Describe("SetNamespaceOptions", func() {
 		It("should succeed", func() {
 			// Given
-			newNamespaceOption := &pb.NamespaceOption{
+			newNamespaceOption := &sandbox.NamespaceOption{
 				Network: 1,
 				Pid:     2,
 				Ipc:     3,
@@ -261,8 +261,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should not need when managing NS and NS mode NODE", func() {
 			// Given
 			manageNS := true
-			newNamespaceOption := &pb.NamespaceOption{
-				Pid: pb.NamespaceMode_NODE,
+			newNamespaceOption := &sandbox.NamespaceOption{
+				Pid: sandbox.NamespaceModeNode,
 			}
 
 			// When
@@ -275,8 +275,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should not need when managing NS and NS mode CONTAINER", func() {
 			// Given
 			manageNS := true
-			newNamespaceOption := &pb.NamespaceOption{
-				Pid: pb.NamespaceMode_CONTAINER,
+			newNamespaceOption := &sandbox.NamespaceOption{
+				Pid: sandbox.NamespaceModeContainer,
 			}
 
 			// When
@@ -289,8 +289,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should need when namespace mode POD", func() {
 			// Given
 			manageNS := false
-			newNamespaceOption := &pb.NamespaceOption{
-				Pid: pb.NamespaceMode_POD,
+			newNamespaceOption := &sandbox.NamespaceOption{
+				Pid: sandbox.NamespaceModePod,
 			}
 
 			// When
@@ -303,8 +303,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should need when not managing NS", func() {
 			// Given
 			manageNS := true
-			newNamespaceOption := &pb.NamespaceOption{
-				Pid: pb.NamespaceMode_CONTAINER,
+			newNamespaceOption := &sandbox.NamespaceOption{
+				Pid: sandbox.NamespaceModeContainer,
 			}
 
 			// When

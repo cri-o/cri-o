@@ -190,7 +190,7 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
-	nsOpts := pb.NamespaceOption{}
+	nsOpts := sandbox.NamespaceOption{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
 		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.NamespaceOptions)
 	}
