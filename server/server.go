@@ -18,6 +18,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -30,10 +31,6 @@ import (
 	"github.com/sirupsen/logrus"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/cri/streaming"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
-	iptablesproxy "k8s.io/kubernetes/pkg/proxy/iptables"
-	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
-	utilexec "k8s.io/utils/exec"
 )
 
 const (
@@ -335,11 +332,7 @@ func New(
 		return nil, err
 	}
 
-	iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIPv4)
-	if _, err := iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain); err != nil {
-		logrus.Warnf("unable to ensure iptables chain: %v", err)
-	}
-	hostportManager := hostport.NewHostportManager(iptInterface)
+	hostportManager := hostport.NewMetaHostportManager()
 
 	idMappings, err := getIDMappings(config)
 	if err != nil {

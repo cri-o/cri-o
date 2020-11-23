@@ -3,17 +3,17 @@ package server
 import (
 	"context"
 	"fmt"
-	"net"
-	"strings"
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/pkg/errors"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
+
+	utilnet "k8s.io/utils/net"
 )
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
@@ -67,29 +67,46 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 		return nil, nil, fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 	}
 
-	for idx, podIPConfig := range network.IPs {
-		podIP := strings.Split(podIPConfig.Address.String(), "/")[0]
+	// only do portmapping to the first IP of each IP family
+	foundIPv4 := false
+	foundIPv6 := false
+	// cache the portmapping info
+	sbID := sb.ID()
+	sbName := sb.Name()
+	sbPortMappings := sb.PortMappings()
+	// iterate over each IP and add the portmap if needed
+	for _, podIPConfig := range network.IPs {
+		ip := podIPConfig.Address.IP
+		podIPs = append(podIPs, ip.String())
 
-		// Apply the hostport mappings only for the first IP to avoid allocating
-		// the same host port twice
-		if idx == 0 && len(sb.PortMappings()) > 0 {
-			ip := net.ParseIP(podIP)
-			if ip == nil {
-				return nil, nil, fmt.Errorf("failed to get valid ip address for sandbox %s(%s)", sb.Name(), sb.ID())
-			}
-
-			err = s.hostportManager.Add(sb.ID(), &hostport.PodPortMapping{
-				Name:         sb.Name(),
-				PortMappings: sb.PortMappings(),
+		// the pod has host-ports defined
+		if len(sbPortMappings) > 0 {
+			mapping := &hostport.PodPortMapping{
+				Name:         sbName,
+				PortMappings: sbPortMappings,
 				IP:           ip,
 				HostNetwork:  false,
-			}, "lo")
+			}
+			// nolint:gocritic // using a switch statement is not much different
+			if utilnet.IsIPv6(ip) {
+				if foundIPv6 {
+					// we have already done the portmap for IPv6
+					continue
+				}
+				// found a new IPv6 address, do the portmap
+				foundIPv6 = true
+			} else if foundIPv4 {
+				// we have already done the portmap for IPv4
+				continue
+			} else {
+				// found a new IPv4 address, do the portmap
+				foundIPv4 = true
+			}
+			err = s.hostportManager.Add(sbID, mapping, "")
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 			}
 		}
-
-		podIPs = append(podIPs, podIP)
 	}
 
 	log.Debugf(ctx, "found POD IPs: %v", podIPs)
@@ -122,7 +139,7 @@ func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) ([]string, error) {
 
 	podIPs := make([]string, 0, len(res.IPs))
 	for _, podIPConfig := range res.IPs {
-		podIPs = append(podIPs, strings.Split(podIPConfig.Address.String(), "/")[0])
+		podIPs = append(podIPs, podIPConfig.Address.IP.String())
 	}
 
 	return podIPs, nil
@@ -138,11 +155,13 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	stopCtx, stopCancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer stopCancel()
 
-	if err := s.hostportManager.Remove(sb.ID(), &hostport.PodPortMapping{
+	mapping := &hostport.PodPortMapping{
 		Name:         sb.Name(),
 		PortMappings: sb.PortMappings(),
 		HostNetwork:  false,
-	}); err != nil {
+	}
+	// portMapping removal does not need the IP address
+	if err := s.hostportManager.Remove(sb.ID(), mapping); err != nil {
 		log.Warnf(ctx, "failed to remove hostport for pod sandbox %s(%s): %v",
 			sb.Name(), sb.ID(), err)
 	}

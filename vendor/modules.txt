@@ -1338,7 +1338,6 @@ k8s.io/kubernetes/pkg/kubelet/container
 k8s.io/kubernetes/pkg/kubelet/cri/streaming
 k8s.io/kubernetes/pkg/kubelet/cri/streaming/portforward
 k8s.io/kubernetes/pkg/kubelet/cri/streaming/remotecommand
-k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport
 k8s.io/kubernetes/pkg/kubelet/leaky
 k8s.io/kubernetes/pkg/kubelet/types
 k8s.io/kubernetes/pkg/kubelet/util/format
