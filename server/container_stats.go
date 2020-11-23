@@ -29,8 +29,11 @@ func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerSt
 	}
 	return &pb.ContainerStats{
 		Attributes: &pb.ContainerAttributes{
-			Id:          container.ID(),
-			Metadata:    container.Metadata(),
+			Id: container.ID(),
+			Metadata: &pb.ContainerMetadata{
+				Name:    container.Metadata().Name,
+				Attempt: container.Metadata().Attempt,
+			},
 			Labels:      container.Labels(),
 			Annotations: container.Annotations(),
 		},

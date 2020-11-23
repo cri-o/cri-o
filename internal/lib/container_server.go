@@ -24,7 +24,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // ContainerManagerCRIO specifies an annotation value which indicates that the
@@ -168,7 +167,7 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 			c.ReleasePodName(name)
 		}
 	}()
-	var metadata pb.PodSandboxMetadata
+	var metadata sandbox.Metadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Metadata)
 	}
@@ -410,7 +409,7 @@ func (c *ContainerServer) LoadContainer(id string) (retErr error) {
 		}
 	}()
 
-	var metadata pb.ContainerMetadata
+	var metadata oci.Metadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}

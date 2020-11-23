@@ -648,7 +648,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 	}
 
-	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, resolvPath, hostname, portMappings, hostNetwork, created, usernsMode)
+	sbMetadata := &libsandbox.Metadata{
+		Name:      metadata.GetName(),
+		UID:       metadata.GetUid(),
+		Namespace: metadata.GetNamespace(),
+		Attempt:   metadata.GetAttempt(),
+	}
+	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, sbMetadata, shmPath, cgroupParent, privileged, runtimeHandler, resolvPath, hostname, portMappings, hostNetwork, created, usernsMode)
 	if err != nil {
 		return nil, err
 	}

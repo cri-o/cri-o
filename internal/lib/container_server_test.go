@@ -15,7 +15,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -588,7 +587,7 @@ var _ = t.Describe("ContainerServer", func() {
 			container, err := oci.NewContainer(containerID, "", "", "",
 				make(map[string]string), make(map[string]string),
 				make(map[string]string), "", "", "",
-				&pb.ContainerMetadata{}, sandboxID, false,
+				&oci.Metadata{}, sandboxID, false,
 				false, false, "", "/invalid", time.Now(), "")
 			Expect(err).To(BeNil())
 

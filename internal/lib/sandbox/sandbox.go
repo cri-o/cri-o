@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // DevShmPath is the default system wide shared memory path
@@ -54,7 +53,7 @@ type Sandbox struct {
 	labels             fields.Set
 	annotations        map[string]string
 	infraContainer     *oci.Container
-	metadata           *pb.PodSandboxMetadata
+	metadata           *Metadata
 	nsOpts             *NamespaceOption
 	stopMutex          sync.RWMutex
 	created            bool
@@ -63,6 +62,20 @@ type Sandbox struct {
 	privileged         bool
 	hostNetwork        bool
 	usernsMode         string
+}
+
+type Metadata struct {
+	// Pod name of the sandbox.
+	Name string `json:"name,omitempty"`
+
+	// Pod UID of the sandbox.
+	UID string `json:"uid,omitempty"`
+
+	// Pod namespace of the sandbox.
+	Namespace string `json:"namespace,omitempty"`
+
+	// Attempt number of creating the sandbox.
+	Attempt uint32 `json:"attempt,omitempty"`
 }
 
 // DefaultShmSize is the default shm size
@@ -74,7 +87,7 @@ var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 // New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
 // An infra container must be attached before the sandbox is added to the state
-func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string) (*Sandbox, error) {
+func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *Metadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string) (*Sandbox, error) {
 	sb := new(Sandbox)
 	sb.id = id
 	sb.namespace = namespace
@@ -197,7 +210,7 @@ func (s *Sandbox) MountLabel() string {
 }
 
 // Metadata returns a set of metadata about the sandbox
-func (s *Sandbox) Metadata() *pb.PodSandboxMetadata {
+func (s *Sandbox) Metadata() *Metadata {
 	return s.metadata
 }
 

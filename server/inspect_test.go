@@ -4,8 +4,6 @@ import (
 	"testing"
 	"time"
 
-	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -49,7 +47,7 @@ func TestGetContainerInfo(t *testing.T) {
 		"io.kubernetes.test1": "value1",
 	}
 	getContainerFunc := func(id string) *oci.Container {
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "image", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "image", "imageName", "imageRef", &oci.Metadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -166,7 +164,7 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 	labels := map[string]string{}
 	annotations := map[string]string{}
 	getContainerFunc := func(id string) *oci.Container {
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", "imageName", "imageRef", &oci.Metadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -197,7 +195,7 @@ func TestGetContainerInfoSandboxNotFound(t *testing.T) {
 	labels := map[string]string{}
 	annotations := map[string]string{}
 	getContainerFunc := func(id string) *oci.Container {
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", "imageName", "imageRef", &runtime.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", "imageName", "imageRef", &oci.Metadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}

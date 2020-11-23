@@ -70,7 +70,12 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxReque
 			State:       rStatus,
 			Labels:      sb.Labels(),
 			Annotations: sb.Annotations(),
-			Metadata:    sb.Metadata(),
+			Metadata: &pb.PodSandboxMetadata{
+				Name:      sb.Metadata().Name,
+				Uid:       sb.Metadata().UID,
+				Namespace: sb.Metadata().Namespace,
+				Attempt:   sb.Metadata().Attempt,
+			},
 		}
 
 		// Filter by other criteria such as state and labels.

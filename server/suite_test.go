@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/cri/streaming"
 )
 
@@ -154,14 +153,14 @@ var beforeEach = func() {
 	// Initialize test container and sandbox
 	testSandbox, err = sandbox.New(sandboxID, "", "", "", "",
 		make(map[string]string), make(map[string]string), "", "",
-		&pb.PodSandboxMetadata{}, "", "", false, "", "", "",
+		&sandbox.Metadata{}, "", "", false, "", "", "",
 		[]*hostport.PortMapping{}, false, time.Now(), "")
 	Expect(err).To(BeNil())
 
 	testContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "pauseImage", "", "",
-		&pb.ContainerMetadata{}, sandboxID, false, false,
+		&oci.Metadata{}, sandboxID, false, false,
 		false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
 
