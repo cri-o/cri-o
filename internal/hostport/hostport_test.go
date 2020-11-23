@@ -25,21 +25,21 @@ import (
 )
 
 type fakeSocket struct {
-	ip       string
+	closed   bool
 	port     int32
 	protocol string
-	closed   bool
+	ip       string
 }
 
 func (f *fakeSocket) Close() error {
 	if f.closed {
-		return fmt.Errorf("Socket %q.%s already closed!", f.port, f.protocol)
+		return fmt.Errorf("socket %q.%s already closed", f.port, f.protocol)
 	}
 	f.closed = true
 	return nil
 }
 
-func NewFakeSocketManager() *fakeSocketManager {
+func newFakeSocketManager() *fakeSocketManager {
 	return &fakeSocketManager{mem: make(map[hostport]*fakeSocket)}
 }
 
@@ -51,7 +51,12 @@ func (f *fakeSocketManager) openFakeSocket(hp *hostport) (closeable, error) {
 	if socket, ok := f.mem[*hp]; ok && !socket.closed {
 		return nil, fmt.Errorf("hostport is occupied")
 	}
-	fs := &fakeSocket{hp.ip, hp.port, hp.protocol, false}
+	fs := &fakeSocket{
+		port:     hp.port,
+		protocol: hp.protocol,
+		closed:   false,
+		ip:       hp.ip,
+	}
 	f.mem[*hp] = fs
 	return fs, nil
 }
@@ -62,7 +67,7 @@ func TestEnsureKubeHostportChains(t *testing.T) {
 	jumpRule := "-m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS"
 	masqRule := "-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE"
 
-	fakeIPTables := NewFakeIPTables()
+	fakeIPTables := newFakeIPTables()
 	assert.NoError(t, ensureKubeHostportChains(fakeIPTables, interfaceName))
 
 	_, _, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain("KUBE-HOSTPORTS"))
@@ -79,5 +84,4 @@ func TestEnsureKubeHostportChains(t *testing.T) {
 		assert.EqualValues(t, len(chain.rules), 1)
 		assert.Contains(t, chain.rules[0], jumpRule)
 	}
-
 }

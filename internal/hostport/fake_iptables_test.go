@@ -25,7 +25,7 @@ import (
 )
 
 func TestRestoreFlushRules(t *testing.T) {
-	iptables := NewFakeIPTables()
+	iptables := newFakeIPTables()
 	rules := [][]string{
 		{"-A", "KUBE-HOSTPORTS", "-m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp --dport 8443 -j KUBE-HP-5N7UH5JAXCVP5UJR"},
 		{"-A", "POSTROUTING", "-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE"},
