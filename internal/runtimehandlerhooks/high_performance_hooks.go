@@ -32,6 +32,7 @@ const (
 	annotationCPUQuota         = "cpu-quota.crio.io"
 	annotationIRQLoadBalancing = "irq-load-balancing.crio.io"
 	annotationTrue             = "true"
+	annotationDisable          = "disable"
 	schedDomainDir             = "/proc/sys/kernel/sched_domain"
 	irqSmpAffinityProcFile     = "/proc/irq/default_smp_affinity"
 	cgroupMountPoint           = "/sys/fs/cgroup"
@@ -119,15 +120,18 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 }
 
 func shouldCPULoadBalancingBeDisabled(annotations fields.Set) bool {
-	return annotations[annotationCPULoadBalancing] == annotationTrue
+	return annotations[annotationCPULoadBalancing] == annotationTrue ||
+		annotations[annotationCPULoadBalancing] == annotationDisable
 }
 
 func shouldCPUQuotaBeDisabled(annotations fields.Set) bool {
-	return annotations[annotationCPUQuota] == annotationTrue
+	return annotations[annotationCPUQuota] == annotationTrue ||
+		annotations[annotationCPUQuota] == annotationDisable
 }
 
 func shouldIRQLoadBalancingBeDisabled(annotations fields.Set) bool {
-	return annotations[annotationIRQLoadBalancing] == annotationTrue
+	return annotations[annotationIRQLoadBalancing] == annotationTrue ||
+		annotations[annotationIRQLoadBalancing] == annotationDisable
 }
 
 func isCgroupParentBurstable(s *sandbox.Sandbox) bool {
