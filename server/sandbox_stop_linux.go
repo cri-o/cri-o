@@ -46,7 +46,10 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 	}
 
 	// Get high-performance runtime hook to trigger preStop step for each container
-	hooks := runtimehandlerhooks.GetRuntimeHandlerHooks(sb.RuntimeHandler())
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, sb.RuntimeHandler(), s.Runtime())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
+	}
 
 	if sb.Stopped() {
 		log.Infof(ctx, "Stopped pod sandbox (already stopped): %s", sb.ID())
@@ -86,7 +89,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 				})
 			}
 			if hooks != nil {
-				if err := hooks.PreStop(ctx, ctr, sb, s.Runtime()); err != nil {
+				if err := hooks.PreStop(ctx, ctr, sb); err != nil {
 					log.Warnf(ctx, "failed to run PreStop hook for container %s in pod sandbox %s: %v", ctr.Name(), sb.ID(), err)
 				}
 			}

@@ -14,6 +14,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/pkg/errors"
@@ -28,14 +29,11 @@ const (
 )
 
 const (
-	annotationCPULoadBalancing = "cpu-load-balancing.crio.io"
-	annotationCPUQuota         = "cpu-quota.crio.io"
-	annotationIRQLoadBalancing = "irq-load-balancing.crio.io"
-	annotationTrue             = "true"
-	annotationDisable          = "disable"
-	schedDomainDir             = "/proc/sys/kernel/sched_domain"
-	irqSmpAffinityProcFile     = "/proc/irq/default_smp_affinity"
-	cgroupMountPoint           = "/sys/fs/cgroup"
+	annotationTrue         = "true"
+	annotationDisable      = "disable"
+	schedDomainDir         = "/proc/sys/kernel/sched_domain"
+	irqSmpAffinityProcFile = "/proc/irq/default_smp_affinity"
+	cgroupMountPoint       = "/sys/fs/cgroup"
 )
 
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads
@@ -64,6 +62,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 			return errors.Wrap(err, "set CPU load balancing")
 		}
 	}
+
 	// disable the IRQ smp load balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
@@ -71,6 +70,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 			return errors.Wrap(err, "set IRQ load balancing")
 		}
 	}
+
 	// disable the CFS quota for the container CPUs
 	if shouldCPUQuotaBeDisabled(s.Annotations()) {
 		log.Infof(ctx, "Disable cpu cfs quota for container %q", c.ID())
@@ -108,30 +108,48 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 			return errors.Wrap(err, "set CPU load balancing")
 		}
 	}
+
 	// enable the IRQ smp balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
 		if err := setIRQLoadBalancing(c, true, irqSmpAffinityProcFile); err != nil {
 			return errors.Wrap(err, "set IRQ load balancing")
 		}
 	}
+
 	// no need to reverse the cgroup CPU CFS quota setting as the pod cgroup will be deleted anyway
 
 	return nil
 }
 
 func shouldCPULoadBalancingBeDisabled(annotations fields.Set) bool {
-	return annotations[annotationCPULoadBalancing] == annotationTrue ||
-		annotations[annotationCPULoadBalancing] == annotationDisable
+	if annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue {
+		log.Warnf(context.TODO(), annotationValueDeprecationWarning(crioannotations.CPULoadBalancingAnnotation))
+	}
+
+	return annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue ||
+		annotations[crioannotations.CPULoadBalancingAnnotation] == annotationDisable
 }
 
 func shouldCPUQuotaBeDisabled(annotations fields.Set) bool {
-	return annotations[annotationCPUQuota] == annotationTrue ||
-		annotations[annotationCPUQuota] == annotationDisable
+	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
+		log.Warnf(context.TODO(), annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
+	}
+
+	return annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue ||
+		annotations[crioannotations.CPUQuotaAnnotation] == annotationDisable
 }
 
 func shouldIRQLoadBalancingBeDisabled(annotations fields.Set) bool {
-	return annotations[annotationIRQLoadBalancing] == annotationTrue ||
-		annotations[annotationIRQLoadBalancing] == annotationDisable
+	if annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue {
+		log.Warnf(context.TODO(), annotationValueDeprecationWarning(crioannotations.IRQLoadBalancingAnnotation))
+	}
+
+	return annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue ||
+		annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationDisable
+}
+
+func annotationValueDeprecationWarning(annotation string) string {
+	return fmt.Sprintf("The usage of the annotation %q with value %q will be deprecated under 1.21", annotation, "true")
 }
 
 func isCgroupParentBurstable(s *sandbox.Sandbox) bool {
