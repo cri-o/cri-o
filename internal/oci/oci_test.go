@@ -30,9 +30,10 @@ var _ = t.Describe("Oci", func() {
 
 		// Test constants
 		const (
-			invalidRuntime = "invalid"
-			defaultRuntime = "runc"
-			usernsRuntime  = "userns"
+			invalidRuntime     = "invalid"
+			defaultRuntime     = "runc"
+			usernsRuntime      = "userns"
+			performanceRuntime = "high-performance"
 		)
 		runtimes := config.Runtimes{
 			defaultRuntime: {
@@ -45,6 +46,16 @@ var _ = t.Describe("Oci", func() {
 				RuntimeType:        "",
 				RuntimeRoot:        "/run/runc",
 				AllowedAnnotations: []string{annotations.UsernsModeAnnotation},
+			},
+			performanceRuntime: {
+				RuntimePath: "/bin/sh",
+				RuntimeType: "",
+				RuntimeRoot: "/run/runc",
+				AllowedAnnotations: []string{
+					annotations.CPULoadBalancingAnnotation,
+					annotations.IRQLoadBalancingAnnotation,
+					annotations.CPUQuotaAnnotation,
+				},
 			},
 		}
 
@@ -102,6 +113,33 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(allowed).To(Equal(false))
+		})
+		It("AllowCPULoadBalancingAnnotation should be true when set", func() {
+			// Given
+			// When
+			allowed, err := sut.AllowCPULoadBalancingAnnotation(performanceRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(allowed).To(Equal(true))
+		})
+		It("AllowCPUQuotaAnnotation should be true when set", func() {
+			// Given
+			// When
+			allowed, err := sut.AllowCPUQuotaAnnotation(performanceRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(allowed).To(Equal(true))
+		})
+		It("AllowIRQLoadBalancingAnnotation should be true when set", func() {
+			// Given
+			// When
+			allowed, err := sut.AllowIRQLoadBalancingAnnotation(performanceRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(allowed).To(Equal(true))
 		})
 	})
 

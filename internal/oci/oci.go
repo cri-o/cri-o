@@ -202,6 +202,24 @@ func (r *Runtime) AllowDevicesAnnotation(handler string) (bool, error) {
 	return r.allowAnnotation(handler, annotations.DevicesAnnotation)
 }
 
+// AllowCPULoadBalancingAnnotation searches through the AllowedAnnotations for
+// the CPU load balancing annotation, checking whether this runtime allows processing of  "cpu-load-balancing.crio.io"
+func (r *Runtime) AllowCPULoadBalancingAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.CPULoadBalancingAnnotation)
+}
+
+// AllowCPUQuotaAnnotation searches through the AllowedAnnotations for
+// the CPU quota annotation, checking whether this runtime allows processing of "cpu-quota.crio.io"
+func (r *Runtime) AllowCPUQuotaAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.CPUQuotaAnnotation)
+}
+
+// AllowIRQLoadBalancingAnnotation searches through the AllowedAnnotations for
+// the IRQ load balancing annotation, checking whether this runtime allows processing of "irq-load-balancing.crio.io"
+func (r *Runtime) AllowIRQLoadBalancingAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.IRQLoadBalancingAnnotation)
+}
+
 func (r *Runtime) allowAnnotation(handler, annotation string) (bool, error) {
 	rh, err := r.getRuntimeHandler(handler)
 	if err != nil {
