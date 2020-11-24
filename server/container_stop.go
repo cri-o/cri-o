@@ -25,7 +25,7 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 	hooks := runtimehandlerhooks.GetRuntimeHandlerHooks(sandbox.RuntimeHandler())
 
 	if hooks != nil {
-		if err := hooks.PreStop(ctx, c, sandbox); err != nil {
+		if err := hooks.PreStop(ctx, c, sandbox, s.Runtime()); err != nil {
 			return nil, fmt.Errorf("failed to run pre-stop hook for container %q: %v", c.ID(), err)
 		}
 	}

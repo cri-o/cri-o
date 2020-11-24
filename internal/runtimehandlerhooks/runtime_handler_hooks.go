@@ -9,8 +9,8 @@ import (
 )
 
 type RuntimeHandlerHooks interface {
-	PreStart(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error
-	PreStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error
+	PreStart(ctx context.Context, c *oci.Container, s *sandbox.Sandbox, r *oci.Runtime) error
+	PreStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox, r *oci.Runtime) error
 }
 
 // GetRuntimeHandlerHooks returns RuntimeHandlerHooks implementation by the runtime handler name

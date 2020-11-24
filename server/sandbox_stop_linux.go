@@ -86,7 +86,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxReque
 				})
 			}
 			if hooks != nil {
-				if err := hooks.PreStop(ctx, ctr, sb); err != nil {
+				if err := hooks.PreStop(ctx, ctr, sb, s.Runtime()); err != nil {
 					log.Warnf(ctx, "failed to run PreStop hook for container %s in pod sandbox %s: %v", ctr.Name(), sb.ID(), err)
 				}
 			}
