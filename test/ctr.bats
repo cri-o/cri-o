@@ -621,23 +621,6 @@ function wait_until_exit() {
 	[[ "$output" =~ 00000000002020db ]]
 }
 
-@test "run ctr with image with Config.Volumes" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-
-	start_crio
-
-	crictl pull gcr.io/k8s-testimages/redis:e2e
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-
-	jq '	  .image.image = "gcr.io/k8s-testimages/redis:e2e"
-		| .args = []' \
-		"$TESTDATA"/container_redis.json > "$newconfig"
-
-	crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-}
-
 @test "ctr oom" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
