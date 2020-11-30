@@ -223,12 +223,6 @@ bind_mount_prefix = ""
 # If set to true, all containers will run in read-only mode.
 read_only = {{ .ReadOnly }}
 
-# If set to true, enable users to set a custom shm size instead of using the default value of 64M.
-# The shm size can be set through K8S annotation with the key "io.kubernetes.cri-o.ShmSize",
-# and the value representing the size in human readable format.
-# For example: "io.kubernetes.cri-o.ShmSize: 128Mi"
-enable_custom_shm_size = {{ .EnableCustomShmSize }}
-
 # Changes the verbosity of the logs based on the level it is set to. Options
 # are fatal, panic, error, warn, info, debug and trace. This option supports
 # live configuration reload.
@@ -304,6 +298,7 @@ default_runtime = "{{ .DefaultRuntime }}"
 #   The currently recognized values are:
 #   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
 #   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
+#   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 [crio.runtime.runtimes.{{ $runtime_name }}]
