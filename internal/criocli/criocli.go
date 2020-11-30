@@ -281,9 +281,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
-	if ctx.IsSet("enable-custom-shm-size") {
-		config.EnableCustomShmSize = ctx.Bool("enable-custom-shm-size")
-	}
 	if ctx.IsSet("metrics-port") {
 		config.MetricsPort = ctx.Int("metrics-port")
 	}
@@ -646,11 +643,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "enable-metrics",
 			Usage:   "Enable metrics endpoint for the server on localhost:9090",
 			EnvVars: []string{"CONTAINER_ENABLE_METRICS"},
-		},
-		&cli.BoolFlag{
-			Name:    "enable-custom-shm-size",
-			Usage:   "Enable users to set a custom shm size instead of using the default value of 64M",
-			EnvVars: []string{"CONTAINER_ENABLE_CUSTOM_SHM_SIZE"},
 		},
 		&cli.IntFlag{
 			Name:    "metrics-port",

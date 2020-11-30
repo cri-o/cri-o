@@ -220,6 +220,10 @@ func (r *Runtime) AllowIRQLoadBalancingAnnotation(handler string) (bool, error) 
 	return r.allowAnnotation(handler, annotations.IRQLoadBalancingAnnotation)
 }
 
+func (r *Runtime) AllowShmSizeAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.ShmSizeAnnotation)
+}
+
 func (r *Runtime) allowAnnotation(handler, annotation string) (bool, error) {
 	rh, err := r.getRuntimeHandler(handler)
 	if err != nil {

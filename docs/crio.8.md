@@ -36,7 +36,6 @@ crio
 [--default-transport]=[value]
 [--default-ulimits]=[value]
 [--drop-infra-ctr]
-[--enable-custom-shm-size]
 [--enable-metrics]
 [--gid-mappings]=[value]
 [--global-auth-file]=[value]
@@ -173,8 +172,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--drop-infra-ctr**: Determines whether pods are created without an infra container (when the pod is not using a pod level PID namespace). Requires ManageNSLifecycle to be true (default: false)
 
-**--enable-custom-shm-size**: Enable users to set a custom shm size instead of using the default value of 64M
-
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
 
 **--gid-mappings**="": Specify the GID mappings to use for the user namespace (default: "")
@@ -279,15 +276,15 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--seccomp-use-default-when-empty**="": Use the default seccomp profile when an empty one is specified (default: false)
 
-**--selinux**: Enable selinux support (default: false)
+**--selinux**: Enable selinux support (default: true)
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup (default: "")
 
 **--signature-policy**="": Path to signature policy JSON file. (default: "", to use the system-wide default)
 
-**--storage-driver, -s**="": OCI storage driver (default: "")
+**--storage-driver, -s**="": OCI storage driver (default: "overlay")
 
-**--storage-opt**="": OCI storage driver option (default: [])
+**--storage-opt**="": OCI storage driver option (default: [overlay.mountopt=nodev])
 
 **--stream-address**="": Bind address for streaming socket (default: 127.0.0.1)
 
