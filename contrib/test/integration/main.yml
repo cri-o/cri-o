@@ -12,7 +12,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-        version: "1.14.4"
+        version: "1.15.5"
 
     - name: clone build and install bats
       include: "build/bats.yml"
