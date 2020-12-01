@@ -1,0 +1,459 @@
+---
+version: 2.1
+
+stdenv: &stdenv
+  environment:
+    GOCACHE: &gocache /tmp/go-build
+    IMAGE: &image quay.io/crio/crio-build-amd64-go1.15:master-1.6.1
+    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.14:master-1.6.1
+    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.15:master-1.6.1
+    JOBS: &jobs 4
+    WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
+    WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
+
+executors:
+  container:
+    docker:
+      - image: *image
+    <<: *stdenv
+    working_directory: *workdir
+
+  container-legacy:
+    docker:
+      - image: *imagelegacy
+    <<: *stdenv
+    working_directory: *workdir
+
+  container-386:
+    docker:
+      - image: *image386
+    <<: *stdenv
+    working_directory: *workdir
+
+  container-base:
+    docker:
+      - image: golang:1.15
+    <<: *stdenv
+    working_directory: *workdir
+
+  machine:
+    machine:
+      image: ubuntu-2004:202010-01
+    <<: *stdenv
+    working_directory: *workdir_vm
+
+workflows:
+  version: 2
+  pipeline:
+    jobs:
+      - build
+      - build:
+          name: build-go1.14
+          executor: container-legacy
+      - build:
+          name: build-386
+          executor: container-386
+      - build-static
+      - bundle:
+          requires:
+            - build
+            - build-static
+      - bundle-test:
+          requires:
+            - bundle
+      - completions-validation:
+          requires:
+            - build
+      - dependencies:
+          requires:
+            - release-notes
+      - docs-generation:
+          requires:
+            - build
+      - integration
+      - integration:
+          name: integration-critest
+          run_critest: '1'
+          jobs: 1
+          test_args: critest.bats
+      - integration:
+          name: integration-userns
+          test_userns: '1'
+      - integration:
+          name: integration-static
+          crio_binary: static/crio
+          requires:
+            - build-static
+      - integration:
+          name: integration-cgroupfs
+          cgroup_manager: cgroupfs
+      - release-branch-forward:
+          requires:
+            - results
+          filters:
+            branches:
+              only:
+                - master
+      - release-notes:
+          requires:
+            - results
+      - results:
+          requires:
+            - integration
+            - integration-cgroupfs
+            - integration-critest
+            - integration-static
+            - integration-userns
+            - unit-tests
+      - unit-tests
+      - upload-artifacts:
+          requires:
+            - bundle-test
+
+jobs:
+  build:
+    parameters:
+      executor:
+        type: string
+        default: container
+    executor: << parameters.executor >>
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
+      - run: go version
+      - run: go env
+      - run:
+          command: make binaries -j $JOBS
+      - run:
+          name: Show CRI-O version
+          command: ./bin/crio version
+      - run:
+          command: make crio.conf
+      - run:
+          command: make docs -j $JOBS
+      - save_cache:
+          key: v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/go-md2man
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bin
+            - crio.conf
+            - docs
+
+  build-static:
+    executor: machine
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          keys:
+            - nix-v1-{{ checksum "nix/nixpkgs.json" }}
+      - run:
+          name: build
+          command: |
+            set -ex
+            sudo mkdir -p .cache
+            sudo mv .cache /nix
+            if [[ -z $(ls -A /nix) ]]; then sudo docker run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix; fi
+            sudo docker run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
+      - run:
+          name: Show CRI-O version for static binaries
+          command: |
+            ./result/bin/crio version
+      - store_artifacts:
+          path: result/bin/crio
+      - store_artifacts:
+          path: result/bin/crio-status
+      - store_artifacts:
+          path: result/bin/pinns
+      - run:
+          name: persist_to_workspace
+          command: |
+            mkdir -p bin/static
+            cp -rfT result/bin bin/static
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bin/static
+      - run:
+          name: save_cache
+          command: |
+            sudo mv /nix .cache
+            sudo chown -Rf $(whoami) .cache
+      - save_cache:
+          key: nix-v1-{{ checksum "nix/nixpkgs.json" }}
+          paths:
+            - .cache
+
+  bundle:
+    executor: container
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: bundle
+          command: make bundle
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/bundle/*.tar.gz
+
+  bundle-test:
+    executor: machine
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: test
+          command: make bundle-test
+
+  completions-validation:
+    executor: container
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          keys:
+            - v1-completions-validation-{{ checksum "go.sum" }}
+      - run:
+          name: doc validation
+          command: |
+            make completions
+            hack/tree_status.sh
+      - save_cache:
+          key: v1-completions-validation-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+
+  docs-generation:
+    executor: container
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          keys:
+            - v1-docs-generation-{{ checksum "go.sum" }}
+      - run:
+          name: doc generation
+          command: |
+            make docs-generation
+            hack/tree_status.sh
+      - save_cache:
+          key: v1-docs-generation-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+
+  dependencies:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "go.sum" }}
+      - add_ssh_keys:
+          fingerprints:
+            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
+      - run:
+          name: Generate Dependency Report
+          command: |
+            if [[ -z $GITHUB_TOKEN ]]; then
+              echo Skipping dependencies generation
+            else
+              make dependencies
+            fi
+      - store_artifacts:
+          path: build/dependencies/dependencies.md
+          destination: dependencies.md
+      - save_cache:
+          key: v1-dependencies-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/go-mod-outdated
+
+  integration:
+    executor: machine
+    parameters:
+      crio_binary:
+        type: string
+        default: crio
+      run_critest:
+        type: string
+        default: ''
+      test_args:
+        type: string
+        default: ''
+      test_userns:
+        type: string
+        default: ''
+      cgroup_manager:
+        type: string
+        default: 'systemd'
+      # default is system.slice, if we want to
+      # use cgroupfs, that is an invalid value
+      conmon_cgroup:
+        type: string
+        default: 'pod'
+      jobs:
+        type: integer
+        default: *jobs
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          keys:
+            - v1-integration-{{ checksum "go.sum" }}
+      - run:
+          name: setup environment
+          command: scripts/circle-setup
+      - run:
+          name: build
+          command: make all test-binaries
+          environment:
+            GOPATH: /home/circleci/go
+      - run:
+          name: setup environment
+          command: scripts/circle-setup-cgroup_manager
+          environment:
+            CONTAINER_CGROUP_MANAGER: "<< parameters.cgroup_manager >>"
+      - run:
+          name: integration test
+          command: sudo -E test/test_runner.sh $TEST_ARGS 2>&1 | tee -a /tmp/testout
+          no_output_timeout: 30m
+          environment:
+            JOBS: "<< parameters.jobs >>"
+            CRIO_BINARY: "<< parameters.crio_binary >>"
+            RUN_CRITEST: "<< parameters.run_critest >>"
+            TEST_ARGS: "<< parameters.test_args >>"
+            TEST_USERNS: "<< parameters.test_userns >>"
+            CONTAINER_CGROUP_MANAGER: "<< parameters.cgroup_manager >>"
+            CONTAINER_CONMON_CGROUP: "<< parameters.conmon_cgroup >>"
+      - save_cache:
+          key: v1-integration-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+
+  release-branch-forward:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-release-branch-forward-{{ checksum "go.sum" }}
+      - add_ssh_keys:
+          fingerprints:
+            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
+      - run:
+          name: Forward Latest Release Branch
+          command: make release-branch-forward
+          environment:
+            DRY_RUN: false
+      - save_cache:
+          key: v1-release-branch-forward-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+
+  release-notes:
+    executor: container
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-release-notes-{{ checksum "go.sum" }}
+      - add_ssh_keys:
+          fingerprints:
+            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
+      - run:
+          name: Generate Release Notes
+          command: |
+            if [[ -z $GITHUB_TOKEN ]]; then
+              echo Skipping release notes generation
+            else
+              make release-notes
+            fi
+      - store_artifacts:
+          path: build/release-notes
+          destination: release-notes
+      - save_cache:
+          key: v1-release-notes-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/release-notes
+
+  results:
+    executor: container
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - store_test_results:
+          path: build/junit
+      - store_artifacts:
+          path: bin
+          destination: bin
+      - store_artifacts:
+          path: build
+          destination: build
+      - store_artifacts:
+          path: bundle
+          destination: bundle
+
+  unit-tests:
+    executor: container
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          keys:
+            - v1-unit-tests-{{ checksum "go.sum" }}
+      - run:
+          name: check mocks
+          command: |
+            make mockgen -j $JOBS
+      - run:
+          name: install pinns
+          command: make PREFIX=/ install
+      - run:
+          name: build ginkgo
+          command: make $(pwd)/build/bin/ginkgo
+      - run:
+          name: unit tests
+          command: make testunit
+      - run:
+          name: code coverage
+          command: make codecov
+      - store_test_results:
+          path: build/junit
+      - save_cache:
+          key: v1-unit-tests-{{ checksum "go.sum" }}
+          paths:
+            - *gocache
+            - build/bin/ginkgo
+            - build/bin/mockgen
+            - /bin/pinns
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/coverage
+            - build/junit
+
+  upload-artifacts:
+    executor: container
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Upload artifacts
+          command: make upload-artifacts

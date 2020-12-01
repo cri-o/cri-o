@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+GITHUB_TOKEN=${GITHUB_TOKEN:-}
+GCS_BUCKET_SA=${GCS_BUCKET_SA:-}
+
+if [[ -z $GCS_BUCKET_SA ]]; then
+    echo "Skipping artifact upload to Google Cloud Bucket (no \$GCS_BUCKET_SA set)"
+else
+    echo "Uploading artifacts to Google Cloud Bucket"
+    echo "$GCS_BUCKET_SA" >/tmp/key.json
+    gcloud auth activate-service-account --key-file=/tmp/key.json
+
+    BUCKET=gs://k8s-conform-cri-o
+    gsutil cp -n build/bundle/*.tar.gz $BUCKET/artifacts
+fi
+
+if TAG=$(git describe --exact-match --tags 2>/dev/null); then
+    echo "Uploading artifact to GitHub tag $TAG"
+    if [[ -z $GITHUB_TOKEN ]]; then
+        echo GITHUB_TOKEN not set, skipping artifact upload to GitHub
+    else
+        UPLOAD_URL=$(curl -sSfL https://api.github.com/repos/cri-o/cri-o/releases |
+            jq -r ".[] | select(.tag_name == \"$TAG\") | .upload_url")
+        if [[ -z $UPLOAD_URL ]]; then
+            echo "Unable to find GitHub release for tag $TAG"
+            exit 1
+        fi
+        UPLOAD_URL=${UPLOAD_URL%"{?name,label}"}
+        FILE=build/bundle/crio-$TAG.tar.gz
+        curl -f \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: $(file -b --mime-type "$FILE")" \
+            --data-binary @"$FILE" \
+            "$UPLOAD_URL?name=$(basename "$FILE")"
+    fi
+else
+    echo "Skipping artifact upload to GitHub (not on a tag)"
+fi

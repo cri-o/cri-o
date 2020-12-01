@@ -1,0 +1,117 @@
+package device
+
+import (
+	"strings"
+
+	createconfig "github.com/containers/libpod/v2/pkg/spec"
+	"github.com/opencontainers/runc/libcontainer/devices"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
+)
+
+// DeviceAnnotationDelim is the character
+// used to separate devices in the annotation
+// `io.kubernetes.cri-o.Devices`
+const DeviceAnnotationDelim = ","
+
+// Config is the internal device configuration
+// it holds onto the contents of the additional_devices
+// field, allowing admins to configure devices that are given
+// to all containers.
+type Config struct {
+	devices []Device
+}
+
+// Device holds the runtime spec
+// fields needed for a device
+type Device struct {
+	Device   rspec.LinuxDevice
+	Resource rspec.LinuxDeviceCgroup
+}
+
+// New creates a new device Config
+func New() *Config {
+	return &Config{
+		devices: make([]Device, 0),
+	}
+}
+
+// LoadDevices takes a slice of strings of additional_devices
+// specified in the config.
+// It saves the resulting Device structs, so they are
+// processed once and used later.
+func (d *Config) LoadDevices(devsFromConfig []string) error {
+	devs, err := devicesFromStrings(devsFromConfig)
+	if err != nil {
+		return err
+	}
+	d.devices = devs
+	return nil
+}
+
+// DevicesFromAnnotation takes an annotation string of the form
+// io.kubernetes.cri-o.Device=$PATH:$PATH:$MODE,$PATH...
+// and returns a Device object that can be passed to a create config
+func DevicesFromAnnotation(annotation string) ([]Device, error) {
+	return devicesFromStrings(strings.Split(annotation, DeviceAnnotationDelim))
+}
+
+// devicesFromStrings takes a slice of strings in the form $PATH{:$PATH}{:$MODE}
+// Where the first path is the path to the device on the host
+// The second is where the device will be put in the container (optional)
+// and the third is the mode the device will be mounted with (optional)
+// It returns a slice of Device structs, ready to be saved or given to a container
+// runtime spec generator
+func devicesFromStrings(devsFromConfig []string) ([]Device, error) {
+	linuxdevs := make([]Device, 0, len(devsFromConfig))
+
+	for _, d := range devsFromConfig {
+		// ignore empty entries
+		if d == "" {
+			continue
+		}
+		src, dst, permissions, err := createconfig.ParseDevice(d)
+		if err != nil {
+			return nil, err
+		}
+		// ParseDevice does not check the destination is in /dev,
+		// but it should be checked
+		if !strings.HasPrefix(dst, "/dev/") {
+			return nil, errors.Errorf("invalid device mode: %s", dst)
+		}
+
+		dev, err := devices.DeviceFromPath(src, permissions)
+		if err != nil {
+			return nil, errors.Wrapf(err, "%s is not a valid device", src)
+		}
+
+		dev.Path = dst
+
+		linuxdevs = append(linuxdevs,
+			Device{
+				Device: rspec.LinuxDevice{
+					Path:     dev.Path,
+					Type:     string(dev.Type),
+					Major:    dev.Major,
+					Minor:    dev.Minor,
+					FileMode: &dev.FileMode,
+					UID:      &dev.Uid,
+					GID:      &dev.Gid,
+				},
+				Resource: rspec.LinuxDeviceCgroup{
+					Allow:  true,
+					Type:   string(dev.Type),
+					Major:  &dev.Major,
+					Minor:  &dev.Minor,
+					Access: permissions,
+				},
+			})
+	}
+
+	return linuxdevs, nil
+}
+
+// Devices returns the devices saved in the Config
+func (d *Config) Devices() []Device {
+	return d.devices
+}

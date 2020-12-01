@@ -1,0 +1,126 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cri-o-metrics-exporter
+  labels:
+    app: cri-o-metrics-exporter
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cri-o-metrics-exporter
+  namespace: cri-o-metrics-exporter
+  labels:
+    app: cri-o-metrics-exporter
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cri-o-metrics-exporter
+  labels:
+    app: cri-o-metrics-exporter
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cri-o-metrics-exporter
+  labels:
+    app: cri-o-metrics-exporter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cri-o-metrics-exporter
+subjects:
+  - kind: ServiceAccount
+    name: cri-o-metrics-exporter
+    namespace: cri-o-metrics-exporter
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cri-o-metrics-exporter
+  namespace: cri-o-metrics-exporter
+  labels:
+    app: cri-o-metrics-exporter
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cri-o-metrics-exporter
+  namespace: cri-o-metrics-exporter
+  labels:
+    app: cri-o-metrics-exporter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cri-o-metrics-exporter
+subjects:
+  - kind: ServiceAccount
+    name: cri-o-metrics-exporter
+    namespace: cri-o-metrics-exporter
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cri-o-metrics-exporter
+  name: cri-o-metrics-exporter
+  namespace: cri-o-metrics-exporter
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: cri-o-metrics-exporter
+  template:
+    metadata:
+      labels:
+        app: cri-o-metrics-exporter
+    spec:
+      serviceAccountName: cri-o-metrics-exporter
+      containers:
+        - name: cri-o-metrics-exporter
+          image: quay.io/crio/metrics-exporter:latest
+          imagePullPolicy: Always
+          env:
+            - name: CRIO_METRICS_PORT
+              value: "9090"
+          resources:
+            requests:
+              memory: 16Mi
+              cpu: 100m
+            limits:
+              memory: 32Mi
+              cpu: 250m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cri-o-metrics-exporter
+  labels:
+    app: cri-o-metrics-exporter
+  namespace: cri-o-metrics-exporter
+spec:
+  selector:
+    app: cri-o-metrics-exporter
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

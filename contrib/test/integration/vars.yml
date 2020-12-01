@@ -1,0 +1,33 @@
+---
+
+# When False, disable SELinux on the system during specific tests
+integration_selinux_enabled: True
+e2e_selinux_enabled: False
+node_e2e_selinux_enabled: False
+manage_ns_lifecycle: True
+
+build_runc: True
+build_crun: False
+cgroupv2: False
+
+# For results.yml Paths use rsync 'source' conventions
+artifacts: "/tmp/artifacts"  # Base-directory for collection
+crio_integration_filepath: "{{ artifacts }}/testout.txt"
+crio_integration_userns_filepath: "{{ artifacts }}/testout_userns.txt"
+crio_node_e2e_filepath: "{{ artifacts }}/junit_01.xml"
+result_dest_basedir: '{{ lookup("env","WORKSPACE") |
+                         default(playbook_dir, True) }}/artifacts'
+
+# Environment variables to set when executing integration tests
+int_test_env:
+    CGROUP_MANAGER: "systemd"
+    STORAGE_OPTIONS: >
+        --storage-driver=overlay
+
+# for ssh ID generation
+ssh_user: "{{ lookup('env','USER') }}"
+ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"
+
+# Additional environment variables for integration tests w/ userNS enabled
+userns_int_test_env:
+    TEST_USERNS: "1"  # Consumed by test/test_runner.sh, by way of Makefile

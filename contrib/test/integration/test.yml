@@ -1,0 +1,40 @@
+---
+
+- name: Make testing output verbose so it can be converted to xunit
+  lineinfile:
+    dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/hack/make-rules/test.sh"
+    line: ' go test -v "${goflags[@]:+${goflags[@]}}" \  # Added by ansible from test.yml'
+    regexp: ' go test \"\$'
+    state: present
+
+- name: ensure directory exists for e2e reports
+  file:
+    path: "{{ artifacts }}"
+    state: directory
+
+- block:
+
+    - name: Disable selinux during integration tests
+      command: 'setenforce 0'
+      when: not integration_selinux_enabled
+
+    - name: run integration tests
+      shell: "make localintegration >& {{ crio_integration_filepath }}"
+      args:
+        chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
+      environment: '{{ int_test_env }}'  # from vars.yml and main.yml
+      async: '{{ 60 * 30 }}'  # seconds
+      poll: 30
+
+    - name: run integration tests with userNS enabled + alternate results file
+      shell: "make localintegration >& {{ crio_integration_userns_filepath }}"
+      args:
+        chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
+      environment: '{{ int_test_env | combine(userns_int_test_env) }} '
+      async: '{{ 60 * 30 }}'  # seconds
+      poll: 30
+
+  always:
+
+    - name: Re-enable SELinux after integration tests
+      command: 'setenforce 1'

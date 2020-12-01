@@ -1,0 +1,68 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+    settings:
+      printf:
+        funcs:
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+    enable-all: true
+  golint:
+    min-confidence: 0
+  gocyclo:
+    min-complexity: 10
+  maligned:
+    suggest-new: true
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  depguard:
+    list-type: blacklist
+    packages:
+      # logging is allowed only by logutils.Log, logrus
+      # is allowed to use only in logutils package
+      - github.com/sirupsen/logrus
+  misspell:
+    locale: US
+  lll:
+    line-length: 140
+  goimports:
+    local-prefixes: github.com/golangci/golangci-lint
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+    disabled-checks:
+      - wrapperFunc
+
+linters:
+  enable-all: true
+  disable:
+    - maligned
+    - prealloc
+    - gochecknoglobals
+    - gofmt
+
+run:
+  skip-dirs:
+    - test/testdata_etc
+    - pkg/golinters/goanalysis/(checker|passes)
+
+issues:
+  exclude-rules:
+    - text: "weak cryptographic primitive"
+      linters:
+        - gosec
+  exclude-use-default: false
+
+# golangci.com configuration
+# https://github.com/golangci/golangci/wiki/Configuration
+service:
+  golangci-lint-version: 1.24.x # use the fixed version to not introduce new linters unexpectedly
+  prepare:
+    - echo "here I can run custom commands, but no preparation needed for this repo"
