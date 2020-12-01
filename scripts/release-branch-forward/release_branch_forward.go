@@ -109,7 +109,7 @@ func run() error {
 	}()
 
 	// Merge the latest master
-	mergeTarget := kgit.Remotify(kgit.Master)
+	mergeTarget := kgit.Remotify(kgit.DefaultBranch)
 	if err := repo.Merge(mergeTarget); err != nil {
 		return errors.Wrapf(err,
 			"unable to merge %s into release branch", mergeTarget,

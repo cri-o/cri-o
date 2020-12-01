@@ -17,14 +17,24 @@ limitations under the License.
 package log
 
 import (
+	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/release/pkg/command"
 )
 
+// SetupGlobalLogger uses to provided log level string and applies it globally.
 func SetupGlobalLogger(level string) error {
-	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp: true,
+		ForceColors:      true,
+	})
+
 	lvl, err := logrus.ParseLevel(level)
 	if err != nil {
 		return errors.Wrapf(err, "setting log level to %s", level)
@@ -37,4 +47,26 @@ func SetupGlobalLogger(level string) error {
 	logrus.AddHook(NewFilenameHook())
 	logrus.Debugf("Using log level %q", lvl)
 	return nil
+}
+
+// ToFile adds a file destination to the global logger.
+func ToFile(fileName string) error {
+	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0755)
+	if err != nil {
+		return errors.Wrap(err, "open log file")
+	}
+
+	writer := io.MultiWriter(logrus.StandardLogger().Out, file)
+	logrus.SetOutput(writer)
+
+	return nil
+}
+
+// LevelNames returns a comma separated list of available levels.
+func LevelNames() string {
+	levels := []string{}
+	for _, level := range logrus.AllLevels {
+		levels = append(levels, fmt.Sprintf("'%s'", level.String()))
+	}
+	return strings.Join(levels, ", ")
 }

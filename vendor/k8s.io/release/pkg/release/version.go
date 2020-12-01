@@ -62,7 +62,7 @@ const (
 
 	// VersionTypeCILatestCross references the latest CI cross build Kubernetes
 	// version, for example `v1.19.0-alpha.0.721+f8ff8f44206ff4`
-	VersionTypeCILatestCross VersionType = "ci/k8s-master"
+	VersionTypeCILatestCross VersionType = "ci/k8s-" + git.DefaultBranch
 
 	// baseURL is the base URL for every release version retrieval
 	baseURL = "https://dl.k8s.io/"
@@ -105,7 +105,7 @@ func (v *Version) GetKubeVersionForBranch(versionType VersionType, branch string
 	)
 
 	version := ""
-	if branch != git.Master {
+	if branch != git.DefaultBranch {
 		if !git.IsReleaseBranch(branch) {
 			return "", errors.Errorf("%s is not a valid release branch", branch)
 		}

@@ -85,7 +85,7 @@ func incVersion(tag, branch string) (res semver.Version, err error) {
 	// clear any suffix like `-dev`
 	sv.Pre = nil
 
-	if branch == git.Master {
+	if branch == git.DefaultBranch {
 		// New minor version
 		sv.Minor++
 		sv.Patch = 0

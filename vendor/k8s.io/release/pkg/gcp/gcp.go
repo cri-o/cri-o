@@ -18,13 +18,13 @@ package gcp
 
 import (
 	"github.com/pkg/errors"
+
 	"k8s.io/release/pkg/command"
 )
 
 const (
 	GCloudExecutable = "gcloud"
-	GSUtilExecutable = "gsutil"
-	TarExecutable    = "tar"
+	gsutilExecutable = "gsutil"
 )
 
 // PreCheck checks if all requirements are fulfilled to run this package and
@@ -32,8 +32,7 @@ const (
 func PreCheck() error {
 	for _, e := range []string{
 		GCloudExecutable,
-		GSUtilExecutable,
-		TarExecutable,
+		gsutilExecutable,
 	} {
 		if !command.Available(e) {
 			return errors.Errorf(
@@ -45,7 +44,30 @@ func PreCheck() error {
 	return nil
 }
 
-// GSUtil can be used to run a gsutil command
+// GCloud can be used to run a 'gcloud' command
+func GCloud(args ...string) error {
+	return command.New(GCloudExecutable, args...).RunSilentSuccess()
+}
+
+// GCloudOutput can be used to run a 'gcloud' command while capturing its output
+func GCloudOutput(args ...string) (string, error) {
+	stream, err := command.New(GCloudExecutable, args...).RunSilentSuccessOutput()
+	if err != nil {
+		return "", errors.Wrapf(err, "executing %s", GCloudExecutable)
+	}
+	return stream.OutputTrimNL(), nil
+}
+
+// GSUtil can be used to run a 'gsutil' command
 func GSUtil(args ...string) error {
-	return command.Execute(GSUtilExecutable, args...)
+	return command.New(gsutilExecutable, args...).RunSilentSuccess()
+}
+
+// GSUtilOutput can be used to run a 'gsutil' command while capturing its output
+func GSUtilOutput(args ...string) (string, error) {
+	stream, err := command.New(gsutilExecutable, args...).RunSilentSuccessOutput()
+	if err != nil {
+		return "", errors.Wrapf(err, "executing %s", gsutilExecutable)
+	}
+	return stream.OutputTrimNL(), nil
 }
