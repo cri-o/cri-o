@@ -294,7 +294,7 @@ ${SHELLCHECK}:
 	curl -sSfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$$VERSION/shellcheck && \
 	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
 
-vendor: export GOSUMDB := ""
+vendor: export GOSUMDB :=
 vendor:
 	$(GO) mod tidy
 	$(GO) mod vendor
