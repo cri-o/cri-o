@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/v2/pkg/annotations"
+	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
@@ -14,7 +15,6 @@ import (
 	. "github.com/onsi/gomega"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 var _ = t.Describe("Container", func() {
