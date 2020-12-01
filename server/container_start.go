@@ -26,7 +26,10 @@ func (s *Server) StartContainer(ctx context.Context, req *pb.StartContainerReque
 	}
 
 	sandbox := s.getSandbox(c.Sandbox())
-	hooks := runtimehandlerhooks.GetRuntimeHandlerHooks(sandbox.RuntimeHandler())
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, sandbox.RuntimeHandler(), s.Runtime())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
+	}
 
 	defer func() {
 		// if the call to StartContainer fails below we still want to fill
