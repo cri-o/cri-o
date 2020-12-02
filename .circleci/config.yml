@@ -375,6 +375,7 @@ jobs:
             - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
       - run:
           name: Generate Release Notes
+          no_output_timeout: 30m
           command: |
             if [[ -z $GITHUB_TOKEN ]]; then
               echo Skipping release notes generation
