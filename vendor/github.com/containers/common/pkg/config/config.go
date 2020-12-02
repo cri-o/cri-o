@@ -113,6 +113,10 @@ type ContainersConfig struct {
 	// DNSSearches set default DNS search domains.
 	DNSSearches []string `toml:"dns_searches,omitempty"`
 
+	// EnableKeyring tells the container engines whether to create
+	// a kernel keyring for use within the container
+	EnableKeyring bool `toml:"keyring,omitempty"`
+
 	// EnableLabeling tells the container engines whether to use MAC
 	// Labeling to separate containers (SELinux)
 	EnableLabeling bool `toml:"label,omitempty"`
@@ -183,6 +187,10 @@ type ContainersConfig struct {
 
 // EngineConfig contains configuration options used to set up a engine runtime
 type EngineConfig struct {
+	// ImageBuildFormat indicates the default image format to building
+	// container images.  Valid values are "oci" (default) or "docker".
+	ImageBuildFormat string `toml:"image_build_format,omitempty"`
+
 	// CgroupCheck indicates the configuration has been rewritten after an
 	// upgrade to Fedora 31 to change the default OCI runtime for cgroupv2v2.
 	CgroupCheck bool `toml:"cgroup_check,omitempty"`
@@ -278,7 +286,7 @@ type EngineConfig struct {
 	PullPolicy string `toml:"pull_policy,omitempty"`
 
 	// Indicates whether the application should be running in Remote mode
-	Remote bool `toml:"-"`
+	Remote bool `toml:"remote,omitempty"`
 
 	// RemoteURI is deprecated, see ActiveService
 	// RemoteURI containers connection information used to connect to remote system.
@@ -309,7 +317,7 @@ type EngineConfig struct {
 	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroupv2,omitempty"`
 
 	// RuntimeSupportsKVM is a list of OCI runtimes that support
-	// KVM separation for conatainers.
+	// KVM separation for containers.
 	RuntimeSupportsKVM []string `toml:"runtime_supports_kvm,omitempty"`
 
 	// SetOptions contains a subset of config options. It's used to indicate if
@@ -658,10 +666,10 @@ func (c *NetworkConfig) Validate() error {
 // ValidatePullPolicy check if the pullPolicy from CLI is valid and returns the valid enum type
 // if the value from CLI or containers.conf is invalid returns the error
 func ValidatePullPolicy(pullPolicy string) (PullPolicy, error) {
-	switch pullPolicy {
+	switch strings.ToLower(pullPolicy) {
 	case "always":
 		return PullImageAlways, nil
-	case "missing":
+	case "missing", "ifnotpresent":
 		return PullImageMissing, nil
 	case "never":
 		return PullImageNever, nil
@@ -980,8 +988,15 @@ func (c *Config) ActiveDestination() (uri, identity string, err error) {
 		}
 		return uri, identity, nil
 	}
-
+	connEnv := os.Getenv("CONTAINER_CONNECTION")
 	switch {
+	case connEnv != "":
+		d, found := c.Engine.ServiceDestinations[connEnv]
+		if !found {
+			return "", "", errors.Errorf("environment variable CONTAINER_CONNECTION=%q service destination not found", connEnv)
+		}
+		return d.URI, d.Identity, nil
+
 	case c.Engine.ActiveService != "":
 		d, found := c.Engine.ServiceDestinations[c.Engine.ActiveService]
 		if !found {

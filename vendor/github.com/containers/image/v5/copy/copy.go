@@ -121,8 +121,6 @@ type imageCopier struct {
 	diffIDsAreNeeded   bool
 	canModifyManifest  bool
 	canSubstituteBlobs bool
-	ociDecryptConfig   *encconfig.DecryptConfig
-	ociEncryptConfig   *encconfig.EncryptConfig
 	ociEncryptLayers   *[]int
 }
 
@@ -259,7 +257,9 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		// FIXME? The cache is used for sources and destinations equally, but we only have a SourceCtx and DestinationCtx.
 		// For now, use DestinationCtx (because blob reuse changes the behavior of the destination side more); eventually
 		// we might want to add a separate CommonCtx — or would that be too confusing?
-		blobInfoCache: blobinfocache.DefaultCache(options.DestinationCtx),
+		blobInfoCache:    blobinfocache.DefaultCache(options.DestinationCtx),
+		ociDecryptConfig: options.OciDecryptConfig,
+		ociEncryptConfig: options.OciEncryptConfig,
 	}
 	// Default to using gzip compression unless specified otherwise.
 	if options.DestinationCtx == nil || options.DestinationCtx.CompressionFormat == nil {
@@ -377,7 +377,7 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	if len(sigs) != 0 {
 		c.Printf("Checking if image list destination supports signatures\n")
 		if err := c.dest.SupportsSignatures(ctx); err != nil {
-			return nil, "", errors.Wrap(err, "Can not copy signatures")
+			return nil, "", errors.Wrapf(err, "Can not copy signatures to %s", transports.ImageName(c.dest.Reference()))
 		}
 	}
 	canModifyManifestList := (len(sigs) == 0)
@@ -595,7 +595,7 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 	if len(sigs) != 0 {
 		c.Printf("Checking if image destination supports signatures\n")
 		if err := c.dest.SupportsSignatures(ctx); err != nil {
-			return nil, "", "", errors.Wrap(err, "Can not copy signatures")
+			return nil, "", "", errors.Wrapf(err, "Can not copy signatures to %s", transports.ImageName(c.dest.Reference()))
 		}
 	}
 
@@ -605,8 +605,6 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 		src:             src,
 		// diffIDsAreNeeded is computed later
 		canModifyManifest: len(sigs) == 0 && !destIsDigestedReference,
-		ociDecryptConfig:  options.OciDecryptConfig,
-		ociEncryptConfig:  options.OciEncryptConfig,
 		ociEncryptLayers:  options.OciEncryptLayers,
 	}
 	// Ensure _this_ copy sees exactly the intended data when either processing a signed image or signing it.
@@ -621,7 +619,7 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 		return nil, "", "", err
 	}
 
-	destRequiresOciEncryption := (isEncrypted(src) && ic.ociDecryptConfig != nil) || options.OciEncryptLayers != nil
+	destRequiresOciEncryption := (isEncrypted(src) && ic.c.ociDecryptConfig != nil) || options.OciEncryptLayers != nil
 
 	// We compute preferredManifestMIMEType only to show it in error messages.
 	// Without having to add this context in an error message, we would be happy enough to know only that no conversion is needed.
@@ -633,7 +631,7 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 	// If src.UpdatedImageNeedsLayerDiffIDs(ic.manifestUpdates) will be true, it needs to be true by the time we get here.
 	ic.diffIDsAreNeeded = src.UpdatedImageNeedsLayerDiffIDs(*ic.manifestUpdates)
 	// If encrypted and decryption keys provided, we should try to decrypt
-	ic.diffIDsAreNeeded = ic.diffIDsAreNeeded || (isEncrypted(src) && ic.ociDecryptConfig != nil) || ic.ociEncryptConfig != nil
+	ic.diffIDsAreNeeded = ic.diffIDsAreNeeded || (isEncrypted(src) && ic.c.ociDecryptConfig != nil) || ic.c.ociEncryptConfig != nil
 
 	if err := ic.copyLayers(ctx); err != nil {
 		return nil, "", "", err
@@ -1048,7 +1046,7 @@ type diffIDResult struct {
 func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, toEncrypt bool, pool *mpb.Progress) (types.BlobInfo, digest.Digest, error) {
 	cachedDiffID := ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
 	// Diffs are needed if we are encrypting an image or trying to decrypt an image
-	diffIDIsNeeded := ic.diffIDsAreNeeded && cachedDiffID == "" || toEncrypt || (isOciEncrypted(srcInfo.MediaType) && ic.ociDecryptConfig != nil)
+	diffIDIsNeeded := ic.diffIDsAreNeeded && cachedDiffID == "" || toEncrypt || (isOciEncrypted(srcInfo.MediaType) && ic.c.ociDecryptConfig != nil)
 
 	// If we already have the blob, and we don't need to compute the diffID, then we don't need to read it from the source.
 	if !diffIDIsNeeded {
@@ -1136,8 +1134,6 @@ func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Rea
 			return pipeWriter
 		}
 	}
-	ic.c.ociDecryptConfig = ic.ociDecryptConfig
-	ic.c.ociEncryptConfig = ic.ociEncryptConfig
 
 	blobInfo, err := ic.c.copyBlobFromStream(ctx, srcStream, srcInfo, getDiffIDRecorder, ic.canModifyManifest, false, toEncrypt, bar) // Sets err to nil on success
 	return blobInfo, diffIDChan, err
@@ -1168,6 +1164,21 @@ func computeDiffID(stream io.Reader, decompressor compression.DecompressorFunc) 
 	}
 
 	return digest.Canonical.FromReader(stream)
+}
+
+// errorAnnotationReader wraps the io.Reader passed to PutBlob for annotating the error happened during read.
+// These errors are reported as PutBlob errors, so we would otherwise misleadingly attribute them to the copy destination.
+type errorAnnotationReader struct {
+	reader io.Reader
+}
+
+// Read annotates the error happened during read
+func (r errorAnnotationReader) Read(b []byte) (n int, err error) {
+	n, err = r.reader.Read(b)
+	if err != io.EOF {
+		return n, errors.Wrapf(err, "error happened during read")
+	}
+	return n, err
 }
 
 // copyBlobFromStream copies a blob with srcInfo (with known Digest and Annotations and possibly known Size) from srcStream to dest,
@@ -1339,7 +1350,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 	}
 
 	// === Finally, send the layer stream to dest.
-	uploadedInfo, err := c.dest.PutBlob(ctx, destStream, inputInfo, c.blobInfoCache, isConfig)
+	uploadedInfo, err := c.dest.PutBlob(ctx, &errorAnnotationReader{destStream}, inputInfo, c.blobInfoCache, isConfig)
 	if err != nil {
 		return types.BlobInfo{}, errors.Wrap(err, "Error writing blob")
 	}
