@@ -912,6 +912,10 @@ func buildCNIRuntimeConf(cacheDir string, podNetwork *PodNetwork, ifName string,
 		rt.CapabilityArgs["ipRanges"] = runtimeConfig.IpRanges
 	}
 
+	// Set Aliases in Capabilities
+	if len(podNetwork.Aliases) > 0 {
+		rt.CapabilityArgs["aliases"] = podNetwork.Aliases
+	}
 	return rt, nil
 }
 

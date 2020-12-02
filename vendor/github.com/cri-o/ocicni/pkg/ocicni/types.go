@@ -89,6 +89,11 @@ type PodNetwork struct {
 	// It is optional, and can be omitted for some or all specified networks
 	// without issue.
 	RuntimeConfig map[string]RuntimeConfig
+
+	// Aliases are network-scoped names for resolving a container
+	// by name. The key value is the network name and the value is
+	// is a string slice of aliases
+	Aliases map[string][]string
 }
 
 // NetAttachment describes a container network attachment

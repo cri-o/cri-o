@@ -117,7 +117,7 @@ func (c *container) specAddContainerConfigDevices() error {
 				Type:   string(dev.Type),
 				Major:  &dev.Major,
 				Minor:  &dev.Minor,
-				Access: dev.Permissions,
+				Access: string(dev.Permissions),
 			})
 			continue
 		}
@@ -153,7 +153,7 @@ func (c *container) specAddContainerConfigDevices() error {
 						Type:   string(childDevice.Type),
 						Major:  &childDevice.Major,
 						Minor:  &childDevice.Minor,
-						Access: childDevice.Permissions,
+						Access: string(childDevice.Permissions),
 					})
 
 					return nil

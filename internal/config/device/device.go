@@ -3,7 +3,7 @@ package device
 import (
 	"strings"
 
-	createconfig "github.com/containers/libpod/v2/pkg/spec"
+	createconfig "github.com/containers/podman/v2/pkg/spec"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"

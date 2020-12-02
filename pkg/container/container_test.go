@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/libpod/v2/pkg/annotations"
+	"github.com/containers/podman/v2/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"

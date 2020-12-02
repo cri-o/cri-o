@@ -132,7 +132,8 @@ type BuildOptions struct {
 	// when handling RUN instructions. If a capability appears in both lists, it
 	// will be dropped.
 	DropCapabilities []string
-	CommonBuildOpts  *buildah.CommonBuildOptions
+	// CommonBuildOpts is *required*.
+	CommonBuildOpts *buildah.CommonBuildOptions
 	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format
 	DefaultMountsFilePath string
 	// IIDFile tells the builder to write the image ID to the specified file
@@ -167,6 +168,9 @@ type BuildOptions struct {
 	SignBy string
 	// Architecture specifies the target architecture of the image to be built.
 	Architecture string
+	// Timestamp sets the created timestamp to the specified time, allowing
+	// for deterministic, content-addressable builds.
+	Timestamp *time.Time
 	// OS is the specifies the operating system of the image to be built.
 	OS string
 	// MaxPullPushRetries is the maximum number of attempts we'll make to pull or push any one
@@ -177,6 +181,10 @@ type BuildOptions struct {
 	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
+	// Jobs is the number of stages to run in parallel.  If not specified it defaults to 1.
+	Jobs *int
+	// LogRusage logs resource usage for each step.
+	LogRusage bool
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be
@@ -200,7 +208,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 			logrus.Debugf("reading remote Dockerfile %q", dfile)
 			resp, err := http.Get(dfile)
 			if err != nil {
-				return "", nil, errors.Wrapf(err, "error getting %q", dfile)
+				return "", nil, err
 			}
 			if resp.ContentLength == 0 {
 				resp.Body.Close()
@@ -208,16 +216,19 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 			}
 			data = resp.Body
 		} else {
-			// If the Dockerfile isn't found try prepending the
-			// context directory to it.
 			dinfo, err := os.Stat(dfile)
-			if os.IsNotExist(err) {
-				dfile = filepath.Join(options.ContextDirectory, dfile)
-				dinfo, err = os.Stat(dfile)
-				if err != nil {
-					return "", nil, errors.Wrapf(err, "error reading info about %q", dfile)
+			if err != nil {
+				// If the Dockerfile isn't available, try again with
+				// context directory prepended (if not prepended yet).
+				if !strings.HasPrefix(dfile, options.ContextDirectory) {
+					dfile = filepath.Join(options.ContextDirectory, dfile)
+					dinfo, err = os.Stat(dfile)
 				}
 			}
+			if err != nil {
+				return "", nil, err
+			}
+
 			// If given a directory, add '/Dockerfile' to it.
 			if dinfo.Mode().IsDir() {
 				dfile = filepath.Join(dfile, "Dockerfile")
@@ -225,7 +236,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 			logrus.Debugf("reading local Dockerfile %q", dfile)
 			contents, err := os.Open(dfile)
 			if err != nil {
-				return "", nil, errors.Wrapf(err, "error reading %q", dfile)
+				return "", nil, err
 			}
 			dinfo, err = contents.Stat()
 			if err != nil {
@@ -234,7 +245,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 			}
 			if dinfo.Mode().IsRegular() && dinfo.Size() == 0 {
 				contents.Close()
-				return "", nil, errors.Wrapf(err, "no contents in %q", dfile)
+				return "", nil, errors.Errorf("no contents in %q", dfile)
 			}
 			data = contents
 		}
@@ -253,7 +264,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 
 	mainNode, err := imagebuilder.ParseDockerfile(dockerfiles[0])
 	if err != nil {
-		return "", nil, errors.Wrapf(err, "error parsing main Dockerfile")
+		return "", nil, errors.Wrapf(err, "error parsing main Dockerfile: %s", dockerfiles[0])
 	}
 
 	warnOnUnsetBuildArgs(mainNode, options.Args)
@@ -261,7 +272,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 	for _, d := range dockerfiles[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(d)
 		if err != nil {
-			return "", nil, errors.Wrapf(err, "error parsing additional Dockerfile")
+			return "", nil, errors.Wrapf(err, "error parsing additional Dockerfile %s", d)
 		}
 		mainNode.Children = append(mainNode.Children, additionalNode.Children...)
 	}

@@ -33,33 +33,49 @@ CNI_COMMIT := $(shell sed -n 's;\tgithub.com/containernetworking/cni \([^ \n]*\)
 RUNC_COMMIT := v1.0.0-rc8
 LIBSECCOMP_COMMIT := release-2.3
 
-EXTRALDFLAGS :=
-LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT)' $(EXTRALDFLAGS)
-SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go util/*.go
+EXTRA_LDFLAGS ?=
+BUILDAH_LDFLAGS := -ldflags '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
+SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go cmd/buildah/*.go copier/*.go docker/*.go pkg/blobcache/*.go pkg/cli/*.go pkg/parse/*.go util/*.go
 
 LINTFLAGS ?=
 
-all: buildah imgtype docs
+all: bin/buildah bin/imgtype docs
 
+# Update nix/nixpkgs.json its latest stable commit
+.PHONY: nixpkgs
+nixpkgs:
+	@nix run -f channel:nixos-20.03 nix-prefetch-git -c nix-prefetch-git \
+		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
+
+# Build statically linked binary
 .PHONY: static
-static: $(SOURCES)
-	$(MAKE) SECURITYTAGS="$(SECURITYTAGS)" STORAGETAGS=$(STATIC_STORAGETAGS) EXTRALDFLAGS='-ldflags "-extldflags '-static'"' BUILDAH=buildah.static binary
+static:
+	@nix build -f nix/
+	mkdir -p ./bin
+	cp -rfp ./result/bin/* ./bin/
 
-.PHONY: binary
-binary:  $(SOURCES)
-	$(GO_BUILD) $(LDFLAGS) -o $(BUILDAH) $(BUILDFLAGS) ./cmd/buildah
+.PHONY: bin/buildah
+bin/buildah:  $(SOURCES)
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./cmd/buildah
 
-buildah: binary
+.PHONY: buildah
+buildah: bin/buildah
 
-darwin:
-	GOOS=darwin $(GO_BUILD) $(LDFLAGS) -o buildah.darwin -tags "containers_image_openpgp" ./cmd/buildah
+.PHONY: cross
+cross: bin/buildah.darwin.amd64 bin/buildah.linux.386 bin/buildah.linux.amd64 bin/buildah.linux.arm64 bin/buildah.linux.arm bin/buildah.linux.mips64 bin/buildah.linux.mips64le bin/buildah.linux.mips bin/buildah.linux.mipsle bin/buildah.linux.ppc64 bin/buildah.linux.ppc64le bin/buildah.linux.riscv64 bin/buildah.linux.s390x bin/buildah.windows.amd64.exe
 
-imgtype: *.go docker/*.go util/*.go tests/imgtype/imgtype.go
-	$(GO_BUILD) $(LDFLAGS) -o imgtype $(BUILDFLAGS) ./tests/imgtype/imgtype.go
+.PHONY: bin/buildah.%
+bin/buildah.%:
+	mkdir -p ./bin
+	GOOS=$(word 2,$(subst ., ,$@)) GOARCH=$(word 3,$(subst ., ,$@)) $(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
+
+.PHONY: bin/imgtype
+bin/imgtype: *.go docker/*.go util/*.go tests/imgtype/imgtype.go
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/imgtype/imgtype.go
 
 .PHONY: clean
 clean:
-	$(RM) -r buildah imgtype build buildah.static buildah.darwin tests/testreport/testreport
+	$(RM) -r bin tests/testreport/testreport
 	$(MAKE) -C docs clean
 
 .PHONY: docs
@@ -73,12 +89,13 @@ gopath:
 	test $(shell pwd) = $(shell cd ../../../../src/github.com/containers/buildah ; pwd)
 
 codespell:
-	codespell -S build,buildah,buildah.spec,imgtype,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L uint,iff,od
+	codespell -S Makefile,build,buildah,buildah.spec,imgtype,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L uint,iff,od
 
 .PHONY: validate
 validate: install.tools
 	@./tests/validate/whitespace.sh
 	@./tests/validate/git-validation.sh
+	@./hack/xref-helpmsgs-manpages
 
 .PHONY: install.tools
 install.tools:
@@ -105,7 +122,7 @@ install.cni.sudo: gopath
 
 .PHONY: install
 install:
-	install -D -m0755 buildah $(DESTDIR)/$(BINDIR)/buildah
+	install -D -m0755 bin/buildah $(DESTDIR)/$(BINDIR)/buildah
 	$(MAKE) -C docs install
 
 .PHONY: uninstall
@@ -122,20 +139,24 @@ install.completions:
 install.runc:
 	install -m 755 ../../opencontainers/runc/runc $(DESTDIR)/$(BINDIR)/
 
+.PHONY: test-conformance
+test-conformance:
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -timeout 15m ./tests/conformance
+
 .PHONY: test-integration
 test-integration: install.tools
 	./tests/tools/build/ginkgo $(BUILDFLAGS) -v tests/e2e/.
 	cd tests; ./test_runner.sh
 
 tests/testreport/testreport: tests/testreport/testreport.go
-	$(GO_BUILD) -ldflags "-linkmode external -extldflags -static" -tags "$(STORAGETAGS) $(SECURITYTAGS)" -o tests/testreport/testreport ./tests/testreport
+	$(GO_BUILD) -ldflags "-linkmode external -extldflags -static" -tags "$(STORAGETAGS) $(SECURITYTAGS)" -o tests/testreport/testreport ./tests/testreport/testreport.go
 
 .PHONY: test-unit
 test-unit: tests/testreport/testreport
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -race $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd)
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -race $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd) -timeout 40m
 	tmp=$(shell mktemp -d) ; \
 	mkdir -p $$tmp/root $$tmp/runroot; \
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" ./cmd/buildah -args -root $$tmp/root -runroot $$tmp/runroot -storage-driver vfs -signature-policy $(shell pwd)/tests/policy.json -registries-conf $(shell pwd)/tests/registries.conf
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -race ./cmd/buildah -args --root $$tmp/root --runroot $$tmp/runroot --storage-driver vfs --signature-policy $(shell pwd)/tests/policy.json --registries-conf $(shell pwd)/tests/registries.conf
 
 vendor-in-container:
 	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.13 make vendor
