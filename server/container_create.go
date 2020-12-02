@@ -476,50 +476,53 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, errors.Wrap(err, "setting container name and ID")
 	}
 
+	cleanupFuncs := make([]func(), 0)
+	defer func() {
+		// no error, no need to cleanup
+		if retErr == nil {
+			return
+		}
+		for i := len(cleanupFuncs) - 1; i >= 0; i-- {
+			cleanupFuncs[i]()
+		}
+	}()
+
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
 		return nil, errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
 	}
 
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
-			s.ReleaseContainerName(ctr.Name())
-		}
-	}()
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
+		s.ReleaseContainerName(ctr.Name())
+	})
 
 	newContainer, err := s.createSandboxContainer(ctx, ctr, sb)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
-			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
-			if err2 != nil {
-				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
-			}
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
+		err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
+		if err2 != nil {
+			log.Warnf(ctx, "Failed to cleanup container storage: %v", err2)
 		}
-	}()
+	})
 
 	s.addContainer(newContainer)
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
-			s.removeContainer(newContainer)
-		}
-	}()
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
+		s.removeContainer(newContainer)
+	})
 
 	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return nil, err
 	}
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
-			if err := s.CtrIDIndex().Delete(ctr.ID()); err != nil {
-				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
-			}
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
+		if err := s.CtrIDIndex().Delete(ctr.ID()); err != nil {
+			log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
 		}
-	}()
+	})
 
 	mappings, err := s.getSandboxIDMappings(sb)
 	if err != nil {
@@ -529,14 +532,14 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	if err := s.createContainerPlatform(newContainer, sb.CgroupParent(), mappings); err != nil {
 		return nil, err
 	}
-	defer func() {
+	cleanupFuncs = append(cleanupFuncs, func() {
 		if retErr != nil {
 			log.Infof(ctx, "createCtr: removing container ID %s from runtime", ctr.ID())
 			if err := s.Runtime().DeleteContainer(newContainer); err != nil {
 				log.Warnf(ctx, "failed to delete container in runtime %s: %v", ctr.ID(), err)
 			}
 		}
-	}()
+	})
 
 	if err := s.ContainerStateToDisk(newContainer); err != nil {
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
