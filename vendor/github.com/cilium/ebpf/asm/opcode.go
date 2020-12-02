@@ -225,7 +225,7 @@ func (op OpCode) String() string {
 		}
 
 	default:
-		fmt.Fprintf(&f, "OpCode(%#x)", uint8(op))
+		fmt.Fprintf(&f, "%#x", op)
 	}
 
 	return f.String()
