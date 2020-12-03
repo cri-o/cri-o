@@ -193,18 +193,6 @@ function teardown() {
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}"* ]]
 		;;
-	arm64)
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_ARM64})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
-		;;
-	ppc64le)
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
-		;;
-	s390x)
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_S390X})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
-		;;
 	esac
 
 	output=$(crictl images --quiet @"$imageid")
@@ -229,21 +217,6 @@ function teardown() {
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
-	arm64)
-		crictl pull ${IMAGE_LIST_DIGEST_ARM64}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_ARM64})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
-		;;
-	ppc64le)
-		crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
-		;;
-	s390x)
-		crictl pull ${IMAGE_LIST_DIGEST_S390X}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_S390X})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
-		;;
 	esac
 
 	output=$(crictl images -v ${IMAGE_LIST_DIGEST})
@@ -266,21 +239,6 @@ function teardown() {
 		crictl pull ${IMAGE_LIST_DIGEST_AMD64}
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
-		;;
-	arm64)
-		crictl pull ${IMAGE_LIST_DIGEST_ARM64}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_ARM64})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
-		;;
-	ppc64le)
-		crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
-		;;
-	s390x)
-		crictl pull ${IMAGE_LIST_DIGEST_S390X}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_S390X})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
 		;;
 	esac
 
