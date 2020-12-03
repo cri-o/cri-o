@@ -199,8 +199,6 @@ function teardown() {
 	# kubelet is technically responsible for creating this cgroup. it is created in cri-o if there's an infra container
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 	! crictl runp "$TESTDIR"/sandbox_wrong_cgroup_parent.json
-
-	stop_crio
 }
 
 @test "systemd cgroup_parent correctly set" {
@@ -239,8 +237,6 @@ function teardown() {
 	output=$(systemctl show "crio-${ctr_id}.scope")
 	echo "$output" | grep 'TimeoutStopUSec=' || true      # show
 	echo "$output" | grep -q '^TimeoutStopUSec=1min 28s$' # check
-
-	stop_crio
 }
 
 @test "pod pause image matches configured image in crio.conf" {

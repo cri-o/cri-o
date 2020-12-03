@@ -170,7 +170,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull and list by manifest list tag" {
@@ -215,7 +214,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull and list by manifest list and individual digest" {
@@ -258,7 +256,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull and list by individual and manifest list digest" {
@@ -302,7 +299,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image list with filter" {

@@ -16,8 +16,6 @@ function teardown() {
 	echo "$out"
 	[[ "$out" == *"\"cgroup_driver\":\"$CONTAINER_CGROUP_MANAGER\""* ]]
 	[[ "$out" == *"\"storage_root\":\"$TESTDIR/crio\""* ]]
-
-	stop_crio
 }
 
 @test "ctr inspect" {
@@ -57,6 +55,4 @@ function teardown() {
 	start_crio
 	out=$(echo -e "GET /containers/notexists HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET)
 	[[ "$out" == *"can't find the container with id notexists"* ]]
-
-	stop_crio
 }
