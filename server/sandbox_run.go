@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"github.com/cri-o/cri-o/internal/hostport"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (
@@ -21,8 +21,8 @@ const (
 
 // privilegedSandbox returns true if the sandbox configuration
 // requires additional host privileges for the sandbox.
-func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
-	securityContext := req.GetConfig().GetLinux().GetSecurityContext()
+func (s *Server) privilegedSandbox(req *types.RunPodSandboxRequest) bool {
+	securityContext := req.Config.Linux.SecurityContext
 	if securityContext == nil {
 		return false
 	}
@@ -31,14 +31,14 @@ func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
 		return true
 	}
 
-	namespaceOptions := securityContext.GetNamespaceOptions()
+	namespaceOptions := securityContext.NamespaceOptions
 	if namespaceOptions == nil {
 		return false
 	}
 
-	if namespaceOptions.GetNetwork() == pb.NamespaceMode_NODE ||
-		namespaceOptions.GetPid() == pb.NamespaceMode_NODE ||
-		namespaceOptions.GetIpc() == pb.NamespaceMode_NODE {
+	if namespaceOptions.Network == types.NamespaceModeNODE ||
+		namespaceOptions.Pid == types.NamespaceModeNODE ||
+		namespaceOptions.Ipc == types.NamespaceModeNODE {
 		return true
 	}
 
@@ -49,8 +49,8 @@ func (s *Server) privilegedSandbox(req *pb.RunPodSandboxRequest) bool {
 // does exist and the associated data are valid. If the key is empty, there
 // is nothing to do, and the empty key is returned. For every other case, this
 // function will return an empty string with the error associated.
-func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
-	handler := req.GetRuntimeHandler()
+func (s *Server) runtimeHandler(req *types.RunPodSandboxRequest) (string, error) {
+	handler := req.RuntimeHandler
 	if handler == "" {
 		return handler, nil
 	}
@@ -63,12 +63,12 @@ func (s *Server) runtimeHandler(req *pb.RunPodSandboxRequest) (string, error) {
 }
 
 // RunPodSandbox creates and runs a pod-level sandbox.
-func (s *Server) RunPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (*pb.RunPodSandboxResponse, error) {
+func (s *Server) RunPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (*types.RunPodSandboxResponse, error) {
 	// platform dependent call
 	return s.runPodSandbox(ctx, req)
 }
 
-func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
+func convertPortMappings(in []*types.PortMapping) []*hostport.PortMapping {
 	out := make([]*hostport.PortMapping, 0, len(in))
 	for _, v := range in {
 		if v.HostPort <= 0 {
@@ -78,7 +78,7 @@ func convertPortMappings(in []*pb.PortMapping) []*hostport.PortMapping {
 			HostPort:      v.HostPort,
 			ContainerPort: v.ContainerPort,
 			Protocol:      v1.Protocol(v.Protocol.String()),
-			HostIP:        v.HostIp,
+			HostIP:        v.HostIP,
 		})
 	}
 	return out

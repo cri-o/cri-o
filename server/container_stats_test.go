@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -24,7 +24,7 @@ var _ = t.Describe("ContainerStats", func() {
 			// Given
 			// When
 			response, err := sut.ContainerStats(context.Background(),
-				&pb.ContainerStatsRequest{})
+				&types.ContainerStatsRequest{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -48,7 +48,7 @@ var _ = t.Describe("ContainerStatsList", func() {
 			addContainerAndSandbox()
 			// When
 			response, err := sut.ListContainerStats(context.Background(),
-				&pb.ListContainerStatsRequest{})
+				&types.ListContainerStatsRequest{})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -64,7 +64,7 @@ var _ = t.Describe("ContainerStatsList", func() {
 
 			// When
 			response, err := sut.ListContainerStats(context.Background(),
-				&pb.ListContainerStatsRequest{},
+				&types.ListContainerStatsRequest{},
 			)
 
 			// Then
@@ -78,9 +78,9 @@ var _ = t.Describe("ContainerStatsList", func() {
 
 			// When
 			response, err := sut.ListContainerStats(context.Background(),
-				&pb.ListContainerStatsRequest{
-					Filter: &pb.ContainerStatsFilter{
-						Id: "invalid",
+				&types.ListContainerStatsRequest{
+					Filter: &types.ContainerStatsFilter{
+						ID: "invalid",
 					},
 				},
 			)

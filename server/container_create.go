@@ -18,6 +18,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/container"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -25,7 +26,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	k8sV1 "k8s.io/api/core/v1"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 type orderedMounts []rspec.Mount
@@ -55,7 +55,7 @@ func (m orderedMounts) parts(i int) int {
 // mounts defines how to sort runtime.Mount.
 // This is the same with the Docker implementation:
 //   https://github.com/moby/moby/blob/17.05.x/daemon/volumes.go#L26
-type criOrderedMounts []*pb.Mount
+type criOrderedMounts []*types.Mount
 
 // Len returns the number of mounts. Used in sorting.
 func (m criOrderedMounts) Len() int {
@@ -182,7 +182,7 @@ func resolveSymbolicLink(scope, path string) (string, error) {
 }
 
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
-func buildOCIProcessArgs(ctx context.Context, containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
+func buildOCIProcessArgs(ctx context.Context, containerKubeConfig *types.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
 	// # Start the nginx container using the default command, but use custom
 	// arguments (arg1 .. argN) for that command.
 	// kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
@@ -230,11 +230,11 @@ func buildOCIProcessArgs(ctx context.Context, containerKubeConfig *pb.ContainerC
 }
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
-func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
+func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *types.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
 	if sc == nil {
 		return nil
 	}
-	if sc.GetRunAsGroup() != nil && sc.GetRunAsUser() == nil && sc.GetRunAsUsername() == "" {
+	if sc.RunAsGroup != nil && sc.RunAsUser == nil && sc.RunAsUsername == "" {
 		return fmt.Errorf("user group is specified without user or username")
 	}
 	imageUser := ""
@@ -253,9 +253,9 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 		imageUser = imageConfig.Config.User
 	}
 	containerUser := generateUserString(
-		sc.GetRunAsUsername(),
+		sc.RunAsUsername,
 		imageUser,
-		sc.GetRunAsUser(),
+		sc.RunAsUser,
 	)
 	log.Debugf(ctx, "CONTAINER USER: %+v", containerUser)
 
@@ -297,8 +297,8 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 
 	specgen.SetProcessUID(uid)
 	specgen.SetProcessGID(gid)
-	if sc.GetRunAsGroup() != nil {
-		specgen.SetProcessGID(uint32(sc.GetRunAsGroup().GetValue()))
+	if sc.RunAsGroup != nil {
+		specgen.SetProcessGID(uint32(sc.RunAsGroup.Value))
 	}
 
 	for _, group := range addGroups {
@@ -306,7 +306,7 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 	}
 
 	// Add groups from CRI
-	groups := sc.GetSupplementalGroups()
+	groups := sc.SupplementalGroups
 	for _, group := range groups {
 		specgen.AddProcessAdditionalGid(uint32(group))
 	}
@@ -314,10 +314,10 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 }
 
 // generateUserString generates valid user string based on OCI Image Spec v1.0.0.
-func generateUserString(username, imageUser string, uid *pb.Int64Value) string {
+func generateUserString(username, imageUser string, uid *types.Int64Value) string {
 	var userstr string
 	if uid != nil {
-		userstr = strconv.FormatInt(uid.GetValue(), 10)
+		userstr = strconv.FormatInt(uid.Value, 10)
 	}
 	if username != "" {
 		userstr = username
@@ -333,7 +333,7 @@ func generateUserString(username, imageUser string, uid *pb.Int64Value) string {
 }
 
 // setupCapabilities sets process.capabilities in the OCI runtime config.
-func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability) error {
+func setupCapabilities(specgen *generate.Generator, capabilities *types.Capability) error {
 	// Remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
 	// and pods expect that switching to a non-root user results in the capabilities being
 	// dropped. This should be revisited in the future.
@@ -355,7 +355,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 	// AddCapabilities: []string{"ALL"}, DropCapabilities: []string{"CHOWN"}
 	// will be all capabilities without `CAP_CHOWN`.
 	// see https://github.com/kubernetes/kubernetes/issues/51980
-	if inStringSlice(capabilities.GetAddCapabilities(), "ALL") {
+	if inStringSlice(capabilities.AddCapabilities, "ALL") {
 		for _, c := range getOCICapabilitiesList() {
 			if err := specgen.AddProcessCapabilityBounding(c); err != nil {
 				return err
@@ -371,7 +371,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 			}
 		}
 	}
-	if inStringSlice(capabilities.GetDropCapabilities(), "ALL") {
+	if inStringSlice(capabilities.DropCapabilities, "ALL") {
 		for _, c := range getOCICapabilitiesList() {
 			if err := specgen.DropProcessCapabilityBounding(c); err != nil {
 				return err
@@ -388,7 +388,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 		}
 	}
 
-	for _, cap := range capabilities.GetAddCapabilities() {
+	for _, cap := range capabilities.AddCapabilities {
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
@@ -411,7 +411,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 		}
 	}
 
-	for _, cap := range capabilities.GetDropCapabilities() {
+	for _, cap := range capabilities.DropCapabilities {
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
@@ -433,27 +433,27 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 	return nil
 }
 
-func hostNetwork(containerConfig *pb.ContainerConfig) bool {
-	securityContext := containerConfig.GetLinux().GetSecurityContext()
-	if securityContext == nil || securityContext.GetNamespaceOptions() == nil {
+func hostNetwork(containerConfig *types.ContainerConfig) bool {
+	securityContext := containerConfig.Linux.SecurityContext
+	if securityContext == nil || securityContext.NamespaceOptions == nil {
 		return false
 	}
 
-	return securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
+	return securityContext.NamespaceOptions.Network == types.NamespaceModeNODE
 }
 
 // CreateContainer creates a new container in specified PodSandbox
-func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, retErr error) {
-	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
+func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
+	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.Config.Labels))
 
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
+	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "specified sandbox not found: %s", req.PodSandboxId)
+		return nil, errors.Wrapf(err, "specified sandbox not found: %s", req.PodSandboxID)
 	}
 
 	stopMutex := sb.StopMutex()
@@ -468,7 +468,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, errors.Wrap(err, "failed to create container")
 	}
 
-	if err := ctr.SetConfig(req.GetConfig(), req.GetSandboxConfig()); err != nil {
+	if err := ctr.SetConfig(req.Config, req.SandboxConfig); err != nil {
 		return nil, errors.Wrap(err, "setting container config")
 	}
 
@@ -490,7 +490,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
 		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
 		if resourceErr == nil {
-			return &pb.CreateContainerResponse{ContainerId: cachedID}, nil
+			return &types.CreateContainerResponse{ContainerID: cachedID}, nil
 		}
 		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
@@ -560,12 +560,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	newContainer.SetCreated()
 
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
-	return &pb.CreateContainerResponse{
-		ContainerId: ctr.ID(),
+	return &types.CreateContainerResponse{
+		ContainerID: ctr.ID(),
 	}, nil
 }
 
-func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
+func isInCRIMounts(dst string, mounts []*types.Mount) bool {
 	for _, m := range mounts {
 		if m.ContainerPath == dst {
 			return true

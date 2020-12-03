@@ -3,11 +3,16 @@ package v1
 import (
 	"context"
 
+	"github.com/cri-o/cri-o/server/cri/types"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func (c *service) StopPodSandbox(
+func (s *service) StopPodSandbox(
 	ctx context.Context, req *pb.StopPodSandboxRequest,
 ) (*pb.StopPodSandboxResponse, error) {
-	return nil, nil
+	r := &types.StopPodSandboxRequest{PodSandboxID: req.PodSandboxId}
+	if err := s.server.StopPodSandbox(ctx, r); err != nil {
+		return nil, err
+	}
+	return &pb.StopPodSandboxResponse{}, nil
 }

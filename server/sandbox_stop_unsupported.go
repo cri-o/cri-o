@@ -3,12 +3,12 @@
 package server
 
 import (
+	"context"
 	"fmt"
 
-	"golang.org/x/net/context"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	"github.com/cri-o/cri-o/server/cri/types"
 )
 
-func (s *Server) stopPodSandbox(ctx context.Context, req *pb.StopPodSandboxRequest) (*pb.StopPodSandboxResponse, error) {
-	return nil, fmt.Errorf("unsupported")
+func (s *Server) stopPodSandbox(ctx context.Context, req *types.StopPodSandboxRequest) error {
+	return fmt.Errorf("unsupported")
 }

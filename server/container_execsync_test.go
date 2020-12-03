@@ -3,9 +3,9 @@ package server_test
 import (
 	"context"
 
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -23,7 +23,7 @@ var _ = t.Describe("ContainerStart", func() {
 			// Given
 			// When
 			response, err := sut.ExecSync(context.Background(),
-				&pb.ExecSyncRequest{})
+				&types.ExecSyncRequest{})
 
 			// Then
 			Expect(err).NotTo(BeNil())

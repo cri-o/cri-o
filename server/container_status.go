@@ -3,13 +3,13 @@ package server
 import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	json "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (
@@ -19,32 +19,32 @@ const (
 )
 
 // ContainerStatus returns status of the container.
-func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusRequest) (*pb.ContainerStatusResponse, error) {
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatusRequest) (*types.ContainerStatusResponse, error) {
+	c, err := s.GetContainerFromShortID(req.ContainerID)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerID, err)
 	}
 
 	containerID := c.ID()
-	resp := &pb.ContainerStatusResponse{
-		Status: &pb.ContainerStatus{
-			Id: containerID,
-			Metadata: &pb.ContainerMetadata{
+	resp := &types.ContainerStatusResponse{
+		Status: &types.ContainerStatus{
+			ID: containerID,
+			Metadata: &types.ContainerMetadata{
 				Name:    c.Metadata().Name,
 				Attempt: c.Metadata().Attempt,
 			},
 			Labels:      c.Labels(),
 			Annotations: c.Annotations(),
 			ImageRef:    c.ImageRef(),
-			Image: &pb.ImageSpec{
+			Image: &types.ImageSpec{
 				Image: c.ImageName(),
 			},
 		},
 	}
 
-	mounts := []*pb.Mount{}
+	mounts := []*types.Mount{}
 	for _, cv := range c.Volumes() {
-		mounts = append(mounts, &pb.Mount{
+		mounts = append(mounts, &types.Mount{
 			ContainerPath: cv.ContainerPath,
 			HostPath:      cv.HostPath,
 			Readonly:      cv.Readonly,
@@ -53,7 +53,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	resp.Status.Mounts = mounts
 
 	cState := c.StateNoLock()
-	rStatus := pb.ContainerState_CONTAINER_UNKNOWN
+	rStatus := types.ContainerStateContainerUnknown
 
 	// If we defaulted to exit code not set earlier then we attempt to
 	// get the exit code from the exit file again.
@@ -68,15 +68,15 @@ func (s *Server) ContainerStatus(ctx context.Context, req *pb.ContainerStatusReq
 	created := c.CreatedAt().UnixNano()
 	switch cState.Status {
 	case oci.ContainerStateCreated:
-		rStatus = pb.ContainerState_CONTAINER_CREATED
+		rStatus = types.ContainerStateContainerCreated
 		resp.Status.CreatedAt = created
 	case oci.ContainerStateRunning:
-		rStatus = pb.ContainerState_CONTAINER_RUNNING
+		rStatus = types.ContainerStateContainerRunning
 		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
 	case oci.ContainerStateStopped:
-		rStatus = pb.ContainerState_CONTAINER_EXITED
+		rStatus = types.ContainerStateContainerExited
 		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started

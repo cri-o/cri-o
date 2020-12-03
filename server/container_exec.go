@@ -5,15 +5,15 @@ import (
 	"io"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/client-go/tools/remotecommand"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // Exec prepares a streaming endpoint to execute a command in the container.
-func (s *Server) Exec(ctx context.Context, req *pb.ExecRequest) (*pb.ExecResponse, error) {
+func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecResponse, error) {
 	resp, err := s.getExec(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare exec endpoint: %v", err)

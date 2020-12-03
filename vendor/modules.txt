@@ -376,6 +376,7 @@ github.com/docker/libnetwork/types
 github.com/docker/spdystream
 github.com/docker/spdystream/spdy
 # github.com/emicklei/go-restful v2.9.5+incompatible
+## explicit
 github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
 # github.com/emirpasic/gods v1.12.0

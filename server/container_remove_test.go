@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -35,25 +35,23 @@ var _ = t.Describe("ContainerRemove", func() {
 			)
 
 			// When
-			response, err := sut.RemoveContainer(context.Background(),
-				&pb.RemoveContainerRequest{
-					ContainerId: testContainer.ID(),
+			err := sut.RemoveContainer(context.Background(),
+				&types.RemoveContainerRequest{
+					ContainerID: testContainer.ID(),
 				})
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(response).NotTo(BeNil())
 		})
 
 		It("should fail on container remove error", func() {
 			// Given
 			// When
-			response, err := sut.RemoveContainer(context.Background(),
-				&pb.RemoveContainerRequest{})
+			err := sut.RemoveContainer(context.Background(),
+				&types.RemoveContainerRequest{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(response).To(BeNil())
 		})
 	})
 })

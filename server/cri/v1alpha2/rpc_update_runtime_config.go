@@ -6,8 +6,8 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
-func (c *service) UpdateRuntimeConfig(
+func (s *service) UpdateRuntimeConfig(
 	ctx context.Context, req *pb.UpdateRuntimeConfigRequest,
 ) (*pb.UpdateRuntimeConfigResponse, error) {
-	return nil, nil
+	return &pb.UpdateRuntimeConfigResponse{}, nil
 }
