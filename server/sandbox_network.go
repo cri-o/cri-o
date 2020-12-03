@@ -20,8 +20,12 @@ import (
 // or an error
 func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, retErr error) {
 	overallStart := time.Now()
-	// give a network Start call 2 minutes, half of a RunPodSandbox request timeout limit
-	startCtx, startCancel := context.WithTimeout(ctx, 2*time.Minute)
+	// Give a network Start call a full 5 minutes, independent of the context of the request.
+	// This is to prevent the CNI plugin from taking an unbounded amount of time,
+	// but to still allow a long-running sandbox creation to be cached and reused,
+	// rather than failing and recreating it.
+	const startTimeout = 5 * time.Minute
+	startCtx, startCancel := context.WithTimeout(context.Background(), startTimeout)
 	defer startCancel()
 
 	if sb.HostNetwork() {
