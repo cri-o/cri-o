@@ -90,10 +90,13 @@ func (s *Server) ListContainers(ctx context.Context, req *pb.ListContainersReque
 			PodSandboxId: podSandboxID,
 			CreatedAt:    created,
 			Labels:       ctr.Labels(),
-			Metadata:     ctr.Metadata(),
-			Annotations:  ctr.Annotations(),
-			Image:        img,
-			ImageRef:     ctr.ImageRef(),
+			Metadata: &pb.ContainerMetadata{
+				Name:    ctr.Metadata().Name,
+				Attempt: ctr.Metadata().Attempt,
+			},
+			Annotations: ctr.Annotations(),
+			Image:       img,
+			ImageRef:    ctr.ImageRef(),
 		}
 
 		switch cState.Status {

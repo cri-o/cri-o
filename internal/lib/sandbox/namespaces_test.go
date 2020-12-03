@@ -13,7 +13,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 var (
@@ -508,7 +507,7 @@ func setupInfraContainerWithPid(pid int) {
 	testContainer, err := oci.NewContainer("testid", "testname", "",
 		"/container/logs", map[string]string{},
 		map[string]string{}, map[string]string{}, "image",
-		"imageName", "imageRef", &pb.ContainerMetadata{},
+		"imageName", "imageRef", &oci.Metadata{},
 		"testsandboxid", false, false, false, "",
 		"/root/for/container", time.Now(), "SIGKILL")
 	Expect(err).To(BeNil())

@@ -7,7 +7,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -19,7 +18,7 @@ var _ = t.Describe("History", func() {
 		beforeEach()
 		otherTestSandbox, err := sandbox.New("sandboxID", "", "", "", "",
 			make(map[string]string), make(map[string]string), "", "",
-			&pb.PodSandboxMetadata{}, "", "", false, "", "", "",
+			&sandbox.Metadata{}, "", "", false, "", "", "",
 			[]*hostport.PortMapping{}, false, time.Now(), "")
 		Expect(err).To(BeNil())
 		Expect(testSandbox).NotTo(BeNil())
