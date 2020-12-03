@@ -67,7 +67,7 @@ function teardown() {
 
 	crictl runp "$TESTDATA"/sandbox_config.json
 
-	# shellcheck disable=SC1091
+	# shellcheck disable=SC1090,SC1091
 	. "$TESTDIR"/plugin_test_args.out
 
 	[ "$FOUND_CNI_CONTAINERID" != "redhat.test.crio" ]
