@@ -63,9 +63,7 @@ function teardown() {
 }
 
 @test "Ensure correct CNI plugin namespace/name/container-id arguments" {
-	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
-	CNI_TYPE="cni_plugin_helper.bash"
-	start_crio
+	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}" CNI_TYPE="cni_plugin_helper.bash" start_crio
 
 	crictl runp "$TESTDATA"/sandbox_config.json
 
@@ -133,8 +131,7 @@ function check_networking() {
 
 @test "Clean up network if pod sandbox fails after plugin success" {
 	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
-	CNI_TYPE="cni_plugin_helper.bash"
-	setup_crio
+	CNI_TYPE="cni_plugin_helper.bash" setup_crio
 	echo "DEBUG_ARGS=malformed-result" > "$TESTDIR"/cni_plugin_helper_input.env
 	start_crio_no_setup
 	check_images
