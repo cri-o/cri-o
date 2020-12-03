@@ -193,12 +193,13 @@ function teardown() {
 		skip "need systemd cgroup manager"
 	fi
 
-	wrong_cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "podsandbox1.slice:container:infra"; json.dump(obj, sys.stdout)')
-	echo "$wrong_cgroup_parent_config" > "$TESTDIR"/sandbox_wrong_cgroup_parent.json
+	# set wrong cgroup_parent
+	jq '	  .linux.cgroup_parent = "podsandbox1.slice:container:infra"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	# kubelet is technically responsible for creating this cgroup. it is created in cri-o if there's an infra container
 	CONTAINER_DROP_INFRA_CTR=false start_crio
-	! crictl runp "$TESTDIR"/sandbox_wrong_cgroup_parent.json
+	! crictl runp "$TESTDIR"/sandbox.json
 }
 
 @test "systemd cgroup_parent correctly set" {
@@ -206,12 +207,12 @@ function teardown() {
 		skip "need systemd cgroup manager"
 	fi
 
-	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "Burstable-pod_integration_tests-123.slice"; json.dump(obj, sys.stdout)')
-	echo "$cgroup_parent_config" > "$TESTDIR"/sandbox_systemd_cgroup_parent.json
+	jq '	  .linux.cgroup_parent = "Burstable-pod_integration_tests-123.slice"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	# kubelet is technically responsible for creating this cgroup. it is created in cri-o if there's an infra container
 	CONTAINER_DROP_INFRA_CTR=false start_crio
-	crictl runp "$TESTDIR"/sandbox_systemd_cgroup_parent.json
+	crictl runp "$TESTDIR"/sandbox.json
 	output=$(systemctl list-units --type=slice)
 	[[ "$output" == *"Burstable-pod_integration_tests-123.slice"* ]]
 }
