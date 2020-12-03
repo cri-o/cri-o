@@ -132,9 +132,15 @@ function teardown() {
 		skip "userNS enabled"
 	fi
 	CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward=1" start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_sysctl.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config_sysctl.json)
 
+	jq '	  .linux.sysctls = {
+			"kernel.shm_rmid_forced": "1",
+			"net.ipv4.ip_local_port_range": "1024 65000",
+			"kernel.msgmax": "8192"
+		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox.json)
 	crictl start "$ctr_id"
 
 	output=$(crictl exec --sync "$ctr_id" sysctl kernel.shm_rmid_forced)
