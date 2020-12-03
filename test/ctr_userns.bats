@@ -16,7 +16,7 @@ function teardown() {
 
 @test "ctr_userns run container" {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	state=$(crictl inspect "$ctr_id")
 	pid=$(echo "$state" | jq .info.pid)

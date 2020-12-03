@@ -224,10 +224,15 @@ function teardown() {
 	# There is an assumption in the test to use the system instance of systemd (systemctl show).
 	CONTAINER_CGROUP_MANAGER="systemd" DBUS_SESSION_BUS_ADDRESS="" XDG_RUNTIME_DIR="" start_crio
 
-	config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);del obj["linux"]["cgroup_parent"]; json.dump(obj, sys.stdout)')
-	echo "$config" > "$TESTDIR"/sandbox_config-systemd.json
-	pod_id=$(crictl runp "$TESTDIR"/sandbox_config-systemd.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_sleep.json "$TESTDIR"/sandbox_config-systemd.json)
+	# for systemd, cgroup_parent should not be set
+	jq '	  del(.linux.cgroup_parent)' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	jq '	  .annotations += { "io.kubernetes.pod.terminationGracePeriod": "88" }' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/ctr.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr.json "$TESTDIR"/sandbox.json)
 
 	crictl start "$ctr_id"
 
