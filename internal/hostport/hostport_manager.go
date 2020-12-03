@@ -1,5 +1,3 @@
-// +build !dockerless
-
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -39,6 +37,7 @@ import (
 )
 
 // HostPortManager is an interface for adding and removing hostport for a given pod sandbox.
+// nolint:golint // no reason to change the type name now "type name will be used as hostport.HostPortManager by other packages"
 type HostPortManager interface {
 	// Add implements port mappings.
 	// id should be a unique identifier for a pod, e.g. podSandboxID.
@@ -59,6 +58,7 @@ type hostportManager struct {
 	mu             sync.Mutex
 }
 
+// NewHostportManager creates a new HostPortManager
 func NewHostportManager(iptables utiliptables.Interface) HostPortManager {
 	h := &hostportManager{
 		hostPortMap: make(map[hostport]closeable),
@@ -78,13 +78,6 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 		return nil
 	}
 	podFullName := getPodFullName(podPortMapping)
-
-	// skip if there is no hostport needed
-	hostportMappings := gatherHostportMappings(podPortMapping)
-	if len(hostportMappings) == 0 {
-		return nil
-	}
-
 	// IP.To16() returns nil if IP is not a valid IPv4 or IPv6 address
 	if podPortMapping.IP.To16() == nil {
 		return fmt.Errorf("invalid or missing IP of pod %s", podFullName)
@@ -92,11 +85,17 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 	podIP := podPortMapping.IP.String()
 	isIPv6 := utilnet.IsIPv6(podPortMapping.IP)
 
+	// skip if there is no hostport needed
+	hostportMappings := gatherHostportMappings(podPortMapping, isIPv6)
+	if len(hostportMappings) == 0 {
+		return nil
+	}
+
 	if isIPv6 != hm.iptables.IsIPv6() {
 		return fmt.Errorf("HostPortManager IP family mismatch: %v, isIPv6 - %v", podIP, isIPv6)
 	}
 
-	if err = ensureKubeHostportChains(hm.iptables, natInterfaceName); err != nil {
+	if err := ensureKubeHostportChains(hm.iptables, natInterfaceName); err != nil {
 		return err
 	}
 
@@ -152,10 +151,17 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 
 		// DNAT to the podIP:containerPort
 		hostPortBinding := net.JoinHostPort(podIP, strconv.Itoa(int(pm.ContainerPort)))
-		writeLine(natRules, "-A", string(chain),
-			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
-			"-m", protocol, "-p", protocol,
-			"-j", "DNAT", fmt.Sprintf("--to-destination=%s", hostPortBinding))
+		if pm.HostIP == "" || pm.HostIP == "0.0.0.0" || pm.HostIP == "::" {
+			writeLine(natRules, "-A", string(chain),
+				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
+				"-m", protocol, "-p", protocol,
+				"-j", "DNAT", fmt.Sprintf("--to-destination=%s", hostPortBinding))
+		} else {
+			writeLine(natRules, "-A", string(chain),
+				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
+				"-m", protocol, "-p", protocol, "-d", pm.HostIP,
+				"-j", "DNAT", fmt.Sprintf("--to-destination=%s", hostPortBinding))
+		}
 	}
 
 	// getHostportChain should be able to provide unique hostport chain name using hash
@@ -198,8 +204,8 @@ func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (er
 		return nil
 	}
 
-	hostportMappings := gatherHostportMappings(podPortMapping)
-	if len(hostportMappings) <= 0 {
+	hostportMappings := gatherHostportMappings(podPortMapping, hm.iptables.IsIPv6())
+	if len(hostportMappings) == 0 {
 		return nil
 	}
 
@@ -231,6 +237,11 @@ func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (er
 		}
 	}
 
+	// exit if there is nothing to remove
+	if len(existingChainsToRemove) == 0 {
+		return nil
+	}
+
 	natChains := bytes.NewBuffer(nil)
 	natRules := bytes.NewBuffer(nil)
 	writeLine(natChains, "*nat")
@@ -245,7 +256,7 @@ func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (er
 	}
 	writeLine(natRules, "COMMIT")
 
-	if err = hm.syncIPTables(append(natChains.Bytes(), natRules.Bytes()...)); err != nil {
+	if err := hm.syncIPTables(append(natChains.Bytes(), natRules.Bytes()...)); err != nil {
 		return err
 	}
 
@@ -279,7 +290,12 @@ func (hm *hostportManager) openHostports(podPortMapping *PodPortMapping) (map[ho
 			continue
 		}
 
-		hp := portMappingToHostport(pm)
+		// HostIP IP family is not handled by this port opener
+		if pm.HostIP != "" && utilnet.IsIPv6String(pm.HostIP) != hm.iptables.IsIPv6() {
+			continue
+		}
+
+		hp := portMappingToHostport(pm, hm.getIPFamily())
 		socket, err := hm.portOpener(&hp)
 		if err != nil {
 			retErr = fmt.Errorf("cannot open hostport %d for pod %s: %v", pm.HostPort, getPodFullName(podPortMapping), err)
@@ -304,7 +320,7 @@ func (hm *hostportManager) openHostports(podPortMapping *PodPortMapping) (map[ho
 func (hm *hostportManager) closeHostports(hostportMappings []*PortMapping) error {
 	errList := []error{}
 	for _, pm := range hostportMappings {
-		hp := portMappingToHostport(pm)
+		hp := portMappingToHostport(pm, hm.getIPFamily())
 		if socket, ok := hm.hostPortMap[hp]; ok {
 			klog.V(2).Infof("Closing host port %s", hp.String())
 			if err := socket.Close(); err != nil {
@@ -312,9 +328,20 @@ func (hm *hostportManager) closeHostports(hostportMappings []*PortMapping) error
 				continue
 			}
 			delete(hm.hostPortMap, hp)
+		} else {
+			klog.V(5).Infof("host port %s does not have an open socket", hp.String())
 		}
 	}
 	return utilerrors.NewAggregate(errList)
+}
+
+// getIPFamily returns the hostPortManager IP family
+func (hm *hostportManager) getIPFamily() ipFamily {
+	family := IPv4
+	if hm.iptables.IsIPv6() {
+		family = IPv6
+	}
+	return family
 }
 
 // getHostportChain takes id, hostport and protocol for a pod and returns associated iptables chain.
@@ -324,16 +351,20 @@ func (hm *hostportManager) closeHostports(hostportMappings []*PortMapping) error
 // WARNING: Please do not change this function. Otherwise, HostportManager may not be able to
 // identify existing iptables chains.
 func getHostportChain(id string, pm *PortMapping) utiliptables.Chain {
-	hash := sha256.Sum256([]byte(id + strconv.Itoa(int(pm.HostPort)) + string(pm.Protocol)))
+	hash := sha256.Sum256([]byte(id + strconv.Itoa(int(pm.HostPort)) + string(pm.Protocol) + pm.HostIP))
 	encoded := base32.StdEncoding.EncodeToString(hash[:])
 	return utiliptables.Chain(kubeHostportChainPrefix + encoded[:16])
 }
 
 // gatherHostportMappings returns all the PortMappings which has hostport for a pod
-func gatherHostportMappings(podPortMapping *PodPortMapping) []*PortMapping {
+// it filters the PortMappings that use HostIP and doesn't match the IP family specified
+func gatherHostportMappings(podPortMapping *PodPortMapping, isIPv6 bool) []*PortMapping {
 	mappings := []*PortMapping{}
 	for _, pm := range podPortMapping.PortMappings {
 		if pm.HostPort <= 0 {
+			continue
+		}
+		if pm.HostIP != "" && utilnet.IsIPv6String(pm.HostIP) != isIPv6 {
 			continue
 		}
 		mappings = append(mappings, pm)
@@ -343,6 +374,7 @@ func gatherHostportMappings(podPortMapping *PodPortMapping) []*PortMapping {
 
 // getExistingHostportIPTablesRules retrieves raw data from iptables-save, parse it,
 // return all the hostport related chains and rules
+// nolint:gocritic // unnamedResult: consider giving a name to these results
 func getExistingHostportIPTablesRules(iptables utiliptables.Interface) (map[utiliptables.Chain]string, []string, error) {
 	iptablesData := bytes.NewBuffer(nil)
 	err := iptables.SaveInto(utiliptables.TableNAT, iptablesData)
@@ -393,4 +425,20 @@ func filterChains(chains map[utiliptables.Chain]string, filterChains []utiliptab
 	for _, chain := range filterChains {
 		delete(chains, chain)
 	}
+}
+
+func getPodFullName(pod *PodPortMapping) string {
+	// Use underscore as the delimiter because it is not allowed in pod name
+	// (DNS subdomain format), while allowed in the container name format.
+	return pod.Name + "_" + pod.Namespace
+}
+
+// Join all words with spaces, terminate with newline and write to buf.
+// nolint:interfacer
+func writeLine(buf *bytes.Buffer, words ...string) {
+	buf.WriteString(strings.Join(words, " ") + "\n")
+}
+
+func (hp *hostport) String() string {
+	return fmt.Sprintf("%s:%d", hp.protocol, hp.port)
 }
