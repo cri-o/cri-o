@@ -32,11 +32,14 @@ function teardown() {
 	fi
 
 	start_crio
-	python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["namespace_options"]["network"] = 2; obj["annotations"] = {}; obj["hostname"] = ""; json.dump(obj, sys.stdout)' \
-		< "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_hostnetwork_config.json
 
-	pod_id=$(crictl runp "$TESTDIR"/sandbox_hostnetwork_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_hostnetwork_config.json)
+	jq '	  .linux.security_context.namespace_options.network = 2
+		| del(.annotations)
+		| del(.hostname)' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_hostnetwork.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox_hostnetwork.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_hostnetwork.json)
 	crictl start "$ctr_id"
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "hostname")
