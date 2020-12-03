@@ -154,7 +154,8 @@ shellcheck: shellfiles ${SHELLCHECK}
 		-P contrib/bundle \
 		-P scripts \
 		-P test \
-		-x ${SHELLFILES}
+		-x \
+		${SHELLFILES} ${BATS_FILES}
 
 bin/pinns:
 	$(MAKE) -C pinns
