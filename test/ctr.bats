@@ -353,22 +353,22 @@ function wait_until_exit() {
 		| .labels.group = "test"
 		| .labels.name = "ctr1"
 		| .labels.version = "v1.0.0"' \
-		"$TESTDATA"/container_config.json > "$TESTDATA"/config.json
-	ctr1_id=$(crictl create "$pod_id" "$TESTDATA"/config.json "$TESTDATA"/sandbox_config.json)
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr1_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	jq '	  .metadata.name = "ctr2"
 		| .labels.group = "test"
 		| .labels.name = "ctr2"
 		| .labels.version = "v1.0.0"' \
-		"$TESTDATA"/container_config.json > "$TESTDATA"/config.json
-	ctr2_id=$(crictl create "$pod_id" "$TESTDATA"/config.json "$TESTDATA"/sandbox_config.json)
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr2_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	jq '	  .metadata.name = "ctr3"
 		| .labels.group = "test"
 		| .labels.name = "ctr3"
 		| .labels.version = "v1.1.0"' \
-		"$TESTDATA"/container_config.json > "$TESTDATA"/config.json
-	ctr3_id=$(crictl create "$pod_id" "$TESTDATA"/config.json "$TESTDATA"/sandbox_config.json)
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr3_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl ps --label "group=test" --label "name=ctr1" --label "version=v1.0.0" --quiet --all)
 	[ "$output" = "$ctr1_id" ]
