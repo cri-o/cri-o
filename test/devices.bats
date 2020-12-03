@@ -160,7 +160,7 @@ EOF
 	[[ -z "$output" ]]
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "head -n1 /dev/peterfoo")
-	[[ ! -z "$output" ]]
+	[[ -n "$output" ]]
 }
 
 @test "annotation should fail if one device is invalid" {
