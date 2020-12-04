@@ -10,7 +10,7 @@ function teardown() {
 	cleanup_test
 }
 
-@test "ctr termination reason Completed" {
+@test "selinux label level=s0 is sufficient" {
 	start_crio
 
 	jq '	  .linux.security_context.selinux_options = {"level": "s0"}' \
