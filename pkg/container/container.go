@@ -137,6 +137,13 @@ func (c *container) SpecAddAnnotations(sb *sandbox.Sandbox, containerVolumes []o
 	if err != nil {
 		return err
 	}
+
+	// Preserve the sandbox annotations. OCI hooks may re-use the sandbox
+	// annotation values to apply them to the container later on.
+	for k, v := range sb.Annotations() {
+		c.spec.AddAnnotation(k, v)
+	}
+
 	c.spec.AddAnnotation(annotations.Image, image)
 	c.spec.AddAnnotation(annotations.ImageName, imageResult.Name)
 	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID)
