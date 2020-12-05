@@ -24,8 +24,8 @@ function teardown() {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq '.image.image = "'"$REDIS_IMAGEID"'"' \
-		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
-	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json)
+		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
+	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 }
 
@@ -35,8 +35,8 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	jq '.image.image = "'"$REDIS_IMAGEID"'"' \
-		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageid.json
-	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr_by_imageid.json "$TESTDATA"/sandbox_config.json)
+		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
+	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl inspect -o yaml "$ctr_id")
 	[[ "$output" == *"image: quay.io/crio/redis:alpine"* ]]
@@ -49,9 +49,9 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	jq '.image.image = "quay.io/crio/redis:alpine"' \
-		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagetag.json
+		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
 
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_by_imagetag.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl inspect -o yaml "$ctr_id")
 	[[ "$output" == *"image: quay.io/crio/redis:alpine"* ]]
@@ -64,9 +64,9 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	jq '.image.image = "'"$REDIS_IMAGEREF"'"' \
-		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imageref.json
+		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
 
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_by_imageref.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 
 	crictl start "$ctr_id"
 	output=$(crictl inspect -o yaml "$ctr_id")
@@ -81,9 +81,9 @@ function teardown() {
 	crictl pull "$IMAGE_LIST_DIGEST"
 
 	jq '.image.image = "'"$IMAGE_LIST_DIGEST"'"' \
-		"$TESTDATA"/container_config_by_imageid.json > "$TESTDIR"/ctr_by_imagelistref.json
+		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
 
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr_by_imagelistref.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 
 	crictl start "$ctr_id"
 	output=$(crictl inspect -o yaml "$ctr_id")
@@ -170,7 +170,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull and list by manifest list tag" {
@@ -194,18 +193,6 @@ function teardown() {
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}"* ]]
 		;;
-	arm64)
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_ARM64})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
-		;;
-	ppc64le)
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
-		;;
-	s390x)
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_S390X})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
-		;;
 	esac
 
 	output=$(crictl images --quiet @"$imageid")
@@ -215,7 +202,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull and list by manifest list and individual digest" {
@@ -231,21 +217,6 @@ function teardown() {
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
-	arm64)
-		crictl pull ${IMAGE_LIST_DIGEST_ARM64}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_ARM64})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
-		;;
-	ppc64le)
-		crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
-		;;
-	s390x)
-		crictl pull ${IMAGE_LIST_DIGEST_S390X}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_S390X})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
-		;;
 	esac
 
 	output=$(crictl images -v ${IMAGE_LIST_DIGEST})
@@ -258,7 +229,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image pull and list by individual and manifest list digest" {
@@ -269,21 +239,6 @@ function teardown() {
 		crictl pull ${IMAGE_LIST_DIGEST_AMD64}
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
-		;;
-	arm64)
-		crictl pull ${IMAGE_LIST_DIGEST_ARM64}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_ARM64})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_ARM64}"* ]]
-		;;
-	ppc64le)
-		crictl pull ${IMAGE_LIST_DIGEST_PPC64LE}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_PPC64LE})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_PPC64LE}"* ]]
-		;;
-	s390x)
-		crictl pull ${IMAGE_LIST_DIGEST_S390X}
-		output=$(crictl images -v ${IMAGE_LIST_DIGEST_S390X})
-		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_S390X}"* ]]
 		;;
 	esac
 
@@ -302,7 +257,6 @@ function teardown() {
 	[ "$output" != "" ]
 
 	cleanup_images
-	stop_crio
 }
 
 @test "image list with filter" {

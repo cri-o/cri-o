@@ -13,5 +13,4 @@ function teardown() {
 @test "crictl runtimeversion" {
 	start_crio
 	crictl info
-	stop_crio
 }
