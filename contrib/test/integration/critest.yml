@@ -25,7 +25,7 @@
     value: 1
 
 - name: Add masquerade for localhost
-  command: iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE
+  command: iptables -t nat -I POSTROUTING -s 127.0.0.0/8 ! -d 127.0.0.0/8 -j MASQUERADE
 
 - name: ensure directory exists for e2e reports
   file:
