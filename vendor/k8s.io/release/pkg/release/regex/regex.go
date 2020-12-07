@@ -17,20 +17,11 @@ limitations under the License.
 package regex
 
 import (
-	"fmt"
 	"regexp"
 )
 
 const (
-	releaseRegexStr = `v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[a-zA-Z0-9]+)*\.*(0|[1-9][0-9]*)?`
-	buildRegexStr   = `([0-9]{1,})\+([0-9a-f]{5,40})`
-	branchRegexStr  = `master|release-([0-9]{1,})\.([0-9]{1,})(\.([0-9]{1,}))*$`
+	branchRegexStr = `master|release-([0-9]{1,})\.([0-9]{1,})(\.([0-9]{1,}))*$`
 )
 
-var (
-	BranchRegex          = regexp.MustCompile(branchRegexStr)
-	ReleaseRegex         = regexp.MustCompile(releaseRegexStr)
-	ReleaseAndBuildRegex = regexp.MustCompile(
-		fmt.Sprintf("%s.%s", releaseRegexStr, buildRegexStr),
-	)
-)
+var BranchRegex = regexp.MustCompile(branchRegexStr)

@@ -22,7 +22,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/docker/distribution/registry/api/errcode"
 	v2 "github.com/docker/distribution/registry/api/v2"
-	"github.com/docker/distribution/registry/client"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -79,12 +78,12 @@ func (d *dockerImageDestination) SupportsSignatures(ctx context.Context) error {
 		return err
 	}
 	switch {
-	case d.c.signatureBase != nil:
-		return nil
 	case d.c.supportsSignatures:
 		return nil
+	case d.c.signatureBase != nil:
+		return nil
 	default:
-		return errors.Errorf("X-Registry-Supports-Signatures extension not supported, and lookaside is not configured")
+		return errors.Errorf("Internal error: X-Registry-Supports-Signatures extension not supported, and lookaside should not be empty configuration")
 	}
 }
 
@@ -154,7 +153,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusAccepted {
 		logrus.Debugf("Error initiating layer upload, response %#v", *res)
-		return types.BlobInfo{}, errors.Wrapf(client.HandleErrorResponse(res), "Error initiating layer upload to %s in %s", uploadPath, d.c.registry)
+		return types.BlobInfo{}, errors.Wrapf(registryHTTPResponseToError(res), "Error initiating layer upload to %s in %s", uploadPath, d.c.registry)
 	}
 	uploadLocation, err := res.Location()
 	if err != nil {
@@ -175,7 +174,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 		}
 		defer res.Body.Close()
 		if !successStatus(res.StatusCode) {
-			return nil, errors.Wrapf(client.HandleErrorResponse(res), "Error uploading layer chunked")
+			return nil, errors.Wrapf(registryHTTPResponseToError(res), "Error uploading layer chunked")
 		}
 		uploadLocation, err := res.Location()
 		if err != nil {
@@ -201,7 +200,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
 		logrus.Debugf("Error uploading layer, response %#v", *res)
-		return types.BlobInfo{}, errors.Wrapf(client.HandleErrorResponse(res), "Error uploading layer to %s", uploadLocation)
+		return types.BlobInfo{}, errors.Wrapf(registryHTTPResponseToError(res), "Error uploading layer to %s", uploadLocation)
 	}
 
 	logrus.Debugf("Upload of layer %s complete", computedDigest)
@@ -226,7 +225,7 @@ func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.
 		return true, getBlobSize(res), nil
 	case http.StatusUnauthorized:
 		logrus.Debugf("... not authorized")
-		return false, -1, errors.Wrapf(client.HandleErrorResponse(res), "Error checking whether a blob %s exists in %s", digest, repo.Name())
+		return false, -1, errors.Wrapf(registryHTTPResponseToError(res), "Error checking whether a blob %s exists in %s", digest, repo.Name())
 	case http.StatusNotFound:
 		logrus.Debugf("... not present")
 		return false, -1, nil
@@ -277,7 +276,7 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 		return fmt.Errorf("Mounting %s from %s to %s started an upload instead", srcDigest, srcRepo.Name(), d.ref.ref.Name())
 	default:
 		logrus.Debugf("Error mounting, response %#v", *res)
-		return errors.Wrapf(client.HandleErrorResponse(res), "Error mounting %s from %s to %s", srcDigest, srcRepo.Name(), d.ref.ref.Name())
+		return errors.Wrapf(registryHTTPResponseToError(res), "Error mounting %s from %s to %s", srcDigest, srcRepo.Name(), d.ref.ref.Name())
 	}
 }
 
@@ -285,7 +284,7 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
 // If canSubstitute, TryReusingBlob can use an equivalent equivalent of the desired blob; in that case the returned info may not match the input.
-// If the blob has been succesfully reused, returns (true, info, nil); info must contain at least a digest and size.
+// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size.
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 // May use and/or update cache.
 func (d *dockerImageDestination) TryReusingBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
@@ -336,7 +335,7 @@ func (d *dockerImageDestination) TryReusingBlob(ctx context.Context, info types.
 		// On success we avoid the actual costly upload; so, in a sense, the success case is "free", but failures are always costly.
 		// Even worse, docker/distribution does not actually reasonably implement canceling uploads
 		// (it would require a "delete" action in the token, and Quay does not give that to anyone, so we can't ask);
-		// so, be a nice client and don't create unnecesary upload sessions on the server.
+		// so, be a nice client and don't create unnecessary upload sessions on the server.
 		exists, size, err := d.blobExists(ctx, candidateRepo, candidate.Digest, extraScope)
 		if err != nil {
 			logrus.Debugf("... Failed: %v", err)
@@ -414,7 +413,7 @@ func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte, inst
 	}
 	defer res.Body.Close()
 	if !successStatus(res.StatusCode) {
-		err = errors.Wrapf(client.HandleErrorResponse(res), "Error uploading manifest %s to %s", refTail, d.ref.ref.Name())
+		err = errors.Wrapf(registryHTTPResponseToError(res), "Error uploading manifest %s to %s", refTail, d.ref.ref.Name())
 		if isManifestInvalidError(errors.Cause(err)) {
 			err = types.ManifestTypeRejectedError{Err: err}
 		}
@@ -480,12 +479,12 @@ func (d *dockerImageDestination) PutSignatures(ctx context.Context, signatures [
 		return err
 	}
 	switch {
-	case d.c.signatureBase != nil:
-		return d.putSignaturesToLookaside(signatures, *instanceDigest)
 	case d.c.supportsSignatures:
 		return d.putSignaturesToAPIExtension(ctx, signatures, *instanceDigest)
+	case d.c.signatureBase != nil:
+		return d.putSignaturesToLookaside(signatures, *instanceDigest)
 	default:
-		return errors.Errorf("X-Registry-Supports-Signatures extension not supported, and lookaside is not configured")
+		return errors.Errorf("Internal error: X-Registry-Supports-Signatures extension not supported, and lookaside should not be empty configuration")
 	}
 }
 
@@ -503,9 +502,6 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures [][]byte, m
 	// NOTE: Keep this in sync with docs/signature-protocols.md!
 	for i, signature := range signatures {
 		url := signatureStorageURL(d.c.signatureBase, manifestDigest, i)
-		if url == nil {
-			return errors.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
-		}
 		err := d.putOneSignature(url, signature)
 		if err != nil {
 			return err
@@ -518,9 +514,6 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures [][]byte, m
 	// is sufficient.
 	for i := len(signatures); ; i++ {
 		url := signatureStorageURL(d.c.signatureBase, manifestDigest, i)
-		if url == nil {
-			return errors.Errorf("Internal error: signatureStorageURL with non-nil base returned nil")
-		}
 		missing, err := d.c.deleteOneSignature(url)
 		if err != nil {
 			return err
@@ -641,7 +634,7 @@ sigExists:
 				logrus.Debugf("Error body %s", string(body))
 			}
 			logrus.Debugf("Error uploading signature, status %d, %#v", res.StatusCode, res)
-			return errors.Wrapf(client.HandleErrorResponse(res), "Error uploading signature to %s in %s", path, d.c.registry)
+			return errors.Wrapf(registryHTTPResponseToError(res), "Error uploading signature to %s in %s", path, d.c.registry)
 		}
 	}
 

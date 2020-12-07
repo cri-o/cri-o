@@ -44,6 +44,7 @@ const (
 	gitHubAPIGetRepository              gitHubAPI = "GetRepository"
 	gitHubAPIListBranches               gitHubAPI = "ListBranches"
 	gitHubAPIGetReleaseByTag            gitHubAPI = "GetReleaseByTag"
+	gitHubAPIListReleaseAssets          gitHubAPI = "ListReleaseAssets"
 )
 
 type apiRecord struct {
@@ -205,6 +206,41 @@ func (c *githubNotesRecordClient) ListBranches(
 	}
 
 	return branches, resp, nil
+}
+
+// UpdateReleasePage modifies a release, not recorded
+func (c *githubNotesRecordClient) UpdateReleasePage(
+	ctx context.Context, owner, repo string, releaseID int64, releaseData *github.RepositoryRelease,
+) (*github.RepositoryRelease, error) {
+	return &github.RepositoryRelease{}, nil
+}
+
+// UploadReleaseAsset uploads files, not recorded
+func (c *githubNotesRecordClient) UploadReleaseAsset(
+	context.Context, string, string, int64, *github.UploadOptions, *os.File,
+) (*github.ReleaseAsset, error) {
+	return &github.ReleaseAsset{}, nil
+}
+
+// DeleteReleaseAsset removes an asset from a page, note recorded
+func (c *githubNotesRecordClient) DeleteReleaseAsset(
+	ctx context.Context, owner, repo string, assetID int64) error {
+	return nil
+}
+
+func (c *githubNotesRecordClient) ListReleaseAssets(
+	ctx context.Context, owner, repo string, releaseID int64,
+) ([]*github.ReleaseAsset, error) {
+	assets, err := c.client.ListReleaseAssets(ctx, owner, repo, releaseID)
+	if err != nil {
+		return assets, err
+	}
+
+	if err := c.recordAPICall(gitHubAPIListReleaseAssets, assets, nil); err != nil {
+		return nil, err
+	}
+
+	return assets, nil
 }
 
 // recordAPICall records a single GitHub API call into a JSON file by ensuring

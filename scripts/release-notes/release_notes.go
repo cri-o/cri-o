@@ -68,13 +68,13 @@ func run() error {
 	}
 	logrus.Infof("Using HEAD commit %s", head)
 
-	targetBranch := git.Master
+	targetBranch := git.DefaultBranch
 	currentBranch, err := repo.CurrentBranch()
 	if err != nil {
 		return errors.Wrap(err, "get current branch")
 	}
 	logrus.Infof("Found current branch %s", currentBranch)
-	if git.IsReleaseBranch(currentBranch) && currentBranch != git.Master {
+	if git.IsReleaseBranch(currentBranch) && currentBranch != git.DefaultBranch {
 		targetBranch = currentBranch
 	}
 	logrus.Infof("Using target branch %s", targetBranch)

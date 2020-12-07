@@ -19,6 +19,7 @@ package notes
 import (
 	"bufio"
 	"context"
+	"crypto/sha1"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -31,6 +32,7 @@ import (
 	"github.com/nozzle/throttler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 
 	"k8s.io/release/pkg/github"
 	"k8s.io/release/pkg/notes/options"
@@ -50,8 +52,10 @@ const (
 	maxParallelRequests = 10
 )
 
-type Notes []string
-type Kind string
+type (
+	Notes []string
+	Kind  string
+)
 
 // CVEData Information of a linked CVE vulnerability
 type CVEData struct {
@@ -128,10 +132,6 @@ type ReleaseNote struct {
 	// ActionRequired indicates whether or not the release-note-action-required
 	// label was set on the PR
 	ActionRequired bool `json:"action_required,omitempty"`
-
-	// Tags each note with a release version if specified
-	// If not specified, omitted
-	ReleaseVersion string `json:"release_version,omitempty"`
 
 	// DataFields a key indexed map of data fields
 	DataFields map[string]ReleaseNotesDataField `json:"data_fields,omitempty"`
@@ -238,7 +238,6 @@ func NewGathererWithClient(ctx context.Context, c github.Client) *Gatherer {
 func GatherReleaseNotes(opts *options.Options) (*ReleaseNotes, error) {
 	logrus.Info("Gathering release notes")
 	gatherer, err := NewGatherer(context.Background(), opts)
-
 	if err != nil {
 		return nil, errors.Wrapf(err, "retrieving notes gatherer")
 	}
@@ -283,7 +282,7 @@ func (g *Gatherer) ListReleaseNotes() (*ReleaseNotes, error) {
 			}
 		}
 
-		note, err := g.ReleaseNoteFromCommit(result, g.options.ReleaseVersion)
+		note, err := g.ReleaseNoteFromCommit(result)
 		if err != nil {
 			logrus.Errorf(
 				"Getting the release note from commit %s (PR #%d): %v",
@@ -340,8 +339,7 @@ func noteTextFromString(s string) (string, error) {
 			}
 		}
 
-		note := strings.ReplaceAll(result["note"], "#", "&#35;")
-		note = strings.ReplaceAll(note, "\r", "")
+		note := strings.ReplaceAll(result["note"], "\r", "")
 		note = stripActionRequired(note)
 		note = dashify(note)
 		note = unlist(note)
@@ -411,7 +409,7 @@ func classifyURL(u *url.URL) DocType {
 
 // ReleaseNoteFromCommit produces a full contextualized release note given a
 // GitHub commit API resource.
-func (g *Gatherer) ReleaseNoteFromCommit(result *Result, relVer string) (*ReleaseNote, error) {
+func (g *Gatherer) ReleaseNoteFromCommit(result *Result) (*ReleaseNote, error) {
 	pr := result.pullRequest
 
 	prBody := pr.GetBody()
@@ -469,7 +467,6 @@ func (g *Gatherer) ReleaseNoteFromCommit(result *Result, relVer string) (*Releas
 		Duplicate:      isDuplicateSIG,
 		DuplicateKind:  isDuplicateKind,
 		ActionRequired: isActionRequired(pr),
-		ReleaseVersion: relVer,
 	}, nil
 }
 
@@ -567,7 +564,7 @@ var noteExclusionFilters = []*regexp.Regexp{
 	// 'none','n/a','na' case insensitive with optional trailing
 	// whitespace, wrapped in ``` with/without release-note identifier
 	// the 'none','n/a','na' can also optionally be wrapped in quotes ' or "
-	regexp.MustCompile("(?i)```(release-note[s]?\\s*)?('|\")?(none|n/a|na)?('|\")?\\s*```"),
+	regexp.MustCompile("(?i)```release-note[s]?\\s*('|\")?(none|n/a|na)?('|\")?\\s*```"),
 
 	// simple '/release-note-none' tag
 	regexp.MustCompile("/release-note-none"),
@@ -1013,10 +1010,6 @@ func (rn *ReleaseNote) ApplyMap(noteMap *ReleaseNotesMap) error {
 		rn.ActionRequired = *noteMap.ReleaseNote.ActionRequired
 	}
 
-	if noteMap.ReleaseNote.ReleaseVersion != nil {
-		rn.ReleaseVersion = *noteMap.ReleaseNote.ReleaseVersion
-	}
-
 	// If there are datafields, add them
 	if len(noteMap.DataFields) > 0 {
 		rn.DataFields = make(map[string]ReleaseNotesDataField)
@@ -1033,7 +1026,46 @@ func (rn *ReleaseNote) ApplyMap(noteMap *ReleaseNotesMap) error {
 			indented, rn.PrNumber, rn.PrURL, rn.Author, rn.AuthorURL)
 		// Uppercase the first character of the markdown to make it look uniform
 		rn.Markdown = strings.ToUpper(string(markdown[0])) + markdown[1:]
-		logrus.Warn(rn.Markdown)
 	}
 	return nil
+}
+
+// ToNoteMap returns the note's content as YAML code for use in a notemap
+func (rn *ReleaseNote) ToNoteMap() (string, error) {
+	noteMap := &ReleaseNotesMap{
+		PR:     rn.PrNumber,
+		Commit: rn.Commit,
+	}
+
+	noteMap.ReleaseNote.Text = &rn.Text
+	noteMap.ReleaseNote.Documentation = &rn.Documentation
+	noteMap.ReleaseNote.Author = &rn.Author
+	noteMap.ReleaseNote.Areas = &rn.Areas
+	noteMap.ReleaseNote.Kinds = &rn.Kinds
+	noteMap.ReleaseNote.SIGs = &rn.SIGs
+	noteMap.ReleaseNote.Feature = &rn.Feature
+	noteMap.ReleaseNote.ActionRequired = &rn.ActionRequired
+
+	yamlCode, err := yaml.Marshal(&noteMap)
+	if err != nil {
+		return "", errors.Wrap(err, "marshalling release note to map")
+	}
+
+	return string(yamlCode), nil
+}
+
+// ContentHash returns a sha1 hash derived from the note's content
+func (rn *ReleaseNote) ContentHash() (string, error) {
+	// Converto the note to a map
+	noteMap, err := rn.ToNoteMap()
+	if err != nil {
+		return "", errors.Wrap(err, "serializing note's content")
+	}
+
+	h := sha1.New()
+	_, err = h.Write([]byte(noteMap))
+	if err != nil {
+		return "", errors.Wrap(err, "calculating content hash from map")
+	}
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }

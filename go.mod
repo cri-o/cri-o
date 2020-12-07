@@ -13,7 +13,7 @@ require (
 	github.com/containers/buildah v1.15.2
 	github.com/containers/common v0.21.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.5.2
+	github.com/containers/image/v5 v5.7.0
 	github.com/containers/libpod/v2 v2.0.6
 	github.com/containers/ocicrypt v1.0.3
 	github.com/containers/storage v1.24.0
@@ -28,14 +28,14 @@ require (
 	github.com/go-zoo/bone v1.3.0
 	github.com/godbus/dbus/v5 v5.0.3
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/mock v1.4.3
+	github.com/golang/mock v1.4.4
 	github.com/google/renameio v0.1.0
 	github.com/google/uuid v1.1.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.10
-	github.com/onsi/ginkgo v1.14.0
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/gomega v1.10.3
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
 	github.com/opencontainers/runc v1.0.0-rc92
@@ -44,7 +44,7 @@ require (
 	github.com/opencontainers/selinux v1.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
-	github.com/psampaz/go-mod-outdated v0.6.0
+	github.com/psampaz/go-mod-outdated v0.7.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/stretchr/testify v1.6.1
@@ -54,14 +54,14 @@ require (
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
-	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.33.2
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
-	k8s.io/client-go v0.0.0
+	k8s.io/client-go v0.18.8
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog/v2 v2.4.0
 	k8s.io/kubernetes v1.19.2
-	k8s.io/release v0.4.0
+	k8s.io/release v0.6.0
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	mvdan.cc/sh/v3 v3.2.0
 )
