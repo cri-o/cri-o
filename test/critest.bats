@@ -17,8 +17,8 @@ function teardown() {
 
 @test "run the critest suite" {
 	critest --parallel 8 \
-		--runtime-endpoint "${CRIO_SOCKET}" \
-		--image-endpoint "${CRIO_SOCKET}" \
+		--runtime-endpoint "unix://${CRIO_SOCKET}" \
+		--image-endpoint "unix://${CRIO_SOCKET}" \
 		--ginkgo.focus="${CRI_FOCUS}" \
 		--ginkgo.skip="${CRI_SKIP}" \
 		--ginkgo.flakeAttempts=3 >&3
