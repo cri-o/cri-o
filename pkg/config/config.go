@@ -153,6 +153,7 @@ type RuntimeHandler struct {
 	// The currently recognized values are:
 	// "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
 	// "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
+	// "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 }
 
@@ -189,12 +190,6 @@ type RuntimeConfig struct {
 	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
 	// will only be able to write to volumes mounted into them
 	ReadOnly bool `toml:"read_only"`
-
-	// If set to true, enable users to set a custom shm size instead of using the default value of 64M.
-	// The shm size can be set through K8S annotation with the key "io.kubernetes.cri-o.ShmSize",
-	// and the value representing the size in human readable format.
-	// For example: "io.kubernetes.cri-o.ShmSize: 128Mi"
-	EnableCustomShmSize bool `toml:"enable_custom_shm_size"`
 
 	// ConmonEnv is the environment variable list for conmon process.
 	ConmonEnv []string `toml:"conmon_env"`
