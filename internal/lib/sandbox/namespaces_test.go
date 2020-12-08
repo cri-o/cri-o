@@ -1,142 +1,95 @@
 package sandbox_test
 
 import (
-	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/config"
-	sandboxmock "github.com/cri-o/cri-o/test/mocks/sandbox"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-var (
-	allManagedNamespaces = []sandbox.NSType{
-		sandbox.NETNS, sandbox.IPCNS, sandbox.UTSNS, sandbox.USERNS,
-	}
-	numManagedNamespaces = 4
+const numNamespaces = 4
 
-	ids = []idtools.IDMap{
-		{
-			ContainerID: 0,
-			HostID:      0,
-			Size:        1000000,
-		},
-	}
-	idMappings = idtools.NewIDMappingsFromMaps(ids, ids)
-)
-
-// pinNamespaceFunctor is a way to generically create a mockable pinNamespaces() function
-// it stores a function that is used to populate the mock instance, which allows us to test
-// different paths
-type pinNamespacesFunctor struct {
-	ifaceModifyFunc func(ifaceMock *sandboxmock.MockNamespaceIface)
+type spoofedIface struct {
+	nsType  nsmgr.NSType
+	removed bool
 }
 
-// pinNamespaces is a spoof of namespaces_linux.go:pinNamespaces.
-// it calls ifaceModifyFunc() to customize the behavior of this functor
-func (p *pinNamespacesFunctor) pinNamespaces(nsTypes []sandbox.NSType, cfg *config.Config, mappings *idtools.IDMappings, sysctls map[string]string) ([]sandbox.NamespaceIface, error) {
-	ifaces := make([]sandbox.NamespaceIface, 0)
-	for _, nsType := range nsTypes {
-		if mappings == nil && nsType == sandbox.USERNS {
-			continue
-		}
-		ifaceMock := sandboxmock.NewMockNamespaceIface(mockCtrl)
-		// we always call initialize and type, as they're both called no matter what happens
-		// in CreateManagedNamespaces()
-		ifaceMock.EXPECT().Initialize().Return(ifaceMock)
-		ifaceMock.EXPECT().Type().Return(nsType)
-
-		p.ifaceModifyFunc(ifaceMock)
-		ifaces = append(ifaces, ifaceMock)
-	}
-	return ifaces, nil
+func (s *spoofedIface) Type() nsmgr.NSType {
+	return s.nsType
 }
 
-// genericNamespaceParentDir is used when we create a generic functor
-// it should not have anything created in it, nor should it be removed.
-var genericNamespaceParentDir = "/tmp"
-
-// newGenericFunctor takes a namespace directory and returns a functor
-// that only further populates the Path() call.
-// useful for situations we expect CreateManagedNamespaces to succeed
-// (perhaps while testing other functionality)
-func newGenericFunctor() *pinNamespacesFunctor {
-	return &pinNamespacesFunctor{
-		ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
-			setPathToDir(genericNamespaceParentDir, ifaceMock)
-		},
-	}
+func (s *spoofedIface) Remove() error {
+	s.removed = true
+	return nil
 }
 
-// setPathToDir sets the ifaceMock's path to a directory
-// using the Type() already loaded in.
-// it returns the nsType, in case the caller wants to set the Path again
-func setPathToDir(directory string, ifaceMock *sandboxmock.MockNamespaceIface) sandbox.NSType {
-	// to be able to retrieve this value here, we need to burn one of
-	// our allocated Type() calls. Luckily, we can just repopulate it immediately
-	nsType := ifaceMock.Type()
-	ifaceMock.EXPECT().Type().Return(nsType)
+func (s *spoofedIface) Path() string {
+	return filepath.Join("tmp", string(s.nsType))
+}
 
-	ifaceMock.EXPECT().Path().Return(filepath.Join(directory, string(nsType)))
-	return nsType
+var allManagedNamespaces = []nsmgr.Namespace{
+	&spoofedIface{
+		nsType: nsmgr.IPCNS,
+	},
+	&spoofedIface{
+		nsType: nsmgr.UTSNS,
+	},
+	&spoofedIface{
+		nsType: nsmgr.NETNS,
+	},
+	&spoofedIface{
+		nsType: nsmgr.USERNS,
+	},
 }
 
 // The actual test suite
 var _ = t.Describe("SandboxManagedNamespaces", func() {
 	// Setup the SUT
 	BeforeEach(beforeEach)
-	t.Describe("CreateSandboxNamespaces", func() {
+	t.Describe("AddManagedNamespaces", func() {
+		It("should succeed if nil", func() {
+			// Given
+			var managedNamespaces []nsmgr.Namespace
+
+			// When
+			testSandbox.AddManagedNamespaces(managedNamespaces)
+
+			// Then
+			Expect(len(testSandbox.NamespacePaths())).To(Equal(0))
+		})
 		It("should succeed if empty", func() {
 			// Given
-			managedNamespaces := make([]sandbox.NSType, 0)
+			managedNamespaces := make([]nsmgr.Namespace, 0)
 
 			// When
-			ns, err := testSandbox.CreateManagedNamespaces(managedNamespaces, idMappings, nil, nil)
+			testSandbox.AddManagedNamespaces(managedNamespaces)
 
 			// Then
-			Expect(err).To(BeNil())
-			Expect(len(ns)).To(Equal(0))
+			Expect(len(testSandbox.NamespacePaths())).To(Equal(0))
 		})
 
-		It("should fail on invalid namespace", func() {
-			withRemoval := pinNamespacesFunctor{
-				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
-					ifaceMock.EXPECT().Remove().Return(nil)
-				},
-			}
-
-			// Given
-			managedNamespaces := []sandbox.NSType{"invalid"}
-
-			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, withRemoval.pinNamespaces)
-
-			// Then
-			Expect(err).To(Not(BeNil()))
-		})
 		It("should succeed with valid namespaces", func() {
-			// Given
-			nsFound := make(map[string]bool)
-			for _, nsType := range allManagedNamespaces {
-				nsFound[filepath.Join(genericNamespaceParentDir, string(nsType))] = false
-			}
-			successful := newGenericFunctor()
 			// When
-			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, idMappings, nil, nil, successful.pinNamespaces)
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 
 			// Then
-			Expect(err).To(BeNil())
-			Expect(len(createdNamespaces)).To(Equal(numManagedNamespaces))
-			for _, ns := range createdNamespaces {
-				_, found := nsFound[ns.Path()]
-				Expect(found).To(Equal(true))
+			createdNamespaces := testSandbox.NamespacePaths()
+			Expect(len(createdNamespaces)).To(Equal(4))
+		})
+		It("should panic with invalid namespaces", func() {
+			// Given
+			// When
+			ns := &spoofedIface{
+				nsType: "invalid",
 			}
+			// Then
+			Expect(func() {
+				testSandbox.AddManagedNamespaces([]nsmgr.Namespace{ns})
+			}).To(Panic())
 		})
 	})
 	t.Describe("RemoveManagedNamespaces", func() {
@@ -150,28 +103,10 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should succeed when namespaces not nil", func() {
 			// Given
-			tmpDir := createTmpDir()
-			withTmpDir := pinNamespacesFunctor{
-				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
-					nsType := ifaceMock.Type()
-					ifaceMock.EXPECT().Type().Return(nsType)
-					ifaceMock.EXPECT().Path().Return(filepath.Join(tmpDir, string(nsType)))
-					ifaceMock.EXPECT().Remove().Return(nil)
-				},
-			}
-
-			createdNamespaces, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, idMappings, nil, nil, withTmpDir.pinNamespaces)
-			Expect(err).To(BeNil())
-
-			for _, ns := range createdNamespaces {
-				f, err := os.Create(ns.Path())
-				f.Close()
-
-				Expect(err).To(BeNil())
-			}
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 
 			// When
-			err = testSandbox.RemoveManagedNamespaces()
+			err := testSandbox.RemoveManagedNamespaces()
 
 			// Then
 			Expect(err).To(BeNil())
@@ -240,51 +175,40 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should fail when sandbox already has network namespace", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"net"}
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 
-			successful := newGenericFunctor()
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, successful.pinNamespaces)
-			Expect(err).To(BeNil())
-			err = testSandbox.NetNsJoin("/proc/self/ns/net")
+			err := testSandbox.NetNsJoin("/proc/self/ns/net")
 
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
 		It("should fail when sandbox already has ipc namespace", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"ipc"}
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 
-			successful := newGenericFunctor()
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, successful.pinNamespaces)
-			Expect(err).To(BeNil())
-			err = testSandbox.IpcNsJoin("/proc/self/ns/ipc")
+			err := testSandbox.IpcNsJoin("/proc/self/ns/ipc")
 
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
 		It("should fail when sandbox already has uts namespace", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"uts"}
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 
-			successful := newGenericFunctor()
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, successful.pinNamespaces)
-			Expect(err).To(BeNil())
-			err = testSandbox.UtsNsJoin("/proc/self/ns/uts")
+			err := testSandbox.UtsNsJoin("/proc/self/ns/uts")
 
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
 		It("should fail when sandbox already has user namespace", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"user"}
-			successful := newGenericFunctor()
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
+
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, successful.pinNamespaces)
-			Expect(err).To(BeNil())
-			err = testSandbox.UserNsJoin("/proc/self/ns/user")
+			err := testSandbox.UserNsJoin("/proc/self/ns/user")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -361,18 +285,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when network is set", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"net"}
-			getPath := pinNamespacesFunctor{
-				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
-					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
-					ifaceMock.EXPECT().Get().Return(&sandbox.Namespace{})
-					ifaceMock.EXPECT().Path().Return(filepath.Join(genericNamespaceParentDir, string(nsType)))
-				},
-			}
-
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, getPath.pinNamespaces)
-			Expect(err).To(BeNil())
-
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 			// When
 			path := testSandbox.NetNsPath()
 			// Then
@@ -380,18 +293,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when ipc is set", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"ipc"}
-			getPath := pinNamespacesFunctor{
-				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
-					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
-					ifaceMock.EXPECT().Get().Return(&sandbox.Namespace{})
-					ifaceMock.EXPECT().Path().Return(filepath.Join(genericNamespaceParentDir, string(nsType)))
-				},
-			}
-
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, getPath.pinNamespaces)
-			Expect(err).To(BeNil())
-
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 			// When
 			path := testSandbox.IpcNsPath()
 			// Then
@@ -399,18 +301,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when uts is set", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"uts"}
-			getPath := pinNamespacesFunctor{
-				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
-					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
-					ifaceMock.EXPECT().Get().Return(&sandbox.Namespace{})
-					ifaceMock.EXPECT().Path().Return(filepath.Join(genericNamespaceParentDir, string(nsType)))
-				},
-			}
-
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, getPath.pinNamespaces)
-			Expect(err).To(BeNil())
-
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 			// When
 			path := testSandbox.UtsNsPath()
 			// Then
@@ -418,18 +309,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when user is set", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"user"}
-			getPath := pinNamespacesFunctor{
-				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
-					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
-					ifaceMock.EXPECT().Get().Return(&sandbox.Namespace{})
-					ifaceMock.EXPECT().Path().Return(filepath.Join(genericNamespaceParentDir, string(nsType)))
-				},
-			}
-
-			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, getPath.pinNamespaces)
-			Expect(err).To(BeNil())
-
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 			// When
 			path := testSandbox.UserNsPath()
 			// Then
@@ -455,7 +335,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			for _, ns := range nsPaths {
 				Expect(ns.Path()).To(ContainSubstring("/proc"))
 			}
-			Expect(len(nsPaths)).To(Equal(numManagedNamespaces))
+			Expect(len(nsPaths)).To(Equal(numNamespaces))
 			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))
 		})
 		It("should get nothing when infra set with pid not running", func() {
@@ -471,23 +351,14 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		It("should get managed path (except pid) despite infra set", func() {
 			// Given
 			setupInfraContainerWithPid(1)
-			getPath := pinNamespacesFunctor{
-				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
-					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
-					ifaceMock.EXPECT().Get().Return(&sandbox.Namespace{})
-					ifaceMock.EXPECT().Path().Return(filepath.Join(genericNamespaceParentDir, string(nsType)))
-				},
-			}
 			// When
-			_, err := testSandbox.CreateNamespacesWithFunc(allManagedNamespaces, idMappings, nil, nil, getPath.pinNamespaces)
-			Expect(err).To(BeNil())
-			// When
+			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
 			for _, ns := range nsPaths {
 				Expect(ns.Path()).NotTo(ContainSubstring("/proc"))
 			}
-			Expect(len(nsPaths)).To(Equal(numManagedNamespaces))
+			Expect(len(nsPaths)).To(Equal(numNamespaces))
 
 			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))
 		})

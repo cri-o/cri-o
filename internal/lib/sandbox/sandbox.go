@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/pkg/errors"
@@ -37,10 +38,10 @@ type Sandbox struct {
 	containers     oci.ContainerStorer
 	processLabel   string
 	mountLabel     string
-	netns          NamespaceIface
-	ipcns          NamespaceIface
-	utsns          NamespaceIface
-	userns         NamespaceIface
+	netns          nsmgr.Namespace
+	ipcns          nsmgr.Namespace
+	utsns          nsmgr.Namespace
+	userns         nsmgr.Namespace
 	shmPath        string
 	cgroupParent   string
 	runtimeHandler string

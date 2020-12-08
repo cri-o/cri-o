@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -58,54 +57,18 @@ type NamespaceOption struct {
 	TargetID string `json:"target_id,omitempty"`
 }
 
-// NSType is an abstraction about available namespace types
-type NSType string
-
-const (
-	NETNS         NSType = "net"
-	IPCNS         NSType = "ipc"
-	UTSNS         NSType = "uts"
-	USERNS        NSType = "user"
-	PIDNS         NSType = "pid"
-	numNamespaces        = 4
-)
-
-// NamespaceIface provides a generic namespace interface
-type NamespaceIface interface {
-	// Close closes this network namespace
-	Close() error
-
-	// Get returns the native Namespace
-	Get() *Namespace
-
-	// Initialize does the necessary setup
-	Initialize() NamespaceIface
-
-	// Initialized returns true if already initialized
-	Initialized() bool
-
-	// Remove ensures this network namespace handle is closed and removed
-	Remove() error
-
-	// Path returns the bind mount path of the namespace
-	Path() string
-
-	// Type returns the namespace type (net, ipc or uts)
-	Type() NSType
-}
-
 // ManagedNamespace is a structure that holds all the necessary information a caller would
 // need for a sandbox managed namespace
-// Where NamespaceIface does hold similar information, ManagedNamespace exists to allow this library
-// to not return data not necessarily in a NamespaceIface (for instance, when a namespace is not managed
+// Where nsmgr.Namespace does hold similar information, ManagedNamespace exists to allow this library
+// to not return data not necessarily in a Namespace (for instance, when a namespace is not managed
 // by CRI-O, but instead is based off of the infra pid)
 type ManagedNamespace struct {
 	nsPath string
-	nsType NSType
+	nsType nsmgr.NSType
 }
 
 // Type returns the namespace type
-func (m *ManagedNamespace) Type() NSType {
+func (m *ManagedNamespace) Type() nsmgr.NSType {
 	return m.nsType
 }
 
@@ -114,72 +77,30 @@ func (m *ManagedNamespace) Path() string {
 	return m.nsPath
 }
 
-// CreateManagedNamespaces calls pinnsPath on all the managed namespaces for the sandbox.
-// It returns a slice of ManagedNamespaces it created.
-func (s *Sandbox) CreateManagedNamespaces(managedNamespaces []NSType, idMappings *idtools.IDMappings, sysctls map[string]string, cfg *config.Config) ([]*ManagedNamespace, error) {
-	return s.CreateNamespacesWithFunc(managedNamespaces, idMappings, sysctls, cfg, pinNamespaces)
-}
-
-type namespacePinner func([]NSType, *config.Config, *idtools.IDMappings, map[string]string) ([]NamespaceIface, error)
-
-// CreateManagedNamespacesWithFunc is mainly added for testing purposes. There's no point in actually calling the pinns binary
-// in unit tests, so this function allows the actual pin func to be abstracted out. Every other caller should use CreateManagedNamespaces
-func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, idMappings *idtools.IDMappings, sysctls map[string]string, cfg *config.Config, pinFunc namespacePinner) (mns []*ManagedNamespace, retErr error) {
-	typesAndPaths := make([]*ManagedNamespace, 0, 4)
-	if len(managedNamespaces) == 0 {
-		return typesAndPaths, nil
+func (s *Sandbox) AddManagedNamespaces(namespaces []nsmgr.Namespace) {
+	// if the namespace structure wasn't initialized, we have nothing to do here
+	if namespaces == nil {
+		return
 	}
-
-	namespaces, err := pinFunc(managedNamespaces, cfg, idMappings, sysctls)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, namespace := range namespaces {
-		namespaceIface := namespace.Initialize()
-		defer func() {
-			if retErr != nil {
-				if err1 := namespaceIface.Remove(); err1 != nil {
-					logrus.Warnf("removing namespace interface returned: %v", err1)
-				}
-			}
-		}()
-
-		switch namespace.Type() {
-		case NETNS:
-			s.netns = namespaceIface
-			typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-				nsType: NETNS,
-				nsPath: namespace.Path(),
-			})
-		case IPCNS:
-			s.ipcns = namespaceIface
-			typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-				nsType: IPCNS,
-				nsPath: namespace.Path(),
-			})
-		case UTSNS:
-			s.utsns = namespaceIface
-			typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-				nsType: UTSNS,
-				nsPath: namespace.Path(),
-			})
-		case USERNS:
-			if idMappings != nil {
-				s.userns = namespaceIface
-				typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-					nsType: USERNS,
-					nsPath: namespace.Path(),
-				})
-			}
+	for _, ns := range namespaces {
+		// skip any nil entries
+		if ns == nil {
+			continue
+		}
+		switch ns.Type() {
+		case nsmgr.IPCNS:
+			s.ipcns = ns
+		case nsmgr.UTSNS:
+			s.utsns = ns
+		case nsmgr.NETNS:
+			s.netns = ns
+		case nsmgr.USERNS:
+			s.userns = ns
 		default:
-			// This should never happen
-			err = errors.New("Invalid namespace type")
-			return typesAndPaths, err
+			// this should never happen, as we control the NSTypes
+			panic(errors.Errorf("unknown namespace type %s", ns))
 		}
 	}
-
-	return typesAndPaths, nil
 }
 
 // NamespacePaths returns all the paths of the namespaces of the sandbox. If a namespace is not
@@ -188,29 +109,29 @@ func (s *Sandbox) CreateNamespacesWithFunc(managedNamespaces []NSType, idMapping
 func (s *Sandbox) NamespacePaths() []*ManagedNamespace {
 	pid := infraPid(s.InfraContainer())
 
-	typesAndPaths := make([]*ManagedNamespace, 0, numNamespaces)
+	typesAndPaths := make([]*ManagedNamespace, 0, nsmgr.ManagedNamespacesNum)
 
-	if ipc := nsPathGivenInfraPid(s.ipcns, IPCNS, pid); ipc != "" {
+	if ipc := nsPathGivenInfraPid(s.ipcns, nsmgr.IPCNS, pid); ipc != "" {
 		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-			nsType: IPCNS,
+			nsType: nsmgr.IPCNS,
 			nsPath: ipc,
 		})
 	}
-	if net := nsPathGivenInfraPid(s.netns, NETNS, pid); net != "" {
+	if net := nsPathGivenInfraPid(s.netns, nsmgr.NETNS, pid); net != "" {
 		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-			nsType: NETNS,
+			nsType: nsmgr.NETNS,
 			nsPath: net,
 		})
 	}
-	if uts := nsPathGivenInfraPid(s.utsns, UTSNS, pid); uts != "" {
+	if uts := nsPathGivenInfraPid(s.utsns, nsmgr.UTSNS, pid); uts != "" {
 		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-			nsType: UTSNS,
+			nsType: nsmgr.UTSNS,
 			nsPath: uts,
 		})
 	}
-	if user := nsPathGivenInfraPid(s.userns, USERNS, pid); user != "" {
+	if user := nsPathGivenInfraPid(s.userns, nsmgr.USERNS, pid); user != "" {
 		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-			nsType: USERNS,
+			nsType: nsmgr.USERNS,
 			nsPath: user,
 		})
 	}
@@ -256,13 +177,13 @@ func (s *Sandbox) RemoveManagedNamespaces() error {
 // NetNsPath returns the path to the network namespace of the sandbox.
 // If the sandbox uses the host namespace, the empty string is returned
 func (s *Sandbox) NetNsPath() string {
-	return s.nsPath(s.netns, NETNS)
+	return s.nsPath(s.netns, nsmgr.NETNS)
 }
 
 // NetNsJoin attempts to join the sandbox to an existing network namespace
 // This will fail if the sandbox is already part of a network namespace
 func (s *Sandbox) NetNsJoin(nspath string) error {
-	ns, err := nsJoin(nspath, NETNS, s.netns)
+	ns, err := nsJoin(nspath, nsmgr.NETNS, s.netns)
 	if err != nil {
 		return err
 	}
@@ -275,13 +196,13 @@ func (s *Sandbox) NetNsJoin(nspath string) error {
 // IpcNsPath returns the path to the network namespace of the sandbox.
 // If the sandbox uses the host namespace, the empty string is returned
 func (s *Sandbox) IpcNsPath() string {
-	return s.nsPath(s.ipcns, IPCNS)
+	return s.nsPath(s.ipcns, nsmgr.IPCNS)
 }
 
 // IpcNsJoin attempts to join the sandbox to an existing IPC namespace
 // This will fail if the sandbox is already part of a IPC namespace
 func (s *Sandbox) IpcNsJoin(nspath string) error {
-	ns, err := nsJoin(nspath, IPCNS, s.ipcns)
+	ns, err := nsJoin(nspath, nsmgr.IPCNS, s.ipcns)
 	if err != nil {
 		return err
 	}
@@ -294,13 +215,13 @@ func (s *Sandbox) IpcNsJoin(nspath string) error {
 // UtsNsPath returns the path to the network namespace of the sandbox.
 // If the sandbox uses the host namespace, the empty string is returned
 func (s *Sandbox) UtsNsPath() string {
-	return s.nsPath(s.utsns, UTSNS)
+	return s.nsPath(s.utsns, nsmgr.UTSNS)
 }
 
 // UtsNsJoin attempts to join the sandbox to an existing UTS namespace
 // This will fail if the sandbox is already part of a UTS namespace
 func (s *Sandbox) UtsNsJoin(nspath string) error {
-	ns, err := nsJoin(nspath, UTSNS, s.utsns)
+	ns, err := nsJoin(nspath, nsmgr.UTSNS, s.utsns)
 	if err != nil {
 		return err
 	}
@@ -313,13 +234,13 @@ func (s *Sandbox) UtsNsJoin(nspath string) error {
 // UserNsPath returns the path to the user namespace of the sandbox.
 // If the sandbox uses the host namespace, the empty string is returned
 func (s *Sandbox) UserNsPath() string {
-	return s.nsPath(s.userns, USERNS)
+	return s.nsPath(s.userns, nsmgr.USERNS)
 }
 
 // UserNsJoin attempts to join the sandbox to an existing User namespace
 // This will fail if the sandbox is already part of a User namespace
 func (s *Sandbox) UserNsJoin(nspath string) error {
-	ns, err := nsJoin(nspath, USERNS, s.userns)
+	ns, err := nsJoin(nspath, nsmgr.USERNS, s.userns)
 	if err != nil {
 		return err
 	}
@@ -332,21 +253,21 @@ func (s *Sandbox) UserNsJoin(nspath string) error {
 // PidNsPath returns the path to the pid namespace of the sandbox.
 // If the sandbox uses the host namespace, the empty string is returned.
 func (s *Sandbox) PidNsPath() string {
-	return s.nsPath(nil, PIDNS)
+	return s.nsPath(nil, nsmgr.PIDNS)
 }
 
 // nsJoin checks if the current iface is nil, and if so gets the namespace at nsPath
-func nsJoin(nsPath string, nsType NSType, currentIface NamespaceIface) (NamespaceIface, error) {
+func nsJoin(nsPath string, nsType nsmgr.NSType, currentIface nsmgr.Namespace) (nsmgr.Namespace, error) {
 	if currentIface != nil {
 		return currentIface, fmt.Errorf("sandbox already has a %s namespace, cannot join another", nsType)
 	}
 
-	return getNamespace(nsPath)
+	return nsmgr.GetNamespace(nsPath)
 }
 
 // nsPath returns the path to a namespace of the sandbox.
 // If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) nsPath(ns NamespaceIface, nsType NSType) string {
+func (s *Sandbox) nsPath(ns nsmgr.Namespace, nsType nsmgr.NSType) string {
 	return nsPathGivenInfraPid(ns, nsType, infraPid(s.InfraContainer()))
 }
 
@@ -373,10 +294,10 @@ func infraPid(infra *oci.Container) int {
 
 // nsPathGivenInfraPid allows callers to cache the infra pid, rather than
 // calling a container.State() in batch operations
-func nsPathGivenInfraPid(ns NamespaceIface, nsType NSType, infraPid int) string {
+func nsPathGivenInfraPid(ns nsmgr.Namespace, nsType nsmgr.NSType, infraPid int) string {
 	// caller is responsible for checking if infraContainer
 	// is valid. If not, infraPid should be less than or equal to 0
-	if ns == nil || ns.Get() == nil {
+	if ns == nil {
 		if infraPid > 0 {
 			return infraNsPath(nsType, infraPid)
 		}
@@ -388,7 +309,7 @@ func nsPathGivenInfraPid(ns NamespaceIface, nsType NSType, infraPid int) string 
 
 // infraNsPath returns the namespace path of type nsType for infra
 // with pid infraContainerPid
-func infraNsPath(nsType NSType, infraContainerPid int) string {
+func infraNsPath(nsType nsmgr.NSType, infraContainerPid int) string {
 	// verify nsPath exists on the host. This will prevent us from fatally erroring
 	// on network tear down if the path doesn't exist
 	// Technically, this is pretty racy, but so is every check using the infra container PID.

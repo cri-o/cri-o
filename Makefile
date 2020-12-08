@@ -338,7 +338,6 @@ mockgen: \
 	mock-criostorage \
 	mock-lib-config \
 	mock-oci \
-	mock-sandbox \
 	mock-image-types \
 	mock-ocicni-types
 
@@ -371,12 +370,6 @@ mock-oci: ${MOCKGEN}
 		-package ocimock \
 		-destination ${MOCK_PATH}/oci/oci.go \
 		github.com/cri-o/cri-o/internal/oci RuntimeImpl
-
-mock-sandbox: ${MOCKGEN}
-	${MOCKGEN} \
-		-package sandboxmock \
-		-destination ${MOCK_PATH}/sandbox/sandbox.go \
-		github.com/cri-o/cri-o/internal/lib/sandbox NamespaceIface
 
 mock-image-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
