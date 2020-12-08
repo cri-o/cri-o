@@ -341,36 +341,16 @@ function port_listens() {
 }
 
 function cleanup_ctrs() {
-    if output=$(crictl ps --quiet); then
-        if [ "$output" != "" ]; then
-            printf '%s\n' "$output" | while IFS= read -r line; do
-                crictl stop "$line"
-                crictl rm "$line"
-            done
-        fi
-    fi
+    crictl rm -a -f
     rm -f "$HOOKSCHECK"
 }
 
 function cleanup_images() {
-    if output=$(crictl images --quiet); then
-        if [ "$output" != "" ]; then
-            printf '%s\n' "$output" | while IFS= read -r line; do
-                crictl rmi "$line"
-            done
-        fi
-    fi
+    crictl rmi -a -q
 }
 
 function cleanup_pods() {
-    if output=$(crictl pods --quiet); then
-        if [ "$output" != "" ]; then
-            printf '%s\n' "$output" | while IFS= read -r line; do
-                crictl stopp "$line"
-                crictl rmp "$line"
-            done
-        fi
-    fi
+    crictl rmp -a -f
 }
 
 function stop_crio_no_clean() {
