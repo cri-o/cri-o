@@ -10,7 +10,6 @@ When running the `main.yml` playbook, multiple tags are present:
 
  - `setup`: Run all tasks to set up the system for testing.
  - `e2e`: Build CRI-O from source and run Kubernetes end-to-end tests.
- - `node-e2e`: Build CRI-O from source and run Kubernetes 'node' end-to-end tests.
  - `integration`: Build CRI-O from source and run the local integration suite twice.
                   First normally, then again with user-namespace support enabled.
 
