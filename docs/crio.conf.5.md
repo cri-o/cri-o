@@ -252,6 +252,7 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
   The currently recognized values are:
   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
+  "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.

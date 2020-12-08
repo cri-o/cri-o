@@ -525,7 +525,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		shmPath = libsandbox.DevShmPath
 	} else {
 		shmSize := int64(libsandbox.DefaultShmSize)
-		if s.config.EnableCustomShmSize {
+		allowShmSizeAnnotations, err := s.Runtime().AllowShmSizeAnnotation(runtimeHandler)
+		if err != nil {
+			return nil, fmt.Errorf("failed to allow shmsize annotation")
+		}
+		if allowShmSizeAnnotations {
 			if shmSizeStr, ok := kubeAnnotations[ann.ShmSizeAnnotation]; ok {
 				quantity, err := resource.ParseQuantity(shmSizeStr)
 				if err != nil {
