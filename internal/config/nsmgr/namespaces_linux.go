@@ -1,6 +1,6 @@
 // +build linux
 
-package sandbox
+package nsmgr
 
 import (
 	"bytes"
@@ -13,7 +13,6 @@ import (
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -37,35 +36,9 @@ type NS interface {
 	nspkg.NetNS
 }
 
-// Get returns the Namespace for a given NsIface
-func (n *Namespace) Get() *Namespace {
-	return n
-}
-
-// Initialized returns true if the Namespace is already initialized
-func (n *Namespace) Initialized() bool {
-	return n.initialized
-}
-
-// Initialize does the necessary setup for a Namespace
-// It does not do the bind mounting and nspinning
-func (n *Namespace) Initialize() NamespaceIface {
-	n.closed = false
-	n.initialized = true
-	return n
-}
-
-func getMappingsForPinns(mappings []idtools.IDMap) string {
-	g := new(bytes.Buffer)
-	for _, m := range mappings {
-		fmt.Fprintf(g, "%d-%d-%d@", m.ContainerID, m.HostID, m.Size)
-	}
-	return g.String()
-}
-
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDMappings, sysctls map[string]string) ([]NamespaceIface, error) {
+func (mgr *managedNamespaceManager) pinNamespaces(nsTypes []NSType, idMappings *idtools.IDMappings, sysctls map[string]string) ([]NamespaceIface, error) {
 	typeToArg := map[NSType]string{
 		IPCNS:  "-i",
 		UTSNS:  "-u",
@@ -75,7 +48,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDM
 
 	pinnedNamespace := uuid.New().String()
 	pinnsArgs := []string{
-		"-d", cfg.NamespacesDir,
+		"-d", mgr.namespacesDir,
 		"-f", pinnedNamespace,
 	}
 
@@ -101,7 +74,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDM
 			return nil, errors.Errorf("Invalid namespace type: %s", nsType)
 		}
 		pinnsArgs = append(pinnsArgs, arg)
-		pinPath := filepath.Join(cfg.NamespacesDir, string(nsType)+"ns", pinnedNamespace)
+		pinPath := filepath.Join(mgr.namespacesDir, string(nsType)+"ns", pinnedNamespace)
 		mountedNamespaces = append(mountedNamespaces, namespaceInfo{
 			path:   pinPath,
 			nsType: nsType,
@@ -129,7 +102,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDM
 	}
 
 	logrus.Debugf("calling pinns with %v", pinnsArgs)
-	output, err := exec.Command(cfg.PinnsPath, pinnsArgs...).CombinedOutput()
+	output, err := exec.Command(mgr.pinnsPath, pinnsArgs...).CombinedOutput()
 	if err != nil {
 		logrus.Warnf("pinns %v failed: %s (%v)", pinnsArgs, string(output), err)
 		// cleanup the mounts
@@ -158,6 +131,14 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDM
 	return returnedNamespaces, nil
 }
 
+func getMappingsForPinns(mappings []idtools.IDMap) string {
+	g := new(bytes.Buffer)
+	for _, m := range mappings {
+		fmt.Fprintf(g, "%d-%d-%d@", m.ContainerID, m.HostID, m.Size)
+	}
+	return g.String()
+}
+
 func getSysctlForPinns(sysctls map[string]string) string {
 	// this assumes there's no sysctl with a `+` in it
 	const pinnsSysctlDelim = "+"
@@ -168,9 +149,9 @@ func getSysctlForPinns(sysctls map[string]string) string {
 	return strings.TrimSuffix(g.String(), pinnsSysctlDelim)
 }
 
-// getNamespace takes a path, checks if it is a namespace, and if so
+// GetNamespace takes a path, checks if it is a namespace, and if so
 // returns a Namespace
-func getNamespace(nsPath string) (*Namespace, error) {
+func GetNamespace(nsPath string) (NamespaceIface, error) {
 	if err := nspkg.IsNSorErr(nsPath); err != nil {
 		return nil, err
 	}
@@ -181,6 +162,24 @@ func getNamespace(nsPath string) (*Namespace, error) {
 	}
 
 	return &Namespace{ns: ns, closed: false, nsPath: nsPath}, nil
+}
+
+// Get returns the Namespace for a given NsIface
+func (n *Namespace) Get() *Namespace {
+	return n
+}
+
+// Initialized returns true if the Namespace is already initialized
+func (n *Namespace) Initialized() bool {
+	return n.initialized
+}
+
+// Initialize does the necessary setup for a Namespace
+// It does not do the bind mounting and nspinning
+func (n *Namespace) Initialize() NamespaceIface {
+	n.closed = false
+	n.initialized = true
+	return n
 }
 
 // Path returns the path of the namespace handle
