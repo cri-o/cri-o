@@ -479,7 +479,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	cleanupFuncs := make([]func(), 0)
 	defer func() {
 		// no error, no need to cleanup
-		if retErr == nil {
+		if retErr == nil || isContextError(retErr) {
 			return
 		}
 		for i := len(cleanupFuncs) - 1; i >= 0; i-- {
@@ -488,7 +488,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	}()
 
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		return nil, errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
+		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
+		if resourceErr == nil {
+			return &pb.CreateContainerResponse{ContainerId: cachedID}, nil
+		}
+		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
 
 	cleanupFuncs = append(cleanupFuncs, func() {
@@ -545,12 +549,15 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
-	newContainer.SetCreated()
-
-	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+	if isContextError(ctx.Err()) {
+		if err := s.resourceStore.Put(ctr.Name(), newContainer, cleanupFuncs); err != nil {
+			log.Errorf(ctx, "createCtr: failed to save progress of container %s: %v", newContainer.ID(), err)
+		}
 		log.Infof(ctx, "createCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
 		return nil, ctx.Err()
 	}
+
+	newContainer.SetCreated()
 
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	return &pb.CreateContainerResponse{

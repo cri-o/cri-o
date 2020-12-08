@@ -310,7 +310,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	cleanupFuncs := make([]func(), 0)
 	defer func() {
 		// no error, no need to cleanup
-		if retErr == nil {
+		if retErr == nil || isContextError(retErr) {
 			return
 		}
 		for i := len(cleanupFuncs) - 1; i >= 0; i-- {
@@ -319,7 +319,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}()
 
 	if _, err := s.ReservePodName(sbox.ID(), sbox.Name()); err != nil {
-		return nil, errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
+		cachedID, resourceErr := s.getResourceOrWait(ctx, sbox.Name(), "sandbox")
+		if resourceErr == nil {
+			return &pb.RunPodSandboxResponse{PodSandboxId: cachedID}, nil
+		}
+		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
 
 	cleanupFuncs = append(cleanupFuncs, func() {
@@ -955,12 +959,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	}
 	sb.AddIPs(ips)
 
-	sb.SetCreated()
-
-	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+	if isContextError(ctx.Err()) {
+		if err := s.resourceStore.Put(sbox.Name(), sb, cleanupFuncs); err != nil {
+			log.Errorf(ctx, "runSandbox: failed to save progress of sandbox %s: %v", sbox.ID(), err)
+		}
 		log.Infof(ctx, "runSandbox: context was either canceled or the deadline was exceeded: %v", ctx.Err())
 		return nil, ctx.Err()
 	}
+	sb.SetCreated()
 
 	log.Infof(ctx, "Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
 	resp = &pb.RunPodSandboxResponse{PodSandboxId: sbox.ID()}
