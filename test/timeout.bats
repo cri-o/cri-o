@@ -7,6 +7,9 @@ function setup() {
 		skip "must have a crictl with the -T option to test CRI-O's timeout handling"
 	fi
 	setup_test
+
+	create_conmon 3s
+	CANCEL_TIMEOUT="3s"
 }
 
 function teardown() {
@@ -14,7 +17,8 @@ function teardown() {
 }
 
 function create_conmon() {
-	timeout=$1
+	local timeout=$1
+
 	cat > "$TESTDIR"/tmp_conmon << EOF
 #!/bin/bash
 if [[ "\$1" != "--version" ]]; then
@@ -23,19 +27,32 @@ fi
 $CONMON_BINARY \$@
 EOF
 	chmod +x "$TESTDIR/tmp_conmon"
+
+	export CONTAINER_CONMON="$TESTDIR/tmp_conmon"
+}
+
+# Allow cri-o to catch up. The sleep here should be less than
+# resourcestore.sleepTimeBeforeCleanup but enough for cri-o to
+# finish processing cancelled crictl create/runp.
+function wait_create() {
+	sleep 30s
+}
+
+# Allow cri-o to catch up and clean the state of a pod/container.
+# The sleep here should be > 2 * resourcestore.sleepTimeBeforeCleanup.
+function wait_clean() {
+	sleep 150s
 }
 
 @test "should not clean up pod after timeout" {
-	create_conmon 2s
-	# need infra container so we can timeout in conmon
-	CONTAINER_DROP_INFRA=false CONTAINER_CONMON="$TESTDIR/tmp_conmon" start_crio
-	run crictl runp -T 2s "$TESTDATA"/sandbox_config.json
+	# need infra container so runp can timeout in conmon
+	CONTAINER_DROP_INFRA=false start_crio
+	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 	[ "$status" -ne 0 ]
 
-	# allow cri-o to catch up
-	sleep 10s
+	wait_create
 
 	# cri-o should not report any pods
 	pods=$(crictl pods -q)
@@ -45,21 +62,19 @@ EOF
 	[ -n "$created_ctr_id" ]
 
 	output=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	[[ "$output" == *"$created_ctr_id"* ]]
+	[[ "$output" == "$created_ctr_id" ]]
 }
 
 @test "should not clean up container after timeout" {
-	create_conmon 2s
-	CONTAINER_CONMON="$TESTDIR/tmp_conmon" start_crio
+	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	run crictl create -T 2s "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	run crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 	[ "$status" -ne 0 ]
 
-	# allow cri-o to catch up
-	sleep 10s
+	wait_create
 
 	# cri-o should not report any containers
 	ctrs=$(crictl ps -aq)
@@ -70,46 +85,42 @@ EOF
 	[ -n "$created_ctr_id" ]
 
 	output=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
-	[[ "$output" == *"$created_ctr_id"* ]]
+	[[ "$output" == "$created_ctr_id" ]]
 }
 
 @test "should clean up pod after timeout if request changes" {
-	create_conmon 2s
-	# need infra container so we can timeout in conmon
-	CONTAINER_DROP_INFRA=false CONTAINER_CONMON="$TESTDIR/tmp_conmon" start_crio
-	run crictl runp -T 2s "$TESTDATA"/sandbox_config.json
+	# need infra container so runp can timeout in conmon
+	CONTAINER_DROP_INFRA=false start_crio
+	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 	[ "$status" -ne 0 ]
 
-	# allow cri-o to catch up
-	sleep 10s
+	wait_create
 
 	created_ctr_id=$("$CONTAINER_RUNTIME" --root "$RUNTIME_ROOT" list -q)
 	[ -n "$created_ctr_id" ]
 
 	# we should create a new pod and not reuse the old one
 	output=$(crictl runp <(jq '.metadata.attempt = 2' "$TESTDATA"/sandbox_config.json))
-	[[ "$output" != *"$created_ctr_id"* ]]
+	[[ "$output" != "$created_ctr_id" ]]
 
-	sleep 150s
+	wait_clean
 
 	# the old, timed out container should have been removed
 	! "$CONTAINER_RUNTIME" --root "$RUNTIME_ROOT" list -q | grep "$created_ctr_id"
 }
 
 @test "should clean up container after timeout if request changes" {
-	create_conmon 2s
-	CONTAINER_CONMON="$TESTDIR/tmp_conmon" start_crio
+	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	run crictl create -T 2s "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	run crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 	[ "$status" -ne 0 ]
 
-	# allow cri-o to catch up
-	sleep 10s
+	wait_create
 
 	# cri-o should have created a container
 	created_ctr_id=$("$CONTAINER_RUNTIME" --root "$RUNTIME_ROOT" list -q | grep -v "$pod_id")
@@ -117,25 +128,23 @@ EOF
 
 	# should create a new container and not reuse the old one
 	output=$(crictl create "$pod_id" <(jq '.metadata.attempt = 2' "$TESTDATA"/container_config.json) "$TESTDATA"/sandbox_config.json)
-	[[ "$output" != *"$created_ctr_id"* ]]
+	[[ "$output" != "$created_ctr_id" ]]
 
-	sleep 150s
+	wait_clean
 
 	# the old, timed out container should have been removed
 	! "$CONTAINER_RUNTIME" --root "$RUNTIME_ROOT" list -q | grep "$created_ctr_id"
 }
 
 @test "should clean up pod after timeout if not re-requested" {
-	create_conmon 2s
-	# need infra container so we can timeout in conmon
-	CONTAINER_DROP_INFRA=false CONTAINER_CONMON="$TESTDIR/tmp_conmon" start_crio
-	run crictl runp -T 2s "$TESTDATA"/sandbox_config.json
+	# need infra container so runp can timeout in conmon
+	CONTAINER_DROP_INFRA=false start_crio
+	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 	[ "$status" -ne 0 ]
 
-	# allow cri-o to catch up and clear its state of the pod
-	sleep 3m
+	wait_clean
 
 	# cri-o should not report any pods
 	pods=$(crictl pods -q)
@@ -149,17 +158,15 @@ EOF
 }
 
 @test "should clean up container after timeout if not re-requested" {
-	create_conmon 2s
-	CONTAINER_CONMON="$TESTDIR/tmp_conmon" start_crio
+	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	run crictl create -T 2s "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	run crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 	[ "$status" -ne 0 ]
 
-	# allow cri-o to catch up and clear its state of the container
-	sleep 150s
+	wait_clean
 
 	# cri-o should not report any containers
 	ctrs=$(crictl ps -aq)
@@ -176,16 +183,14 @@ EOF
 # operate on a pod that's not created, and that we don't mark
 # a timed out pod as created before it's re-requested
 @test "should not be able to operate on a timed out pod" {
-	create_conmon 2s
-	# need infra container so we can timeout in conmon
-	CONTAINER_DROP_INFRA=false CONTAINER_CONMON="$TESTDIR/tmp_conmon" start_crio
-	run crictl runp -T 2s "$TESTDATA"/sandbox_config.json
+	# need infra container so runp can timeout in conmon
+	CONTAINER_DROP_INFRA=false start_crio
+	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 	[ "$status" -ne 0 ]
 
-	# allow cri-o to catch up and clear its state of the pod
-	sleep 10s
+	wait_create
 
 	# container should not have been cleaned up
 	created_ctr_id=$("$CONTAINER_RUNTIME" --root "$RUNTIME_ROOT" list -q)
@@ -197,17 +202,15 @@ EOF
 }
 
 @test "should not be able to operate on a timed out container" {
-	create_conmon 2s
-	CONTAINER_CONMON="$TESTDIR/tmp_conmon" start_crio
+	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
-	run crictl create -T 2s "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	run crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 	[ "$status" -ne 0 ]
 
-	# allow cri-o to catch up
-	sleep 10s
+	wait_create
 
 	# cri-o should have created a container
 	created_ctr_id=$("$CONTAINER_RUNTIME" --root "$RUNTIME_ROOT" list -q | grep -v "$pod_id")
