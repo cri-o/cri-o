@@ -46,6 +46,28 @@ jobs:
     - name: validate-docs
       run: make docs-validation
 
+  gendocs:
+    name: gendocs
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: install dependencies
+      run: sudo apt update && sudo apt install libselinux1-dev
+    - name: validate generated docs
+      run: |
+        make docs-generation
+        ./hack/tree_status.sh
+
+  completions:
+    name: completions
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: validate-completions
+      run: |
+        make completions
+        ./hack/tree_status.sh
+
   vendor:
     name: vendor
     runs-on: ubuntu-latest
