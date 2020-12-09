@@ -31,23 +31,6 @@ func (s *spoofedIface) Path() string {
 	return filepath.Join("tmp", string(s.nsType))
 }
 
-func (s *spoofedIface) Close() error {
-	return nil
-}
-
-func (s *spoofedIface) Initialize() nsmgr.NamespaceIface {
-	return nil
-}
-
-func (s *spoofedIface) Initialized() bool {
-	return true
-}
-
-// this object isn't used, just checked to make sure it's not nil
-func (s *spoofedIface) Get() *nsmgr.Namespace {
-	return &nsmgr.Namespace{}
-}
-
 var allManagedNamespaces = []nsmgr.NamespaceIface{
 	&spoofedIface{
 		nsType: nsmgr.IPCNS,

@@ -20,18 +20,6 @@ const (
 
 // NamespaceIface provides a generic namespace interface
 type NamespaceIface interface {
-	// Close closes this network namespace
-	Close() error
-
-	// Get returns the native Namespace
-	Get() *Namespace
-
-	// Initialize does the necessary setup
-	Initialize() NamespaceIface
-
-	// Initialized returns true if already initialized
-	Initialized() bool
-
 	// Remove ensures this network namespace handle is closed and removed
 	Remove() error
 

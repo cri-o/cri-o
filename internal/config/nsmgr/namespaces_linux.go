@@ -22,11 +22,10 @@ import (
 // Namespace handles data pertaining to a namespace
 type Namespace struct {
 	sync.Mutex
-	ns          NS
-	closed      bool
-	initialized bool
-	nsType      NSType
-	nsPath      string
+	ns     NS
+	closed bool
+	nsType NSType
+	nsPath string
 }
 
 // NS is a wrapper for the containernetworking plugin's NetNS interface
@@ -164,24 +163,6 @@ func GetNamespace(nsPath string) (NamespaceIface, error) {
 	return &Namespace{ns: ns, closed: false, nsPath: nsPath}, nil
 }
 
-// Get returns the Namespace for a given NsIface
-func (n *Namespace) Get() *Namespace {
-	return n
-}
-
-// Initialized returns true if the Namespace is already initialized
-func (n *Namespace) Initialized() bool {
-	return n.initialized
-}
-
-// Initialize does the necessary setup for a Namespace
-// It does not do the bind mounting and nspinning
-func (n *Namespace) Initialize() NamespaceIface {
-	n.closed = false
-	n.initialized = true
-	return n
-}
-
 // Path returns the path of the namespace handle
 func (n *Namespace) Path() string {
 	if n == nil || n.ns == nil {
@@ -195,14 +176,6 @@ func (n *Namespace) Type() NSType {
 	return n.nsType
 }
 
-// Close closes this namespace
-func (n *Namespace) Close() error {
-	if n == nil || n.ns == nil {
-		return nil
-	}
-	return n.ns.Close()
-}
-
 // Remove ensures this namespace handle is closed and removed
 func (n *Namespace) Remove() error {
 	n.Lock()
@@ -214,7 +187,7 @@ func (n *Namespace) Remove() error {
 		return nil
 	}
 
-	if err := n.Close(); err != nil {
+	if err := n.ns.Close(); err != nil {
 		return err
 	}
 

@@ -298,7 +298,7 @@ func infraPid(infra *oci.Container) int {
 func nsPathGivenInfraPid(ns nsmgr.NamespaceIface, nsType nsmgr.NSType, infraPid int) string {
 	// caller is responsible for checking if infraContainer
 	// is valid. If not, infraPid should be less than or equal to 0
-	if ns == nil || ns.Get() == nil {
+	if ns == nil {
 		if infraPid > 0 {
 			return infraNsPath(nsType, infraPid)
 		}
