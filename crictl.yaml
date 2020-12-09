@@ -2,5 +2,3 @@ runtime-endpoint: "unix:///var/run/crio/crio.sock"
 image-endpoint: "unix:///var/run/crio/crio.sock"
 timeout: 0
 debug: false
-pull-image-on-create: true
-disable-pull-on-run: false
