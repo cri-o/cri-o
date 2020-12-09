@@ -61,7 +61,7 @@ EOF
 	# allow cri-o to catch up
 	sleep 10s
 
-	# cri-o should not report any pods
+	# cri-o should not report any containers
 	ctrs=$(crictl ps -aq)
 	[[ -z "$ctrs" ]]
 
@@ -161,7 +161,7 @@ EOF
 	# allow cri-o to catch up and clear its state of the container
 	sleep 150s
 
-	# cri-o should not report any pods
+	# cri-o should not report any containers
 	ctrs=$(crictl ps -aq)
 	[[ -z "$ctrs" ]]
 
