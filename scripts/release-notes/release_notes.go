@@ -142,8 +142,8 @@ Download the static release bundle via our Google Cloud Bucket:
 	os.RemoveAll(outputFilePath)
 	if err := command.Execute(
 		"./build/bin/release-notes",
-		"--github-org=cri-o",
-		"--github-repo=cri-o",
+		"--org=cri-o",
+		"--repo=cri-o",
 		"--branch="+targetBranch,
 		"--repo-path=/tmp/cri-o-repo",
 		"--required-author=",
