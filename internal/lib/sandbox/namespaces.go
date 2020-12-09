@@ -263,7 +263,7 @@ func nsJoin(nsPath string, nsType nsmgr.NSType, currentIface nsmgr.NamespaceIfac
 		return currentIface, fmt.Errorf("sandbox already has a %s namespace, cannot join another", nsType)
 	}
 
-	return nsmgr.GetNamespace(nsPath)
+	return nsmgr.GetNamespace(nsPath, nsType)
 }
 
 // nsPath returns the path to a namespace of the sandbox.
