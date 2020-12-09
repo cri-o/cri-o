@@ -95,7 +95,7 @@ func (n *namespace) Remove() error {
 
 // GetNamespace takes a path and type, checks if it is a namespace, and if so
 // returns an instance of the Namespace interface.
-func GetNamespace(nsPath string) (Namespace, error) {
+func GetNamespace(nsPath string, nsType NSType) (Namespace, error) {
 	if err := nspkg.IsNSorErr(nsPath); err != nil {
 		return nil, err
 	}
@@ -105,5 +105,5 @@ func GetNamespace(nsPath string) (Namespace, error) {
 		return nil, err
 	}
 
-	return &namespace{ns: ns, closed: false, nsPath: nsPath}, nil
+	return &namespace{ns: ns, nsType: nsType, nsPath: nsPath}, nil
 }

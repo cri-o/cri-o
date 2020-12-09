@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -109,16 +108,12 @@ func (mgr *NamespaceManager) NewPodNamespaces(managedNamespaces []NSType, idMapp
 
 	returnedNamespaces := make([]Namespace, 0, len(managedNamespaces))
 	for _, info := range mountedNamespaces {
-		ret, err := nspkg.GetNS(info.path)
+		ns, err := GetNamespace(info.path, info.nsType)
 		if err != nil {
 			return nil, err
 		}
 
-		returnedNamespaces = append(returnedNamespaces, &Namespace{
-			ns:     ret.(NS),
-			nsType: info.nsType,
-			nsPath: info.path,
-		})
+		returnedNamespaces = append(returnedNamespaces, ns)
 	}
 	return returnedNamespaces, nil
 }
