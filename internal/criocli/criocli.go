@@ -245,9 +245,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("grpc-max-send-msg-size") {
 		config.GRPCMaxSendMsgSize = ctx.Int("grpc-max-send-msg-size")
 	}
-	if ctx.IsSet("manage-ns-lifecycle") {
-		config.ManageNSLifecycle = ctx.Bool("manage-ns-lifecycle")
-	}
 	if ctx.IsSet("drop-infra-ctr") {
 		config.DropInfraCtr = ctx.Bool("drop-infra-ctr")
 	}
@@ -732,13 +729,8 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars: []string{"CONTAINER_GRPC_MAX_SEND_MSG_SIZE"},
 		},
 		&cli.BoolFlag{
-			Name:    "manage-ns-lifecycle",
-			Usage:   fmt.Sprintf("Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle. This option is being deprecated, and will be unconditionally true in the future. (default: %v)", defConf.ManageNSLifecycle),
-			EnvVars: []string{"CONTAINER_MANAGE_NS_LIFECYCLE"},
-		},
-		&cli.BoolFlag{
 			Name:    "drop-infra-ctr",
-			Usage:   fmt.Sprintf("Determines whether pods are created without an infra container (when the pod is not using a pod level PID namespace). Requires ManageNSLifecycle to be true (default: %v)", defConf.DropInfraCtr),
+			Usage:   fmt.Sprintf("Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace (default: %v)", defConf.DropInfraCtr),
 			EnvVars: []string{"CONTAINER_DROP_INFRA_CTR"},
 		},
 		&cli.StringFlag{

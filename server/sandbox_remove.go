@@ -95,10 +95,8 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *pb.RemovePodSandboxR
 	if err := s.StorageRuntimeServer().RemovePodSandbox(sb.ID()); err != nil && err != pkgstorage.ErrInvalidSandboxID {
 		return nil, fmt.Errorf("failed to remove pod sandbox %s: %v", sb.ID(), err)
 	}
-	if s.config.ManageNSLifecycle {
-		if err := sb.RemoveManagedNamespaces(); err != nil {
-			return nil, errors.Wrap(err, "unable to remove managed namespaces")
-		}
+	if err := sb.RemoveManagedNamespaces(); err != nil {
+		return nil, errors.Wrap(err, "unable to remove managed namespaces")
 	}
 
 	s.ReleaseContainerName(podInfraContainer.Name())
