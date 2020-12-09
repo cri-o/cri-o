@@ -17,9 +17,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (mgr *managedNamespaceManager) NewPodNamespaces(managedNamespaces []NSType, idMappings *idtools.IDMappings, sysctls map[string]string) ([]NamespaceIface, error) {
+func (mgr *managedNamespaceManager) NewPodNamespaces(managedNamespaces []NSType, idMappings *idtools.IDMappings, sysctls map[string]string) ([]Namespace, error) {
 	if len(managedNamespaces) == 0 {
-		return []NamespaceIface{}, nil
+		return []Namespace{}, nil
 	}
 
 	typeToArg := map[NSType]string{
@@ -98,7 +98,7 @@ func (mgr *managedNamespaceManager) NewPodNamespaces(managedNamespaces []NSType,
 		return nil, fmt.Errorf("failed to pin namespaces %v: %s %v", managedNamespaces, output, err)
 	}
 
-	returnedNamespaces := make([]NamespaceIface, 0, len(managedNamespaces))
+	returnedNamespaces := make([]Namespace, 0, len(managedNamespaces))
 	for _, info := range mountedNamespaces {
 		ns, err := GetNamespace(info.path, info.nsType)
 		if err != nil {

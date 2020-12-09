@@ -60,8 +60,8 @@ type NamespaceOption struct {
 // TODO FIXME do I keep this?
 // ManagedNamespace is a structure that holds all the necessary information a caller would
 // need for a sandbox managed namespace
-// Where nsmgr.NamespaceIface does hold similar information, ManagedNamespace exists to allow this library
-// to not return data not necessarily in a NamespaceIface (for instance, when a namespace is not managed
+// Where nsmgr.Namespace does hold similar information, ManagedNamespace exists to allow this library
+// to not return data not necessarily in a Namespace (for instance, when a namespace is not managed
 // by CRI-O, but instead is based off of the infra pid)
 type ManagedNamespace struct {
 	nsPath string
@@ -78,7 +78,7 @@ func (m *ManagedNamespace) Path() string {
 	return m.nsPath
 }
 
-func (s *Sandbox) AddManagedNamespaces(namespaces []nsmgr.NamespaceIface) {
+func (s *Sandbox) AddManagedNamespaces(namespaces []nsmgr.Namespace) {
 	// if the namespace structure wasn't initialized, we have nothing to do here
 	if namespaces == nil {
 		return
@@ -258,7 +258,7 @@ func (s *Sandbox) PidNsPath() string {
 }
 
 // nsJoin checks if the current iface is nil, and if so gets the namespace at nsPath
-func nsJoin(nsPath string, nsType nsmgr.NSType, currentIface nsmgr.NamespaceIface) (nsmgr.NamespaceIface, error) {
+func nsJoin(nsPath string, nsType nsmgr.NSType, currentIface nsmgr.Namespace) (nsmgr.Namespace, error) {
 	if currentIface != nil {
 		return currentIface, fmt.Errorf("sandbox already has a %s namespace, cannot join another", nsType)
 	}
@@ -268,7 +268,7 @@ func nsJoin(nsPath string, nsType nsmgr.NSType, currentIface nsmgr.NamespaceIfac
 
 // nsPath returns the path to a namespace of the sandbox.
 // If the sandbox uses the host namespace, nil is returned
-func (s *Sandbox) nsPath(ns nsmgr.NamespaceIface, nsType nsmgr.NSType) string {
+func (s *Sandbox) nsPath(ns nsmgr.Namespace, nsType nsmgr.NSType) string {
 	return nsPathGivenInfraPid(ns, nsType, infraPid(s.InfraContainer()))
 }
 
@@ -295,7 +295,7 @@ func infraPid(infra *oci.Container) int {
 
 // nsPathGivenInfraPid allows callers to cache the infra pid, rather than
 // calling a container.State() in batch operations
-func nsPathGivenInfraPid(ns nsmgr.NamespaceIface, nsType nsmgr.NSType, infraPid int) string {
+func nsPathGivenInfraPid(ns nsmgr.Namespace, nsType nsmgr.NSType, infraPid int) string {
 	// caller is responsible for checking if infraContainer
 	// is valid. If not, infraPid should be less than or equal to 0
 	if ns == nil {

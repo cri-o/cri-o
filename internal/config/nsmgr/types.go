@@ -23,8 +23,8 @@ const (
 	ManagedNamespacesNum        = 4
 )
 
-// NamespaceIface provides a generic namespace interface
-type NamespaceIface interface {
+// Namespace provides a generic namespace interface
+type Namespace interface {
 	// Remove ensures this network namespace handle is closed and removed
 	Remove() error
 
@@ -35,8 +35,8 @@ type NamespaceIface interface {
 	Type() NSType
 }
 
-// Namespace handles data pertaining to a namespace
-type Namespace struct {
+// namespace handles data pertaining to a namespace
+type namespace struct {
 	sync.Mutex
 	ns     NS
 	closed bool
@@ -52,7 +52,7 @@ type NS interface {
 }
 
 // Path returns the path of the namespace handle
-func (n *Namespace) Path() string {
+func (n *namespace) Path() string {
 	if n == nil || n.ns == nil {
 		return ""
 	}
@@ -60,12 +60,12 @@ func (n *Namespace) Path() string {
 }
 
 // Type returns which namespace this structure represents
-func (n *Namespace) Type() NSType {
+func (n *namespace) Type() NSType {
 	return n.nsType
 }
 
 // Remove ensures this namespace handle is closed and removed
-func (n *Namespace) Remove() error {
+func (n *namespace) Remove() error {
 	n.Lock()
 	defer n.Unlock()
 
@@ -95,7 +95,7 @@ func (n *Namespace) Remove() error {
 
 // GetNamespace takes a path and a type, checks if it is a namespace, and if so
 // returns a Namespace
-func GetNamespace(nsPath string, nsType NSType) (NamespaceIface, error) {
+func GetNamespace(nsPath string, nsType NSType) (Namespace, error) {
 	if err := nspkg.IsNSorErr(nsPath); err != nil {
 		return nil, err
 	}
@@ -105,5 +105,5 @@ func GetNamespace(nsPath string, nsType NSType) (NamespaceIface, error) {
 		return nil, err
 	}
 
-	return &Namespace{ns: ns, nsType: nsType, nsPath: nsPath}, nil
+	return &namespace{ns: ns, nsType: nsType, nsPath: nsPath}, nil
 }

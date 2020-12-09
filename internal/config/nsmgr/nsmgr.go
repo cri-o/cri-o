@@ -5,7 +5,7 @@ import (
 )
 
 type NamespaceManager interface {
-	NewPodNamespaces(managedNamespaces []NSType, idMappings *idtools.IDMappings, sysctls map[string]string) ([]NamespaceIface, error)
+	NewPodNamespaces(managedNamespaces []NSType, idMappings *idtools.IDMappings, sysctls map[string]string) ([]Namespace, error)
 }
 
 func New(namespacesDir, pinnsPath string) NamespaceManager {

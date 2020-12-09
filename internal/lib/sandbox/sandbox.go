@@ -38,10 +38,10 @@ type Sandbox struct {
 	containers     oci.ContainerStorer
 	processLabel   string
 	mountLabel     string
-	netns          nsmgr.NamespaceIface
-	ipcns          nsmgr.NamespaceIface
-	utsns          nsmgr.NamespaceIface
-	userns         nsmgr.NamespaceIface
+	netns          nsmgr.Namespace
+	ipcns          nsmgr.Namespace
+	utsns          nsmgr.Namespace
+	userns         nsmgr.Namespace
 	shmPath        string
 	cgroupParent   string
 	runtimeHandler string

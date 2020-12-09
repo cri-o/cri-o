@@ -31,7 +31,7 @@ func (s *spoofedIface) Path() string {
 	return filepath.Join("tmp", string(s.nsType))
 }
 
-var allManagedNamespaces = []nsmgr.NamespaceIface{
+var allManagedNamespaces = []nsmgr.Namespace{
 	&spoofedIface{
 		nsType: nsmgr.IPCNS,
 	},
@@ -53,7 +53,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 	t.Describe("AddManagedNamespaces", func() {
 		It("should succeed if nil", func() {
 			// Given
-			var managedNamespaces []nsmgr.NamespaceIface
+			var managedNamespaces []nsmgr.Namespace
 
 			// When
 			testSandbox.AddManagedNamespaces(managedNamespaces)
@@ -63,7 +63,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should succeed if empty", func() {
 			// Given
-			managedNamespaces := make([]nsmgr.NamespaceIface, 0)
+			managedNamespaces := make([]nsmgr.Namespace, 0)
 
 			// When
 			testSandbox.AddManagedNamespaces(managedNamespaces)
@@ -79,7 +79,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			}
 
 			// When
-			testSandbox.AddManagedNamespaces([]nsmgr.NamespaceIface{ns})
+			testSandbox.AddManagedNamespaces([]nsmgr.Namespace{ns})
 
 			// Then
 			Expect(len(testSandbox.NamespacePaths())).To(Equal(0))
