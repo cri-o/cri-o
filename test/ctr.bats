@@ -424,7 +424,7 @@ function wait_until_exit() {
 	output=$(crictl exec --sync "$ctr_id" echo HELLO)
 	[ "$output" = "HELLO" ]
 
-	run crictl exec --sync --timeout 1 "$ctr_id" sleep 3
+	run crictl exec --sync --timeout 10 "$ctr_id" sleep 20
 	echo "$output"
 	[[ "$output" == *"command timed out"* ]]
 	[ "$status" -ne 0 ]
