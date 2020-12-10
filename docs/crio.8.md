@@ -276,15 +276,15 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--seccomp-use-default-when-empty**="": Use the default seccomp profile when an empty one is specified (default: false)
 
-**--selinux**: Enable selinux support (default: true)
+**--selinux**: Enable selinux support (default: false)
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup (default: "")
 
 **--signature-policy**="": Path to signature policy JSON file. (default: "", to use the system-wide default)
 
-**--storage-driver, -s**="": OCI storage driver (default: "overlay")
+**--storage-driver, -s**="": OCI storage driver (default: "")
 
-**--storage-opt**="": OCI storage driver option (default: [overlay.mountopt=nodev])
+**--storage-opt**="": OCI storage driver option (default: [])
 
 **--stream-address**="": Bind address for streaming socket (default: 127.0.0.1)
 
