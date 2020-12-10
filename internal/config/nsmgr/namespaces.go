@@ -17,16 +17,19 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (mgr *managedNamespaceManager) NewPodNamespaces(managedNamespaces []NSType, idMappings *idtools.IDMappings, sysctls map[string]string) ([]Namespace, error) {
-	if len(managedNamespaces) == 0 {
+func (mgr *managedNamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Namespace, error) {
+	if cfg == nil {
+		return nil, errors.New("PodNamespacesConfig cannot be nil")
+	}
+	if len(cfg.Namespaces) == 0 {
 		return []Namespace{}, nil
 	}
 
 	typeToArg := map[NSType]string{
-		IPCNS:  "-i",
-		UTSNS:  "-u",
-		USERNS: "-U",
-		NETNS:  "-n",
+		IPCNS:  "--ipc",
+		UTSNS:  "--uts",
+		USERNS: "--user",
+		NETNS:  "--net",
 	}
 
 	pinnedNamespace := uuid.New().String()
@@ -35,53 +38,45 @@ func (mgr *managedNamespaceManager) NewPodNamespaces(managedNamespaces []NSType,
 		"-f", pinnedNamespace,
 	}
 
-	if len(sysctls) != 0 {
-		pinnsArgs = append(pinnsArgs, "-s", getSysctlForPinns(sysctls))
+	if len(cfg.Sysctls) != 0 {
+		pinnsArgs = append(pinnsArgs, "-s", getSysctlForPinns(cfg.Sysctls))
 	}
-
-	type namespaceInfo struct {
-		path   string
-		nsType NSType
-	}
-
-	mountedNamespaces := make([]namespaceInfo, 0, len(managedNamespaces))
 
 	var rootPair idtools.IDPair
-	if idMappings != nil {
-		rootPair = idMappings.RootPair()
+	if cfg.IDMappings != nil {
+		rootPair = cfg.IDMappings.RootPair()
 	}
 
-	for _, nsType := range managedNamespaces {
-		arg, ok := typeToArg[nsType]
+	for _, ns := range cfg.Namespaces {
+		arg, ok := typeToArg[ns.Type]
 		if !ok {
-			return nil, errors.Errorf("Invalid namespace type: %s", nsType)
+			return nil, errors.Errorf("Invalid namespace type: %s", ns.Type)
+		}
+		if ns.Host {
+			arg += "=host"
 		}
 		pinnsArgs = append(pinnsArgs, arg)
-		pinPath := filepath.Join(mgr.namespacesDir, string(nsType)+"ns", pinnedNamespace)
-		mountedNamespaces = append(mountedNamespaces, namespaceInfo{
-			path:   pinPath,
-			nsType: nsType,
-		})
-		if idMappings != nil {
-			err := os.MkdirAll(filepath.Dir(pinPath), 0o755)
+		ns.Path = filepath.Join(mgr.namespacesDir, string(ns.Type)+"ns", pinnedNamespace)
+		if cfg.IDMappings != nil {
+			err := os.MkdirAll(filepath.Dir(ns.Path), 0o755)
 			if err != nil {
 				return nil, err
 			}
-			f, err := os.Create(pinPath)
+			f, err := os.Create(ns.Path)
 			if err != nil {
 				return nil, err
 			}
 			f.Close()
-			if err := os.Chown(pinPath, rootPair.UID, rootPair.GID); err != nil {
+			if err := os.Chown(ns.Path, rootPair.UID, rootPair.GID); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	if idMappings != nil {
+	if cfg.IDMappings != nil {
 		pinnsArgs = append(pinnsArgs,
-			fmt.Sprintf("--uid-mapping=%s", getMappingsForPinns(idMappings.UIDs())),
-			fmt.Sprintf("--gid-mapping=%s", getMappingsForPinns(idMappings.GIDs())))
+			fmt.Sprintf("--uid-mapping=%s", getMappingsForPinns(cfg.IDMappings.UIDs())),
+			fmt.Sprintf("--gid-mapping=%s", getMappingsForPinns(cfg.IDMappings.GIDs())))
 	}
 
 	logrus.Debugf("calling pinns with %v", pinnsArgs)
@@ -89,18 +84,19 @@ func (mgr *managedNamespaceManager) NewPodNamespaces(managedNamespaces []NSType,
 	if err != nil {
 		logrus.Warnf("pinns %v failed: %s (%v)", pinnsArgs, string(output), err)
 		// cleanup the mounts
-		for _, info := range mountedNamespaces {
-			if mErr := unix.Unmount(info.path, unix.MNT_DETACH); mErr != nil && mErr != unix.EINVAL {
-				logrus.Warnf("failed to unmount %s: %v", info.path, mErr)
+		for _, ns := range cfg.Namespaces {
+			if mErr := unix.Unmount(ns.Path, unix.MNT_DETACH); mErr != nil && mErr != unix.EINVAL {
+				logrus.Warnf("failed to unmount %s: %v", ns.Path, mErr)
 			}
 		}
 
-		return nil, fmt.Errorf("failed to pin namespaces %v: %s %v", managedNamespaces, output, err)
+		// TODO FIXME
+		return nil, fmt.Errorf("failed to pin namespaces %v: %s %v", pinnsArgs, output, err)
 	}
 
-	returnedNamespaces := make([]Namespace, 0, len(managedNamespaces))
-	for _, info := range mountedNamespaces {
-		ns, err := GetNamespace(info.path, info.nsType)
+	returnedNamespaces := make([]Namespace, 0, len(cfg.Namespaces))
+	for _, ns := range cfg.Namespaces {
+		ns, err := GetNamespace(ns.Path, ns.Type)
 		if err != nil {
 			return nil, err
 		}

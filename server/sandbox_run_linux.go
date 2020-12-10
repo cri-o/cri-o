@@ -1031,32 +1031,6 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Ge
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
 // The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
 func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, idMappings *idtools.IDMappings, sysctls map[string]string, sb *libsandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, retErr error) {
-	// UTS is never host
-	managedNamespaces := []nsmgr.NSType{nsmgr.UTSNS}
-	if hostNetwork {
-		if err := g.RemoveLinuxNamespace(string(spec.NetworkNamespace)); err != nil {
-			return nil, err
-		}
-	} else {
-		managedNamespaces = append(managedNamespaces, nsmgr.NETNS)
-	}
-
-	if hostIPC {
-		if err := g.RemoveLinuxNamespace(string(spec.IPCNamespace)); err != nil {
-			return nil, err
-		}
-	} else {
-		managedNamespaces = append(managedNamespaces, nsmgr.IPCNS)
-	}
-
-	if idMappings == nil {
-		if err := g.RemoveLinuxNamespace(string(spec.UserNamespace)); err != nil {
-			return nil, err
-		}
-	} else {
-		managedNamespaces = append(managedNamespaces, nsmgr.USERNS)
-	}
-
 	// Since we need a process to hold open the PID namespace, CRI-O can't manage the NS lifecycle
 	if hostPID {
 		if err := g.RemoveLinuxNamespace(string(spec.PIDNamespace)); err != nil {
@@ -1064,8 +1038,30 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		}
 	}
 
+	namespaceConfig := &nsmgr.PodNamespacesConfig{
+		Sysctls:    sysctls,
+		IDMappings: idMappings,
+		Namespaces: []*nsmgr.PodNamespaceConfig{
+			{
+				Type: nsmgr.IPCNS,
+				Host: hostIPC,
+			},
+			{
+				Type: nsmgr.NETNS,
+				Host: hostNetwork,
+			},
+			{
+				Type: nsmgr.UTSNS, // there is no option for host UTSNS
+			},
+		},
+	}
+	if idMappings != nil {
+		namespaceConfig.Namespaces = append(namespaceConfig.Namespaces, &nsmgr.PodNamespaceConfig{
+			Type: nsmgr.USERNS,
+		})
+	}
 	// now that we've configured the namespaces we're sharing, create them
-	namespaces, err := s.config.NamespaceManager().NewPodNamespaces(managedNamespaces, idMappings, sysctls)
+	namespaces, err := s.config.NamespaceManager().NewPodNamespaces(namespaceConfig)
 	if err != nil {
 		return nil, err
 	}
