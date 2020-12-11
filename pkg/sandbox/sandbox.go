@@ -7,8 +7,8 @@ import (
 
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/pkg/container"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // Sandbox is the interface for managing pod sandboxes
@@ -26,13 +26,13 @@ type Sandbox interface {
 	RemoveContainer(container.Container) error
 
 	// SetConfig sets the sandbox configuration and validates it
-	SetConfig(*pb.PodSandboxConfig) error
+	SetConfig(*types.PodSandboxConfig) error
 
 	// SetNameAndID sets the sandbox name and ID
 	SetNameAndID() error
 
 	// Config returns the sandbox configuration
-	Config() *pb.PodSandboxConfig
+	Config() *types.PodSandboxConfig
 
 	// ID returns the id of the pod sandbox
 	ID() string
@@ -44,7 +44,7 @@ type Sandbox interface {
 // sandbox is the hidden default type behind the Sandbox interface
 type sandbox struct {
 	ctx    context.Context
-	config *pb.PodSandboxConfig
+	config *types.PodSandboxConfig
 	id     string
 	name   string
 }
@@ -58,7 +58,7 @@ func New(ctx context.Context) Sandbox {
 }
 
 // SetConfig sets the sandbox configuration and validates it
-func (s *sandbox) SetConfig(config *pb.PodSandboxConfig) error {
+func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
 	if s.config != nil {
 		return errors.New("config already set")
 	}
@@ -67,11 +67,11 @@ func (s *sandbox) SetConfig(config *pb.PodSandboxConfig) error {
 		return errors.New("config is nil")
 	}
 
-	if config.GetMetadata() == nil {
+	if config.Metadata == nil {
 		return errors.New("metadata is nil")
 	}
 
-	if config.GetMetadata().GetName() == "" {
+	if config.Metadata.Name == "" {
 		return errors.New("PodSandboxConfig.Metadata.Name should not be empty")
 	}
 	s.config = config
@@ -84,28 +84,28 @@ func (s *sandbox) SetNameAndID() error {
 		return errors.New("config is nil")
 	}
 
-	if s.config.GetMetadata().GetNamespace() == "" {
+	if s.config.Metadata.Namespace == "" {
 		return errors.New("cannot generate pod name without namespace")
 	}
 
-	if s.config.GetMetadata().GetName() == "" {
+	if s.config.Metadata.Name == "" {
 		return errors.New("cannot generate pod name without name in metadata")
 	}
 
 	s.id = stringid.GenerateNonCryptoID()
 	s.name = strings.Join([]string{
 		"k8s",
-		s.config.GetMetadata().GetName(),
-		s.config.GetMetadata().GetNamespace(),
-		s.config.GetMetadata().GetUid(),
-		fmt.Sprintf("%d", s.config.GetMetadata().GetAttempt()),
+		s.config.Metadata.Name,
+		s.config.Metadata.Namespace,
+		s.config.Metadata.UID,
+		fmt.Sprintf("%d", s.config.Metadata.Attempt),
 	}, "_")
 
 	return nil
 }
 
 // Config returns the sandbox configuration
-func (s *sandbox) Config() *pb.PodSandboxConfig {
+func (s *sandbox) Config() *types.PodSandboxConfig {
 	return s.config
 }
 

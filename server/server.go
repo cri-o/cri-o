@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/image/v5/types"
+	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
@@ -25,13 +25,13 @@ import (
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/cri-o/cri-o/server/streaming"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/cri/streaming"
 )
 
 const (
@@ -76,7 +76,7 @@ type Server struct {
 type pullArguments struct {
 	image         string
 	sandboxCgroup string
-	credentials   types.DockerAuthConfig
+	credentials   imageTypes.DockerAuthConfig
 }
 
 // pullOperation is used to synchronize parallel pull operations via the
@@ -140,17 +140,17 @@ func (s *Server) StreamingServerCloseChan() chan struct{} {
 }
 
 // getExec returns exec stream request
-func (s *Server) getExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
+func (s *Server) getExec(req *types.ExecRequest) (*types.ExecResponse, error) {
 	return s.stream.streamServer.GetExec(req)
 }
 
 // getAttach returns attach stream request
-func (s *Server) getAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
+func (s *Server) getAttach(req *types.AttachRequest) (*types.AttachResponse, error) {
 	return s.stream.streamServer.GetAttach(req)
 }
 
 // getPortForward returns port forward stream request
-func (s *Server) getPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+func (s *Server) getPortForward(req *types.PortForwardRequest) (*types.PortForwardResponse, error) {
 	return s.stream.streamServer.GetPortForward(req)
 }
 

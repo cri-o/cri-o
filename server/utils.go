@@ -17,6 +17,7 @@ import (
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
@@ -24,8 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	"k8s.io/apimachinery/pkg/api/resource"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/types"
+	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
@@ -189,16 +189,16 @@ func validateLabels(labels map[string]string) error {
 	return nil
 }
 
-func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*pb.KeyValue) []string {
+func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 	envs := []string{}
 	if kubeEnvs == nil && imageConfig != nil {
 		envs = imageConfig.Config.Env
 	} else {
 		for _, item := range kubeEnvs {
-			if item.GetKey() == "" {
+			if item.Key == "" {
 				continue
 			}
-			envs = append(envs, item.GetKey()+"="+item.GetValue())
+			envs = append(envs, item.Key+"="+item.Value)
 		}
 		if imageConfig != nil {
 			for _, imageEnv := range imageConfig.Config.Env {
@@ -232,7 +232,7 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*pb.KeyValue) []string {
 
 // Translate container labels to a description of the container
 func translateLabelsToDescription(labels map[string]string) string {
-	return fmt.Sprintf("%s/%s/%s", labels[types.KubernetesPodNamespaceLabel], labels[types.KubernetesPodNameLabel], labels[types.KubernetesContainerNameLabel])
+	return fmt.Sprintf("%s/%s/%s", labels[kubeletTypes.KubernetesPodNamespaceLabel], labels[kubeletTypes.KubernetesPodNameLabel], labels[kubeletTypes.KubernetesContainerNameLabel])
 }
 
 // getDecryptionKeys reads the keys from the given directory

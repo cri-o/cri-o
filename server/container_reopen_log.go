@@ -4,29 +4,29 @@ import (
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // ReopenContainerLog reopens the containers log file
-func (s *Server) ReopenContainerLog(ctx context.Context, req *pb.ReopenContainerLogRequest) (*pb.ReopenContainerLogResponse, error) {
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContainerLogRequest) error {
+	c, err := s.GetContainerFromShortID(req.ContainerID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not find container %s", req.ContainerId)
+		return errors.Wrapf(err, "could not find container %s", req.ContainerID)
 	}
 
 	if err := s.ContainerServer.Runtime().UpdateContainerStatus(c); err != nil {
-		return nil, err
+		return err
 	}
 
 	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
-		return nil, fmt.Errorf("container is not created or running")
+		return fmt.Errorf("container is not created or running")
 	}
 
 	if err := s.ContainerServer.Runtime().ReopenContainerLog(c); err != nil {
-		return nil, err
+		return err
 	}
-	return &pb.ReopenContainerLogResponse{}, nil
+	return nil
 }

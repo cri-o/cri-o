@@ -77,7 +77,7 @@ func (c *container) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices 
 func (c *container) specAddContainerConfigDevices() error {
 	sp := c.Spec().Config
 
-	for _, device := range c.Config().GetDevices() {
+	for _, device := range c.Config().Devices {
 		// pin the device to avoid using `device` within the range scope as
 		// wrong function literal
 		device := device

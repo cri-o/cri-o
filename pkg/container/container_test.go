@@ -11,21 +11,21 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 var _ = t.Describe("Container", func() {
-	var config *pb.ContainerConfig
-	var sboxConfig *pb.PodSandboxConfig
+	var config *types.ContainerConfig
+	var sboxConfig *types.PodSandboxConfig
 	const defaultMounts = 6
 	BeforeEach(func() {
-		config = &pb.ContainerConfig{
-			Metadata: &pb.ContainerMetadata{Name: "name"},
+		config = &types.ContainerConfig{
+			Metadata: &types.ContainerMetadata{Name: "name"},
 		}
-		sboxConfig = &pb.PodSandboxConfig{}
+		sboxConfig = &types.PodSandboxConfig{}
 	})
 	t.Describe("SpecAddMount", func() {
 		It("should add the mount to the spec", func() {
@@ -61,17 +61,17 @@ var _ = t.Describe("Container", func() {
 	t.Describe("SpecAddAnnotations", func() {
 		It("should set the spec annotations", func() {
 			// Given
-			sandboxConfig := &pb.PodSandboxConfig{
-				Metadata: &pb.PodSandboxMetadata{Name: "name"},
+			sandboxConfig := &types.PodSandboxConfig{
+				Metadata: &types.PodSandboxMetadata{Name: "name"},
 			}
-			containerConfig := &pb.ContainerConfig{
-				Metadata: &pb.ContainerMetadata{Name: "name"},
-				Linux: &pb.LinuxContainerConfig{
-					SecurityContext: &pb.LinuxContainerSecurityContext{
+			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
+				Linux: &types.LinuxContainerConfig{
+					SecurityContext: &types.LinuxContainerSecurityContext{
 						Privileged: true,
 					},
 				},
-				Image: &pb.ImageSpec{
+				Image: &types.ImageSpec{
 					Image: "img",
 				},
 			}
@@ -95,16 +95,16 @@ var _ = t.Describe("Container", func() {
 			logpath, err := sut.LogPath(sb.LogDir())
 			Expect(err).To(BeNil())
 
-			metadataJSON, err := json.Marshal(sut.Config().GetMetadata())
+			metadataJSON, err := json.Marshal(sut.Config().Metadata)
 			Expect(err).To(BeNil())
 
-			labelsJSON, err := json.Marshal(sut.Config().GetLabels())
+			labelsJSON, err := json.Marshal(sut.Config().Labels)
 			Expect(err).To(BeNil())
 
 			volumesJSON, err := json.Marshal(volumes)
 			Expect(err).To(BeNil())
 
-			kubeAnnotationsJSON, err := json.Marshal(sut.Config().GetAnnotations())
+			kubeAnnotationsJSON, err := json.Marshal(sut.Config().Annotations)
 			Expect(err).To(BeNil())
 
 			Expect(currentTime).ToNot(BeNil())
@@ -128,7 +128,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.Spec().Config.Annotations[annotations.ResolvPath]).To(Equal(sb.ResolvPath()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerManager]).To(Equal(lib.ContainerManagerCRIO))
 			Expect(sut.Spec().Config.Annotations[annotations.MountPoint]).To(Equal(mountPoint))
-			Expect(sut.Spec().Config.Annotations[annotations.SeccompProfilePath]).To(Equal(sut.Config().GetLinux().GetSecurityContext().GetSeccompProfilePath()))
+			Expect(sut.Spec().Config.Annotations[annotations.SeccompProfilePath]).To(Equal(sut.Config().Linux.SecurityContext.SeccompProfilePath))
 			Expect(sut.Spec().Config.Annotations[annotations.Created]).ToNot(BeNil())
 			Expect(sut.Spec().Config.Annotations[annotations.Metadata]).To(Equal(string(metadataJSON)))
 			Expect(sut.Spec().Config.Annotations[annotations.Labels]).To(Equal(string(labelsJSON)))
@@ -185,7 +185,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should fail when image not set", func() {
 			// Given
-			config.Image = &pb.ImageSpec{}
+			config.Image = &types.ImageSpec{}
 
 			// When
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
@@ -198,7 +198,7 @@ var _ = t.Describe("Container", func() {
 		It("should be succeed when set", func() {
 			// Given
 			testImage := "img"
-			config.Image = &pb.ImageSpec{
+			config.Image = &types.ImageSpec{
 				Image: testImage,
 			}
 
@@ -213,8 +213,8 @@ var _ = t.Describe("Container", func() {
 	})
 	t.Describe("ReadOnly", func() {
 		BeforeEach(func() {
-			config.Linux = &pb.LinuxContainerConfig{
-				SecurityContext: &pb.LinuxContainerSecurityContext{},
+			config.Linux = &types.LinuxContainerConfig{
+				SecurityContext: &types.LinuxContainerSecurityContext{},
 			}
 		})
 		It("should not be readonly by default", func() {
@@ -248,8 +248,8 @@ var _ = t.Describe("Container", func() {
 	})
 	t.Describe("SelinuxLabel", func() {
 		BeforeEach(func() {
-			config.Linux = &pb.LinuxContainerConfig{
-				SecurityContext: &pb.LinuxContainerSecurityContext{},
+			config.Linux = &types.LinuxContainerConfig{
+				SecurityContext: &types.LinuxContainerSecurityContext{},
 			}
 		})
 		It("should be empty by default", func() {
@@ -265,7 +265,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should not be empty when specified in config", func() {
 			// Given
-			config.Linux.SecurityContext.SelinuxOptions = &pb.SELinuxOption{
+			config.Linux.SecurityContext.SelinuxOptions = &types.SELinuxOption{
 				User:  "a_u",
 				Role:  "a_r",
 				Type:  "a_t",

@@ -5,11 +5,11 @@ import (
 
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -39,7 +39,7 @@ var _ = t.Describe("ImageStatus", func() {
 
 			// When
 			response, err := sut.ImageStatus(context.Background(),
-				&pb.ImageStatusRequest{Image: &pb.ImageSpec{Image: "image"}})
+				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -73,8 +73,8 @@ var _ = t.Describe("ImageStatus", func() {
 
 			// When
 			response, err := sut.ImageStatus(context.Background(),
-				&pb.ImageStatusRequest{
-					Image:   &pb.ImageSpec{Image: "image"},
+				&types.ImageStatusRequest{
+					Image:   &types.ImageSpec{Image: "image"},
 					Verbose: true,
 				})
 
@@ -100,7 +100,7 @@ var _ = t.Describe("ImageStatus", func() {
 
 			// When
 			response, err := sut.ImageStatus(context.Background(),
-				&pb.ImageStatusRequest{Image: &pb.ImageSpec{Image: "image"}})
+				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -120,7 +120,7 @@ var _ = t.Describe("ImageStatus", func() {
 
 			// When
 			response, err := sut.ImageStatus(context.Background(),
-				&pb.ImageStatusRequest{Image: &pb.ImageSpec{Image: "image"}})
+				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -140,7 +140,7 @@ var _ = t.Describe("ImageStatus", func() {
 
 			// When
 			response, err := sut.ImageStatus(context.Background(),
-				&pb.ImageStatusRequest{Image: &pb.ImageSpec{Image: "image"}})
+				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -157,7 +157,7 @@ var _ = t.Describe("ImageStatus", func() {
 
 			// When
 			response, err := sut.ImageStatus(context.Background(),
-				&pb.ImageStatusRequest{Image: &pb.ImageSpec{Image: "image"}})
+				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -168,7 +168,7 @@ var _ = t.Describe("ImageStatus", func() {
 			// Given
 			// When
 			response, err := sut.ImageStatus(context.Background(),
-				&pb.ImageStatusRequest{})
+				&types.ImageStatusRequest{})
 
 			// Then
 			Expect(err).NotTo(BeNil())

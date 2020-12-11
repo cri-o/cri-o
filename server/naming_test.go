@@ -1,9 +1,9 @@
 package server_test
 
 import (
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -20,8 +20,8 @@ var _ = t.Describe("Server", func() {
 			// Given
 			// When
 			name, err := sut.ReserveSandboxContainerIDAndName(
-				&pb.PodSandboxConfig{
-					Metadata: &pb.PodSandboxMetadata{
+				&types.PodSandboxConfig{
+					Metadata: &types.PodSandboxMetadata{
 						Namespace: "default",
 					},
 				})
@@ -44,7 +44,7 @@ var _ = t.Describe("Server", func() {
 		It("should fail without sandbox config", func() {
 			// Given
 			// When
-			name, err := sut.ReserveSandboxContainerIDAndName(&pb.PodSandboxConfig{})
+			name, err := sut.ReserveSandboxContainerIDAndName(&types.PodSandboxConfig{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -53,17 +53,17 @@ var _ = t.Describe("Server", func() {
 
 		It("should fail if name is already reserved", func() {
 			// Given
-			metadata := &pb.PodSandboxMetadata{
+			metadata := &types.PodSandboxMetadata{
 				Namespace: "default",
 				Name:      "name",
 			}
 			_, err := sut.ReserveSandboxContainerIDAndName(
-				&pb.PodSandboxConfig{Metadata: metadata})
+				&types.PodSandboxConfig{Metadata: metadata})
 			Expect(err).To(BeNil())
 
 			// When
 			name, err := sut.ReserveSandboxContainerIDAndName(
-				&pb.PodSandboxConfig{Metadata: metadata})
+				&types.PodSandboxConfig{Metadata: metadata})
 
 			// Then
 			Expect(err).NotTo(BeNil())

@@ -2,52 +2,52 @@ package server
 
 import (
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	json "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // PodSandboxStatus returns the Status of the PodSandbox.
-func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusRequest) (*pb.PodSandboxStatusResponse, error) {
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
+func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStatusRequest) (*types.PodSandboxStatusResponse, error) {
+	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.PodSandboxId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.PodSandboxID, err)
 	}
 
-	rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
+	rStatus := types.PodSandboxStateSandboxNotReady
 	if sb.Ready(true) {
-		rStatus = pb.PodSandboxState_SANDBOX_READY
+		rStatus = types.PodSandboxStateSandboxReady
 	}
 
-	var linux *pb.LinuxPodSandboxStatus
+	var linux *types.LinuxPodSandboxStatus
 	if sb.NamespaceOptions() != nil {
-		linux = &pb.LinuxPodSandboxStatus{
-			Namespaces: &pb.Namespace{
-				Options: &pb.NamespaceOption{
-					Network: pb.NamespaceMode(sb.NamespaceOptions().Network),
-					Ipc:     pb.NamespaceMode(sb.NamespaceOptions().Ipc),
-					Pid:     pb.NamespaceMode(sb.NamespaceOptions().Pid),
+		linux = &types.LinuxPodSandboxStatus{
+			Namespaces: &types.Namespace{
+				Options: &types.NamespaceOption{
+					Network: types.NamespaceMode(sb.NamespaceOptions().Network),
+					Ipc:     types.NamespaceMode(sb.NamespaceOptions().Ipc),
+					Pid:     types.NamespaceMode(sb.NamespaceOptions().Pid),
 				},
 			},
 		}
 	}
 
 	sandboxID := sb.ID()
-	resp := &pb.PodSandboxStatusResponse{
-		Status: &pb.PodSandboxStatus{
-			Id:          sandboxID,
+	resp := &types.PodSandboxStatusResponse{
+		Status: &types.PodSandboxStatus{
+			ID:          sandboxID,
 			CreatedAt:   sb.CreatedAt().UnixNano(),
-			Network:     &pb.PodSandboxNetworkStatus{},
+			Network:     &types.PodSandboxNetworkStatus{},
 			State:       rStatus,
 			Labels:      sb.Labels(),
 			Annotations: sb.Annotations(),
-			Metadata: &pb.PodSandboxMetadata{
+			Metadata: &types.PodSandboxMetadata{
 				Name:      sb.Metadata().Name,
-				Uid:       sb.Metadata().UID,
+				UID:       sb.Metadata().UID,
 				Namespace: sb.Metadata().Namespace,
 				Attempt:   sb.Metadata().Attempt,
 			},
@@ -56,7 +56,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	}
 
 	if len(sb.IPs()) > 0 {
-		resp.Status.Network.Ip = sb.IPs()[0]
+		resp.Status.Network.IP = sb.IPs()[0]
 	}
 	if len(sb.IPs()) > 1 {
 		resp.Status.Network.AdditionalIps = toPodIPs(sb.IPs()[1:])
@@ -73,9 +73,9 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *pb.PodSandboxStatusR
 	return resp, nil
 }
 
-func toPodIPs(ips []string) (result []*pb.PodIP) {
+func toPodIPs(ips []string) (result []*types.PodIP) {
 	for _, ip := range ips {
-		result = append(result, &pb.PodIP{Ip: ip})
+		result = append(result, &types.PodIP{IP: ip})
 	}
 	return result
 }
