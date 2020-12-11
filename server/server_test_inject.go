@@ -23,7 +23,3 @@ func (s *StreamService) SetRuntimeServer(server *Server) {
 func (s *Server) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
 	return s.config.SetCNIPlugin(plugin)
 }
-
-func (s *Server) SetManageNSLifecycle(manageNS bool) {
-	s.config.ManageNSLifecycle = manageNS
-}

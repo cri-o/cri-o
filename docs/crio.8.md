@@ -53,7 +53,6 @@ crio
 [--log-level|-l]=[value]
 [--log-size-max]=[value]
 [--log]=[value]
-[--manage-ns-lifecycle]
 [--metrics-port]=[value]
 [--metrics-socket]=[value]
 [--namespaces-dir]=[value]
@@ -170,7 +169,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: []) (default: [])
 
-**--drop-infra-ctr**: Determines whether pods are created without an infra container (when the pod is not using a pod level PID namespace). Requires ManageNSLifecycle to be true (default: false)
+**--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace (default: false)
 
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
 
@@ -238,8 +237,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer (default: -1)
 
-**--manage-ns-lifecycle**: Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle. This option is being deprecated, and will be unconditionally true in the future. (default: true)
-
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
 
 **--metrics-socket**="": Socket for the metrics endpoint
@@ -276,15 +273,15 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--seccomp-use-default-when-empty**="": Use the default seccomp profile when an empty one is specified (default: false)
 
-**--selinux**: Enable selinux support (default: true)
+**--selinux**: Enable selinux support (default: false)
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup (default: "")
 
 **--signature-policy**="": Path to signature policy JSON file. (default: "", to use the system-wide default)
 
-**--storage-driver, -s**="": OCI storage driver (default: "overlay")
+**--storage-driver, -s**="": OCI storage driver (default: "")
 
-**--storage-opt**="": OCI storage driver option (default: [overlay.mountopt=nodev])
+**--storage-opt**="": OCI storage driver option (default: [])
 
 **--stream-address**="": Bind address for streaming socket (default: 127.0.0.1)
 

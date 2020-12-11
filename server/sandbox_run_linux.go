@@ -717,28 +717,26 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	var ips []string
 	var result cnitypes.Result
 
-	if s.config.ManageNSLifecycle {
-		ips, result, err = s.networkStart(ctx, sb)
+	ips, result, err = s.networkStart(ctx, sb)
+	if err != nil {
+		return nil, err
+	}
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "runSandbox: stopping network for sandbox %s", sb.ID())
+		if err2 := s.networkStop(ctx, sb); err2 != nil {
+			log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
+		}
+	})
+	if result != nil {
+		resultCurrent, err := current.NewResultFromResult(result)
 		if err != nil {
 			return nil, err
 		}
-		cleanupFuncs = append(cleanupFuncs, func() {
-			log.Infof(ctx, "runSandbox: in manageNSLifecycle, stopping network for sandbox %s", sb.ID())
-			if err2 := s.networkStop(ctx, sb); err2 != nil {
-				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
-			}
-		})
-		if result != nil {
-			resultCurrent, err := current.NewResultFromResult(result)
-			if err != nil {
-				return nil, err
-			}
-			cniResultJSON, err := json.Marshal(resultCurrent)
-			if err != nil {
-				return nil, err
-			}
-			g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
+		cniResultJSON, err := json.Marshal(resultCurrent)
+		if err != nil {
+			return nil, err
 		}
+		g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
 	}
 
 	// Set OOM score adjust of the infra container to be very low
@@ -941,19 +939,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
 	}
 
-	if !s.config.ManageNSLifecycle {
-		ips, _, err = s.networkStart(ctx, sb)
-		if err != nil {
-			return nil, err
-		}
-		cleanupFuncs = append(cleanupFuncs, func() {
-			log.Infof(ctx, "runSandbox: stopping network for sandbox %s when not manageNSLifecycle", sb.ID())
-			if err2 := s.networkStop(ctx, sb); err2 != nil {
-				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
-			}
-		})
-	}
-
 	for idx, ip := range ips {
 		g.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
 	}
@@ -1045,12 +1030,14 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Ge
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
 // The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
 func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, idMappings *idtools.IDMappings, sysctls map[string]string, sb *libsandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, retErr error) {
-	managedNamespaces := make([]libsandbox.NSType, 0, 3)
+	// There's no option to set hostUTS
+	managedNamespaces := []libsandbox.NSType{libsandbox.UTSNS}
+
 	if hostNetwork {
 		if err := g.RemoveLinuxNamespace(string(spec.NetworkNamespace)); err != nil {
 			return nil, err
 		}
-	} else if s.config.ManageNSLifecycle {
+	} else {
 		managedNamespaces = append(managedNamespaces, libsandbox.NETNS)
 	}
 
@@ -1058,7 +1045,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		if err := g.RemoveLinuxNamespace(string(spec.IPCNamespace)); err != nil {
 			return nil, err
 		}
-	} else if s.config.ManageNSLifecycle {
+	} else {
 		managedNamespaces = append(managedNamespaces, libsandbox.IPCNS)
 	}
 
@@ -1066,7 +1053,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		if err := g.RemoveLinuxNamespace(string(spec.UserNamespace)); err != nil {
 			return nil, err
 		}
-	} else if s.config.ManageNSLifecycle {
+	} else {
 		managedNamespaces = append(managedNamespaces, libsandbox.USERNS)
 	}
 
@@ -1077,21 +1064,16 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		}
 	}
 
-	// There's no option to set hostUTS
-	if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, libsandbox.UTSNS)
+	// now that we've configured the namespaces we're sharing, tell sandbox to configure them
+	namespaces, err := sb.CreateManagedNamespaces(managedNamespaces, idMappings, sysctls, &s.config)
+	if err != nil {
+		return nil, err
+	}
 
-		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
-		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, idMappings, sysctls, &s.config)
-		if err != nil {
-			return nil, err
-		}
+	cleanupFuncs = append(cleanupFuncs, sb.RemoveManagedNamespaces)
 
-		cleanupFuncs = append(cleanupFuncs, sb.RemoveManagedNamespaces)
-
-		if err := configureGeneratorGivenNamespacePaths(managedNamespaces, g); err != nil {
-			return cleanupFuncs, err
-		}
+	if err := configureGeneratorGivenNamespacePaths(namespaces, g); err != nil {
+		return cleanupFuncs, err
 	}
 
 	return cleanupFuncs, nil

@@ -209,30 +209,28 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	if c.config.ManageNSLifecycle {
-		netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
-		if err == nil {
-			if nsErr := sb.NetNsJoin(netNsPath); nsErr != nil {
-				return nsErr
-			}
+	netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
+	if err == nil {
+		if nsErr := sb.NetNsJoin(netNsPath); nsErr != nil {
+			return nsErr
 		}
-		ipcNsPath, err := configNsPath(&m, rspec.IPCNamespace)
-		if err == nil {
-			if nsErr := sb.IpcNsJoin(ipcNsPath); nsErr != nil {
-				return nsErr
-			}
+	}
+	ipcNsPath, err := configNsPath(&m, rspec.IPCNamespace)
+	if err == nil {
+		if nsErr := sb.IpcNsJoin(ipcNsPath); nsErr != nil {
+			return nsErr
 		}
-		utsNsPath, err := configNsPath(&m, rspec.UTSNamespace)
-		if err == nil {
-			if nsErr := sb.UtsNsJoin(utsNsPath); nsErr != nil {
-				return nsErr
-			}
+	}
+	utsNsPath, err := configNsPath(&m, rspec.UTSNamespace)
+	if err == nil {
+		if nsErr := sb.UtsNsJoin(utsNsPath); nsErr != nil {
+			return nsErr
 		}
-		userNsPath, err := configNsPath(&m, rspec.UserNamespace)
-		if err == nil {
-			if nsErr := sb.UserNsJoin(userNsPath); nsErr != nil {
-				return nsErr
-			}
+	}
+	userNsPath, err := configNsPath(&m, rspec.UserNamespace)
+	if err == nil {
+		if nsErr := sb.UserNsJoin(userNsPath); nsErr != nil {
+			return nsErr
 		}
 	}
 
@@ -316,7 +314,7 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	if c.config.ManageNSLifecycle || wasSpoofed {
+	if wasSpoofed {
 		namespacesToJoin := []struct {
 			rspecNS  rspec.LinuxNamespaceType
 			joinFunc func(string) error

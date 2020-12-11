@@ -1,4 +1,4 @@
-_cli_crio_bash_autocomplete() {
+_cli_bash_autocomplete() {
     local cur opts base
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
@@ -53,7 +53,6 @@ h
 --log-journald
 --log-level
 --log-size-max
---manage-ns-lifecycle
 --metrics-port
 --metrics-socket
 --namespaces-dir
@@ -93,4 +92,4 @@ h
     return 0
 }
 
-complete -F _cli_crio_bash_autocomplete crio
+complete -F _cli_bash_autocomplete crio

@@ -247,11 +247,6 @@ gid_mappings = "{{ .GIDMappings }}"
 # value is 30s, whereas lower values are not considered by CRI-O.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
 
-# manage_ns_lifecycle determines whether we pin and remove namespaces
-# and manage their lifecycle.
-# This option is being deprecated, and will be unconditionally true in the future.
-manage_ns_lifecycle = {{ .ManageNSLifecycle }}
-
 # drop_infra_ctr determines whether CRI-O drops the infra container
 # when a pod does not have a private PID namespace, and does not use
 # a kernel separating runtime (like kata).
