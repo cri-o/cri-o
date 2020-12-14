@@ -25,3 +25,9 @@ func (c *Config) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
 func (c *Config) SetNamespaceManager(nsMgr *nsmgr.NamespaceManager) {
 	c.namespaceManager = nsMgr
 }
+
+// SetCheckpointRestore offers the possibility to turn on and
+// turn off CheckpointRestore support for testing.
+func (c *RuntimeConfig) SetCheckpointRestore(cr bool) {
+	c.EnableCriuSupport = cr
+}

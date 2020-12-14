@@ -153,7 +153,7 @@ var beforeEach = func() {
 	serverConfig.HooksDir = []string{emptyDir}
 
 	// Initialize test container and sandbox
-	testSandbox, err = sandbox.New(sandboxID, "", "", "", "",
+	testSandbox, err = sandbox.New(sandboxID, "", "", "", ".",
 		make(map[string]string), make(map[string]string), "", "",
 		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
 		[]*hostport.PortMapping{}, false, time.Now(), "")
@@ -230,6 +230,10 @@ var mockDirs = func(manifest []byte) {
 
 func createDummyState() {
 	Expect(os.WriteFile("state.json", []byte(`{}`), 0o644)).To(BeNil())
+}
+
+func createDummyConfig() {
+	Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{}}`), 0o644)).To(BeNil())
 }
 
 func mockRuncInLibConfig() {
