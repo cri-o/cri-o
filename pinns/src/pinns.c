@@ -123,11 +123,11 @@ int main(int argc, char **argv) {
   }
 
   if (!pin_path) {
-    pexit("Path for pinning namespaces not specified");
+    nexit("Path for pinning namespaces not specified");
   }
 
   if (!filename) {
-    pexit("Filename for pinning namespaces not specified");
+    nexit("Filename for pinning namespaces not specified");
   }
 
   if (directory_exists_or_create(pin_path) < 0) {
