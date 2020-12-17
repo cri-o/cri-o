@@ -3,6 +3,9 @@ package runtimehandlerhooks
 import (
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"strings"
 	"unicode"
 
@@ -120,4 +123,67 @@ func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCP
 		invertedMaskStringWithComma = invertedMaskStringWithComma + "," + invertedMaskString[i:i+8]
 	}
 	return maskStringWithComma, invertedMaskStringWithComma, nil
+}
+
+func restartIrqBalanceService(irqBalanceConfigFile, newIRQBalanceSetting string) error {
+	// update the irq balance config file and restart irqbalance service
+	if err := updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting); err != nil {
+		return err
+	}
+	cmd := exec.Command("service", "irqbalance", "restart")
+	return cmd.Run()
+}
+
+func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting string) error {
+	input, err := ioutil.ReadFile(irqBalanceConfigFile)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(input), "\n")
+	found := false
+	for i, line := range lines {
+		if strings.Contains(line, irqBalanceBannedCpus+"=") {
+			lines[i] = irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\""
+			found = true
+		}
+	}
+	output := strings.Join(lines, "\n")
+	if !found {
+		output = output + "\n" + irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\"" + "\n"
+	}
+	if err := ioutil.WriteFile(irqBalanceConfigFile, []byte(output), 0644); err != nil {
+		return err
+	}
+	return nil
+}
+
+func retrieveIrqBannedCPUMasks(irqBalanceConfigFile string) (string, error) {
+	input, err := ioutil.ReadFile(irqBalanceConfigFile)
+	if err != nil {
+		return "", err
+	}
+	lines := strings.Split(string(input), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
+			return trimQuotes(strings.Split(line, "=")[1]), nil
+		}
+	}
+	return "", nil
+}
+
+func trimQuotes(s string) string {
+	if len(s) >= 2 {
+		if s[0] == '"' && s[len(s)-1] == '"' {
+			return s[1 : len(s)-1]
+		}
+	}
+	return s
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

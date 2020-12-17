@@ -109,8 +109,9 @@ var _ = Describe("high_performance_hooks", func() {
 
 	Describe("setIRQLoadBalancing", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
+		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expected string) {
-			err := setIRQLoadBalancing(container, enabled, irqSmpAffinityFile)
+			err := setIRQLoadBalancing(container, enabled, irqSmpAffinityFile, irqBalanceConfigFile)
 			Expect(err).To(BeNil())
 
 			content, err := ioutil.ReadFile(irqSmpAffinityFile)

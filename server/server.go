@@ -23,6 +23,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
+	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/cri/types"
@@ -334,6 +335,11 @@ func New(
 		return nil, err
 	}
 	containerServer, err := lib.New(ctx, configIface)
+	if err != nil {
+		return nil, err
+	}
+
+	err = runtimehandlerhooks.RestoreIrqBalanceConfig(config.IrqBalanceConfigFile)
 	if err != nil {
 		return nil, err
 	}

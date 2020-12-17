@@ -33,11 +33,15 @@ const (
 	annotationDisable      = "disable"
 	schedDomainDir         = "/proc/sys/kernel/sched_domain"
 	irqSmpAffinityProcFile = "/proc/irq/default_smp_affinity"
+	irqBannedCPUConfigFile = "/etc/sysconfig/orig_irq_banned_cpus"
 	cgroupMountPoint       = "/sys/fs/cgroup"
+	irqBalanceBannedCpus   = "IRQBALANCE_BANNED_CPUS"
 )
 
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads
-type HighPerformanceHooks struct{}
+type HighPerformanceHooks struct {
+	irqBalanceConfigFile string
+}
 
 func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
 	log.Infof(ctx, "Run %q runtime handler pre-start hook for the container %q", HighPerformance, c.ID())
@@ -66,7 +70,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	// disable the IRQ smp load balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
-		if err := setIRQLoadBalancing(c, false, irqSmpAffinityProcFile); err != nil {
+		if err := setIRQLoadBalancing(c, false, irqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return errors.Wrap(err, "set IRQ load balancing")
 		}
 	}
@@ -111,7 +115,7 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 
 	// enable the IRQ smp balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
-		if err := setIRQLoadBalancing(c, true, irqSmpAffinityProcFile); err != nil {
+		if err := setIRQLoadBalancing(c, true, irqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return errors.Wrap(err, "set IRQ load balancing")
 		}
 	}
@@ -219,7 +223,7 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 	return nil
 }
 
-func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile string) error {
+func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqBalanceConfigFile string) error {
 	lspec := c.Spec().Linux
 	if lspec == nil ||
 		lspec.Resources == nil ||
@@ -240,16 +244,20 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile strin
 	if err := ioutil.WriteFile(irqSmpAffinityFile, []byte(newIRQSMPSetting), 0o644); err != nil {
 		return err
 	}
-	if _, err := exec.LookPath("irqbalance"); err != nil {
-		// irqbalance is not installed, skip the rest; pod should still start, so return nil instead
-		logrus.Warnf("irqbalance binary not found: %v", err)
-		return nil
+
+	if !fileExists(irqBalanceConfigFile) {
+		if _, err := exec.LookPath("irqbalance"); err != nil {
+			// irqbalance is not installed, skip the rest; pod should still start, so return nil instead
+			logrus.Warnf("irqbalance binary not found: %v", err)
+			return nil
+		}
+		// run irqbalance in daemon mode, so this won't cause delay
+		cmd := exec.Command("irqbalance", "--oneshot")
+		additionalEnv := irqBalanceBannedCpus + "=" + newIRQBalanceSetting
+		cmd.Env = append(os.Environ(), additionalEnv)
+		return cmd.Run()
 	}
-	// run irqbalance in daemon mode, so this won't cause delay
-	cmd := exec.Command("irqbalance", "--oneshot")
-	additionalEnv := "IRQBALANCE_BANNED_CPUS=" + newIRQBalanceSetting
-	cmd.Env = append(os.Environ(), additionalEnv)
-	return cmd.Run()
+	return restartIrqBalanceService(irqBalanceConfigFile, newIRQBalanceSetting)
 }
 
 func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool) error {
@@ -310,4 +318,37 @@ func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool)
 	}
 
 	return nil
+}
+
+// RestoreIrqBalanceConfig restores irqbalance service with original
+// banned cpu mask settings
+func RestoreIrqBalanceConfig(irqBalanceConfigFile string) error {
+	bannedCPUMasks, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+	if err != nil {
+		// Ignore returning err as given irqBalanceConfigFile may not exist.
+		return nil
+	}
+	if !fileExists(irqBannedCPUConfigFile) {
+		irqBannedCPUsConfig, err := os.Create(irqBannedCPUConfigFile)
+		if err != nil {
+			return err
+		}
+		defer irqBannedCPUsConfig.Close()
+		_, err = irqBannedCPUsConfig.WriteString(bannedCPUMasks)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	content, err := ioutil.ReadFile(irqBannedCPUConfigFile)
+	if err != nil {
+		return err
+	}
+	origBannedCPUMasks := strings.TrimSpace(string(content))
+
+	if bannedCPUMasks == origBannedCPUMasks {
+		return nil
+	}
+	return restartIrqBalanceService(irqBalanceConfigFile, origBannedCPUMasks)
 }
