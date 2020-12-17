@@ -125,6 +125,9 @@ the container runtime configuration.
 **apparmor_profile**=""
   Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default".
 
+**irqbalance_config_file**="/etc/sysconfig/irqbalance"
+  Used to change irqbalance service config file which is used by the crio runtime.
+
 **cgroup_manager**="systemd"
   Cgroup management implementation used for the runtime.
 
