@@ -1,6 +1,7 @@
 [Unit]
 Description=Open Container Initiative Daemon
 Documentation=https://github.com/kubernetes-sigs/cri-o
+Before=kubelet.service
 After=network-online.target
 
 [Service]
