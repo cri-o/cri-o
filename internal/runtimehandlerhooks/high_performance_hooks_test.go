@@ -13,7 +13,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (
@@ -25,7 +24,7 @@ var _ = Describe("high_performance_hooks", func() {
 	container, err := oci.NewContainer("containerID", "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "pauseImage", "", "",
-		&pb.ContainerMetadata{}, "sandboxID", false, false,
+		&oci.Metadata{}, "sandboxID", false, false,
 		false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
 

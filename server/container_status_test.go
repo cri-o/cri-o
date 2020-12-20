@@ -5,13 +5,13 @@ import (
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -27,7 +27,7 @@ var _ = t.Describe("ContainerStatus", func() {
 	t.Describe("ContainerStatus", func() {
 		DescribeTable("should succeed", func(
 			givenState *oci.ContainerState,
-			expectedState pb.ContainerState,
+			expectedState types.ContainerState,
 		) {
 			// Given
 			addContainerAndSandbox()
@@ -42,9 +42,9 @@ var _ = t.Describe("ContainerStatus", func() {
 
 			// When
 			response, err := sut.ContainerStatus(context.Background(),
-				&pb.ContainerStatusRequest{
+				&types.ContainerStatusRequest{
 					Verbose:     true,
-					ContainerId: testContainer.ID(),
+					ContainerID: testContainer.ID(),
 				})
 
 			// Then
@@ -56,29 +56,29 @@ var _ = t.Describe("ContainerStatus", func() {
 		},
 			Entry("Created", &oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},
-			}, pb.ContainerState_CONTAINER_CREATED),
+			}, types.ContainerStateContainerCreated),
 			Entry("Running", &oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
-			}, pb.ContainerState_CONTAINER_RUNNING),
+			}, types.ContainerStateContainerRunning),
 			Entry("Stopped: ExitCode 0", &oci.ContainerState{
 				ExitCode: utils.Int32Ptr(0),
 				State:    specs.State{Status: oci.ContainerStateStopped},
-			}, pb.ContainerState_CONTAINER_EXITED),
+			}, types.ContainerStateContainerExited),
 			Entry("Stopped: ExitCode -1", &oci.ContainerState{
 				ExitCode: utils.Int32Ptr(-1),
 				State:    specs.State{Status: oci.ContainerStateStopped},
-			}, pb.ContainerState_CONTAINER_EXITED),
+			}, types.ContainerStateContainerExited),
 			Entry("Stopped: OOMKilled", &oci.ContainerState{
 				OOMKilled: true,
 				State:     specs.State{Status: oci.ContainerStateStopped},
-			}, pb.ContainerState_CONTAINER_EXITED),
+			}, types.ContainerStateContainerExited),
 		)
 
 		It("should fail with invalid container ID", func() {
 			// Given
 			// When
 			response, err := sut.ContainerStatus(context.Background(),
-				&pb.ContainerStatusRequest{})
+				&types.ContainerStatusRequest{})
 
 			// Then
 			Expect(err).NotTo(BeNil())

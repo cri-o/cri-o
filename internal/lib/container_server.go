@@ -13,6 +13,7 @@ import (
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/truncindex"
+	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -23,8 +24,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 // ContainerManagerCRIO specifies an annotation value which indicates that the
@@ -168,7 +167,7 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 			c.ReleasePodName(name)
 		}
 	}()
-	var metadata pb.PodSandboxMetadata
+	var metadata sandbox.Metadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Metadata)
 	}
@@ -190,7 +189,7 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
-	nsOpts := pb.NamespaceOption{}
+	nsOpts := sandbox.NamespaceOption{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
 		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.NamespaceOptions)
 	}
@@ -210,30 +209,28 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	if c.config.ManageNSLifecycle {
-		netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
-		if err == nil {
-			if nsErr := sb.NetNsJoin(netNsPath); nsErr != nil {
-				return nsErr
-			}
+	netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
+	if err == nil {
+		if nsErr := sb.NetNsJoin(netNsPath); nsErr != nil {
+			return nsErr
 		}
-		ipcNsPath, err := configNsPath(&m, rspec.IPCNamespace)
-		if err == nil {
-			if nsErr := sb.IpcNsJoin(ipcNsPath); nsErr != nil {
-				return nsErr
-			}
+	}
+	ipcNsPath, err := configNsPath(&m, rspec.IPCNamespace)
+	if err == nil {
+		if nsErr := sb.IpcNsJoin(ipcNsPath); nsErr != nil {
+			return nsErr
 		}
-		utsNsPath, err := configNsPath(&m, rspec.UTSNamespace)
-		if err == nil {
-			if nsErr := sb.UtsNsJoin(utsNsPath); nsErr != nil {
-				return nsErr
-			}
+	}
+	utsNsPath, err := configNsPath(&m, rspec.UTSNamespace)
+	if err == nil {
+		if nsErr := sb.UtsNsJoin(utsNsPath); nsErr != nil {
+			return nsErr
 		}
-		userNsPath, err := configNsPath(&m, rspec.UserNamespace)
-		if err == nil {
-			if nsErr := sb.UserNsJoin(userNsPath); nsErr != nil {
-				return nsErr
-			}
+	}
+	userNsPath, err := configNsPath(&m, rspec.UserNamespace)
+	if err == nil {
+		if nsErr := sb.UserNsJoin(userNsPath); nsErr != nil {
+			return nsErr
 		}
 	}
 
@@ -317,7 +314,7 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	if c.config.ManageNSLifecycle || wasSpoofed {
+	if wasSpoofed {
 		namespacesToJoin := []struct {
 			rspecNS  rspec.LinuxNamespaceType
 			joinFunc func(string) error
@@ -410,7 +407,7 @@ func (c *ContainerServer) LoadContainer(id string) (retErr error) {
 		}
 	}()
 
-	var metadata pb.ContainerMetadata
+	var metadata oci.Metadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}

@@ -4,15 +4,27 @@ load helpers
 
 function setup() {
 	setup_test
-	# Start it with the environment variable set, don't use replace_config
-	CONTAINER_ENABLE_CUSTOM_SHM_SIZE=true start_crio
 }
 
 function teardown() {
 	cleanup_test
 }
 
+function create_shmsize_runtime() {
+	cat << EOF > "$CRIO_CONFIG_DIR/01-shmsize.conf"
+[crio.runtime]
+default_runtime = "shmsize"
+[crio.runtime.runtimes.shmsize]
+runtime_path = "$RUNTIME_BINARY"
+runtime_root = "$RUNTIME_ROOT"
+runtime_type = "$RUNTIME_TYPE"
+allowed_annotations = ["io.kubernetes.cri-o.ShmSize"]
+EOF
+}
+
 @test "check /dev/shm is changed" {
+	create_shmsize_runtime
+	start_crio
 	# Run base container to ensure it creates at all
 	pod_id=$(crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' "$TESTDATA"/sandbox_config.json))
 
@@ -28,6 +40,8 @@ function teardown() {
 }
 
 @test "check /dev/shm fails with incorrect values" {
+	create_shmsize_runtime
+	start_crio
 	# Ensure pod fails if /dev/shm size is negative
 	! crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "-1"' "$TESTDATA"/sandbox_config.json)
 

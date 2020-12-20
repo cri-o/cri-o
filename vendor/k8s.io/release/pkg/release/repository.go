@@ -86,7 +86,7 @@ func (r *Repo) GetTag() (string, error) {
 }
 
 // CheckState verifies that the repository is in the requested state
-func (r *Repo) CheckState(expOrg, expRepo, expBranch string) error {
+func (r *Repo) CheckState(expOrg, expRepo, expBranch string, nomock bool) error {
 	logrus.Info("Verifying repository state")
 
 	dirty, err := r.repo.IsDirty()
@@ -108,6 +108,10 @@ func (r *Repo) CheckState(expOrg, expRepo, expBranch string) error {
 	if branch != expBranch {
 		return errors.Errorf("branch %q expected but got %q", expBranch, branch)
 	}
+	if nomock && !(expOrg == DefaultToolOrg && expRepo == DefaultToolRepo && expBranch == DefaultToolBranch) {
+		return errors.New("disallow using anything other than kubernetes/release:master with nomock flag")
+	}
+
 	logrus.Infof("Found matching branch %q", expBranch)
 
 	// Verify the remote

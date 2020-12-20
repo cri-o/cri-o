@@ -36,7 +36,6 @@ crio
 [--default-transport]=[value]
 [--default-ulimits]=[value]
 [--drop-infra-ctr]
-[--enable-custom-shm-size]
 [--enable-metrics]
 [--gid-mappings]=[value]
 [--global-auth-file]=[value]
@@ -54,7 +53,6 @@ crio
 [--log-level|-l]=[value]
 [--log-size-max]=[value]
 [--log]=[value]
-[--manage-ns-lifecycle]
 [--metrics-port]=[value]
 [--metrics-socket]=[value]
 [--namespaces-dir]=[value]
@@ -171,9 +169,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: []) (default: [])
 
-**--drop-infra-ctr**: Determines whether pods are created without an infra container (when the pod is not using a pod level PID namespace). Requires ManageNSLifecycle to be true (default: false)
-
-**--enable-custom-shm-size**: Enable users to set a custom shm size instead of using the default value of 64M
+**--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace (default: false)
 
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
 
@@ -240,8 +236,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--log-level, -l**="": Log messages above specified level: trace, debug, info, warn, error, fatal or panic (default: info)
 
 **--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer (default: -1)
-
-**--manage-ns-lifecycle**: Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle. This option is being deprecated, and will be unconditionally true in the future. (default: true)
 
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
 

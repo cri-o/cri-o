@@ -32,11 +32,14 @@ function teardown() {
 	fi
 
 	start_crio
-	python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["security_context"]["namespace_options"]["network"] = 2; obj["annotations"] = {}; obj["hostname"] = ""; json.dump(obj, sys.stdout)' \
-		< "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_hostnetwork_config.json
 
-	pod_id=$(crictl runp "$TESTDIR"/sandbox_hostnetwork_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_hostnetwork_config.json)
+	jq '	  .linux.security_context.namespace_options.network = 2
+		| del(.annotations)
+		| del(.hostname)' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_hostnetwork.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox_hostnetwork.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_hostnetwork.json)
 	crictl start "$ctr_id"
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "hostname")
@@ -60,13 +63,11 @@ function teardown() {
 }
 
 @test "Ensure correct CNI plugin namespace/name/container-id arguments" {
-	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
-	CNI_TYPE="cni_plugin_helper.bash"
-	start_crio
+	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}" CNI_TYPE="cni_plugin_helper.bash" start_crio
 
 	crictl runp "$TESTDATA"/sandbox_config.json
 
-	# shellcheck disable=SC1091
+	# shellcheck disable=SC1090,SC1091
 	. "$TESTDIR"/plugin_test_args.out
 
 	[ "$FOUND_CNI_CONTAINERID" != "redhat.test.crio" ]
@@ -114,7 +115,7 @@ function check_networking() {
 @test "Clean up network if pod sandbox fails" {
 	# TODO FIXME find a way for sandbox setup to fail if manage ns is true
 	CONMON_BINARY="$TESTDIR"/conmon
-	cp "$(which conmon)" "$CONMON_BINARY"
+	cp "$(command -v conmon)" "$CONMON_BINARY"
 	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
 	CONTAINER_MANAGE_NS_LIFECYCLE=false \
 		CONTAINER_DROP_INFRA_CTR=false \
@@ -130,8 +131,7 @@ function check_networking() {
 
 @test "Clean up network if pod sandbox fails after plugin success" {
 	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
-	CNI_TYPE="cni_plugin_helper.bash"
-	setup_crio
+	CNI_TYPE="cni_plugin_helper.bash" setup_crio
 	echo "DEBUG_ARGS=malformed-result" > "$TESTDIR"/cni_plugin_helper_input.env
 	start_crio_no_setup
 	check_images

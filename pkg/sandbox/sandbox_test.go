@@ -1,8 +1,7 @@
 package sandbox_test
 
 import (
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -11,8 +10,8 @@ var _ = Describe("Sandbox", func() {
 	t.Describe("SetConfig", func() {
 		It("should succeed", func() {
 			// Given
-			config := &pb.PodSandboxConfig{
-				Metadata: &pb.PodSandboxMetadata{Name: "name"},
+			config := &types.PodSandboxConfig{
+				Metadata: &types.PodSandboxMetadata{Name: "name"},
 			}
 
 			// When
@@ -35,7 +34,7 @@ var _ = Describe("Sandbox", func() {
 
 		It("should fail with empty config", func() {
 			// Given
-			config := &pb.PodSandboxConfig{}
+			config := &types.PodSandboxConfig{}
 
 			// When
 			err := sut.SetConfig(config)
@@ -47,8 +46,8 @@ var _ = Describe("Sandbox", func() {
 
 		It("should fail with an empty name", func() {
 			// Given
-			config := &pb.PodSandboxConfig{
-				Metadata: &pb.PodSandboxMetadata{},
+			config := &types.PodSandboxConfig{
+				Metadata: &types.PodSandboxMetadata{},
 			}
 
 			// When
@@ -61,8 +60,8 @@ var _ = Describe("Sandbox", func() {
 
 		It("should fail with config already set", func() {
 			// Given
-			config := &pb.PodSandboxConfig{
-				Metadata: &pb.PodSandboxMetadata{Name: "name"},
+			config := &types.PodSandboxConfig{
+				Metadata: &types.PodSandboxMetadata{Name: "name"},
 			}
 			err := sut.SetConfig(config)
 			Expect(err).To(BeNil())

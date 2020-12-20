@@ -17,9 +17,7 @@ function teardown() {
 	id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
 	# when
-	run crictl stats -o json
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl stats -o json)
 
 	# then
 	jq -e '.stats[0].attributes.id = "'"$id"'"' <<< "$output"

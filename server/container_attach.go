@@ -5,15 +5,15 @@ import (
 	"io"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/client-go/tools/remotecommand"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // Attach prepares a streaming endpoint to attach to a running container.
-func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (*pb.AttachResponse, error) {
+func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.AttachResponse, error) {
 	resp, err := s.getAttach(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare attach endpoint")

@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (
@@ -49,7 +48,7 @@ var _ = t.Describe("Container", func() {
 		Expect(sut.Sandbox()).To(Equal("sandbox"))
 		Expect(sut.Dir()).To(Equal("dir"))
 		Expect(sut.StatePath()).To(Equal("dir/state.json"))
-		Expect(sut.Metadata()).To(Equal(&pb.ContainerMetadata{}))
+		Expect(sut.Metadata()).To(Equal(&oci.Metadata{}))
 		Expect(sut.StateNoLock().Version).To(BeEmpty())
 		Expect(sut.GetStopSignal()).To(Equal("15"))
 		Expect(sut.CreatedAt().UnixNano()).
@@ -148,7 +147,7 @@ var _ = t.Describe("Container", func() {
 		// Given
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
-			"", "", "", &pb.ContainerMetadata{}, "",
+			"", "", "", &oci.Metadata{}, "",
 			false, false, false, "", "", time.Now(), "SIGNO")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())
@@ -164,7 +163,7 @@ var _ = t.Describe("Container", func() {
 		// Given
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
-			"", "", "", &pb.ContainerMetadata{}, "",
+			"", "", "", &oci.Metadata{}, "",
 			false, false, false, "", "", time.Now(), "SIGTRAP")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())

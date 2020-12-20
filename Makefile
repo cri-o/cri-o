@@ -55,11 +55,9 @@ BATS_FILES := $(wildcard test/*.bats)
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
 	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
 	GIT_TREE_STATE := $(if $(shell git status --porcelain --untracked-files=no),dirty,clean)
-	GIT_MERGE_BASE := $(shell git merge-base origin/master $(shell git rev-parse --abbrev-ref HEAD))
 else
 	COMMIT_NO := unknown
 	GIT_TREE_STATE := unknown
-	GIT_MERGE_BASE := HEAD^
 endif
 
 # pass crio CLI options to generate custom configuration options at build time
@@ -107,7 +105,7 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
 
 GO_LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
-TESTIMAGE_VERSION := master-1.5.0
+TESTIMAGE_VERSION := master-1.6.1
 TESTIMAGE_REGISTRY := quay.io/crio
 TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
 TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
@@ -138,6 +136,7 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 endif
 	touch "$(GOPATH)/.gopathok"
 
+# See also: .github/workflows/lint.yml
 lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} version
 	${GOLANGCI_LINT} linters
@@ -155,7 +154,8 @@ shellcheck: shellfiles ${SHELLCHECK}
 		-P contrib/bundle \
 		-P scripts \
 		-P test \
-		-x ${SHELLFILES}
+		-x \
+		${SHELLFILES} ${BATS_FILES}
 
 bin/pinns:
 	$(MAKE) -C pinns
@@ -282,8 +282,7 @@ ${GO_MOD_OUTDATED}:
 	$(call go-build,./vendor/github.com/psampaz/go-mod-outdated)
 
 ${GOLANGCI_LINT}:
-	export \
-		VERSION=v1.30.0 \
+	VERSION=v1.32.2 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sSfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
@@ -296,11 +295,14 @@ ${SHELLCHECK}:
 	curl -sSfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$$VERSION/shellcheck && \
 	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
 
-vendor: export GOSUMDB := ""
+vendor: export GOSUMDB :=
 vendor:
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
+
+check-vendor: vendor
+	./hack/tree_status.sh
 
 testunit: ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
@@ -548,6 +550,7 @@ metrics-exporter: bin/metrics-exporter
 	test-images \
 	uninstall \
 	vendor \
+	check-vendor \
 	bin/pinns \
 	dependencies \
 	upload-artifacts \

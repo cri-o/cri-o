@@ -3,10 +3,9 @@ package lib
 import (
 	"path/filepath"
 
-	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-
 	"github.com/containers/libpod/v2/pkg/annotations"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -85,7 +84,7 @@ func updateMetadata(specAnnotations map[string]string, name string) string {
 	containerType := specAnnotations[annotations.ContainerType]
 	switch containerType {
 	case "container":
-		metadata := runtime.ContainerMetadata{}
+		metadata := oci.Metadata{}
 		err := json.Unmarshal([]byte(oldMetadata), &metadata)
 		if err != nil {
 			return oldMetadata
@@ -98,7 +97,7 @@ func updateMetadata(specAnnotations map[string]string, name string) string {
 		return string(m)
 
 	case "sandbox":
-		metadata := runtime.PodSandboxMetadata{}
+		metadata := sandbox.Metadata{}
 		err := json.Unmarshal([]byte(oldMetadata), &metadata)
 		if err != nil {
 			return oldMetadata

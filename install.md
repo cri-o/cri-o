@@ -93,6 +93,7 @@ To install on the following operating systems, set the environment variable $OS 
 | ---------------- | ----------------- |
 | Debian Unstable  | `Debian_Unstable` |
 | Debian Testing   | `Debian_Testing`  |
+| Raspberry Pi OS  | `Raspbian_10`     |
 | Ubuntu 20.04     | `xUbuntu_20.04`   |
 | Ubuntu 19.10     | `xUbuntu_19.10`   |
 | Ubuntu 19.04     | `xUbuntu_19.04`   |

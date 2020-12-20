@@ -3,10 +3,9 @@ package server_test
 import (
 	"context"
 
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -25,25 +24,23 @@ var _ = t.Describe("ContainerStart", func() {
 			addContainerAndSandbox()
 
 			// When
-			response, err := sut.StartContainer(context.Background(),
-				&pb.StartContainerRequest{
-					ContainerId: testContainer.ID(),
+			err := sut.StartContainer(context.Background(),
+				&types.StartContainerRequest{
+					ContainerID: testContainer.ID(),
 				})
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(response).To(BeNil())
 		})
 
 		It("should fail with invalid container ID", func() {
 			// Given
 			// When
-			response, err := sut.StartContainer(context.Background(),
-				&pb.StartContainerRequest{})
+			err := sut.StartContainer(context.Background(),
+				&types.StartContainerRequest{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(response).To(BeNil())
 		})
 
 		It("should fail with invalid container state", func() {
@@ -51,15 +48,14 @@ var _ = t.Describe("ContainerStart", func() {
 			addContainerAndSandbox()
 
 			// When
-			response, err := sut.StartContainer(context.Background(),
-				&pb.StartContainerRequest{
-					ContainerId: testContainer.ID(),
+			err := sut.StartContainer(context.Background(),
+				&types.StartContainerRequest{
+					ContainerID: testContainer.ID(),
 				},
 			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(response).To(BeNil())
 		})
 	})
 })

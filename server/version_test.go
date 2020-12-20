@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -20,10 +19,8 @@ var _ = t.Describe("Version", func() {
 	t.Describe("Version", func() {
 		It("should succeed", func() {
 			// Given
-			request := &pb.VersionRequest{}
-
 			// When
-			response, err := sut.Version(context.Background(), request)
+			response, err := sut.Version(context.Background())
 
 			// Then
 			Expect(err).To(BeNil())
@@ -31,7 +28,7 @@ var _ = t.Describe("Version", func() {
 			Expect(response.Version).NotTo(BeEmpty())
 			Expect(response.RuntimeName).NotTo(BeEmpty())
 			Expect(response.RuntimeName).NotTo(BeEmpty())
-			Expect(response.RuntimeApiVersion).NotTo(BeEmpty())
+			Expect(response.RuntimeAPIVersion).NotTo(BeEmpty())
 		})
 	})
 })

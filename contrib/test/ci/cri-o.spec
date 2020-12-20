@@ -135,9 +135,11 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/Godeps/_workspace:%{gopath}
 %endif
 
 %post
+ln -sf %{_unitdir}/%{service_name}.service %{_unitdir}/%{repo}.service
 %systemd_post %{service_name}
 
 %preun
+rm -f %{_unitdir}/%{repo}.service
 %systemd_preun %{service_name}
 
 %postun

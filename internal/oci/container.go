@@ -21,7 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
@@ -64,7 +63,7 @@ type Container struct {
 	annotations        fields.Set
 	crioAnnotations    fields.Set
 	state              *ContainerState
-	metadata           *pb.ContainerMetadata
+	metadata           *Metadata
 	opLock             sync.RWMutex
 	spec               *specs.Spec
 	idMappings         *idtools.IDMappings
@@ -73,6 +72,17 @@ type Container struct {
 	stdinOnce          bool
 	created            bool
 	spoofed            bool
+}
+
+// Metadata holds all necessary information for building the container name.
+// The container runtime is encouraged to expose the metadata in its user
+// interface for better user experience.
+type Metadata struct {
+	// Name of the container.
+	Name string `json:"name,omitempty"`
+
+	// Attempt number of creating the container.
+	Attempt uint32 `json:"attempt,omitempty"`
 }
 
 // ContainerVolume is a bind mount for the container.
@@ -99,7 +109,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, metadata *pb.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, metadata *Metadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -337,7 +347,7 @@ func (c *Container) Dir() string {
 }
 
 // Metadata returns the metadata of the container.
-func (c *Container) Metadata() *pb.ContainerMetadata {
+func (c *Container) Metadata() *Metadata {
 	return c.metadata
 }
 

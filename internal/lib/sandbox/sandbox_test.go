@@ -3,12 +3,11 @@ package sandbox_test
 import (
 	"time"
 
+	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 // The actual test suite
@@ -28,7 +27,7 @@ var _ = t.Describe("Sandbox", func() {
 			annotations := map[string]string{"a": "annotA", "b": "annotB"}
 			processLabel := "processLabel"
 			mountLabel := "mountLabel"
-			metadata := pb.PodSandboxMetadata{Name: name}
+			metadata := sandbox.Metadata{Name: name}
 			shmPath := "shmPath"
 			cgroupParent := "cgroupParent"
 			privileged := true
@@ -156,7 +155,7 @@ var _ = t.Describe("Sandbox", func() {
 	t.Describe("SetNamespaceOptions", func() {
 		It("should succeed", func() {
 			// Given
-			newNamespaceOption := &pb.NamespaceOption{
+			newNamespaceOption := &sandbox.NamespaceOption{
 				Network: 1,
 				Pid:     2,
 				Ipc:     3,
@@ -184,7 +183,7 @@ var _ = t.Describe("Sandbox", func() {
 			testContainer, err = oci.NewContainer("testid", "testname", "",
 				"/container/logs", map[string]string{},
 				map[string]string{}, map[string]string{}, "image",
-				"imageName", "imageRef", &pb.ContainerMetadata{},
+				"imageName", "imageRef", &oci.Metadata{},
 				"testsandboxid", false, false, false, "",
 				"/root/for/container", time.Now(), "SIGKILL")
 			Expect(err).To(BeNil())
@@ -261,8 +260,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should not need when managing NS and NS mode NODE", func() {
 			// Given
 			manageNS := true
-			newNamespaceOption := &pb.NamespaceOption{
-				Pid: pb.NamespaceMode_NODE,
+			newNamespaceOption := &sandbox.NamespaceOption{
+				Pid: sandbox.NamespaceModeNode,
 			}
 
 			// When
@@ -275,8 +274,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should not need when managing NS and NS mode CONTAINER", func() {
 			// Given
 			manageNS := true
-			newNamespaceOption := &pb.NamespaceOption{
-				Pid: pb.NamespaceMode_CONTAINER,
+			newNamespaceOption := &sandbox.NamespaceOption{
+				Pid: sandbox.NamespaceModeContainer,
 			}
 
 			// When
@@ -289,8 +288,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should need when namespace mode POD", func() {
 			// Given
 			manageNS := false
-			newNamespaceOption := &pb.NamespaceOption{
-				Pid: pb.NamespaceMode_POD,
+			newNamespaceOption := &sandbox.NamespaceOption{
+				Pid: sandbox.NamespaceModePod,
 			}
 
 			// When
@@ -303,8 +302,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should need when not managing NS", func() {
 			// Given
 			manageNS := true
-			newNamespaceOption := &pb.NamespaceOption{
-				Pid: pb.NamespaceMode_CONTAINER,
+			newNamespaceOption := &sandbox.NamespaceOption{
+				Pid: sandbox.NamespaceModeContainer,
 			}
 
 			// When

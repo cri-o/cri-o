@@ -2,10 +2,9 @@ package btf
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 
-	"golang.org/x/xerrors"
+	"github.com/pkg/errors"
 )
 
 // btfKind describes a Type.
@@ -60,45 +59,6 @@ type btfType struct {
 	 * "type" is a type_id referring to another type.
 	 */
 	SizeType uint32
-}
-
-func (k btfKind) String() string {
-	switch k {
-	case kindUnknown:
-		return "Unknown"
-	case kindInt:
-		return "Integer"
-	case kindPointer:
-		return "Pointer"
-	case kindArray:
-		return "Array"
-	case kindStruct:
-		return "Struct"
-	case kindUnion:
-		return "Union"
-	case kindEnum:
-		return "Enumeration"
-	case kindForward:
-		return "Forward"
-	case kindTypedef:
-		return "Typedef"
-	case kindVolatile:
-		return "Volatile"
-	case kindConst:
-		return "Const"
-	case kindRestrict:
-		return "Restrict"
-	case kindFunc:
-		return "Function"
-	case kindFuncProto:
-		return "Function Proto"
-	case kindVar:
-		return "Variable"
-	case kindDatasec:
-		return "Section"
-	default:
-		return fmt.Sprintf("Unknown (%d)", k)
-	}
 }
 
 func mask(len uint32) uint32 {
@@ -169,26 +129,6 @@ type btfMember struct {
 	Offset  uint32
 }
 
-type btfVarSecinfo struct {
-	Type   TypeID
-	Offset uint32
-	Size   uint32
-}
-
-type btfVariable struct {
-	Linkage uint32
-}
-
-type btfEnum struct {
-	NameOff uint32
-	Val     int32
-}
-
-type btfParam struct {
-	NameOff uint32
-	Type    TypeID
-}
-
 func readTypes(r io.Reader, bo binary.ByteOrder) ([]rawType, error) {
 	var (
 		header btfType
@@ -199,13 +139,14 @@ func readTypes(r io.Reader, bo binary.ByteOrder) ([]rawType, error) {
 		if err := binary.Read(r, bo, &header); err == io.EOF {
 			return types, nil
 		} else if err != nil {
-			return nil, xerrors.Errorf("can't read type info for id %v: %v", id, err)
+			return nil, errors.Wrapf(err, "can't read type info for id %v", id)
 		}
 
 		var data interface{}
 		switch header.Kind() {
 		case kindInt:
-			data = new(uint32)
+			// sizeof(uint32)
+			data = make([]byte, 4)
 		case kindPointer:
 		case kindArray:
 			data = new(btfArray)
@@ -214,7 +155,8 @@ func readTypes(r io.Reader, bo binary.ByteOrder) ([]rawType, error) {
 		case kindUnion:
 			data = make([]btfMember, header.Vlen())
 		case kindEnum:
-			data = make([]btfEnum, header.Vlen())
+			// sizeof(struct btf_enum)
+			data = make([]byte, header.Vlen()*4*2)
 		case kindForward:
 		case kindTypedef:
 		case kindVolatile:
@@ -222,13 +164,16 @@ func readTypes(r io.Reader, bo binary.ByteOrder) ([]rawType, error) {
 		case kindRestrict:
 		case kindFunc:
 		case kindFuncProto:
-			data = make([]btfParam, header.Vlen())
+			// sizeof(struct btf_param)
+			data = make([]byte, header.Vlen()*4*2)
 		case kindVar:
-			data = new(btfVariable)
+			// sizeof(struct btf_variable)
+			data = make([]byte, 4)
 		case kindDatasec:
-			data = make([]btfVarSecinfo, header.Vlen())
+			// sizeof(struct btf_var_secinfo)
+			data = make([]byte, header.Vlen()*4*3)
 		default:
-			return nil, xerrors.Errorf("type id %v: unknown kind: %v", id, header.Kind())
+			return nil, errors.Errorf("type id %v: unknown kind: %v", id, header.Kind())
 		}
 
 		if data == nil {
@@ -237,7 +182,7 @@ func readTypes(r io.Reader, bo binary.ByteOrder) ([]rawType, error) {
 		}
 
 		if err := binary.Read(r, bo, data); err != nil {
-			return nil, xerrors.Errorf("type id %d: kind %v: can't read %T: %v", id, header.Kind(), data, err)
+			return nil, errors.Wrapf(err, "type id %d: kind %v: can't read %T", id, header.Kind(), data)
 		}
 
 		types = append(types, rawType{header, data})

@@ -11,10 +11,6 @@ function teardown() {
 	cleanup_test
 }
 
-function is_cgroup_v2() {
-	test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
-}
-
 function wait_until_exit() {
 	ctr_id=$1
 	# Wait for container to exit
@@ -78,65 +74,6 @@ function wait_until_exit() {
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "ulimit -Hp")
 	[ "$output" == "2048" ]
-}
-
-@test "additional devices support" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-	OVERRIDE_OPTIONS="--additional-devices /dev/null:/dev/qifoo:rwm" start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
-
-	output=$(crictl exec --sync "$ctr_id" sh -c "ls /dev/qifoo")
-	[ "$output" == "/dev/qifoo" ]
-}
-
-@test "additional devices permissions" {
-	# We need a ubiquitously configured device that isn't in the
-	# OCI spec default set.
-	declare -r device="/dev/loop-control"
-	declare -r timeout=30
-
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-
-	if ! test -r $device; then
-		skip "$device not readable"
-	fi
-
-	if ! test -w $device; then
-		skip "$device not writeable"
-	fi
-
-	OVERRIDE_OPTIONS="--additional-devices ${device}:${device}:w" start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
-
-	# Ensure the device is there.
-	crictl exec --timeout=$timeout --sync "$ctr_id" ls $device
-
-	if ! is_cgroup_v2; then
-		# Dump the deviced cgroup configuration for debugging.
-		output=$(crictl exec --timeout=$timeout --sync "$ctr_id" cat /sys/fs/cgroup/devices/devices.list)
-		[[ "$output" == *"c 10:237 w"* ]]
-	fi
-
-	# Opening the device in read mode should fail because the device
-	# cgroup access only allows writes.
-	run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=$device of=/dev/null count=1
-	[[ "$output" == *"Operation not permitted"* ]]
-
-	# The write should be allowed by the devices cgroup policy, so we
-	# should see an EINVAL from the device when the device fails it.
-	# TODO: fix that test, currently fails with "dd: can't open '/dev/loop-control': No such device non-zero exit code"
-	# run crictl exec --timeout=$timeout --sync "$ctr_id" dd if=/dev/zero of=$device count=1
-	# echo $output
-	# [[ "$output" == *"Invalid argument"* ]]
 }
 
 @test "ctr remove" {
@@ -416,22 +353,22 @@ function wait_until_exit() {
 		| .labels.group = "test"
 		| .labels.name = "ctr1"
 		| .labels.version = "v1.0.0"' \
-		"$TESTDATA"/container_config.json > "$TESTDATA"/config.json
-	ctr1_id=$(crictl create "$pod_id" "$TESTDATA"/config.json "$TESTDATA"/sandbox_config.json)
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr1_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	jq '	  .metadata.name = "ctr2"
 		| .labels.group = "test"
 		| .labels.name = "ctr2"
 		| .labels.version = "v1.0.0"' \
-		"$TESTDATA"/container_config.json > "$TESTDATA"/config.json
-	ctr2_id=$(crictl create "$pod_id" "$TESTDATA"/config.json "$TESTDATA"/sandbox_config.json)
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr2_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	jq '	  .metadata.name = "ctr3"
 		| .labels.group = "test"
 		| .labels.name = "ctr3"
 		| .labels.version = "v1.1.0"' \
-		"$TESTDATA"/container_config.json > "$TESTDATA"/config.json
-	ctr3_id=$(crictl create "$pod_id" "$TESTDATA"/config.json "$TESTDATA"/sandbox_config.json)
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr3_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl ps --label "group=test" --label "name=ctr1" --label "version=v1.0.0" --quiet --all)
 	[ "$output" = "$ctr1_id" ]
@@ -487,7 +424,7 @@ function wait_until_exit() {
 	output=$(crictl exec --sync "$ctr_id" echo HELLO)
 	[ "$output" = "HELLO" ]
 
-	run crictl exec --sync --timeout 1 "$ctr_id" sleep 3
+	run crictl exec --sync --timeout 10 "$ctr_id" sleep 20
 	echo "$output"
 	[[ "$output" == *"command timed out"* ]]
 	[ "$status" -ne 0 ]
@@ -682,23 +619,6 @@ function wait_until_exit() {
 
 	output=$(crictl exec --sync "$ctr_id" grep Cap /proc/1/status)
 	[[ "$output" =~ 00000000002020db ]]
-}
-
-@test "run ctr with image with Config.Volumes" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-
-	start_crio
-
-	crictl pull gcr.io/k8s-testimages/redis:e2e
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-
-	jq '	  .image.image = "gcr.io/k8s-testimages/redis:e2e"
-		| .args = []' \
-		"$TESTDATA"/container_redis.json > "$newconfig"
-
-	crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 }
 
 @test "ctr oom" {

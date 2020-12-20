@@ -7,13 +7,9 @@ cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
 if [[ -n "$TEST_USERNS" ]]; then
     echo "Enabled user namespace testing"
-    # TODO: rm CONTAINER_MANAGE_NS_LIFECYCLE, CONTAINER_DROP_INFRA_CTR
-    # once userns works with them set to default (true).
     export \
         CONTAINER_UID_MAPPINGS="0:100000:100000" \
-        CONTAINER_GID_MAPPINGS="0:200000:100000" \
-        CONTAINER_MANAGE_NS_LIFECYCLE=false \
-        CONTAINER_DROP_INFRA_CTR=false
+        CONTAINER_GID_MAPPINGS="0:200000:100000"
 
     # Needed for RHEL
     if [[ -w /proc/sys/user/max_user_namespaces ]]; then

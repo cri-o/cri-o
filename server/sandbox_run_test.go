@@ -6,11 +6,11 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -28,10 +28,6 @@ var _ = t.Describe("RunPodSandbox", func() {
 		// cyclomatic complexity and test it separately
 		It("should fail when container creation errors", func() {
 			// Given
-			// when we ManageNSLifecycle, we do networking setup before we do container creation
-			// mocking the networking setup blows up complexity of this test, which is really
-			// not testing the behavior of managing ns lifecycle. Override default for this test
-			sut.SetManageNSLifecycle(false)
 			gomock.InOrder(
 				runtimeServerMock.EXPECT().CreatePodSandbox(gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
@@ -46,27 +42,23 @@ var _ = t.Describe("RunPodSandbox", func() {
 					Return(storage.RuntimeContainerMetadata{}, nil),
 				runtimeServerMock.EXPECT().SetContainerMetadata(gomock.Any(),
 					gomock.Any()).Return(nil),
-				runtimeServerMock.EXPECT().StartContainer(gomock.Any()).
-					Return("", nil),
-				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).
-					Return(nil),
 				runtimeServerMock.EXPECT().RemovePodSandbox(gomock.Any()).
 					Return(nil),
 			)
 
 			// When
 			response, err := sut.RunPodSandbox(context.Background(),
-				&pb.RunPodSandboxRequest{Config: &pb.PodSandboxConfig{
-					Metadata: &pb.PodSandboxMetadata{
+				&types.RunPodSandboxRequest{Config: &types.PodSandboxConfig{
+					Metadata: &types.PodSandboxMetadata{
 						Name:      "name",
 						Namespace: "default",
-						Uid:       "uid",
+						UID:       "uid",
 					},
 					LogDirectory: "/tmp",
-					Linux: &pb.LinuxPodSandboxConfig{
-						SecurityContext: &pb.LinuxSandboxSecurityContext{
-							NamespaceOptions: &pb.NamespaceOption{
-								Ipc: pb.NamespaceMode_NODE,
+					Linux: &types.LinuxPodSandboxConfig{
+						SecurityContext: &types.LinuxSandboxSecurityContext{
+							NamespaceOptions: &types.NamespaceOption{
+								Ipc: types.NamespaceModeNODE,
 							},
 						},
 					},
@@ -81,7 +73,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 			// Given
 			// When
 			response, err := sut.RunPodSandbox(context.Background(),
-				&pb.RunPodSandboxRequest{Config: &pb.PodSandboxConfig{}})
+				&types.RunPodSandboxRequest{Config: &types.PodSandboxConfig{}})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -92,8 +84,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 			// Given
 			// When
 			response, err := sut.RunPodSandbox(context.Background(),
-				&pb.RunPodSandboxRequest{Config: &pb.PodSandboxConfig{
-					Metadata: &pb.PodSandboxMetadata{},
+				&types.RunPodSandboxRequest{Config: &types.PodSandboxConfig{
+					Metadata: &types.PodSandboxMetadata{},
 				}})
 
 			// Then
@@ -105,8 +97,8 @@ var _ = t.Describe("RunPodSandbox", func() {
 			// Given
 			// When
 			response, err := sut.RunPodSandbox(context.Background(),
-				&pb.RunPodSandboxRequest{Config: &pb.PodSandboxConfig{
-					Metadata: &pb.PodSandboxMetadata{
+				&types.RunPodSandboxRequest{Config: &types.PodSandboxConfig{
+					Metadata: &types.PodSandboxMetadata{
 						Name: "name",
 					},
 				}})
@@ -131,11 +123,14 @@ var _ = t.Describe("RunPodSandbox", func() {
 
 			// When
 			response, err := sut.RunPodSandbox(context.Background(),
-				&pb.RunPodSandboxRequest{Config: &pb.PodSandboxConfig{
-					Metadata: &pb.PodSandboxMetadata{
+				&types.RunPodSandboxRequest{Config: &types.PodSandboxConfig{
+					Metadata: &types.PodSandboxMetadata{
 						Name:      "name",
 						Namespace: "default",
-						Uid:       "uid",
+						UID:       "uid",
+					},
+					Linux: &types.LinuxPodSandboxConfig{
+						SecurityContext: types.NewLinuxSandboxSecurityContext(),
 					},
 				}})
 

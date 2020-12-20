@@ -132,9 +132,15 @@ function teardown() {
 		skip "userNS enabled"
 	fi
 	CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward=1" start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config_sysctl.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config_sysctl.json)
 
+	jq '	  .linux.sysctls = {
+			"kernel.shm_rmid_forced": "1",
+			"net.ipv4.ip_local_port_range": "1024 65000",
+			"kernel.msgmax": "8192"
+		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox.json)
 	crictl start "$ctr_id"
 
 	output=$(crictl exec --sync "$ctr_id" sysctl kernel.shm_rmid_forced)
@@ -187,14 +193,13 @@ function teardown() {
 		skip "need systemd cgroup manager"
 	fi
 
-	wrong_cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "podsandbox1.slice:container:infra"; json.dump(obj, sys.stdout)')
-	echo "$wrong_cgroup_parent_config" > "$TESTDIR"/sandbox_wrong_cgroup_parent.json
+	# set wrong cgroup_parent
+	jq '	  .linux.cgroup_parent = "podsandbox1.slice:container:infra"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	# kubelet is technically responsible for creating this cgroup. it is created in cri-o if there's an infra container
 	CONTAINER_DROP_INFRA_CTR=false start_crio
-	! crictl runp "$TESTDIR"/sandbox_wrong_cgroup_parent.json
-
-	stop_crio
+	! crictl runp "$TESTDIR"/sandbox.json
 }
 
 @test "systemd cgroup_parent correctly set" {
@@ -202,12 +207,12 @@ function teardown() {
 		skip "need systemd cgroup manager"
 	fi
 
-	cgroup_parent_config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);obj["linux"]["cgroup_parent"] = "Burstable-pod_integration_tests-123.slice"; json.dump(obj, sys.stdout)')
-	echo "$cgroup_parent_config" > "$TESTDIR"/sandbox_systemd_cgroup_parent.json
+	jq '	  .linux.cgroup_parent = "Burstable-pod_integration_tests-123.slice"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	# kubelet is technically responsible for creating this cgroup. it is created in cri-o if there's an infra container
 	CONTAINER_DROP_INFRA_CTR=false start_crio
-	crictl runp "$TESTDIR"/sandbox_systemd_cgroup_parent.json
+	crictl runp "$TESTDIR"/sandbox.json
 	output=$(systemctl list-units --type=slice)
 	[[ "$output" == *"Burstable-pod_integration_tests-123.slice"* ]]
 }
@@ -218,18 +223,21 @@ function teardown() {
 	# There is an assumption in the test to use the system instance of systemd (systemctl show).
 	CONTAINER_CGROUP_MANAGER="systemd" DBUS_SESSION_BUS_ADDRESS="" XDG_RUNTIME_DIR="" start_crio
 
-	config=$(cat "$TESTDATA"/sandbox_config.json | python -c 'import json,sys;obj=json.load(sys.stdin);del obj["linux"]["cgroup_parent"]; json.dump(obj, sys.stdout)')
-	echo "$config" > "$TESTDIR"/sandbox_config-systemd.json
-	pod_id=$(crictl runp "$TESTDIR"/sandbox_config-systemd.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config_sleep.json "$TESTDIR"/sandbox_config-systemd.json)
+	# for systemd, cgroup_parent should not be set
+	jq '	  del(.linux.cgroup_parent)' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	jq '	  .annotations += { "io.kubernetes.pod.terminationGracePeriod": "88" }' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/ctr.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr.json "$TESTDIR"/sandbox.json)
 
 	crictl start "$ctr_id"
 
 	output=$(systemctl show "crio-${ctr_id}.scope")
 	echo "$output" | grep 'TimeoutStopUSec=' || true      # show
 	echo "$output" | grep -q '^TimeoutStopUSec=1min 28s$' # check
-
-	stop_crio
 }
 
 @test "pod pause image matches configured image in crio.conf" {

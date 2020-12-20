@@ -22,20 +22,20 @@ load helpers
 }
 
 @test "invalid devices" {
-	run "${CRIO_BINARY_PATH}" --additional-devices /dev/sda:/dev/foo:123
+	run "${CRIO_BINARY_PATH}" --additional-devices /dev/null:/dev/foo:123
 	echo "$output"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"invalid device mode:"* ]]
+	[[ "$output" == *"is not a valid device"* || "$output" == *"invalid device mode"* ]]
 
-	run "${CRIO_BINARY_PATH}" --additional-devices /dev/sda:/dee/foo:rm
+	run "${CRIO_BINARY_PATH}" --additional-devices /dev/null:/dee/foo:rm
 	echo "$output"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"invalid device mode:"* ]]
+	[[ "$output" == *"is not a valid device"* || "$output" == *"invalid device mode"* ]]
 
 	run "${CRIO_BINARY_PATH}" --additional-devices /dee/sda:rmw
 	echo "$output"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"invalid device mode:"* ]]
+	[[ "$output" == *"is not a valid device"* || "$output" == *"invalid device mode"* ]]
 }
 
 @test "invalid metrics port" {

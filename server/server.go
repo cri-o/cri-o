@@ -16,24 +16,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/image/v5/types"
+	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/cri-o/cri-o/server/streaming"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/cri/streaming"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
-	iptablesproxy "k8s.io/kubernetes/pkg/proxy/iptables"
-	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
-	utilexec "k8s.io/utils/exec"
 )
 
 const (
@@ -69,6 +67,8 @@ type Server struct {
 	pullOperationsInProgress map[pullArguments]*pullOperation
 	// pullOperationsLock is used to synchronize pull operations.
 	pullOperationsLock sync.Mutex
+
+	resourceStore *resourcestore.ResourceStore
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -76,7 +76,7 @@ type Server struct {
 type pullArguments struct {
 	image         string
 	sandboxCgroup string
-	credentials   types.DockerAuthConfig
+	credentials   imageTypes.DockerAuthConfig
 }
 
 // pullOperation is used to synchronize parallel pull operations via the
@@ -140,17 +140,17 @@ func (s *Server) StreamingServerCloseChan() chan struct{} {
 }
 
 // getExec returns exec stream request
-func (s *Server) getExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
+func (s *Server) getExec(req *types.ExecRequest) (*types.ExecResponse, error) {
 	return s.stream.streamServer.GetExec(req)
 }
 
 // getAttach returns attach stream request
-func (s *Server) getAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
+func (s *Server) getAttach(req *types.AttachRequest) (*types.AttachResponse, error) {
 	return s.stream.streamServer.GetAttach(req)
 }
 
 // getPortForward returns port forward stream request
-func (s *Server) getPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+func (s *Server) getPortForward(req *types.PortForwardRequest) (*types.PortForwardResponse, error) {
 	return s.stream.streamServer.GetPortForward(req)
 }
 
@@ -338,11 +338,7 @@ func New(
 		return nil, err
 	}
 
-	iptInterface := utiliptables.New(utilexec.New(), utiliptables.ProtocolIPv4)
-	if _, err := iptInterface.EnsureChain(utiliptables.TableNAT, iptablesproxy.KubeMarkMasqChain); err != nil {
-		logrus.Warnf("unable to ensure iptables chain: %v", err)
-	}
-	hostportManager := hostport.NewHostportManager(iptInterface)
+	hostportManager := hostport.NewMetaHostportManager()
 
 	idMappings, err := getIDMappings(config)
 	if err != nil {
@@ -362,6 +358,7 @@ func New(
 		monitorsChan:             make(chan struct{}),
 		defaultIDMappings:        idMappings,
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
+		resourceStore:            resourcestore.New(),
 	}
 
 	if err := configureMaxThreads(); err != nil {

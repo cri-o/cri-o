@@ -18,6 +18,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/container"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -25,7 +26,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	k8sV1 "k8s.io/api/core/v1"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 type orderedMounts []rspec.Mount
@@ -55,7 +55,7 @@ func (m orderedMounts) parts(i int) int {
 // mounts defines how to sort runtime.Mount.
 // This is the same with the Docker implementation:
 //   https://github.com/moby/moby/blob/17.05.x/daemon/volumes.go#L26
-type criOrderedMounts []*pb.Mount
+type criOrderedMounts []*types.Mount
 
 // Len returns the number of mounts. Used in sorting.
 func (m criOrderedMounts) Len() int {
@@ -163,9 +163,11 @@ func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInf
 	return mounts, nil
 }
 
-// resolveSymbolicLink resolves a possbile symlink path. If the path is a symlink, returns resolved
+// resolveSymbolicLink resolves a possible symlink path. If the path is a symlink, returns resolved
 // path; if not, returns the original path.
-func resolveSymbolicLink(path, scope string) (string, error) {
+// note: strictly SecureJoin is not sufficient, as it does not error when a part of the path doesn't exist
+// but simply moves on. If the last part of the path doesn't exist, it may need to be created.
+func resolveSymbolicLink(scope, path string) (string, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return "", err
@@ -179,12 +181,8 @@ func resolveSymbolicLink(path, scope string) (string, error) {
 	return securejoin.SecureJoin(scope, path)
 }
 
-func addDevices(ctx context.Context, sb *sandbox.Sandbox, containerConfig *pb.ContainerConfig, privilegedWithoutHostDevices bool, specgen *generate.Generator) error {
-	return addDevicesPlatform(ctx, sb, containerConfig, privilegedWithoutHostDevices, specgen)
-}
-
 // buildOCIProcessArgs build an OCI compatible process arguments slice.
-func buildOCIProcessArgs(ctx context.Context, containerKubeConfig *pb.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
+func buildOCIProcessArgs(ctx context.Context, containerKubeConfig *types.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
 	// # Start the nginx container using the default command, but use custom
 	// arguments (arg1 .. argN) for that command.
 	// kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
@@ -232,11 +230,11 @@ func buildOCIProcessArgs(ctx context.Context, containerKubeConfig *pb.ContainerC
 }
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
-func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *pb.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
+func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *types.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
 	if sc == nil {
 		return nil
 	}
-	if sc.GetRunAsGroup() != nil && sc.GetRunAsUser() == nil && sc.GetRunAsUsername() == "" {
+	if sc.RunAsGroup != nil && sc.RunAsUser == nil && sc.RunAsUsername == "" {
 		return fmt.Errorf("user group is specified without user or username")
 	}
 	imageUser := ""
@@ -255,9 +253,9 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 		imageUser = imageConfig.Config.User
 	}
 	containerUser := generateUserString(
-		sc.GetRunAsUsername(),
+		sc.RunAsUsername,
 		imageUser,
-		sc.GetRunAsUser(),
+		sc.RunAsUser,
 	)
 	log.Debugf(ctx, "CONTAINER USER: %+v", containerUser)
 
@@ -299,8 +297,8 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 
 	specgen.SetProcessUID(uid)
 	specgen.SetProcessGID(gid)
-	if sc.GetRunAsGroup() != nil {
-		specgen.SetProcessGID(uint32(sc.GetRunAsGroup().GetValue()))
+	if sc.RunAsGroup != nil {
+		specgen.SetProcessGID(uint32(sc.RunAsGroup.Value))
 	}
 
 	for _, group := range addGroups {
@@ -308,7 +306,7 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 	}
 
 	// Add groups from CRI
-	groups := sc.GetSupplementalGroups()
+	groups := sc.SupplementalGroups
 	for _, group := range groups {
 		specgen.AddProcessAdditionalGid(uint32(group))
 	}
@@ -316,10 +314,10 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 }
 
 // generateUserString generates valid user string based on OCI Image Spec v1.0.0.
-func generateUserString(username, imageUser string, uid *pb.Int64Value) string {
+func generateUserString(username, imageUser string, uid *types.Int64Value) string {
 	var userstr string
 	if uid != nil {
-		userstr = strconv.FormatInt(uid.GetValue(), 10)
+		userstr = strconv.FormatInt(uid.Value, 10)
 	}
 	if username != "" {
 		userstr = username
@@ -335,7 +333,7 @@ func generateUserString(username, imageUser string, uid *pb.Int64Value) string {
 }
 
 // setupCapabilities sets process.capabilities in the OCI runtime config.
-func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability) error {
+func setupCapabilities(specgen *generate.Generator, capabilities *types.Capability) error {
 	// Remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
 	// and pods expect that switching to a non-root user results in the capabilities being
 	// dropped. This should be revisited in the future.
@@ -357,7 +355,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 	// AddCapabilities: []string{"ALL"}, DropCapabilities: []string{"CHOWN"}
 	// will be all capabilities without `CAP_CHOWN`.
 	// see https://github.com/kubernetes/kubernetes/issues/51980
-	if inStringSlice(capabilities.GetAddCapabilities(), "ALL") {
+	if inStringSlice(capabilities.AddCapabilities, "ALL") {
 		for _, c := range getOCICapabilitiesList() {
 			if err := specgen.AddProcessCapabilityBounding(c); err != nil {
 				return err
@@ -373,7 +371,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 			}
 		}
 	}
-	if inStringSlice(capabilities.GetDropCapabilities(), "ALL") {
+	if inStringSlice(capabilities.DropCapabilities, "ALL") {
 		for _, c := range getOCICapabilitiesList() {
 			if err := specgen.DropProcessCapabilityBounding(c); err != nil {
 				return err
@@ -390,7 +388,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 		}
 	}
 
-	for _, cap := range capabilities.GetAddCapabilities() {
+	for _, cap := range capabilities.AddCapabilities {
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
@@ -413,7 +411,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 		}
 	}
 
-	for _, cap := range capabilities.GetDropCapabilities() {
+	for _, cap := range capabilities.DropCapabilities {
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
@@ -435,27 +433,27 @@ func setupCapabilities(specgen *generate.Generator, capabilities *pb.Capability)
 	return nil
 }
 
-func hostNetwork(containerConfig *pb.ContainerConfig) bool {
-	securityContext := containerConfig.GetLinux().GetSecurityContext()
-	if securityContext == nil || securityContext.GetNamespaceOptions() == nil {
+func hostNetwork(containerConfig *types.ContainerConfig) bool {
+	securityContext := containerConfig.Linux.SecurityContext
+	if securityContext == nil || securityContext.NamespaceOptions == nil {
 		return false
 	}
 
-	return securityContext.GetNamespaceOptions().GetNetwork() == pb.NamespaceMode_NODE
+	return securityContext.NamespaceOptions.Network == types.NamespaceModeNODE
 }
 
 // CreateContainer creates a new container in specified PodSandbox
-func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerRequest) (res *pb.CreateContainerResponse, retErr error) {
-	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
+func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
+	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.Config.Labels))
 
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
+	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "specified sandbox not found: %s", req.PodSandboxId)
+		return nil, errors.Wrapf(err, "specified sandbox not found: %s", req.PodSandboxID)
 	}
 
 	stopMutex := sb.StopMutex()
@@ -470,7 +468,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, errors.Wrap(err, "failed to create container")
 	}
 
-	if err := ctr.SetConfig(req.GetConfig(), req.GetSandboxConfig()); err != nil {
+	if err := ctr.SetConfig(req.Config, req.SandboxConfig); err != nil {
 		return nil, errors.Wrap(err, "setting container config")
 	}
 
@@ -478,50 +476,57 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, errors.Wrap(err, "setting container name and ID")
 	}
 
-	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		return nil, errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
-	}
-
+	cleanupFuncs := make([]func(), 0)
 	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
-			s.ReleaseContainerName(ctr.Name())
+		// no error, no need to cleanup
+		if retErr == nil || isContextError(retErr) {
+			return
+		}
+		for i := len(cleanupFuncs) - 1; i >= 0; i-- {
+			cleanupFuncs[i]()
 		}
 	}()
+
+	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
+		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
+		if resourceErr == nil {
+			return &types.CreateContainerResponse{ContainerID: cachedID}, nil
+		}
+		return nil, errors.Wrapf(err, resourceErr.Error())
+	}
+
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
+		s.ReleaseContainerName(ctr.Name())
+	})
 
 	newContainer, err := s.createSandboxContainer(ctx, ctr, sb)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
-			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
-			if err2 != nil {
-				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
-			}
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
+		err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
+		if err2 != nil {
+			log.Warnf(ctx, "Failed to cleanup container storage: %v", err2)
 		}
-	}()
+	})
 
 	s.addContainer(newContainer)
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
-			s.removeContainer(newContainer)
-		}
-	}()
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
+		s.removeContainer(newContainer)
+	})
 
 	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return nil, err
 	}
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
-			if err := s.CtrIDIndex().Delete(ctr.ID()); err != nil {
-				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
-			}
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
+		if err := s.CtrIDIndex().Delete(ctr.ID()); err != nil {
+			log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
 		}
-	}()
+	})
 
 	mappings, err := s.getSandboxIDMappings(sb)
 	if err != nil {
@@ -531,33 +536,36 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 	if err := s.createContainerPlatform(newContainer, sb.CgroupParent(), mappings); err != nil {
 		return nil, err
 	}
-	defer func() {
+	cleanupFuncs = append(cleanupFuncs, func() {
 		if retErr != nil {
 			log.Infof(ctx, "createCtr: removing container ID %s from runtime", ctr.ID())
 			if err := s.Runtime().DeleteContainer(newContainer); err != nil {
 				log.Warnf(ctx, "failed to delete container in runtime %s: %v", ctr.ID(), err)
 			}
 		}
-	}()
+	})
 
 	if err := s.ContainerStateToDisk(newContainer); err != nil {
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
-	newContainer.SetCreated()
-
-	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+	if isContextError(ctx.Err()) {
+		if err := s.resourceStore.Put(ctr.Name(), newContainer, cleanupFuncs); err != nil {
+			log.Errorf(ctx, "createCtr: failed to save progress of container %s: %v", newContainer.ID(), err)
+		}
 		log.Infof(ctx, "createCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
 		return nil, ctx.Err()
 	}
 
+	newContainer.SetCreated()
+
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
-	return &pb.CreateContainerResponse{
-		ContainerId: ctr.ID(),
+	return &types.CreateContainerResponse{
+		ContainerID: ctr.ID(),
 	}, nil
 }
 
-func isInCRIMounts(dst string, mounts []*pb.Mount) bool {
+func isInCRIMounts(dst string, mounts []*types.Mount) bool {
 	for _, m := range mounts {
 		if m.ContainerPath == dst {
 			return true
@@ -573,9 +581,17 @@ func (s *Server) setupSeccomp(ctx context.Context, specgen *generate.Generator, 
 			specgen.Config.Linux.Seccomp = nil
 			return nil
 		}
+		// default to SeccompProfileRuntimeDefault if user sets UseDefaultWhenEmpty
 		profile = k8sV1.SeccompProfileRuntimeDefault
 	}
+	// kubelet defaults sandboxes to run as `runtime/default`, we consider the default profile as unconfined if Seccomp disabled
+	// https://github.com/kubernetes/kubernetes/blob/12d9183da03d86c65f9f17e3e28be3c7c18ed22a/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L162-L163
 	if s.Config().Seccomp().IsDisabled() {
+		if profile == k8sV1.SeccompProfileRuntimeDefault {
+			// running w/o seccomp, aka unconfined
+			specgen.Config.Linux.Seccomp = nil
+			return nil
+		}
 		if profile != k8sV1.SeccompProfileNameUnconfined {
 			return fmt.Errorf("seccomp is not enabled in your kernel, cannot run with a profile")
 		}

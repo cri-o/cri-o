@@ -22,9 +22,10 @@ function teardown() {
 # 1. test running with ctr unconfined
 # test that we can run with a syscall which would be otherwise blocked
 @test "ctr seccomp profiles unconfined" {
-	sed -e 's/%VALUE%/unconfined/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
+	jq '	  .linux.security_context.seccomp_profile_path = "unconfined"' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	crictl exec --sync "$ctr_id" chmod 777 .
 }
@@ -32,9 +33,10 @@ function teardown() {
 # 2. test running with ctr runtime/default
 # test that we cannot run with a syscall blocked by the default seccomp profile
 @test "ctr seccomp profiles runtime/default" {
-	sed -e 's/%VALUE%/runtime\/default/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp2.json
+	jq '	  .linux.security_context.seccomp_profile_path = "runtime/default"' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp2.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	[ "$status" -ne 0 ]
@@ -44,18 +46,20 @@ function teardown() {
 # 3. test running with ctr unconfined and profile empty
 # test that we can run with a syscall which would be otherwise blocked
 @test "ctr seccomp profiles unconfined by empty field" {
-	sed -e 's/%VALUE%//g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
+	jq '	  .linux.security_context.seccomp_profile_path = ""' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	crictl exec --sync "$ctr_id" chmod 777 .
 }
 
 # 4. test running with ctr wrong profile name
 @test "ctr seccomp profiles wrong profile name" {
-	sed -e 's/%VALUE%/wontwork/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
+	jq '	  .linux.security_context.seccomp_profile_path = "wontwork"' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	run crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json
+	run crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json
 	[[ "$status" -ne 0 ]]
 	[[ "$output" =~ "unknown seccomp profile option:" ]]
 	[[ "$output" =~ "wontwork" ]]
@@ -63,9 +67,10 @@ function teardown() {
 
 # 5. test running with ctr localhost/profile_name
 @test "ctr seccomp profiles localhost/profile_name" {
-	sed -e 's@%VALUE%@localhost/'"$TESTDIR"'/seccomp_profile1.json@g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
+	jq '	  .linux.security_context.seccomp_profile_path = "localhost/'"$TESTDIR"'/seccomp_profile1.json"' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	[ "$status" -ne 0 ]
@@ -75,9 +80,10 @@ function teardown() {
 # 6. test running with ctr docker/default
 # test that we cannot run with a syscall blocked by the default seccomp profile
 @test "ctr seccomp profiles docker/default" {
-	sed -e 's/%VALUE%/docker\/default/g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp2.json
+	jq '	  .linux.security_context.seccomp_profile_path = "docker/default"' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp2.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	[ "$status" -ne 0 ]
@@ -91,20 +97,12 @@ function teardown() {
 	export CONTAINER_SECCOMP_PROFILE="$TESTDIR"/seccomp_profile1.json
 	restart_crio
 
-	sed -e 's/%VALUE%//g' "$TESTDATA"/container_config_seccomp.json > "$TESTDIR"/seccomp1.json
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDIR"/seccomp1.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-	run crictl start "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	jq '	  .linux.security_context.seccomp_profile_path = ""' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
 	run crictl exec --sync "$ctr_id" chmod 777 .
-	echo "$output"
 	[ "$status" -ne 0 ]
 	[[ "$output" == *"Operation not permitted"* ]]
 }

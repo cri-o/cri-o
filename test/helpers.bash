@@ -40,7 +40,6 @@ CONTAINER_DEFAULT_RUNTIME=${CONTAINER_DEFAULT_RUNTIME:-runc}
 RUNTIME_NAME=${RUNTIME_NAME:-runc}
 RUNTIME_PATH=$(command -v "$CONTAINER_RUNTIME" || true)
 RUNTIME_BINARY=${RUNTIME_PATH:-$(command -v runc)}
-RUNTIME_ROOT=${RUNTIME_ROOT:-/run/runc}
 RUNTIME_TYPE=${RUNTIME_TYPE:-oci}
 if [[ $CONTAINER_RUNTIME == "kata-runtime" ]]; then
     export RUNTIME_NAME="$CONTAINER_RUNTIME"
@@ -171,6 +170,20 @@ function setup_test() {
     cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
     sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
 
+    # Configure crictl to not try pulling images on create/run,
+    # as $IMAGES are already preloaded, and eliminating network
+    # interaction results in less flakes when creating containers.
+    #
+    # A test case that requires an image not listed in $IMAGES
+    # should either do an explicit "crictl pull", or use --with-pull.
+    crictl config \
+        --set pull-image-on-create=false \
+        --set disable-pull-on-run=true \
+        2>/dev/null || true
+    #   ^^^^^^^^^^^^^^^^^^^ TODO: remove the line above once crictl is updated
+    # to >= 1.19. It is not a problem if this setting is not working, and since
+    # some CI jobs (kata) use older crictl, set this on a best-effort basis.
+
     PATH=$PATH:$TESTDIR
 }
 
@@ -255,6 +268,7 @@ function setup_crio() {
     if $RUNTIME_BINARY --version | grep -q '^crun '; then
         OVERRIDE_OPTIONS="$OVERRIDE_OPTIONS --selinux=false"
     fi
+    RUNTIME_ROOT="$TESTDIR/crio-runtime-root"
 
     # shellcheck disable=SC2086
     "$CRIO_BINARY_PATH" \
@@ -341,36 +355,16 @@ function port_listens() {
 }
 
 function cleanup_ctrs() {
-    if output=$(crictl ps --quiet); then
-        if [ "$output" != "" ]; then
-            printf '%s\n' "$output" | while IFS= read -r line; do
-                crictl stop "$line"
-                crictl rm "$line"
-            done
-        fi
-    fi
+    crictl rm -a -f
     rm -f "$HOOKSCHECK"
 }
 
 function cleanup_images() {
-    if output=$(crictl images --quiet); then
-        if [ "$output" != "" ]; then
-            printf '%s\n' "$output" | while IFS= read -r line; do
-                crictl rmi "$line"
-            done
-        fi
-    fi
+    crictl rmi -a -q
 }
 
 function cleanup_pods() {
-    if output=$(crictl pods --quiet); then
-        if [ "$output" != "" ]; then
-            printf '%s\n' "$output" | while IFS= read -r line; do
-                crictl stopp "$line"
-                crictl rmp "$line"
-            done
-        fi
-    fi
+    crictl rmp -a -f
 }
 
 function stop_crio_no_clean() {
@@ -541,4 +535,9 @@ function replace_config() {
 function fail() {
     echo "FAIL [${BATS_TEST_NAME} ${BASH_SOURCE[0]##*/}:${BASH_LINENO[0]}] $*" >&2
     exit 1
+}
+
+# tests whether the node is configured to use cgroupv2
+function is_cgroup_v2() {
+    test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
 }

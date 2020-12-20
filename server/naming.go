@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	"github.com/cri-o/cri-o/server/cri/types"
 )
 
 const (
@@ -14,18 +14,18 @@ const (
 	nameDelimiter = "_"
 )
 
-func makeSandboxContainerName(sandboxConfig *pb.PodSandboxConfig) string {
+func makeSandboxContainerName(sandboxConfig *types.PodSandboxConfig) string {
 	return strings.Join([]string{
 		kubePrefix,
 		infraName,
 		sandboxConfig.Metadata.Name,
 		sandboxConfig.Metadata.Namespace,
-		sandboxConfig.Metadata.Uid,
+		sandboxConfig.Metadata.UID,
 		fmt.Sprintf("%d", sandboxConfig.Metadata.Attempt),
 	}, nameDelimiter)
 }
 
-func (s *Server) ReserveSandboxContainerIDAndName(config *pb.PodSandboxConfig) (string, error) {
+func (s *Server) ReserveSandboxContainerIDAndName(config *types.PodSandboxConfig) (string, error) {
 	if config == nil || config.Metadata == nil {
 		return "", fmt.Errorf("cannot generate sandbox container name without metadata")
 	}

@@ -73,8 +73,8 @@ level=debug timestamp=2019-07-30T04:02:44.3716249Z caller=notes.go:497 msg="Excl
 | ----------------------- | --------------- | ------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | **GITHUB REPO OPTIONS** |
 |                         | GITHUB_TOKEN    |                     | Yes      | A personal GitHub access token                                                                                                    |
-| github-org              | GITHUB_ORG      | kubernetes          | Yes      | Name of GitHub organization                                                                                                       |
-| github-repo             | GITHUB_REPO     | kubernetes          | Yes      | Name of GitHub repository                                                                                                         |
+| org                     | ORG             | kubernetes          | Yes      | Name of GitHub organization                                                                                                       |
+| repo                    | REPO            | kubernetes          | Yes      | Name of GitHub repository                                                                                                         |
 | required-author         | REQUIRED_AUTHOR | k8s-ci-robot        | Yes      | Only commits from this GitHub user are considered. Set to empty string to include all users                                       |
 | branch                  | BRANCH          | master              | Yes      | The GitHub repository branch to scrape                                                                                            |
 | start-sha               | START_SHA       |                     | Yes      | The commit hash to start processing from (inclusive)                                                                              |
@@ -89,7 +89,6 @@ level=debug timestamp=2019-07-30T04:02:44.3716249Z caller=notes.go:497 msg="Excl
 | output                  | OUTPUT          |                     | No       | The path where the release notes will be written                                                                                  |
 | format                  | FORMAT          | markdown            | No       | The format for notes output (options: json, markdown)                                                                             |
 | go-template             | GO_TEMPLATE     | go-template:default | No       | The go template if `--format=markdown` (options: go-template:default, go-template:inline:<template-string> go-template:<file.template>) |
-| release-version         | RELEASE_VERSION |                     | No       | The release version to tag the notes with                                                                                         |
 | dependencies            |                 | true                | No       | Add dependency report                                                                                                             |
 | **LOG OPTIONS**         |
 | debug                   | DEBUG           | false               | No       | Enable debug logging (options: true, false)                                                                                       |
@@ -105,21 +104,8 @@ git clone git@github.com:kubernetes/release.git $(go env GOPATH)/src/k8s.io/rele
 Run the following from the root of the repository to build the `release-notes` binary:
 
 ```
-bazel build //cmd/release-notes
+go install ./cmd/release-notes
 ```
-
-Use the `-h` flag for help:
-
-```
-./bazel-bin/cmd/release-notes/darwin_amd64_stripped/release-notes -h
-```
-
-Install the binary into your path:
-
-```
-cp ./bazel-bin/cmd/release-notes/darwin_amd64_stripped/release-notes /usr/local/bin/release-notes
-```
-
 
 ## FAQ
 

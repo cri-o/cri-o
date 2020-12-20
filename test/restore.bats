@@ -188,11 +188,6 @@ function teardown() {
 }
 
 @test "crio restore first not managing then managing" {
-	# TODO: drop this skip once userns works with CONTAINER_MANAGE_NS_LIFECYCLE=true
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-
 	CONTAINER_MANAGE_NS_LIFECYCLE=false CONTAINER_DROP_INFRA_CTR=false start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	pod_list_info=$(crictl pods --quiet --id "$pod_id")
@@ -235,11 +230,6 @@ function teardown() {
 }
 
 @test "crio restore first managing then not managing" {
-	# TODO: drop this skip once userns works with CONTAINER_MANAGE_NS_LIFECYCLE=true
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-
 	CONTAINER_MANAGE_NS_LIFECYCLE=true CONTAINER_DROP_INFRA_CTR=true start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	pod_list_info=$(crictl pods --quiet --id "$pod_id")
@@ -281,11 +271,6 @@ function teardown() {
 }
 
 @test "crio restore changing managing dir" {
-	# TODO: drop this skip once userns works with CONTAINER_MANAGE_NS_LIFECYCLE=true
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
-
 	CONTAINER_MANAGE_NS_LIFECYCLE=true CONTAINER_NAMESPACE_DIR="$TESTDIR/ns1" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	pod_list_info=$(crictl pods --quiet --id "$pod_id")

@@ -3,12 +3,12 @@ package server
 import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // ListContainerStats returns stats of all running containers.
-func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerStatsRequest) (*pb.ListContainerStatsResponse, error) {
+func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContainerStatsRequest) (*types.ListContainerStatsResponse, error) {
 	ctrList, err := s.ContainerServer.ListContainers(
 		func(container *oci.Container) bool {
 			return container.StateNoLock().Status != oci.ContainerStateStopped
@@ -17,17 +17,17 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 	if err != nil {
 		return nil, err
 	}
-	filter := req.GetFilter()
+	filter := req.Filter
 	if filter != nil {
-		cFilter := &pb.ContainerFilter{
-			Id:            req.Filter.Id,
-			PodSandboxId:  req.Filter.PodSandboxId,
+		cFilter := &types.ContainerFilter{
+			ID:            req.Filter.ID,
+			PodSandboxID:  req.Filter.PodSandboxID,
 			LabelSelector: req.Filter.LabelSelector,
 		}
 		ctrList = s.filterContainerList(ctx, cFilter, ctrList)
 	}
 
-	allStats := make([]*pb.ContainerStats, 0, len(ctrList))
+	allStats := make([]*types.ContainerStats, 0, len(ctrList))
 	for _, container := range ctrList {
 		sb := s.GetSandbox(container.Sandbox())
 		if sb == nil {
@@ -44,7 +44,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *pb.ListContainerSt
 		allStats = append(allStats, response)
 	}
 
-	return &pb.ListContainerStatsResponse{
+	return &types.ListContainerStatsResponse{
 		Stats: allStats,
 	}, nil
 }

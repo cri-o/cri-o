@@ -7,13 +7,13 @@ import (
 
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // PortForward prepares a streaming endpoint to forward ports from a PodSandbox.
-func (s *Server) PortForward(ctx context.Context, req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
+func (s *Server) PortForward(ctx context.Context, req *types.PortForwardRequest) (*types.PortForwardResponse, error) {
 	resp, err := s.getPortForward(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare portforward endpoint")

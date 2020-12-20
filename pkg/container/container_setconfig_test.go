@@ -1,20 +1,20 @@
 package container_test
 
 import (
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
 var _ = t.Describe("Container:SetConfig", func() {
 	It("should succeed", func() {
 		// Given
-		config := &pb.ContainerConfig{
-			Metadata: &pb.ContainerMetadata{Name: "name"},
+		config := &types.ContainerConfig{
+			Metadata: &types.ContainerMetadata{Name: "name"},
 		}
 
-		sboxConfig := &pb.PodSandboxConfig{}
+		sboxConfig := &types.PodSandboxConfig{}
 
 		// When
 		err := sut.SetConfig(config, sboxConfig)
@@ -37,7 +37,7 @@ var _ = t.Describe("Container:SetConfig", func() {
 
 	It("should fail with empty config", func() {
 		// Given
-		config := &pb.ContainerConfig{}
+		config := &types.ContainerConfig{}
 
 		// When
 		err := sut.SetConfig(config, nil)
@@ -49,8 +49,8 @@ var _ = t.Describe("Container:SetConfig", func() {
 
 	It("should fail with empty name", func() {
 		// Given
-		config := &pb.ContainerConfig{
-			Metadata: &pb.ContainerMetadata{},
+		config := &types.ContainerConfig{
+			Metadata: &types.ContainerMetadata{},
 		}
 
 		// When
@@ -63,10 +63,10 @@ var _ = t.Describe("Container:SetConfig", func() {
 
 	It("should fail with already set config", func() {
 		// Given
-		config := &pb.ContainerConfig{
-			Metadata: &pb.ContainerMetadata{Name: "name"},
+		config := &types.ContainerConfig{
+			Metadata: &types.ContainerMetadata{Name: "name"},
 		}
-		sboxConfig := &pb.PodSandboxConfig{}
+		sboxConfig := &types.PodSandboxConfig{}
 		err := sut.SetConfig(config, sboxConfig)
 		Expect(err).To(BeNil())
 
@@ -80,8 +80,8 @@ var _ = t.Describe("Container:SetConfig", func() {
 
 	It("should fail with empty sandbox config", func() {
 		// Given
-		config := &pb.ContainerConfig{
-			Metadata: &pb.ContainerMetadata{Name: "name"},
+		config := &types.ContainerConfig{
+			Metadata: &types.ContainerMetadata{Name: "name"},
 		}
 
 		// Then

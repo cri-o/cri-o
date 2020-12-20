@@ -2,7 +2,6 @@ package ebpf
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"strings"
@@ -14,14 +13,8 @@ import (
 	"github.com/cilium/ebpf/internal/btf"
 	"github.com/cilium/ebpf/internal/unix"
 
-	"golang.org/x/xerrors"
+	"github.com/pkg/errors"
 )
-
-// ErrNotSupported is returned whenever the kernel doesn't support a feature.
-var ErrNotSupported = internal.ErrNotSupported
-
-// ProgramID represents the unique ID of an eBPF program
-type ProgramID uint32
 
 const (
 	// Number of bytes to pad the output buffer for BPF_PROG_TEST_RUN.
@@ -59,9 +52,6 @@ type ProgramSpec struct {
 	// will most likely invalidate the contained data, and may
 	// result in errors when attempting to load it into the kernel.
 	BTF *btf.Program
-
-	// The byte order this program was compiled for, may be nil.
-	ByteOrder binary.ByteOrder
 }
 
 // Copy returns a copy of the spec.
@@ -107,8 +97,8 @@ func NewProgramWithOptions(spec *ProgramSpec, opts ProgramOptions) (*Program, er
 	}
 
 	handle, err := btf.NewHandle(btf.ProgramSpec(spec.BTF))
-	if err != nil && !xerrors.Is(err, btf.ErrNotSupported) {
-		return nil, xerrors.Errorf("can't load BTF: %w", err)
+	if err != nil && !btf.IsNotSupported(err) {
+		return nil, errors.Wrap(err, "can't load BTF")
 	}
 
 	return newProgramWithBTF(spec, handle, opts)
@@ -140,7 +130,6 @@ func newProgramWithBTF(spec *ProgramSpec, btf *btf.Handle, opts ProgramOptions) 
 		return prog, nil
 	}
 
-	logErr := err
 	if opts.LogLevel == 0 {
 		// Re-run with the verifier enabled to get better error messages.
 		logBuf = make([]byte, logSize)
@@ -148,11 +137,11 @@ func newProgramWithBTF(spec *ProgramSpec, btf *btf.Handle, opts ProgramOptions) 
 		attr.logSize = uint32(len(logBuf))
 		attr.logBuf = internal.NewSlicePointer(logBuf)
 
-		_, logErr = bpfProgLoad(attr)
+		_, logErr := bpfProgLoad(attr)
+		err = internal.ErrorWithLog(err, logBuf, logErr)
 	}
 
-	err = internal.ErrorWithLog(err, logBuf, logErr)
-	return nil, xerrors.Errorf("can't load program: %w", err)
+	return nil, errors.Wrap(err, "can't load program")
 }
 
 // NewProgramFromFD creates a program from a raw fd.
@@ -162,7 +151,7 @@ func newProgramWithBTF(spec *ProgramSpec, btf *btf.Handle, opts ProgramOptions) 
 // Requires at least Linux 4.11.
 func NewProgramFromFD(fd int) (*Program, error) {
 	if fd < 0 {
-		return nil, xerrors.New("invalid fd")
+		return nil, errors.New("invalid fd")
 	}
 	bpfFd := internal.NewFD(uint32(fd))
 
@@ -185,15 +174,11 @@ func newProgram(fd *internal.FD, name string, abi *ProgramABI) *Program {
 
 func convertProgramSpec(spec *ProgramSpec, handle *btf.Handle) (*bpfProgLoadAttr, error) {
 	if len(spec.Instructions) == 0 {
-		return nil, xerrors.New("Instructions cannot be empty")
+		return nil, errors.New("Instructions cannot be empty")
 	}
 
 	if len(spec.License) == 0 {
-		return nil, xerrors.New("License cannot be empty")
-	}
-
-	if spec.ByteOrder != nil && spec.ByteOrder != internal.NativeEndian {
-		return nil, xerrors.Errorf("can't load %s program on %s", spec.ByteOrder, internal.NativeEndian)
+		return nil, errors.New("License cannot be empty")
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, len(spec.Instructions)*asm.InstructionSize))
@@ -210,11 +195,15 @@ func convertProgramSpec(spec *ProgramSpec, handle *btf.Handle) (*bpfProgLoadAttr
 		insCount:           insCount,
 		instructions:       internal.NewSlicePointer(bytecode),
 		license:            internal.NewStringPointer(spec.License),
-		kernelVersion:      spec.KernelVersion,
+	}
+
+	name, err := newBPFObjName(spec.Name)
+	if err != nil {
+		return nil, err
 	}
 
 	if haveObjName() == nil {
-		attr.progName = newBPFObjName(spec.Name)
+		attr.progName = name
 	}
 
 	if handle != nil && spec.BTF != nil {
@@ -222,7 +211,7 @@ func convertProgramSpec(spec *ProgramSpec, handle *btf.Handle) (*bpfProgLoadAttr
 
 		recSize, bytes, err := btf.ProgramLineInfos(spec.BTF)
 		if err != nil {
-			return nil, xerrors.Errorf("can't get BTF line infos: %w", err)
+			return nil, errors.Wrap(err, "can't get BTF line infos")
 		}
 		attr.lineInfoRecSize = recSize
 		attr.lineInfoCnt = uint32(uint64(len(bytes)) / uint64(recSize))
@@ -230,7 +219,7 @@ func convertProgramSpec(spec *ProgramSpec, handle *btf.Handle) (*bpfProgLoadAttr
 
 		recSize, bytes, err = btf.ProgramFuncInfos(spec.BTF)
 		if err != nil {
-			return nil, xerrors.Errorf("can't get BTF function infos: %w", err)
+			return nil, errors.Wrap(err, "can't get BTF function infos")
 		}
 		attr.funcInfoRecSize = recSize
 		attr.funcInfoCnt = uint32(uint64(len(bytes)) / uint64(recSize))
@@ -278,7 +267,7 @@ func (p *Program) Clone() (*Program, error) {
 
 	dup, err := p.fd.Dup()
 	if err != nil {
-		return nil, xerrors.Errorf("can't clone program: %w", err)
+		return nil, errors.Wrap(err, "can't clone program")
 	}
 
 	return newProgram(dup, p.name, &p.abi), nil
@@ -288,10 +277,7 @@ func (p *Program) Clone() (*Program, error) {
 //
 // This requires bpffs to be mounted above fileName. See http://cilium.readthedocs.io/en/doc-1.0/kubernetes/install/#mounting-the-bpf-fs-optional
 func (p *Program) Pin(fileName string) error {
-	if err := bpfPinObject(fileName, p.fd); err != nil {
-		return xerrors.Errorf("can't pin program: %w", err)
-	}
-	return nil
+	return errors.Wrap(bpfPinObject(fileName, p.fd), "can't pin program")
 }
 
 // Close unloads the program from the kernel.
@@ -311,30 +297,20 @@ func (p *Program) Close() error {
 //
 // This function requires at least Linux 4.12.
 func (p *Program) Test(in []byte) (uint32, []byte, error) {
-	ret, out, _, err := p.testRun(in, 1, nil)
-	if err != nil {
-		return ret, nil, xerrors.Errorf("can't test program: %w", err)
-	}
-	return ret, out, nil
+	ret, out, _, err := p.testRun(in, 1)
+	return ret, out, errors.Wrap(err, "can't test program")
 }
 
 // Benchmark runs the Program with the given input for a number of times
 // and returns the time taken per iteration.
 //
-// Returns the result of the last execution of the program and the time per
-// run or an error. reset is called whenever the benchmark syscall is
-// interrupted, and should be set to testing.B.ResetTimer or similar.
-//
-// Note: profiling a call to this function will skew it's results, see
-// https://github.com/cilium/ebpf/issues/24
+// The returned value is the return value of the last execution of
+// the program.
 //
 // This function requires at least Linux 4.12.
-func (p *Program) Benchmark(in []byte, repeat int, reset func()) (uint32, time.Duration, error) {
-	ret, _, total, err := p.testRun(in, repeat, reset)
-	if err != nil {
-		return ret, total, xerrors.Errorf("can't benchmark program: %w", err)
-	}
-	return ret, total, nil
+func (p *Program) Benchmark(in []byte, repeat int) (uint32, time.Duration, error) {
+	ret, _, total, err := p.testRun(in, repeat)
+	return ret, total, errors.Wrap(err, "can't benchmark program")
 }
 
 var haveProgTestRun = internal.FeatureTest("BPF_PROG_TEST_RUN", "4.12", func() bool {
@@ -369,10 +345,10 @@ var haveProgTestRun = internal.FeatureTest("BPF_PROG_TEST_RUN", "4.12", func() b
 
 	// Check for EINVAL specifically, rather than err != nil since we
 	// otherwise misdetect due to insufficient permissions.
-	return !xerrors.Is(err, unix.EINVAL)
+	return errors.Cause(err) != unix.EINVAL
 })
 
-func (p *Program) testRun(in []byte, repeat int, reset func()) (uint32, []byte, time.Duration, error) {
+func (p *Program) testRun(in []byte, repeat int) (uint32, []byte, time.Duration, error) {
 	if uint(repeat) > math.MaxUint32 {
 		return 0, nil, 0, fmt.Errorf("repeat is too high")
 	}
@@ -410,20 +386,9 @@ func (p *Program) testRun(in []byte, repeat int, reset func()) (uint32, []byte, 
 		repeat:      uint32(repeat),
 	}
 
-	for {
-		_, err = internal.BPF(_ProgTestRun, unsafe.Pointer(&attr), unsafe.Sizeof(attr))
-		if err == nil {
-			break
-		}
-
-		if xerrors.Is(err, unix.EINTR) {
-			if reset != nil {
-				reset()
-			}
-			continue
-		}
-
-		return 0, nil, 0, xerrors.Errorf("can't run test: %w", err)
+	_, err = internal.BPF(_ProgTestRun, unsafe.Pointer(&attr), unsafe.Sizeof(attr))
+	if err != nil {
+		return 0, nil, 0, errors.Wrap(err, "can't run test")
 	}
 
 	if int(attr.dataSizeOut) > cap(out) {
@@ -439,13 +404,24 @@ func (p *Program) testRun(in []byte, repeat int, reset func()) (uint32, []byte, 
 
 func unmarshalProgram(buf []byte) (*Program, error) {
 	if len(buf) != 4 {
-		return nil, xerrors.New("program id requires 4 byte value")
+		return nil, errors.New("program id requires 4 byte value")
 	}
 
 	// Looking up an entry in a nested map or prog array returns an id,
 	// not an fd.
 	id := internal.NativeEndian.Uint32(buf)
-	return NewProgramFromID(ProgramID(id))
+	fd, err := bpfGetProgramFDByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	name, abi, err := newProgramABIFromFd(fd)
+	if err != nil {
+		_ = fd.Close()
+		return nil, err
+	}
+
+	return newProgram(fd, name, abi), nil
 }
 
 // MarshalBinary implements BinaryMarshaler.
@@ -463,7 +439,7 @@ func (p *Program) MarshalBinary() ([]byte, error) {
 // Attach a Program to a container object fd
 func (p *Program) Attach(fd int, typ AttachType, flags AttachFlags) error {
 	if fd < 0 {
-		return xerrors.New("invalid fd")
+		return errors.New("invalid fd")
 	}
 
 	pfd, err := p.fd.Value()
@@ -484,7 +460,7 @@ func (p *Program) Attach(fd int, typ AttachType, flags AttachFlags) error {
 // Detach a Program from a container object fd
 func (p *Program) Detach(fd int, typ AttachType, flags AttachFlags) error {
 	if fd < 0 {
-		return xerrors.New("invalid fd")
+		return errors.New("invalid fd")
 	}
 
 	pfd, err := p.fd.Value()
@@ -514,7 +490,7 @@ func LoadPinnedProgram(fileName string) (*Program, error) {
 	name, abi, err := newProgramABIFromFd(fd)
 	if err != nil {
 		_ = fd.Close()
-		return nil, xerrors.Errorf("can't get ABI for %s: %w", fileName, err)
+		return nil, errors.Wrapf(err, "can't get ABI for %s", fileName)
 	}
 
 	return newProgram(fd, name, abi), nil
@@ -536,37 +512,9 @@ func SanitizeName(name string, replacement rune) string {
 	}, name)
 }
 
-// ProgramGetNextID returns the ID of the next eBPF program.
-//
-// Returns ErrNotExist, if there is no next eBPF program.
-func ProgramGetNextID(startID ProgramID) (ProgramID, error) {
-	id, err := objGetNextID(_ProgGetNextID, uint32(startID))
-	return ProgramID(id), err
-}
-
-// NewProgramFromID returns the program for a given id.
-//
-// Returns ErrNotExist, if there is no eBPF program with the given id.
-func NewProgramFromID(id ProgramID) (*Program, error) {
-	fd, err := bpfObjGetFDByID(_ProgGetFDByID, uint32(id))
-	if err != nil {
-		return nil, err
-	}
-
-	name, abi, err := newProgramABIFromFd(fd)
-	if err != nil {
-		_ = fd.Close()
-		return nil, err
-	}
-
-	return newProgram(fd, name, abi), nil
-}
-
-// ID returns the systemwide unique ID of the program.
-func (p *Program) ID() (ProgramID, error) {
-	info, err := bpfGetProgInfoByFD(p.fd)
-	if err != nil {
-		return ProgramID(0), err
-	}
-	return ProgramID(info.id), nil
+// IsNotSupported returns true if an error occurred because
+// the kernel does not have support for a specific feature.
+func IsNotSupported(err error) bool {
+	_, notSupported := errors.Cause(err).(*internal.UnsupportedFeatureError)
+	return notSupported
 }

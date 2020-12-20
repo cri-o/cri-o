@@ -193,12 +193,44 @@ func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
 // AllowUsernsAnnotation searches through the AllowedAnnotations for
 // the userns annotation, checking whether this runtime allows processing of "io.kubernetes.cri-o.userns-mode"
 func (r *Runtime) AllowUsernsAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.UsernsModeAnnotation)
+}
+
+// AllowDevicesAnnotation searches through the AllowedAnnotations for
+// the devices annotation, checking whether this runtime allows processing of "io.kubernetes.cri-o.Devices"
+func (r *Runtime) AllowDevicesAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.DevicesAnnotation)
+}
+
+// AllowCPULoadBalancingAnnotation searches through the AllowedAnnotations for
+// the CPU load balancing annotation, checking whether this runtime allows processing of  "cpu-load-balancing.crio.io"
+func (r *Runtime) AllowCPULoadBalancingAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.CPULoadBalancingAnnotation)
+}
+
+// AllowCPUQuotaAnnotation searches through the AllowedAnnotations for
+// the CPU quota annotation, checking whether this runtime allows processing of "cpu-quota.crio.io"
+func (r *Runtime) AllowCPUQuotaAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.CPUQuotaAnnotation)
+}
+
+// AllowIRQLoadBalancingAnnotation searches through the AllowedAnnotations for
+// the IRQ load balancing annotation, checking whether this runtime allows processing of "irq-load-balancing.crio.io"
+func (r *Runtime) AllowIRQLoadBalancingAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.IRQLoadBalancingAnnotation)
+}
+
+func (r *Runtime) AllowShmSizeAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.ShmSizeAnnotation)
+}
+
+func (r *Runtime) allowAnnotation(handler, annotation string) (bool, error) {
 	rh, err := r.getRuntimeHandler(handler)
 	if err != nil {
 		return false, err
 	}
 	for _, ann := range rh.AllowedAnnotations {
-		if ann == annotations.UsernsModeAnnotation {
+		if ann == annotation {
 			return true, nil
 		}
 	}

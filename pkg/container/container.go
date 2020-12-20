@@ -11,17 +11,18 @@ import (
 
 	"github.com/containers/libpod/v2/pkg/annotations"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // Container is the main public container interface
@@ -29,16 +30,16 @@ type Container interface {
 	// All set methods are usually called in order of their definition
 
 	// SetConfig sets the configuration to the container and validates it
-	SetConfig(*pb.ContainerConfig, *pb.PodSandboxConfig) error
+	SetConfig(*types.ContainerConfig, *types.PodSandboxConfig) error
 
 	// SetNameAndID sets a container name and ID
 	SetNameAndID() error
 
 	// Config returns the container CRI configuration
-	Config() *pb.ContainerConfig
+	Config() *types.ContainerConfig
 
 	// SandboxConfig returns the sandbox CRI configuration
-	SandboxConfig() *pb.PodSandboxConfig
+	SandboxConfig() *types.PodSandboxConfig
 
 	// ID returns the container ID
 	ID() string
@@ -85,13 +86,16 @@ type Container interface {
 
 	// SpecAddAnnotations adds annotations to the spec.
 	SpecAddAnnotations(sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) error
+
+	// SpecAddDevices adds devices from the server config, and container CRI config
+	SpecAddDevices([]device.Device, []device.Device, bool) error
 }
 
 // container is the hidden default type behind the Container interface
 type container struct {
 	ctx        context.Context
-	config     *pb.ContainerConfig
-	sboxConfig *pb.PodSandboxConfig
+	config     *types.ContainerConfig
+	sboxConfig *types.PodSandboxConfig
 	id         string
 	name       string
 	privileged bool
@@ -121,9 +125,9 @@ func (c *container) SpecAddAnnotations(sb *sandbox.Sandbox, containerVolumes []o
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
 	const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
 
-	kubeAnnotations := c.Config().GetAnnotations()
+	kubeAnnotations := c.Config().Annotations
 	created := time.Now()
-	labels := c.Config().GetLabels()
+	labels := c.Config().Labels
 
 	image, err := c.Image()
 	if err != nil {
@@ -133,6 +137,13 @@ func (c *container) SpecAddAnnotations(sb *sandbox.Sandbox, containerVolumes []o
 	if err != nil {
 		return err
 	}
+
+	// Preserve the sandbox annotations. OCI hooks may re-use the sandbox
+	// annotation values to apply them to the container later on.
+	for k, v := range sb.Annotations() {
+		c.spec.AddAnnotation(k, v)
+	}
+
 	c.spec.AddAnnotation(annotations.Image, image)
 	c.spec.AddAnnotation(annotations.ImageName, imageResult.Name)
 	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID)
@@ -148,10 +159,10 @@ func (c *container) SpecAddAnnotations(sb *sandbox.Sandbox, containerVolumes []o
 	c.spec.AddAnnotation(annotations.ResolvPath, sb.ResolvPath())
 	c.spec.AddAnnotation(annotations.ContainerManager, lib.ContainerManagerCRIO)
 	c.spec.AddAnnotation(annotations.MountPoint, mountPoint)
-	c.spec.AddAnnotation(annotations.SeccompProfilePath, c.Config().GetLinux().GetSecurityContext().GetSeccompProfilePath())
+	c.spec.AddAnnotation(annotations.SeccompProfilePath, c.Config().Linux.SecurityContext.SeccompProfilePath)
 	c.spec.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
-	metadataJSON, err := json.Marshal(c.Config().GetMetadata())
+	metadataJSON, err := json.Marshal(c.Config().Metadata)
 	if err != nil {
 		return err
 	}
@@ -209,7 +220,7 @@ func (c *container) Spec() *generate.Generator {
 }
 
 // SetConfig sets the configuration to the container and validates it
-func (c *container) SetConfig(config *pb.ContainerConfig, sboxConfig *pb.PodSandboxConfig) error {
+func (c *container) SetConfig(config *types.ContainerConfig, sboxConfig *types.PodSandboxConfig) error {
 	if c.config != nil {
 		return errors.New("config already set")
 	}
@@ -218,11 +229,11 @@ func (c *container) SetConfig(config *pb.ContainerConfig, sboxConfig *pb.PodSand
 		return errors.New("config is nil")
 	}
 
-	if config.GetMetadata() == nil {
+	if config.Metadata == nil {
 		return errors.New("metadata is nil")
 	}
 
-	if config.GetMetadata().GetName() == "" {
+	if config.Metadata.Name == "" {
 		return errors.New("name is nil")
 	}
 
@@ -259,7 +270,7 @@ func (c *container) SetNameAndID() error {
 		c.config.Metadata.Name,
 		c.sboxConfig.Metadata.Name,
 		c.sboxConfig.Metadata.Namespace,
-		c.sboxConfig.Metadata.Uid,
+		c.sboxConfig.Metadata.UID,
 		fmt.Sprintf("%d", c.config.Metadata.Attempt),
 	}, "_")
 
@@ -269,12 +280,12 @@ func (c *container) SetNameAndID() error {
 }
 
 // Config returns the container configuration
-func (c *container) Config() *pb.ContainerConfig {
+func (c *container) Config() *types.ContainerConfig {
 	return c.config
 }
 
 // SandboxConfig returns the sandbox configuration
-func (c *container) SandboxConfig() *pb.PodSandboxConfig {
+func (c *container) SandboxConfig() *types.PodSandboxConfig {
 	return c.sboxConfig
 }
 
@@ -293,10 +304,10 @@ func (c *container) SetPrivileged() error {
 	if c.config == nil {
 		return nil
 	}
-	if c.config.GetLinux() == nil {
+	if c.config.Linux == nil {
 		return nil
 	}
-	if c.config.GetLinux().GetSecurityContext() == nil {
+	if c.config.Linux.SecurityContext == nil {
 		return nil
 	}
 
@@ -304,16 +315,16 @@ func (c *container) SetPrivileged() error {
 		return nil
 	}
 
-	if c.sboxConfig.GetLinux() == nil {
+	if c.sboxConfig.Linux == nil {
 		return nil
 	}
 
-	if c.sboxConfig.GetLinux().GetSecurityContext() == nil {
+	if c.sboxConfig.Linux.SecurityContext == nil {
 		return nil
 	}
 
-	if c.config.GetLinux().GetSecurityContext().GetPrivileged() {
-		if !c.sboxConfig.GetLinux().GetSecurityContext().GetPrivileged() {
+	if c.config.Linux.SecurityContext.Privileged {
+		if !c.sboxConfig.Linux.SecurityContext.Privileged {
 			return errors.New("no privileged container allowed in sandbox")
 		}
 		c.privileged = true
@@ -330,7 +341,7 @@ func (c *container) Privileged() bool {
 // It takes as input the LogDir of the sandbox, which is used
 // if there is no LogDir configured in the sandbox CRI config
 func (c *container) LogPath(sboxLogDir string) (string, error) {
-	sboxLogDirConfig := c.sboxConfig.GetLogDirectory()
+	sboxLogDirConfig := c.sboxConfig.LogDirectory
 	if sboxLogDirConfig != "" {
 		sboxLogDir = sboxLogDirConfig
 	}
@@ -339,7 +350,7 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 		return "", errors.Errorf("container %s has a sandbox with an empty log path", sboxLogDir)
 	}
 
-	logPath := c.config.GetLogPath()
+	logPath := c.config.LogPath
 	if logPath == "" {
 		logPath = filepath.Join(sboxLogDir, c.ID()+".log")
 	} else {
@@ -352,14 +363,14 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 	}
 
 	logrus.Debugf("setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
-		sboxLogDir, c.config.GetLogPath(), logPath,
+		sboxLogDir, c.config.LogPath, logPath,
 	)
 	return logPath, nil
 }
 
 // DisableFips returns whether the container should disable fips mode
 func (c *container) DisableFips() bool {
-	if value, ok := c.sboxConfig.GetLabels()["FIPS_DISABLE"]; ok && value == "true" {
+	if value, ok := c.sboxConfig.Labels["FIPS_DISABLE"]; ok && value == "true" {
 		return true
 	}
 	return false
@@ -367,7 +378,7 @@ func (c *container) DisableFips() bool {
 
 // Image returns the image specified in the container spec, or an error
 func (c *container) Image() (string, error) {
-	imageSpec := c.config.GetImage()
+	imageSpec := c.config.Image
 	if imageSpec == nil {
 		return "", errors.New("CreateContainerRequest.ContainerConfig.Image is nil")
 	}
@@ -384,7 +395,7 @@ func (c *container) Image() (string, error) {
 // be readonly, which it defaults to if the container wasn't
 // specifically asked to be read only
 func (c *container) ReadOnly(serverIsReadOnly bool) bool {
-	if c.config.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
+	if c.config.Linux.SecurityContext.ReadonlyRootfs {
 		return true
 	}
 	return serverIsReadOnly
@@ -393,7 +404,7 @@ func (c *container) ReadOnly(serverIsReadOnly bool) bool {
 // SelinuxLabel returns the container's SelinuxLabel
 // it takes the sandbox's label, which it falls back upon
 func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
-	selinuxConfig := c.config.GetLinux().GetSecurityContext().GetSelinuxOptions()
+	selinuxConfig := c.config.Linux.SecurityContext.SelinuxOptions
 
 	labels := map[string]string{}
 

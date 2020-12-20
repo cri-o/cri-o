@@ -6,6 +6,7 @@
 /crio.conf
 *.o
 *.orig
+*.test
 /pause/pause.o
 /bin/
 /test/bin2img/bin2img

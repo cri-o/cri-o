@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -19,8 +20,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 // TestLib runs the created specs
@@ -141,14 +140,14 @@ func beforeEach() {
 	// Setup test vars
 	mySandbox, err = sandbox.New(sandboxID, "", "", "", "",
 		make(map[string]string), make(map[string]string), "", "",
-		&pb.PodSandboxMetadata{}, "", "", false, "", "", "",
+		&sandbox.Metadata{}, "", "", false, "", "", "",
 		[]*hostport.PortMapping{}, false, time.Now(), "")
 	Expect(err).To(BeNil())
 
 	myContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", "", "",
-		&pb.ContainerMetadata{}, sandboxID, false,
+		&oci.Metadata{}, sandboxID, false,
 		false, false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
 }

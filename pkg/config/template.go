@@ -223,12 +223,6 @@ bind_mount_prefix = ""
 # If set to true, all containers will run in read-only mode.
 read_only = {{ .ReadOnly }}
 
-# If set to true, enable users to set a custom shm size instead of using the default value of 64M.
-# The shm size can be set through K8S annotation with the key "io.kubernetes.cri-o.ShmSize",
-# and the value representing the size in human readable format.
-# For example: "io.kubernetes.cri-o.ShmSize: 128Mi"
-enable_custom_shm_size = {{ .EnableCustomShmSize }}
-
 # Changes the verbosity of the logs based on the level it is set to. Options
 # are fatal, panic, error, warn, info, debug and trace. This option supports
 # live configuration reload.
@@ -252,11 +246,6 @@ gid_mappings = "{{ .GIDMappings }}"
 # regarding the proper termination of the container. The lowest possible
 # value is 30s, whereas lower values are not considered by CRI-O.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
-
-# manage_ns_lifecycle determines whether we pin and remove namespaces
-# and manage their lifecycle.
-# This option is being deprecated, and will be unconditionally true in the future.
-manage_ns_lifecycle = {{ .ManageNSLifecycle }}
 
 # drop_infra_ctr determines whether CRI-O drops the infra container
 # when a pod does not have a private PID namespace, and does not use
@@ -301,8 +290,10 @@ default_runtime = "{{ .DefaultRuntime }}"
 #   host devices from being passed to privileged containers.
 # - allowed_annotations (optional, array of strings): an option for specifying
 #   a list of experimental annotations that this runtime handler is allowed to process.
-#   The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring
-#   a usernamespace for the pod.
+#   The currently recognized values are:
+#   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
+#   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
+#   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 [crio.runtime.runtimes.{{ $runtime_name }}]

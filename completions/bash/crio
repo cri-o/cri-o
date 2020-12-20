@@ -37,7 +37,6 @@ h
 --default-transport
 --default-ulimits
 --drop-infra-ctr
---enable-custom-shm-size
 --enable-metrics
 --gid-mappings
 --global-auth-file
@@ -54,7 +53,6 @@ h
 --log-journald
 --log-level
 --log-size-max
---manage-ns-lifecycle
 --metrics-port
 --metrics-socket
 --namespaces-dir

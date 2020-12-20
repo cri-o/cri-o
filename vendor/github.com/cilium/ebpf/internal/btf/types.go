@@ -3,7 +3,7 @@ package btf
 import (
 	"math"
 
-	"golang.org/x/xerrors"
+	"github.com/pkg/errors"
 )
 
 const maxTypeDepth = 32
@@ -103,8 +103,7 @@ func (s *Struct) walk(cs *copyStack) {
 
 func (s *Struct) copy() Type {
 	cpy := *s
-	cpy.Members = make([]Member, len(s.Members))
-	copy(cpy.Members, s.Members)
+	cpy.Members = copyMembers(cpy.Members)
 	return &cpy
 }
 
@@ -127,8 +126,7 @@ func (u *Union) walk(cs *copyStack) {
 
 func (u *Union) copy() Type {
 	cpy := *u
-	cpy.Members = make([]Member, len(u.Members))
-	copy(cpy.Members, u.Members)
+	cpy.Members = copyMembers(cpy.Members)
 	return &cpy
 }
 
@@ -139,6 +137,14 @@ type Member struct {
 	Name
 	Type   Type
 	Offset uint32
+}
+
+func copyMembers(in []Member) []Member {
+	cpy := make([]Member, 0, len(in))
+	for _, member := range in {
+		cpy = append(cpy, member)
+	}
+	return cpy
 }
 
 // Enum lists possible values.
@@ -259,29 +265,13 @@ type Datasec struct {
 	TypeID
 	Name
 	Size uint32
-	Vars []VarSecinfo
 }
 
-func (ds *Datasec) size() uint32 { return ds.Size }
-
-func (ds *Datasec) walk(cs *copyStack) {
-	for i := range ds.Vars {
-		cs.push(&ds.Vars[i].Type)
-	}
-}
-
+func (ds *Datasec) size() uint32    { return ds.Size }
+func (ds *Datasec) walk(*copyStack) {}
 func (ds *Datasec) copy() Type {
 	cpy := *ds
-	cpy.Vars = make([]VarSecinfo, len(ds.Vars))
-	copy(cpy.Vars, ds.Vars)
 	return &cpy
-}
-
-// VarSecinfo describes variable in a Datasec
-type VarSecinfo struct {
-	Type   Type
-	Offset uint32
-	Size   uint32
 }
 
 type sizer interface {
@@ -310,7 +300,7 @@ func Sizeof(typ Type) (int, error) {
 		switch v := typ.(type) {
 		case *Array:
 			if n > 0 && int64(v.Nelems) > math.MaxInt64/n {
-				return 0, xerrors.New("overflow")
+				return 0, errors.New("overflow")
 			}
 
 			// Arrays may be of zero length, which allows
@@ -336,22 +326,22 @@ func Sizeof(typ Type) (int, error) {
 			continue
 
 		default:
-			return 0, xerrors.Errorf("unrecognized type %T", typ)
+			return 0, errors.Errorf("unrecognized type %T", typ)
 		}
 
 		if n > 0 && elem > math.MaxInt64/n {
-			return 0, xerrors.New("overflow")
+			return 0, errors.New("overflow")
 		}
 
 		size := n * elem
 		if int64(int(size)) != size {
-			return 0, xerrors.New("overflow")
+			return 0, errors.New("overflow")
 		}
 
 		return int(size), nil
 	}
 
-	return 0, xerrors.New("exceeded type depth")
+	return 0, errors.New("exceeded type depth")
 }
 
 // copy a Type recursively.
@@ -415,17 +405,12 @@ var _ namer = Name("")
 // compilation units, multiple types may share the same name. A Type may form a
 // cyclic graph by pointing at itself.
 func inflateRawTypes(rawTypes []rawType, rawStrings stringTable) (namedTypes map[string][]Type, err error) {
-	type fixupDef struct {
-		id           TypeID
-		expectedKind btfKind
-		typ          *Type
+	type fixup struct {
+		id  TypeID
+		typ *Type
 	}
 
-	var fixups []fixupDef
-	fixup := func(id TypeID, expectedKind btfKind, typ *Type) {
-		fixups = append(fixups, fixupDef{id, expectedKind, typ})
-	}
-
+	var fixups []fixup
 	convertMembers := func(raw []btfMember) ([]Member, error) {
 		// NB: The fixup below relies on pre-allocating this array to
 		// work, since otherwise append might re-allocate members.
@@ -433,7 +418,7 @@ func inflateRawTypes(rawTypes []rawType, rawStrings stringTable) (namedTypes map
 		for i, btfMember := range raw {
 			name, err := rawStrings.LookupName(btfMember.NameOff)
 			if err != nil {
-				return nil, xerrors.Errorf("can't get name for member %d: %w", i, err)
+				return nil, errors.Wrapf(err, "can't get name for member %d", i)
 			}
 			members = append(members, Member{
 				Name:   name,
@@ -441,7 +426,7 @@ func inflateRawTypes(rawTypes []rawType, rawStrings stringTable) (namedTypes map
 			})
 		}
 		for i := range members {
-			fixup(raw[i].Type, kindUnknown, &members[i].Type)
+			fixups = append(fixups, fixup{raw[i].Type, &members[i].Type})
 		}
 		return members, nil
 	}
@@ -460,7 +445,7 @@ func inflateRawTypes(rawTypes []rawType, rawStrings stringTable) (namedTypes map
 
 		name, err := rawStrings.LookupName(raw.NameOff)
 		if err != nil {
-			return nil, xerrors.Errorf("can't get name for type id %d: %w", id, err)
+			return nil, errors.Wrapf(err, "can't get name for type id %d", id)
 		}
 
 		switch raw.Kind() {
@@ -469,7 +454,7 @@ func inflateRawTypes(rawTypes []rawType, rawStrings stringTable) (namedTypes map
 
 		case kindPointer:
 			ptr := &Pointer{id, nil}
-			fixup(raw.Type(), kindUnknown, &ptr.Target)
+			fixups = append(fixups, fixup{raw.Type(), &ptr.Target})
 			typ = ptr
 
 		case kindArray:
@@ -478,20 +463,20 @@ func inflateRawTypes(rawTypes []rawType, rawStrings stringTable) (namedTypes map
 			// IndexType is unused according to btf.rst.
 			// Don't make it available right now.
 			arr := &Array{id, nil, btfArr.Nelems}
-			fixup(btfArr.Type, kindUnknown, &arr.Type)
+			fixups = append(fixups, fixup{btfArr.Type, &arr.Type})
 			typ = arr
 
 		case kindStruct:
 			members, err := convertMembers(raw.data.([]btfMember))
 			if err != nil {
-				return nil, xerrors.Errorf("struct %s (id %d): %w", name, id, err)
+				return nil, errors.Wrapf(err, "struct %s (id %d)", name, id)
 			}
 			typ = &Struct{id, name, raw.Size(), members}
 
 		case kindUnion:
 			members, err := convertMembers(raw.data.([]btfMember))
 			if err != nil {
-				return nil, xerrors.Errorf("union %s (id %d): %w", name, id, err)
+				return nil, errors.Wrapf(err, "union %s (id %d)", name, id)
 			}
 			typ = &Union{id, name, raw.Size(), members}
 
@@ -503,55 +488,44 @@ func inflateRawTypes(rawTypes []rawType, rawStrings stringTable) (namedTypes map
 
 		case kindTypedef:
 			typedef := &Typedef{id, name, nil}
-			fixup(raw.Type(), kindUnknown, &typedef.Type)
+			fixups = append(fixups, fixup{raw.Type(), &typedef.Type})
 			typ = typedef
 
 		case kindVolatile:
 			volatile := &Volatile{id, nil}
-			fixup(raw.Type(), kindUnknown, &volatile.Type)
+			fixups = append(fixups, fixup{raw.Type(), &volatile.Type})
 			typ = volatile
 
 		case kindConst:
 			cnst := &Const{id, nil}
-			fixup(raw.Type(), kindUnknown, &cnst.Type)
+			fixups = append(fixups, fixup{raw.Type(), &cnst.Type})
 			typ = cnst
 
 		case kindRestrict:
 			restrict := &Restrict{id, nil}
-			fixup(raw.Type(), kindUnknown, &restrict.Type)
+			fixups = append(fixups, fixup{raw.Type(), &restrict.Type})
 			typ = restrict
 
 		case kindFunc:
 			fn := &Func{id, name, nil}
-			fixup(raw.Type(), kindFuncProto, &fn.Type)
+			fixups = append(fixups, fixup{raw.Type(), &fn.Type})
 			typ = fn
 
 		case kindFuncProto:
 			fp := &FuncProto{id, nil}
-			fixup(raw.Type(), kindUnknown, &fp.Return)
+			fixups = append(fixups, fixup{raw.Type(), &fp.Return})
 			typ = fp
 
 		case kindVar:
 			v := &Var{id, name, nil}
-			fixup(raw.Type(), kindUnknown, &v.Type)
+			fixups = append(fixups, fixup{raw.Type(), &v.Type})
 			typ = v
 
 		case kindDatasec:
-			btfVars := raw.data.([]btfVarSecinfo)
-			vars := make([]VarSecinfo, 0, len(btfVars))
-			for _, btfVar := range btfVars {
-				vars = append(vars, VarSecinfo{
-					Offset: btfVar.Offset,
-					Size:   btfVar.Size,
-				})
-			}
-			for i := range vars {
-				fixup(btfVars[i].Type, kindVar, &vars[i].Type)
-			}
-			typ = &Datasec{id, name, raw.SizeType, vars}
+			typ = &Datasec{id, name, raw.SizeType}
 
 		default:
-			return nil, xerrors.Errorf("type id %d: unknown kind: %v", id, raw.Kind())
+			return nil, errors.Errorf("type id %d: unknown kind: %v", id, raw.Kind())
 		}
 
 		types = append(types, typ)
@@ -566,17 +540,7 @@ func inflateRawTypes(rawTypes []rawType, rawStrings stringTable) (namedTypes map
 	for _, fixup := range fixups {
 		i := int(fixup.id)
 		if i >= len(types) {
-			return nil, xerrors.Errorf("reference to invalid type id: %d", fixup.id)
-		}
-
-		// Default void (id 0) to unknown
-		rawKind := kindUnknown
-		if i > 0 {
-			rawKind = rawTypes[i-1].Kind()
-		}
-
-		if expected := fixup.expectedKind; expected != kindUnknown && rawKind != expected {
-			return nil, xerrors.Errorf("expected type id %d to have kind %s, found %s", fixup.id, expected, rawKind)
+			return nil, errors.Errorf("reference to invalid type id: %d", fixup.id)
 		}
 
 		*fixup.typ = types[i]

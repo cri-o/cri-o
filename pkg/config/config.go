@@ -16,12 +16,12 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/v2/pkg/hooks"
 	"github.com/containers/libpod/v2/pkg/rootless"
-	createconfig "github.com/containers/libpod/v2/pkg/spec"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/conmonmgr"
+	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
@@ -150,7 +150,10 @@ type RuntimeHandler struct {
 	// to a container running as privileged.
 	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices,omitempty"`
 	// AllowedAnnotations is a slice of experimental annotations that this runtime handler is allowed to process.
-	// The only currently recognized value is "io.kubernetes.cri-o.userns-mode" for configuring a usernamespace for the pod
+	// The currently recognized values are:
+	// "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
+	// "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
+	// "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 }
 
@@ -173,13 +176,7 @@ type RuntimeConfig struct {
 	// to the kubernetes log file
 	LogToJournald bool `toml:"log_to_journald"`
 
-	// ManageNSLifecycle determines whether we pin and remove namespaces
-	// and manage their lifecycle
-	// This option is being deprecated
-	ManageNSLifecycle bool `toml:"manage_ns_lifecycle"`
-
 	// DropInfraCtr determines whether the infra container is dropped when appropriate.
-	// Requires ManageNSLifecycle to be true.
 	DropInfraCtr bool `toml:"drop_infra_ctr"`
 
 	// ReadOnly run all pods/containers in read-only mode.
@@ -187,12 +184,6 @@ type RuntimeConfig struct {
 	// Will also set the readonly flag in the OCI Runtime Spec.  In this mode containers
 	// will only be able to write to volumes mounted into them
 	ReadOnly bool `toml:"read_only"`
-
-	// If set to true, enable users to set a custom shm size instead of using the default value of 64M.
-	// The shm size can be set through K8S annotation with the key "io.kubernetes.cri-o.ShmSize",
-	// and the value representing the size in human readable format.
-	// For example: "io.kubernetes.cri-o.ShmSize: 128Mi"
-	EnableCustomShmSize bool `toml:"enable_custom_shm_size"`
 
 	// ConmonEnv is the environment variable list for conmon process.
 	ConmonEnv []string `toml:"conmon_env"`
@@ -315,6 +306,9 @@ type RuntimeConfig struct {
 
 	// ulimitConfig is the internal ulimit configuration
 	ulimitsConfig *ulimits.Config
+
+	// deviceConfig is the internal additional devices configuration
+	deviceConfig *device.Config
 
 	// cgroupManager is the internal CgroupManager configuration
 	cgroupManager cgmgr.CgroupManager
@@ -591,11 +585,11 @@ func DefaultConfig() (*Config, error) {
 			LogLevel:                 "info",
 			HooksDir:                 []string{hooks.DefaultDir},
 			NamespacesDir:            "/var/run",
-			ManageNSLifecycle:        true,
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
 			ulimitsConfig:            ulimits.New(),
 			cgroupManager:            cgroupManager,
+			deviceConfig:             device.New(),
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
@@ -733,27 +727,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		return err
 	}
 
-	for _, d := range c.AdditionalDevices {
-		split := strings.Split(d, ":")
-		switch len(split) {
-		case 3:
-			if !createconfig.IsValidDeviceMode(split[2]) {
-				return fmt.Errorf("invalid device mode: %s", split[2])
-			}
-			fallthrough
-		case 2:
-			if (!createconfig.IsValidDeviceMode(split[1]) && !strings.HasPrefix(split[1], "/dev/")) ||
-				(len(split) == 3 && createconfig.IsValidDeviceMode(split[1])) {
-				return fmt.Errorf("invalid device mode: %s", split[1])
-			}
-			fallthrough
-		case 1:
-			if !strings.HasPrefix(split[0], "/dev/") {
-				return fmt.Errorf("invalid device mode: %s", split[0])
-			}
-		default:
-			return fmt.Errorf("invalid device specification: %s", d)
-		}
+	if err := c.deviceConfig.LoadDevices(c.AdditionalDevices); err != nil {
+		return err
 	}
 
 	// check we do have at least a runtime
@@ -779,20 +754,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	if !(c.ConmonCgroup == "pod" || strings.HasSuffix(c.ConmonCgroup, ".slice")) {
 		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
-	}
-
-	if !c.ManageNSLifecycle {
-		logrus.Infof("The manage-ns-lifecycle option is being deprecated, and will be unconditionally true in the future")
-	}
-
-	if c.UIDMappings != "" && c.ManageNSLifecycle {
-		return errors.New("cannot use UIDMappings with ManageNSLifecycle")
-	}
-	if c.GIDMappings != "" && c.ManageNSLifecycle {
-		return errors.New("cannot use GIDMappings with ManageNSLifecycle")
-	}
-	if c.DropInfraCtr && !c.ManageNSLifecycle {
-		return errors.New("cannot drop infra without ManageNSLifecycle")
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
@@ -941,6 +902,10 @@ func (c *RuntimeConfig) CgroupManager() cgmgr.CgroupManager {
 // Ulimits returns the Ulimits configuration
 func (c *RuntimeConfig) Ulimits() []ulimits.Ulimit {
 	return c.ulimitsConfig.Ulimits()
+}
+
+func (c *RuntimeConfig) Devices() []device.Device {
+	return c.deviceConfig.Devices()
 }
 
 func validateExecutablePath(executable, currentPath string) (string, error) {

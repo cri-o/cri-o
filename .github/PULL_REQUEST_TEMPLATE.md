@@ -33,6 +33,7 @@ remove leading whitespace from that line:
 
 > /kind api-change
 > /kind bug
+> /kind ci
 > /kind cleanup
 > /kind dependency-change
 > /kind deprecation
@@ -41,6 +42,7 @@ remove leading whitespace from that line:
 > /kind failing-test
 > /kind feature
 > /kind flake
+> /kind other
 
 #### What this PR does / why we need it:
 

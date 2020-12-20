@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	b64 "encoding/base64"
 	"fmt"
 	"io"
@@ -9,11 +10,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	encconfig "github.com/containers/ocicrypt/config"
 	cryptUtils "github.com/containers/ocicrypt/utils"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
@@ -21,8 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	"k8s.io/apimachinery/pkg/api/resource"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/types"
+	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
@@ -186,16 +189,16 @@ func validateLabels(labels map[string]string) error {
 	return nil
 }
 
-func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*pb.KeyValue) []string {
+func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 	envs := []string{}
 	if kubeEnvs == nil && imageConfig != nil {
 		envs = imageConfig.Config.Env
 	} else {
 		for _, item := range kubeEnvs {
-			if item.GetKey() == "" {
+			if item.Key == "" {
 				continue
 			}
-			envs = append(envs, item.GetKey()+"="+item.GetValue())
+			envs = append(envs, item.Key+"="+item.Value)
 		}
 		if imageConfig != nil {
 			for _, imageEnv := range imageConfig.Config.Env {
@@ -229,7 +232,7 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*pb.KeyValue) []string {
 
 // Translate container labels to a description of the container
 func translateLabelsToDescription(labels map[string]string) string {
-	return fmt.Sprintf("%s/%s/%s", labels[types.KubernetesPodNamespaceLabel], labels[types.KubernetesPodNameLabel], labels[types.KubernetesContainerNameLabel])
+	return fmt.Sprintf("%s/%s/%s", labels[kubeletTypes.KubernetesPodNamespaceLabel], labels[kubeletTypes.KubernetesPodNameLabel], labels[kubeletTypes.KubernetesContainerNameLabel])
 }
 
 // getDecryptionKeys reads the keys from the given directory
@@ -294,4 +297,42 @@ func getSourceMount(source string, mountinfos []*mount.Info) (path, optional str
 	}
 
 	return res.Mountpoint, res.Optional, nil
+}
+
+func isContextError(err error) bool {
+	return err == context.Canceled || err == context.DeadlineExceeded
+}
+
+func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType string) (string, error) {
+	const resourceCreationWaitTime = time.Minute * 4
+
+	if cachedID := s.resourceStore.Get(name); cachedID != "" {
+		log.Infof(ctx, "Found %s %s with ID %s in resource cache; using it", resourceType, name, cachedID)
+		return cachedID, nil
+	}
+	watcher := s.resourceStore.WatcherForResource(name)
+	if watcher == nil {
+		return "", errors.Errorf("error attempting to watch for %s %s: no longer found", resourceType, name)
+	}
+	log.Infof(ctx, "Creation of %s %s not yet finished. Waiting up to %v for it to finish", resourceType, name, resourceCreationWaitTime)
+	var err error
+	select {
+	// We should wait as long as we can (within reason), thus stalling the kubelet's sync loop.
+	// This will prevent "name is reserved" errors popping up every two seconds.
+	case <-ctx.Done():
+		err = ctx.Err()
+	// This is probably overly cautious, but it doesn't hurt to have a way to terminate
+	// independent of the kubelet's signal.
+	case <-time.After(resourceCreationWaitTime):
+		err = errors.Errorf("waited too long for request to timeout or %s %s to be created", resourceType, name)
+	// If the resource becomes available while we're watching for it, we still need to error on this request.
+	// When we pull the resource from the cache after waiting, we won't run the cleanup funcs.
+	// However, we don't know how long we've been making the kubelet wait for the request, and the request could time outt
+	// after we stop paying attention. This would cause CRI-O to attempt to send back a resource that the kubelet
+	// will not receive, causing a resource leak.
+	case <-watcher:
+		err = errors.Errorf("the requested %s %s is now ready and will be provided to the kubelet on next retry", resourceType, name)
+	}
+
+	return "", errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -32,8 +31,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 			defer os.RemoveAll(testImageDir)
 
 			// When
-			response, err := sut.ImageFsInfo(context.Background(),
-				&pb.ImageFsInfoRequest{})
+			response, err := sut.ImageFsInfo(context.Background())
 
 			// Then
 			Expect(err).To(BeNil())
@@ -50,8 +48,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 			)
 
 			// When
-			response, err := sut.ImageFsInfo(context.Background(),
-				&pb.ImageFsInfoRequest{})
+			response, err := sut.ImageFsInfo(context.Background())
 
 			// Then
 			Expect(err).NotTo(BeNil())

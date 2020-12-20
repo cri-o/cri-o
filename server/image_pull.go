@@ -1,30 +1,30 @@
 package server
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/containers/image/v5/types"
+	imageTypes "github.com/containers/image/v5/types"
 	libpodImage "github.com/containers/libpod/v2/libpod/image"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 var localRegistryPrefix = libpodImage.DefaultLocalRegistry + "/"
 
 // PullImage pulls a image with authentication config.
-func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.PullImageResponse, error) {
+func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
 	var err error
 	image := ""
-	img := req.GetImage()
+	img := req.Image
 	if img != nil {
 		image = img.Image
 	}
@@ -38,11 +38,11 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		image:         image,
 		sandboxCgroup: sandboxCgroup,
 	}
-	if req.GetAuth() != nil {
-		username := req.GetAuth().Username
-		password := req.GetAuth().Password
-		if req.GetAuth().Auth != "" {
-			username, password, err = decodeDockerAuth(req.GetAuth().Auth)
+	if req.Auth != nil {
+		username := req.Auth.Username
+		password := req.Auth.Password
+		if req.Auth.Auth != "" {
+			username, password, err = decodeDockerAuth(req.Auth.Auth)
 			if err != nil {
 				log.Debugf(ctx, "error decoding authentication for image %s: %v", image, err)
 				return nil, err
@@ -50,7 +50,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 		}
 		// Specifying a username indicates the user intends to send authentication to the registry.
 		if username != "" {
-			pullArgs.credentials = types.DockerAuthConfig{
+			pullArgs.credentials = imageTypes.DockerAuthConfig{
 				Username: username,
 				Password: password,
 			}
@@ -93,7 +93,7 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 	}
 
 	log.Infof(ctx, "Pulled image: %v", pullOp.imageRef)
-	return &pb.PullImageResponse{
+	return &types.PullImageResponse{
 		ImageRef: pullOp.imageRef,
 	}, nil
 }
@@ -122,7 +122,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		return "", err
 	}
 	for _, img := range images {
-		var tmpImg types.ImageCloser
+		var tmpImg imageTypes.ImageCloser
 		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
 		if err != nil {
 			// We're not able to find the image remotely, check if it's
@@ -174,10 +174,11 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		}
 
 		// Pull by collecting progress metrics
-		progress := make(chan types.ProgressProperties)
+		progress := make(chan imageTypes.ProgressProperties)
+		defer close(progress)
 		go func() {
 			for p := range progress {
-				if p.Event == types.ProgressEventSkipped {
+				if p.Event == imageTypes.ProgressEventSkipped {
 					// Skipped digests metrics
 					tryRecordSkippedMetric(ctx, img, p.Artifact.Digest.String())
 				}
@@ -333,7 +334,7 @@ func decodeDockerAuth(s string) (user, password string, _ error) {
 	return user, password, nil
 }
 
-func imageSize(img types.ImageCloser) (size int64) {
+func imageSize(img imageTypes.ImageCloser) (size int64) {
 	for _, layer := range img.LayerInfos() {
 		if layer.Size > 0 {
 			size += layer.Size

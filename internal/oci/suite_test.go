@@ -10,7 +10,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // TestOci runs the created specs
@@ -39,7 +38,7 @@ func getTestContainer() *oci.Container {
 		map[string]string{"key": "label"},
 		map[string]string{"key": "crioAnnotation"},
 		map[string]string{"key": "annotation"},
-		"image", "imageName", "imageRef", &pb.ContainerMetadata{}, "sandbox",
+		"image", "imageName", "imageRef", &oci.Metadata{}, "sandbox",
 		false, false, false, "", "dir", time.Now(), "")
 	Expect(err).To(BeNil())
 	Expect(container).NotTo(BeNil())

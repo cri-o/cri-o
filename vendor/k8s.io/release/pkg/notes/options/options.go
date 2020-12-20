@@ -62,11 +62,6 @@ type Options struct {
 	// valid git revision. Should not be used together with EndSHA.
 	EndRev string
 
-	// ReleaseVersion is the version of the release. This option is just passed
-	// through into the resulting ReleaseNote struct for identifying releases
-	// on JSON output.
-	ReleaseVersion string
-
 	// Format specifies the format of the release notes. Can be either
 	// `json` or `markdown`.
 	Format string

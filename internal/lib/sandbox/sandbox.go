@@ -7,13 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 )
 
 // DevShmPath is the default system wide shared memory path
@@ -54,8 +53,8 @@ type Sandbox struct {
 	labels             fields.Set
 	annotations        map[string]string
 	infraContainer     *oci.Container
-	metadata           *pb.PodSandboxMetadata
-	nsOpts             *pb.NamespaceOption
+	metadata           *Metadata
+	nsOpts             *NamespaceOption
 	stopMutex          sync.RWMutex
 	created            bool
 	stopped            bool
@@ -63,6 +62,20 @@ type Sandbox struct {
 	privileged         bool
 	hostNetwork        bool
 	usernsMode         string
+}
+
+type Metadata struct {
+	// Pod name of the sandbox.
+	Name string `json:"name,omitempty"`
+
+	// Pod UID of the sandbox.
+	UID string `json:"uid,omitempty"`
+
+	// Pod namespace of the sandbox.
+	Namespace string `json:"namespace,omitempty"`
+
+	// Attempt number of creating the sandbox.
+	Attempt uint32 `json:"attempt,omitempty"`
 }
 
 // DefaultShmSize is the default shm size
@@ -74,7 +87,7 @@ var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 // New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
 // An infra container must be attached before the sandbox is added to the state
-func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *pb.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string) (*Sandbox, error) {
+func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *Metadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string) (*Sandbox, error) {
 	sb := new(Sandbox)
 	sb.id = id
 	sb.namespace = namespace
@@ -121,12 +134,12 @@ func (s *Sandbox) AddIPs(ips []string) {
 }
 
 // SetNamespaceOptions sets whether the pod is running using host network
-func (s *Sandbox) SetNamespaceOptions(nsOpts *pb.NamespaceOption) {
+func (s *Sandbox) SetNamespaceOptions(nsOpts *NamespaceOption) {
 	s.nsOpts = nsOpts
 }
 
 // NamespaceOptions returns the namespace options for the sandbox
-func (s *Sandbox) NamespaceOptions() *pb.NamespaceOption {
+func (s *Sandbox) NamespaceOptions() *NamespaceOption {
 	return s.nsOpts
 }
 
@@ -197,7 +210,7 @@ func (s *Sandbox) MountLabel() string {
 }
 
 // Metadata returns a set of metadata about the sandbox
-func (s *Sandbox) Metadata() *pb.PodSandboxMetadata {
+func (s *Sandbox) Metadata() *Metadata {
 	return s.metadata
 }
 
@@ -347,6 +360,14 @@ func (s *Sandbox) SetNetworkStopped(createFile bool) error {
 }
 
 func (s *Sandbox) createFileInInfraDir(filename string) error {
+	// If the sandbox is not yet created,
+	// this function is being called when
+	// cleaning up a failed sandbox creation.
+	// We don't need to create the file, as there will be no
+	// sandbox to restore
+	if !s.created {
+		return nil
+	}
 	infra := s.InfraContainer()
 	f, err := os.Create(filepath.Join(infra.Dir(), filename))
 	if err == nil {
@@ -427,5 +448,5 @@ func (s *Sandbox) UnmountShm() error {
 // If the server manages the namespace lifecycles, and the Pid option on the sandbox
 // is node or container level, the infra container is not needed
 func (s *Sandbox) NeedsInfra(serverDropsInfra bool) bool {
-	return !serverDropsInfra || s.nsOpts.GetPid() == pb.NamespaceMode_POD
+	return !serverDropsInfra || s.nsOpts.Pid == NamespaceModePod
 }

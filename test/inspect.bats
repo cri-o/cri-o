@@ -12,12 +12,10 @@ function teardown() {
 
 @test "info inspect" {
 	start_crio
-	out=$(echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET)
+	out=$(echo -e "GET /info HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	echo "$out"
 	[[ "$out" == *"\"cgroup_driver\":\"$CONTAINER_CGROUP_MANAGER\""* ]]
 	[[ "$out" == *"\"storage_root\":\"$TESTDIR/crio\""* ]]
-
-	stop_crio
 }
 
 @test "ctr inspect" {
@@ -31,22 +29,17 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-	out=$(echo -e "GET /containers/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET)
-	echo "$out"
+	out=$(echo -e "GET /containers/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	[[ "$out" == *"\"sandbox\":\"$pod_id\""* ]]
 	[[ "$out" == *"\"image\":\"quay.io/crio/redis:alpine\""* ]]
 	[[ "$out" == *"\"image_ref\":\"$REDIS_IMAGEREF\""* ]]
 
-	run crictl inspect --output json "$ctr_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl inspect --output json "$ctr_id")
 	[[ "$output" == *"\"id\": \"$ctr_id\""* ]]
 	[[ "$output" == *"\"image\": \"quay.io/crio/redis:alpine\""* ]]
 	[[ "$output" == *"\"imageRef\": \"$REDIS_IMAGEREF\""* ]]
 
-	run crictl inspectp --output json "$pod_id"
-	echo "$output"
-	[ "$status" -eq 0 ]
+	output=$(crictl inspectp --output json "$pod_id")
 
 	ipv4=$(pod_ip -4 "$ctr_id")
 	ipv6=$(pod_ip -6 "$ctr_id")
@@ -60,9 +53,6 @@ function teardown() {
 
 @test "ctr inspect not found" {
 	start_crio
-	out=$(echo -e "GET /containers/notexists HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:$CRIO_SOCKET)
-	echo "$out"
+	out=$(echo -e "GET /containers/notexists HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	[[ "$out" == *"can't find the container with id notexists"* ]]
-
-	stop_crio
 }

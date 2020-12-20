@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.7.0] 2020-09-26
+### Added
+- Run tests for Go 1.15
+
+### Removed
+- Tests for Go 1.11 and Go 1.12
+
+### Changed
+- Updated docker base image to 1.15.2
+- Updated version of golangci-lint to 1.31
+
 ## [0.6.0] 2020-04-09
 ### Added
 - Added -style markdown option

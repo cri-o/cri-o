@@ -22,9 +22,5 @@ func NewStringPointer(str string) Pointer {
 		return Pointer{}
 	}
 
-	// The kernel expects strings to be zero terminated
-	buf := make([]byte, len(str)+1)
-	copy(buf, str)
-
-	return Pointer{ptr: unsafe.Pointer(&buf[0])}
+	return Pointer{ptr: unsafe.Pointer(&[]byte(str)[0])}
 }
