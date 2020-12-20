@@ -7,7 +7,7 @@ sudo -v
 . /etc/os-release
 
 # cri-o version
-export VERSION=1.18
+export VERSION=${1:-1.20}
 
 case "${ID}-${VERSION_ID}" in
 	fedora-*)
