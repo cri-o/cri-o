@@ -11,6 +11,30 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ContainerStats returns stats of the container. If the container does not
+// exist, the call returns an error.
+func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRequest) (*types.ContainerStatsResponse, error) {
+	container, err := s.GetContainerFromShortID(req.ContainerID)
+	if err != nil {
+		return nil, err
+	}
+	sb := s.GetSandbox(container.Sandbox())
+	if sb == nil {
+		return nil, errors.Errorf("unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
+	}
+	cgroup := sb.CgroupParent()
+
+	stats, err := s.Runtime().ContainerStats(ctx, container, cgroup)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.ContainerStatsResponse{Stats: s.buildContainerStats(ctx, stats, container)}, nil
+}
+
+// buildContainerStats takes stats directly from the container, and attempts to inject the filesystem
+// usage of the container.
+// This is not taken care of by the container because we access information on the server level (storage driver).
 func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerStats, container *oci.Container) *types.ContainerStats {
 	// TODO: Fix this for other storage drivers. This will only work with overlay.
 	var writableLayer *types.FilesystemUsage
@@ -47,25 +71,4 @@ func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerSt
 		},
 		WritableLayer: writableLayer,
 	}
-}
-
-// ContainerStats returns stats of the container. If the container does not
-// exist, the call returns an error.
-func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRequest) (*types.ContainerStatsResponse, error) {
-	container, err := s.GetContainerFromShortID(req.ContainerID)
-	if err != nil {
-		return nil, err
-	}
-	sb := s.GetSandbox(container.Sandbox())
-	if sb == nil {
-		return nil, errors.Errorf("unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
-	}
-	cgroup := sb.CgroupParent()
-
-	stats, err := s.Runtime().ContainerStats(ctx, container, cgroup)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.ContainerStatsResponse{Stats: s.buildContainerStats(ctx, stats, container)}, nil
 }
