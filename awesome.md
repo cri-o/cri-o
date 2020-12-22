@@ -34,7 +34,7 @@ collects useful resources about CRI-O.
 
 ### Podcasts
 
-- [PodCTL #12 - Introduction to CRI-O (Oct 30, 2017)](https://podctl.com/an-introduction-to-cri-o)
+- [PodCTL #12 - Introduction to CRI-O (Oct 30, 2017)](https://podctl.buzzsprout.com/110399/585611-an-introduction-to-cri-o)
 
 ### Videos
 
