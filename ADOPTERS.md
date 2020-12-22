@@ -11,4 +11,4 @@ Below is a non-exhaustive list of CRI-O adopters in production environments:
 * [openSUSE Kubic](https://kubic.opensuse.org) is a Certified Kubernetes
   distribution based on openSUSE MicroOS. It uses CRI-O as a supported container
   runtime for Kubernetes.
-* [Digital Science](https://www.digital-science.com/) is using CRI-O as the runtime in data processing clusters behind [Dimensions](https://www.dimension.ai) due to it being just enough runtime for kubernetes, and the flexibility to use more than runc.
+* [Digital Science](https://www.digital-science.com/) is using CRI-O as the runtime in data processing clusters behind [Dimensions](https://www.dimension.ai) due to it being just enough runtime for Kubernetes, and the flexibility to use more than runc.
