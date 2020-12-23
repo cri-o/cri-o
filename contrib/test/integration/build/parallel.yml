@@ -24,7 +24,7 @@
     ./configure
     make
     cp ./src/{env_parallel*,niceload,parallel,parcat,parset,sql} /usr/bin
-    ln -s /usr/bin/parallel /usr/bin/sem
+    ln -sf /usr/bin/parallel /usr/bin/sem
   args:
     chdir: "{{ ansible_env.HOME }}/parallel-20190322"
   when: ansible_distribution in ['RedHat', 'CentOS']
