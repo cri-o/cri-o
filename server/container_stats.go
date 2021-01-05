@@ -18,18 +18,37 @@ func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRe
 	if err != nil {
 		return nil, err
 	}
-	sb := s.GetSandbox(container.Sandbox())
-	if sb == nil {
-		return nil, errors.Errorf("unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
+	stats, errs := s.CRIStatsForContainers(ctx, container)
+	if len(errs) > 0 {
+		return nil, errs[0]
 	}
-	cgroup := sb.CgroupParent()
-
-	stats, err := s.Runtime().ContainerStats(container, cgroup)
-	if err != nil {
-		return nil, err
+	// should never happen, but we should avoid the segfault
+	if stats == nil || len(stats) != 1 {
+		return nil, errors.Errorf("Unknown error happened finding container stats for %s", req.ContainerID)
 	}
 
-	return &types.ContainerStatsResponse{Stats: s.buildContainerStats(ctx, stats, container)}, nil
+	return &types.ContainerStatsResponse{Stats: stats[0]}, nil
+}
+
+func (s *Server) CRIStatsForContainers(ctx context.Context, containers ...*oci.Container) ([]*types.ContainerStats, []error) {
+	stats := make([]*types.ContainerStats, 0)
+	errs := make([]error, 0)
+	for _, c := range containers {
+		sb := s.GetSandbox(c.Sandbox())
+		if sb == nil {
+			errs = append(errs, errors.Errorf("unable to get stats for container %s: sandbox %s not found", c.ID(), c.Sandbox()))
+			continue
+		}
+		cgroup := sb.CgroupParent()
+
+		ociStat, err := s.Runtime().ContainerStats(c, cgroup)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		stats = append(stats, s.buildContainerStats(ctx, ociStat, c))
+	}
+	return stats, errs
 }
 
 // buildContainerStats takes stats directly from the container, and attempts to inject the filesystem

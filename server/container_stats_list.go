@@ -27,24 +27,11 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 		ctrList = s.filterContainerList(ctx, cFilter, ctrList)
 	}
 
-	allStats := make([]*types.ContainerStats, 0, len(ctrList))
-	for _, container := range ctrList {
-		sb := s.GetSandbox(container.Sandbox())
-		if sb == nil {
-			log.Warnf(ctx, "unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
-			continue
-		}
-		cgroup := sb.CgroupParent()
-		stats, err := s.Runtime().ContainerStats(container, cgroup)
-		if err != nil {
-			log.Warnf(ctx, "unable to get stats for container %s: %v", container.ID(), err)
-			continue
-		}
-		response := s.buildContainerStats(ctx, stats, container)
-		allStats = append(allStats, response)
+	stats, errs := s.CRIStatsForContainers(ctx, ctrList...)
+	for _, err := range errs {
+		log.Warnf(ctx, "%v", err)
 	}
-
 	return &types.ListContainerStatsResponse{
-		Stats: allStats,
+		Stats: stats,
 	}, nil
 }
