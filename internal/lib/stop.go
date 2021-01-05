@@ -38,6 +38,7 @@ func (c *ContainerServer) ContainerStop(ctx context.Context, container string, t
 	if err := c.ContainerStateToDisk(ctr); err != nil {
 		logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
+	c.config.StatsManager().RemoveID(ctr.ID())
 
 	return ctrID, nil
 }

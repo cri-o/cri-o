@@ -52,6 +52,10 @@ const templateString = `# The CRI-O configuration file specifies all of the avai
 # the kubelet. The log directory specified must be an absolute directory.
 log_dir = "{{ .LogDir }}"
 
+# The type of stats manager the server should use.
+# Currently the supported options are "" (legacy) or "cached".
+stats_manager_type = "{{ .StatsManagerType }}"
+
 # Location for CRI-O to lay down the temporary version file.
 # It is used to check if crio wipe should wipe containers, which should
 # always happen on a node reboot

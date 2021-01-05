@@ -549,6 +549,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
+	// Begin tracking the container's disk stats
+	s.config.StatsManager().AddID(newContainer.ID(), s.config.MountpointWritableLayer(newContainer.MountPoint()))
+
 	if isContextError(ctx.Err()) {
 		if err := s.resourceStore.Put(ctr.Name(), newContainer, cleanupFuncs); err != nil {
 			log.Errorf(ctx, "createCtr: failed to save progress of container %s: %v", newContainer.ID(), err)

@@ -158,6 +158,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("apparmor-profile") {
 		config.ApparmorProfile = ctx.String("apparmor-profile")
 	}
+	if ctx.IsSet("stats-manager-type") {
+		config.StatsManagerType = ctx.String("stats-manager-type")
+	}
 	if ctx.IsSet("cgroup-manager") {
 		config.CgroupManagerName = ctx.String("cgroup-manager")
 	}

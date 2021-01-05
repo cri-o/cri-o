@@ -24,6 +24,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
+	"github.com/cri-o/cri-o/internal/config/statsmgr"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
@@ -140,6 +141,28 @@ type RootConfig struct {
 	// VersionFilePersist is the location CRI-O will lay down the version file
 	// that checks whether we've upgraded
 	VersionFilePersist string `toml:"version_file_persist"`
+
+	// StatsManagerType is the type of stats manager the server should use.
+	// Currently the supported options are "" (legacy) or "cached".
+	StatsManagerType string `toml:"stats_manager_type"`
+
+	// statsManager is the internal StatsManager configuration.
+	statsManager statsmgr.StatsManager
+}
+
+// MountpointWritableLayer gets the writable directory for a container
+// mountpoint given the graph driver used for storage
+func (c *RootConfig) MountpointWritableLayer(mountpoint string) string {
+	// TODO FIXME hardcoded
+	if c.Storage == "overlay" || c.Storage == "overlay2" {
+		return filepath.Join(filepath.Dir(mountpoint), "diff")
+	}
+	return mountpoint
+}
+
+// StatsManager returns the StatsManager held by the config
+func (c *RootConfig) StatsManager() statsmgr.StatsManager {
+	return c.statsManager
 }
 
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
@@ -564,6 +587,11 @@ func DefaultConfig() (*Config, error) {
 			LogDir:             "/var/log/crio/pods",
 			VersionFile:        CrioVersionPathTmp,
 			VersionFilePersist: CrioVersionPathPersist,
+			// In the future, if the default stats manager
+			// becomes cached instead of legacy, we must be wary of setting so here.
+			// The cached stats manager starts a goroutine that need to be terminated.
+			// If we blindly overwrite on Validate(), then we risk leaking that goroutine.
+			statsManager: statsmgr.New(""),
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,
@@ -718,6 +746,7 @@ func (c *RootConfig) Validate(onExecution bool) error {
 			return errors.Wrapf(err, "failed to get store to set defaults")
 		}
 
+		c.statsManager = statsmgr.New(c.StatsManagerType)
 		// This step merges the /etc/container/storage.conf with the
 		// storage configuration in crio.conf
 		// If we don't do this step, we risk returning the incorrect info
