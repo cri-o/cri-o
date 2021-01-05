@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -140,20 +141,28 @@ func getAuthFilePaths(sys *types.SystemContext) []authPath {
 	xdgCfgHome := os.Getenv("XDG_CONFIG_HOME")
 	if xdgCfgHome == "" {
 		xdgCfgHome = filepath.Join(homedir.Get(), ".config")
+		log.Println("============== xdfCfgHome:", xdgCfgHome)
 	}
 	paths = append(paths, authPath{path: filepath.Join(xdgCfgHome, xdgConfigHomePath), legacyFormat: false})
 	if dockerConfig := os.Getenv("DOCKER_CONFIG"); dockerConfig != "" {
 		paths = append(paths,
 			authPath{path: filepath.Join(dockerConfig, "config.json"), legacyFormat: false},
 		)
+		log.Println("============ DOCKER_CONFIG env path: ", filepath.Join(dockerConfig, "config.json"))
 	} else {
+		dockerhomepath := filepath.Join(homedir.Get(), dockerHomePath)
 		paths = append(paths,
-			authPath{path: filepath.Join(homedir.Get(), dockerHomePath), legacyFormat: false},
+			authPath{path: dockerhomepath, legacyFormat: false},
 		)
+		log.Println("============ dockerHome path: ", dockerhomepath)
+
 	}
+	dockerlegacy := filepath.Join(homedir.Get(), dockerLegacyHomePath)
 	paths = append(paths,
-		authPath{path: filepath.Join(homedir.Get(), dockerLegacyHomePath), legacyFormat: true},
+		authPath{path: dockerlegacy, legacyFormat: true},
 	)
+	log.Println("============ dockerlegacy path: ", dockerlegacy)
+
 	return paths
 }
 
@@ -178,6 +187,7 @@ func GetCredentials(sys *types.SystemContext, registry string) (types.DockerAuth
 	}
 
 	for _, path := range getAuthFilePaths(sys) {
+		log.Println(" ======== search path:", path)
 		authConfig, err := findAuthentication(registry, path.path, path.legacyFormat)
 		if err != nil {
 			logrus.Debugf("Credentials not found")

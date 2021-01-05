@@ -7,6 +7,7 @@ package homedir
 
 import (
 	"errors"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,6 +31,7 @@ func Key() string {
 // If needing to do nss lookups, do not disable cgo or set osusergo.
 func Get() string {
 	homedir, _ := unshare.HomeDir()
+	log.Println("homedir: ", homedir)
 	return homedir
 }
 
