@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
@@ -130,8 +131,10 @@ func restartIrqBalanceService(irqBalanceConfigFile, newIRQBalanceSetting string)
 	if err := updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting); err != nil {
 		return err
 	}
-	cmd := exec.Command("service", "irqbalance", "restart")
-	return cmd.Run()
+	if err := exec.Command("service", "irqbalance", "restart").Run(); err != nil {
+		logrus.Warnf("irqbalance service restart failed: %v", err)
+	}
+	return nil
 }
 
 func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting string) error {
