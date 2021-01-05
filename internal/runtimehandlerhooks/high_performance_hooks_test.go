@@ -230,14 +230,18 @@ var _ = Describe("high_performance_hooks", func() {
 
 	Describe("restoreIrqBalanceConfig", func() {
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
-		verifyRestoreIrqBalanceConfig := func(expected string) {
-			err = RestoreIrqBalanceConfig(irqBalanceConfigFile)
+		irqBannedCPUConfigFile := filepath.Join(fixturesDir, "orig_irq_banned_cpus")
+		verifyRestoreIrqBalanceConfig := func(expectedOrigBannedCPUs, expectedBannedCPUs string) {
+			err = RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile)
 			Expect(err).To(BeNil())
 
 			content, err := ioutil.ReadFile(irqBannedCPUConfigFile)
 			Expect(err).To(BeNil())
+			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedOrigBannedCPUs))
 
-			Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
+			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			Expect(err).To(BeNil())
+			Expect(bannedCPUs).To(Equal(expectedBannedCPUs))
 		}
 
 		JustBeforeEach(func() {
@@ -258,7 +262,7 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should set banned cpu config file from irq balance config", func() {
-				verifyRestoreIrqBalanceConfig("0000ffff,ffffcfcc")
+				verifyRestoreIrqBalanceConfig("0000ffff,ffffcfcc", "0000ffff,ffffcfcc")
 			})
 		})
 
@@ -271,7 +275,7 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should restore irq balance config with content from banned cpu config file", func() {
-				verifyRestoreIrqBalanceConfig("00000000,00000000")
+				verifyRestoreIrqBalanceConfig("00000000,00000000", "00000000,00000000")
 			})
 		})
 	})
