@@ -26,6 +26,8 @@ import (
 const (
 	// HighPerformance contains the high-performance runtime handler name
 	HighPerformance = "high-performance"
+	// IrqBannedCPUConfigFile contains the original banned cpu mask configuration
+	IrqBannedCPUConfigFile = "/etc/sysconfig/orig_irq_banned_cpus"
 )
 
 const (
@@ -33,7 +35,6 @@ const (
 	annotationDisable      = "disable"
 	schedDomainDir         = "/proc/sys/kernel/sched_domain"
 	irqSmpAffinityProcFile = "/proc/irq/default_smp_affinity"
-	irqBannedCPUConfigFile = "/etc/sysconfig/orig_irq_banned_cpus"
 	cgroupMountPoint       = "/sys/fs/cgroup"
 	irqBalanceBannedCpus   = "IRQBALANCE_BANNED_CPUS"
 )
@@ -320,9 +321,8 @@ func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool)
 	return nil
 }
 
-// RestoreIrqBalanceConfig restores irqbalance service with original
-// banned cpu mask settings
-func RestoreIrqBalanceConfig(irqBalanceConfigFile string) error {
+// RestoreIrqBalanceConfig restores irqbalance service with original banned cpu mask settings
+func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile string) error {
 	bannedCPUMasks, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
 	if err != nil {
 		// Ignore returning err as given irqBalanceConfigFile may not exist.
