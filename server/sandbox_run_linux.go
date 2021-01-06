@@ -19,6 +19,7 @@ import (
 	"github.com/containers/libpod/pkg/cgroups"
 	selinux "github.com/containers/libpod/pkg/selinux"
 	"github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -343,6 +344,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
 		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)
+	}
+
+	if s.config.CgroupManager == oci.SystemdCgroupsManager && node.SystemdHasCollectMode() {
+		g.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 	}
 
 	created := time.Now()
