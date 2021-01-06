@@ -44,6 +44,7 @@ h
 --grpc-max-send-msg-size
 --hooks-dir
 --image-volumes
+--infra-ctr-cpuset
 --insecure-registry
 --listen
 --log
