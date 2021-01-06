@@ -48,6 +48,8 @@ github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 github.com/checkpoint-restore/go-criu
 github.com/checkpoint-restore/go-criu/rpc
+# github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
+github.com/chzyer/readline
 # github.com/cilium/ebpf v0.2.0
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
@@ -135,7 +137,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.7.0
+# github.com/containers/image/v5 v5.9.0
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -169,6 +171,7 @@ github.com/containers/image/v5/pkg/compression
 github.com/containers/image/v5/pkg/compression/internal
 github.com/containers/image/v5/pkg/compression/types
 github.com/containers/image/v5/pkg/docker/config
+github.com/containers/image/v5/pkg/shortnames
 github.com/containers/image/v5/pkg/strslice
 github.com/containers/image/v5/pkg/sysregistriesv2
 github.com/containers/image/v5/pkg/tlsclientconfig
@@ -541,6 +544,9 @@ github.com/jbenet/go-context/io
 # github.com/json-iterator/go v1.1.10
 ## explicit
 github.com/json-iterator/go
+# github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a
+github.com/juju/ansiterm
+github.com/juju/ansiterm/tabwriter
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
 # github.com/klauspost/compress v1.11.6
@@ -555,6 +561,16 @@ github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/pgzip
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
+# github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a
+github.com/lunixbochs/vtclean
+# github.com/manifoldco/promptui v0.8.0
+github.com/manifoldco/promptui
+github.com/manifoldco/promptui/list
+github.com/manifoldco/promptui/screenbuf
+# github.com/mattn/go-colorable v0.1.4
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.12
+github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.9
 github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.10

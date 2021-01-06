@@ -15,7 +15,7 @@ import (
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/pkg/sysregistriesv2"
+	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/signature"
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -32,6 +32,7 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -43,8 +44,6 @@ var (
 	ErrCannotParseImageID = errors.New("cannot parse an image ID")
 	// ErrImageMultiplyTagged is returned when we try to remove an image that still has multiple names
 	ErrImageMultiplyTagged = errors.New("image still has multiple names applied")
-	// ErrNoRegistriesConfigured is returned when there are no registries configured in /etc/crio.conf#additional_registries
-	ErrNoRegistriesConfigured = errors.New(`no registries configured while trying to pull an unqualified image, add at least one in /etc/containers/registries.conf`)
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
@@ -726,40 +725,6 @@ func (svc *imageLookupService) isSecureIndex(indexName string) bool {
 	return true
 }
 
-func splitDockerDomain(name string) (domain, remainder string) {
-	i := strings.IndexRune(name, '/')
-	if i == -1 || (!strings.ContainsAny(name[:i], ".:") && name[:i] != "localhost") {
-		domain, remainder = "", name
-	} else {
-		domain, remainder = name[:i], name[i+1:]
-	}
-	return
-}
-
-// imageNamesWithDigestOrTag strips the tag from ambiguous image references that have a digest as well (e.g. `image:tag@sha256:123...`).
-// Such image references are supported by docker but, due to their ambiguity,
-// explicitly not by containers/image.
-func imageNamesWithDigestOrTag(images []string) ([]string, error) {
-	normalized := make([]string, len(images))
-	for i, imageName := range images {
-		ref, err := reference.ParseNormalizedNamed(imageName)
-		if err != nil {
-			return nil, err
-		}
-		_, isTagged := ref.(reference.NamedTagged)
-		canonical, isDigested := ref.(reference.Canonical)
-		if isTagged && isDigested {
-			canonical, err = reference.WithDigest(reference.TrimNamed(ref), canonical.Digest())
-			if err != nil {
-				return nil, err
-			}
-			imageName = canonical.String()
-		}
-		normalized[i] = imageName
-	}
-	return normalized, nil
-}
-
 // ResolveNames resolves an image name into a storage image ID or a fully-qualified image name (domain/repo/image:tag).
 // Will only return an empty slice if err != nil.
 func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error) {
@@ -780,42 +745,35 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		return nil, err
 	}
 
-	domain, remainder := splitDockerDomain(imageName)
-	if domain != "" {
-		return imageNamesWithDigestOrTag([]string{imageName})
-	}
-	unqualifiedSearchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
+	resolved, err := shortnames.Resolve(systemContext, imageName)
 	if err != nil {
 		return nil, err
 	}
-	// we got an unqualified image here, we can't go ahead w/o registries configured
-	// properly.
-	if len(unqualifiedSearchRegistries) == 0 {
-		return nil, ErrNoRegistriesConfigured
+
+	if desc := resolved.Description(); len(desc) > 0 {
+		logrus.Info(desc)
 	}
-	// this means we got an image in the form of "busybox"
-	// we need to use additional registries...
-	// normalize the unqualified image to be domain/repo/image...
-	images := []string{}
-	for _, r := range unqualifiedSearchRegistries {
-		rem := remainder
-		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
-			rem = "library/" + rem
+
+	images := make([]string, len(resolved.PullCandidates))
+	for i := range resolved.PullCandidates {
+		// Strip the tag from ambiguous image references that have a
+		// digest as well (e.g.  `image:tag@sha256:123...`).  Such
+		// image references are supported by docker but, due to their
+		// ambiguity, explicitly not by containers/image.
+		ref := resolved.PullCandidates[i].Value
+		_, isTagged := ref.(reference.NamedTagged)
+		canonical, isDigested := ref.(reference.Canonical)
+		if isTagged && isDigested {
+			canonical, err = reference.WithDigest(reference.TrimNamed(ref), canonical.Digest())
+			if err != nil {
+				return nil, err
+			}
+			ref = canonical
 		}
-		image := r + "/" + rem
-		registry, err := sysregistriesv2.FindRegistry(systemContext, image)
-		if err != nil {
-			return nil, err
-		}
-		if registry != nil && registry.Blocked {
-			continue
-		}
-		images = append(images, image)
+		images[i] = ref.String()
 	}
-	if len(images) == 0 {
-		return nil, fmt.Errorf("all search registries for %q are blocked", remainder)
-	}
-	return imageNamesWithDigestOrTag(images)
+
+	return images, nil
 }
 
 // GetImageService returns an ImageServer that uses the passed-in store, and
