@@ -782,14 +782,6 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 
 	domain, remainder := splitDockerDomain(imageName)
 	if domain != "" {
-		// this means the image is already fully qualified
-		registry, err := sysregistriesv2.FindRegistry(systemContext, imageName)
-		if err != nil {
-			return nil, err
-		}
-		if registry != nil && registry.Blocked {
-			return nil, fmt.Errorf("cannot use %q because it's blocked", imageName)
-		}
 		return imageNamesWithDigestOrTag([]string{imageName})
 	}
 	unqualifiedSearchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
