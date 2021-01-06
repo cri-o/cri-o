@@ -72,6 +72,7 @@ require (
 )
 
 replace (
+	github.com/containers/ocicrypt => github.com/containers/ocicrypt v1.0.4-0.20210113201752-059f6b1c0b8d
 	github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc90
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20200710190001-3e4195d92445
