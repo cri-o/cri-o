@@ -745,6 +745,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 
+	// When infra-ctr-cpuset specified, set the infra container CPU set
+	if s.config.InfraCtrCPUSet != "" {
+		log.Debugf(ctx, "Set the infra container cpuset to %q", s.config.InfraCtrCPUSet)
+		g.SetLinuxResourcesCPUCpus(s.config.InfraCtrCPUSet)
+	}
+
 	saveOptions := generate.ExportOptions{}
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(sbox.ID())
 	if err != nil {
