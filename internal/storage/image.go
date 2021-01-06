@@ -44,7 +44,7 @@ var (
 	// ErrImageMultiplyTagged is returned when we try to remove an image that still has multiple names
 	ErrImageMultiplyTagged = errors.New("image still has multiple names applied")
 	// ErrNoRegistriesConfigured is returned when there are no registries configured in /etc/crio.conf#additional_registries
-	ErrNoRegistriesConfigured = errors.New(`no registries configured while trying to pull an unqualified image, add at least one in either /etc/crio/crio.conf or /etc/containers/registries.conf`)
+	ErrNoRegistriesConfigured = errors.New(`no registries configured while trying to pull an unqualified image, add at least one in /etc/containers/registries.conf`)
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
@@ -81,10 +81,9 @@ type imageCacheItem struct {
 type imageCache map[string]imageCacheItem
 
 type imageLookupService struct {
-	DefaultTransport            string
-	InsecureRegistryCIDRs       []*net.IPNet
-	IndexConfigs                map[string]*indexInfo
-	UnqualifiedSearchRegistries []string
+	DefaultTransport      string
+	InsecureRegistryCIDRs []*net.IPNet
+	IndexConfigs          map[string]*indexInfo
 }
 
 type imageService struct {
@@ -793,20 +792,20 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		}
 		return imageNamesWithDigestOrTag([]string{imageName})
 	}
-	UnqualifiedSearchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
+	unqualifiedSearchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
 	if err != nil {
 		return nil, err
 	}
 	// we got an unqualified image here, we can't go ahead w/o registries configured
 	// properly.
-	if len(svc.lookup.UnqualifiedSearchRegistries) == 0 && len(UnqualifiedSearchRegistries) == 0 {
+	if len(unqualifiedSearchRegistries) == 0 {
 		return nil, ErrNoRegistriesConfigured
 	}
 	// this means we got an image in the form of "busybox"
 	// we need to use additional registries...
 	// normalize the unqualified image to be domain/repo/image...
 	images := []string{}
-	for _, r := range append(svc.lookup.UnqualifiedSearchRegistries, UnqualifiedSearchRegistries...) {
+	for _, r := range unqualifiedSearchRegistries {
 		rem := remainder
 		if r == "docker.io" && !strings.ContainsRune(remainder, '/') {
 			rem = "library/" + rem
@@ -831,7 +830,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 // which will prepend the passed-in DefaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport string, insecureRegistries, registries []string) (ImageServer, error) {
+func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport string, insecureRegistries []string) (ImageServer, error) {
 	if store == nil {
 		var err error
 		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
@@ -853,26 +852,6 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 		store:      store,
 		imageCache: make(map[string]imageCacheItem),
 		ctx:        ctx,
-	}
-
-	if len(registries) != 0 {
-		seenRegistries := make(map[string]bool, len(registries))
-		cleanRegistries := []string{}
-		for _, r := range registries {
-			if seenRegistries[r] {
-				continue
-			}
-			cleanRegistries = append(cleanRegistries, r)
-			seenRegistries[r] = true
-		}
-
-		is.lookup.UnqualifiedSearchRegistries = cleanRegistries
-	} else {
-		systemRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(sc)
-		if err != nil {
-			return nil, err
-		}
-		is.lookup.UnqualifiedSearchRegistries = systemRegistries
 	}
 
 	insecureRegistries = append(insecureRegistries, "127.0.0.0/8")

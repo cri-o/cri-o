@@ -284,7 +284,7 @@ CRI-O reads its configured registries defaults from the system wide containers-r
   List of registries to skip TLS verification for pulling images.
 
 **registries**=["docker.io"]
-  List of registries to be used when pulling an unqualified image (e.g., "alpine:latest"). By default, registries is set to "docker.io" for compatibility reasons. Depending on your workload and usecase you may add more registries (e.g., "quay.io", "registry.fedoraproject.org", "registry.opensuse.org", etc.).
+  List of registries to be used when pulling an unqualified image. Note that this option has been deprecated and has no effect. Please refer to `containers-registries.conf(5)` for configuring unqualified-search registries.
 
 **big_files_temporary_dir**=""
   Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.

@@ -478,6 +478,13 @@ func (c *Config) UpdateFromFile(path string) error {
 		delete(c.Runtimes, defaultRuntime)
 	}
 
+	// Registries are deprecated in cri-o.conf and turned into a NOP.
+	// Users should use registries.conf instead, so let's log it.
+	if len(t.Crio.Image.Registries) > 0 {
+		t.Crio.Image.Registries = nil
+		logrus.Warnf("The 'registries'option has been deprecated but is referenced in %q.  Please use containers-registries.conf(5) instead.", path)
+	}
+
 	t.toConfig(c)
 	c.singleConfigPath = path
 	return nil
