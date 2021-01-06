@@ -44,6 +44,7 @@ crio
 [--help|-h]
 [--hooks-dir]=[value]
 [--image-volumes]=[value]
+[--infra-ctr-cpuset]=[value]
 [--insecure-registry]=[value]
 [--listen]=[value]
 [--log-dir]=[value]
@@ -210,6 +211,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
     2. bind: A directory is created inside container state directory and bind
        mounted into the container for the volumes.
 	3. ignore: All volumes are just ignored and no action is taken. (default: mkdir)
+
+**--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers (default: '').
 
 **--insecure-registry**="": Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
     1. List of insecure registries can contain an element with CIDR notation to
