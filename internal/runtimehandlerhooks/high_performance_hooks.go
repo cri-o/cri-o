@@ -37,6 +37,7 @@ const (
 	irqSmpAffinityProcFile = "/proc/irq/default_smp_affinity"
 	cgroupMountPoint       = "/sys/fs/cgroup"
 	irqBalanceBannedCpus   = "IRQBALANCE_BANNED_CPUS"
+	irqBalancedName        = "irqbalance"
 )
 
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads
@@ -246,19 +247,31 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 		return err
 	}
 
-	if !fileExists(irqBalanceConfigFile) {
-		if _, err := exec.LookPath("irqbalance"); err != nil {
+	isIrqConfigExists := fileExists(irqBalanceConfigFile)
+
+	if isIrqConfigExists {
+		if err := updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting); err != nil {
+			return err
+		}
+	}
+
+	if !isServiceEnabled(irqBalancedName) || !isIrqConfigExists {
+		if _, err := exec.LookPath(irqBalancedName); err != nil {
 			// irqbalance is not installed, skip the rest; pod should still start, so return nil instead
 			logrus.Warnf("irqbalance binary not found: %v", err)
 			return nil
 		}
 		// run irqbalance in daemon mode, so this won't cause delay
-		cmd := exec.Command("irqbalance", "--oneshot")
+		cmd := exec.Command(irqBalancedName, "--oneshot")
 		additionalEnv := irqBalanceBannedCpus + "=" + newIRQBalanceSetting
 		cmd.Env = append(os.Environ(), additionalEnv)
 		return cmd.Run()
 	}
-	return restartIrqBalanceService(irqBalanceConfigFile, newIRQBalanceSetting)
+
+	if err := restartIrqBalanceService(); err != nil {
+		logrus.Warnf("irqbalance service restart failed: %v", err)
+	}
+	return nil
 }
 
 func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool) error {
@@ -350,5 +363,13 @@ func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile string
 	if bannedCPUMasks == origBannedCPUMasks {
 		return nil
 	}
-	return restartIrqBalanceService(irqBalanceConfigFile, origBannedCPUMasks)
+	if err := updateIrqBalanceConfigFile(irqBalanceConfigFile, origBannedCPUMasks); err != nil {
+		return err
+	}
+	if isServiceEnabled(irqBalancedName) {
+		if err := restartIrqBalanceService(); err != nil {
+			logrus.Warnf("irqbalance service restart failed: %v", err)
+		}
+	}
+	return nil
 }
