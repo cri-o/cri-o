@@ -207,19 +207,19 @@ var _ = Describe("high_performance_hooks", func() {
 
 		Context("with enabled equals to true", func() {
 			BeforeEach(func() {
-				flags = "0000,00003003"
+				flags = "00000000,00003003"
 				bannedCPUFlags = "ffffffff,ffffcffc"
 			})
 
 			It("should set the irq bit mask", func() {
-				verifySetIRQLoadBalancing(true, "00000000,00003033", "0000ffff,ffffcfcc")
+				verifySetIRQLoadBalancing(true, "00000000,00003033", "ffffffff,ffffcfcc")
 			})
 		})
 
 		Context("with enabled equals to false", func() {
 			BeforeEach(func() {
 				flags = "00000000,00003033"
-				bannedCPUFlags = "0000ffff,ffffcfcc"
+				bannedCPUFlags = "ffffffff,ffffcfcc"
 			})
 
 			It("should clear the irq bit mask", func() {

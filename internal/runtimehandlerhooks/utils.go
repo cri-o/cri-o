@@ -126,15 +126,8 @@ func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCP
 	return maskStringWithComma, invertedMaskStringWithComma, nil
 }
 
-func restartIrqBalanceService(irqBalanceConfigFile, newIRQBalanceSetting string) error {
-	// update the irq balance config file and restart irqbalance service
-	if err := updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting); err != nil {
-		return err
-	}
-	if err := exec.Command("service", "irqbalance", "restart").Run(); err != nil {
-		logrus.Warnf("irqbalance service restart failed: %v", err)
-	}
-	return nil
+func restartIrqBalanceService() error {
+	return exec.Command("service", "irqbalance", "restart").Run()
 }
 
 func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting string) error {
@@ -145,7 +138,7 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting strin
 	lines := strings.Split(string(input), "\n")
 	found := false
 	for i, line := range lines {
-		if strings.Contains(line, irqBalanceBannedCpus+"=") {
+		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
 			lines[i] = irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\""
 			found = true
 		}
@@ -189,4 +182,17 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func isServiceEnabled(serviceName string) bool {
+	cmd := exec.Command("systemctl", "is-enabled", serviceName)
+	status, err := cmd.CombinedOutput()
+	if err != nil {
+		logrus.Infof("service %s is-enabled check returned with: %v", serviceName, err)
+		return false
+	}
+	if strings.TrimSpace(string(status)) == "enabled" {
+		return true
+	}
+	return false
 }
