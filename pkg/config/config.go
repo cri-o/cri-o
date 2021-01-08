@@ -746,7 +746,8 @@ func (c *RootConfig) Validate(onExecution bool) error {
 			return errors.Wrapf(err, "failed to get store to set defaults")
 		}
 
-		c.statsManager = statsmgr.New(c.StatsManagerType)
+		// c.statsManager = statsmgr.New(c.StatsManagerType)
+		c.statsManager = statsmgr.New("cached")
 		// This step merges the /etc/container/storage.conf with the
 		// storage configuration in crio.conf
 		// If we don't do this step, we risk returning the incorrect info
