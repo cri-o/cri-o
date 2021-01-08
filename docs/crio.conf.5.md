@@ -130,6 +130,7 @@ the container runtime configuration.
 
 **irqbalance_config_file**="/etc/sysconfig/irqbalance"
   Used to change irqbalance service config file which is used by the crio runtime.
+  For centos/suse, this file is located at /etc/sysconfig/irqbalance. For ubuntu, this file is located at /etc/default/irqbalance.
 
 **cgroup_manager**="systemd"
   Cgroup management implementation used for the runtime.
