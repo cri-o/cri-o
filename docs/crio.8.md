@@ -268,7 +268,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--root, -r**="": The CRI-O root directory (default: /var/lib/containers/storage)
 
-**--runroot**="": The CRI-O state directory (default: /var/run/containers/storage)
+**--runroot**="": The CRI-O state directory (default: /run/containers/storage)
 
 **--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type (default: [])
 
