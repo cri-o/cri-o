@@ -107,7 +107,7 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 	})
 
-	Describe("setIRQLoadBalancing1", func() {
+	Describe("setIRQLoadBalancingUsingDaemonCommand", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expected string) {
@@ -160,7 +160,7 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 	})
 
-	Describe("setIRQLoadBalancing2", func() {
+	Describe("setIRQLoadBalancingUsingServiceRestart", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expectedSmp, expectedBan string) {
