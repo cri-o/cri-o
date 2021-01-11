@@ -529,7 +529,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:  "irqbalance-config-file",
-			Usage: "The irqbalance service config file which is used by the crio runtime.",
+			Usage: "The irqbalance service config file which is used by CRI-O.",
 			Value: defConf.IrqBalanceConfigFile,
 		},
 		&cli.BoolFlag{

@@ -126,8 +126,8 @@ the container runtime configuration.
   Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default".
 
 **irqbalance_config_file**="/etc/sysconfig/irqbalance"
-  Used to change irqbalance service config file which is used by the crio runtime.
-  For centos/suse, this file is located at /etc/sysconfig/irqbalance. For ubuntu, this file is located at /etc/default/irqbalance.
+  Used to change irqbalance service config file which is used by CRI-O.
+  For CentOS/SUSE, this file is located at /etc/sysconfig/irqbalance. For Ubuntu, this file is located at /etc/default/irqbalance.
 
 **cgroup_manager**="systemd"
   Cgroup management implementation used for the runtime.

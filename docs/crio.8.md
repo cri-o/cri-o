@@ -225,7 +225,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        their CA to their system's list of trusted CAs instead of using
        '--insecure-registry'. (default: [])
 
-**--irqbalance-config-file**="": The irqbalance service config file which is used by the crio runtime. (default: /etc/sysconfig/irqbalance)
+**--irqbalance-config-file**="": The irqbalance service config file which is used by CRI-O. (default: /etc/sysconfig/irqbalance)
 
 **--listen**="": Path to the CRI-O socket (default: /var/run/crio/crio.sock)
 

@@ -240,7 +240,7 @@ type RuntimeConfig struct {
 	ApparmorProfile string `toml:"apparmor_profile"`
 
 	// IrqBalanceConfigFile is the irqbalance service config file which is used
-	// by the crio runtime.
+	// for configuring irqbalance daemon.
 	IrqBalanceConfigFile string `toml:"irqbalance_config_file"`
 
 	// CgroupManagerName is the manager implementation name which is used to
