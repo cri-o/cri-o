@@ -229,10 +229,11 @@ var _ = Describe("high_performance_hooks", func() {
 	})
 
 	Describe("restoreIrqBalanceConfig", func() {
+		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		irqBannedCPUConfigFile := filepath.Join(fixturesDir, "orig_irq_banned_cpus")
 		verifyRestoreIrqBalanceConfig := func(expectedOrigBannedCPUs, expectedBannedCPUs string) {
-			err = RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile)
+			err = RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityFile)
 			Expect(err).To(BeNil())
 
 			content, err := ioutil.ReadFile(irqBannedCPUConfigFile)
@@ -245,6 +246,9 @@ var _ = Describe("high_performance_hooks", func() {
 		}
 
 		JustBeforeEach(func() {
+			// create tests affinity file
+			err = ioutil.WriteFile(irqSmpAffinityFile, []byte("ffffffff,ffffffff"), 0o644)
+			Expect(err).To(BeNil())
 			// set irqbalanace config file with banned cpus mask
 			err = ioutil.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).To(BeNil())
