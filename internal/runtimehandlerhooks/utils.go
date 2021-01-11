@@ -127,7 +127,7 @@ func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCP
 }
 
 func restartIrqBalanceService() error {
-	return exec.Command("service", "irqbalance", "restart").Run()
+	return exec.Command("systemctl", "restart", "irqbalance").Run()
 }
 
 func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting string) error {
@@ -139,7 +139,7 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting strin
 	found := false
 	for i, line := range lines {
 		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
-			lines[i] = irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\""
+			lines[i] = irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\"" + "\n"
 			found = true
 		}
 	}
@@ -161,19 +161,10 @@ func retrieveIrqBannedCPUMasks(irqBalanceConfigFile string) (string, error) {
 	lines := strings.Split(string(input), "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
-			return trimQuotes(strings.Split(line, "=")[1]), nil
+			return strings.Trim(strings.Split(line, "=")[1], "\""), nil
 		}
 	}
 	return "", nil
-}
-
-func trimQuotes(s string) string {
-	if len(s) >= 2 {
-		if s[0] == '"' && s[len(s)-1] == '"' {
-			return s[1 : len(s)-1]
-		}
-	}
-	return s
 }
 
 func fileExists(filename string) bool {
@@ -182,6 +173,15 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func isAllMaskSet(in []byte) bool {
+	for _, b := range in {
+		if b&(b+1) != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func isServiceEnabled(serviceName string) bool {

@@ -28,16 +28,17 @@ const (
 	HighPerformance = "high-performance"
 	// IrqBannedCPUConfigFile contains the original banned cpu mask configuration
 	IrqBannedCPUConfigFile = "/etc/sysconfig/orig_irq_banned_cpus"
+	// IrqSmpAffinityProcFile contains the default smp affinity mask configuration
+	IrqSmpAffinityProcFile = "/proc/irq/default_smp_affinity"
 )
 
 const (
-	annotationTrue         = "true"
-	annotationDisable      = "disable"
-	schedDomainDir         = "/proc/sys/kernel/sched_domain"
-	irqSmpAffinityProcFile = "/proc/irq/default_smp_affinity"
-	cgroupMountPoint       = "/sys/fs/cgroup"
-	irqBalanceBannedCpus   = "IRQBALANCE_BANNED_CPUS"
-	irqBalancedName        = "irqbalance"
+	annotationTrue       = "true"
+	annotationDisable    = "disable"
+	schedDomainDir       = "/proc/sys/kernel/sched_domain"
+	cgroupMountPoint     = "/sys/fs/cgroup"
+	irqBalanceBannedCpus = "IRQBALANCE_BANNED_CPUS"
+	irqBalancedName      = "irqbalance"
 )
 
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads
@@ -72,7 +73,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	// disable the IRQ smp load balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
-		if err := setIRQLoadBalancing(c, false, irqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
+		if err := setIRQLoadBalancing(c, false, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return errors.Wrap(err, "set IRQ load balancing")
 		}
 	}
@@ -117,7 +118,7 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 
 	// enable the IRQ smp balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
-		if err := setIRQLoadBalancing(c, true, irqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
+		if err := setIRQLoadBalancing(c, true, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return errors.Wrap(err, "set IRQ load balancing")
 		}
 	}
@@ -335,7 +336,23 @@ func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool)
 }
 
 // RestoreIrqBalanceConfig restores irqbalance service with original banned cpu mask settings
-func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile string) error {
+func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityProcFile string) error {
+	content, err := ioutil.ReadFile(irqSmpAffinityProcFile)
+	if err != nil {
+		return err
+	}
+	current := strings.TrimSpace(string(content))
+	// remove ","; now each element is "0-9,a-f"
+	s := strings.ReplaceAll(current, ",", "")
+	currentMaskArray, err := mapHexCharToByte(s)
+	if err != nil {
+		return err
+	}
+	if !isAllMaskSet(currentMaskArray) {
+		// not system reboot scenario, just return it.
+		return nil
+	}
+
 	bannedCPUMasks, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
 	if err != nil {
 		// Ignore returning err as given irqBalanceConfigFile may not exist.
@@ -354,7 +371,7 @@ func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile string
 		return nil
 	}
 
-	content, err := ioutil.ReadFile(irqBannedCPUConfigFile)
+	content, err = ioutil.ReadFile(irqBannedCPUConfigFile)
 	if err != nil {
 		return err
 	}

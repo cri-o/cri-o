@@ -339,7 +339,7 @@ func New(
 		return nil, err
 	}
 
-	err = runtimehandlerhooks.RestoreIrqBalanceConfig(config.IrqBalanceConfigFile, runtimehandlerhooks.IrqBannedCPUConfigFile)
+	err = runtimehandlerhooks.RestoreIrqBalanceConfig(config.IrqBalanceConfigFile, runtimehandlerhooks.IrqBannedCPUConfigFile, runtimehandlerhooks.IrqSmpAffinityProcFile)
 	if err != nil {
 		return nil, err
 	}
