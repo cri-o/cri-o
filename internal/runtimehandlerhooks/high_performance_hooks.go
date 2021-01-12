@@ -348,7 +348,7 @@ func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSm
 	if err != nil {
 		return err
 	}
-	if !isAllMaskSet(currentMaskArray) {
+	if !isAllBitSet(currentMaskArray) {
 		// not system reboot scenario, just return it.
 		return nil
 	}
