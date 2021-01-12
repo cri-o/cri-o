@@ -482,7 +482,7 @@ func (c *Config) UpdateFromFile(path string) error {
 	// Users should use registries.conf instead, so let's log it.
 	if len(t.Crio.Image.Registries) > 0 {
 		t.Crio.Image.Registries = nil
-		logrus.Warnf("The 'registries'option has been deprecated but is referenced in %q.  Please use containers-registries.conf(5) instead.", path)
+		logrus.Warnf("Support for the 'registries' option has been dropped but it is referenced in %q.  Please use containers-registries.conf(5) for configuring unqualified-search registries instead.", path)
 	}
 
 	t.toConfig(c)
