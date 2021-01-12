@@ -291,6 +291,10 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
 	}
 
+	if ctx.IsSet("infra-ctr-cpuset") {
+		config.InfraCtrCPUSet = ctx.String("infra-ctr-cpuset")
+	}
+
 	return nil
 }
 
@@ -793,6 +797,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:     defConf.VersionFile,
 			EnvVars:   []string{"CONTAINER_VERSION_FILE_PERSIST"},
 			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:    "infra-ctr-cpuset",
+			Usage:   "CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers (default: '').",
+			EnvVars: []string{"CONTAINER_INFRA_CTR_CPUSET"},
 		},
 	}
 }
