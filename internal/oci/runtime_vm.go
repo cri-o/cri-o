@@ -534,6 +534,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 
 		err := r.waitCtrTerminate(sig, stopCh, timeoutDuration)
 		if err == nil {
+			c.state.Finished = time.Now()
 			return nil
 		}
 		logrus.Warnf("%v", err)
@@ -550,6 +551,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 		return err
 	}
 
+	c.state.Finished = time.Now()
 	return nil
 }
 
