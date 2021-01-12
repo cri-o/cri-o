@@ -79,6 +79,17 @@ func invertByteArray(in []byte) (out []byte) {
 	return
 }
 
+// take a byte array and returns true when bits of every byte element
+// set to 1, otherwise returns false.
+func isAllBitSet(in []byte) bool {
+	for _, b := range in {
+		if b&(b+1) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // UpdateIRQSmpAffinityMask take input cpus that need to change irq affinity mask and
 // the current mask string, return an update mask string and inverted mask, with those cpus
 // enabled or disable in the mask.
@@ -130,6 +141,19 @@ func restartIrqBalanceService() error {
 	return exec.Command("systemctl", "restart", "irqbalance").Run()
 }
 
+func isServiceEnabled(serviceName string) bool {
+	cmd := exec.Command("systemctl", "is-enabled", serviceName)
+	status, err := cmd.CombinedOutput()
+	if err != nil {
+		logrus.Infof("service %s is-enabled check returned with: %v", serviceName, err)
+		return false
+	}
+	if strings.TrimSpace(string(status)) == "enabled" {
+		return true
+	}
+	return false
+}
+
 func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting string) error {
 	input, err := ioutil.ReadFile(irqBalanceConfigFile)
 	if err != nil {
@@ -173,26 +197,4 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
-}
-
-func isAllMaskSet(in []byte) bool {
-	for _, b := range in {
-		if b&(b+1) != 0 {
-			return false
-		}
-	}
-	return true
-}
-
-func isServiceEnabled(serviceName string) bool {
-	cmd := exec.Command("systemctl", "is-enabled", serviceName)
-	status, err := cmd.CombinedOutput()
-	if err != nil {
-		logrus.Infof("service %s is-enabled check returned with: %v", serviceName, err)
-		return false
-	}
-	if strings.TrimSpace(string(status)) == "enabled" {
-		return true
-	}
-	return false
 }
