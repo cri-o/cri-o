@@ -31,6 +31,8 @@ import (
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
 // Defaults if none are specified
@@ -303,6 +305,9 @@ type RuntimeConfig struct {
 
 	// SeparatePullCgroup specifies whether an image pull must be performed in a separate cgroup
 	SeparatePullCgroup string `toml:"separate_pull_cgroup"`
+
+	// InfraCtrCPUSet is the CPUs set that will be used to run infra containers
+	InfraCtrCPUSet string `toml:"infra_ctr_cpuset"`
 
 	// seccompConfig is the internal seccomp configuration
 	seccompConfig *seccomp.Config
@@ -789,6 +794,12 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	if err := c.DefaultCapabilities.Validate(); err != nil {
 		return errors.Wrapf(err, "invalid capabilities")
+	}
+
+	if c.InfraCtrCPUSet != "" {
+		if _, err := cpuset.Parse(c.InfraCtrCPUSet); err != nil {
+			return errors.Wrap(err, "invalid infra_ctr_cpuset")
+		}
 	}
 
 	// check for validation on execution

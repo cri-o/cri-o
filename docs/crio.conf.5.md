@@ -225,6 +225,11 @@ the container runtime configuration.
 **drop_infra_ctr**=false
   Determines whether we drop the infra container when a pod does not have a private PID namespace, and does not use a kernel separating runtime (like kata).
   Requies **manage_ns_lifecycle** to be true.
+  
+**infra_ctr_cpuset**=""
+    Determines the CPU set to run infra containers. If not specified, the CRI-O will use all online CPUs to run infra containers.
+    You can specify CPUs in the Linux CPU list format.
+    To get better isolation for guaranteed pods, set this parameter to be equal to kubelet reserved-cpus.
 
 **namespaces_dir**="/var/run"
   The directory where the state of the managed namespaces gets tracked. Only used when manage_ns_lifecycle is true
