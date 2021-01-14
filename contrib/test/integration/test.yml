@@ -12,6 +12,24 @@
     path: "{{ artifacts }}"
     state: directory
 
+- name: kata configuration
+  block:
+    - name: configure integration test suite for kata
+      set_fact:
+        int_test_env: '{{ int_test_env | combine(kata_int_test_env) }}'
+        int_test_timeout: '{{60 * 60}}' # seconds
+        userns_int_test_skip: True
+
+    - name: skip tests not working in kata
+      lineinfile:
+        dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/ctr.bats"
+        insertafter: "{{ item }}"
+        line: "skip \"{{ item  | regex_replace('\"', \"'\") }} not working in kata\""
+        state: present
+      with_items: "{{ kata_skip_ctr_tests }}"
+
+  when: "build_kata | bool"
+
 - block:
 
     - name: Disable selinux during integration tests
@@ -23,7 +41,7 @@
       args:
         chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
       environment: '{{ int_test_env }}'  # from vars.yml and main.yml
-      async: '{{ 60 * 30 }}'  # seconds
+      async: '{{ int_test_timeout | default(60 * 30) }}'  # seconds
       poll: 30
 
     - name: run integration tests with userNS enabled + alternate results file
@@ -31,8 +49,9 @@
       args:
         chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
       environment: '{{ int_test_env | combine(userns_int_test_env) }} '
-      async: '{{ 60 * 30 }}'  # seconds
+      async: '{{ int_test_timeout | default(60 * 30) }}'  # seconds
       poll: 30
+      when: userns_int_test_skip is not defined or not userns_int_test_skip
 
   always:
 
