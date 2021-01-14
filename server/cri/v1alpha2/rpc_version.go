@@ -9,7 +9,7 @@ import (
 func (s *service) Version(
 	ctx context.Context, req *pb.VersionRequest,
 ) (*pb.VersionResponse, error) {
-	resp, err := s.server.Version(ctx)
+	resp, err := s.server.Version(ctx, "v1alpha2")
 	if err != nil {
 		return nil, err
 	}

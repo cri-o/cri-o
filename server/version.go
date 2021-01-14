@@ -13,16 +13,15 @@ const (
 	kubeAPIVersion = "0.1.0"
 	// containerName is the name prepended in kubectl describe->Container ID:
 	// cri-o://<CONTAINER_ID>
-	containerName     = "cri-o"
-	runtimeAPIVersion = "v1alpha1"
+	containerName = "cri-o"
 )
 
 // Version returns the runtime name, runtime version and runtime API version
-func (s *Server) Version(context.Context) (*types.VersionResponse, error) {
+func (s *Server) Version(_ context.Context, apiVersion string) (*types.VersionResponse, error) {
 	return &types.VersionResponse{
 		Version:           kubeAPIVersion,
 		RuntimeName:       containerName,
 		RuntimeVersion:    version.Get().Version,
-		RuntimeAPIVersion: runtimeAPIVersion,
+		RuntimeAPIVersion: apiVersion,
 	}, nil
 }

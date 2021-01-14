@@ -19,8 +19,10 @@ var _ = t.Describe("Version", func() {
 	t.Describe("Version", func() {
 		It("should succeed", func() {
 			// Given
+			const testVersion = "v1"
+
 			// When
-			response, err := sut.Version(context.Background())
+			response, err := sut.Version(context.Background(), testVersion)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -28,7 +30,7 @@ var _ = t.Describe("Version", func() {
 			Expect(response.Version).NotTo(BeEmpty())
 			Expect(response.RuntimeName).NotTo(BeEmpty())
 			Expect(response.RuntimeName).NotTo(BeEmpty())
-			Expect(response.RuntimeAPIVersion).NotTo(BeEmpty())
+			Expect(response.RuntimeAPIVersion).To(Equal(testVersion))
 		})
 	})
 })
