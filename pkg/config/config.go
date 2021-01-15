@@ -23,6 +23,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/conmonmgr"
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/server/useragent"
@@ -44,6 +45,7 @@ const (
 	OCIBufSize            = 8192
 	RuntimeTypeVM         = "vm"
 	defaultCtrStopTimeout = 30 // seconds
+	defaultNamespacesDir  = "/var/run"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -320,6 +322,9 @@ type RuntimeConfig struct {
 
 	// conmonManager is the internal ConmonManager configuration
 	conmonManager *conmonmgr.ConmonManager
+
+	// namespaceManager is the internal NamespaceManager configuration
+	namespaceManager *nsmgr.NamespaceManager
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -596,12 +601,13 @@ func DefaultConfig() (*Config, error) {
 			DefaultCapabilities:      capabilities.Default(),
 			LogLevel:                 "info",
 			HooksDir:                 []string{hooks.DefaultDir},
-			NamespacesDir:            "/var/run",
+			NamespacesDir:            defaultNamespacesDir,
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
 			ulimitsConfig:            ulimits.New(),
 			cgroupManager:            cgroupManager,
 			deviceConfig:             device.New(),
+			namespaceManager:         nsmgr.New(defaultNamespacesDir, ""),
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
@@ -861,6 +867,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if !c.cgroupManager.IsSystemd() && c.ConmonCgroup != "pod" && c.ConmonCgroup != "" {
 			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
 		}
+
+		c.namespaceManager = nsmgr.New(c.NamespacesDir, c.PinnsPath)
 	}
 
 	return nil
@@ -915,6 +923,11 @@ func (c *RuntimeConfig) AppArmor() *apparmor.Config {
 // CgroupManager returns the CgroupManager configuration
 func (c *RuntimeConfig) CgroupManager() cgmgr.CgroupManager {
 	return c.cgroupManager
+}
+
+// NamespaceManager returns the NamespaceManager configuration
+func (c *RuntimeConfig) NamespaceManager() *nsmgr.NamespaceManager {
+	return c.namespaceManager
 }
 
 // Ulimits returns the Ulimits configuration
