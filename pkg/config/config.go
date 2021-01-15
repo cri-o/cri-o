@@ -489,6 +489,11 @@ func (c *Config) UpdateFromFile(path string) error {
 		delete(c.Runtimes, defaultRuntime)
 	}
 
+	if len(t.Crio.Image.Registries) > 0 {
+		logrus.Warnf("The 'registries' option in crio.conf(5) (referenced in %q) has been deprecated and will be removed with CRI-O 1.21.", path)
+		logrus.Warn("Please refer to containers-registries.conf(5) for configuring unqualified-search registries.")
+	}
+
 	t.toConfig(c)
 	c.singleConfigPath = path
 	return nil
