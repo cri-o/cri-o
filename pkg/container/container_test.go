@@ -2,6 +2,7 @@ package container_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -11,10 +12,12 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 var _ = t.Describe("Container", func() {
@@ -290,6 +293,55 @@ var _ = t.Describe("Container", func() {
 			labels, err := sut.SelinuxLabel("a_u:a_t:a_r")
 			Expect(len(labels)).To(Equal(3))
 			Expect(err).To(BeNil())
+		})
+	})
+	t.Describe("AddUnifiedResourcesFromAnnotations", func() {
+		It("should add the limits", func() {
+			// Given
+			containerName := "foo"
+			config.Labels = map[string]string{
+				kubeletTypes.KubernetesContainerNameLabel: containerName,
+			}
+			annotationKey := fmt.Sprintf("%s.%s", crioann.UnifiedCgroupAnnotation, containerName)
+			annotationsMap := map[string]string{
+				annotationKey: "memory.max=1000000;memory.min=MTAwMDA=;memory.low=20000",
+			}
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.AddUnifiedResourcesFromAnnotations(annotationsMap)).To(BeNil())
+
+			// Then
+			spec := sut.Spec()
+			Expect(spec).To(Not(BeNil()))
+			Expect(spec.Config.Linux.Resources.Unified["memory.max"]).To(Equal("1000000"))
+			Expect(spec.Config.Linux.Resources.Unified["memory.min"]).To(Equal("10000"))
+			Expect(spec.Config.Linux.Resources.Unified["memory.low"]).To(Equal("20000"))
+		})
+
+		It("should not add the limits for a different container", func() {
+			// Given
+			containerName := "foo"
+			config.Labels = map[string]string{
+				kubeletTypes.KubernetesContainerNameLabel: containerName,
+			}
+
+			differentContainerName := "bar"
+			annotationKey := fmt.Sprintf("%s.%s", crioann.UnifiedCgroupAnnotation, differentContainerName)
+			annotationsMap := map[string]string{
+				annotationKey: "memory.max=1000000;memory.min=MTAwMDA=;memory.low=20000",
+			}
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.AddUnifiedResourcesFromAnnotations(annotationsMap)).To(BeNil())
+
+			// Then
+			spec := sut.Spec()
+			Expect(spec).To(Not(BeNil()))
+			Expect(spec.Config.Linux.Resources.Unified["memory.max"]).To(Equal(""))
+			Expect(spec.Config.Linux.Resources.Unified["memory.min"]).To(Equal(""))
+			Expect(spec.Config.Linux.Resources.Unified["memory.low"]).To(Equal(""))
 		})
 	})
 })
