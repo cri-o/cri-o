@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Sat, 16 Jan 2021 00:41:41 UTC for commit [32cfb72][0]._
+_Generated on Sat, 16 Jan 2021 01:09:28 UTC for commit [32cfb72][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/32cfb729bed8d5d17aaa421dd83b518302b76d8e
 
@@ -65,7 +65,7 @@ _Generated on Sat, 16 Jan 2021 00:41:41 UTC for commit [32cfb72][0]._
 | github.com/BurntSushi/toml                              | v0.3.1                                                     |                                    | true   | true             |
 | github.com/BurntSushi/xgb                               | v0.0.0-20160522181843-27f122750802                         | v0.0.0-20201008132610-5f9e7b3c49cd | false  | true             |
 | github.com/GoogleCloudPlatform/k8s-cloud-provider       | v0.0.0-20200415212048-7901bc822317                         | v0.0.0-20201230182714-6a1c9153df9b | false  | true             |
-| github.com/GoogleCloudPlatform/testgrid                 | v0.0.30                                                    | v0.0.38                            | false  | true             |
+| github.com/GoogleCloudPlatform/testgrid                 | v0.0.30                                                    | v0.0.39                            | false  | true             |
 | github.com/JeffAshton/win_pdh                           | v0.0.0-20161109143554-76bb4ee9f0ab                         |                                    | false  | true             |
 | github.com/MakeNowJust/heredoc                          | v0.0.0-20170808103936-bb23615498cd                         | v1.0.0                             | false  | true             |
 | github.com/Microsoft/go-winio                           | v0.4.16                                                    |                                    | true   | true             |
@@ -589,7 +589,7 @@ _Generated on Sat, 16 Jan 2021 00:41:41 UTC for commit [32cfb72][0]._
 | gotest.tools/v3                                         | v3.0.2                                                     | v3.0.3                             | false  | true             |
 | honnef.co/go/tools                                      | v0.0.1-2020.1.5                                            | v0.1.0                             | false  | true             |
 | k8s.io/api                                              | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210116001743-fe58a937bdc6 | true   | true             |
-| k8s.io/apiextensions-apiserver                          | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210116001743-fe58a937bdc6 | false  | true             |
+| k8s.io/apiextensions-apiserver                          | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210116010831-d73693cb4440 | false  | true             |
 | k8s.io/apimachinery                                     | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210116001743-fe58a937bdc6 | true   | true             |
 | k8s.io/apiserver                                        | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210116001743-fe58a937bdc6 | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210116001743-fe58a937bdc6 | false  | true             |
@@ -606,7 +606,7 @@ _Generated on Sat, 16 Jan 2021 00:41:41 UTC for commit [32cfb72][0]._
 | k8s.io/heapster                                         | v1.2.0-beta.1                                              | v1.5.4                             | false  | true             |
 | k8s.io/klog                                             | v1.0.0                                                     |                                    | false  | true             |
 | k8s.io/klog/v2                                          | v2.4.0                                                     |                                    | true   | true             |
-| k8s.io/kube-aggregator                                  | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210115225004-7791bbe978d4 | false  | true             |
+| k8s.io/kube-aggregator                                  | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210116010831-d73693cb4440 | false  | true             |
 | k8s.io/kube-controller-manager                          | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210116001743-fe58a937bdc6 | false  | true             |
 | k8s.io/kube-openapi                                     | v0.0.0-20201113171705-d219536bb9fd                         | v0.0.0-20210113233702-8566a335510f | false  | true             |
 | k8s.io/kube-proxy                                       | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210116001743-fe58a937bdc6 | false  | true             |
