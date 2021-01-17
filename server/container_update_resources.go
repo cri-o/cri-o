@@ -35,10 +35,10 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 
 // toOCIResources converts CRI resource constraints to OCI.
 func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
-	var swap int64
+	var swap *int64
 	memory := r.MemoryLimitInBytes
 	if node.CgroupHasMemorySwap() {
-		swap = memory
+		swap = proto.Int64(memory)
 	}
 	return &rspec.LinuxResources{
 		CPU: &rspec.LinuxCPU{
@@ -50,7 +50,7 @@ func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
 		},
 		Memory: &rspec.LinuxMemory{
 			Limit: proto.Int64(memory),
-			Swap:  proto.Int64(swap),
+			Swap:  swap,
 		},
 		// TODO(runcom): OOMScoreAdj is missing
 	}
