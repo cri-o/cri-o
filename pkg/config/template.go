@@ -256,7 +256,7 @@ drop_infra_ctr = {{ .DropInfraCtr }}
 # infra_ctr_cpuset determines what CPUs will be used to run infra containers.
 # You can use linux CPU list format to specify desired CPUs.
 # To get better isolation for guaranteed pods, set this parameter to be equal to kubelet reserved-cpus.
-# infra_ctr_cpuset = "{{ .InfraCtrCPUSet }}"
+infra_ctr_cpuset = "{{ .InfraCtrCPUSet }}"
 
 # The directory where the state of the managed namespaces gets tracked.
 # Only used when manage_ns_lifecycle is true.
