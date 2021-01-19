@@ -32,6 +32,7 @@ type PodNamespacesConfig struct {
 
 type PodNamespaceConfig struct {
 	Type NSType
+	Host bool
 	Path string
 }
 

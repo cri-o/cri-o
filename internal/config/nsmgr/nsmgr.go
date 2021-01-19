@@ -69,6 +69,9 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 		if !ok {
 			return nil, errors.Errorf("Invalid namespace type: %s", ns.Type)
 		}
+		if ns.Host {
+			arg += "=host"
+		}
 		pinnsArgs = append(pinnsArgs, arg)
 		ns.Path = filepath.Join(mgr.namespacesDir, string(ns.Type)+"ns", pinnedNamespace)
 		if cfg.IDMappings != nil {

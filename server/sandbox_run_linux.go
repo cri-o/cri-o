@@ -1049,9 +1049,11 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 		Namespaces: []*nsmgr.PodNamespaceConfig{
 			{
 				Type: nsmgr.IPCNS,
+				Host: hostIPC,
 			},
 			{
 				Type: nsmgr.NETNS,
+				Host: hostNetwork,
 			},
 			{
 				Type: nsmgr.UTSNS, // there is no option for host UTSNS
