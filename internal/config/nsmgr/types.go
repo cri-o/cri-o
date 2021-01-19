@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -22,6 +23,17 @@ const (
 	PIDNS                NSType = "pid"
 	ManagedNamespacesNum        = 4
 )
+
+type PodNamespacesConfig struct {
+	Namespaces []*PodNamespaceConfig
+	IDMappings *idtools.IDMappings
+	Sysctls    map[string]string
+}
+
+type PodNamespaceConfig struct {
+	Type NSType
+	Path string
+}
 
 // Namespace provides a generic namespace interface.
 type Namespace interface {
