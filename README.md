@@ -1,5 +1,5 @@
 ![CRI-O logo](https://github.com/cri-o/cri-o/blob/master/logo/crio-logo.svg?raw=true)
-# CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
+# CRI-O - my favorite OCI-based implementation of Kubernetes Container Runtime Interface
 
 [![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
 [![CircleCI](https://circleci.com/gh/cri-o/cri-o.svg?style=shield)](https://circleci.com/gh/cri-o/cri-o)
