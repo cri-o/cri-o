@@ -158,6 +158,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("apparmor-profile") {
 		config.ApparmorProfile = ctx.String("apparmor-profile")
 	}
+	if ctx.IsSet("irqbalance-config-file") {
+		config.IrqBalanceConfigFile = ctx.String("irqbalance-config-file")
+	}
 	if ctx.IsSet("cgroup-manager") {
 		config.CgroupManagerName = ctx.String("cgroup-manager")
 	}
@@ -523,6 +526,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation.",
 			Value:   defConf.ApparmorProfile,
 			EnvVars: []string{"CONTAINER_APPARMOR_PROFILE"},
+		},
+		&cli.StringFlag{
+			Name:  "irqbalance-config-file",
+			Usage: "The irqbalance service config file which is used by CRI-O.",
+			Value: defConf.IrqBalanceConfigFile,
 		},
 		&cli.BoolFlag{
 			Name:    "selinux",

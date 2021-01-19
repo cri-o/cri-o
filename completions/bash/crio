@@ -46,6 +46,7 @@ h
 --image-volumes
 --infra-ctr-cpuset
 --insecure-registry
+--irqbalance-config-file
 --listen
 --log
 --log-dir
