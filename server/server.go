@@ -117,7 +117,7 @@ func (cc *certConfigCache) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.
 	if len(cc.tlsCA) > 0 {
 		caBytes, err := ioutil.ReadFile(cc.tlsCA)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "read TLS CA file")
 		}
 		certPool := x509.NewCertPool()
 		certPool.AppendCertsFromPEM(caBytes)
@@ -283,7 +283,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func configureMaxThreads() error {
 	mt, err := ioutil.ReadFile("/proc/sys/kernel/threads-max")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "read max threads file")
 	}
 	mtint, err := strconv.Atoi(strings.TrimSpace(string(mt)))
 	if err != nil {

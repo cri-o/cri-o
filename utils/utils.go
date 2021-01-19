@@ -276,7 +276,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		if os.IsNotExist(err) {
 			return "", nil
 		}
-		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
+		return "", errors.Wrapf(err, "read passwd file")
 	}
 	if username == "" {
 		username = "default"

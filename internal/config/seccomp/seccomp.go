@@ -60,7 +60,7 @@ func (c *Config) LoadProfile(profilePath string) error {
 
 	profile, err := ioutil.ReadFile(profilePath)
 	if err != nil {
-		return errors.Wrapf(err, "open seccomp profile %s failed", profilePath)
+		return errors.Wrap(err, "open seccomp profile")
 	}
 
 	tmpProfile := &seccomp.Seccomp{}

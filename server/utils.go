@@ -259,7 +259,7 @@ func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
 
 		privateKey, err := ioutil.ReadFile(path)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "read private key file")
 		}
 
 		sEnc := b64.StdEncoding.EncodeToString(privateKey)
