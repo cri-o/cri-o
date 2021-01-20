@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"os/exec"
 	"testing"
 
 	"github.com/cri-o/cri-o/pkg/config"
@@ -22,10 +23,15 @@ var (
 )
 
 const (
-	validFilePath   = "/bin/sh"
-	invalidPath     = "/proc/invalid"
-	validConmonPath = "/bin/conmon"
+	validFilePath = "/bin/sh"
+	invalidPath   = "/proc/invalid"
 )
+
+func validConmonPath() string {
+	conmonPath, err := exec.LookPath("conmon")
+	Expect(err).To(BeNil())
+	return conmonPath
+}
 
 var _ = BeforeSuite(func() {
 	t = NewTestFramework(NilFunc, NilFunc)
