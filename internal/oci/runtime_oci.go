@@ -212,7 +212,11 @@ func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (retErr 
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
-			return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
+			if ss.err == io.EOF {
+				return fmt.Errorf("container create failed")
+			} else {
+				return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
+			}
 		}
 		logrus.Debugf("Received container pid: %d", ss.si.Pid)
 		pid = ss.si.Pid
