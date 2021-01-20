@@ -38,6 +38,7 @@ linters:
     - govet
     - ineffassign
     - interfacer
+    - makezero
     - maligned
     - misspell
     - nakedret
@@ -49,13 +50,17 @@ linters:
     - staticcheck
     - structcheck
     - stylecheck
+    - tparallel
     - typecheck
     - unconvert
     - unparam
     - unused
     - varcheck
     - whitespace
+    # - errorlint
     # - exhaustive
+    # - exhaustivestruct
+    # - forbidigo
     # - funlen
     # - gci
     # - gochecknoglobals
@@ -70,7 +75,11 @@ linters:
     # - nestif
     # - nlreturn
     # - noctx
+    # - paralleltest
+    # - predeclared
     # - testpackage
+    # - thelper
+    # - wrapcheck
     # - wsl
 linters-settings:
   errcheck:
