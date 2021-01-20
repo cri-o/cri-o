@@ -33,6 +33,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -369,6 +370,17 @@ func New(
 
 	if err := configureMaxThreads(); err != nil {
 		return nil, err
+	}
+
+	// Close stdin, so shortnames will not prompt
+	devNullFile, err := os.Open(os.DevNull)
+	if err != nil {
+		return nil, errors.Wrap(err, "open devnull file")
+	}
+
+	defer devNullFile.Close()
+	if err := unix.Dup2(int(devNullFile.Fd()), int(os.Stdin.Fd())); err != nil {
+		return nil, errors.Wrap(err, "close stdin")
 	}
 
 	s.restore(ctx)
