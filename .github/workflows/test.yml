@@ -1,0 +1,61 @@
+name: test
+on:
+  push:
+    tags:
+      - v*
+    branches:
+      - master
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-build-
+      - run: scripts/github-actions-packages
+      - run: make
+      - run: bin/crio version
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: |
+            bin/crio
+            bin/crio-status
+
+  validate-docs:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: bin
+      - run: |
+          chmod -R +x bin
+          sudo rm /etc/containers/storage.conf
+          make docs-generation
+          hack/tree_status.sh
+
+  validate-completions:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: bin
+      - run: |
+          chmod -R +x bin
+          make completions-generation
+          hack/tree_status.sh

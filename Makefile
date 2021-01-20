@@ -404,7 +404,7 @@ docs/%.8: docs/%.8.md .gopathok ${GO_MD2MAN}
 	(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || \
 		(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
-completions: bin/crio bin/crio-status
+completions-generation:
 	bin/crio complete bash > completions/bash/crio
 	bin/crio complete fish > completions/fish/crio.fish
 	bin/crio complete zsh  > completions/zsh/_crio
@@ -414,7 +414,7 @@ completions: bin/crio bin/crio-status
 
 docs: $(MANPAGES)
 
-docs-generation: bin/crio bin/crio-status
+docs-generation:
 	bin/crio-status md  > docs/crio-status.8.md
 	bin/crio-status man > docs/crio-status.8
 	bin/crio -d "" --config="" md  > docs/crio.8.md
