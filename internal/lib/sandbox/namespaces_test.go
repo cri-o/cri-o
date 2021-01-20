@@ -1,6 +1,7 @@
 package sandbox_test
 
 import (
+	"os"
 	"path/filepath"
 	"time"
 
@@ -317,6 +318,27 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 	})
 	t.Describe("NamespacePaths with infra", func() {
+		setupInfraContainerWithPid := func(pid int) {
+			testContainer, err := oci.NewContainer("testid", "testname", "",
+				"/container/logs", map[string]string{},
+				map[string]string{}, map[string]string{}, "image",
+				"imageName", "imageRef", &oci.Metadata{},
+				"testsandboxid", false, false, false, "",
+				"/root/for/container", time.Now(), "SIGKILL")
+			Expect(err).To(BeNil())
+			Expect(testContainer).NotTo(BeNil())
+
+			cstate := &oci.ContainerState{}
+			cstate.State = specs.State{
+				Pid: pid,
+			}
+			// eat error here because callers may send invalid pids to test against
+			_ = cstate.SetInitPid(pid) // nolint:errcheck
+			testContainer.SetState(cstate)
+
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+		}
+
 		It("should get nothing when infra set but pid 0", func() {
 			// Given
 			setupInfraContainerWithPid(0)
@@ -328,7 +350,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when infra set and pid running", func() {
 			// Given
-			setupInfraContainerWithPid(1)
+			setupInfraContainerWithPid(os.Getpid())
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
@@ -350,7 +372,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get managed path (except pid) despite infra set", func() {
 			// Given
-			setupInfraContainerWithPid(1)
+			setupInfraContainerWithPid(os.Getpid())
 			// When
 			testSandbox.AddManagedNamespaces(allManagedNamespaces)
 			nsPaths := testSandbox.NamespacePaths()
@@ -373,24 +395,3 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 	})
 })
-
-func setupInfraContainerWithPid(pid int) {
-	testContainer, err := oci.NewContainer("testid", "testname", "",
-		"/container/logs", map[string]string{},
-		map[string]string{}, map[string]string{}, "image",
-		"imageName", "imageRef", &oci.Metadata{},
-		"testsandboxid", false, false, false, "",
-		"/root/for/container", time.Now(), "SIGKILL")
-	Expect(err).To(BeNil())
-	Expect(testContainer).NotTo(BeNil())
-
-	cstate := &oci.ContainerState{}
-	cstate.State = specs.State{
-		Pid: pid,
-	}
-	// eat error here because callers may send invalid pids to test against
-	_ = cstate.SetInitPid(pid) // nolint:errcheck
-	testContainer.SetState(cstate)
-
-	Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
-}
