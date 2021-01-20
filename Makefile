@@ -233,7 +233,7 @@ test-images:
 	$(TESTIMAGE_SCRIPT) -g 1.14 -a amd64
 
 nixpkgs:
-	@nix run -f channel:nixos-20.03 nix-prefetch-git -c nix-prefetch-git \
+	@nix run -f channel:nixos-20.09 nix-prefetch-git -c nix-prefetch-git \
 		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
 
 dbuild:
