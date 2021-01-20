@@ -86,7 +86,7 @@ func newPipe() (parent, child *os.File, err error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
-func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (stats *ContainerStats, err error) {
+func (r *runtimeOCI) containerStats(ctr *Container, sandboxParent string) (stats *ContainerStats, err error) {
 	stats = &ContainerStats{}
 	stats.Container = ctr.ID()
 	stats.SystemNano = time.Now().UnixNano()
@@ -94,23 +94,25 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (stats *Conta
 	// technically, the CRI does not mandate a CgroupParent is given to a pod
 	// this situation should never happen in production, but some test suites
 	// (such as critest) assume we can call stats on a cgroupless container
-	if cgroup == "" {
+	if sandboxParent == "" {
 		return stats, nil
 	}
 
+	var suffix string
 	// this correction has to be made because the libpod cgroups package can't find a
 	// systemd cgroup that isn't converted to a fully qualified cgroup path
 	if r.config.CgroupManager == SystemdCgroupsManager {
-		logrus.Debugf("Expanding systemd cgroup slice %v", cgroup)
-		cgroup, err = systemd.ExpandSlice(cgroup)
+		logrus.Debugf("Expanding systemd cgroup slice %v", sandboxParent)
+		sandboxParent, err = systemd.ExpandSlice(sandboxParent)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error expanding systemd slice to get container %s stats", ctr.ID())
 		}
+		suffix = ".scope"
 	}
-
-	cg, err := cgroups.Load(cgroup)
+	cgroupPath := filepath.Join(sandboxParent, CrioScopePrefix+"-"+ctr.ID()+suffix)
+	cg, err := cgroups.Load(cgroupPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to load cgroup at %s", cgroup)
+		return nil, errors.Wrapf(err, "unable to load cgroup at %s", cgroupPath)
 	}
 
 	cgroupStats, err := cg.Stat()
