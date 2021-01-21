@@ -18,6 +18,7 @@
 #include "utils.h"
 #include "sysctl.h"
 
+static bool is_host_ns(const char* const optarg);
 static int bind_ns(const char *pin_path, const char *filename, const char *ns_name, pid_t pid);
 static int directory_exists_or_create(const char* path);
 
@@ -27,6 +28,8 @@ enum {
       UID_MAPPING = 1000,
       GID_MAPPING = 1001,
 };
+
+const char* const HOSTNS = "host";
 
 int main(int argc, char **argv) {
   const char *uid_mapping = NULL;
@@ -63,28 +66,34 @@ int main(int argc, char **argv) {
   while ((c = getopt_long(argc, argv, "pchuUind:f:s:", long_options, NULL)) != -1) {
     switch (c) {
     case 'u':
-      unshare_flags |= CLONE_NEWUTS;
+      if (!is_host_ns (optarg))
+        unshare_flags |= CLONE_NEWUTS;
       bind_uts = true;
       num_unshares++;
       break;
     case 'i':
-      unshare_flags |= CLONE_NEWIPC;
+      if (!is_host_ns (optarg))
+        unshare_flags |= CLONE_NEWIPC;
       bind_ipc = true;
       num_unshares++;
       break;
     case 'n':
-      unshare_flags |= CLONE_NEWNET;
+      if (!is_host_ns (optarg)) {
+	    unshare_flags |= CLONE_NEWNET;
+      }
       bind_net = true;
       num_unshares++;
       break;
     case 'U':
-      unshare_flags |= CLONE_NEWUSER;
+      if (!is_host_ns (optarg))
+        unshare_flags |= CLONE_NEWUSER;
       bind_user = true;
       num_unshares++;
       break;
     case 'c':
 #ifdef CLONE_NEWCGROUP
-      unshare_flags |= CLONE_NEWCGROUP;
+      if (!is_host_ns (optarg))
+        unshare_flags |= CLONE_NEWCGROUP;
       bind_cgroup = true;
       num_unshares++;
       break;
@@ -252,6 +261,11 @@ int main(int argc, char **argv) {
     waitpid(pid, NULL, 0);
 
   return EXIT_SUCCESS;
+}
+
+// returns true if the option is equal to 'host'
+static bool is_host_ns(const char* const optarg) {
+  return optarg && !strcmp (optarg, HOSTNS);
 }
 
 static int bind_ns(const char *pin_path, const char *filename, const char *ns_name, pid_t pid) {
