@@ -48,7 +48,7 @@
 
 #define pwarnf(fmt, ...)                                                       \
   do {                                                                         \
-    fprintf(stderr, "[pinns:e]: " fmt ": %s\n", ##__VA_ARGS__,                 \
+    fprintf(stderr, "[pinns:w]: " fmt ": %s\n", ##__VA_ARGS__,                 \
             strerror(errno));                                                  \
   } while (0)
 
