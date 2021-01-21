@@ -17,6 +17,7 @@ FILES_BIN=(
     "$GIT_ROOT/bin/static/pinns"
 )
 FILES_MAN=(
+    "$GIT_ROOT/docs/crio-status.8"
     "$GIT_ROOT/docs/crio.8"
     "$GIT_ROOT/docs/crio.conf.5"
     "$GIT_ROOT/docs/crio.conf.d.5"
