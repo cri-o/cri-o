@@ -37,6 +37,7 @@ crio
 [--default-ulimits]=[value]
 [--drop-infra-ctr]
 [--enable-metrics]
+[--enable-profile-unix-socket]
 [--gid-mappings]=[value]
 [--global-auth-file]=[value]
 [--grpc-max-recv-msg-size]=[value]
@@ -174,6 +175,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--drop-infra-ctr**: Determines whether pods are created without an infra container (when the pod is not using a pod level PID namespace). Requires ManageNSLifecycle to be true (default: false)
 
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
+
+**--enable-profile-unix-socket**: Enable pprof profiler on crio unix domain socket
 
 **--gid-mappings**="": Specify the GID mappings to use for the user namespace (default: "")
 
