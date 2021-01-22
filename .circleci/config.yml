@@ -5,8 +5,6 @@ stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
     IMAGE: &image quay.io/crio/crio-build-amd64-go1.15:master-1.6.1
-    IMAGELEGACY: &imagelegacy quay.io/crio/crio-build-amd64-go1.14:master-1.6.1
-    IMAGE386: &image386 quay.io/crio/crio-build-386-go1.15:master-1.6.1
     JOBS: &jobs 4
     WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
     WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
@@ -15,24 +13,6 @@ executors:
   container:
     docker:
       - image: *image
-    <<: *stdenv
-    working_directory: *workdir
-
-  container-legacy:
-    docker:
-      - image: *imagelegacy
-    <<: *stdenv
-    working_directory: *workdir
-
-  container-386:
-    docker:
-      - image: *image386
-    <<: *stdenv
-    working_directory: *workdir
-
-  container-base:
-    docker:
-      - image: golang:1.15
     <<: *stdenv
     working_directory: *workdir
 
@@ -46,13 +26,6 @@ workflows:
   version: 2
   pipeline:
     jobs:
-      - build
-      - build:
-          name: build-go1.14
-          executor: container-legacy
-      - build:
-          name: build-386
-          executor: container-386
       - dependencies:
           requires:
             - release-notes
@@ -88,40 +61,6 @@ workflows:
       - unit-tests
 
 jobs:
-  build:
-    parameters:
-      executor:
-        type: string
-        default: container
-    executor: << parameters.executor >>
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
-      - run: go version
-      - run: go env
-      - run:
-          command: make binaries -j $JOBS
-      - run:
-          name: Show CRI-O version
-          command: ./bin/crio version
-      - run:
-          command: make crio.conf
-      - run:
-          command: make docs -j $JOBS
-      - save_cache:
-          key: v1-build-<< parameters.executor >>-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/go-md2man
-      - persist_to_workspace:
-          root: .
-          paths:
-            - bin
-            - crio.conf
-            - docs
-
   dependencies:
     executor: container
     steps:
