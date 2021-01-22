@@ -84,8 +84,6 @@ workflows:
             - integration-cgroupfs
             - integration-critest
             - integration-userns
-            - unit-tests
-      - unit-tests
 
 jobs:
   build:
@@ -262,51 +260,9 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - store_test_results:
-          path: build/junit
       - store_artifacts:
           path: bin
           destination: bin
       - store_artifacts:
           path: build
           destination: build
-
-  unit-tests:
-    executor: container
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - restore_cache:
-          keys:
-            - v1-unit-tests-{{ checksum "go.sum" }}
-      - run:
-          name: check mocks
-          command: |
-            make mockgen -j $JOBS
-      - run:
-          name: install pinns
-          command: make PREFIX=/ install
-      - run:
-          name: build ginkgo
-          command: make $(pwd)/build/bin/ginkgo
-      - run:
-          name: unit tests
-          command: make testunit
-      - run:
-          name: code coverage
-          command: make codecov
-      - store_test_results:
-          path: build/junit
-      - save_cache:
-          key: v1-unit-tests-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/ginkgo
-            - build/bin/mockgen
-            - /bin/pinns
-      - persist_to_workspace:
-          root: .
-          paths:
-            - build/coverage
-            - build/junit

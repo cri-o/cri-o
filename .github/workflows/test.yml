@@ -143,3 +143,40 @@ jobs:
         env:
           GCS_BUCKET_SA: ${{ secrets.GCS_BUCKET_SA }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-unit-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-unit-
+      - run: scripts/github-actions-packages
+      - run: |
+          make mockgen -j $(nproc)
+          hack/tree_status.sh
+      - run: make testunit
+      - uses: actions/upload-artifact@v2
+        with:
+          name: unit
+          path: |
+            build/coverage
+            build/junit
+
+  coverage:
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: unit
+          path: build
+      - run: make codecov
