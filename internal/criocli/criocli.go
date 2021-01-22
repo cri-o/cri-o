@@ -649,6 +649,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars: []string{"CONTAINER_PROFILE_PORT"},
 		},
 		&cli.BoolFlag{
+			Name:    "enable-profile-unix-socket",
+			Usage:   "Enable pprof profiler on crio unix domain socket",
+			EnvVars: []string{"ENABLE_PROFILE_UNIX_SOCKET"},
+		},
+		&cli.BoolFlag{
 			Name:    "enable-metrics",
 			Usage:   "Enable metrics endpoint for the server on localhost:9090",
 			EnvVars: []string{"CONTAINER_ENABLE_METRICS"},
