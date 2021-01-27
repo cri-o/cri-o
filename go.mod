@@ -14,10 +14,10 @@ require (
 	github.com/containers/buildah v1.15.2
 	github.com/containers/common v0.21.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.9.0
+	github.com/containers/image/v5 v5.10.1
 	github.com/containers/libpod/v2 v2.0.6
 	github.com/containers/ocicrypt v1.0.3
-	github.com/containers/storage v1.24.4
+	github.com/containers/storage v1.24.5
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
@@ -37,7 +37,6 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.10
-	github.com/klauspost/compress v1.11.6 // indirect
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.3
 	github.com/opencontainers/go-digest v1.0.0
@@ -52,7 +51,7 @@ require (
 	github.com/psampaz/go-mod-outdated v0.7.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/soheilhy/cmux v0.1.4
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/vishvananda/netlink v1.1.0
