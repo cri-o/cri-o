@@ -24,7 +24,7 @@ var _ = t.Describe("Inspect", func() {
 		setupSUT()
 
 		recorder = httptest.NewRecorder()
-		mux = sut.GetInfoMux()
+		mux = sut.GetInfoMux(false)
 		Expect(mux).NotTo(BeNil())
 		Expect(recorder).NotTo(BeNil())
 	})
