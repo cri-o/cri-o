@@ -53,14 +53,6 @@ workflows:
       - build:
           name: build-386
           executor: container-386
-      - build-static
-      - bundle:
-          requires:
-            - build
-            - build-static
-      - bundle-test:
-          requires:
-            - bundle
       - dependencies:
           requires:
             - release-notes
@@ -73,11 +65,6 @@ workflows:
       - integration:
           name: integration-userns
           test_userns: '1'
-      - integration:
-          name: integration-static
-          crio_binary: static/crio
-          requires:
-            - build-static
       - integration:
           name: integration-cgroupfs
           cgroup_manager: cgroupfs
@@ -96,13 +83,9 @@ workflows:
             - integration
             - integration-cgroupfs
             - integration-critest
-            - integration-static
             - integration-userns
             - unit-tests
       - unit-tests
-      - upload-artifacts:
-          requires:
-            - bundle-test
 
 jobs:
   build:
@@ -139,76 +122,6 @@ jobs:
             - crio.conf
             - docs
 
-  build-static:
-    executor: machine
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - restore_cache:
-          keys:
-            - nix-v1-{{ checksum "nix/nixpkgs.json" }}
-      - run:
-          name: build
-          command: |
-            set -ex
-            sudo mkdir -p .cache
-            sudo mv .cache /nix
-            if [[ -z $(ls -A /nix) ]]; then sudo docker run --rm --privileged -ti -v /:/mnt nixos/nix cp -rfT /nix /mnt/nix; fi
-            sudo docker run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
-      - run:
-          name: Show CRI-O version for static binaries
-          command: |
-            ./result/bin/crio version
-      - store_artifacts:
-          path: result/bin/crio
-      - store_artifacts:
-          path: result/bin/crio-status
-      - store_artifacts:
-          path: result/bin/pinns
-      - run:
-          name: persist_to_workspace
-          command: |
-            mkdir -p bin/static
-            cp -rfT result/bin bin/static
-      - persist_to_workspace:
-          root: .
-          paths:
-            - bin/static
-      - run:
-          name: save_cache
-          command: |
-            sudo mv /nix .cache
-            sudo chown -Rf $(whoami) .cache
-      - save_cache:
-          key: nix-v1-{{ checksum "nix/nixpkgs.json" }}
-          paths:
-            - .cache
-
-  bundle:
-    executor: container
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: bundle
-          command: make bundle
-      - persist_to_workspace:
-          root: .
-          paths:
-            - build/bundle/*.tar.gz
-
-  bundle-test:
-    executor: machine
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: test
-          command: make bundle-test
-
   dependencies:
     executor: container
     steps:
@@ -239,9 +152,6 @@ jobs:
   integration:
     executor: machine
     parameters:
-      crio_binary:
-        type: string
-        default: crio
       run_critest:
         type: string
         default: ''
@@ -288,7 +198,6 @@ jobs:
           no_output_timeout: 30m
           environment:
             JOBS: "<< parameters.jobs >>"
-            CRIO_BINARY: "<< parameters.crio_binary >>"
             RUN_CRITEST: "<< parameters.run_critest >>"
             TEST_ARGS: "<< parameters.test_args >>"
             TEST_USERNS: "<< parameters.test_userns >>"
@@ -361,9 +270,6 @@ jobs:
       - store_artifacts:
           path: build
           destination: build
-      - store_artifacts:
-          path: bundle
-          destination: bundle
 
   unit-tests:
     executor: container
@@ -404,13 +310,3 @@ jobs:
           paths:
             - build/coverage
             - build/junit
-
-  upload-artifacts:
-    executor: container
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: Upload artifacts
-          command: make upload-artifacts
