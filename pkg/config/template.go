@@ -3,19 +3,32 @@ package config
 import (
 	"io"
 	"text/template"
+	"github.com/urfave/cli/v2"
 )
 
 // WriteTemplate write the configuration template to the provided writer
-func (c *Config) WriteTemplate(w io.Writer) error {
+func (c *Config) WriteTemplate(ctx *cli.Context, w io.Writer) error {
 	const templateName = "config"
-	tpl, err := template.New(templateName).Parse(templateString)
+	tpl, err := template.New(templateName).Parse(assembleTemplateString(ctx))
 	if err != nil {
 		return err
 	}
 	return tpl.ExecuteTemplate(w, templateName, c)
 }
 
-const templateString = `# The CRI-O configuration file specifies all of the available configuration
+func assembleTemplateString(ctx *cli.Context) string {
+	templateString := templateStringPrefix
+
+	if ctx.IsSet("root") {
+		templateString += templateString_root
+	}
+
+	//...
+
+	return templateString
+}
+
+const templateStringPrefix = `# The CRI-O configuration file specifies all of the available configuration
 # options and command-line flags for the crio(8) OCI Kubernetes Container Runtime
 # daemon, but in a TOML format that can be more easily modified and versioned.
 #
@@ -32,11 +45,15 @@ const templateString = `# The CRI-O configuration file specifies all of the avai
 # for CRI-O, you can change the storage configuration options here.
 [crio]
 
-# Path to the "root directory". CRI-O stores all of its data, including
+`
+
+const templateString_root = `# Path to the "root directory". CRI-O stores all of its data, including
 # containers images, in this directory.
 #root = "{{ .Root }}"
 
-# Path to the "run directory". CRI-O stores all of its state in this directory.
+`
+
+const templateString_other = `# Path to the "run directory". CRI-O stores all of its state in this directory.
 #runroot = "{{ .RunRoot }}"
 
 # Storage driver used to manage the storage of images and containers. Please
