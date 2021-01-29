@@ -1078,3 +1078,340 @@ func (c *Config) SetLocations(singleConfigPath, dropInConfigDir string) {
 func (c *NetworkConfig) CNIPlugin() ocicni.CNIPlugin {
 	return c.cniPlugin
 }
+
+type ChangeResult map[string]bool
+
+func StringSliceEqual(a, b []string) bool {
+	if (a == nil) && (b == nil) {
+		return true
+	}
+
+	if (a == nil) && (len(b) == 0) {
+		return true
+	}
+
+	if (b == nil) && (len(a) == 0) {
+		return true
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (c *Config) CompareToDefaultConfig() (ChangeResult, error) {
+	configChangeResult := make(map[string]bool)
+
+	dc, err := DefaultConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// [crio] configuration
+	if c.Root != dc.Root {
+		configChangeResult["root"] = true
+	}
+
+	if c.RunRoot != dc.RunRoot {
+		configChangeResult["runroot"] = true
+	}
+
+	if c.Storage != dc.Storage {
+		configChangeResult["storage-driver"] = true
+	}
+
+	if !StringSliceEqual(c.StorageOptions, dc.StorageOptions) {
+		configChangeResult["storage-opt"] = true
+	}
+
+	if c.LogDir != dc.LogDir {
+		configChangeResult["log-dir"] = true
+	}
+
+	if c.VersionFile != dc.VersionFile {
+		configChangeResult["version-file"] = true
+	}
+
+	if c.VersionFilePersist != dc.VersionFilePersist {
+		configChangeResult["version-file-persist"] = true
+	}
+
+	if c.CleanShutdownFile != dc.CleanShutdownFile {
+		configChangeResult["clean-shutdown-file"] = true
+	}
+
+	// [crio.api] configuration
+	if c.Listen != dc.Listen {
+		configChangeResult["listen"] = true
+	}
+
+	if c.StreamAddress != dc.StreamAddress {
+		configChangeResult["stream-address"] = true
+	}
+
+	if c.StreamPort != dc.StreamPort {
+		configChangeResult["stream-port"] = true
+	}
+
+	if c.VersionFilePersist != dc.VersionFilePersist {
+		configChangeResult["stream-enable-tls"] = true
+	}
+
+	if c.StreamIdleTimeout != dc.StreamIdleTimeout {
+		configChangeResult["stream-idle-timeout"] = true
+	}
+
+	if c.StreamTLSCert != dc.StreamTLSCert {
+		configChangeResult["stream-tls-cert"] = true
+	}
+
+	if c.StreamTLSKey != dc.StreamTLSKey {
+		configChangeResult["stream-tls-key"] = true
+	}
+
+	if c.StreamTLSCA != dc.StreamTLSCA {
+		configChangeResult["stream-tls-ca"] = true
+	}
+
+	if c.GRPCMaxSendMsgSize != dc.GRPCMaxSendMsgSize {
+		configChangeResult["grpc-max-send-msg-size"] = true
+	}
+
+	if c.GRPCMaxRecvMsgSize != dc.GRPCMaxRecvMsgSize {
+		configChangeResult["grpc-max-recv-msg-size"] = true
+	}
+
+	// [crio.runtime] configuration
+	if !StringSliceEqual(c.DefaultUlimits, dc.DefaultUlimits) {
+		configChangeResult["default-ulimits"] = true
+	}
+
+	if c.NoPivot != dc.NoPivot {
+		configChangeResult["no-pivot"] = true
+	}
+
+	if c.DecryptionKeysPath != dc.DecryptionKeysPath {
+		configChangeResult["decryption-keys-path"] = true
+	}
+
+	if c.Conmon != dc.Conmon {
+		configChangeResult["conmon"] = true
+	}
+
+	if c.ConmonCgroup != dc.ConmonCgroup {
+		configChangeResult["conmon-cgroup"] = true
+	}
+
+	if !StringSliceEqual(c.ConmonEnv, dc.ConmonEnv) {
+		configChangeResult["conmon-env"] = true
+	}
+
+	if !StringSliceEqual(c.DefaultEnv, dc.DefaultEnv) {
+		configChangeResult["default-env"] = true
+	}
+
+	if c.SELinux != dc.SELinux {
+		configChangeResult["selinux"] = true
+	}
+
+	if c.SeccompProfile != dc.SeccompProfile {
+		configChangeResult["seccomp-profile"] = true
+	}
+
+	if c.SeccompUseDefaultWhenEmpty != dc.SeccompUseDefaultWhenEmpty {
+		configChangeResult["seccomp-use-default-when-empty"] = true
+	}
+
+	if c.ApparmorProfile != dc.ApparmorProfile {
+		configChangeResult["apparmor-profile"] = true
+	}
+
+	if c.IrqBalanceConfigFile != dc.IrqBalanceConfigFile {
+		configChangeResult["irqbalance-config-file"] = true
+	}
+
+	if c.CgroupManagerName != dc.CgroupManagerName {
+		configChangeResult["cgroup-manager"] = true
+	}
+
+	if c.SeparatePullCgroup != dc.SeparatePullCgroup {
+		configChangeResult["separate-pull-cgroup"] = true
+	}
+
+	if !StringSliceEqual(c.DefaultCapabilities, dc.DefaultCapabilities) {
+		configChangeResult["default-capabilities"] = true
+	}
+
+	if !StringSliceEqual(c.DefaultSysctls, dc.DefaultSysctls) {
+		configChangeResult["default-sysctls"] = true
+	}
+
+	if !StringSliceEqual(c.AdditionalDevices, dc.AdditionalDevices) {
+		configChangeResult["additional-devices"] = true
+	}
+
+	if !StringSliceEqual(c.HooksDir, dc.HooksDir) {
+		configChangeResult["hooks-dir"] = true
+	}
+
+	if c.DefaultMountsFile != dc.DefaultMountsFile {
+		configChangeResult["default-mounts-file"] = true
+	}
+
+	if c.PidsLimit != dc.PidsLimit {
+		configChangeResult["pids-limit"] = true
+	}
+
+	if c.LogSizeMax != dc.LogSizeMax {
+		configChangeResult["log-size-max"] = true
+	}
+
+	if c.LogToJournald != dc.LogToJournald {
+		configChangeResult["log-journald"] = true
+	}
+
+	if c.ContainerExitsDir != dc.ContainerExitsDir {
+		configChangeResult["container-exits-dir"] = true
+	}
+
+	if c.ContainerAttachSocketDir != dc.ContainerAttachSocketDir {
+		configChangeResult["container-attach-socket-dir"] = true
+	}
+
+	if c.BindMountPrefix != dc.BindMountPrefix {
+		configChangeResult["bind-mount-prefix"] = true
+	}
+
+	if c.ReadOnly != dc.ReadOnly {
+		configChangeResult["read-only"] = true
+	}
+
+	if c.LogLevel != dc.LogLevel {
+		configChangeResult["log-level"] = true
+	}
+
+	if c.LogFilter != dc.LogFilter {
+		configChangeResult["log-filter"] = true
+	}
+
+	if c.UIDMappings != dc.UIDMappings {
+		configChangeResult["uid-mappings"] = true
+	}
+
+	if c.GIDMappings != dc.GIDMappings {
+		configChangeResult["gid-mappings"] = true
+	}
+
+	if c.CtrStopTimeout != dc.CtrStopTimeout {
+		configChangeResult["ctr-stop-timeout"] = true
+	}
+
+	if c.DropInfraCtr != dc.DropInfraCtr {
+		configChangeResult["drop-infra-ctr"] = true
+	}
+
+	if c.InfraCtrCPUSet != dc.InfraCtrCPUSet {
+		configChangeResult["infra-ctr-cpuset"] = true
+	}
+
+	if c.NamespacesDir != dc.NamespacesDir {
+		configChangeResult["namespaces-dir"] = true
+	}
+
+	if c.PinnsPath != dc.PinnsPath {
+		configChangeResult["pinns-path"] = true
+	}
+
+	if c.DefaultRuntime != dc.DefaultRuntime {
+		configChangeResult["default-runtime"] = true
+	}
+
+	// [crio.image] configuration
+	if c.DefaultTransport != dc.DefaultTransport {
+		configChangeResult["default-transport"] = true
+	}
+
+	if c.GlobalAuthFile != dc.GlobalAuthFile {
+		configChangeResult["global-auth-file"] = true
+	}
+
+	if c.PauseImage != dc.PauseImage {
+		configChangeResult["pause-image"] = true
+	}
+
+	if c.PauseImageAuthFile != dc.PauseImageAuthFile {
+		configChangeResult["pause-image-auth-file"] = true
+	}
+
+	if c.PauseCommand != dc.PauseCommand {
+		configChangeResult["pause-command"] = true
+	}
+
+	if c.SignaturePolicyPath != dc.SignaturePolicyPath {
+		configChangeResult["signature-policy"] = true
+	}
+
+	if !StringSliceEqual(c.InsecureRegistries, dc.InsecureRegistries) {
+		configChangeResult["insecure-registry"] = true
+	}
+
+	if c.ImageVolumes != dc.ImageVolumes {
+		configChangeResult["image-volumes"] = true
+	}
+
+	if !StringSliceEqual(c.Registries, dc.Registries) {
+		configChangeResult["registry"] = true
+	}
+
+	if c.BigFilesTemporaryDir != dc.BigFilesTemporaryDir {
+		configChangeResult["big-files-temporary-dir"] = true
+	}
+
+	// [crio.network] configuration
+	if c.CNIDefaultNetwork != dc.CNIDefaultNetwork {
+		configChangeResult["cni-default-network"] = true
+	}
+
+	if c.NetworkDir != dc.NetworkDir {
+		configChangeResult["cni-config-dir"] = true
+	}
+
+	if !StringSliceEqual(c.PluginDirs, dc.PluginDirs) {
+		configChangeResult["cni-plugin-dir"] = true
+	}
+
+	// [crio.metrics] configuration
+	if c.EnableMetrics != dc.EnableMetrics {
+		configChangeResult["enable-metrics"] = true
+	}
+
+	if c.MetricsPort != dc.MetricsPort {
+		configChangeResult["metrics-port"] = true
+	}
+
+	if c.MetricsSocket != dc.MetricsSocket {
+		configChangeResult["metrics-socket"] = true
+	}
+
+	return configChangeResult, nil
+}
+
+func (cc ChangeResult) IsAnyChanged() bool {
+	return len(cc) > 0
+}
+
+func (cc ChangeResult) IsChanged(optionName string) bool {
+	changed, exists := cc[optionName]
+	if exists {
+		return changed
+	}
+	return false
+}
