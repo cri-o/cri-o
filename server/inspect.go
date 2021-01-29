@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/http/pprof"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -100,7 +101,7 @@ const (
 )
 
 // GetInfoMux returns the mux used to serve info requests
-func (s *Server) GetInfoMux() *bone.Mux {
+func (s *Server) GetInfoMux(enableProfile bool) *bone.Mux {
 	mux := bone.New()
 
 	mux.Get(InspectConfigEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -156,6 +157,15 @@ func (s *Server) GetInfoMux() *bone.Mux {
 			http.Error(w, fmt.Sprintf("unable to write JSON: %v", err), http.StatusInternalServerError)
 		}
 	}))
+
+	// Add pprof handlers
+	if enableProfile {
+		mux.Get("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+		mux.Get("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		mux.Get("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		mux.Get("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+		mux.Get("/debug/pprof/*", http.HandlerFunc(pprof.Index))
+	}
 
 	return mux
 }
