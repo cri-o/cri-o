@@ -89,7 +89,7 @@ func validateTags(cfg *config.Config) (failed bool) {
 
 	// Parse the template into a buffer
 	var templateBytes bytes.Buffer
-	if err := cfg.WriteTemplate(&templateBytes); err != nil {
+	if err := cfg.WriteTemplate(true, &templateBytes); err != nil {
 		logrus.Fatalf("Unable to write template: %v", err)
 	}
 

@@ -17,7 +17,7 @@ var _ = t.Describe("Config", func() {
 			var wr bytes.Buffer
 
 			// When
-			err := sut.WriteTemplate(&wr)
+			err := sut.WriteTemplate(true, &wr)
 
 			// Then
 			Expect(err).To(BeNil())

@@ -153,6 +153,7 @@ function setup_test() {
     CRIO_CONFIG_DIR="$TESTDIR/crio.conf.d"
     mkdir "$CRIO_CONFIG_DIR"
     CRIO_CONFIG="$TESTDIR/crio.conf"
+    CRIO_CUSTOM_CONFIG="$CRIO_CONFIG_DIR/crio-custom.conf"
     CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
     CRIO_LOG="$TESTDIR/crio.log"
 
@@ -265,6 +266,9 @@ function setup_crio() {
     # export here so direct calls to crio later inherit the variable
     export CONTAINER_RUNTIMES=${CONTAINER_RUNTIMES:-$CONTAINER_DEFAULT_RUNTIME:$RUNTIME_BINARY_PATH:$RUNTIME_ROOT:$RUNTIME_TYPE}
 
+    # generate the default config file
+    "$CRIO_BINARY_PATH" config --default >"$CRIO_CONFIG"
+
     # shellcheck disable=SC2086
     "$CRIO_BINARY_PATH" \
         --hooks-dir="$HOOKSDIR" \
@@ -284,12 +288,16 @@ function setup_crio() {
         -c "" \
         -d "" \
         $OVERRIDE_OPTIONS \
-        config >"$CRIO_CONFIG"
+        config >"$CRIO_CUSTOM_CONFIG"
     sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i "$CRIO_CONFIG"
+    sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i "$CRIO_CUSTOM_CONFIG"
     # make sure we don't run with nodev, or else mounting a readonly rootfs will fail: https://github.com/cri-o/cri-o/issues/1929#issuecomment-474240498
     sed -r -e 's/nodev(,)?//g' -i "$CRIO_CONFIG"
+    sed -r -e 's/nodev(,)?//g' -i "$CRIO_CUSTOM_CONFIG"
     sed -i -e 's;\(container_exits_dir =\) \(.*\);\1 "'"$CONTAINER_EXITS_DIR"'";g' "$CRIO_CONFIG"
+    sed -i -e 's;\(container_exits_dir =\) \(.*\);\1 "'"$CONTAINER_EXITS_DIR"'";g' "$CRIO_CUSTOM_CONFIG"
     sed -i -e 's;\(container_attach_socket_dir =\) \(.*\);\1 "'"$CONTAINER_ATTACH_SOCKET_DIR"'";g' "$CRIO_CONFIG"
+    sed -i -e 's;\(container_attach_socket_dir =\) \(.*\);\1 "'"$CONTAINER_ATTACH_SOCKET_DIR"'";g' "$CRIO_CUSTOM_CONFIG"
     prepare_network_conf
 }
 
@@ -524,6 +532,7 @@ function wait_for_log() {
 
 function replace_config() {
     sed -i -e 's;\('"$1"' = "\).*\("\);\1'"$2"'\2;' "$CRIO_CONFIG"
+    sed -i -e 's;\('"$1"' = "\).*\("\);\1'"$2"'\2;' "$CRIO_CUSTOM_CONFIG"
 }
 
 # Fails the current test, providing the error given.
