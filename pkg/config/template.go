@@ -19,9 +19,37 @@ func (c *Config) WriteTemplate(ctx *cli.Context, w io.Writer) error {
 func assembleTemplateString(ctx *cli.Context) string {
 	templateString := templateStringPrefix
 
+	// top level configuration
 	if ctx.IsSet("root") {
 		templateString += templateString_root
 	}
+
+	if ctx.IsSet("runroot") {
+		templateString += templateString_runroot
+	}
+
+	if ctx.IsSet("storage-driver") {
+		templateString += templateString_storage_driver
+	}
+
+	if ctx.IsSet("storage-opt") {
+		templateString += templateString_storage_option
+	}
+
+	if ctx.IsSet("log-dir") {
+		templateString += templateString_log_dir
+	}
+
+	if ctx.IsSet("version-file") {
+		templateString += templateString_version_file
+	}
+
+	if ctx.IsSet("version-file-persist") {
+		templateString += templateString_version_file_persist
+	}
+
+	// [crio.api] configuration
+	
 
 	//...
 
@@ -53,69 +81,101 @@ const templateString_root = `# Path to the "root directory". CRI-O stores all of
 
 `
 
-const templateString_other = `# Path to the "run directory". CRI-O stores all of its state in this directory.
+const templateString_runroot = `# Path to the "run directory". CRI-O stores all of its state in this directory.
 #runroot = "{{ .RunRoot }}"
 
-# Storage driver used to manage the storage of images and containers. Please
+`
+
+const templateString_storage_driver = `# Storage driver used to manage the storage of images and containers. Please
 # refer to containers-storage.conf(5) to see all available storage drivers.
 #storage_driver = "{{ .Storage }}"
 
-# List to pass options to the storage driver. Please refer to
+`
+
+const templateString_storage_option = `# List to pass options to the storage driver. Please refer to
 # containers-storage.conf(5) to see all available storage options.
 #storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
-# The default log directory where all logs will go unless directly specified by
+`
+
+const templateString_log_dir = `# The default log directory where all logs will go unless directly specified by
 # the kubelet. The log directory specified must be an absolute directory.
 log_dir = "{{ .LogDir }}"
 
-# Location for CRI-O to lay down the temporary version file.
+`
+
+const templateString_version_file = `# Location for CRI-O to lay down the temporary version file.
 # It is used to check if crio wipe should wipe containers, which should
 # always happen on a node reboot
 version_file = "{{ .VersionFile }}"
 
-# Location for CRI-O to lay down the persistent version file.
+`
+
+const templateString_version_file_persist = `# Location for CRI-O to lay down the persistent version file.
 # It is used to check if crio wipe should wipe images, which should
 # only happen when CRI-O has been upgraded
 version_file_persist = "{{ .VersionFilePersist }}"
 
-# The crio.api table contains settings for the kubelet/gRPC interface.
+`
+
+const templateString_crioapi = `# The crio.api table contains settings for the kubelet/gRPC interface.
 [crio.api]
 
-# Path to AF_LOCAL socket on which CRI-O will listen.
+`
+
+const templateString_crioapi_listen = `# Path to AF_LOCAL socket on which CRI-O will listen.
 listen = "{{ .Listen }}"
 
-# IP address on which the stream server will listen.
+`
+
+const templateString_crioapi_stream_address = `# IP address on which the stream server will listen.
 stream_address = "{{ .StreamAddress }}"
 
-# The port on which the stream server will listen. If the port is set to "0", then
+`
+
+const templateString_crioapi_stream_port = `# The port on which the stream server will listen. If the port is set to "0", then
 # CRI-O will allocate a random free port number.
 stream_port = "{{ .StreamPort }}"
 
-# Enable encrypted TLS transport of the stream server.
+`
+
+const templateString_crioapi_stream_enable_tls = `# Enable encrypted TLS transport of the stream server.
 stream_enable_tls = {{ .StreamEnableTLS }}
 
-# Path to the x509 certificate file used to serve the encrypted stream. This
+`
+
+const templateString_crioapi_stream_tls_cert = `# Path to the x509 certificate file used to serve the encrypted stream. This
 # file can change, and CRI-O will automatically pick up the changes within 5
 # minutes.
 stream_tls_cert = "{{ .StreamTLSCert }}"
 
-# Path to the key file used to serve the encrypted stream. This file can
+`
+
+const templateString_crioapi_stream_tls_key = `# Path to the key file used to serve the encrypted stream. This file can
 # change and CRI-O will automatically pick up the changes within 5 minutes.
 stream_tls_key = "{{ .StreamTLSKey }}"
 
-# Path to the x509 CA(s) file used to verify and authenticate client
+`
+
+const templateString_crioapi_stream_tls_ca = `# Path to the x509 CA(s) file used to verify and authenticate client
 # communication with the encrypted stream. This file can change and CRI-O will
 # automatically pick up the changes within 5 minutes.
 stream_tls_ca = "{{ .StreamTLSCA }}"
 
-# Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 * 1024 * 1024.
+`
+
+const templateString_crioapi_grpc_max_send_msg_size = `# Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 * 1024 * 1024.
 grpc_max_send_msg_size = {{ .GRPCMaxSendMsgSize }}
 
-# Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 16 * 1024 * 1024.
+`
+
+const templateString_crioapi_grpc_max_recv_msg_size = `# Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 16 * 1024 * 1024.
 grpc_max_recv_msg_size = {{ .GRPCMaxRecvMsgSize }}
 
-# The crio.runtime table contains settings pertaining to the OCI runtime used
+`
+
+const templateString_crioruntime = `# The crio.runtime table contains settings pertaining to the OCI runtime used
 # and options for how to set up and manage the OCI runtime.
 [crio.runtime]
 
