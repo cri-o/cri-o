@@ -73,6 +73,30 @@ var _ = t.Describe("ResourceStore", func() {
 			Expect(id).To(Equal(e.id))
 			Expect(e.created).To(BeTrue())
 		})
+		It("Should not fail to Get after retrieving Watcher", func() {
+			// When
+			_ = sut.WatcherForResource(testName)
+
+			// Then
+			id := sut.Get(testName)
+			Expect(id).To(BeEmpty())
+		})
+		It("Should be able to get multiple Watchers", func() {
+			// Given
+			watcher1 := sut.WatcherForResource(testName)
+			watcher2 := sut.WatcherForResource(testName)
+
+			waitWatcherSet := func(watcher chan struct{}) bool {
+				<-watcher
+				return true
+			}
+
+			// When
+			Expect(sut.Put(testName, e, cleanupFuncs)).To(BeNil())
+			// Then
+			Expect(waitWatcherSet(watcher1)).To(BeTrue())
+			Expect(waitWatcherSet(watcher2)).To(BeTrue())
+		})
 	})
 	Context("with timeout", func() {
 		BeforeEach(func() {
