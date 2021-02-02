@@ -147,7 +147,9 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleanu
 	return nil
 }
 
-// WatcherForResource looks up a Resource by name, and gives it a watcher if it's found.
+// WatcherForResource looks up a Resource by name, and gives it a watcher.
+// If no entry exists for that resource, a placeholder is created and a watcher is given to that
+// placeholder resource.
 // A watcher can be used for concurrent processes to wait for the resource to be created.
 // This is useful for situations where clients retry requests quickly after they "fail" because
 // they've taken too long. Adding a watcher allows the server to slow down the client, but still
