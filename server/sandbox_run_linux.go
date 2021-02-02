@@ -19,6 +19,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/lib"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -1051,13 +1052,13 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Ge
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
 // The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
 func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, idMappings *idtools.IDMappings, sysctls map[string]string, sb *libsandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, retErr error) {
-	managedNamespaces := make([]libsandbox.NSType, 0, 3)
+	managedNamespaces := make([]nsmgr.NSType, 0, 3)
 	if hostNetwork {
 		if err := g.RemoveLinuxNamespace(string(spec.NetworkNamespace)); err != nil {
 			return nil, err
 		}
 	} else if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, libsandbox.NETNS)
+		managedNamespaces = append(managedNamespaces, nsmgr.NETNS)
 	}
 
 	if hostIPC {
@@ -1065,7 +1066,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 			return nil, err
 		}
 	} else if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, libsandbox.IPCNS)
+		managedNamespaces = append(managedNamespaces, nsmgr.IPCNS)
 	}
 
 	if idMappings == nil {
@@ -1073,7 +1074,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 			return nil, err
 		}
 	} else if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, libsandbox.USERNS)
+		managedNamespaces = append(managedNamespaces, nsmgr.USERNS)
 	}
 
 	// Since we need a process to hold open the PID namespace, CRI-O can't manage the NS lifecycle
@@ -1085,7 +1086,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 
 	// There's no option to set hostUTS
 	if s.config.ManageNSLifecycle {
-		managedNamespaces = append(managedNamespaces, libsandbox.UTSNS)
+		managedNamespaces = append(managedNamespaces, nsmgr.UTSNS)
 
 		// now that we've configured the namespaces we're sharing, tell sandbox to configure them
 		managedNamespaces, err := sb.CreateManagedNamespaces(managedNamespaces, idMappings, sysctls, &s.config)
@@ -1106,11 +1107,11 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 // configureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
 // to add or replace the defaults to these paths
 func configureGeneratorGivenNamespacePaths(managedNamespaces []*libsandbox.ManagedNamespace, g generate.Generator) error {
-	typeToSpec := map[libsandbox.NSType]spec.LinuxNamespaceType{
-		libsandbox.IPCNS:  spec.IPCNamespace,
-		libsandbox.NETNS:  spec.NetworkNamespace,
-		libsandbox.UTSNS:  spec.UTSNamespace,
-		libsandbox.USERNS: spec.UserNamespace,
+	typeToSpec := map[nsmgr.NSType]spec.LinuxNamespaceType{
+		nsmgr.IPCNS:  spec.IPCNamespace,
+		nsmgr.NETNS:  spec.NetworkNamespace,
+		nsmgr.UTSNS:  spec.UTSNamespace,
+		nsmgr.USERNS: spec.UserNamespace,
 	}
 
 	for _, ns := range managedNamespaces {
