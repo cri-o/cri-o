@@ -34,6 +34,12 @@ type Resource struct {
 	name         string
 }
 
+// wasPut checks that a resource has been fully defined yet.
+// This is defined as a resource that only has watchers, but no associated resource.
+func (r *Resource) wasPut() bool {
+	return r != nil && r.resource != nil
+}
+
 // IdentifiableCreatable are the qualities needed by the caller of the resource.
 // Once a resource is retrieved, SetCreated() will be called, indicating to the server
 // that resource is ready to be listed and operated upon, and ID() will be used to identify the
@@ -101,6 +107,11 @@ func (rc *ResourceStore) Get(name string) string {
 	if !ok {
 		return ""
 	}
+	// It is possible there are existing watchers,
+	// but no resource created yet
+	if !r.wasPut() {
+		return ""
+	}
 	delete(rc.resources, name)
 	r.resource.SetCreated()
 	return r.resource.ID()
@@ -121,7 +132,7 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleanu
 		rc.resources[name] = r
 	}
 	// make sure the resource hasn't already been added to the store
-	if r.resource != nil || r.cleanupFuncs != nil {
+	if ok && r.wasPut() {
 		return errors.Errorf("failed to add entry %s to ResourceStore; entry already exists", name)
 	}
 
@@ -136,7 +147,9 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleanu
 	return nil
 }
 
-// WatcherForResource looks up a Resource by name, and gives it a watcher if it's found.
+// WatcherForResource looks up a Resource by name, and gives it a watcher.
+// If no entry exists for that resource, a placeholder is created and a watcher is given to that
+// placeholder resource.
 // A watcher can be used for concurrent processes to wait for the resource to be created.
 // This is useful for situations where clients retry requests quickly after they "fail" because
 // they've taken too long. Adding a watcher allows the server to slow down the client, but still
