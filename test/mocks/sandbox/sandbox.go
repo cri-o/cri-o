@@ -5,6 +5,7 @@
 package sandboxmock
 
 import (
+	nsmgr "github.com/cri-o/cri-o/internal/config/nsmgr"
 	sandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
@@ -118,10 +119,10 @@ func (mr *MockNamespaceIfaceMockRecorder) Remove() *gomock.Call {
 }
 
 // Type mocks base method
-func (m *MockNamespaceIface) Type() sandbox.NSType {
+func (m *MockNamespaceIface) Type() nsmgr.NSType {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Type")
-	ret0, _ := ret[0].(sandbox.NSType)
+	ret0, _ := ret[0].(nsmgr.NSType)
 	return ret0
 }
 

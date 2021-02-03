@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -16,8 +17,8 @@ import (
 )
 
 var (
-	allManagedNamespaces = []sandbox.NSType{
-		sandbox.NETNS, sandbox.IPCNS, sandbox.UTSNS, sandbox.USERNS,
+	allManagedNamespaces = []nsmgr.NSType{
+		nsmgr.NETNS, nsmgr.IPCNS, nsmgr.UTSNS, nsmgr.USERNS,
 	}
 	numManagedNamespaces = 4
 
@@ -40,10 +41,10 @@ type pinNamespacesFunctor struct {
 
 // pinNamespaces is a spoof of namespaces_linux.go:pinNamespaces.
 // it calls ifaceModifyFunc() to customize the behavior of this functor
-func (p *pinNamespacesFunctor) pinNamespaces(nsTypes []sandbox.NSType, cfg *config.Config, mappings *idtools.IDMappings, sysctls map[string]string) ([]sandbox.NamespaceIface, error) {
+func (p *pinNamespacesFunctor) pinNamespaces(nsTypes []nsmgr.NSType, cfg *config.Config, mappings *idtools.IDMappings, sysctls map[string]string) ([]sandbox.NamespaceIface, error) {
 	ifaces := make([]sandbox.NamespaceIface, 0)
 	for _, nsType := range nsTypes {
-		if mappings == nil && nsType == sandbox.USERNS {
+		if mappings == nil && nsType == nsmgr.USERNS {
 			continue
 		}
 		ifaceMock := sandboxmock.NewMockNamespaceIface(mockCtrl)
@@ -77,7 +78,7 @@ func newGenericFunctor() *pinNamespacesFunctor {
 // setPathToDir sets the ifaceMock's path to a directory
 // using the Type() already loaded in.
 // it returns the nsType, in case the caller wants to set the Path again
-func setPathToDir(directory string, ifaceMock *sandboxmock.MockNamespaceIface) sandbox.NSType {
+func setPathToDir(directory string, ifaceMock *sandboxmock.MockNamespaceIface) nsmgr.NSType {
 	// to be able to retrieve this value here, we need to burn one of
 	// our allocated Type() calls. Luckily, we can just repopulate it immediately
 	nsType := ifaceMock.Type()
@@ -94,7 +95,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 	t.Describe("CreateSandboxNamespaces", func() {
 		It("should succeed if empty", func() {
 			// Given
-			managedNamespaces := make([]sandbox.NSType, 0)
+			managedNamespaces := make([]nsmgr.NSType, 0)
 
 			// When
 			ns, err := testSandbox.CreateManagedNamespaces(managedNamespaces, idMappings, nil, nil)
@@ -112,7 +113,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			}
 
 			// Given
-			managedNamespaces := []sandbox.NSType{"invalid"}
+			managedNamespaces := []nsmgr.NSType{"invalid"}
 
 			// When
 			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, withRemoval.pinNamespaces)
@@ -240,7 +241,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should fail when sandbox already has network namespace", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"net"}
+			managedNamespaces := []nsmgr.NSType{"net"}
 
 			successful := newGenericFunctor()
 			// When
@@ -253,7 +254,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should fail when sandbox already has ipc namespace", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"ipc"}
+			managedNamespaces := []nsmgr.NSType{"ipc"}
 
 			successful := newGenericFunctor()
 			// When
@@ -266,7 +267,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should fail when sandbox already has uts namespace", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"uts"}
+			managedNamespaces := []nsmgr.NSType{"uts"}
 
 			successful := newGenericFunctor()
 			// When
@@ -279,7 +280,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should fail when sandbox already has user namespace", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"user"}
+			managedNamespaces := []nsmgr.NSType{"user"}
 			successful := newGenericFunctor()
 			// When
 			_, err := testSandbox.CreateNamespacesWithFunc(managedNamespaces, idMappings, nil, nil, successful.pinNamespaces)
@@ -361,7 +362,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when network is set", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"net"}
+			managedNamespaces := []nsmgr.NSType{"net"}
 			getPath := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
 					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
@@ -380,7 +381,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when ipc is set", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"ipc"}
+			managedNamespaces := []nsmgr.NSType{"ipc"}
 			getPath := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
 					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
@@ -399,7 +400,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when uts is set", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"uts"}
+			managedNamespaces := []nsmgr.NSType{"uts"}
 			getPath := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
 					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
@@ -418,7 +419,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when user is set", func() {
 			// Given
-			managedNamespaces := []sandbox.NSType{"user"}
+			managedNamespaces := []nsmgr.NSType{"user"}
 			getPath := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
 					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)

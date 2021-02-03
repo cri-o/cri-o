@@ -13,6 +13,7 @@ import (
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -26,7 +27,7 @@ type Namespace struct {
 	ns          NS
 	closed      bool
 	initialized bool
-	nsType      NSType
+	nsType      nsmgr.NSType
 	nsPath      string
 }
 
@@ -65,12 +66,12 @@ func getMappingsForPinns(mappings []idtools.IDMap) string {
 
 // Creates a new persistent namespace and returns an object
 // representing that namespace, without switching to it
-func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDMappings, sysctls map[string]string) ([]NamespaceIface, error) {
-	typeToArg := map[NSType]string{
-		IPCNS:  "-i",
-		UTSNS:  "-u",
-		USERNS: "-U",
-		NETNS:  "-n",
+func pinNamespaces(nsTypes []nsmgr.NSType, cfg *config.Config, idMappings *idtools.IDMappings, sysctls map[string]string) ([]NamespaceIface, error) {
+	typeToArg := map[nsmgr.NSType]string{
+		nsmgr.IPCNS:  "-i",
+		nsmgr.UTSNS:  "-u",
+		nsmgr.USERNS: "-U",
+		nsmgr.NETNS:  "-n",
 	}
 
 	pinnedNamespace := uuid.New().String()
@@ -85,7 +86,7 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, idMappings *idtools.IDM
 
 	type namespaceInfo struct {
 		path   string
-		nsType NSType
+		nsType nsmgr.NSType
 	}
 
 	mountedNamespaces := make([]namespaceInfo, 0, len(nsTypes))
@@ -192,7 +193,7 @@ func (n *Namespace) Path() string {
 }
 
 // Type returns which namespace this structure represents
-func (n *Namespace) Type() NSType {
+func (n *Namespace) Type() nsmgr.NSType {
 	return n.nsType
 }
 
