@@ -304,6 +304,7 @@ default_runtime = "{{ .DefaultRuntime }}"
 #   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
 #   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 #   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+#   "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 [crio.runtime.runtimes.{{ $runtime_name }}]
