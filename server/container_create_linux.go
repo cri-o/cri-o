@@ -453,6 +453,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			if node.SystemdHasCollectMode() {
 				specgen.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 			}
+			// Set systemd killmode to mixed so that only the main container process gets the SIGTERM
+			// This prevents issues with double signals to child processes inside the container
+			// when the main process propagates the signals down.
+			specgen.AddAnnotation("org.systemd.property.KillMode", "'mixed'")
 		}
 
 		if ctr.Privileged() {
