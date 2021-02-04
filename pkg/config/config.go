@@ -148,6 +148,10 @@ type RootConfig struct {
 	// that checks whether we've upgraded
 	VersionFilePersist string `toml:"version_file_persist"`
 
+	// CleanShutdownFile is the location CRI-O will lay down the clean shutdown file
+	// that checks whether we've had time to sync before shutting down
+	CleanShutdownFile string `toml:"clean_shutdown_file"`
+
 	// InternalWipe is whether CRI-O should wipe containers and images after a reboot when the server starts.
 	// If set to false, one must use the external command `crio wipe` to wipe the containers and images in these situations.
 	InternalWipe bool `toml:"internal_wipe"`
@@ -586,6 +590,7 @@ func DefaultConfig() (*Config, error) {
 			LogDir:             "/var/log/crio/pods",
 			VersionFile:        CrioVersionPathTmp,
 			VersionFilePersist: CrioVersionPathPersist,
+			CleanShutdownFile:  CrioCleanShutdownFile,
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,

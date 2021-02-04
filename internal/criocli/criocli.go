@@ -284,6 +284,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("version-file-persist") {
 		config.VersionFilePersist = ctx.String("version-file-persist")
 	}
+	if ctx.IsSet("clean-shutdown-file") {
+		config.CleanShutdownFile = ctx.String("clean-shutdown-file")
+	}
 	if ctx.IsSet("internal-wipe") {
 		config.InternalWipe = ctx.Bool("internal-wipe")
 	}
@@ -840,6 +843,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "infra-ctr-cpuset",
 			Usage:   "CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers (default: '').",
 			EnvVars: []string{"CONTAINER_INFRA_CTR_CPUSET"},
+		},
+		&cli.StringFlag{
+			Name:      "clean-shutdown-file",
+			Usage:     "Location for CRI-O to lay down the clean shutdown file. It indicates whether we've had time to sync changes to disk before shutting down. If not found, crio wipe will clear the storage directory",
+			Value:     defConf.CleanShutdownFile,
+			EnvVars:   []string{"CONTAINER_CLEAN_SHUTDOWN_FILE"},
+			TakesFile: true,
 		},
 	}
 }
