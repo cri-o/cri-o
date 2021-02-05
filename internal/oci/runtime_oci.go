@@ -587,7 +587,7 @@ func (r *runtimeOCI) UpdateContainer(c *Container, res *rspec.LinuxResources) er
 	return nil
 }
 
-func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration, ignoreKill bool) error {
+func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration, ignoreKill bool) error {
 	done := make(chan struct{})
 	// we could potentially re-use "done" channel to exit the loop on timeout,
 	// but we use another channel "chControl" so that we never panic
@@ -616,33 +616,69 @@ func waitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			}
 		}
 	}()
-	select {
-	case <-done:
-		return nil
-	case <-ctx.Done():
-		close(chControl)
-		return ctx.Err()
-	case <-time.After(timeout):
-		close(chControl)
-		if ignoreKill {
-			return fmt.Errorf("timeout reached after %.0f seconds waiting for container process to exit",
-				timeout.Seconds())
-		}
-		pid, err := c.pid()
-		if err != nil {
-			return err
-		}
-		if err := kill(pid); err != nil {
-			return fmt.Errorf("failed to kill process: %v", err)
+	// Operate in terms of targetTime, so that we can pause in the middle of the operation
+	// to catch a new timeout (and possibly ignore that new timeout if it's not correct to
+	// take a new one).
+	targetTime := time.Now().Add(timeout)
+	killed := false
+	for !killed {
+		select {
+		case <-done:
+			return nil
+		case <-ctx.Done():
+			close(chControl)
+			return ctx.Err()
+		case <-time.After(time.Until(targetTime)):
+			close(chControl)
+			if ignoreKill {
+				return fmt.Errorf("timeout reached after %.0f seconds waiting for container process to exit",
+					timeout.Seconds())
+			}
+			pid, err := c.pid()
+			if err != nil {
+				return err
+			}
+			if err := Kill(pid); err != nil {
+				return fmt.Errorf("failed to kill process: %v", err)
+			}
+			killed = true
+		case newTimeout := <-c.stopTimeoutChan:
+			// If we're already at the "killing" step,
+			// we should use the killingContainerTimeout,
+			// and not override.
+			if !ignoreKill {
+				continue
+			}
+			// If a new timeout comes in,
+			// interrupt the old one, and start a new one
+			newTargetTime := time.Now().Add(newTimeout)
+
+			targetTime = newTargetTime
+			timeout = newTimeout
 		}
 	}
-
 	c.state.Finished = time.Now()
+	// Successfully stopped! This is to prevent other routines from
+	// racing with this one and waiting forever.
+	// Close only the dedicated channel. If we close stopTimeoutChan,
+	// any other waiting goroutine will panic, not gracefully exit.
+	close(c.stoppedChan)
 	return nil
 }
 
 // StopContainer stops a container. Timeout is given in seconds.
-func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout int64) error {
+func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout int64) (retErr error) {
+	c.SetAsStopping(timeout)
+	defer func() {
+		if retErr != nil {
+			// Failed to stop, set stopping to false.
+			// Otherwise, we won't actually
+			// attempt to stop when a new request comes in,
+			// even though we're not actively stopping anymore.
+			c.SetAsNotStopping()
+		}
+	}()
+
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -668,7 +704,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		); err != nil {
 			checkProcessGone(c)
 		}
-		err := waitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
+		err := WaitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
 		if err == nil {
 			return nil
 		}
@@ -681,7 +717,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		checkProcessGone(c)
 	}
 
-	return waitContainerStop(ctx, c, killContainerTimeout, false)
+	return WaitContainerStop(ctx, c, killContainerTimeout, false)
 }
 
 func checkProcessGone(c *Container) {

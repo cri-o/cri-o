@@ -72,6 +72,10 @@ type Container struct {
 	stdinOnce          bool
 	created            bool
 	spoofed            bool
+	stopping           bool
+	stopTimeoutChan    chan time.Duration
+	stoppedChan        chan struct{}
+	stopLock           sync.Mutex
 }
 
 // Metadata holds all necessary information for building the container name.
@@ -132,6 +136,8 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		dir:             dir,
 		state:           state,
 		stopSignal:      stopSignal,
+		stopTimeoutChan: make(chan time.Duration, 1),
+		stoppedChan:     make(chan struct{}, 1),
 	}
 	return c, nil
 }
@@ -545,4 +551,35 @@ func (c *Container) ShouldBeStopped() error {
 // is not needed, but sandbox metadata should be stored with a spoofed infra container.
 func (c *Container) Spoofed() bool {
 	return c.spoofed
+}
+
+// SetAsStopping marks a container as being stopped.
+// If a stop is currently happening, it also sends the new timeout
+// along the stopTimeoutChan, allowing the in-progress stop
+// to stop faster, or ignore the new stop timeout.
+func (c *Container) SetAsStopping(timeout int64) {
+	// First, need to check if the container is already stopping
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if c.stopping {
+		// If so, we shouldn't wait forever on the opLock.
+		// This can cause issues where the container stop gets DOSed by a very long
+		// timeout, followed a shorter one coming in.
+		// Instead, interrupt the other stop with this new one.
+		select {
+		case c.stopTimeoutChan <- time.Duration(timeout) * time.Second:
+		case <-c.stoppedChan: // This case is to avoid waiting forever once another routine has finished.
+			return
+		}
+	}
+	// Regardless, set the container as actively stopping.
+	c.stopping = true
+}
+
+// SetAsNotStopping unsets the stopping field indicating to new callers that the container
+// is no longer actively stopping.
+func (c *Container) SetAsNotStopping() {
+	c.stopLock.Lock()
+	c.stopping = false
+	c.stopLock.Unlock()
 }
