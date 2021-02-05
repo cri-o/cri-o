@@ -8,10 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const defaultSystemdParent = "system.slice"
@@ -70,8 +73,16 @@ func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string
 		cgroupParent = conmonCgroup
 	}
 	conmonUnitName := fmt.Sprintf("crio-conmon-%s.scope", cid)
+
+	// Set the systemd KillSignal to SIGPIPE that conmon ignores.
+	// This helps during node shutdown so that conmon waits for the container
+	// to exit and doesn't forward the SIGTERM that it gets.
+	killSignalProp := systemdDbus.Property{
+		Name:  "KillSignal",
+		Value: dbus.MakeVariant(int(unix.SIGPIPE)),
+	}
 	logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, conmonUnitName)
-	if err := utils.RunUnderSystemdScope(pid, cgroupParent, conmonUnitName); err != nil {
+	if err := utils.RunUnderSystemdScope(pid, cgroupParent, conmonUnitName, killSignalProp); err != nil {
 		return "", errors.Wrapf(err, "failed to add conmon to systemd sandbox cgroup")
 	}
 	// return empty string as path because cgroup cleanup is done by systemd
