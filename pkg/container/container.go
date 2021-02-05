@@ -205,10 +205,6 @@ func (c *container) SpecAddAnnotations(sb *sandbox.Sandbox, containerVolumes []o
 		if systemdHasCollectMode {
 			c.spec.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 		}
-		// Set systemd killmode to mixed so that only the main container process gets the SIGTERM
-		// This prevents issues with double signals to child processes inside the container
-		// when the main process propagates the signals down.
-		c.spec.AddAnnotation("org.systemd.property.KillMode", "'mixed'")
 	}
 
 	if configStopSignal != "" {

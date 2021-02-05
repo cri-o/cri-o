@@ -622,17 +622,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)
 	}
 
-	if s.config.CgroupManager().IsSystemd() {
-		if node.SystemdHasCollectMode() {
-			g.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
-		}
-
-		// Set systemd killmode to mixed so that only the main container process gets the SIGTERM
-		// This prevents issues with double signals to child processes inside the container
-		// when the main process propagates the signals down.
-		if s.config.CgroupManager().IsSystemd() {
-			g.AddAnnotation("org.systemd.property.KillMode", "'mixed'")
-		}
+	if s.config.CgroupManager().IsSystemd() && node.SystemdHasCollectMode() {
+		g.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 	}
 
 	created := time.Now()
