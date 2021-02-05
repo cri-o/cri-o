@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -23,6 +25,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 // Container is the main public container interface
@@ -89,6 +92,9 @@ type Container interface {
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
 	SpecAddDevices([]device.Device, []device.Device, bool) error
+
+	// AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation
+	AddUnifiedResourcesFromAnnotations(annotationsMap map[string]string) error
 }
 
 // container is the hidden default type behind the Container interface
@@ -428,4 +434,48 @@ func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
 		ret = append(ret, v)
 	}
 	return ret, nil
+}
+
+// AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation
+func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string]string) error {
+	if c.config == nil || c.config.Labels == nil {
+		return nil
+	}
+	containerName := c.config.Labels[kubeletTypes.KubernetesContainerNameLabel]
+	if containerName == "" {
+		return nil
+	}
+
+	annotationKey := fmt.Sprintf("%s.%s", crioann.UnifiedCgroupAnnotation, containerName)
+	annotation := annotationsMap[annotationKey]
+	if annotation == "" {
+		return nil
+	}
+
+	if c.spec.Config.Linux == nil {
+		c.spec.Config.Linux = &rspec.Linux{}
+	}
+	if c.spec.Config.Linux.Resources == nil {
+		c.spec.Config.Linux.Resources = &rspec.LinuxResources{}
+	}
+	if c.spec.Config.Linux.Resources.Unified == nil {
+		c.spec.Config.Linux.Resources.Unified = make(map[string]string)
+	}
+	for _, r := range strings.Split(annotation, ";") {
+		parts := strings.SplitN(r, "=", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid annotation %q", crioann.UnifiedCgroupAnnotation)
+		}
+		d, err := b64.StdEncoding.DecodeString(parts[1])
+		// if the value is not specified in base64, then use its raw value.
+		v := ""
+		if err == nil {
+			v = string(d)
+		} else {
+			v = parts[1]
+		}
+		c.spec.Config.Linux.Resources.Unified[parts[0]] = v
+	}
+
+	return nil
 }

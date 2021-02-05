@@ -203,6 +203,12 @@ func (r *Runtime) AllowDevicesAnnotation(handler string) (bool, error) {
 	return r.allowAnnotation(handler, annotations.DevicesAnnotation)
 }
 
+// AllowUnifiedCgroupAnnotation searches through the AllowedAnnotations for
+// the devices annotation, checking whether this runtime allows processing of "io.kubernetes.cri-o.UnifiedCgroup"
+func (r *Runtime) AllowUnifiedCgroupAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.UnifiedCgroupAnnotation)
+}
+
 // AllowCPULoadBalancingAnnotation searches through the AllowedAnnotations for
 // the CPU load balancing annotation, checking whether this runtime allows processing of  "cpu-load-balancing.crio.io"
 func (r *Runtime) AllowCPULoadBalancingAnnotation(handler string) (bool, error) {

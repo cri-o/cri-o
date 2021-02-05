@@ -417,6 +417,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		}
 	}
 
+	allowUnifiedResources, err := s.Runtime().AllowUnifiedCgroupAnnotation(sb.RuntimeHandler())
+	if err != nil {
+		return nil, err
+	}
+	if allowUnifiedResources {
+		if err := ctr.AddUnifiedResourcesFromAnnotations(sb.Annotations()); err != nil {
+			return nil, err
+		}
+	}
+
 	// Join the namespace paths for the pod sandbox container.
 	if err := configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), *specgen); err != nil {
 		return nil, errors.Wrap(err, "failed to configure namespaces in container create")
