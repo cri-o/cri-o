@@ -94,6 +94,8 @@ const (
 	ImageVolumesIgnore ImageVolumesType = "ignore"
 	// ImageVolumesBind option is for using bind mounted volumes
 	ImageVolumesBind ImageVolumesType = "bind"
+	// DefaultPauseImage is default pause image
+	DefaultPauseImage string = "k8s.gcr.io/pause:3.5"
 )
 
 const (
@@ -622,7 +624,7 @@ func DefaultConfig() (*Config, error) {
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
-			PauseImage:       "k8s.gcr.io/pause:3.2",
+			PauseImage:       DefaultPauseImage,
 			PauseCommand:     "/pause",
 			ImageVolumes:     ImageVolumesMkdir,
 		},
