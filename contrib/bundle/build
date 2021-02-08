@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ARCH_AMD64=amd64
+ARCH_ARM64=arm64
+
+ARCH=${1:-$ARCH_AMD64}
+
 # Global vars to be used
 # shellcheck source=vars
-source "$(dirname "${BASH_SOURCE[0]}")"/vars
+source "$(dirname "${BASH_SOURCE[0]}")"/vars "$ARCH"
 
 cd "$(dirname "$0")"
 
@@ -12,9 +17,9 @@ cd "$(dirname "$0")"
 source "$GIT_ROOT/scripts/versions"
 
 FILES_BIN=(
-    "$GIT_ROOT/bin/static/crio-status"
-    "$GIT_ROOT/bin/static/crio"
-    "$GIT_ROOT/bin/static/pinns"
+    "$GIT_ROOT/bin/static-$ARCH/crio-status"
+    "$GIT_ROOT/bin/static-$ARCH/crio"
+    "$GIT_ROOT/bin/static-$ARCH/pinns"
 )
 FILES_MAN=(
     "$GIT_ROOT/docs/crio-status.8"
@@ -26,6 +31,7 @@ FILES_ETC=(
     "$GIT_ROOT/crictl.yaml"
     "$GIT_ROOT/crio-umount.conf"
     "$GIT_ROOT/crio.conf"
+    "$GIT_ROOT/contrib/bundle/10-crun.conf"
 )
 FILES_CONTRIB=(
     "$GIT_ROOT/contrib/cni/10-crio-bridge.conf"
@@ -88,6 +94,8 @@ fi
 
 # Local assets
 cp "$GIT_ROOT/contrib/bundle/Makefile" "$TMPDIR"
+sed -i "s/ARCH ?= amd64/ARCH ?= $ARCH/" "$TMPDIR/Makefile"
+
 cp "$GIT_ROOT/contrib/bundle/README.md" "$TMPDIR"
 
 curl_to() {
@@ -97,42 +105,71 @@ TMP_BIN=$TMPDIR/bin
 
 # conmon
 curl_to "$TMP_BIN/conmon" \
-    https://github.com/containers/conmon/releases/download/"${VERSIONS["conmon"]}"/conmon
+    "https://github.com/containers/conmon/releases/download/${VERSIONS["conmon"]}/conmon.$ARCH"
 chmod +x "$TMP_BIN/conmon"
 
-# runc
-curl_to "$TMP_BIN/runc" \
-    https://github.com/opencontainers/runc/releases/download/"${VERSIONS["runc"]}"/runc.amd64
-chmod +x "$TMP_BIN/runc"
+if [[ $ARCH == "$ARCH_AMD64" ]]; then
+    # runc
+    curl_to "$TMP_BIN/runc" \
+        "https://github.com/opencontainers/runc/releases/download/${VERSIONS["runc"]}/runc.amd64"
+    chmod +x "$TMP_BIN/runc"
+fi
 
 # crun
 curl_to "$TMP_BIN/crun" \
-    https://github.com/containers/crun/releases/download/"${VERSIONS["crun"]}"/crun-"${VERSIONS["crun"]}"-linux-amd64
+    "https://github.com/containers/crun/releases/download/${VERSIONS["crun"]}/crun-${VERSIONS["crun"]}-linux-$ARCH"
 chmod +x "$TMP_BIN/crun"
 
 # CNI plugins
 mkdir -p "$TMPDIR/cni-plugins"
-set -x
 curl_to - \
-    https://github.com/containernetworking/plugins/releases/download/"${VERSIONS["cni-plugins"]}"/cni-plugins-linux-amd64-"${VERSIONS["cni-plugins"]}".tgz |
+    "https://github.com/containernetworking/plugins/releases/download/${VERSIONS["cni-plugins"]}/cni-plugins-linux-$ARCH-${VERSIONS["cni-plugins"]}.tgz" |
     tar xfz - -C "$TMPDIR/cni-plugins"
 
 # crictl
 curl_to - \
-    https://github.com/kubernetes-sigs/cri-tools/releases/download/"${VERSIONS["cri-tools"]}"/crictl-"${VERSIONS["cri-tools"]}"-linux-amd64.tar.gz |
+    "https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSIONS["cri-tools"]}/crictl-${VERSIONS["cri-tools"]}-linux-$ARCH.tar.gz" |
     tar xfz - -C "$TMP_BIN"
+
+# Check the architectures of the binaries
+ELF_ARCH=x86-64
+if [[ $ARCH == "$ARCH_ARM64" ]]; then
+    ELF_ARCH=aarch64
+fi
+for FILE in "$TMP_BIN"/*; do
+    if ! file "$FILE" | grep -q "$ELF_ARCH"; then
+        echo "$FILE is not of required arch $ELF_ARCH"
+        exit 1
+    fi
+done
 
 # Create the archive
 pushd "$ARCHIVE_PATH"
 rm -f "$ARCHIVE"
-tar cfz "$ARCHIVE" tmp --transform s/tmp/"$BUNDLE"/
+TAR_DIR=cri-o
+tar cfz "$ARCHIVE" tmp --transform s/tmp/$TAR_DIR/
 rm -rf "$TMPDIR"
 echo "Created $ARCHIVE_PATH/$ARCHIVE"
 
 # Test the archive
 echo "Testing archive"
 tar xf "$ARCHIVE"
-pushd "$BUNDLE"
-make DESTDIR=test
+pushd $TAR_DIR
+export DESTDIR=test OPT_CNI_BIN_DIR=test/opt/cni/bin
+make
+EXP_CNT=64
+if [[ $ARCH == "$ARCH_AMD64" ]]; then
+    EXP_CNT=65
+fi
+ACT_CNT=$(find test | wc -l)
+if [[ "$EXP_CNT" != "$ACT_CNT" ]]; then
+    echo "make install file count does not match, expected: $EXP_CNT, actual: $ACT_CNT"
+    exit 1
+fi
+make uninstall
+if [[ $(find test -type f | wc -l) != 0 ]]; then
+    echo "make uninstall left over some files"
+    exit 1
+fi
 popd
-rm -rf "$BUNDLE"
+rm -rf $TAR_DIR
