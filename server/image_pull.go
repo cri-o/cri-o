@@ -97,7 +97,8 @@ func (s *Server) PullImage(ctx context.Context, req *pb.PullImageRequest) (*pb.P
 // readability and maintainability.
 func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string, error) {
 	var err error
-	sourceCtx := *s.config.SystemContext // A shallow copy we can modify
+	sourceCtx := *s.config.SystemContext   // A shallow copy we can modify
+	sourceCtx.DockerLogMirrorChoice = true // Add info level log of the pull source
 	if pullArgs.credentials.Username != "" {
 		sourceCtx.DockerAuthConfig = &pullArgs.credentials
 	}
