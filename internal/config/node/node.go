@@ -60,7 +60,7 @@ func ValidateConfig() error {
 			init:      checkFsMayDetachMounts,
 			err:       &checkFsMayDetachMountsErr,
 			activated: nil,
-			fatal:     true,
+			fatal:     false,
 		},
 	}
 	for _, i := range toInit {
