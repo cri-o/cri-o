@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v33/github"
 )
 
 func NewReplayer(replayDir string) Client {
@@ -87,6 +87,19 @@ func (c *githubNotesReplayClient) GetPullRequest(ctx context.Context, owner, rep
 		return nil, nil, err
 	}
 	result := &github.PullRequest{}
+	record := apiRecord{Result: result}
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, nil, err
+	}
+	return result, record.response(), nil
+}
+
+func (c *githubNotesReplayClient) GetIssue(ctx context.Context, owner, repo string, number int) (*github.Issue, *github.Response, error) {
+	data, err := c.readRecordedData(gitHubAPIGetIssue)
+	if err != nil {
+		return nil, nil, err
+	}
+	result := &github.Issue{}
 	record := apiRecord{Result: result}
 	if err := json.Unmarshal(data, &record); err != nil {
 		return nil, nil, err
@@ -247,4 +260,17 @@ func (c *githubNotesReplayClient) ListReleaseAssets(
 		return nil, err
 	}
 	return assets, nil
+}
+
+func (c *githubNotesReplayClient) CreateComment(ctx context.Context, owner, repo string, number int, message string) (*github.IssueComment, *github.Response, error) {
+	data, err := c.readRecordedData(gitHubAPICreateComment)
+	if err != nil {
+		return nil, nil, err
+	}
+	result := &github.IssueComment{}
+	record := apiRecord{Result: result}
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, nil, err
+	}
+	return result, record.response(), nil
 }
