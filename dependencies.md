@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 09 Feb 2021 01:34:46 UTC for commit [8921e00][0]._
+_Generated on Tue, 09 Feb 2021 01:54:16 UTC for commit [fd2a16d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8921e00fdb188446b1cde28d06f8e3d6893f1e79
+[0]: https://github.com/cri-o/cri-o/commit/fd2a16d43303dd13846cce28964d2d4dde801afd
 
 ## Outdated Dependencies
 
@@ -16,12 +16,14 @@ _Generated on Tue, 09 Feb 2021 01:34:46 UTC for commit [8921e00][0]._
 | github.com/containers/libpod/v2              | v2.0.6                             | v2.2.1                             | true   | true             |
 | github.com/containers/ocicrypt               | v1.0.3                             | v1.1.0                             | true   | true             |
 | github.com/containers/storage                | v1.24.5                            | v1.25.0                            | true   | true             |
+| github.com/emicklei/go-restful               | v2.9.5+incompatible                | v2.15.0+incompatible               | true   | true             |
 | github.com/google/renameio                   | v0.1.0                             | v1.0.0                             | true   | true             |
 | github.com/google/uuid                       | v1.1.4                             | v1.2.0                             | true   | true             |
 | github.com/grpc-ecosystem/go-grpc-middleware | v1.2.0                             | v1.2.2                             | true   | true             |
 | github.com/onsi/ginkgo                       | v1.14.1                            | v1.15.0                            | true   | true             |
 | github.com/onsi/gomega                       | v1.10.3                            | v1.10.5                            | true   | true             |
 | github.com/prometheus/client_golang          | v1.7.1                             | v1.9.0                             | true   | true             |
+| github.com/syndtr/gocapability               | v0.0.0-20180916011248-d98352740cb2 | v0.0.0-20200815063812-42c35b437635 | true   | true             |
 | github.com/urfave/cli/v2                     | v2.2.0                             | v2.3.0                             | true   | true             |
 | golang.org/x/net                             | v0.0.0-20201224014010-6772e930b67b | v0.0.0-20210119194325-5f4716e94777 | true   | true             |
 | golang.org/x/sync                            | v0.0.0-20201020160332-67f06af15bc9 | v0.0.0-20201207232520-09787c993a3a | true   | true             |
@@ -181,7 +183,7 @@ _Generated on Tue, 09 Feb 2021 01:34:46 UTC for commit [8921e00][0]._
 | github.com/docopt/docopt-go                             | v0.0.0-20180111231733-ee0de3bc6815                         |                                    | false  | true             |
 | github.com/dustin/go-humanize                           | v1.0.0                                                     |                                    | false  | true             |
 | github.com/elazarl/goproxy                              | v0.0.0-20180725130230-947c36da3153                         | v0.0.0-20210110162100-a92cc753f88e | false  | true             |
-| github.com/emicklei/go-restful                          | v2.9.5+incompatible                                        | v2.15.0+incompatible               | false  | true             |
+| github.com/emicklei/go-restful                          | v2.9.5+incompatible                                        | v2.15.0+incompatible               | true   | true             |
 | github.com/emirpasic/gods                               | v1.12.0                                                    |                                    | false  | true             |
 | github.com/envoyproxy/go-control-plane                  | v0.9.1-0.20191026205805-5f8ba28d4473                       | v0.9.8                             | false  | true             |
 | github.com/envoyproxy/protoc-gen-validate               | v0.1.0                                                     | v0.4.1                             | false  | true             |
@@ -420,8 +422,8 @@ _Generated on Tue, 09 Feb 2021 01:34:46 UTC for commit [8921e00][0]._
 | github.com/opencontainers/go-digest                     | v1.0.0                                                     |                                    | true   | true             |
 | github.com/opencontainers/image-spec                    | v1.0.2-0.20200206005212-79b036d80240                       |                                    | true   | true             |
 | github.com/opencontainers/runc                          | v1.0.0-rc90                                                |                                    | true   | true             |
-| github.com/opencontainers/runtime-spec                  | v1.0.3-0.20200710190001-3e4195d92445                       |                                    | true   | true             |
-| github.com/opencontainers/runtime-tools                 | v0.9.1-0.20200714183735-07406c5828aa                       |                                    | true   | true             |
+| github.com/opencontainers/runtime-spec                  | v1.0.3-0.20201121164853-7413a7f753e1                       |                                    | true   | true             |
+| github.com/opencontainers/runtime-tools                 | v0.9.1-0.20200121211434-d1bf3e66ff0a                       |                                    | true   | true             |
 | github.com/opencontainers/selinux                       | v1.8.0                                                     |                                    | true   | true             |
 | github.com/openshift/imagebuilder                       | v1.1.6                                                     | v1.1.8                             | false  | true             |
 | github.com/opentracing/opentracing-go                   | v1.1.0                                                     | v1.2.0                             | false  | true             |
@@ -491,7 +493,7 @@ _Generated on Tue, 09 Feb 2021 01:34:46 UTC for commit [8921e00][0]._
 | github.com/stretchr/objx                                | v0.2.0                                                     | v0.3.0                             | false  | true             |
 | github.com/stretchr/testify                             | v1.7.0                                                     |                                    | true   | true             |
 | github.com/subosito/gotenv                              | v1.2.0                                                     |                                    | false  | true             |
-| github.com/syndtr/gocapability                          | v0.0.0-20200815063812-42c35b437635                         |                                    | true   | true             |
+| github.com/syndtr/gocapability                          | v0.0.0-20180916011248-d98352740cb2                         | v0.0.0-20200815063812-42c35b437635 | true   | true             |
 | github.com/tchap/go-patricia                            | v2.3.0+incompatible                                        |                                    | false  | true             |
 | github.com/tetafro/godot                                | v0.2.5                                                     | v1.4.4                             | false  | true             |
 | github.com/thecodeteam/goscaleio                        | v0.1.0                                                     |                                    | false  | true             |
