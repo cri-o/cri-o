@@ -422,6 +422,9 @@ type APIConfig struct {
 	// StreamTLSCA is the x509 CA(s) file used to verify and authenticate client
 	// communication with the tls encrypted stream
 	StreamTLSCA string `toml:"stream_tls_ca"`
+
+	// StreamIdleTimeout is how long to leave idle connections open for
+	StreamIdleTimeout string `toml:"stream_idle_timeout"`
 }
 
 // MetricsConfig specifies all necessary configuration for Prometheus based

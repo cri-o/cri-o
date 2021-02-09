@@ -98,7 +98,7 @@ type Config struct {
 // DefaultConfig provides default values for server Config. The DefaultConfig is partial, so
 // some fields like Addr must still be provided.
 var DefaultConfig = Config{
-	StreamIdleTimeout:               4 * time.Hour,
+	StreamIdleTimeout:               15 * time.Minute,
 	StreamCreationTimeout:           remotecommandconsts.DefaultStreamCreationTimeout,
 	SupportedRemoteCommandProtocols: remotecommandconsts.SupportedStreamingProtocols,
 	SupportedPortForwardProtocols:   portforward.SupportedProtocols,
