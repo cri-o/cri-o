@@ -81,6 +81,7 @@ crio
 [--storage-opt]=[value]
 [--stream-address]=[value]
 [--stream-enable-tls]
+[--stream-idle-timeout]=[value]
 [--stream-port]=[value]
 [--stream-tls-ca]=[value]
 [--stream-tls-cert]=[value]
@@ -295,6 +296,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--stream-address**="": Bind address for streaming socket (default: 127.0.0.1)
 
 **--stream-enable-tls**: Enable encrypted TLS transport of the stream server (default: false)
+
+**--stream-idle-timeout**="": Length of time until open streams terminate due to lack of activity
 
 **--stream-port**="": Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number. (default: 0)
 

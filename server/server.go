@@ -381,6 +381,14 @@ func New(
 
 	// Prepare streaming server
 	streamServerConfig := streaming.DefaultConfig
+	if config.StreamIdleTimeout != "" {
+		idleTimeout, err := time.ParseDuration(config.StreamIdleTimeout)
+		if err != nil {
+			return nil, errors.New("unable to parse timeout as duration")
+		}
+
+		streamServerConfig.StreamIdleTimeout = idleTimeout
+	}
 	streamServerConfig.Addr = net.JoinHostPort(bindAddressStr, config.StreamPort)
 	if config.StreamEnableTLS {
 		certCache := &certConfigCache{
