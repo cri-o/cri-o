@@ -230,3 +230,59 @@ jobs:
           name: unit
           path: build
       - run: make codecov
+
+  release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-build-
+      - run: make release-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release-notes
+          path: build/release-notes
+          if-no-files-found: ignore
+
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-build-
+      - run: make dependencies
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dependencies
+          path: build/dependencies
+
+  release-branch-forward:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-build-
+      - run: make release-branch-forward
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          DRY_RUN: false

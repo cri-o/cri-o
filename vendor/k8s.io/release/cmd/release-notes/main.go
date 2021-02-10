@@ -60,6 +60,22 @@ var (
 )
 
 func init() {
+	// githubBaseURL contains the github base URL.
+	cmd.PersistentFlags().StringVar(
+		&opts.GithubBaseURL,
+		"github-base-url",
+		util.EnvDefault("GITHUB_BASE_URL", ""),
+		"Base URL of github",
+	)
+
+	// githubUploadURL contains the github upload URL.
+	cmd.PersistentFlags().StringVar(
+		&opts.GithubUploadURL,
+		"github-upload-url",
+		util.EnvDefault("GITHUB_UPLOAD_URL", ""),
+		"Upload URL of github",
+	)
+
 	// githubOrg contains name of github organization that holds the repo to scrape.
 	cmd.PersistentFlags().StringVar(
 		&opts.GithubOrg,

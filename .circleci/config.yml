@@ -4,18 +4,10 @@ version: 2.1
 stdenv: &stdenv
   environment:
     GOCACHE: &gocache /tmp/go-build
-    IMAGE: &image quay.io/crio/crio-build-amd64-go1.15:master-1.6.1
     JOBS: &jobs 4
-    WORKDIR: &workdir /go/src/github.com/cri-o/cri-o
     WORKDIR_VM: &workdir_vm /home/circleci/go/src/github.com/cri-o/cri-o
 
 executors:
-  container:
-    docker:
-      - image: *image
-    <<: *stdenv
-    working_directory: *workdir
-
   machine:
     machine:
       image: ubuntu-2004:202010-01
@@ -26,9 +18,6 @@ workflows:
   version: 2
   pipeline:
     jobs:
-      - dependencies:
-          requires:
-            - release-notes
       - integration
       - integration:
           name: integration-critest
@@ -41,51 +30,8 @@ workflows:
       - integration:
           name: integration-cgroupfs
           cgroup_manager: cgroupfs
-      - release-branch-forward:
-          requires:
-            - results
-          filters:
-            branches:
-              only:
-                - master
-      - release-notes:
-          requires:
-            - results
-      - results:
-          requires:
-            - integration
-            - integration-cgroupfs
-            - integration-critest
-            - integration-userns
 
 jobs:
-  dependencies:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "go.sum" }}
-      - add_ssh_keys:
-          fingerprints:
-            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
-      - run:
-          name: Generate Dependency Report
-          command: |
-            if [[ -z $GITHUB_TOKEN ]]; then
-              echo Skipping dependencies generation
-            else
-              make dependencies
-            fi
-      - store_artifacts:
-          path: build/dependencies/dependencies.md
-          destination: dependencies.md
-      - save_cache:
-          key: v1-dependencies-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/go-mod-outdated
-
   integration:
     executor: machine
     parameters:
@@ -144,64 +90,3 @@ jobs:
           key: v1-integration-{{ checksum "go.sum" }}
           paths:
             - *gocache
-
-  release-branch-forward:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-release-branch-forward-{{ checksum "go.sum" }}
-      - add_ssh_keys:
-          fingerprints:
-            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
-      - run:
-          name: Forward Latest Release Branch
-          command: make release-branch-forward
-          environment:
-            DRY_RUN: false
-      - save_cache:
-          key: v1-release-branch-forward-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-
-  release-notes:
-    executor: container
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-release-notes-{{ checksum "go.sum" }}
-      - add_ssh_keys:
-          fingerprints:
-            - bd:a6:4b:50:1b:2a:a4:1d:79:67:64:05:66:c4:3a:10
-      - run:
-          name: Generate Release Notes
-          no_output_timeout: 30m
-          command: |
-            if [[ -z $GITHUB_TOKEN ]]; then
-              echo Skipping release notes generation
-            else
-              make release-notes
-            fi
-      - store_artifacts:
-          path: build/release-notes
-          destination: release-notes
-      - save_cache:
-          key: v1-release-notes-{{ checksum "go.sum" }}
-          paths:
-            - *gocache
-            - build/bin/release-notes
-
-  results:
-    executor: container
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - store_artifacts:
-          path: bin
-          destination: bin
-      - store_artifacts:
-          path: build
-          destination: build

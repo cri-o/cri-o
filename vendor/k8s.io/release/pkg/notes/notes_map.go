@@ -109,6 +109,9 @@ type ReleaseNotesMap struct {
 		// ActionRequired indicates whether or not the release-note-action-required
 		// label was set on the PR
 		ActionRequired *bool `json:"action_required,omitempty" yaml:"action_required,omitempty"`
+
+		// DoNotPublish by default represents release-note-none label on GitHub
+		DoNotPublish *bool `json:"do_not_publish,omitempty" yaml:"do_not_publish,omitempty"`
 	} `json:"releasenote"`
 
 	DataFields map[string]ReleaseNotesDataField `json:"datafields,omitempty" yaml:"datafields,omitempty"`

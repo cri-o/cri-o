@@ -223,6 +223,11 @@ func New(
 	for _, pr := range releaseNotes.History() {
 		note := releaseNotes.Get(pr)
 
+		if note.DoNotPublish {
+			logrus.Infof("skipping PR %d as (marked to not be published)", pr)
+			continue
+		}
+
 		cvedata, hasCVE := note.DataFields["cve"]
 		if hasCVE {
 			logrus.Infof("Release note for PR #%d has CVE vulnerability info", note.PrNumber)

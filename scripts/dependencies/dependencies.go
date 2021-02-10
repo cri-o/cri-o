@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	branch = "gh-pages"
-	file   = "dependencies.md"
+	branch   = "gh-pages"
+	file     = "dependencies.md"
+	tokenKey = "GITHUB_TOKEN"
 )
 
 var outputPath string
@@ -115,8 +116,14 @@ _Generated on %s for commit [%s][0]._
 		return errors.Wrap(err, "writing report")
 	}
 
-	// Update gh-pages branch if not a pull request and running in CircleCI
-	if util.IsEnvSet("CIRCLECI") && !util.IsEnvSet("CIRCLE_PULL_REQUEST") {
+	// Update gh-pages branch if not a pull request and running in CI
+	token, tokenSet := os.LookupEnv(tokenKey)
+	if !tokenSet || token == "" {
+		logrus.Infof("%s environment variable is not set", tokenKey)
+		os.Exit(0)
+	}
+
+	if util.IsEnvSet("CI") {
 		currentBranch, err := repo.CurrentBranch()
 		if err != nil {
 			return errors.Wrap(err, "get current branch")

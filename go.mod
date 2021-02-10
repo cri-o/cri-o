@@ -56,17 +56,17 @@ require (
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/sys v0.0.0-20210105210732-16f7687f5001
-	google.golang.org/grpc v1.33.2
+	google.golang.org/grpc v1.34.0
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
 	k8s.io/client-go v0.18.8
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog/v2 v2.4.0
 	k8s.io/kubernetes v1.19.2
-	k8s.io/release v0.6.0
-	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
+	k8s.io/release v0.7.0
+	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
 	mvdan.cc/sh/v3 v3.2.0
 )
 

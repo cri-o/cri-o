@@ -17,6 +17,7 @@ limitations under the License.
 package release
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -34,15 +35,17 @@ import (
 
 // Publisher is the structure for publishing anything release related
 type Publisher struct {
-	client   publisherClient
-	objStore object.Store
+	client publisherClient
 }
 
 // NewPublisher creates a new Publisher instance
 func NewPublisher() *Publisher {
+	objStore := *object.NewGCS()
+	objStore.SetOptions(
+		objStore.WithNoClobber(false),
+	)
 	return &Publisher{
-		client:   &defaultPublisher{},
-		objStore: object.NewGCS(),
+		client: &defaultPublisher{&objStore},
 	}
 }
 
@@ -56,10 +59,23 @@ func (p *Publisher) SetClient(client publisherClient) {
 type publisherClient interface {
 	GSUtil(args ...string) error
 	GSUtilOutput(args ...string) (string, error)
+	GSUtilStatus(args ...string) (bool, error)
 	GetURLResponse(url string) (string, error)
+	GetReleasePath(bucket, gcsRoot, version string, fast bool) (string, error)
+	GetMarkerPath(bucket, gcsRoot string) (string, error)
+	NormalizePath(pathParts ...string) (string, error)
+	TempDir(dir, pattern string) (name string, err error)
+	CopyToLocal(remote, local string) error
+	ReadFile(filename string) ([]byte, error)
+	Unmarshal(data []byte, v interface{}) error
+	Marshal(v interface{}) ([]byte, error)
+	TempFile(dir, pattern string) (f *os.File, err error)
+	CopyToRemote(local, remote string) error
 }
 
-type defaultPublisher struct{}
+type defaultPublisher struct {
+	objStore object.Store
+}
 
 func (*defaultPublisher) GSUtil(args ...string) error {
 	return gcp.GSUtil(args...)
@@ -69,8 +85,60 @@ func (*defaultPublisher) GSUtilOutput(args ...string) (string, error) {
 	return gcp.GSUtilOutput(args...)
 }
 
+func (*defaultPublisher) GSUtilStatus(args ...string) (bool, error) {
+	status, err := gcp.GSUtilStatus(args...)
+	if err != nil {
+		return false, err
+	}
+	return status.Success(), nil
+}
+
 func (*defaultPublisher) GetURLResponse(url string) (string, error) {
 	return http.GetURLResponse(url, true)
+}
+
+func (d *defaultPublisher) GetReleasePath(
+	bucket, gcsRoot, version string, fast bool,
+) (string, error) {
+	return d.objStore.GetReleasePath(bucket, gcsRoot, version, fast)
+}
+
+func (d *defaultPublisher) GetMarkerPath(
+	bucket, gcsRoot string,
+) (string, error) {
+	return d.objStore.GetMarkerPath(bucket, gcsRoot)
+}
+
+func (d *defaultPublisher) NormalizePath(pathParts ...string) (string, error) {
+	return d.objStore.NormalizePath(pathParts...)
+}
+
+func (*defaultPublisher) TempDir(dir, pattern string) (name string, err error) {
+	return ioutil.TempDir(dir, pattern)
+}
+
+func (d *defaultPublisher) CopyToLocal(remote, local string) error {
+	return d.objStore.CopyToLocal(remote, local)
+}
+
+func (*defaultPublisher) ReadFile(filename string) ([]byte, error) {
+	return ioutil.ReadFile(filename)
+}
+
+func (*defaultPublisher) Unmarshal(data []byte, v interface{}) error {
+	return json.Unmarshal(data, v)
+}
+
+func (*defaultPublisher) Marshal(v interface{}) ([]byte, error) {
+	return json.Marshal(v)
+}
+
+func (*defaultPublisher) TempFile(dir, pattern string) (f *os.File, err error) {
+	return ioutil.TempFile(dir, pattern)
+}
+
+func (d *defaultPublisher) CopyToRemote(local, remote string) error {
+	return d.objStore.CopyToRemote(local, remote)
 }
 
 // Publish a new version, (latest or stable) but only if the files actually
@@ -107,7 +175,7 @@ func (p *Publisher) PublishVersion(
 		return errors.Errorf("invalid version %s", version)
 	}
 
-	markerPath, markerPathErr := p.objStore.GetMarkerPath(
+	markerPath, markerPathErr := p.client.GetMarkerPath(
 		bucket,
 		gcsRoot,
 	)
@@ -115,7 +183,7 @@ func (p *Publisher) PublishVersion(
 		return errors.Wrap(markerPathErr, "get version marker path")
 	}
 
-	releasePath, releasePathErr := p.objStore.GetReleasePath(
+	releasePath, releasePathErr := p.client.GetReleasePath(
 		bucket,
 		gcsRoot,
 		version,
@@ -193,7 +261,7 @@ func (p *Publisher) VerifyLatestUpdate(
 ) (needsUpdate bool, err error) {
 	logrus.Infof("Testing %s > %s (published)", version, publishFile)
 
-	publishFileDst, publishFileDstErr := p.objStore.NormalizePath(markerPath, publishFile)
+	publishFileDst, publishFileDstErr := p.client.NormalizePath(markerPath, publishFile)
 	if publishFileDstErr != nil {
 		return false, errors.Wrap(publishFileDstErr, "get marker file destination")
 	}
@@ -236,7 +304,7 @@ func (p *Publisher) PublishToGcs(
 	privateBucket bool,
 ) error {
 	releaseStage := filepath.Join(buildDir, ReleaseStagePath)
-	publishFileDst, publishFileDstErr := p.objStore.NormalizePath(markerPath, publishFile)
+	publishFileDst, publishFileDstErr := p.client.NormalizePath(markerPath, publishFile)
 	if publishFileDstErr != nil {
 		return errors.Wrap(publishFileDstErr, "get marker file destination")
 	}
@@ -313,5 +381,86 @@ func (p *Publisher) PublishToGcs(
 	}
 
 	logrus.Info("Version equals response")
+	return nil
+}
+
+// PublishReleaseNotesIndex updates or creates the release notes index JSON at
+// the target `gcsIndexRootPath`.
+func (p *Publisher) PublishReleaseNotesIndex(
+	gcsIndexRootPath, gcsReleaseNotesPath, version string,
+) error {
+	const releaseNotesIndex = "/release-notes-index.json"
+
+	indexFilePath, err := p.client.NormalizePath(
+		gcsIndexRootPath, releaseNotesIndex,
+	)
+	if err != nil {
+		return errors.Wrap(err, "normalize index file")
+	}
+	logrus.Infof("Publishing release notes index %s", indexFilePath)
+
+	releaseNotesFilePath, err := p.client.NormalizePath(gcsReleaseNotesPath)
+	if err != nil {
+		return errors.Wrap(err, "normalize release notes file")
+	}
+
+	success, err := p.client.GSUtilStatus("-q", "stat", indexFilePath)
+	if err != nil {
+		return errors.Wrap(err, "run gcsutil stat")
+	}
+
+	logrus.Info("Building release notes index")
+	versions := make(map[string]string)
+	if success {
+		logrus.Info("Modifying existing release notes index file")
+
+		tempDir, err := p.client.TempDir("", "release-notes-index-")
+		if err != nil {
+			return errors.Wrap(err, "create temp dir")
+		}
+		defer os.RemoveAll(tempDir)
+		tempIndexFile := filepath.Join(tempDir, releaseNotesIndex)
+
+		if err := p.client.CopyToLocal(
+			indexFilePath, tempIndexFile,
+		); err != nil {
+			return errors.Wrap(err, "copy index file to local")
+		}
+
+		indexBytes, err := p.client.ReadFile(tempIndexFile)
+		if err != nil {
+			return errors.Wrap(err, "read local index file")
+		}
+
+		if err := p.client.Unmarshal(indexBytes, &versions); err != nil {
+			return errors.Wrap(err, "unmarshal versions")
+		}
+	} else {
+		logrus.Info("Creating non existing release notes index file")
+	}
+	versions[version] = releaseNotesFilePath
+
+	versionJSON, err := p.client.Marshal(versions)
+	if err != nil {
+		return errors.Wrap(err, "marshal version JSON")
+	}
+
+	logrus.Infof("Writing new release notes index: %s", string(versionJSON))
+	tempFile, err := p.client.TempFile("", "release-notes-index-")
+	if err != nil {
+		return errors.Wrap(err, "create temp file")
+	}
+	defer os.Remove(tempFile.Name())
+	if _, err := tempFile.Write(versionJSON); err != nil {
+		return errors.Wrap(err, "write temp index")
+	}
+
+	logrus.Info("Uploading release notes index")
+	if err := p.client.CopyToRemote(
+		tempFile.Name(), indexFilePath,
+	); err != nil {
+		return errors.Wrap(err, "upload index file")
+	}
+
 	return nil
 }
