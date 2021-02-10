@@ -24,6 +24,13 @@ const (
 	ManagedNamespacesNum        = 4
 )
 
+// SupportedNamespacesForPinning returns a slice of
+// the names of namespaces that CRI-O supports
+// pinning.
+func SupportedNamespacesForPinning() []NSType {
+	return []NSType{NETNS, IPCNS, UTSNS, USERNS}
+}
+
 type PodNamespacesConfig struct {
 	Namespaces []*PodNamespaceConfig
 	IDMappings *idtools.IDMappings
