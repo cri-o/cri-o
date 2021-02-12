@@ -1,7 +1,6 @@
 package sandbox_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/cri-o/cri-o/pkg/sandbox"
@@ -31,5 +30,5 @@ var _ = AfterSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	sut = sandbox.New(context.Background())
+	sut = sandbox.New()
 })

@@ -1,7 +1,6 @@
 package container_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/cri-o/cri-o/pkg/container"
@@ -32,6 +31,6 @@ var _ = AfterSuite(func() {
 
 var _ = BeforeEach(func() {
 	var err error
-	sut, err = container.New(context.Background())
+	sut, err = container.New()
 	Expect(err).To(BeNil())
 })

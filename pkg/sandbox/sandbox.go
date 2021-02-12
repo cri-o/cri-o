@@ -1,7 +1,6 @@
 package sandbox
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -30,16 +29,14 @@ type Sandbox interface {
 
 // sandbox is the hidden default type behind the Sandbox interface
 type sandbox struct {
-	ctx    context.Context
 	config *types.PodSandboxConfig
 	id     string
 	name   string
 }
 
 // New creates a new, empty Sandbox instance
-func New(ctx context.Context) Sandbox {
+func New() Sandbox {
 	return &sandbox{
-		ctx:    ctx,
 		config: nil,
 	}
 }
