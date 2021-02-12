@@ -6,25 +6,12 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 )
 
 // Sandbox is the interface for managing pod sandboxes
 type Sandbox interface {
-	Create() error
-
-	Start() error
-
-	Stop() error
-
-	Delete() error
-
-	AddContainer(container.Container) error
-
-	RemoveContainer(container.Container) error
-
 	// SetConfig sets the sandbox configuration and validates it
 	SetConfig(*types.PodSandboxConfig) error
 
