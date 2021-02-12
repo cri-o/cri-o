@@ -257,6 +257,7 @@ jobs:
 
   dependencies:
     if: github.ref == 'refs/heads/master'
+    needs: release-notes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
