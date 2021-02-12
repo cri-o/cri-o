@@ -36,14 +36,18 @@ type Sandbox interface {
 	// Spec returns the infra container's generator
 	// Must be called after InitInfraContainer
 	Spec() *generate.Generator
+
+	// ResolvPath returns the sandbox's resolvPath
+	ResolvPath() string
 }
 
 // sandbox is the hidden default type behind the Sandbox interface
 type sandbox struct {
-	config *types.PodSandboxConfig
-	id     string
-	name   string
-	infra  container.Container
+	config     *types.PodSandboxConfig
+	id         string
+	name       string
+	infra      container.Container
+	resolvPath string
 }
 
 // New creates a new, empty Sandbox instance
@@ -113,4 +117,8 @@ func (s *sandbox) ID() string {
 // Name returns the id of the pod sandbox
 func (s *sandbox) Name() string {
 	return s.name
+}
+
+func (s *sandbox) ResolvPath() string {
+	return s.resolvPath
 }
