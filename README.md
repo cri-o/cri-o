@@ -2,7 +2,6 @@
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
 [![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
-[![CircleCI](https://circleci.com/gh/cri-o/cri-o.svg?style=shield)](https://circleci.com/gh/cri-o/cri-o)
 [![codecov](https://codecov.io/gh/cri-o/cri-o/branch/master/graph/badge.svg)](https://codecov.io/gh/cri-o/cri-o)
 [![Release Notes](https://img.shields.io/badge/release-notes-blue.svg)](https://cri-o.github.io/cri-o)
 [![Dependencies](https://img.shields.io/badge/report-dependencies-blue.svg)](https://cri-o.github.io/cri-o/dependencies)

@@ -9,8 +9,6 @@ main() {
     set -x
     prepare_system
 
-    install_packages
-    install_golang
     install_bats
     install_conmon
     install_critools
@@ -21,8 +19,6 @@ main() {
 }
 
 prepare_system() {
-    env
-
     sudo systemctl stop docker
     sudo ufw disable
 
@@ -35,44 +31,6 @@ prepare_system() {
     # needed for crictl test
     sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
     sudo iptables -t nat -I POSTROUTING -s 127.0.0.0/8 ! -d 127.0.0.0/8 -j MASQUERADE
-}
-
-install_golang() {
-    # remove old golang version
-    sudo rm -rf /usr/local/go
-    sudo rm -rf /usr/local/bin/go
-
-    # set GOPATH
-    echo "export GOPATH=/home/circleci/go" >>~/.bashrc
-
-    curl -fsSL "https://dl.google.com/go/go${VERSIONS["go"]}.linux-amd64.tar.gz" | sudo tar Cxz /usr/local
-
-    go version
-    go env
-}
-
-install_packages() {
-    sudo apt update
-    sudo apt install -y \
-        apparmor \
-        conntrack \
-        jq \
-        libaio-dev \
-        libapparmor-dev \
-        libbtrfs-dev \
-        libcap-dev \
-        libdevmapper-dev \
-        libfuse-dev \
-        libglib2.0-dev \
-        libgpgme11-dev \
-        libnet1-dev \
-        libnl-3-dev \
-        libprotobuf-c-dev \
-        libprotobuf-dev \
-        libseccomp-dev \
-        libsystemd-dev \
-        libudev-dev \
-        uuid-dev
 }
 
 install_bats() {
