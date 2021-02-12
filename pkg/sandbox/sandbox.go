@@ -5,7 +5,11 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/cri-o/cri-o/internal/storage"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/server/cri/types"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 )
 
@@ -25,6 +29,13 @@ type Sandbox interface {
 
 	// Name returns the id of the pod sandbox
 	Name() string
+
+	// InitInfraContainer initializes the sandbox's infra container
+	InitInfraContainer(*libconfig.Config, *storage.ContainerInfo) error
+
+	// Spec returns the infra container's generator
+	// Must be called after InitInfraContainer
+	Spec() *generate.Generator
 }
 
 // sandbox is the hidden default type behind the Sandbox interface
@@ -32,6 +43,7 @@ type sandbox struct {
 	config *types.PodSandboxConfig
 	id     string
 	name   string
+	infra  container.Container
 }
 
 // New creates a new, empty Sandbox instance

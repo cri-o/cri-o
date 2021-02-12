@@ -428,7 +428,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	// Join the namespace paths for the pod sandbox container.
-	if err := configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), *specgen); err != nil {
+	if err := configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), specgen); err != nil {
 		return nil, errors.Wrap(err, "failed to configure namespaces in container create")
 	}
 
