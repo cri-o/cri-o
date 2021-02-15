@@ -690,7 +690,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			Destination: "/sys",
 			Type:        "sysfs",
 			Source:      "sysfs",
-			Options:     []string{"nosuid", "noexec", "nodev", "rw"},
+			Options:     []string{"nosuid", "noexec", "nodev", "rw", "rslave"},
 		}
 		specgen.AddMount(sysMnt)
 
@@ -698,7 +698,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			Destination: "/sys/fs/cgroup",
 			Type:        "cgroup",
 			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime"},
+			Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime", "rslave"},
 		}
 		specgen.AddMount(cgroupMnt)
 	}
