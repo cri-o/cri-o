@@ -20,6 +20,8 @@ const sleepTimeBeforeCleanup = 1 * time.Minute
 type ResourceStore struct {
 	resources map[string]*Resource
 	timeout   time.Duration
+	closeChan chan struct{}
+	closed    bool
 	sync.Mutex
 }
 
@@ -32,6 +34,12 @@ type Resource struct {
 	watchers     []chan struct{}
 	stale        bool
 	name         string
+}
+
+// wasPut checks that a resource has been fully defined yet.
+// This is defined as a resource that only has watchers, but no associated resource.
+func (r *Resource) wasPut() bool {
+	return r != nil && r.resource != nil
 }
 
 // IdentifiableCreatable are the qualities needed by the caller of the resource.
@@ -53,10 +61,21 @@ func New() *ResourceStore {
 func NewWithTimeout(timeout time.Duration) *ResourceStore {
 	rc := &ResourceStore{
 		resources: make(map[string]*Resource),
+		closeChan: make(chan struct{}, 1),
 		timeout:   timeout,
 	}
 	go rc.cleanupStaleResources()
 	return rc
+}
+
+func (rc *ResourceStore) Close() {
+	rc.Lock()
+	defer rc.Unlock()
+	if rc.closed {
+		return
+	}
+	close(rc.closeChan)
+	rc.closed = true
 }
 
 // cleanupStaleResources is responsible for cleaning up resources that haven't been gotten
@@ -67,7 +86,11 @@ func NewWithTimeout(timeout time.Duration) *ResourceStore {
 // When a resource is cleaned up, it's removed from the store and its cleanupFuncs are called.
 func (rc *ResourceStore) cleanupStaleResources() {
 	for {
-		time.Sleep(rc.timeout)
+		select {
+		case <-rc.closeChan:
+			return
+		case <-time.After(rc.timeout):
+		}
 		resourcesToReap := []*Resource{}
 		rc.Lock()
 		for name, r := range rc.resources {
@@ -101,6 +124,11 @@ func (rc *ResourceStore) Get(name string) string {
 	if !ok {
 		return ""
 	}
+	// It is possible there are existing watchers,
+	// but no resource created yet
+	if !r.wasPut() {
+		return ""
+	}
 	delete(rc.resources, name)
 	r.resource.SetCreated()
 	return r.resource.ID()
@@ -121,7 +149,7 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleanu
 		rc.resources[name] = r
 	}
 	// make sure the resource hasn't already been added to the store
-	if r.resource != nil || r.cleanupFuncs != nil {
+	if ok && r.wasPut() {
 		return errors.Errorf("failed to add entry %s to ResourceStore; entry already exists", name)
 	}
 
@@ -136,7 +164,9 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleanu
 	return nil
 }
 
-// WatcherForResource looks up a Resource by name, and gives it a watcher if it's found.
+// WatcherForResource looks up a Resource by name, and gives it a watcher.
+// If no entry exists for that resource, a placeholder is created and a watcher is given to that
+// placeholder resource.
 // A watcher can be used for concurrent processes to wait for the resource to be created.
 // This is useful for situations where clients retry requests quickly after they "fail" because
 // they've taken too long. Adding a watcher allows the server to slow down the client, but still

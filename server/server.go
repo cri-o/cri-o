@@ -276,6 +276,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// notice this won't trigger just on system halt but also on normal
 	// crio.service restart!!!
 	s.cleanupSandboxesOnShutdown(ctx)
+	s.resourceStore.Close()
 
 	return s.ContainerServer.Shutdown()
 }
