@@ -857,7 +857,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		}
 
 		for _, ns := range nsmgr.SupportedNamespacesForPinning() {
-			nsDir := filepath.Join(c.NamespacesDir, string(ns))
+			nsDir := filepath.Join(c.NamespacesDir, string(ns)+"ns")
 			if err := utils.IsDirectory(nsDir); err != nil {
 				// The file is not a directory, but exists.
 				// We should remove it.
