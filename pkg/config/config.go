@@ -858,12 +858,14 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "pinns validation")
 		}
 
+		c.namespaceManager = nsmgr.New(c.NamespacesDir, c.PinnsPath)
+
 		if err := os.MkdirAll(c.NamespacesDir, 0o755); err != nil {
 			return errors.Wrap(err, "invalid namespaces_dir")
 		}
 
 		for _, ns := range nsmgr.SupportedNamespacesForPinning() {
-			nsDir := filepath.Join(c.NamespacesDir, string(ns))
+			nsDir := c.namespaceManager.NamespaceDirForType(ns)
 			if err := utils.IsDirectory(nsDir); err != nil {
 				// The file is not a directory, but exists.
 				// We should remove it.
@@ -904,8 +906,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if !c.cgroupManager.IsSystemd() && c.ConmonCgroup != "pod" && c.ConmonCgroup != "" {
 			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
 		}
-
-		c.namespaceManager = nsmgr.New(c.NamespacesDir, c.PinnsPath)
 	}
 
 	return nil

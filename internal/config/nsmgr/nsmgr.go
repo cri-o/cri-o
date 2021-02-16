@@ -143,3 +143,9 @@ func getSysctlForPinns(sysctls map[string]string) string {
 	}
 	return strings.TrimSuffix(g.String(), pinnsSysctlDelim)
 }
+
+// NamespacedirForType returns the sub-directory for that particular NSType
+// which is of the form `$namespaceDir/$nsType+"ns"`
+func (mgr *NamespaceManager) NamespaceDirForType(ns NSType) string {
+	return filepath.Join(mgr.namespacesDir, string(ns)+"ns")
+}
