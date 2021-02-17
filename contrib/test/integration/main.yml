@@ -12,7 +12,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-        version: "1.16.0"
+        version: "1.15.5"
 
     - name: clone build and install bats
       include: "build/bats.yml"
@@ -25,7 +25,7 @@
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
-        k8s_git_version: "release-1.19"
+        k8s_git_version: "release-1.20"
         k8s_github_fork: "kubernetes"
         crio_socket: "/var/run/crio/crio.sock"
       when: "(cgroupv2 is undefined) or (cgroupv2 == False) | bool"
@@ -51,10 +51,6 @@
       include: "build/crun.yml"
       when: "build_crun | bool"
 
-    - name: install Kata Containers
-      include: "build/kata.yml"
-      when: "build_kata | bool"
-
     - name: clone build and install networking plugins
       include: "build/plugins.yml"
 
@@ -79,7 +75,7 @@
     - name: install Golang tools
       include: golang.yml
       vars:
-        version: "1.16"
+        version: "1.15"
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
 
@@ -96,10 +92,6 @@
     - name: clone build and install runc
       include: "build/runc.yml"
       when: "build_runc | bool"
-
-    - name: install Kata Containers
-      include: "build/kata.yml"
-      when: "build_kata | bool"
 
     - name: set fs.may_detach_mounts = 1
       sysctl:
@@ -156,7 +148,7 @@
       include: "build/kubernetes.yml"
       vars:
         force_clone: true
-        k8s_git_version: "master"
+        k8s_git_version: "release-1.20"
         k8s_github_fork: "kubernetes"
         crio_socket: "/var/run/crio/crio.sock"
 
@@ -174,7 +166,7 @@
       include: "build/kubernetes.yml"
       vars:
         force_clone: true
-        k8s_git_version: "master"
+        k8s_git_version: "release-1.20"
         k8s_github_fork: "kubernetes"
         crio_socket: "/var/run/crio/crio.sock"
 
@@ -197,7 +189,7 @@
       include: "build/kubernetes.yml"
       vars:
         force_clone: true
-        k8s_git_version: "master"
+        k8s_git_version: "release-1.20"
         k8s_github_fork: "kubernetes"
         crio_socket: "/var/run/crio/crio.sock"
       when: "(cgroupv2 is undefined) or (cgroupv2 == False) | bool"
@@ -205,7 +197,7 @@
       include: "build/kubernetes.yml"
       vars:
         force_clone: true
-        k8s_git_version: "master"
+        k8s_git_version: "release-1.20"
         k8s_github_fork: "kubernetes"
         crio_socket: "/var/run/crio/crio.sock"
       when: "cgroupv2 | bool"

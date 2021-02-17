@@ -69,9 +69,6 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 **stream_enable_tls**=false
   Enable encrypted TLS transport of the stream server.
 
-**stream_idle_timeout**=""
-  Length of time until open streams terminate due to lack of activity.
-
 **stream_tls_cert**=""
   Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
@@ -127,10 +124,6 @@ the container runtime configuration.
 
 **apparmor_profile**=""
   Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default".
-
-**irqbalance_config_file**="/etc/sysconfig/irqbalance"
-  Used to change irqbalance service config file which is used by CRI-O.
-  For CentOS/SUSE, this file is located at /etc/sysconfig/irqbalance. For Ubuntu, this file is located at /etc/default/irqbalance.
 
 **cgroup_manager**="systemd"
   Cgroup management implementation used for the runtime.
@@ -265,7 +258,6 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
-  "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.
@@ -297,7 +289,9 @@ CRI-O reads its configured registries defaults from the system wide containers-r
   List of registries to skip TLS verification for pulling images.
 
 **registries**=["docker.io"]
-  List of registries to be used when pulling an unqualified image. Note support for this option has been dropped and it has no effect. Please refer to `containers-registries.conf(5)` for configuring unqualified-search registries.
+  List of registries to be used when pulling an unqualified image (e.g., "alpine:latest"). By default, registries is set to "docker.io" for compatibility reasons. Depending on your workload and usecase you may add more registries (e.g., "quay.io", "registry.fedoraproject.org", "registry.opensuse.org", etc.).
+
+  NOTE: The registries option has been deprecated and will be removed with CRI-O 1.21. Please refer to registries.conf(5) for configuring unqualified-search registries.
 
 **big_files_temporary_dir**=""
   Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.

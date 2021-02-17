@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,17 +8,18 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/log"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server/cri/types"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"golang.org/x/net/context"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // ImageStatus returns the status of the image.
-func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest) (*types.ImageStatusResponse, error) {
-	var resp *types.ImageStatusResponse
+func (s *Server) ImageStatus(ctx context.Context, req *pb.ImageStatusRequest) (*pb.ImageStatusResponse, error) {
+	var resp *pb.ImageStatusResponse
 	image := ""
-	img := req.Image
+	img := req.GetImage()
 	if img != nil {
 		image = img.Image
 	}
@@ -61,12 +61,12 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 			size = *status.Size
 		}
 
-		resp = &types.ImageStatusResponse{
-			Image: &types.Image{
-				ID:          status.ID,
+		resp = &pb.ImageStatusResponse{
+			Image: &pb.Image{
+				Id:          status.ID,
 				RepoTags:    status.RepoTags,
 				RepoDigests: status.RepoDigests,
-				Size:        size,
+				Size_:       size,
 			},
 		}
 		if req.Verbose {
@@ -78,7 +78,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		}
 		uid, username := getUserFromImage(status.User)
 		if uid != nil {
-			resp.Image.UID = &types.Int64Value{Value: *uid}
+			resp.Image.Uid = &pb.Int64Value{Value: *uid}
 		}
 		resp.Image.Username = username
 		break
@@ -88,7 +88,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 	}
 	if notfound && resp == nil {
 		log.Infof(ctx, "Image %s not found", image)
-		return &types.ImageStatusResponse{}, nil
+		return &pb.ImageStatusResponse{}, nil
 	}
 
 	log.Infof(ctx, "Image status: %v", resp)

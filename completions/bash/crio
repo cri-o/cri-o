@@ -47,7 +47,6 @@ h
 --image-volumes
 --infra-ctr-cpuset
 --insecure-registry
---irqbalance-config-file
 --listen
 --log
 --log-dir
@@ -56,6 +55,7 @@ h
 --log-journald
 --log-level
 --log-size-max
+--manage-ns-lifecycle
 --metrics-port
 --metrics-socket
 --namespaces-dir
@@ -82,7 +82,6 @@ h
 --storage-opt
 --stream-address
 --stream-enable-tls
---stream-idle-timeout
 --stream-port
 --stream-tls-ca
 --stream-tls-cert

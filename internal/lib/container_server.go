@@ -108,7 +108,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		return nil, fmt.Errorf("cannot create container server: interface is nil")
 	}
 
-	imageService, err := storage.GetImageService(ctx, config.SystemContext, store, config.DefaultTransport, config.InsecureRegistries)
+	imageService, err := storage.GetImageService(ctx, config.SystemContext, store, config.DefaultTransport, config.InsecureRegistries, config.Registries)
 	if err != nil {
 		return nil, err
 	}
@@ -209,28 +209,30 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
-	if err == nil {
-		if nsErr := sb.NetNsJoin(netNsPath); nsErr != nil {
-			return nsErr
+	if c.config.ManageNSLifecycle {
+		netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
+		if err == nil {
+			if nsErr := sb.NetNsJoin(netNsPath); nsErr != nil {
+				return nsErr
+			}
 		}
-	}
-	ipcNsPath, err := configNsPath(&m, rspec.IPCNamespace)
-	if err == nil {
-		if nsErr := sb.IpcNsJoin(ipcNsPath); nsErr != nil {
-			return nsErr
+		ipcNsPath, err := configNsPath(&m, rspec.IPCNamespace)
+		if err == nil {
+			if nsErr := sb.IpcNsJoin(ipcNsPath); nsErr != nil {
+				return nsErr
+			}
 		}
-	}
-	utsNsPath, err := configNsPath(&m, rspec.UTSNamespace)
-	if err == nil {
-		if nsErr := sb.UtsNsJoin(utsNsPath); nsErr != nil {
-			return nsErr
+		utsNsPath, err := configNsPath(&m, rspec.UTSNamespace)
+		if err == nil {
+			if nsErr := sb.UtsNsJoin(utsNsPath); nsErr != nil {
+				return nsErr
+			}
 		}
-	}
-	userNsPath, err := configNsPath(&m, rspec.UserNamespace)
-	if err == nil {
-		if nsErr := sb.UserNsJoin(userNsPath); nsErr != nil {
-			return nsErr
+		userNsPath, err := configNsPath(&m, rspec.UserNamespace)
+		if err == nil {
+			if nsErr := sb.UserNsJoin(userNsPath); nsErr != nil {
+				return nsErr
+			}
 		}
 	}
 
@@ -314,7 +316,7 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	if wasSpoofed {
+	if c.config.ManageNSLifecycle || wasSpoofed {
 		namespacesToJoin := []struct {
 			rspecNS  rspec.LinuxNamespaceType
 			joinFunc func(string) error
@@ -694,9 +696,6 @@ func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
 // StopContainerAndWait is a wrapping function that stops a container and waits for the container state to be stopped
 func (c *ContainerServer) StopContainerAndWait(ctx context.Context, ctr *oci.Container, timeout int64) error {
 	if err := c.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
-		if errors.Is(err, oci.ErrContainerStopped) {
-			return nil
-		}
 		return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
 	}
 	if err := c.Runtime().WaitContainerStateStopped(ctx, ctr); err != nil {

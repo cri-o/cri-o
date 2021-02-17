@@ -5,38 +5,39 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
-func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequest) error {
-	log.Infof(ctx, "Stopping container: %s", req.ContainerID)
+func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest) (*pb.StopContainerResponse, error) {
+	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
 	// save container description to print
-	c, err := s.GetContainerFromShortID(req.ContainerID)
+	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
-		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerID, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
 	sandbox := s.getSandbox(c.Sandbox())
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), s.Runtime())
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, sandbox.RuntimeHandler(), s.Runtime())
 	if err != nil {
-		return fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
+		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
 	}
 
 	if hooks != nil {
 		if err := hooks.PreStop(ctx, c, sandbox); err != nil {
-			return fmt.Errorf("failed to run pre-stop hook for container %q: %v", c.ID(), err)
+			return nil, fmt.Errorf("failed to run pre-stop hook for container %q: %v", c.ID(), err)
 		}
 	}
 
-	_, err = s.ContainerServer.ContainerStop(ctx, req.ContainerID, req.Timeout)
+	_, err = s.ContainerServer.ContainerStop(ctx, req.ContainerId, req.Timeout)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Infof(ctx, "Stopped container %s: %s", c.ID(), c.Description())
-	return nil
+	return &pb.StopContainerResponse{}, nil
 }

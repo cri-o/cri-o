@@ -4,7 +4,6 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"testing"
@@ -230,9 +229,7 @@ func createDummyState() {
 }
 
 func mockRuncInLibConfig() {
-	echo, err := exec.LookPath("echo")
-	Expect(err).To(BeNil())
 	serverConfig.Runtimes["runc"] = &config.RuntimeHandler{
-		RuntimePath: echo,
+		RuntimePath: "/bin/echo",
 	}
 }

@@ -22,8 +22,6 @@ import (
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
-	v1 "github.com/cri-o/cri-o/server/cri/v1"
-	"github.com/cri-o/cri-o/server/cri/v1alpha2"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -32,6 +30,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
+	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog/v2"
 )
 
@@ -225,7 +224,7 @@ func main() {
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
 
-		crioServer, err := server.New(ctx, config)
+		service, err := server.New(ctx, config)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -242,20 +241,20 @@ func main() {
 			logrus.Fatal(err)
 		}
 
-		v1alpha2.Register(grpcServer, crioServer)
-		v1.Register(grpcServer, crioServer)
+		runtime.RegisterRuntimeServiceServer(grpcServer, service)
+		runtime.RegisterImageServiceServer(grpcServer, service)
 
 		// after the daemon is done setting up we can notify systemd api
 		notifySystem()
 
 		go func() {
-			crioServer.StartExitMonitor()
+			service.StartExitMonitor()
 		}()
 		hookSync := make(chan error, 2)
-		if crioServer.ContainerServer.Hooks == nil {
+		if service.ContainerServer.Hooks == nil {
 			hookSync <- err // so we don't block during cleanup
 		} else {
-			go crioServer.ContainerServer.Hooks.Monitor(ctx, hookSync)
+			go service.ContainerServer.Hooks.Monitor(ctx, hookSync)
 			err = <-hookSync
 			if err != nil {
 				cancel()
@@ -267,14 +266,14 @@ func main() {
 		grpcL := m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
 		httpL := m.Match(cmux.HTTP1Fast())
 
-		infoMux := crioServer.GetInfoMux(c.Bool("enable-profile-unix-socket"))
+		infoMux := service.GetInfoMux(c.Bool("enable-profile-unix-socket"))
 		httpServer := &http.Server{
 			Handler:     infoMux,
 			ReadTimeout: 5 * time.Second,
 		}
 
 		graceful := false
-		catchShutdown(ctx, cancel, grpcServer, crioServer, httpServer, &graceful)
+		catchShutdown(ctx, cancel, grpcServer, service, httpServer, &graceful)
 
 		go func() {
 			if err := grpcServer.Serve(grpcL); err != nil {
@@ -299,15 +298,15 @@ func main() {
 			}
 		}()
 
-		streamServerCloseCh := crioServer.StreamingServerCloseChan()
-		serverMonitorsCh := crioServer.MonitorsCloseChan()
+		streamServerCloseCh := service.StreamingServerCloseChan()
+		serverMonitorsCh := service.MonitorsCloseChan()
 		select {
 		case <-streamServerCloseCh:
 		case <-serverMonitorsCh:
 		case <-serverCloseCh:
 		}
 
-		if err := crioServer.Shutdown(ctx); err != nil {
+		if err := service.Shutdown(ctx); err != nil {
 			logrus.Warnf("error shutting down service: %v", err)
 		}
 		cancel()

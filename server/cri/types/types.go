@@ -1,28 +1,4 @@
-package types
-
-import "github.com/gogo/protobuf/proto"
-
-const (
-	RuntimeReady = "RuntimeReady"
-	NetworkReady = "NetworkReady"
-
-	NamespaceModePOD       NamespaceMode = 0
-	NamespaceModeCONTAINER NamespaceMode = 1
-	NamespaceModeNODE      NamespaceMode = 2
-	NamespaceModeTARGET    NamespaceMode = 3
-
-	MountPropagationPropagationPrivate         MountPropagation = 0
-	MountPropagationPropagationHostToContainer MountPropagation = 1
-	MountPropagationPropagationBidirectional   MountPropagation = 2
-
-	ContainerStateContainerCreated ContainerState = 0
-	ContainerStateContainerRunning ContainerState = 1
-	ContainerStateContainerExited  ContainerState = 2
-	ContainerStateContainerUnknown ContainerState = 3
-
-	PodSandboxStateSandboxReady    PodSandboxState = 0
-	PodSandboxStateSandboxNotReady PodSandboxState = 1
-)
+package server
 
 type VersionRequest struct {
 	Version string
@@ -84,9 +60,15 @@ type StartContainerRequest struct {
 	ContainerID string
 }
 
+type StartContainerResponse struct {
+}
+
 type StopContainerRequest struct {
 	ContainerID string
 	Timeout     int64
+}
+
+type StopContainerResponse struct {
 }
 
 type RemoveContainerRequest struct {
@@ -194,6 +176,10 @@ type RemoveImageRequest struct {
 	Image *ImageSpec
 }
 
+type UpdateRuntimeConfigRequest struct {
+	RuntimeConfig *RuntimeConfig
+}
+
 type StatusRequest struct {
 	Verbose bool
 }
@@ -251,7 +237,7 @@ type AuthConfig struct {
 	Password      string
 	Auth          string
 	ServerAddress string
-	IdentityToken string
+	IDentityToken string
 	RegistryToken string
 }
 
@@ -264,15 +250,6 @@ type PodSandboxConfig struct {
 	Labels       map[string]string
 	Annotations  map[string]string
 	Linux        *LinuxPodSandboxConfig
-}
-
-func NewPodSandboxConfig() *PodSandboxConfig {
-	return &PodSandboxConfig{
-		Metadata:     &PodSandboxMetadata{},
-		DNSConfig:    &DNSConfig{},
-		PortMappings: []*PortMapping{},
-		Linux:        NewLinuxPodSandboxConfig(),
-	}
 }
 
 type PodSandboxMetadata struct {
@@ -297,26 +274,10 @@ type PortMapping struct {
 
 type Protocol int32
 
-var ProtocolName = map[int32]string{
-	0: "TCP",
-	1: "UDP",
-	2: "SCTP",
-}
-
-func (x Protocol) String() string {
-	return proto.EnumName(ProtocolName, int32(x))
-}
-
 type LinuxPodSandboxConfig struct {
 	CgroupParent    string
 	SecurityContext *LinuxSandboxSecurityContext
 	Sysctls         map[string]string
-}
-
-func NewLinuxPodSandboxConfig() *LinuxPodSandboxConfig {
-	return &LinuxPodSandboxConfig{
-		SecurityContext: NewLinuxSandboxSecurityContext(),
-	}
 }
 
 type LinuxSandboxSecurityContext struct {
@@ -330,20 +291,11 @@ type LinuxSandboxSecurityContext struct {
 	Privileged         bool
 }
 
-func NewLinuxSandboxSecurityContext() *LinuxSandboxSecurityContext {
-	return &LinuxSandboxSecurityContext{
-		NamespaceOptions: &NamespaceOption{},
-		SelinuxOptions:   &SELinuxOption{},
-		RunAsUser:        &Int64Value{},
-		RunAsGroup:       &Int64Value{},
-	}
-}
-
 type NamespaceOption struct {
-	Network  NamespaceMode `json:"network,omitempty"`
-	Pid      NamespaceMode `json:"pid,omitempty"`
-	Ipc      NamespaceMode `json:"ipc,omitempty"`
-	TargetID string        `json:"target_id,omitempty"`
+	Network  NamespaceMode
+	Pid      NamespaceMode
+	Ipc      NamespaceMode
+	TargetID string
 }
 
 type NamespaceMode int32
@@ -361,12 +313,12 @@ type Int64Value struct {
 
 type FilesystemUsage struct {
 	Timestamp  int64
-	FsID       *FilesystemIdentifier
+	FsID       *FilesystemIDentifier
 	UsedBytes  *UInt64Value
 	InodesUsed *UInt64Value
 }
 
-type FilesystemIdentifier struct {
+type FilesystemIDentifier struct {
 	Mountpoint string
 }
 
@@ -443,17 +395,9 @@ type ContainerConfig struct {
 	Linux       *LinuxContainerConfig
 }
 
-func NewContainerConfig() *ContainerConfig {
-	return &ContainerConfig{
-		Metadata: &ContainerMetadata{},
-		Image:    &ImageSpec{},
-		Linux:    NewLinuxContainerConfig(),
-	}
-}
-
 type ContainerMetadata struct {
-	Name    string `json:"name,omitempty"`
-	Attempt uint32 `json:"attempt,omitempty"`
+	Name    string
+	Attempt uint32
 }
 
 type KeyValue struct {
@@ -480,13 +424,6 @@ type Device struct {
 type LinuxContainerConfig struct {
 	Resources       *LinuxContainerResources
 	SecurityContext *LinuxContainerSecurityContext
-}
-
-func NewLinuxContainerConfig() *LinuxContainerConfig {
-	return &LinuxContainerConfig{
-		Resources:       &LinuxContainerResources{},
-		SecurityContext: NewLinuxContainerSecurityContext(),
-	}
 }
 
 type LinuxContainerResources struct {
@@ -520,16 +457,6 @@ type LinuxContainerSecurityContext struct {
 	Privileged         bool
 	ReadonlyRootfs     bool
 	NoNewPrivs         bool
-}
-
-func NewLinuxContainerSecurityContext() *LinuxContainerSecurityContext {
-	return &LinuxContainerSecurityContext{
-		Capabilities:     &Capability{},
-		NamespaceOptions: &NamespaceOption{},
-		SelinuxOptions:   &SELinuxOption{},
-		RunAsUser:        &Int64Value{},
-		RunAsGroup:       &Int64Value{},
-	}
 }
 
 type Capability struct {
@@ -578,6 +505,14 @@ type ContainerStatus struct {
 	FinishedAt  int64
 	State       ContainerState
 	ExitCode    int32
+}
+
+type RuntimeConfig struct {
+	NetworkConfig *NetworkConfig
+}
+
+type NetworkConfig struct {
+	PodCidr string
 }
 
 type RuntimeStatus struct {

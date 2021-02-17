@@ -51,7 +51,6 @@ install-crio:
 	install $(SELINUX) -D -m 644 -t $(ETCDIR)/crio etc/crio.conf
 	install $(SELINUX) -D -m 644 -t $(MANDIR)/man5 man/crio.conf.5
 	install $(SELINUX) -D -m 644 -t $(MANDIR)/man5 man/crio.conf.d.5
-	install $(SELINUX) -D -m 644 -t $(MANDIR)/man8 man/crio-status.8
 	install $(SELINUX) -D -m 644 -t $(MANDIR)/man8 man/crio.8
 	install $(SELINUX) -D -m 644 -t $(BASHINSTALLDIR) completions/bash/crio
 	install $(SELINUX) -D -m 644 -t $(FISHINSTALLDIR) completions/fish/crio.fish
@@ -103,7 +102,6 @@ uninstall-crio:
 	rm $(ETCDIR)/crio/crio.conf
 	rm $(MANDIR)/man5/crio.conf.5
 	rm $(MANDIR)/man5/crio.conf.d.5
-	rm $(MANDIR)/man8/crio-status.8
 	rm $(MANDIR)/man8/crio.8
 	rm $(BASHINSTALLDIR)/crio
 	rm $(FISHINSTALLDIR)/crio.fish

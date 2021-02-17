@@ -19,8 +19,8 @@ To generate release notes for a commit range, run:
 ```bash
 $ export GITHUB_TOKEN=a_github_api_token
 $ release-notes \
-  --start-sha 02dc3d713dd7f945a8b6f7ef3e008f3d29c2d549 \
-  --end-sha   23649560c060ad6cd82da8da42302f8f7e38cf1e
+  -start-sha 02dc3d713dd7f945a8b6f7ef3e008f3d29c2d549 \
+  -end-sha   23649560c060ad6cd82da8da42302f8f7e38cf1e
 
 level=info timestamp=2019-07-30T04:02:30.9452687Z caller=main.go:139 msg="fetching all commits. this might take a while..."
 level=info timestamp=2019-07-30T04:02:43.8454168Z caller=notes.go:446 msg="[1/1679 - 0.06%]"
@@ -50,14 +50,14 @@ You can also generate the raw notes data into JSON. You can then use a variety o
 ]
 ```
 
-if you would like to debug a run, use the `--debug` flag:
+if you would like to debug a run, use the `-debug` flag:
 
 ```bash
 $ export GITHUB_TOKEN=a_github_api_token
 $ release-notes \
-  --start-sha 02dc3d713dd7f945a8b6f7ef3e008f3d29c2d549 \
-  --end-sha   23649560c060ad6cd82da8da42302f8f7e38cf1e \
-  --debug 
+  -start-sha 02dc3d713dd7f945a8b6f7ef3e008f3d29c2d549 \
+  -end-sha   23649560c060ad6cd82da8da42302f8f7e38cf1e \
+  -debug 
 
 level=debug timestamp=2019-07-30T04:02:43.8453116Z caller=notes.go:445 msg=################################################
 level=info timestamp=2019-07-30T04:02:43.8454168Z caller=notes.go:446 msg="[1/1679 - 0.06%]"
@@ -79,8 +79,6 @@ level=debug timestamp=2019-07-30T04:02:44.3716249Z caller=notes.go:497 msg="Excl
 | branch                  | BRANCH          | master              | Yes      | The GitHub repository branch to scrape                                                                                            |
 | start-sha               | START_SHA       |                     | Yes      | The commit hash to start processing from (inclusive)                                                                              |
 | end-sha                 | END_SHA         |                     | Yes      | The commit hash to end processing at (inclusive)                                                                                  |
-| github-base-url         | GITHUB_BASE_URL |                     | No       | The base URL of Github              |
-| github-upload-url       | GITHUB_UPLOAD_URL |                   | No       | The upload URL of enterprise Github |
 | repo-path               | REPO_PATH       | /tmp/k8s-repo       | No       | Path to a local Kubernetes repository, used only for tag discovery                                                                |
 | start-rev               | START_REV       |                     | No       | The git revision to start at. Can be used as alternative to start-sha                                                             |
 | env-rev                 | END_REV         |                     | No       | The git revision to end at. Can be used as alternative to end-sha                                                                 |

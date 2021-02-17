@@ -64,7 +64,7 @@ func (f *FileNameHook) findCaller() (file, function string, line int) {
 	const maxFrames = 10
 	for i := 0; i < maxFrames; i++ {
 		// The amount of frames to be skipped to land at the actual caller
-		const skipFrames = 6
+		const skipFrames = 5
 		pc, file, line = caller(skipFrames + i)
 		if !f.shouldSkipPrefix(file) {
 			break

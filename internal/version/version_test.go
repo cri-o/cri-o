@@ -4,171 +4,188 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 )
 
-var _ = t.Describe("Version", func() {
-	tempFileName := "tempVersionFile"
-	tempVersion := "1.1.1"
-	tempVersion2 := "1.13.1"
+func must(t *testing.T, err error) {
+	if err != nil {
+		t.Error(err)
+	}
+}
 
-	t.Describe("test setting version", func() {
-		It("should succeed to parse version", func() {
-			_, err := parseVersionConstant("1.1.1", "")
-			Expect(err).To(BeNil())
-			_, err = parseVersionConstant("1.1.1-dev", "")
-			Expect(err).To(BeNil())
-			_, err = parseVersionConstant("1.1.1-dev", "biglonggitcommit")
-			Expect(err).To(BeNil())
-		})
-		It("should succeed to parse the version with a git commit", func() {
-			gitCommit := "\"myfavoritecommit\""
-			v, err := parseVersionConstant(tempVersion, gitCommit)
-			Expect(err).To(BeNil())
-			Expect(v.Build).To(HaveLen(1))
-			trimmed := strings.Trim(gitCommit, "\"")
-			Expect(v.Build[0]).To(Equal(trimmed))
-		})
-		It("should ignore empty git commit", func() {
-			v, err := parseVersionConstant(tempVersion, "")
-			Expect(err).To(BeNil())
-			Expect(v.Build).To(HaveLen(0))
-		})
-		It("should fail to set a bad version", func() {
-			_, err := parseVersionConstant("badversion", "")
-			Expect(err).NotTo(BeNil())
-		})
-		It("should parse version with current version", func() {
-			_, err := parseVersionConstant(Version, "")
-			Expect(err).To(BeNil())
-		})
-		It("should write version for file writes", func() {
-			version := tempVersion
-			gitCommit := "fakeGitCommit"
-			tempFileName := tempFileName
-			tempFile := t.MustTempFile(tempFileName)
-			Expect(ioutil.WriteFile(tempFile, []byte(""), 0))
+func fails(t *testing.T, err error) {
+	if err == nil {
+		t.Error(err)
+	}
+}
 
-			err := writeVersionFile(tempFileName, gitCommit, version)
-			defer os.Remove(tempFileName)
-			Expect(err).To(BeNil())
+func mustUpgrade(t *testing.T, upgrade bool) {
+	if !upgrade {
+		t.Error("CRI-O should have upgraded")
+	}
+}
 
-			versionBytes, err := ioutil.ReadFile(tempFileName)
-			Expect(err).To(BeNil())
+func mustNotUpgrade(t *testing.T, upgrade bool) {
+	if upgrade {
+		t.Error("CRI-O should not have upgraded")
+	}
+}
 
-			versionConstantVersion, err := parseVersionConstant(version, gitCommit)
-			Expect(err).To(BeNil())
+func createTempFile(t *testing.T) *os.File {
+	tmpFile, err := ioutil.TempFile("", "temporary-testing-file")
+	if err != nil {
+		t.Skip()
+	}
+	return tmpFile
+}
 
-			versionConstantJSON, err := versionConstantVersion.MarshalJSON()
-			Expect(err).To(BeNil())
+func upgradeBetweenVersions(t *testing.T, oldVersion, newVersion string) (bool, error) {
+	tmpFile := createTempFile(t)
+	defer os.Remove(tmpFile.Name())
 
-			Expect(string(versionBytes)).To(Equal(string(versionConstantJSON)))
-		})
-		It("should create dir for version file", func() {
-			filename := "/tmp/crio/temp-testing-file"
-			err := writeVersionFile(filename, "", tempVersion)
-			Expect(err).To(BeNil())
+	if err := writeVersionFile(tmpFile.Name(), "", oldVersion); err != nil {
+		return true, err
+	}
 
-			_, err = ioutil.ReadFile(filename)
-			Expect(err).To(BeNil())
-		})
-		It("should fail to upgrade with unspecified version", func() {
-			upgrade, err := shouldCrioWipe("", tempVersion)
-			Expect(upgrade).To(BeTrue())
-			Expect(err).ToNot(BeNil())
-		})
-		It("should fail to upgrade with empty version file", func() {
-			tempFileName := tempFileName
-			_ = t.MustTempFile(tempFileName)
+	return shouldCrioWipe(tmpFile.Name(), newVersion)
+}
 
-			upgrade, err := shouldCrioWipe(tempFileName, tempVersion)
-			Expect(upgrade).To(BeTrue())
-			Expect(err).ToNot(BeNil())
-		})
-		It("should fail upgrade with faulty version", func() {
-			tempFileName := "tempVersionFile"
-			tempFile := t.MustTempFile(tempFileName)
-			Expect(ioutil.WriteFile(tempFile, []byte("bad version file"), 0o644))
+func TestParseVersionCorrectVersion(t *testing.T) {
+	_, err := parseVersionConstant("1.1.1", "")
+	must(t, err)
 
-			upgrade, err := shouldCrioWipe(tempFileName, tempVersion)
-			Expect(upgrade).To(BeTrue())
-			Expect(err).ToNot(BeNil())
-		})
-		It("should fail to upgrade with same version", func() {
-			oldVersion := tempVersion
-			newVersion := tempVersion
+	_, err = parseVersionConstant("1.1.1-dev", "")
+	must(t, err)
 
-			tempFileName := tempFileName
-			_ = t.MustTempFile(tempFileName)
+	_, err = parseVersionConstant("1.1.1-dev", "biglonggitcommit")
+	must(t, err)
+}
 
-			err := writeVersionFile(tempFileName, "", oldVersion)
-			defer os.Remove(tempFileName)
-			Expect(err).To(BeNil())
+func TestParseVersionAddsGitCommit(t *testing.T) {
+	gitCommit := "\"myfavoritecommit\""
+	v, err := parseVersionConstant("1.1.1", gitCommit)
+	must(t, err)
 
-			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
-			Expect(upgrade).To(BeFalse())
-			Expect(err).To(BeNil())
-		})
-		It("should not upgrade with sub minor release", func() {
-			oldVersion := tempVersion
-			newVersion := "1.1.2"
+	// git commit should be included in semver as Build
+	if len(v.Build) < 1 {
+		t.Error(errors.Errorf("Git commit not included in semver build"))
+	}
 
-			tempFileName := tempFileName
-			_ = t.MustTempFile(tempFileName)
+	// git commit should have quotes removed
+	trimmed := strings.Trim(gitCommit, "\"")
+	if v.Build[0] != trimmed {
+		t.Error(errors.Errorf("Git commit set incorrectly in semver build"))
+	}
+}
 
-			err := writeVersionFile(tempFileName, "", oldVersion)
-			defer os.Remove(tempFileName)
-			Expect(err).To(BeNil())
+func TestParseVersionIgnoresEmptyGitCommit(t *testing.T) {
+	gitCommit := ""
+	v, err := parseVersionConstant("1.1.1", gitCommit)
+	must(t, err)
 
-			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
-			Expect(upgrade).To(BeFalse())
-			Expect(err).To(BeNil())
-		})
-		It("should upgrade between versions", func() {
-			oldVersion := "1.14.1"
-			newVersion := tempVersion2
+	// git commit should be included in semver as Build
+	if len(v.Build) != 0 {
+		t.Error(errors.Errorf("Git commit added despite being empty"))
+	}
+}
 
-			tempFileName := tempFileName
-			_ = t.MustTempFile(tempFileName)
+func TestParseVersionBadVersion(t *testing.T) {
+	_, err := parseVersionConstant("badversion", "")
+	fails(t, err)
+}
 
-			err := writeVersionFile(tempFileName, "", oldVersion)
-			defer os.Remove(tempFileName)
-			Expect(err).To(BeNil())
+func TestParseVersionWithCurrentVersion(t *testing.T) {
+	_, err := parseVersionConstant(Version, "")
+	must(t, err)
+}
 
-			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
-			Expect(upgrade).To(BeTrue())
-			Expect(err).To(BeNil())
-		})
-		It("should upgrade with major release", func() {
-			oldVersion := tempVersion2
-			newVersion := "2.0.0"
+func TestWriteVersionFileWritesFile(t *testing.T) {
+	tmpFile := createTempFile(t)
+	defer os.Remove(tmpFile.Name())
 
-			tempFileName := tempFileName
-			_ = t.MustTempFile(tempFileName)
+	gitCommit := "fakeGitCommit"
+	version := "1.1.1"
+	err := writeVersionFile(tmpFile.Name(), gitCommit, version)
+	must(t, err)
 
-			err := writeVersionFile(tempFileName, "", oldVersion)
-			defer os.Remove(tempFileName)
-			Expect(err).To(BeNil())
+	versionBytes, err := ioutil.ReadFile(tmpFile.Name())
+	must(t, err)
 
-			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
-			Expect(upgrade).To(BeTrue())
-			Expect(err).To(BeNil())
-		})
-		It("should fail to upgrade with bad version", func() {
-			oldVersion := "bad version format"
-			newVersion := tempVersion2
+	versionConstantVersion, err := parseVersionConstant(version, gitCommit)
+	must(t, err)
 
-			tempFileName := tempFileName
-			_ = t.MustTempFile(tempFileName)
+	versionConstantJSON, err := versionConstantVersion.MarshalJSON()
+	must(t, err)
+	if string(versionBytes) != string(versionConstantJSON) {
+		t.Error(errors.Errorf("Version written is bad. Should be: %s; is: %s", string(versionConstantJSON), string(versionBytes)))
+	}
+}
 
-			err := writeVersionFile(tempFileName, "", oldVersion)
-			Expect(err).ToNot(BeNil())
+func TestWriteVersionFileCreatesDir(t *testing.T) {
+	filename := "/tmp/crio/temporary-testing-file"
+	err := writeVersionFile(filename, "", "1.1.1")
+	must(t, err)
 
-			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
-			Expect(upgrade).To(BeTrue())
-			Expect(err).ToNot(BeNil())
-		})
-	})
-})
+	_, err = ioutil.ReadFile(filename)
+	must(t, err)
+}
+
+func TestUpgradeWithUnspecifiedVersionFile(t *testing.T) {
+	upgrade, err := shouldCrioWipe("", "1.1.1")
+	mustUpgrade(t, upgrade)
+	fails(t, err)
+}
+
+func TestUpgradeWithEmptyVersionFile(t *testing.T) {
+	tmpFile := createTempFile(t)
+	defer os.Remove(tmpFile.Name())
+
+	upgrade, err := shouldCrioWipe(tmpFile.Name(), "1.1.1")
+	mustUpgrade(t, upgrade)
+	fails(t, err)
+}
+
+func TestFailUpgradeWithFaultyVersionFile(t *testing.T) {
+	tmpFile := createTempFile(t)
+	defer os.Remove(tmpFile.Name())
+	err := ioutil.WriteFile(tmpFile.Name(), []byte("bad version file"), 0o644)
+	if err != nil {
+		t.Skip()
+	}
+
+	upgrade, err := shouldCrioWipe(tmpFile.Name(), "1.1.1")
+	mustUpgrade(t, upgrade)
+	fails(t, err)
+}
+
+func TestNoUpgradeWithSameVersion(t *testing.T) {
+	upgraded, err := upgradeBetweenVersions(t, "1.1.1", "1.1.1")
+	must(t, err)
+	mustNotUpgrade(t, upgraded)
+}
+
+func TestNoUpgradeWithSubMinorRelease(t *testing.T) {
+	upgraded, err := upgradeBetweenVersions(t, "1.1.1", "1.1.2")
+	must(t, err)
+	mustNotUpgrade(t, upgraded)
+}
+
+func TestUpgradeMinorRelease(t *testing.T) {
+	upgraded, err := upgradeBetweenVersions(t, "1.14.1", "1.13.1")
+	must(t, err)
+	mustUpgrade(t, upgraded)
+}
+
+func TestUpgradeMajorRelease(t *testing.T) {
+	upgraded, err := upgradeBetweenVersions(t, "2.0.0", "1.13.1")
+	must(t, err)
+	mustUpgrade(t, upgraded)
+}
+
+func TestFailNoUpgradeWithBadVersion(t *testing.T) {
+	upgraded, err := upgradeBetweenVersions(t, "bad version format", "1.13.1")
+	fails(t, err)
+	mustUpgrade(t, upgraded)
+}

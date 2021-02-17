@@ -1,7 +1,8 @@
 package sandbox_test
 
 import (
-	"github.com/cri-o/cri-o/server/cri/types"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -10,10 +11,10 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 	t.Describe("SetConfig", func() {
 		It("should succeed", func() {
 			// Given
-			config := &types.PodSandboxConfig{
-				Metadata: &types.PodSandboxMetadata{
+			config := &pb.PodSandboxConfig{
+				Metadata: &pb.PodSandboxMetadata{
 					Name:      "name",
-					UID:       "uid",
+					Uid:       "uid",
 					Namespace: "namespace",
 				},
 			}
@@ -43,9 +44,9 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 
 		It("should fail with empty name in metadata", func() {
 			// Given
-			config := &types.PodSandboxConfig{
-				Metadata: &types.PodSandboxMetadata{
-					UID:       "uid",
+			config := &pb.PodSandboxConfig{
+				Metadata: &pb.PodSandboxMetadata{
+					Uid:       "uid",
 					Namespace: "namespace",
 				},
 			}
@@ -61,10 +62,10 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 		})
 		It("should fail with empty namespace in metadata", func() {
 			// Given
-			config := &types.PodSandboxConfig{
-				Metadata: &types.PodSandboxMetadata{
+			config := &pb.PodSandboxConfig{
+				Metadata: &pb.PodSandboxMetadata{
 					Name: "name",
-					UID:  "uid",
+					Uid:  "uid",
 				},
 			}
 			Expect(sut.SetConfig(config)).To(BeNil())
@@ -79,8 +80,8 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 		})
 		It("should succeed with empty uid in metadata", func() {
 			// Given
-			config := &types.PodSandboxConfig{
-				Metadata: &types.PodSandboxMetadata{
+			config := &pb.PodSandboxConfig{
+				Metadata: &pb.PodSandboxMetadata{
 					Name:      "name",
 					Namespace: "namespace",
 				},

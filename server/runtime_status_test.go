@@ -3,10 +3,10 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -28,7 +28,7 @@ var _ = t.Describe("Status", func() {
 
 			// When
 			response, err := sut.Status(context.Background(),
-				&types.StatusRequest{})
+				&pb.StatusRequest{})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -45,7 +45,7 @@ var _ = t.Describe("Status", func() {
 
 			// When
 			response, err := sut.Status(context.Background(),
-				&types.StatusRequest{})
+				&pb.StatusRequest{})
 
 			// Then
 			Expect(err).To(BeNil())

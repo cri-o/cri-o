@@ -28,7 +28,7 @@ import (
 	"strings"
 	"sync"
 
-	gogithub "github.com/google/go-github/v33/github"
+	gogithub "github.com/google/go-github/v29/github"
 	"github.com/nozzle/throttler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -132,9 +132,6 @@ type ReleaseNote struct {
 	// ActionRequired indicates whether or not the release-note-action-required
 	// label was set on the PR
 	ActionRequired bool `json:"action_required,omitempty"`
-
-	// DoNotPublish by default represents release-note-none label on GitHub
-	DoNotPublish bool `json:"do_not_publish,omitempty"`
 
 	// DataFields a key indexed map of data fields
 	DataFields map[string]ReleaseNotesDataField `json:"data_fields,omitempty"`
@@ -424,8 +421,11 @@ func (g *Gatherer) ReleaseNoteFromCommit(result *Result) (*ReleaseNote, error) {
 	documentation := DocumentationFromString(prBody)
 
 	author := pr.GetUser().GetLogin()
-	authorURL := pr.GetUser().GetHTMLURL()
-	prURL := pr.GetHTMLURL()
+	authorURL := fmt.Sprintf("https://github.com/%s", author)
+	prURL := fmt.Sprintf(
+		"https://github.com/%s/%s/pull/%d",
+		g.options.GithubOrg, g.options.GithubRepo, pr.GetNumber(),
+	)
 	isFeature := hasString(labelsWithPrefix(pr, "kind"), "feature")
 	noteSuffix := prettifySIGList(labelsWithPrefix(pr, "sig"))
 
@@ -466,8 +466,7 @@ func (g *Gatherer) ReleaseNoteFromCommit(result *Result) (*ReleaseNote, error) {
 		Feature:        isFeature,
 		Duplicate:      isDuplicateSIG,
 		DuplicateKind:  isDuplicateKind,
-		ActionRequired: labelExactMatch(pr, "release-note-action-required"),
-		DoNotPublish:   labelExactMatch(pr, "release-note-none"),
+		ActionRequired: isActionRequired(pr),
 	}, nil
 }
 
@@ -742,10 +741,11 @@ func labelsWithPrefix(pr *gogithub.PullRequest, prefix string) []string {
 	return labels
 }
 
-// labelExactMatch indicates whether or not a matching label was found on PR
-func labelExactMatch(pr *gogithub.PullRequest, labelToFind string) bool {
+// isActionRequired indicates whether or not the release-note-action-required
+// label was set on the PR.
+func isActionRequired(pr *gogithub.PullRequest) bool {
 	for _, label := range pr.Labels {
-		if *label.Name == labelToFind {
+		if *label.Name == "release-note-action-required" {
 			return true
 		}
 	}
@@ -1010,10 +1010,6 @@ func (rn *ReleaseNote) ApplyMap(noteMap *ReleaseNotesMap) error {
 		rn.ActionRequired = *noteMap.ReleaseNote.ActionRequired
 	}
 
-	if noteMap.ReleaseNote.DoNotPublish != nil {
-		rn.DoNotPublish = *noteMap.ReleaseNote.DoNotPublish
-	}
-
 	// If there are datafields, add them
 	if len(noteMap.DataFields) > 0 {
 		rn.DataFields = make(map[string]ReleaseNotesDataField)
@@ -1049,7 +1045,6 @@ func (rn *ReleaseNote) ToNoteMap() (string, error) {
 	noteMap.ReleaseNote.SIGs = &rn.SIGs
 	noteMap.ReleaseNote.Feature = &rn.Feature
 	noteMap.ReleaseNote.ActionRequired = &rn.ActionRequired
-	noteMap.ReleaseNote.DoNotPublish = &rn.DoNotPublish
 
 	yamlCode, err := yaml.Marshal(&noteMap)
 	if err != nil {

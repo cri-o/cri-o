@@ -1,23 +1,23 @@
 package server
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server/cri/types"
+	"golang.org/x/net/context"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // RemoveImage removes the image.
-func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest) error {
+func (s *Server) RemoveImage(ctx context.Context, req *pb.RemoveImageRequest) (*pb.RemoveImageResponse, error) {
 	image := ""
-	img := req.Image
+	img := req.GetImage()
 	if img != nil {
 		image = img.Image
 	}
 	if image == "" {
-		return fmt.Errorf("no image specified")
+		return nil, fmt.Errorf("no image specified")
 	}
 	var deleted bool
 	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
@@ -25,7 +25,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest)
 		if err == storage.ErrCannotParseImageID {
 			images = append(images, image)
 		} else {
-			return err
+			return nil, err
 		}
 	}
 	for _, img := range images {
@@ -38,7 +38,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest)
 		break
 	}
 	if !deleted && err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &pb.RemoveImageResponse{}, nil
 }

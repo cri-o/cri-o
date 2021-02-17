@@ -158,9 +158,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("apparmor-profile") {
 		config.ApparmorProfile = ctx.String("apparmor-profile")
 	}
-	if ctx.IsSet("irqbalance-config-file") {
-		config.IrqBalanceConfigFile = ctx.String("irqbalance-config-file")
-	}
 	if ctx.IsSet("cgroup-manager") {
 		config.CgroupManagerName = ctx.String("cgroup-manager")
 	}
@@ -248,6 +245,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("grpc-max-send-msg-size") {
 		config.GRPCMaxSendMsgSize = ctx.Int("grpc-max-send-msg-size")
 	}
+	if ctx.IsSet("manage-ns-lifecycle") {
+		config.ManageNSLifecycle = ctx.Bool("manage-ns-lifecycle")
+	}
 	if ctx.IsSet("drop-infra-ctr") {
 		config.DropInfraCtr = ctx.Bool("drop-infra-ctr")
 	}
@@ -271,9 +271,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 	if ctx.IsSet("stream-tls-key") {
 		config.StreamTLSKey = ctx.String("stream-tls-key")
-	}
-	if ctx.IsSet("stream-idle-timeout") {
-		config.StreamIdleTimeout = ctx.String("stream-idle-timeout")
 	}
 	if ctx.IsSet("version-file") {
 		config.VersionFile = ctx.String("version-file")
@@ -530,11 +527,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   defConf.ApparmorProfile,
 			EnvVars: []string{"CONTAINER_APPARMOR_PROFILE"},
 		},
-		&cli.StringFlag{
-			Name:  "irqbalance-config-file",
-			Usage: "The irqbalance service config file which is used by CRI-O.",
-			Value: defConf.IrqBalanceConfigFile,
-		},
 		&cli.BoolFlag{
 			Name:    "selinux",
 			Usage:   fmt.Sprintf("Enable selinux support (default: %t)", defConf.SELinux),
@@ -749,8 +741,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars: []string{"CONTAINER_GRPC_MAX_SEND_MSG_SIZE"},
 		},
 		&cli.BoolFlag{
+			Name:    "manage-ns-lifecycle",
+			Usage:   fmt.Sprintf("Determines whether we pin and remove IPC, network and UTS namespaces and manage their lifecycle. This option is being deprecated, and will be unconditionally true in the future. (default: %v)", defConf.ManageNSLifecycle),
+			EnvVars: []string{"CONTAINER_MANAGE_NS_LIFECYCLE"},
+		},
+		&cli.BoolFlag{
 			Name:    "drop-infra-ctr",
-			Usage:   fmt.Sprintf("Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace (default: %v)", defConf.DropInfraCtr),
+			Usage:   fmt.Sprintf("Determines whether pods are created without an infra container (when the pod is not using a pod level PID namespace). Requires ManageNSLifecycle to be true (default: %v)", defConf.DropInfraCtr),
 			EnvVars: []string{"CONTAINER_DROP_INFRA_CTR"},
 		},
 		&cli.StringFlag{
@@ -791,11 +788,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     fmt.Sprintf("Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSKey),
 			EnvVars:   []string{"CONTAINER_TLS_KEY"},
 			TakesFile: true,
-		},
-		&cli.StringFlag{
-			Name:    "stream-idle-timeout",
-			Usage:   "Length of time until open streams terminate due to lack of activity",
-			EnvVars: []string{"STREAM_IDLE_TIMEOUT"},
 		},
 		&cli.StringFlag{
 			Name:        "registries-conf",

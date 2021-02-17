@@ -2,7 +2,6 @@ package container_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -12,23 +11,21 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 var _ = t.Describe("Container", func() {
-	var config *types.ContainerConfig
-	var sboxConfig *types.PodSandboxConfig
+	var config *pb.ContainerConfig
+	var sboxConfig *pb.PodSandboxConfig
 	const defaultMounts = 6
 	BeforeEach(func() {
-		config = &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
+		config = &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
 		}
-		sboxConfig = &types.PodSandboxConfig{}
+		sboxConfig = &pb.PodSandboxConfig{}
 	})
 	t.Describe("SpecAddMount", func() {
 		It("should add the mount to the spec", func() {
@@ -64,17 +61,17 @@ var _ = t.Describe("Container", func() {
 	t.Describe("SpecAddAnnotations", func() {
 		It("should set the spec annotations", func() {
 			// Given
-			sandboxConfig := &types.PodSandboxConfig{
-				Metadata: &types.PodSandboxMetadata{Name: "name"},
+			sandboxConfig := &pb.PodSandboxConfig{
+				Metadata: &pb.PodSandboxMetadata{Name: "name"},
 			}
-			containerConfig := &types.ContainerConfig{
-				Metadata: &types.ContainerMetadata{Name: "name"},
-				Linux: &types.LinuxContainerConfig{
-					SecurityContext: &types.LinuxContainerSecurityContext{
+			containerConfig := &pb.ContainerConfig{
+				Metadata: &pb.ContainerMetadata{Name: "name"},
+				Linux: &pb.LinuxContainerConfig{
+					SecurityContext: &pb.LinuxContainerSecurityContext{
 						Privileged: true,
 					},
 				},
-				Image: &types.ImageSpec{
+				Image: &pb.ImageSpec{
 					Image: "img",
 				},
 			}
@@ -98,16 +95,16 @@ var _ = t.Describe("Container", func() {
 			logpath, err := sut.LogPath(sb.LogDir())
 			Expect(err).To(BeNil())
 
-			metadataJSON, err := json.Marshal(sut.Config().Metadata)
+			metadataJSON, err := json.Marshal(sut.Config().GetMetadata())
 			Expect(err).To(BeNil())
 
-			labelsJSON, err := json.Marshal(sut.Config().Labels)
+			labelsJSON, err := json.Marshal(sut.Config().GetLabels())
 			Expect(err).To(BeNil())
 
 			volumesJSON, err := json.Marshal(volumes)
 			Expect(err).To(BeNil())
 
-			kubeAnnotationsJSON, err := json.Marshal(sut.Config().Annotations)
+			kubeAnnotationsJSON, err := json.Marshal(sut.Config().GetAnnotations())
 			Expect(err).To(BeNil())
 
 			Expect(currentTime).ToNot(BeNil())
@@ -131,7 +128,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.Spec().Config.Annotations[annotations.ResolvPath]).To(Equal(sb.ResolvPath()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerManager]).To(Equal(lib.ContainerManagerCRIO))
 			Expect(sut.Spec().Config.Annotations[annotations.MountPoint]).To(Equal(mountPoint))
-			Expect(sut.Spec().Config.Annotations[annotations.SeccompProfilePath]).To(Equal(sut.Config().Linux.SecurityContext.SeccompProfilePath))
+			Expect(sut.Spec().Config.Annotations[annotations.SeccompProfilePath]).To(Equal(sut.Config().GetLinux().GetSecurityContext().GetSeccompProfilePath()))
 			Expect(sut.Spec().Config.Annotations[annotations.Created]).ToNot(BeNil())
 			Expect(sut.Spec().Config.Annotations[annotations.Metadata]).To(Equal(string(metadataJSON)))
 			Expect(sut.Spec().Config.Annotations[annotations.Labels]).To(Equal(string(labelsJSON)))
@@ -188,7 +185,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should fail when image not set", func() {
 			// Given
-			config.Image = &types.ImageSpec{}
+			config.Image = &pb.ImageSpec{}
 
 			// When
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
@@ -201,7 +198,7 @@ var _ = t.Describe("Container", func() {
 		It("should be succeed when set", func() {
 			// Given
 			testImage := "img"
-			config.Image = &types.ImageSpec{
+			config.Image = &pb.ImageSpec{
 				Image: testImage,
 			}
 
@@ -216,8 +213,8 @@ var _ = t.Describe("Container", func() {
 	})
 	t.Describe("ReadOnly", func() {
 		BeforeEach(func() {
-			config.Linux = &types.LinuxContainerConfig{
-				SecurityContext: &types.LinuxContainerSecurityContext{},
+			config.Linux = &pb.LinuxContainerConfig{
+				SecurityContext: &pb.LinuxContainerSecurityContext{},
 			}
 		})
 		It("should not be readonly by default", func() {
@@ -251,8 +248,8 @@ var _ = t.Describe("Container", func() {
 	})
 	t.Describe("SelinuxLabel", func() {
 		BeforeEach(func() {
-			config.Linux = &types.LinuxContainerConfig{
-				SecurityContext: &types.LinuxContainerSecurityContext{},
+			config.Linux = &pb.LinuxContainerConfig{
+				SecurityContext: &pb.LinuxContainerSecurityContext{},
 			}
 		})
 		It("should be empty by default", func() {
@@ -268,7 +265,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should not be empty when specified in config", func() {
 			// Given
-			config.Linux.SecurityContext.SelinuxOptions = &types.SELinuxOption{
+			config.Linux.SecurityContext.SelinuxOptions = &pb.SELinuxOption{
 				User:  "a_u",
 				Role:  "a_r",
 				Type:  "a_t",
@@ -293,55 +290,6 @@ var _ = t.Describe("Container", func() {
 			labels, err := sut.SelinuxLabel("a_u:a_t:a_r")
 			Expect(len(labels)).To(Equal(3))
 			Expect(err).To(BeNil())
-		})
-	})
-	t.Describe("AddUnifiedResourcesFromAnnotations", func() {
-		It("should add the limits", func() {
-			// Given
-			containerName := "foo"
-			config.Labels = map[string]string{
-				kubeletTypes.KubernetesContainerNameLabel: containerName,
-			}
-			annotationKey := fmt.Sprintf("%s.%s", crioann.UnifiedCgroupAnnotation, containerName)
-			annotationsMap := map[string]string{
-				annotationKey: "memory.max=1000000;memory.min=MTAwMDA=;memory.low=20000",
-			}
-
-			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
-			Expect(sut.AddUnifiedResourcesFromAnnotations(annotationsMap)).To(BeNil())
-
-			// Then
-			spec := sut.Spec()
-			Expect(spec).To(Not(BeNil()))
-			Expect(spec.Config.Linux.Resources.Unified["memory.max"]).To(Equal("1000000"))
-			Expect(spec.Config.Linux.Resources.Unified["memory.min"]).To(Equal("10000"))
-			Expect(spec.Config.Linux.Resources.Unified["memory.low"]).To(Equal("20000"))
-		})
-
-		It("should not add the limits for a different container", func() {
-			// Given
-			containerName := "foo"
-			config.Labels = map[string]string{
-				kubeletTypes.KubernetesContainerNameLabel: containerName,
-			}
-
-			differentContainerName := "bar"
-			annotationKey := fmt.Sprintf("%s.%s", crioann.UnifiedCgroupAnnotation, differentContainerName)
-			annotationsMap := map[string]string{
-				annotationKey: "memory.max=1000000;memory.min=MTAwMDA=;memory.low=20000",
-			}
-
-			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
-			Expect(sut.AddUnifiedResourcesFromAnnotations(annotationsMap)).To(BeNil())
-
-			// Then
-			spec := sut.Spec()
-			Expect(spec).To(Not(BeNil()))
-			Expect(spec.Config.Linux.Resources.Unified["memory.max"]).To(Equal(""))
-			Expect(spec.Config.Linux.Resources.Unified["memory.min"]).To(Equal(""))
-			Expect(spec.Config.Linux.Resources.Unified["memory.low"]).To(Equal(""))
 		})
 	})
 })

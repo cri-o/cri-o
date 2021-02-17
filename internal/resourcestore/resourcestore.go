@@ -20,8 +20,6 @@ const sleepTimeBeforeCleanup = 1 * time.Minute
 type ResourceStore struct {
 	resources map[string]*Resource
 	timeout   time.Duration
-	closeChan chan struct{}
-	closed    bool
 	sync.Mutex
 }
 
@@ -61,21 +59,10 @@ func New() *ResourceStore {
 func NewWithTimeout(timeout time.Duration) *ResourceStore {
 	rc := &ResourceStore{
 		resources: make(map[string]*Resource),
-		closeChan: make(chan struct{}, 1),
 		timeout:   timeout,
 	}
 	go rc.cleanupStaleResources()
 	return rc
-}
-
-func (rc *ResourceStore) Close() {
-	rc.Lock()
-	defer rc.Unlock()
-	if rc.closed {
-		return
-	}
-	close(rc.closeChan)
-	rc.closed = true
 }
 
 // cleanupStaleResources is responsible for cleaning up resources that haven't been gotten
@@ -86,11 +73,7 @@ func (rc *ResourceStore) Close() {
 // When a resource is cleaned up, it's removed from the store and its cleanupFuncs are called.
 func (rc *ResourceStore) cleanupStaleResources() {
 	for {
-		select {
-		case <-rc.closeChan:
-			return
-		case <-time.After(rc.timeout):
-		}
+		time.Sleep(rc.timeout)
 		resourcesToReap := []*Resource{}
 		rc.Lock()
 		for name, r := range rc.resources {

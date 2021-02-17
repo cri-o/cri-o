@@ -204,7 +204,7 @@ func validateCli(cfg *config.Config) (failed bool) {
 func openFile(path string) []byte {
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
-		logrus.Fatalf("Unable to open file: %v", err)
+		logrus.Fatalf("Unable to open %q: %v", path, err)
 	}
 	return file
 }

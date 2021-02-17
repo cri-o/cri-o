@@ -16,24 +16,22 @@ import (
 	"sync"
 	"time"
 
-	imageTypes "github.com/containers/image/v5/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
-	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
-	"github.com/cri-o/cri-o/server/streaming"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	"k8s.io/kubernetes/pkg/kubelet/cri/streaming"
 )
 
 const (
@@ -78,7 +76,7 @@ type Server struct {
 type pullArguments struct {
 	image         string
 	sandboxCgroup string
-	credentials   imageTypes.DockerAuthConfig
+	credentials   types.DockerAuthConfig
 }
 
 // pullOperation is used to synchronize parallel pull operations via the
@@ -119,7 +117,7 @@ func (cc *certConfigCache) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.
 	if len(cc.tlsCA) > 0 {
 		caBytes, err := ioutil.ReadFile(cc.tlsCA)
 		if err != nil {
-			return nil, errors.Wrap(err, "read TLS CA file")
+			return nil, err
 		}
 		certPool := x509.NewCertPool()
 		certPool.AppendCertsFromPEM(caBytes)
@@ -142,17 +140,17 @@ func (s *Server) StreamingServerCloseChan() chan struct{} {
 }
 
 // getExec returns exec stream request
-func (s *Server) getExec(req *types.ExecRequest) (*types.ExecResponse, error) {
+func (s *Server) getExec(req *pb.ExecRequest) (*pb.ExecResponse, error) {
 	return s.stream.streamServer.GetExec(req)
 }
 
 // getAttach returns attach stream request
-func (s *Server) getAttach(req *types.AttachRequest) (*types.AttachResponse, error) {
+func (s *Server) getAttach(req *pb.AttachRequest) (*pb.AttachResponse, error) {
 	return s.stream.streamServer.GetAttach(req)
 }
 
 // getPortForward returns port forward stream request
-func (s *Server) getPortForward(req *types.PortForwardRequest) (*types.PortForwardResponse, error) {
+func (s *Server) getPortForward(req *pb.PortForwardRequest) (*pb.PortForwardResponse, error) {
 	return s.stream.streamServer.GetPortForward(req)
 }
 
@@ -276,7 +274,6 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// notice this won't trigger just on system halt but also on normal
 	// crio.service restart!!!
 	s.cleanupSandboxesOnShutdown(ctx)
-	s.resourceStore.Close()
 
 	return s.ContainerServer.Shutdown()
 }
@@ -286,7 +283,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func configureMaxThreads() error {
 	mt, err := ioutil.ReadFile("/proc/sys/kernel/threads-max")
 	if err != nil {
-		return errors.Wrap(err, "read max threads file")
+		return err
 	}
 	mtint, err := strconv.Atoi(strings.TrimSpace(string(mt)))
 	if err != nil {
@@ -341,11 +338,6 @@ func New(
 		return nil, err
 	}
 
-	err = runtimehandlerhooks.RestoreIrqBalanceConfig(config.IrqBalanceConfigFile, runtimehandlerhooks.IrqBannedCPUConfigFile, runtimehandlerhooks.IrqSmpAffinityProcFile)
-	if err != nil {
-		return nil, err
-	}
-
 	hostportManager := hostport.NewMetaHostportManager()
 
 	idMappings, err := getIDMappings(config)
@@ -373,17 +365,6 @@ func New(
 		return nil, err
 	}
 
-	// Close stdin, so shortnames will not prompt
-	devNullFile, err := os.Open(os.DevNull)
-	if err != nil {
-		return nil, errors.Wrap(err, "open devnull file")
-	}
-
-	defer devNullFile.Close()
-	if err := unix.Dup2(int(devNullFile.Fd()), int(os.Stdin.Fd())); err != nil {
-		return nil, errors.Wrap(err, "close stdin")
-	}
-
 	s.restore(ctx)
 	s.cleanupSandboxesOnShutdown(ctx)
 
@@ -400,14 +381,6 @@ func New(
 
 	// Prepare streaming server
 	streamServerConfig := streaming.DefaultConfig
-	if config.StreamIdleTimeout != "" {
-		idleTimeout, err := time.ParseDuration(config.StreamIdleTimeout)
-		if err != nil {
-			return nil, errors.New("unable to parse timeout as duration")
-		}
-
-		streamServerConfig.StreamIdleTimeout = idleTimeout
-	}
 	streamServerConfig.Addr = net.JoinHostPort(bindAddressStr, config.StreamPort)
 	if config.StreamEnableTLS {
 		certCache := &certConfigCache{

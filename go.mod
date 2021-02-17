@@ -25,7 +25,6 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/go-units v0.4.0
-	github.com/emicklei/go-restful v2.9.5+incompatible
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-zoo/bone v1.3.0
 	github.com/godbus/dbus/v5 v5.0.3
@@ -42,8 +41,8 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
 	github.com/opencontainers/runc v1.0.0-rc92
-	github.com/opencontainers/runtime-spec v1.0.3-0.20201121164853-7413a7f753e1
-	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
+	github.com/opencontainers/runtime-spec v1.0.3-0.20200728170252-4d89ac9fbff6
+	github.com/opencontainers/runtime-tools v0.9.1-0.20200714183735-07406c5828aa
 	github.com/opencontainers/selinux v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7 // indirect
@@ -52,31 +51,28 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/stretchr/testify v1.7.0
-	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
+	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20210105210732-16f7687f5001
-	google.golang.org/grpc v1.34.0
+	google.golang.org/grpc v1.33.2
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
 	k8s.io/client-go v0.18.8
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog/v2 v2.4.0
 	k8s.io/kubernetes v1.19.2
-	k8s.io/release v0.7.0
-	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
+	k8s.io/release v0.6.0
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	mvdan.cc/sh/v3 v3.2.0
 )
 
 replace (
 	github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc90
-	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20201121164853-7413a7f753e1
-	// Pinning the syndtr/gocapability until https://github.com/opencontainers/runc/commit/6dfbe9b80707b1ca188255e8def15263348e0f9a
-	// is included in the runc release
-	github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
+	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20200710190001-3e4195d92445
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
 	google.golang.org/grpc => google.golang.org/grpc v1.27.0
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20201201102839-3321f00ed14e

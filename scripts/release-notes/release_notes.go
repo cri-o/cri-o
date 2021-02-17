@@ -18,10 +18,7 @@ import (
 	"k8s.io/release/pkg/util"
 )
 
-const (
-	branch   = "gh-pages"
-	tokenKey = "GITHUB_TOKEN"
-)
+const branch = "gh-pages"
 
 var outputPath string
 
@@ -43,10 +40,8 @@ func main() {
 
 func run() error {
 	// Precheck environemt
-	token, tokenSet := os.LookupEnv(tokenKey)
-	if !tokenSet || token == "" {
-		logrus.Infof("%s environemt variable is not set", tokenKey)
-		os.Exit(0)
+	if !util.IsEnvSet("GITHUB_TOKEN") {
+		return errors.Errorf("GITHUB_TOKEN environemt variable is not set")
 	}
 
 	logrus.Infof("Ensuring output path %s", outputPath)
@@ -161,8 +156,8 @@ Download the static release bundle via our Google Cloud Bucket:
 		return errors.Wrap(err, "generate release notes")
 	}
 
-	// Update gh-pages branch if running in CI
-	if util.IsEnvSet("CI") {
+	// Update gh-pages branch if not a pull request and running in CircleCI
+	if util.IsEnvSet("CIRCLECI") && !util.IsEnvSet("CIRCLE_PULL_REQUEST") {
 		content, err := ioutil.ReadFile(outputFilePath)
 		if err != nil {
 			return errors.Wrap(err, "open generated release notes")

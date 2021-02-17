@@ -3,13 +3,13 @@ package server
 import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // filterSandbox returns whether passed container matches filtering criteria
-func filterSandbox(p *types.PodSandbox, filter *types.PodSandboxFilter) bool {
+func filterSandbox(p *pb.PodSandbox, filter *pb.PodSandboxFilter) bool {
 	if filter != nil {
 		if filter.State != nil {
 			if p.State != filter.State.State {
@@ -27,22 +27,22 @@ func filterSandbox(p *types.PodSandbox, filter *types.PodSandboxFilter) bool {
 }
 
 // ListPodSandbox returns a list of SandBoxes.
-func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRequest) (*types.ListPodSandboxResponse, error) {
-	var pods []*types.PodSandbox
+func (s *Server) ListPodSandbox(ctx context.Context, req *pb.ListPodSandboxRequest) (*pb.ListPodSandboxResponse, error) {
+	var pods []*pb.PodSandbox
 	var podList []*sandbox.Sandbox
 	podList = append(podList, s.ContainerServer.ListSandboxes()...)
 
 	filter := req.Filter
 	// Filter by pod id first.
 	if filter != nil {
-		if filter.ID != "" {
-			id, err := s.PodIDIndex().Get(filter.ID)
+		if filter.Id != "" {
+			id, err := s.PodIDIndex().Get(filter.Id)
 			if err != nil {
 				// Not finding an ID in a filtered list should not be considered
 				// and error; it might have been deleted when stop was done.
 				// Log and return an empty struct.
-				log.Warnf(ctx, "unable to find pod %s with filter", filter.ID)
-				return &types.ListPodSandboxResponse{}, nil
+				log.Warnf(ctx, "unable to find pod %s with filter", filter.Id)
+				return &pb.ListPodSandboxResponse{}, nil
 			}
 			sb := s.getSandbox(id)
 			if sb == nil {
@@ -59,20 +59,20 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 			continue
 		}
 
-		rStatus := types.PodSandboxStateSandboxNotReady
+		rStatus := pb.PodSandboxState_SANDBOX_NOTREADY
 		if sb.Ready(false) {
-			rStatus = types.PodSandboxStateSandboxReady
+			rStatus = pb.PodSandboxState_SANDBOX_READY
 		}
 
-		pod := &types.PodSandbox{
-			ID:          sb.ID(),
+		pod := &pb.PodSandbox{
+			Id:          sb.ID(),
 			CreatedAt:   sb.CreatedAt().UnixNano(),
 			State:       rStatus,
 			Labels:      sb.Labels(),
 			Annotations: sb.Annotations(),
-			Metadata: &types.PodSandboxMetadata{
+			Metadata: &pb.PodSandboxMetadata{
 				Name:      sb.Metadata().Name,
-				UID:       sb.Metadata().UID,
+				Uid:       sb.Metadata().UID,
 				Namespace: sb.Metadata().Namespace,
 				Attempt:   sb.Metadata().Attempt,
 			},
@@ -84,7 +84,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 		}
 	}
 
-	return &types.ListPodSandboxResponse{
+	return &pb.ListPodSandboxResponse{
 		Items: pods,
 	}, nil
 }

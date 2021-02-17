@@ -4,7 +4,6 @@ package node
 
 import (
 	"os"
-	"path/filepath"
 	"sync"
 
 	libpodcgroups "github.com/containers/libpod/v2/pkg/cgroups"
@@ -35,17 +34,6 @@ func CgroupIsV2() bool {
 func CgroupHasMemorySwap() bool {
 	cgroupHasMemorySwapOnce.Do(func() {
 		if CgroupIsV2() {
-			cg, err := libctrcgroups.ParseCgroupFile("/proc/self/cgroup")
-			if err != nil {
-				cgroupHasMemorySwapErr = err
-				cgroupHasMemorySwap = false
-				return
-			}
-			memSwap := filepath.Join("/sys/fs/cgroup", cg[""], "memory.swap.current")
-			if _, err := os.Stat(memSwap); err != nil {
-				cgroupHasMemorySwap = false
-				return
-			}
 			cgroupHasMemorySwap = true
 			return
 		}

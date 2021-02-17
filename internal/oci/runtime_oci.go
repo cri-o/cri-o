@@ -822,7 +822,7 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 		}
 		statusCodeStr, err := ioutil.ReadFile(exitFilePath)
 		if err != nil {
-			return errors.Wrap(err, "failed to read exit file: %v")
+			return fmt.Errorf("failed to read exit file: %v", err)
 		}
 		statusCode, err := strconv.Atoi(string(statusCodeStr))
 		if err != nil {

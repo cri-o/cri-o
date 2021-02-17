@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/google/go-github/v33/github"
+	"github.com/google/go-github/v29/github"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -61,10 +61,6 @@ type Client interface {
 	GetPullRequest(
 		context.Context, string, string, int,
 	) (*github.PullRequest, *github.Response, error)
-
-	GetIssue(
-		context.Context, string, string, int,
-	) (*github.Issue, *github.Response, error)
 
 	GetRepoCommit(
 		context.Context, string, string, string,
@@ -121,10 +117,6 @@ type Client interface {
 	ListReleaseAssets(
 		context.Context, string, string, int64,
 	) ([]*github.ReleaseAsset, error)
-
-	CreateComment(
-		context.Context, string, string, int, string,
-	) (*github.IssueComment, *github.Response, error)
 }
 
 // New creates a new default GitHub client. Tokens set via the $GITHUB_TOKEN
@@ -155,32 +147,6 @@ func NewWithToken(token string) (*GitHub, error) {
 	return New(), nil
 }
 
-func NewEnterprise(baseURL, uploadURL string) (*GitHub, error) {
-	ctx := context.Background()
-	token := util.EnvDefault(TokenEnvKey, "")
-	client := http.DefaultClient
-	state := "unauthenticated"
-	if token != "" {
-		state = strings.TrimPrefix(state, "un")
-		client = oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		))
-	}
-	logrus.Debugf("Using %s Enterprise GitHub client", state)
-	ghclient, err := github.NewEnterpriseClient(baseURL, uploadURL, client)
-	if err != nil {
-		return nil, fmt.Errorf("failed to new github client: %s", err)
-	}
-	return &GitHub{&githubClient{ghclient}}, nil
-}
-
-func NewEnterpriseWithToken(baseURL, uploadURL, token string) (*GitHub, error) {
-	if err := os.Setenv(TokenEnvKey, token); err != nil {
-		return nil, errors.Wrapf(err, "unable to export %s", TokenEnvKey)
-	}
-	return NewEnterprise(baseURL, uploadURL)
-}
-
 func (g *githubClient) GetCommit(
 	ctx context.Context, owner, repo, sha string,
 ) (*github.Commit, *github.Response, error) {
@@ -199,17 +165,6 @@ func (g *githubClient) GetPullRequest(
 		pr, resp, err := g.PullRequests.Get(ctx, owner, repo, number)
 		if !shouldRetry(err) {
 			return pr, resp, err
-		}
-	}
-}
-
-func (g *githubClient) GetIssue(
-	ctx context.Context, owner, repo string, number int,
-) (*github.Issue, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
-		issue, resp, err := g.Issues.Get(ctx, owner, repo, number)
-		if !shouldRetry(err) {
-			return issue, resp, err
 		}
 	}
 }
@@ -391,21 +346,6 @@ func (g *githubClient) ListReleaseAssets(
 	return assets, nil
 }
 
-func (g *githubClient) CreateComment(
-	ctx context.Context, owner, repo string, number int, message string,
-) (*github.IssueComment, *github.Response, error) {
-	comment := &github.IssueComment{
-		Body: &message,
-	}
-
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
-		issueComment, resp, err := g.Issues.CreateComment(ctx, owner, repo, number, comment)
-		if !shouldRetry(err) {
-			return issueComment, resp, err
-		}
-	}
-}
-
 // SetClient can be used to manually set the internal GitHub client
 func (g *GitHub) SetClient(client Client) {
 	g.client = client
@@ -584,7 +524,7 @@ func (g *GitHub) DownloadReleaseAssets(owner, repo string, releaseTags []string,
 	return finalErr
 }
 
-func (g *GitHub) downloadAssetsParallel(assets []*github.ReleaseAsset, owner, repo, releaseDir string) (finalErr error) {
+func (g *GitHub) downloadAssetsParallel(assets []github.ReleaseAsset, owner, repo, releaseDir string) (finalErr error) {
 	errChan := make(chan error, len(assets))
 	for i := range assets {
 		asset := assets[i]
@@ -819,7 +759,7 @@ func (g *GitHub) ListReleaseAssets(
 // TagExists returns true is a specified tag exists in the repo
 func (g *GitHub) TagExists(owner, repo, tag string) (exists bool, err error) {
 	tags, _, err := g.Client().ListTags(
-		context.Background(), owner, repo, &github.ListOptions{PerPage: 100},
+		context.Background(), owner, repo, &github.ListOptions{},
 	)
 	if err != nil {
 		return exists, errors.Wrap(err, "listing repository tags")

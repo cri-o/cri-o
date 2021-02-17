@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/opencontainers/runtime-tools/generate"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 func TestAddOCIBindsForDev(t *testing.T) {
@@ -15,8 +15,8 @@ func TestAddOCIBindsForDev(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	config := &types.ContainerConfig{
-		Mounts: []*types.Mount{
+	config := &pb.ContainerConfig{
+		Mounts: []*pb.Mount{
 			{
 				ContainerPath: "/dev",
 				HostPath:      "/dev",
@@ -49,8 +49,8 @@ func TestAddOCIBindsForSys(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	config := &types.ContainerConfig{
-		Mounts: []*types.Mount{
+	config := &pb.ContainerConfig{
+		Mounts: []*pb.Mount{
 			{
 				ContainerPath: "/sys",
 				HostPath:      "/sys",

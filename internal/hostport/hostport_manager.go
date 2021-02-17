@@ -238,9 +238,8 @@ func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (er
 	}
 
 	// exit if there is nothing to remove
-	// don´t forget to clean up opened pod host ports
 	if len(existingChainsToRemove) == 0 {
-		return hm.closeHostports(hostportMappings)
+		return nil
 	}
 
 	natChains := bytes.NewBuffer(nil)

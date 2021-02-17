@@ -71,8 +71,3 @@ func GSUtilOutput(args ...string) (string, error) {
 	}
 	return stream.OutputTrimNL(), nil
 }
-
-// GSUtilStatus can be used to run a 'gsutil' command while capturing its status
-func GSUtilStatus(args ...string) (*command.Status, error) {
-	return command.New(gsutilExecutable, args...).Run()
-}

@@ -32,7 +32,7 @@
 %global service_name crio
 
 Name: %{repo}
-Version: 1.21.0
+Version: 1.20.0
 Release: 1.ci%{?dist}
 Summary: Kubernetes Container Runtime Interface for OCI-based containers
 License: ASL 2.0
@@ -135,11 +135,9 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/Godeps/_workspace:%{gopath}
 %endif
 
 %post
-ln -sf %{_unitdir}/%{service_name}.service %{_unitdir}/%{repo}.service
 %systemd_post %{service_name}
 
 %preun
-rm -f %{_unitdir}/%{repo}.service
 %systemd_preun %{service_name}
 
 %postun

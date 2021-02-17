@@ -2,16 +2,16 @@ package server
 
 import (
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // ListImages lists existing images.
-func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (*types.ListImagesResponse, error) {
+func (s *Server) ListImages(ctx context.Context, req *pb.ListImagesRequest) (*pb.ListImagesResponse, error) {
 	filter := ""
-	reqFilter := req.Filter
+	reqFilter := req.GetFilter()
 	if reqFilter != nil {
-		filterImage := reqFilter.Image
+		filterImage := reqFilter.GetImage()
 		if filterImage != nil {
 			filter = filterImage.Image
 		}
@@ -20,7 +20,7 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 	if err != nil {
 		return nil, err
 	}
-	resp := &types.ListImagesResponse{}
+	resp := &pb.ListImagesResponse{}
 	for i := range results {
 		image := ConvertImage(&results[i])
 		resp.Images = append(resp.Images, image)
@@ -28,7 +28,7 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 	return resp, nil
 }
 
-func ConvertImage(from *storage.ImageResult) *types.Image {
+func ConvertImage(from *storage.ImageResult) *pb.Image {
 	if from == nil {
 		return nil
 	}
@@ -45,8 +45,8 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 		repoDigests = from.RepoDigests
 	}
 
-	to := &types.Image{
-		ID:          from.ID,
+	to := &pb.Image{
+		Id:          from.ID,
 		RepoTags:    repoTags,
 		RepoDigests: repoDigests,
 	}
@@ -55,10 +55,10 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	to.Username = username
 
 	if uid != nil {
-		to.UID = &types.Int64Value{Value: *uid}
+		to.Uid = &pb.Int64Value{Value: *uid}
 	}
 	if from.Size != nil {
-		to.Size = *from.Size
+		to.Size_ = *from.Size
 	}
 
 	return to

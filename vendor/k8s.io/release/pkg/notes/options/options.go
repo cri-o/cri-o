@@ -30,12 +30,6 @@ import (
 // Options is the global options structure which can be used to build release
 // notes generator options
 type Options struct {
-	// GithubBaseURL specifies the Github base URL.
-	GithubBaseURL string
-
-	// GithubUploadURL specifies the Github upload URL.
-	GithubUploadURL string
-
 	// GithubOrg specifies the GitHub organization from which will be
 	// cloned/pulled if Pull is true.
 	GithubOrg string
@@ -232,11 +226,6 @@ func (o *Options) ValidateAndFinish() (err error) {
 		}
 	}
 
-	// Set GithubBaseURL to https://github.com if it is unset.
-	if o.GithubBaseURL == "" {
-		o.GithubBaseURL = github.GitHubURL
-	}
-
 	if err := o.checkFormatOptions(); err != nil {
 		return errors.Wrap(err, "while checking format flags")
 	}
@@ -336,14 +325,8 @@ func (o *Options) Client() (github.Client, error) {
 		return github.NewReplayer(o.ReplayDir), nil
 	}
 
-	var gh *github.GitHub
-	var err error
 	// Create a real GitHub API client
-	if o.GithubBaseURL != "" && o.GithubUploadURL != "" {
-		gh, err = github.NewEnterpriseWithToken(o.GithubBaseURL, o.GithubUploadURL, o.githubToken)
-	} else {
-		gh, err = github.NewWithToken(o.githubToken)
-	}
+	gh, err := github.NewWithToken(o.githubToken)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create GitHub client")
 	}

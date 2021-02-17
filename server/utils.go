@@ -17,7 +17,6 @@ import (
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
@@ -25,7 +24,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	"k8s.io/apimachinery/pkg/api/resource"
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
@@ -133,11 +133,11 @@ func (s *Server) newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 		bwConfig = &ocicni.BandwidthConfig{}
 		if ingress > 0 {
 			bwConfig.IngressRate = uint64(ingress)
-			bwConfig.IngressBurst = math.MaxUint32*8 - 1 // 4GB burst limit
+			bwConfig.IngressBurst = math.MaxUint32 * 8 // 4GB burst limit
 		}
 		if egress > 0 {
 			bwConfig.EgressRate = uint64(egress)
-			bwConfig.EgressBurst = math.MaxUint32*8 - 1 // 4GB burst limit
+			bwConfig.EgressBurst = math.MaxUint32 * 8 // 4GB burst limit
 		}
 	}
 
@@ -189,16 +189,16 @@ func validateLabels(labels map[string]string) error {
 	return nil
 }
 
-func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
+func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*pb.KeyValue) []string {
 	envs := []string{}
 	if kubeEnvs == nil && imageConfig != nil {
 		envs = imageConfig.Config.Env
 	} else {
 		for _, item := range kubeEnvs {
-			if item.Key == "" {
+			if item.GetKey() == "" {
 				continue
 			}
-			envs = append(envs, item.Key+"="+item.Value)
+			envs = append(envs, item.GetKey()+"="+item.GetValue())
 		}
 		if imageConfig != nil {
 			for _, imageEnv := range imageConfig.Config.Env {
@@ -232,7 +232,7 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 
 // Translate container labels to a description of the container
 func translateLabelsToDescription(labels map[string]string) string {
-	return fmt.Sprintf("%s/%s/%s", labels[kubeletTypes.KubernetesPodNamespaceLabel], labels[kubeletTypes.KubernetesPodNameLabel], labels[kubeletTypes.KubernetesContainerNameLabel])
+	return fmt.Sprintf("%s/%s/%s", labels[types.KubernetesPodNamespaceLabel], labels[types.KubernetesPodNameLabel], labels[types.KubernetesContainerNameLabel])
 }
 
 // getDecryptionKeys reads the keys from the given directory
@@ -259,7 +259,7 @@ func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
 
 		privateKey, err := ioutil.ReadFile(path)
 		if err != nil {
-			return errors.Wrap(err, "read private key file")
+			return err
 		}
 
 		sEnc := b64.StdEncoding.EncodeToString(privateKey)

@@ -16,11 +16,11 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/v2/pkg/lookup"
-	"github.com/cri-o/cri-o/server/cri/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
@@ -276,7 +276,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		if os.IsNotExist(err) {
 			return "", nil
 		}
-		return "", errors.Wrapf(err, "read passwd file")
+		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
 	}
 	if username == "" {
 		username = "default"
@@ -323,7 +323,7 @@ func EnsureSaneLogPath(logPath string) error {
 	return nil
 }
 
-func GetLabelOptions(selinuxOptions *types.SELinuxOption) []string {
+func GetLabelOptions(selinuxOptions *pb.SELinuxOption) []string {
 	labels := []string{}
 	if selinuxOptions != nil {
 		if selinuxOptions.User != "" {

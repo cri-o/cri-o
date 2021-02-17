@@ -8,7 +8,6 @@ manage_ns_lifecycle: True
 
 build_runc: True
 build_crun: False
-build_kata: False
 cgroupv2: False
 
 # For results.yml Paths use rsync 'source' conventions
@@ -32,33 +31,3 @@ ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"
 # Additional environment variables for integration tests w/ userNS enabled
 userns_int_test_env:
     TEST_USERNS: "1"  # Consumed by test/test_runner.sh, by way of Makefile
-
-kata_int_test_env:
-    CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/usr/bin/containerd-shim-kata-v2:/run/vc:vm"
-    CONTAINER_RUNTIME: "containerd-shim-kata-v2"
-    CONTAINER_DEFAULT_RUNTIME: "containerd-shim-kata-v2"
-    RUNTIME_NAME: "containerd-shim-kata-v2"
-    RUNTIME_ROOT: "/run/vc"
-    RUNTIME_TYPE: "vm"
-    TESTFLAGS: "ctr.bats"
-    JOBS: "1"  # TODO: add support to parallelization in kata (causes failures in the integration tests)
-
-kata_skip_ctr_tests:
-  - 'test "ctr oom"'  # https://github.com/kata-containers/tests/issues/714
-  - 'test "ctr journald logging"'
-  - 'test "ctr log max"'
-  - 'test "ctr log max with minimum value"'
-  - 'test "ctr partial line logging"'
-  - 'test "ctr execsync"'
-  - 'test "ctr execsync should not overwrite initial spec args"'
-  - 'test "privileged ctr device add"'
-  - 'test "ctr execsync std{out,err}"'
-  - 'test "ctr with default list of capabilities from crio.conf"'
-  - 'test "ctr with list of capabilities given by user in crio.conf"'
-  - 'test "ctr /etc/resolv.conf rw/ro mode"'
-  - 'test "ctr update resources"'
-  - 'test "ctr execsync conflicting with conmon env"'
-  - 'test "ctr resources"'
-  - 'test "ctr with non-root user has no effective capabilities"'
-  - 'test "privileged ctr -- check for rw mounts"'
-  - 'test "ctr with default_env set in configuration"'

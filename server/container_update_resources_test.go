@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/opencontainers/runtime-spec/specs-go"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -30,20 +30,21 @@ var _ = t.Describe("UpdateContainerResources", func() {
 					Resources: &specs.LinuxResources{},
 				},
 			})
-			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
+			testContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
 
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
-				&types.UpdateContainerResourcesRequest{
-					ContainerID: testContainer.ID(),
+			response, err := sut.UpdateContainerResources(context.Background(),
+				&pb.UpdateContainerResourcesRequest{
+					ContainerId: testContainer.ID(),
 				},
 			)
 
 			// Then
 			Expect(err).To(BeNil())
+			Expect(response).NotTo(BeNil())
 		})
 
 		It("should update the container spec", func() {
@@ -53,27 +54,28 @@ var _ = t.Describe("UpdateContainerResources", func() {
 					Resources: &specs.LinuxResources{},
 				},
 			})
-			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
+			testContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
 
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
-				&types.UpdateContainerResourcesRequest{
-					ContainerID: testContainer.ID(),
-					Linux: &types.LinuxContainerResources{
-						CPUPeriod:  100000,
-						CPUQuota:   20000,
-						CPUShares:  1024,
-						CPUsetCPUs: "0-3,12-15",
-						CPUsetMems: "0,1",
+			response, err := sut.UpdateContainerResources(context.Background(),
+				&pb.UpdateContainerResourcesRequest{
+					ContainerId: testContainer.ID(),
+					Linux: &pb.LinuxContainerResources{
+						CpuPeriod:  100000,
+						CpuQuota:   20000,
+						CpuShares:  1024,
+						CpusetCpus: "0-3,12-15",
+						CpusetMems: "0,1",
 					},
 				},
 			)
 
 			// Then
 			Expect(err).To(BeNil())
+			Expect(response).NotTo(BeNil())
 
 			c := sut.GetContainer(testContainer.ID())
 			Expect(int(*c.Spec().Linux.Resources.CPU.Period)).To(Equal(100000))
@@ -88,35 +90,38 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			addContainerAndSandbox()
 
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
-				&types.UpdateContainerResourcesRequest{
-					ContainerID: testContainer.ID(),
+			response, err := sut.UpdateContainerResources(context.Background(),
+				&pb.UpdateContainerResourcesRequest{
+					ContainerId: testContainer.ID(),
 				})
 
 			// Then
 			Expect(err).NotTo(BeNil())
+			Expect(response).To(BeNil())
 		})
 
 		It("should fail with invalid container id", func() {
 			// Given
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
-				&types.UpdateContainerResourcesRequest{
-					ContainerID: testContainer.ID(),
+			response, err := sut.UpdateContainerResources(context.Background(),
+				&pb.UpdateContainerResourcesRequest{
+					ContainerId: testContainer.ID(),
 				})
 
 			// Then
 			Expect(err).NotTo(BeNil())
+			Expect(response).To(BeNil())
 		})
 
 		It("should fail with empty container ID", func() {
 			// Given
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
-				&types.UpdateContainerResourcesRequest{})
+			response, err := sut.UpdateContainerResources(context.Background(),
+				&pb.UpdateContainerResourcesRequest{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
+			Expect(response).To(BeNil())
 		})
 	})
 })

@@ -42,9 +42,6 @@ var _ = t.Describe("ResourceStore", func() {
 				id: testID,
 			}
 		})
-		AfterEach(func() {
-			sut.Close()
-		})
 		It("Put should be able to get resource after adding", func() {
 			// Given
 
@@ -107,9 +104,6 @@ var _ = t.Describe("ResourceStore", func() {
 			e = &entry{
 				id: testID,
 			}
-		})
-		AfterEach(func() {
-			sut.Close()
 		})
 		It("Put should call cleanup funcs after timeout", func() {
 			// Given

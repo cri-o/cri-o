@@ -1,10 +1,10 @@
 package container_test
 
 import (
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runc/libcontainer/devices"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 var _ = t.Describe("Container", func() {
@@ -49,18 +49,18 @@ var _ = t.Describe("Container", func() {
 			test := test
 			It(test.testDescription, func() {
 				// Given
-				config := &types.ContainerConfig{
-					Metadata: &types.ContainerMetadata{Name: "name"},
-					Linux: &types.LinuxContainerConfig{
-						SecurityContext: &types.LinuxContainerSecurityContext{
+				config := &pb.ContainerConfig{
+					Metadata: &pb.ContainerMetadata{Name: "name"},
+					Linux: &pb.LinuxContainerConfig{
+						SecurityContext: &pb.LinuxContainerSecurityContext{
 							Privileged: test.privileged,
 						},
 					},
-					Devices: []*types.Device{},
+					Devices: []*pb.Device{},
 				}
-				sboxConfig := &types.PodSandboxConfig{
-					Linux: &types.LinuxPodSandboxConfig{
-						SecurityContext: &types.LinuxSandboxSecurityContext{
+				sboxConfig := &pb.PodSandboxConfig{
+					Linux: &pb.LinuxPodSandboxConfig{
+						SecurityContext: &pb.LinuxSandboxSecurityContext{
 							Privileged: test.privileged,
 						},
 					},

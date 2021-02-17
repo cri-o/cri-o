@@ -1,9 +1,9 @@
 package container_test
 
 import (
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (
@@ -15,12 +15,12 @@ const (
 var _ = t.Describe("Container:LogPath", func() {
 	It("should succeed to get log path from container config", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
 			LogPath:  configLogPath,
 		}
 
-		sboxConfig := &types.PodSandboxConfig{
+		sboxConfig := &pb.PodSandboxConfig{
 			LogDirectory: configLogDir,
 		}
 
@@ -36,12 +36,12 @@ var _ = t.Describe("Container:LogPath", func() {
 	})
 	It("should use provided log dir if sbox config doesn't provide", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
 			LogPath:  configLogPath,
 		}
 
-		sboxConfig := &types.PodSandboxConfig{}
+		sboxConfig := &pb.PodSandboxConfig{}
 
 		// When
 		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
@@ -54,14 +54,14 @@ var _ = t.Describe("Container:LogPath", func() {
 	})
 	It("should use ctrID if log path empty", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{
 				Name: "name",
 			},
 		}
 
-		sboxConfig := &types.PodSandboxConfig{
-			Metadata: &types.PodSandboxMetadata{},
+		sboxConfig := &pb.PodSandboxConfig{
+			Metadata: &pb.PodSandboxMetadata{},
 		}
 
 		// When

@@ -263,8 +263,7 @@ function teardown() {
 	start_crio
 	crictl pull "$IMAGE"
 	output=$(crictl images --quiet "$IMAGE")
-	[ "$output" != "" ]
-	for id in $output; do
+	printf '%s\n' "$output" | while IFS= read -r id; do
 		crictl rmi "$id"
 	done
 	crictl images --quiet
@@ -277,7 +276,7 @@ function teardown() {
 	crictl pull "$IMAGE"
 	output=$(crictl images --quiet)
 	[ "$output" != "" ]
-	for id in $output; do
+	printf '%s\n' "$output" | while IFS= read -r id; do
 		crictl rmi "$id"
 	done
 	output=$(crictl images --quiet)
@@ -291,9 +290,9 @@ function teardown() {
 	crictl pull "$IMAGE"
 	output=$(crictl images --quiet)
 	[ "$output" != "" ]
-	for id in $output; do
-		img=$(crictl images -v "$id")
-		[ "$img" != "" ]
+	printf '%s\n' "$output" | while IFS= read -r id; do
+		output=$(crictl images -v "$id")
+		[ "$output" != "" ]
 		crictl rmi "$id"
 	done
 	output=$(crictl images --quiet)

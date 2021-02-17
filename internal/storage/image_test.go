@@ -2,7 +2,6 @@ package storage_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/containers/image/v5/types"
@@ -21,12 +20,8 @@ var _ = t.Describe("Image", func() {
 	// Test constants
 	const (
 		testDockerRegistry                  = "docker.io"
-		testQuayRegistry                    = "quay.io"
-		testRedHatRegistry                  = "registry.access.redhat.com"
-		testFedoraRegistry                  = "registry.fedoraproject.org"
+		testExampleRegistry                 = "registry.example.org"
 		testImageName                       = "image"
-		testImageAlias                      = "image-for-testing"
-		testImageAliasResolved              = "registry.crio.test.com/repo"
 		testNormalizedImageName             = "docker.io/library/image:latest" // Keep in sync with testImageName!
 		testSHA256                          = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
 		testImageWithTagAndDigest           = "image:latest@sha256:" + testSHA256
@@ -57,7 +52,8 @@ var _ = t.Describe("Image", func() {
 		}
 
 		sut, err = storage.GetImageService(
-			context.Background(), ctx, storeMock, "docker://", []string{},
+			context.Background(), ctx, storeMock, "docker://",
+			[]string{}, []string{testDockerRegistry, testExampleRegistry},
 		)
 		Expect(err).To(BeNil())
 		Expect(sut).NotTo(BeNil())
@@ -82,7 +78,9 @@ var _ = t.Describe("Image", func() {
 			// Given
 			// When
 			imageService, err := storage.GetImageService(
-				context.Background(), nil, storeMock, "", []string{},
+				context.Background(), nil, storeMock, "",
+				[]string{"reg1", "reg1", "reg2"},
+				[]string{"reg3", "reg3", "reg4"},
 			)
 
 			// Then
@@ -98,7 +96,7 @@ var _ = t.Describe("Image", func() {
 				&types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
-				storeMock, "", []string{},
+				storeMock, "", []string{}, []string{},
 			)
 
 			// Then
@@ -117,6 +115,20 @@ var _ = t.Describe("Image", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail if unqualified search registries errors", func() {
+			// Given
+			// When
+			imageService, err := storage.GetImageService(
+				context.Background(),
+				&types.SystemContext{SystemRegistriesConfPath: "/invalid"},
+				storeMock, "", []string{}, []string{},
+			)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(imageService).To(BeNil())
 		})
 	})
 
@@ -145,44 +157,16 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(
-				&types.SystemContext{
-					SystemRegistriesConfPath: "../../test/registries.conf",
-				},
-				testImageName,
-			)
+			names, err := sut.ResolveNames(ctx, testImageName)
 
 			// Then
 			Expect(err).To(BeNil())
 			Expect(names).To(Equal([]string{
-				testQuayRegistry + "/" + testImageName + ":latest",
-				testRedHatRegistry + "/" + testImageName + ":latest",
-				testFedoraRegistry + "/" + testImageName + ":latest",
-				testDockerRegistry + "/library/" + testImageName + ":latest",
+				testDockerRegistry + "/library/" + testImageName,
+				testExampleRegistry + "/" + testImageName,
 			}))
 		})
 
-		It("should succeed to resolve to a short-name alias", func() {
-			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
-
-			// When
-			names, err := sut.ResolveNames(
-				&types.SystemContext{
-					SystemRegistriesConfPath: "../../test/registries.conf",
-				},
-				testImageAlias,
-			)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(names).To(Equal([]string{
-				testImageAliasResolved + ":latest",
-			}))
-		})
 		It("should succeed to resolve with full qualified image name", func() {
 			// Given
 			const imageName = "docker.io/library/busybox:latest"
@@ -208,19 +192,13 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			names, err := sut.ResolveNames(
-				&types.SystemContext{
-					SystemRegistriesConfPath: "../../test/registries.conf",
-				},
-				testImageWithTagAndDigest,
-			)
+			names, err := sut.ResolveNames(ctx, testImageWithTagAndDigest)
+
 			// Then
 			Expect(err).To(BeNil())
 			Expect(names).To(Equal([]string{
-				testQuayRegistry + "/" + testImageName + "@sha256:" + testSHA256,
-				testRedHatRegistry + "/" + testImageName + "@sha256:" + testSHA256,
-				testFedoraRegistry + "/" + testImageName + "@sha256:" + testSHA256,
 				testDockerRegistry + "/library/" + testImageName + "@sha256:" + testSHA256,
+				testExampleRegistry + "/" + testImageName + "@sha256:" + testSHA256,
 			}))
 		})
 
@@ -297,23 +275,17 @@ var _ = t.Describe("Image", func() {
 
 			// Create an empty file for the registries config path
 			sut, err := storage.GetImageService(context.Background(),
-				ctx, storeMock, "", []string{},
+				ctx, storeMock, "", []string{}, []string{},
 			)
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
 
 			// When
-			names, err := sut.ResolveNames(
-				&types.SystemContext{
-					SystemRegistriesConfPath: "/dev/null",
-				},
-				testImageName,
-			)
+			names, err := sut.ResolveNames(ctx, testImageName)
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			errString := fmt.Sprintf("short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q", testImageName, "/dev/null")
-			Expect(err.Error()).To(Equal(errString))
+			Expect(err).To(Equal(storage.ErrNoRegistriesConfigured))
 			Expect(names).To(BeNil())
 		})
 	})

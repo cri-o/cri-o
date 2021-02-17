@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -32,7 +32,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
-				&types.ListPodSandboxRequest{})
+				&pb.ListPodSandboxRequest{})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -47,7 +47,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
-				&types.ListPodSandboxRequest{})
+				&pb.ListPodSandboxRequest{})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -63,7 +63,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
-				&types.ListPodSandboxRequest{})
+				&pb.ListPodSandboxRequest{})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -79,8 +79,8 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
-				&types.ListPodSandboxRequest{Filter: &types.PodSandboxFilter{
-					ID: sandboxID,
+				&pb.ListPodSandboxRequest{Filter: &pb.PodSandboxFilter{
+					Id: sandboxID,
 				}})
 
 			// Then
@@ -97,10 +97,10 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
-				&types.ListPodSandboxRequest{Filter: &types.PodSandboxFilter{
-					ID: sandboxID,
-					State: &types.PodSandboxStateValue{
-						State: types.PodSandboxStateSandboxReady,
+				&pb.ListPodSandboxRequest{Filter: &pb.PodSandboxFilter{
+					Id: sandboxID,
+					State: &pb.PodSandboxStateValue{
+						State: pb.PodSandboxState_SANDBOX_READY,
 					},
 				}})
 
@@ -118,8 +118,8 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
-				&types.ListPodSandboxRequest{Filter: &types.PodSandboxFilter{
-					ID:            sandboxID,
+				&pb.ListPodSandboxRequest{Filter: &pb.PodSandboxFilter{
+					Id:            sandboxID,
 					LabelSelector: map[string]string{"label": "value"},
 				}})
 
@@ -135,8 +135,8 @@ var _ = t.Describe("ListPodSandbox", func() {
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
-				&types.ListPodSandboxRequest{Filter: &types.PodSandboxFilter{
-					ID: sandboxID,
+				&pb.ListPodSandboxRequest{Filter: &pb.PodSandboxFilter{
+					Id: sandboxID,
 				}})
 
 			// Then

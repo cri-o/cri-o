@@ -465,6 +465,7 @@ func CopyDirContentsLocal(src, dst string) error {
 			}
 		}
 	}
+	logrus.Info("Done")
 	return nil
 }
 

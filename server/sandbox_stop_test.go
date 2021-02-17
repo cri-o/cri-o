@@ -3,10 +3,10 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -27,21 +27,23 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			Expect(testSandbox.SetNetworkStopped(false)).To(BeNil())
 
 			// When
-			err := sut.StopPodSandbox(context.Background(),
-				&types.StopPodSandboxRequest{PodSandboxID: testSandbox.ID()})
+			response, err := sut.StopPodSandbox(context.Background(),
+				&pb.StopPodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
 			Expect(err).To(BeNil())
+			Expect(response).NotTo(BeNil())
 		})
 
 		It("should succeed with inavailable sandbox", func() {
 			// Given
 			// When
-			err := sut.StopPodSandbox(context.Background(),
-				&types.StopPodSandboxRequest{PodSandboxID: "invalid"})
+			response, err := sut.StopPodSandbox(context.Background(),
+				&pb.StopPodSandboxRequest{PodSandboxId: "invalid"})
 
 			// Then
 			Expect(err).To(BeNil())
+			Expect(response).NotTo(BeNil())
 		})
 
 		It("should fail when container is not stopped", func() {
@@ -53,21 +55,23 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			)
 
 			// When
-			err := sut.StopPodSandbox(context.Background(),
-				&types.StopPodSandboxRequest{PodSandboxID: testSandbox.ID()})
+			response, err := sut.StopPodSandbox(context.Background(),
+				&pb.StopPodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
 			Expect(err).NotTo(BeNil())
+			Expect(response).To(BeNil())
 		})
 
 		It("should fail with empty sandbox ID", func() {
 			// Given
 			// When
-			err := sut.StopPodSandbox(context.Background(),
-				&types.StopPodSandboxRequest{})
+			response, err := sut.StopPodSandbox(context.Background(),
+				&pb.StopPodSandboxRequest{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
+			Expect(response).To(BeNil())
 		})
 	})
 })

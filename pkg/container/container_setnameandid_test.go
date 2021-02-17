@@ -5,9 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"github.com/cri-o/cri-o/pkg/container"
-	"github.com/cri-o/cri-o/server/cri/types"
 )
 
 // The actual test suite
@@ -23,8 +23,8 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 			namespace = "namespace"
 			uid       = "uid"
 		)
-		metadata := &types.PodSandboxMetadata{
-			Name: name, UID: uid, Namespace: namespace,
+		metadata := &pb.PodSandboxMetadata{
+			Name: name, Uid: uid, Namespace: namespace,
 		}
 		setupContainerWithMetadata(metadata)
 
@@ -41,7 +41,7 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 
 	It("should succeed with empty sandbox metadata", func() {
 		// Given
-		metadata := &types.PodSandboxMetadata{}
+		metadata := &pb.PodSandboxMetadata{}
 		setupContainerWithMetadata(metadata)
 
 		// When
@@ -65,11 +65,11 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 	})
 })
 
-func setupContainerWithMetadata(md *types.PodSandboxMetadata) {
-	config := &types.ContainerConfig{
-		Metadata: &types.ContainerMetadata{Name: "name"},
+func setupContainerWithMetadata(md *pb.PodSandboxMetadata) {
+	config := &pb.ContainerConfig{
+		Metadata: &pb.ContainerMetadata{Name: "name"},
 	}
-	sboxConfig := &types.PodSandboxConfig{
+	sboxConfig := &pb.PodSandboxConfig{
 		Metadata: md,
 	}
 	Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())

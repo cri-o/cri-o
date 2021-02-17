@@ -1,49 +1,49 @@
 package server
 
 import (
-	"context"
 	"path/filepath"
 
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	crioStorage "github.com/cri-o/cri-o/utils"
 	"github.com/pkg/errors"
+	"golang.org/x/net/context"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
-func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerStats, container *oci.Container) *types.ContainerStats {
+func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerStats, container *oci.Container) *pb.ContainerStats {
 	// TODO: Fix this for other storage drivers. This will only work with overlay.
-	var writableLayer *types.FilesystemUsage
+	var writableLayer *pb.FilesystemUsage
 	if s.ContainerServer.Config().RootConfig.Storage == "overlay" {
 		diffDir := filepath.Join(filepath.Dir(container.MountPoint()), "diff")
 		bytesUsed, inodeUsed, err := crioStorage.GetDiskUsageStats(diffDir)
 		if err != nil {
 			log.Warnf(ctx, "unable to get disk usage for container %s， %s", container.ID(), err)
 		}
-		writableLayer = &types.FilesystemUsage{
+		writableLayer = &pb.FilesystemUsage{
 			Timestamp:  stats.SystemNano,
-			FsID:       &types.FilesystemIdentifier{Mountpoint: container.MountPoint()},
-			UsedBytes:  &types.UInt64Value{Value: bytesUsed},
-			InodesUsed: &types.UInt64Value{Value: inodeUsed},
+			FsId:       &pb.FilesystemIdentifier{Mountpoint: container.MountPoint()},
+			UsedBytes:  &pb.UInt64Value{Value: bytesUsed},
+			InodesUsed: &pb.UInt64Value{Value: inodeUsed},
 		}
 	}
-	return &types.ContainerStats{
-		Attributes: &types.ContainerAttributes{
-			ID: container.ID(),
-			Metadata: &types.ContainerMetadata{
+	return &pb.ContainerStats{
+		Attributes: &pb.ContainerAttributes{
+			Id: container.ID(),
+			Metadata: &pb.ContainerMetadata{
 				Name:    container.Metadata().Name,
 				Attempt: container.Metadata().Attempt,
 			},
 			Labels:      container.Labels(),
 			Annotations: container.Annotations(),
 		},
-		CPU: &types.CPUUsage{
+		Cpu: &pb.CpuUsage{
 			Timestamp:            stats.SystemNano,
-			UsageCoreNanoSeconds: &types.UInt64Value{Value: stats.CPUNano},
+			UsageCoreNanoSeconds: &pb.UInt64Value{Value: stats.CPUNano},
 		},
-		Memory: &types.MemoryUsage{
+		Memory: &pb.MemoryUsage{
 			Timestamp:       stats.SystemNano,
-			WorkingSetBytes: &types.UInt64Value{Value: stats.WorkingSetBytes},
+			WorkingSetBytes: &pb.UInt64Value{Value: stats.WorkingSetBytes},
 		},
 		WritableLayer: writableLayer,
 	}
@@ -51,8 +51,8 @@ func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerSt
 
 // ContainerStats returns stats of the container. If the container does not
 // exist, the call returns an error.
-func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRequest) (*types.ContainerStatsResponse, error) {
-	container, err := s.GetContainerFromShortID(req.ContainerID)
+func (s *Server) ContainerStats(ctx context.Context, req *pb.ContainerStatsRequest) (*pb.ContainerStatsResponse, error) {
+	container, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, err
 	}
@@ -67,5 +67,5 @@ func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRe
 		return nil, err
 	}
 
-	return &types.ContainerStatsResponse{Stats: s.buildContainerStats(ctx, stats, container)}, nil
+	return &pb.ContainerStatsResponse{Stats: s.buildContainerStats(ctx, stats, container)}, nil
 }

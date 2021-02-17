@@ -3,9 +3,9 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -23,8 +23,8 @@ var _ = t.Describe("ContainerPortforward", func() {
 			// Given
 			// When
 			response, err := sut.PortForward(context.Background(),
-				&types.PortForwardRequest{
-					PodSandboxID: testSandbox.ID(),
+				&pb.PortForwardRequest{
+					PodSandboxId: testSandbox.ID(),
 					Port:         []int32{33300},
 				})
 
@@ -37,7 +37,7 @@ var _ = t.Describe("ContainerPortforward", func() {
 			// Given
 			// When
 			response, err := sut.PortForward(context.Background(),
-				&types.PortForwardRequest{})
+				&pb.PortForwardRequest{})
 
 			// Then
 			Expect(err).NotTo(BeNil())

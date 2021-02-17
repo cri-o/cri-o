@@ -3,7 +3,8 @@ obj = $(src:.c=.o)
 
 STRIP ?= strip
 override LIBS +=
-CFLAGS ?= -std=c99 -Os -Wall -Werror -Wextra -static
+CFLAGS ?= -std=c99 -Os -Wall -Werror -Wextra
+override CFLAGS += -static
 
 all: ../bin/pinns
 

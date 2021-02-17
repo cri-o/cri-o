@@ -78,9 +78,6 @@ stream_port = "{{ .StreamPort }}"
 # Enable encrypted TLS transport of the stream server.
 stream_enable_tls = {{ .StreamEnableTLS }}
 
-# Length of time until open streams terminate due to lack of activity
-stream_idle_timeout = "{{.StreamIdleTimeout}}"
-
 # Path to the x509 certificate file used to serve the encrypted stream. This
 # file can change, and CRI-O will automatically pick up the changes within 5
 # minutes.
@@ -157,10 +154,6 @@ seccomp_use_default_when_empty = {{ .SeccompUseDefaultWhenEmpty }}
 # the profile is set to "unconfined", then this equals to disabling AppArmor.
 # This option supports live configuration reload.
 apparmor_profile = "{{ .ApparmorProfile }}"
-
-# Used to change irqbalance service config file path which is used for configuring
-# irqbalance daemon.
-irqbalance_config_file = "{{ .IrqBalanceConfigFile }}"
 
 # Cgroup management implementation used for the runtime.
 cgroup_manager = "{{ .CgroupManagerName }}"
@@ -254,6 +247,11 @@ gid_mappings = "{{ .GIDMappings }}"
 # value is 30s, whereas lower values are not considered by CRI-O.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
 
+# manage_ns_lifecycle determines whether we pin and remove namespaces
+# and manage their lifecycle.
+# This option is being deprecated, and will be unconditionally true in the future.
+manage_ns_lifecycle = {{ .ManageNSLifecycle }}
+
 # drop_infra_ctr determines whether CRI-O drops the infra container
 # when a pod does not have a private PID namespace, and does not use
 # a kernel separating runtime (like kata).
@@ -306,7 +304,6 @@ default_runtime = "{{ .DefaultRuntime }}"
 #   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
 #   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
 #   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
-#   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 [crio.runtime.runtimes.{{ $runtime_name }}]

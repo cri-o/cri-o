@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Versions to be used
+# shellcheck source=versions
+source "$(dirname "${BASH_SOURCE[0]}")"/versions
+
+main() {
+    set -x
+    prepare_system
+
+    install_packages
+    install_golang
+    install_bats
+    install_conmon
+    install_critools
+    install_runc
+    install_ginkgo
+    install_cni_plugins
+    install_files
+}
+
+prepare_system() {
+    env
+
+    sudo systemctl stop docker
+    sudo ufw disable
+
+    # enable necessary kernel modules
+    sudo ip6tables --list >/dev/null
+
+    # enable necessary sysctls
+    sudo sysctl -w net.ipv4.conf.all.route_localnet=1
+    sudo sysctl -w net.ipv4.ip_forward=1
+    # needed for crictl test
+    sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
+    sudo iptables -t nat -I POSTROUTING -s 127.0.0.0/8 ! -d 127.0.0.0/8 -j MASQUERADE
+}
+
+install_golang() {
+    # remove old golang version
+    sudo rm -rf /usr/local/go
+    sudo rm -rf /usr/local/bin/go
+
+    # set GOPATH
+    echo "export GOPATH=/home/circleci/go" >>~/.bashrc
+
+    curl -fsSL "https://dl.google.com/go/go${VERSIONS["go"]}.linux-amd64.tar.gz" | sudo tar Cxz /usr/local
+
+    go version
+    go env
+}
+
+install_packages() {
+    sudo apt update
+    sudo apt install -y \
+        apparmor \
+        conntrack \
+        jq \
+        libaio-dev \
+        libapparmor-dev \
+        libbtrfs-dev \
+        libcap-dev \
+        libdevmapper-dev \
+        libfuse-dev \
+        libglib2.0-dev \
+        libgpgme11-dev \
+        libnet1-dev \
+        libnl-3-dev \
+        libprotobuf-c-dev \
+        libprotobuf-dev \
+        libseccomp-dev \
+        libsystemd-dev \
+        libudev-dev \
+        uuid-dev
+}
+
+install_bats() {
+    git clone https://github.com/bats-core/bats-core
+    pushd bats-core
+    git checkout "${VERSIONS["bats"]}"
+    sudo ./install.sh /usr/local
+    popd
+    rm -rf bats-core
+    mkdir -p ~/.parallel
+    touch ~/.parallel/will-cite
+}
+
+install_conmon() {
+    git clone https://github.com/containers/conmon
+    pushd conmon
+    git checkout "${VERSIONS["conmon"]}"
+    sudo make PREFIX=/ all install
+    popd
+    sudo rm -rf conmon
+}
+
+install_critools() {
+    URL=https://github.com/kubernetes-sigs/cri-tools
+
+    git clone $URL
+    pushd cri-tools
+    sudo -E PATH="$PATH" make BINDIR=/usr/bin install
+    popd
+    sudo rm -rf cri-tools
+    sudo critest --version
+    sudo crictl --version
+}
+
+install_cni_plugins() {
+    URL=https://github.com/containernetworking/plugins/releases/download
+    TARBALL=cni-plugins-linux-amd64-${VERSIONS["cni-plugins"]}.tgz
+    CNI_DIR=/opt/cni/bin
+    sudo mkdir -p "$CNI_DIR"
+    wget -O "$TARBALL" $URL/"${VERSIONS["cni-plugins"]}"/"$TARBALL"
+    sudo tar xf "$TARBALL" -C "$CNI_DIR"
+    rm "$TARBALL"
+    ls -lah "$CNI_DIR"
+}
+
+install_runc() {
+    URL=https://github.com/opencontainers/runc/releases/download/"${VERSIONS["runc"]}"
+    BINARY=/usr/sbin/runc
+    sudo wget -O "$BINARY" "$URL"/runc.amd64
+    sudo chmod +x "$BINARY"
+
+    # Verify the SHA256
+    SUMFILE=runc.sha256sum
+    wget "$URL"/$SUMFILE
+    grep -qw "$(sha256sum "$BINARY" | awk '{ print $1 }')" $SUMFILE
+    rm $SUMFILE
+
+    runc --version
+}
+
+install_ginkgo() {
+    make "$(pwd)"/build/bin/ginkgo
+    sudo cp build/bin/ginkgo /usr/bin
+    ginkgo version
+}
+
+install_files() {
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    sudo mkdir -p /etc/containers/registries.d
+    sudo cp "$REPO_ROOT"/test/policy.json /etc/containers
+    sudo cp "$REPO_ROOT"/test/redhat_sigstore.yaml \
+        /etc/containers/registries.d/registry.access.redhat.com.yaml
+}
+
+main "$@"

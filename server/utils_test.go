@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/containers/storage/pkg/mount"
-	"github.com/cri-o/cri-o/server/cri/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 const (
@@ -61,7 +61,7 @@ func TestMergeEnvs(t *testing.T) {
 		},
 	}
 
-	configKube := []*types.KeyValue{
+	configKube := []*pb.KeyValue{
 		{
 			Key:   "VAR2",
 			Value: "3",

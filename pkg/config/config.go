@@ -46,7 +46,6 @@ const (
 	OCIBufSize            = 8192
 	RuntimeTypeVM         = "vm"
 	defaultCtrStopTimeout = 30 // seconds
-	defaultNamespacesDir  = "/var/run"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -111,11 +110,6 @@ const (
 	DefaultLogToJournald = false
 )
 
-const (
-	// DefaultIrqBalanceConfigFile default irqbalance service configuration file path
-	DefaultIrqBalanceConfigFile = "/etc/sysconfig/irqbalance"
-)
-
 // This structure is necessary to fake the TOML tables when parsing,
 // while also not requiring a bunch of layered structs for no good
 // reason.
@@ -164,7 +158,6 @@ type RuntimeHandler struct {
 	// "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
 	// "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
 	// "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
-	// "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 }
 
@@ -187,7 +180,13 @@ type RuntimeConfig struct {
 	// to the kubernetes log file
 	LogToJournald bool `toml:"log_to_journald"`
 
+	// ManageNSLifecycle determines whether we pin and remove namespaces
+	// and manage their lifecycle
+	// This option is being deprecated
+	ManageNSLifecycle bool `toml:"manage_ns_lifecycle"`
+
 	// DropInfraCtr determines whether the infra container is dropped when appropriate.
+	// Requires ManageNSLifecycle to be true.
 	DropInfraCtr bool `toml:"drop_infra_ctr"`
 
 	// ReadOnly run all pods/containers in read-only mode.
@@ -242,10 +241,6 @@ type RuntimeConfig struct {
 	// ApparmorProfile is the apparmor profile name which is used as the
 	// default for the runtime.
 	ApparmorProfile string `toml:"apparmor_profile"`
-
-	// IrqBalanceConfigFile is the irqbalance service config file which is used
-	// for configuring irqbalance daemon.
-	IrqBalanceConfigFile string `toml:"irqbalance_config_file"`
 
 	// CgroupManagerName is the manager implementation name which is used to
 	// handle cgroups for containers.
@@ -333,9 +328,6 @@ type RuntimeConfig struct {
 
 	// conmonManager is the internal ConmonManager configuration
 	conmonManager *conmonmgr.ConmonManager
-
-	// namespaceManager is the internal NamespaceManager configuration
-	namespaceManager *nsmgr.NamespaceManager
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -423,9 +415,6 @@ type APIConfig struct {
 	// StreamTLSCA is the x509 CA(s) file used to verify and authenticate client
 	// communication with the tls encrypted stream
 	StreamTLSCA string `toml:"stream_tls_ca"`
-
-	// StreamIdleTimeout is how long to leave idle connections open for
-	StreamIdleTimeout string `toml:"stream_idle_timeout"`
 }
 
 // MetricsConfig specifies all necessary configuration for Prometheus based
@@ -502,11 +491,9 @@ func (c *Config) UpdateFromFile(path string) error {
 		delete(c.Runtimes, defaultRuntime)
 	}
 
-	// Registries are deprecated in cri-o.conf and turned into a NOP.
-	// Users should use registries.conf instead, so let's log it.
 	if len(t.Crio.Image.Registries) > 0 {
-		t.Crio.Image.Registries = nil
-		logrus.Warnf("Support for the 'registries' option has been dropped but it is referenced in %q.  Please use containers-registries.conf(5) for configuring unqualified-search registries instead.", path)
+		logrus.Warnf("The 'registries' option in crio.conf(5) (referenced in %q) has been deprecated and will be removed with CRI-O 1.21.", path)
+		logrus.Warn("Please refer to containers-registries.conf(5) for configuring unqualified-search registries.")
 	}
 
 	t.toConfig(c)
@@ -606,7 +593,6 @@ func DefaultConfig() (*Config, error) {
 			ConmonCgroup:             "system.slice",
 			SELinux:                  selinuxEnabled(),
 			ApparmorProfile:          apparmor.DefaultProfile,
-			IrqBalanceConfigFile:     DefaultIrqBalanceConfigFile,
 			CgroupManagerName:        cgroupManager.Name(),
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
@@ -616,13 +602,13 @@ func DefaultConfig() (*Config, error) {
 			DefaultCapabilities:      capabilities.Default(),
 			LogLevel:                 "info",
 			HooksDir:                 []string{hooks.DefaultDir},
-			NamespacesDir:            defaultNamespacesDir,
+			NamespacesDir:            "/var/run",
+			ManageNSLifecycle:        true,
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
 			ulimitsConfig:            ulimits.New(),
 			cgroupManager:            cgroupManager,
 			deviceConfig:             device.New(),
-			namespaceManager:         nsmgr.New(defaultNamespacesDir, ""),
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
@@ -789,6 +775,14 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
 	}
 
+	if !c.ManageNSLifecycle {
+		logrus.Infof("The manage-ns-lifecycle option is being deprecated, and will be unconditionally true in the future")
+	}
+
+	if c.DropInfraCtr && !c.ManageNSLifecycle {
+		return errors.New("cannot drop infra without ManageNSLifecycle")
+	}
+
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
 		return fmt.Errorf("log size max should be negative or >= %d", OCIBufSize)
 	}
@@ -863,7 +857,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		}
 
 		for _, ns := range nsmgr.SupportedNamespacesForPinning() {
-			nsDir := filepath.Join(c.NamespacesDir, string(ns))
+			nsDir := filepath.Join(c.NamespacesDir, string(ns)+"ns")
 			if err := utils.IsDirectory(nsDir); err != nil {
 				// The file is not a directory, but exists.
 				// We should remove it.
@@ -904,8 +898,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if !c.cgroupManager.IsSystemd() && c.ConmonCgroup != "pod" && c.ConmonCgroup != "" {
 			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
 		}
-
-		c.namespaceManager = nsmgr.New(c.NamespacesDir, c.PinnsPath)
 	}
 
 	return nil
@@ -960,11 +952,6 @@ func (c *RuntimeConfig) AppArmor() *apparmor.Config {
 // CgroupManager returns the CgroupManager configuration
 func (c *RuntimeConfig) CgroupManager() cgmgr.CgroupManager {
 	return c.cgroupManager
-}
-
-// NamespaceManager returns the NamespaceManager configuration
-func (c *RuntimeConfig) NamespaceManager() *nsmgr.NamespaceManager {
-	return c.namespaceManager
 }
 
 // Ulimits returns the Ulimits configuration

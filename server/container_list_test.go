@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // The actual test suite
@@ -24,7 +24,7 @@ var _ = t.Describe("ContainerList", func() {
 	t.Describe("ContainerList", func() {
 		DescribeTable("should succeed", func(
 			givenState *oci.ContainerState,
-			expectedState types.ContainerState,
+			expectedState pb.ContainerState,
 			created bool,
 		) {
 			// Given
@@ -36,7 +36,7 @@ var _ = t.Describe("ContainerList", func() {
 
 			// When
 			response, err := sut.ListContainers(context.Background(),
-				&types.ListContainersRequest{Filter: &types.ContainerFilter{}})
+				&pb.ListContainersRequest{Filter: &pb.ContainerFilter{}})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -48,16 +48,16 @@ var _ = t.Describe("ContainerList", func() {
 		},
 			Entry("Created 1", &oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},
-			}, types.ContainerStateContainerCreated, true),
+			}, pb.ContainerState_CONTAINER_CREATED, true),
 			Entry("Created 2", &oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},
-			}, types.ContainerStateContainerCreated, false),
+			}, pb.ContainerState_CONTAINER_CREATED, false),
 			Entry("Running", &oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
-			}, types.ContainerStateContainerRunning, true),
+			}, pb.ContainerState_CONTAINER_RUNNING, true),
 			Entry("Stopped", &oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateStopped},
-			}, types.ContainerStateContainerExited, true),
+			}, pb.ContainerState_CONTAINER_EXITED, true),
 		)
 
 		t.Describe("ContainerList Filter", func() {
@@ -70,8 +70,8 @@ var _ = t.Describe("ContainerList", func() {
 				// Given
 				// When
 				response, err := sut.ListContainers(context.Background(),
-					&types.ListContainersRequest{Filter: &types.ContainerFilter{
-						ID: "id",
+					&pb.ListContainersRequest{Filter: &pb.ContainerFilter{
+						Id: "id",
 					}})
 
 				// Then
@@ -84,8 +84,8 @@ var _ = t.Describe("ContainerList", func() {
 				// Given
 				// When
 				response, err := sut.ListContainers(context.Background(),
-					&types.ListContainersRequest{Filter: &types.ContainerFilter{
-						ID: testContainer.ID(),
+					&pb.ListContainersRequest{Filter: &pb.ContainerFilter{
+						Id: testContainer.ID(),
 					}})
 
 				// Then
@@ -98,9 +98,9 @@ var _ = t.Describe("ContainerList", func() {
 				// Given
 				// When
 				response, err := sut.ListContainers(context.Background(),
-					&types.ListContainersRequest{Filter: &types.ContainerFilter{
-						ID:           testContainer.ID(),
-						PodSandboxID: "id",
+					&pb.ListContainersRequest{Filter: &pb.ContainerFilter{
+						Id:           testContainer.ID(),
+						PodSandboxId: "id",
 					}})
 
 				// Then
@@ -113,9 +113,9 @@ var _ = t.Describe("ContainerList", func() {
 				// Given
 				// When
 				response, err := sut.ListContainers(context.Background(),
-					&types.ListContainersRequest{Filter: &types.ContainerFilter{
-						ID:           testContainer.ID(),
-						PodSandboxID: testSandbox.ID(),
+					&pb.ListContainersRequest{Filter: &pb.ContainerFilter{
+						Id:           testContainer.ID(),
+						PodSandboxId: testSandbox.ID(),
 					}})
 
 				// Then
@@ -128,8 +128,8 @@ var _ = t.Describe("ContainerList", func() {
 				// Given
 				// When
 				response, err := sut.ListContainers(context.Background(),
-					&types.ListContainersRequest{Filter: &types.ContainerFilter{
-						PodSandboxID: testSandbox.ID(),
+					&pb.ListContainersRequest{Filter: &pb.ContainerFilter{
+						PodSandboxId: testSandbox.ID(),
 					}})
 
 				// Then
@@ -142,9 +142,9 @@ var _ = t.Describe("ContainerList", func() {
 				// Given
 				// When
 				response, err := sut.ListContainers(context.Background(),
-					&types.ListContainersRequest{Filter: &types.ContainerFilter{
-						State: &types.ContainerStateValue{
-							State: types.ContainerStateContainerRunning,
+					&pb.ListContainersRequest{Filter: &pb.ContainerFilter{
+						State: &pb.ContainerStateValue{
+							State: pb.ContainerState_CONTAINER_RUNNING,
 						},
 					}})
 
@@ -158,7 +158,7 @@ var _ = t.Describe("ContainerList", func() {
 				// Given
 				// When
 				response, err := sut.ListContainers(context.Background(),
-					&types.ListContainersRequest{Filter: &types.ContainerFilter{
+					&pb.ListContainersRequest{Filter: &pb.ContainerFilter{
 						LabelSelector: map[string]string{"label": "label"},
 					}})
 

@@ -7,7 +7,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 type RuntimeHandlerHooks interface {
@@ -16,19 +15,19 @@ type RuntimeHandlerHooks interface {
 }
 
 // GetRuntimeHandlerHooks returns RuntimeHandlerHooks implementation by the runtime handler name
-func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handler string, r *oci.Runtime) (RuntimeHandlerHooks, error) {
+func GetRuntimeHandlerHooks(ctx context.Context, handler string, r *oci.Runtime) (RuntimeHandlerHooks, error) {
 	allowAnnotations, err := allowHighPerformanceAnnotations(handler, r)
 	if err != nil {
 		return nil, err
 	}
 
 	if allowAnnotations {
-		return &HighPerformanceHooks{config.IrqBalanceConfigFile}, nil
+		return &HighPerformanceHooks{}, nil
 	}
 
 	if !allowAnnotations && strings.Contains(handler, HighPerformance) {
 		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
-		return &HighPerformanceHooks{config.IrqBalanceConfigFile}, nil
+		return &HighPerformanceHooks{}, nil
 	}
 
 	return nil, nil

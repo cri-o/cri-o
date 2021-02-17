@@ -1,12 +1,17 @@
 package sandbox_test
 
 import (
+	"fmt"
+	"math/rand"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	. "github.com/cri-o/cri-o/test/framework"
+	sandboxmock "github.com/cri-o/cri-o/test/mocks/sandbox"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -19,8 +24,10 @@ func TestSandbox(t *testing.T) {
 }
 
 var (
-	t           *TestFramework
-	testSandbox *sandbox.Sandbox
+	t                  *TestFramework
+	testSandbox        *sandbox.Sandbox
+	mockCtrl           *gomock.Controller
+	namespaceIfaceMock *sandboxmock.MockNamespaceIface
 )
 
 var _ = BeforeSuite(func() {
@@ -28,10 +35,15 @@ var _ = BeforeSuite(func() {
 	t.Setup()
 
 	logrus.SetLevel(logrus.PanicLevel)
+
+	// Setup the mocks
+	mockCtrl = gomock.NewController(GinkgoT())
+	namespaceIfaceMock = sandboxmock.NewMockNamespaceIface(mockCtrl)
 })
 
 var _ = AfterSuite(func() {
 	t.Teardown()
+	mockCtrl.Finish()
 })
 
 func beforeEach() {
@@ -43,4 +55,11 @@ func beforeEach() {
 		[]*hostport.PortMapping{}, false, time.Now(), "")
 	Expect(err).To(BeNil())
 	Expect(testSandbox).NotTo(BeNil())
+}
+
+func createTmpDir() (tmpDir string) {
+	tmpDir = fmt.Sprintf("/tmp/crio-ns-test-%d", rand.Intn(100))
+	err := os.MkdirAll(tmpDir, 0o755)
+	Expect(err).To(BeNil())
+	return tmpDir
 }

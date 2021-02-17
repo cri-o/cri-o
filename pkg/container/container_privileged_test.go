@@ -1,26 +1,26 @@
 package container_test
 
 import (
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 var _ = t.Describe("Container:Privileged", func() {
 	It("should succeed in setting privileged flag", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
-			Linux: &types.LinuxContainerConfig{
-				SecurityContext: &types.LinuxContainerSecurityContext{
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
+			Linux: &pb.LinuxContainerConfig{
+				SecurityContext: &pb.LinuxContainerSecurityContext{
 					Privileged: true,
 				},
 			},
 		}
 
-		sboxConfig := &types.PodSandboxConfig{
-			Linux: &types.LinuxPodSandboxConfig{
-				SecurityContext: &types.LinuxSandboxSecurityContext{
+		sboxConfig := &pb.PodSandboxConfig{
+			Linux: &pb.LinuxPodSandboxConfig{
+				SecurityContext: &pb.LinuxSandboxSecurityContext{
 					Privileged: true,
 				},
 			},
@@ -35,18 +35,18 @@ var _ = t.Describe("Container:Privileged", func() {
 	})
 	It("should not be privileged if not set so", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
-			Linux: &types.LinuxContainerConfig{
-				SecurityContext: &types.LinuxContainerSecurityContext{
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
+			Linux: &pb.LinuxContainerConfig{
+				SecurityContext: &pb.LinuxContainerSecurityContext{
 					Privileged: false,
 				},
 			},
 		}
 
-		sboxConfig := &types.PodSandboxConfig{
-			Linux: &types.LinuxPodSandboxConfig{
-				SecurityContext: &types.LinuxSandboxSecurityContext{
+		sboxConfig := &pb.PodSandboxConfig{
+			Linux: &pb.LinuxPodSandboxConfig{
+				SecurityContext: &pb.LinuxSandboxSecurityContext{
 					Privileged: true,
 				},
 			},
@@ -61,18 +61,18 @@ var _ = t.Describe("Container:Privileged", func() {
 	})
 	It("should not be privileged if pod not set so", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
-			Linux: &types.LinuxContainerConfig{
-				SecurityContext: &types.LinuxContainerSecurityContext{
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
+			Linux: &pb.LinuxContainerConfig{
+				SecurityContext: &pb.LinuxContainerSecurityContext{
 					Privileged: true,
 				},
 			},
 		}
 
-		sboxConfig := &types.PodSandboxConfig{
-			Linux: &types.LinuxPodSandboxConfig{
-				SecurityContext: &types.LinuxSandboxSecurityContext{
+		sboxConfig := &pb.PodSandboxConfig{
+			Linux: &pb.LinuxPodSandboxConfig{
+				SecurityContext: &pb.LinuxSandboxSecurityContext{
 					Privileged: false,
 				},
 			},
@@ -88,16 +88,16 @@ var _ = t.Describe("Container:Privileged", func() {
 
 	It("should not be privileged if pod has no linux config", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
-			Linux: &types.LinuxContainerConfig{
-				SecurityContext: &types.LinuxContainerSecurityContext{
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
+			Linux: &pb.LinuxContainerConfig{
+				SecurityContext: &pb.LinuxContainerSecurityContext{
 					Privileged: true,
 				},
 			},
 		}
 
-		sboxConfig := &types.PodSandboxConfig{}
+		sboxConfig := &pb.PodSandboxConfig{}
 
 		// When
 		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
@@ -108,17 +108,17 @@ var _ = t.Describe("Container:Privileged", func() {
 	})
 	It("should not be privileged if pod has no security context", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
-			Linux: &types.LinuxContainerConfig{
-				SecurityContext: &types.LinuxContainerSecurityContext{
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
+			Linux: &pb.LinuxContainerConfig{
+				SecurityContext: &pb.LinuxContainerSecurityContext{
 					Privileged: true,
 				},
 			},
 		}
 
-		sboxConfig := &types.PodSandboxConfig{
-			Linux: &types.LinuxPodSandboxConfig{},
+		sboxConfig := &pb.PodSandboxConfig{
+			Linux: &pb.LinuxPodSandboxConfig{},
 		}
 
 		// When
@@ -130,12 +130,12 @@ var _ = t.Describe("Container:Privileged", func() {
 	})
 	It("should not be privileged if container has no linux config", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
 		}
 
-		sboxConfig := &types.PodSandboxConfig{
-			Linux: &types.LinuxPodSandboxConfig{},
+		sboxConfig := &pb.PodSandboxConfig{
+			Linux: &pb.LinuxPodSandboxConfig{},
 		}
 
 		// When
@@ -147,12 +147,12 @@ var _ = t.Describe("Container:Privileged", func() {
 	})
 	It("should not be privileged if container has no security context", func() {
 		// Given
-		config := &types.ContainerConfig{
-			Metadata: &types.ContainerMetadata{Name: "name"},
+		config := &pb.ContainerConfig{
+			Metadata: &pb.ContainerMetadata{Name: "name"},
 		}
 
-		sboxConfig := &types.PodSandboxConfig{
-			Linux: &types.LinuxPodSandboxConfig{},
+		sboxConfig := &pb.PodSandboxConfig{
+			Linux: &pb.LinuxPodSandboxConfig{},
 		}
 
 		// When

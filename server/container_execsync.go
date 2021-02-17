@@ -1,18 +1,18 @@
 package server
 
 import (
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 // ExecSync runs a command in a container synchronously.
-func (s *Server) ExecSync(ctx context.Context, req *types.ExecSyncRequest) (*types.ExecSyncResponse, error) {
-	c, err := s.GetContainerFromShortID(req.ContainerID)
+func (s *Server) ExecSync(ctx context.Context, req *pb.ExecSyncRequest) (*pb.ExecSyncResponse, error) {
+	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerID, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
 	if err := c.IsAlive(); err != nil {
@@ -28,7 +28,7 @@ func (s *Server) ExecSync(ctx context.Context, req *types.ExecSyncRequest) (*typ
 	if err != nil {
 		return nil, err
 	}
-	return &types.ExecSyncResponse{
+	return &pb.ExecSyncResponse{
 		Stdout:   execResp.Stdout,
 		Stderr:   execResp.Stderr,
 		ExitCode: execResp.ExitCode,
