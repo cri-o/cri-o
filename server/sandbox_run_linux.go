@@ -342,6 +342,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
+	allowOCISeccompBPFHookAnnotation, err := s.Runtime().AllowOCISeccompBPFHookAnnotation(runtimeHandler)
+	if err != nil {
+		return nil, errors.Wrap(err, "check for allowed OCI seccomp BPF hook annotation")
+	}
+	// Remove the OCI seccomp BPF hook annotation if it is not allowed
+	if !allowOCISeccompBPFHookAnnotation {
+		delete(kubeAnnotations, ann.OCISeccompBPFHookAnnotation)
+	}
+
 	idMappingsOptions, err := s.configureSandboxIDMappings(usernsMode, sbox.Config().Linux.SecurityContext, runtimeHandler)
 	if err != nil {
 		return nil, err

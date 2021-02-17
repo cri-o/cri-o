@@ -55,6 +55,7 @@ var _ = t.Describe("Oci", func() {
 					annotations.CPULoadBalancingAnnotation,
 					annotations.IRQLoadBalancingAnnotation,
 					annotations.CPUQuotaAnnotation,
+					annotations.OCISeccompBPFHookAnnotation,
 				},
 			},
 		}
@@ -140,6 +141,24 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(allowed).To(Equal(true))
+		})
+		It("AllowOCISeccompBPFHookAnnotation should be true when set", func() {
+			// Given
+			// When
+			allowed, err := sut.AllowOCISeccompBPFHookAnnotation(performanceRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(allowed).To(Equal(true))
+		})
+		It("AllowOCISeccompBPFHookAnnotation should be false when runtime invalid", func() {
+			// Given
+			// When
+			allowed, err := sut.AllowOCISeccompBPFHookAnnotation(invalidRuntime)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(allowed).To(Equal(false))
 		})
 	})
 

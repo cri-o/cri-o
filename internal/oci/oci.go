@@ -231,6 +231,13 @@ func (r *Runtime) AllowShmSizeAnnotation(handler string) (bool, error) {
 	return r.allowAnnotation(handler, annotations.ShmSizeAnnotation)
 }
 
+// AllowOCISeccompBPFHookAnnotation searches through the AllowedAnnotations for
+// the OCI seccomp BPF hook annotation, checking whether this runtime allows
+// processing of "io.containers.trace-syscall".
+func (r *Runtime) AllowOCISeccompBPFHookAnnotation(handler string) (bool, error) {
+	return r.allowAnnotation(handler, annotations.OCISeccompBPFHookAnnotation)
+}
+
 func (r *Runtime) allowAnnotation(handler, annotation string) (bool, error) {
 	rh, err := r.getRuntimeHandler(handler)
 	if err != nil {

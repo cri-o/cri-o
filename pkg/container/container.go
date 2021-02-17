@@ -15,6 +15,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
@@ -146,8 +147,35 @@ func (c *container) SpecAddAnnotations(sb *sandbox.Sandbox, containerVolumes []o
 
 	// Preserve the sandbox annotations. OCI hooks may re-use the sandbox
 	// annotation values to apply them to the container later on.
+	// The sandbox annotations are already filtered for the allowed
+	// annotations, there is no need to check it additionally here.
 	for k, v := range sb.Annotations() {
-		c.spec.AddAnnotation(k, v)
+		if strings.HasPrefix(k, crioann.OCISeccompBPFHookAnnotation) {
+			// The OCI seccomp BPF hook
+			// (https://github.com/containers/oci-seccomp-bpf-hook)
+			// uses the annotation io.containers.trace-syscall as indicator
+			// to attach a BFP module to the process. The recorded syscalls
+			// will be then stored in the output path file (annotation
+			// value prefixed with 'of:'). We now add a custom logic to be
+			// able to distinguish containers within pods in Kubernetes. If
+			// we suffix the container name within the annotation key like
+			// this: io.containers.trace-syscall/container
+			// Then we will rewrite the key to
+			// 'io.containers.trace-syscall' if the metadata name is equal
+			// to 'container'. This allows us to trace containers into
+			// distinguishable files.
+			if strings.TrimPrefix(k, crioann.OCISeccompBPFHookAnnotation+"/") == c.config.Metadata.Name {
+				log.Debugf(c.ctx,
+					"Annotation key for container %q rewritten to %q (value is: %q)",
+					c.config.Metadata.Name, crioann.OCISeccompBPFHookAnnotation, v,
+				)
+				c.config.Annotations[crioann.OCISeccompBPFHookAnnotation] = v
+				c.spec.AddAnnotation(crioann.OCISeccompBPFHookAnnotation, v)
+			} else {
+				// Annotation not suffixed with the container name
+				c.spec.AddAnnotation(k, v)
+			}
+		}
 	}
 
 	c.spec.AddAnnotation(annotations.Image, image)

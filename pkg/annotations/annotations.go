@@ -24,4 +24,7 @@ const (
 
 	// IRQLoadBalancingAnnotation indicates that IRQ load balancing should be disabled for CPUs used by the container
 	IRQLoadBalancingAnnotation = "irq-load-balancing.crio.io"
+
+	// OCISeccompBPFHookAnnotation is the annotation used by the OCI seccomp BPF hook for tracing container syscalls
+	OCISeccompBPFHookAnnotation = "io.containers.trace-syscall"
 )

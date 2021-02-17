@@ -27,6 +27,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -165,6 +166,7 @@ type RuntimeHandler struct {
 	// "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
 	// "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 	// "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+	// "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 }
 
@@ -598,6 +600,9 @@ func DefaultConfig() (*Config, error) {
 				defaultRuntime: {
 					RuntimeType: DefaultRuntimeType,
 					RuntimeRoot: DefaultRuntimeRoot,
+					AllowedAnnotations: []string{
+						annotations.OCISeccompBPFHookAnnotation,
+					},
 				},
 			},
 			ConmonEnv: []string{
@@ -1065,8 +1070,12 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 		return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
 			name, err)
 	}
-	logrus.Debugf("found valid runtime %q for runtime_path %q",
-		name, r.RuntimePath)
+	logrus.Debugf(
+		"Found valid runtime %q for runtime_path %q", name, r.RuntimePath,
+	)
+	logrus.Debugf(
+		"Allowed annotations for runtime: %v", r.AllowedAnnotations,
+	)
 	return nil
 }
 
