@@ -6,7 +6,7 @@ GIT_ROOT=$(git rev-parse --show-toplevel)
 ARCHIVE_PATH="$GIT_ROOT/build/bundle"
 mkdir -p "$ARCHIVE_PATH"
 
-BUNDLE=crio-$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)
+BUNDLE=crio-$(git describe --tags --exact-match 2>/dev/null || git rev-parse HEAD)
 ARCHIVE="$BUNDLE.tar.gz"
 
 export BUNDLE
