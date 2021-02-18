@@ -341,3 +341,22 @@ func GetLabelOptions(selinuxOptions *types.SELinuxOption) []string {
 	}
 	return labels
 }
+
+// SyncParent ensures a path's parent directory is synced to disk
+func SyncParent(path string) error {
+	return Sync(filepath.Dir(path))
+}
+
+// Sync ensures a path is synced to disk
+func Sync(path string) error {
+	f, err := os.OpenFile(path, os.O_RDONLY, 0o755)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if err := syscall.Fsync(int(f.Fd())); err != nil {
+		return err
+	}
+	return nil
+}

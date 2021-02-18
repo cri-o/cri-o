@@ -32,6 +32,33 @@ func crioWipe(c *cli.Context) error {
 		return err
 	}
 
+	store, err := config.GetStore()
+	if err != nil {
+		return err
+	}
+
+	// first, check whether crio has shutdown with time to sync
+	// if not, we should clear the storage directory
+	if config.CleanShutdownFile != "" {
+		if _, err := os.Stat(config.CleanShutdownFile); err != nil {
+			logrus.Infof("file %s not found. Wiping storage directory %s because of suspected dirty shutdown", config.CleanShutdownFile, store.GraphRoot())
+			// If we do not do this, we may leak other resources that are not directly in the graphroot.
+			// Erroring here should not be fatal though, it's a best effort cleanup
+			if err := store.Wipe(); err != nil {
+				logrus.Infof("failed to wipe storage cleanly: %v", err)
+			}
+			// unmount storage or else we will fail with EBUSY
+			if _, err := store.Shutdown(false); err != nil {
+				return errors.Errorf("failed to shutdown storage before wiping: %v", err)
+			}
+			// totally remove storage, whatever is left (possibly orphaned layers)
+			if err := os.RemoveAll(store.GraphRoot()); err != nil {
+				return errors.Errorf("failed to remove storage directory: %v", err)
+			}
+			return nil
+		}
+	}
+
 	shouldWipeImages := true
 	shouldWipeContainers := true
 	// First, check if we need to upgrade at all
@@ -64,11 +91,6 @@ func crioWipe(c *cli.Context) error {
 		return nil
 	}
 
-	store, err := config.GetStore()
-	if err != nil {
-		return err
-	}
-
 	cstore := ContainerStore{store}
 	if err := cstore.wipeCrio(shouldWipeImages); err != nil {
 		return err
@@ -87,14 +109,14 @@ func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
 		return err
 	}
 	if len(crioContainers) != 0 {
-		logrus.Infof("wiping containers")
+		logrus.Infof("Wiping containers")
 	}
 	for _, id := range crioContainers {
 		c.deleteContainer(id)
 	}
 	if shouldWipeImages {
 		if len(crioImages) != 0 {
-			logrus.Infof("wiping images")
+			logrus.Infof("Wiping images")
 		}
 		for _, id := range crioImages {
 			c.deleteImage(id)

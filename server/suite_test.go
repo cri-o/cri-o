@@ -143,6 +143,7 @@ var beforeEach = func() {
 	serverConfig.ContainerAttachSocketDir = testPath
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
 	serverConfig.LogDir = path.Join(testPath, "log")
+	serverConfig.CleanShutdownFile = path.Join(testPath, "clean.shutdown")
 
 	// We want a directory that is guaranteed to exist, but it must
 	// be empty so we don't erroneously load anything and make tests
