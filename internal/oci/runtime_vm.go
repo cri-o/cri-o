@@ -189,7 +189,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	args = append(args, "start")
 
 	// Modify the runtime path so that it complies with v2 shim API
-	newRuntimePath := strings.ReplaceAll(r.path, "-", ".")
+	newRuntimePath := BuildContainerdBinaryName(r.path)
 
 	ctx = namespaces.WithNamespace(ctx, namespaces.Default)
 
