@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"github.com/BurntSushi/toml"
 	conmonconfig "github.com/containers/conmon/runner/config"
@@ -868,30 +867,9 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "pinns validation")
 		}
 
-		if err := os.MkdirAll(c.NamespacesDir, 0o755); err != nil {
-			return errors.Wrap(err, "invalid namespaces_dir")
-		}
-
-		for _, ns := range nsmgr.SupportedNamespacesForPinning() {
-			nsDir := filepath.Join(c.NamespacesDir, string(ns))
-			if err := utils.IsDirectory(nsDir); err != nil {
-				// The file is not a directory, but exists.
-				// We should remove it.
-				if errors.Is(err, syscall.ENOTDIR) {
-					if err := os.Remove(nsDir); err != nil {
-						return errors.Wrapf(err, "remove file to create namespaces sub-dir")
-					}
-					logrus.Infof("Removed file %s to create directory in that path.", nsDir)
-				} else if !os.IsNotExist(err) {
-					// if it's neither an error because the file exists
-					// nor an error because it does not exist, it is
-					// some other disk error.
-					return errors.Wrapf(err, "checking whether namespaces sub-dir exists")
-				}
-				if err := os.MkdirAll(nsDir, 0o755); err != nil {
-					return errors.Wrap(err, "invalid namespaces sub-dir")
-				}
-			}
+		c.namespaceManager = nsmgr.New(c.NamespacesDir, c.PinnsPath)
+		if err := c.namespaceManager.Initialize(); err != nil {
+			return errors.Wrapf(err, "initialize nsmgr")
 		}
 
 		if c.SeccompUseDefaultWhenEmpty {
@@ -914,8 +892,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if !c.cgroupManager.IsSystemd() && c.ConmonCgroup != "pod" && c.ConmonCgroup != "" {
 			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
 		}
-
-		c.namespaceManager = nsmgr.New(c.NamespacesDir, c.PinnsPath)
 	}
 
 	return nil

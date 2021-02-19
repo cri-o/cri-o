@@ -24,10 +24,10 @@ const (
 	ManagedNamespacesNum        = 4
 )
 
-// SupportedNamespacesForPinning returns a slice of
+// supportedNamespacesForPinning returns a slice of
 // the names of namespaces that CRI-O supports
 // pinning.
-func SupportedNamespacesForPinning() []NSType {
+func supportedNamespacesForPinning() []NSType {
 	return []NSType{NETNS, IPCNS, UTSNS, USERNS}
 }
 

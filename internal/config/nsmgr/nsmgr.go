@@ -7,8 +7,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -29,6 +31,35 @@ func New(namespacesDir, pinnsPath string) *NamespaceManager {
 		namespacesDir: namespacesDir,
 		pinnsPath:     pinnsPath,
 	}
+}
+
+func (mgr *NamespaceManager) Initialize() error {
+	if err := os.MkdirAll(mgr.namespacesDir, 0o755); err != nil {
+		return errors.Wrap(err, "invalid namespaces_dir")
+	}
+
+	for _, ns := range supportedNamespacesForPinning() {
+		nsDir := mgr.dirForType(ns)
+		if err := utils.IsDirectory(nsDir); err != nil {
+			// The file is not a directory, but exists.
+			// We should remove it.
+			if errors.Is(err, syscall.ENOTDIR) {
+				if err := os.Remove(nsDir); err != nil {
+					return errors.Wrapf(err, "remove file to create namespaces sub-dir")
+				}
+				logrus.Infof("Removed file %s to create directory in that path.", nsDir)
+			} else if !os.IsNotExist(err) {
+				// if it's neither an error because the file exists
+				// nor an error because it does not exist, it is
+				// some other disk error.
+				return errors.Wrapf(err, "checking whether namespaces sub-dir exists")
+			}
+			if err := os.MkdirAll(nsDir, 0o755); err != nil {
+				return errors.Wrap(err, "invalid namespaces sub-dir")
+			}
+		}
+	}
+	return nil
 }
 
 // NewPodNamespaces creates new namespaces for a pod.
@@ -142,4 +173,10 @@ func getSysctlForPinns(sysctls map[string]string) string {
 		fmt.Fprintf(g, "'%s=%s'%s", key, value, pinnsSysctlDelim)
 	}
 	return strings.TrimSuffix(g.String(), pinnsSysctlDelim)
+}
+
+// dirForType returns the sub-directory for that particular NSType
+// which is of the form `$namespaceDir/$nsType+"ns"`
+func (mgr *NamespaceManager) dirForType(ns NSType) string {
+	return filepath.Join(mgr.namespacesDir, string(ns)+"ns")
 }
