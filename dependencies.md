@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 19 Feb 2021 17:23:10 UTC for commit [3854322][0]._
+_Generated on Fri, 19 Feb 2021 19:03:32 UTC for commit [43f2c29][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3854322b42324d21c9e3d1278ad0c0ad0e942adb
+[0]: https://github.com/cri-o/cri-o/commit/43f2c2942b63574a212402c381efc664a2e8ef1d
 
 ## Outdated Dependencies
 
@@ -28,7 +28,7 @@ _Generated on Fri, 19 Feb 2021 17:23:10 UTC for commit [3854322][0]._
 | github.com/syndtr/gocapability               | v0.0.0-20180916011248-d98352740cb2 | v0.0.0-20200815063812-42c35b437635 | true   | true             |
 | github.com/urfave/cli/v2                     | v2.2.0                             | v2.3.0                             | true   | true             |
 | golang.org/x/net                             | v0.0.0-20201224014010-6772e930b67b | v0.0.0-20210119194325-5f4716e94777 | true   | true             |
-| golang.org/x/sys                             | v0.0.0-20210105210732-16f7687f5001 | v0.0.0-20210218155724-8ebf48af031b | true   | true             |
+| golang.org/x/sys                             | v0.0.0-20210105210732-16f7687f5001 | v0.0.0-20210219172841-57ea560cfca1 | true   | true             |
 | google.golang.org/grpc                       | v1.27.0                            | v1.35.0                            | true   | true             |
 | k8s.io/api                                   | v0.0.0-20201201102839-3321f00ed14e | v0.0.0-20210219164225-25aa6cf0c580 | true   | true             |
 | k8s.io/apimachinery                          | v0.0.0-20201201102839-3321f00ed14e | v0.0.0-20210219164225-25aa6cf0c580 | true   | true             |
@@ -554,7 +554,7 @@ _Generated on Fri, 19 Feb 2021 17:23:10 UTC for commit [3854322][0]._
 | golang.org/x/net                                        | v0.0.0-20201224014010-6772e930b67b                         | v0.0.0-20210119194325-5f4716e94777 | true   | true             |
 | golang.org/x/oauth2                                     | v0.0.0-20210112200429-01de73cf58bd                         | v0.0.0-20210218202405-ba52d332ba99 | false  | true             |
 | golang.org/x/sync                                       | v0.0.0-20201207232520-09787c993a3a                         |                                    | true   | true             |
-| golang.org/x/sys                                        | v0.0.0-20210105210732-16f7687f5001                         | v0.0.0-20210218155724-8ebf48af031b | true   | true             |
+| golang.org/x/sys                                        | v0.0.0-20210105210732-16f7687f5001                         | v0.0.0-20210219172841-57ea560cfca1 | true   | true             |
 | golang.org/x/term                                       | v0.0.0-20201126162022-7de9c90e9dd1                         | v0.0.0-20201210144234-2321bbc49cbf | false  | true             |
 | golang.org/x/text                                       | v0.3.4                                                     | v0.3.5                             | false  | true             |
 | golang.org/x/time                                       | v0.0.0-20200630173020-3af7569d3a1e                         | v0.0.0-20201208040808-7e3f01d25324 | false  | true             |
@@ -565,7 +565,7 @@ _Generated on Fri, 19 Feb 2021 17:23:10 UTC for commit [3854322][0]._
 | gonum.org/v1/plot                                       | v0.0.0-20190515093506-e2840ee46a6b                         | v0.8.1                             | false  | true             |
 | google.golang.org/api                                   | v0.36.0                                                    | v0.40.0                            | false  | true             |
 | google.golang.org/appengine                             | v1.6.7                                                     |                                    | false  | true             |
-| google.golang.org/genproto                              | v0.0.0-20200117163144-32f20d992d24                         | v0.0.0-20210218151259-fe80b386bf06 | false  | true             |
+| google.golang.org/genproto                              | v0.0.0-20200117163144-32f20d992d24                         | v0.0.0-20210219173056-d891e3cb3b5b | false  | true             |
 | google.golang.org/grpc                                  | v1.27.0                                                    | v1.35.0                            | true   | true             |
 | google.golang.org/protobuf                              | v1.25.0                                                    |                                    | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                            | v2.0.9                                                     |                                    | false  | true             |
