@@ -35,23 +35,31 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 
 // toOCIResources converts CRI resource constraints to OCI.
 func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
-	var swap *int64
-	memory := r.MemoryLimitInBytes
-	if node.CgroupHasMemorySwap() {
-		swap = proto.Int64(memory)
-	}
-	return &rspec.LinuxResources{
-		CPU: &rspec.LinuxCPU{
-			Shares: proto.Uint64(uint64(r.CPUShares)),
-			Quota:  proto.Int64(r.CPUQuota),
-			Period: proto.Uint64(uint64(r.CPUPeriod)),
-			Cpus:   r.CPUsetCPUs,
-			Mems:   r.CPUsetMems,
-		},
-		Memory: &rspec.LinuxMemory{
-			Limit: proto.Int64(memory),
-			Swap:  swap,
-		},
+	update := rspec.LinuxResources{
 		// TODO(runcom): OOMScoreAdj is missing
+		CPU: &rspec.LinuxCPU{
+			Cpus: r.CPUsetCPUs,
+			Mems: r.CPUsetMems,
+		},
+		Memory: &rspec.LinuxMemory{},
 	}
+	if r.CPUShares != 0 {
+		update.CPU.Shares = proto.Uint64(uint64(r.CPUShares))
+	}
+	if r.CPUPeriod != 0 {
+		update.CPU.Period = proto.Uint64(uint64(r.CPUPeriod))
+	}
+	if r.CPUQuota != 0 {
+		update.CPU.Quota = proto.Int64(r.CPUQuota)
+	}
+
+	memory := r.MemoryLimitInBytes
+	if memory != 0 {
+		update.Memory.Limit = proto.Int64(memory)
+
+		if node.CgroupHasMemorySwap() {
+			update.Memory.Swap = proto.Int64(memory)
+		}
+	}
+	return &update
 }

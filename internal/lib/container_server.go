@@ -719,15 +719,15 @@ func (c *ContainerServer) UpdateContainerLinuxResources(ctr *oci.Container, reso
 		updatedSpec.Linux.Resources.CPU = &rspec.LinuxCPU{}
 	}
 
-	if *resources.CPU.Shares != 0 {
+	if resources.CPU.Shares != nil {
 		updatedSpec.Linux.Resources.CPU.Shares = resources.CPU.Shares
 	}
 
-	if *resources.CPU.Quota != 0 {
+	if resources.CPU.Quota != nil {
 		updatedSpec.Linux.Resources.CPU.Quota = resources.CPU.Quota
 	}
 
-	if *resources.CPU.Period != 0 {
+	if resources.CPU.Period != nil {
 		updatedSpec.Linux.Resources.CPU.Period = resources.CPU.Period
 	}
 
@@ -743,11 +743,13 @@ func (c *ContainerServer) UpdateContainerLinuxResources(ctr *oci.Container, reso
 		updatedSpec.Linux.Resources.Memory = &rspec.LinuxMemory{}
 	}
 
-	if *resources.Memory.Limit != 0 {
+	if resources.Memory.Limit != nil {
 		updatedSpec.Linux.Resources.Memory.Limit = resources.Memory.Limit
 	}
 
-	updatedSpec.Linux.Resources.Memory.Swap = resources.Memory.Swap
+	if resources.Memory.Swap != nil {
+		updatedSpec.Linux.Resources.Memory.Swap = resources.Memory.Swap
+	}
 
 	ctr.SetSpec(&updatedSpec)
 
