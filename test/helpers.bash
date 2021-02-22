@@ -198,6 +198,11 @@ function crictl() {
     "$CRICTL_BINARY" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" "$@"
 }
 
+# Run the runtime binary with the specified RUNTIME_ROOT
+function runtime() {
+    "$CONTAINER_RUNTIME" --root "$RUNTIME_ROOT" "$@"
+}
+
 # Communicate with Docker on the host machine.
 # Should rarely use this.
 function docker_host() {
