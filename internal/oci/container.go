@@ -462,6 +462,9 @@ func (c *Container) pid() (int, error) {
 	if err := c.verifyPid(); err != nil {
 		return 0, err
 	}
+	if err := unix.Kill(c.state.InitPid, 0); err == unix.ESRCH {
+		return 0, errors.Wrapf(err, "check whether %d is running", c.state.InitPid)
+	}
 	return c.state.InitPid, nil
 }
 
