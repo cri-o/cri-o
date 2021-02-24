@@ -11,7 +11,10 @@ const (
 	// CRIOOperationsKey is the key for CRI-O operation metrics.
 	CRIOOperationsKey = "crio_operations"
 
-	// CRIOOperationsLatencyKey is the key for the operation latency metrics.
+	// CRIOOperationsLatencyTotalKey is the key for the operation latency metrics.
+	CRIOOperationsLatencyTotalKey = "crio_operations_latency_microseconds_total"
+
+	// CRIOOperationsLatencyKey is the key for the operation latency metrics for each CRI call.
 	CRIOOperationsLatencyKey = "crio_operations_latency_microseconds"
 
 	// CRIOOperationsErrorsKey is the key for the operation error metrics.
@@ -49,13 +52,24 @@ var (
 		[]string{"operation_type"},
 	)
 
-	// CRIOOperationsLatency collects operation latency numbers by operation
+	// CRIOOperationsLatencyTotal collects operation latency numbers by operation
 	// type.
-	CRIOOperationsLatency = prometheus.NewSummaryVec(
+	CRIOOperationsLatencyTotal = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Subsystem: subsystem,
-			Name:      CRIOOperationsLatencyKey,
+			Name:      CRIOOperationsLatencyTotalKey,
 			Help:      "Latency in microseconds of CRI-O operations. Broken down by operation type.",
+		},
+		[]string{"operation_type"},
+	)
+
+	// CRIOOperationsLatency collects operation latency numbers for each CRI call by operation
+	// type.
+	CRIOOperationsLatency = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: subsystem,
+			Name:      CRIOOperationsLatencyKey,
+			Help:      "Latency in microseconds of individual CRI calls for CRI-O operations. Broken down by operation type.",
 		},
 		[]string{"operation_type"},
 	)
@@ -139,6 +153,7 @@ func Register() {
 	registerMetrics.Do(func() {
 		prometheus.MustRegister(CRIOOperations)
 		prometheus.MustRegister(CRIOOperationsLatency)
+		prometheus.MustRegister(CRIOOperationsLatencyTotal)
 		prometheus.MustRegister(CRIOOperationsErrors)
 		prometheus.MustRegister(CRIOImagePullsByDigest)
 		prometheus.MustRegister(CRIOImagePullsByName)
@@ -151,5 +166,5 @@ func Register() {
 
 // SinceInMicroseconds gets the time since the specified start in microseconds.
 func SinceInMicroseconds(start time.Time) float64 {
-	return float64(time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds())
+	return float64(time.Since(start).Microseconds())
 }

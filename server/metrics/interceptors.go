@@ -26,6 +26,8 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		// record the operation
 		CRIOOperations.WithLabelValues(operation).Inc()
 		CRIOOperationsLatency.WithLabelValues(operation).
+			Set(SinceInMicroseconds(operationStart))
+		CRIOOperationsLatencyTotal.WithLabelValues(operation).
 			Observe(SinceInMicroseconds(operationStart))
 
 		// record error metric if occurred
