@@ -281,7 +281,7 @@ type RuntimeConfig struct {
 	GIDMappings string `toml:"gid_mappings"`
 
 	// LogLevel determines the verbosity of the logs based on the level it is set to.
-	// Options are fatal, panic, error (default), warn, info, and debug.
+	// Options are fatal, panic, error (default), warn, info, debug, and trace.
 	LogLevel string `toml:"log_level"`
 
 	// LogFilter specifies a regular expression to filter the log messages

@@ -202,7 +202,7 @@ the container runtime configuration.
   Filter the log messages by the provided regular expression. This option supports live configuration reload. For example 'request:.*' filters all gRPC requests.
 
 **log_level**="info"
-  Changes the verbosity of the logs based on the level it is set to. Options are fatal, panic, error, warn, info, and debug. This option supports live configuration reload.
+  Changes the verbosity of the logs based on the level it is set to. Options are fatal, panic, error, warn, info, debug, and trace. This option supports live configuration reload.
 
 **log_size_max**=-1
   Maximum size allowed for the container log file. Negative numbers indicate that no size limit is imposed. If it is positive, it must be >= 8192 to match/exceed conmon's read buffer. The file is truncated and re-opened so the limit is never exceeded.
