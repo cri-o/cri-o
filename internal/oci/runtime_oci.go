@@ -647,6 +647,11 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			// interrupt the old one, and start a new one
 			newTargetTime := time.Now().Add(newTimeout)
 
+			// but only if it's earlier
+			if !newTargetTime.Before(targetTime) {
+				continue
+			}
+
 			targetTime = newTargetTime
 			timeout = newTimeout
 		}
