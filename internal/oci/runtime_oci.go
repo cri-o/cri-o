@@ -643,12 +643,6 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			}
 			killed = true
 		case newTimeout := <-c.stopTimeoutChan:
-			// If we're already at the "killing" step,
-			// we should use the killingContainerTimeout,
-			// and not override.
-			if !ignoreKill {
-				continue
-			}
 			// If a new timeout comes in,
 			// interrupt the old one, and start a new one
 			newTargetTime := time.Now().Add(newTimeout)
