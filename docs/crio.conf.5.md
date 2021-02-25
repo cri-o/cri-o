@@ -69,6 +69,9 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 **stream_enable_tls**=false
   Enable encrypted TLS transport of the stream server.
 
+**stream_idle_timeout**=""
+  Length of time until open streams terminate due to lack of activity.
+
 **stream_tls_cert**=""
   Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
