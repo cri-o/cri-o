@@ -107,11 +107,6 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
 
 GO_LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
-TESTIMAGE_VERSION := master-1.4.0
-TESTIMAGE_REGISTRY := quay.io/crio
-TESTIMAGE_SCRIPT := scripts/build-test-image -r $(TESTIMAGE_REGISTRY) -v $(TESTIMAGE_VERSION)
-TESTIMAGE_NAME ?= $(shell $(TESTIMAGE_SCRIPT) -d)
-
 all: binaries crio.conf docs
 
 default: help
@@ -122,7 +117,7 @@ help:
 	@echo " * 'install' - Install binaries to system locations"
 	@echo " * 'binaries' - Build crio and pinns"
 	@echo " * 'release-note' - Generate release note"
-	@echo " * 'integration' - Execute integration tests"
+	@echo " * 'localintegration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
 	@echo " * 'shfmt' - shell format check and apply diff"
@@ -223,39 +218,9 @@ bin/crio.cross.%: .gopathok .explicit_phony
 	GOARCH="$${TARGET##*.}" \
 	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
 
-local-image:
-	$(TESTIMAGE_SCRIPT)
-
-test-images:
-	$(TESTIMAGE_SCRIPT) -g 1.15 -a amd64
-	$(TESTIMAGE_SCRIPT) -g 1.15 -a 386
-	$(TESTIMAGE_SCRIPT) -g 1.14 -a amd64
-
 nixpkgs:
 	@nix run -f channel:nixos-20.03 nix-prefetch-git -c nix-prefetch-git \
 		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
-
-dbuild:
-	$(CONTAINER_RUNTIME) run --rm --name=${CRIO_INSTANCE} --privileged \
-		-v $(shell pwd):/go/src/${PROJECT} -w /go/src/${PROJECT} \
-		$(TESTIMAGE_NAME) make
-
-integration: ${GINKGO}
-	$(CONTAINER_RUNTIME) run \
-		-e CI=true \
-		-e CRIO_BINARY \
-		-e JOBS \
-		-e RUN_CRITEST \
-		-e STORAGE_OPTIONS="-s=vfs" \
-		-e TESTFLAGS \
-		-e TEST_USERNS \
-		-it --privileged --rm \
-		-v $(shell pwd):/go/src/${PROJECT} \
-		-v ${GINKGO}:/usr/bin/ginkgo \
-		-w /go/src/${PROJECT} \
-		--sysctl net.ipv6.conf.all.disable_ipv6=0 \
-		$(TESTIMAGE_NAME) \
-		make localintegration
 
 define go-build
 	$(shell cd `pwd` && $(GO_BUILD) -o $(BUILD_BIN_PATH)/$(shell basename $(1)) $(1))
@@ -300,6 +265,9 @@ vendor:
 		$(GO) mod tidy && \
 		$(GO) mod vendor && \
 		$(GO) mod verify
+	
+check-vendor: vendor
+	./hack/tree_status.sh
 
 testunit: ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}

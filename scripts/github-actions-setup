@@ -9,10 +9,9 @@ main() {
     set -x
     prepare_system
 
-    install_packages
     install_bats
     install_conmon
-    install_cri_tools
+    install_critools
     install_runc
     install_ginkgo
     install_cni_plugins
@@ -20,8 +19,6 @@ main() {
 }
 
 prepare_system() {
-    env
-
     sudo systemctl stop docker
     sudo ufw disable
 
@@ -30,45 +27,10 @@ prepare_system() {
 
     # enable necessary sysctls
     sudo sysctl -w net.ipv4.conf.all.route_localnet=1
-    sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
     sudo sysctl -w net.ipv4.ip_forward=1
-    sudo iptables -t nat -I POSTROUTING -s 127.0.0.1 ! -d 127.0.0.1 -j MASQUERADE
-}
-
-install_packages() {
-    # remove old golang version
-    sudo rm -rf /usr/local/go
-    sudo rm -rf /usr/local/bin/go
-
-    # set GOPATH
-    echo "export GOPATH=/home/circleci/go" >>~/.bashrc
-
-    sudo add-apt-repository -y ppa:longsleep/golang-backports
-    sudo apt-get update
-    sudo apt-get install -y \
-        apparmor \
-        btrfs-tools \
-        conntrack \
-        e2fslibs-dev \
-        golang-go \
-        jq \
-        libaio-dev \
-        libapparmor-dev \
-        libcap-dev \
-        libdevmapper-dev \
-        libfuse-dev \
-        libglib2.0-dev \
-        libgpgme11-dev \
-        libnet1-dev \
-        libnl-3-dev \
-        libprotobuf-c-dev \
-        libprotobuf-dev \
-        libseccomp-dev \
-        libsystemd-dev \
-        libudev-dev
-
-    go version
-    go env
+    # needed for crictl test
+    sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
+    sudo iptables -t nat -I POSTROUTING -s 127.0.0.0/8 ! -d 127.0.0.0/8 -j MASQUERADE
 }
 
 install_bats() {
@@ -91,20 +53,16 @@ install_conmon() {
     sudo rm -rf conmon
 }
 
-install_cri_tools() {
-    ARCHIVE=${VERSIONS["cri-tools"]}-linux-amd64.tar.gz
-    URL=https://github.com/kubernetes-sigs/cri-tools/releases/download
+install_critools() {
+    URL=https://github.com/kubernetes-sigs/cri-tools
 
-    BINARIES=(crictl critest)
-    for BINARY in "${BINARIES[@]}"; do
-        TARBALL=$BINARY-$ARCHIVE
-        echo "Downloading $TARBALL"
-        wget -O "$TARBALL" $URL/"${VERSIONS["cri-tools"]}"/"$TARBALL"
-        sudo tar xf "$TARBALL" --no-same-owner -C /usr/bin
-        sudo chown root:root /usr/bin/"$BINARY"
-        sudo "$BINARY" --version
-        rm "$TARBALL"
-    done
+    git clone $URL
+    pushd cri-tools
+    sudo -E PATH="$PATH" make BINDIR=/usr/bin install
+    popd
+    sudo rm -rf cri-tools
+    sudo critest --version
+    sudo crictl --version
 }
 
 install_cni_plugins() {
@@ -145,6 +103,7 @@ install_files() {
     sudo cp "$REPO_ROOT"/test/policy.json /etc/containers
     sudo cp "$REPO_ROOT"/test/redhat_sigstore.yaml \
         /etc/containers/registries.d/registry.access.redhat.com.yaml
+    sudo cp "$REPO_ROOT"/test/registries.conf /etc/containers/registries.conf
 }
 
 main "$@"
