@@ -1,0 +1,97 @@
+name: integration
+on:
+  push:
+    tags:
+      - v*
+    branches:
+      - master
+  pull_request:
+jobs:
+  critest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-
+      - run: scripts/github-actions-packages
+      - run: scripts/github-actions-setup
+      - run: make all test-binaries
+      - run: sudo -E test/test_runner.sh critest.bats
+        env:
+          JOBS: '1'
+          RUN_CRITEST: '1'
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-
+      - run: scripts/github-actions-packages
+      - run: scripts/github-actions-setup
+      - run: make all test-binaries
+      - run: sudo -E test/test_runner.sh
+        env:
+          JOBS: '2'
+
+  test-cgroupfs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-
+      - run: scripts/github-actions-packages
+      - run: scripts/github-actions-setup
+      - run: make all test-binaries
+      - run: sed -i 's/\.slice//g' test/testdata/*.json
+      - run: sudo -E test/test_runner.sh
+        env:
+          JOBS: '2'
+          CONTAINER_CGROUP_MANAGER: cgroupfs
+          CONTAINER_CONMON_CGROUP: pod
+
+  test-userns:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-
+      - run: scripts/github-actions-packages
+      - run: scripts/github-actions-setup
+      - run: make all test-binaries
+      - run: sudo -E test/test_runner.sh
+        env:
+          JOBS: '2'
+          TEST_USERNS: '1'
