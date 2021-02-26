@@ -78,6 +78,7 @@ h
 --storage-opt
 --stream-address
 --stream-enable-tls
+--stream-idle-timeout
 --stream-port
 --stream-tls-ca
 --stream-tls-cert

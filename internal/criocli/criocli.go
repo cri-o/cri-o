@@ -269,6 +269,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("stream-tls-key") {
 		config.StreamTLSKey = ctx.String("stream-tls-key")
 	}
+	if ctx.IsSet("stream-idle-timeout") {
+		config.StreamIdleTimeout = ctx.String("stream-idle-timeout")
+	}
 	if ctx.IsSet("version-file") {
 		config.VersionFile = ctx.String("version-file")
 	}
@@ -763,6 +766,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     fmt.Sprintf("Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: %q)", defConf.StreamTLSKey),
 			EnvVars:   []string{"CONTAINER_TLS_KEY"},
 			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:    "stream-idle-timeout",
+			Usage:   "Length of time until open streams terminate due to lack of activity",
+			EnvVars: []string{"STREAM_IDLE_TIMEOUT"},
 		},
 		&cli.StringFlag{
 			Name:        "registries-conf",

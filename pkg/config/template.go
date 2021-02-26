@@ -78,6 +78,9 @@ stream_port = "{{ .StreamPort }}"
 # Enable encrypted TLS transport of the stream server.
 stream_enable_tls = {{ .StreamEnableTLS }}
 
+# Length of time until open streams terminate due to lack of activity
+stream_idle_timeout = "{{.StreamIdleTimeout}}"
+
 # Path to the x509 certificate file used to serve the encrypted stream. This
 # file can change, and CRI-O will automatically pick up the changes within 5
 # minutes.
