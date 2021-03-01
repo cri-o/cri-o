@@ -232,7 +232,7 @@ jobs:
       - run: make codecov
 
   release-notes:
-    if: github.ref == 'refs/heads/master' || contains(github.ref, "refs/heads/release")
+    if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
