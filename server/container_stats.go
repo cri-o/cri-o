@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"path/filepath"
 
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
@@ -70,7 +71,8 @@ func (s *Server) writableLayerForContainer(stats *oci.ContainerStats, container 
 		return writableLayer, errors.Wrapf(err, "unable to get graph driver for disk usage for container %s", container.ID())
 	}
 
-	usage, err := driver.ReadWriteDiskUsage(container.ID())
+	id := filepath.Base(filepath.Dir(container.MountPoint()))
+	usage, err := driver.ReadWriteDiskUsage(id)
 	if err != nil {
 		return writableLayer, errors.Wrapf(err, "unable to get disk usage for container %s", container.ID())
 	}
