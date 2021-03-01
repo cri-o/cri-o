@@ -4,10 +4,10 @@ set -euo pipefail
 # Versions to be used
 declare -A VERSIONS=(
     ["cni-plugins"]=v0.8.7
-    ["conmon"]=v2.0.20
+    ["conmon"]=v2.0.26
     ["cri-tools"]=v1.19.0
     ["runc"]=v1.0.0-rc92
-    ["crun"]=0.15
+    ["crun"]=0.18
     ["bats"]=v1.2.1
 )
 export VERSIONS

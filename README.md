@@ -98,18 +98,43 @@ up a PR and add it to the list.
 ## Getting started
 
 ### Installing CRI-O
+
 To install `CRI-O`, you can follow our [installation guide](install.md).
 Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
 guide](install.md#build-and-install-cri-o-from-source).
 We also provide a way in building [static binaries of `CRI-O`](install.md#static-builds) via nix.
 Those binaries are available for every successfully built commit on our [Google Cloud Storage Bucket][bucket].
-This means that the latest commit can be downloaded via:
+This means that the latest commit can be installed via our convinience script:
 
 [bucket]: https://console.cloud.google.com/storage/browser/k8s-conform-cri-o/artifacts
 
 ```shell
-> curl -f https://storage.googleapis.com/k8s-conform-cri-o/artifacts/crio-$(git ls-remote https://github.com/cri-o/cri-o master | cut -c1-9).tar.gz -o crio.tar.gz
+> curl https://raw.githubusercontent.com/cri-o/cri-o/master/scripts/get | bash
 ```
+
+Beside `amd64` we also support the `arm64` bit architecture. This can be
+selected via the script, too:
+
+```shell
+> curl https://raw.githubusercontent.com/cri-o/cri-o/master/scripts/get | bash -s -- -a arm64
+```
+
+It is also possible to select a specific git SHA or tag by:
+
+```shell
+> curl https://raw.githubusercontent.com/cri-o/cri-o/master/scripts/get | bash -s -- -t v1.21.0
+```
+
+The above script resolves to the download URL of the static binary bundle
+tarball matching the format:
+
+```
+https://storage.googleapis.com/k8s-conform-cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz
+```
+
+where `$ARCH` can be `amd64` or `arm64` and `$REV` can be any git SHA or tag.
+Please be aware that using the latest `master` SHA might cause a race, because
+the CI has not finished publishing the artifacts yet or failed.
 
 ### Running kubernetes with CRI-O
 

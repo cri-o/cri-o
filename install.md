@@ -338,7 +338,7 @@ make BUILDTAGS='seccomp apparmor'
 It is possible to build a statically linked binary of CRI-O by using the
 officially provided [nix](https://nixos.org/nix) package and the derivation of
 it [within this repository](../nix). The builds are completely reproducible and
-will create a `x86_64`/`amd64` stripped ELF binary for
+will create a `x86_64`/`amd64` or `aarch64`/`arm64` stripped ELF binary for
 [glibc](https://www.gnu.org/software/libc). These binaries are integration
 tested as well and support the following features:
 
@@ -350,36 +350,11 @@ tested as well and support the following features:
 - selinux
 
 To build the binaries locally either [install the nix package
-manager](https://nixos.org/nix/download.html) or setup a new container image
-from the root directory of this repository by executing:
-
-```
-make test-image-nix
-```
-
-Please note that you can specify the container runtime and image name by
-specifying:
-
-```
-make test-image-nix \
-    CONTAINER_RUNTIME=podman \
-    TESTIMAGE_NIX=crionix
-```
+manager](https://nixos.org/nix/download.html) or use the `make build-static`
+target which relies on the nixos/nix container image.
 
 The overall build process can take a tremendous amount of CPU time depending on
-the hardware. After the image has been successfully built, it should be possible
-to build the binaries:
-
-```
-make build-static
-```
-
-There exist an already pre-built container image used for the internal CI. This
-means that invoking `make build-static` should work even without building the
-image before.
-
-Note that the container runtime and nix image can be specified here, too. The
-resulting binaries should now be available within:
+the hardware. The resulting binaries should now be available within:
 
 - `bin/static/crio`
 
@@ -391,7 +366,12 @@ directory of this repository:
 nix build -f nix
 ```
 
-The resulting binary should be now available in `result-bin/bin`.
+The resulting binaries should be now available in `result/bin`. To build the arm
+variant of the binaries, just run:
+
+```
+nix build -f nix/default-arm64.nix
+```
 
 #### Creating a release archive
 
@@ -402,7 +382,7 @@ used to build a new release archive within the current repository:
 ```
 make release-bundle
 …
-Created ./bundle/crio-v1.15.0.tar.gz
+Created ./bundle/cri-o.amd64.v1.20.0.tar.gz
 ```
 
 ### Download conmon

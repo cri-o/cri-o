@@ -12,6 +12,8 @@ ZSHINSTALLDIR ?= $(PREFIX)/share/zsh/site-functions
 SYSTEMDDIR ?= $(PREFIX)/lib/systemd/system
 OPT_CNI_BIN_DIR ?= /opt/cni/bin
 
+ARCH ?= amd64
+
 all: install
 
 .PHONY: install
@@ -49,6 +51,7 @@ install-crio:
 	install $(SELINUX) -D -m 644 -t $(ETCDIR) etc/crictl.yaml
 	install $(SELINUX) -D -m 644 -t $(OCIDIR) etc/crio-umount.conf
 	install $(SELINUX) -D -m 644 -t $(ETCDIR)/crio etc/crio.conf
+	install $(SELINUX) -D -m 644 -t $(ETCDIR)/crio/crio.conf.d etc/10-crun.conf
 	install $(SELINUX) -D -m 644 -t $(MANDIR)/man5 man/crio.conf.5
 	install $(SELINUX) -D -m 644 -t $(MANDIR)/man5 man/crio.conf.d.5
 	install $(SELINUX) -D -m 644 -t $(MANDIR)/man8 man/crio-status.8
@@ -65,7 +68,9 @@ install-pinns:
 
 .PHONY: install-runc
 install-runc:
+ifeq ($(ARCH),amd64)
 	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/runc
+endif
 
 .PHONY: install-crun
 install-crun:
@@ -101,6 +106,7 @@ uninstall-crio:
 	rm $(ETCDIR)/crictl.yaml
 	rm $(OCIDIR)/crio-umount.conf
 	rm $(ETCDIR)/crio/crio.conf
+	rm $(ETCDIR)/crio/crio.conf.d/10-crun.conf
 	rm $(MANDIR)/man5/crio.conf.5
 	rm $(MANDIR)/man5/crio.conf.d.5
 	rm $(MANDIR)/man8/crio-status.8
@@ -117,7 +123,9 @@ uninstall-pinns:
 
 .PHONY: uninstall-runc
 uninstall-runc:
+ifeq ($(ARCH),amd64)
 	rm $(BINDIR)/runc
+endif
 
 .PHONY: uninstall-crun
 uninstall-crun:

@@ -91,7 +91,7 @@ func run() error {
 	defer func() { err = os.RemoveAll(templateFile.Name()) }()
 
 	// Check if we're on a tag and adapt variables if necessary
-	bundleVersion := head[:9]
+	bundleVersion := head
 	shortHead := head[:7]
 	endRev := head
 	if output, err := command.New(
@@ -110,10 +110,10 @@ The release notes have been generated for the commit range
 
 ## Downloads
 
-Download the static release bundle via our Google Cloud Bucket:
-[crio-%s.tar.gz][0]
+Download one of our static release bundles via our Google Cloud Bucket:
 
-[0]: https://storage.googleapis.com/k8s-conform-cri-o/artifacts/crio-%s.tar.gz
+- [cri-o.amd64.%s.tar.gz](https://storage.googleapis.com/k8s-conform-cri-o/artifacts/cri-o.amd64.%s.tar.gz)
+- [cri-o.arm64.%s.tar.gz](https://storage.googleapis.com/k8s-conform-cri-o/artifacts/cri-o.arm64.%s.tar.gz)
 
 ## Changelog since %s
 
@@ -135,6 +135,7 @@ Download the static release bundle via our Google Cloud Bucket:
 		startTag, shortHead,
 		startTag, endRev,
 		time.Now().Format(time.RFC1123),
+		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		startTag,
 	)); err != nil {
