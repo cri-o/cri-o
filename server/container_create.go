@@ -413,7 +413,8 @@ func setupCapabilities(specgen *generate.Generator, capabilities *types.Capabili
 
 	for _, cap := range capabilities.DropCapabilities {
 		if strings.EqualFold(cap, "ALL") {
-			continue
+			specgen.ClearProcessCapabilities()
+			break
 		}
 		capPrefixed := toCAPPrefixed(cap)
 		if err := specgen.DropProcessCapabilityBounding(capPrefixed); err != nil {
