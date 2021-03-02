@@ -29,19 +29,40 @@ monitor_cgroup = "$MONITOR_CGROUP"
 EOF
 }
 
-@test "pids limit" {
-	if ! grep -qEw ^pids /proc/cgroups; then
-		skip "pids cgroup controller is not available"
-	fi
-	CONTAINER_PIDS_LIMIT=1234 start_crio
+function run_pids_limit_test() {
+	local set_limit="$1"
+	local expected_limit="$2"
 
+	CONTAINER_PIDS_LIMIT="$set_limit" start_crio
 	jq '	  .command'='["/bin/sleep", "600"]' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/container_pids_limit.json
 
 	ctr_id=$(crictl run "$TESTDIR"/container_pids_limit.json "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl exec --sync "$ctr_id" sh -c 'cat /sys/fs/cgroup/pids/pids.max 2>/dev/null || cat /sys/fs/cgroup/pids.max')
-	[[ "$output" == "1234" ]]
+	[[ "$output" == "$expected_limit" ]]
+}
+
+@test "pids limit" {
+	if ! grep -qEw ^pids /proc/cgroups; then
+		skip "pids cgroup controller is not available"
+	fi
+	run_pids_limit_test "1234" "1234"
+}
+
+@test "negative pids limit" {
+	if ! grep -qEw ^pids /proc/cgroups; then
+		skip "pids cgroup controller is not available"
+	fi
+	run_pids_limit_test "-1" "max"
+}
+
+@test "zero pids limit" {
+	if ! grep -qEw ^pids /proc/cgroups; then
+		skip "pids cgroup controller is not available"
+	fi
+
+	run_pids_limit_test "0" "max"
 }
 
 @test "conmon pod cgroup" {
