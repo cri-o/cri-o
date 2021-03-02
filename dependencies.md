@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 02 Mar 2021 10:21:04 UTC for commit [9ce5dd6][0]._
+_Generated on Tue, 02 Mar 2021 16:31:32 UTC for commit [091b020][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9ce5dd6bb2f98d1bfbc273fa53a9f6397bb84a47
+[0]: https://github.com/cri-o/cri-o/commit/091b0208c3a4659ad5f2f66011a7be012d51d775
 
 ## Outdated Dependencies
 
@@ -54,7 +54,7 @@ _Generated on Tue, 02 Mar 2021 10:21:04 UTC for commit [9ce5dd6][0]._
 | cloud.google.com/go/storage                             | v1.12.0                                                    | v1.14.0                            | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                            | v0.0.0-20190408044501-666a987793e9                         | v0.0.0-20201218220906-28db891af037 | false  | true             |
 | github.com/14rcole/gopopulate                           | v0.0.0-20180821133914-b175b219e774                         |                                    | false  | true             |
-| github.com/Azure/azure-sdk-for-go                       | v43.0.0+incompatible                                       | v52.1.0+incompatible               | false  | true             |
+| github.com/Azure/azure-sdk-for-go                       | v43.0.0+incompatible                                       | v52.2.0+incompatible               | false  | true             |
 | github.com/Azure/go-ansiterm                            | v0.0.0-20170929234023-d6e3b3328b78                         |                                    | false  | true             |
 | github.com/Azure/go-autorest                            | v14.2.0+incompatible                                       |                                    | false  | true             |
 | github.com/Azure/go-autorest/autorest                   | v0.11.1                                                    | v0.11.18                           | false  | true             |
@@ -568,7 +568,7 @@ _Generated on Tue, 02 Mar 2021 10:21:04 UTC for commit [9ce5dd6][0]._
 | gonum.org/v1/plot                                       | v0.0.0-20190515093506-e2840ee46a6b                         | v0.8.1                             | false  | true             |
 | google.golang.org/api                                   | v0.36.0                                                    | v0.40.0                            | false  | true             |
 | google.golang.org/appengine                             | v1.6.7                                                     |                                    | false  | true             |
-| google.golang.org/genproto                              | v0.0.0-20200117163144-32f20d992d24                         | v0.0.0-20210226172003-ab064af71705 | false  | true             |
+| google.golang.org/genproto                              | v0.0.0-20200117163144-32f20d992d24                         | v0.0.0-20210302154924-ca353664deba | false  | true             |
 | google.golang.org/grpc                                  | v1.27.0                                                    | v1.36.0                            | true   | true             |
 | google.golang.org/protobuf                              | v1.25.0                                                    |                                    | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                            | v2.0.9                                                     |                                    | false  | true             |
