@@ -93,9 +93,13 @@ if [[ $ERRORED == 1 ]]; then
 fi
 
 # Local assets
-cp "$GIT_ROOT/contrib/bundle/Makefile" "$TMPDIR"
-sed -i "s/ARCH ?= amd64/ARCH ?= $ARCH/" "$TMPDIR/Makefile"
+echo "#/usr/bin/env sh" >"$TMPDIR/install"
+cat "$GIT_ROOT/contrib/bundle/install-paths" \
+    "$GIT_ROOT/contrib/bundle/install" >>"$TMPDIR/install"
+sed -i "s/-amd64/-$ARCH/" "$TMPDIR/install"
+chmod +x "$TMPDIR/install"
 
+cp "$GIT_ROOT/contrib/bundle/Makefile" "$TMPDIR"
 cp "$GIT_ROOT/contrib/bundle/README.md" "$TMPDIR"
 
 curl_to() {
@@ -155,20 +159,15 @@ echo "Created $ARCHIVE_PATH/$ARCHIVE"
 echo "Testing archive"
 tar xf "$ARCHIVE"
 pushd $TAR_DIR
-export DESTDIR=test OPT_CNI_BIN_DIR=test/opt/cni/bin
-make
+export DESTDIR=test/
+./install
 EXP_CNT=64
 if [[ $ARCH == "$ARCH_AMD64" ]]; then
     EXP_CNT=65
 fi
 ACT_CNT=$(find test | wc -l)
 if [[ "$EXP_CNT" != "$ACT_CNT" ]]; then
-    echo "make install file count does not match, expected: $EXP_CNT, actual: $ACT_CNT"
-    exit 1
-fi
-make uninstall
-if [[ $(find test -type f | wc -l) != 0 ]]; then
-    echo "make uninstall left over some files"
+    echo "install file count does not match, expected: $EXP_CNT, actual: $ACT_CNT"
     exit 1
 fi
 popd

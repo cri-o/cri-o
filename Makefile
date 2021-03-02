@@ -396,6 +396,10 @@ bundles:
 	contrib/bundle/build amd64
 	contrib/bundle/build arm64
 
+get-script:
+	sed -i '/# INCLUDE/q' scripts/get
+	cat contrib/bundle/install-paths contrib/bundle/install >> scripts/get
+
 install: .gopathok install.bin install.man install.completions install.systemd install.config
 
 install.bin-nobuild:
@@ -520,4 +524,5 @@ metrics-exporter: bin/metrics-exporter
 	upload-artifacts \
 	bin/metrics-exporter \
 	metrics-exporter \
-	release
+	release \
+	get-script

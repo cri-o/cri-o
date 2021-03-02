@@ -1,0 +1,19 @@
+DESTDIR=${DESTDIR:-}
+PREFIX=${PREFIX:-/usr/local}
+ETCDIR=${ETCDIR:-/etc}
+CONTAINERS_DIR=${CONTAINERS_DIR:-$ETCDIR/containers}
+CNIDIR=${CNIDIR:-$ETCDIR/cni/net.d}
+BINDIR=${BINDIR:-$PREFIX/bin}
+MANDIR=${MANDIR:-$PREFIX/share/man}
+OCIDIR=${OCIDIR:-$PREFIX/share/oci-umount/oci-umount.d}
+BASHINSTALLDIR=${BASHINSTALLDIR:-$PREFIX/share/bash-completion/completions}
+FISHINSTALLDIR=${FISHINSTALLDIR:-$PREFIX/share/fish/completions}
+ZSHINSTALLDIR=${ZSHINSTALLDIR:-$PREFIX/share/zsh/site-functions}
+SYSTEMDDIR=${SYSTEMDDIR:-$PREFIX/lib/systemd/system}
+OPT_CNI_BIN_DIR=${OPT_CNI_BIN_DIR:-/opt/cni/bin}
+
+SELINUX=
+if selinuxenabled 2>/dev/null; then
+    SELINUX=-Z
+fi
+ARCH=${ARCH:-amd64}

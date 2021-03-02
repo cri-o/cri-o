@@ -55,7 +55,7 @@ parse_args() {
 }
 
 verify_requirements() {
-    CMDS=(curl jq tar make)
+    CMDS=(curl jq tar)
     echo "Checking if all commands are available: ${CMDS[*]}"
     for CMD in "${CMDS[@]}"; do
         if ! command -v "$CMD" >/dev/null; then
@@ -83,26 +83,77 @@ latest_version() {
     fi
 }
 
-download_and_install() {
-    GCB_URL=https://storage.googleapis.com/k8s-conform-cri-o/artifacts
-    TARBALL_URL=$GCB_URL/cri-o.$ARCH.$VERSION.tar.gz
-
-    TMPDIR="$(mktemp -d)"
-    trap 'rm -rf -- "$TMPDIR"' EXIT
-
-    echo "Downloading $TARBALL_URL to $TMPDIR"
-    curl -sSfL "$TARBALL_URL" | tar xfz - --strip-components=1 -C "$TMPDIR"
-
-    echo Installing CRI-O
-    make -C "$TMPDIR"
-
-}
-
-main() {
+prepare() {
     parse_args "$@"
     verify_requirements
     latest_version
-    download_and_install
 }
 
-main "$@"
+prepare "$@"
+
+GCB_URL=https://storage.googleapis.com/k8s-conform-cri-o/artifacts
+TARBALL_URL=$GCB_URL/cri-o.$ARCH.$VERSION.tar.gz
+
+TMPDIR="$(mktemp -d)"
+trap 'rm -rf -- "$TMPDIR"' EXIT
+
+echo "Downloading $TARBALL_URL to $TMPDIR"
+curl -sSfL "$TARBALL_URL" | tar xfz - --strip-components=1 -C "$TMPDIR"
+
+echo Installing CRI-O
+pushd "$TMPDIR"
+
+# In this section we include the contents of
+# contrib/bundle/install-paths and contrib/bundle/install
+
+# INCLUDE
+DESTDIR=${DESTDIR:-}
+PREFIX=${PREFIX:-/usr/local}
+ETCDIR=${ETCDIR:-/etc}
+CONTAINERS_DIR=${CONTAINERS_DIR:-$ETCDIR/containers}
+CNIDIR=${CNIDIR:-$ETCDIR/cni/net.d}
+BINDIR=${BINDIR:-$PREFIX/bin}
+MANDIR=${MANDIR:-$PREFIX/share/man}
+OCIDIR=${OCIDIR:-$PREFIX/share/oci-umount/oci-umount.d}
+BASHINSTALLDIR=${BASHINSTALLDIR:-$PREFIX/share/bash-completion/completions}
+FISHINSTALLDIR=${FISHINSTALLDIR:-$PREFIX/share/fish/completions}
+ZSHINSTALLDIR=${ZSHINSTALLDIR:-$PREFIX/share/zsh/site-functions}
+SYSTEMDDIR=${SYSTEMDDIR:-$PREFIX/lib/systemd/system}
+OPT_CNI_BIN_DIR=${OPT_CNI_BIN_DIR:-/opt/cni/bin}
+
+SELINUX=
+if selinuxenabled 2>/dev/null; then
+    SELINUX=-Z
+fi
+ARCH=${ARCH:-amd64}
+set -x
+install $SELINUX -d -m 755 "$DESTDIR$CNIDIR"
+install $SELINUX -D -m 755 -t "$DESTDIR$OPT_CNI_BIN_DIR" cni-plugins/*
+install $SELINUX -D -m 644 -t "$DESTDIR$CNIDIR" contrib/10-crio-bridge.conf
+install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/conmon
+install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crictl
+install $SELINUX -d -m 755 "$DESTDIR$BASHINSTALLDIR"
+install $SELINUX -d -m 755 "$DESTDIR$FISHINSTALLDIR"
+install $SELINUX -d -m 755 "$DESTDIR$ZSHINSTALLDIR"
+install $SELINUX -d -m 755 "$DESTDIR$CONTAINERS_DIR"
+install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crio-status
+install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crio
+install $SELINUX -D -m 644 -t "$DESTDIR$ETCDIR" etc/crictl.yaml
+install $SELINUX -D -m 644 -t "$DESTDIR$OCIDIR" etc/crio-umount.conf
+install $SELINUX -D -m 644 -t "$DESTDIR$ETCDIR/crio" etc/crio.conf
+install $SELINUX -D -m 644 -t "$DESTDIR$ETCDIR/crio/crio.conf.d" etc/10-crun.conf
+install $SELINUX -D -m 644 -t "$DESTDIR$MANDIR/man5" man/crio.conf.5
+install $SELINUX -D -m 644 -t "$DESTDIR$MANDIR/man5" man/crio.conf.d.5
+install $SELINUX -D -m 644 -t "$DESTDIR$MANDIR/man8" man/crio-status.8
+install $SELINUX -D -m 644 -t "$DESTDIR$MANDIR/man8" man/crio.8
+install $SELINUX -D -m 644 -t "$DESTDIR$BASHINSTALLDIR" completions/bash/crio
+install $SELINUX -D -m 644 -t "$DESTDIR$FISHINSTALLDIR" completions/fish/crio.fish
+install $SELINUX -D -m 644 -t "$DESTDIR$ZSHINSTALLDIR" completions/zsh/_crio
+install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_DIR" contrib/policy.json
+install $SELINUX -D -m 644 -t "$DESTDIR$SYSTEMDDIR" contrib/crio.service
+install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/pinns
+install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crun
+
+if [[ $ARCH == amd64 ]]; then
+    install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/runc
+fi

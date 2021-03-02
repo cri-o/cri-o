@@ -51,3 +51,13 @@ jobs:
           key: go-${{ hashFiles('**/go.sum') }}
           restore-keys: go-
       - run: make check-vendor
+
+  get-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          make get-script
+          hack/tree_status.sh
+      - run: sudo scripts/get
+      - run: crio version
