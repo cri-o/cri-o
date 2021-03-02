@@ -67,7 +67,6 @@ verify_requirements() {
 
 latest_version() {
     GH_API_URL="https://api.github.com/repos/cri-o/cri-o/actions/runs"
-    GH_QUERY="$GH_API_URL?event=push&status=success&branch=master"
 
     GH_HEADERS=(-H "Accept: application/vnd.github.v3+json")
     if [[ $GITHUB_TOKEN != "" ]]; then
@@ -76,8 +75,8 @@ latest_version() {
 
     if [[ $VERSION == "" ]]; then
         echo No version provided, finding latest successful GitHub actions run
-        VERSION=$(curl -sSfL "${GH_HEADERS[@]}" "$GH_QUERY" |
-            jq -r '.workflow_runs | map(select(.name == "test")) | first | .head_sha')
+        VERSION=$(curl -sSfL "${GH_HEADERS[@]}" "$GH_API_URL" |
+            jq -r '.workflow_runs | map(select(.name == "test" and .head_branch == "master" and .conclusion == "success")) | first | .head_sha')
 
         echo "Using latest successful GitHub action master: $VERSION"
     fi
