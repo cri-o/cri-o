@@ -56,11 +56,13 @@ var (
 
 func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainerFunc func(id string) *oci.Container, getSandboxFunc func(id string) *sandbox.Sandbox) (types.ContainerInfo, error) {
 	ctr := getContainerFunc(id)
+	isInfra := false
 	if ctr == nil {
 		ctr = getInfraContainerFunc(id)
 		if ctr == nil {
 			return types.ContainerInfo{}, errCtrNotFound
 		}
+		isInfra = true
 	}
 	// TODO(mrunalp): should we call UpdateStatus()?
 	ctrState := ctr.State()
@@ -78,9 +80,26 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 			image = status.Name
 		}
 	}
+
+	pidToReturn := ctrState.Pid
+	if isInfra && pidToReturn == 0 {
+		// It is possible the infra container doesn't report a PID.
+		// That can either happen if we're using a vm based runtime,
+		// or if we've dropped the infra container.
+		// Since the Pid is used exclusively to find the network stats,
+		// and pods share their network (whether it's host or pod level)
+		// we can return the pid of a running container in the pod.
+		for _, c := range sb.Containers().List() {
+			ctrPid, err := c.Pid()
+			if ctrPid > 0 && err == nil {
+				pidToReturn = ctrPid
+				break
+			}
+		}
+	}
 	return types.ContainerInfo{
 		Name:            ctr.Name(),
-		Pid:             ctrState.Pid,
+		Pid:             pidToReturn,
 		Image:           image,
 		ImageRef:        ctr.ImageRef(),
 		CreatedTime:     ctrState.Created.UnixNano(),
