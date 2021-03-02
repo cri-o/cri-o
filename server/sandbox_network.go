@@ -55,7 +55,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	}
 	// metric about the CNI network setup operation
 	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_pod").
-		Observe(metrics.SinceInMicroseconds(podSetUpStart))
+		Set(metrics.SinceInMicroseconds(podSetUpStart))
 
 	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatusWithContext(startCtx, podNetwork)
 	if err != nil {
@@ -117,7 +117,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 
 	// metric about the whole network setup operation
 	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_overall").
-		Observe(metrics.SinceInMicroseconds(overallStart))
+		Set(metrics.SinceInMicroseconds(overallStart))
 	return podIPs, result, err
 }
 
