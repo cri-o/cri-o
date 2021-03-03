@@ -40,7 +40,8 @@ var _ = t.Describe("Oci", func() {
 				RuntimePath: "/bin/sh",
 				RuntimeType: "",
 				RuntimeRoot: "/run/runc",
-			}, invalidRuntime: {},
+			},
+			invalidRuntime: {},
 			usernsRuntime: {
 				RuntimePath:        "/bin/sh",
 				RuntimeType:        "",
