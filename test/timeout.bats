@@ -46,7 +46,7 @@ function wait_clean() {
 
 @test "should not clean up pod after timeout" {
 	# need infra container so runp can timeout in conmon
-	CONTAINER_DROP_INFRA=false start_crio
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
@@ -90,7 +90,7 @@ function wait_clean() {
 
 @test "should clean up pod after timeout if request changes" {
 	# need infra container so runp can timeout in conmon
-	CONTAINER_DROP_INFRA=false start_crio
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
@@ -138,7 +138,7 @@ function wait_clean() {
 
 @test "should clean up pod after timeout if not re-requested" {
 	# need infra container so runp can timeout in conmon
-	CONTAINER_DROP_INFRA=false start_crio
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
@@ -184,7 +184,7 @@ function wait_clean() {
 # a timed out pod as created before it's re-requested
 @test "should not be able to operate on a timed out pod" {
 	# need infra container so runp can timeout in conmon
-	CONTAINER_DROP_INFRA=false start_crio
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
