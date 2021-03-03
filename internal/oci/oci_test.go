@@ -34,6 +34,7 @@ var _ = t.Describe("Oci", func() {
 			defaultRuntime     = "runc"
 			usernsRuntime      = "userns"
 			performanceRuntime = "high-performance"
+			vmRuntime          = "kata"
 		)
 		runtimes := config.Runtimes{
 			defaultRuntime: {
@@ -58,6 +59,12 @@ var _ = t.Describe("Oci", func() {
 					annotations.CPUQuotaAnnotation,
 					annotations.OCISeccompBPFHookAnnotation,
 				},
+			},
+			vmRuntime: {
+				RuntimePath:                  "/usr/bin/containerd-shim-kata-v2",
+				RuntimeType:                  "vm",
+				RuntimeRoot:                  "/run/vc",
+				PrivilegedWithoutHostDevices: true,
 			},
 		}
 
@@ -160,6 +167,34 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(allowed).To(Equal(false))
+		})
+
+		It("PrivilegedWithoutHostDevices should be true when set", func() {
+			// Given
+			// When
+			privileged, err := sut.PrivilegedWithoutHostDevices(vmRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(privileged).To(Equal(true))
+		})
+		It("PrivilegedWithoutHostDevices should be false when runtime invalid", func() {
+			// Given
+			// When
+			privileged, err := sut.PrivilegedWithoutHostDevices(invalidRuntime)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(privileged).To(Equal(false))
+		})
+		It("PrivilegedWithoutHostDevices should be false when runtime is the default", func() {
+			// Given
+			// When
+			privileged, err := sut.PrivilegedWithoutHostDevices(defaultRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(privileged).To(Equal(false))
 		})
 	})
 
