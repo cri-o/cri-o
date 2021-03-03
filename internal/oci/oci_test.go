@@ -96,6 +96,26 @@ var _ = t.Describe("Oci", func() {
 			Expect(err).To(BeNil())
 			Expect(handler).To(Equal(runtimes[defaultRuntime]))
 		})
+
+		It("should return an OCI runtime type if none is set", func() {
+			// Given
+			// When
+			runtimeType, err := sut.RuntimeType(defaultRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(runtimeType).To(Equal(""))
+		})
+		It("should return a VM runtime type when it is set", func() {
+			// Given
+			// When
+			runtimeType, err := sut.RuntimeType(vmRuntime)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(runtimeType).To(Equal(config.RuntimeTypeVM))
+		})
+
 		It("AllowUsernsAnnotation should be true when set", func() {
 			// Given
 			// When
