@@ -21,7 +21,7 @@ tar xfvz "$ARCHIVE"
 pushd cri-o
 
 # Install and prepare config
-make install
+./install
 
 # Start CRI-O
 systemctl daemon-reload
@@ -48,4 +48,3 @@ fi
 # Cleanup
 crictl rmp -fa
 systemctl stop crio
-make uninstall
