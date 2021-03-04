@@ -491,73 +491,83 @@ func (s *Server) CreateContainer(ctx context.Context, req *pb.CreateContainerReq
 		return nil, errors.Wrap(err, "setting container name and ID")
 	}
 
-	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		return nil, errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
-	}
-
+	cleanupFuncs := make([]func(), 0)
 	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
-			s.ReleaseContainerName(ctr.Name())
+		// no error, no need to cleanup
+		if retErr == nil || isContextError(retErr) {
+			return
+		}
+		for i := len(cleanupFuncs) - 1; i >= 0; i-- {
+			cleanupFuncs[i]()
 		}
 	}()
+
+	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
+		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
+		if resourceErr == nil {
+			return &pb.CreateContainerResponse{ContainerId: cachedID}, nil
+		}
+		return nil, errors.Wrapf(err, resourceErr.Error())
+	}
+
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
+		s.ReleaseContainerName(ctr.Name())
+	})
 
 	newContainer, err := s.createSandboxContainer(ctx, ctr, sb)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
-			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
-			if err2 != nil {
-				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
-			}
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
+		err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
+		if err2 != nil {
+			log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 		}
-	}()
+	})
 
 	s.addContainer(newContainer)
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
-			s.removeContainer(newContainer)
-		}
-	}()
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
+		s.removeContainer(newContainer)
+	})
 
 	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return nil, err
 	}
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
-			if err2 := s.CtrIDIndex().Delete(ctr.ID()); err2 != nil {
-				log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
-			}
+	cleanupFuncs = append(cleanupFuncs, func() {
+		log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
+		if err2 := s.CtrIDIndex().Delete(ctr.ID()); err2 != nil {
+			log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
 		}
-	}()
+	})
 
 	if err := s.createContainerPlatform(newContainer, sb.CgroupParent()); err != nil {
 		return nil, err
 	}
-	defer func() {
+	cleanupFuncs = append(cleanupFuncs, func() {
 		if retErr != nil {
 			log.Infof(ctx, "createCtr: removing container ID %s from runtime", ctr.ID())
 			if err2 := s.Runtime().DeleteContainer(newContainer); err2 != nil {
 				log.Warnf(ctx, "failed to delete container in runtime %s: %v", ctr.ID(), err)
 			}
 		}
-	}()
+	})
 
 	if err := s.ContainerStateToDisk(newContainer); err != nil {
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
-	newContainer.SetCreated()
-
-	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+	if isContextError(ctx.Err()) {
+		if err := s.resourceStore.Put(ctr.Name(), newContainer, cleanupFuncs); err != nil {
+			log.Errorf(ctx, "createCtr: failed to save progress of container %s: %v", newContainer.ID(), err)
+		}
 		log.Infof(ctx, "createCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
 		return nil, ctx.Err()
 	}
+
+	newContainer.SetCreated()
 
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	return &pb.CreateContainerResponse{
