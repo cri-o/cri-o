@@ -428,7 +428,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	// Join the namespace paths for the pod sandbox container.
-	if err := configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), *specgen); err != nil {
+	if err := configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), specgen); err != nil {
 		return nil, errors.Wrap(err, "failed to configure namespaces in container create")
 	}
 
@@ -581,7 +581,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			}
 		}
 	}()
-	err = ctr.SpecAddAnnotations(sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode())
+	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode())
 	if err != nil {
 		return nil, err
 	}

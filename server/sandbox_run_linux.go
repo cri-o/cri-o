@@ -30,7 +30,6 @@ import (
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	json "github.com/json-iterator/go"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -290,7 +289,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
 
-	sbox := sandbox.New(ctx)
+	sbox := sandbox.New()
 	if err := sbox.SetConfig(req.Config); err != nil {
 		return nil, errors.Wrap(err, "setting sandbox config")
 	}
@@ -424,27 +423,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	// TODO: factor generating/updating the spec into something other projects can vendor
-
-	// creates a spec Generator with the default spec.
-	g, err := generate.New("linux")
-	if err != nil {
+	if err := sbox.InitInfraContainer(&s.config, &podContainer); err != nil {
 		return nil, err
 	}
-	g.HostSpecific = true
-	g.ClearProcessRlimits()
 
-	for _, u := range s.config.Ulimits() {
-		g.AddProcessRlimits(u.Name, u.Hard, u.Soft)
-	}
-
-	// setup defaults for the pod sandbox
-	g.SetRootReadonly(true)
-
-	pauseCommand, err := PauseCommand(s.Config(), podContainer.Config)
-	if err != nil {
-		return nil, err
-	}
-	g.SetProcessArgs(pauseCommand)
+	g := sbox.Spec()
 
 	// set DNS options
 	var resolvPath string
@@ -511,7 +494,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		g.ClearProcessCapabilities()
 		capabilities.AddCapabilities = append(capabilities.AddCapabilities, s.config.DefaultCapabilities...)
 	}
-	if err := setupCapabilities(&g, capabilities); err != nil {
+	if err := setupCapabilities(g, capabilities); err != nil {
 		return nil, err
 	}
 
@@ -834,7 +817,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.SetRootPath(mountPoint)
 
 	if os.Getenv(rootlessEnvName) != "" {
-		makeOCIConfigurationRootless(&g)
+		makeOCIConfigurationRootless(g)
 	}
 
 	namespaceOpts := securityContext.NamespaceOptions
@@ -851,7 +834,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)
 	sb.SetSeccompProfilePath(spp)
 	if !privileged {
-		if err := s.setupSeccomp(ctx, &g, spp); err != nil {
+		if err := s.setupSeccomp(ctx, g, spp); err != nil {
 			return nil, err
 		}
 	}
@@ -991,32 +974,7 @@ func setupShm(podSandboxRunDir, mountLabel string, shmSize int64) (shmPath strin
 	return shmPath, nil
 }
 
-// PauseCommand returns the pause command for the provided image configuration.
-func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
-	if cfg == nil {
-		return nil, fmt.Errorf("provided configuration is nil")
-	}
-
-	// This has been explicitly set by the user, since the configuration
-	// default is `/pause`
-	if cfg.PauseCommand == "" {
-		if image == nil ||
-			(len(image.Config.Entrypoint) == 0 && len(image.Config.Cmd) == 0) {
-			return nil, fmt.Errorf(
-				"unable to run pause image %q: %s",
-				cfg.PauseImage,
-				"neither Cmd nor Entrypoint specified",
-			)
-		}
-		cmd := []string{}
-		cmd = append(cmd, image.Config.Entrypoint...)
-		cmd = append(cmd, image.Config.Cmd...)
-		return cmd, nil
-	}
-	return []string{cfg.PauseCommand}, nil
-}
-
-func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Generator, hostNetwork, hostIPC bool, sysctls map[string]string) map[string]string {
+func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.Generator, hostNetwork, hostIPC bool, sysctls map[string]string) map[string]string {
 	sysctlsToReturn := make(map[string]string)
 	defaultSysctls, err := s.config.RuntimeConfig.Sysctls()
 	if err != nil {
@@ -1045,7 +1003,7 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g generate.Ge
 // as well as whether CRI-O should be managing the namespace lifecycle.
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
 // The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
-func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, idMappings *idtools.IDMappings, sysctls map[string]string, sb *libsandbox.Sandbox, g generate.Generator) (cleanupFuncs []func() error, retErr error) {
+func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID bool, idMappings *idtools.IDMappings, sysctls map[string]string, sb *libsandbox.Sandbox, g *generate.Generator) (cleanupFuncs []func() error, retErr error) {
 	// Since we need a process to hold open the PID namespace, CRI-O can't manage the NS lifecycle
 	if hostPID {
 		if err := g.RemoveLinuxNamespace(string(spec.PIDNamespace)); err != nil {
@@ -1094,7 +1052,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 
 // configureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
 // to add or replace the defaults to these paths
-func configureGeneratorGivenNamespacePaths(managedNamespaces []*libsandbox.ManagedNamespace, g generate.Generator) error {
+func configureGeneratorGivenNamespacePaths(managedNamespaces []*libsandbox.ManagedNamespace, g *generate.Generator) error {
 	typeToSpec := map[nsmgr.NSType]spec.LinuxNamespaceType{
 		nsmgr.IPCNS:  spec.IPCNamespace,
 		nsmgr.NETNS:  spec.NetworkNamespace,

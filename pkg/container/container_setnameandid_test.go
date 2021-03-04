@@ -1,8 +1,6 @@
 package container_test
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -54,7 +52,7 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 	It("should fail with config nil", func() {
 		// Given
 		// When
-		container, err := container.New(context.Background())
+		container, err := container.New()
 		Expect(err).To(BeNil())
 
 		err = container.SetNameAndID()

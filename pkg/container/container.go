@@ -89,7 +89,7 @@ type Container interface {
 	SpecAddMount(rspec.Mount)
 
 	// SpecAddAnnotations adds annotations to the spec.
-	SpecAddAnnotations(sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) error
+	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) error
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
 	SpecAddDevices([]device.Device, []device.Device, bool) error
@@ -100,7 +100,6 @@ type Container interface {
 
 // container is the hidden default type behind the Container interface
 type container struct {
-	ctx        context.Context
 	config     *types.ContainerConfig
 	sboxConfig *types.PodSandboxConfig
 	id         string
@@ -110,13 +109,12 @@ type container struct {
 }
 
 // New creates a new, empty Sandbox instance
-func New(ctx context.Context) (Container, error) {
+func New() (Container, error) {
 	spec, err := generate.New("linux")
 	if err != nil {
 		return nil, err
 	}
 	return &container{
-		ctx:  ctx,
 		spec: spec,
 	}, nil
 }
@@ -128,7 +126,7 @@ func (c *container) SpecAddMount(r rspec.Mount) {
 }
 
 // SpecAddAnnotation adds all annotations to the spec
-func (c *container) SpecAddAnnotations(sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) (err error) {
+func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) (err error) {
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
 	const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
 
@@ -165,7 +163,7 @@ func (c *container) SpecAddAnnotations(sb *sandbox.Sandbox, containerVolumes []o
 			// to 'container'. This allows us to trace containers into
 			// distinguishable files.
 			if strings.TrimPrefix(k, crioann.OCISeccompBPFHookAnnotation+"/") == c.config.Metadata.Name {
-				log.Debugf(c.ctx,
+				log.Debugf(ctx,
 					"Annotation key for container %q rewritten to %q (value is: %q)",
 					c.config.Metadata.Name, crioann.OCISeccompBPFHookAnnotation, v,
 				)

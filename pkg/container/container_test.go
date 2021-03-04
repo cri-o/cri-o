@@ -1,6 +1,7 @@
 package container_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -113,7 +114,7 @@ var _ = t.Describe("Container", func() {
 			Expect(currentTime).ToNot(BeNil())
 			Expect(sb).ToNot(BeNil())
 
-			err = sut.SpecAddAnnotations(sb, volumes, mountPoint, configStopSignal, &imageResult, false, false)
+			err = sut.SpecAddAnnotations(context.Background(), sb, volumes, mountPoint, configStopSignal, &imageResult, false, false)
 			Expect(err).To(BeNil())
 
 			Expect(sut.Spec().Config.Annotations[annotations.Image]).To(Equal(image))
