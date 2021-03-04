@@ -21,8 +21,10 @@ function run_pids_limit_test() {
 	ctr_id=$(crictl run "$TESTDIR"/container_pids_limit.json "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl exec --sync "$ctr_id" sh -c 'cat /sys/fs/cgroup/pids/pids.max 2>/dev/null || cat /sys/fs/cgroup/pids.max')
+	echo "got $output, expecting $expected_limit"
 	[[ "$output" == "$expected_limit" ]]
 }
+
 
 @test "pids limit" {
 	if ! grep -qEw ^pids /proc/cgroups; then
@@ -51,7 +53,7 @@ function run_pids_limit_test() {
 		pids_root=/sys/fs/cgroup/pids
 		lookfor=pids
 		if is_cgroup_v2; then
-			￼ pids_root=/sys/fs/cgroup
+	￼		pids_root=/sys/fs/cgroup
 			lookfor=""
 		fi
 		default_limit=$(cat "$pids_root/$(awk -v lookfor="$lookfor" -F : '$2 == lookfor {print $3; exit}' /proc/self/cgroup)/pids.max")
