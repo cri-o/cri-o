@@ -246,6 +246,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.IrqBalanceConfigFile, c.IrqBalanceConfigFile),
 		},
 		{
+			templateString: templateStringCrioRuntimeRdtConfigFile,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.RdtConfigFile, c.RdtConfigFile),
+		},
+		{
 			templateString: templateStringCrioRuntimeCgroupManager,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.CgroupManagerName, c.CgroupManagerName),
@@ -763,6 +768,12 @@ apparmor_profile = "{{ .ApparmorProfile }}"
 const templateStringCrioRuntimeIrqBalanceConfigFile = `# Used to change irqbalance service config file path which is used for configuring
 # irqbalance daemon.
 irqbalance_config_file = "{{ .IrqBalanceConfigFile }}"
+
+`
+
+const templateStringCrioRuntimeRdtConfigFile = `# Path to the RDT configuration file for configuring the resctrl pseudo-filesystem.
+# This option supports live configuration reload.
+rdt_config_file = "{{ .RdtConfigFile }}"
 
 `
 

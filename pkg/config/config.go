@@ -26,6 +26,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
+	"github.com/cri-o/cri-o/internal/config/rdt"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/pkg/annotations"
@@ -266,6 +267,9 @@ type RuntimeConfig struct {
 	// IrqBalanceConfigFile is the irqbalance service config file which is used
 	// for configuring irqbalance daemon.
 	IrqBalanceConfigFile string `toml:"irqbalance_config_file"`
+
+	// RdtConfigFile is the RDT config file used for configuring resctrl fs
+	RdtConfigFile string `toml:"rdt_config_file"`
 
 	// CgroupManagerName is the manager implementation name which is used to
 	// handle cgroups for containers.
@@ -662,6 +666,7 @@ func DefaultConfig() (*Config, error) {
 			SELinux:                  selinuxEnabled(),
 			ApparmorProfile:          apparmor.DefaultProfile,
 			IrqBalanceConfigFile:     DefaultIrqBalanceConfigFile,
+			RdtConfigFile:            rdt.DefaultRdtConfigFile,
 			CgroupManagerName:        cgroupManager.Name(),
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
