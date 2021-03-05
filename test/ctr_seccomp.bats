@@ -61,7 +61,7 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	run crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json
 	[[ "$status" -ne 0 ]]
-	[[ "$output" =~ "unknown seccomp profile option:" ]]
+	[[ "$output" =~ "unknown seccomp profile " ]]
 	[[ "$output" =~ "wontwork" ]]
 }
 

@@ -87,6 +87,18 @@ func (s *service) PullImage(
 					NamespaceOptions:   &types.NamespaceOption{},
 					SelinuxOptions:     &types.SELinuxOption{},
 				}
+				if req.SandboxConfig.Linux.SecurityContext.Seccomp != nil {
+					r.SandboxConfig.Linux.SecurityContext.Seccomp = &types.SecurityProfile{
+						ProfileType:  types.SecurityProfileType(req.SandboxConfig.Linux.SecurityContext.Seccomp.ProfileType),
+						LocalhostRef: req.SandboxConfig.Linux.SecurityContext.Seccomp.LocalhostRef,
+					}
+				}
+				if req.SandboxConfig.Linux.SecurityContext.Apparmor != nil {
+					r.SandboxConfig.Linux.SecurityContext.Apparmor = &types.SecurityProfile{
+						ProfileType:  types.SecurityProfileType(req.SandboxConfig.Linux.SecurityContext.Apparmor.ProfileType),
+						LocalhostRef: req.SandboxConfig.Linux.SecurityContext.Apparmor.LocalhostRef,
+					}
+				}
 				if req.SandboxConfig.Linux.SecurityContext.NamespaceOptions != nil {
 					r.SandboxConfig.Linux.SecurityContext.NamespaceOptions = &types.NamespaceOption{
 						Network:  types.NamespaceMode(req.SandboxConfig.Linux.SecurityContext.NamespaceOptions.Network),
