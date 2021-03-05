@@ -33,7 +33,7 @@ func getContainerNetIO(netNsPath string) (received, transmitted uint64) {
 	ns.WithNetNSPath(netNsPath, func(_ ns.NetNS) error { // nolint: errcheck
 		link, err := netlink.LinkByName(ocicni.DefaultInterfaceName)
 		if err != nil {
-			logrus.Warnf(
+			logrus.Debugf(
 				"unable to retrieve network namespace link %s: %v",
 				ocicni.DefaultInterfaceName, err,
 			)
