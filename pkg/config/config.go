@@ -18,6 +18,7 @@ import (
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	cstorage "github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/cri-o/cri-o/utils"
 	units "github.com/docker/go-units"
@@ -581,6 +582,12 @@ func (c *Config) Validate(systemContext *types.SystemContext, onExecution bool) 
 	case ImageVolumesBind:
 	default:
 		return fmt.Errorf("unrecognized image volume type specified")
+	}
+
+	if onExecution {
+		if err := node.ValidateConfig(); err != nil {
+			return err
+		}
 	}
 
 	if err := c.RootConfig.Validate(onExecution); err != nil {

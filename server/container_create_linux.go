@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	selinux "github.com/containers/libpod/pkg/selinux"
 	createconfig "github.com/containers/libpod/pkg/spec"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -520,6 +521,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, containerID, contai
 			if useSystemd {
 				specgen.AddAnnotation("org.systemd.property.TimeoutStopUSec",
 					"uint64 "+t+"000000") // sec to usec
+				if node.SystemdHasCollectMode() {
+					specgen.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
+				}
 			}
 		}
 
