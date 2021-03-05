@@ -12,8 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type errorReaderWriter struct {
-}
+type errorReaderWriter struct{}
 
 func (m *errorReaderWriter) Write(p []byte) (int, error) {
 	return 0, t.TestError
