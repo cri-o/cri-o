@@ -15,7 +15,7 @@ Integration tests are written in *bash* using the
 
 ### Containerized tests
 
-The easiest way to run integration tests is with Docker:
+The easiest way to run integration tests is with Podman:
 ```
 $ make integration
 ```
@@ -70,11 +70,16 @@ Tests on the host will run with `runc` as the default runtime.
 However you can select other OCI compatible runtimes by setting
 the `RUNTIME` environment variable.
 
-For example one could use the [Clear Containers](https://github.com/clearcontainers/runtime)
-runtime instead of `runc`:
-
+For example, to use [crun](https://github.com/containers/crun) instead of `runc`:
 ```
-make localintegration RUNTIME=cc-runtime
+make CONTAINER_DEFAULT_RUNTIME=crun localintegration
+```
+
+If you'd like to run the tests with a runtime of a different type, you need to also specify `$RUNTIME_TYPE`
+
+For example, to use [kata](https://github.com/kata-containers/runtime) with shim v2:
+```
+make CONTAINER_DEFAULT_RUNTIME=containerd-shim-kata-v2 RUNTIME_TYPE=vm localintegration
 ```
 
 ## Writing integration tests

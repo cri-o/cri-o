@@ -15,7 +15,7 @@ function create_shmsize_runtime() {
 [crio.runtime]
 default_runtime = "shmsize"
 [crio.runtime.runtimes.shmsize]
-runtime_path = "$RUNTIME_BINARY"
+runtime_path = "$RUNTIME_BINARY_PATH"
 runtime_root = "$RUNTIME_ROOT"
 runtime_type = "$RUNTIME_TYPE"
 allowed_annotations = ["io.kubernetes.cri-o.ShmSize"]
