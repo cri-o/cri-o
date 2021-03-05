@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 05 Mar 2021 16:14:18 UTC for commit [c0f293a][0]._
+_Generated on Fri, 05 Mar 2021 18:01:36 UTC for commit [c61c691][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c0f293ad505fb79a41f2f6e81782b6b043d9a975
+[0]: https://github.com/cri-o/cri-o/commit/c61c691b9c6d00ab18268d1a5d53d2b9c2dd2702
 
 ## Outdated Dependencies
 
@@ -601,7 +601,7 @@ _Generated on Fri, 05 Mar 2021 16:14:18 UTC for commit [c0f293a][0]._
 | k8s.io/api                                              | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | true   | true             |
 | k8s.io/apiextensions-apiserver                          | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | false  | true             |
 | k8s.io/apimachinery                                     | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | true   | true             |
-| k8s.io/apiserver                                        | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | false  | true             |
+| k8s.io/apiserver                                        | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305180047-42c1ccb38ea6 | false  | true             |
 | k8s.io/cli-runtime                                      | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | false  | true             |
 | k8s.io/client-go                                        | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | true   | true             |
 | k8s.io/cloud-provider                                   | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | false  | true             |
@@ -618,7 +618,7 @@ _Generated on Fri, 05 Mar 2021 16:14:18 UTC for commit [c0f293a][0]._
 | k8s.io/klog/v2                                          | v2.4.0                                                     | v2.6.0                             | true   | true             |
 | k8s.io/kube-aggregator                                  | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | false  | true             |
 | k8s.io/kube-controller-manager                          | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | false  | true             |
-| k8s.io/kube-openapi                                     | v0.0.0-20201113171705-d219536bb9fd                         | v0.0.0-20210305001622-591a79e4bda7 | false  | true             |
+| k8s.io/kube-openapi                                     | v0.0.0-20201113171705-d219536bb9fd                         | v0.0.0-20210305164622-f622666832c1 | false  | true             |
 | k8s.io/kube-proxy                                       | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | false  | true             |
 | k8s.io/kube-scheduler                                   | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | false  | true             |
 | k8s.io/kubectl                                          | v0.0.0-20201201102839-3321f00ed14e                         | v0.0.0-20210305154622-8306eeab7573 | false  | true             |
