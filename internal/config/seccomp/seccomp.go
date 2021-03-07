@@ -194,11 +194,6 @@ func (c *Config) setupFromField(
 	log.Debugf(ctx, "Setup seccomp from profile field: %+v", profileField)
 
 	if c.IsDisabled() {
-		if profileField.ProfileType != types.SecurityProfileTypeUnconfined {
-			return errors.Errorf(
-				"seccomp is not enabled, cannot run with a profile",
-			)
-		}
 		log.Warnf(ctx, "seccomp is not enabled, running without profile")
 		specGenerator.Config.Linux.Seccomp = nil
 		return nil
