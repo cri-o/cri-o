@@ -899,12 +899,24 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 // ValidateRuntimes checks every runtime if its members are valid
 func (c *RuntimeConfig) ValidateRuntimes() error {
+	var failedValidation []string
+
 	// Validate if runtime_path does exist for each runtime
 	for name, handler := range c.Runtimes {
 		if err := handler.Validate(name); err != nil {
-			return err
+			if c.DefaultRuntime == name {
+				return err
+			}
+
+			logrus.Warnf("'%s is being ignored due to: %q", name, err)
+			failedValidation = append(failedValidation, name)
 		}
 	}
+
+	for _, invalidHandlerName := range failedValidation {
+		delete(c.Runtimes, invalidHandlerName)
+	}
+
 	return nil
 }
 

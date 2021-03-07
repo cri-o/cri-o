@@ -459,15 +459,28 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should fail if executable not in $PATH", func() {
+		It("should fail if default executable not in $PATH", func() {
 			// Given
 			sut.Runtimes[invalidPath] = &config.RuntimeHandler{RuntimePath: ""}
+			sut.DefaultRuntime = invalidPath
 
 			// When
 			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should not fail if non-default executable not in $PATH", func() {
+			// Given
+			sut.Runtimes[invalidPath] = &config.RuntimeHandler{RuntimePath: ""}
+			sut.DefaultRuntime = "runc"
+
+			// When
+			err := sut.RuntimeConfig.ValidateRuntimes()
+
+			// Then
+			Expect(err).To(BeNil())
 		})
 
 		It("should fail with wrong but set runtime_path", func() {
