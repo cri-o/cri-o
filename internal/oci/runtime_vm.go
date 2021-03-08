@@ -33,12 +33,11 @@ import (
 	utilexec "k8s.io/utils/exec"
 )
 
-const fifoGlobalDir = "/tmp/crio/fifo"
-
 // runtimeVM is the Runtime interface implementation that is more appropriate
 // for VM based container runtimes.
 type runtimeVM struct {
-	path string
+	path    string
+	fifoDir string
 
 	ctx    context.Context
 	client *ttrpc.Client
@@ -53,7 +52,7 @@ type containerInfo struct {
 }
 
 // newRuntimeVM creates a new runtimeVM instance
-func newRuntimeVM(path string) RuntimeImpl {
+func newRuntimeVM(path string, root string) RuntimeImpl {
 	logrus.Debug("oci.newRuntimeVM() start")
 	defer logrus.Debug("oci.newRuntimeVM() end")
 
@@ -70,9 +69,10 @@ func newRuntimeVM(path string) RuntimeImpl {
 	typeurl.Register(&rspec.WindowsResources{}, prefix, "opencontainers/runtime-spec", major, "WindowsResources")
 
 	return &runtimeVM{
-		path: path,
-		ctx:  context.Background(),
-		ctrs: make(map[string]containerInfo),
+		path:    path,
+		fifoDir: filepath.Join(root, "crio", "fifo"),
+		ctx:     context.Background(),
+		ctrs:    make(map[string]containerInfo),
 	}
 }
 
@@ -92,7 +92,7 @@ func (r *runtimeVM) CreateContainer(c *Container, cgroupParent string) (retErr e
 
 	// Create IO fifos
 	containerIO, err := cio.NewContainerIO(c.ID(),
-		cio.WithNewFIFOs(fifoGlobalDir, c.terminal, c.stdin))
+		cio.WithNewFIFOs(r.fifoDir, c.terminal, c.stdin))
 	if err != nil {
 		return err
 	}
@@ -341,7 +341,7 @@ func (r *runtimeVM) execContainerCommon(c *Container, cmd []string, timeout int6
 	}
 
 	// Create IO fifos
-	execIO, err := cio.NewExecIO(c.ID(), fifoGlobalDir, tty, stdin != nil)
+	execIO, err := cio.NewExecIO(c.ID(), r.fifoDir, tty, stdin != nil)
 	if err != nil {
 		return -1, errdefs.FromGRPC(err)
 	}
