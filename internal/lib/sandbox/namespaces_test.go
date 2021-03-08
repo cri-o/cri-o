@@ -20,6 +20,8 @@ var (
 		sandbox.NETNS, sandbox.IPCNS, sandbox.UTSNS, sandbox.USERNS,
 	}
 	numManagedNamespaces = 4
+	alwaysRunningPid     = os.Getpid()
+	neverRunningPid      = 4194305 // max valid pid is 4194304
 )
 
 // pinNamespaceFunctor is a way to generically create a mockable pinNamespaces() function
@@ -438,7 +440,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get something when infra set and pid running", func() {
 			// Given
-			setupInfraContainerWithPid(1)
+			setupInfraContainerWithPid(alwaysRunningPid)
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
@@ -450,8 +452,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get nothing when infra set with pid not running", func() {
 			// Given
-			// max valid pid is 4194304
-			setupInfraContainerWithPid(4194305)
+			setupInfraContainerWithPid(neverRunningPid)
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
@@ -460,7 +461,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		})
 		It("should get managed path (except pid) despite infra set", func() {
 			// Given
-			setupInfraContainerWithPid(1)
+			setupInfraContainerWithPid(alwaysRunningPid)
 			getPath := pinNamespacesFunctor{
 				ifaceModifyFunc: func(ifaceMock *sandboxmock.MockNamespaceIface) {
 					nsType := setPathToDir(genericNamespaceParentDir, ifaceMock)
