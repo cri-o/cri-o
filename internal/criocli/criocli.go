@@ -809,6 +809,14 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			TakesFile:   true,
 		},
 		&cli.StringFlag{
+			Name:        "registries-conf-dir",
+			Usage:       "path to the registries.conf.d directory",
+			Destination: &defConf.SystemContext.SystemRegistriesConfDirPath,
+			Hidden:      true,
+			EnvVars:     []string{"CONTAINER_REGISTRIES_CONF_DIR"},
+			TakesFile:   true,
+		},
+		&cli.StringFlag{
 			Name:      "version-file",
 			Usage:     "Location for CRI-O to lay down the temporary version file. It is used to check if crio wipe should wipe containers, which should always happen on a node reboot",
 			Value:     defConf.VersionFile,

@@ -70,6 +70,7 @@ h
 --profile-port
 --read-only
 --registries-conf
+--registries-conf-dir
 --registry
 --root
 --runroot
