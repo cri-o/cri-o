@@ -1020,15 +1020,21 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 	if err := ns.WithNetNSPath(netNsPath, func(_ ns.NetNS) error {
 		defer stream.Close()
 
-		// TODO: hardcoded to tcp4 because localhost resolves to ::1 by default
-		// if the system has IPv6 enabled. However, not all applications are
-		// listening on the IPv6 localhost address. Theoretically happy
-		// eyeballs will try IPv6 first and fallback to IPv4 but resolving
-		// localhost doesn't seem to return and IPv4 address always, thus
-		// failing the connection.
-		conn, err := net.Dial("tcp4", fmt.Sprintf("localhost:%d", port))
+		// localhost can resolve to both IPv4 and IPv6 addresses in dual-stack systems
+		// but the application can be listening in one of the IP families only.
+		// golang has enabled RFC 6555 Fast Fallback (aka HappyEyeballs) by default in 1.12
+		// It means that if a host resolves to both IPv6 and IPv4, it will try to connect to any
+		// of those addresses and use the working connection.
+		// xref https://github.com/golang/go/commit/efc185029bf770894defe63cec2c72a4c84b2ee9
+		// However, the implementation uses go routines to start both connections in parallel,
+		// and this has limitations when running inside a namespace, so we try to the connections
+		// serially disabling the Fast Fallback support.
+		// xref https://github.com/golang/go/issues/44922
+		var d net.Dialer
+		d.FallbackDelay = -1
+		conn, err := d.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
-			return errors.Wrapf(err, "dialing %d", port)
+			return errors.Wrapf(err, "failed to connect to localhost:%d inside namespace %s", port, c.ID())
 		}
 		defer conn.Close()
 
