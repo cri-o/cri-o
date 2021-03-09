@@ -6,6 +6,7 @@ sudo apt install -y \
     conntrack \
     libaio-dev \
     libapparmor-dev \
+    libbtrfs-dev \
     libcap-dev \
     libdevmapper-dev \
     libfuse-dev \
