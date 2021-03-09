@@ -30,7 +30,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 					Resources: &specs.LinuxResources{},
 				},
 			})
-			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
+			testContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()
@@ -53,7 +53,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 					Resources: &specs.LinuxResources{},
 				},
 			})
-			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
+			testContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			addContainerAndSandbox()

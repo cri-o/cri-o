@@ -1,6 +1,9 @@
 package server
 
 import (
+	"fmt"
+
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -13,8 +16,13 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContai
 		return errors.Wrapf(err, "could not find container %s", req.ContainerID)
 	}
 
-	if err := c.IsAlive(); err != nil {
-		return errors.Errorf("container is not created or running: %v", err)
+	if err := s.ContainerServer.Runtime().UpdateContainerStatus(c); err != nil {
+		return err
+	}
+
+	cState := c.State()
+	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
+		return fmt.Errorf("container is not created or running")
 	}
 
 	if err := s.ContainerServer.Runtime().ReopenContainerLog(c); err != nil {
