@@ -486,13 +486,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	processArgs, err := buildOCIProcessArgs(ctx, containerConfig, containerImageConfig)
-	if err != nil {
+	if err := ctr.SpecSetProcessArgs(containerImageConfig); err != nil {
 		return nil, err
 	}
-	specgen.SetProcessArgs(processArgs)
 
-	if strings.Contains(processArgs[0], "/sbin/init") || (filepath.Base(processArgs[0]) == "systemd") {
+	if ctr.WillRunSystemd() {
 		processLabel, err = selinux.InitLabel(processLabel)
 		if err != nil {
 			return nil, err
