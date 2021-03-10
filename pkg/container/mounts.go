@@ -29,28 +29,7 @@ import (
 )
 
 func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string) ([]oci.ContainerVolume, []rspec.Mount, error) {
-	if serverConfig.ReadOnly {
-		// tmpcopyup is a runc extension and is not part of the OCI spec.
-		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
-		// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
-		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
-		mounts := map[string]string{
-			"/run":     "mode=0755",
-			"/tmp":     "mode=1777",
-			"/var/tmp": "mode=1777",
-		}
-		for target, mode := range mounts {
-			if !isInCRIMounts(target, c.config.Mounts) {
-				c.SpecAddMount(rspec.Mount{
-					Destination: target,
-					Type:        "tmpfs",
-					Source:      "tmpfs",
-					Options:     append(options, mode),
-				})
-			}
-		}
-	}
-
+	c.addReadOnlyMounts(serverConfig.ReadOnly)
 	if sb.HostNetwork() {
 		if !isInCRIMounts("/sys", c.config.Mounts) {
 			c.spec.RemoveMount("/sys")
@@ -162,6 +141,31 @@ func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Confi
 		c.SpecAddMount(rspecMount)
 	}
 	return containerVolumes, secretMounts, nil
+}
+
+func (c *container) addReadOnlyMounts(serverIsReadOnly bool) {
+	if !serverIsReadOnly {
+		return
+	}
+	// tmpcopyup is a runc extension and is not part of the OCI spec.
+	// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
+	// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
+	options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
+	mounts := map[string]string{
+		"/run":     "mode=0755",
+		"/tmp":     "mode=1777",
+		"/var/tmp": "mode=1777",
+	}
+	for target, mode := range mounts {
+		if !isInCRIMounts(target, c.config.Mounts) {
+			c.SpecAddMount(rspec.Mount{
+				Destination: target,
+				Type:        "tmpfs",
+				Source:      "tmpfs",
+				Options:     append(options, mode),
+			})
+		}
+	}
 }
 
 func isInCRIMounts(dst string, mounts []*types.Mount) bool {
