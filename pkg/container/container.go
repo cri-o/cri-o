@@ -21,6 +21,7 @@ import (
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -96,6 +97,14 @@ type Container interface {
 
 	// AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation
 	AddUnifiedResourcesFromAnnotations(annotationsMap map[string]string) error
+
+	// SpecSetProcessArgs sets the process args in the spec,
+	// given the image information and passed-in container config
+	SpecSetProcessArgs(imageOCIConfig *v1.Image) error
+
+	// WillRunSystemd checks whether the process args
+	// are configured to be run as a systemd instance.
+	WillRunSystemd() bool
 }
 
 // container is the hidden default type behind the Container interface
@@ -504,4 +513,49 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 	}
 
 	return nil
+}
+
+// SpecSetProcessArgs sets the process args in the spec,
+// given the image information and passed-in container config
+func (c *container) SpecSetProcessArgs(imageOCIConfig *v1.Image) error {
+	kubeCommands := c.config.Command
+	kubeArgs := c.config.Args
+
+	// merge image config and kube config
+	// same as docker does today...
+	if imageOCIConfig != nil {
+		if len(kubeCommands) == 0 {
+			if len(kubeArgs) == 0 {
+				kubeArgs = imageOCIConfig.Config.Cmd
+			}
+			if kubeCommands == nil {
+				kubeCommands = imageOCIConfig.Config.Entrypoint
+			}
+		}
+	}
+
+	// create entrypoint and args
+	var entrypoint string
+	var args []string
+	switch {
+	case len(kubeCommands) != 0:
+		entrypoint = kubeCommands[0]
+		args = kubeCommands[1:]
+		args = append(args, kubeArgs...)
+	case len(kubeArgs) != 0:
+		entrypoint = kubeArgs[0]
+		args = kubeArgs[1:]
+	default:
+		return errors.New("no command specified")
+	}
+
+	c.spec.SetProcessArgs(append([]string{entrypoint}, args...))
+	return nil
+}
+
+// WillRunSystemd checks whether the process args
+// are configured to be run as a systemd instance.
+func (c *container) WillRunSystemd() bool {
+	entrypoint := c.spec.Config.Process.Args[0]
+	return strings.Contains(entrypoint, "/sbin/init") || (filepath.Base(entrypoint) == "systemd")
 }
