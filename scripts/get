@@ -66,7 +66,7 @@ verify_requirements() {
 }
 
 latest_version() {
-    GH_API_URL="https://api.github.com/repos/cri-o/cri-o/actions/runs"
+    GH_API_URL="https://api.github.com/repos/cri-o/cri-o/actions/runs?per_page=100"
 
     GH_HEADERS=(-H "Accept: application/vnd.github.v3+json")
     if [[ $GITHUB_TOKEN != "" ]]; then
@@ -75,10 +75,36 @@ latest_version() {
 
     if [[ $VERSION == "" ]]; then
         echo No version provided, finding latest successful GitHub actions run
-        VERSION=$(curl -sSfL "${GH_HEADERS[@]}" "$GH_API_URL" |
-            jq -r '.workflow_runs | map(select(.name == "test" and .head_branch == "master" and .conclusion == "success")) | first | .head_sha')
 
-        echo "Using latest successful GitHub action master: $VERSION"
+        PAGE=0
+        while true; do
+            PAGE=$((PAGE + 1))
+            echo Searching GitHub actions page $PAGE
+
+            URL="${GH_API_URL}&page=$PAGE"
+            JSON=$(curl -sSfL "${GH_HEADERS[@]}" "$URL")
+
+            if echo "$JSON" | jq -e '.workflow_runs | length == 0' >/dev/null; then
+                echo No more GitHub action runs available to search
+                exit 1
+            fi
+
+            FOUND=$(echo "$JSON" |
+                jq -r '.workflow_runs | map(select(.name == "test" and .head_branch == "master" and .conclusion == "success")) | first | .head_sha')
+
+            if [[ $FOUND == null ]]; then
+                continue
+            fi
+
+            VERSION=$FOUND
+            echo "Using latest successful GitHub action master: $VERSION"
+            break
+        done
+
+        if [[ $VERSION == "" ]]; then
+            echo "Unable to find successful GitHub action"
+            exit 1
+        fi
     fi
 }
 
