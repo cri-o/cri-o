@@ -19,6 +19,7 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	sconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -105,6 +106,8 @@ type Container interface {
 	// WillRunSystemd checks whether the process args
 	// are configured to be run as a systemd instance.
 	WillRunSystemd() bool
+
+	SetupMounts(context.Context, *sconfig.Config, *sandbox.Sandbox, storage.ContainerInfo, string, string, string) ([]oci.ContainerVolume, []rspec.Mount, error)
 }
 
 // container is the hidden default type behind the Container interface
@@ -126,12 +129,6 @@ func New() (Container, error) {
 	return &container{
 		spec: spec,
 	}, nil
-}
-
-// SpecAddMount adds a specified mount to the spec
-func (c *container) SpecAddMount(r rspec.Mount) {
-	c.spec.RemoveMount(r.Destination)
-	c.spec.AddMount(r)
 }
 
 // SpecAddAnnotation adds all annotations to the spec
