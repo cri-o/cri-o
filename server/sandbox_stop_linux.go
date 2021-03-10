@@ -7,7 +7,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
-	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
@@ -46,8 +46,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 			max = len(containers)
 		}
 		for _, ctr := range containers[i:max] {
-			cStatus := ctr.State()
-			if cStatus.Status != oci.ContainerStateStopped {
+			if ctr.IsAlive() == nil {
 				if ctr.ID() == podInfraContainer.ID() {
 					continue
 				}

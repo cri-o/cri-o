@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,13 +28,8 @@ func (s StreamService) Attach(containerID string, inputStream io.Reader, outputS
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(s.ctx, c); err != nil {
-		return err
-	}
-
-	cState := c.State()
-	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
-		return fmt.Errorf("container is not created or running")
+	if err := c.IsAlive(); err != nil {
+		return status.Errorf(codes.NotFound, "container is not created or running: %v", err)
 	}
 
 	return s.runtimeServer.Runtime().AttachContainer(s.ctx, c, inputStream, outputStream, errorStream, tty, resize)
