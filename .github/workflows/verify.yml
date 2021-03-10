@@ -7,13 +7,11 @@ on:
       - master
   pull_request:
 jobs:
-  golangci:
-    name: lint
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+      - uses: golangci/golangci-lint-action@v2
         with:
           # must be specified without patch version
           version: v1.32
@@ -22,44 +20,34 @@ jobs:
           only-new-issues: true
 
   shellcheck:
-    name: shellcheck
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: lumaxis/shellcheck-problem-matchers@v1
-    - name: shellcheck
-      run: make shellcheck
+    - run: make shellcheck
 
   shfmt:
-    name: shfmt
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: shfmt
-      run: make shfmt
+    - run: make shfmt
 
   docs:
-    name: docs
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: validate-docs
-      run: make docs-validation
+    - run: make docs-validation
 
   vendor:
-    name: vendor
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: install go
-        uses: actions/setup-go@v2
+      - uses: actions/setup-go@v2
         with:
           go-version: '1.15'
-      - name: cache go modules
-        uses: actions/cache@v2
+      - uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
           key: go-${{ hashFiles('**/go.sum') }}
           restore-keys: go-
-      - name: vendor
-        run: make check-vendor
+      - run: make check-vendor
