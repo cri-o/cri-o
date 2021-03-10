@@ -28,7 +28,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountLabel, processLabel, mountPoint string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	if serverConfig.ReadOnly {
 		// tmpcopyup is a runc extension and is not part of the OCI spec.
 		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
@@ -91,7 +91,7 @@ func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Confi
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
-		if err := SecurityLabel(sb.ResolvPath(), mountLabel, false); err != nil {
+		if err := SecurityLabel(sb.ResolvPath(), containerInfo.MountLabel, false); err != nil {
 			return nil, nil, err
 		}
 		c.SpecAddMount(rspec.Mount{
@@ -103,7 +103,7 @@ func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Confi
 	}
 
 	if sb.HostnamePath() != "" {
-		if err := SecurityLabel(sb.HostnamePath(), mountLabel, false); err != nil {
+		if err := SecurityLabel(sb.HostnamePath(), containerInfo.MountLabel, false); err != nil {
 			return nil, nil, err
 		}
 		c.SpecAddMount(rspec.Mount{
@@ -132,18 +132,18 @@ func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Confi
 		setupSystemd(c.Spec().Mounts(), c.Spec())
 	}
 	// Add image volumes
-	volumeMounts, err := addImageVolumes(ctx, mountPoint, serverConfig, &containerInfo, mountLabel, c.Spec())
+	volumeMounts, err := addImageVolumes(ctx, mountPoint, serverConfig, &containerInfo, containerInfo.MountLabel, c.Spec())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, c.config, c.Spec(), serverConfig.RuntimeConfig.BindMountPrefix)
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, containerInfo.MountLabel, c.config, c.Spec(), serverConfig.RuntimeConfig.BindMountPrefix)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// Add secrets from the default and override mounts.conf files
-	secretMounts := secrets.SecretMounts(mountLabel, containerInfo.RunDir, serverConfig.DefaultMountsFile, rootless.IsRootless(), c.DisableFips())
+	secretMounts := secrets.SecretMounts(containerInfo.MountLabel, containerInfo.RunDir, serverConfig.DefaultMountsFile, rootless.IsRootless(), c.DisableFips())
 
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)

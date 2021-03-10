@@ -107,7 +107,7 @@ type Container interface {
 	// are configured to be run as a systemd instance.
 	WillRunSystemd() bool
 
-	SetupMounts(context.Context, *sconfig.Config, *sandbox.Sandbox, storage.ContainerInfo, string, string, string) ([]oci.ContainerVolume, []rspec.Mount, error)
+	SetupMounts(context.Context, *sconfig.Config, *sandbox.Sandbox, storage.ContainerInfo, string) ([]oci.ContainerVolume, []rspec.Mount, error)
 }
 
 // container is the hidden default type behind the Container interface

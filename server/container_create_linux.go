@@ -221,22 +221,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		}
 	}()
 
-	mountLabel := containerInfo.MountLabel
-	var processLabel string
-	if !ctr.Privileged() {
-		processLabel = containerInfo.ProcessLabel
-	}
 	hostIPC := securityContext.NamespaceOptions.Ipc == types.NamespaceModeNODE
 	hostPID := securityContext.NamespaceOptions.Pid == types.NamespaceModeNODE
 	hostNet := securityContext.NamespaceOptions.Network == types.NamespaceModeNODE
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
 	if hostPID || hostIPC {
-		processLabel, mountLabel = "", ""
+		containerInfo.ProcessLabel, containerInfo.MountLabel = "", ""
 	}
 
-	if hostNet {
-		processLabel = ""
+	if hostNet || ctr.Privileged() {
+		containerInfo.ProcessLabel = ""
 	}
 
 	configuredDevices := s.config.Devices()
@@ -435,7 +430,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	if ctr.WillRunSystemd() {
-		processLabel, err = selinux.InitLabel(processLabel)
+		containerInfo.ProcessLabel, err = selinux.InitLabel(containerInfo.ProcessLabel)
 		if err != nil {
 			return nil, err
 		}
@@ -491,7 +486,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	// Setup user and groups
 	if linux != nil {
-		if err := setupContainerUser(ctx, specgen, mountPoint, mountLabel, containerInfo.RunDir, securityContext, containerImageConfig); err != nil {
+		if err := setupContainerUser(ctx, specgen, mountPoint, containerInfo.MountLabel, containerInfo.RunDir, securityContext, containerImageConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -508,7 +503,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		containerCwd = runtimeCwd
 	}
 	specgen.SetProcessCwd(containerCwd)
-	if err := setupWorkingDirectory(mountPoint, mountLabel, containerCwd); err != nil {
+	if err := setupWorkingDirectory(mountPoint, containerInfo.MountLabel, containerCwd); err != nil {
 		return nil, err
 	}
 
@@ -541,10 +536,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		Attempt: metadata.Attempt,
 	}
 
-	specgen.SetLinuxMountLabel(mountLabel)
-	specgen.SetProcessSelinuxLabel(processLabel)
+	specgen.SetLinuxMountLabel(containerInfo.MountLabel)
+	specgen.SetProcessSelinuxLabel(containerInfo.ProcessLabel)
 
-	containerVolumes, secretMounts, err := ctr.SetupMounts(ctx, &s.config, sb, containerInfo, mountLabel, processLabel, mountPoint)
+	containerVolumes, secretMounts, err := ctr.SetupMounts(ctx, &s.config, sb, containerInfo, mountPoint)
 	if err != nil {
 		return nil, err
 	}
