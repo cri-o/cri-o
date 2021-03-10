@@ -85,10 +85,14 @@ type Container interface {
 	// returns the spec
 	Spec() *generate.Generator
 
-	// SpecAddMount adds a mount to the container's spec
+	// AddMount adds a mount to its list of saved mounts.
 	// it takes the rspec mount object
 	// if there is already a mount at the path specified, it removes it.
-	SpecAddMount(rspec.Mount)
+	AddMount(*rspec.Mount)
+
+	// SpecAddMounts configures the container's spec to
+	// add all of the mounts added by AddMount
+	SpecAddMounts()
 
 	// SpecAddAnnotations adds annotations to the spec.
 	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) error
@@ -118,6 +122,7 @@ type container struct {
 	name       string
 	privileged bool
 	spec       generate.Generator
+	mounts     map[string]*rspec.Mount
 }
 
 // New creates a new, empty Sandbox instance

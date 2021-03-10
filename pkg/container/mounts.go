@@ -29,27 +29,40 @@ import (
 )
 
 func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+	// To start, make sure each container gets /sys/fs/cgroup mounted
+	c.AddMount(&rspec.Mount{
+		Destination: "/sys/fs/cgroup",
+		Type:        "cgroup",
+		Source:      "cgroup",
+		Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+	})
+
+	// Then, add the special mounts for systemd.
+	// TODO FIXME duplicated condition
+	if c.WillRunSystemd() {
+		c.AddMountsForSystemd()
+	}
+
+	// Next, add mounts for a readOnly container
 	c.addReadOnlyMounts(serverConfig.ReadOnly)
+
 	if sb.HostNetwork() {
-		if !isInCRIMounts("/sys", c.config.Mounts) {
-			c.spec.RemoveMount("/sys")
-			c.SpecAddMount(rspec.Mount{
-				Destination: "/sys",
-				Type:        "sysfs",
-				Source:      "sysfs",
-				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
-			})
-		}
+		c.AddMount(&rspec.Mount{
+			Destination: "/sys",
+			Type:        "sysfs",
+			Source:      "sysfs",
+			Options:     []string{"nosuid", "noexec", "nodev", "ro"},
+		})
 	}
 
 	if c.Privileged() {
-		c.SpecAddMount(rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Destination: "/sys",
 			Type:        "sysfs",
 			Source:      "sysfs",
 			Options:     []string{"nosuid", "noexec", "nodev", "rw", "rslave"},
 		})
-		c.SpecAddMount(rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Destination: "/sys/fs/cgroup",
 			Type:        "cgroup",
 			Source:      "cgroup",
@@ -57,7 +70,7 @@ func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Confi
 		})
 	}
 
-	c.SpecAddMount(rspec.Mount{
+	c.AddMount(&rspec.Mount{
 		Destination: "/dev/shm",
 		Type:        "bind",
 		Source:      sb.ShmPath(),
@@ -73,7 +86,7 @@ func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Confi
 		if err := SecurityLabel(sb.ResolvPath(), containerInfo.MountLabel, false); err != nil {
 			return nil, nil, err
 		}
-		c.SpecAddMount(rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Destination: "/etc/resolv.conf",
 			Type:        "bind",
 			Source:      sb.ResolvPath(),
@@ -85,7 +98,7 @@ func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Confi
 		if err := SecurityLabel(sb.HostnamePath(), containerInfo.MountLabel, false); err != nil {
 			return nil, nil, err
 		}
-		c.SpecAddMount(rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Destination: "/etc/hostname",
 			Type:        "bind",
 			Source:      sb.HostnamePath(),
@@ -93,9 +106,9 @@ func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Confi
 		})
 	}
 
-	if !isInCRIMounts("/etc/hosts", c.config.Mounts) && hostNetwork(c.config) {
+	if hostNetwork(c.config) {
 		// Only bind mount for host netns and when CRI does not give us any hosts file
-		c.SpecAddMount(rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Destination: "/etc/hosts",
 			Type:        "bind",
 			Source:      "/etc/hosts",
@@ -107,40 +120,60 @@ func (c *container) SetupMounts(ctx context.Context, serverConfig *sconfig.Confi
 		setOCIBindMountsPrivileged(c.Spec())
 	}
 
-	if c.WillRunSystemd() {
-		setupSystemd(c.Spec().Mounts(), c.Spec())
-	}
 	// Add image volumes
-	volumeMounts, err := addImageVolumes(ctx, mountPoint, serverConfig, &containerInfo, containerInfo.MountLabel, c.Spec())
+	err := c.addImageVolumes(ctx, mountPoint, serverConfig, &containerInfo)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, containerInfo.MountLabel, c.config, c.Spec(), serverConfig.RuntimeConfig.BindMountPrefix)
+	containerVolumes, err := c.addOCIBindMounts(ctx, containerInfo.MountLabel, serverConfig.RuntimeConfig.BindMountPrefix)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// Add secrets from the default and override mounts.conf files
 	secretMounts := secrets.SecretMounts(containerInfo.MountLabel, containerInfo.RunDir, serverConfig.DefaultMountsFile, rootless.IsRootless(), c.DisableFips())
-
-	mounts := []rspec.Mount{}
-	mounts = append(mounts, ociMounts...)
-	mounts = append(mounts, volumeMounts...)
-	mounts = append(mounts, secretMounts...)
-
-	sort.Sort(orderedMounts(mounts))
-
-	for _, m := range mounts {
-		rspecMount := rspec.Mount{
+	for _, m := range secretMounts {
+		c.AddMount(&rspec.Mount{
 			Type:        "bind",
 			Options:     append(m.Options, "bind"),
 			Destination: m.Destination,
 			Source:      m.Source,
-		}
-		c.SpecAddMount(rspecMount)
+		})
 	}
+
+	c.SpecAddMounts()
+
 	return containerVolumes, secretMounts, nil
+}
+
+func (c *container) SpecAddMounts() {
+	allMounts := make([]*rspec.Mount, len(c.mounts))
+
+	// filter out /dev and /sys
+	devSet, sysSet := false, false
+	for dest, m := range c.mounts {
+		if dest == "/dev" {
+			devSet = true
+		}
+		if dest == "/sys" {
+			sysSet = true
+		}
+		allMounts = append(allMounts, m)
+	}
+
+	sort.Sort(orderedMounts(allMounts))
+
+	for _, m := range allMounts {
+		if devSet && strings.HasPrefix(m.Destination, "/dev/") {
+			continue
+		}
+		if sysSet && strings.HasPrefix(m.Destination, "/sys/") {
+			continue
+		}
+		c.spec.RemoveMount(m.Destination)
+		c.spec.AddMount(*m)
+	}
 }
 
 func (c *container) addReadOnlyMounts(serverIsReadOnly bool) {
@@ -157,30 +190,13 @@ func (c *container) addReadOnlyMounts(serverIsReadOnly bool) {
 		"/var/tmp": "mode=1777",
 	}
 	for target, mode := range mounts {
-		if !isInCRIMounts(target, c.config.Mounts) {
-			c.SpecAddMount(rspec.Mount{
-				Destination: target,
-				Type:        "tmpfs",
-				Source:      "tmpfs",
-				Options:     append(options, mode),
-			})
-		}
+		c.AddMount(&rspec.Mount{
+			Destination: target,
+			Type:        "tmpfs",
+			Source:      "tmpfs",
+			Options:     append(options, mode),
+		})
 	}
-}
-
-func isInCRIMounts(dst string, mounts []*types.Mount) bool {
-	for _, m := range mounts {
-		if m.ContainerPath == dst {
-			return true
-		}
-	}
-	return false
-}
-
-// SpecAddMount adds a specified mount to the spec
-func (c *container) SpecAddMount(r rspec.Mount) {
-	c.spec.RemoveMount(r.Destination)
-	c.spec.AddMount(r)
 }
 
 func setOCIBindMountsPrivileged(g *generate.Generator) {
@@ -195,99 +211,83 @@ func setOCIBindMountsPrivileged(g *generate.Generator) {
 
 // systemd expects to have /run, /run/lock and /tmp on tmpfs
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
-func setupSystemd(mounts []rspec.Mount, g *generate.Generator) {
+func (c *container) AddMountsForSystemd() {
 	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
 	for _, dest := range []string{"/run", "/run/lock"} {
-		if mountExists(mounts, dest) {
-			continue
-		}
-		tmpfsMnt := rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Destination: dest,
 			Type:        "tmpfs",
 			Source:      "tmpfs",
 			Options:     append(options, "tmpcopyup"),
-		}
-		g.AddMount(tmpfsMnt)
+		})
 	}
 	for _, dest := range []string{"/tmp", "/var/log/journal"} {
-		if mountExists(mounts, dest) {
-			continue
-		}
-		tmpfsMnt := rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Destination: dest,
 			Type:        "tmpfs",
 			Source:      "tmpfs",
 			Options:     append(options, "tmpcopyup"),
-		}
-		g.AddMount(tmpfsMnt)
+		})
 	}
 
 	if node.CgroupIsV2() {
-		g.RemoveMount("/sys/fs/cgroup")
-
-		systemdMnt := rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Destination: "/sys/fs/cgroup",
 			Type:        "cgroup",
 			Source:      "cgroup",
 			Options:     []string{"private", "rw"},
-		}
-		g.AddMount(systemdMnt)
+		})
 	} else {
-		systemdMnt := rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Destination: "/sys/fs/cgroup/systemd",
 			Type:        "bind",
 			Source:      "/sys/fs/cgroup/systemd",
 			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
-		}
-		g.AddMount(systemdMnt)
-		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
+		})
+		c.spec.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 	}
-	g.AddProcessEnv("container", "crio")
+	c.spec.AddProcessEnv("container", "crio")
 }
 
-// mountExists returns true if dest exists in the list of mounts
-func mountExists(specMounts []rspec.Mount, dest string) bool {
-	for _, m := range specMounts {
-		if m.Destination == dest {
-			return true
-		}
+func (c *container) addMount(m *rspec.Mount) {
+	if m == nil {
+		return
 	}
-	return false
+	c.mounts[m.Destination] = m
 }
 
-func addImageVolumes(ctx context.Context, rootfs string, serverConfig *sconfig.Config, containerInfo *storage.ContainerInfo, mountLabel string, specgen *generate.Generator) ([]rspec.Mount, error) {
-	mounts := []rspec.Mount{}
+func (c *container) addImageVolumes(ctx context.Context, rootfs string, serverConfig *sconfig.Config, containerInfo *storage.ContainerInfo) error {
 	for dest := range containerInfo.Config.Config.Volumes {
 		fp, err := securejoin.SecureJoin(rootfs, dest)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		switch serverConfig.ImageVolumes {
 		case sconfig.ImageVolumesMkdir:
-			IDs := idtools.IDPair{UID: int(specgen.Config.Process.User.UID), GID: int(specgen.Config.Process.User.GID)}
+			IDs := idtools.IDPair{UID: int(c.Spec().Config.Process.User.UID), GID: int(c.Spec().Config.Process.User.GID)}
 			if err1 := idtools.MkdirAllAndChownNew(fp, 0o755, IDs); err1 != nil {
-				return nil, err1
+				return err1
 			}
-			if mountLabel != "" {
-				if err1 := SecurityLabel(fp, mountLabel, true); err1 != nil {
-					return nil, err1
+			if containerInfo.MountLabel != "" {
+				if err1 := SecurityLabel(fp, containerInfo.MountLabel, true); err1 != nil {
+					return err1
 				}
 			}
 		case sconfig.ImageVolumesBind:
 			volumeDirName := stringid.GenerateNonCryptoID()
 			src := filepath.Join(containerInfo.RunDir, "mounts", volumeDirName)
 			if err1 := os.MkdirAll(src, 0o755); err1 != nil {
-				return nil, err1
+				return err1
 			}
 			// Label the source with the sandbox selinux mount label
-			if mountLabel != "" {
-				if err1 := SecurityLabel(src, mountLabel, true); err1 != nil {
-					return nil, err1
+			if containerInfo.MountLabel != "" {
+				if err1 := SecurityLabel(src, containerInfo.MountLabel, true); err1 != nil {
+					return err1
 				}
 			}
 
 			log.Debugf(ctx, "Adding bind mounted volume: %s to %s", src, dest)
-			mounts = append(mounts, rspec.Mount{
+			c.AddMount(&rspec.Mount{
 				Source:      src,
 				Destination: dest,
 				Type:        "bind",
@@ -300,56 +300,38 @@ func addImageVolumes(ctx context.Context, rootfs string, serverConfig *sconfig.C
 			log.Errorf(ctx, "unrecognized image volumes setting")
 		}
 	}
-	return mounts, nil
+	return nil
 }
 
-func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *types.ContainerConfig, specgen *generate.Generator, bindMountPrefix string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func (c *container) addOCIBindMounts(ctx context.Context, mountLabel string, bindMountPrefix string) ([]oci.ContainerVolume, error) {
 	volumes := []oci.ContainerVolume{}
-	ociMounts := []rspec.Mount{}
-	mounts := containerConfig.Mounts
+	mounts := c.config.Mounts
 
 	// Sort mounts in number of parts. This ensures that high level mounts don't
 	// shadow other mounts.
 	sort.Sort(criOrderedMounts(mounts))
 
-	// Copy all mounts from default mounts, except for
-	// - mounts overridden by supplied mount;
-	// - all mounts under /dev if a supplied /dev is present.
-	mountSet := make(map[string]struct{})
-	for _, m := range mounts {
-		mountSet[filepath.Clean(m.ContainerPath)] = struct{}{}
-	}
-	defaultMounts := specgen.Mounts()
-	specgen.ClearMounts()
+	defaultMounts := c.spec.Mounts()
+	c.spec.ClearMounts()
 	for _, m := range defaultMounts {
-		dst := filepath.Clean(m.Destination)
-		if _, ok := mountSet[dst]; ok {
-			// filter out mount overridden by a supplied mount
-			continue
-		}
-		if _, mountDev := mountSet["/dev"]; mountDev && strings.HasPrefix(dst, "/dev/") {
-			// filter out everything under /dev if /dev is a supplied mount
-			continue
-		}
-		if _, mountSys := mountSet["/sys"]; mountSys && strings.HasPrefix(dst, "/sys/") {
-			// filter out everything under /sys if /sys is a supplied mount
-			continue
-		}
-		specgen.AddMount(m)
+		// We will override with specified mounts below,
+		// and clean up /dev and /sys (if specified) when adding them
+		// to the spec generator.
+		c.AddMount(&m)
 	}
 
 	mountInfos, err := mount.GetMounts()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	for _, m := range mounts {
 		dest := m.ContainerPath
 		if dest == "" {
-			return nil, nil, fmt.Errorf("mount.ContainerPath is empty")
+			return nil, fmt.Errorf("mount.ContainerPath is empty")
 		}
 
 		if m.HostPath == "" {
-			return nil, nil, fmt.Errorf("mount.HostPath is empty")
+			return nil, fmt.Errorf("mount.HostPath is empty")
 		}
 		src := filepath.Join(bindMountPrefix, m.HostPath)
 
@@ -358,9 +340,9 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *t
 			src = resolvedSrc
 		} else {
 			if !os.IsNotExist(err) {
-				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
+				return nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
 			} else if err = os.MkdirAll(src, 0o755); err != nil {
-				return nil, nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
+				return nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
 			}
 		}
 
@@ -378,21 +360,21 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *t
 			// setting the root propagation
 		case types.MountPropagationPropagationBidirectional:
 			if err := ensureShared(src, mountInfos); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			options = append(options, "rshared")
-			if err := specgen.SetLinuxRootPropagation("rshared"); err != nil {
-				return nil, nil, err
+			if err := c.spec.SetLinuxRootPropagation("rshared"); err != nil {
+				return nil, err
 			}
 		case types.MountPropagationPropagationHostToContainer:
 			if err := ensureSharedOrSlave(src, mountInfos); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			options = append(options, "rslave")
-			if specgen.Config.Linux.RootfsPropagation != "rshared" &&
-				specgen.Config.Linux.RootfsPropagation != "rslave" {
-				if err := specgen.SetLinuxRootPropagation("rslave"); err != nil {
-					return nil, nil, err
+			if c.spec.Config.Linux.RootfsPropagation != "rshared" &&
+				c.spec.Config.Linux.RootfsPropagation != "rslave" {
+				if err := c.spec.SetLinuxRootPropagation("rslave"); err != nil {
+					return nil, err
 				}
 			}
 		default:
@@ -402,7 +384,7 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *t
 
 		if m.SelinuxRelabel {
 			if err := SecurityLabel(src, mountLabel, false); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 
@@ -412,24 +394,14 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *t
 			Readonly:      m.Readonly,
 		})
 
-		ociMounts = append(ociMounts, rspec.Mount{
+		c.AddMount(&rspec.Mount{
 			Source:      src,
 			Destination: dest,
 			Options:     options,
 		})
 	}
 
-	if _, mountSys := mountSet["/sys"]; !mountSys {
-		m := rspec.Mount{
-			Destination: "/sys/fs/cgroup",
-			Type:        "cgroup",
-			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
-		}
-		specgen.AddMount(m)
-	}
-
-	return volumes, ociMounts, nil
+	return volumes, nil
 }
 
 func SecurityLabel(path, secLabel string, shared bool) error {
@@ -448,7 +420,7 @@ func hostNetwork(containerConfig *types.ContainerConfig) bool {
 	return securityContext.NamespaceOptions.Network == types.NamespaceModeNODE
 }
 
-type orderedMounts []rspec.Mount
+type orderedMounts []*rspec.Mount
 
 // Len returns the number of mounts. Used in sorting.
 func (m orderedMounts) Len() int {
@@ -583,4 +555,11 @@ func getSourceMount(source string, mountinfos []*mount.Info) (path, optional str
 	}
 
 	return res.Mountpoint, res.Optional, nil
+}
+
+func (c *container) AddMount(m *rspec.Mount) {
+	if m == nil {
+		return
+	}
+	c.mounts[filepath.Clean(m.Destination)] = m
 }
