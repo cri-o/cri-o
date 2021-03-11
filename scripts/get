@@ -6,6 +6,7 @@ ARCH_ARM64=arm64
 ARCH=
 VERSION=
 GITHUB_TOKEN=${GITHUB_TOKEN:-}
+GCB_URL=https://storage.googleapis.com/k8s-conform-cri-o
 
 usage() {
     printf "Usage: %s [-a ARCH] [ -t TAG|SHA ] [ -h ]\n\n" "$(basename "$0")"
@@ -17,7 +18,6 @@ usage() {
 
 parse_args() {
     echo "Welcome to the CRI-O install script!"
-    echo "Export a GITHUB_TOKEN environment variable to avoid GitHub API rate limits"
 
     while getopts 'a:t:h' OPTION; do
         case "$OPTION" in
@@ -74,15 +74,23 @@ latest_version() {
     fi
 
     if [[ $VERSION == "" ]]; then
-        echo No version provided, finding latest successful GitHub actions run
+        echo Searching for latest version via marker file
+        COMMIT=$(curl -sSfL --retry 5 --retry-delay 3 "$GCB_URL/latest-master.txt")
+        if [[ "$COMMIT" != "" ]]; then
+            VERSION=$COMMIT
+            echo "Found latest version $VERSION"
+            return
+        fi
 
+        echo No version marker found, trying latest successful GitHub actions run
+        echo Export a GITHUB_TOKEN environment variable to avoid GitHub API rate limits
         PAGE=0
         while true; do
             PAGE=$((PAGE + 1))
             echo Searching GitHub actions page $PAGE
 
             URL="${GH_API_URL}&page=$PAGE"
-            JSON=$(curl -sSfL "${GH_HEADERS[@]}" "$URL")
+            JSON=$(curl -sSfL --retry 5 --retry-delay 3 "${GH_HEADERS[@]}" "$URL")
 
             if echo "$JSON" | jq -e '.workflow_runs | length == 0' >/dev/null; then
                 echo No more GitHub action runs available to search
@@ -116,14 +124,13 @@ prepare() {
 
 prepare "$@"
 
-GCB_URL=https://storage.googleapis.com/k8s-conform-cri-o/artifacts
-TARBALL_URL=$GCB_URL/cri-o.$ARCH.$VERSION.tar.gz
+TARBALL_URL=$GCB_URL/artifacts/cri-o.$ARCH.$VERSION.tar.gz
 
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf -- "$TMPDIR"' EXIT
 
 echo "Downloading $TARBALL_URL to $TMPDIR"
-curl -sSfL "$TARBALL_URL" | tar xfz - --strip-components=1 -C "$TMPDIR"
+curl -sSfL --retry 5 --retry-delay 3 "$TARBALL_URL" | tar xfz - --strip-components=1 -C "$TMPDIR"
 
 echo Installing CRI-O
 pushd "$TMPDIR"

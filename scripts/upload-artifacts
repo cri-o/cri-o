@@ -13,6 +13,11 @@ else
 
     BUCKET=gs://k8s-conform-cri-o
     gsutil cp -n build/bundle/*.tar.gz $BUCKET/artifacts
+
+    # update the latest version marker file
+    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    git rev-parse HEAD >"latest-$BRANCH.txt"
+    gsutil cp "latest-$BRANCH.txt" $BUCKET
 fi
 
 if TAG=$(git describe --exact-match --tags 2>/dev/null); then
