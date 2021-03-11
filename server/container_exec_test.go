@@ -50,7 +50,7 @@ var _ = t.Describe("ContainerStart", func() {
 		It("shoud fail when container not found", func() {
 			// Given
 			// When
-			err := testStreamService.Exec(testContainer.ID(), []string{},
+			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{},
 				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
 
 			// Then

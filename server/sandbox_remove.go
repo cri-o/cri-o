@@ -53,7 +53,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandb
 			}
 		}
 
-		if err := s.Runtime().DeleteContainer(c); err != nil {
+		if err := s.Runtime().DeleteContainer(ctx, c); err != nil {
 			return fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 		}
 

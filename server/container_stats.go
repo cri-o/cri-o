@@ -62,7 +62,7 @@ func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRe
 	}
 	cgroup := sb.CgroupParent()
 
-	stats, err := s.Runtime().ContainerStats(container, cgroup)
+	stats, err := s.Runtime().ContainerStats(ctx, container, cgroup)
 	if err != nil {
 		return nil, err
 	}

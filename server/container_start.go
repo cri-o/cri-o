@@ -43,7 +43,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 				}
 			}
 		}
-		if err := s.ContainerStateToDisk(c); err != nil {
+		if err := s.ContainerStateToDisk(ctx, c); err != nil {
 			log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
 		}
 	}()
@@ -54,7 +54,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		}
 	}
 
-	if err := s.Runtime().StartContainer(c); err != nil {
+	if err := s.Runtime().StartContainer(ctx, c); err != nil {
 		return fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}
 

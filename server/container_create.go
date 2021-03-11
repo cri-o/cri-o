@@ -530,19 +530,19 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, err
 	}
 
-	if err := s.createContainerPlatform(newContainer, sb.CgroupParent(), mappings); err != nil {
+	if err := s.createContainerPlatform(ctx, newContainer, sb.CgroupParent(), mappings); err != nil {
 		return nil, err
 	}
 	cleanupFuncs = append(cleanupFuncs, func() {
 		if retErr != nil {
 			log.Infof(ctx, "createCtr: removing container ID %s from runtime", ctr.ID())
-			if err := s.Runtime().DeleteContainer(newContainer); err != nil {
+			if err := s.Runtime().DeleteContainer(ctx, newContainer); err != nil {
 				log.Warnf(ctx, "failed to delete container in runtime %s: %v", ctr.ID(), err)
 			}
 		}
 	})
 
-	if err := s.ContainerStateToDisk(newContainer); err != nil {
+	if err := s.ContainerStateToDisk(ctx, newContainer); err != nil {
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 

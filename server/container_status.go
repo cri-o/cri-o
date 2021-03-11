@@ -58,7 +58,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	// If we defaulted to exit code not set earlier then we attempt to
 	// get the exit code from the exit file again.
 	if cState.Status == oci.ContainerStateStopped && cState.ExitCode == nil {
-		err := s.Runtime().UpdateContainerStatus(c)
+		err := s.Runtime().UpdateContainerStatus(ctx, c)
 		if err != nil {
 			log.Warnf(ctx, "Failed to UpdateStatus of container %s: %v", c.ID(), err)
 		}

@@ -1,6 +1,8 @@
 package lib_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -15,7 +17,7 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 
 			// When
-			res, err := sut.ContainerPause("")
+			res, err := sut.ContainerPause(context.Background(), "")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -27,7 +29,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail on invalid container", func() {
 			// Given
 			// When
-			res, err := sut.ContainerUnpause("")
+			res, err := sut.ContainerUnpause(context.Background(), "")
 
 			// Then
 			Expect(err).NotTo(BeNil())

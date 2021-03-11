@@ -262,7 +262,7 @@ func main() {
 		notifySystem()
 
 		go func() {
-			crioServer.StartExitMonitor()
+			crioServer.StartExitMonitor(ctx)
 		}()
 		hookSync := make(chan error, 2)
 		if crioServer.ContainerServer.Hooks == nil {

@@ -35,7 +35,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 			continue
 		}
 		cgroup := sb.CgroupParent()
-		stats, err := s.Runtime().ContainerStats(container, cgroup)
+		stats, err := s.Runtime().ContainerStats(ctx, container, cgroup)
 		if err != nil {
 			log.Warnf(ctx, "unable to get stats for container %s: %v", container.ID(), err)
 			continue

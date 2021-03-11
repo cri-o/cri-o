@@ -20,6 +20,7 @@ limitations under the License.
 package streaming
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"io"
@@ -62,8 +63,8 @@ type Server interface {
 
 // Runtime is the interface to execute the commands and provide the streams.
 type Runtime interface {
-	Exec(containerID string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error
-	Attach(containerID string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error
+	Exec(ctx context.Context, containerID string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error
+	Attach(ctx context.Context, containerID string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error
 	PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error
 }
 
@@ -106,10 +107,10 @@ var DefaultConfig = Config{
 
 // NewServer creates a new Server for stream requests.
 // TODO(tallclair): Add auth(n/z) interface & handling.
-func NewServer(config Config, runtime Runtime) (Server, error) { // nolint
+func NewServer(ctx context.Context, config Config, runtime Runtime) (Server, error) { // nolint
 	s := &server{
 		config:  config,
-		runtime: &criAdapter{runtime},
+		runtime: &criAdapter{ctx, runtime},
 		cache:   newRequestCache(),
 	}
 
@@ -363,6 +364,7 @@ func (s *server) servePortForward(req *restful.Request, resp *restful.Response) 
 // criAdapter wraps the Runtime functions to conform to the remotecommand interfaces.
 // The adapter binds the container ID to the container name argument, and the pod sandbox ID to the pod name.
 type criAdapter struct {
+	ctx context.Context
 	Runtime
 }
 
@@ -371,11 +373,11 @@ var _ remotecommandserver.Attacher = &criAdapter{}
 var _ portforward.PortForwarder = &criAdapter{}
 
 func (a *criAdapter) ExecInContainer(podName string, podUID apiTypes.UID, container string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize, timeout time.Duration) error {
-	return a.Runtime.Exec(container, cmd, in, out, err, tty, resize)
+	return a.Runtime.Exec(a.ctx, container, cmd, in, out, err, tty, resize)
 }
 
 func (a *criAdapter) AttachContainer(podName string, podUID apiTypes.UID, container string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	return a.Runtime.Attach(container, in, out, err, tty, resize)
+	return a.Runtime.Attach(a.ctx, container, in, out, err, tty, resize)
 }
 
 func (a *criAdapter) PortForward(podName string, podUID apiTypes.UID, port int32, stream io.ReadWriteCloser) error {

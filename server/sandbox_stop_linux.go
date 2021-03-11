@@ -81,7 +81,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 						// assume container already umounted
 						log.Warnf(ctx, "failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 					}
-					if err := s.ContainerStateToDisk(c); err != nil {
+					if err := s.ContainerStateToDisk(ctx, c); err != nil {
 						return errors.Wrapf(err, "write container %q state do disk", c.Name())
 					}
 					return nil
@@ -114,7 +114,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
 		log.Warnf(ctx, "failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
 	}
-	if err := s.ContainerStateToDisk(podInfraContainer); err != nil {
+	if err := s.ContainerStateToDisk(ctx, podInfraContainer); err != nil {
 		log.Warnf(ctx, "error writing pod infra container %q state to disk: %v", podInfraContainer.ID(), err)
 	}
 
