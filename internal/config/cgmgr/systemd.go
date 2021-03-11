@@ -125,3 +125,8 @@ func convertCgroupFsNameToSystemd(cgroupfsName string) string {
 	// per systemd convention.
 	return path.Base(cgroupfsName)
 }
+
+// CreateSandboxCgroup calls the helper function createSandboxCgroup for this manager.
+func (m *SystemdManager) CreateSandboxCgroup(sbParent, containerID string) error {
+	return createSandboxCgroup(sbParent, containerID, m)
+}
