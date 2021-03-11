@@ -936,6 +936,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			if err := updateContainerStatusFromExitFile(c); err != nil {
 				c.state.Finished = time.Now()
 				c.state.ExitCode = utils.Int32Ptr(255)
+				return nil, false, nil
 			}
 			return nil, true, nil
 		}
@@ -953,7 +954,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		return nil
 	}
 
-	if state.Status != ContainerStateStopped {
+	if state != nil && state.Status != ContainerStateStopped {
 		*c.state = *state
 		return nil
 	}
