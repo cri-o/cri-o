@@ -39,19 +39,32 @@ It is assumed you are running a Linux machine.
 CRI-O builds for native package managers using [openSUSE's OBS](build.opensuse.org)
 
 ### Supported versions
-Below is a compatiblity matrix between versions of CRI-O (y-axis) and distributions (x-axis)
 
-|      | Fedora 31+ | openSUSE | CentOS_8 | CentOS_8_Stream | CentOS_7 | Debian_Unstable | Debian_Testing | Debian 10 | Rasbian_10 | xUbuntu_20.04 | xUbuntu_19.10 | xUbuntu_19.04 | xUbuntu_18.04 |
-| ---- | ---------- | -------- | -------- | --------------- | -------- | --------------- | -------------- | --------- | ---------- | ------------- | ------------- | ------------- | ------------- |
-| 1.18 | ✓          | ✓        | ✓        | ✓               |          | ✓               | ✓              |           |            | ✓             |               |               |               |
-| 1.17 | ✓          | ✓        | ✓        | ✓               | ✓        | ✓               | ✓              | ✓         | ✓          | ✓             | ✓             | ✓             | ✓             |
-| 1.16 | ✓          | ✓        | ✓        | ✓               | ✓        | ✓               | ✓              | ✓         | ✓          | ✓             | ✓             | ✓             | ✓             |
+CRI-O follows the [Kubernetes support cycle](https://kubernetes.io/docs/setup/release/version-skew-policy/#supported-versions) of three minor releases.
+CRI-O also attempts to package for the following operating systems:
+```
+Fedora 31+
+openSUSE
+CentOS 8
+CentOS 8 Stream
+CentOS 7
+Debian Unstable
+Debian Testing
+Debian 10
+Rasbian 10
+xUbuntu 20.10
+xUbuntu 20.04
+xUbuntu 18.04
+```
 
 To install, choose a supported version for your operating system, and export it as a variable, like so:
-`export VERSION=1.18`
+`export VERSION=1.19`
 
 We also save releases as subprojects. If you'd, for instance, like to use `1.18.3` you can set
-`export VERSION=1.18:1.18.3`
+`export VERSION=1.19:1.19.1`
+
+Packaging for CRI-O is done best-effort, and is largely driven by requests.
+If there's a version or operating system that is missing, please [open an issue](github.com/cri-o/cri-o/issues/new).
 
 ### Installation Instructions
 
@@ -133,7 +146,6 @@ to `/etc/crio/crio.conf.d/`
 Latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by CRI-O.
 
 ### Build and Run Dependencies
-
 
 #### Fedora - RHEL 7 - CentOS
 **Required**
