@@ -23,13 +23,13 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 }
 
 // Exec endpoint for streaming.Runtime
-func (s StreamService) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (s StreamService) Exec(containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	c, err := s.runtimeServer.GetContainerFromShortID(containerID)
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(ctx, c); err != nil {
+	if err := s.runtimeServer.Runtime().UpdateContainerStatus(s.ctx, c); err != nil {
 		return err
 	}
 
@@ -38,5 +38,5 @@ func (s StreamService) Exec(ctx context.Context, containerID string, cmd []strin
 		return fmt.Errorf("container is not created or running")
 	}
 
-	return s.runtimeServer.Runtime().ExecContainer(ctx, c, cmd, stdin, stdout, stderr, tty, resize)
+	return s.runtimeServer.Runtime().ExecContainer(s.ctx, c, cmd, stdin, stdout, stderr, tty, resize)
 }

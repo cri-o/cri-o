@@ -50,7 +50,7 @@ type containerInfo struct {
 }
 
 // newRuntimeVM creates a new runtimeVM instance
-func newRuntimeVM(path string, root string) RuntimeImpl {
+func newRuntimeVM(path, root string) RuntimeImpl {
 	logrus.Debug("oci.newRuntimeVM() start")
 	defer logrus.Debug("oci.newRuntimeVM() end")
 
@@ -152,7 +152,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	createdCh := make(chan error)
 	go func() {
 		// Create the container
-		if resp, err := r.task.Create(namespaces.WithNamespace(context.Background(), namespaces.Default), request); err != nil {
+		if resp, err := r.task.Create(ctx, request); err != nil {
 			createdCh <- errdefs.FromGRPC(err)
 		} else if err := c.state.SetInitPid(int(resp.Pid)); err != nil {
 			createdCh <- err
@@ -167,7 +167,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 			return errors.Errorf("CreateContainer failed: %v", err)
 		}
 	case <-time.After(ContainerCreateTimeout):
-		if err := r.remove(namespaces.WithNamespace(context.Background(), namespaces.Default), c.ID(), ""); err != nil {
+		if err := r.remove(ctx, c.ID(), ""); err != nil {
 			return err
 		}
 		<-createdCh
@@ -208,7 +208,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	}
 
 	// Create the log file expected by shim-v2 API
-	f, err := fifo.OpenFifo(namespaces.WithNamespace(ctx, namespaces.Default), filepath.Join(c.BundlePath(), "log"),
+	f, err := fifo.OpenFifo(ctx, filepath.Join(c.BundlePath(), "log"),
 		unix.O_RDONLY|unix.O_CREAT|unix.O_NONBLOCK, 0o700)
 	if err != nil {
 		return err

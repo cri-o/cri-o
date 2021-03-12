@@ -47,6 +47,7 @@ var errSandboxNotCreated = errors.New("sandbox not created")
 
 // StreamService implements streaming.Runtime.
 type StreamService struct {
+	ctx                 context.Context
 	runtimeServer       *Server // needed by Exec() endpoint
 	streamServer        streaming.Server
 	streamServerCloseCh chan struct{}
@@ -459,6 +460,7 @@ func New(
 			Certificates:       []tls.Certificate{cert},
 		}
 	}
+	s.stream.ctx = ctx
 	s.stream.runtimeServer = s
 	s.stream.streamServer, err = streaming.NewServer(ctx, streamServerConfig, s.stream)
 	if err != nil {
