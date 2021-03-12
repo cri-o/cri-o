@@ -19,7 +19,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-build-${{ hashFiles('**/go.sum') }}
+          key: go-integration-${{ hashFiles('**/go.sum') }}
           restore-keys: go-integration-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
@@ -41,7 +41,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-build-${{ hashFiles('**/go.sum') }}
+          key: go-integration-${{ hashFiles('**/go.sum') }}
           restore-keys: go-integration-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
@@ -62,7 +62,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-build-${{ hashFiles('**/go.sum') }}
+          key: go-integration-${{ hashFiles('**/go.sum') }}
           restore-keys: go-integration-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
@@ -86,7 +86,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-build-${{ hashFiles('**/go.sum') }}
+          key: go-integration-${{ hashFiles('**/go.sum') }}
           restore-keys: go-integration-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
