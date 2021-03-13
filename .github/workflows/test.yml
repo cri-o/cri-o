@@ -8,7 +8,7 @@ on:
   pull_request:
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/setup-go@v2
         with:
@@ -44,7 +44,7 @@ jobs:
           path: crio.conf
 
   build-go1_14:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/setup-go@v2
         with:
@@ -62,7 +62,7 @@ jobs:
       - run: bin/crio version
 
   build-386:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -95,7 +95,7 @@ jobs:
 
   validate-docs:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
@@ -111,7 +111,7 @@ jobs:
 
   validate-completions:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
@@ -126,7 +126,7 @@ jobs:
           hack/tree_status.sh
 
   build-static-amd64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v12
@@ -145,7 +145,7 @@ jobs:
             result/bin/pinns
 
   build-static-arm64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v12
@@ -164,7 +164,7 @@ jobs:
             result/bin/pinns
 
   bundles:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs:
       - build
       - build-static-amd64
@@ -194,7 +194,7 @@ jobs:
           path: build/bundle/*.tar.gz
 
   bundle-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: bundles
     steps:
       - uses: actions/checkout@v2
@@ -205,7 +205,7 @@ jobs:
       - run: make bundle-test
 
   upload-artifacts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: bundle-test
     steps:
       - uses: actions/checkout@v2
@@ -219,7 +219,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
   unit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/setup-go@v2
         with:
@@ -246,7 +246,7 @@ jobs:
 
   coverage:
     needs: unit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
@@ -257,7 +257,7 @@ jobs:
 
   release-notes:
     if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
         with:
@@ -282,7 +282,7 @@ jobs:
   dependencies:
     if: github.ref == 'refs/heads/master'
     needs: release-notes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
         with:
@@ -304,7 +304,7 @@ jobs:
           path: build/dependencies
 
   release-branch-forward:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v2
