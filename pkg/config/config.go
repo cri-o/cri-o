@@ -354,6 +354,9 @@ type RuntimeConfig struct {
 	// apparmorConfig is the internal AppArmor configuration
 	apparmorConfig *apparmor.Config
 
+	// rdtConfig is the internal Rdt configuration
+	rdtConfig *rdt.Config
+
 	// ulimitConfig is the internal ulimit configuration
 	ulimitsConfig *ulimits.Config
 
@@ -680,6 +683,7 @@ func DefaultConfig() (*Config, error) {
 			DropInfraCtr:             true,
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
+			rdtConfig:                rdt.New(),
 			ulimitsConfig:            ulimits.New(),
 			cgroupManager:            cgroupManager,
 			deviceConfig:             device.New(),
@@ -945,6 +949,11 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err := c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
 			return errors.Wrap(err, "unable to load AppArmor profile")
 		}
+
+		if err := c.rdtConfig.Load(c.RdtConfigFile); err != nil {
+			return errors.Wrap(err, "rdt configuration")
+		}
+
 		cgroupManager, err := cgmgr.SetCgroupManager(c.CgroupManagerName)
 		if err != nil {
 			return errors.Wrap(err, "unable to update cgroup manager")
@@ -1015,6 +1024,11 @@ func (c *RuntimeConfig) Seccomp() *seccomp.Config {
 // AppArmor returns the AppArmor configuration
 func (c *RuntimeConfig) AppArmor() *apparmor.Config {
 	return c.apparmorConfig
+}
+
+// Rdt returns the RDT configuration
+func (c *RuntimeConfig) Rdt() *rdt.Config {
+	return c.rdtConfig
 }
 
 // CgroupManager returns the CgroupManager configuration
