@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cri-o/cri-o/internal/ctrfactory"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/pkg/container"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -26,7 +26,7 @@ const (
 // InitInfraContainer initializes the sandbox's infra container
 func (s *SandboxFactory) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo) error {
 	var err error
-	s.infra, err = container.New()
+	s.infra, err = ctrfactory.New()
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (s *SandboxFactory) InitInfraContainer(serverConfig *libconfig.Config, podC
 	return nil
 }
 
-// Spec returns the infra container's generator
+// Spec returns the infra ctrfactory's generator
 // Must only be called after a successful call to InitInfraContainer
 func (s *SandboxFactory) Spec() *generate.Generator {
 	return s.infra.Spec()

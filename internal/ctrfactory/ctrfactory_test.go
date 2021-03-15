@@ -1,4 +1,4 @@
-package container_test
+package ctrfactory_test
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
-var _ = t.Describe("Container", func() {
+var _ = t.Describe("ContainerFactory", func() {
 	var config *types.ContainerConfig
 	var sboxConfig *types.PodSandboxConfig
 	const defaultMounts = 6

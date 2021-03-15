@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/cri-o/cri-o/pkg/container"
+	ctrfactory "github.com/cri-o/cri-o/internal/ctrfactory"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 )
@@ -15,7 +15,7 @@ type SandboxFactory struct {
 	config     *types.PodSandboxConfig
 	id         string
 	name       string
-	infra      container.Container
+	infra      ctrfactory.ContainerFactory
 	resolvPath string
 }
 

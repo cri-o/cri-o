@@ -11,11 +11,11 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/cri-o/cri-o/internal/ctrfactory"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -412,9 +412,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %s", sb.ID())
 	}
 
-	ctr, err := container.New()
+	ctr, err := ctrfactory.New()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create container")
+		return nil, errors.Wrap(err, "failed to create container factory")
 	}
 
 	if err := ctr.SetConfig(req.Config, req.SandboxConfig); err != nil {
