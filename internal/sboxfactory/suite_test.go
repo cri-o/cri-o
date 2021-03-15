@@ -17,7 +17,7 @@ func TestSandboxFactory(t *testing.T) {
 
 var (
 	t   *TestFramework
-	sut sboxfactory.SandboxFactory
+	sut *sboxfactory.SandboxFactory
 )
 
 var _ = BeforeSuite(func() {

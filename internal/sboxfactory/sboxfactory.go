@@ -5,47 +5,13 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/cri-o/cri-o/internal/storage"
-	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/server/cri/types"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 )
 
-// SandboxFactory is the interface for creating a new sandbox
-type SandboxFactory interface {
-	// SetConfig sets the sandbox configuration and validates it
-	SetConfig(*types.PodSandboxConfig) error
-
-	// SetNameAndID sets the sandbox name and ID
-	SetNameAndID() error
-
-	// Config returns the sandbox configuration
-	Config() *types.PodSandboxConfig
-
-	// ID returns the id of the pod sandbox
-	ID() string
-
-	// Name returns the id of the pod sandbox
-	Name() string
-
-	// InitInfraContainer initializes the sandbox's infra container
-	InitInfraContainer(*libconfig.Config, *storage.ContainerInfo) error
-
-	// Spec returns the infra container's generator
-	// Must be called after InitInfraContainer
-	Spec() *generate.Generator
-
-	// Infra returns the internal infra container
-	Infra() container.Container
-
-	// ResolvPath returns the sandbox's resolvPath
-	ResolvPath() string
-}
-
-// sandboxFactory is the hidden default type behind the Sandbox interface
-type sandboxFactory struct {
+// SandboxFactory is a structure for creating a new Sandbox
+type SandboxFactory struct {
 	config     *types.PodSandboxConfig
 	id         string
 	name       string
@@ -54,14 +20,14 @@ type sandboxFactory struct {
 }
 
 // New creates a new, empty Sandbox instance
-func New() SandboxFactory {
-	return &sandboxFactory{
+func New() *SandboxFactory {
+	return &SandboxFactory{
 		config: nil,
 	}
 }
 
 // SetConfig sets the sandbox configuration and validates it
-func (s *sandboxFactory) SetConfig(config *types.PodSandboxConfig) error {
+func (s *SandboxFactory) SetConfig(config *types.PodSandboxConfig) error {
 	if s.config != nil {
 		return errors.New("config already set")
 	}
@@ -82,7 +48,7 @@ func (s *sandboxFactory) SetConfig(config *types.PodSandboxConfig) error {
 }
 
 // SetNameAndID sets the sandbox name and ID
-func (s *sandboxFactory) SetNameAndID() error {
+func (s *SandboxFactory) SetNameAndID() error {
 	if s.config == nil {
 		return errors.New("config is nil")
 	}
@@ -108,20 +74,21 @@ func (s *sandboxFactory) SetNameAndID() error {
 }
 
 // Config returns the sandbox configuration
-func (s *sandboxFactory) Config() *types.PodSandboxConfig {
+func (s *SandboxFactory) Config() *types.PodSandboxConfig {
 	return s.config
 }
 
 // ID returns the id of the pod sandbox
-func (s *sandboxFactory) ID() string {
+func (s *SandboxFactory) ID() string {
 	return s.id
 }
 
 // Name returns the id of the pod sandbox
-func (s *sandboxFactory) Name() string {
+func (s *SandboxFactory) Name() string {
 	return s.name
 }
 
-func (s *sandboxFactory) ResolvPath() string {
+// ResolvPath returns the sandbox's resolvPath
+func (s *SandboxFactory) ResolvPath() string {
 	return s.resolvPath
 }

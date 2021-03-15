@@ -23,7 +23,8 @@ const (
 	maxDNSSearches = 6
 )
 
-func (s *sandboxFactory) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo) error {
+// InitInfraContainer initializes the sandbox's infra container
+func (s *SandboxFactory) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo) error {
 	var err error
 	s.infra, err = container.New()
 	if err != nil {
@@ -57,8 +58,9 @@ func (s *sandboxFactory) InitInfraContainer(serverConfig *libconfig.Config, podC
 	return nil
 }
 
-// Spec can only be called after a successful call to InitInfraContainer
-func (s *sandboxFactory) Spec() *generate.Generator {
+// Spec returns the infra container's generator
+// Must only be called after a successful call to InitInfraContainer
+func (s *SandboxFactory) Spec() *generate.Generator {
 	return s.infra.Spec()
 }
 
@@ -86,7 +88,7 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	return cmd, nil
 }
 
-func (s *sandboxFactory) createResolvConf(podContainer *storage.ContainerInfo) (retErr error) {
+func (s *SandboxFactory) createResolvConf(podContainer *storage.ContainerInfo) (retErr error) {
 	// set DNS options
 	if s.config.DNSConfig == nil {
 		return nil
