@@ -158,6 +158,10 @@ seccomp_use_default_when_empty = {{ .SeccompUseDefaultWhenEmpty }}
 # This option supports live configuration reload.
 apparmor_profile = "{{ .ApparmorProfile }}"
 
+# Used to change irqbalance service config file path which is used for configuring
+# irqbalance daemon.
+irqbalance_config_file = "{{ .IrqBalanceConfigFile }}"
+
 # Cgroup management implementation used for the runtime.
 cgroup_manager = "{{ .CgroupManagerName }}"
 

@@ -110,6 +110,11 @@ const (
 	DefaultLogToJournald = false
 )
 
+const (
+	// DefaultIrqBalanceConfigFile default irqbalance service configuration file path
+	DefaultIrqBalanceConfigFile = "/etc/sysconfig/irqbalance"
+)
+
 // This structure is necessary to fake the TOML tables when parsing,
 // while also not requiring a bunch of layered structs for no good
 // reason.
@@ -241,6 +246,10 @@ type RuntimeConfig struct {
 	// ApparmorProfile is the apparmor profile name which is used as the
 	// default for the runtime.
 	ApparmorProfile string `toml:"apparmor_profile"`
+
+	// IrqBalanceConfigFile is the irqbalance service config file which is used
+	// for configuring irqbalance daemon.
+	IrqBalanceConfigFile string `toml:"irqbalance_config_file"`
 
 	// CgroupManagerName is the manager implementation name which is used to
 	// handle cgroups for containers.
@@ -596,6 +605,7 @@ func DefaultConfig() (*Config, error) {
 			ConmonCgroup:             "system.slice",
 			SELinux:                  selinuxEnabled(),
 			ApparmorProfile:          apparmor.DefaultProfile,
+			IrqBalanceConfigFile:     DefaultIrqBalanceConfigFile,
 			CgroupManagerName:        cgroupManager.Name(),
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,

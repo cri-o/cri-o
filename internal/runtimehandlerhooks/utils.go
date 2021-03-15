@@ -3,9 +3,13 @@ package runtimehandlerhooks
 import (
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"strings"
 	"unicode"
 
+	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
@@ -75,6 +79,17 @@ func invertByteArray(in []byte) (out []byte) {
 	return
 }
 
+// take a byte array and returns true when bits of every byte element
+// set to 1, otherwise returns false.
+func isAllBitSet(in []byte) bool {
+	for _, b := range in {
+		if b&(b+1) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // UpdateIRQSmpAffinityMask take input cpus that need to change irq affinity mask and
 // the current mask string, return an update mask string and inverted mask, with those cpus
 // enabled or disable in the mask.
@@ -120,4 +135,66 @@ func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCP
 		invertedMaskStringWithComma = invertedMaskStringWithComma + "," + invertedMaskString[i:i+8]
 	}
 	return maskStringWithComma, invertedMaskStringWithComma, nil
+}
+
+func restartIrqBalanceService() error {
+	return exec.Command("systemctl", "restart", "irqbalance").Run()
+}
+
+func isServiceEnabled(serviceName string) bool {
+	cmd := exec.Command("systemctl", "is-enabled", serviceName)
+	status, err := cmd.CombinedOutput()
+	if err != nil {
+		logrus.Infof("service %s is-enabled check returned with: %v", serviceName, err)
+		return false
+	}
+	if strings.TrimSpace(string(status)) == "enabled" {
+		return true
+	}
+	return false
+}
+
+func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting string) error {
+	input, err := ioutil.ReadFile(irqBalanceConfigFile)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(input), "\n")
+	found := false
+	for i, line := range lines {
+		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
+			lines[i] = irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\"" + "\n"
+			found = true
+		}
+	}
+	output := strings.Join(lines, "\n")
+	if !found {
+		output = output + "\n" + irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\"" + "\n"
+	}
+	if err := ioutil.WriteFile(irqBalanceConfigFile, []byte(output), 0644); err != nil {
+		return err
+	}
+	return nil
+}
+
+func retrieveIrqBannedCPUMasks(irqBalanceConfigFile string) (string, error) {
+	input, err := ioutil.ReadFile(irqBalanceConfigFile)
+	if err != nil {
+		return "", err
+	}
+	lines := strings.Split(string(input), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
+			return strings.Trim(strings.Split(line, "=")[1], "\""), nil
+		}
+	}
+	return "", nil
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

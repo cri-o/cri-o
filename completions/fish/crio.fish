@@ -85,6 +85,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l insecure-registry -r -d 'E
        be enabled for testing purposes**. For increased security, users should add
        their CA to their system\'s list of trusted CAs instead of using
        \'--insecure-registry\'.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l irqbalance-config-file -r -d 'The irqbalance service config file which is used by CRI-O.'
 complete -c crio -n '__fish_crio_no_subcommand' -l listen -r -d 'Path to the CRI-O socket'
 complete -c crio -n '__fish_crio_no_subcommand' -l log -r -d 'Set the log file path where internal debug information is written'
 complete -c crio -n '__fish_crio_no_subcommand' -l log-dir -r -d 'Default log directory where all logs will go unless directly specified by the kubelet'
