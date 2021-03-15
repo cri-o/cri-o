@@ -24,9 +24,9 @@ import (
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/sboxfactory"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/pkg/sandbox"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	json "github.com/json-iterator/go"
@@ -289,7 +289,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
 
-	sbox := sandbox.New()
+	sbox := sboxfactory.New()
 	if err := sbox.SetConfig(req.Config); err != nil {
 		return nil, errors.Wrap(err, "setting sandbox config")
 	}

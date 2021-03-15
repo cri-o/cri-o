@@ -1,4 +1,4 @@
-package sandbox
+package sboxfactory
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ const (
 	maxDNSSearches = 6
 )
 
-func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo) error {
+func (s *sandboxFactory) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo) error {
 	var err error
 	s.infra, err = container.New()
 	if err != nil {
@@ -58,7 +58,7 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 }
 
 // Spec can only be called after a successful call to InitInfraContainer
-func (s *sandbox) Spec() *generate.Generator {
+func (s *sandboxFactory) Spec() *generate.Generator {
 	return s.infra.Spec()
 }
 
@@ -86,7 +86,7 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	return cmd, nil
 }
 
-func (s *sandbox) createResolvConf(podContainer *storage.ContainerInfo) (retErr error) {
+func (s *sandboxFactory) createResolvConf(podContainer *storage.ContainerInfo) (retErr error) {
 	// set DNS options
 	if s.config.DNSConfig == nil {
 		return nil

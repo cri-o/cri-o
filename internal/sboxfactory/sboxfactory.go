@@ -1,4 +1,4 @@
-package sandbox
+package sboxfactory
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Sandbox is the interface for managing pod sandboxes
-type Sandbox interface {
+// SandboxFactory is the interface for creating a new sandbox
+type SandboxFactory interface {
 	// SetConfig sets the sandbox configuration and validates it
 	SetConfig(*types.PodSandboxConfig) error
 
@@ -37,12 +37,15 @@ type Sandbox interface {
 	// Must be called after InitInfraContainer
 	Spec() *generate.Generator
 
+	// Infra returns the internal infra container
+	Infra() container.Container
+
 	// ResolvPath returns the sandbox's resolvPath
 	ResolvPath() string
 }
 
-// sandbox is the hidden default type behind the Sandbox interface
-type sandbox struct {
+// sandboxFactory is the hidden default type behind the Sandbox interface
+type sandboxFactory struct {
 	config     *types.PodSandboxConfig
 	id         string
 	name       string
@@ -51,14 +54,14 @@ type sandbox struct {
 }
 
 // New creates a new, empty Sandbox instance
-func New() Sandbox {
-	return &sandbox{
+func New() SandboxFactory {
+	return &sandboxFactory{
 		config: nil,
 	}
 }
 
 // SetConfig sets the sandbox configuration and validates it
-func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
+func (s *sandboxFactory) SetConfig(config *types.PodSandboxConfig) error {
 	if s.config != nil {
 		return errors.New("config already set")
 	}
@@ -79,7 +82,7 @@ func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
 }
 
 // SetNameAndID sets the sandbox name and ID
-func (s *sandbox) SetNameAndID() error {
+func (s *sandboxFactory) SetNameAndID() error {
 	if s.config == nil {
 		return errors.New("config is nil")
 	}
@@ -105,20 +108,20 @@ func (s *sandbox) SetNameAndID() error {
 }
 
 // Config returns the sandbox configuration
-func (s *sandbox) Config() *types.PodSandboxConfig {
+func (s *sandboxFactory) Config() *types.PodSandboxConfig {
 	return s.config
 }
 
 // ID returns the id of the pod sandbox
-func (s *sandbox) ID() string {
+func (s *sandboxFactory) ID() string {
 	return s.id
 }
 
 // Name returns the id of the pod sandbox
-func (s *sandbox) Name() string {
+func (s *sandboxFactory) Name() string {
 	return s.name
 }
 
-func (s *sandbox) ResolvPath() string {
+func (s *sandboxFactory) ResolvPath() string {
 	return s.resolvPath
 }
