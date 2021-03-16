@@ -1,6 +1,8 @@
 package lib_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -14,7 +16,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail on invalid container ID", func() {
 			// Given
 			// When
-			res, err := sut.ContainerWait("")
+			res, err := sut.ContainerWait(context.Background(), "")
 
 			// Then
 			Expect(err).NotTo(BeNil())

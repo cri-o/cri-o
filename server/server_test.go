@@ -248,7 +248,7 @@ var _ = t.Describe("Server", func() {
 
 		It("should succeed", func() {
 			// Given
-			go sut.StartExitMonitor()
+			go sut.StartExitMonitor(context.Background())
 			closeChan := sut.MonitorsCloseChan()
 			Expect(closeChan).NotTo(BeNil())
 

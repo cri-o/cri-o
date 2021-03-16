@@ -32,7 +32,7 @@ func (c *ContainerServer) Remove(ctx context.Context, container string, force bo
 		}
 	}
 
-	if err := c.runtime.DeleteContainer(ctr); err != nil {
+	if err := c.runtime.DeleteContainer(ctx, ctr); err != nil {
 		return "", errors.Wrapf(err, "failed to delete container %s", ctrID)
 	}
 	if err := os.Remove(filepath.Join(c.Config().RuntimeConfig.ContainerExitsDir, ctrID)); err != nil && !os.IsNotExist(err) {

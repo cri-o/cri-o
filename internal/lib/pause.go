@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/oci"
@@ -9,7 +10,7 @@ import (
 )
 
 // ContainerPause pauses a running container.
-func (c *ContainerServer) ContainerPause(container string) (string, error) {
+func (c *ContainerServer) ContainerPause(ctx context.Context, container string) (string, error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to find container %s", container)
@@ -17,10 +18,10 @@ func (c *ContainerServer) ContainerPause(container string) (string, error) {
 
 	cStatus := ctr.State()
 	if cStatus.Status != oci.ContainerStatePaused {
-		if err := c.runtime.PauseContainer(ctr); err != nil {
+		if err := c.runtime.PauseContainer(ctx, ctr); err != nil {
 			return "", errors.Wrapf(err, "failed to pause container %s", ctr.ID())
 		}
-		if err := c.ContainerStateToDisk(ctr); err != nil {
+		if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
 			logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
 		}
 	} else {
@@ -31,7 +32,7 @@ func (c *ContainerServer) ContainerPause(container string) (string, error) {
 }
 
 // ContainerUnpause unpauses a running container with a grace period (i.e., timeout).
-func (c *ContainerServer) ContainerUnpause(container string) (string, error) {
+func (c *ContainerServer) ContainerUnpause(ctx context.Context, container string) (string, error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to find container %s", container)
@@ -39,10 +40,10 @@ func (c *ContainerServer) ContainerUnpause(container string) (string, error) {
 
 	cStatus := ctr.State()
 	if cStatus.Status == oci.ContainerStatePaused {
-		if err := c.runtime.UnpauseContainer(ctr); err != nil {
+		if err := c.runtime.UnpauseContainer(ctx, ctr); err != nil {
 			return "", errors.Wrapf(err, "failed to unpause container %s", ctr.ID())
 		}
-		if err := c.ContainerStateToDisk(ctr); err != nil {
+		if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
 			logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
 		}
 	} else {

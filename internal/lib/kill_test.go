@@ -1,6 +1,7 @@
 package lib_test
 
 import (
+	"context"
 	"syscall"
 
 	. "github.com/onsi/ginkgo"
@@ -16,7 +17,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail when not found", func() {
 			// Given
 			// When
-			res, err := sut.ContainerKill("", syscall.SIGINT)
+			res, err := sut.ContainerKill(context.Background(), "", syscall.SIGINT)
 
 			// Then
 			Expect(err).NotTo(BeNil())

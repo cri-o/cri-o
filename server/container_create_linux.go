@@ -36,7 +36,7 @@ import (
 )
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
-func (s *Server) createContainerPlatform(container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
+func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
 	if idMappings != nil && !container.Spoofed() {
 		rootPair := idMappings.RootPair()
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
@@ -48,7 +48,7 @@ func (s *Server) createContainerPlatform(container *oci.Container, cgroupParent 
 			return err
 		}
 	}
-	return s.Runtime().CreateContainer(container, cgroupParent)
+	return s.Runtime().CreateContainer(ctx, container, cgroupParent)
 }
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x

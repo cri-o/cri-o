@@ -16,7 +16,7 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContai
 		return errors.Wrapf(err, "could not find container %s", req.ContainerID)
 	}
 
-	if err := s.ContainerServer.Runtime().UpdateContainerStatus(c); err != nil {
+	if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, c); err != nil {
 		return err
 	}
 
@@ -25,7 +25,7 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContai
 		return fmt.Errorf("container is not created or running")
 	}
 
-	if err := s.ContainerServer.Runtime().ReopenContainerLog(c); err != nil {
+	if err := s.ContainerServer.Runtime().ReopenContainerLog(ctx, c); err != nil {
 		return err
 	}
 	return nil

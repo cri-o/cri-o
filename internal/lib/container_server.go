@@ -144,7 +144,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 }
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store
-func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
+func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr error) {
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
@@ -298,13 +298,13 @@ func (c *ContainerServer) LoadSandbox(id string) (retErr error) {
 		scontainer = oci.NewSpoofedContainer(cID, cname, labels, created, sandboxPath)
 	}
 
-	if err := c.ContainerStateFromDisk(scontainer); err != nil {
+	if err := c.ContainerStateFromDisk(ctx, scontainer); err != nil {
 		return fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
 	}
 
 	// We write back the state because it is possible that crio did not have a chance to
 	// read the exit file and persist exit code into the state on reboot.
-	if err := c.ContainerStateToDisk(scontainer); err != nil {
+	if err := c.ContainerStateToDisk(ctx, scontainer); err != nil {
 		return fmt.Errorf("failed to write container %q state to disk: %v", scontainer.ID(), err)
 	}
 
@@ -376,7 +376,7 @@ func configNsPath(spec *rspec.Spec, nsType rspec.LinuxNamespaceType) (string, er
 var ErrIsNonCrioContainer = errors.New("non CRI-O container")
 
 // LoadContainer loads a container from the disk into the container store
-func (c *ContainerServer) LoadContainer(id string) (retErr error) {
+func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr error) {
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
@@ -464,13 +464,13 @@ func (c *ContainerServer) LoadContainer(id string) (retErr error) {
 	spp := m.Annotations[annotations.SeccompProfilePath]
 	ctr.SetSeccompProfilePath(spp)
 
-	if err := c.ContainerStateFromDisk(ctr); err != nil {
+	if err := c.ContainerStateFromDisk(ctx, ctr); err != nil {
 		return fmt.Errorf("error reading container state from disk %q: %v", ctr.ID(), err)
 	}
 
 	// We write back the state because it is possible that crio did not have a chance to
 	// read the exit file and persist exit code into the state on reboot.
-	if err := c.ContainerStateToDisk(ctr); err != nil {
+	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
 		return fmt.Errorf("failed to write container state to disk %q: %v", ctr.ID(), err)
 	}
 	ctr.SetCreated()
@@ -486,11 +486,11 @@ func isTrue(annotaton string) bool {
 
 // ContainerStateFromDisk retrieves information on the state of a running container
 // from the disk
-func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
+func (c *ContainerServer) ContainerStateFromDisk(ctx context.Context, ctr *oci.Container) error {
 	if err := ctr.FromDisk(); err != nil {
 		return err
 	}
-	if err := c.runtime.UpdateContainerStatus(ctr); err != nil {
+	if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
 		return err
 	}
 
@@ -499,8 +499,8 @@ func (c *ContainerServer) ContainerStateFromDisk(ctr *oci.Container) error {
 
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
-func (c *ContainerServer) ContainerStateToDisk(ctr *oci.Container) error {
-	if err := c.Runtime().UpdateContainerStatus(ctr); err != nil {
+func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Container) error {
+	if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
 		logrus.Warnf("error updating the container status %q: %v", ctr.ID(), err)
 	}
 

@@ -909,11 +909,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 	}
 
-	if err := s.createContainerPlatform(container, sb.CgroupParent(), sandboxIDMappings); err != nil {
+	if err := s.createContainerPlatform(ctx, container, sb.CgroupParent(), sandboxIDMappings); err != nil {
 		return nil, err
 	}
 
-	if err := s.Runtime().StartContainer(container); err != nil {
+	if err := s.Runtime().StartContainer(ctx, container); err != nil {
 		return nil, err
 	}
 
@@ -927,16 +927,16 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			log.Warnf(ctx, "failed to get container 'stopped' status %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 		}
 		log.Infof(ctx, "runSandbox: deleting container %s", container.ID())
-		if err2 := s.Runtime().DeleteContainer(container); err2 != nil {
+		if err2 := s.Runtime().DeleteContainer(ctx, container); err2 != nil {
 			log.Warnf(ctx, "failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 		}
 		log.Infof(ctx, "runSandbox: writing container %s state to disk", container.ID())
-		if err2 := s.ContainerStateToDisk(container); err2 != nil {
+		if err2 := s.ContainerStateToDisk(ctx, container); err2 != nil {
 			log.Warnf(ctx, "failed to write container state %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
 		}
 	})
 
-	if err := s.ContainerStateToDisk(container); err != nil {
+	if err := s.ContainerStateToDisk(ctx, container); err != nil {
 		log.Warnf(ctx, "unable to write containers %s state to disk: %v", container.ID(), err)
 	}
 

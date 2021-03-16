@@ -29,7 +29,7 @@ func (s StreamService) Attach(containerID string, inputStream io.Reader, outputS
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
+	if err := s.runtimeServer.Runtime().UpdateContainerStatus(s.ctx, c); err != nil {
 		return err
 	}
 
@@ -38,5 +38,5 @@ func (s StreamService) Attach(containerID string, inputStream io.Reader, outputS
 		return fmt.Errorf("container is not created or running")
 	}
 
-	return s.runtimeServer.Runtime().AttachContainer(c, inputStream, outputStream, errorStream, tty, resize)
+	return s.runtimeServer.Runtime().AttachContainer(s.ctx, c, inputStream, outputStream, errorStream, tty, resize)
 }

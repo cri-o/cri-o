@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"syscall"
 
 	"github.com/cri-o/cri-o/internal/oci"
@@ -9,12 +10,12 @@ import (
 )
 
 // ContainerKill sends the user provided signal to the containers primary process.
-func (c *ContainerServer) ContainerKill(container string, killSignal syscall.Signal) (string, error) {
+func (c *ContainerServer) ContainerKill(ctx context.Context, container string, killSignal syscall.Signal) (string, error) {
 	ctr, err := c.LookupContainer(container)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to find container %s", container)
 	}
-	if err := c.runtime.UpdateContainerStatus(ctr); err != nil {
+	if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
 		logrus.Warnf("unable to update containers %s status: %v", ctr.ID(), err)
 	}
 	cStatus := ctr.State()
@@ -24,11 +25,11 @@ func (c *ContainerServer) ContainerKill(container string, killSignal syscall.Sig
 		return "", errors.Errorf("cannot kill container %s: it is not running", container)
 	}
 
-	if err := c.runtime.SignalContainer(ctr, killSignal); err != nil {
+	if err := c.runtime.SignalContainer(ctx, ctr, killSignal); err != nil {
 		return "", err
 	}
 
-	if err := c.ContainerStateToDisk(ctr); err != nil {
+	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
 		logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 	return ctr.ID(), nil

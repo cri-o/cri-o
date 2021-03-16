@@ -47,6 +47,7 @@ var errSandboxNotCreated = errors.New("sandbox not created")
 
 // StreamService implements streaming.Runtime.
 type StreamService struct {
+	ctx                 context.Context
 	runtimeServer       *Server // needed by Exec() endpoint
 	streamServer        streaming.Server
 	streamServerCloseCh chan struct{}
@@ -187,7 +188,7 @@ func (s *Server) restore(ctx context.Context) {
 	// Go through all the pods and check if it can be restored. If an error occurs, delete the pod and any containers
 	// associated with it. Release the pod and container names as well.
 	for sbID, metadata := range pods {
-		if err = s.LoadSandbox(sbID); err == nil {
+		if err = s.LoadSandbox(ctx, sbID); err == nil {
 			continue
 		}
 		logrus.Warnf("could not restore sandbox %s container %s: %v", metadata.PodID, sbID, err)
@@ -222,7 +223,7 @@ func (s *Server) restore(ctx context.Context) {
 	// Go through all the containers and check if it can be restored. If an error occurs, delete the conainer and
 	// release the name associated with you.
 	for containerID := range podContainers {
-		if err := s.LoadContainer(containerID); err != nil {
+		if err := s.LoadContainer(ctx, containerID); err != nil {
 			// containers of other runtimes should not be deleted
 			if err == lib.ErrIsNonCrioContainer {
 				logrus.Infof("ignoring non CRI-O container %s", containerID)
@@ -459,8 +460,9 @@ func New(
 			Certificates:       []tls.Certificate{cert},
 		}
 	}
+	s.stream.ctx = ctx
 	s.stream.runtimeServer = s
-	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
+	s.stream.streamServer, err = streaming.NewServer(ctx, streamServerConfig, s.stream)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create streaming server")
 	}
@@ -606,7 +608,7 @@ func (s *Server) MonitorsCloseChan() chan struct{} {
 
 // StartExitMonitor start a routine that monitors container exits
 // and updates the container status
-func (s *Server) StartExitMonitor() {
+func (s *Server) StartExitMonitor(ctx context.Context) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		logrus.Fatalf("Failed to create new watch: %v", err)
@@ -625,10 +627,10 @@ func (s *Server) StartExitMonitor() {
 					c := s.GetContainer(containerID)
 					if c != nil {
 						logrus.Debugf("container exited and found: %v", containerID)
-						err := s.Runtime().UpdateContainerStatus(c)
+						err := s.Runtime().UpdateContainerStatus(ctx, c)
 						if err != nil {
 							logrus.Warnf("Failed to update container status %s: %v", containerID, err)
-						} else if err := s.ContainerStateToDisk(c); err != nil {
+						} else if err := s.ContainerStateToDisk(ctx, c); err != nil {
 							logrus.Warnf("unable to write containers %s state to disk: %v", c.ID(), err)
 						}
 					} else {
@@ -640,10 +642,10 @@ func (s *Server) StartExitMonitor() {
 								continue
 							}
 							logrus.Debugf("sandbox exited and found: %v", containerID)
-							err := s.Runtime().UpdateContainerStatus(c)
+							err := s.Runtime().UpdateContainerStatus(ctx, c)
 							if err != nil {
 								logrus.Warnf("Failed to update sandbox infra container status %s: %v", c.ID(), err)
-							} else if err := s.ContainerStateToDisk(c); err != nil {
+							} else if err := s.ContainerStateToDisk(ctx, c); err != nil {
 								logrus.Warnf("unable to write containers %s state to disk: %v", c.ID(), err)
 							}
 						}

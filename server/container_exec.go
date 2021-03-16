@@ -29,7 +29,7 @@ func (s StreamService) Exec(containerID string, cmd []string, stdin io.Reader, s
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(c); err != nil {
+	if err := s.runtimeServer.Runtime().UpdateContainerStatus(s.ctx, c); err != nil {
 		return err
 	}
 
@@ -38,5 +38,5 @@ func (s StreamService) Exec(containerID string, cmd []string, stdin io.Reader, s
 		return fmt.Errorf("container is not created or running")
 	}
 
-	return s.runtimeServer.Runtime().ExecContainer(c, cmd, stdin, stdout, stderr, tty, resize)
+	return s.runtimeServer.Runtime().ExecContainer(s.ctx, c, cmd, stdin, stdout, stderr, tty, resize)
 }
