@@ -126,7 +126,7 @@ func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idto
 	}
 }
 
-func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.ContainerFactory, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
+func (s *Server) createSandboxContainer(ctx context.Context, ctr *ctrfactory.ContainerFactory, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
 	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
 

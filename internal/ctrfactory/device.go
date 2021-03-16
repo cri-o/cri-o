@@ -13,7 +13,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *containerFactory) SpecAddDevices(configuredDevices, annotationDevices []devicecfg.Device, privilegedWithoutHostDevices bool) error {
+// SpecAddDevices adds devices from the server config, and container CRI config
+func (c *ContainerFactory) SpecAddDevices(configuredDevices, annotationDevices []devicecfg.Device, privilegedWithoutHostDevices bool) error {
 	// First, clear the existing devices from the spec
 	c.Spec().Config.Linux.Devices = []rspec.LinuxDevice{}
 
@@ -42,7 +43,7 @@ func (c *containerFactory) SpecAddDevices(configuredDevices, annotationDevices [
 	return c.specAddContainerConfigDevices()
 }
 
-func (c *containerFactory) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices bool) error {
+func (c *ContainerFactory) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices bool) error {
 	if !c.Privileged() || privilegedWithoutHostDevices {
 		return nil
 	}
@@ -74,7 +75,7 @@ func (c *containerFactory) specAddHostDevicesIfPrivileged(privilegedWithoutHostD
 	return nil
 }
 
-func (c *containerFactory) specAddContainerConfigDevices() error {
+func (c *ContainerFactory) specAddContainerConfigDevices() error {
 	sp := c.Spec().Config
 
 	for _, device := range c.Config().Devices {

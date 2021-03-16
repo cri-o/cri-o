@@ -17,7 +17,7 @@ func TestContainerFactory(t *testing.T) {
 
 var (
 	t   *TestFramework
-	sut ctrfactory.ContainerFactory
+	sut *ctrfactory.ContainerFactory
 )
 
 var _ = BeforeSuite(func() {

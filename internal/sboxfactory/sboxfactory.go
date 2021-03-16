@@ -15,7 +15,7 @@ type SandboxFactory struct {
 	config     *types.PodSandboxConfig
 	id         string
 	name       string
-	infra      ctrfactory.ContainerFactory
+	infra      *ctrfactory.ContainerFactory
 	resolvPath string
 }
 
