@@ -39,6 +39,7 @@ h
 --default-sysctls
 --default-transport
 --default-ulimits
+--device-ownership-from-security-context
 --drop-infra-ctr
 --enable-metrics
 --enable-profile-unix-socket

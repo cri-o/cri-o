@@ -37,6 +37,7 @@ crio
 [--default-sysctls]=[value]
 [--default-transport]=[value]
 [--default-ulimits]=[value]
+[--device-ownership-from-security-context]
 [--drop-infra-ctr]
 [--enable-metrics]
 [--enable-profile-unix-socket]
@@ -182,6 +183,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is (default: docker://)
 
 **--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: []) (default: [])
+
+**--device-ownership-from-security-context**: Set devices' uid/gid ownership from runAsUser/runAsGroup
 
 **--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace (default: true)
 

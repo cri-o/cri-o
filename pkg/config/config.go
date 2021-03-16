@@ -238,6 +238,10 @@ type RuntimeConfig struct {
 	// Devices to add to containers
 	AdditionalDevices []string `toml:"additional_devices"`
 
+	// DeviceOwnershipFromSecurityContext changes the default behavior of setting container devices uid/gid
+	// from CRI's SecurityContext (RunAsUser/RunAsGroup) instead of taking host's uid/gid. Defaults to false.
+	DeviceOwnershipFromSecurityContext bool `toml:"device_ownership_from_security_context"`
+
 	// DefaultRuntime is the _name_ of the OCI runtime to be used as the default.
 	// The name is matched against the Runtimes map below.
 	DefaultRuntime string `toml:"default_runtime"`

@@ -271,6 +271,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: stringSliceEqual(dc.AdditionalDevices, c.AdditionalDevices),
 		},
 		{
+			templateString: templateStringCrioRuntimeDeviceOwnershipFromSecurityContext,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.DeviceOwnershipFromSecurityContext, c.DeviceOwnershipFromSecurityContext),
+		},
+		{
 			templateString: templateStringCrioRuntimeHooksDir,
 			group:          crioRuntimeConfig,
 			isDefaultValue: stringSliceEqual(dc.HooksDir, c.HooksDir),
@@ -792,6 +797,13 @@ const templateStringCrioRuntimeAdditionalDevices = `# List of additional devices
 # defined in the container json file by the user/kube will be added.
 additional_devices = [
 {{ range $device := .AdditionalDevices}}{{ printf "\t%q,\n" $device}}{{ end }}]
+
+`
+
+const templateStringCrioRuntimeDeviceOwnershipFromSecurityContext = `# Change the default behavior of setting container devices uid/gid from CRI's
+# SecurityContext (RunAsUser/RunAsGroup) instead of taking host's uid/gid.
+# Defaults to false.
+device_ownership_from_security_context = {{ .DeviceOwnershipFromSecurityContext }}
 
 `
 
