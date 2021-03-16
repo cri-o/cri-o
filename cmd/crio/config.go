@@ -32,14 +32,14 @@ it later with **--config**. Global options will modify the output.`,
     To run a config migration, just select the input config via the global
     '--config,-c' command line argument, for example:
     `+"```"+`
-    crio -c /etc/crio/crio.conf.d/00-default.conf config -m 1.17
+    crio -c /etc/crio/crio.conf.d/00-default.conf config -m 1.20
     `+"```"+`
     The migration will print converted configuration options to stderr and will
     output the resulting configuration to stdout.
     Please note that the migration will overwrite any fields that have changed
     defaults between versions. To save a custom configuration change, it should
     be in a drop-in configuration file instead.
-    Possible values: %q`, migrate.From1_17),
+    Possible values: %q`, migrate.From1_20),
 			Value: migrate.FromPrevious,
 		},
 	},

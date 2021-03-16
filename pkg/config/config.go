@@ -47,6 +47,7 @@ const (
 	RuntimeTypeVM         = "vm"
 	defaultCtrStopTimeout = 30 // seconds
 	defaultNamespacesDir  = "/var/run"
+	DefaultPauseImage     = "k8s.gcr.io/pause:3.5"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -635,7 +636,7 @@ func DefaultConfig() (*Config, error) {
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
-			PauseImage:       "k8s.gcr.io/pause:3.2",
+			PauseImage:       DefaultPauseImage,
 			PauseCommand:     "/pause",
 			ImageVolumes:     ImageVolumesMkdir,
 		},

@@ -148,14 +148,14 @@ complete -c crio -n '__fish_seen_subcommand_from config' -f -l migrate-defaults 
     To run a config migration, just select the input config via the global
     \'--config,-c\' command line argument, for example:
     ```
-    crio -c /etc/crio/crio.conf.d/00-default.conf config -m 1.17
+    crio -c /etc/crio/crio.conf.d/00-default.conf config -m 1.20
     ```
     The migration will print converted configuration options to stderr and will
     output the resulting configuration to stdout.
     Please note that the migration will overwrite any fields that have changed
     defaults between versions. To save a custom configuration change, it should
     be in a drop-in configuration file instead.
-    Possible values: "1.17"'
+    Possible values: "1.20"'
 complete -c crio -n '__fish_seen_subcommand_from version' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'version' -d 'display detailed version information'
 complete -c crio -n '__fish_seen_subcommand_from version' -f -l json -s j -d 'print JSON instead of text'
