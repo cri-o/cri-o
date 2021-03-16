@@ -33,16 +33,20 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 		return nil
 	}
 
-	repoTags := []string{"<none>:<none>"}
+	repoTags := []string{}
 	if len(from.RepoTags) > 0 {
 		repoTags = from.RepoTags
 	} else if from.PreviousName != "" {
 		repoTags = []string{from.PreviousName + ":<none>"}
 	}
 
-	repoDigests := []string{"<none>@<none>"}
-	if len(from.RepoDigests) > 0 {
+	repoDigests := []string{}
+	if len(from.RepoDigests) > 0 { // nolint: gocritic
 		repoDigests = from.RepoDigests
+	} else if from.Name != "" {
+		repoDigests = []string{from.Name + "@" + from.Digest.String()}
+	} else if from.PreviousName != "" {
+		repoDigests = []string{from.PreviousName + "@" + from.Digest.String()}
 	}
 
 	to := &types.Image{
