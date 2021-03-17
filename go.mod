@@ -17,7 +17,7 @@ require (
 	github.com/containers/image/v5 v5.10.1
 	github.com/containers/libpod/v2 v2.0.6
 	github.com/containers/ocicrypt v1.1.0
-	github.com/containers/storage v1.24.5
+	github.com/containers/storage v1.27.0
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
@@ -41,7 +41,7 @@ require (
 	github.com/onsi/gomega v1.10.3
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
-	github.com/opencontainers/runc v1.0.0-rc92
+	github.com/opencontainers/runc v1.0.0-rc93
 	github.com/opencontainers/runtime-spec v1.0.3-0.20201121164853-7413a7f753e1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
 	github.com/opencontainers/selinux v1.8.0
@@ -49,15 +49,15 @@ require (
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7 // indirect
 	github.com/prometheus/client_golang v1.7.1
 	github.com/psampaz/go-mod-outdated v0.7.0
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.8.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/stretchr/testify v1.7.0
-	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
+	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20210105210732-16f7687f5001
+	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78
 	google.golang.org/grpc v1.34.0
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
@@ -105,3 +105,5 @@ replace (
 	k8s.io/mount-utils => k8s.io/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20201201102839-3321f00ed14e
 	k8s.io/sample-apiserver => k8s.io/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20201201102839-3321f00ed14e
 )
+
+replace github.com/containers/image/v5 => github.com/vrothberg/image/v5 v5.0.0-20210318141451-5e5c57afe84b
