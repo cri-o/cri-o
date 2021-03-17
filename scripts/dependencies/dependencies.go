@@ -12,7 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/release/pkg/command"
 	"k8s.io/release/pkg/git"
-	"k8s.io/release/pkg/util"
 )
 
 const (
@@ -116,42 +115,39 @@ _Generated on %s for commit [%s][0]._
 		return errors.Wrap(err, "writing report")
 	}
 
-	// Update gh-pages branch if not a pull request and running in CI
 	token, tokenSet := os.LookupEnv(tokenKey)
 	if !tokenSet || token == "" {
 		logrus.Infof("%s environment variable is not set", tokenKey)
 		os.Exit(0)
 	}
 
-	if util.IsEnvSet("CI") {
-		currentBranch, err := repo.CurrentBranch()
-		if err != nil {
-			return errors.Wrap(err, "get current branch")
-		}
+	currentBranch, err := repo.CurrentBranch()
+	if err != nil {
+		return errors.Wrap(err, "get current branch")
+	}
 
-		logrus.Infof("Checking out branch %s", branch)
-		if err := repo.Checkout(branch); err != nil {
-			return errors.Wrapf(err, "checkout %s branch", branch)
-		}
-		defer func() { err = repo.Checkout(currentBranch) }()
+	logrus.Infof("Checking out branch %s", branch)
+	if err := repo.Checkout(branch); err != nil {
+		return errors.Wrapf(err, "checkout %s branch", branch)
+	}
+	defer func() { err = repo.Checkout(currentBranch) }()
 
-		// Write the target file
-		if err := ioutil.WriteFile(file, []byte(content), 0o644); err != nil {
-			return errors.Wrap(err, "write content to file")
-		}
+	// Write the target file
+	if err := ioutil.WriteFile(file, []byte(content), 0o644); err != nil {
+		return errors.Wrap(err, "write content to file")
+	}
 
-		if err := repo.Add(file); err != nil {
-			return errors.Wrap(err, "add file to repo")
-		}
+	if err := repo.Add(file); err != nil {
+		return errors.Wrap(err, "add file to repo")
+	}
 
-		// Publish the changes
-		if err := repo.Commit("Update dependency report"); err != nil {
-			return errors.Wrap(err, "commit")
-		}
+	// Publish the changes
+	if err := repo.Commit("Update dependency report"); err != nil {
+		return errors.Wrap(err, "commit")
+	}
 
-		if err := repo.Push(branch); err != nil {
-			return errors.Wrap(err, "push changes")
-		}
+	if err := repo.Push(branch); err != nil {
+		return errors.Wrap(err, "push changes")
 	}
 
 	return nil
