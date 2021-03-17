@@ -15,7 +15,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/libpod/v2/pkg/lookup"
+	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/cri-o/cri-o/server/cri/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/containers/libpod/v2/pkg/cgroups"
+	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/server/cri/types"

@@ -1230,14 +1230,20 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 		pos := s.Pos()
 		var midComs, endComs []Comment
 		for _, c := range s.Comments {
-			if c.End().After(s.End()) {
+			// Comments after the end of this command. Note that
+			// this includes "<<EOF # comment".
+			if s.Cmd != nil && c.End().After(s.Cmd.End()) {
 				endComs = append(endComs, c)
 				break
 			}
+			// Comments between the beginning of the statement and
+			// the end of the command.
 			if c.Pos().After(pos) {
 				midComs = append(midComs, c)
 				continue
 			}
+			// The rest of the comments are before the entire
+			// statement.
 			p.comments(c)
 		}
 		if !p.minify || p.wantSpace {
@@ -1359,6 +1365,10 @@ func (p *Printer) assigns(assigns []*Assign) {
 			}
 		}
 		if a.Value != nil {
+			// Ensure we don't use an escaped newline after '=',
+			// because that can result in indentation, thus
+			// splitting "foo=bar" into "foo= bar".
+			p.line = a.Value.Pos().Line()
 			p.word(a.Value)
 		} else if a.Array != nil {
 			p.wantSpace = false
