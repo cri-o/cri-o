@@ -128,7 +128,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.Spec().Config.Annotations[annotations.ResolvPath]).To(Equal(sb.ResolvPath()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerManager]).To(Equal(lib.ContainerManagerCRIO))
 			Expect(sut.Spec().Config.Annotations[annotations.MountPoint]).To(Equal(mountPoint))
-			Expect(sut.Spec().Config.Annotations[annotations.SeccompProfilePath]).To(Equal(sut.Config().GetLinux().GetSecurityContext().GetSeccompProfilePath()))
+			Expect(sut.Spec().Config.Annotations[annotations.SeccompProfilePath]).To(Equal(sut.Config().GetLinux().GetSecurityContext().SeccompProfilePath))
 			Expect(sut.Spec().Config.Annotations[annotations.Created]).ToNot(BeNil())
 			Expect(sut.Spec().Config.Annotations[annotations.Metadata]).To(Equal(string(metadataJSON)))
 			Expect(sut.Spec().Config.Annotations[annotations.Labels]).To(Equal(string(labelsJSON)))

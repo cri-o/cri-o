@@ -159,7 +159,7 @@ func (c *container) SpecAddAnnotations(sb *sandbox.Sandbox, containerVolumes []o
 	c.spec.AddAnnotation(annotations.ResolvPath, sb.ResolvPath())
 	c.spec.AddAnnotation(annotations.ContainerManager, lib.ContainerManagerCRIO)
 	c.spec.AddAnnotation(annotations.MountPoint, mountPoint)
-	c.spec.AddAnnotation(annotations.SeccompProfilePath, c.Config().GetLinux().GetSecurityContext().GetSeccompProfilePath())
+	c.spec.AddAnnotation(annotations.SeccompProfilePath, c.Config().GetLinux().GetSecurityContext().GetSeccompProfilePath()) // nolint:staticcheck
 	c.spec.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
 	metadataJSON, err := json.Marshal(c.Config().GetMetadata())
