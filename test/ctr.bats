@@ -98,32 +98,13 @@ function wait_until_exit() {
 	[ -n "$output" ]
 	echo "$output" | jq -e ".info.privileged == false"
 
-	YEAR=$(date +"%Y")
-	CREATED=$(echo "$output" | jq -re '.status.createdAt')
-	echo "$output" | jq -e '.status.createdAt | startswith("'"$YEAR"'")'
-
-	echo "$output" | jq -e '.status.startedAt | startswith("'"$YEAR"'") | not'
-	echo "$output" | jq -e '.status.finishedAt | startswith("'"$YEAR"'") | not'
-
 	crictl start "$ctr_id"
-	output=$(crictl inspect "$ctr_id")
-	[[ "$CREATED" == $(echo "$output" | jq -re '.status.createdAt') ]]
-
-	STARTED=$(echo "$output" | jq -re '.status.startedAt')
-	echo "$output" | jq -e '.status.startedAt | startswith("'"$YEAR"'")'
-
-	echo "$output" | jq -e '.status.finishedAt | startswith("'"$YEAR"'") | not'
-
+	crictl inspect "$ctr_id"
 	output=$(crictl ps --quiet --state running)
 	[[ "$output" == "$ctr_id" ]]
 
 	crictl stop "$ctr_id"
-	output=$(crictl inspect "$ctr_id")
-
-	[[ "$CREATED" == $(echo "$output" | jq -re '.status.createdAt') ]]
-	[[ "$STARTED" == $(echo "$output" | jq -re '.status.startedAt') ]]
-	echo "$output" | jq -e '.status.finishedAt | startswith("'"$YEAR"'")'
-
+	crictl inspect "$ctr_id"
 	output=$(crictl ps --quiet --state exited)
 	[[ "$output" == "$ctr_id" ]]
 
