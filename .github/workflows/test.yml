@@ -5,6 +5,7 @@ on:
       - v*
     branches:
       - master
+      - release-*
   pull_request:
 jobs:
   build:
@@ -232,7 +233,7 @@ jobs:
       - run: make codecov
 
   release-notes:
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -256,7 +257,7 @@ jobs:
           if-no-files-found: ignore
 
   dependencies:
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release')
     needs: release-notes
     runs-on: ubuntu-latest
     steps:
