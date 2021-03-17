@@ -303,7 +303,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	// set this container's apparmor profile if it is set by sandbox
 	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
 		profile, err := s.Config().AppArmor().Apply(
-			securityContext.GetApparmorProfile(),
+			securityContext.GetApparmorProfile(), // nolint:staticcheck
 		)
 		if err != nil {
 			return nil, errors.Wrapf(err, "applying apparmor profile to container %s", containerID)
@@ -551,7 +551,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	specgen.AddProcessEnv("HOSTNAME", sb.Hostname())
 
 	created := time.Now()
-	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath()
+	spp := containerConfig.GetLinux().GetSecurityContext().GetSeccompProfilePath() // nolint:staticcheck
 	if !ctr.Privileged() {
 		if err := s.setupSeccomp(ctx, specgen, spp); err != nil {
 			return nil, err

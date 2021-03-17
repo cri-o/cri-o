@@ -840,7 +840,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		},
 	)
 
-	spp := securityContext.GetSeccompProfilePath()
+	spp := securityContext.GetSeccompProfilePath() // nolint:staticcheck
 	g.AddAnnotation(annotations.SeccompProfilePath, spp)
 	sb.SetSeccompProfilePath(spp)
 	if !privileged {
