@@ -4,7 +4,7 @@
   git:
     repo: "https://github.com/kubernetes-sigs/cri-tools.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools"
-    version: HEAD
+    version: v1.20.0
     force: "{{ force_clone | default(False) | bool}}"
 
 - name: build cri-tools
