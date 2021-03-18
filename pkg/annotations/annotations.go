@@ -28,3 +28,14 @@ const (
 	// OCISeccompBPFHookAnnotation is the annotation used by the OCI seccomp BPF hook for tracing container syscalls
 	OCISeccompBPFHookAnnotation = "io.containers.trace-syscall"
 )
+
+var AllAllowedAnnotations = []string{
+	UsernsModeAnnotation,
+	UnifiedCgroupAnnotation,
+	ShmSizeAnnotation,
+	DevicesAnnotation,
+	CPULoadBalancingAnnotation,
+	CPUQuotaAnnotation,
+	IRQLoadBalancingAnnotation,
+	OCISeccompBPFHookAnnotation,
+}

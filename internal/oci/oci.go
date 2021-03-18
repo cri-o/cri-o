@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
@@ -193,65 +192,23 @@ func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
 	return rh.PrivilegedWithoutHostDevices, nil
 }
 
-// AllowUsernsAnnotation searches through the AllowedAnnotations for
-// the userns annotation, checking whether this runtime allows processing of "io.kubernetes.cri-o.userns-mode"
-func (r *Runtime) AllowUsernsAnnotation(handler string) (bool, error) {
-	return r.allowAnnotation(handler, annotations.UsernsModeAnnotation)
-}
-
-// AllowDevicesAnnotation searches through the AllowedAnnotations for
-// the devices annotation, checking whether this runtime allows processing of "io.kubernetes.cri-o.Devices"
-func (r *Runtime) AllowDevicesAnnotation(handler string) (bool, error) {
-	return r.allowAnnotation(handler, annotations.DevicesAnnotation)
-}
-
-// AllowUnifiedCgroupAnnotation searches through the AllowedAnnotations for
-// the devices annotation, checking whether this runtime allows processing of "io.kubernetes.cri-o.UnifiedCgroup"
-func (r *Runtime) AllowUnifiedCgroupAnnotation(handler string) (bool, error) {
-	return r.allowAnnotation(handler, annotations.UnifiedCgroupAnnotation)
-}
-
-// AllowCPULoadBalancingAnnotation searches through the AllowedAnnotations for
-// the CPU load balancing annotation, checking whether this runtime allows processing of  "cpu-load-balancing.crio.io"
-func (r *Runtime) AllowCPULoadBalancingAnnotation(handler string) (bool, error) {
-	return r.allowAnnotation(handler, annotations.CPULoadBalancingAnnotation)
-}
-
-// AllowCPUQuotaAnnotation searches through the AllowedAnnotations for
-// the CPU quota annotation, checking whether this runtime allows processing of "cpu-quota.crio.io"
-func (r *Runtime) AllowCPUQuotaAnnotation(handler string) (bool, error) {
-	return r.allowAnnotation(handler, annotations.CPUQuotaAnnotation)
-}
-
-// AllowIRQLoadBalancingAnnotation searches through the AllowedAnnotations for
-// the IRQ load balancing annotation, checking whether this runtime allows processing of "irq-load-balancing.crio.io"
-func (r *Runtime) AllowIRQLoadBalancingAnnotation(handler string) (bool, error) {
-	return r.allowAnnotation(handler, annotations.IRQLoadBalancingAnnotation)
-}
-
-func (r *Runtime) AllowShmSizeAnnotation(handler string) (bool, error) {
-	return r.allowAnnotation(handler, annotations.ShmSizeAnnotation)
-}
-
-// AllowOCISeccompBPFHookAnnotation searches through the AllowedAnnotations for
-// the OCI seccomp BPF hook annotation, checking whether this runtime allows
-// processing of "io.containers.trace-syscall".
-func (r *Runtime) AllowOCISeccompBPFHookAnnotation(handler string) (bool, error) {
-	return r.allowAnnotation(handler, annotations.OCISeccompBPFHookAnnotation)
-}
-
-func (r *Runtime) allowAnnotation(handler, annotation string) (bool, error) {
+// FilterDisallowedAnnotations filters annotations that are not specified in the allowed_annotations map
+// for a given handler.
+// This function returns an error if the runtime handler can't be found.
+// The annotations map is mutated in-place.
+func (r *Runtime) FilterDisallowedAnnotations(handler string, annotations map[string]string) error {
 	rh, err := r.getRuntimeHandler(handler)
 	if err != nil {
-		return false, err
+		return err
 	}
-	for _, ann := range rh.AllowedAnnotations {
-		if ann == annotation {
-			return true, nil
+	for ann := range annotations {
+		for _, disallowed := range rh.DisallowedAnnotations {
+			if strings.HasPrefix(ann, disallowed) {
+				delete(annotations, disallowed)
+			}
 		}
 	}
-
-	return false, nil
+	return nil
 }
 
 // RuntimeType returns the type of runtimeHandler
