@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage"
+	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 
 	. "github.com/onsi/ginkgo"
@@ -493,6 +494,35 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with wrong allowed_annotation", func() {
+			// Given
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimePath:        validFilePath,
+				AllowedAnnotations: []string{"wrong"},
+			}
+
+			// When
+			err := sut.RuntimeConfig.ValidateRuntimes()
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should have allowed and disallowed annotation", func() {
+			// Given
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimePath:        validFilePath,
+				AllowedAnnotations: []string{crioann.DevicesAnnotation},
+			}
+
+			// When
+			err := sut.RuntimeConfig.ValidateRuntimes()
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.Runtimes["runc"].AllowedAnnotations).To(ContainElement(crioann.DevicesAnnotation))
+			Expect(sut.Runtimes["runc"].DisallowedAnnotations).NotTo(ContainElement(crioann.DevicesAnnotation))
 		})
 	})
 

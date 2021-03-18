@@ -64,15 +64,8 @@ func addToMappingsIfMissing(ids []idtools.IDMap, id int64) []idtools.IDMap {
 	return append(ids, newMapping)
 }
 
-func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxSecurityContext, runtimeHandler string) (*storage.IDMappingOptions, error) {
-	// find out whether the runtime handler is configured to interpret these annotations
-	allowUsernsAnnotation, err := s.Runtime().AllowUsernsAnnotation(runtimeHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	// Ignore the annotation if not explicitly set in the config file.
-	if !allowUsernsAnnotation || mode == "" {
+func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxSecurityContext) (*storage.IDMappingOptions, error) {
+	if mode == "" {
 		// No mode specified but mappings set in the config file, let's use them.
 		if s.defaultIDMappings != nil {
 			uids := s.defaultIDMappings.UIDs()
@@ -257,16 +250,6 @@ func (s *Server) getSandboxIDMappings(sb *libsandbox.Sandbox) (*idtools.IDMappin
 		return nil, nil
 	}
 
-	// find out whether the runtime handler is configured to interpret these annotations
-	allowUsernsAnnotation, err := s.Runtime().AllowUsernsAnnotation(sb.RuntimeHandler())
-	if err != nil {
-		return nil, err
-	}
-
-	// Ignore the annotation if not explicitly set in the config file.
-	if s.defaultIDMappings == nil && !allowUsernsAnnotation {
-		return nil, nil
-	}
 	if ic == nil {
 		return nil, errors.Errorf("infra container not found")
 	}
@@ -331,26 +314,20 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		s.ReleasePodName(sbox.Name())
 	})
 
-	kubeAnnotations := sbox.Config().Annotations
-
-	usernsMode := kubeAnnotations[ann.UsernsModeAnnotation]
-
 	// validate the runtime handler
 	runtimeHandler, err := s.runtimeHandler(req)
 	if err != nil {
 		return nil, err
 	}
 
-	allowOCISeccompBPFHookAnnotation, err := s.Runtime().AllowOCISeccompBPFHookAnnotation(runtimeHandler)
+	kubeAnnotations, err := s.Runtime().FilterDisallowedAnnotations(runtimeHandler, sbox.Config().Annotations)
 	if err != nil {
-		return nil, errors.Wrap(err, "check for allowed OCI seccomp BPF hook annotation")
-	}
-	// Remove the OCI seccomp BPF hook annotation if it is not allowed
-	if !allowOCISeccompBPFHookAnnotation {
-		delete(kubeAnnotations, ann.OCISeccompBPFHookAnnotation)
+		return nil, errors.Wrap(err, "filter disallowed annotations")
 	}
 
-	idMappingsOptions, err := s.configureSandboxIDMappings(usernsMode, sbox.Config().Linux.SecurityContext, runtimeHandler)
+	usernsMode := kubeAnnotations[ann.UsernsModeAnnotation]
+
+	idMappingsOptions, err := s.configureSandboxIDMappings(usernsMode, sbox.Config().Linux.SecurityContext)
 	if err != nil {
 		return nil, err
 	}
@@ -522,18 +499,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		shmPath = libsandbox.DevShmPath
 	} else {
 		shmSize := int64(libsandbox.DefaultShmSize)
-		allowShmSizeAnnotations, err := s.Runtime().AllowShmSizeAnnotation(runtimeHandler)
-		if err != nil {
-			return nil, fmt.Errorf("failed to allow shmsize annotation")
-		}
-		if allowShmSizeAnnotations {
-			if shmSizeStr, ok := kubeAnnotations[ann.ShmSizeAnnotation]; ok {
-				quantity, err := resource.ParseQuantity(shmSizeStr)
-				if err != nil {
-					return nil, fmt.Errorf("failed to parse shm size '%s': %v", shmSizeStr, err)
-				}
-				shmSize = quantity.Value()
+		if shmSizeStr, ok := kubeAnnotations[ann.ShmSizeAnnotation]; ok {
+			quantity, err := resource.ParseQuantity(shmSizeStr)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse shm size '%s': %v", shmSizeStr, err)
 			}
+			shmSize = quantity.Value()
 		}
 		shmPath, err = setupShm(podContainer.RunDir, mountLabel, shmSize)
 		if err != nil {

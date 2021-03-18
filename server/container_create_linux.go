@@ -277,17 +277,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	allowDeviceAnnotations, err := s.Runtime().AllowDevicesAnnotation(sb.RuntimeHandler())
+	annotationDevices, err := device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation])
 	if err != nil {
 		return nil, err
-	}
-
-	annotationDevices := []device.Device{}
-	if allowDeviceAnnotations {
-		annotationDevices, err = device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation])
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	if err := ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices); err != nil {
@@ -417,14 +409,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		}
 	}
 
-	allowUnifiedResources, err := s.Runtime().AllowUnifiedCgroupAnnotation(sb.RuntimeHandler())
-	if err != nil {
+	if err := ctr.AddUnifiedResourcesFromAnnotations(sb.Annotations()); err != nil {
 		return nil, err
-	}
-	if allowUnifiedResources {
-		if err := ctr.AddUnifiedResourcesFromAnnotations(sb.Annotations()); err != nil {
-			return nil, err
-		}
 	}
 
 	// Join the namespace paths for the pod sandbox container.
@@ -585,6 +571,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			}
 		}
 	}()
+
+	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
+	// and SpecAddAnnotations is already passed too many arguments
+	ctr.Config().Annotations, err = s.Runtime().FilterDisallowedAnnotations(sb.RuntimeHandler(), ctr.Config().Annotations)
+	if err != nil {
+		return nil, err
+	}
+
 	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode())
 	if err != nil {
 		return nil, err

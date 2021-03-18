@@ -171,6 +171,9 @@ type RuntimeHandler struct {
 	// "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 	// "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
+
+	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this handler.
+	DisallowedAnnotations []string
 }
 
 // Multiple runtime Handlers in a map
@@ -1033,6 +1036,9 @@ func (r *RuntimeHandler) Validate(name string) error {
 	if err := r.ValidateRuntimePath(name); err != nil {
 		return err
 	}
+	if err := r.ValidateRuntimeAllowedAnnotations(); err != nil {
+		return err
+	}
 	return r.ValidateRuntimeType(name)
 }
 
@@ -1054,9 +1060,6 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 	logrus.Debugf(
 		"Found valid runtime %q for runtime_path %q", name, r.RuntimePath,
 	)
-	logrus.Debugf(
-		"Allowed annotations for runtime: %v", r.AllowedAnnotations,
-	)
 	return nil
 }
 
@@ -1066,6 +1069,26 @@ func (r *RuntimeHandler) ValidateRuntimeType(name string) error {
 		return errors.Errorf("invalid `runtime_type` %q for runtime %q",
 			r.RuntimeType, name)
 	}
+	return nil
+}
+
+func (r *RuntimeHandler) ValidateRuntimeAllowedAnnotations() error {
+	disallowedAnnotations := make(map[string]struct{})
+	for _, ann := range annotations.AllAllowedAnnotations {
+		disallowedAnnotations[ann] = struct{}{}
+	}
+	for _, allowed := range r.AllowedAnnotations {
+		if _, ok := disallowedAnnotations[allowed]; !ok {
+			return errors.Errorf("invalid allowed_annotation: %s", allowed)
+		}
+		delete(disallowedAnnotations, allowed)
+	}
+	for ann := range disallowedAnnotations {
+		r.DisallowedAnnotations = append(r.DisallowedAnnotations, ann)
+	}
+	logrus.Debugf(
+		"Allowed annotations for runtime: %v", r.AllowedAnnotations,
+	)
 	return nil
 }
 
