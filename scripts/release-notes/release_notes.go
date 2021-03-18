@@ -18,7 +18,10 @@ import (
 	"k8s.io/release/pkg/util"
 )
 
-const branch = "gh-pages"
+const (
+	branch   = "gh-pages"
+	tokenKey = "GITHUB_TOKEN"
+)
 
 var outputPath string
 
@@ -40,8 +43,10 @@ func main() {
 
 func run() error {
 	// Precheck environemt
-	if !util.IsEnvSet("GITHUB_TOKEN") {
-		return errors.Errorf("GITHUB_TOKEN environemt variable is not set")
+	token, tokenSet := os.LookupEnv(tokenKey)
+	if !tokenSet || token == "" {
+		logrus.Infof("%s environemt variable is not set", tokenKey)
+		os.Exit(0)
 	}
 
 	logrus.Infof("Ensuring output path %s", outputPath)
@@ -86,7 +91,7 @@ func run() error {
 	defer func() { err = os.RemoveAll(templateFile.Name()) }()
 
 	// Check if we're on a tag and adapt variables if necessary
-	bundleVersion := head[:9]
+	bundleVersion := head
 	shortHead := head[:7]
 	endRev := head
 	if output, err := command.New(
@@ -105,10 +110,10 @@ The release notes have been generated for the commit range
 
 ## Downloads
 
-Download the static release bundle via our Google Cloud Bucket:
-[crio-%s.tar.gz][0]
+Download one of our static release bundles via our Google Cloud Bucket:
 
-[0]: https://storage.googleapis.com/k8s-conform-cri-o/artifacts/crio-%s.tar.gz
+- [cri-o.amd64.%s.tar.gz](https://storage.googleapis.com/k8s-conform-cri-o/artifacts/cri-o.amd64.%s.tar.gz)
+- [cri-o.arm64.%s.tar.gz](https://storage.googleapis.com/k8s-conform-cri-o/artifacts/cri-o.arm64.%s.tar.gz)
 
 ## Changelog since %s
 
@@ -130,6 +135,7 @@ Download the static release bundle via our Google Cloud Bucket:
 		startTag, shortHead,
 		startTag, endRev,
 		time.Now().Format(time.RFC1123),
+		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		startTag,
 	)); err != nil {
@@ -156,72 +162,69 @@ Download the static release bundle via our Google Cloud Bucket:
 		return errors.Wrap(err, "generate release notes")
 	}
 
-	// Update gh-pages branch if not a pull request and running in CircleCI
-	if util.IsEnvSet("CIRCLECI") && !util.IsEnvSet("CIRCLE_PULL_REQUEST") {
-		content, err := ioutil.ReadFile(outputFilePath)
-		if err != nil {
-			return errors.Wrap(err, "open generated release notes")
-		}
+	content, err := ioutil.ReadFile(outputFilePath)
+	if err != nil {
+		return errors.Wrap(err, "open generated release notes")
+	}
 
-		logrus.Infof("Checking out branch %s", branch)
-		if err := repo.Checkout(branch); err != nil {
-			return errors.Wrapf(err, "checkout %s branch", branch)
-		}
-		defer func() { err = repo.Checkout(currentBranch) }()
+	logrus.Infof("Checking out branch %s", branch)
+	if err := repo.Checkout(branch); err != nil {
+		return errors.Wrapf(err, "checkout %s branch", branch)
+	}
+	defer func() { err = repo.Checkout(currentBranch) }()
 
-		// Write the target file
-		if err := ioutil.WriteFile(outputFile, content, 0o644); err != nil {
-			return errors.Wrap(err, "write content to file")
-		}
+	// Write the target file
+	if err := ioutil.WriteFile(outputFile, content, 0o644); err != nil {
+		return errors.Wrap(err, "write content to file")
+	}
 
-		if err := repo.Add(outputFile); err != nil {
-			return errors.Wrap(err, "add file to repo")
-		}
+	if err := repo.Add(outputFile); err != nil {
+		return errors.Wrap(err, "add file to repo")
+	}
 
-		// Update the README
-		readmeFile := "README.md"
-		logrus.Infof("Updating %s", readmeFile)
-		readmeSlice, err := readLines(readmeFile)
-		if err != nil {
-			return errors.Wrapf(err, "open %s file", readmeFile)
-		}
-		link := fmt.Sprintf("- [%s](%s)", endTag, outputFile)
+	// Update the README
+	readmeFile := "README.md"
+	logrus.Infof("Updating %s", readmeFile)
+	readmeSlice, err := readLines(readmeFile)
+	if err != nil {
+		return errors.Wrapf(err, "open %s file", readmeFile)
+	}
+	link := fmt.Sprintf("- [%s](%s)", endTag, outputFile)
 
-		// Item not in list
-		alreadyExistingIndex := indexOfPrefix(link, readmeSlice)
-		if alreadyExistingIndex < 0 {
-			firstListEntry := indexOfPrefix("- ", readmeSlice)
+	// Item not in list
+	alreadyExistingIndex := indexOfPrefix(link, readmeSlice)
+	if alreadyExistingIndex < 0 {
+		firstListEntry := indexOfPrefix("- ", readmeSlice)
 
-			if firstListEntry < 0 {
-				// No list available, just append
-				readmeSlice = append(readmeSlice, link)
-			} else {
-				// Insert into slice
-				readmeSlice = append(
-					readmeSlice[:firstListEntry],
-					append([]string{link}, readmeSlice[firstListEntry:]...)...,
-				)
-			}
+		if firstListEntry < 0 {
+			// No list available, just append
+			readmeSlice = append(readmeSlice, link)
 		} else {
-			readmeSlice[alreadyExistingIndex] = link
+			// Insert into slice
+			readmeSlice = append(
+				readmeSlice[:firstListEntry],
+				append([]string{link}, readmeSlice[firstListEntry:]...)...,
+			)
 		}
-		if err := ioutil.WriteFile(
-			readmeFile, []byte(strings.Join(readmeSlice, "\n")), 0o644,
-		); err != nil {
-			return errors.Wrap(err, "write content to file")
-		}
-		if err := repo.Add(readmeFile); err != nil {
-			return errors.Wrap(err, "add file to repo")
-		}
+	} else {
+		readmeSlice[alreadyExistingIndex] = link
+	}
+	if err := ioutil.WriteFile(
+		readmeFile, []byte(strings.Join(readmeSlice, "\n")), 0o644,
+	); err != nil {
+		return errors.Wrap(err, "write content to file")
+	}
+	if err := repo.Add(readmeFile); err != nil {
+		return errors.Wrap(err, "add file to repo")
+	}
 
-		// Publish the changes
-		if err := repo.Commit("Update release notes"); err != nil {
-			return errors.Wrap(err, "commit")
-		}
+	// Publish the changes
+	if err := repo.Commit("Update release notes"); err != nil {
+		return errors.Wrap(err, "commit")
+	}
 
-		if err := repo.Push(branch); err != nil {
-			return errors.Wrap(err, "push changes")
-		}
+	if err := repo.Push(branch); err != nil {
+		return errors.Wrap(err, "push changes")
 	}
 
 	return nil
