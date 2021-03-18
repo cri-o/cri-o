@@ -528,7 +528,10 @@ func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
 	usage := &directory.DiskUsage{}
 	if d.quotaCtl != nil {
 		err := d.quotaCtl.GetDiskUsage(d.dir(id), usage)
-		return usage, err
+		// if it's greater than 1 page size, or we errored, use this value
+		if err != nil || usage.Size > 8192 {
+			return usage, err
+		}
 	}
 	return directory.Usage(path.Join(d.dir(id), "diff"))
 }
