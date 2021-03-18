@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/go-digest"
 )
 
 // The actual test suite
@@ -92,10 +93,8 @@ var _ = t.Describe("ImageList", func() {
 
 			// Then
 			Expect(result).NotTo(BeNil())
-			Expect(result.RepoTags).To(HaveLen(1))
-			Expect(result.RepoTags).To(ContainElement("<none>:<none>"))
-			Expect(result.RepoDigests).To(HaveLen(1))
-			Expect(result.RepoDigests).To(ContainElement("<none>@<none>"))
+			Expect(result.RepoTags).To(HaveLen(0))
+			Expect(result.RepoDigests).To(HaveLen(0))
 		})
 
 		It("should succeed with repo tags and digests", func() {
@@ -123,15 +122,19 @@ var _ = t.Describe("ImageList", func() {
 
 		It("should succeed with previous tag but no current", func() {
 			// Given
-			image := &storage.ImageResult{PreviousName: "1"}
+			image := &storage.ImageResult{
+				PreviousName: "1",
+				Digest:       digest.Digest("2"),
+			}
 
 			// When
 			result := server.ConvertImage(image)
 
 			// Then
 			Expect(result).NotTo(BeNil())
-			Expect(result.RepoTags).To(HaveLen(1))
-			Expect(result.RepoTags).To(ContainElement("1:<none>"))
+			Expect(result.RepoTags).To(HaveLen(0))
+			Expect(result.RepoDigests).To(HaveLen(1))
+			Expect(result.RepoDigests).To(ContainElement("1@2"))
 		})
 
 		It("should return nil if input image is nil", func() {
