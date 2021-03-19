@@ -6,6 +6,7 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -155,7 +156,7 @@ var _ = t.Describe("Sandbox", func() {
 	t.Describe("SetNamespaceOptions", func() {
 		It("should succeed", func() {
 			// Given
-			newNamespaceOption := &sandbox.NamespaceOption{
+			newNamespaceOption := &types.NamespaceOption{
 				Network: 1,
 				Pid:     2,
 				Ipc:     3,
@@ -260,8 +261,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should not need when managing NS and NS mode NODE", func() {
 			// Given
 			manageNS := true
-			newNamespaceOption := &sandbox.NamespaceOption{
-				Pid: sandbox.NamespaceModeNode,
+			newNamespaceOption := &types.NamespaceOption{
+				Pid: types.NamespaceModeNODE,
 			}
 
 			// When
@@ -274,8 +275,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should not need when managing NS and NS mode CONTAINER", func() {
 			// Given
 			manageNS := true
-			newNamespaceOption := &sandbox.NamespaceOption{
-				Pid: sandbox.NamespaceModeContainer,
+			newNamespaceOption := &types.NamespaceOption{
+				Pid: types.NamespaceModeCONTAINER,
 			}
 
 			// When
@@ -288,8 +289,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should need when namespace mode POD", func() {
 			// Given
 			manageNS := false
-			newNamespaceOption := &sandbox.NamespaceOption{
-				Pid: sandbox.NamespaceModePod,
+			newNamespaceOption := &types.NamespaceOption{
+				Pid: types.NamespaceModePOD,
 			}
 
 			// When
@@ -302,8 +303,8 @@ var _ = t.Describe("Sandbox", func() {
 		It("should need when not managing NS", func() {
 			// Given
 			manageNS := true
-			newNamespaceOption := &sandbox.NamespaceOption{
-				Pid: sandbox.NamespaceModeContainer,
+			newNamespaceOption := &types.NamespaceOption{
+				Pid: types.NamespaceModeCONTAINER,
 			}
 
 			// When

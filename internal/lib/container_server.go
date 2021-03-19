@@ -19,6 +19,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/cri/types"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -179,7 +180,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
-	nsOpts := sandbox.NamespaceOption{}
+	nsOpts := types.NamespaceOption{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
 		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.NamespaceOptions)
 	}
