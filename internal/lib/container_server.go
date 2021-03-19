@@ -63,19 +63,9 @@ func (c *ContainerServer) StorageImageServer() storage.ImageServer {
 	return c.storageImageServer
 }
 
-// CtrNameIndex returns the Registrar for the ContainerServer
-func (c *ContainerServer) CtrNameIndex() *registrar.Registrar {
-	return c.ctrNameIndex
-}
-
 // CtrIDIndex returns the TruncIndex for the ContainerServer
 func (c *ContainerServer) CtrIDIndex() *truncindex.TruncIndex {
 	return c.ctrIDIndex
-}
-
-// PodNameIndex returns the index of pod names
-func (c *ContainerServer) PodNameIndex() *registrar.Registrar {
-	return c.podNameIndex
 }
 
 // PodIDIndex returns the index of pod IDs

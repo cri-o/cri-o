@@ -555,7 +555,6 @@ github.com/hashicorp/go-multierror
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/hpcloud/tail v1.0.0
-## explicit
 github.com/hpcloud/tail
 github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
