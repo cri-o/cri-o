@@ -1,6 +1,7 @@
 package rdt
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/pkg/errors"
@@ -91,4 +92,15 @@ func loadConfigFile(path string) (*rdt.Config, error) {
 	}
 
 	return c, nil
+}
+
+func (c *Config) ContainerClassFromAnnotations(containerName string, containerAnnotations, podAnnotations map[string]string) (string, error) {
+	cls, err := rdt.ContainerClassFromAnnotations(containerName, containerAnnotations, podAnnotations)
+	if err != nil {
+		return "", err
+	}
+	if cls != "" && !c.Enabled() {
+		return "", fmt.Errorf("RDT disabled, refusing to set RDT class of container %q to %q", containerName, cls)
+	}
+	return cls, nil
 }
