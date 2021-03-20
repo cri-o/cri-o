@@ -95,3 +95,8 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 	}
 	return cgroupPath, nil
 }
+
+// CreateSandboxCgroup calls the helper function createSandboxCgroup for this manager.
+func (m *CgroupfsManager) CreateSandboxCgroup(sbParent, containerID string) error {
+	return createSandboxCgroup(sbParent, containerID, m)
+}

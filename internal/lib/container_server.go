@@ -295,7 +295,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 			}
 		}
 	} else {
-		scontainer = oci.NewSpoofedContainer(cID, cname, labels, created, sandboxPath)
+		scontainer = oci.NewSpoofedContainer(cID, cname, labels, id, created, sandboxPath)
 	}
 
 	if err := c.ContainerStateFromDisk(ctx, scontainer); err != nil {

@@ -874,8 +874,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		container.SetSpec(g.Config)
 	} else {
 		log.Debugf(ctx, "dropping infra container for pod %s", sbox.ID())
-		container = oci.NewSpoofedContainer(sbox.ID(), containerName, labels, created, podContainer.RunDir)
+		container = oci.NewSpoofedContainer(sbox.ID(), containerName, labels, sbox.ID(), created, podContainer.RunDir)
 		g.AddAnnotation(ann.SpoofedContainer, "true")
+		if err := s.config.CgroupManager().CreateSandboxCgroup(cgroupParent, sbox.ID()); err != nil {
+			return nil, errors.Wrapf(err, "create dropped infra %s cgroup", sbox.ID())
+		}
 	}
 	// needed for getSandboxIDMappings()
 	container.SetIDMappings(sandboxIDMappings)
