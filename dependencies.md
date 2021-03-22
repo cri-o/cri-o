@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Sat, 20 Mar 2021 19:41:42 UTC for commit [f2f339d][0]._
+_Generated on Mon, 22 Mar 2021 03:45:50 UTC for commit [30ec358][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f2f339d1489e7774e4c2b5923b04fcbed768cd86
+[0]: https://github.com/cri-o/cri-o/commit/30ec3581466bb7aa23213cfe2997ac6686451c41
 
 ## Outdated Dependencies
 
@@ -135,7 +135,7 @@ _Generated on Sat, 20 Mar 2021 19:41:42 UTC for commit [f2f339d][0]._
 | github.com/containerd/continuity                        | v0.0.0-20200228182428-0f16d7a0959c                         | v0.0.0-20210315143101-93e15499afd5 | false  | true             |
 | github.com/containerd/fifo                              | v0.0.0-20190226154929-a9fb20d87448                         | v0.0.0-20210316144830-115abcc95a1d | false  | true             |
 | github.com/containerd/go-runc                           | v0.0.0-20180907222934-5a6d9f37cfa3                         | v0.0.0-20201020171139-16b287bc67d0 | false  | true             |
-| github.com/containerd/stargz-snapshotter/estargz        | v0.0.0-20201217071531-2b97b583765b                         | v0.4.1                             | false  | true             |
+| github.com/containerd/stargz-snapshotter/estargz        | v0.0.0-20201217071531-2b97b583765b                         | v0.5.0                             | false  | true             |
 | github.com/containerd/ttrpc                             | v1.0.2                                                     |                                    | true   | true             |
 | github.com/containerd/typeurl                           | v1.0.1                                                     |                                    | false  | true             |
 | github.com/containernetworking/cni                      | v0.8.0                                                     | v0.8.1                             | true   | true             |
@@ -224,7 +224,7 @@ _Generated on Sat, 20 Mar 2021 19:41:42 UTC for commit [f2f339d][0]._
 | github.com/go-openapi/jsonpointer                       | v0.19.3                                                    | v0.19.5                            | false  | true             |
 | github.com/go-openapi/jsonreference                     | v0.19.3                                                    | v0.19.5                            | false  | true             |
 | github.com/go-openapi/loads                             | v0.19.4                                                    | v0.20.2                            | false  | true             |
-| github.com/go-openapi/runtime                           | v0.19.4                                                    | v0.19.26                           | false  | true             |
+| github.com/go-openapi/runtime                           | v0.19.4                                                    | v0.19.27                           | false  | true             |
 | github.com/go-openapi/spec                              | v0.19.3                                                    | v0.20.3                            | false  | true             |
 | github.com/go-openapi/strfmt                            | v0.19.3                                                    | v0.20.0                            | false  | true             |
 | github.com/go-openapi/swag                              | v0.19.5                                                    | v0.19.14                           | false  | true             |
@@ -328,7 +328,7 @@ _Generated on Sat, 20 Mar 2021 19:41:42 UTC for commit [f2f339d][0]._
 | github.com/j-keck/arping                                | v0.0.0-20160618110441-2cf9dc699c56                         | v1.0.1                             | false  | true             |
 | github.com/jamescun/tuntap                              | v0.0.0-20190712092105-cb1fb277045c                         |                                    | false  | true             |
 | github.com/jbenet/go-context                            | v0.0.0-20150711004518-d14ea06fba99                         |                                    | false  | true             |
-| github.com/jessevdk/go-flags                            | v1.4.0                                                     |                                    | false  | true             |
+| github.com/jessevdk/go-flags                            | v1.4.0                                                     | v1.5.0                             | false  | true             |
 | github.com/jimstudt/http-authentication                 | v0.0.0-20140401203705-3eca13d6893a                         |                                    | false  | true             |
 | github.com/jingyugao/rowserrcheck                       | v0.0.0-20191204022205-72ab7603b68a                         | v0.0.0-20210315055705-d907ca737bb1 | false  | true             |
 | github.com/jirfag/go-printf-func-name                   | v0.0.0-20191110105641-45db9963cdd3                         | v0.0.0-20200119135958-7558a9eaa5af | false  | true             |
