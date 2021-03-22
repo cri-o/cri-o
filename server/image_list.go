@@ -28,21 +28,25 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 	return resp, nil
 }
 
+// ConvertImage takes an containers/storage ImageResult and converts it into a
+// CRI protobuf type. More information about the "why"s of this function can be
+// found in ../cri.md.
 func ConvertImage(from *storage.ImageResult) *types.Image {
 	if from == nil {
 		return nil
 	}
 
-	repoTags := []string{"<none>:<none>"}
+	repoTags := []string{}
+	repoDigests := []string{}
+
 	if len(from.RepoTags) > 0 {
 		repoTags = from.RepoTags
-	} else if from.PreviousName != "" {
-		repoTags = []string{from.PreviousName + ":<none>"}
 	}
 
-	repoDigests := []string{"<none>@<none>"}
 	if len(from.RepoDigests) > 0 {
 		repoDigests = from.RepoDigests
+	} else if from.PreviousName != "" && from.Digest != "" {
+		repoDigests = []string{from.PreviousName + "@" + string(from.Digest)}
 	}
 
 	to := &types.Image{

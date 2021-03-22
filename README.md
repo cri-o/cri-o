@@ -204,6 +204,11 @@ default UID mappings (format <container>:<host>:<size>):
 
 Please refer to the [CRI-O Metrics guide](tutorials/metrics.md).
 
+#### Container Runtime Interface special cases
+
+Some aspects of the Container Runtime are worth some additional explanation.
+These details are summarized in a [dedicated guide](cri.md).
+
 ## Adopters
 
 An incomplete list of adopters of CRI-O in production environments can be found [here](ADOPTERS.md).
