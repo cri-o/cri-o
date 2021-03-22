@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 22 Mar 2021 03:45:50 UTC for commit [30ec358][0]._
+_Generated on Mon, 22 Mar 2021 16:11:22 UTC for commit [cb00edb][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/30ec3581466bb7aa23213cfe2997ac6686451c41
+[0]: https://github.com/cri-o/cri-o/commit/cb00edb372b9acb9713716590c5f2c459bc8b2c7
 
 ## Outdated Dependencies
 
@@ -550,7 +550,7 @@ _Generated on Mon, 22 Mar 2021 03:45:50 UTC for commit [30ec358][0]._
 | go.uber.org/multierr                                    | v1.1.0                                                     | v1.6.0                             | false  | true             |
 | go.uber.org/zap                                         | v1.10.0                                                    | v1.16.0                            | false  | true             |
 | golang.org/dl                                           | v0.0.0-20190829154251-82a15e2f2ead                         | v0.0.0-20210318190803-5564b1ea1f85 | false  | true             |
-| golang.org/x/crypto                                     | v0.0.0-20201002170205-7f63de1d35b0                         | v0.0.0-20210317152858-513c2a44f670 | false  | true             |
+| golang.org/x/crypto                                     | v0.0.0-20201002170205-7f63de1d35b0                         | v0.0.0-20210322153248-0c34fe9e7dc2 | false  | true             |
 | golang.org/x/exp                                        | v0.0.0-20200224162631-6cc2880d07d6                         | v0.0.0-20210220032938-85be41e4509f | false  | true             |
 | golang.org/x/image                                      | v0.0.0-20190802002840-cff245a6509b                         | v0.0.0-20210220032944-ac19c3e999fb | false  | true             |
 | golang.org/x/lint                                       | v0.0.0-20201208152925-83fdc39ff7b5                         |                                    | false  | true             |
