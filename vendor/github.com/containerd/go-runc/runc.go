@@ -17,6 +17,7 @@
 package runc
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -28,7 +29,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -54,29 +54,15 @@ const (
 	DefaultCommand = "runc"
 )
 
-// Runc is the client to the runc cli
-type Runc struct {
-	//If command is empty, DefaultCommand is used
-	Command       string
-	Root          string
-	Debug         bool
-	Log           string
-	LogFormat     Format
-	PdeathSignal  syscall.Signal
-	Setpgid       bool
-	Criu          string
-	SystemdCgroup bool
-	Rootless      *bool // nil stands for "auto"
-}
-
 // List returns all containers created inside the provided runc root directory
 func (r *Runc) List(context context.Context) ([]*Container, error) {
-	data, err := cmdOutput(r.command(context, "list", "--format=json"), false)
+	data, err := cmdOutput(r.command(context, "list", "--format=json"), false, nil)
+	defer putBuf(data)
 	if err != nil {
 		return nil, err
 	}
 	var out []*Container
-	if err := json.Unmarshal(data, &out); err != nil {
+	if err := json.Unmarshal(data.Bytes(), &out); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -84,12 +70,13 @@ func (r *Runc) List(context context.Context) ([]*Container, error) {
 
 // State returns the state for the container provided by id
 func (r *Runc) State(context context.Context, id string) (*Container, error) {
-	data, err := cmdOutput(r.command(context, "state", id), true)
+	data, err := cmdOutput(r.command(context, "state", id), true, nil)
+	defer putBuf(data)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err, data)
+		return nil, fmt.Errorf("%s: %s", err, data.String())
 	}
 	var c Container
-	if err := json.Unmarshal(data, &c); err != nil {
+	if err := json.Unmarshal(data.Bytes(), &c); err != nil {
 		return nil, err
 	}
 	return &c, nil
@@ -108,6 +95,7 @@ type CreateOpts struct {
 	NoPivot       bool
 	NoNewKeyring  bool
 	ExtraFiles    []*os.File
+	Started       chan<- int
 }
 
 func (o *CreateOpts) args() (out []string, err error) {
@@ -153,9 +141,10 @@ func (r *Runc) Create(context context.Context, id, bundle string, opts *CreateOp
 	cmd.ExtraFiles = opts.ExtraFiles
 
 	if cmd.Stdout == nil && cmd.Stderr == nil {
-		data, err := cmdOutput(cmd, true)
+		data, err := cmdOutput(cmd, true, nil)
+		defer putBuf(data)
 		if err != nil {
-			return fmt.Errorf("%s: %s", err, data)
+			return fmt.Errorf("%s: %s", err, data.String())
 		}
 		return nil
 	}
@@ -172,7 +161,7 @@ func (r *Runc) Create(context context.Context, id, bundle string, opts *CreateOp
 	}
 	status, err := Monitor.Wait(cmd, ec)
 	if err == nil && status != 0 {
-		err = fmt.Errorf("%s did not terminate sucessfully", cmd.Args[0])
+		err = fmt.Errorf("%s did not terminate successfully: %w", cmd.Args[0], &ExitError{status})
 	}
 	return err
 }
@@ -187,6 +176,7 @@ type ExecOpts struct {
 	PidFile       string
 	ConsoleSocket ConsoleSocket
 	Detach        bool
+	Started       chan<- int
 }
 
 func (o *ExecOpts) args() (out []string, err error) {
@@ -206,9 +196,12 @@ func (o *ExecOpts) args() (out []string, err error) {
 	return out, nil
 }
 
-// Exec executres and additional process inside the container based on a full
+// Exec executes an additional process inside the container based on a full
 // OCI Process specification
 func (r *Runc) Exec(context context.Context, id string, spec specs.Process, opts *ExecOpts) error {
+	if opts.Started != nil {
+		defer close(opts.Started)
+	}
 	f, err := ioutil.TempFile(os.Getenv("XDG_RUNTIME_DIR"), "runc-process")
 	if err != nil {
 		return err
@@ -232,15 +225,19 @@ func (r *Runc) Exec(context context.Context, id string, spec specs.Process, opts
 		opts.Set(cmd)
 	}
 	if cmd.Stdout == nil && cmd.Stderr == nil {
-		data, err := cmdOutput(cmd, true)
+		data, err := cmdOutput(cmd, true, opts.Started)
+		defer putBuf(data)
 		if err != nil {
-			return fmt.Errorf("%s: %s", err, data)
+			return fmt.Errorf("%w: %s", err, data.String())
 		}
 		return nil
 	}
 	ec, err := Monitor.Start(cmd)
 	if err != nil {
 		return err
+	}
+	if opts.Started != nil {
+		opts.Started <- cmd.Process.Pid
 	}
 	if opts != nil && opts.IO != nil {
 		if c, ok := opts.IO.(StartCloser); ok {
@@ -251,7 +248,7 @@ func (r *Runc) Exec(context context.Context, id string, spec specs.Process, opts
 	}
 	status, err := Monitor.Wait(cmd, ec)
 	if err == nil && status != 0 {
-		err = fmt.Errorf("%s did not terminate sucessfully", cmd.Args[0])
+		err = fmt.Errorf("%s did not terminate successfully: %w", cmd.Args[0], &ExitError{status})
 	}
 	return err
 }
@@ -259,6 +256,9 @@ func (r *Runc) Exec(context context.Context, id string, spec specs.Process, opts
 // Run runs the create, start, delete lifecycle of the container
 // and returns its exit status after it has exited
 func (r *Runc) Run(context context.Context, id, bundle string, opts *CreateOpts) (int, error) {
+	if opts.Started != nil {
+		defer close(opts.Started)
+	}
 	args := []string{"run", "--bundle", bundle}
 	if opts != nil {
 		oargs, err := opts.args()
@@ -275,7 +275,14 @@ func (r *Runc) Run(context context.Context, id, bundle string, opts *CreateOpts)
 	if err != nil {
 		return -1, err
 	}
-	return Monitor.Wait(cmd, ec)
+	if opts.Started != nil {
+		opts.Started <- cmd.Process.Pid
+	}
+	status, err := Monitor.Wait(cmd, ec)
+	if err == nil && status != 0 {
+		err = fmt.Errorf("%s did not terminate successfully: %w", cmd.Args[0], &ExitError{status})
+	}
+	return status, err
 }
 
 type DeleteOpts struct {
@@ -394,12 +401,13 @@ func (r *Runc) Resume(context context.Context, id string) error {
 
 // Ps lists all the processes inside the container returning their pids
 func (r *Runc) Ps(context context.Context, id string) ([]int, error) {
-	data, err := cmdOutput(r.command(context, "ps", "--format", "json", id), true)
+	data, err := cmdOutput(r.command(context, "ps", "--format", "json", id), true, nil)
+	defer putBuf(data)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err, data)
+		return nil, fmt.Errorf("%s: %s", err, data.String())
 	}
 	var pids []int
-	if err := json.Unmarshal(data, &pids); err != nil {
+	if err := json.Unmarshal(data.Bytes(), &pids); err != nil {
 		return nil, err
 	}
 	return pids, nil
@@ -407,12 +415,13 @@ func (r *Runc) Ps(context context.Context, id string) ([]int, error) {
 
 // Top lists all the processes inside the container returning the full ps data
 func (r *Runc) Top(context context.Context, id string, psOptions string) (*TopResults, error) {
-	data, err := cmdOutput(r.command(context, "ps", "--format", "table", id, psOptions), true)
+	data, err := cmdOutput(r.command(context, "ps", "--format", "table", id, psOptions), true, nil)
+	defer putBuf(data)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", err, data)
+		return nil, fmt.Errorf("%s: %s", err, data.String())
 	}
 
-	topResults, err := ParsePSOutput(data)
+	topResults, err := ParsePSOutput(data.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("%s: ", err)
 	}
@@ -441,6 +450,10 @@ type CheckpointOpts struct {
 	// EmptyNamespaces creates a namespace for the container but does not save its properties
 	// Provide the namespaces you wish to be checkpointed without their settings on restore
 	EmptyNamespaces []string
+	// LazyPages uses userfaultfd to lazily restore memory pages
+	LazyPages bool
+	// StatusFile is the file criu writes \0 to once lazy-pages is ready
+	StatusFile *os.File
 }
 
 type CgroupMode string
@@ -482,6 +495,9 @@ func (o *CheckpointOpts) args() (out []string) {
 	for _, ns := range o.EmptyNamespaces {
 		out = append(out, "--empty-ns", ns)
 	}
+	if o.LazyPages {
+		out = append(out, "--lazy-pages")
+	}
 	return out
 }
 
@@ -500,13 +516,23 @@ func PreDump(args []string) []string {
 // Checkpoint allows you to checkpoint a container using criu
 func (r *Runc) Checkpoint(context context.Context, id string, opts *CheckpointOpts, actions ...CheckpointAction) error {
 	args := []string{"checkpoint"}
+	extraFiles := []*os.File{}
 	if opts != nil {
 		args = append(args, opts.args()...)
+		if opts.StatusFile != nil {
+			// pass the status file to the child process
+			extraFiles = []*os.File{opts.StatusFile}
+			// set status-fd to 3 as this will be the file descriptor
+			// of the first file passed with cmd.ExtraFiles
+			args = append(args, "--status-fd", "3")
+		}
 	}
 	for _, a := range actions {
 		args = a(args)
 	}
-	return r.runOrError(r.command(context, append(args, id)...))
+	cmd := r.command(context, append(args, id)...)
+	cmd.ExtraFiles = extraFiles
+	return r.runOrError(cmd)
 }
 
 type RestoreOpts struct {
@@ -570,7 +596,11 @@ func (r *Runc) Restore(context context.Context, id, bundle string, opts *Restore
 			}
 		}
 	}
-	return Monitor.Wait(cmd, ec)
+	status, err := Monitor.Wait(cmd, ec)
+	if err == nil && status != 0 {
+		err = fmt.Errorf("%s did not terminate successfully: %w", cmd.Args[0], &ExitError{status})
+	}
+	return status, err
 }
 
 // Update updates the current container with the provided resource spec
@@ -597,42 +627,33 @@ type Version struct {
 
 // Version returns the runc and runtime-spec versions
 func (r *Runc) Version(context context.Context) (Version, error) {
-	data, err := cmdOutput(r.command(context, "--version"), false)
+	data, err := cmdOutput(r.command(context, "--version"), false, nil)
+	defer putBuf(data)
 	if err != nil {
 		return Version{}, err
 	}
-	return parseVersion(data)
+	return parseVersion(data.Bytes())
 }
 
 func parseVersion(data []byte) (Version, error) {
 	var v Version
 	parts := strings.Split(strings.TrimSpace(string(data)), "\n")
-	if len(parts) != 3 {
-		return v, nil
-	}
-	for i, p := range []struct {
-		dest  *string
-		split string
-	}{
-		{
-			dest:  &v.Runc,
-			split: "version ",
-		},
-		{
-			dest:  &v.Commit,
-			split: ": ",
-		},
-		{
-			dest:  &v.Spec,
-			split: ": ",
-		},
-	} {
-		p2 := strings.Split(parts[i], p.split)
-		if len(p2) != 2 {
-			return v, fmt.Errorf("unable to parse version line %q", parts[i])
+
+	if len(parts) > 0 {
+		if !strings.HasPrefix(parts[0], "runc version ") {
+			return v, nil
 		}
-		*p.dest = p2[1]
+		v.Runc = parts[0][13:]
+
+		for _, part := range parts[1:] {
+			if strings.HasPrefix(part, "commit: ") {
+				v.Commit = part[8:]
+			} else if strings.HasPrefix(part, "spec: ") {
+				v.Spec = part[6:]
+			}
+		}
 	}
+
 	return v, nil
 }
 
@@ -674,20 +695,22 @@ func (r *Runc) runOrError(cmd *exec.Cmd) error {
 		}
 		status, err := Monitor.Wait(cmd, ec)
 		if err == nil && status != 0 {
-			err = fmt.Errorf("%s did not terminate sucessfully", cmd.Args[0])
+			err = fmt.Errorf("%s did not terminate successfully: %w", cmd.Args[0], &ExitError{status})
 		}
 		return err
 	}
-	data, err := cmdOutput(cmd, true)
+	data, err := cmdOutput(cmd, true, nil)
+	defer putBuf(data)
 	if err != nil {
-		return fmt.Errorf("%s: %s", err, data)
+		return fmt.Errorf("%s: %s", err, data.String())
 	}
 	return nil
 }
 
-func cmdOutput(cmd *exec.Cmd, combined bool) ([]byte, error) {
+// callers of cmdOutput are expected to call putBuf on the returned Buffer
+// to ensure it is released back to the shared pool after use.
+func cmdOutput(cmd *exec.Cmd, combined bool, started chan<- int) (*bytes.Buffer, error) {
 	b := getBuf()
-	defer putBuf(b)
 
 	cmd.Stdout = b
 	if combined {
@@ -697,11 +720,22 @@ func cmdOutput(cmd *exec.Cmd, combined bool) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if started != nil {
+		started <- cmd.Process.Pid
+	}
 
 	status, err := Monitor.Wait(cmd, ec)
 	if err == nil && status != 0 {
-		err = fmt.Errorf("%s did not terminate sucessfully", cmd.Args[0])
+		err = fmt.Errorf("%s did not terminate successfully: %w", cmd.Args[0], &ExitError{status})
 	}
 
-	return b.Bytes(), err
+	return b, err
+}
+
+type ExitError struct {
+	Status int
+}
+
+func (e *ExitError) Error() string {
+	return fmt.Sprintf("exit status %d", e.Status)
 }

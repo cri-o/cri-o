@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/libpod/v2/pkg/cgroups"
+	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/libpod/v2/pkg/lookup"
+	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/cri-o/cri-o/server/cri/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -202,7 +202,14 @@ func openContainerFile(rootfs, path string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return os.Open(fp)
+	fh, err := os.Open(fp)
+	if err != nil {
+		// This is needed because a nil *os.File is different to a nil
+		// io.ReadCloser and this causes GetExecUser to not detect that the
+		// container file is missing.
+		return nil, err
+	}
+	return fh, nil
 }
 
 // GetUserInfo returns UID, GID and additional groups for specified user
@@ -226,7 +233,7 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 
 	execUser, err := user.GetExecUser(userName, nil, passwdFile, groupFile)
 	if err != nil {
-		return 0, 0, nil, err
+		return 0, 0, nil, errors.Wrap(err, "get exec user")
 	}
 
 	uid = uint32(execUser.Uid)

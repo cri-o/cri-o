@@ -3,7 +3,7 @@ package lib
 import (
 	"path/filepath"
 
-	"github.com/containers/libpod/v2/pkg/annotations"
+	"github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"

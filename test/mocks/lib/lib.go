@@ -5,36 +5,37 @@
 package libconfigmock
 
 import (
+	reflect "reflect"
+
 	storage "github.com/containers/storage"
 	config "github.com/cri-o/cri-o/pkg/config"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
-// MockIface is a mock of Iface interface
+// MockIface is a mock of Iface interface.
 type MockIface struct {
 	ctrl     *gomock.Controller
 	recorder *MockIfaceMockRecorder
 }
 
-// MockIfaceMockRecorder is the mock recorder for MockIface
+// MockIfaceMockRecorder is the mock recorder for MockIface.
 type MockIfaceMockRecorder struct {
 	mock *MockIface
 }
 
-// NewMockIface creates a new mock instance
+// NewMockIface creates a new mock instance.
 func NewMockIface(ctrl *gomock.Controller) *MockIface {
 	mock := &MockIface{ctrl: ctrl}
 	mock.recorder = &MockIfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockIface) EXPECT() *MockIfaceMockRecorder {
 	return m.recorder
 }
 
-// GetData mocks base method
+// GetData mocks base method.
 func (m *MockIface) GetData() *config.Config {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetData")
@@ -42,13 +43,13 @@ func (m *MockIface) GetData() *config.Config {
 	return ret0
 }
 
-// GetData indicates an expected call of GetData
+// GetData indicates an expected call of GetData.
 func (mr *MockIfaceMockRecorder) GetData() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetData", reflect.TypeOf((*MockIface)(nil).GetData))
 }
 
-// GetStore mocks base method
+// GetStore mocks base method.
 func (m *MockIface) GetStore() (storage.Store, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStore")
@@ -57,7 +58,7 @@ func (m *MockIface) GetStore() (storage.Store, error) {
 	return ret0, ret1
 }
 
-// GetStore indicates an expected call of GetStore
+// GetStore indicates an expected call of GetStore.
 func (mr *MockIfaceMockRecorder) GetStore() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStore", reflect.TypeOf((*MockIface)(nil).GetStore))

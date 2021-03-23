@@ -23,11 +23,12 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/buildah/bind"
 	"github.com/containers/buildah/chroot"
+	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/pkg/overlay"
-	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
@@ -37,6 +38,7 @@ import (
 	"github.com/docker/libnetwork/resolvconf"
 	"github.com/docker/libnetwork/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -46,6 +48,9 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
 )
+
+// ContainerDevices is an alias for a slice of github.com/opencontainers/runc/libcontainer/configs.Device structures.
+type ContainerDevices = []configs.Device
 
 func setChildProcess() error {
 	if err := unix.Prctl(unix.PR_SET_CHILD_SUBREAPER, uintptr(1), 0, 0, 0); err != nil {
@@ -59,18 +64,18 @@ func setChildProcess() error {
 func (b *Builder) Run(command []string, options RunOptions) error {
 	p, err := ioutil.TempDir("", Package)
 	if err != nil {
-		return errors.Wrapf(err, "run: error creating temporary directory under %q", os.TempDir())
+		return err
 	}
 	// On some hosts like AH, /tmp is a symlink and we need an
 	// absolute path.
 	path, err := filepath.EvalSymlinks(p)
 	if err != nil {
-		return errors.Wrapf(err, "run: error evaluating %q for symbolic links", p)
+		return err
 	}
 	logrus.Debugf("using %q to hold bundle data", path)
 	defer func() {
 		if err2 := os.RemoveAll(path); err2 != nil {
-			logrus.Errorf("error removing %q: %v", path, err2)
+			logrus.Error(err2)
 		}
 	}()
 
@@ -91,11 +96,8 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
-	defaultContainerConfig, err := config.Default()
-	if err != nil {
-		return errors.Wrapf(err, "failed to get container config")
-	}
-	b.configureEnvironment(g, options, defaultContainerConfig.Containers.Env)
+	// hardwire the environment to match docker build to avoid subtle and hard-to-debug differences due to containers.conf
+	b.configureEnvironment(g, options, []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
 
 	if b.CommonBuildOpts == nil {
 		return errors.Errorf("Invalid format on container you must recreate the container")
@@ -139,7 +141,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			GID:      &d.Gid,
 		}
 		g.AddDevice(sDev)
-		g.AddLinuxResourcesDevice(true, string(d.Type), &d.Major, &d.Minor, d.Permissions)
+		g.AddLinuxResourcesDevice(true, string(d.Type), &d.Major, &d.Minor, string(d.Permissions))
 	}
 
 	setupMaskedPaths(g)
@@ -164,11 +166,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	spec := g.Config
 	g = nil
 
-	logrus.Debugf("ensuring working directory %q exists", filepath.Join(mountPoint, spec.Process.Cwd))
-	if err = os.MkdirAll(filepath.Join(mountPoint, spec.Process.Cwd), 0755); err != nil && !os.IsExist(err) {
-		return errors.Wrapf(err, "error ensuring working directory %q exists", spec.Process.Cwd)
-	}
-
 	// Set the seccomp configuration using the specified profile name.  Some syscalls are
 	// allowed if certain capabilities are to be granted (example: CAP_SYS_CHROOT and chroot),
 	// so we sorted out the capabilities lists first.
@@ -183,6 +180,15 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 	rootIDPair := &idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}
 
+	mode := os.FileMode(0755)
+	coptions := copier.MkdirOptions{
+		ChownNew: rootIDPair,
+		ChmodNew: &mode,
+	}
+	if err := copier.Mkdir(mountPoint, filepath.Join(mountPoint, spec.Process.Cwd), coptions); err != nil {
+		return err
+	}
+
 	bindFiles := make(map[string]string)
 	namespaceOptions := append(b.NamespaceOptions, options.NamespaceOptions...)
 	volumes := b.Volumes()
@@ -192,7 +198,10 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		if err != nil {
 			return err
 		}
-		bindFiles["/etc/hosts"] = hostFile
+		// Only bind /etc/hosts if there's a network
+		if options.ConfigureNetwork != NetworkDisabled {
+			bindFiles["/etc/hosts"] = hostFile
+		}
 	}
 
 	if !(contains(volumes, "/etc/resolv.conf") || (len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none")) {
@@ -200,22 +209,37 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		if err != nil {
 			return err
 		}
-		bindFiles["/etc/resolv.conf"] = resolvFile
+		// Only bind /etc/resolv.conf if there's a network
+		if options.ConfigureNetwork != NetworkDisabled {
+			bindFiles["/etc/resolv.conf"] = resolvFile
+		}
 	}
 	// Empty file, so no need to recreate if it exists
 	if _, ok := bindFiles["/run/.containerenv"]; !ok {
-		// Empty string for now, but we may consider populating this later
 		containerenvPath := filepath.Join(path, "/run/.containerenv")
-		if err = os.MkdirAll(filepath.Dir(containerenvPath), 0755); err != nil && !os.IsExist(err) {
+		if err = os.MkdirAll(filepath.Dir(containerenvPath), 0755); err != nil {
 			return err
 		}
-		emptyFile, err := os.Create(containerenvPath)
-		if err != nil {
+
+		rootless := 0
+		if unshare.IsRootless() {
+			rootless = 1
+		}
+		// Populate the .containerenv with container information
+		containerenv := fmt.Sprintf(`\
+engine="buildah-%s"
+name=%q
+id=%q
+image=%q
+imageid=%q
+rootless=%d
+`, Version, b.Container, b.ContainerID, b.FromImage, b.FromImageID, rootless)
+
+		if err = ioutils.AtomicWriteFile(containerenvPath, []byte(containerenv), 0755); err != nil {
 			return err
 		}
-		emptyFile.Close()
 		if err := label.Relabel(containerenvPath, b.MountLabel, false); err != nil {
-			return errors.Wrapf(err, "error relabeling %q in container %q", containerenvPath, b.ContainerID)
+			return err
 		}
 
 		bindFiles["/run/.containerenv"] = containerenvPath
@@ -310,7 +334,7 @@ func addCommonOptsToSpec(commonOpts *CommonBuildOptions, g *generate.Generator) 
 	return nil
 }
 
-func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWithTar func(srcPath, dstPath string) error, builtinVolumes []string, rootUID, rootGID int) ([]specs.Mount, error) {
+func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtinVolumes []string, rootUID, rootGID int) ([]specs.Mount, error) {
 	var mounts []specs.Mount
 	hostOwner := idtools.IDPair{UID: rootUID, GID: rootGID}
 	// Add temporary copies of the contents of volume locations at the
@@ -323,37 +347,37 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWit
 		// If we need to, initialize the volume path's initial contents.
 		if _, err := os.Stat(volumePath); err != nil {
 			if !os.IsNotExist(err) {
-				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", volumePath, volume)
+				return nil, err
 			}
 			logrus.Debugf("setting up built-in volume at %q", volumePath)
 			if err = os.MkdirAll(volumePath, 0755); err != nil {
-				return nil, errors.Wrapf(err, "error creating directory %q for volume %q", volumePath, volume)
+				return nil, err
 			}
 			if err = label.Relabel(volumePath, mountLabel, false); err != nil {
-				return nil, errors.Wrapf(err, "error relabeling directory %q for volume %q", volumePath, volume)
+				return nil, err
 			}
 			initializeVolume = true
 		}
 		stat, err := os.Stat(srcPath)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", srcPath, volume)
+				return nil, err
 			}
 			if err = idtools.MkdirAllAndChownNew(srcPath, 0755, hostOwner); err != nil {
-				return nil, errors.Wrapf(err, "error creating directory %q for volume %q", srcPath, volume)
+				return nil, err
 			}
 			if stat, err = os.Stat(srcPath); err != nil {
-				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", srcPath, volume)
+				return nil, err
 			}
 		}
 		if initializeVolume {
 			if err = os.Chmod(volumePath, stat.Mode().Perm()); err != nil {
-				return nil, errors.Wrapf(err, "failed to chmod %q for volume %q", volumePath, volume)
+				return nil, err
 			}
 			if err = os.Chown(volumePath, int(stat.Sys().(*syscall.Stat_t).Uid), int(stat.Sys().(*syscall.Stat_t).Gid)); err != nil {
-				return nil, errors.Wrapf(err, "error chowning directory %q for volume %q", volumePath, volume)
+				return nil, err
 			}
-			if err = copyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(errors.Cause(err)) {
+			if err = extractWithTar(mountPoint, srcPath, volumePath); err != nil && !os.IsNotExist(errors.Cause(err)) {
 				return nil, errors.Wrapf(err, "error populating directory %q for volume %q using contents of %q", volumePath, volume, srcPath)
 			}
 		}
@@ -394,7 +418,10 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	for _, specMount := range spec.Mounts {
 		// Override some of the mounts from the generated list if we're doing different things with namespaces.
 		if specMount.Destination == "/dev/shm" {
-			specMount.Options = []string{"nosuid", "noexec", "nodev", "mode=1777", "size=" + shmSize}
+			specMount.Options = []string{"nosuid", "noexec", "nodev", "mode=1777"}
+			if shmSize != "" {
+				specMount.Options = append(specMount.Options, "size="+shmSize)
+			}
 			if hostIPC && !hostUser {
 				if _, err := os.Stat("/dev/shm"); err != nil && os.IsNotExist(err) {
 					logrus.Debugf("/dev/shm is not present, not binding into container")
@@ -462,26 +489,31 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		return errors.Wrapf(err, "error determining work directory for container %q", b.ContainerID)
 	}
 
-	// Figure out which UID and GID to tell the secrets package to use
+	// Figure out which UID and GID to tell the subscriptions package to use
 	// for files that it creates.
 	rootUID, rootGID, err := util.GetHostRootIDs(spec)
 	if err != nil {
 		return err
 	}
 
-	// Get the list of secrets mounts.
-	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, mountPoint, int(rootUID), int(rootGID), unshare.IsRootless(), false)
+	// Get the list of subscriptions mounts.
+	secretMounts := subscriptions.MountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, mountPoint, int(rootUID), int(rootGID), unshare.IsRootless(), false)
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
-	copyWithTar := b.copyWithTar(nil, nil, nil, false)
-	builtins, err := runSetupBuiltinVolumes(b.MountLabel, mountPoint, cdir, copyWithTar, builtinVolumes, int(rootUID), int(rootGID))
+	builtins, err := runSetupBuiltinVolumes(b.MountLabel, mountPoint, cdir, builtinVolumes, int(rootUID), int(rootGID))
+	if err != nil {
+		return err
+	}
+
+	// Get host UID and GID of the container process.
+	processUID, processGID, err := util.GetHostIDs(spec.Linux.UIDMappings, spec.Linux.GIDMappings, spec.Process.User.UID, spec.Process.User.GID)
 	if err != nil {
 		return err
 	}
 
 	// Get the list of explicitly-specified volume mounts.
-	volumes, err := b.runSetupVolumeMounts(spec.Linux.MountLabel, volumeMounts, optionMounts, int(rootUID), int(rootGID))
+	volumes, err := b.runSetupVolumeMounts(spec.Linux.MountLabel, volumeMounts, optionMounts, int(rootUID), int(rootGID), int(processUID), int(processGID))
 	if err != nil {
 		return err
 	}
@@ -505,11 +537,11 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string, namespaceOptions NamespaceOptions) (string, error) {
 	stat, err := os.Stat(hostPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "error statting %q for container %q", hostPath, b.ContainerID)
+		return "", err
 	}
 	contents, err := ioutil.ReadFile(hostPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to read %s", hostPath)
+		return "", err
 	}
 
 	search := resolvconf.GetSearchDomains(contents)
@@ -563,13 +595,12 @@ func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDP
 		gid = chownOpts.GID
 	}
 	if err = os.Chown(cfile, uid, gid); err != nil {
-		return "", errors.Wrapf(err, "error chowning file %q for container %q", cfile, b.ContainerID)
+		return "", err
 	}
 
 	if err := label.Relabel(cfile, b.MountLabel, false); err != nil {
-		return "", errors.Wrapf(err, "error relabeling %q in container %q", cfile, b.ContainerID)
+		return "", err
 	}
-
 	return cfile, nil
 }
 
@@ -578,13 +609,13 @@ func (b *Builder) generateHosts(rdir, hostname string, addHosts []string, chownO
 	hostPath := "/etc/hosts"
 	stat, err := os.Stat(hostPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "error statting %q for container %q", hostPath, b.ContainerID)
+		return "", err
 	}
 
 	hosts := bytes.NewBufferString("# Generated by Buildah\n")
 	orig, err := ioutil.ReadFile(hostPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to read %s", hostPath)
+		return "", err
 	}
 	hosts.Write(orig)
 	for _, host := range addHosts {
@@ -617,10 +648,10 @@ func (b *Builder) generateHosts(rdir, hostname string, addHosts []string, chownO
 		gid = chownOpts.GID
 	}
 	if err = os.Chown(cfile, uid, gid); err != nil {
-		return "", errors.Wrapf(err, "error chowning file %q for container %q", cfile, b.ContainerID)
+		return "", err
 	}
 	if err := label.Relabel(cfile, b.MountLabel, false); err != nil {
-		return "", errors.Wrapf(err, "error relabeling %q in container %q", cfile, b.ContainerID)
+		return "", err
 	}
 
 	return cfile, nil
@@ -669,7 +700,7 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 		return 1, errors.Wrapf(err, "error encoding configuration %#v as json", spec)
 	}
 	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0600); err != nil {
-		return 1, errors.Wrapf(err, "error storing runtime configuration in %q", filepath.Join(bundlePath, "config.json"))
+		return 1, errors.Wrapf(err, "error storing runtime configuration")
 	}
 
 	logrus.Debugf("config = %v", string(specbytes))
@@ -791,7 +822,7 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 	// Make sure we read the container's exit status when it exits.
 	pidValue, err := ioutil.ReadFile(pidFile)
 	if err != nil {
-		return 1, errors.Wrapf(err, "error reading pid from %q", pidFile)
+		return 1, err
 	}
 	pid, err := strconv.Atoi(strings.TrimSpace(string(pidValue)))
 	if err != nil {
@@ -841,13 +872,8 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 	stopped := false
 	defer func() {
 		if !stopped {
-			err2 := kill.Run()
-			if err2 != nil {
-				if err == nil {
-					err = errors.Wrapf(err2, "error stopping container")
-				} else {
-					logrus.Infof("error stopping container: %v", err2)
-				}
+			if err2 := kill.Run(); err2 != nil {
+				logrus.Infof("error stopping container: %v", err2)
 			}
 		}
 	}()
@@ -860,12 +886,12 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 		stat := exec.Command(runtime, args...)
 		stat.Dir = bundlePath
 		stat.Stderr = os.Stderr
-		stateOutput, stateErr := stat.Output()
-		if stateErr != nil {
-			return 1, errors.Wrapf(stateErr, "error reading container state")
+		stateOutput, err := stat.Output()
+		if err != nil {
+			return 1, errors.Wrapf(err, "error reading container state (got output: %q)", string(stateOutput))
 		}
 		if err = json.Unmarshal(stateOutput, &state); err != nil {
-			return 1, errors.Wrapf(stateErr, "error parsing container state %q", string(stateOutput))
+			return 1, errors.Wrapf(err, "error parsing container state %q", string(stateOutput))
 		}
 		switch state.Status {
 		case "running":
@@ -947,7 +973,7 @@ func runCollectOutput(fds, closeBeforeReadingFds []int) string {
 func setupRootlessNetwork(pid int) (teardown func(), err error) {
 	slirp4netns, err := exec.LookPath("slirp4netns")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot find slirp4netns")
+		return nil, err
 	}
 
 	rootlessSlirpSyncR, rootlessSlirpSyncW, err := os.Pipe()
@@ -1455,9 +1481,10 @@ func runUsingRuntimeMain() {
 	if err := setChildProcess(); err != nil {
 		os.Exit(1)
 	}
-	var ospec *specs.Spec
-	if options.Spec != nil {
-		ospec = options.Spec
+	ospec := options.Spec
+	if ospec == nil {
+		fmt.Fprintf(os.Stderr, "options spec not specified\n")
+		os.Exit(1)
 	}
 
 	// Run the container, start to finish.
@@ -1563,7 +1590,7 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 			p := filepath.Join("/proc/sys", strings.Replace(name, ".", "/", -1))
 			_, err := os.Stat(p)
 			if err != nil && !os.IsNotExist(err) {
-				return false, nil, false, errors.Wrapf(err, "cannot stat %s", p)
+				return false, nil, false, err
 			}
 			if err == nil {
 				g.AddLinuxSysctl(name, val)
@@ -1666,7 +1693,7 @@ func (b *Builder) cleanupTempVolumes() {
 	}
 }
 
-func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts []specs.Mount, rootUID, rootGID int) (mounts []specs.Mount, Err error) {
+func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts []specs.Mount, rootUID, rootGID, processUID, processGID int) (mounts []specs.Mount, Err error) {
 
 	// Make sure the overlay directory is clean before running
 	containerDir, err := b.store.ContainerDirectory(b.ContainerID)
@@ -1678,7 +1705,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 	}
 
 	parseMount := func(mountType, host, container string, options []string) (specs.Mount, error) {
-		var foundrw, foundro, foundz, foundZ, foundO bool
+		var foundrw, foundro, foundz, foundZ, foundO, foundU bool
 		var rootProp string
 		for _, opt := range options {
 			switch opt {
@@ -1692,6 +1719,8 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 				foundZ = true
 			case "O":
 				foundO = true
+			case "U":
+				foundU = true
 			case "private", "rprivate", "slave", "rslave", "shared", "rshared":
 				rootProp = opt
 			}
@@ -1701,12 +1730,17 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		}
 		if foundz {
 			if err := label.Relabel(host, mountLabel, true); err != nil {
-				return specs.Mount{}, errors.Wrapf(err, "relabeling %q failed", host)
+				return specs.Mount{}, err
 			}
 		}
 		if foundZ {
 			if err := label.Relabel(host, mountLabel, false); err != nil {
-				return specs.Mount{}, errors.Wrapf(err, "relabeling %q failed", host)
+				return specs.Mount{}, err
+			}
+		}
+		if foundU {
+			if err := chownSourceVolume(host, processUID, processGID); err != nil {
+				return specs.Mount{}, err
 			}
 		}
 		if foundO {
@@ -1725,6 +1759,14 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 
 				b.TempVolumes[contentDir] = true
 			}
+
+			// If chown true, add correct ownership to the overlay temp directories.
+			if foundU {
+				if err := chownSourceVolume(contentDir, processUID, processGID); err != nil {
+					return specs.Mount{}, err
+				}
+			}
+
 			return overlayMount, err
 		}
 		if rootProp == "" {
@@ -1768,6 +1810,39 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 	return mounts, nil
 }
 
+// chownSourceVolume changes the ownership of a volume source directory or file within the host.
+func chownSourceVolume(path string, UID, GID int) error {
+	fi, err := os.Lstat(path)
+	if err != nil {
+		// Skip if path does not exist
+		if os.IsNotExist(err) {
+			logrus.Debugf("error returning file info of %q: %v", path, err)
+			return nil
+		}
+		return err
+	}
+
+	currentUID := int(fi.Sys().(*syscall.Stat_t).Uid)
+	currentGID := int(fi.Sys().(*syscall.Stat_t).Gid)
+
+	if UID != currentUID || GID != currentGID {
+		err := filepath.Walk(path, func(filePath string, f os.FileInfo, err error) error {
+			return os.Lchown(filePath, UID, GID)
+		})
+
+		if err != nil {
+			// Skip if path does not exist
+			if os.IsNotExist(err) {
+				logrus.Debugf("error changing the uid and gid of %q: %v", path, err)
+				return nil
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 func setupMaskedPaths(g *generate.Generator) {
 	for _, mp := range []string{
 		"/proc/acpi",
@@ -1780,6 +1855,7 @@ func setupMaskedPaths(g *generate.Generator) {
 		"/proc/scsi",
 		"/sys/firmware",
 		"/sys/fs/selinux",
+		"/sys/dev",
 	} {
 		g.AddLinuxMaskedPaths(mp)
 	}
@@ -1967,7 +2043,7 @@ func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions
 		}
 	}
 
-	for _, envSpec := range append(append(defaultEnv, b.Env()...), options.Env...) {
+	for _, envSpec := range util.MergeEnv(util.MergeEnv(defaultEnv, b.Env()), options.Env) {
 		env := strings.SplitN(envSpec, "=", 2)
 		if len(env) > 1 {
 			g.AddProcessEnv(env[0], env[1])
@@ -1976,13 +2052,12 @@ func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions
 }
 
 func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, shmSize string) error {
-	spec.Hostname = ""
 	spec.Process.User.AdditionalGids = nil
 	spec.Linux.Resources = nil
 
 	emptyDir := filepath.Join(bundleDir, "empty")
 	if err := os.Mkdir(emptyDir, 0); err != nil {
-		return errors.Wrapf(err, "error creating %q", emptyDir)
+		return err
 	}
 
 	// Replace /sys with a read-only bind mount.
@@ -2071,7 +2146,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation Isolation, options RunOptions
 	if cmd.Stderr == nil {
 		cmd.Stderr = os.Stderr
 	}
-	cmd.Env = append(os.Environ(), fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel()))
+	cmd.Env = util.MergeEnv(os.Environ(), []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())})
 	preader, pwriter, err := os.Pipe()
 	if err != nil {
 		return errors.Wrapf(err, "error creating configuration pipe")
@@ -2132,14 +2207,10 @@ func checkAndOverrideIsolationOptions(isolation Isolation, options *RunOptions) 
 			logrus.Debugf("Forcing use of a user namespace.")
 		}
 		options.NamespaceOptions.AddOrReplace(NamespaceOption{Name: string(specs.UserNamespace)})
-		if ns := options.NamespaceOptions.Find(string(specs.UTSNamespace)); ns != nil && !ns.Host {
-			logrus.Debugf("Disabling UTS namespace.")
-		}
-		options.NamespaceOptions.AddOrReplace(NamespaceOption{Name: string(specs.UTSNamespace), Host: true})
 	case IsolationOCI:
 		pidns := options.NamespaceOptions.Find(string(specs.PIDNamespace))
 		userns := options.NamespaceOptions.Find(string(specs.UserNamespace))
-		if (pidns == nil || pidns.Host) && (userns != nil && !userns.Host) {
+		if (pidns != nil && pidns.Host) && (userns != nil && !userns.Host) {
 			return errors.Errorf("not allowed to mix host PID namespace with container user namespace")
 		}
 	}

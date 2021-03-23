@@ -65,7 +65,7 @@ It is currently in active development in the Kubernetes community through the [d
 | ---------------------------------------------------- | --------------------------------------------------------------------------|
 | [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                   |
 
-Note that kpod and its container management and debugging commands have moved to a separate repository, located [here](https://github.com/containers/libpod).
+Note that kpod and its container management and debugging commands have moved to a separate repository, located [here](https://github.com/containers/podman).
 
 ## Configuration
 | File                                       | Description                                                                                          |
@@ -77,7 +77,7 @@ Note that kpod and its container management and debugging commands have moved to
 
 ## OCI Hooks Support
 
-[You can configure CRI-O][libpod-hooks] to inject [OCI Hooks][spec-hooks] when creating containers.
+[You can configure CRI-O][podman-hooks] to inject [OCI Hooks][spec-hooks] when creating containers.
 
 ## CRI-O Usage Transfer
 
@@ -153,7 +153,7 @@ CONTAINER_RUNTIME_ENDPOINT='unix:///var/run/crio/crio.sock' \
 
 For more guidance in running `CRI-O`, visit our [tutorial page](tutorial.md)
 
-[libpod-hooks]: https://github.com/containers/libpod/blob/v0.6.2/pkg/hooks/README.md
+[podman-hooks]: https://github.com/containers/podman/blob/v3.0.1/pkg/hooks/README.md
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks
 
 #### The HTTP status API

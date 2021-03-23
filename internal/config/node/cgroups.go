@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	libpodcgroups "github.com/containers/libpod/v2/pkg/cgroups"
+	podmancgroups "github.com/containers/podman/v3/pkg/cgroups"
 	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/pkg/errors"
 )
@@ -27,7 +27,7 @@ var (
 
 func CgroupIsV2() bool {
 	var cgroupIsV2 bool
-	cgroupIsV2, cgroupIsV2Err = libpodcgroups.IsCgroup2UnifiedMode()
+	cgroupIsV2, cgroupIsV2Err = podmancgroups.IsCgroup2UnifiedMode()
 	return cgroupIsV2
 }
 
