@@ -345,17 +345,36 @@ allowed_annotations = [
 # Kata Containers with the Firecracker VMM
 #[crio.runtime.runtimes.kata-fc]
 
-#[crio.runtime.workloads.workload-type]
-# cpu_set = "0-1"
-# label = "workload-type.crio.io"
-# cpu_shares_annotation = "cpus.workload-type.crio.io"
+# The workloads table defines ways to customize containers with different resources
+# that work based on annotations, rather than the CRI.
+# Each workload, has a name, label, annotation_prefix and set of resources it supports mutating.
+# The currently supported resources are "cpu" (to configure the cpu shares) and "cpuset" to configure the cpuset.
+# Each resource can have a default value specified, or be empty.
+# For a container to opt-into this workload, the pod should be configured with the annotation label.
+# To customize per-container, an annotation of the form $annotation_prefix.$resource/$ctrName = "value" can be specified
+# signifying for that resource type to override the default value.
+# If the label is not present, every container in the pod will be given the default values.
+# Example:
+# [crio.runtime.workloads.workload-type]
+# label = "io.crio/workload=worload-type"
+# annotation_prefix = "io.crio.workload-type"
+# resources = { "cpu" = "", "cpuset" = "0-1", }
 # Where:
-# cpu_set is the CPU set for the workload type
-# label is used to identify the workload type
-# cpu_shares_annotation is the prefix to use for setting cpu shares
-# for the containers in the pod. For the example above, there could be
-# multiple annotations for each container in the pod in the form
-# "cpus.workload-type.crio.io/{container_name}"
+# The workload name is workload-type.
+# To specify, the pod must have the "io.crio/workload=workload-type" label (this is a precise string match).
+# This workload supports setting cpuset and cpu resources.
+# annotation_prefix is used to customize the different resources.
+# To configure the cpu shares a container gets in the example above, the pod would have to have the following annotation:
+# "io.crio.workload-type.cpu/{container_name} = {shares}"
+{{ range $workload_type, $workload_config := .Workloads  }}
+[crio.runtime.workloads.{{ $workload_type }}]
+label = "{{ $workload_config.Label }}"
+annotation_prefix = "{{ $workload_config.AnnotationPrefix }}"
+{{ if $workload_config.Resources }}
+resources = { {{ range $resource, $default := $workload_config.Resources }}{{ printf "%q = %q, " $resource $default }}{{ end }}}
+{{ end }}
+{{ end }}
+
 
 # The crio.image table contains settings pertaining to the management of OCI images.
 #

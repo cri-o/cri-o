@@ -28,6 +28,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/config/workloads"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -176,20 +177,8 @@ type RuntimeHandler struct {
 	DisallowedAnnotations []string
 }
 
-type WorkloadSettings struct {
-	// CPUSet is the cpu set to apply for the workload
-	CPUSet string `toml:"cpu_set"`
-	// Label is the pod label that activates these workload settings
-	Label string `toml:"label"`
-	// CPUSharesAnnotation is the annotation used to specify
-	// CPU shares to apply for the workload
-	CPUSharesAnnotation string `toml:"cpu_shares_annotation"`
-}
-
 // Multiple runtime Handlers in a map
 type Runtimes map[string]*RuntimeHandler
-
-type Workloads map[string]*WorkloadSettings
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
@@ -316,9 +305,9 @@ type RuntimeConfig struct {
 	// the level of trust of the workload.
 	Runtimes Runtimes `toml:"runtimes"`
 
-	// Workloads defines a list of workloads types that we group together
-	// settings to apply to.
-	Workloads Workloads `toml:"workloads"`
+	// Workloads defines a list of workloads types that are have grouped settings
+	// that will be applied to containers.
+	Workloads workloads.Workloads `toml:"workloads"`
 
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
@@ -861,7 +850,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		}
 	}
 
-	if err := c.ValidateWorkloads(); err != nil {
+	if err := c.Workloads.Validate(); err != nil {
 		return errors.Wrap(err, "workloads validation")
 	}
 
@@ -958,27 +947,6 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 		delete(c.Runtimes, invalidHandlerName)
 	}
 
-	return nil
-}
-
-// ValidateWorkloads validates the workload settings
-func (c *RuntimeConfig) ValidateWorkloads() error {
-	for workload, settings := range c.Workloads {
-		if err := settings.Validate(workload); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (w *WorkloadSettings) Validate(workloadType string) error {
-	_, err := cpuset.Parse(w.CPUSet)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse %q as CPU set for workload type %q", w.CPUSet, workloadType)
-	}
-	if w.Label == "" {
-		return fmt.Errorf("label shouldn't be empty for workload type %q", workloadType)
-	}
 	return nil
 }
 
