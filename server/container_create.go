@@ -178,54 +178,6 @@ func resolveSymbolicLink(scope, path string) (string, error) {
 	return securejoin.SecureJoin(scope, path)
 }
 
-// buildOCIProcessArgs build an OCI compatible process arguments slice.
-func buildOCIProcessArgs(ctx context.Context, containerKubeConfig *types.ContainerConfig, imageOCIConfig *v1.Image) ([]string, error) {
-	// # Start the nginx container using the default command, but use custom
-	// arguments (arg1 .. argN) for that command.
-	// kubectl run nginx --image=nginx -- <arg1> <arg2> ... <argN>
-
-	// # Start the nginx container using a different command and custom arguments.
-	// kubectl run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>
-
-	kubeCommands := containerKubeConfig.Command
-	kubeArgs := containerKubeConfig.Args
-
-	// merge image config and kube config
-	// same as docker does today...
-	if imageOCIConfig != nil {
-		if len(kubeCommands) == 0 {
-			if len(kubeArgs) == 0 {
-				kubeArgs = imageOCIConfig.Config.Cmd
-			}
-			if kubeCommands == nil {
-				kubeCommands = imageOCIConfig.Config.Entrypoint
-			}
-		}
-	}
-
-	if len(kubeCommands) == 0 && len(kubeArgs) == 0 {
-		return nil, fmt.Errorf("no command specified")
-	}
-
-	// create entrypoint and args
-	var entrypoint string
-	var args []string
-	if len(kubeCommands) != 0 {
-		entrypoint = kubeCommands[0]
-		args = kubeCommands[1:]
-		args = append(args, kubeArgs...)
-	} else {
-		entrypoint = kubeArgs[0]
-		args = kubeArgs[1:]
-	}
-
-	processArgs := append([]string{entrypoint}, args...)
-
-	log.Debugf(ctx, "OCI process args %v", processArgs)
-
-	return processArgs, nil
-}
-
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
 func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *types.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
 	if sc == nil {
