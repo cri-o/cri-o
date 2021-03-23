@@ -237,6 +237,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 		if systemdHasCollectMode {
 			c.spec.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 		}
+		c.spec.AddAnnotation("org.systemd.property.DefaultDependencies", "true")
 	}
 
 	if configStopSignal != "" {
