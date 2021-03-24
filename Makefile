@@ -392,6 +392,9 @@ bundle:
 bundle-test:
 	sudo contrib/bundle/test
 
+bundle-test-e2e:
+	sudo contrib/bundle/test-e2e
+
 bundles:
 	contrib/bundle/build amd64
 	contrib/bundle/build arm64
