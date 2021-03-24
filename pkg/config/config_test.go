@@ -957,4 +957,32 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 		})
 	})
+
+	t.Describe("ValidateRuntimeVMBinaryPattern", func() {
+		It("should succeed when using RuntimeTypeVM and runtime_path follows the containerd pattern", func() {
+			// Given
+			sut.Runtimes["kata"] = &config.RuntimeHandler{
+				RuntimePath: "containerd-shim-kata-qemu-v2", RuntimeType: config.RuntimeTypeVM,
+			}
+
+			// When
+			ok := sut.Runtimes["kata"].ValidateRuntimeVMBinaryPattern()
+
+			// Then
+			Expect(ok).To(BeTrue())
+		})
+
+		It("should fail when using RuntimeTypeVM and runtime_path does not follow the containerd pattern", func() {
+			// Given
+			sut.Runtimes["kata"] = &config.RuntimeHandler{
+				RuntimePath: "kata-runtime", RuntimeType: config.RuntimeTypeVM,
+			}
+
+			// When
+			ok := sut.Runtimes["kata"].ValidateRuntimeVMBinaryPattern()
+
+			// Then
+			Expect(ok).To(BeFalse())
+		})
+	})
 })

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -39,14 +40,15 @@ import (
 
 // Defaults if none are specified
 const (
-	defaultRuntime        = "runc"
-	DefaultRuntimeType    = "oci"
-	DefaultRuntimeRoot    = "/run/runc"
-	defaultGRPCMaxMsgSize = 16 * 1024 * 1024
-	OCIBufSize            = 8192
-	RuntimeTypeVM         = "vm"
-	defaultCtrStopTimeout = 30 // seconds
-	defaultNamespacesDir  = "/var/run"
+	defaultRuntime             = "runc"
+	DefaultRuntimeType         = "oci"
+	DefaultRuntimeRoot         = "/run/runc"
+	defaultGRPCMaxMsgSize      = 16 * 1024 * 1024
+	OCIBufSize                 = 8192
+	RuntimeTypeVM              = "vm"
+	defaultCtrStopTimeout      = 30 // seconds
+	defaultNamespacesDir       = "/var/run"
+	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -1048,6 +1050,21 @@ func (r *RuntimeHandler) Validate(name string) error {
 	return r.ValidateRuntimeType(name)
 }
 
+func (r *RuntimeHandler) ValidateRuntimeVMBinaryPattern() bool {
+	if r.RuntimeType != RuntimeTypeVM {
+		return true
+	}
+
+	binaryName := filepath.Base(r.RuntimePath)
+
+	matched, err := regexp.MatchString(RuntimeTypeVMBinaryPattern, binaryName)
+	if err != nil {
+		return false
+	}
+
+	return matched
+}
+
 // ValidateRuntimePath checks if the `RuntimePath` is either set or available
 // within the $PATH environment. The method fails on any `RuntimePath` lookup
 // error.
@@ -1063,6 +1080,13 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 		return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
 			name, err)
 	}
+
+	ok := r.ValidateRuntimeVMBinaryPattern()
+	if !ok {
+		return fmt.Errorf("invalid runtime_path for runtime '%s': containerd binary naming pattern is not followed",
+			name)
+	}
+
 	logrus.Debugf(
 		"Found valid runtime %q for runtime_path %q", name, r.RuntimePath,
 	)
