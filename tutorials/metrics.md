@@ -36,6 +36,8 @@ Beside the [default golang based metrics][2], CRI-O provides the following addit
 | `crio_image_pulls_by_digest`           | `name`, `digest`, `mediatype`, `size`                                                                                                   | Counter | Bytes transferred by CRI-O image pulls by digest.                        |
 | `crio_image_pulls_by_name`             | `name`, `size`                                                                                                                          | Counter | Bytes transferred by CRI-O image pulls by name.                          |
 | `crio_image_pulls_by_name_skipped`     | `name`                                                                                                                                  | Counter | Bytes skipped by CRI-O image pulls by name.                              |
+| `crio_containers_oom_total`            |                                                                                                                                         | Counter | Total number of containers killed because they ran out of memory (OOM)                               |
+| `crio_containers_oom`                  | `name`                                                                                                                                  | Counter | Containers killed because they ran out of memory (OOM) by their name                                 |
 
 \* Available CRI-O RPC's from the [gRPC API][3]: `Attach`, `ContainerStats`, `ContainerStatus`,
 `CreateContainer`, `Exec`, `ExecSync`, `ImageFsInfo`, `ImageStatus`,

@@ -17,6 +17,7 @@ import (
 	"github.com/containerd/containerd/runtime/v2/task"
 	"github.com/containerd/ttrpc"
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
 	"github.com/cri-o/cri-o/utils/fifo"
@@ -638,6 +639,23 @@ func (r *runtimeVM) updateContainerStatus(c *Container) error {
 	exitCode := int32(response.ExitStatus)
 	c.state.ExitCode = &exitCode
 
+	if exitCode != 0 {
+		oomFilePath := filepath.Join(c.bundlePath, "oom")
+		if _, err = os.Stat(oomFilePath); err == nil {
+			c.state.OOMKilled = true
+
+			// Collect total metric
+			metrics.CRIOContainersOOMTotal.Inc()
+
+			// Collect metric by container name
+			counter, err := metrics.CRIOContainersOOM.GetMetricWithLabelValues(c.Name())
+			if err != nil {
+				logrus.Warnf("Unable to write OOM metric by container: %v", err)
+			} else {
+				counter.Inc()
+			}
+		}
+	}
 	return nil
 }
 

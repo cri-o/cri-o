@@ -18,6 +18,7 @@ import (
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/cri-o/cri-o/internal/pkg/findprocess"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/fsnotify/fsnotify"
@@ -758,6 +759,17 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 		oomFilePath := filepath.Join(c.bundlePath, "oom")
 		if _, err = os.Stat(oomFilePath); err == nil {
 			c.state.OOMKilled = true
+
+			// Collect total metric
+			metrics.CRIOContainersOOMTotal.Inc()
+
+			// Collect metric by container name
+			counter, err := metrics.CRIOContainersOOM.GetMetricWithLabelValues(c.Name())
+			if err != nil {
+				logrus.Warnf("Unable to write OOM metric by container: %v", err)
+			} else {
+				counter.Inc()
+			}
 		}
 	}
 
