@@ -369,6 +369,11 @@ function check_journald() {
     echo "0"
 }
 
+# get a random available port
+function free_port() {
+    python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'
+}
+
 # Check whether metrics port is listening
 function check_metrics_port() {
     if ! netstat -lanp | grep "$1" >/dev/null; then

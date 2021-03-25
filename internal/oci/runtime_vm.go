@@ -17,6 +17,7 @@ import (
 	"github.com/containerd/containerd/runtime/v2/task"
 	"github.com/containerd/ttrpc"
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
 	"github.com/cri-o/cri-o/utils/fifo"
@@ -664,6 +665,17 @@ func (r *runtimeVM) updateContainerStatus(c *Container) error {
 		oomFilePath := filepath.Join(c.bundlePath, "oom")
 		if _, err = os.Stat(oomFilePath); err == nil {
 			c.state.OOMKilled = true
+
+			// Collect total metric
+			metrics.CRIOContainersOOMTotal.Inc()
+
+			// Collect metric by container name
+			counter, err := metrics.CRIOContainersOOM.GetMetricWithLabelValues(c.Name())
+			if err != nil {
+				logrus.Warnf("Unable to write OOM metric by container: %v", err)
+			} else {
+				counter.Inc()
+			}
 		}
 	}
 	return nil
@@ -729,12 +741,12 @@ func (r *runtimeVM) ContainerStats(c *Container, _ string) (*ContainerStats, err
 		return nil, errors.Wrap(err, "failed to extract container metrics")
 	}
 
-	metrics, ok := stats.(*cgroups.Metrics)
+	m, ok := stats.(*cgroups.Metrics)
 	if !ok {
 		return nil, errors.Errorf("Unknown stats type %T", stats)
 	}
 
-	return metricsToCtrStats(c, metrics), nil
+	return metricsToCtrStats(c, m), nil
 }
 
 // SignalContainer sends a signal to a container process.
