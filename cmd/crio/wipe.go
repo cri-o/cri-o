@@ -37,9 +37,18 @@ func crioWipe(c *cli.Context) error {
 		return err
 	}
 
-	// first, check whether crio has shutdown with time to sync
-	// if not, we should clear the storage directory
-	if config.CleanShutdownFile != "" {
+	// First, check if the node was rebooted.
+	// We know this happened because the VersionFile (which lives in a tmpfs)
+	// will not be there.
+	shouldWipeContainers, err := version.ShouldCrioWipe(config.VersionFile)
+	if err != nil {
+		logrus.Infof("checking whether cri-o should wipe containers: %v", err)
+	}
+
+	// Then, check whether crio has shutdown with time to sync.
+	// Note: this is only needed if the node rebooted.
+	// If there wasn't time to sync, we should clear the storage directory
+	if shouldWipeContainers && config.CleanShutdownFile != "" {
 		if _, err := os.Stat(config.CleanShutdownFile); err != nil {
 			logrus.Infof("file %s not found. Wiping storage directory %s because of suspected dirty shutdown", config.CleanShutdownFile, store.GraphRoot())
 			// If we do not do this, we may leak other resources that are not directly in the graphroot.
@@ -60,16 +69,11 @@ func crioWipe(c *cli.Context) error {
 	}
 
 	shouldWipeImages := true
-	shouldWipeContainers := true
 	// First, check if we need to upgrade at all
 	if !c.IsSet("force") {
 		// there are two locations we check before wiping:
 		// one in a temporary directory. This is to check whether the node has rebooted.
 		// if so, we should remove containers
-		shouldWipeContainers, err = version.ShouldCrioWipe(config.VersionFile)
-		if err != nil {
-			logrus.Infof("%v: triggering wipe of containers", err.Error())
-		}
 		// another is needed in a persistent directory. This is to check whether we've upgraded
 		// if we've upgraded, we should wipe images
 		shouldWipeImages, err = version.ShouldCrioWipe(config.VersionFilePersist)
