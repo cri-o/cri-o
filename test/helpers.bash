@@ -343,6 +343,11 @@ function check_journald() {
         journalctl --version
 }
 
+# get a random available port
+function free_port() {
+    python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'
+}
+
 # Check whether a port is listening
 function port_listens() {
     netstat -ln46 | grep -q ":$1\b"

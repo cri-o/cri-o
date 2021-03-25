@@ -38,6 +38,12 @@ const (
 	// CRIOImageLayerReuseKey is the key for the CRI-O image layer reuse metrics.
 	CRIOImageLayerReuseKey = "crio_image_layer_reuse"
 
+	// CRIOContainersOOMTotalKey is the key for the total CRI-O container out of memory metrics.
+	CRIOContainersOOMTotalKey = "crio_containers_oom_total"
+
+	// CRIOContainersOOMKey is the key for the CRI-O container out of memory metrics per container name.
+	CRIOContainersOOMKey = "crio_containers_oom"
+
 	subsystem = "container_runtime"
 )
 
@@ -144,6 +150,25 @@ var (
 		},
 		[]string{"name"},
 	)
+
+	// CRIOContainersOOMTotal collects container out of memory (oom) metrics for every container and sandboxes.
+	CRIOContainersOOMTotal = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Subsystem: subsystem,
+			Name:      CRIOContainersOOMTotalKey,
+			Help:      "Amount of containers killed because they ran out of memory (OOM)",
+		},
+	)
+
+	// CRIOContainersOOM collects container out of memory (oom) metrics per container and sandbox name.
+	CRIOContainersOOM = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Subsystem: subsystem,
+			Name:      CRIOContainersOOMKey,
+			Help:      "Amount of containers killed because they ran out of memory (OOM) by their name",
+		},
+		[]string{"name"},
+	)
 )
 
 var registerMetrics sync.Once
@@ -161,6 +186,8 @@ func Register() {
 		prometheus.MustRegister(CRIOImagePullsFailures)
 		prometheus.MustRegister(CRIOImagePullsSuccesses)
 		prometheus.MustRegister(CRIOImageLayerReuse)
+		prometheus.MustRegister(CRIOContainersOOMTotal)
+		prometheus.MustRegister(CRIOContainersOOM)
 	})
 }
 
