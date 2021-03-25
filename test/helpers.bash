@@ -421,6 +421,11 @@ function check_metrics_port() {
     echo "0"
 }
 
+# get a random available port
+function free_port() {
+    python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'
+}
+
 function cleanup_ctrs() {
     if output=$(crictl ps --quiet); then
         if [ "$output" != "" ]; then
