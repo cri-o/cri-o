@@ -857,38 +857,6 @@ function wait_until_exit() {
 	! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 }
 
-@test "ctr expose metrics with default port" {
-	# start crio with default port 9090
-	port="9090"
-	CONTAINER_ENABLE_METRICS=true start_crio
-	if ! port_listens "$port"; then
-		skip "Metrics port $port not listening"
-	fi
-
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
-
-	# get metrics
-	curl http://localhost:$port/metrics -k
-}
-
-@test "ctr expose metrics with custom port" {
-	# start crio with custom port
-	port="4321"
-	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$port start_crio
-	if ! port_listens "$port"; then
-		skip "Metrics port $port not listening"
-	fi
-
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
-
-	# get metrics
-	curl http://localhost:$port/metrics -k
-}
-
 @test "privileged ctr -- check for rw mounts" {
 	# Can't run privileged container in userns
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
