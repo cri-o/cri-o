@@ -362,8 +362,9 @@ function cleanup_pods() {
 }
 
 function stop_crio_no_clean() {
+    local signal="$1"
     if [ -n "${CRIO_PID+x}" ]; then
-        kill "$CRIO_PID" >/dev/null 2>&1
+        kill "$signal" "$CRIO_PID" >/dev/null 2>&1 || true
         wait "$CRIO_PID"
         unset CRIO_PID
     fi
@@ -371,7 +372,7 @@ function stop_crio_no_clean() {
 
 # Stop crio.
 function stop_crio() {
-    stop_crio_no_clean
+    stop_crio_no_clean ""
     cleanup_network_conf
 }
 
