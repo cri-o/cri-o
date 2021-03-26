@@ -49,7 +49,7 @@ func (c *Config) Reload() error {
 			return err
 		}
 	} else {
-		logrus.Infof("skipping not-existing config file %s", c.singleConfigPath)
+		logrus.Infof("skipping not-existing config file %q", c.singleConfigPath)
 	}
 
 	if _, err := os.Stat(c.dropInConfigDir); !os.IsNotExist(err) {
@@ -58,7 +58,7 @@ func (c *Config) Reload() error {
 			return err
 		}
 	} else {
-		logrus.Infof("skipping not-existing config path %s", c.dropInConfigDir)
+		logrus.Infof("skipping not-existing config path %q", c.dropInConfigDir)
 	}
 
 	// Reload all available options

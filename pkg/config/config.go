@@ -486,10 +486,25 @@ func (t *tomlConfig) fromConfig(c *Config) {
 	t.Crio.Metrics.MetricsConfig = c.MetricsConfig
 }
 
-// UpdateFromFile populates the Config from the TOML-encoded file at the given path.
+// UpdateFromFile populates the Config from the TOML-encoded file at the given
+// path and "remembers" that we should reload this file's contents when we
+// receive a SIGHUP.
 // Returns errors encountered when reading or parsing the files, or nil
 // otherwise.
 func (c *Config) UpdateFromFile(path string) error {
+	if err := c.UpdateFromDropInFile(path); err != nil {
+		return err
+	}
+	c.singleConfigPath = path
+	return nil
+}
+
+// UpdateFromDropInFile populates the Config from the TOML-encoded file at the
+// given path.  The file may be the main configuration file, or it can be one
+// of the drop-in files which are used to supplement it.
+// Returns errors encountered when reading or parsing the files, or nil
+// otherwise.
+func (c *Config) UpdateFromDropInFile(path string) error {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
@@ -517,14 +532,13 @@ func (c *Config) UpdateFromFile(path string) error {
 	}
 
 	t.toConfig(c)
-	c.singleConfigPath = path
 	return nil
 }
 
 // UpdateFromPath recursively iterates the provided path and updates the
 // configuration for it
 func (c *Config) UpdateFromPath(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
 		return nil
 	}
 	if err := filepath.Walk(path,
@@ -535,7 +549,7 @@ func (c *Config) UpdateFromPath(path string) error {
 			if info.IsDir() {
 				return nil
 			}
-			return c.UpdateFromFile(p)
+			return c.UpdateFromDropInFile(p)
 		}); err != nil {
 		return err
 	}
@@ -1076,7 +1090,7 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 		}
 		r.RuntimePath = executable
 		logrus.Debugf("using runtime executable from $PATH %q", executable)
-	} else if _, err := os.Stat(r.RuntimePath); os.IsNotExist(err) {
+	} else if _, err := os.Stat(r.RuntimePath); err != nil && os.IsNotExist(err) {
 		return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
 			name, err)
 	}
