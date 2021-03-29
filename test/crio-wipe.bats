@@ -187,6 +187,20 @@ function start_crio_with_stopped_pod() {
 	[ "$status" -ne 0 ]
 }
 
+@test "don't clear containers if clean shutdown supported file not present" {
+	start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE.supported"
+
+	run_crio_wipe
+
+	start_crio_no_setup
+
+	test_crio_did_not_wipe_containers
+	test_crio_did_not_wipe_images
+}
+
 @test "internal_wipe remove containers and images when remove both" {
 	# simulate a reboot by having a removable namespaces dir
 	start_crio_with_stopped_pod
