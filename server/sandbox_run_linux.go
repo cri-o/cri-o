@@ -814,6 +814,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		strings.Contains(strings.ToLower(runtimeHandler), "kata") ||
 		(runtimeHandler == "" && strings.Contains(strings.ToLower(s.config.DefaultRuntime), "kata"))
 
+	if err := s.config.Workloads.MutateCgroupGivenAnnotations(s.config.CgroupManager(), cgroupParent, sb.Annotations()); err != nil {
+		return nil, err
+	}
+
 	var container *oci.Container
 	// In the case of kernel separated containers, we need the infra container to create the VM for the pod
 	if sb.NeedsInfra(s.config.DropInfraCtr) || podIsKernelSeparated {
