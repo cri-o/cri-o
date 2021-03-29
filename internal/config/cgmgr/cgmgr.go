@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
+	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -69,6 +70,8 @@ type CgroupManager interface {
 	// RemoveSandboxCgroup takes the sandbox parent, and sandbox ID.
 	// It loads a cgroup for that sandbox, and then deletes it.
 	RemoveSandboxCgroup(sbParent, containerID string) error
+	// Apply applies the Cgroup settings to the cgroup sbParent
+	Apply(string, *cgcfgs.Cgroup) error
 }
 
 // New creates a new CgroupManager with defaults
