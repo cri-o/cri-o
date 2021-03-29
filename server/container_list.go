@@ -85,6 +85,15 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 		img := &types.ImageSpec{
 			Image: ctr.Image(),
 		}
+
+		if cState.Status == oci.ContainerStateStopped && cState.ExitCode == nil {
+			err := s.Runtime().UpdateContainerStatus(ctx, ctr)
+			if err != nil {
+				log.Warnf(ctx, "Failed to update container status for %s: %v", ctr.ID(), err)
+			}
+			cState = ctr.State()
+		}
+
 		c := &types.Container{
 			ID:           cID,
 			PodSandboxID: podSandboxID,
