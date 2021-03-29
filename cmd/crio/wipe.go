@@ -7,6 +7,7 @@ import (
 	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/version"
+	crioconf "github.com/cri-o/cri-o/pkg/config"
 	json "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -36,41 +37,18 @@ func crioWipe(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
-	// First, check if the node was rebooted.
-	// We know this happened because the VersionFile (which lives in a tmpfs)
-	// will not be there.
-	shouldWipeContainers, err := version.ShouldCrioWipe(config.VersionFile)
-	if err != nil {
-		logrus.Infof("checking whether cri-o should wipe containers: %v", err)
-	}
-
-	// Then, check whether crio has shutdown with time to sync.
-	// Note: this is only needed if the node rebooted.
-	// If there wasn't time to sync, we should clear the storage directory
-	if shouldWipeContainers && config.CleanShutdownFile != "" {
-		if _, err := os.Stat(config.CleanShutdownFile); err != nil {
-			logrus.Infof("file %s not found. Wiping storage directory %s because of suspected dirty shutdown", config.CleanShutdownFile, store.GraphRoot())
-			// If we do not do this, we may leak other resources that are not directly in the graphroot.
-			// Erroring here should not be fatal though, it's a best effort cleanup
-			if err := store.Wipe(); err != nil {
-				logrus.Infof("failed to wipe storage cleanly: %v", err)
-			}
-			// unmount storage or else we will fail with EBUSY
-			if _, err := store.Shutdown(false); err != nil {
-				return errors.Errorf("failed to shutdown storage before wiping: %v", err)
-			}
-			// totally remove storage, whatever is left (possibly orphaned layers)
-			if err := os.RemoveAll(store.GraphRoot()); err != nil {
-				return errors.Errorf("failed to remove storage directory: %v", err)
-			}
-			return nil
-		}
-	}
-
 	shouldWipeImages := true
-	// First, check if we need to upgrade at all
+	shouldWipeContainers := true
+
 	if !c.IsSet("force") {
+		// First, check if the node was rebooted.
+		// We know this happened because the VersionFile (which lives in a tmpfs)
+		// will not be there.
+		shouldWipeContainers, err = version.ShouldCrioWipe(config.VersionFile)
+		if err != nil {
+			logrus.Infof("checking whether cri-o should wipe containers: %v", err)
+		}
+
 		// there are two locations we check before wiping:
 		// one in a temporary directory. This is to check whether the node has rebooted.
 		// if so, we should remove containers
@@ -80,6 +58,13 @@ func crioWipe(c *cli.Context) error {
 		if err != nil {
 			logrus.Infof("%v: triggering wipe of images", err.Error())
 		}
+	}
+
+	// Then, check whether crio has shutdown with time to sync.
+	// Note: this is only needed if the node rebooted.
+	// If there wasn't time to sync, we should clear the storage directory
+	if shouldWipeContainers && shutdownWasUnclean(config) {
+		return handleCleanShutdown(config, store)
 	}
 
 	// if we should not wipe, exit with no error
@@ -100,6 +85,40 @@ func crioWipe(c *cli.Context) error {
 		return err
 	}
 
+	return nil
+}
+
+func shutdownWasUnclean(config *crioconf.Config) bool {
+	// CleanShutdownFile not configured, skip
+	if config.CleanShutdownFile == "" {
+		return false
+	}
+	// CleanShutdownFile isn't supported, skip
+	if _, err := os.Stat(config.CleanShutdownSupportedFileName()); err != nil {
+		return false
+	}
+	// CleanShutdownFile is present, indicating clean shutdown
+	if _, err := os.Stat(config.CleanShutdownFile); err == nil {
+		return false
+	}
+	return true
+}
+
+func handleCleanShutdown(config *crioconf.Config, store cstorage.Store) error {
+	logrus.Infof("file %s not found. Wiping storage directory %s because of suspected dirty shutdown", config.CleanShutdownFile, store.GraphRoot())
+	// If we do not do this, we may leak other resources that are not directly in the graphroot.
+	// Erroring here should not be fatal though, it's a best effort cleanup
+	if err := store.Wipe(); err != nil {
+		logrus.Infof("failed to wipe storage cleanly: %v", err)
+	}
+	// unmount storage or else we will fail with EBUSY
+	if _, err := store.Shutdown(false); err != nil {
+		return errors.Errorf("failed to shutdown storage before wiping: %v", err)
+	}
+	// totally remove storage, whatever is left (possibly orphaned layers)
+	if err := os.RemoveAll(store.GraphRoot()); err != nil {
+		return errors.Errorf("failed to remove storage directory: %v", err)
+	}
 	return nil
 }
 

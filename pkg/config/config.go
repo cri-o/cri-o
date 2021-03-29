@@ -724,6 +724,10 @@ func (c *RootConfig) Validate(onExecution bool) error {
 	return nil
 }
 
+func (c *RootConfig) CleanShutdownSupportedFileName() string {
+	return c.CleanShutdownFile + ".supported"
+}
+
 // Validate is the main entry point for runtime configuration validation
 // The parameter `onExecution` specifies if the validation should include
 // execution checks. It returns an `error` on validation failure, otherwise
