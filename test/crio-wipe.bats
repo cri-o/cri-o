@@ -184,3 +184,17 @@ function start_crio_with_stopped_pod() {
 	test_crio_did_not_wipe_containers
 	test_crio_did_not_wipe_images
 }
+
+@test "don't clear containers if clean shutdown supported file not present" {
+	start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE.supported"
+
+	run_crio_wipe
+
+	start_crio_no_setup
+
+	test_crio_did_not_wipe_containers
+	test_crio_did_not_wipe_images
+}
