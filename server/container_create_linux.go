@@ -581,6 +581,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
+	if err := s.config.Workloads.MutateSpecGivenAnnotations(ctr.Config().Metadata.Name, ctr.Spec(), sb.Annotations()); err != nil {
+		return nil, err
+	}
+
 	// First add any configured environment variables from crio config.
 	// They will get overridden if specified in the image or container config.
 	specgen.AddMultipleProcessEnv(s.Config().DefaultEnv)
