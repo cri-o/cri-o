@@ -64,15 +64,22 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			setField = true
 		}
 
+		graphDriverChanged := false
 		if config.GraphDriverName != "" {
 			rt.storageConfig.GraphDriverName = config.GraphDriverName
 			rt.storageSet.GraphDriverNameSet = true
 			setField = true
+			graphDriverChanged = true
 		}
 
 		if config.GraphDriverOptions != nil {
-			rt.storageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
-			copy(rt.storageConfig.GraphDriverOptions, config.GraphDriverOptions)
+			if graphDriverChanged {
+				rt.storageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
+				copy(rt.storageConfig.GraphDriverOptions, config.GraphDriverOptions)
+			} else {
+				// append new options after what is specified in the config files
+				rt.storageConfig.GraphDriverOptions = append(rt.storageConfig.GraphDriverOptions, config.GraphDriverOptions...)
+			}
 			setField = true
 		}
 
@@ -1357,7 +1364,7 @@ func WithRestartPolicy(policy string) CtrCreateOption {
 		}
 
 		switch policy {
-		case RestartPolicyNone, RestartPolicyNo, RestartPolicyOnFailure, RestartPolicyAlways, RestartPolicyUnlessStopped:
+		case define.RestartPolicyNone, define.RestartPolicyNo, define.RestartPolicyOnFailure, define.RestartPolicyAlways, define.RestartPolicyUnlessStopped:
 			ctr.config.RestartPolicy = policy
 		default:
 			return errors.Wrapf(define.ErrInvalidArg, "%q is not a valid restart policy", policy)
