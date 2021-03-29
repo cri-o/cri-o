@@ -27,7 +27,7 @@ require (
 	github.com/emicklei/go-restful v2.15.0+incompatible
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-zoo/bone v1.3.0
-	github.com/godbus/dbus/v5 v5.0.3
+	github.com/godbus/dbus/v5 v5.0.4
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.5.0
 	github.com/google/renameio v1.0.0
