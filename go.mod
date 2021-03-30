@@ -11,13 +11,13 @@ require (
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
 	github.com/containers/buildah v1.19.8
-	github.com/containers/common v0.35.2
+	github.com/containers/common v0.35.3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.10.5
 	github.com/containers/ocicrypt v1.1.0
-	github.com/containers/podman/v3 v3.1.0-rc1
+	github.com/containers/podman/v3 v3.1.0-rc2
 	github.com/containers/storage v1.28.0
-	github.com/coreos/go-systemd/v22 v22.2.0
+	github.com/coreos/go-systemd/v22 v22.3.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
 	github.com/cri-o/ocicni v0.2.1-0.20210301205850-541cf7c703cf
@@ -44,7 +44,7 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
 	github.com/opencontainers/selinux v1.8.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.9.0
+	github.com/prometheus/client_golang v1.10.0
 	github.com/psampaz/go-mod-outdated v0.7.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/soheilhy/cmux v0.1.4
@@ -57,7 +57,7 @@ require (
 	golang.org/x/sys v0.0.0-20210317091845-390168757d9c
 	google.golang.org/grpc v1.34.0
 	k8s.io/api v0.20.1
-	k8s.io/apimachinery v0.20.4
+	k8s.io/apimachinery v0.20.5
 	k8s.io/client-go v0.20.1
 	k8s.io/cri-api v0.20.5
 	k8s.io/klog/v2 v2.8.0
