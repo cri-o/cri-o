@@ -313,16 +313,34 @@ func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io
 		func() (types.ImageReference, error) {
 			return layout.NewReference(inputFile, "")
 		},
+		func() (types.ImageReference, error) {
+			// This item needs to be last to break out of loop and report meaningful error message
+			return nil,
+				errors.New("payload does not match any of the supported image formats (oci-archive, oci-dir, docker-archive, docker-dir)")
+		},
 	} {
 		src, err := referenceFn()
-		if err == nil && src != nil {
-			if newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer); err == nil {
-				return getImageNames(newImages), nil
-			}
+		if err != nil {
 			saveErr = err
+			continue
 		}
+
+		newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+		if err == nil {
+			return getImageNames(newImages), nil
+		}
+		saveErr = err
 	}
 	return "", errors.Wrapf(saveErr, "error pulling image")
+}
+
+// RemoveImageFromStorage goes directly to storage and attempts to remove
+// the specified image. This is dangerous and should only be done if libpod
+// reports that image is not known. This call is useful if you have a corrupted
+// image that was never fully added to the libpod database.
+func (r *Runtime) RemoveImageFromStorage(id string) error {
+	_, err := r.store.DeleteImage(id, true)
+	return err
 }
 
 func getImageNames(images []*image.Image) string {
