@@ -493,7 +493,7 @@ github.com/go-ole/go-ole/oleutil
 # github.com/go-zoo/bone v1.3.0
 ## explicit
 github.com/go-zoo/bone
-# github.com/godbus/dbus/v5 v5.0.3
+# github.com/godbus/dbus/v5 v5.0.4
 ## explicit
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
