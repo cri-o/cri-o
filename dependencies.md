@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 30 Mar 2021 09:12:28 UTC for commit [fbe93a1][0]._
+_Generated on Tue, 30 Mar 2021 10:46:41 UTC for commit [5fcd229][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fbe93a1f1df357477af51a2d9fb49fd296029aa5
+[0]: https://github.com/cri-o/cri-o/commit/5fcd229bc832ac884c0966b65d4936a93dc76847
 
 ## Outdated Dependencies
 
@@ -22,7 +22,6 @@ _Generated on Tue, 30 Mar 2021 09:12:28 UTC for commit [fbe93a1][0]._
 | k8s.io/api                          | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210329202409-6572fe4d9017 | true   | true             |
 | k8s.io/apimachinery                 | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210329202409-6572fe4d9017 | true   | true             |
 | k8s.io/client-go                    | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210329202409-6572fe4d9017 | true   | true             |
-| k8s.io/cri-api                      | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210329202409-6572fe4d9017 | true   | true             |
 
 ## All Dependencies
 
@@ -628,7 +627,7 @@ _Generated on Tue, 30 Mar 2021 09:12:28 UTC for commit [fbe93a1][0]._
 | golang.org/x/time                                        | v0.0.0-20210220033141-f8bda1e9f3ba                        |                                    | false  | true             |
 | golang.org/x/tools                                       | v0.1.0                                                    |                                    | false  | true             |
 | golang.org/x/xerrors                                     | v0.0.0-20200804184101-5ec99f83aff1                        |                                    | false  | true             |
-| gonum.org/v1/gonum                                       | v0.6.2                                                    | v0.9.0                             | false  | true             |
+| gonum.org/v1/gonum                                       | v0.6.2                                                    | v0.9.1                             | false  | true             |
 | gonum.org/v1/netlib                                      | v0.0.0-20190331212654-76723241ea4e                        | v0.0.0-20210302091547-ede94419cf37 | false  | true             |
 | gonum.org/v1/plot                                        | v0.0.0-20190515093506-e2840ee46a6b                        | v0.9.0                             | false  | true             |
 | google.golang.org/api                                    | v0.36.0                                                   | v0.43.0                            | false  | true             |
