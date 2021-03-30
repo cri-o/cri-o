@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 30 Mar 2021 00:10:10 UTC for commit [373a0db][0]._
+_Generated on Tue, 30 Mar 2021 09:12:28 UTC for commit [fbe93a1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/373a0db60972fb99cc90281ce40c2b85c5f378ba
+[0]: https://github.com/cri-o/cri-o/commit/fbe93a1f1df357477af51a2d9fb49fd296029aa5
 
 ## Outdated Dependencies
 
@@ -16,14 +16,13 @@ _Generated on Tue, 30 Mar 2021 00:10:10 UTC for commit [373a0db][0]._
 | github.com/godbus/dbus/v5           | v5.0.3                             | v5.0.4                             | true   | true             |
 | github.com/prometheus/client_golang | v1.9.0                             | v1.10.0                            | true   | true             |
 | github.com/soheilhy/cmux            | v0.1.4                             | v0.1.5                             | true   | true             |
-| golang.org/x/net                    | v0.0.0-20210316092652-d523dce5a7f4 | v0.0.0-20210329181859-df645c7b52b1 | true   | true             |
+| golang.org/x/net                    | v0.0.0-20210316092652-d523dce5a7f4 | v0.0.0-20210330075724-22f4162a9025 | true   | true             |
 | golang.org/x/sys                    | v0.0.0-20210317091845-390168757d9c | v0.0.0-20210326220804-49726bf1d181 | true   | true             |
 | google.golang.org/grpc              | v1.27.0                            | v1.36.1                            | true   | true             |
 | k8s.io/api                          | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210329202409-6572fe4d9017 | true   | true             |
 | k8s.io/apimachinery                 | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210329202409-6572fe4d9017 | true   | true             |
 | k8s.io/client-go                    | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210329202409-6572fe4d9017 | true   | true             |
 | k8s.io/cri-api                      | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210329202409-6572fe4d9017 | true   | true             |
-| k8s.io/kubernetes                   | v1.21.0-beta.1                     |                                    | true   | true             |
 
 ## All Dependencies
 
@@ -515,7 +514,7 @@ _Generated on Tue, 30 Mar 2021 00:10:10 UTC for commit [373a0db][0]._
 | github.com/robfig/cron                                   | v1.1.0                                                    | v1.2.0                             | false  | true             |
 | github.com/rogpeppe/fastuuid                             | v0.0.0-20150106093220-6724a57986af                        | v1.2.0                             | false  | true             |
 | github.com/rogpeppe/go-internal                          | v1.6.2                                                    | v1.8.0                             | false  | true             |
-| github.com/rootless-containers/rootlesskit               | v0.14.0-beta.0                                            | v0.14.0                            | false  | true             |
+| github.com/rootless-containers/rootlesskit               | v0.14.0-beta.0                                            | v0.14.1                            | false  | true             |
 | github.com/rubiojr/go-vhd                                | v0.0.0-20200706105327-02e210299021                        | v0.0.0-20200706122120-ccecf6c0760f | false  | true             |
 | github.com/russross/blackfriday                          | v1.5.2                                                    | v1.6.0                             | false  | true             |
 | github.com/russross/blackfriday/v2                       | v2.1.0                                                    |                                    | false  | true             |
@@ -620,7 +619,7 @@ _Generated on Tue, 30 Mar 2021 00:10:10 UTC for commit [373a0db][0]._
 | golang.org/x/lint                                        | v0.0.0-20201208152925-83fdc39ff7b5                        |                                    | false  | true             |
 | golang.org/x/mobile                                      | v0.0.0-20201217150744-e6ae53a27f4f                        | v0.0.0-20210220033013-bdb1ca9a1e08 | false  | true             |
 | golang.org/x/mod                                         | v0.4.0                                                    | v0.4.2                             | false  | true             |
-| golang.org/x/net                                         | v0.0.0-20210316092652-d523dce5a7f4                        | v0.0.0-20210329181859-df645c7b52b1 | true   | true             |
+| golang.org/x/net                                         | v0.0.0-20210316092652-d523dce5a7f4                        | v0.0.0-20210330075724-22f4162a9025 | true   | true             |
 | golang.org/x/oauth2                                      | v0.0.0-20210112200429-01de73cf58bd                        | v0.0.0-20210323180902-22b0adad7558 | false  | true             |
 | golang.org/x/sync                                        | v0.0.0-20210220032951-036812b2e83c                        |                                    | true   | true             |
 | golang.org/x/sys                                         | v0.0.0-20210317091845-390168757d9c                        | v0.0.0-20210326220804-49726bf1d181 | true   | true             |
