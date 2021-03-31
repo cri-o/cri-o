@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 31 Mar 2021 10:06:18 UTC for commit [a2fec8a][0]._
+_Generated on Wed, 31 Mar 2021 16:20:18 UTC for commit [0ec3a4f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a2fec8a9147baba3cb20f1b98df719a33a8a6bd8
+[0]: https://github.com/cri-o/cri-o/commit/0ec3a4ff19ec6a6e2f5f0554ef9a9272498d7a3b
 
 ## Outdated Dependencies
 
@@ -15,9 +15,9 @@ _Generated on Wed, 31 Mar 2021 10:06:18 UTC for commit [a2fec8a][0]._
 | github.com/soheilhy/cmux        | v0.1.4                             | v0.1.5                             | true   | true             |
 | golang.org/x/net                | v0.0.0-20210316092652-d523dce5a7f4 | v0.0.0-20210331060903-cb1fcc7394e5 | true   | true             |
 | golang.org/x/sys                | v0.0.0-20210317091845-390168757d9c | v0.0.0-20210330210617-4fbd30eecc44 | true   | true             |
-| google.golang.org/grpc          | v1.27.0                            | v1.36.1                            | true   | true             |
 | k8s.io/api                      | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210331045458-a651804427dd | true   | true             |
 | k8s.io/client-go                | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210331045458-a651804427dd | true   | true             |
+| k8s.io/release                  | v0.7.0                             | v0.8.0                             | true   | true             |
 
 ## All Dependencies
 
@@ -235,7 +235,7 @@ _Generated on Wed, 31 Mar 2021 10:06:18 UTC for commit [a2fec8a][0]._
 | github.com/go-logfmt/logfmt                              | v0.5.0                                                    |                                    | false  | true             |
 | github.com/go-logr/logr                                  | v0.4.0                                                    |                                    | false  | true             |
 | github.com/go-ole/go-ole                                 | v1.2.4                                                    | v1.2.5                             | false  | true             |
-| github.com/go-openapi/analysis                           | v0.19.5                                                   | v0.20.0                            | false  | true             |
+| github.com/go-openapi/analysis                           | v0.19.5                                                   | v0.20.1                            | false  | true             |
 | github.com/go-openapi/errors                             | v0.19.2                                                   | v0.20.0                            | false  | true             |
 | github.com/go-openapi/jsonpointer                        | v0.19.3                                                   | v0.19.5                            | false  | true             |
 | github.com/go-openapi/jsonreference                      | v0.19.3                                                   | v0.19.5                            | false  | true             |
@@ -243,7 +243,7 @@ _Generated on Wed, 31 Mar 2021 10:06:18 UTC for commit [a2fec8a][0]._
 | github.com/go-openapi/runtime                            | v0.19.4                                                   | v0.19.27                           | false  | true             |
 | github.com/go-openapi/spec                               | v0.19.5                                                   | v0.20.3                            | false  | true             |
 | github.com/go-openapi/strfmt                             | v0.19.5                                                   | v0.20.1                            | false  | true             |
-| github.com/go-openapi/swag                               | v0.19.5                                                   | v0.19.14                           | false  | true             |
+| github.com/go-openapi/swag                               | v0.19.5                                                   | v0.19.15                           | false  | true             |
 | github.com/go-openapi/validate                           | v0.19.8                                                   | v0.20.2                            | false  | true             |
 | github.com/go-ozzo/ozzo-validation                       | v3.5.0+incompatible                                       | v3.6.0+incompatible                | false  | true             |
 | github.com/go-sql-driver/mysql                           | v1.5.0                                                    |                                    | false  | true             |
@@ -328,7 +328,7 @@ _Generated on Wed, 31 Mar 2021 10:06:18 UTC for commit [a2fec8a][0]._
 | github.com/hashicorp/go-sockaddr                         | v1.0.0                                                    | v1.0.2                             | false  | true             |
 | github.com/hashicorp/go-syslog                           | v1.0.0                                                    |                                    | false  | true             |
 | github.com/hashicorp/go-uuid                             | v1.0.1                                                    | v1.0.2                             | false  | true             |
-| github.com/hashicorp/go-version                          | v1.2.0                                                    | v1.2.1                             | false  | true             |
+| github.com/hashicorp/go-version                          | v1.2.0                                                    | v1.3.0                             | false  | true             |
 | github.com/hashicorp/go.net                              | v0.0.1                                                    |                                    | false  | true             |
 | github.com/hashicorp/golang-lru                          | v0.5.3                                                    | v0.5.4                             | false  | true             |
 | github.com/hashicorp/hcl                                 | v1.0.0                                                    |                                    | false  | true             |
@@ -404,7 +404,7 @@ _Generated on Wed, 31 Mar 2021 10:06:18 UTC for commit [a2fec8a][0]._
 | github.com/matoous/godox                                 | v0.0.0-20190911065817-5d6d842e92eb                        | v0.0.0-20210227103229-6504466cf951 | false  | true             |
 | github.com/mattn/go-colorable                            | v0.1.8                                                    |                                    | false  | true             |
 | github.com/mattn/go-isatty                               | v0.0.12                                                   |                                    | false  | true             |
-| github.com/mattn/go-runewidth                            | v0.0.10                                                   |                                    | false  | true             |
+| github.com/mattn/go-runewidth                            | v0.0.10                                                   | v0.0.11                            | false  | true             |
 | github.com/mattn/go-shellwords                           | v1.0.11                                                   |                                    | false  | true             |
 | github.com/mattn/go-sqlite3                              | v1.9.0                                                    | v1.14.6                            | false  | true             |
 | github.com/mattn/goveralls                               | v0.0.2                                                    | v0.0.8                             | false  | true             |
@@ -630,7 +630,7 @@ _Generated on Wed, 31 Mar 2021 10:06:18 UTC for commit [a2fec8a][0]._
 | google.golang.org/api                                    | v0.36.0                                                   | v0.43.0                            | false  | true             |
 | google.golang.org/appengine                              | v1.6.7                                                    |                                    | false  | true             |
 | google.golang.org/cloud                                  | v0.0.0-20151119220103-975617b05ea8                        | v0.80.0                            | false  | true             |
-| google.golang.org/genproto                               | v0.0.0-20200117163144-32f20d992d24                        | v0.0.0-20210330181207-2295ebbda0c6 | false  | true             |
+| google.golang.org/genproto                               | v0.0.0-20200117163144-32f20d992d24                        | v0.0.0-20210331142528-b7513248f0ba | false  | true             |
 | google.golang.org/grpc                                   | v1.27.0                                                   | v1.36.1                            | true   | true             |
 | google.golang.org/protobuf                               | v1.25.0                                                   | v1.26.0                            | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                             | v2.0.9                                                    |                                    | false  | true             |
@@ -686,7 +686,7 @@ _Generated on Wed, 31 Mar 2021 10:06:18 UTC for commit [a2fec8a][0]._
 | k8s.io/legacy-cloud-providers                            | v0.0.0-20210309065338-40a411a61af3                        | v0.0.0-20210331045458-a651804427dd | false  | true             |
 | k8s.io/metrics                                           | v0.0.0-20210309065338-40a411a61af3                        | v0.0.0-20210331045458-a651804427dd | false  | true             |
 | k8s.io/mount-utils                                       | v0.0.0-20210309065338-40a411a61af3                        | v0.0.0-20210331045458-a651804427dd | false  | true             |
-| k8s.io/release                                           | v0.7.0                                                    |                                    | true   | true             |
+| k8s.io/release                                           | v0.7.0                                                    | v0.8.0                             | true   | true             |
 | k8s.io/sample-apiserver                                  | v0.0.0-20210309065338-40a411a61af3                        | v0.0.0-20210331045458-a651804427dd | false  | true             |
 | k8s.io/system-validators                                 | v1.4.0                                                    |                                    | false  | true             |
 | k8s.io/utils                                             | v0.0.0-20210305010621-2afb4311ab10                        |                                    | true   | true             |
