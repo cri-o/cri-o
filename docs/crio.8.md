@@ -260,7 +260,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--pause-command**="": Path to the pause executable in the pause image (default: /pause)
 
-**--pause-image**="": Image which contains the pause executable (default: k8s.gcr.io/pause:3.2)
+**--pause-image**="": Image which contains the pause executable (default: k8s.gcr.io/pause:3.5)
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 

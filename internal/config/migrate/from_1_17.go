@@ -60,11 +60,10 @@ func migrateFrom1_17(cfg *config.Config) error {
 	}
 
 	// Upgrade pause image
-	// https://github.com/cri-o/cri-o/pull/3582
-	logrus.Infof("Checking for pause_image, which now should be k8s.gcr.io/pause:3.2 instead of k8s.gcr.io/pause:3.1")
-	newPauseImage := "k8s.gcr.io/pause:3.2"
-	if cfg.PauseImage == "k8s.gcr.io/pause:3.1" {
-		cfg.PauseImage = newPauseImage
+	// https://github.com/cri-o/cri-o/pull/4550
+	logrus.Infof("Checking for pause_image, which now should be %s instead of k8s.gcr.io/pause:3.1 or 3.2", config.DefaultPauseImage)
+	if cfg.PauseImage == "k8s.gcr.io/pause:3.1" || cfg.PauseImage == "k8s.gcr.io/pause:3.2" {
+		cfg.PauseImage = config.DefaultPauseImage
 		logrus.Infof(`Changing "pause_image" to %s`, cfg.PauseImage)
 	}
 

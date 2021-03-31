@@ -283,7 +283,7 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **global_auth_file**=""
   The path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
 
-**pause_image**="k8s.gcr.io/pause:3.2"
+**pause_image**="k8s.gcr.io/pause:3.5"
   The image used to instantiate infra containers. This option supports live configuration reload.
 
 **pause_image_auth_file**=""
