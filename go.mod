@@ -47,7 +47,7 @@ require (
 	github.com/prometheus/client_golang v1.10.0
 	github.com/psampaz/go-mod-outdated v0.7.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/soheilhy/cmux v0.1.4
+	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/urfave/cli/v2 v2.3.0

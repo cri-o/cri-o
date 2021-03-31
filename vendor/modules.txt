@@ -804,7 +804,7 @@ github.com/shirou/gopsutil/v3/internal/common
 # github.com/sirupsen/logrus v1.8.1
 ## explicit
 github.com/sirupsen/logrus
-# github.com/soheilhy/cmux v0.1.4
+# github.com/soheilhy/cmux v0.1.5
 ## explicit
 github.com/soheilhy/cmux
 # github.com/spf13/cobra v1.1.3
