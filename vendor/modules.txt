@@ -1125,7 +1125,7 @@ k8s.io/apiserver/pkg/features
 k8s.io/apiserver/pkg/server/httplog
 k8s.io/apiserver/pkg/util/feature
 k8s.io/apiserver/pkg/util/wsstream
-# k8s.io/client-go v0.20.1 => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20210309065338-40a411a61af3
+# k8s.io/client-go v0.20.5 => k8s.io/kubernetes/staging/src/k8s.io/client-go v0.0.0-20210309065338-40a411a61af3
 ## explicit
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1beta1
