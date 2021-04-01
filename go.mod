@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v0.8.0
 	github.com/containernetworking/plugins v0.8.7
 	github.com/containers/buildah v1.15.2
-	github.com/containers/common v0.21.0
+	github.com/containers/common v0.26.3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.10.1
 	github.com/containers/libpod/v2 v2.0.6
@@ -36,7 +36,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.10
-	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
