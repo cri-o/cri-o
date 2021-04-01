@@ -430,6 +430,10 @@ bundle:
 bundle-test:
 	sudo contrib/bundle/test
 
+bundles:
+	contrib/bundle/build amd64
+	contrib/bundle/build arm64
+
 install: .gopathok install.bin install.man install.completions install.systemd install.config
 
 install.bin-nobuild:
@@ -524,6 +528,7 @@ metrics-exporter: bin/metrics-exporter
 	git-validation \
 	binaries \
 	bundle \
+	bundles \
 	bundle-test \
 	build-static \
 	clean \

@@ -7,6 +7,9 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Assume we're running on this arch
+ARCH=amd64
+
 # Global vars to be used
 # shellcheck source=vars
 source "$(dirname "${BASH_SOURCE[0]}")"/vars
@@ -15,7 +18,7 @@ pushd "$ARCHIVE_PATH"
 
 # Untar the bundle
 tar xfvz "$ARCHIVE"
-pushd "$BUNDLE"
+pushd cri-o
 
 # Install and prepare config
 make install
