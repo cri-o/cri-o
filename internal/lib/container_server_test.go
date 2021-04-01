@@ -103,28 +103,10 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(res).NotTo(BeNil())
 		})
 
-		It("should succeed to get the CtrNameIndex", func() {
-			// Given
-			// When
-			res := sut.CtrNameIndex()
-
-			// Then
-			Expect(res).NotTo(BeNil())
-		})
-
 		It("should succeed to get the CtrIDIndex", func() {
 			// Given
 			// When
 			res := sut.CtrIDIndex()
-
-			// Then
-			Expect(res).NotTo(BeNil())
-		})
-
-		It("should succeed to get the PodNameIndex", func() {
-			// Given
-			// When
-			res := sut.PodNameIndex()
 
 			// Then
 			Expect(res).NotTo(BeNil())

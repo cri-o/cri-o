@@ -109,10 +109,6 @@ const (
 	// DefaultLogSizeMax is the default value for the maximum log size
 	// allowed for a container. Negative values mean that no limit is imposed.
 	DefaultLogSizeMax = -1
-
-	// DefaultLogToJournald is the default value for whether conmon should
-	// log to journald in addition to kubernetes log file.
-	DefaultLogToJournald = false
 )
 
 const (
@@ -1123,11 +1119,6 @@ func (r *RuntimeHandler) ValidateRuntimeType(name string) error {
 			r.RuntimeType, name)
 	}
 	return nil
-}
-
-func (c *Config) SetLocations(singleConfigPath, dropInConfigDir string) {
-	c.singleConfigPath = singleConfigPath
-	c.dropInConfigDir = dropInConfigDir
 }
 
 // CNIPlugin returns the network configuration CNI plugin

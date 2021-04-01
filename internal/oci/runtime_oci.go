@@ -1205,59 +1205,6 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 	return processFile, nil
 }
 
-// ReadConmonPidFile attempts to read conmon's pid from its pid file
-// This function makes no verification that this file should exist
-// it is up to the caller to verify that this container has a conmon
-func ReadConmonPidFile(c *Container) (int, error) {
-	contents, err := ioutil.ReadFile(c.conmonPidFilePath())
-	if err != nil {
-		return -1, err
-	}
-	// Convert it to an int
-	conmonPID, err := strconv.Atoi(string(contents))
-	if err != nil {
-		return -1, err
-	}
-	return conmonPID, nil
-}
-
 func (c *Container) conmonPidFilePath() string {
 	return filepath.Join(c.bundlePath, "conmon-pidfile")
-}
-
-// SpoofOOM is a function that sets a container state as though it OOM'd. It's used in situations
-// where another process in the container's cgroup (like conmon) OOM'd when it wasn't supposed to,
-// allowing us to report to the kubelet that the container OOM'd instead.
-func (r *Runtime) SpoofOOM(c *Container) {
-	ecBytes := []byte{'1', '3', '7'}
-
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
-
-	c.state.Status = ContainerStateStopped
-	c.state.Finished = time.Now()
-	c.state.ExitCode = utils.Int32Ptr(137)
-	c.state.OOMKilled = true
-
-	oomFilePath := filepath.Join(c.bundlePath, "oom")
-	oomFile, err := os.Create(oomFilePath)
-	if err != nil {
-		logrus.Debugf("unable to write to oom file path %s: %v", oomFilePath, err)
-	}
-	oomFile.Close()
-
-	exitFilePath := filepath.Join(r.config.ContainerExitsDir, c.id)
-	exitFile, err := os.Create(exitFilePath)
-	if err != nil {
-		logrus.Debugf("unable to write exit file path %s: %v", exitFilePath, err)
-		return
-	}
-	if _, err := exitFile.Write(ecBytes); err != nil {
-		logrus.Debugf("failed to write exit code to file %s: %v", exitFilePath, err)
-	}
-	exitFile.Close()
-}
-
-func ConmonPath(r *Runtime) string {
-	return r.config.Conmon
 }

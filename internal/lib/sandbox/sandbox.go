@@ -10,6 +10,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -55,7 +56,7 @@ type Sandbox struct {
 	annotations        map[string]string
 	infraContainer     *oci.Container
 	metadata           *Metadata
-	nsOpts             *NamespaceOption
+	nsOpts             *types.NamespaceOption
 	stopMutex          sync.RWMutex
 	created            bool
 	stopped            bool
@@ -135,12 +136,12 @@ func (s *Sandbox) AddIPs(ips []string) {
 }
 
 // SetNamespaceOptions sets whether the pod is running using host network
-func (s *Sandbox) SetNamespaceOptions(nsOpts *NamespaceOption) {
+func (s *Sandbox) SetNamespaceOptions(nsOpts *types.NamespaceOption) {
 	s.nsOpts = nsOpts
 }
 
 // NamespaceOptions returns the namespace options for the sandbox
-func (s *Sandbox) NamespaceOptions() *NamespaceOption {
+func (s *Sandbox) NamespaceOptions() *types.NamespaceOption {
 	return s.nsOpts
 }
 
@@ -449,5 +450,5 @@ func (s *Sandbox) UnmountShm() error {
 // If the server manages the namespace lifecycles, and the Pid option on the sandbox
 // is node or container level, the infra container is not needed
 func (s *Sandbox) NeedsInfra(serverDropsInfra bool) bool {
-	return !serverDropsInfra || s.nsOpts.Pid == NamespaceModePod
+	return !serverDropsInfra || s.nsOpts.Pid == types.NamespaceModePOD
 }

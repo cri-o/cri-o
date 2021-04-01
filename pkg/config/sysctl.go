@@ -48,9 +48,6 @@ const (
 
 	// NetNamespace is the network namespace
 	NetNamespace = Namespace("net")
-
-	// UnknownNamespace is the zero value if no namespace is known
-	UnknownNamespace = Namespace("")
 )
 
 var namespaces = map[string]Namespace{

@@ -8,11 +8,6 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
-// RuntimeServer returns the runtime server of the stream service
-func (s *StreamService) RuntimeServer() *Server {
-	return s.runtimeServer
-}
-
 // SetStorageRuntimeServer sets the runtime server for the ContainerServer
 func (s *StreamService) SetRuntimeServer(server *Server) {
 	s.runtimeServer = server
