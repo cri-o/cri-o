@@ -11,11 +11,11 @@ require (
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
 	github.com/containers/buildah v1.20.0
-	github.com/containers/common v0.35.3
+	github.com/containers/common v0.35.4
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.10.5
 	github.com/containers/ocicrypt v1.1.0
-	github.com/containers/podman/v3 v3.1.0-rc2
+	github.com/containers/podman/v3 v3.1.0
 	github.com/containers/storage v1.28.1
 	github.com/coreos/go-systemd/v22 v22.3.0
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -54,7 +54,7 @@ require (
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210317091845-390168757d9c
+	golang.org/x/sys v0.0.0-20210324051608-47abb6519492
 	google.golang.org/grpc v1.36.1
 	k8s.io/api v0.20.1
 	k8s.io/apimachinery v0.20.5
