@@ -1,20 +1,21 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 01 Apr 2021 12:21:04 UTC for commit [e6c19d7][0]._
+_Generated on Thu, 01 Apr 2021 16:27:15 UTC for commit [cae4839][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e6c19d73d94b5751dd705db531a32d219b73e5cf
+[0]: https://github.com/cri-o/cri-o/commit/cae483987ded6d25fe229ffe9a060e4c0c0cc215
 
 ## Outdated Dependencies
 
-|            MODULE            |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
-|------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/common | v0.35.4                            | v1.0.0                             | true   | false            |
-| github.com/soheilhy/cmux     | v0.1.4                             | v0.1.5                             | true   | true             |
-| golang.org/x/net             | v0.0.0-20210316092652-d523dce5a7f4 | v0.0.0-20210331212208-0fccb6fa2b5c | true   | true             |
-| golang.org/x/sys             | v0.0.0-20210324051608-47abb6519492 | v0.0.0-20210331175145-43e1dd70ce54 | true   | true             |
-| k8s.io/api                   | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210331045458-a651804427dd | true   | true             |
-| k8s.io/client-go             | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210331045458-a651804427dd | true   | true             |
-| k8s.io/release               | v0.7.0                             | v0.8.0                             | true   | true             |
+|              MODULE              |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
+|----------------------------------|------------------------------------|------------------------------------|--------|------------------|
+| github.com/containers/common     | v0.35.4                            | v1.0.0                             | true   | false            |
+| github.com/coreos/go-systemd/v22 | v22.3.0                            | v22.3.1                            | true   | true             |
+| github.com/soheilhy/cmux         | v0.1.4                             | v0.1.5                             | true   | true             |
+| golang.org/x/net                 | v0.0.0-20210316092652-d523dce5a7f4 | v0.0.0-20210331212208-0fccb6fa2b5c | true   | true             |
+| golang.org/x/sys                 | v0.0.0-20210324051608-47abb6519492 | v0.0.0-20210331175145-43e1dd70ce54 | true   | true             |
+| k8s.io/api                       | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210331045458-a651804427dd | true   | true             |
+| k8s.io/client-go                 | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210331045458-a651804427dd | true   | true             |
+| k8s.io/release                   | v0.7.0                             | v0.8.0                             | true   | true             |
 
 ## All Dependencies
 
@@ -158,7 +159,7 @@ _Generated on Thu, 01 Apr 2021 12:21:04 UTC for commit [e6c19d7][0]._
 | github.com/coreos/go-oidc                                | v2.1.0+incompatible                                 | v2.2.1+incompatible                | false  | true             |
 | github.com/coreos/go-semver                              | v0.3.0                                              |                                    | false  | true             |
 | github.com/coreos/go-systemd                             | v0.0.0-20190321100706-95778dfbb74e                  | v0.0.0-20191104093116-d3cd4ed1dbcf | false  | true             |
-| github.com/coreos/go-systemd/v22                         | v22.3.0                                             |                                    | true   | true             |
+| github.com/coreos/go-systemd/v22                         | v22.3.0                                             | v22.3.1                            | true   | true             |
 | github.com/coreos/pkg                                    | v0.0.0-20180928190104-399ea9e2e55f                  |                                    | false  | true             |
 | github.com/cpuguy83/go-md2man                            | v1.0.10                                             |                                    | true   | true             |
 | github.com/cpuguy83/go-md2man/v2                         | v2.0.0                                              |                                    | false  | true             |
@@ -335,7 +336,7 @@ _Generated on Thu, 01 Apr 2021 12:21:04 UTC for commit [e6c19d7][0]._
 | github.com/hashicorp/serf                                | v0.8.2                                              | v0.9.5                             | false  | true             |
 | github.com/heketi/heketi                                 | v10.2.0+incompatible                                |                                    | false  | true             |
 | github.com/heketi/tests                                  | v0.0.0-20151005000721-f3775cbcefd6                  |                                    | false  | true             |
-| github.com/hpcloud/tail                                  | v1.0.0                                              |                                    | true   | true             |
+| github.com/hpcloud/tail                                  | v1.0.0                                              |                                    | false  | true             |
 | github.com/hudl/fargo                                    | v1.3.0                                              |                                    | false  | true             |
 | github.com/hugelgupf/socketpair                          | v0.0.0-20190730060125-05d35a94e714                  |                                    | false  | true             |
 | github.com/ianlancetaylor/demangle                       | v0.0.0-20200824232613-28f6c0f3b639                  | v0.0.0-20210331232236-9bc5433e3b46 | false  | true             |
@@ -627,7 +628,7 @@ _Generated on Thu, 01 Apr 2021 12:21:04 UTC for commit [e6c19d7][0]._
 | google.golang.org/api                                    | v0.36.0                                             | v0.43.0                            | false  | true             |
 | google.golang.org/appengine                              | v1.6.7                                              |                                    | false  | true             |
 | google.golang.org/cloud                                  | v0.0.0-20151119220103-975617b05ea8                  | v0.80.0                            | false  | true             |
-| google.golang.org/genproto                               | v0.0.0-20200117163144-32f20d992d24                  | v0.0.0-20210331142528-b7513248f0ba | false  | true             |
+| google.golang.org/genproto                               | v0.0.0-20200117163144-32f20d992d24                  | v0.0.0-20210401141331-865547bb08e2 | false  | true             |
 | google.golang.org/grpc                                   | v1.27.0                                             | v1.36.1                            | true   | true             |
 | google.golang.org/protobuf                               | v1.25.0                                             | v1.26.0                            | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                             | v2.0.9                                              |                                    | false  | true             |
