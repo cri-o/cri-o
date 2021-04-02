@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 01 Apr 2021 16:27:15 UTC for commit [cae4839][0]._
+_Generated on Fri, 02 Apr 2021 02:15:11 UTC for commit [ec8716f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/cae483987ded6d25fe229ffe9a060e4c0c0cc215
+[0]: https://github.com/cri-o/cri-o/commit/ec8716f8a641dc287616272e3aa872806fc36bc9
 
 ## Outdated Dependencies
 
@@ -46,13 +46,13 @@ _Generated on Thu, 01 Apr 2021 16:27:15 UTC for commit [cae4839][0]._
 | github.com/BurntSushi/toml                               | v0.3.1                                              |                                    | true   | true             |
 | github.com/BurntSushi/xgb                                | v0.0.0-20160522181843-27f122750802                  | v0.0.0-20210121224620-deaf085860bc | false  | true             |
 | github.com/GoogleCloudPlatform/k8s-cloud-provider        | v0.0.0-20200415212048-7901bc822317                  | v1.14.0                            | false  | true             |
-| github.com/GoogleCloudPlatform/testgrid                  | v0.0.38                                             | v0.0.57                            | false  | true             |
+| github.com/GoogleCloudPlatform/testgrid                  | v0.0.38                                             | v0.0.58                            | false  | true             |
 | github.com/JeffAshton/win_pdh                            | v0.0.0-20161109143554-76bb4ee9f0ab                  |                                    | false  | true             |
 | github.com/Knetic/govaluate                              | v3.0.1-0.20171022003610-9aa49832a739+incompatible   |                                    | false  | true             |
 | github.com/MakeNowJust/heredoc                           | v0.0.0-20170808103936-bb23615498cd                  | v1.0.0                             | false  | true             |
 | github.com/Microsoft/go-winio                            | v0.4.17-0.20210211115548-6eac466e5fa3               |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                             | v0.8.15                                             |                                    | false  | true             |
-| github.com/Microsoft/hcsshim/test                        | v0.0.0-20210227013316-43a75bb4edd3                  | v0.0.0-20210326183024-65090e5b3e45 | false  | true             |
+| github.com/Microsoft/hcsshim/test                        | v0.0.0-20210227013316-43a75bb4edd3                  | v0.0.0-20210401214830-b5d7f5129cac | false  | true             |
 | github.com/NYTimes/gziphandler                           | v1.1.1                                              |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                               | v1.2.2                                              | v1.2.8                             | false  | true             |
 | github.com/OpenPeeDeeP/depguard                          | v1.0.1                                              |                                    | false  | true             |
@@ -84,8 +84,8 @@ _Generated on Thu, 01 Apr 2021 16:27:15 UTC for commit [cae4839][0]._
 | github.com/asaskevich/govalidator                        | v0.0.0-20190424111038-f61b66f89f4a                  | v0.0.0-20210307081110-f21760c49a8d | false  | true             |
 | github.com/auth0/go-jwt-middleware                       | v0.0.0-20170425171159-5493cabe49f7                  | v1.0.0                             | false  | true             |
 | github.com/aws/aws-lambda-go                             | v1.13.3                                             | v1.23.0                            | false  | true             |
-| github.com/aws/aws-sdk-go                                | v1.35.24                                            | v1.38.10                           | false  | true             |
-| github.com/aws/aws-sdk-go-v2                             | v0.18.0                                             | v1.3.0                             | false  | true             |
+| github.com/aws/aws-sdk-go                                | v1.35.24                                            | v1.38.11                           | false  | true             |
+| github.com/aws/aws-sdk-go-v2                             | v0.18.0                                             | v1.3.1                             | false  | true             |
 | github.com/bazelbuild/rules_go                           | v0.22.1                                             | v0.27.0                            | false  | true             |
 | github.com/beorn7/perks                                  | v1.0.1                                              |                                    | false  | true             |
 | github.com/bgentry/speakeasy                             | v0.1.0                                              |                                    | false  | true             |
@@ -197,7 +197,7 @@ _Generated on Thu, 01 Apr 2021 16:27:15 UTC for commit [cae4839][0]._
 | github.com/emicklei/go-restful                           | v2.15.0+incompatible                                |                                    | true   | true             |
 | github.com/emirpasic/gods                                | v1.12.0                                             |                                    | false  | true             |
 | github.com/envoyproxy/go-control-plane                   | v0.9.1-0.20191026205805-5f8ba28d4473                | v0.9.8                             | false  | true             |
-| github.com/envoyproxy/protoc-gen-validate                | v0.1.0                                              | v0.5.0                             | false  | true             |
+| github.com/envoyproxy/protoc-gen-validate                | v0.1.0                                              | v0.5.1                             | false  | true             |
 | github.com/euank/go-kmsg-parser                          | v2.0.0+incompatible                                 |                                    | false  | true             |
 | github.com/evanphx/json-patch                            | v4.9.0+incompatible                                 |                                    | false  | true             |
 | github.com/exponent-io/jsonpath                          | v0.0.0-20151013193312-d6023ce2651d                  | v0.0.0-20201116121440-e84ac1befdf8 | false  | true             |
@@ -411,7 +411,7 @@ _Generated on Thu, 01 Apr 2021 16:27:15 UTC for commit [cae4839][0]._
 | github.com/mdlayher/ethernet                             | v0.0.0-20190606142754-0394541c37b7                  |                                    | false  | true             |
 | github.com/mdlayher/netlink                              | v1.1.1                                              | v1.4.0                             | false  | true             |
 | github.com/mdlayher/raw                                  | v0.0.0-20191009151244-50f2db8cc065                  |                                    | false  | true             |
-| github.com/mholt/certmagic                               | v0.6.2-0.20190624175158-6a42ef9fe8c2                | v0.12.0                            | false  | true             |
+| github.com/mholt/certmagic                               | v0.6.2-0.20190624175158-6a42ef9fe8c2                | v0.13.0                            | false  | true             |
 | github.com/miekg/dns                                     | v1.1.35                                             | v1.1.41                            | false  | true             |
 | github.com/miekg/pkcs11                                  | v1.0.3                                              |                                    | false  | true             |
 | github.com/mindprince/gonvml                             | v0.0.0-20190828220739-9ebdce4bb989                  |                                    | false  | true             |
@@ -492,7 +492,7 @@ _Generated on Thu, 01 Apr 2021 16:27:15 UTC for commit [cae4839][0]._
 | github.com/pkg/profile                                   | v1.2.1                                              | v1.5.0                             | false  | true             |
 | github.com/pmezard/go-difflib                            | v1.0.0                                              |                                    | false  | true             |
 | github.com/posener/complete                              | v1.1.1                                              | v1.2.3                             | false  | true             |
-| github.com/pquerna/cachecontrol                          | v0.0.0-20171018203845-0dec1b30a021                  | v0.0.0-20201205024021-ac21108117ac | false  | true             |
+| github.com/pquerna/cachecontrol                          | v0.0.0-20171018203845-0dec1b30a021                  | v0.1.0                             | false  | true             |
 | github.com/pquerna/ffjson                                | v0.0.0-20190813045741-dac163c6c0a9                  | v0.0.0-20190930134022-aa0246cd15f7 | false  | true             |
 | github.com/prometheus/client_golang                      | v1.10.0                                             |                                    | true   | true             |
 | github.com/prometheus/client_model                       | v0.2.0                                              |                                    | false  | true             |
@@ -606,7 +606,7 @@ _Generated on Thu, 01 Apr 2021 16:27:15 UTC for commit [cae4839][0]._
 | go.uber.org/multierr                                     | v1.3.0                                              | v1.6.0                             | false  | true             |
 | go.uber.org/tools                                        | v0.0.0-20190618225709-2cfd321de3ee                  |                                    | false  | true             |
 | go.uber.org/zap                                          | v1.13.0                                             | v1.16.0                            | false  | true             |
-| golang.org/dl                                            | v0.0.0-20190829154251-82a15e2f2ead                  | v0.0.0-20210318190803-5564b1ea1f85 | false  | true             |
+| golang.org/dl                                            | v0.0.0-20190829154251-82a15e2f2ead                  | v0.0.0-20210401214017-5e9de8bfb3b7 | false  | true             |
 | golang.org/x/crypto                                      | v0.0.0-20210220033148-5ea612d1eb83                  | v0.0.0-20210322153248-0c34fe9e7dc2 | false  | true             |
 | golang.org/x/exp                                         | v0.0.0-20210220032938-85be41e4509f                  |                                    | false  | true             |
 | golang.org/x/image                                       | v0.0.0-20190802002840-cff245a6509b                  | v0.0.0-20210220032944-ac19c3e999fb | false  | true             |
@@ -618,7 +618,7 @@ _Generated on Thu, 01 Apr 2021 16:27:15 UTC for commit [cae4839][0]._
 | golang.org/x/sync                                        | v0.0.0-20210220032951-036812b2e83c                  |                                    | true   | true             |
 | golang.org/x/sys                                         | v0.0.0-20210324051608-47abb6519492                  | v0.0.0-20210331175145-43e1dd70ce54 | true   | true             |
 | golang.org/x/term                                        | v0.0.0-20210220032956-6a3ed077a48d                  | v0.0.0-20210317153231-de623e64d2a6 | false  | true             |
-| golang.org/x/text                                        | v0.3.4                                              | v0.3.5                             | false  | true             |
+| golang.org/x/text                                        | v0.3.4                                              | v0.3.6                             | false  | true             |
 | golang.org/x/time                                        | v0.0.0-20210220033141-f8bda1e9f3ba                  |                                    | false  | true             |
 | golang.org/x/tools                                       | v0.1.0                                              |                                    | false  | true             |
 | golang.org/x/xerrors                                     | v0.0.0-20200804184101-5ec99f83aff1                  |                                    | false  | true             |
