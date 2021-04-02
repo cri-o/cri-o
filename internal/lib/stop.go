@@ -3,9 +3,10 @@ package lib
 import (
 	"context"
 
+	"github.com/cri-o/cri-o/internal/log"
+
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // ContainerStop stops a running container with a grace period (i.e., timeout).
@@ -36,7 +37,7 @@ func (c *ContainerServer) ContainerStop(ctx context.Context, container string, t
 	}
 
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
-		logrus.Warnf("unable to write containers %s state to disk: %v", ctr.ID(), err)
+		log.Warnf(ctx, "unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 
 	return ctrID, nil
