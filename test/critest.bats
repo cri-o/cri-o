@@ -17,7 +17,7 @@ function teardown() {
 
 @test "run the critest suite" {
 	critest --parallel 8 \
-		--runtime-endpoint "${CRIO_SOCKET}" \
+		--runtime-endpoint "unix://${CRIO_SOCKET}" \
 		--image-endpoint "${CRIO_SOCKET}" \
 		--ginkgo.focus="${CRI_FOCUS}" \
 		--ginkgo.skip="${CRI_SKIP}" \
