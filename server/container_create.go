@@ -13,6 +13,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/container"
@@ -425,15 +426,13 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, errors.Wrap(err, "setting container name and ID")
 	}
 
-	cleanupFuncs := make([]func(), 0)
+	resourceCleaner := resourcestore.NewResourceCleaner()
 	defer func() {
 		// no error, no need to cleanup
 		if retErr == nil || isContextError(retErr) {
 			return
 		}
-		for i := len(cleanupFuncs) - 1; i >= 0; i-- {
-			cleanupFuncs[i]()
-		}
+		resourceCleaner.Cleanup()
 	}()
 
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
@@ -444,7 +443,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
 
-	cleanupFuncs = append(cleanupFuncs, func() {
+	resourceCleaner.Add(func() {
 		log.Infof(ctx, "createCtr: releasing container name %s", ctr.Name())
 		s.ReleaseContainerName(ctr.Name())
 	})
@@ -453,7 +452,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	if err != nil {
 		return nil, err
 	}
-	cleanupFuncs = append(cleanupFuncs, func() {
+	resourceCleaner.Add(func() {
 		log.Infof(ctx, "createCtr: deleting container %s from storage", ctr.ID())
 		err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
 		if err2 != nil {
@@ -462,7 +461,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	})
 
 	s.addContainer(newContainer)
-	cleanupFuncs = append(cleanupFuncs, func() {
+	resourceCleaner.Add(func() {
 		log.Infof(ctx, "createCtr: removing container %s", newContainer.ID())
 		s.removeContainer(newContainer)
 	})
@@ -470,7 +469,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return nil, err
 	}
-	cleanupFuncs = append(cleanupFuncs, func() {
+	resourceCleaner.Add(func() {
 		log.Infof(ctx, "createCtr: deleting container ID %s from idIndex", ctr.ID())
 		if err := s.CtrIDIndex().Delete(ctr.ID()); err != nil {
 			log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
@@ -485,7 +484,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	if err := s.createContainerPlatform(ctx, newContainer, sb.CgroupParent(), mappings); err != nil {
 		return nil, err
 	}
-	cleanupFuncs = append(cleanupFuncs, func() {
+	resourceCleaner.Add(func() {
 		if retErr != nil {
 			log.Infof(ctx, "createCtr: removing container ID %s from runtime", ctr.ID())
 			if err := s.Runtime().DeleteContainer(ctx, newContainer); err != nil {
@@ -499,7 +498,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	}
 
 	if isContextError(ctx.Err()) {
-		if err := s.resourceStore.Put(ctr.Name(), newContainer, cleanupFuncs); err != nil {
+		if err := s.resourceStore.Put(ctr.Name(), newContainer, resourceCleaner); err != nil {
 			log.Errorf(ctx, "createCtr: failed to save progress of container %s: %v", newContainer.ID(), err)
 		}
 		log.Infof(ctx, "createCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
