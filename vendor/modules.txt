@@ -490,6 +490,8 @@ github.com/go-logr/logr
 # github.com/go-ole/go-ole v1.2.4
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
+# github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
+github.com/go-task/slim-sprig
 # github.com/go-zoo/bone v1.3.0
 ## explicit
 github.com/go-zoo/bone
@@ -641,11 +643,12 @@ github.com/nxadm/tail/watch
 github.com/nxadm/tail/winfile
 # github.com/olekukonko/tablewriter v0.0.4
 github.com/olekukonko/tablewriter
-# github.com/onsi/ginkgo v1.15.2
+# github.com/onsi/ginkgo v1.16.0
 ## explicit
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/extensions/table
+github.com/onsi/ginkgo/formatter
 github.com/onsi/ginkgo/ginkgo
 github.com/onsi/ginkgo/ginkgo/convert
 github.com/onsi/ginkgo/ginkgo/interrupthandler
