@@ -131,10 +131,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v12
-      - uses: cachix/cachix-action@v8
+      - uses: cachix/cachix-action@v10
         with:
           name: cri-o-static
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          pushFilter: cri-o
       - run: nix-build nix
       - run: result/bin/crio version
       - uses: actions/upload-artifact@v2
@@ -150,10 +151,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: cachix/install-nix-action@v12
-      - uses: cachix/cachix-action@v8
+      - uses: cachix/cachix-action@v10
         with:
           name: cri-o-static
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          pushFilter: cri-o
       - run: nix-build nix/default-arm64.nix
       - run: file result/bin/crio
       - uses: actions/upload-artifact@v2
