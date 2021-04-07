@@ -745,6 +745,10 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		return nil, err
 	}
 
+	// Set shortNameMode to permissive so we fall back to look through the search registries list
+	// if the short name alias is not found in the alias table
+	permissive := types.ShortNameModePermissive
+	systemContext.ShortNameMode = &permissive
 	resolved, err := shortnames.Resolve(systemContext, imageName)
 	if err != nil {
 		return nil, err
