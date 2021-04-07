@@ -140,12 +140,11 @@ func main() {
 			return err
 		}
 
-		cf := &logrus.TextFormatter{
+		logrus.SetFormatter(&logrus.TextFormatter{
 			TimestampFormat: "2006-01-02 15:04:05.000000000Z07:00",
 			FullTimestamp:   true,
-		}
-
-		logrus.SetFormatter(cf)
+		})
+		version.LogVersion()
 
 		level, err := logrus.ParseLevel(config.LogLevel)
 		if err != nil {
@@ -350,9 +349,6 @@ func main() {
 
 		return nil
 	}
-
-	// Log our version early at startup
-	version.LogVersion()
 
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
