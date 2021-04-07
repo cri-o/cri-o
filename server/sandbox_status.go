@@ -28,9 +28,9 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 		linux = &types.LinuxPodSandboxStatus{
 			Namespaces: &types.Namespace{
 				Options: &types.NamespaceOption{
-					Network: types.NamespaceMode(sb.NamespaceOptions().Network),
-					Ipc:     types.NamespaceMode(sb.NamespaceOptions().Ipc),
-					Pid:     types.NamespaceMode(sb.NamespaceOptions().Pid),
+					Network: sb.NamespaceOptions().Network,
+					Ipc:     sb.NamespaceOptions().Ipc,
+					Pid:     sb.NamespaceOptions().Pid,
 				},
 			},
 		}
