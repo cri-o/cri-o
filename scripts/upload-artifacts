@@ -27,12 +27,13 @@ if TAG=$(git describe --exact-match --tags 2>/dev/null); then
             exit 1
         fi
         UPLOAD_URL=${UPLOAD_URL%"{?name,label}"}
-        FILE=build/bundle/crio-$TAG.tar.gz
-        curl -f \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Content-Type: $(file -b --mime-type "$FILE")" \
-            --data-binary @"$FILE" \
-            "$UPLOAD_URL?name=$(basename "$FILE")"
+        for FILE in build/bundle/*.tar.gz; do
+            curl -f \
+                -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Content-Type: $(file -b --mime-type "$FILE")" \
+                --data-binary @"$FILE" \
+                "$UPLOAD_URL?name=$(basename "$FILE")"
+        done
     fi
 else
     echo "Skipping artifact upload to GitHub (not on a tag)"

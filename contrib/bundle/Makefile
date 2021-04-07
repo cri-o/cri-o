@@ -12,6 +12,8 @@ ZSHINSTALLDIR ?= $(PREFIX)/share/zsh/site-functions
 SYSTEMDDIR ?= $(PREFIX)/lib/systemd/system
 OPT_CNI_BIN_DIR ?= /opt/cni/bin
 
+ARCH ?= amd64
+
 all: install
 
 .PHONY: install
@@ -64,7 +66,9 @@ install-pinns:
 
 .PHONY: install-runc
 install-runc:
+ifeq ($(ARCH),amd64)
 	install $(SELINUX) -D -m 755 -t $(BINDIR) bin/runc
+endif
 
 .PHONY: install-crun
 install-crun:
@@ -115,7 +119,9 @@ uninstall-pinns:
 
 .PHONY: uninstall-runc
 uninstall-runc:
+ifeq ($(ARCH),amd64)
 	rm $(BINDIR)/runc
+endif
 
 .PHONY: uninstall-crun
 uninstall-crun:
