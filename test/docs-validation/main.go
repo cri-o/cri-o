@@ -30,6 +30,7 @@ var (
 	excludedTags = []string{
 		"plugin_dir",                  // deprecated
 		"runtimes",                    // printed as separate table
+		"workloads",                   // printed as separate table
 		"manage_network_ns_lifecycle", // deprecated
 	}
 
@@ -39,6 +40,11 @@ var (
 		"root",             // user dependent
 		"runroot",          // user dependent
 		"storage_driver",   // user dependent
+	}
+
+	// Tags where it should not validate the values
+	excludedCLI = []string{
+		"workloads", // too complex an option for a CLI flag
 	}
 
 	// Mapping for inconsistencies between tags and CLI arguments
@@ -152,6 +158,11 @@ func validateCli(cfg *config.Config) (failed bool) {
 		if val, ok := tagToCLIOption[entry.tag]; ok {
 			logrus.Debugf("Mapping `%s` to `%s`", entry.tag, val)
 			cliOption = val
+		}
+
+		if stringInSlice(entry.tag, excludedCLI) {
+			logrus.Debugf("Skipping excluded CLI entry `%s`", entry.tag)
+			continue
 		}
 
 		// Lookup the tag
