@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 07 Apr 2021 15:50:30 UTC for commit [f4d2757][0]._
+_Generated on Wed, 07 Apr 2021 19:57:18 UTC for commit [b77a78e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f4d2757e130dd778a9b036914d4212461dccea0a
+[0]: https://github.com/cri-o/cri-o/commit/b77a78ef5283efb97078d271296c1c57abed1f23
 
 ## Outdated Dependencies
 
@@ -14,6 +14,7 @@ _Generated on Wed, 07 Apr 2021 15:50:30 UTC for commit [f4d2757][0]._
 | github.com/soheilhy/cmux         | v0.1.4                             | v0.1.5                             | true   | true             |
 | golang.org/x/net                 | v0.0.0-20210316092652-d523dce5a7f4 | v0.0.0-20210405180319-a5a99cb37ef4 | true   | true             |
 | golang.org/x/sys                 | v0.0.0-20210324051608-47abb6519492 | v0.0.0-20210403161142-5e06dd20ab57 | true   | true             |
+| google.golang.org/grpc           | v1.27.0                            | v1.37.0                            | true   | true             |
 | k8s.io/api                       | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210407145353-efad54419517 | true   | true             |
 | k8s.io/client-go                 | v0.0.0-20210309065338-40a411a61af3 | v0.0.0-20210407145353-efad54419517 | true   | true             |
 | k8s.io/release                   | v0.7.0                             | v0.8.0                             | true   | true             |
@@ -85,7 +86,7 @@ _Generated on Wed, 07 Apr 2021 15:50:30 UTC for commit [f4d2757][0]._
 | github.com/asaskevich/govalidator                        | v0.0.0-20190424111038-f61b66f89f4a                  | v0.0.0-20210307081110-f21760c49a8d | false  | true             |
 | github.com/auth0/go-jwt-middleware                       | v0.0.0-20170425171159-5493cabe49f7                  | v1.0.0                             | false  | true             |
 | github.com/aws/aws-lambda-go                             | v1.13.3                                             | v1.23.0                            | false  | true             |
-| github.com/aws/aws-sdk-go                                | v1.35.24                                            | v1.38.14                           | false  | true             |
+| github.com/aws/aws-sdk-go                                | v1.35.24                                            | v1.38.15                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2                             | v0.18.0                                             | v1.3.1                             | false  | true             |
 | github.com/bazelbuild/rules_go                           | v0.22.1                                             | v0.27.0                            | false  | true             |
 | github.com/beorn7/perks                                  | v1.0.1                                              |                                    | false  | true             |
@@ -298,7 +299,7 @@ _Generated on Wed, 07 Apr 2021 15:50:30 UTC for commit [f4d2757][0]._
 | github.com/google/gofuzz                                 | v1.1.0                                              | v1.2.0                             | false  | true             |
 | github.com/google/martian                                | v2.1.0+incompatible                                 |                                    | false  | true             |
 | github.com/google/martian/v3                             | v3.1.0                                              |                                    | false  | true             |
-| github.com/google/pprof                                  | v0.0.0-20201218002935-b9804c9f04c2                  | v0.0.0-20210406223550-17a10ee72223 | false  | true             |
+| github.com/google/pprof                                  | v0.0.0-20201218002935-b9804c9f04c2                  | v0.0.0-20210407192527-94a9f03dee38 | false  | true             |
 | github.com/google/renameio                               | v1.0.0                                              |                                    | true   | true             |
 | github.com/google/shlex                                  | v0.0.0-20191202100458-e7afc7fbc510                  |                                    | false  | true             |
 | github.com/google/uuid                                   | v1.2.0                                              |                                    | true   | true             |
@@ -626,11 +627,11 @@ _Generated on Wed, 07 Apr 2021 15:50:30 UTC for commit [f4d2757][0]._
 | gonum.org/v1/gonum                                       | v0.6.2                                              | v0.9.1                             | false  | true             |
 | gonum.org/v1/netlib                                      | v0.0.0-20190331212654-76723241ea4e                  | v0.0.0-20210302091547-ede94419cf37 | false  | true             |
 | gonum.org/v1/plot                                        | v0.0.0-20190515093506-e2840ee46a6b                  | v0.9.0                             | false  | true             |
-| google.golang.org/api                                    | v0.36.0                                             | v0.43.0                            | false  | true             |
+| google.golang.org/api                                    | v0.36.0                                             | v0.44.0                            | false  | true             |
 | google.golang.org/appengine                              | v1.6.7                                              |                                    | false  | true             |
 | google.golang.org/cloud                                  | v0.0.0-20151119220103-975617b05ea8                  | v0.81.0                            | false  | true             |
 | google.golang.org/genproto                               | v0.0.0-20200117163144-32f20d992d24                  | v0.0.0-20210406143921-e86de6bf7a46 | false  | true             |
-| google.golang.org/grpc                                   | v1.27.0                                             | v1.36.1                            | true   | true             |
+| google.golang.org/grpc                                   | v1.27.0                                             | v1.37.0                            | true   | true             |
 | google.golang.org/protobuf                               | v1.25.0                                             | v1.26.0                            | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                             | v2.0.9                                              |                                    | false  | true             |
 | gopkg.in/alecthomas/kingpin.v2                           | v2.2.6                                              |                                    | false  | true             |
