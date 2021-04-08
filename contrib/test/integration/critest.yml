@@ -8,6 +8,23 @@
       cgroup_manager = "cgroupfs"
       conmon_cgroup = "pod"
 
+# create registries.conf.d
+- name: create registries.conf.d
+  file:
+    path: /etc/containers/registries.conf.d
+    state: directory
+    recurse: yes
+
+# Enable the community mirror as a backup.
+- name: enable community mirror
+  copy:
+    dest: /etc/containers/registries.conf.d/mirror.conf
+    content: |
+      [[registry]]
+      location="gcr.io/cri-tools"
+      [[registry.mirror]]
+      location="gcr.io/k8s-staging-cri-tools"
+
 - name: enable and start CRI-O
   systemd:
     name: crio
