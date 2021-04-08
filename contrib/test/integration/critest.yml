@@ -1,6 +1,6 @@
 ---
 # critest tests expect cgroupfs
-- name: set manage network ns lifecycle
+- name: set cgroup manager
   copy:
     dest: /etc/crio/crio.conf.d/01-ns-lifecycle.conf
     content: |
