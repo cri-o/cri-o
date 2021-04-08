@@ -1024,7 +1024,7 @@ gopkg.in/warnings.v0
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 gopkg.in/yaml.v3
-# k8s.io/api v0.20.1 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20210309065338-40a411a61af3
+# k8s.io/api v0.20.5 => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20210309065338-40a411a61af3
 ## explicit
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
