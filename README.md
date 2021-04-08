@@ -13,11 +13,24 @@
 
 ## Compatibility matrix: CRI-O ⬄ Kubernetes
 
-CRI-O and Kubernetes follow the same release cycle and deprecation policy. For more information visit the [Kubernetes versioning documentation](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/release/versioning.md).
+CRI-O follows the Kubernetes release cycles with respect to its minor versions
+(`1.x.0`). Patch releases (`1.x.y`) for CRI-O are not in sync with those from
+Kubernetes, because those are scheduled for each month, whereas CRI-O provides
+them only if necessary. If a Kubernetes release goes [End of
+Life](https://github.com/kubernetes/sig-release/blob/master/releases/patch-releases.md),
+then the corresponding CRI-O version can be considered in the same way.
+
+This means that CRI-O also follows the Kubernetes `n-2` release version skew
+policy when it comes to feature graduation, deprecation or removal. This also
+applies to features which are independent from Kubernetes.
+
+For more information visit the [Kubernetes versioning
+documentation](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/release/versioning.md).
 
 | Version - Branch             | Kubernetes branch/version       | Maintenance status |
 |------------------------------|---------------------------------|--------------------|
 | CRI-O HEAD    - master       | Kubernetes master branch        | ✓                  |
+| CRI-O 1.21.x  - release-1.21 | Kubernetes 1.21 branch, v1.21.x | =                  |
 | CRI-O 1.20.x  - release-1.20 | Kubernetes 1.20 branch, v1.20.x | =                  |
 | CRI-O 1.19.x  - release-1.19 | Kubernetes 1.19 branch, v1.19.x | =                  |
 | CRI-O 1.18.x  - release-1.18 | Kubernetes 1.18 branch, v1.18.x | =                  |
