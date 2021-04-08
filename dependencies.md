@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 08 Apr 2021 00:01:44 UTC for commit [ecb1fcb][0]._
+_Generated on Thu, 08 Apr 2021 16:19:29 UTC for commit [aab1c9a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ecb1fcbcfd3735255556596b5daa20cd88779dce
+[0]: https://github.com/cri-o/cri-o/commit/aab1c9ad4d14dd4f4edc7155f7db496367b700df
 
 ## Outdated Dependencies
 
@@ -53,7 +53,7 @@ _Generated on Thu, 08 Apr 2021 00:01:44 UTC for commit [ecb1fcb][0]._
 | github.com/MakeNowJust/heredoc                           | v0.0.0-20170808103936-bb23615498cd                  | v1.0.0                             | false  | true             |
 | github.com/Microsoft/go-winio                            | v0.4.17-0.20210211115548-6eac466e5fa3               |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                             | v0.8.15                                             | v0.8.16                            | false  | true             |
-| github.com/Microsoft/hcsshim/test                        | v0.0.0-20210227013316-43a75bb4edd3                  | v0.0.0-20210407205752-e811ee705ec7 | false  | true             |
+| github.com/Microsoft/hcsshim/test                        | v0.0.0-20210227013316-43a75bb4edd3                  | v0.0.0-20210408094030-2f0b9f3d0ea0 | false  | true             |
 | github.com/NYTimes/gziphandler                           | v1.1.1                                              |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                               | v1.2.2                                              | v1.2.8                             | false  | true             |
 | github.com/OpenPeeDeeP/depguard                          | v1.0.1                                              |                                    | false  | true             |
@@ -119,7 +119,7 @@ _Generated on Thu, 08 Apr 2021 00:01:44 UTC for commit [ecb1fcb][0]._
 | github.com/chzyer/logex                                  | v1.1.10                                             |                                    | false  | true             |
 | github.com/chzyer/readline                               | v0.0.0-20180603132655-2972be24d48e                  |                                    | false  | true             |
 | github.com/chzyer/test                                   | v0.0.0-20180213035817-a1ea475d72b1                  |                                    | false  | true             |
-| github.com/cilium/ebpf                                   | v0.2.0                                              | v0.4.0                             | false  | true             |
+| github.com/cilium/ebpf                                   | v0.2.0                                              | v0.5.0                             | false  | true             |
 | github.com/clbanning/x2j                                 | v0.0.0-20191024224557-825249438eec                  |                                    | false  | true             |
 | github.com/client9/misspell                              | v0.3.4                                              |                                    | false  | true             |
 | github.com/clusterhq/flocker-go                          | v0.0.0-20160920122132-2b8b7259d313                  |                                    | false  | true             |
@@ -287,7 +287,7 @@ _Generated on Thu, 08 Apr 2021 00:01:44 UTC for commit [ecb1fcb][0]._
 | github.com/golangci/revgrep                              | v0.0.0-20180526074752-d9c87f5ffaf0                  | v0.0.0-20210208091834-cd28932614b5 | false  | true             |
 | github.com/golangci/unconvert                            | v0.0.0-20180507085042-28b1c447d1f4                  |                                    | false  | true             |
 | github.com/golangplus/testing                            | v0.0.0-20180327235837-af21d9c3145e                  | v1.0.0                             | false  | true             |
-| github.com/gomarkdown/markdown                           | v0.0.0-20200824053859-8c8b3816f167                  | v0.0.0-20210407075948-35013ec157ce | false  | true             |
+| github.com/gomarkdown/markdown                           | v0.0.0-20200824053859-8c8b3816f167                  | v0.0.0-20210408062403-ad838ccf8cdd | false  | true             |
 | github.com/google/btree                                  | v1.0.0                                              | v1.0.1                             | false  | true             |
 | github.com/google/cadvisor                               | v0.38.8                                             | v0.39.0                            | false  | true             |
 | github.com/google/go-cmp                                 | v0.5.5                                              |                                    | false  | true             |
@@ -355,7 +355,7 @@ _Generated on Thu, 08 Apr 2021 00:01:44 UTC for commit [ecb1fcb][0]._
 | github.com/jirfag/go-printf-func-name                    | v0.0.0-20191110105641-45db9963cdd3                  | v0.0.0-20200119135958-7558a9eaa5af | false  | true             |
 | github.com/jmespath/go-jmespath                          | v0.4.0                                              |                                    | false  | true             |
 | github.com/jmespath/go-jmespath/internal/testify         | v1.5.1                                              |                                    | false  | true             |
-| github.com/jmoiron/sqlx                                  | v1.2.1-0.20190826204134-d7d95172beb5                | v1.3.1                             | false  | true             |
+| github.com/jmoiron/sqlx                                  | v1.2.1-0.20190826204134-d7d95172beb5                | v1.3.3                             | false  | true             |
 | github.com/joefitzgerald/rainbow-reporter                | v0.1.0                                              |                                    | false  | true             |
 | github.com/jonboulle/clockwork                           | v0.1.0                                              | v0.2.2                             | false  | true             |
 | github.com/jpillora/backoff                              | v1.0.0                                              |                                    | false  | true             |
