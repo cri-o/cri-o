@@ -345,6 +345,37 @@ allowed_annotations = [
 # Kata Containers with the Firecracker VMM
 #[crio.runtime.runtimes.kata-fc]
 
+# The workloads table defines ways to customize containers with different resources
+# that work based on annotations, rather than the CRI.
+# Each workload, has a name, activation_annotation, annotation_prefix and set of resources it supports mutating.
+# The currently supported resources are "cpu" (to configure the cpu shares) and "cpuset" to configure the cpuset.
+# Each resource can have a default value specified, or be empty.
+# For a container to opt-into this workload, the pod should be configured with the annotation $activation_annotation (key only, value is ignored).
+# To customize per-container, an annotation of the form $annotation_prefix.$resource/$ctrName = "value" can be specified
+# signifying for that resource type to override the default value.
+# If the annotation_prefix is not present, every container in the pod will be given the default values.
+# Example:
+# [crio.runtime.workloads.workload-type]
+# activation_annotation = "io.crio/workload"
+# annotation_prefix = "io.crio.workload-type"
+# resources = { "cpu" = "", "cpuset" = "0-1", }
+# Where:
+# The workload name is workload-type.
+# To specify, the pod must have the "io.crio.workload" annotation (this is a precise string match).
+# This workload supports setting cpuset and cpu resources.
+# annotation_prefix is used to customize the different resources.
+# To configure the cpu shares a container gets in the example above, the pod would have to have the following annotation:
+# "io.crio.workload-type.cpu/{container_name} = {shares}"
+{{ range $workload_type, $workload_config := .Workloads  }}
+[crio.runtime.workloads.{{ $workload_type }}]
+activation_annotation = "{{ $workload_config.ActivationAnnotation }}"
+annotation_prefix = "{{ $workload_config.AnnotationPrefix }}"
+{{ if $workload_config.Resources }}
+resources = { {{ range $resource, $default := $workload_config.Resources }}{{ printf "%q = %q, " $resource $default }}{{ end }}}
+{{ end }}
+{{ end }}
+
+
 # The crio.image table contains settings pertaining to the management of OCI images.
 #
 # CRI-O reads its configured registries defaults from the system wide
