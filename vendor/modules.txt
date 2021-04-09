@@ -4,7 +4,7 @@ github.com/Azure/go-ansiterm/winterm
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
-# github.com/Microsoft/go-winio v0.4.17-0.20210211115548-6eac466e5fa3
+# github.com/Microsoft/go-winio v0.4.17-0.20210324224401-5516f17a5958
 ## explicit
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/backuptar
@@ -62,7 +62,7 @@ github.com/cilium/ebpf/internal/unix
 github.com/containerd/cgroups/stats/v1
 # github.com/containerd/console v1.0.1
 github.com/containerd/console
-# github.com/containerd/containerd v1.5.0-beta.4
+# github.com/containerd/containerd v1.5.0-rc.0
 ## explicit
 github.com/containerd/containerd/api/services/ttrpc/events/v1
 github.com/containerd/containerd/api/types
@@ -76,6 +76,7 @@ github.com/containerd/containerd/log
 github.com/containerd/containerd/namespaces
 github.com/containerd/containerd/pkg/dialer
 github.com/containerd/containerd/pkg/ttrpcutil
+github.com/containerd/containerd/pkg/userns
 github.com/containerd/containerd/platforms
 github.com/containerd/containerd/runtime/v2/shim
 github.com/containerd/containerd/runtime/v2/task
@@ -576,7 +577,7 @@ github.com/juju/ansiterm
 github.com/juju/ansiterm/tabwriter
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.11.12
+# github.com/klauspost/compress v1.11.13
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -1121,7 +1122,7 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/netutil
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.20.1 => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20210408162405-cb303e613a12
+# k8s.io/apiserver v0.20.4 => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20210408162405-cb303e613a12
 k8s.io/apiserver/pkg/features
 k8s.io/apiserver/pkg/server/httplog
 k8s.io/apiserver/pkg/util/feature
@@ -1338,7 +1339,7 @@ k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
 # k8s.io/cloud-provider v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20210408162405-cb303e613a12
 k8s.io/cloud-provider
-# k8s.io/component-base v0.20.1 => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20210408162405-cb303e613a12
+# k8s.io/component-base v0.20.4 => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20210408162405-cb303e613a12
 k8s.io/component-base/featuregate
 k8s.io/component-base/metrics
 k8s.io/component-base/metrics/legacyregistry
