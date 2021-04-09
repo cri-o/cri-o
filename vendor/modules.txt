@@ -1068,7 +1068,7 @@ k8s.io/api/scheduling/v1beta1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apimachinery v0.20.5 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20210309065338-40a411a61af3
+# k8s.io/apimachinery v0.21.0 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20210309065338-40a411a61af3
 ## explicit
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
