@@ -137,4 +137,17 @@ var _ = t.Describe("Log", func() {
 			Expect(buf.String()).To(BeEmpty())
 		})
 	})
+
+	t.Describe("Fatalf", func() {
+		BeforeEach(func() { beforeEach(logrus.FatalLevel) })
+
+		It("should not error log", func() {
+			// Given
+			// When
+			log.Errorf(ctx, msg)
+
+			// Then
+			Expect(buf.String()).To(BeEmpty())
+		})
+	})
 })

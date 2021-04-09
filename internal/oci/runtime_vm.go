@@ -17,6 +17,7 @@ import (
 	"github.com/containerd/containerd/runtime/v2/task"
 	"github.com/containerd/ttrpc"
 	"github.com/containers/podman/v3/pkg/cgroups"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
 	"github.com/cri-o/cri-o/utils/fifo"
@@ -75,8 +76,8 @@ func newRuntimeVM(path, root string) RuntimeImpl {
 
 // CreateContainer creates a container.
 func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupParent string) (retErr error) {
-	logrus.Debug("runtimeVM.CreateContainer() start")
-	defer logrus.Debug("runtimeVM.CreateContainer() end")
+	log.Debugf(ctx, "runtimeVM.CreateContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.CreateContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -117,7 +118,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		if stderrCh != nil {
 			<-stderrCh
 		}
-		logrus.Debugf("Finish redirecting log file %q, closing it", c.LogPath())
+		log.Debugf(ctx, "Finish redirecting log file %q, closing it", c.LogPath())
 		f.Close()
 	}()
 
@@ -178,8 +179,8 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 }
 
 func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error {
-	logrus.Debug("runtimeVM.startRuntimeDaemon() start")
-	defer logrus.Debug("runtimeVM.startRuntimeDaemon() end")
+	log.Debugf(ctx, "runtimeVM.startRuntimeDaemon() start")
+	defer log.Debugf(ctx, "runtimeVM.startRuntimeDaemon() end")
 
 	// Prepare the command to run
 	args := []string{"-id", c.ID()}
@@ -251,8 +252,8 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 
 // StartContainer starts a container.
 func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
-	logrus.Debug("runtimeVM.StartContainer() start")
-	defer logrus.Debug("runtimeVM.StartContainer() end")
+	log.Debugf(ctx, "runtimeVM.StartContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.StartContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -269,10 +270,10 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 		_, err := r.wait(ctx, c.ID(), "")
 		if err == nil {
 			if err1 := r.updateContainerStatus(ctx, c); err1 != nil {
-				logrus.Warningf("error updating container status %v", err1)
+				log.Warnf(ctx, "error updating container status %v", err1)
 			}
 		} else {
-			logrus.Warningf("wait for %s returned: %v", c.ID(), err)
+			log.Warnf(ctx, "wait for %s returned: %v", c.ID(), err)
 		}
 	}()
 
@@ -281,8 +282,8 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
 func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	logrus.Debug("runtimeVM.ExecContainer() start")
-	defer logrus.Debug("runtimeVM.ExecContainer() end")
+	log.Debugf(ctx, "runtimeVM.ExecContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.ExecContainer() end")
 
 	exitCode, err := r.execContainerCommon(ctx, c, cmd, 0, stdin, stdout, stderr, tty, resize)
 	if err != nil {
@@ -300,8 +301,8 @@ func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []strin
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
-	logrus.Debug("runtimeVM.ExecSyncContainer() start")
-	defer logrus.Debug("runtimeVM.ExecSyncContainer() end")
+	log.Debugf(ctx, "runtimeVM.ExecSyncContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.ExecSyncContainer() end")
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	stdout := cioutil.NewNopWriteCloser(&stdoutBuf)
@@ -323,8 +324,8 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 }
 
 func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) (exitCode int32, retErr error) {
-	logrus.Debug("runtimeVM.execContainerCommon() start")
-	defer logrus.Debug("runtimeVM.execContainerCommon() end")
+	log.Debugf(ctx, "runtimeVM.execContainerCommon() start")
+	defer log.Debugf(ctx, "runtimeVM.execContainerCommon() end")
 
 	// Cancel the context before returning to ensure goroutines are stopped.
 	ctx, cancel := context.WithCancel(ctx)
@@ -391,7 +392,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	defer func() {
 		if retErr != nil {
 			if err := r.remove(ctx, c.ID(), execID); err != nil {
-				logrus.Debugf("unable to remove container %s: %v", c.ID(), err)
+				log.Debugf(ctx, "unable to remove container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -408,10 +409,10 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	// Initialize terminal resizing if necessary
 	if resize != nil {
 		kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-			logrus.Debugf("Got a resize event: %+v", size)
+			log.Debugf(ctx, "Got a resize event: %+v", size)
 
 			if err := r.resizePty(ctx, c.ID(), execID, size); err != nil {
-				logrus.Warnf("Failed to resize terminal: %v", err)
+				log.Warnf(ctx, "Failed to resize terminal: %v", err)
 			}
 		})
 	}
@@ -456,7 +457,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	if err == nil {
 		// Delete the process
 		if err := r.remove(ctx, c.ID(), execID); err != nil {
-			logrus.Debugf("unable to remove container %s: %v", c.ID(), err)
+			log.Debugf(ctx, "unable to remove container %s: %v", c.ID(), err)
 		}
 	}
 
@@ -465,8 +466,8 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 
 // UpdateContainer updates container resources
 func (r *runtimeVM) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
-	logrus.Debug("runtimeVM.UpdateContainer() start")
-	defer logrus.Debug("runtimeVM.UpdateContainer() end")
+	log.Debugf(ctx, "runtimeVM.UpdateContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.UpdateContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -490,8 +491,8 @@ func (r *runtimeVM) UpdateContainer(ctx context.Context, c *Container, res *rspe
 
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int64) error {
-	logrus.Debug("runtimeVM.StopContainer() start")
-	defer logrus.Debug("runtimeVM.StopContainer() end")
+	log.Debugf(ctx, "runtimeVM.StopContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.StopContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -533,7 +534,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 			c.state.Finished = time.Now()
 			return nil
 		}
-		logrus.Warnf("%v", err)
+		log.Warnf(ctx, "%v", err)
 	}
 
 	sig = syscall.SIGKILL
@@ -543,7 +544,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	}
 
 	if err := r.waitCtrTerminate(sig, stopCh, killContainerTimeout); err != nil {
-		logrus.Errorf("%v", err)
+		log.Errorf(ctx, "%v", err)
 		return err
 	}
 
@@ -562,8 +563,8 @@ func (r *runtimeVM) waitCtrTerminate(sig syscall.Signal, stopCh chan error, time
 
 // DeleteContainer deletes a container.
 func (r *runtimeVM) DeleteContainer(ctx context.Context, c *Container) error {
-	logrus.Debug("runtimeVM.DeleteContainer() start")
-	defer logrus.Debug("runtimeVM.DeleteContainer() end")
+	log.Debugf(ctx, "runtimeVM.DeleteContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.DeleteContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -605,8 +606,8 @@ func (r *runtimeVM) deleteContainer(ctx context.Context, c *Container, force boo
 
 // UpdateContainerStatus refreshes the status of the container.
 func (r *runtimeVM) UpdateContainerStatus(ctx context.Context, c *Container) error {
-	logrus.Debug("runtimeVM.UpdateContainerStatus() start")
-	defer logrus.Debug("runtimeVM.UpdateContainerStatus() end")
+	log.Debugf(ctx, "runtimeVM.UpdateContainerStatus() start")
+	defer log.Debugf(ctx, "runtimeVM.UpdateContainerStatus() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -619,8 +620,8 @@ func (r *runtimeVM) UpdateContainerStatus(ctx context.Context, c *Container) err
 // status refresh.
 // It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
 func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) error {
-	logrus.Debug("runtimeVM.updateContainerStatus() start")
-	defer logrus.Debug("runtimeVM.updateContainerStatus() end")
+	log.Debugf(ctx, "runtimeVM.updateContainerStatus() start")
+	defer log.Debugf(ctx, "runtimeVM.updateContainerStatus() end")
 
 	// This can happen on restore, for example if we switch the runtime type
 	// for a container from "oci" to "vm" for the same runtime.
@@ -667,8 +668,8 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 
 // PauseContainer pauses a container.
 func (r *runtimeVM) PauseContainer(ctx context.Context, c *Container) error {
-	logrus.Debug("runtimeVM.PauseContainer() start")
-	defer logrus.Debug("runtimeVM.PauseContainer() end")
+	log.Debugf(ctx, "runtimeVM.PauseContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.PauseContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -685,8 +686,8 @@ func (r *runtimeVM) PauseContainer(ctx context.Context, c *Container) error {
 
 // UnpauseContainer unpauses a container.
 func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
-	logrus.Debug("runtimeVM.UnpauseContainer() start")
-	defer logrus.Debug("runtimeVM.UnpauseContainer() end")
+	log.Debugf(ctx, "runtimeVM.UnpauseContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.UnpauseContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -703,8 +704,8 @@ func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
 
 // ContainerStats provides statistics of a container.
 func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*ContainerStats, error) {
-	logrus.Debug("runtimeVM.ContainerStats() start")
-	defer logrus.Debug("runtimeVM.ContainerStats() end")
+	log.Debugf(ctx, "runtimeVM.ContainerStats() start")
+	defer log.Debugf(ctx, "runtimeVM.ContainerStats() end")
 
 	// Lock the container with a shared lock
 	c.opLock.RLock()
@@ -735,8 +736,8 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 
 // SignalContainer sends a signal to a container process.
 func (r *runtimeVM) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
-	logrus.Debug("runtimeVM.SignalContainer() start")
-	defer logrus.Debug("runtimeVM.SignalContainer() end")
+	log.Debugf(ctx, "runtimeVM.SignalContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.SignalContainer() end")
 
 	// Lock the container
 	c.opLock.Lock()
@@ -747,15 +748,15 @@ func (r *runtimeVM) SignalContainer(ctx context.Context, c *Container, sig sysca
 
 // AttachContainer attaches IO to a running container.
 func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	logrus.Debug("runtimeVM.AttachContainer() start")
-	defer logrus.Debug("runtimeVM.AttachContainer() end")
+	log.Debugf(ctx, "runtimeVM.AttachContainer() start")
+	defer log.Debugf(ctx, "runtimeVM.AttachContainer() end")
 
 	// Initialize terminal resizing
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-		logrus.Debugf("Got a resize event: %+v", size)
+		log.Debugf(ctx, "Got a resize event: %+v", size)
 
 		if err := r.resizePty(ctx, c.ID(), "", size); err != nil {
-			logrus.Warnf("Failed to resize terminal: %v", err)
+			log.Warnf(ctx, "Failed to resize terminal: %v", err)
 		}
 	})
 
@@ -781,17 +782,17 @@ func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStre
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
-func (r *runtimeVM) PortForwardContainer(context.Context, *Container, string, int32, io.ReadWriteCloser) error {
-	logrus.Debug("runtimeVM.PortForwardContainer() start")
-	defer logrus.Debug("runtimeVM.PortForwardContainer() end")
+func (r *runtimeVM) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
+	log.Debugf(ctx, "runtimeVM.PortForwardContainer() start")
+	defer logrus.Debug(ctx, "runtimeVM.PortForwardContainer() end")
 
 	return nil
 }
 
 // ReopenContainerLog reopens the log file of a container.
 func (r *runtimeVM) ReopenContainerLog(ctx context.Context, c *Container) error {
-	logrus.Debug("runtimeVM.ReopenContainerLog() start")
-	defer logrus.Debug("runtimeVM.ReopenContainerLog() end")
+	log.Debugf(ctx, "runtimeVM.ReopenContainerLog() start")
+	defer log.Debugf(ctx, "runtimeVM.ReopenContainerLog() end")
 
 	return nil
 }

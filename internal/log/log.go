@@ -28,6 +28,10 @@ func Errorf(ctx context.Context, format string, args ...interface{}) {
 	entry(ctx).Errorf(format, args...)
 }
 
+func Fatalf(ctx context.Context, format string, args ...interface{}) {
+	entry(ctx).Fatalf(format, args...)
+}
+
 func entry(ctx context.Context) *logrus.Entry {
 	logger := logrus.StandardLogger()
 	if ctx == nil {

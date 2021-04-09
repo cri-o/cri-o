@@ -63,9 +63,9 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			case unix.SIGPIPE:
 				continue
 			case signals.Interrupt:
-				logrus.Debugf("Caught SIGINT")
+				log.Debugf(ctx, "Caught SIGINT")
 			case signals.Term:
-				logrus.Debugf("Caught SIGTERM")
+				log.Debugf(ctx, "Caught SIGTERM")
 			default:
 				continue
 			}
@@ -73,12 +73,12 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			gserver.GracefulStop()
 			hserver.Shutdown(ctx) // nolint: errcheck
 			if err := sserver.StopStreamServer(); err != nil {
-				logrus.Warnf("error shutting down streaming server: %v", err)
+				log.Warnf(ctx, "error shutting down streaming server: %v", err)
 			}
 			sserver.StopMonitors()
 			cancel()
 			if err := sserver.Shutdown(ctx); err != nil {
-				logrus.Warnf("error shutting down main service %v", err)
+				log.Warnf(ctx, "error shutting down main service %v", err)
 			}
 			return
 		}
@@ -185,9 +185,9 @@ func main() {
 			profilePort := c.Int("profile-port")
 			profileEndpoint := fmt.Sprintf("localhost:%v", profilePort)
 			go func() {
-				logrus.Debugf("starting profiling server on %v", profileEndpoint)
+				log.Debugf(ctx, "starting profiling server on %v", profileEndpoint)
 				if err := http.ListenAndServe(profileEndpoint, nil); err != nil {
-					logrus.Fatalf("unable to run profiling server: %v", err)
+					log.Fatalf(ctx, "unable to run profiling server: %v", err)
 				}
 			}()
 		}
@@ -211,7 +211,7 @@ func main() {
 
 		lis, err := server.Listen("unix", config.Listen)
 		if err != nil {
-			logrus.Fatalf("failed to listen: %v", err)
+			log.Fatalf(ctx, "failed to listen: %v", err)
 		}
 
 		grpcServer := grpc.NewServer(
@@ -254,13 +254,13 @@ func main() {
 			// CleanShutdownFile.
 			f, err := os.Create(config.CleanShutdownSupportedFileName())
 			if err != nil {
-				logrus.Errorf("Writing clean shutdown supported file: %v", err)
+				log.Errorf(ctx, "Writing clean shutdown supported file: %v", err)
 			}
 			f.Close()
 
 			// and sync the changes to disk
 			if err := utils.SyncParent(config.CleanShutdownFile); err != nil {
-				logrus.Errorf("failed to sync parent directory of clean shutdown file: %v", err)
+				log.Errorf(ctx, "failed to sync parent directory of clean shutdown file: %v", err)
 			}
 		}
 
@@ -300,12 +300,12 @@ func main() {
 
 		go func() {
 			if err := grpcServer.Serve(grpcL); err != nil {
-				logrus.Errorf("unable to run GRPC server: %v", err)
+				log.Errorf(ctx, "unable to run GRPC server: %v", err)
 			}
 		}()
 		go func() {
 			if err := httpServer.Serve(httpL); err != nil {
-				logrus.Debugf("closed http server")
+				log.Debugf(ctx, "closed http server")
 			}
 		}()
 
@@ -316,7 +316,7 @@ func main() {
 				if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
 					err = nil
 				} else {
-					logrus.Errorf("Failed to serve grpc request: %v", err)
+					log.Errorf(ctx, "Failed to serve grpc request: %v", err)
 				}
 			}
 		}()
@@ -330,22 +330,22 @@ func main() {
 		}
 
 		if err := crioServer.Shutdown(ctx); err != nil {
-			logrus.Warnf("error shutting down service: %v", err)
+			log.Warnf(ctx, "error shutting down service: %v", err)
 		}
 		cancel()
 
 		<-streamServerCloseCh
-		logrus.Debug("closed stream server")
+		log.Debugf(ctx, "closed stream server")
 		<-serverMonitorsCh
-		logrus.Debug("closed monitors")
+		log.Debugf(ctx, "closed monitors")
 		err = <-hookSync
 		if err == nil || err == context.Canceled {
-			logrus.Debug("closed hook monitor")
+			log.Debugf(ctx, "closed hook monitor")
 		} else {
-			logrus.Errorf("hook monitor failed: %v", err)
+			log.Errorf(ctx, "hook monitor failed: %v", err)
 		}
 		<-serverCloseCh
-		logrus.Debug("closed main server")
+		log.Debugf(ctx, "closed main server")
 
 		return nil
 	}

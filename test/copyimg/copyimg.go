@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v3/pkg/rootless"
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -97,11 +98,11 @@ func main() {
 
 		if imageName != "" {
 			if rootDir == "" && runrootDir != "" {
-				logrus.Errorf("must set --root and --runroot, or neither")
+				log.Errorf(ctx, "must set --root and --runroot, or neither")
 				os.Exit(1)
 			}
 			if rootDir != "" && runrootDir == "" {
-				logrus.Errorf("must set --root and --runroot, or neither")
+				log.Errorf(ctx, "must set --root and --runroot, or neither")
 				os.Exit(1)
 			}
 			storeOptions, err := sstorage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
@@ -116,20 +117,20 @@ func main() {
 			}
 			store, err = sstorage.GetStore(storeOptions)
 			if err != nil {
-				logrus.Errorf("error opening storage: %v", err)
+				log.Errorf(ctx, "error opening storage: %v", err)
 				os.Exit(1)
 			}
 			defer func() {
 				_, err = store.Shutdown(false)
 				if err != nil {
-					logrus.Warnf("unable to shutdown store: %v", err)
+					log.Warnf(ctx, "unable to shutdown store: %v", err)
 				}
 			}()
 
 			storage.Transport.SetStore(store)
 			ref, err = storage.Transport.ParseStoreReference(store, imageName)
 			if err != nil {
-				logrus.Errorf("error parsing image name: %v", err)
+				log.Errorf(ctx, "error parsing image name: %v", err)
 				os.Exit(1)
 			}
 		}
@@ -139,18 +140,18 @@ func main() {
 		}
 		policy, err := signature.DefaultPolicy(&systemContext)
 		if err != nil {
-			logrus.Errorf("error loading signature policy: %v", err)
+			log.Errorf(ctx, "error loading signature policy: %v", err)
 			os.Exit(1)
 		}
 		policyContext, err := signature.NewPolicyContext(policy)
 		if err != nil {
-			logrus.Errorf("error loading signature policy: %v", err)
+			log.Errorf(ctx, "error loading signature policy: %v", err)
 			os.Exit(1)
 		}
 		defer func() {
 			err = policyContext.Destroy()
 			if err != nil {
-				logrus.Fatalf("unable to destroy policy context: %v", err)
+				log.Fatalf(ctx, "unable to destroy policy context: %v", err)
 			}
 		}()
 		options := &copy.Options{}
@@ -158,7 +159,7 @@ func main() {
 		if importFrom != "" {
 			importRef, err = alltransports.ParseImageName(importFrom)
 			if err != nil {
-				logrus.Errorf("error parsing image name %v: %v", importFrom, err)
+				log.Errorf(ctx, "error parsing image name %v: %v", importFrom, err)
 				os.Exit(1)
 			}
 		}
@@ -166,7 +167,7 @@ func main() {
 		if exportTo != "" {
 			exportRef, err = alltransports.ParseImageName(exportTo)
 			if err != nil {
-				logrus.Errorf("error parsing image name %v: %v", exportTo, err)
+				log.Errorf(ctx, "error parsing image name %v: %v", exportTo, err)
 				os.Exit(1)
 			}
 		}
@@ -175,34 +176,34 @@ func main() {
 			if importFrom != "" {
 				_, err = copy.Image(ctx, policyContext, ref, importRef, options)
 				if err != nil {
-					logrus.Errorf("error importing %s: %v", importFrom, err)
+					log.Errorf(ctx, "error importing %s: %v", importFrom, err)
 					os.Exit(1)
 				}
 			}
 			if addName != "" {
 				destImage, err1 := storage.Transport.GetStoreImage(store, ref)
 				if err1 != nil {
-					logrus.Errorf("error finding image: %v", err1)
+					log.Errorf(ctx, "error finding image: %v", err1)
 					os.Exit(1)
 				}
 				names := append(destImage.Names, imageName, addName)
 				err = store.SetNames(destImage.ID, names)
 				if err != nil {
-					logrus.Errorf("error adding name to %s: %v", imageName, err)
+					log.Errorf(ctx, "error adding name to %s: %v", imageName, err)
 					os.Exit(1)
 				}
 			}
 			if exportTo != "" {
 				_, err = copy.Image(ctx, policyContext, exportRef, ref, options)
 				if err != nil {
-					logrus.Errorf("error exporting %s: %v", exportTo, err)
+					log.Errorf(ctx, "error exporting %s: %v", exportTo, err)
 					os.Exit(1)
 				}
 			}
 		} else if importFrom != "" && exportTo != "" {
 			_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
 			if err != nil {
-				logrus.Errorf("error copying %s to %s: %v", importFrom, exportTo, err)
+				log.Errorf(ctx, "error copying %s to %s: %v", importFrom, exportTo, err)
 				os.Exit(1)
 			}
 		}

@@ -187,7 +187,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	defer func() {
 		if retErr != nil {
 			if err := r.DeleteContainer(ctx, c); err != nil {
-				logrus.Warnf("unable to delete container %s: %v", c.ID(), err)
+				log.Warnf(ctx, "unable to delete container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -214,18 +214,18 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		if ss.err != nil {
 			return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
 		}
-		logrus.Debugf("Received container pid: %d", ss.si.Pid)
+		log.Debugf(ctx, "Received container pid: %d", ss.si.Pid)
 		pid = ss.si.Pid
 		if ss.si.Pid == -1 {
 			if ss.si.Message != "" {
-				logrus.Errorf("Container creation error: %s", ss.si.Message)
+				log.Errorf(ctx, "Container creation error: %s", ss.si.Message)
 				return fmt.Errorf("container create failed: %s", ss.si.Message)
 			}
-			logrus.Errorf("Container creation failed")
+			log.Errorf(ctx, "Container creation failed")
 			return fmt.Errorf("container create failed")
 		}
 	case <-time.After(ContainerCreateTimeout):
-		logrus.Errorf("Container creation timeout (%v)", ContainerCreateTimeout)
+		log.Errorf(ctx, "Container creation timeout (%v)", ContainerCreateTimeout)
 		return fmt.Errorf("create container timeout")
 	}
 
@@ -274,7 +274,7 @@ func prepareExec() (pidFileName string, parentPipe, childPipe *os.File, _ error)
 	return pidFileName, parentPipe, childPipe, nil
 }
 
-func parseLog(l []byte) (stdout, stderr []byte) {
+func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
 	// Split the log on newlines, which is what separates entries.
 	lines := bytes.SplitAfter(l, []byte{'\n'})
 	for _, line := range lines {
@@ -288,7 +288,7 @@ func parseLog(l []byte) (stdout, stderr []byte) {
 		if len(parts) < 4 {
 			// Ignore the line if it's formatted incorrectly, but complain
 			// about it so it can be debugged.
-			logrus.Warnf("hit invalid log format: %q", string(line))
+			log.Warnf(ctx, "hit invalid log format: %q", string(line))
 			continue
 		}
 
@@ -310,7 +310,7 @@ func parseLog(l []byte) (stdout, stderr []byte) {
 			stderr = append(stderr, content...)
 		default:
 			// Complain about unknown pipes.
-			logrus.Warnf("hit invalid log format [unknown pipe %s]: %q", pipe, string(line))
+			log.Warnf(ctx, "hit invalid log format [unknown pipe %s]: %q", pipe, string(line))
 			continue
 		}
 	}
@@ -404,7 +404,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	defer parentPipe.Close()
 	defer func() {
 		if e := os.Remove(pidFile); e != nil {
-			logrus.Warnf("could not remove temporary PID file %s", pidFile)
+			log.Warnf(ctx, "could not remove temporary PID file %s", pidFile)
 		}
 	}()
 
@@ -492,7 +492,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	var ec *exitCodeInfo
 	decodeErr := json.NewDecoder(parentPipe).Decode(&ec)
 	if decodeErr == nil {
-		logrus.Debugf("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
+		log.Debugf(ctx, "Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
 
 		// When we timeout the command in conmon then we should return
 		// an ExecSyncResponse with a non-zero exit code because
@@ -553,7 +553,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	}
 
 	// We have to parse the log output into {stdout, stderr} buffers.
-	stdoutBytes, stderrBytes := parseLog(logBytes)
+	stdoutBytes, stderrBytes := parseLog(ctx, logBytes)
 	return &ExecSyncResponse{
 		Stdout:   stdoutBytes,
 		Stderr:   stderrBytes,
@@ -606,7 +606,7 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 				if err := c.verifyPid(); err != nil {
 					// The initial container process either doesn't exist, or isn't ours.
 					if !errors.Is(err, ErrNotFound) {
-						logrus.Warnf("failed to find process for container %s: %v", c.id, err)
+						log.Warnf(ctx, "failed to find process for container %s: %v", c.id, err)
 					}
 					close(done)
 					return
@@ -707,7 +707,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		if err == nil {
 			return nil
 		}
-		logrus.Warnf("Stopping container %v with stop signal timed out: %v", c.id, err)
+		log.Warnf(ctx, "Stopping container %v with stop signal timed out: %v", c.id, err)
 	}
 
 	if _, err := utils.ExecCmd(
@@ -772,7 +772,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 
 	if c.state.ExitCode != nil && !c.state.Finished.IsZero() {
-		logrus.Debugf("Skipping status update for: %+v", c.state)
+		log.Debugf(ctx, "Skipping status update for: %+v", c.state)
 		return nil
 	}
 
@@ -790,9 +790,9 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			// We always populate the fields below so kube can restart/reschedule
 			// containers failing.
 			if exitErr, isExitError := err.(*exec.ExitError); isExitError {
-				logrus.Errorf("failed to update container state for %s: stdout: %s, stderr: %s", c.id, string(out), string(exitErr.Stderr))
+				log.Errorf(ctx, "failed to update container state for %s: stdout: %s, stderr: %s", c.id, string(out), string(exitErr.Stderr))
 			} else {
-				logrus.Errorf("failed to update container state for %s: %v", c.id, err)
+				log.Errorf(ctx, "failed to update container state for %s: %v", c.id, err)
 			}
 			c.state.Status = ContainerStateStopped
 			if err := updateContainerStatusFromExitFile(c); err != nil {
@@ -849,7 +849,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 	*c.state = *state
 	if err != nil {
-		logrus.Warnf("failed to find container exit file for %v: %v", c.id, err)
+		log.Warnf(ctx, "failed to find container exit file for %v: %v", c.id, err)
 	} else {
 		c.state.Finished, err = getFinishedTime(fi)
 		if err != nil {
@@ -864,7 +864,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			return fmt.Errorf("status code conversion failed: %v", err)
 		}
 		c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
-		logrus.Debugf("found exit code for %s: %d", c.id, statusCode)
+		log.Debugf(ctx, "found exit code for %s: %d", c.id, statusCode)
 	}
 
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
@@ -945,10 +945,10 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 	defer controlFile.Close()
 
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-		logrus.Debugf("Got a resize event: %+v", size)
+		log.Debugf(ctx, "Got a resize event: %+v", size)
 		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
 		if err != nil {
-			logrus.Debugf("Failed to write to control file to resize terminal: %v", err)
+			log.Debugf(ctx, "Failed to write to control file to resize terminal: %v", err)
 		}
 	})
 
@@ -1126,11 +1126,11 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 		for {
 			select {
 			case event := <-watcher.Events:
-				logrus.Debugf("event: %v", event)
+				log.Debugf(ctx, "event: %v", event)
 				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
-					logrus.Debugf("file created %s", event.Name)
+					log.Debugf(ctx, "file created %s", event.Name)
 					if event.Name == c.LogPath() {
-						logrus.Debugf("expected log file created")
+						log.Debugf(ctx, "expected log file created")
 						done <- struct{}{}
 						return
 					}
@@ -1144,13 +1144,13 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 	}()
 	cLogDir := filepath.Dir(c.LogPath())
 	if err := watcher.Add(cLogDir); err != nil {
-		logrus.Errorf("watcher.Add(%q) failed: %s", cLogDir, err)
+		log.Errorf(ctx, "watcher.Add(%q) failed: %s", cLogDir, err)
 		close(done)
 		doneClosed = true
 	}
 
 	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
-		logrus.Debugf("Failed to write to control file to reopen log file: %v", err)
+		log.Debugf(ctx, "Failed to write to control file to reopen log file: %v", err)
 	}
 
 	select {
