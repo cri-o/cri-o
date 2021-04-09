@@ -60,7 +60,7 @@ require (
 	k8s.io/client-go v0.20.5
 	k8s.io/cri-api v0.20.5
 	k8s.io/klog/v2 v2.8.0
-	k8s.io/kubernetes v1.20.5
+	k8s.io/kubernetes v1.21.0
 	k8s.io/release v0.7.0
 	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10
 	mvdan.cc/sh/v3 v3.2.4
