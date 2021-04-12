@@ -32,6 +32,9 @@
     path: "{{ artifacts }}"
     state: directory
 
+- name: Print critest version
+  command: critest --version
+
 - name: run critest validation
   shell: "critest --report-dir={{ artifacts }} --runtime-endpoint unix:///var/run/crio/crio.sock --image-endpoint unix:///var/run/crio/crio.sock --ginkgo.flakeAttempts=3"
   args:
