@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 12 Apr 2021 10:59:57 UTC for commit [cf214df][0]._
+_Generated on Mon, 12 Apr 2021 13:37:31 UTC for commit [a08d776][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/cf214df47ff582755b478405de0356a63d2aa0f9
+[0]: https://github.com/cri-o/cri-o/commit/a08d776f41ca5f5949524ac86b03244f70b9c1be
 
 ## Outdated Dependencies
 
@@ -10,6 +10,7 @@ _Generated on Mon, 12 Apr 2021 10:59:57 UTC for commit [cf214df][0]._
 |----------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/common     | v0.35.4                            | v1.0.0                             | true   | false            |
 | github.com/containers/image/v5   | v5.10.5                            | v5.11.0                            | true   | true             |
+| github.com/containers/storage    | v1.28.1                            | v1.29.0                            | true   | true             |
 | github.com/coreos/go-systemd/v22 | v22.3.0                            | v22.3.1                            | true   | true             |
 | github.com/onsi/ginkgo           | v1.15.2                            | v1.16.1                            | true   | true             |
 | golang.org/x/net                 | v0.0.0-20210316092652-d523dce5a7f4 | v0.0.0-20210410081132-afb366fc7cd1 | true   | true             |
@@ -151,7 +152,7 @@ _Generated on Mon, 12 Apr 2021 10:59:57 UTC for commit [cf214df][0]._
 | github.com/containers/ocicrypt                           | v1.1.0                                              |                                    | true   | true             |
 | github.com/containers/podman/v3                          | v3.1.0                                              |                                    | true   | true             |
 | github.com/containers/psgo                               | v1.5.2                                              |                                    | false  | true             |
-| github.com/containers/storage                            | v1.28.1                                             |                                    | true   | true             |
+| github.com/containers/storage                            | v1.28.1                                             | v1.29.0                            | true   | true             |
 | github.com/coredns/corefile-migration                    | v1.0.11                                             |                                    | false  | true             |
 | github.com/coreos/bbolt                                  | v1.3.2                                              | v1.3.5                             | false  | true             |
 | github.com/coreos/etcd                                   | v3.3.13+incompatible                                | v3.3.25+incompatible               | false  | true             |
@@ -177,9 +178,9 @@ _Generated on Mon, 12 Apr 2021 10:59:57 UTC for commit [cf214df][0]._
 | github.com/dgrijalva/jwt-go                              | v3.2.0+incompatible                                 |                                    | false  | true             |
 | github.com/dgryski/go-sip13                              | v0.0.0-20181026042036-e10d5fee7954                  | v0.0.0-20200911182023-62edffca9245 | false  | true             |
 | github.com/dnaeon/go-vcr                                 | v1.0.1                                              | v1.1.0                             | false  | true             |
-| github.com/docker/cli                                    | v0.0.0-20191017083524-a8ff7f821017                  | v20.10.5+incompatible              | false  | true             |
+| github.com/docker/cli                                    | v0.0.0-20191017083524-a8ff7f821017                  | v20.10.6+incompatible              | false  | true             |
 | github.com/docker/distribution                           | v2.7.1+incompatible                                 |                                    | true   | true             |
-| github.com/docker/docker                                 | v20.10.3-0.20210216175712-646072ed6524+incompatible | v20.10.5+incompatible              | false  | true             |
+| github.com/docker/docker                                 | v20.10.3-0.20210216175712-646072ed6524+incompatible | v20.10.6+incompatible              | false  | true             |
 | github.com/docker/docker-credential-helpers              | v0.6.3                                              |                                    | false  | true             |
 | github.com/docker/go-connections                         | v0.4.0                                              |                                    | false  | true             |
 | github.com/docker/go-events                              | v0.0.0-20190806004212-e31b211e4f1c                  |                                    | false  | true             |
@@ -660,9 +661,9 @@ _Generated on Mon, 12 Apr 2021 10:59:57 UTC for commit [cf214df][0]._
 | k8s.io/apiextensions-apiserver                           | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
 | k8s.io/apimachinery                                      | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | true   | true             |
 | k8s.io/apiserver                                         | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
-| k8s.io/cli-runtime                                       | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
+| k8s.io/cli-runtime                                       | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412133200-710865511ea1 | false  | true             |
 | k8s.io/client-go                                         | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | true   | true             |
-| k8s.io/cloud-provider                                    | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
+| k8s.io/cloud-provider                                    | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412133200-710865511ea1 | false  | true             |
 | k8s.io/cluster-bootstrap                                 | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
 | k8s.io/code-generator                                    | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
 | k8s.io/component-base                                    | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
@@ -680,7 +681,7 @@ _Generated on Mon, 12 Apr 2021 10:59:57 UTC for commit [cf214df][0]._
 | k8s.io/kube-proxy                                        | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
 | k8s.io/kube-scheduler                                    | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
 | k8s.io/kubectl                                           | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
-| k8s.io/kubelet                                           | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
+| k8s.io/kubelet                                           | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412133200-710865511ea1 | false  | true             |
 | k8s.io/kubernetes                                        | v1.21.0                                             |                                    | true   | true             |
 | k8s.io/legacy-cloud-providers                            | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
 | k8s.io/metrics                                           | v0.0.0-20210408162405-cb303e613a12                  | v0.0.0-20210412084800-34909133de6d | false  | true             |
