@@ -36,6 +36,9 @@ EOT
 runc --version
 conmon --version
 
+crio config
+crio config --default
+
 # Start CRI-O
 systemctl daemon-reload
 systemctl start crio
