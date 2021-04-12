@@ -538,25 +538,25 @@ const templateStringCrio = `[crio]
 
 const templateStringCrioRoot = `# Path to the "root directory". CRI-O stores all of its data, including
 # containers images, in this directory.
-#root = "{{ .Root }}"
+root = "{{ .Root }}"
 
 `
 
 const templateStringCrioRunroot = `# Path to the "run directory". CRI-O stores all of its state in this directory.
-#runroot = "{{ .RunRoot }}"
+runroot = "{{ .RunRoot }}"
 
 `
 
 const templateStringCrioStorageDriver = `# Storage driver used to manage the storage of images and containers. Please
 # refer to containers-storage.conf(5) to see all available storage drivers.
-#storage_driver = "{{ .Storage }}"
+storage_driver = "{{ .Storage }}"
 
 `
 
 const templateStringCrioStorageOption = `# List to pass options to the storage driver. Please refer to
 # containers-storage.conf(5) to see all available storage options.
-#storage_option = [
-{{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
+storage_option = [
+{{ range $opt := .StorageOptions }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
 `
 
@@ -658,8 +658,8 @@ const templateStringCrioRuntimeDefaultUlimits = `# A list of ulimits to be set i
 # "<ulimit name>=<soft limit>:<hard limit>", for example:
 # "nofile=1024:2048"
 # If nothing is set here, settings will be inherited from the CRI-O daemon
-#default_ulimits = [
-{{ range $ulimit := .DefaultUlimits }}{{ printf "#\t%q,\n" $ulimit }}{{ end }}#]
+default_ulimits = [
+{{ range $ulimit := .DefaultUlimits }}{{ printf "\t%q,\n" $ulimit }}{{ end }}]
 
 `
 
@@ -762,7 +762,7 @@ default_sysctls = [
 
 const templateStringCrioRuntimeAdditionalDevices = `# List of additional devices. specified as
 # "<device-on-host>:<device-on-container>:<permissions>", for example: "--device=/dev/sdc:/dev/xvdc:rwm".
-#If it is empty or commented out, only the devices
+# If it is empty or commented out, only the devices
 # defined in the container json file by the user/kube will be added.
 additional_devices = [
 {{ range $device := .AdditionalDevices}}{{ printf "\t%q,\n" $device}}{{ end }}]
@@ -789,7 +789,7 @@ const templateStringCrioRuntimeDefaultMountsFile = `# Path to the file specifyin
 #      you can change the default_mounts_file. Note, if this is done, CRI-O will
 #      only add mounts it finds in this file.
 #
-#default_mounts_file = "{{ .DefaultMountsFile }}"
+default_mounts_file = "{{ .DefaultMountsFile }}"
 
 `
 
@@ -1050,7 +1050,7 @@ signature_policy = "{{ .SignaturePolicyPath }}"
 const templateStringCrioImageInsecureRegistries = `# List of registries to skip TLS verification for pulling images. Please
 # consider configuring the registries via /etc/containers/registries.conf before
 # changing them here.
-#insecure_registries = "{{ .InsecureRegistries }}"
+insecure_registries = "{{ .InsecureRegistries }}"
 
 `
 
@@ -1065,8 +1065,8 @@ const templateStringCrioImageRegistries = `# List of registries to be used when 
 # compatibility reasons. Depending on your workload and usecase you may add more
 # registries (e.g., "quay.io", "registry.fedoraproject.org",
 # "registry.opensuse.org", etc.).
-#registries = [
-# {{ range $opt := .Registries }}{{ printf "\t%q,\n#" $opt }}{{ end }}]
+registries = [
+{{ range $opt := .Registries }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
 `
 
