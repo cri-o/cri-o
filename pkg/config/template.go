@@ -6,16 +6,516 @@ import (
 )
 
 // WriteTemplate write the configuration template to the provided writer
-func (c *Config) WriteTemplate(w io.Writer) error {
+func (c *Config) WriteTemplate(displayAllConfig bool, w io.Writer) error {
 	const templateName = "config"
-	tpl, err := template.New(templateName).Parse(templateString)
+	tpl, err := template.New(templateName).Parse(assembleTemplateString(displayAllConfig, c))
 	if err != nil {
 		return err
 	}
 	return tpl.ExecuteTemplate(w, templateName, c)
 }
 
-const templateString = `# The CRI-O configuration file specifies all of the available configuration
+func assembleTemplateString(displayAllConfig bool, c *Config) string {
+	crioTemplateConfig, err := initCrioTemplateConfig(c)
+	if err != nil {
+		return ""
+	}
+
+	templateString := ""
+
+	// [crio] configuration
+	templateString += crioTemplateString(crioRootConfig, "", displayAllConfig, crioTemplateConfig)
+
+	// [crio.api] configuration
+	templateString += crioTemplateString(crioAPIConfig, templateStringCrioAPI, displayAllConfig, crioTemplateConfig)
+
+	// [crio.runtime] configuration
+	templateString += crioTemplateString(crioRuntimeConfig, templateStringCrioRuntime, displayAllConfig, crioTemplateConfig)
+
+	// [crio.image] configuration
+	templateString += crioTemplateString(crioImageConfig, templateStringCrioImage, displayAllConfig, crioTemplateConfig)
+
+	// [crio.network] configuration
+	templateString += crioTemplateString(crioNetworkConfig, templateStringCrioNetwork, displayAllConfig, crioTemplateConfig)
+
+	// [crio.metrics] configuration
+	templateString += crioTemplateString(crioMetricsConfig, templateStringCrioMetrics, displayAllConfig, crioTemplateConfig)
+
+	if templateString != "" {
+		templateString = templateStringPrefix + templateStringCrio + templateString
+	}
+
+	return templateString
+}
+
+func crioTemplateString(group templateGroup, prefix string, displayAll bool, crioTemplateConfig []*templateConfigValue) string {
+	templateString := ""
+
+	for _, configItem := range crioTemplateConfig {
+		if group == configItem.group {
+			if displayAll || !configItem.isDefaultValue {
+				templateString += configItem.templateString
+			}
+		}
+	}
+
+	if templateString != "" {
+		templateString = prefix + templateString
+	}
+
+	return templateString
+}
+
+type templateGroup int32
+
+const (
+	crioRootConfig    templateGroup = 1
+	crioAPIConfig     templateGroup = 2
+	crioRuntimeConfig templateGroup = 3
+	crioImageConfig   templateGroup = 4
+	crioNetworkConfig templateGroup = 5
+	crioMetricsConfig templateGroup = 6
+)
+
+type templateConfigValue struct {
+	templateString string
+	group          templateGroup
+	isDefaultValue bool
+}
+
+func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
+	dc, err := DefaultConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	crioTemplateConfig := []*templateConfigValue{
+		{
+			templateString: templateStringCrioRoot,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.Root, c.Root),
+		},
+		{
+			templateString: templateStringCrioRunroot,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.RunRoot, c.RunRoot),
+		},
+		{
+			templateString: templateStringCrioStorageDriver,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.Storage, c.Storage),
+		},
+		{
+			templateString: templateStringCrioStorageOption,
+			group:          crioRootConfig,
+			isDefaultValue: stringSliceEqual(dc.StorageOptions, c.StorageOptions),
+		},
+		{
+			templateString: templateStringCrioLogDir,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.LogDir, c.LogDir),
+		},
+		{
+			templateString: templateStringCrioVersionFile,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.VersionFile, c.VersionFile),
+		},
+		{
+			templateString: templateStringCrioVersionFilePersist,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.VersionFilePersist, c.VersionFilePersist),
+		},
+		{
+			templateString: templateStringCrioCleanShutdownFile,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.CleanShutdownFile, c.CleanShutdownFile),
+		},
+		{
+			templateString: templateStringCrioAPIListen,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.Listen, c.Listen),
+		},
+		{
+			templateString: templateStringCrioAPIStreamAddress,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.StreamAddress, c.StreamAddress),
+		},
+		{
+			templateString: templateStringCrioAPIStreamPort,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.StreamPort, c.StreamPort),
+		},
+		{
+			templateString: templateStringCrioAPIStreamEnableTLS,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.StreamEnableTLS, c.StreamEnableTLS),
+		},
+		{
+			templateString: templateStringCrioAPIStreamIdleTimeout,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.StreamIdleTimeout, c.StreamIdleTimeout),
+		},
+		{
+			templateString: templateStringCrioAPIStreamTLSCert,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.StreamTLSCert, c.StreamTLSCert),
+		},
+		{
+			templateString: templateStringCrioAPIStreamTLSKey,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.StreamTLSKey, c.StreamTLSKey),
+		},
+		{
+			templateString: templateStringCrioAPIStreamTLSCa,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.StreamTLSCA, c.StreamTLSCA),
+		},
+		{
+			templateString: templateStringCrioAPIGrpcMaxSendMsgSize,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.GRPCMaxSendMsgSize, c.GRPCMaxSendMsgSize),
+		},
+		{
+			templateString: templateStringCrioAPIGrpcMaxRecvMsgSize,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.GRPCMaxRecvMsgSize, c.GRPCMaxRecvMsgSize),
+		},
+		{
+			templateString: templateStringCrioRuntimeDefaultUlimits,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.DefaultUlimits, c.DefaultUlimits),
+		},
+		{
+			templateString: templateStringCrioRuntimeNoPivot,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.NoPivot, c.NoPivot),
+		},
+		{
+			templateString: templateStringCrioRuntimeDecryptionKeysPath,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.DecryptionKeysPath, c.DecryptionKeysPath),
+		},
+		{
+			templateString: templateStringCrioRuntimeConmon,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.Conmon, c.Conmon),
+		},
+		{
+			templateString: templateStringCrioRuntimeConmonCgroup,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.ConmonCgroup, c.ConmonCgroup),
+		},
+		{
+			templateString: templateStringCrioRuntimeConmonEnv,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.ConmonEnv, c.ConmonEnv),
+		},
+		{
+			templateString: templateStringCrioRuntimeDefaultEnv,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.DefaultEnv, c.DefaultEnv),
+		},
+		{
+			templateString: templateStringCrioRuntimeSelinux,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.SELinux, c.SELinux),
+		},
+		{
+			templateString: templateStringCrioRuntimeSeccompProfile,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.SeccompProfile, c.SeccompProfile),
+		},
+		{
+			templateString: templateStringCrioRuntimeSeccompUseDefaultWhenEmpty,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.SeccompUseDefaultWhenEmpty, c.SeccompUseDefaultWhenEmpty),
+		},
+		{
+			templateString: templateStringCrioRuntimeApparmorProfile,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.ApparmorProfile, c.ApparmorProfile),
+		},
+		{
+			templateString: templateStringCrioRuntimeIrqBalanceConfigFile,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.IrqBalanceConfigFile, c.IrqBalanceConfigFile),
+		},
+		{
+			templateString: templateStringCrioRuntimeCgroupManager,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.CgroupManagerName, c.CgroupManagerName),
+		},
+		{
+			templateString: templateStringCrioRuntimeSeparatePullCgroup,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.SeparatePullCgroup, c.SeparatePullCgroup),
+		},
+		{
+			templateString: templateStringCrioRuntimeDefaultCapabilities,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.DefaultCapabilities, c.DefaultCapabilities),
+		},
+		{
+			templateString: templateStringCrioRuntimeDefaultSysctls,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.DefaultSysctls, c.DefaultSysctls),
+		},
+		{
+			templateString: templateStringCrioRuntimeAdditionalDevices,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.AdditionalDevices, c.AdditionalDevices),
+		},
+		{
+			templateString: templateStringCrioRuntimeHooksDir,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.HooksDir, c.HooksDir),
+		},
+		{
+			templateString: templateStringCrioRuntimeDefaultMountsFile,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.DefaultMountsFile, c.DefaultMountsFile),
+		},
+		{
+			templateString: templateStringCrioRuntimePidsLimit,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.PidsLimit, c.PidsLimit),
+		},
+		{
+			templateString: templateStringCrioRuntimeLogSizeMax,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.LogSizeMax, c.LogSizeMax),
+		},
+		{
+			templateString: templateStringCrioRuntimeLogToJournald,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.LogToJournald, c.LogToJournald),
+		},
+		{
+			templateString: templateStringCrioRuntimeContainerExitsDir,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.ContainerExitsDir, c.ContainerExitsDir),
+		},
+		{
+			templateString: templateStringCrioRuntimeContainerAttachSocketDir,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.ContainerAttachSocketDir, c.ContainerAttachSocketDir),
+		},
+		{
+			templateString: templateStringCrioRuntimeBindMountPrefix,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.BindMountPrefix, c.BindMountPrefix),
+		},
+		{
+			templateString: templateStringCrioRuntimeReadOnly,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.ReadOnly, c.ReadOnly),
+		},
+		{
+			templateString: templateStringCrioRuntimeLogLevel,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.LogLevel, c.LogLevel),
+		},
+		{
+			templateString: templateStringCrioRuntimeLogFilter,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.LogFilter, c.LogFilter),
+		},
+		{
+			templateString: templateStringCrioRuntimeUIDMappings,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.UIDMappings, c.UIDMappings),
+		},
+		{
+			templateString: templateStringCrioRuntimeGIDMappings,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.GIDMappings, c.GIDMappings),
+		},
+		{
+			templateString: templateStringCrioRuntimeCtrStopTimeout,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.CtrStopTimeout, c.CtrStopTimeout),
+		},
+		{
+			templateString: templateStringCrioRuntimeDropInfraCtr,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.DropInfraCtr, c.DropInfraCtr),
+		},
+		{
+			templateString: templateStringCrioRuntimeInfraCtrCpuset,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.InfraCtrCPUSet, c.InfraCtrCPUSet),
+		},
+		{
+			templateString: templateStringCrioRuntimeNamespacesDir,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.NamespacesDir, c.NamespacesDir),
+		},
+		{
+			templateString: templateStringCrioRuntimePinnsPath,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.PinnsPath, c.PinnsPath),
+		},
+		{
+			templateString: templateStringCrioRuntimeDefaultRuntime,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.DefaultRuntime, c.DefaultRuntime),
+		},
+		{
+			templateString: templateStringCrioRuntimeRuntimesRuntimeHandler,
+			group:          crioRuntimeConfig,
+			isDefaultValue: runtimesEqual(dc.Runtimes, c.Runtimes),
+		},
+		{
+			templateString: templateStringCrioRuntimeWorkloads,
+			group:          crioRuntimeConfig,
+			isDefaultValue: workloadsEqual(dc.Workloads, c.Workloads),
+		},
+		{
+			templateString: templateStringCrioImageDefaultTransport,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.DefaultTransport, c.DefaultTransport),
+		},
+		{
+			templateString: templateStringCrioImageGlobalAuthFile,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.GlobalAuthFile, c.GlobalAuthFile),
+		},
+		{
+			templateString: templateStringCrioImagePauseImage,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.PauseImage, c.PauseImage),
+		},
+		{
+			templateString: templateStringCrioImagePauseImageAuthFile,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.PauseImageAuthFile, c.PauseImageAuthFile),
+		},
+		{
+			templateString: templateStringCrioImagePauseCommand,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.PauseCommand, c.PauseCommand),
+		},
+		{
+			templateString: templateStringCrioImageSignaturePolicy,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.SignaturePolicyPath, c.SignaturePolicyPath),
+		},
+		{
+			templateString: templateStringCrioImageInsecureRegistries,
+			group:          crioImageConfig,
+			isDefaultValue: stringSliceEqual(dc.InsecureRegistries, c.InsecureRegistries),
+		},
+		{
+			templateString: templateStringCrioImageImageVolumes,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.ImageVolumes, c.ImageVolumes),
+		},
+		{
+			templateString: templateStringCrioImageRegistries,
+			group:          crioImageConfig,
+			isDefaultValue: stringSliceEqual(dc.Registries, c.Registries),
+		},
+		{
+			templateString: templateStringCrioImageBigFilesTemporaryDir,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.BigFilesTemporaryDir, c.BigFilesTemporaryDir),
+		},
+		{
+			templateString: templateStringCrioNetworkCniDefaultNetwork,
+			group:          crioNetworkConfig,
+			isDefaultValue: simpleEqual(dc.CNIDefaultNetwork, c.CNIDefaultNetwork),
+		},
+		{
+			templateString: templateStringCrioNetworkNetworkDir,
+			group:          crioNetworkConfig,
+			isDefaultValue: simpleEqual(dc.NetworkDir, c.NetworkDir),
+		},
+		{
+			templateString: templateStringCrioNetworkPluginDirs,
+			group:          crioNetworkConfig,
+			isDefaultValue: stringSliceEqual(dc.PluginDirs, c.PluginDirs),
+		},
+		{
+			templateString: templateStringCrioMetricsEnableMetrics,
+			group:          crioMetricsConfig,
+			isDefaultValue: simpleEqual(dc.EnableMetrics, c.EnableMetrics),
+		},
+		{
+			templateString: templateStringCrioMetricsMetricsPort,
+			group:          crioMetricsConfig,
+			isDefaultValue: simpleEqual(dc.MetricsPort, c.MetricsPort),
+		},
+		{
+			templateString: templateStringCrioMetricsMetricsSocket,
+			group:          crioMetricsConfig,
+			isDefaultValue: simpleEqual(dc.MetricsSocket, c.MetricsSocket),
+		},
+	}
+
+	return crioTemplateConfig, nil
+}
+
+func simpleEqual(a, b interface{}) bool {
+	return a == b
+}
+
+func stringSliceEqual(a, b []string) bool {
+	if (a == nil) && (b == nil) {
+		return true
+	}
+
+	if (a == nil) && (len(b) == 0) {
+		return true
+	}
+
+	if (b == nil) && (len(a) == 0) {
+		return true
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func runtimesEqual(a, b Runtimes) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	// only check the name of runtime
+	for key := range a {
+		if _, ok := b[key]; !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
+func workloadsEqual(a, b Workloads) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	// only check the name of workload
+	for key := range a {
+		if _, ok := b[key]; !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
+const templateStringPrefix = `# The CRI-O configuration file specifies all of the available configuration
 # options and command-line flags for the crio(8) OCI Kubernetes Container Runtime
 # daemon, but in a TOML format that can be more easily modified and versioned.
 #
@@ -30,173 +530,253 @@ const templateString = `# The CRI-O configuration file specifies all of the avai
 # located at /etc/containers/storage.conf. Modify this storage configuration if
 # you want to change the system's defaults. If you want to modify storage just
 # for CRI-O, you can change the storage configuration options here.
-[crio]
+`
 
-# Path to the "root directory". CRI-O stores all of its data, including
+const templateStringCrio = `[crio]
+
+`
+
+const templateStringCrioRoot = `# Path to the "root directory". CRI-O stores all of its data, including
 # containers images, in this directory.
 #root = "{{ .Root }}"
 
-# Path to the "run directory". CRI-O stores all of its state in this directory.
+`
+
+const templateStringCrioRunroot = `# Path to the "run directory". CRI-O stores all of its state in this directory.
 #runroot = "{{ .RunRoot }}"
 
-# Storage driver used to manage the storage of images and containers. Please
+`
+
+const templateStringCrioStorageDriver = `# Storage driver used to manage the storage of images and containers. Please
 # refer to containers-storage.conf(5) to see all available storage drivers.
 #storage_driver = "{{ .Storage }}"
 
-# List to pass options to the storage driver. Please refer to
+`
+
+const templateStringCrioStorageOption = `# List to pass options to the storage driver. Please refer to
 # containers-storage.conf(5) to see all available storage options.
 #storage_option = [
 {{ range $opt := .StorageOptions }}{{ printf "#\t%q,\n" $opt }}{{ end }}#]
 
-# The default log directory where all logs will go unless directly specified by
+`
+
+const templateStringCrioLogDir = `# The default log directory where all logs will go unless directly specified by
 # the kubelet. The log directory specified must be an absolute directory.
 log_dir = "{{ .LogDir }}"
 
-# Location for CRI-O to lay down the temporary version file.
+`
+
+const templateStringCrioVersionFile = `# Location for CRI-O to lay down the temporary version file.
 # It is used to check if crio wipe should wipe containers, which should
 # always happen on a node reboot
 version_file = "{{ .VersionFile }}"
 
-# Location for CRI-O to lay down the persistent version file.
+`
+
+const templateStringCrioVersionFilePersist = `# Location for CRI-O to lay down the persistent version file.
 # It is used to check if crio wipe should wipe images, which should
 # only happen when CRI-O has been upgraded
 version_file_persist = "{{ .VersionFilePersist }}"
 
-# Location for CRI-O to lay down the clean shutdown file.
+`
+
+const templateStringCrioCleanShutdownFile = `# Location for CRI-O to lay down the clean shutdown file.
 # It is used to check whether crio had time to sync before shutting down.
 # If not found, crio wipe will clear the storage directory.
 clean_shutdown_file = "{{ .CleanShutdownFile }}"
 
-# The crio.api table contains settings for the kubelet/gRPC interface.
+`
+
+const templateStringCrioAPI = `# The crio.api table contains settings for the kubelet/gRPC interface.
 [crio.api]
 
-# Path to AF_LOCAL socket on which CRI-O will listen.
+`
+
+const templateStringCrioAPIListen = `# Path to AF_LOCAL socket on which CRI-O will listen.
 listen = "{{ .Listen }}"
 
-# IP address on which the stream server will listen.
+`
+
+const templateStringCrioAPIStreamAddress = `# IP address on which the stream server will listen.
 stream_address = "{{ .StreamAddress }}"
 
-# The port on which the stream server will listen. If the port is set to "0", then
+`
+
+const templateStringCrioAPIStreamPort = `# The port on which the stream server will listen. If the port is set to "0", then
 # CRI-O will allocate a random free port number.
 stream_port = "{{ .StreamPort }}"
 
-# Enable encrypted TLS transport of the stream server.
+`
+
+const templateStringCrioAPIStreamEnableTLS = `# Enable encrypted TLS transport of the stream server.
 stream_enable_tls = {{ .StreamEnableTLS }}
 
-# Length of time until open streams terminate due to lack of activity
+`
+
+const templateStringCrioAPIStreamIdleTimeout = `# Length of time until open streams terminate due to lack of activity
 stream_idle_timeout = "{{.StreamIdleTimeout}}"
 
-# Path to the x509 certificate file used to serve the encrypted stream. This
+`
+
+const templateStringCrioAPIStreamTLSCert = `# Path to the x509 certificate file used to serve the encrypted stream. This
 # file can change, and CRI-O will automatically pick up the changes within 5
 # minutes.
 stream_tls_cert = "{{ .StreamTLSCert }}"
 
-# Path to the key file used to serve the encrypted stream. This file can
+`
+
+const templateStringCrioAPIStreamTLSKey = `# Path to the key file used to serve the encrypted stream. This file can
 # change and CRI-O will automatically pick up the changes within 5 minutes.
 stream_tls_key = "{{ .StreamTLSKey }}"
 
-# Path to the x509 CA(s) file used to verify and authenticate client
+`
+
+const templateStringCrioAPIStreamTLSCa = `# Path to the x509 CA(s) file used to verify and authenticate client
 # communication with the encrypted stream. This file can change and CRI-O will
 # automatically pick up the changes within 5 minutes.
 stream_tls_ca = "{{ .StreamTLSCA }}"
 
-# Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 * 1024 * 1024.
+`
+
+const templateStringCrioAPIGrpcMaxSendMsgSize = `# Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 * 1024 * 1024.
 grpc_max_send_msg_size = {{ .GRPCMaxSendMsgSize }}
 
-# Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 16 * 1024 * 1024.
+`
+
+const templateStringCrioAPIGrpcMaxRecvMsgSize = `# Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 16 * 1024 * 1024.
 grpc_max_recv_msg_size = {{ .GRPCMaxRecvMsgSize }}
 
-# The crio.runtime table contains settings pertaining to the OCI runtime used
+`
+
+const templateStringCrioRuntime = `# The crio.runtime table contains settings pertaining to the OCI runtime used
 # and options for how to set up and manage the OCI runtime.
 [crio.runtime]
 
-# A list of ulimits to be set in containers by default, specified as
+`
+
+const templateStringCrioRuntimeDefaultUlimits = `# A list of ulimits to be set in containers by default, specified as
 # "<ulimit name>=<soft limit>:<hard limit>", for example:
 # "nofile=1024:2048"
 # If nothing is set here, settings will be inherited from the CRI-O daemon
 #default_ulimits = [
 {{ range $ulimit := .DefaultUlimits }}{{ printf "#\t%q,\n" $ulimit }}{{ end }}#]
 
-# If true, the runtime will not use pivot_root, but instead use MS_MOVE.
+`
+
+const templateStringCrioRuntimeNoPivot = `# If true, the runtime will not use pivot_root, but instead use MS_MOVE.
 no_pivot = {{ .NoPivot }}
 
-# decryption_keys_path is the path where the keys required for
+`
+
+const templateStringCrioRuntimeDecryptionKeysPath = `# decryption_keys_path is the path where the keys required for
 # image decryption are stored. This option supports live configuration reload.
 decryption_keys_path = "{{ .DecryptionKeysPath }}"
 
-# Path to the conmon binary, used for monitoring the OCI runtime.
+`
+
+const templateStringCrioRuntimeConmon = `# Path to the conmon binary, used for monitoring the OCI runtime.
 # Will be searched for using $PATH if empty.
 conmon = "{{ .Conmon }}"
 
-# Cgroup setting for conmon
+`
+
+const templateStringCrioRuntimeConmonCgroup = `# Cgroup setting for conmon
 conmon_cgroup = "{{ .ConmonCgroup }}"
 
-# Environment variable list for the conmon process, used for passing necessary
+`
+
+const templateStringCrioRuntimeConmonEnv = `# Environment variable list for the conmon process, used for passing necessary
 # environment variables to conmon or the runtime.
 conmon_env = [
 {{ range $env := .ConmonEnv }}{{ printf "\t%q,\n" $env }}{{ end }}]
 
-# Additional environment variables to set for all the
+`
+
+const templateStringCrioRuntimeDefaultEnv = `# Additional environment variables to set for all the
 # containers. These are overridden if set in the
 # container image spec or in the container runtime configuration.
 default_env = [
 {{ range $env := .DefaultEnv }}{{ printf "\t%q,\n" $env }}{{ end }}]
 
-# If true, SELinux will be used for pod separation on the host.
+`
+
+const templateStringCrioRuntimeSelinux = `# If true, SELinux will be used for pod separation on the host.
 selinux = {{ .SELinux }}
 
-# Path to the seccomp.json profile which is used as the default seccomp profile
+`
+
+const templateStringCrioRuntimeSeccompProfile = `# Path to the seccomp.json profile which is used as the default seccomp profile
 # for the runtime. If not specified, then the internal default seccomp profile
 # will be used. This option supports live configuration reload.
 seccomp_profile = "{{ .SeccompProfile }}"
 
-# Changes the meaning of an empty seccomp profile. By default
+`
+
+const templateStringCrioRuntimeSeccompUseDefaultWhenEmpty = `# Changes the meaning of an empty seccomp profile. By default
 # (and according to CRI spec), an empty profile means unconfined.
 # This option tells CRI-O to treat an empty profile as the default profile,
 # which might increase security.
 seccomp_use_default_when_empty = {{ .SeccompUseDefaultWhenEmpty }}
 
-# Used to change the name of the default AppArmor profile of CRI-O. The default
+`
+
+const templateStringCrioRuntimeApparmorProfile = `# Used to change the name of the default AppArmor profile of CRI-O. The default
 # profile name is "crio-default". This profile only takes effect if the user
 # does not specify a profile via the Kubernetes Pod's metadata annotation. If
 # the profile is set to "unconfined", then this equals to disabling AppArmor.
 # This option supports live configuration reload.
 apparmor_profile = "{{ .ApparmorProfile }}"
 
-# Used to change irqbalance service config file path which is used for configuring
+`
+
+const templateStringCrioRuntimeIrqBalanceConfigFile = `# Used to change irqbalance service config file path which is used for configuring
 # irqbalance daemon.
 irqbalance_config_file = "{{ .IrqBalanceConfigFile }}"
 
-# Cgroup management implementation used for the runtime.
+`
+
+const templateStringCrioRuntimeCgroupManager = `# Cgroup management implementation used for the runtime.
 cgroup_manager = "{{ .CgroupManagerName }}"
 
-# Specify whether the image pull must be performed in a separate cgroup.
+`
+
+const templateStringCrioRuntimeSeparatePullCgroup = `# Specify whether the image pull must be performed in a separate cgroup.
 separate_pull_cgroup = "{{ .SeparatePullCgroup }}"
 
-# List of default capabilities for containers. If it is empty or commented out,
+`
+
+const templateStringCrioRuntimeDefaultCapabilities = `# List of default capabilities for containers. If it is empty or commented out,
 # only the capabilities defined in the containers json file by the user/kube
 # will be added.
 default_capabilities = [
 {{ range $capability := .DefaultCapabilities}}{{ printf "\t%q,\n" $capability}}{{ end }}]
 
-# List of default sysctls. If it is empty or commented out, only the sysctls
+`
+
+const templateStringCrioRuntimeDefaultSysctls = `# List of default sysctls. If it is empty or commented out, only the sysctls
 # defined in the container json file by the user/kube will be added.
 default_sysctls = [
 {{ range $sysctl := .DefaultSysctls}}{{ printf "\t%q,\n" $sysctl}}{{ end }}]
 
-# List of additional devices. specified as
+`
+
+const templateStringCrioRuntimeAdditionalDevices = `# List of additional devices. specified as
 # "<device-on-host>:<device-on-container>:<permissions>", for example: "--device=/dev/sdc:/dev/xvdc:rwm".
 #If it is empty or commented out, only the devices
 # defined in the container json file by the user/kube will be added.
 additional_devices = [
 {{ range $device := .AdditionalDevices}}{{ printf "\t%q,\n" $device}}{{ end }}]
 
-# Path to OCI hooks directories for automatically executed hooks. If one of the
+`
+
+const templateStringCrioRuntimeHooksDir = `# Path to OCI hooks directories for automatically executed hooks. If one of the
 # directories does not exist, then CRI-O will automatically skip them.
 hooks_dir = [
 {{ range $hooksDir := .HooksDir }}{{ printf "\t%q,\n" $hooksDir}}{{ end }}]
 
-# Path to the file specifying the defaults mounts for each container. The
+`
+
+const templateStringCrioRuntimeDefaultMountsFile = `# Path to the file specifying the defaults mounts for each container. The
 # format of the config is /SRC:/DST, one mount per line. Notice that CRI-O reads
 # its default mounts from the following two files:
 #
@@ -211,78 +791,114 @@ hooks_dir = [
 #
 #default_mounts_file = "{{ .DefaultMountsFile }}"
 
-# Maximum number of processes allowed in a container.
+`
+
+const templateStringCrioRuntimePidsLimit = `# Maximum number of processes allowed in a container.
 pids_limit = {{ .PidsLimit }}
 
-# Maximum sized allowed for the container log file. Negative numbers indicate
+`
+
+const templateStringCrioRuntimeLogSizeMax = `# Maximum sized allowed for the container log file. Negative numbers indicate
 # that no size limit is imposed. If it is positive, it must be >= 8192 to
 # match/exceed conmon's read buffer. The file is truncated and re-opened so the
 # limit is never exceeded.
 log_size_max = {{ .LogSizeMax }}
 
-# Whether container output should be logged to journald in addition to the kuberentes log file
+`
+
+const templateStringCrioRuntimeLogToJournald = `# Whether container output should be logged to journald in addition to the kuberentes log file
 log_to_journald = {{ .LogToJournald }}
 
-# Path to directory in which container exit files are written to by conmon.
+`
+
+const templateStringCrioRuntimeContainerExitsDir = `# Path to directory in which container exit files are written to by conmon.
 container_exits_dir = "{{ .ContainerExitsDir }}"
 
-# Path to directory for container attach sockets.
+`
+
+const templateStringCrioRuntimeContainerAttachSocketDir = `# Path to directory for container attach sockets.
 container_attach_socket_dir = "{{ .ContainerAttachSocketDir }}"
 
-# The prefix to use for the source of the bind mounts.
+`
+
+const templateStringCrioRuntimeBindMountPrefix = `# The prefix to use for the source of the bind mounts.
 bind_mount_prefix = ""
 
-# If set to true, all containers will run in read-only mode.
+`
+
+const templateStringCrioRuntimeReadOnly = `# If set to true, all containers will run in read-only mode.
 read_only = {{ .ReadOnly }}
 
-# Changes the verbosity of the logs based on the level it is set to. Options
+`
+
+const templateStringCrioRuntimeLogLevel = `# Changes the verbosity of the logs based on the level it is set to. Options
 # are fatal, panic, error, warn, info, debug and trace. This option supports
 # live configuration reload.
 log_level = "{{ .LogLevel }}"
 
-# Filter the log messages by the provided regular expression.
+`
+
+const templateStringCrioRuntimeLogFilter = `# Filter the log messages by the provided regular expression.
 # This option supports live configuration reload.
 log_filter = "{{ .LogFilter }}"
 
-# The UID mappings for the user namespace of each container. A range is
+`
+
+const templateStringCrioRuntimeUIDMappings = `# The UID mappings for the user namespace of each container. A range is
 # specified in the form containerUID:HostUID:Size. Multiple ranges must be
 # separated by comma.
 uid_mappings = "{{ .UIDMappings }}"
 
-# The GID mappings for the user namespace of each container. A range is
+`
+
+const templateStringCrioRuntimeGIDMappings = `# The GID mappings for the user namespace of each container. A range is
 # specified in the form containerGID:HostGID:Size. Multiple ranges must be
 # separated by comma.
 gid_mappings = "{{ .GIDMappings }}"
 
-# The minimal amount of time in seconds to wait before issuing a timeout
+`
+
+const templateStringCrioRuntimeCtrStopTimeout = `# The minimal amount of time in seconds to wait before issuing a timeout
 # regarding the proper termination of the container. The lowest possible
 # value is 30s, whereas lower values are not considered by CRI-O.
 ctr_stop_timeout = {{ .CtrStopTimeout }}
 
-# drop_infra_ctr determines whether CRI-O drops the infra container
+`
+
+const templateStringCrioRuntimeDropInfraCtr = `# drop_infra_ctr determines whether CRI-O drops the infra container
 # when a pod does not have a private PID namespace, and does not use
 # a kernel separating runtime (like kata).
 # It requires manage_ns_lifecycle to be true.
 drop_infra_ctr = {{ .DropInfraCtr }}
 
-# infra_ctr_cpuset determines what CPUs will be used to run infra containers.
+`
+
+const templateStringCrioRuntimeInfraCtrCpuset = `# infra_ctr_cpuset determines what CPUs will be used to run infra containers.
 # You can use linux CPU list format to specify desired CPUs.
 # To get better isolation for guaranteed pods, set this parameter to be equal to kubelet reserved-cpus.
 infra_ctr_cpuset = "{{ .InfraCtrCPUSet }}"
 
-# The directory where the state of the managed namespaces gets tracked.
+`
+
+const templateStringCrioRuntimeNamespacesDir = `# The directory where the state of the managed namespaces gets tracked.
 # Only used when manage_ns_lifecycle is true.
 namespaces_dir = "{{ .NamespacesDir }}"
 
-# pinns_path is the path to find the pinns binary, which is needed to manage namespace lifecycle
+`
+
+const templateStringCrioRuntimePinnsPath = `# pinns_path is the path to find the pinns binary, which is needed to manage namespace lifecycle
 pinns_path = "{{ .PinnsPath }}"
 
-# default_runtime is the _name_ of the OCI runtime to be used as the default.
+`
+
+const templateStringCrioRuntimeDefaultRuntime = `# default_runtime is the _name_ of the OCI runtime to be used as the default.
 # The name is matched against the runtimes map below. If this value is changed,
 # the corresponding existing entry from the runtimes map below will be ignored.
 default_runtime = "{{ .DefaultRuntime }}"
 
-# The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
+`
+
+const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
 # The runtime to use is picked based on the runtime_handler provided by the CRI.
 # If no runtime_handler is provided, the runtime will be picked based on the level
 # of trust of the workload. Each entry in the table should follow the format:
@@ -345,7 +961,9 @@ allowed_annotations = [
 # Kata Containers with the Firecracker VMM
 #[crio.runtime.runtimes.kata-fc]
 
-# The workloads table defines ways to customize containers with different resources
+`
+
+const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways to customize containers with different resources
 # that work based on annotations, rather than the CRI.
 # Each workload, has a name, activation_annotation, annotation_prefix and set of resources it supports mutating.
 # The currently supported resources are "cpu" (to configure the cpu shares) and "cpuset" to configure the cpuset.
@@ -375,8 +993,9 @@ resources = { {{ range $resource, $default := $workload_config.Resources }}{{ pr
 {{ end }}
 {{ end }}
 
+`
 
-# The crio.image table contains settings pertaining to the management of OCI images.
+const templateStringCrioImage = `# The crio.image table contains settings pertaining to the management of OCI images.
 #
 # CRI-O reads its configured registries defaults from the system wide
 # containers-registries.conf(5) located in /etc/containers/registries.conf. If
@@ -385,45 +1004,63 @@ resources = { {{ range $resource, $default := $workload_config.Resources }}{{ pr
 # use the system's defaults from /etc/containers/registries.conf.
 [crio.image]
 
-# Default transport for pulling images from a remote container storage.
+`
+
+const templateStringCrioImageDefaultTransport = `# Default transport for pulling images from a remote container storage.
 default_transport = "{{ .DefaultTransport }}"
 
-# The path to a file containing credentials necessary for pulling images from
+`
+
+const templateStringCrioImageGlobalAuthFile = `# The path to a file containing credentials necessary for pulling images from
 # secure registries. The file is similar to that of /var/lib/kubelet/config.json
 global_auth_file = "{{ .GlobalAuthFile }}"
 
-# The image used to instantiate infra containers.
+`
+
+const templateStringCrioImagePauseImage = `# The image used to instantiate infra containers.
 # This option supports live configuration reload.
 pause_image = "{{ .PauseImage }}"
 
-# The path to a file containing credentials specific for pulling the pause_image from
+`
+
+const templateStringCrioImagePauseImageAuthFile = `# The path to a file containing credentials specific for pulling the pause_image from
 # above. The file is similar to that of /var/lib/kubelet/config.json
 # This option supports live configuration reload.
 pause_image_auth_file = "{{ .PauseImageAuthFile }}"
 
-# The command to run to have a container stay in the paused state.
+`
+
+const templateStringCrioImagePauseCommand = `# The command to run to have a container stay in the paused state.
 # When explicitly set to "", it will fallback to the entrypoint and command
 # specified in the pause image. When commented out, it will fallback to the
 # default: "/pause". This option supports live configuration reload.
 pause_command = "{{ .PauseCommand }}"
 
-# Path to the file which decides what sort of policy we use when deciding
+`
+
+const templateStringCrioImageSignaturePolicy = `# Path to the file which decides what sort of policy we use when deciding
 # whether or not to trust an image that we've pulled. It is not recommended that
 # this option be used, as the default behavior of using the system-wide default
 # policy (i.e., /etc/containers/policy.json) is most often preferred. Please
 # refer to containers-policy.json(5) for more details.
 signature_policy = "{{ .SignaturePolicyPath }}"
 
-# List of registries to skip TLS verification for pulling images. Please
+`
+
+const templateStringCrioImageInsecureRegistries = `# List of registries to skip TLS verification for pulling images. Please
 # consider configuring the registries via /etc/containers/registries.conf before
 # changing them here.
 #insecure_registries = "{{ .InsecureRegistries }}"
 
-# Controls how image volumes are handled. The valid values are mkdir, bind and
+`
+
+const templateStringCrioImageImageVolumes = `# Controls how image volumes are handled. The valid values are mkdir, bind and
 # ignore; the latter will ignore volumes entirely.
 image_volumes = "{{ .ImageVolumes }}"
 
-# List of registries to be used when pulling an unqualified image (e.g.,
+`
+
+const templateStringCrioImageRegistries = `# List of registries to be used when pulling an unqualified image (e.g.,
 # "alpine:latest"). By default, registries is set to "docker.io" for
 # compatibility reasons. Depending on your workload and usecase you may add more
 # registries (e.g., "quay.io", "registry.fedoraproject.org",
@@ -431,33 +1068,52 @@ image_volumes = "{{ .ImageVolumes }}"
 #registries = [
 # {{ range $opt := .Registries }}{{ printf "\t%q,\n#" $opt }}{{ end }}]
 
-# Temporary directory to use for storing big files
+`
+
+const templateStringCrioImageBigFilesTemporaryDir = `# Temporary directory to use for storing big files
 big_files_temporary_dir = "{{ .BigFilesTemporaryDir }}"
 
-# The crio.network table containers settings pertaining to the management of
+`
+
+const templateStringCrioNetwork = `# The crio.network table containers settings pertaining to the management of
 # CNI plugins.
 [crio.network]
 
-# The default CNI network name to be selected. If not set or "", then
+`
+
+const templateStringCrioNetworkCniDefaultNetwork = `# The default CNI network name to be selected. If not set or "", then
 # CRI-O will pick-up the first one found in network_dir.
 # cni_default_network = "{{ .CNIDefaultNetwork }}"
 
-# Path to the directory where CNI configuration files are located.
+`
+
+const templateStringCrioNetworkNetworkDir = `# Path to the directory where CNI configuration files are located.
 network_dir = "{{ .NetworkDir }}"
 
-# Paths to directories where CNI plugin binaries are located.
+`
+
+const templateStringCrioNetworkPluginDirs = `# Paths to directories where CNI plugin binaries are located.
 plugin_dirs = [
 {{ range $opt := .PluginDirs }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
-# A necessary configuration for Prometheus based metrics retrieval
+`
+
+const templateStringCrioMetrics = `# A necessary configuration for Prometheus based metrics retrieval
 [crio.metrics]
 
-# Globally enable or disable metrics support.
+`
+
+const templateStringCrioMetricsEnableMetrics = `# Globally enable or disable metrics support.
 enable_metrics = {{ .EnableMetrics }}
 
-# The port on which the metrics server will listen.
+`
+
+const templateStringCrioMetricsMetricsPort = `# The port on which the metrics server will listen.
 metrics_port = {{ .MetricsPort }}
 
-# Local socket path to bind the metrics server to
+`
+
+const templateStringCrioMetricsMetricsSocket = `# Local socket path to bind the metrics server to
 metrics_socket = "{{ .MetricsSocket }}"
+
 `

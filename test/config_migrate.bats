@@ -14,16 +14,13 @@ load helpers
 
 	# then
 	[[ "$output" == *'Changing \"apparmor_profile\" to \"crio-default\"'* ]]
-	[[ "$output" == *'apparmor_profile = "crio-default"'* ]]
 
 	[[ "$output" == *'Removing \"default_capabilities\" entry \"NET_RAW\"'* ]]
 	[[ "$output" == *'Removing \"default_capabilities\" entry \"SYS_CHROOT\"'* ]]
 
 	[[ "$output" == *'Changing \"log_level\" to \"info\"'* ]]
-	[[ "$output" == *'log_level = "info"'* ]]
 
 	[[ "$output" == *'Changing \"ctr_stop_timeout\" to 30'* ]]
-	[[ "$output" == *'ctr_stop_timeout = 30'* ]]
 }
 
 @test "config migrate should fail on invalid version" {

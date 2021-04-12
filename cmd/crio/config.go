@@ -74,6 +74,6 @@ it later with **--config**. Global options will modify the output.`,
 		}
 
 		// Output the commented config.
-		return conf.WriteTemplate(os.Stdout)
+		return conf.WriteTemplate(c.Bool("default"), os.Stdout)
 	},
 }

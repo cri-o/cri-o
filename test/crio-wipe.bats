@@ -27,7 +27,7 @@ function teardown() {
 
 # run crio_wipe calls crio_wipe and tests it succeeded
 function run_crio_wipe() {
-	"$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" wipe
+	"$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" wipe
 }
 
 # test_crio_wiped_containers checks if a running crio instance
@@ -167,7 +167,7 @@ function start_crio_with_stopped_pod() {
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
 	rm "$CONTAINER_VERSION_FILE"
 
-	run "$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" wipe
+	run "$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" wipe
 	echo "$status"
 	echo "$output"
 	[ "$status" -ne 0 ]

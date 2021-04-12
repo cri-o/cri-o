@@ -66,6 +66,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if err := config.UpdateFromPath(ctx.String("config-dir")); err != nil {
 		return err
 	}
+	// If "config-dir" is specified, config.UpdateFromPath() will set config.singleConfigPath as
+	// the last config file in "config-dir".
+	// We need correct it to the path specified by "config"
+	if path != "" {
+		config.SetSingleConfigPath(path)
+	}
 
 	// Override options set with the CLI.
 	if ctx.IsSet("conmon") {
