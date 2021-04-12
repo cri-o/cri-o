@@ -1050,7 +1050,8 @@ signature_policy = "{{ .SignaturePolicyPath }}"
 const templateStringCrioImageInsecureRegistries = `# List of registries to skip TLS verification for pulling images. Please
 # consider configuring the registries via /etc/containers/registries.conf before
 # changing them here.
-insecure_registries = "{{ .InsecureRegistries }}"
+insecure_registries = [
+{{ range $opt := .InsecureRegistries }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
 `
 
