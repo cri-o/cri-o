@@ -47,6 +47,15 @@ into this
 ```
 go get -u github.com/psampaz/go-mod-outdated
 ```
+
+or 
+
+```go
+go install github.com/psampaz/go-mod-outdated@v0.8.0
+```
+
+if you are on go 1.16
+
 ## Usage
 In the folder where your go.mod lives run
  
