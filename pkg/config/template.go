@@ -411,11 +411,6 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.ImageVolumes, c.ImageVolumes),
 		},
 		{
-			templateString: templateStringCrioImageRegistries,
-			group:          crioImageConfig,
-			isDefaultValue: stringSliceEqual(dc.Registries, c.Registries),
-		},
-		{
 			templateString: templateStringCrioImageBigFilesTemporaryDir,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.BigFilesTemporaryDir, c.BigFilesTemporaryDir),
@@ -1058,16 +1053,6 @@ insecure_registries = [
 const templateStringCrioImageImageVolumes = `# Controls how image volumes are handled. The valid values are mkdir, bind and
 # ignore; the latter will ignore volumes entirely.
 image_volumes = "{{ .ImageVolumes }}"
-
-`
-
-const templateStringCrioImageRegistries = `# List of registries to be used when pulling an unqualified image (e.g.,
-# "alpine:latest"). By default, registries is set to "docker.io" for
-# compatibility reasons. Depending on your workload and usecase you may add more
-# registries (e.g., "quay.io", "registry.fedoraproject.org",
-# "registry.opensuse.org", etc.).
-registries = [
-{{ range $opt := .Registries }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
 `
 
