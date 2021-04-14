@@ -281,7 +281,7 @@ jobs:
       - run: make codecov
 
   release-notes:
-    if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release')
+    if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -329,8 +329,8 @@ jobs:
           path: build/dependencies
 
   release-branch-forward:
-    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
