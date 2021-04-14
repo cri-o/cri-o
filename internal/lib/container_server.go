@@ -199,30 +199,30 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 	sb.SetSeccompProfilePath(spp)
 	sb.SetNamespaceOptions(&nsOpts)
 
+	defer func() {
+		if retErr != nil {
+			if err := sb.RemoveManagedNamespaces(); err != nil {
+				log.Warnf(ctx, "failed to remove namespaces: %v", err)
+			}
+		}
+	}()
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
-	netNsPath, err := configNsPath(&m, rspec.NetworkNamespace)
-	if err == nil {
-		if nsErr := sb.NetNsJoin(netNsPath); nsErr != nil {
-			return nsErr
-		}
+	namespacesToJoin := []struct {
+		rspecNS  rspec.LinuxNamespaceType
+		joinFunc func(string) error
+	}{
+		{rspecNS: rspec.NetworkNamespace, joinFunc: sb.NetNsJoin},
+		{rspecNS: rspec.IPCNamespace, joinFunc: sb.IpcNsJoin},
+		{rspecNS: rspec.UTSNamespace, joinFunc: sb.UtsNsJoin},
+		{rspecNS: rspec.UserNamespace, joinFunc: sb.UserNsJoin},
 	}
-	ipcNsPath, err := configNsPath(&m, rspec.IPCNamespace)
-	if err == nil {
-		if nsErr := sb.IpcNsJoin(ipcNsPath); nsErr != nil {
-			return nsErr
-		}
-	}
-	utsNsPath, err := configNsPath(&m, rspec.UTSNamespace)
-	if err == nil {
-		if nsErr := sb.UtsNsJoin(utsNsPath); nsErr != nil {
-			return nsErr
-		}
-	}
-	userNsPath, err := configNsPath(&m, rspec.UserNamespace)
-	if err == nil {
-		if nsErr := sb.UserNsJoin(userNsPath); nsErr != nil {
-			return nsErr
+	for _, namespaceToJoin := range namespacesToJoin {
+		path, err := configNsPath(&m, namespaceToJoin.rspecNS)
+		if err == nil {
+			if nsErr := namespaceToJoin.joinFunc(path); err != nil {
+				return nsErr
+			}
 		}
 	}
 
@@ -302,28 +302,6 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 
 	if err := sb.SetInfraContainer(scontainer); err != nil {
 		return err
-	}
-
-	// We add an NS only if we can load a permanent one.
-	// Otherwise, the sandbox will live in the host namespace.
-	if wasSpoofed {
-		namespacesToJoin := []struct {
-			rspecNS  rspec.LinuxNamespaceType
-			joinFunc func(string) error
-		}{
-			{rspecNS: rspec.NetworkNamespace, joinFunc: sb.NetNsJoin},
-			{rspecNS: rspec.IPCNamespace, joinFunc: sb.IpcNsJoin},
-			{rspecNS: rspec.UTSNamespace, joinFunc: sb.UtsNsJoin},
-			{rspecNS: rspec.UserNamespace, joinFunc: sb.UserNsJoin},
-		}
-		for _, namespaceToJoin := range namespacesToJoin {
-			path, err := configNsPath(&m, namespaceToJoin.rspecNS)
-			if err == nil {
-				if nsErr := namespaceToJoin.joinFunc(path); err != nil {
-					return nsErr
-				}
-			}
-		}
 	}
 
 	sb.SetCreated()
