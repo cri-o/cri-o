@@ -7,7 +7,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -56,9 +55,6 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandb
 		return errors.Wrap(err, "unable to unmount SHM")
 	}
 
-	if err := s.StorageRuntimeServer().RemovePodSandbox(sb.ID()); err != nil && err != pkgstorage.ErrInvalidSandboxID {
-		return fmt.Errorf("failed to remove pod sandbox %s: %v", sb.ID(), err)
-	}
 	if err := sb.RemoveManagedNamespaces(); err != nil {
 		return errors.Wrap(err, "unable to remove managed namespaces")
 	}
