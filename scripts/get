@@ -6,7 +6,7 @@ ARCH_ARM64=arm64
 ARCH=
 VERSION=
 GITHUB_TOKEN=${GITHUB_TOKEN:-}
-GCB_URL=https://storage.googleapis.com/k8s-conform-cri-o
+GCB_URL=https://storage.googleapis.com/cri-o
 
 usage() {
     printf "Usage: %s [-a ARCH] [ -t TAG|SHA ] [ -h ]\n\n" "$(basename "$0")"

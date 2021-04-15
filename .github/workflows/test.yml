@@ -240,7 +240,7 @@ jobs:
           path: build/bundle
       - run: make upload-artifacts
         env:
-          GCS_BUCKET_SA: ${{ secrets.GCS_BUCKET_SA }}
+          GCS_CRIO_SA: ${{ secrets.GCS_CRIO_SA }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
   unit:
