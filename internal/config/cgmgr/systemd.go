@@ -82,7 +82,7 @@ func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string
 		Value: dbus.MakeVariant(int(unix.SIGPIPE)),
 	}
 	logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, conmonUnitName)
-	if err := utils.RunUnderSystemdScope(pid, cgroupParent, conmonUnitName, killSignalProp); err != nil {
+	if err := utils.RunUnderSystemdScope(pid, cgroupParent, conmonUnitName, killSignalProp, systemdDbus.PropAfter("crio.service")); err != nil {
 		return "", errors.Wrapf(err, "failed to add conmon to systemd sandbox cgroup")
 	}
 	// return empty string as path because cgroup cleanup is done by systemd
