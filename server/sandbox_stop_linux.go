@@ -10,31 +10,12 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 )
 
-func (s *Server) stopPodSandbox(ctx context.Context, req *types.StopPodSandboxRequest) error {
-	log.Infof(ctx, "Stopping pod sandbox: %s", req.PodSandboxID)
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
-	if err != nil {
-		if err == sandbox.ErrIDEmpty {
-			return err
-		}
-		if err == errSandboxNotCreated {
-			return fmt.Errorf("StopPodSandbox failed as the sandbox is not created: %s", sb.ID())
-		}
-
-		// If the sandbox isn't found we just return an empty response to adhere
-		// the CRI interface which expects to not error out in not found
-		// cases.
-
-		log.Warnf(ctx, "could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxID, err)
-		log.Debugf(ctx, "StopPodSandboxResponse %s", req.PodSandboxID)
-		return nil
-	}
+func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
 	stopMutex := sb.StopMutex()
 	stopMutex.Lock()
 	defer stopMutex.Unlock()
