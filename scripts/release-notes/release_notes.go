@@ -223,6 +223,15 @@ Download one of our static release bundles via our Google Cloud Bucket:
 		return errors.Wrap(err, "commit")
 	}
 
+	// Other jobs could run in parallel, rebase before pushing
+	if err := repo.FetchRemote(git.DefaultRemote); err != nil {
+		return errors.Wrap(err, "fetch remote")
+	}
+
+	if err := repo.Rebase(branch); err != nil {
+		return errors.Wrapf(err, "rebase to branch %s", branch)
+	}
+
 	if err := repo.Push(branch); err != nil {
 		return errors.Wrap(err, "push changes")
 	}
