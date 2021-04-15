@@ -93,6 +93,9 @@ type imageService struct {
 	ctx            context.Context
 }
 
+// ImageBeingPulled map[string]bool to keep track of the images haven't done pulling.
+var ImageBeingPulled sync.Map
+
 // CgroupPullConfiguration
 type CgroupPullConfiguration struct {
 	UseNewCgroup bool
@@ -316,6 +319,19 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 			}
 			results, err = svc.appendCachedResult(systemContext, ref, image, results, newImageCache)
 			if err != nil {
+				// skip reporting errors if the images haven't finished pulling
+				if os.IsNotExist(errors.Cause(err)) {
+					donePulling := true
+					for _, name := range image.Names {
+						if _, ok := ImageBeingPulled.Load(name); ok {
+							donePulling = false
+							break
+						}
+					}
+					if !donePulling {
+						continue
+					}
+				}
 				return nil, err
 			}
 		}
