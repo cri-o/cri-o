@@ -31,7 +31,10 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandb
 		log.Warnf(ctx, "could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxID, err)
 		return nil
 	}
+	return s.removePodSandbox(ctx, sb)
+}
 
+func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
 	containers := sb.Containers().List()
 
 	// Delete all the containers in the sandbox

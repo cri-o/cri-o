@@ -11,19 +11,23 @@ import (
 
 // RemoveImage removes the image.
 func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest) error {
-	image := ""
+	imageRef := ""
 	img := req.Image
 	if img != nil {
-		image = img.Image
+		imageRef = img.Image
 	}
-	if image == "" {
+	if imageRef == "" {
 		return fmt.Errorf("no image specified")
 	}
+	return s.removeImage(ctx, imageRef)
+}
+
+func (s *Server) removeImage(ctx context.Context, imageRef string) error {
 	var deleted bool
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
+	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, imageRef)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {
-			images = append(images, image)
+			images = append(images, imageRef)
 		} else {
 			return err
 		}
