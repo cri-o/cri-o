@@ -54,6 +54,10 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
   It is used to check if crio wipe should wipe images, which should
   only happen when CRI-O has been upgraded
 
+**internal_wipe**=false
+  Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts.
+  If set to false, one must run `crio wipe` to wipe the containers and images in these situations.
+
 **clean_shutdown_file**="/var/lib/crio/clean.shutdown"
   Location for CRI-O to lay down the clean shutdown file.
   It is used to check whether crio had time to sync before shutting down.
