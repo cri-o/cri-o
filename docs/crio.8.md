@@ -47,6 +47,7 @@ crio
 [--image-volumes]=[value]
 [--infra-ctr-cpuset]=[value]
 [--insecure-registry]=[value]
+[--internal-wipe]
 [--irqbalance-config-file]=[value]
 [--listen]=[value]
 [--log-dir]=[value]
@@ -229,6 +230,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        be enabled for testing purposes**. For increased security, users should add
        their CA to their system's list of trusted CAs instead of using
        '--insecure-registry'. (default: [])
+
+**--internal-wipe**: Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts. If set to false, one must run `crio wipe` to wipe the containers and images in these situations.
 
 **--irqbalance-config-file**="": The irqbalance service config file which is used by CRI-O. (default: /etc/sysconfig/irqbalance)
 
