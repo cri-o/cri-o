@@ -126,6 +126,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.VersionFilePersist, c.VersionFilePersist),
 		},
 		{
+			templateString: templateStringCrioInternalWipe,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.InternalWipe, c.InternalWipe),
+		},
+		{
 			templateString: templateStringCrioCleanShutdownFile,
 			group:          crioRootConfig,
 			isDefaultValue: simpleEqual(dc.CleanShutdownFile, c.CleanShutdownFile),
@@ -584,6 +589,12 @@ const templateStringCrioCleanShutdownFile = `# Location for CRI-O to lay down th
 # It is used to check whether crio had time to sync before shutting down.
 # If not found, crio wipe will clear the storage directory.
 clean_shutdown_file = "{{ .CleanShutdownFile }}"
+
+`
+
+const templateStringCrioInternalWipe = `# InternalWipe is whether CRI-O should wipe containers and images after a reboot when the server starts.
+# If set to false, one must use the external command 'crio wipe' to wipe the containers and images in these situations.
+internal_wipe = {{ .InternalWipe }}
 
 `
 
