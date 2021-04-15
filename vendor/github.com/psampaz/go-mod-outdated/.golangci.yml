@@ -52,6 +52,11 @@ linters:
     - gofumpt
     - gci
     - goerr113
+    - exhaustivestruct
+    - paralleltest
+    - errorlint
+    - thelper
+    - wrapcheck
 
 run:
   skip-dirs:
