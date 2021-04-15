@@ -69,6 +69,7 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 		if !inProgress {
 			pullOp = &pullOperation{}
 			s.pullOperationsInProgress[pullArgs] = pullOp
+			storage.ImageBeingPulled.Store(pullArgs.image, true)
 			pullOp.wg.Add(1)
 		}
 		return pullOp, inProgress
@@ -79,6 +80,7 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 		defer func() {
 			s.pullOperationsLock.Lock()
 			delete(s.pullOperationsInProgress, pullArgs)
+			storage.ImageBeingPulled.Delete(pullArgs.image)
 			pullOp.wg.Done()
 			s.pullOperationsLock.Unlock()
 		}()
