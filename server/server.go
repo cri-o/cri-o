@@ -529,18 +529,32 @@ func (s *Server) wipeIfAppropriate(ctx context.Context) {
 		}
 	}
 
+	wipeResourceCleaner := resourcestore.NewResourceCleaner()
 	if shouldWipeContainers {
 		for _, sb := range s.ContainerServer.ListSandboxes() {
-			err := s.stopPodSandbox(ctx, sb)
-			if err == nil {
-				err = s.removePodSandbox(ctx, sb)
+			sb := sb
+			cleanupFunc := func() error {
+				if err := s.stopPodSandbox(ctx, sb); err != nil {
+					return err
+				}
+				return s.removePodSandbox(ctx, sb)
 			}
-			if err != nil {
-				log.Warnf(ctx, "Failed to cleanup pod %s: %v", sb.ID(), err)
+			if err := cleanupFunc(); err != nil {
+				log.Warnf(ctx, "Failed to cleanup pod %s (will retry): %v", sb.ID(), err)
+				wipeResourceCleaner.Add(ctx, "stop and remove pod sandbox", cleanupFunc)
 			}
 		}
 	}
 
+	go func() {
+		if err := wipeResourceCleaner.Cleanup(); err != nil {
+			log.Errorf(ctx, "Cleanup during server startup failed: %v", err)
+		}
+	}()
+
+	// Note: some of these will fail if some aspect of the pod cleanup failed as well,
+	// but this is best-effort anyway, as the Kubelet will eventually cleanup images when
+	// disk usage gets too high.
 	if shouldWipeImages {
 		for _, img := range imagesToWipe {
 			if err := s.removeImage(ctx, img); err != nil {
