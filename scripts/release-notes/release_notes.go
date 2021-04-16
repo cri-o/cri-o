@@ -112,8 +112,8 @@ The release notes have been generated for the commit range
 
 Download one of our static release bundles via our Google Cloud Bucket:
 
-- [cri-o.amd64.%s.tar.gz](https://storage.googleapis.com/k8s-conform-cri-o/artifacts/cri-o.amd64.%s.tar.gz)
-- [cri-o.arm64.%s.tar.gz](https://storage.googleapis.com/k8s-conform-cri-o/artifacts/cri-o.arm64.%s.tar.gz)
+- [cri-o.amd64.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz)
+- [cri-o.arm64.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz)
 
 ## Changelog since %s
 

@@ -119,7 +119,7 @@ We also provide a way in building [static binaries of `CRI-O`](install.md#static
 Those binaries are available for every successfully built commit on our [Google Cloud Storage Bucket][bucket].
 This means that the latest commit can be installed via our convinience script:
 
-[bucket]: https://console.cloud.google.com/storage/browser/k8s-conform-cri-o/artifacts
+[bucket]: https://console.cloud.google.com/storage/browser/cri-o/artifacts
 
 ```shell
 > curl https://raw.githubusercontent.com/cri-o/cri-o/master/scripts/get | bash
@@ -142,7 +142,7 @@ The above script resolves to the download URL of the static binary bundle
 tarball matching the format:
 
 ```
-https://storage.googleapis.com/k8s-conform-cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz
+https://storage.googleapis.com/cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz
 ```
 
 where `$ARCH` can be `amd64` or `arm64` and `$REV` can be any git SHA or tag.
