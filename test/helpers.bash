@@ -172,11 +172,7 @@ function setup_test() {
     # should either do an explicit "crictl pull", or use --with-pull.
     crictl config \
         --set pull-image-on-create=false \
-        --set disable-pull-on-run=true \
-        2>/dev/null || true
-    #   ^^^^^^^^^^^^^^^^^^^ TODO: remove the line above once crictl is updated
-    # to >= 1.19. It is not a problem if this setting is not working, and since
-    # some CI jobs (kata) use older crictl, set this on a best-effort basis.
+        --set disable-pull-on-run=true
 
     PATH=$PATH:$TESTDIR
 }
