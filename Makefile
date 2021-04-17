@@ -178,7 +178,7 @@ build-static:
 release-bundle: clean bin/pinns build-static docs crio.conf bundle
 
 crio.conf: bin/crio
-	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > crio.conf
+	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config --default > crio.conf
 
 release:
 	${GO_RUN} ./scripts/release
