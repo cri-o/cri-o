@@ -1,3 +1,5 @@
+// +build freebsd,cgo
+
 /*
    Copyright The containerd Authors.
 
@@ -14,21 +16,30 @@
    limitations under the License.
 */
 
-package version
+package console
 
-import "runtime"
-
-var (
-	// Package is filled at linking time
-	Package = "github.com/containerd/containerd"
-
-	// Version holds the complete version number. Filled in at linking time.
-	Version = "1.5.0-rc.1+unknown"
-
-	// Revision is filled with the VCS (e.g. git) revision being used to build
-	// the program at linking time.
-	Revision = ""
-
-	// GoVersion is Go tree's version.
-	GoVersion = runtime.Version()
+import (
+	"fmt"
+	"os"
 )
+
+/*
+#include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
+*/
+import "C"
+
+// openpt allocates a new pseudo-terminal and establishes a connection with its
+// control device.
+func openpt() (*os.File, error) {
+	fd, err := C.posix_openpt(C.O_RDWR)
+	if err != nil {
+		return nil, fmt.Errorf("posix_openpt: %w", err)
+	}
+	if _, err := C.grantpt(fd); err != nil {
+		C.close(fd)
+		return nil, fmt.Errorf("grantpt: %w", err)
+	}
+	return os.NewFile(uintptr(fd), ""), nil
+}

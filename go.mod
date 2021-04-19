@@ -4,10 +4,10 @@ module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.17-0.20210211115548-6eac466e5fa3
+	github.com/Microsoft/go-winio v0.4.17-0.20210324224401-5516f17a5958
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v0.0.0-20210114181951-8a68de567b68
-	github.com/containerd/containerd v1.5.0-beta.4
+	github.com/containerd/containerd v1.5.0-rc.1
 	github.com/containerd/ttrpc v1.0.2
 	github.com/containerd/typeurl v1.0.1
 	github.com/containernetworking/cni v0.8.1
@@ -16,7 +16,7 @@ require (
 	github.com/containers/common v0.35.4
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.11.0
-	github.com/containers/ocicrypt v1.1.0
+	github.com/containers/ocicrypt v1.1.1
 	github.com/containers/podman/v3 v3.1.0
 	github.com/containers/storage v1.28.1
 	github.com/coreos/go-systemd/v22 v22.3.1

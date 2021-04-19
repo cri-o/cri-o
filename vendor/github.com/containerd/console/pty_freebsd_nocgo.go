@@ -1,4 +1,4 @@
-// +build !windows
+// +build freebsd,!cgo
 
 /*
    Copyright The containerd Authors.
@@ -16,18 +16,21 @@
    limitations under the License.
 */
 
-package sys
+package console
 
-import "golang.org/x/sys/unix"
+import (
+	"os"
+)
 
-// RunningPrivileged returns true if the effective user ID of the
-// calling process is 0
-func RunningPrivileged() bool {
-	return unix.Geteuid() == 0
-}
+//
+// Implementing the functions below requires cgo support.  Non-cgo stubs
+// versions are defined below to enable cross-compilation of source code
+// that depends on these functions, but the resultant cross-compiled
+// binaries cannot actually be used.  If the stub function(s) below are
+// actually invoked they will display an error message and cause the
+// calling process to exit.
+//
 
-// RunningUnprivileged returns true if the effective user ID of the
-// calling process is not 0
-func RunningUnprivileged() bool {
-	return !RunningPrivileged()
+func openpt() (*os.File, error) {
+	panic("openpt() support requires cgo.")
 }
