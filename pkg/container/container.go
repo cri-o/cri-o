@@ -247,6 +247,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 			c.spec.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 		}
 		c.spec.AddAnnotation("org.systemd.property.DefaultDependencies", "true")
+		c.spec.AddAnnotation("org.systemd.property.After", "['crio.service']")
 	}
 
 	if configStopSignal != "" {
