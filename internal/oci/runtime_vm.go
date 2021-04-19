@@ -11,12 +11,13 @@ import (
 	"syscall"
 	"time"
 
+	cgroups "github.com/containerd/cgroups/stats/v1"
 	tasktypes "github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/namespaces"
 	client "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/containerd/runtime/v2/task"
 	"github.com/containerd/ttrpc"
-	"github.com/containers/podman/v3/pkg/cgroups"
+	"github.com/containerd/typeurl"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
@@ -24,7 +25,6 @@ import (
 	"github.com/cri-o/cri-o/utils/fifo"
 	cio "github.com/cri-o/cri-o/utils/io"
 	cioutil "github.com/cri-o/cri-o/utils/ioutil"
-	"github.com/cri-o/cri-o/utils/typeurl"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -744,6 +744,66 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 	}
 
 	return metricsToCtrStats(c, m), nil
+}
+
+func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
+	var (
+		blockInput      uint64
+		blockOutput     uint64
+		cpu             float64
+		cpuNano         uint64
+		memLimit        uint64
+		memPerc         float64
+		memUsage        uint64
+		netInput        uint64
+		netOutput       uint64
+		pids            uint64
+		workingSetBytes uint64
+	)
+
+	if m != nil {
+		pids = m.Pids.Current
+
+		cpuNano = m.CPU.Usage.Total
+		cpu = genericCalculateCPUPercent(cpuNano, m.CPU.Usage.PerCPU)
+
+		memUsage = m.Memory.Usage.Usage
+		memLimit = getMemLimit(m.Memory.Usage.Limit)
+		memPerc = float64(memUsage) / float64(memLimit)
+		if memUsage > m.Memory.TotalInactiveFile {
+			workingSetBytes = memUsage - m.Memory.TotalInactiveFile
+		} else {
+			logrus.Debugf(
+				"unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
+				m.Memory.TotalInactiveFile, memUsage,
+			)
+		}
+
+		for _, entry := range m.Blkio.IoServiceBytesRecursive {
+			switch strings.ToLower(entry.Op) {
+			case "read":
+				blockInput += entry.Value
+			case "write":
+				blockOutput += entry.Value
+			}
+		}
+	}
+
+	return &ContainerStats{
+		BlockInput:      blockInput,
+		BlockOutput:     blockOutput,
+		Container:       c.ID(),
+		CPU:             cpu,
+		CPUNano:         cpuNano,
+		MemLimit:        memLimit,
+		MemUsage:        memUsage,
+		MemPerc:         memPerc,
+		NetInput:        netInput,
+		NetOutput:       netOutput,
+		PIDs:            pids,
+		SystemNano:      time.Now().UnixNano(),
+		WorkingSetBytes: workingSetBytes,
+	}
 }
 
 // SignalContainer sends a signal to a container process.
