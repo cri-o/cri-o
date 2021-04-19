@@ -9,7 +9,7 @@ require (
 	github.com/containerd/cgroups v0.0.0-20210114181951-8a68de567b68
 	github.com/containerd/containerd v1.5.0-beta.4
 	github.com/containerd/ttrpc v1.0.2
-	github.com/containerd/typeurl v1.0.1
+	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
 	github.com/containers/buildah v1.20.0
