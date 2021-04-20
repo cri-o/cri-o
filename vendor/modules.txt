@@ -11,7 +11,7 @@ github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/pkg/security
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.8.15
+# github.com/Microsoft/hcsshim v0.8.16
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
 github.com/Microsoft/hcsshim/internal/cow
@@ -113,7 +113,7 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.20.0
+# github.com/containers/buildah v1.20.1
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -217,7 +217,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v3 v3.1.0
+# github.com/containers/podman/v3 v3.1.1
 ## explicit
 github.com/containers/podman/v3/libpod
 github.com/containers/podman/v3/libpod/define
@@ -242,6 +242,7 @@ github.com/containers/podman/v3/pkg/criu
 github.com/containers/podman/v3/pkg/ctime
 github.com/containers/podman/v3/pkg/domain/entities
 github.com/containers/podman/v3/pkg/domain/entities/reports
+github.com/containers/podman/v3/pkg/domain/entities/types
 github.com/containers/podman/v3/pkg/env
 github.com/containers/podman/v3/pkg/errorhandling
 github.com/containers/podman/v3/pkg/hooks
@@ -281,7 +282,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.28.1
+# github.com/containers/storage v1.29.0
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -533,6 +534,8 @@ github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
 # github.com/google/go-github/v33 v33.0.0
 github.com/google/go-github/v33/github
+# github.com/google/go-intervals v0.0.2
+github.com/google/go-intervals/intervalset
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
 # github.com/google/gofuzz v1.1.0
