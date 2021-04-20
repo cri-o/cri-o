@@ -7,6 +7,16 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Prepare the system
+ufw disable
+ip6tables --list >/dev/null
+iptables -F
+sysctl -w net.ipv4.conf.all.route_localnet=1
+sysctl -w net.ipv4.ip_forward=1
+sysctl -w net.bridge.bridge-nf-call-iptables=1
+sysctl -w fs.inotify.max_user_watches=1048576
+iptables -t nat -I POSTROUTING -s 127.0.0.0/8 ! -d 127.0.0.0/8 -j MASQUERADE
+
 # Assume we're running on this arch
 ARCH=amd64
 
@@ -82,7 +92,6 @@ echo "Using IP: $IP"
 export DNS_SERVER_IP=$IP
 export API_HOST_IP=$IP
 
-iptables -F
 hack/install-etcd.sh
 export PATH="$GOPATH/src/k8s.io/kubernetes/third_party/etcd:$PATH"
 
