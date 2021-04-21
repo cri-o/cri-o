@@ -111,56 +111,6 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerSt
 	return stats, nil
 }
 
-func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
-	var (
-		cpu         float64
-		cpuNano     uint64
-		memUsage    uint64
-		memLimit    uint64
-		memPerc     float64
-		netInput    uint64
-		netOutput   uint64
-		blockInput  uint64
-		blockOutput uint64
-		pids        uint64
-	)
-
-	if m != nil {
-		pids = m.Pids.Current
-
-		cpuNano = m.CPU.Usage.Total
-		cpu = genericCalculateCPUPercent(cpuNano, m.CPU.Usage.PerCPU)
-
-		memUsage = m.Memory.Usage.Usage
-		memLimit = getMemLimit(m.Memory.Usage.Limit)
-		memPerc = float64(memUsage) / float64(memLimit)
-
-		for _, entry := range m.Blkio.IoServiceBytesRecursive {
-			switch strings.ToLower(entry.Op) {
-			case "read":
-				blockInput += entry.Value
-			case "write":
-				blockOutput += entry.Value
-			}
-		}
-	}
-
-	return &ContainerStats{
-		Container:   c.ID(),
-		CPU:         cpu,
-		CPUNano:     cpuNano,
-		SystemNano:  time.Now().UnixNano(),
-		MemUsage:    memUsage,
-		MemLimit:    memLimit,
-		MemPerc:     memPerc,
-		NetInput:    netInput,
-		NetOutput:   netOutput,
-		BlockInput:  blockInput,
-		BlockOutput: blockOutput,
-		PIDs:        pids,
-	}
-}
-
 // getTotalInactiveFile returns the value if inactive_file as integer
 // from cgroup's memory.stat. Returns an error if the file does not exists,
 // not parsable, or the value is not found.
