@@ -686,8 +686,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// set up namespaces
 	nsCleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sandboxIDMappings, sysctls, sb, g)
 	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
-	description = fmt.Sprintf("runSandbox: cleaning up namespaces after failing to run sandbox %s", sbox.ID())
-	resourceCleaner.Add(ctx, description, func() error {
+	nsCleanupDescription := fmt.Sprintf("runSandbox: cleaning up namespaces after failing to run sandbox %s", sbox.ID())
+	nsCleanupFunc := func() error {
 		log.Infof(ctx, description)
 		for idx := range nsCleanupFuncs {
 			if err2 := nsCleanupFuncs[idx](); err2 != nil {
@@ -696,8 +696,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			}
 		}
 		return nil
-	})
+	}
 	if err != nil {
+		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
 		return nil, err
 	}
 
@@ -707,23 +708,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	ips, result, err = s.networkStart(ctx, sb)
 	if err != nil {
+		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
 		return nil, err
 	}
-<<<<<<< HEAD
-	resourceCleaner.Add(func() {
-		log.Infof(ctx, "runSandbox: stopping network for sandbox %s", sb.ID())
-		// use a new context to prevent an expired context from preventing a stop
-		if err2 := s.networkStop(context.Background(), sb); err2 != nil {
-=======
 	description = fmt.Sprintf("runSandbox: stopping network for sandbox %s", sb.ID())
 	resourceCleaner.Add(ctx, description, func() error {
 		log.Infof(ctx, description)
-		err2 := s.networkStop(ctx, sb)
-		if err2 != nil {
->>>>>>> 547dcd678 (Add resource cleaner retry functionality)
-			log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
+		// use a new context to prevent an expired context from preventing a stop
+		if err := s.networkStop(context.Background(), sb); err != nil {
+			log.Errorf(ctx, "error stopping network on cleanup: %v", err)
+			return err
 		}
-		return err2
+
+		// Now that we've succeeded in stopping the network, cleanup namespaces
+		log.Infof(ctx, nsCleanupDescription)
+		return nsCleanupFunc()
 	})
 	if result != nil {
 		resultCurrent, err := current.NewResultFromResult(result)
