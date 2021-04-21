@@ -71,12 +71,12 @@ function check_cpu_fields() {
 
 	start_crio
 
-	jq --arg act "$activation" --arg set "$set" --arg setkey "$prefix.cpuset/$name" \
+	jq --arg act "$activation" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$act] = "true"
 		|   .annotations[$setkey] = $set' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	jq --arg act "$activation" --arg name "$name" --arg set "$set" --arg setkey "$prefix.cpuset/$name" \
+	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$act] = "true"
 		|   .annotations[$setkey] = $set
 		|   .metadata.name = $name' \
@@ -94,12 +94,12 @@ function check_cpu_fields() {
 
 	start_crio
 
-	jq --arg act "$activation" --arg set "$set" --arg setkey "$prefix.cpuset/$name" \
+	jq --arg act "$activation" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$act] = "true"
 		|   .annotations[$setkey] = $set' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	jq --arg act "$activation" --arg name "$name" --arg set "$set" --arg setkey "$prefix.cpuset/$name" \
+	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$act] = "true"
 		|   .annotations[$setkey] = $set
 		|   .metadata.name = $name' \
@@ -117,11 +117,11 @@ function check_cpu_fields() {
 
 	start_crio
 
-	jq --arg act "$activation" --arg set "$set" --arg setkey "$prefix.cpuset/$name" \
+	jq --arg act "$activation" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$setkey] = $set' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	jq --arg act "$activation" --arg name "$name" --arg set "$set" --arg setkey "$prefix.cpuset/$name" \
+	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$setkey] = $set
 		|   .metadata.name = $name
 		|   del(.linux.resources.cpu_shares)' \
