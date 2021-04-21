@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/opencontainers/runtime-tools/generate"
@@ -63,8 +64,11 @@ func (w Workloads) MutateSpecGivenAnnotations(ctrName string, specgen *generate.
 	if workload == nil {
 		return nil
 	}
-	for resource, defaultValue := range workload.Resources {
-		value := valueFromAnnotation(resource, defaultValue, workload.AnnotationPrefix, ctrName, sboxAnnotations)
+	resources, err := resourcesFromAnnotation(workload.AnnotationPrefix, ctrName, sboxAnnotations, workload.Resources)
+	if err != nil {
+		return err
+	}
+	for resource, value := range resources {
 		if value == "" {
 			continue
 		}
@@ -72,13 +76,14 @@ func (w Workloads) MutateSpecGivenAnnotations(ctrName string, specgen *generate.
 		m, ok := mutators[resource]
 		if !ok {
 			// CRI-O bug
-			panic(errors.Errorf("resource %s is not defined", resource))
+			return errors.Errorf("resource %s is not defined", resource)
 		}
 
 		if err := m.MutateSpec(specgen, value); err != nil {
 			return errors.Wrapf(err, "mutating spec given workload %s", workload.ActivationAnnotation)
 		}
 	}
+
 	return nil
 }
 
@@ -93,13 +98,23 @@ func (w Workloads) workloadGivenActivationAnnotation(sboxAnnotations map[string]
 	return nil
 }
 
-func valueFromAnnotation(resource, defaultValue, prefix, ctrName string, annotations map[string]string) string {
-	annotationKey := prefix + "." + resource + "/" + ctrName
+func resourcesFromAnnotation(prefix, ctrName string, annotations, defaultResources map[string]string) (map[string]string, error) {
+	annotationKey := prefix + "/" + ctrName
 	value, ok := annotations[annotationKey]
 	if !ok {
-		return defaultValue
+		return defaultResources, nil
 	}
-	return value
+
+	var resources map[string]string
+	if err := json.Unmarshal([]byte(value), &resources); err != nil {
+		return nil, err
+	}
+	for defaultKey, defaultVal := range defaultResources {
+		if value, ok := resources[defaultKey]; !ok || value == "" {
+			resources[defaultKey] = defaultVal
+		}
+	}
+	return resources, nil
 }
 
 var mutators = map[string]Mutator{
