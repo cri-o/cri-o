@@ -4,14 +4,14 @@ github.com/Azure/go-ansiterm/winterm
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
-# github.com/Microsoft/go-winio v0.4.17-0.20210211115548-6eac466e5fa3
+# github.com/Microsoft/go-winio v0.4.17
 ## explicit
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/pkg/security
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.8.15
+# github.com/Microsoft/hcsshim v0.8.16
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
 github.com/Microsoft/hcsshim/internal/cow
@@ -52,18 +52,18 @@ github.com/checkpoint-restore/go-criu
 github.com/checkpoint-restore/go-criu/rpc
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 github.com/chzyer/readline
-# github.com/cilium/ebpf v0.2.0
+# github.com/cilium/ebpf v0.4.0
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
 github.com/cilium/ebpf/internal
 github.com/cilium/ebpf/internal/btf
 github.com/cilium/ebpf/internal/unix
-# github.com/containerd/cgroups v0.0.0-20210114181951-8a68de567b68
+# github.com/containerd/cgroups v1.0.0
 ## explicit
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/console v1.0.1
+# github.com/containerd/console v1.0.2
 github.com/containerd/console
-# github.com/containerd/containerd v1.5.0-beta.4
+# github.com/containerd/containerd v1.5.0-rc.2
 ## explicit
 github.com/containerd/containerd/api/services/ttrpc/events/v1
 github.com/containerd/containerd/api/types
@@ -77,23 +77,24 @@ github.com/containerd/containerd/log
 github.com/containerd/containerd/namespaces
 github.com/containerd/containerd/pkg/dialer
 github.com/containerd/containerd/pkg/ttrpcutil
+github.com/containerd/containerd/pkg/userns
 github.com/containerd/containerd/platforms
 github.com/containerd/containerd/runtime/v2/shim
 github.com/containerd/containerd/runtime/v2/task
 github.com/containerd/containerd/sys
 github.com/containerd/containerd/sys/reaper
 github.com/containerd/containerd/version
-# github.com/containerd/continuity v0.0.0-20210208174643-50096c924a4e
+# github.com/containerd/continuity v0.1.0
 github.com/containerd/continuity/fs
 github.com/containerd/continuity/sysx
-# github.com/containerd/fifo v0.0.0-20210316144830-115abcc95a1d
+# github.com/containerd/fifo v1.0.0
 github.com/containerd/fifo
-# github.com/containerd/go-runc v0.0.0-20201020171139-16b287bc67d0
+# github.com/containerd/go-runc v1.0.0
 github.com/containerd/go-runc
 # github.com/containerd/ttrpc v1.0.2
 ## explicit
 github.com/containerd/ttrpc
-# github.com/containerd/typeurl v1.0.1
+# github.com/containerd/typeurl v1.0.2
 ## explicit
 github.com/containerd/typeurl
 # github.com/containernetworking/cni v0.8.1
@@ -1127,7 +1128,7 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/netutil
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.20.1 => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20210408162405-cb303e613a12
+# k8s.io/apiserver v0.20.6 => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20210408162405-cb303e613a12
 k8s.io/apiserver/pkg/features
 k8s.io/apiserver/pkg/server/httplog
 k8s.io/apiserver/pkg/util/feature
@@ -1344,7 +1345,7 @@ k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
 # k8s.io/cloud-provider v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20210408162405-cb303e613a12
 k8s.io/cloud-provider
-# k8s.io/component-base v0.20.1 => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20210408162405-cb303e613a12
+# k8s.io/component-base v0.20.6 => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20210408162405-cb303e613a12
 k8s.io/component-base/featuregate
 k8s.io/component-base/metrics
 k8s.io/component-base/metrics/legacyregistry
