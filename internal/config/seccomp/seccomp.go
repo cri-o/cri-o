@@ -194,9 +194,12 @@ func (c *Config) setupFromField(
 	log.Debugf(ctx, "Setup seccomp from profile field: %+v", profileField)
 
 	if c.IsDisabled() {
-		if profileField.ProfileType != types.SecurityProfileTypeUnconfined {
+		if profileField.ProfileType != types.SecurityProfileTypeUnconfined &&
+			// Kubernetes sandboxes run per default with `SecurityProfileTypeRuntimeDefault`:
+			// https://github.com/kubernetes/kubernetes/blob/629d5ab/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L155-L162
+			profileField.ProfileType != types.SecurityProfileTypeRuntimeDefault {
 			return errors.Errorf(
-				"seccomp is not enabled, cannot run with a profile",
+				"seccomp is not enabled, cannot run with custom profile",
 			)
 		}
 		log.Warnf(ctx, "seccomp is not enabled, running without profile")
