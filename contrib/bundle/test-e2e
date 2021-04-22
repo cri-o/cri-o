@@ -7,6 +7,9 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Bypass local DNS
+sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
 # Prepare the system
 ufw disable
 ip6tables --list >/dev/null
