@@ -283,7 +283,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.29.0
+# github.com/containers/storage v1.30.0
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -523,6 +523,8 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
+# github.com/golang/snappy v0.0.3
+github.com/golang/snappy
 # github.com/gomarkdown/markdown v0.0.0-20200824053859-8c8b3816f167
 github.com/gomarkdown/markdown/ast
 github.com/gomarkdown/markdown/html
@@ -585,11 +587,10 @@ github.com/juju/ansiterm
 github.com/juju/ansiterm/tabwriter
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.11.13
+# github.com/klauspost/compress v1.12.1
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
-github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/pgzip v1.2.5
