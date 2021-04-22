@@ -21,7 +21,9 @@ function create_workload() {
 [crio.runtime.workloads.management]
 activation_annotation = "$activation"
 annotation_prefix = "$prefix"
-resources = { "cpushares" =  "$cpushares", "cpuset" = "$cpuset" }
+[crio.runtime.workloads.management.resources]
+cpushares =  $cpushares
+cpuset = "$cpuset"
 EOF
 }
 

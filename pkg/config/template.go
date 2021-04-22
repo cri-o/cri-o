@@ -972,7 +972,9 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 # [crio.runtime.workloads.workload-type]
 # activation_annotation = "io.crio/workload"
 # annotation_prefix = "io.crio.workload-type"
-# resources = { "cpu" = "", "cpuset" = "0-1", }
+# [crio.runtime.workloads.workload-type.resources]
+# cpuset = 0
+# cpushares = "0-1"
 # Where:
 # The workload name is workload-type.
 # To specify, the pod must have the "io.crio.workload" annotation (this is a precise string match).
@@ -984,9 +986,9 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 [crio.runtime.workloads.{{ $workload_type }}]
 activation_annotation = "{{ $workload_config.ActivationAnnotation }}"
 annotation_prefix = "{{ $workload_config.AnnotationPrefix }}"
-{{ if $workload_config.Resources }}
-resources = { {{ range $resource, $default := $workload_config.Resources }}{{ printf "%q = %q, " $resource $default }}{{ end }}}
-{{ end }}
+[crio.runtime.workloads.{{ $workload_type }}.resources]
+cpuset = "{{ $workload_config.Resources.CPUSet }}"
+cpushares = {{ $workload_config.Resources.CPUShares }}
 {{ end }}
 
 `
