@@ -1,6 +1,6 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 22 Apr 2021 12:28:10 UTC for commit [3fd821f][0]._
+_Generated on Thu, 22 Apr 2021 13:04:44 UTC for commit [3fd821f][0]._
 
 [0]: https://github.com/cri-o/cri-o/commit/3fd821f4fd48f8f1813b7146fd7906237a13bd6b
 
@@ -30,7 +30,7 @@ _Generated on Thu, 22 Apr 2021 12:28:10 UTC for commit [3fd821f][0]._
 | cloud.google.com/go/storage                              | v1.12.0                                             | v1.15.0                            | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                             | v0.0.0-20201218220906-28db891af037                  |                                    | false  | true             |
 | github.com/14rcole/gopopulate                            | v0.0.0-20180821133914-b175b219e774                  |                                    | false  | true             |
-| github.com/Azure/azure-sdk-for-go                        | v43.0.0+incompatible                                | v53.3.0+incompatible               | false  | true             |
+| github.com/Azure/azure-sdk-for-go                        | v43.0.0+incompatible                                | v53.4.0+incompatible               | false  | true             |
 | github.com/Azure/go-ansiterm                             | v0.0.0-20170929234023-d6e3b3328b78                  |                                    | false  | true             |
 | github.com/Azure/go-autorest                             | v14.2.0+incompatible                                |                                    | false  | true             |
 | github.com/Azure/go-autorest/autorest                    | v0.11.12                                            | v0.11.18                           | false  | true             |
