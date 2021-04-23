@@ -220,7 +220,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 	for _, namespaceToJoin := range namespacesToJoin {
 		path, err := configNsPath(&m, namespaceToJoin.rspecNS)
 		if err == nil {
-			if nsErr := namespaceToJoin.joinFunc(path); err != nil {
+			if nsErr := namespaceToJoin.joinFunc(path); nsErr != nil {
 				return nsErr
 			}
 		}
