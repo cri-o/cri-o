@@ -136,6 +136,11 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 	for _, ns := range cfg.Namespaces {
 		ns, err := GetNamespace(ns.Path, ns.Type)
 		if err != nil {
+			for _, nsToClose := range returnedNamespaces {
+				if err2 := nsToClose.Remove(); err2 != nil {
+					logrus.Errorf("failed to remove namespace after failed to create: %v", err2)
+				}
+			}
 			return nil, err
 		}
 
