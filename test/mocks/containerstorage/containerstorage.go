@@ -781,6 +781,21 @@ func (mr *MockStoreMockRecorder) Lookup(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lookup", reflect.TypeOf((*MockStore)(nil).Lookup), arg0)
 }
 
+// LookupAdditionalLayer mocks base method.
+func (m *MockStore) LookupAdditionalLayer(arg0 digest.Digest, arg1 string) (storage.AdditionalLayer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LookupAdditionalLayer", arg0, arg1)
+	ret0, _ := ret[0].(storage.AdditionalLayer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LookupAdditionalLayer indicates an expected call of LookupAdditionalLayer.
+func (mr *MockStoreMockRecorder) LookupAdditionalLayer(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LookupAdditionalLayer", reflect.TypeOf((*MockStore)(nil).LookupAdditionalLayer), arg0, arg1)
+}
+
 // Metadata mocks base method.
 func (m *MockStore) Metadata(arg0 string) (string, error) {
 	m.ctrl.T.Helper()
