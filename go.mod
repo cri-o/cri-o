@@ -34,7 +34,7 @@ require (
 	github.com/golang/mock v1.5.0
 	github.com/google/renameio v1.0.0
 	github.com/google/uuid v1.2.0
-	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/json-iterator/go v1.1.10
 	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0
