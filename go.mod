@@ -4,7 +4,7 @@ module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.18
+	github.com/Microsoft/go-winio v0.4.19
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/containerd v1.5.0-rc.2
