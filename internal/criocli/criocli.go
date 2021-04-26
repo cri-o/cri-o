@@ -305,6 +305,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("metrics-socket") {
 		config.MetricsSocket = ctx.String("metrics-socket")
 	}
+	if ctx.IsSet("metrics-cert") {
+		config.MetricsCert = ctx.String("metrics-cert")
+	}
+	if ctx.IsSet("metrics-key") {
+		config.MetricsKey = ctx.String("metrics-key")
+	}
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
 	}
@@ -686,6 +692,16 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "metrics-socket",
 			Usage:   "Socket for the metrics endpoint",
 			EnvVars: []string{"CONTAINER_METRICS_SOCKET"},
+		},
+		&cli.StringFlag{
+			Name:    "metrics-cert",
+			Usage:   "Certificate for the secure metrics endpoint",
+			EnvVars: []string{"CONTAINER_METRICS_CERT"},
+		},
+		&cli.StringFlag{
+			Name:    "metrics-key",
+			Usage:   "Certificate key for the secure metrics endpoint",
+			EnvVars: []string{"CONTAINER_METRICS_KEY"},
 		},
 		&cli.StringFlag{
 			Name:    "big-files-temporary-dir",

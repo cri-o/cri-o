@@ -59,6 +59,8 @@ h
 --log-journald
 --log-level
 --log-size-max
+--metrics-cert
+--metrics-key
 --metrics-port
 --metrics-socket
 --namespaces-dir

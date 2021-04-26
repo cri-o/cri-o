@@ -455,6 +455,16 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			group:          crioMetricsConfig,
 			isDefaultValue: simpleEqual(dc.MetricsSocket, c.MetricsSocket),
 		},
+		{
+			templateString: templateStringCrioMetricsMetricsCert,
+			group:          crioMetricsConfig,
+			isDefaultValue: simpleEqual(dc.MetricsCert, c.MetricsCert),
+		},
+		{
+			templateString: templateStringCrioMetricsMetricsKey,
+			group:          crioMetricsConfig,
+			isDefaultValue: simpleEqual(dc.MetricsKey, c.MetricsKey),
+		},
 	}
 
 	return crioTemplateConfig, nil
@@ -1131,5 +1141,15 @@ metrics_port = {{ .MetricsPort }}
 
 const templateStringCrioMetricsMetricsSocket = `# Local socket path to bind the metrics server to
 metrics_socket = "{{ .MetricsSocket }}"
+
+`
+
+const templateStringCrioMetricsMetricsCert = `# The certificate for the secure metrics server.
+metrics_cert = "{{ .MetricsCert }}"
+
+`
+
+const templateStringCrioMetricsMetricsKey = `# The certificate key for the secure metrics server.
+metrics_key = "{{ .MetricsKey }}"
 
 `

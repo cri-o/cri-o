@@ -9,8 +9,9 @@ for example `/etc/crio/crio.conf.d/01-metrics.conf`:
 enable_metrics = true
 ```
 
-The metrics endpoint serves per default on port `9090`. This can be changed via
-the `--metrics-port` command line argument or via the configuration file:
+The metrics endpoint serves per default on port `9090` via HTTP. This can be
+changed via the `--metrics-port` command line argument or via the configuration
+file:
 
 ```toml
 metrics_port = 9090
@@ -22,6 +23,16 @@ endpoint manually via [curl][1].
 ```bash
 > curl localhost:9090/metrics
 …
+```
+
+It is also possible to serve the metrics via HTTPs, by providing an additional
+certificate and key:
+
+```
+[crio.metrics]
+enable_metrics = true
+metrics_cert = "/path/to/cert.pem"
+metrics_key = "/path/to/key.pem"
 ```
 
 ## Available Metrics
