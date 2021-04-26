@@ -42,7 +42,8 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "networkStart: stopping network for sandbox %s", sb.ID())
-			if err2 := s.networkStop(startCtx, sb); err2 != nil {
+			// use a new context to prevent an expired context from preventing a stop
+			if err2 := s.networkStop(context.Background(), sb); err2 != nil {
 				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 			}
 		}
