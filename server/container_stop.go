@@ -15,7 +15,6 @@ import (
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest) (*pb.StopContainerResponse, error) {
 	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
-	// save container description to print
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
@@ -33,8 +32,7 @@ func (s *Server) StopContainer(ctx context.Context, req *pb.StopContainerRequest
 		}
 	}
 
-	_, err = s.ContainerServer.ContainerStop(ctx, req.ContainerId, req.Timeout)
-	if err != nil {
+	if err := s.ContainerServer.StopContainer(ctx, c, req.Timeout); err != nil {
 		return nil, err
 	}
 
