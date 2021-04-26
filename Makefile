@@ -472,7 +472,10 @@ uninstall:
 	rm -f $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 	rm -f $(CRICTL_CONFIG_DIR)/crictl.yaml
 
-docs-validation:
+docs-validation: bin/crio bin/crio-status
+	(bin/crio-status md | diff docs/crio-status.8.md - && \
+	bin/crio -d "" --config="" md | diff docs/crio.8.md -) || \
+	(echo "Docs are not updated. Please run \`make docs-generation\` to update commands documentation"; false)
 	$(GO_RUN) -tags "$(BUILDTAGS)" ./test/docs-validation
 
 release-branch-forward:
