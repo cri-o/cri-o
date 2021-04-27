@@ -725,7 +725,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 		cleanupFuncs = append(cleanupFuncs, func() {
 			log.Infof(ctx, "runSandbox: in manageNSLifecycle, stopping network for sandbox %s", sb.ID())
-			if err2 := s.networkStop(ctx, sb); err2 != nil {
+			// use a new context to prevent an expired context from preventing a stop
+			if err2 := s.networkStop(context.Background(), sb); err2 != nil {
 				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 			}
 		})
@@ -955,7 +956,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		}
 		cleanupFuncs = append(cleanupFuncs, func() {
 			log.Infof(ctx, "runSandbox: stopping network for sandbox %s when not manageNSLifecycle", sb.ID())
-			if err2 := s.networkStop(ctx, sb); err2 != nil {
+			// use a new context to prevent an expired context from preventing a stop
+			if err2 := s.networkStop(context.Background(), sb); err2 != nil {
 				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
 			}
 		})
