@@ -40,6 +40,7 @@ import (
 type runtimeVM struct {
 	path    string
 	fifoDir string
+	ctx     context.Context
 	client  *ttrpc.Client
 	task    task.TaskService
 
@@ -71,6 +72,7 @@ func newRuntimeVM(path, root string) RuntimeImpl {
 	return &runtimeVM{
 		path:    path,
 		fifoDir: filepath.Join(root, "crio", "fifo"),
+		ctx:     context.Background(),
 		ctrs:    make(map[string]containerInfo),
 	}
 }
@@ -134,9 +136,9 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 
 	defer func() {
 		if retErr != nil {
-			logrus.WithError(err).Warnf("Cleaning up container %s", c.ID())
-			if cleanupErr := r.deleteContainer(ctx, c, true); cleanupErr != nil {
-				logrus.WithError(cleanupErr).Infof("deleteContainer failed for container %s", c.ID())
+			log.Warnf(ctx, "Cleaning up container %s: %v", c.ID(), err)
+			if cleanupErr := r.deleteContainer(c, true); cleanupErr != nil {
+				log.Infof(ctx, "DeleteContainer failed for container %s: %v", c.ID(), cleanupErr)
 			}
 		}
 	}()
@@ -154,7 +156,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	createdCh := make(chan error)
 	go func() {
 		// Create the container
-		if resp, err := r.task.Create(ctx, request); err != nil {
+		if resp, err := r.task.Create(r.ctx, request); err != nil {
 			createdCh <- errdefs.FromGRPC(err)
 		} else if err := c.state.SetInitPid(int(resp.Pid)); err != nil {
 			createdCh <- err
@@ -169,7 +171,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 			return errors.Errorf("CreateContainer failed: %v", err)
 		}
 	case <-time.After(ContainerCreateTimeout):
-		if err := r.remove(ctx, c.ID(), ""); err != nil {
+		if err := r.remove(c.ID(), ""); err != nil {
 			return err
 		}
 		<-createdCh
@@ -193,11 +195,11 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	// Modify the runtime path so that it complies with v2 shim API
 	newRuntimePath := BuildContainerdBinaryName(r.path)
 
-	ctx = namespaces.WithNamespace(ctx, namespaces.Default)
+	r.ctx = namespaces.WithNamespace(r.ctx, namespaces.Default)
 
 	// Prepare the command to exec
 	cmd, err := client.Command(
-		ctx,
+		r.ctx,
 		newRuntimePath,
 		"",
 		"",
@@ -210,7 +212,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	}
 
 	// Create the log file expected by shim-v2 API
-	f, err := fifo.OpenFifo(ctx, filepath.Join(c.BundlePath(), "log"),
+	f, err := fifo.OpenFifo(r.ctx, filepath.Join(c.BundlePath(), "log"),
 		unix.O_RDONLY|unix.O_CREAT|unix.O_NONBLOCK, 0o700)
 	if err != nil {
 		return err
@@ -222,7 +224,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	go func() {
 		defer f.Close()
 		if _, err := io.Copy(os.Stderr, f); err != nil {
-			logrus.WithError(err).Error("copy shim log")
+			log.Errorf(ctx, "Copy shim log: %v", err)
 		}
 	}()
 
@@ -260,7 +262,7 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	if err := r.start(ctx, c.ID(), ""); err != nil {
+	if err := r.start(c.ID(), ""); err != nil {
 		return err
 	}
 	c.state.Started = time.Now()
@@ -268,7 +270,7 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 	// Spawn a goroutine waiting for the container to terminate. Once it
 	// happens, the container status is retrieved to be updated.
 	go func() {
-		_, err := r.wait(ctx, c.ID(), "")
+		_, err := r.wait(c.ID(), "")
 		if err == nil {
 			if err1 := r.updateContainerStatus(ctx, c); err1 != nil {
 				log.Warnf(ctx, "error updating container status %v", err1)
@@ -363,7 +365,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 			if closeIOChan != nil {
 				<-closeIOChan
 			}
-			return r.closeIO(ctx, c.ID(), execID)
+			return r.closeIO(c.ID(), execID)
 		},
 	})
 
@@ -386,20 +388,20 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	}
 
 	// Create the "exec" process
-	if _, err = r.task.Exec(ctx, request); err != nil {
+	if _, err = r.task.Exec(r.ctx, request); err != nil {
 		return -1, errdefs.FromGRPC(err)
 	}
 
 	defer func() {
 		if retErr != nil {
-			if err := r.remove(ctx, c.ID(), execID); err != nil {
+			if err := r.remove(c.ID(), execID); err != nil {
 				log.Debugf(ctx, "unable to remove container %s: %v", c.ID(), err)
 			}
 		}
 	}()
 
 	// Start the process
-	if err := r.start(ctx, c.ID(), execID); err != nil {
+	if err := r.start(c.ID(), execID); err != nil {
 		return -1, err
 	}
 
@@ -412,7 +414,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 		kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 			log.Debugf(ctx, "Got a resize event: %+v", size)
 
-			if err := r.resizePty(ctx, c.ID(), execID, size); err != nil {
+			if err := r.resizePty(c.ID(), execID, size); err != nil {
 				log.Warnf(ctx, "Failed to resize terminal: %v", err)
 			}
 		})
@@ -431,7 +433,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	execCh := make(chan error)
 	go func() {
 		// Wait for the process to terminate
-		exitCode, err = r.wait(ctx, c.ID(), execID)
+		exitCode, err = r.wait(c.ID(), execID)
 		if err != nil {
 			execCh <- err
 		}
@@ -442,13 +444,13 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	select {
 	case err = <-execCh:
 		if err != nil {
-			if killErr := r.kill(ctx, c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
+			if killErr := r.kill(c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
 				return -1, killErr
 			}
 			return -1, err
 		}
 	case <-timeoutCh:
-		if killErr := r.kill(ctx, c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
+		if killErr := r.kill(c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
 			return -1, killErr
 		}
 		<-execCh
@@ -457,7 +459,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 
 	if err == nil {
 		// Delete the process
-		if err := r.remove(ctx, c.ID(), execID); err != nil {
+		if err := r.remove(c.ID(), execID); err != nil {
 			log.Debugf(ctx, "unable to remove container %s: %v", c.ID(), err)
 		}
 	}
@@ -480,7 +482,7 @@ func (r *runtimeVM) UpdateContainer(ctx context.Context, c *Container, res *rspe
 		return err
 	}
 
-	if _, err := r.task.Update(ctx, &task.UpdateTaskRequest{
+	if _, err := r.task.Update(r.ctx, &task.UpdateTaskRequest{
 		ID:        c.ID(),
 		Resources: any,
 	}); err != nil {
@@ -512,7 +514,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 		// errdefs.ErrNotFound actually comes from a closed connection, which is expected
 		// when stoping the container, with the agent and the VM going off. In such case.
 		// let's just ignore the error.
-		if _, err := r.wait(ctx, c.ID(), ""); err != nil && !errors.Is(err, errdefs.ErrNotFound) {
+		if _, err := r.wait(c.ID(), ""); err != nil && !errors.Is(err, errdefs.ErrNotFound) {
 			stopCh <- errdefs.FromGRPC(err)
 		}
 
@@ -524,7 +526,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	if timeout > 0 {
 		sig = c.StopSignal()
 		// Send a stopping signal to the container
-		if err := r.kill(ctx, c.ID(), "", sig, false); err != nil {
+		if err := r.kill(c.ID(), "", sig, false); err != nil {
 			return err
 		}
 
@@ -540,7 +542,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 
 	sig = syscall.SIGKILL
 	// Send a SIGKILL signal to the container
-	if err := r.kill(ctx, c.ID(), "", sig, false); err != nil {
+	if err := r.kill(c.ID(), "", sig, false); err != nil {
 		return err
 	}
 
@@ -571,13 +573,13 @@ func (r *runtimeVM) DeleteContainer(ctx context.Context, c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	return r.deleteContainer(ctx, c, false)
+	return r.deleteContainer(c, false)
 }
 
 // deleteContainer performs all the operations needed to delete a container.
 // force must only be used on clean-up cases.
 // It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
-func (r *runtimeVM) deleteContainer(ctx context.Context, c *Container, force bool) error {
+func (r *runtimeVM) deleteContainer(c *Container, force bool) error {
 	r.Lock()
 	cInfo, ok := r.ctrs[c.ID()]
 	r.Unlock()
@@ -589,11 +591,11 @@ func (r *runtimeVM) deleteContainer(ctx context.Context, c *Container, force boo
 		return err
 	}
 
-	if err := r.remove(ctx, c.ID(), ""); err != nil && !force {
+	if err := r.remove(c.ID(), ""); err != nil && !force {
 		return err
 	}
 
-	_, err := r.task.Shutdown(ctx, &task.ShutdownRequest{ID: c.ID()})
+	_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
 	if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
 		return err
 	}
@@ -630,7 +632,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 		return errors.New("runtime not correctly setup")
 	}
 
-	response, err := r.task.State(ctx, &task.StateRequest{
+	response, err := r.task.State(r.ctx, &task.StateRequest{
 		ID: c.ID(),
 	})
 	if err != nil {
@@ -687,7 +689,7 @@ func (r *runtimeVM) PauseContainer(ctx context.Context, c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	if _, err := r.task.Pause(ctx, &task.PauseRequest{
+	if _, err := r.task.Pause(r.ctx, &task.PauseRequest{
 		ID: c.ID(),
 	}); err != nil {
 		return errdefs.FromGRPC(err)
@@ -705,7 +707,7 @@ func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	if _, err := r.task.Resume(ctx, &task.ResumeRequest{
+	if _, err := r.task.Resume(r.ctx, &task.ResumeRequest{
 		ID: c.ID(),
 	}); err != nil {
 		return errdefs.FromGRPC(err)
@@ -723,7 +725,7 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 	c.opLock.RLock()
 	defer c.opLock.RUnlock()
 
-	resp, err := r.task.Stats(ctx, &task.StatsRequest{
+	resp, err := r.task.Stats(r.ctx, &task.StatsRequest{
 		ID: c.ID(),
 	})
 	if err != nil {
@@ -743,10 +745,10 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 		return nil, errors.Errorf("Unknown stats type %T", stats)
 	}
 
-	return metricsToCtrStats(c, m), nil
+	return metricsToCtrStats(ctx, c, m), nil
 }
 
-func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
+func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *ContainerStats {
 	var (
 		blockInput      uint64
 		blockOutput     uint64
@@ -773,8 +775,8 @@ func metricsToCtrStats(c *Container, m *cgroups.Metrics) *ContainerStats {
 		if memUsage > m.Memory.TotalInactiveFile {
 			workingSetBytes = memUsage - m.Memory.TotalInactiveFile
 		} else {
-			logrus.Debugf(
-				"unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
+			log.Debugf(ctx,
+				"Unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
 				m.Memory.TotalInactiveFile, memUsage,
 			)
 		}
@@ -815,7 +817,7 @@ func (r *runtimeVM) SignalContainer(ctx context.Context, c *Container, sig sysca
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	return r.kill(ctx, c.ID(), "", sig, true)
+	return r.kill(c.ID(), "", sig, true)
 }
 
 // AttachContainer attaches IO to a running container.
@@ -827,7 +829,7 @@ func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStre
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		log.Debugf(ctx, "Got a resize event: %+v", size)
 
-		if err := r.resizePty(ctx, c.ID(), "", size); err != nil {
+		if err := r.resizePty(c.ID(), "", size); err != nil {
 			log.Warnf(ctx, "Failed to resize terminal: %v", err)
 		}
 	})
@@ -846,7 +848,7 @@ func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStre
 		Tty:       tty,
 		StdinOnce: c.stdinOnce,
 		CloseStdin: func() error {
-			return r.closeIO(ctx, c.ID(), "")
+			return r.closeIO(c.ID(), "")
 		},
 	}
 
@@ -856,7 +858,7 @@ func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStre
 // PortForwardContainer forwards the specified port provides statistics of a container.
 func (r *runtimeVM) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
 	log.Debugf(ctx, "runtimeVM.PortForwardContainer() start")
-	defer logrus.Debug(ctx, "runtimeVM.PortForwardContainer() end")
+	defer log.Debugf(ctx, "runtimeVM.PortForwardContainer() end")
 
 	return nil
 }
@@ -873,8 +875,8 @@ func (r *runtimeVM) WaitContainerStateStopped(ctx context.Context, c *Container)
 	return nil
 }
 
-func (r *runtimeVM) start(ctx context.Context, ctrID, execID string) error {
-	if _, err := r.task.Start(ctx, &task.StartRequest{
+func (r *runtimeVM) start(ctrID, execID string) error {
+	if _, err := r.task.Start(r.ctx, &task.StartRequest{
 		ID:     ctrID,
 		ExecID: execID,
 	}); err != nil {
@@ -884,8 +886,8 @@ func (r *runtimeVM) start(ctx context.Context, ctrID, execID string) error {
 	return nil
 }
 
-func (r *runtimeVM) wait(ctx context.Context, ctrID, execID string) (int32, error) {
-	resp, err := r.task.Wait(ctx, &task.WaitRequest{
+func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
+	resp, err := r.task.Wait(r.ctx, &task.WaitRequest{
 		ID:     ctrID,
 		ExecID: execID,
 	})
@@ -899,8 +901,8 @@ func (r *runtimeVM) wait(ctx context.Context, ctrID, execID string) (int32, erro
 	return int32(resp.ExitStatus), nil
 }
 
-func (r *runtimeVM) kill(ctx context.Context, ctrID, execID string, signal syscall.Signal, all bool) error {
-	if _, err := r.task.Kill(ctx, &task.KillRequest{
+func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal, all bool) error {
+	if _, err := r.task.Kill(r.ctx, &task.KillRequest{
 		ID:     ctrID,
 		ExecID: execID,
 		Signal: uint32(signal),
@@ -912,8 +914,8 @@ func (r *runtimeVM) kill(ctx context.Context, ctrID, execID string, signal sysca
 	return nil
 }
 
-func (r *runtimeVM) remove(ctx context.Context, ctrID, execID string) error {
-	if _, err := r.task.Delete(ctx, &task.DeleteRequest{
+func (r *runtimeVM) remove(ctrID, execID string) error {
+	if _, err := r.task.Delete(r.ctx, &task.DeleteRequest{
 		ID:     ctrID,
 		ExecID: execID,
 	}); err != nil && !errors.Is(err, ttrpc.ErrClosed) {
@@ -923,8 +925,8 @@ func (r *runtimeVM) remove(ctx context.Context, ctrID, execID string) error {
 	return nil
 }
 
-func (r *runtimeVM) resizePty(ctx context.Context, ctrID, execID string, size remotecommand.TerminalSize) error {
-	_, err := r.task.ResizePty(ctx, &task.ResizePtyRequest{
+func (r *runtimeVM) resizePty(ctrID, execID string, size remotecommand.TerminalSize) error {
+	_, err := r.task.ResizePty(r.ctx, &task.ResizePtyRequest{
 		ID:     ctrID,
 		ExecID: execID,
 		Width:  uint32(size.Width),
@@ -937,8 +939,8 @@ func (r *runtimeVM) resizePty(ctx context.Context, ctrID, execID string, size re
 	return nil
 }
 
-func (r *runtimeVM) closeIO(ctx context.Context, ctrID, execID string) error {
-	_, err := r.task.CloseIO(ctx, &task.CloseIORequest{
+func (r *runtimeVM) closeIO(ctrID, execID string) error {
+	_, err := r.task.CloseIO(r.ctx, &task.CloseIORequest{
 		ID:     ctrID,
 		ExecID: execID,
 		Stdin:  true,
