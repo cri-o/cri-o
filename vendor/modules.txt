@@ -555,7 +555,7 @@ github.com/googleapis/gnostic/extensions
 github.com/googleapis/gnostic/openapiv2
 # github.com/gorilla/mux v1.8.0
 github.com/gorilla/mux
-# github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+# github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 ## explicit
 github.com/grpc-ecosystem/go-grpc-middleware
 # github.com/hashicorp/errwrap v1.0.0
