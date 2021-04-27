@@ -960,6 +960,7 @@ allowed_annotations = [
 
 const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways to customize containers with different resources
 # that work based on annotations, rather than the CRI.
+# Note, the behavior of this table is EXPERIMENTAL and may change at any time.
 # Each workload, has a name, activation_annotation, annotation_prefix and set of resources it supports mutating.
 # The currently supported resources are "cpu" (to configure the cpu shares) and "cpuset" to configure the cpuset.
 # Each resource can have a default value specified, or be empty.
@@ -971,21 +972,23 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 # [crio.runtime.workloads.workload-type]
 # activation_annotation = "io.crio/workload"
 # annotation_prefix = "io.crio.workload-type"
-# resources = { "cpu" = "", "cpuset" = "0-1", }
+# [crio.runtime.workloads.workload-type.resources]
+# cpuset = 0
+# cpushares = "0-1"
 # Where:
 # The workload name is workload-type.
 # To specify, the pod must have the "io.crio.workload" annotation (this is a precise string match).
 # This workload supports setting cpuset and cpu resources.
 # annotation_prefix is used to customize the different resources.
 # To configure the cpu shares a container gets in the example above, the pod would have to have the following annotation:
-# "io.crio.workload-type.cpu/{container_name} = {shares}"
+# "io.crio.workload-type/$container_name = {"cpushares": "value"}"
 {{ range $workload_type, $workload_config := .Workloads  }}
 [crio.runtime.workloads.{{ $workload_type }}]
 activation_annotation = "{{ $workload_config.ActivationAnnotation }}"
 annotation_prefix = "{{ $workload_config.AnnotationPrefix }}"
-{{ if $workload_config.Resources }}
-resources = { {{ range $resource, $default := $workload_config.Resources }}{{ printf "%q = %q, " $resource $default }}{{ end }}}
-{{ end }}
+[crio.runtime.workloads.{{ $workload_type }}.resources]
+cpuset = "{{ $workload_config.Resources.CPUSet }}"
+cpushares = {{ $workload_config.Resources.CPUShares }}
 {{ end }}
 
 `
