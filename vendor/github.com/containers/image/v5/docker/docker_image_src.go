@@ -251,6 +251,7 @@ func (s *dockerImageSource) getExternalBlob(ctx context.Context, urls []string) 
 			if resp.StatusCode != http.StatusOK {
 				err = errors.Errorf("error fetching external blob from %q: %d (%s)", url, resp.StatusCode, http.StatusText(resp.StatusCode))
 				logrus.Debug(err)
+				resp.Body.Close()
 				continue
 			}
 			break
