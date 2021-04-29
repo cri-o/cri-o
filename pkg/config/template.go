@@ -931,7 +931,7 @@ runtime_path = "{{ $runtime_handler.RuntimePath }}"
 runtime_type = "{{ $runtime_handler.RuntimeType }}"
 runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
 {{ if $runtime_handler.PrivilegedWithoutHostDevices }}
-privileged_without_host_devices = "{{ $runtime_handler.PrivilegedWithoutHostDevices }}"
+privileged_without_host_devices = {{ $runtime_handler.PrivilegedWithoutHostDevices }}
 {{ end }}
 {{ if $runtime_handler.AllowedAnnotations }}
 allowed_annotations = [
