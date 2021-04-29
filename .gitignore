@@ -38,3 +38,6 @@ result
 *~
 \#*\#
 .\#*
+
+# See https://github.com/cri-o/cri-o/issues/4820
+/vendor/**/.gitattributes
