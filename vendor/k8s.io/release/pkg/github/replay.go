@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -178,6 +177,12 @@ func (c *githubNotesReplayClient) CreatePullRequest(
 	return &github.PullRequest{}, nil
 }
 
+func (c *githubNotesReplayClient) CreateIssue(
+	ctx context.Context, owner, repo string, req *github.IssueRequest,
+) (*github.Issue, error) {
+	return &github.Issue{}, nil
+}
+
 func (c *githubNotesReplayClient) GetRepository(
 	ctx context.Context, owner, repo string,
 ) (*github.Repository, *github.Response, error) {
@@ -208,6 +213,21 @@ func (c *githubNotesReplayClient) ListBranches(
 	return branches, record.response(), nil
 }
 
+func (c *githubNotesReplayClient) ListMilestones(
+	ctx context.Context, owner, repo string, opts *github.MilestoneListOptions,
+) (mstones []*github.Milestone, resp *github.Response, err error) {
+	data, err := c.readRecordedData(gitHubAPIListMilestones)
+	if err != nil {
+		return nil, nil, err
+	}
+	mstones = make([]*github.Milestone, 0)
+	record := apiRecord{Result: mstones}
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, nil, err
+	}
+	return mstones, record.response(), nil
+}
+
 func (c *githubNotesReplayClient) readRecordedData(api gitHubAPI) ([]byte, error) {
 	c.replayMutex.Lock()
 	defer c.replayMutex.Unlock()
@@ -218,7 +238,7 @@ func (c *githubNotesReplayClient) readRecordedData(api gitHubAPI) ([]byte, error
 	}
 
 	path := filepath.Join(c.replayDir, fmt.Sprintf("%s-%d.json", api, i))
-	file, err := ioutil.ReadFile(path)
+	file, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +268,7 @@ func (c *githubNotesReplayClient) DeleteReleaseAsset(
 }
 
 func (c *githubNotesReplayClient) ListReleaseAssets(
-	ctx context.Context, owner, repo string, releaseID int64,
+	ctx context.Context, owner, repo string, releaseID int64, opts *github.ListOptions,
 ) ([]*github.ReleaseAsset, error) {
 	data, err := c.readRecordedData(gitHubAPIListReleaseAssets)
 	if err != nil {

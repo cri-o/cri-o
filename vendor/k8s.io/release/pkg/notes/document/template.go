@@ -63,6 +63,24 @@ filename | sha512 hash
 {{- end -}}
 # Changelog since {{$PreviousRevision}}
 
+{{with .CVEList -}}
+## Important Security Information
+
+This release contains changes that address the following vulnerabilities:
+{{range .}}
+### {{.ID}}: {{.Title}}
+
+{{.Description}}
+
+**CVSS Rating:** {{.CVSSRating}} ({{.CVSSScore}}) [{{.CVSSVector}}]({{.CalcLink}})
+{{- if .TrackingIssue -}}
+<br>
+**Tracking Issue:** {{.TrackingIssue}}
+{{- end }}
+
+{{ end }}
+{{- end -}}
+
 {{with .NotesWithActionRequired -}}
 ## Urgent Upgrade Notes 
 

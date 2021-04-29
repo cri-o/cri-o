@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,8 @@ import (
 
 	"k8s.io/release/pkg/git"
 	"k8s.io/release/pkg/github/internal"
-	"k8s.io/release/pkg/util"
+	"sigs.k8s.io/release-utils/env"
+	"sigs.k8s.io/release-utils/util"
 )
 
 const (
@@ -44,11 +45,30 @@ const (
 
 // GitHub is a wrapper around GitHub related functionality
 type GitHub struct {
-	client Client
+	client  Client
+	options *Options
 }
 
 type githubClient struct {
 	*github.Client
+}
+
+// Options is a set of options to configure the behavior of the GitHub package
+type Options struct {
+	// How many items to request in calls to the github API
+	// that require pagination.
+	ItemsPerPage int
+}
+
+func (o *Options) GetItemsPerPage() int {
+	return o.ItemsPerPage
+}
+
+// DefaultOptions return an options struct with commonly used settings
+func DefaultOptions() *Options {
+	return &Options{
+		ItemsPerPage: 50,
+	}
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -78,6 +98,10 @@ type Client interface {
 		context.Context, string, string, string, *github.PullRequestListOptions,
 	) ([]*github.PullRequest, *github.Response, error)
 
+	ListMilestones(
+		context.Context, string, string, *github.MilestoneListOptions,
+	) ([]*github.Milestone, *github.Response, error)
+
 	ListReleases(
 		context.Context, string, string, *github.ListOptions,
 	) ([]*github.RepositoryRelease, *github.Response, error)
@@ -102,6 +126,10 @@ type Client interface {
 		context.Context, string, string, string, string, string, string,
 	) (*github.PullRequest, error)
 
+	CreateIssue(
+		context.Context, string, string, *github.IssueRequest,
+	) (*github.Issue, error)
+
 	GetRepository(
 		context.Context, string, string,
 	) (*github.Repository, *github.Response, error)
@@ -119,7 +147,7 @@ type Client interface {
 	) error
 
 	ListReleaseAssets(
-		context.Context, string, string, int64,
+		context.Context, string, string, int64, *github.ListOptions,
 	) ([]*github.ReleaseAsset, error)
 
 	CreateComment(
@@ -127,13 +155,36 @@ type Client interface {
 	) (*github.IssueComment, *github.Response, error)
 }
 
+// NewIssueOptions is a struct of optional fields for new issues
+type NewIssueOptions struct {
+	Milestone string   // Name of milestone to set
+	State     string   // open, closed or all. Defaults to "open"
+	Assignees []string // List of GitHub handles of extra assignees, must be collaborators
+	Labels    []string // List of labels to apply. They will be created if new
+}
+
+// TODO: we should clean up the functions listed below and agree on the same
+// return type (with or without error):
+// - New
+// - NewWithToken
+// - NewEnterprise
+// - NewEnterpriseWithToken
+
 // New creates a new default GitHub client. Tokens set via the $GITHUB_TOKEN
 // environment variable will result in an authenticated client.
 // If the $GITHUB_TOKEN is not set, then the client will do unauthenticated
 // GitHub requests.
 func New() *GitHub {
+	token := env.Default(TokenEnvKey, "")
+	client, _ := NewWithToken(token) // nolint: errcheck
+	return client
+}
+
+// NewWithToken can be used to specify a GitHub token through parameters.
+// Empty string will result in unauthenticated client, which makes
+// unauthenticated requests.
+func NewWithToken(token string) (*GitHub, error) {
 	ctx := context.Background()
-	token := util.EnvDefault(TokenEnvKey, "")
 	client := http.DefaultClient
 	state := "unauthenticated"
 	if token != "" {
@@ -143,21 +194,19 @@ func New() *GitHub {
 		))
 	}
 	logrus.Debugf("Using %s GitHub client", state)
-	return &GitHub{&githubClient{github.NewClient(client)}}
-}
-
-// NewWithToken can be used to specify a GITHUB_TOKEN before retrieving the
-// client to enforce authenticated GitHub requests
-func NewWithToken(token string) (*GitHub, error) {
-	if err := os.Setenv(TokenEnvKey, token); err != nil {
-		return nil, errors.Wrapf(err, "unable to export %s", TokenEnvKey)
-	}
-	return New(), nil
+	return &GitHub{
+		client:  &githubClient{github.NewClient(client)},
+		options: DefaultOptions(),
+	}, nil
 }
 
 func NewEnterprise(baseURL, uploadURL string) (*GitHub, error) {
+	token := env.Default(TokenEnvKey, "")
+	return NewEnterpriseWithToken(baseURL, uploadURL, token)
+}
+
+func NewEnterpriseWithToken(baseURL, uploadURL, token string) (*GitHub, error) {
 	ctx := context.Background()
-	token := util.EnvDefault(TokenEnvKey, "")
 	client := http.DefaultClient
 	state := "unauthenticated"
 	if token != "" {
@@ -171,14 +220,10 @@ func NewEnterprise(baseURL, uploadURL string) (*GitHub, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to new github client: %s", err)
 	}
-	return &GitHub{&githubClient{ghclient}}, nil
-}
-
-func NewEnterpriseWithToken(baseURL, uploadURL, token string) (*GitHub, error) {
-	if err := os.Setenv(TokenEnvKey, token); err != nil {
-		return nil, errors.Wrapf(err, "unable to export %s", TokenEnvKey)
-	}
-	return NewEnterprise(baseURL, uploadURL)
+	return &GitHub{
+		client:  &githubClient{ghclient},
+		options: DefaultOptions(),
+	}, nil
 }
 
 func (g *githubClient) GetCommit(
@@ -309,6 +354,18 @@ func (g *githubClient) ListBranches(
 	return branches, response, nil
 }
 
+// ListMilestones calls the github API to retrieve milestones (with retry)
+func (g *githubClient) ListMilestones(
+	ctx context.Context, owner, repo string, opts *github.MilestoneListOptions,
+) (mstones []*github.Milestone, resp *github.Response, err error) {
+	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+		mstones, resp, err := g.Issues.ListMilestones(ctx, owner, repo, opts)
+		if !shouldRetry(err) {
+			return mstones, resp, err
+		}
+	}
+}
+
 func (g *githubClient) CreatePullRequest(
 	ctx context.Context, owner, repo, baseBranchName, headBranchName, title, body string,
 ) (*github.PullRequest, error) {
@@ -327,6 +384,19 @@ func (g *githubClient) CreatePullRequest(
 
 	logrus.Infof("Successfully created PR #%d", pr.GetNumber())
 	return pr, nil
+}
+
+func (g *githubClient) CreateIssue(
+	ctx context.Context, owner, repo string, req *github.IssueRequest,
+) (*github.Issue, error) {
+	// Create the issue on github
+	issue, _, err := g.Issues.Create(ctx, owner, repo, req)
+	if err != nil {
+		return issue, errors.Wrap(err, "creating new issue")
+	}
+
+	logrus.Infof("Successfully created issue #%d: %s", issue.GetNumber(), issue.GetTitle())
+	return issue, nil
 }
 
 func (g *githubClient) GetRepository(
@@ -381,12 +451,22 @@ func (g *githubClient) DeleteReleaseAsset(
 	return nil
 }
 
+// ListReleaseAssets queries the GitHub API to get a list of asset files
+// that have been uploaded to a releases
 func (g *githubClient) ListReleaseAssets(
-	ctx context.Context, owner, repo string, releaseID int64,
+	ctx context.Context, owner, repo string, releaseID int64, options *github.ListOptions,
 ) ([]*github.ReleaseAsset, error) {
-	assets, _, err := g.Repositories.ListReleaseAssets(ctx, owner, repo, releaseID, &github.ListOptions{})
-	if err != nil {
-		return nil, errors.Wrap(err, "getting release assets from GitHub")
+	assets := []*github.ReleaseAsset{}
+	for {
+		moreAssets, r, err := g.Repositories.ListReleaseAssets(ctx, owner, repo, releaseID, options)
+		if err != nil {
+			return nil, errors.Wrap(err, "getting release assets from GitHub")
+		}
+		assets = append(assets, moreAssets...)
+		if r.NextPage == 0 {
+			break
+		}
+		options.Page = r.NextPage
 	}
 	return assets, nil
 }
@@ -416,6 +496,16 @@ func (g *GitHub) Client() Client {
 	return g.client
 }
 
+// SetOptions gets an options set for the GitHub object
+func (g *GitHub) SetOptions(opts *Options) {
+	g.options = opts
+}
+
+// Options return a pointer to the options struct
+func (g *GitHub) Options() *Options {
+	return g.options
+}
+
 // TagsPerBranch is an abstraction over a simple branch to latest tag association
 type TagsPerBranch map[string]string
 
@@ -432,7 +522,7 @@ type TagsPerBranch map[string]string
 func (g *GitHub) LatestGitHubTagsPerBranch() (TagsPerBranch, error) {
 	// List tags for all pages
 	allTags := []*github.RepositoryTag{}
-	opts := &github.ListOptions{PerPage: 100}
+	opts := &github.ListOptions{PerPage: g.options.GetItemsPerPage()}
 	for {
 		tags, resp, err := g.client.ListTags(
 			context.Background(), git.DefaultGithubOrg, git.DefaultGithubRepo,
@@ -682,6 +772,39 @@ func (g *GitHub) UploadReleaseAsset(
 	return asset, nil
 }
 
+// ToRequest builds an issue request from the set of options
+func (nio *NewIssueOptions) toRequest() *github.IssueRequest {
+	request := &github.IssueRequest{}
+
+	if nio.State == "open" || nio.State == "closed" || nio.State == "all" {
+		request.State = &nio.State
+	}
+
+	if len(nio.Labels) > 0 {
+		request.Labels = &nio.Labels
+	}
+
+	if len(nio.Assignees) == 1 {
+		request.Assignee = &nio.Assignees[0]
+	} else if len(nio.Assignees) > 1 {
+		request.Assignees = &nio.Assignees
+	}
+	return request
+}
+
+// CreateIssue files a new issue in the specified respoitory
+func (g *GitHub) CreateIssue(
+	owner, repo, title, body string, opts *NewIssueOptions,
+) (*github.Issue, error) {
+	// Create the issue request
+	issueRequest := opts.toRequest()
+	issueRequest.Title = &title
+	issueRequest.Body = &body
+
+	// Create the issue using the cliente
+	return g.Client().CreateIssue(context.Background(), owner, repo, issueRequest)
+}
+
 // CreatePullRequest Creates a new pull request in owner/repo:baseBranch to merge changes from headBranchName
 // which is a string containing a branch in the same repository or a user:branch pair
 func (g *GitHub) CreatePullRequest(
@@ -694,6 +817,37 @@ func (g *GitHub) CreatePullRequest(
 	}
 
 	return pr, nil
+}
+
+// GetMilestone returns a milestone object from its string name
+func (g *GitHub) GetMilestone(owner, repo, title string) (
+	ms *github.Milestone, exists bool, err error) {
+	if title == "" {
+		return nil, false, errors.New("unable to search milestone. Title is empty")
+	}
+	opts := &github.MilestoneListOptions{
+		State:       "all",
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+	for {
+		mstones, resp, err := g.Client().ListMilestones(
+			context.Background(), owner, repo, opts)
+		if err != nil {
+			return nil, exists, errors.Wrap(err, "listing repository milestones")
+		}
+		for _, ms = range mstones {
+			if ms.GetTitle() == title {
+				logrus.Debugf("Milestone %s is milestone ID#%d", ms.GetTitle(), ms.GetID())
+				return ms, true, nil
+			}
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return nil, false, nil
 }
 
 // GetRepository gets a repository using the current client
@@ -712,9 +866,20 @@ func (g *GitHub) GetRepository(
 func (g *GitHub) ListBranches(
 	owner, repo string,
 ) ([]*github.Branch, error) {
-	branches, _, err := g.Client().ListBranches(context.Background(), owner, repo, &github.BranchListOptions{})
-	if err != nil {
-		return branches, errors.Wrap(err, "getting branches from client")
+	options := &github.BranchListOptions{
+		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
+	}
+	branches := []*github.Branch{}
+	for {
+		moreBranches, r, err := g.Client().ListBranches(context.Background(), owner, repo, options)
+		if err != nil {
+			return branches, errors.Wrap(err, "getting branches from client")
+		}
+		branches = append(branches, moreBranches...)
+		if r.NextPage == 0 {
+			break
+		}
+		options.Page = r.NextPage
 	}
 
 	return branches, nil
@@ -809,6 +974,7 @@ func (g *GitHub) ListReleaseAssets(
 	// Get the assets from the client
 	assets, err := g.Client().ListReleaseAssets(
 		context.Background(), owner, repo, releaseID,
+		&github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting release assets")
@@ -818,18 +984,25 @@ func (g *GitHub) ListReleaseAssets(
 
 // TagExists returns true is a specified tag exists in the repo
 func (g *GitHub) TagExists(owner, repo, tag string) (exists bool, err error) {
-	tags, _, err := g.Client().ListTags(
-		context.Background(), owner, repo, &github.ListOptions{PerPage: 100},
-	)
-	if err != nil {
-		return exists, errors.Wrap(err, "listing repository tags")
-	}
-
-	// List all tags and check if it exists
-	for _, testTag := range tags {
-		if testTag.GetName() == tag {
-			return true, nil
+	options := &github.ListOptions{PerPage: g.Options().GetItemsPerPage()}
+	for {
+		tags, r, err := g.Client().ListTags(
+			context.Background(), owner, repo, options,
+		)
+		if err != nil {
+			return exists, errors.Wrap(err, "listing repository tags")
 		}
+
+		// List all tags returned and check if the one we're looking for exists
+		for _, testTag := range tags {
+			if testTag.GetName() == tag {
+				return true, nil
+			}
+		}
+		if r.NextPage == 0 {
+			break
+		}
+		options.Page = r.NextPage
 	}
 	return false, nil
 }

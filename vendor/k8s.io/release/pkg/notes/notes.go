@@ -27,11 +27,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	gogithub "github.com/google/go-github/v33/github"
 	"github.com/nozzle/throttler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	cvss "github.com/spiegel-im-spiegel/go-cvss/v3/metric"
 	"gopkg.in/yaml.v2"
 
 	"k8s.io/release/pkg/github"
@@ -50,6 +52,9 @@ const (
 	// maxParallelRequests is the maximum parallel requests we shall make to the
 	// GitHub API
 	maxParallelRequests = 10
+
+	// Regexp to check CVE IDs
+	cveIDRegExp = `^CVE-\d{4}-\d+$`
 )
 
 type (
@@ -59,13 +64,15 @@ type (
 
 // CVEData Information of a linked CVE vulnerability
 type CVEData struct {
-	ID          string  `json:"id"`
-	Title       string  `json:"title"`
-	Published   string  `json:"published"`
-	Score       float32 `json:"score"`
-	Rating      string  `json:"rating"`
-	LinkedPRs   []int   `json:"linkedPRs"`
-	Description string  `json:"description"`
+	ID            string  `json:"id"`          // CVE ID, eg CVE-2019-1010260
+	Title         string  `json:"title"`       // Title of the vulnerability
+	Description   string  `json:"description"` // Description text of the vulnerability
+	TrackingIssue string  `json:"issue"`       // Link to the vulnerability tracking issue (url, optional)
+	CVSSVector    string  `json:"vector"`      // Full CVSS vector string, CVSS:3.1/AV:N/AC:H/PR:H/UI:R/S:U/C:H/I:H/A:H
+	CVSSScore     float32 `json:"score"`       // Numeric CVSS score (eg 6.2)
+	CVSSRating    string  `json:"rating"`      // Severity bucket (eg Medium)
+	CalcLink      string  // Link to the CVE calculator (automatic)
+	LinkedPRs     []int   `json:"pullrequests"` // List of linked PRs (to remove them from the release notes doc)
 }
 
 const (
@@ -245,10 +252,18 @@ func GatherReleaseNotes(opts *options.Options) (*ReleaseNotes, error) {
 		return nil, errors.Wrapf(err, "retrieving notes gatherer")
 	}
 
-	releaseNotes, err := gatherer.ListReleaseNotes()
+	var releaseNotes *ReleaseNotes
+	startTime := time.Now()
+	if gatherer.options.ListReleaseNotesV2 {
+		logrus.Warn("EXPERIMENTAL IMPLEMENTATION ListReleaseNotesV2 ENABLED")
+		releaseNotes, err = gatherer.ListReleaseNotesV2()
+	} else {
+		releaseNotes, err = gatherer.ListReleaseNotes()
+	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "listing release notes")
 	}
+	logrus.Infof("finished gathering release notes in %v", time.Since(startTime))
 
 	return releaseNotes, nil
 }
@@ -662,7 +677,7 @@ func (g *Gatherer) notesForCommit(commit *gogithub.RepositoryCommit) (*Result, e
 	prs, err := g.prsFromCommit(commit)
 	if err != nil {
 		if err == errNoPRIDFoundInCommitMessage || err == errNoPRFoundForCommitSHA {
-			logrus.Infof(
+			logrus.Debugf(
 				"No matches found when parsing PR from commit SHA %s",
 				commit.GetSHA(),
 			)
@@ -674,12 +689,12 @@ func (g *Gatherer) notesForCommit(commit *gogithub.RepositoryCommit) (*Result, e
 	for _, pr := range prs {
 		prBody := pr.GetBody()
 
-		logrus.Infof(
+		logrus.Debugf(
 			"Got PR #%d for commit: %s", pr.GetNumber(), commit.GetSHA(),
 		)
 
 		if MatchesExcludeFilter(prBody) {
-			logrus.Infof(
+			logrus.Debugf(
 				"Skipping PR #%d because it contains no release note",
 				pr.GetNumber(),
 			)
@@ -722,7 +737,7 @@ func (g *Gatherer) prsFromCommit(commit *gogithub.RepositoryCommit) (
 ) {
 	githubPRs, err := g.prsForCommitFromMessage(*commit.Commit.Message)
 	if err != nil {
-		logrus.Infof("No PR found for commit %s: %v", commit.GetSHA(), err)
+		logrus.Debugf("No PR found for commit %s: %v", commit.GetSHA(), err)
 		return g.prsForCommitFromSHA(*commit.SHA)
 	}
 	return githubPRs, err
@@ -973,7 +988,9 @@ func prettifySIGList(sigs []string) string {
 // ApplyMap Modifies the content of the release using information from
 //  a ReleaseNotesMap
 func (rn *ReleaseNote) ApplyMap(noteMap *ReleaseNotesMap) error {
-	logrus.Infof("Applying map to note from PR %d", rn.PrNumber)
+	logrus.WithFields(logrus.Fields{
+		"pr": rn.PrNumber,
+	}).Debugf("Applying map to note")
 	reRenderMarkdown := false
 	if noteMap.ReleaseNote.Author != nil {
 		rn.Author = *noteMap.ReleaseNote.Author
@@ -1073,4 +1090,62 @@ func (rn *ReleaseNote) ContentHash() (string, error) {
 		return "", errors.Wrap(err, "calculating content hash from map")
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+// Validate checks the data defined in a CVE map is complete and valid
+func (cve *CVEData) Validate() error {
+	// Verify that rating is defined and a known string
+	if cve.CVSSRating == "" {
+		return errors.New("CVSS rating missing from CVE data")
+	}
+
+	// Check rating is a valid string
+	if _, ok := map[string]bool{
+		"None": true, "Low": true, "Medium": true, "High": true, "Critical": true,
+	}[cve.CVSSRating]; !ok {
+		return errors.New("Invalid CVSS rating")
+	}
+
+	// Check vector string is not empty
+	if cve.CVSSVector == "" {
+		return errors.New("CVSS vector string missing from CVE data")
+	}
+
+	// Parse the vector string to make sure it is well formed
+	bm, err := cvss.NewBase().Decode(cve.CVSSVector)
+	if err != nil {
+		return errors.Wrap(err, "parsing CVSS vector string")
+	}
+	cve.CalcLink = fmt.Sprintf(
+		"https://www.first.org/cvss/calculator/%s#%s", bm.Ver.String(), cve.CVSSVector,
+	)
+
+	if cve.CVSSScore == 0 {
+		return errors.New("CVSS score missing from CVE data")
+	}
+	if cve.CVSSScore < 0 || cve.CVSSScore > 10 {
+		return errors.New("CVSS score pit of range, should be 0-10")
+	}
+
+	// Check that the CVE ID is not empty
+	if cve.ID == "" {
+		return errors.New("ID missing from CVE data")
+	}
+
+	// Verify that the CVE ID is well formed
+	cvsre := regexp.MustCompile(cveIDRegExp)
+	if !cvsre.MatchString(cve.ID) {
+		return errors.New("CVS ID is not well formed")
+	}
+
+	// Title and description must not be empty
+	if cve.Title == "" {
+		return errors.New("Title missing from CVE data")
+	}
+
+	if cve.Description == "" {
+		return errors.New("CVE description missing from CVE data")
+	}
+
+	return nil
 }

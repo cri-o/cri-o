@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -47,6 +46,7 @@ const (
 	gitHubAPIGetReleaseByTag            gitHubAPI = "GetReleaseByTag"
 	gitHubAPIListReleaseAssets          gitHubAPI = "ListReleaseAssets"
 	gitHubAPICreateComment              gitHubAPI = "CreateComment"
+	gitHubAPIListMilestones             gitHubAPI = "ListMilestones"
 )
 
 type apiRecord struct {
@@ -191,6 +191,12 @@ func (c *githubNotesRecordClient) CreatePullRequest(
 	return &github.PullRequest{}, nil
 }
 
+func (c *githubNotesRecordClient) CreateIssue(
+	ctx context.Context, owner, repo string, req *github.IssueRequest,
+) (*github.Issue, error) {
+	return &github.Issue{}, nil
+}
+
 func (c *githubNotesRecordClient) GetRepository(
 	ctx context.Context, owner, repo string,
 ) (*github.Repository, *github.Response, error) {
@@ -242,9 +248,9 @@ func (c *githubNotesRecordClient) DeleteReleaseAsset(
 }
 
 func (c *githubNotesRecordClient) ListReleaseAssets(
-	ctx context.Context, owner, repo string, releaseID int64,
+	ctx context.Context, owner, repo string, releaseID int64, opts *github.ListOptions,
 ) ([]*github.ReleaseAsset, error) {
-	assets, err := c.client.ListReleaseAssets(ctx, owner, repo, releaseID)
+	assets, err := c.client.ListReleaseAssets(ctx, owner, repo, releaseID, opts)
 	if err != nil {
 		return assets, err
 	}
@@ -254,6 +260,19 @@ func (c *githubNotesRecordClient) ListReleaseAssets(
 	}
 
 	return assets, nil
+}
+
+func (c *githubNotesRecordClient) ListMilestones(
+	ctx context.Context, owner, repo string, opts *github.MilestoneListOptions,
+) ([]*github.Milestone, *github.Response, error) {
+	mstones, resp, err := c.client.ListMilestones(ctx, owner, repo, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := c.recordAPICall(gitHubAPIListMilestones, mstones, resp); err != nil {
+		return nil, nil, err
+	}
+	return mstones, resp, nil
 }
 
 func (c *githubNotesRecordClient) CreateComment(ctx context.Context, owner, repo string, number int, message string) (*github.IssueComment, *github.Response, error) {
@@ -297,7 +316,7 @@ func (c *githubNotesRecordClient) recordAPICall(
 	if err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(
+	if err := os.WriteFile(
 		filepath.Join(c.recordDir, fileName), file, os.FileMode(0644),
 	); err != nil {
 		return err

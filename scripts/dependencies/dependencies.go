@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/release/pkg/command"
 	"k8s.io/release/pkg/git"
+	"sigs.k8s.io/release-utils/command"
 )
 
 const (

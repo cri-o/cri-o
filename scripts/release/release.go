@@ -8,10 +8,11 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/release/pkg/command"
 	"k8s.io/release/pkg/git"
 	"k8s.io/release/pkg/github"
-	"k8s.io/release/pkg/util"
+	"sigs.k8s.io/release-utils/command"
+	"sigs.k8s.io/release-utils/env"
+	"sigs.k8s.io/release-utils/util"
 
 	"github.com/cri-o/cri-o/internal/version"
 )
@@ -32,19 +33,19 @@ func main() {
 }
 
 func run() error {
-	if !util.IsEnvSet(githubTokenEnvKey) {
+	if !env.IsSet(githubTokenEnvKey) {
 		return errors.Errorf(
 			"run: $%s environemt variable is not set", githubTokenEnvKey,
 		)
 	}
-	if !util.IsEnvSet(orgEnvKey) {
+	if !env.IsSet(orgEnvKey) {
 		return errors.Errorf(
 			"run: $%s environemt variable is not set %s",
 			orgEnvKey,
 			"(should be set to your CRI-O fork organization, like 'gh-name')",
 		)
 	}
-	remote := util.EnvDefault(gitRemoteEnvKey, "origin")
+	remote := env.Default(gitRemoteEnvKey, "origin")
 	logrus.Infof("Using repository fork remote: %s", remote)
 
 	org := os.Getenv(orgEnvKey)

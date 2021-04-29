@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"k8s.io/release/pkg/command"
 )
 
 type versions struct {
@@ -58,15 +58,13 @@ func Run(config *Config) (string, error) {
 
 	logrus.Infof("Setting up repository %s", config.repository)
 
-	if err := command.NewWithWorkDir(
-		dir, "git", "init",
-	).RunSilentSuccess(); err != nil {
+	if err := runGit(dir, "init"); err != nil {
 		return logErr(err)
 	}
 
-	if err := command.NewWithWorkDir(
-		dir, "git", "remote", "add", "origin", toURL(config.repository),
-	).RunSilentSuccess(); err != nil {
+	if err := runGit(
+		dir, "remote", "add", "origin", toURL(config.repository),
+	); err != nil {
 		return logErr(err)
 	}
 
@@ -75,6 +73,7 @@ func Run(config *Config) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return diffModules(mods, config.link, config.headerLevel), nil
 }
 
@@ -93,6 +92,7 @@ func sanitizeTag(tag string) string {
 func logErr(msg interface{}) (string, error) {
 	err := fmt.Errorf("%v", msg)
 	logrus.Error(err)
+
 	return "", err
 }
 
@@ -154,6 +154,7 @@ func diffModules(mods modules, addLinks bool, headerLevel uint) string {
 	forEach("Added", added)
 	forEach("Changed", changed)
 	forEach("Removed", removed)
+
 	return builder.String()
 }
 
@@ -220,31 +221,54 @@ func getModules(workDir, from, to string) (modules, error) {
 	forEach(after, func(res *versions, v string) { res.after = v })
 
 	logrus.Infof("%d modules found", len(res))
+
 	return res, nil
 }
 
 func retrieveModules(rev, workDir string) (string, error) {
 	logrus.Infof("Retrieving modules of %s", rev)
-	if err := command.NewWithWorkDir(
-		workDir, "git", "fetch", "--depth=1", "origin", rev,
-	).RunSilentSuccess(); err != nil {
+	if err := runGit(
+		workDir, "fetch", "--depth=1", "origin", rev,
+	); err != nil {
 		logrus.Error(err)
+
 		return "", err
 	}
 
-	if err := command.NewWithWorkDir(
-		workDir, "git", "checkout", "-f", "FETCH_HEAD",
-	).RunSilentSuccess(); err != nil {
+	if err := runGit(
+		workDir, "checkout", "-f", "FETCH_HEAD",
+	); err != nil {
 		logrus.Error(err)
+
 		return "", err
 	}
 
-	mods, err := command.NewWithWorkDir(
+	mods, err := runCmdOutput(
 		workDir, "go", "list", "-mod=readonly", "-m", "all",
-	).RunSilentSuccessOutput()
+	)
 	if err != nil {
 		logrus.Error(err)
+
 		return "", err
 	}
-	return mods.OutputTrimNL(), nil
+
+	return strings.TrimSpace(string(mods)), nil
+}
+
+func runGit(dir string, args ...string) error {
+	return runCmd(dir, "git", args...)
+}
+
+func runCmd(dir, cmd string, args ...string) error {
+	_, err := runCmdOutput(dir, cmd, args...)
+
+	return err
+}
+
+func runCmdOutput(dir, cmd string, args ...string) ([]byte, error) {
+	c := exec.Command(cmd, args...)
+	c.Stderr = nil
+	c.Dir = dir
+
+	return c.Output()
 }

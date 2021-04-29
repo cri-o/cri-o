@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/release/pkg/util"
+	"sigs.k8s.io/release-utils/env"
 )
 
 const (
@@ -116,8 +117,8 @@ type handler struct {
 func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	metricsEndpoint := url.URL{
 		Scheme: "http",
-		Host: fmt.Sprintf(
-			"%s:%s", h.ip, util.EnvDefault("CRIO_METRICS_PORT", "9090"),
+		Host: net.JoinHostPort(
+			h.ip, env.Default("CRIO_METRICS_PORT", "9090"),
 		),
 		Path: "/metrics",
 	}

@@ -44,6 +44,7 @@ func NewRepo() *Repo {
 type Repository interface {
 	Describe(opts *git.DescribeOptions) (string, error)
 	CurrentBranch() (branch string, err error)
+	RevParse(rev string) (string, error)
 	Head() (string, error)
 	Remotes() (res []*git.Remote, err error)
 	LsRemote(...string) (string, error)
@@ -86,7 +87,7 @@ func (r *Repo) GetTag() (string, error) {
 }
 
 // CheckState verifies that the repository is in the requested state
-func (r *Repo) CheckState(expOrg, expRepo, expBranch string, nomock bool) error {
+func (r *Repo) CheckState(expOrg, expRepo, expRev string, nomock bool) error {
 	logrus.Info("Verifying repository state")
 
 	dirty, err := r.repo.IsDirty()
@@ -100,19 +101,32 @@ func (r *Repo) CheckState(expOrg, expRepo, expBranch string, nomock bool) error 
 	}
 	logrus.Info("Repository is in clean state")
 
-	// Verify the branch
 	branch, err := r.repo.CurrentBranch()
 	if err != nil {
 		return errors.Wrap(err, "retrieving current branch")
 	}
-	if branch != expBranch {
-		return errors.Errorf("branch %q expected but got %q", expBranch, branch)
+
+	head, err := r.repo.Head()
+	if err != nil {
+		return errors.Wrap(err, "retrieving repository HEAD")
 	}
-	if nomock && !(expOrg == DefaultToolOrg && expRepo == DefaultToolRepo && expBranch == DefaultToolBranch) {
+
+	logrus.Infof("Repo head is: %s", head)
+
+	rev, err := r.repo.RevParse(expRev)
+	if err != nil {
+		return errors.Wrapf(err, "retrieving rev-parse for %s", expRev)
+	}
+
+	if rev != head {
+		return errors.Errorf("revision %q expected but got %q", head, rev)
+	}
+
+	if nomock && !(expOrg == DefaultToolOrg && expRepo == DefaultToolRepo && expRev == DefaultToolRef) {
 		return errors.New("disallow using anything other than kubernetes/release:master with nomock flag")
 	}
 
-	logrus.Infof("Found matching branch %q", expBranch)
+	logrus.Infof("Found matching revision %q", expRev)
 
 	// Verify the remote
 	remotes, err := r.repo.Remotes()
@@ -146,9 +160,20 @@ func (r *Repo) CheckState(expOrg, expRepo, expBranch string, nomock bool) error 
 	)
 
 	logrus.Info("Verifying remote HEAD commit")
-	lsRemoteOut, err := r.repo.LsRemote(
-		"--heads", foundRemote.Name(), "refs/heads/"+expBranch,
-	)
+	args := []string{
+		"--heads",
+		foundRemote.Name(),
+		fmt.Sprintf("refs/heads/%s", branch),
+	}
+	if branch == "" {
+		args = []string{
+			"--tags",
+			"--heads",
+			foundRemote.Name(),
+			fmt.Sprintf("refs/tags/%s^{}", expRev),
+		}
+	}
+	lsRemoteOut, err := r.repo.LsRemote(args...)
 	if err != nil {
 		return errors.Wrap(err, "getting remote HEAD")
 	}
@@ -160,10 +185,6 @@ func (r *Repo) CheckState(expOrg, expRepo, expBranch string, nomock bool) error 
 	logrus.Infof("Got remote commit: %s", commit)
 
 	logrus.Info("Verifying that remote commit is equal to the local one")
-	head, err := r.repo.Head()
-	if err != nil {
-		return errors.Wrapf(err, "retrieving repository HEAD")
-	}
 	if head != commit {
 		return errors.Errorf(
 			"Local HEAD (%s) is not equal to latest remote commit (%s)",
