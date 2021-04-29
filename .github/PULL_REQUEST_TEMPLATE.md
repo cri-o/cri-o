@@ -31,18 +31,20 @@ Uncomment only one `/kind <>` line, hit enter to put that in a new line, and
 remove leading whitespace from that line:
 -->
 
-> /kind api-change
-> /kind bug
-> /kind ci
-> /kind cleanup
-> /kind dependency-change
-> /kind deprecation
-> /kind design
-> /kind documentation
-> /kind failing-test
-> /kind feature
-> /kind flake
-> /kind other
+<!--
+/kind api-change
+/kind bug
+/kind ci
+/kind cleanup
+/kind dependency-change
+/kind deprecation
+/kind design
+/kind documentation
+/kind failing-test
+/kind feature
+/kind flake
+/kind other
+-->
 
 #### What this PR does / why we need it:
 
