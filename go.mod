@@ -71,6 +71,9 @@ require (
 replace (
 	github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20201121164853-7413a7f753e1
+	// Pinning the syndtr/gocapability until https://github.com/opencontainers/runc/commit/6dfbe9b80707b1ca188255e8def15263348e0f9a
+	// is included in the runc release
+	github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
 	google.golang.org/grpc => google.golang.org/grpc v1.27.0
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20210408162405-cb303e613a12
