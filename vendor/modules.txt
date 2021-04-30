@@ -820,7 +820,7 @@ github.com/stefanberger/go-pkcs11uri
 # github.com/stretchr/testify v1.7.0
 ## explicit
 github.com/stretchr/testify/assert
-# github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
+# github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 ## explicit
 github.com/syndtr/gocapability/capability
 # github.com/tchap/go-patricia v2.3.0+incompatible
@@ -1445,6 +1445,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 sigs.k8s.io/yaml
 # github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
 # github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20201121164853-7413a7f753e1
+# github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 # google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
 # google.golang.org/grpc => google.golang.org/grpc v1.27.0
 # k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20210408162405-cb303e613a12
