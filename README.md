@@ -78,7 +78,7 @@ It is currently in active development in the Kubernetes community through the [d
 | ---------------------------------------------------- | --------------------------------------------------------------------------|
 | [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                   |
 
-Note that kpod and its container management and debugging commands have moved to a separate repository, located [here](https://github.com/containers/podman).
+Note that podman and its container management and debugging commands have moved to a separate repository, located [here](https://github.com/containers/podman).
 
 ## Configuration
 | File                                       | Description                                                                                          |
