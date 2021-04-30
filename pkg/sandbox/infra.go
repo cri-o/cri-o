@@ -26,7 +26,6 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 
 	g := s.infra.Spec()
 	g.HostSpecific = true
-	g.ClearProcessRlimits()
 
 	// setup defaults for the pod sandbox
 	g.SetRootReadonly(true)
