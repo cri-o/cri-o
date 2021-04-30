@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 30 Apr 2021 07:25:13 UTC for commit [7b9dbd7][0]._
+_Generated on Fri, 30 Apr 2021 10:45:55 UTC for commit [1f2639c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7b9dbd7e2262e31f9f4e9229fa8797ead801f8c8
+[0]: https://github.com/cri-o/cri-o/commit/1f2639c9096b874f5ee8d112ad6a31bb97e7f79b
 
 ## Outdated Dependencies
 
@@ -556,7 +556,7 @@ _Generated on Fri, 30 Apr 2021 07:25:13 UTC for commit [7b9dbd7][0]._
 | github.com/stretchr/objx                                 | v0.2.0                                              | v0.3.0                             | false  | true             |
 | github.com/stretchr/testify                              | v1.7.0                                              |                                    | true   | true             |
 | github.com/subosito/gotenv                               | v1.2.0                                              |                                    | false  | true             |
-| github.com/syndtr/gocapability                           | v0.0.0-20200815063812-42c35b437635                  |                                    | true   | true             |
+| github.com/syndtr/gocapability                           | v0.0.0-20180916011248-d98352740cb2                  | v0.0.0-20200815063812-42c35b437635 | true   | true             |
 | github.com/tchap/go-patricia                             | v2.3.0+incompatible                                 |                                    | false  | true             |
 | github.com/tetafro/godot                                 | v0.2.5                                              | v1.4.6                             | false  | true             |
 | github.com/thecodeteam/goscaleio                         | v0.1.0                                              |                                    | false  | true             |
