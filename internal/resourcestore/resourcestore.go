@@ -77,6 +77,15 @@ func (rc *ResourceStore) cleanupStaleResources() {
 		resourcesToReap := []*Resource{}
 		rc.Lock()
 		for name, r := range rc.resources {
+			// this resource shouldn't be marked as stale if it
+			// hasn't yet been added to the store.
+			// This can happen if a creation is in progress, and a watcher is added
+			// before the creation completes.
+			// If this resource isn't skipped from being marked as stale,
+			// we risk segfaulting in the Cleanup() step.
+			if !r.wasPut() {
+				continue
+			}
 			if r.stale {
 				resourcesToReap = append(resourcesToReap, r)
 				delete(rc.resources, name)
@@ -162,6 +171,7 @@ func (rc *ResourceStore) WatcherForResource(name string) chan struct{} {
 	if !ok {
 		rc.resources[name] = &Resource{
 			watchers: []chan struct{}{watcher},
+			name:     name,
 		}
 		return watcher
 	}
