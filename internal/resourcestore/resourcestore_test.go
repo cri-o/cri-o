@@ -135,5 +135,25 @@ var _ = t.Describe("ResourceStore", func() {
 			id := sut.Get(testName)
 			Expect(id).To(BeEmpty())
 		})
+		It("should not call cleanup until after resource is put", func() {
+			// Given
+			timeout := 2 * time.Second
+			sut = resourcestore.NewWithTimeout(timeout)
+
+			_ = sut.WatcherForResource(testName)
+
+			timedOutChan := make(chan bool)
+
+			// When
+			go func() {
+				time.Sleep(timeout * 6)
+				Expect(sut.Put(testName, e, cleaner)).To(BeNil())
+				timedOutChan <- true
+			}()
+
+			// Then
+			didStoreWaitForPut := <-timedOutChan
+			Expect(didStoreWaitForPut).To(Equal(true))
+		})
 	})
 })
