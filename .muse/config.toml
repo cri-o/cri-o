@@ -1,0 +1,3 @@
+build = "make"
+tools = ["infer"]
+ignoreRules = [ "RESOURCE_LEAK" ]
