@@ -290,6 +290,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("clean-shutdown-file") {
 		config.CleanShutdownFile = ctx.String("clean-shutdown-file")
 	}
+	if ctx.IsSet("absent-mount-sources-to-reject") {
+		config.AbsentMountSourcesToReject = StringSliceTrySplit(ctx, "absent-mount-sources-to-reject")
+	}
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
@@ -847,6 +850,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:     defConf.CleanShutdownFile,
 			EnvVars:   []string{"CONTAINER_CLEAN_SHUTDOWN_FILE"},
 			TakesFile: true,
+		},
+		&cli.StringSliceFlag{
+			Name:    "absent-mount-sources-to-reject",
+			Value:   cli.NewStringSlice(defConf.AbsentMountSourcesToReject...),
+			Usage:   "A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory).",
+			EnvVars: []string{"CONTAINER_ABSENT_MOUNT_SOURCES_TO_REJECT"},
 		},
 	}
 }

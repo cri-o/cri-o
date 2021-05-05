@@ -11,6 +11,7 @@ crio - OCI-based implementation of Kubernetes Container Runtime Interface
 crio
 
 ```
+[--absent-mount-sources-to-reject]=[value]
 [--additional-devices]=[value]
 [--apparmor-profile]=[value]
 [--big-files-temporary-dir]=[value]
@@ -116,6 +117,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 ```
 
 # GLOBAL OPTIONS
+
+**--absent-mount-sources-to-reject**="": A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory). (default: [])
 
 **--additional-devices**="": Devices to add to the containers  (default: [])
 

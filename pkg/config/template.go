@@ -361,6 +361,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.DefaultRuntime, c.DefaultRuntime),
 		},
 		{
+			templateString: templateStringCrioRuntimeAbsentMountSourcesToReject,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.AbsentMountSourcesToReject, c.AbsentMountSourcesToReject),
+		},
+		{
 			templateString: templateStringCrioRuntimeRuntimesRuntimeHandler,
 			group:          crioRuntimeConfig,
 			isDefaultValue: runtimesEqual(dc.Runtimes, c.Runtimes),
@@ -890,6 +895,17 @@ const templateStringCrioRuntimeDefaultRuntime = `# default_runtime is the _name_
 # The name is matched against the runtimes map below. If this value is changed,
 # the corresponding existing entry from the runtimes map below will be ignored.
 default_runtime = "{{ .DefaultRuntime }}"
+
+`
+
+const templateStringCrioRuntimeAbsentMountSourcesToReject = `# A list of paths that, when absent from the host,
+# will cause a container creation to fail (as opposed to the current behavior being created as a directory).
+# This option is to protect from source locations whose existence as a directory could jepordize the health of the node, and whose
+# creation as a file is not desired either.
+# An example is /etc/hostname, which will cause failures on reboot if it's created as a directory, but often doesn't exist because
+# the hostname is being managed dynamically.
+absent_mount_sources_to_reject = [
+{{ range $mount := .AbsentMountSourcesToReject}}{{ printf "\t%q,\n" $mount}}{{ end }}]
 
 `
 
