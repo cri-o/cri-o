@@ -1,0 +1,2 @@
+build = "make"
+ignoreRules = [ "RESOURCE_LEAK" ]
