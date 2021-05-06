@@ -84,7 +84,7 @@ func adjustTokenPrivileges(token windows.Token, releaseAll bool, input *byte, ou
 	}
 	r0, _, e1 := syscall.Syscall6(procAdjustTokenPrivileges.Addr(), 6, uintptr(token), uintptr(_p0), uintptr(unsafe.Pointer(input)), uintptr(outputSize), uintptr(unsafe.Pointer(output)), uintptr(unsafe.Pointer(requiredSize)))
 	success = r0 != 0
-	if true {
+	if {
 		err = errnoErr(e1)
 	}
 	return

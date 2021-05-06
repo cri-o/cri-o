@@ -113,7 +113,7 @@ func (j *Container) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		}
 		buf.WriteByte(',')
 	}
-	if true {
+	if {
 		buf.WriteString(`"created":`)
 
 		{

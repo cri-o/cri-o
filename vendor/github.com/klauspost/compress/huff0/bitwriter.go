@@ -59,7 +59,7 @@ func (b *bitWriter) encTwoSymbols(ct cTable, av, bv byte) {
 	sh := b.nBits & 63
 	combined := uint64(encA.val) | (uint64(encB.val) << (encA.nBits & 63))
 	b.bitContainer |= combined << sh
-	if false {
+	if {
 		if encA.nBits == 0 {
 			panic("nbitsA 0")
 		}
