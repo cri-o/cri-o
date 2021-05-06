@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
@@ -31,6 +32,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli/v2"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 )
@@ -45,7 +48,7 @@ func writeCrioGoroutineStacks() {
 	}
 }
 
-func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, sserver *server.Server, hserver *http.Server, signalled *bool) {
+func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, tp *sdktrace.TracerProvider, sserver *server.Server, hserver *http.Server, signalled *bool) {
 	sig := make(chan os.Signal, 2048)
 	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGUSR2, unix.SIGPIPE, signals.Hup)
 	go func() {
@@ -70,6 +73,11 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 				continue
 			}
 			*signalled = true
+			if tp != nil {
+				if err := tp.Shutdown(ctx); err != nil {
+					logrus.Warnf("Error shutting down opentelemetry tracer provider: %v", err)
+				}
+			}
 			gserver.GracefulStop()
 			hserver.Shutdown(ctx) // nolint: errcheck
 			if err := sserver.StopStreamServer(); err != nil {
@@ -236,12 +244,29 @@ func main() {
 			logrus.Fatalf("Failed to chmod listen socket %s: %v", config.Listen, err)
 		}
 
-		grpcServer := grpc.NewServer(
-			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+		var tracerProvider *sdktrace.TracerProvider
+		chainUnaryServer := grpc_middleware.ChainUnaryServer(metrics.UnaryInterceptor(), log.UnaryInterceptor())
+		chainStreamServer := grpc_middleware.ChainStreamServer(log.StreamInterceptor())
+		if config.EnableTracing {
+			var opts []otelgrpc.Option
+			tracerProvider, opts, err = opentelemetry.InitTracing(
+				ctx,
+				config.TracingEndpoint,
+				config.TracingSamplingRatePerMillion,
+			)
+			if err != nil {
+				logrus.Fatalf("Failed to initialize tracer provider: %v", err)
+			}
+			chainUnaryServer = grpc_middleware.ChainUnaryServer(
 				metrics.UnaryInterceptor(),
 				log.UnaryInterceptor(),
-			)),
-			grpc.StreamInterceptor(log.StreamInterceptor()),
+				otelgrpc.UnaryServerInterceptor(opts...),
+			)
+			chainStreamServer = grpc_middleware.ChainStreamServer(log.StreamInterceptor(), otelgrpc.StreamServerInterceptor(opts...))
+		}
+		grpcServer := grpc.NewServer(
+			grpc.UnaryInterceptor(chainUnaryServer),
+			grpc.StreamInterceptor(chainStreamServer),
 			grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
@@ -317,7 +342,7 @@ func main() {
 		}
 
 		graceful := false
-		catchShutdown(ctx, cancel, grpcServer, crioServer, httpServer, &graceful)
+		catchShutdown(ctx, cancel, grpcServer, tracerProvider, crioServer, httpServer, &graceful)
 
 		go func() {
 			if err := grpcServer.Serve(grpcL); err != nil {
