@@ -2,7 +2,6 @@ package huff0
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
 )
 
@@ -27,14 +26,6 @@ func Compress4X(in []byte, s *Scratch) (out []byte, reUsed bool, err error) {
 	s, err = s.prepare(in)
 	if err != nil {
 		return nil, false, err
-	}
-	if false {
-		// TODO: compress4Xp only slightly faster.
-		const parallelThreshold = 8 << 10
-		if len(in) < parallelThreshold || runtime.GOMAXPROCS(0) == 1 {
-			return compress(in, s, s.compress4X)
-		}
-		return compress(in, s, s.compress4Xp)
 	}
 	return compress(in, s, s.compress4X)
 }

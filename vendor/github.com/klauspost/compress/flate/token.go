@@ -359,15 +359,6 @@ func lengthCode(len uint8) uint32 { return uint32(lengthCodes[len]) }
 
 // Returns the offset code corresponding to a specific offset
 func offsetCode(off uint32) uint32 {
-	if false {
-		if off < uint32(len(offsetCodes)) {
-			return offsetCodes[off&255]
-		} else if off>>7 < uint32(len(offsetCodes)) {
-			return offsetCodes[(off>>7)&255] + 14
-		} else {
-			return offsetCodes[(off>>14)&255] + 28
-		}
-	}
 	if off < uint32(len(offsetCodes)) {
 		return offsetCodes[uint8(off)]
 	}
