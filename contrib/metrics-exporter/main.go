@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -116,10 +117,8 @@ type handler struct {
 func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	metricsEndpoint := url.URL{
 		Scheme: "http",
-		Host: fmt.Sprintf(
-			"%s:%s", h.ip, util.EnvDefault("CRIO_METRICS_PORT", "9090"),
-		),
-		Path: "/metrics",
+		Host:   net.JoinHostPort(h.ip, util.EnvDefault("CRIO_METRICS_PORT", "9090")),
+		Path:   "/metrics",
 	}
 	resp, err := http.Get(metricsEndpoint.String())
 	if err != nil {

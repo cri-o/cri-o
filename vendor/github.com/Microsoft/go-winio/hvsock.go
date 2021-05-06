@@ -41,7 +41,7 @@ func (addr *HvsockAddr) Network() string {
 }
 
 func (addr *HvsockAddr) String() string {
-	return fmt.Sprintf("%s:%s", &addr.VMID, &addr.ServiceID)
+	return net.JoinHostPort(&addr.VMID, &addr.ServiceID)
 }
 
 // VsockServiceID returns an hvsock service ID corresponding to the specified AF_VSOCK port.

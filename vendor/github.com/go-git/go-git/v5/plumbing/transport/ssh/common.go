@@ -4,6 +4,7 @@ package ssh
 import (
 	"context"
 	"fmt"
+	"net"
 	"reflect"
 	"strconv"
 
@@ -194,7 +195,7 @@ func (c *command) doGetHostWithPortFromSSHConfig() (addr string, found bool) {
 		}
 	}
 
-	addr = fmt.Sprintf("%s:%d", host, port)
+	addr = net.JoinHostPort(host, strconv.Itoa(port))
 	return
 }
 

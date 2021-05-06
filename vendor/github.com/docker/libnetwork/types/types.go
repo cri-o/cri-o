@@ -137,11 +137,11 @@ func (p *PortBinding) String() string {
 	if p.IP != nil {
 		ret += p.IP.String()
 	}
-	ret = fmt.Sprintf("%s:%d/", ret, p.Port)
+	ret = net.JoinHostPort(ret, p.Port)
 	if p.HostIP != nil {
 		ret += p.HostIP.String()
 	}
-	ret = fmt.Sprintf("%s:%d", ret, p.HostPort)
+	ret = net.JoinHostPort(ret, strconv.Itoa(p.HostPort))
 	return ret
 }
 

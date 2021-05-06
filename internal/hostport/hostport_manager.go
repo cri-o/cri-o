@@ -441,5 +441,5 @@ func writeLine(buf *bytes.Buffer, words ...string) {
 }
 
 func (hp *hostport) String() string {
-	return fmt.Sprintf("%s:%d", hp.protocol, hp.port)
+	return net.JoinHostPort(hp.protocol, strconv.Itoa(hp.port))
 }

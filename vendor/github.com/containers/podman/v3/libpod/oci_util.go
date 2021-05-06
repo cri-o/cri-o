@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,7 +50,7 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 			if isV6 {
 				addr, err = net.ResolveUDPAddr("udp6", fmt.Sprintf("[%s]:%d", i.HostIP, i.HostPort))
 			} else {
-				addr, err = net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
+				addr, err = net.ResolveUDPAddr("udp4", net.JoinHostPort(i.HostIP, strconv.Itoa(i.HostPort)))
 			}
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot resolve the UDP address")
@@ -75,9 +76,9 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 				err  error
 			)
 			if isV6 {
-				addr, err = net.ResolveTCPAddr("tcp6", fmt.Sprintf("[%s]:%d", i.HostIP, i.HostPort))
+				addr, err = net.ResolveTCPAddr("tcp6", net.JoinHostPort(i.HostIP, strconv.Itoa(i.HostPort)))
 			} else {
-				addr, err = net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
+				addr, err = net.ResolveTCPAddr("tcp4", net.JoinHostPort(i.HostIP, strconv.Itoa(i.HostPort)))
 			}
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot resolve the TCP address")
