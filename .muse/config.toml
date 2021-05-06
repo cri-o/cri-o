@@ -1,2 +1,6 @@
 build = "make"
 ignoreRules = [ "RESOURCE_LEAK" ]
+ignoreFiles = """
+vendor/**
+internal/log/log_test.go
+"""
