@@ -255,52 +255,50 @@ func (b *blockEnc) matchOffset(offset, lits uint32) uint32 {
 	// Check if offset is one of the recent offsets.
 	// Adjusts the output offset accordingly.
 	// Gives a tiny bit of compression, typically around 1%.
-	if true {
-		if lits > 0 {
-			switch offset {
-			case b.recentOffsets[0]:
-				offset = 1
-			case b.recentOffsets[1]:
-				b.recentOffsets[1] = b.recentOffsets[0]
-				b.recentOffsets[0] = offset
-				offset = 2
-			case b.recentOffsets[2]:
-				b.recentOffsets[2] = b.recentOffsets[1]
-				b.recentOffsets[1] = b.recentOffsets[0]
-				b.recentOffsets[0] = offset
-				offset = 3
-			default:
-				b.recentOffsets[2] = b.recentOffsets[1]
-				b.recentOffsets[1] = b.recentOffsets[0]
-				b.recentOffsets[0] = offset
-				offset += 3
-			}
-		} else {
-			switch offset {
-			case b.recentOffsets[1]:
-				b.recentOffsets[1] = b.recentOffsets[0]
-				b.recentOffsets[0] = offset
-				offset = 1
-			case b.recentOffsets[2]:
-				b.recentOffsets[2] = b.recentOffsets[1]
-				b.recentOffsets[1] = b.recentOffsets[0]
-				b.recentOffsets[0] = offset
-				offset = 2
-			case b.recentOffsets[0] - 1:
-				b.recentOffsets[2] = b.recentOffsets[1]
-				b.recentOffsets[1] = b.recentOffsets[0]
-				b.recentOffsets[0] = offset
-				offset = 3
-			default:
-				b.recentOffsets[2] = b.recentOffsets[1]
-				b.recentOffsets[1] = b.recentOffsets[0]
-				b.recentOffsets[0] = offset
-				offset += 3
-			}
+
+	if lits > 0 {
+		switch offset {
+		case b.recentOffsets[0]:
+			offset = 1
+		case b.recentOffsets[1]:
+			b.recentOffsets[1] = b.recentOffsets[0]
+			b.recentOffsets[0] = offset
+			offset = 2
+		case b.recentOffsets[2]:
+			b.recentOffsets[2] = b.recentOffsets[1]
+			b.recentOffsets[1] = b.recentOffsets[0]
+			b.recentOffsets[0] = offset
+			offset = 3
+		default:
+			b.recentOffsets[2] = b.recentOffsets[1]
+			b.recentOffsets[1] = b.recentOffsets[0]
+			b.recentOffsets[0] = offset
+			offset += 3
 		}
 	} else {
-		offset += 3
+		switch offset {
+		case b.recentOffsets[1]:
+			b.recentOffsets[1] = b.recentOffsets[0]
+			b.recentOffsets[0] = offset
+			offset = 1
+		case b.recentOffsets[2]:
+			b.recentOffsets[2] = b.recentOffsets[1]
+			b.recentOffsets[1] = b.recentOffsets[0]
+			b.recentOffsets[0] = offset
+			offset = 2
+		case b.recentOffsets[0] - 1:
+			b.recentOffsets[2] = b.recentOffsets[1]
+			b.recentOffsets[1] = b.recentOffsets[0]
+			b.recentOffsets[0] = offset
+			offset = 3
+		default:
+			b.recentOffsets[2] = b.recentOffsets[1]
+			b.recentOffsets[1] = b.recentOffsets[0]
+			b.recentOffsets[0] = offset
+			offset += 3
+		}
 	}
+
 	return offset
 }
 
@@ -678,13 +676,7 @@ func (b *blockEnc) encode(org []byte, raw, rawAllLits bool) error {
 	if err != nil {
 		return err
 	}
-	if false {
-		println("block:", b.output[start:], "tablelog", ofEnc.actualTableLog, "maxcount:", ofEnc.maxCount)
-		fmt.Printf("selected TableLog: %d, Symbol length: %d\n", ofEnc.actualTableLog, ofEnc.symbolLen)
-		for i, v := range ofEnc.norm[:ofEnc.symbolLen] {
-			fmt.Printf("%3d: %5d -> %4d \n", i, ofEnc.count[i], v)
-		}
-	}
+
 	b.output, err = mlEnc.writeCount(b.output)
 	if err != nil {
 		return err
