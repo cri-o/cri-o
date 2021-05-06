@@ -951,29 +951,29 @@ func (e *fastEncoderDict) Reset(d *dict, singleBlock bool) {
 		if len(e.dictTable) != len(e.table) {
 			e.dictTable = make([]tableEntry, len(e.table))
 		}
-		if true {
-			end := e.maxMatchOff + int32(len(d.content)) - 8
-			for i := e.maxMatchOff; i < end; i += 3 {
-				const hashLog = tableBits
 
-				cv := load6432(d.content, i-e.maxMatchOff)
-				nextHash := hash6(cv, hashLog)      // 0 -> 5
-				nextHash1 := hash6(cv>>8, hashLog)  // 1 -> 6
-				nextHash2 := hash6(cv>>16, hashLog) // 2 -> 7
-				e.dictTable[nextHash] = tableEntry{
-					val:    uint32(cv),
-					offset: i,
-				}
-				e.dictTable[nextHash1] = tableEntry{
-					val:    uint32(cv >> 8),
-					offset: i + 1,
-				}
-				e.dictTable[nextHash2] = tableEntry{
-					val:    uint32(cv >> 16),
-					offset: i + 2,
-				}
+		end := e.maxMatchOff + int32(len(d.content)) - 8
+		for i := e.maxMatchOff; i < end; i += 3 {
+			const hashLog = tableBits
+
+			cv := load6432(d.content, i-e.maxMatchOff)
+			nextHash := hash6(cv, hashLog)      // 0 -> 5
+			nextHash1 := hash6(cv>>8, hashLog)  // 1 -> 6
+			nextHash2 := hash6(cv>>16, hashLog) // 2 -> 7
+			e.dictTable[nextHash] = tableEntry{
+				val:    uint32(cv),
+				offset: i,
+			}
+			e.dictTable[nextHash1] = tableEntry{
+				val:    uint32(cv >> 8),
+				offset: i + 1,
+			}
+			e.dictTable[nextHash2] = tableEntry{
+				val:    uint32(cv >> 16),
+				offset: i + 2,
 			}
 		}
+
 		e.lastDictID = d.id
 		e.allDirty = true
 	}

@@ -431,17 +431,16 @@ encodeLoop:
 			}
 
 			// Check prev long...
-			if true {
-				coffsetL = candidateL.prev - e.cur - matched
-				if coffsetL >= 0 && coffsetL < s && s-coffsetL < e.maxMatchOff && cv == load3232(src, coffsetL) {
-					// Found a long match, at least 4 bytes.
-					matchedNext := e.matchlen(s+4, coffsetL+4, src) + 4
-					if matchedNext > matched {
-						t = coffsetL
-						matched = matchedNext
-						if debugMatches {
-							println("prev long match at end-of-match")
-						}
+
+			coffsetL = candidateL.prev - e.cur - matched
+			if coffsetL >= 0 && coffsetL < s && s-coffsetL < e.maxMatchOff && cv == load3232(src, coffsetL) {
+				// Found a long match, at least 4 bytes.
+				matchedNext := e.matchlen(s+4, coffsetL+4, src) + 4
+				if matchedNext > matched {
+					t = coffsetL
+					matched = matchedNext
+					if debugMatches {
+						println("prev long match at end-of-match")
 					}
 				}
 			}
@@ -957,17 +956,16 @@ encodeLoop:
 			}
 
 			// Check prev long...
-			if true {
-				coffsetL = candidateL.prev - e.cur - matched
-				if coffsetL >= 0 && coffsetL < s && s-coffsetL < e.maxMatchOff && cv == load3232(src, coffsetL) {
-					// Found a long match, at least 4 bytes.
-					matchedNext := e.matchlen(s+4, coffsetL+4, src) + 4
-					if matchedNext > matched {
-						t = coffsetL
-						matched = matchedNext
-						if debugMatches {
-							println("prev long match at end-of-match")
-						}
+
+			coffsetL = candidateL.prev - e.cur - matched
+			if coffsetL >= 0 && coffsetL < s && s-coffsetL < e.maxMatchOff && cv == load3232(src, coffsetL) {
+				// Found a long match, at least 4 bytes.
+				matchedNext := e.matchlen(s+4, coffsetL+4, src) + 4
+				if matchedNext > matched {
+					t = coffsetL
+					matched = matchedNext
+					if debugMatches {
+						println("prev long match at end-of-match")
 					}
 				}
 			}

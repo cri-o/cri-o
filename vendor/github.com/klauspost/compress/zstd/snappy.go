@@ -382,11 +382,7 @@ func decodeSnappy(blk *blockEnc, src []byte) error {
 		// Check if offset is one of the recent offsets.
 		// Adjusts the output offset accordingly.
 		// Gives a tiny bit of compression, typically around 1%.
-		if false {
-			offset = blk.matchOffset(offset, uint32(lits))
-		} else {
-			offset += 3
-		}
+		offset += 3
 
 		blk.sequences = append(blk.sequences, seq{
 			litLen:   uint32(lits),
