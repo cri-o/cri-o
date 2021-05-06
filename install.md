@@ -69,18 +69,22 @@ If there's a version or operating system that is missing, please [open an issue]
 ### Installation Instructions
 
 #### openSUSE:
+
 ```shell
 sudo zypper install cri-o
 ```
 
 #### Fedora 31 or later
+
 ```shell
 sudo dnf module enable cri-o:$VERSION
 sudo dnf install cri-o
 ```
+
 For Fedora, we only support setting minor versions. i.e: `VERSION=1.18`, and do not support pinning patch versions: `VERSION=1.18.3`
 
 #### Other yum based operating systems
+
 To install on the following operating systems, set the environment variable $OS as the appropriate field in the following table:
 
 | Operating system | $OS               |
@@ -89,8 +93,8 @@ To install on the following operating systems, set the environment variable $OS 
 | Centos 8 Stream  | `CentOS_8_Stream` |
 | Centos 7         | `CentOS_7`        |
 
-
 And then run the following as root:
+
 ```shell
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
@@ -113,6 +117,7 @@ To install on the following operating systems, set the environment variable $OS 
 | Ubuntu 18.04     | `xUbuntu_18.04`   |
 
 If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1. This is not available in distros based on Debian buster or below, so buster backports will need to be enabled:
+
 ```shell
 echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
 apt update
@@ -120,6 +125,7 @@ apt install -y libseccomp2 || apt update -y libseccomp2
 ```
 
 And then run the following as root:
+
 ```shell
 echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
 echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
@@ -134,12 +140,14 @@ apt-get install cri-o cri-o-runc
 Note: We include cri-o-runc because Ubuntu and Debian include their own packaged version of runc.
 While this version should work with CRI-O, keeping the packaged versions of CRI-O and runc in sync ensures they work together.
 If you'd like to use the distribution's runc, you'll have to add the file:
+
 ```toml
 [crio.runtime.runtimes.runc]
 runtime_path = ""
 runtime_type = "oci"
 runtime_root = "/run/runc"
 ```
+
 to `/etc/crio/crio.conf.d/`
 
 ## Build and install CRI-O from source
@@ -155,6 +163,7 @@ Latest version of `runc` is expected to be installed on the system. It is picked
 ### Build and Run Dependencies
 
 #### Fedora - RHEL 7 - CentOS
+
 **Required**
 
 Fedora, RHEL 7, CentOS and related distributions:
@@ -179,12 +188,14 @@ yum install -y \
 ```
 
 **Please note**:
+
 - `CentOS 8` (or higher): `pkgconfig` package is replaced by `pkgconf-pkg-config`
 - By default btrfs is not enabled. To add the btrfs support, install the
   following package: `btrfs-progs-devel`
 - It is possible the distribution packaged version of runc is out of date. If you'd like to get the latest and greatest runc, consider using the one found in https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable
 
 #### RHEL 8
+
 RHEL 8 distributions:\
 Make sure you are subscribed to the following repositories: \
 BaseOS/x86_64 \

@@ -74,6 +74,7 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788).  Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
 ## Commands
+
 | Command                                              | Description                                                               |
 | ---------------------------------------------------- | --------------------------------------------------------------------------|
 | [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                   |
@@ -81,6 +82,7 @@ It is currently in active development in the Kubernetes community through the [d
 Note that kpod and its container management and debugging commands have moved to a separate repository, located [here](https://github.com/containers/podman).
 
 ## Configuration
+
 | File                                       | Description                                                                                          |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [crio.conf(5)](/docs/crio.conf.5.md)       | CRI-O Configuration file |
@@ -157,6 +159,7 @@ You can run a local version of Kubernetes with `CRI-O` using `local-up-cluster.s
 
 1. Clone the [Kubernetes repository](https://github.com/kubernetes/kubernetes)
 1. From the Kubernetes project directory, run:
+
 ```shell
 CGROUP_DRIVER=systemd \
 CONTAINER_RUNTIME=remote \
