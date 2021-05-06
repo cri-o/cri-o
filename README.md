@@ -10,6 +10,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o)](https://goreportcard.com/report/github.com/cri-o/cri-o)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o?ref=badge_shield)
 [![Mentioned in Awesome CRI-O](https://awesome.re/mentioned-badge.svg)](awesome.md)
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/cri-o/cri-o)
 
 ## Compatibility matrix: CRI-O ⬄ Kubernetes
 
