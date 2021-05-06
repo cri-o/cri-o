@@ -12,6 +12,7 @@ version
 wipe
 help
 h
+--absent-mount-sources-to-reject
 --additional-devices
 --apparmor-profile
 --big-files-temporary-dir

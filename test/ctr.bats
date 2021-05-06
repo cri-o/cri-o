@@ -887,3 +887,18 @@ function wait_until_exit() {
 	output=$(crictl exec --sync "$ctr_id" env)
 	[[ "$output" == *"NSS_SDB_USE_CACHE=no"* ]]
 }
+
+@test "ctr with absent mount that should be rejected" {
+	ABSENT_DIR="$TESTDIR/notthere"
+	jq --arg path "$ABSENT_DIR" \
+		'  .mounts = [ {
+			host_path: $path,
+			container_path: $path
+		} ]' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR/config"
+
+	CONTAINER_ABSENT_MOUNT_SOURCES_TO_REJECT="$ABSENT_DIR" start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	! crictl create "$pod_id" "$TESTDIR/config" "$TESTDATA"/sandbox_config.json
+}

@@ -265,7 +265,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		processLabel = ""
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, specgen, s.config.RuntimeConfig.BindMountPrefix)
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, specgen, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject)
 	if err != nil {
 		return nil, err
 	}
@@ -770,7 +770,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *types.ContainerConfig, specgen *generate.Generator, bindMountPrefix string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *types.ContainerConfig, specgen *generate.Generator, bindMountPrefix string, absentMountSourcesToReject []string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	mounts := containerConfig.Mounts
@@ -826,7 +826,15 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *t
 		} else {
 			if !os.IsNotExist(err) {
 				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
-			} else if err = os.MkdirAll(src, 0o755); err != nil {
+			}
+			for _, toReject := range absentMountSourcesToReject {
+				if filepath.Clean(src) == toReject {
+					// special-case /etc/hostname, as we don't want it to be created as a directory
+					// This can cause issues with node reboot.
+					return nil, nil, errors.Errorf("Cannot mount %s: path does not exist and will cause issues as a directory", toReject)
+				}
+			}
+			if err = os.MkdirAll(src, 0o755); err != nil {
 				return nil, nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
 			}
 		}
