@@ -37,7 +37,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/json-iterator/go v1.1.10
 	github.com/onsi/ginkgo v1.16.2
-	github.com/onsi/gomega v1.11.0
+	github.com/onsi/gomega v1.12.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
 	github.com/opencontainers/runc v1.0.0-rc93
@@ -53,9 +53,9 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
-	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210324051608-47abb6519492
+	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
 	google.golang.org/grpc v1.37.0
 	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0

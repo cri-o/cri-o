@@ -517,7 +517,7 @@ github.com/golang/groupcache/lru
 github.com/golang/mock/gomock
 github.com/golang/mock/mockgen
 github.com/golang/mock/mockgen/model
-# github.com/golang/protobuf v1.4.3 => github.com/golang/protobuf v1.3.5
+# github.com/golang/protobuf v1.5.2 => github.com/golang/protobuf v1.3.5
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -682,7 +682,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.11.0
+# github.com/onsi/gomega v1.12.0
 ## explicit
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -900,7 +900,7 @@ golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/modfile
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4
+# golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -923,7 +923,7 @@ golang.org/x/oauth2/internal
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210324051608-47abb6519492
+# golang.org/x/sys v0.0.0-20210423082822-04245dca01da
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -933,7 +933,7 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
 golang.org/x/term
-# golang.org/x/text v0.3.4
+# golang.org/x/text v0.3.6
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
