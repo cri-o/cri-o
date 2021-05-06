@@ -167,25 +167,24 @@ func (e *fastEncL4) Encode(dst *tokens, src []byte) {
 		}
 
 		// Store every 3rd hash in-between
-		if true {
-			i := nextS
-			if i < s-1 {
+
+		i := nextS
+		if i < s-1 {
+			cv := load6432(src, i)
+			t := tableEntry{offset: i + e.cur}
+			t2 := tableEntry{offset: t.offset + 1}
+			e.bTable[hash7(cv, tableBits)] = t
+			e.bTable[hash7(cv>>8, tableBits)] = t2
+			e.table[hash4u(uint32(cv>>8), tableBits)] = t2
+
+			i += 3
+			for ; i < s-1; i += 3 {
 				cv := load6432(src, i)
 				t := tableEntry{offset: i + e.cur}
 				t2 := tableEntry{offset: t.offset + 1}
 				e.bTable[hash7(cv, tableBits)] = t
 				e.bTable[hash7(cv>>8, tableBits)] = t2
 				e.table[hash4u(uint32(cv>>8), tableBits)] = t2
-
-				i += 3
-				for ; i < s-1; i += 3 {
-					cv := load6432(src, i)
-					t := tableEntry{offset: i + e.cur}
-					t2 := tableEntry{offset: t.offset + 1}
-					e.bTable[hash7(cv, tableBits)] = t
-					e.bTable[hash7(cv>>8, tableBits)] = t2
-					e.table[hash4u(uint32(cv>>8), tableBits)] = t2
-				}
 			}
 		}
 

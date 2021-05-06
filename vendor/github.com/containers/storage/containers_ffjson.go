@@ -113,20 +113,16 @@ func (j *Container) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		}
 		buf.WriteByte(',')
 	}
-	if true {
-		buf.WriteString(`"created":`)
 
-		{
-
-			obj, err = j.Created.MarshalJSON()
-			if err != nil {
-				return err
-			}
-			buf.Write(obj)
-
-		}
-		buf.WriteByte(',')
+	buf.WriteString(`"created":`)
+	obj, err = j.Created.MarshalJSON()
+	if err != nil {
+		return err
 	}
+	buf.Write(obj)
+
+	buf.WriteByte(',')
+
 	if len(j.UIDMap) != 0 {
 		buf.WriteString(`"uidmap":`)
 		if j.UIDMap != nil {

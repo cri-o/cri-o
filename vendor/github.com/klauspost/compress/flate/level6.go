@@ -245,17 +245,6 @@ func (e *fastEncL6) Encode(dst *tokens, src []byte) {
 		if nextEmit < s {
 			emitLiteral(dst, src[nextEmit:s])
 		}
-		if false {
-			if t >= s {
-				panic(fmt.Sprintln("s-t", s, t))
-			}
-			if (s - t) > maxMatchOffset {
-				panic(fmt.Sprintln("mmo", s-t))
-			}
-			if l < baseMatchLength {
-				panic("bml")
-			}
-		}
 
 		dst.AddMatchLong(l, uint32(s-t-baseMatchOffset))
 		repeat = s - t
@@ -277,17 +266,17 @@ func (e *fastEncL6) Encode(dst *tokens, src []byte) {
 		}
 
 		// Store every long hash in-between and every second short.
-		if true {
-			for i := nextS + 1; i < s-1; i += 2 {
-				cv := load6432(src, i)
-				t := tableEntry{offset: i + e.cur}
-				t2 := tableEntry{offset: t.offset + 1}
-				eLong := &e.bTable[hash7(cv, tableBits)]
-				eLong2 := &e.bTable[hash7(cv>>8, tableBits)]
-				e.table[hash4x64(cv, tableBits)] = t
-				eLong.Cur, eLong.Prev = t, eLong.Cur
-				eLong2.Cur, eLong2.Prev = t2, eLong2.Cur
-			}
+
+		for i := nextS + 1; i < s-1; i += 2 {
+			cv := load6432(src, i)
+			t := tableEntry{offset: i + e.cur}
+			t2 := tableEntry{offset: t.offset + 1}
+			eLong := &e.bTable[hash7(cv, tableBits)]
+			eLong2 := &e.bTable[hash7(cv>>8, tableBits)]
+			e.table[hash4x64(cv, tableBits)] = t
+			eLong.Cur, eLong.Prev = t, eLong.Cur
+			eLong2.Cur, eLong2.Prev = t2, eLong2.Cur
+
 		}
 
 		// We could immediately start working at s now, but to improve

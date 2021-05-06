@@ -276,20 +276,17 @@ func (j *Layer) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		fflib.WriteJsonString(buf, string(j.MountLabel))
 		buf.WriteByte(',')
 	}
-	if true {
-		buf.WriteString(`"created":`)
 
-		{
+	buf.WriteString(`"created":`)
 
-			obj, err = j.Created.MarshalJSON()
-			if err != nil {
-				return err
-			}
-			buf.Write(obj)
-
-		}
-		buf.WriteByte(',')
+	obj, err = j.Created.MarshalJSON()
+	if err != nil {
+		return err
 	}
+	buf.Write(obj)
+
+	buf.WriteByte(',')
+
 	if len(j.CompressedDigest) != 0 {
 		buf.WriteString(`"compressed-diff-digest":`)
 		fflib.WriteJsonString(buf, string(j.CompressedDigest))

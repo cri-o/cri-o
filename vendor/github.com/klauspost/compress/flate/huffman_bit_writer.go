@@ -754,16 +754,13 @@ func (w *huffmanBitWriter) writeTokens(tokens []token, leCodes, oeCodes []hcode)
 		// Write the length
 		length := t.length()
 		lengthCode := lengthCode(length)
-		if false {
-			w.writeCode(lengths[lengthCode&31])
-		} else {
-			// inlined
-			c := lengths[lengthCode&31]
-			w.bits |= uint64(c.code) << w.nbits
-			w.nbits += c.len
-			if w.nbits >= 48 {
-				w.writeOutBits()
-			}
+
+		// inlined
+		c := lengths[lengthCode&31]
+		w.bits |= uint64(c.code) << w.nbits
+		w.nbits += c.len
+		if w.nbits >= 48 {
+			w.writeOutBits()
 		}
 
 		extraLengthBits := uint16(lengthExtraBits[lengthCode&31])
@@ -774,17 +771,15 @@ func (w *huffmanBitWriter) writeTokens(tokens []token, leCodes, oeCodes []hcode)
 		// Write the offset
 		offset := t.offset()
 		offsetCode := offsetCode(offset)
-		if false {
-			w.writeCode(offs[offsetCode&31])
-		} else {
-			// inlined
-			c := offs[offsetCode&31]
-			w.bits |= uint64(c.code) << w.nbits
-			w.nbits += c.len
-			if w.nbits >= 48 {
-				w.writeOutBits()
-			}
+
+		// inlined
+		c := offs[offsetCode&31]
+		w.bits |= uint64(c.code) << w.nbits
+		w.nbits += c.len
+		if w.nbits >= 48 {
+			w.writeOutBits()
 		}
+
 		extraOffsetBits := uint16(offsetExtraBits[offsetCode&63])
 		if extraOffsetBits > 0 {
 			extraOffset := int32(offset - offsetBase[offsetCode&63])

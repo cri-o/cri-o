@@ -236,37 +236,36 @@ func (e *fastEncL5) Encode(dst *tokens, src []byte) {
 		}
 
 		// Store every 3rd hash in-between.
-		if true {
-			const hashEvery = 3
-			i := s - l + 1
-			if i < s-1 {
+
+		const hashEvery = 3
+		i := s - l + 1
+		if i < s-1 {
+			cv := load6432(src, i)
+			t := tableEntry{offset: i + e.cur}
+			e.table[hash4x64(cv, tableBits)] = t
+			eLong := &e.bTable[hash7(cv, tableBits)]
+			eLong.Cur, eLong.Prev = t, eLong.Cur
+
+			// Do an long at i+1
+			cv >>= 8
+			t = tableEntry{offset: t.offset + 1}
+			eLong = &e.bTable[hash7(cv, tableBits)]
+			eLong.Cur, eLong.Prev = t, eLong.Cur
+
+			// We only have enough bits for a short entry at i+2
+			cv >>= 8
+			t = tableEntry{offset: t.offset + 1}
+			e.table[hash4x64(cv, tableBits)] = t
+
+			// Skip one - otherwise we risk hitting 's'
+			i += 4
+			for ; i < s-1; i += hashEvery {
 				cv := load6432(src, i)
 				t := tableEntry{offset: i + e.cur}
-				e.table[hash4x64(cv, tableBits)] = t
+				t2 := tableEntry{offset: t.offset + 1}
 				eLong := &e.bTable[hash7(cv, tableBits)]
 				eLong.Cur, eLong.Prev = t, eLong.Cur
-
-				// Do an long at i+1
-				cv >>= 8
-				t = tableEntry{offset: t.offset + 1}
-				eLong = &e.bTable[hash7(cv, tableBits)]
-				eLong.Cur, eLong.Prev = t, eLong.Cur
-
-				// We only have enough bits for a short entry at i+2
-				cv >>= 8
-				t = tableEntry{offset: t.offset + 1}
-				e.table[hash4x64(cv, tableBits)] = t
-
-				// Skip one - otherwise we risk hitting 's'
-				i += 4
-				for ; i < s-1; i += hashEvery {
-					cv := load6432(src, i)
-					t := tableEntry{offset: i + e.cur}
-					t2 := tableEntry{offset: t.offset + 1}
-					eLong := &e.bTable[hash7(cv, tableBits)]
-					eLong.Cur, eLong.Prev = t, eLong.Cur
-					e.table[hash4u(uint32(cv>>8), tableBits)] = t2
-				}
+				e.table[hash4u(uint32(cv>>8), tableBits)] = t2
 			}
 		}
 

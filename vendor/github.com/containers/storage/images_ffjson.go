@@ -149,20 +149,17 @@ func (j *Image) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		}
 		buf.WriteByte(',')
 	}
-	if true {
-		buf.WriteString(`"created":`)
 
-		{
+	buf.WriteString(`"created":`)
 
-			obj, err = j.Created.MarshalJSON()
-			if err != nil {
-				return err
-			}
-			buf.Write(obj)
-
-		}
-		buf.WriteByte(',')
+	obj, err = j.Created.MarshalJSON()
+	if err != nil {
+		return err
 	}
+	buf.Write(obj)
+
+	buf.WriteByte(',')
+
 	if len(j.Flags) != 0 {
 		buf.WriteString(`"flags":`)
 		/* Falling back. type=map[string]interface {} kind=map */
