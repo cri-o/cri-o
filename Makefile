@@ -273,6 +273,7 @@ check-vendor: vendor
 testunit: ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	rm -rf ${JUNIT_PATH} && mkdir -p ${JUNIT_PATH}
+	ACK_GINKGO_DEPRECATIONS=1.16.0 \
 	${BUILD_BIN_PATH}/ginkgo \
 		${TESTFLAGS} \
 		-r \
