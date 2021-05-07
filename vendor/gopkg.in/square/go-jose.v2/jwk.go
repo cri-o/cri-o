@@ -22,7 +22,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
-	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
@@ -64,7 +63,7 @@ type rawJSONWebKey struct {
 	// Certificates
 	X5c       []string `json:"x5c,omitempty"`
 	X5u       *url.URL `json:"x5u,omitempty"`
-	X5tSHA1   string   `json:"x5t,omitempty"`
+	X5tsha256 string   `json:"x5t,omitempty"`
 	X5tSHA256 string   `json:"x5t#S256,omitempty"`
 }
 
@@ -84,7 +83,7 @@ type JSONWebKey struct {
 	// X.509 certificate URL, parsed from `x5u` header.
 	CertificatesURL *url.URL
 	// X.509 certificate thumbprint (SHA-1), parsed from `x5t` header.
-	CertificateThumbprintSHA1 []byte
+	CertificateThumbprintsha256 []byte
 	// X.509 certificate thumbprint (SHA-256), parsed from `x5t#S256` header.
 	CertificateThumbprintSHA256 []byte
 }
@@ -125,13 +124,13 @@ func (k JSONWebKey) MarshalJSON() ([]byte, error) {
 		raw.X5c = append(raw.X5c, base64.StdEncoding.EncodeToString(cert.Raw))
 	}
 
-	x5tSHA1Len := len(k.CertificateThumbprintSHA1)
+	x5tsha256Len := len(k.CertificateThumbprintsha256)
 	x5tSHA256Len := len(k.CertificateThumbprintSHA256)
-	if x5tSHA1Len > 0 {
-		if x5tSHA1Len != sha1.Size {
-			return nil, fmt.Errorf("square/go-jose: invalid SHA-1 thumbprint (must be %d bytes, not %d)", sha1.Size, x5tSHA1Len)
+	if x5tsha256Len > 0 {
+		if x5tsha256Len != sha256.Size {
+			return nil, fmt.Errorf("square/go-jose: invalid SHA-1 thumbprint (must be %d bytes, not %d)", sha256.Size, x5tsha256Len)
 		}
-		raw.X5tSHA1 = base64.RawURLEncoding.EncodeToString(k.CertificateThumbprintSHA1)
+		raw.X5tsha256 = base64.RawURLEncoding.EncodeToString(k.CertificateThumbprintsha256)
 	}
 	if x5tSHA256Len > 0 {
 		if x5tSHA256Len != sha256.Size {
@@ -145,10 +144,10 @@ func (k JSONWebKey) MarshalJSON() ([]byte, error) {
 	// ensure we don't accidentally produce a JWK with semantically inconsistent
 	// data in the headers.
 	if len(k.Certificates) > 0 {
-		expectedSHA1 := sha1.Sum(k.Certificates[0].Raw)
+		expectedsha256 := sha256.Sum(k.Certificates[0].Raw)
 		expectedSHA256 := sha256.Sum256(k.Certificates[0].Raw)
 
-		if len(k.CertificateThumbprintSHA1) > 0 && !bytes.Equal(k.CertificateThumbprintSHA1, expectedSHA1[:]) {
+		if len(k.CertificateThumbprintsha256) > 0 && !bytes.Equal(k.CertificateThumbprintsha256, expectedsha256[:]) {
 			return nil, errors.New("square/go-jose: invalid SHA-1 thumbprint, does not match cert chain")
 		}
 		if len(k.CertificateThumbprintSHA256) > 0 && !bytes.Equal(k.CertificateThumbprintSHA256, expectedSHA256[:]) {
@@ -248,25 +247,25 @@ func (k *JSONWebKey) UnmarshalJSON(data []byte) (err error) {
 
 	// x5t parameters are base64url-encoded SHA thumbprints
 	// See RFC 7517, Section 4.8, https://tools.ietf.org/html/rfc7517#section-4.8
-	x5tSHA1bytes, err := base64.RawURLEncoding.DecodeString(raw.X5tSHA1)
+	x5tsha256bytes, err := base64.RawURLEncoding.DecodeString(raw.X5tsha256)
 	if err != nil {
 		return errors.New("square/go-jose: invalid JWK, x5t header has invalid encoding")
 	}
 
 	// RFC 7517, Section 4.8 is ambiguous as to whether the digest output should be byte or hex,
-	// for this reason, after base64 decoding, if the size is sha1.Size it's likely that the value is a byte encoded
+	// for this reason, after base64 decoding, if the size is sha256.Size it's likely that the value is a byte encoded
 	// checksum so we skip this. Otherwise if the checksum was hex encoded we expect a 40 byte sized array so we'll
 	// try to hex decode it. When Marshalling this value we'll always use a base64 encoded version of byte format checksum.
-	if len(x5tSHA1bytes) == 2*sha1.Size {
-		hx, err := hex.DecodeString(string(x5tSHA1bytes))
+	if len(x5tsha256bytes) == 2*sha256.Size {
+		hx, err := hex.DecodeString(string(x5tsha256bytes))
 		if err != nil {
 			return fmt.Errorf("square/go-jose: invalid JWK, unable to hex decode x5t: %v", err)
 
 		}
-		x5tSHA1bytes = hx
+		x5tsha256bytes = hx
 	}
 
-	k.CertificateThumbprintSHA1 = x5tSHA1bytes
+	k.CertificateThumbprintsha256 = x5tsha256bytes
 
 	x5tSHA256bytes, err := base64.RawURLEncoding.DecodeString(raw.X5tSHA256)
 	if err != nil {
@@ -283,9 +282,9 @@ func (k *JSONWebKey) UnmarshalJSON(data []byte) (err error) {
 
 	k.CertificateThumbprintSHA256 = x5tSHA256bytes
 
-	x5tSHA1Len := len(k.CertificateThumbprintSHA1)
+	x5tsha256Len := len(k.CertificateThumbprintsha256)
 	x5tSHA256Len := len(k.CertificateThumbprintSHA256)
-	if x5tSHA1Len > 0 && x5tSHA1Len != sha1.Size {
+	if x5tsha256Len > 0 && x5tsha256Len != sha256.Size {
 		return errors.New("square/go-jose: invalid JWK, x5t header is of incorrect size")
 	}
 	if x5tSHA256Len > 0 && x5tSHA256Len != sha256.Size {
@@ -295,10 +294,10 @@ func (k *JSONWebKey) UnmarshalJSON(data []byte) (err error) {
 	// If certificate chain *and* thumbprints are set, verify correctness.
 	if len(k.Certificates) > 0 {
 		leaf := k.Certificates[0]
-		sha1sum := sha1.Sum(leaf.Raw)
+		sha256sum := sha256.Sum(leaf.Raw)
 		sha256sum := sha256.Sum256(leaf.Raw)
 
-		if len(k.CertificateThumbprintSHA1) > 0 && !bytes.Equal(sha1sum[:], k.CertificateThumbprintSHA1) {
+		if len(k.CertificateThumbprintsha256) > 0 && !bytes.Equal(sha256sum[:], k.CertificateThumbprintsha256) {
 			return errors.New("square/go-jose: invalid JWK, x5c thumbprint does not match x5t value")
 		}
 

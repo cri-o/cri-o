@@ -11,7 +11,7 @@ import (
 	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/sha1"
+	"crypto/sha256"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -27,13 +27,13 @@ import (
 // section 5.5.3.
 type PrivateKey struct {
 	PublicKey
-	Encrypted     bool // if true then the private key is unavailable until Decrypt has been called.
-	encryptedData []byte
-	cipher        CipherFunction
-	s2k           func(out, in []byte)
-	PrivateKey    interface{} // An *{rsa|dsa|ecdsa}.PrivateKey or crypto.Signer/crypto.Decrypter (Decryptor RSA only).
-	sha1Checksum  bool
-	iv            []byte
+	Encrypted      bool // if true then the private key is unavailable until Decrypt has been called.
+	encryptedData  []byte
+	cipher         CipherFunction
+	s2k            func(out, in []byte)
+	PrivateKey     interface{} // An *{rsa|dsa|ecdsa}.PrivateKey or crypto.Signer/crypto.Decrypter (Decryptor RSA only).
+	sha256Checksum bool
+	iv             []byte
 }
 
 func NewRSAPrivateKey(creationTime time.Time, priv *rsa.PrivateKey) *PrivateKey {
@@ -115,7 +115,7 @@ func (pk *PrivateKey) parse(r io.Reader) (err error) {
 			return
 		}
 		if s2kType == 254 {
-			pk.sha1Checksum = true
+			pk.sha256Checksum = true
 		}
 	default:
 		return errors.UnsupportedError("deprecated s2k function in private key")
@@ -250,17 +250,17 @@ func (pk *PrivateKey) Decrypt(passphrase []byte) error {
 	data := make([]byte, len(pk.encryptedData))
 	cfb.XORKeyStream(data, pk.encryptedData)
 
-	if pk.sha1Checksum {
-		if len(data) < sha1.Size {
+	if pk.sha256Checksum {
+		if len(data) < sha256.Size {
 			return errors.StructuralError("truncated private key data")
 		}
-		h := sha1.New()
-		h.Write(data[:len(data)-sha1.Size])
+		h := sha256.New()
+		h.Write(data[:len(data)-sha256.Size])
 		sum := h.Sum(nil)
-		if !bytes.Equal(sum, data[len(data)-sha1.Size:]) {
+		if !bytes.Equal(sum, data[len(data)-sha256.Size:]) {
 			return errors.StructuralError("private key checksum failure")
 		}
-		data = data[:len(data)-sha1.Size]
+		data = data[:len(data)-sha256.Size]
 	} else {
 		if len(data) < 2 {
 			return errors.StructuralError("truncated private key data")

@@ -21,7 +21,6 @@ package pkcs11
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -41,12 +40,12 @@ var (
 	// OAEPLabel defines the label we use for OAEP encryption; this cannot be changed
 	OAEPLabel = []byte("")
 	// OAEPDefaultHash defines the default hash used for OAEP encryption; this cannot be changed
-	OAEPDefaultHash = "sha1"
+	OAEPDefaultHash = "sha256"
 
-	// OAEPSha1Params describes the OAEP parameters with sha1 hash algorithm; needed by SoftHSM
-	OAEPSha1Params = &pkcs11.OAEPParams{
+	// OAEPsha256Params describes the OAEP parameters with sha256 hash algorithm; needed by SoftHSM
+	OAEPsha256Params = &pkcs11.OAEPParams{
 		HashAlg:    pkcs11.CKM_SHA_1,
-		MGF:        pkcs11.CKG_MGF1_SHA1,
+		MGF:        pkcs11.CKG_MGF1_sha256,
 		SourceType: pkcs11.CKZ_DATA_SPECIFIED,
 		SourceData: OAEPLabel,
 	}
@@ -60,7 +59,7 @@ var (
 )
 
 // rsaPublicEncryptOAEP encrypts the given plaintext with the given *rsa.PublicKey; the
-// environment variable OCICRYPT_OAEP_HASHALG can be set to 'sha1' to force usage of sha1 for OAEP (SoftHSM).
+// environment variable OCICRYPT_OAEP_HASHALG can be set to 'sha256' to force usage of sha256 for OAEP (SoftHSM).
 // This function is needed by clients who are using a public key file for pkcs11 encryption
 func rsaPublicEncryptOAEP(pubKey *rsa.PublicKey, plaintext []byte) ([]byte, string, error) {
 	var (
@@ -69,11 +68,11 @@ func rsaPublicEncryptOAEP(pubKey *rsa.PublicKey, plaintext []byte) ([]byte, stri
 	)
 
 	oaephash := os.Getenv("OCICRYPT_OAEP_HASHALG")
-	// The default is 'sha1'
+	// The default is 'sha256'
 	switch strings.ToLower(oaephash) {
-	case "sha1", "":
-		hashfunc = sha1.New()
-		hashalg = "sha1"
+	case "sha256", "":
+		hashfunc = sha256.New()
+		hashalg = "sha256"
 	case "sha256":
 		hashfunc = sha256.New()
 		hashalg = "sha256"
@@ -283,11 +282,11 @@ func publicEncryptOAEP(pubKey *Pkcs11KeyFileObject, plaintext []byte) ([]byte, s
 
 	var oaep *pkcs11.OAEPParams
 	oaephash := os.Getenv("OCICRYPT_OAEP_HASHALG")
-	// the default is sha1
+	// the default is sha256
 	switch strings.ToLower(oaephash) {
-	case "sha1", "":
-		oaep = OAEPSha1Params
-		hashalg = "sha1"
+	case "sha256", "":
+		oaep = OAEPsha256Params
+		hashalg = "sha256"
 	case "sha256":
 		oaep = OAEPSha256Params
 		hashalg = "sha256"
@@ -333,10 +332,10 @@ func privateDecryptOAEP(privKeyObj *Pkcs11KeyFileObject, ciphertext []byte, hash
 
 	var oaep *pkcs11.OAEPParams
 
-	// the default is sha1
+	// the default is sha256
 	switch hashalg {
-	case "sha1", "":
-		oaep = OAEPSha1Params
+	case "sha256", "":
+		oaep = OAEPsha256Params
 	case "sha256":
 		oaep = OAEPSha256Params
 	default:

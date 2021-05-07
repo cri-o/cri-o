@@ -1,7 +1,7 @@
 package asm
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -403,7 +403,7 @@ func (insns Instructions) Marshal(w io.Writer, bo binary.ByteOrder) error {
 // to ProgramInfo.Tag to figure out whether a loaded program matches
 // certain instructions.
 func (insns Instructions) Tag(bo binary.ByteOrder) (string, error) {
-	h := sha1.New()
+	h := sha256.New()
 	for i, ins := range insns {
 		if ins.isLoadFromMap() {
 			ins.Constant = 0

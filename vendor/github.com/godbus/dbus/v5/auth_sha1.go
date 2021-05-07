@@ -4,29 +4,29 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"os"
 )
 
-// AuthCookieSha1 returns an Auth that authenticates as the given user with the
-// DBUS_COOKIE_SHA1 mechanism. The home parameter should specify the home
+// AuthCookiesha256 returns an Auth that authenticates as the given user with the
+// DBUS_COOKIE_sha256 mechanism. The home parameter should specify the home
 // directory of the user.
-func AuthCookieSha1(user, home string) Auth {
-	return authCookieSha1{user, home}
+func AuthCookiesha256(user, home string) Auth {
+	return authCookiesha256{user, home}
 }
 
-type authCookieSha1 struct {
+type authCookiesha256 struct {
 	user, home string
 }
 
-func (a authCookieSha1) FirstData() ([]byte, []byte, AuthStatus) {
+func (a authCookiesha256) FirstData() ([]byte, []byte, AuthStatus) {
 	b := make([]byte, 2*len(a.user))
 	hex.Encode(b, []byte(a.user))
-	return []byte("DBUS_COOKIE_SHA1"), b, AuthContinue
+	return []byte("DBUS_COOKIE_sha256"), b, AuthContinue
 }
 
-func (a authCookieSha1) HandleData(data []byte) ([]byte, AuthStatus) {
+func (a authCookiesha256) HandleData(data []byte) ([]byte, AuthStatus) {
 	challenge := make([]byte, len(data)/2)
 	_, err := hex.Decode(challenge, data)
 	if err != nil {
@@ -47,7 +47,7 @@ func (a authCookieSha1) HandleData(data []byte) ([]byte, AuthStatus) {
 	if clchallenge == nil {
 		return nil, AuthError
 	}
-	hash := sha1.New()
+	hash := sha256.New()
 	hash.Write(bytes.Join([][]byte{svchallenge, clchallenge, cookie}, []byte{':'}))
 	hexhash := make([]byte, 2*hash.Size())
 	hex.Encode(hexhash, hash.Sum(nil))
@@ -62,7 +62,7 @@ func (a authCookieSha1) HandleData(data []byte) ([]byte, AuthStatus) {
 // the cookie content or nil. (Since HandleData can't return a specific error,
 // but only whether an error occurred, this function also doesn't bother to
 // return an error.)
-func (a authCookieSha1) getCookie(context, id []byte) []byte {
+func (a authCookiesha256) getCookie(context, id []byte) []byte {
 	file, err := os.Open(a.home + "/.dbus-keyrings/" + string(context))
 	if err != nil {
 		return nil
@@ -87,7 +87,7 @@ func (a authCookieSha1) getCookie(context, id []byte) []byte {
 
 // generateChallenge returns a random, hex-encoded challenge, or nil on error
 // (see above).
-func (a authCookieSha1) generateChallenge() []byte {
+func (a authCookiesha256) generateChallenge() []byte {
 	b := make([]byte, 16)
 	n, err := rand.Read(b)
 	if err != nil {

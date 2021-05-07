@@ -2,14 +2,14 @@ package plumbing
 
 import (
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"hash"
 	"sort"
 	"strconv"
 )
 
-// Hash SHA1 hashed content
+// Hash sha256 hashed content
 type Hash [20]byte
 
 // ZeroHash is Hash with value zero
@@ -46,7 +46,7 @@ type Hasher struct {
 }
 
 func NewHasher(t ObjectType, size int64) Hasher {
-	h := Hasher{sha1.New()}
+	h := Hasher{sha256.New()}
 	h.Write(t.Bytes())
 	h.Write([]byte(" "))
 	h.Write([]byte(strconv.FormatInt(size, 10)))

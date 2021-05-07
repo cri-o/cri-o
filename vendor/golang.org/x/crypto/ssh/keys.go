@@ -384,7 +384,7 @@ func (r *rsaPublicKey) Verify(data []byte, sig *Signature) error {
 	var hash crypto.Hash
 	switch sig.Format {
 	case SigAlgoRSA:
-		hash = crypto.SHA1
+		hash = crypto.SHA256
 	case SigAlgoRSASHA2256:
 		hash = crypto.SHA256
 	case SigAlgoRSASHA2512:
@@ -466,7 +466,7 @@ func (k *dsaPublicKey) Verify(data []byte, sig *Signature) error {
 	if sig.Format != k.Type() {
 		return fmt.Errorf("ssh: signature type %s for key type %s", sig.Format, k.Type())
 	}
-	h := crypto.SHA1.New()
+	h := crypto.SHA256.New()
 	h.Write(data)
 	digest := h.Sum(nil)
 
@@ -507,7 +507,7 @@ func (k *dsaPrivateKey) SignWithAlgorithm(rand io.Reader, data []byte, algorithm
 		return nil, fmt.Errorf("ssh: unsupported signature algorithm %s", algorithm)
 	}
 
-	h := crypto.SHA1.New()
+	h := crypto.SHA256.New()
 	h.Write(data)
 	digest := h.Sum(nil)
 	r, s, err := dsa.Sign(rand, k.PrivateKey, digest)
@@ -972,7 +972,7 @@ func (s *wrappedSigner) SignWithAlgorithm(rand io.Reader, data []byte, algorithm
 		switch algorithm {
 		case "", SigAlgoRSA:
 			algorithm = SigAlgoRSA
-			hashFunc = crypto.SHA1
+			hashFunc = crypto.SHA256
 		case SigAlgoRSASHA2256:
 			hashFunc = crypto.SHA256
 		case SigAlgoRSASHA2512:
@@ -990,7 +990,7 @@ func (s *wrappedSigner) SignWithAlgorithm(rand io.Reader, data []byte, algorithm
 
 		switch key := s.pubKey.(type) {
 		case *dsaPublicKey:
-			hashFunc = crypto.SHA1
+			hashFunc = crypto.SHA256
 		case *ecdsaPublicKey:
 			hashFunc = ecHash(key.Curve)
 		case ed25519PublicKey:

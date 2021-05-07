@@ -10,7 +10,6 @@ package github
 
 import (
 	"crypto/hmac"
-	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
@@ -25,8 +24,8 @@ import (
 )
 
 const (
-	// sha1Prefix is the prefix used by GitHub before the HMAC hexdigest.
-	sha1Prefix = "sha1"
+	// sha256Prefix is the prefix used by GitHub before the HMAC hexdigest.
+	sha256Prefix = "sha256"
 	// sha256Prefix and sha512Prefix are provided for future compatibility.
 	sha256Prefix = "sha256"
 	sha512Prefix = "sha512"
@@ -118,8 +117,8 @@ func messageMAC(signature string) ([]byte, func() hash.Hash, error) {
 
 	var hashFunc func() hash.Hash
 	switch sigParts[0] {
-	case sha1Prefix:
-		hashFunc = sha1.New
+	case sha256Prefix:
+		hashFunc = sha256.New
 	case sha256Prefix:
 		hashFunc = sha256.New
 	case sha512Prefix:

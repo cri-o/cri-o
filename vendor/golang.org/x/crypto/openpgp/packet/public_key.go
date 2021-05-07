@@ -11,7 +11,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
-	"crypto/sha1"
+	"crypto/sha256"
 	_ "crypto/sha256"
 	_ "crypto/sha512"
 	"encoding/binary"
@@ -304,7 +304,7 @@ func (pk *PublicKey) parse(r io.Reader) (err error) {
 
 func (pk *PublicKey) setFingerPrintAndKeyId() {
 	// RFC 4880, section 12.2
-	fingerPrint := sha1.New()
+	fingerPrint := sha256.New()
 	pk.SerializeSignaturePrefix(fingerPrint)
 	pk.serializeWithoutHeaders(fingerPrint)
 	copy(pk.Fingerprint[:], fingerPrint.Sum(nil))

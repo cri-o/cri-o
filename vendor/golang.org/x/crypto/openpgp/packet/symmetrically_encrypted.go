@@ -6,12 +6,13 @@ package packet
 
 import (
 	"crypto/cipher"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/subtle"
-	"golang.org/x/crypto/openpgp/errors"
 	"hash"
 	"io"
 	"strconv"
+
+	"golang.org/x/crypto/openpgp/errors"
 )
 
 // SymmetricallyEncrypted represents a symmetrically encrypted byte string. The
@@ -78,7 +79,7 @@ func (se *SymmetricallyEncrypted) Decrypt(c CipherFunction, key []byte) (io.Read
 
 	if se.MDC {
 		// MDC packets have an embedded hash that we need to check.
-		h := sha1.New()
+		h := sha256.New()
 		h.Write(se.prefix)
 		return &seMDCReader{in: plaintext, h: h}, nil
 	}
@@ -100,7 +101,7 @@ func (ser seReader) Close() error {
 	return nil
 }
 
-const mdcTrailerSize = 1 /* tag byte */ + 1 /* length byte */ + sha1.Size
+const mdcTrailerSize = 1 /* tag byte */ + 1 /* length byte */ + sha256.Size
 
 // An seMDCReader wraps an io.Reader, maintains a running hash and keeps hold
 // of the most recent 22 bytes (mdcTrailerSize). Upon EOF, those bytes form an
@@ -195,7 +196,7 @@ func (ser *seMDCReader) Close() error {
 		}
 	}
 
-	if ser.trailer[0] != mdcPacketTagByte || ser.trailer[1] != sha1.Size {
+	if ser.trailer[0] != mdcPacketTagByte || ser.trailer[1] != sha256.Size {
 		return errors.SignatureError("MDC packet not found")
 	}
 	ser.h.Write(ser.trailer[:2])
@@ -224,7 +225,7 @@ func (w *seMDCWriter) Close() (err error) {
 	var buf [mdcTrailerSize]byte
 
 	buf[0] = mdcPacketTagByte
-	buf[1] = sha1.Size
+	buf[1] = sha256.Size
 	w.h.Write(buf[:2])
 	digest := w.h.Sum(nil)
 	copy(buf[2:], digest)
@@ -282,7 +283,7 @@ func SerializeSymmetricallyEncrypted(w io.Writer, c CipherFunction, key []byte, 
 	}
 	plaintext := cipher.StreamWriter{S: s, W: ciphertext}
 
-	h := sha1.New()
+	h := sha256.New()
 	h.Write(iv)
 	h.Write(iv[blockSize-2:])
 	contents = &seMDCWriter{w: plaintext, h: h}

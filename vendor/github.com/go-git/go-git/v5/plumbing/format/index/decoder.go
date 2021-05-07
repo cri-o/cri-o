@@ -3,7 +3,7 @@ package index
 import (
 	"bufio"
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha256"
 	"errors"
 	"hash"
 	"io"
@@ -22,7 +22,7 @@ var (
 	// ErrMalformedSignature is returned by Decode when the index header file is
 	// malformed
 	ErrMalformedSignature = errors.New("malformed index signature file")
-	// ErrInvalidChecksum is returned by Decode if the SHA1 hash mismatch with
+	// ErrInvalidChecksum is returned by Decode if the sha256 hash mismatch with
 	// the read content
 	ErrInvalidChecksum = errors.New("invalid checksum")
 
@@ -49,7 +49,7 @@ type Decoder struct {
 
 // NewDecoder returns a new decoder that reads from r.
 func NewDecoder(r io.Reader) *Decoder {
-	h := sha1.New()
+	h := sha256.New()
 	return &Decoder{
 		r:         io.TeeReader(r, h),
 		hash:      h,
