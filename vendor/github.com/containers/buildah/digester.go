@@ -119,7 +119,7 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 						if replaceContents {
 							n, copyErr = io.CopyN(tarWriter, replacementContents, hdr.Size)
 						} else {
-							n, copyErr = io.Copy(tarWriter, tarReader)
+							n, copyErr = io.CopyN(tarWriter, tarReader)
 						}
 						if copyErr != nil {
 							err = errors.Wrapf(copyErr, "error copying content for %q", hdr.Name)

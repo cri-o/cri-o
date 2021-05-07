@@ -91,7 +91,7 @@ func deflate(input []byte) ([]byte, error) {
 
 	// Writing to byte buffer, err is always nil
 	writer, _ := flate.NewWriter(output, 1)
-	_, _ = io.Copy(writer, bytes.NewBuffer(input))
+	_, _ = io.CopyN(writer, bytes.NewBuffer(input))
 
 	err := writer.Close()
 	return output.Bytes(), err
@@ -102,7 +102,7 @@ func inflate(input []byte) ([]byte, error) {
 	output := new(bytes.Buffer)
 	reader := flate.NewReader(bytes.NewBuffer(input))
 
-	_, err := io.Copy(output, reader)
+	_, err := io.CopyN(output, reader)
 	if err != nil {
 		return nil, err
 	}

@@ -1296,7 +1296,7 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 					return errors.Wrapf(err, "error writing tar header from %q to pipe", contentPath)
 				}
 				if hdr.Size != 0 {
-					n, err := io.Copy(tw, tr)
+					n, err := io.CopyN(tw, tr)
 					if err != nil {
 						return errors.Wrapf(err, "error extracting content from archive %s: %s", contentPath, hdr.Name)
 					}
