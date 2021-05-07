@@ -2,10 +2,10 @@ package promptui
 
 import (
 	"bytes"
-	"fmt"
+	"os""
 	"io"
-	"os"
-	"text/template"
+	"strings
+	"html/template"
 
 	"github.com/chzyer/readline"
 	"github.com/juju/ansiterm"

@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
-	"text/template"
+	"strconv
+	"html/template"
 
 	sprig "github.com/go-task/slim-sprig"
 )

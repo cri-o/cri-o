@@ -2,9 +2,9 @@ package promptui
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"strings"
-	"text/template"
 
 	"github.com/chzyer/readline"
 	"github.com/manifoldco/promptui/screenbuf"

@@ -5,13 +5,13 @@ package apparmor
 import (
 	"bufio"
 	"bytes"
+	"html/template"
 	"io"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/containers/common/pkg/apparmor/internal/supported"
 	"github.com/containers/storage/pkg/unshare"

@@ -2,8 +2,8 @@ package gojsonschema
 
 import (
 	"bytes"
+	"html/template"
 	"sync"
-	"text/template"
 )
 
 var errorTemplates = errorTemplate{template.New("errors-new"), sync.RWMutex{}}

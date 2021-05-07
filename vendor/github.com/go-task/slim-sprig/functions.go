@@ -3,6 +3,7 @@ package sprig
 import (
 	"errors"
 	"html/template"
+	ttemplate "html/template"
 	"math/rand"
 	"os"
 	"path"
@@ -10,7 +11,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	ttemplate "text/template"
 	"time"
 )
 

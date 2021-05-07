@@ -21,6 +21,7 @@ import (
 	"encoding/gob"
 	"flag"
 	"go/build"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
@@ -28,7 +29,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"text/template"
 
 	"github.com/golang/mock/mockgen/model"
 )

@@ -18,12 +18,12 @@ package cobra
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 	"unicode"
 )

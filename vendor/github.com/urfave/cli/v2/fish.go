@@ -3,9 +3,9 @@ package cli
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"strings"
-	"text/template"
 )
 
 // ToFishCompletion creates a fish completion string for the `*App`

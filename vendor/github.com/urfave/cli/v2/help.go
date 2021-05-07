@@ -2,11 +2,11 @@ package cli
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
-	"text/template"
 	"unicode/utf8"
 )
 

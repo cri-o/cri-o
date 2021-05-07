@@ -2,9 +2,9 @@ package promptui
 
 import (
 	"fmt"
+	"html/template"
 	"strconv"
 	"strings"
-	"text/template"
 )
 
 const esc = "\033["

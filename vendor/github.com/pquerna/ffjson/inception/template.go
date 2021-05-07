@@ -20,7 +20,7 @@ package ffjsoninception
 import (
 	"bytes"
 	"go/format"
-	"text/template"
+	"html/template"
 )
 
 const ffjsonTemplate = `

@@ -1,8 +1,8 @@
 package config
 
 import (
+	"html/template"
 	"io"
-	"text/template"
 )
 
 // WriteTemplate write the configuration template to the provided writer

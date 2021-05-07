@@ -18,9 +18,9 @@
 package ffjsoninception
 
 import (
+	"html/template"
 	"reflect"
 	"strconv"
-	"text/template"
 )
 
 var decodeTpl map[string]*template.Template

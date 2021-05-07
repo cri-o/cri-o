@@ -28,10 +28,10 @@ package gojsonschema
 
 import (
 	"errors"
+	"html/template"
 	"math/big"
 	"reflect"
 	"regexp"
-	"text/template"
 
 	"github.com/xeipuuv/gojsonreference"
 )

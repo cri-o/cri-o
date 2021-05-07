@@ -3,10 +3,10 @@ package cli
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"sort"
 	"strings"
-	"text/template"
 
 	"github.com/cpuguy83/go-md2man/v2/md2man"
 )

@@ -18,8 +18,8 @@
 package ffjsoninception
 
 import (
+	"html/template"
 	"reflect"
-	"text/template"
 )
 
 var encodeTpl map[string]*template.Template
