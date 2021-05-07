@@ -331,7 +331,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	defer log.Debugf(ctx, "runtimeVM.execContainerCommon() end")
 
 	// Cancel the context before returning to ensure goroutines are stopped.
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(r.ctx)
 	defer cancel()
 
 	// Generate a unique execID
@@ -506,7 +506,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	}
 
 	// Cancel the context before returning to ensure goroutines are stopped.
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(r.ctx)
 	defer cancel()
 
 	stopCh := make(chan error)
