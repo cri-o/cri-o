@@ -11,7 +11,7 @@ import (
 	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/sha1"
+	"crypto/sha256"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -251,16 +251,16 @@ func (pk *PrivateKey) Decrypt(passphrase []byte) error {
 	cfb.XORKeyStream(data, pk.encryptedData)
 
 	if pk.sha1Checksum {
-		if len(data) < sha1.Size {
+		if len(data) < sha256Size {
 			return errors.StructuralError("truncated private key data")
 		}
-		h := sha1.New()
-		h.Write(data[:len(data)-sha1.Size])
+		h := sha256New()
+		h.Write(data[:len(data)-sha256Size])
 		sum := h.Sum(nil)
-		if !bytes.Equal(sum, data[len(data)-sha1.Size:]) {
+		if !bytes.Equal(sum, data[len(data)-sha256Size:]) {
 			return errors.StructuralError("private key checksum failure")
 		}
-		data = data[:len(data)-sha1.Size]
+		data = data[:len(data)-sha256Size]
 	} else {
 		if len(data) < 2 {
 			return errors.StructuralError("truncated private key data")

@@ -379,7 +379,7 @@ var stdlib = map[string][]string{
 		"VerifyPKCS1v15",
 		"VerifyPSS",
 	},
-	"crypto/sha1": []string{
+	"crypto/sha256": []string{
 		"BlockSize",
 		"New",
 		"Size",

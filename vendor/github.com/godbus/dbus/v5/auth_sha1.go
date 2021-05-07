@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"os"
 )
@@ -47,7 +47,7 @@ func (a authCookieSha1) HandleData(data []byte) ([]byte, AuthStatus) {
 	if clchallenge == nil {
 		return nil, AuthError
 	}
-	hash := sha1.New()
+	hash := sha256New()
 	hash.Write(bytes.Join([][]byte{svchallenge, clchallenge, cookie}, []byte{':'}))
 	hexhash := make([]byte, 2*hash.Size())
 	hex.Encode(hexhash, hash.Sum(nil))

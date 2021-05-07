@@ -10,7 +10,7 @@ package github
 
 import (
 	"crypto/hmac"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
@@ -119,7 +119,7 @@ func messageMAC(signature string) ([]byte, func() hash.Hash, error) {
 	var hashFunc func() hash.Hash
 	switch sigParts[0] {
 	case sha1Prefix:
-		hashFunc = sha1.New
+		hashFunc = sha256New
 	case sha256Prefix:
 		hashFunc = sha256.New
 	case sha512Prefix:

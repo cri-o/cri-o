@@ -12,7 +12,7 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -465,7 +465,7 @@ func Line(addresses []string, key ssh.PublicKey) string {
 // normalized before hashing.
 func HashHostname(hostname string) string {
 	// TODO(hanwen): check if we can safely normalize this always.
-	salt := make([]byte, sha1.Size)
+	salt := make([]byte, sha256Size)
 
 	_, err := rand.Read(salt)
 	if err != nil {
@@ -507,7 +507,7 @@ func encodeHash(typ string, salt []byte, hash []byte) string {
 
 // See https://android.googlesource.com/platform/external/openssh/+/ab28f5495c85297e7a597c1ba62e996416da7c7e/hostfile.c#120
 func hashHost(hostname string, salt []byte) []byte {
-	mac := hmac.New(sha1.New, salt)
+	mac := hmac.New(sha256New, salt)
 	mac.Write([]byte(hostname))
 	return mac.Sum(nil)
 }

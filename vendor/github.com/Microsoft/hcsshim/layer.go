@@ -2,7 +2,7 @@ package hcsshim
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"path/filepath"
 
 	"github.com/Microsoft/go-winio/pkg/guid"
@@ -82,7 +82,7 @@ func NameToGuid(name string) (id GUID, err error) {
 }
 
 func NewGUID(source string) *GUID {
-	h := sha1.Sum([]byte(source))
+	h := sha256Sum([]byte(source))
 	var g GUID
 	copy(g[0:], h[0:16])
 	return &g

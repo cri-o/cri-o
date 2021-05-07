@@ -22,7 +22,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -197,7 +197,7 @@ func (ctx rsaEncrypterVerifier) encrypt(cek []byte, alg KeyAlgorithm) ([]byte, e
 	case RSA1_5:
 		return rsa.EncryptPKCS1v15(RandReader, ctx.publicKey, cek)
 	case RSA_OAEP:
-		return rsa.EncryptOAEP(sha1.New(), RandReader, ctx.publicKey, cek, []byte{})
+		return rsa.EncryptOAEP(sha256New(), RandReader, ctx.publicKey, cek, []byte{})
 	case RSA_OAEP_256:
 		return rsa.EncryptOAEP(sha256.New(), RandReader, ctx.publicKey, cek, []byte{})
 	}
@@ -250,7 +250,7 @@ func (ctx rsaDecrypterSigner) decrypt(jek []byte, alg KeyAlgorithm, generator ke
 		return cek, nil
 	case RSA_OAEP:
 		// Use rand.Reader for RSA blinding
-		return rsa.DecryptOAEP(sha1.New(), rand.Reader, ctx.privateKey, jek, []byte{})
+		return rsa.DecryptOAEP(sha256New(), rand.Reader, ctx.privateKey, jek, []byte{})
 	case RSA_OAEP_256:
 		// Use rand.Reader for RSA blinding
 		return rsa.DecryptOAEP(sha256.New(), rand.Reader, ctx.privateKey, jek, []byte{})

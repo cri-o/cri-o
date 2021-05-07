@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"sort"
 
-	_ "crypto/sha1" // for crypto.SHA1
+	_ "crypto/sha256" // for crypto.SHA1
 )
 
 // PKCS7 Represents a PKCS7 structure

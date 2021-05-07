@@ -39,7 +39,7 @@
 //		  "tools/perf/Documentation/perf.html".
 //
 //		- A leading slash matches the beginning of the pathname. For example,
-//		  "/*.c" matches "cat-file.c" but not "mozilla-sha1/sha1.c".
+//		  "/*.c" matches "cat-file.c" but not "mozilla-sha1/sha256c".
 //
 //		Two consecutive asterisks ("**") in patterns matched against full pathname
 //		may have special meaning:

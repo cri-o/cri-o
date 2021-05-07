@@ -11,7 +11,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
@@ -389,7 +389,7 @@ func removeZone(host string) string {
 // getNonceAccept computes the base64-encoded SHA-1 of the concatenation of
 // the nonce ("Sec-WebSocket-Key" value) with the websocket GUID string.
 func getNonceAccept(nonce []byte) (expected []byte, err error) {
-	h := sha1.New()
+	h := sha256New()
 	if _, err = h.Write(nonce); err != nil {
 		return
 	}

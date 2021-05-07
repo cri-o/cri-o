@@ -21,7 +21,7 @@ package pkcs11
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -72,7 +72,7 @@ func rsaPublicEncryptOAEP(pubKey *rsa.PublicKey, plaintext []byte) ([]byte, stri
 	// The default is 'sha1'
 	switch strings.ToLower(oaephash) {
 	case "sha1", "":
-		hashfunc = sha1.New()
+		hashfunc = sha256New()
 		hashalg = "sha1"
 	case "sha256":
 		hashfunc = sha256.New()

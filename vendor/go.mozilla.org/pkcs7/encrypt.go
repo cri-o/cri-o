@@ -159,14 +159,14 @@ func encryptDESCBC(content []byte, key []byte) ([]byte, *encryptedContentInfo, e
 	}
 
 	// Create CBC IV
-	iv := make([]byte, des.BlockSize)
+	iv := make([]byte, aes.BlockSize)
 	_, err := rand.Read(iv)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// Encrypt padded content
-	block, err := des.NewCipher(key)
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, nil, err
 	}

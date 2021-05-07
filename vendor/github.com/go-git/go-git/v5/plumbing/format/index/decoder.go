@@ -3,7 +3,7 @@ package index
 import (
 	"bufio"
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha256"
 	"errors"
 	"hash"
 	"io"
@@ -49,7 +49,7 @@ type Decoder struct {
 
 // NewDecoder returns a new decoder that reads from r.
 func NewDecoder(r io.Reader) *Decoder {
-	h := sha1.New()
+	h := sha256New()
 	return &Decoder{
 		r:         io.TeeReader(r, h),
 		hash:      h,

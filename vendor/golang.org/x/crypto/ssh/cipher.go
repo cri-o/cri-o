@@ -127,7 +127,7 @@ var cipherModes = map[string]*cipherMode{
 
 	// 3des-cbc is insecure and is not included in the default
 	// config.
-	tripledescbcID: {24, des.BlockSize, newTripleDESCBCCipher},
+	tripledescbcID: {24, aes.BlockSize, newTripleDESCBCCipher},
 }
 
 // prefixLen is the length of the packet prefix that contains the packet length
@@ -454,7 +454,7 @@ func newAESCBCCipher(key, iv, macKey []byte, algs directionAlgorithms) (packetCi
 }
 
 func newTripleDESCBCCipher(key, iv, macKey []byte, algs directionAlgorithms) (packetCipher, error) {
-	c, err := des.NewTripleDESCipher(key)
+	c, err := aes.NewTripleDESCipher(key)
 	if err != nil {
 		return nil, err
 	}
