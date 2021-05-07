@@ -582,7 +582,7 @@ handle_Names:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -734,7 +734,7 @@ handle_BigDataNames:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -810,7 +810,7 @@ handle_BigDataSizes:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -919,7 +919,7 @@ handle_BigDataDigests:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -1047,7 +1047,7 @@ handle_UIDMap:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -1115,7 +1115,7 @@ handle_GIDMap:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -1185,7 +1185,7 @@ handle_Flags:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))

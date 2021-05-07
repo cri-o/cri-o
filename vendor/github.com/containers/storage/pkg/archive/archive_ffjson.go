@@ -959,7 +959,7 @@ handle_IncludeFiles:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -1033,7 +1033,7 @@ handle_ExcludePatterns:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -1172,7 +1172,7 @@ handle_UIDMaps:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -1240,7 +1240,7 @@ handle_GIDMaps:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -1485,7 +1485,7 @@ handle_RebaseNames:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -2277,7 +2277,7 @@ handle_SeenFiles:
 				}
 
 				if tok == fflib.FFTok_comma {
-					if wantVal == true {
+					if wantVal {
 						// TODO(pquerna): this isn't an ideal error message, this handles
 						// things like [,,,] as an array value.
 						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))

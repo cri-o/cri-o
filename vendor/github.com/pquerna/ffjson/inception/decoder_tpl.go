@@ -237,7 +237,7 @@ var handleObjectTxt = `
 			}
 
 			if tok == fflib.FFTok_comma {
-				if wantVal == true {
+				if wantVal {
 					// TODO(pquerna): this isn't an ideal error message, this handles
 					// things like [,,,] as an array value.
 					return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -314,7 +314,7 @@ var handleArrayTxt = `
 			}
 
 			if tok == fflib.FFTok_comma {
-				if wantVal == true {
+				if wantVal {
 					// TODO(pquerna): this isn't an ideal error message, this handles
 					// things like [,,,] as an array value.
 					return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
@@ -381,7 +381,7 @@ var handleSliceTxt = `
 			}
 
 			if tok == fflib.FFTok_comma {
-				if wantVal == true {
+				if wantVal {
 					// TODO(pquerna): this isn't an ideal error message, this handles
 					// things like [,,,] as an array value.
 					return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
