@@ -515,7 +515,7 @@ func (cipher CipherFunction) blockSize() int {
 func (cipher CipherFunction) new(key []byte) (block cipher.Block) {
 	switch cipher {
 	case Cipher3DES:
-		block, _ = des.NewTripleDESCipher(key)
+		block, _ = aes.NewTripleDESCipher(key)
 	case CipherCAST5:
 		block, _ = cast5.NewCipher(key)
 	case CipherAES128, CipherAES192, CipherAES256:

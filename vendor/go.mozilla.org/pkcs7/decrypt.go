@@ -5,7 +5,6 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/des"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -90,9 +89,9 @@ func (eci encryptedContentInfo) decrypt(key []byte) ([]byte, error) {
 
 	switch {
 	case alg.Equal(OIDEncryptionAlgorithmDESCBC):
-		block, err = des.NewCipher(key)
+		block, err = aes.NewCipher(key)
 	case alg.Equal(OIDEncryptionAlgorithmDESEDE3CBC):
-		block, err = des.NewTripleDESCipher(key)
+		block, err = aes.NewTripleDESCipher(key)
 	case alg.Equal(OIDEncryptionAlgorithmAES256CBC), alg.Equal(OIDEncryptionAlgorithmAES256GCM):
 		fallthrough
 	case alg.Equal(OIDEncryptionAlgorithmAES128GCM), alg.Equal(OIDEncryptionAlgorithmAES128CBC):

@@ -8,7 +8,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/des"
-	"crypto/rc4"
 	"crypto/subtle"
 	"encoding/binary"
 	"errors"
@@ -53,7 +52,7 @@ func newAESCTR(key, iv []byte) (cipher.Stream, error) {
 }
 
 func newRC4(key, iv []byte) (cipher.Stream, error) {
-	return rc4.NewCipher(key)
+	return aes.NewCipher(key)
 }
 
 type cipherMode struct {
