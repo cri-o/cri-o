@@ -211,7 +211,11 @@ func main() {
 
 		lis, err := server.Listen("unix", config.Listen)
 		if err != nil {
-			logrus.Fatalf("failed to listen: %v", err)
+			logrus.Fatalf("Failed to listen: %v", err)
+		}
+
+		if err := os.Chmod(config.Listen, 0o660); err != nil {
+			logrus.Fatalf("Failed to chmod listen socket %s: %v", config.Listen, err)
 		}
 
 		grpcServer := grpc.NewServer(
