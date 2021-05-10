@@ -84,9 +84,6 @@ github.com/containerd/containerd/runtime/v2/task
 github.com/containerd/containerd/sys
 github.com/containerd/containerd/sys/reaper
 github.com/containerd/containerd/version
-# github.com/containerd/continuity v0.1.0
-github.com/containerd/continuity/fs
-github.com/containerd/continuity/sysx
 # github.com/containerd/fifo v1.0.0
 github.com/containerd/fifo
 # github.com/containerd/go-runc v1.0.0
@@ -133,7 +130,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/util
-# github.com/containers/common v0.37.1
+# github.com/containers/common v0.38.0
 ## explicit
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/apparmor/internal/supported
@@ -368,7 +365,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v20.10.3-0.20210216175712-646072ed6524+incompatible
+# github.com/docker/docker v20.10.6+incompatible
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/blkiodev
