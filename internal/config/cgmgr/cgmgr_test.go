@@ -160,7 +160,7 @@ var _ = t.Describe("Config", func() {
 				// Given
 				conmonCgroup := "notPodOrEmpty"
 				// When
-				cgPath, err := sut.MoveConmonToCgroup("", "", conmonCgroup, 0)
+				cgPath, err := sut.MoveConmonToCgroup("", "", conmonCgroup, 0, nil)
 
 				// Then
 				Expect(cgPath).To(BeEmpty())
@@ -245,7 +245,7 @@ var _ = t.Describe("Config", func() {
 				// Given
 				conmonCgroup := "notPodOrEmpty"
 				// When
-				cgPath, err := sut.MoveConmonToCgroup("", "", conmonCgroup, -1)
+				cgPath, err := sut.MoveConmonToCgroup("", "", conmonCgroup, -1, nil)
 
 				// Then
 				Expect(cgPath).To(BeEmpty())
