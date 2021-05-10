@@ -618,6 +618,7 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 
 func (s *Server) startMetricsServer() error {
 	if !s.config.EnableMetrics {
+		logrus.Debug("Metrics are disabled")
 		return nil
 	}
 
@@ -626,10 +627,25 @@ func (s *Server) startMetricsServer() error {
 		return errors.Wrap(err, "failed to create metrics endpoint")
 	}
 
-	if err := startMetricsEndpoint(
-		"tcp", fmt.Sprintf(":%v", s.config.MetricsPort), me,
+	if s.config.MetricsKey != "" && s.config.MetricsCert != "" {
+		if err := startMetricsEndpoint(
+			"tcp", fmt.Sprintf(":%v", s.config.MetricsPort),
+			s.config.MetricsCert, s.config.MetricsKey, me,
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"creating secure metrics endpoint on port %d",
+				s.config.MetricsPort,
+			)
+		}
+	} else if err := startMetricsEndpoint(
+		"tcp", fmt.Sprintf(":%v", s.config.MetricsPort), "", "", me,
 	); err != nil {
-		return errors.Wrap(err, "creating tcp metrics endpoint")
+		return errors.Wrapf(
+			err,
+			"creating insecure metrics endpoint on port %d",
+			s.config.MetricsPort,
+		)
 	}
 
 	metricsSocket := s.config.MetricsSocket
@@ -639,7 +655,7 @@ func (s *Server) startMetricsServer() error {
 		}
 
 		return errors.Wrap(
-			startMetricsEndpoint("unix", s.config.MetricsSocket, me),
+			startMetricsEndpoint("unix", s.config.MetricsSocket, "", "", me),
 			"creating path metrics endpoint",
 		)
 	}
@@ -647,16 +663,24 @@ func (s *Server) startMetricsServer() error {
 	return nil
 }
 
-func startMetricsEndpoint(network, address string, me *http.ServeMux) error {
+func startMetricsEndpoint(network, address, cert, key string, me *http.ServeMux) error {
 	l, err := net.Listen(network, address)
 	if err != nil {
 		return errors.Wrap(err, "creating listener")
 	}
 
 	go func() {
-		logrus.Infof("Serving metrics on %s", address)
-		if err := http.Serve(l, me); err != nil {
-			logrus.Fatalf("failed to serve metrics endpoint %v: %v", l, err)
+		var err error
+		if cert != "" && key != "" {
+			logrus.Infof("Serving metrics on %s via HTTPs", address)
+			err = http.ServeTLS(l, me, cert, key)
+		} else {
+			logrus.Infof("Serving metrics on %s via HTTP", address)
+			err = http.Serve(l, me)
+		}
+
+		if err != nil {
+			logrus.Fatalf("Failed to serve metrics endpoint %v: %v", l, err)
 		}
 	}()
 

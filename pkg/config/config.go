@@ -459,6 +459,12 @@ type MetricsConfig struct {
 
 	// Local socket path to bind the metrics server to
 	MetricsSocket string `toml:"metrics_socket"`
+
+	// MetricsCert is the certificate for the secure metrics server.
+	MetricsCert string `toml:"metrics_cert"`
+
+	// MetricsKey is the certificate key for the secure metrics server.
+	MetricsKey string `toml:"metrics_key"`
 }
 
 // tomlConfig is another way of looking at a Config, which is

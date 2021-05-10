@@ -34,6 +34,27 @@ function teardown() {
 	curl -sf "http://localhost:$PORT/metrics" | grep crio_operations
 }
 
+@test "secure metrics with random port" {
+	openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
+		-subj "/C=US/ST=State/L=City/O=Org/CN=Name" \
+		-keyout "$TESTDIR/key.pem" \
+		-out "$TESTDIR/cert.pem"
+
+	# start crio with custom port
+	PORT=$(free_port)
+
+	CONTAINER_ENABLE_METRICS=true \
+		CONTAINER_METRICS_CERT="$TESTDIR/cert.pem" \
+		CONTAINER_METRICS_KEY="$TESTDIR/key.pem" \
+		CONTAINER_METRICS_PORT=$PORT \
+		start_crio
+
+	crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+
+	# get metrics
+	curl -sfk "https://localhost:$PORT/metrics" | grep crio_operations
+}
+
 @test "metrics container oom" {
 	PORT=$(free_port)
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio

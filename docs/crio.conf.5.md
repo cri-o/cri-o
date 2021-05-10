@@ -344,6 +344,12 @@ If set to true, enable users to set a custom shm size instead of using the defau
 **metrics_socket**=""
   The socket on which the metrics server will listen.
 
+**metrics_cert**=""
+  The certificate for the secure metrics server.
+
+**metrics_key**=""
+  The certificate key for the secure metrics server.
+
 # SEE ALSO
 crio.conf.d(5), containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
 
