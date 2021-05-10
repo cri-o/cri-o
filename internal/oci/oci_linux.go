@@ -14,6 +14,9 @@ import (
 
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/server/cri/types"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -23,9 +26,20 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 	if c.Spoofed() {
 		return nil
 	}
+	g := &generate.Generator{
+		Config: &rspec.Spec{
+			Linux: &rspec.Linux{
+				Resources: &rspec.LinuxResources{},
+			},
+		},
+	}
+	// Mutate our newly created spec to find the customizations that are needed for conmon
+	if err := r.config.Workloads.MutateSpecGivenAnnotations(types.InfraContainerName, g, c.Annotations()); err != nil {
+		return err
+	}
 
 	// Move conmon to specified cgroup
-	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.id, cgroupParent, r.config.ConmonCgroup, pid)
+	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.id, cgroupParent, r.config.ConmonCgroup, pid, g.Config.Linux.Resources)
 	if err != nil {
 		return err
 	}
