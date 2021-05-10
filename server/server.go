@@ -26,6 +26,7 @@ import (
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -421,6 +422,8 @@ func New(
 	s.restore(ctx)
 	s.cleanupSandboxesOnShutdown(ctx)
 
+	s.wipeIfAppropriate(ctx)
+
 	var bindAddressStr string
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress != nil {
@@ -487,6 +490,78 @@ func New(
 	}
 
 	return s, nil
+}
+
+func (s *Server) wipeIfAppropriate(ctx context.Context) {
+	if !s.config.InternalWipe {
+		return
+	}
+	// First, check if the node was rebooted.
+	// We know this happened because the VersionFile (which lives in a tmpfs)
+	// will not be there.
+	shouldWipeContainers, err := version.ShouldCrioWipe(s.config.VersionFile)
+	if err != nil {
+		log.Warnf(ctx, "error encountered when checking whether cri-o should wipe containers: %v", err)
+	}
+
+	// there are two locations we check before wiping:
+	// one in a temporary directory. This is to check whether the node has rebooted.
+	// if so, we should remove containers
+	// another is needed in a persistent directory. This is to check whether we've upgraded
+	// if we've upgraded, we should wipe images
+	shouldWipeImages, err := version.ShouldCrioWipe(s.config.VersionFilePersist)
+	if err != nil {
+		log.Warnf(ctx, "error encountered when checking whether cri-o should wipe images: %v", err)
+	}
+
+	shouldWipeContainers = shouldWipeContainers || shouldWipeImages
+
+	// First, save the images we should be wiping
+	// We won't remember if we wipe all the containers first
+	var imagesToWipe []string
+	if shouldWipeImages {
+		containers, err := s.ContainerServer.ListContainers()
+		if err != nil {
+			log.Warnf(ctx, "Failed to list containers: %v", err)
+		}
+		for _, c := range containers {
+			imagesToWipe = append(imagesToWipe, c.ImageRef())
+		}
+	}
+
+	wipeResourceCleaner := resourcestore.NewResourceCleaner()
+	if shouldWipeContainers {
+		for _, sb := range s.ContainerServer.ListSandboxes() {
+			sb := sb
+			cleanupFunc := func() error {
+				if err := s.stopPodSandbox(ctx, sb); err != nil {
+					return err
+				}
+				return s.removePodSandbox(ctx, sb)
+			}
+			if err := cleanupFunc(); err != nil {
+				log.Warnf(ctx, "Failed to cleanup pod %s (will retry): %v", sb.ID(), err)
+				wipeResourceCleaner.Add(ctx, "stop and remove pod sandbox", cleanupFunc)
+			}
+		}
+	}
+
+	go func() {
+		if err := wipeResourceCleaner.Cleanup(); err != nil {
+			log.Errorf(ctx, "Cleanup during server startup failed: %v", err)
+		}
+	}()
+
+	// Note: some of these will fail if some aspect of the pod cleanup failed as well,
+	// but this is best-effort anyway, as the Kubelet will eventually cleanup images when
+	// disk usage gets too high.
+	if shouldWipeImages {
+		for _, img := range imagesToWipe {
+			if err := s.removeImage(ctx, img); err != nil {
+				log.Warnf(ctx, "failed to remove image %s: %v", img, err)
+			}
+		}
+	}
 }
 
 func (s *Server) addSandbox(sb *sandbox.Sandbox) error {

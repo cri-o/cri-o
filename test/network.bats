@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+# vim:set ft=bash :
+
 load helpers
 
 function setup() {
@@ -139,4 +141,30 @@ function check_networking() {
 	crictl runp "$TESTDATA"/sandbox_config.json && fail "expected runp to fail"
 
 	check_networking
+}
+
+@test "Clean up network if pod sandbox gets killed" {
+	start_crio
+
+	CNI_RESULTS_DIR=/var/lib/cni/results
+	POD=$(crictl runp "$TESTDATA/sandbox_config.json")
+
+	# CNI result is there
+	# shellcheck disable=SC2010
+	[[ $(ls $CNI_RESULTS_DIR | grep "$POD") != "" ]]
+
+	# kill the sandbox
+	runtime kill "$POD" KILL
+
+	# wait for the pod to be killed
+	while crictl inspectp "$POD" | jq -e '.status.state != "SANDBOX_NOTREADY"' > /dev/null; do
+		echo Waiting for sandbox to be stopped
+	done
+
+	# now remove the sandbox
+	crictl rmp "$POD"
+
+	# CNI result is gone
+	# shellcheck disable=SC2010
+	[[ $(ls $CNI_RESULTS_DIR | grep "$POD") == "" ]]
 }
