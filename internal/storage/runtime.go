@@ -258,6 +258,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 
 	coptions := storage.ContainerOptions{
 		LabelOpts: labelOptions,
+		Volatile:  true,
 	}
 	if idMappingsOptions != nil {
 		coptions.IDMappingOptions = *idMappingsOptions
