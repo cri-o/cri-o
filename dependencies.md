@@ -1,19 +1,18 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 11 May 2021 05:53:34 UTC for commit [ec5854e][0]._
+_Generated on Tue, 11 May 2021 08:22:09 UTC for commit [23daef7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ec5854ee6db2ae4efa5ae25b92a82c34c48b706c
+[0]: https://github.com/cri-o/cri-o/commit/23daef74c06a87759e3057541c911fc13e77fb7e
 
 ## Outdated Dependencies
 
-|              MODULE              |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
-|----------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/common     | v0.37.1                            | v1.0.0                             | true   | false            |
-| github.com/coreos/go-systemd/v22 | v22.3.1                            | v22.3.2                            | true   | true             |
-| golang.org/x/net                 | v0.0.0-20210428140749-89ef3d95e781 | v0.0.0-20210510120150-4163338589ed | true   | true             |
-| golang.org/x/sys                 | v0.0.0-20210423082822-04245dca01da | v0.0.0-20210510120138-977fb7262007 | true   | true             |
-| k8s.io/client-go                 | v0.0.0-20210408162405-cb303e613a12 | v0.0.0-20210511033536-2112bddae101 | true   | true             |
-| k8s.io/release                   | v0.7.0                             | v0.8.0                             | true   | true             |
+|            MODULE            |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
+|------------------------------|------------------------------------|------------------------------------|--------|------------------|
+| github.com/containers/common | v0.37.1                            | v1.0.0                             | true   | false            |
+| golang.org/x/net             | v0.0.0-20210428140749-89ef3d95e781 | v0.0.0-20210510120150-4163338589ed | true   | true             |
+| golang.org/x/sys             | v0.0.0-20210423082822-04245dca01da | v0.0.0-20210510120138-977fb7262007 | true   | true             |
+| k8s.io/client-go             | v0.0.0-20210408162405-cb303e613a12 | v0.0.0-20210511033536-2112bddae101 | true   | true             |
+| k8s.io/release               | v0.7.0                             | v0.8.0                             | true   | true             |
 
 ## All Dependencies
 
@@ -157,7 +156,7 @@ _Generated on Tue, 11 May 2021 05:53:34 UTC for commit [ec5854e][0]._
 | github.com/coreos/go-oidc                                | v2.1.0+incompatible                                 | v2.2.1+incompatible                | false  | true             |
 | github.com/coreos/go-semver                              | v0.3.0                                              |                                    | false  | true             |
 | github.com/coreos/go-systemd                             | v0.0.0-20190321100706-95778dfbb74e                  | v0.0.0-20191104093116-d3cd4ed1dbcf | false  | true             |
-| github.com/coreos/go-systemd/v22                         | v22.3.1                                             | v22.3.2                            | true   | true             |
+| github.com/coreos/go-systemd/v22                         | v22.3.2                                             |                                    | true   | true             |
 | github.com/coreos/pkg                                    | v0.0.0-20180928190104-399ea9e2e55f                  |                                    | false  | true             |
 | github.com/cpuguy83/go-md2man                            | v1.0.10                                             |                                    | true   | true             |
 | github.com/cpuguy83/go-md2man/v2                         | v2.0.0                                              |                                    | false  | true             |
