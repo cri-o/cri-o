@@ -41,6 +41,7 @@ larger PRs into smaller ones - it's easier to review smaller
 code changes. But only if those smaller ones make sense as stand-alone PRs.
 
 Regardless of the type of PR, all PRs should include:
+
 * well documented code changes
 * additional testcases. Ideally, they should fail w/o your code change applied
 * documentation changes
