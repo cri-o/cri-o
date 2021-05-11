@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 11 May 2021 08:22:09 UTC for commit [23daef7][0]._
+_Generated on Tue, 11 May 2021 14:29:22 UTC for commit [fc5d917][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/23daef74c06a87759e3057541c911fc13e77fb7e
+[0]: https://github.com/cri-o/cri-o/commit/fc5d917961bd5346806d95f74e6086b67d2eaad9
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Tue, 11 May 2021 08:22:09 UTC for commit [23daef7][0]._
 |------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/common | v0.37.1                            | v1.0.0                             | true   | false            |
 | golang.org/x/net             | v0.0.0-20210428140749-89ef3d95e781 | v0.0.0-20210510120150-4163338589ed | true   | true             |
-| golang.org/x/sys             | v0.0.0-20210423082822-04245dca01da | v0.0.0-20210510120138-977fb7262007 | true   | true             |
+| golang.org/x/sys             | v0.0.0-20210423082822-04245dca01da | v0.0.0-20210511113859-b0526f3d8744 | true   | true             |
 | k8s.io/client-go             | v0.0.0-20210408162405-cb303e613a12 | v0.0.0-20210511033536-2112bddae101 | true   | true             |
 | k8s.io/release               | v0.7.0                             | v0.8.0                             | true   | true             |
 
@@ -483,7 +483,7 @@ _Generated on Tue, 11 May 2021 08:22:09 UTC for commit [23daef7][0]._
 | github.com/pascaldekloe/goe                              | v0.0.0-20180627143212-57f6aae5913c                  | v0.1.0                             | false  | true             |
 | github.com/pborman/uuid                                  | v1.2.0                                              | v1.2.1                             | false  | true             |
 | github.com/pelletier/go-buffruneio                       | v0.2.0                                              | v0.3.0                             | false  | true             |
-| github.com/pelletier/go-toml                             | v1.8.1                                              | v1.9.0                             | false  | true             |
+| github.com/pelletier/go-toml                             | v1.8.1                                              | v1.9.1                             | false  | true             |
 | github.com/performancecopilot/speed                      | v3.0.0+incompatible                                 |                                    | false  | true             |
 | github.com/peterbourgon/diskv                            | v2.0.1+incompatible                                 |                                    | false  | true             |
 | github.com/phayes/checkstyle                             | v0.0.0-20170904204023-bfd46e6a821d                  |                                    | false  | true             |
@@ -618,7 +618,7 @@ _Generated on Tue, 11 May 2021 08:22:09 UTC for commit [23daef7][0]._
 | golang.org/x/net                                         | v0.0.0-20210428140749-89ef3d95e781                  | v0.0.0-20210510120150-4163338589ed | true   | true             |
 | golang.org/x/oauth2                                      | v0.0.0-20210112200429-01de73cf58bd                  | v0.0.0-20210427180440-81ed05c6b58c | false  | true             |
 | golang.org/x/sync                                        | v0.0.0-20210220032951-036812b2e83c                  |                                    | true   | true             |
-| golang.org/x/sys                                         | v0.0.0-20210423082822-04245dca01da                  | v0.0.0-20210510120138-977fb7262007 | true   | true             |
+| golang.org/x/sys                                         | v0.0.0-20210423082822-04245dca01da                  | v0.0.0-20210511113859-b0526f3d8744 | true   | true             |
 | golang.org/x/term                                        | v0.0.0-20210220032956-6a3ed077a48d                  | v0.0.0-20210503060354-a79de5458b56 | false  | true             |
 | golang.org/x/text                                        | v0.3.6                                              |                                    | false  | true             |
 | golang.org/x/time                                        | v0.0.0-20210220033141-f8bda1e9f3ba                  |                                    | false  | true             |
