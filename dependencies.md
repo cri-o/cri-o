@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 12 May 2021 08:29:23 UTC for commit [c229c5f][0]._
+_Generated on Wed, 12 May 2021 11:02:36 UTC for commit [df06bef][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c229c5ff4ca3ecadbbcf9617e2ca5109761cc065
+[0]: https://github.com/cri-o/cri-o/commit/df06befaaca7f014ee8eb69272570ff1e3d58b92
 
 ## Outdated Dependencies
 
@@ -12,7 +12,6 @@ _Generated on Wed, 12 May 2021 08:29:23 UTC for commit [c229c5f][0]._
 | github.com/containers/storage | v1.30.2                            | v1.30.3                            | true   | true             |
 | golang.org/x/net              | v0.0.0-20210428140749-89ef3d95e781 | v0.0.0-20210510120150-4163338589ed | true   | true             |
 | golang.org/x/sys              | v0.0.0-20210423082822-04245dca01da | v0.0.0-20210511113859-b0526f3d8744 | true   | true             |
-| google.golang.org/grpc        | v1.27.0                            | v1.37.1                            | true   | true             |
 | k8s.io/client-go              | v0.0.0-20210408162405-cb303e613a12 | v0.0.0-20210512012538-9aa6f0bc47c9 | true   | true             |
 | k8s.io/release                | v0.7.0                             | v0.8.0                             | true   | true             |
 
