@@ -1045,8 +1045,9 @@ github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a h1:
 github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/selinux v1.5.1/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/opencontainers/selinux v1.6.0/go.mod h1:VVGKuOLlE7v4PJyT6h7mNWvq1rzqiriPsEqVhc+svHE=
-github.com/opencontainers/selinux v1.8.0 h1:+77ba4ar4jsCbL1GLbFL8fFM57w6suPfSS9PDLDY7KM=
 github.com/opencontainers/selinux v1.8.0/go.mod h1:RScLhm78qiWa2gbVCcGkC7tCGdgk3ogry1nUQF8Evvo=
+github.com/opencontainers/selinux v1.8.1 h1:yvEZh7CsfnJNwKzG9ZeXwbvR05RAZsu5RS/3vA6qFTA=
+github.com/opencontainers/selinux v1.8.1/go.mod h1:RScLhm78qiWa2gbVCcGkC7tCGdgk3ogry1nUQF8Evvo=
 github.com/openshift/imagebuilder v1.2.0 h1:uoZFjJICLlTMjlAL/UG2PA2kM8RjAsVflGfHJK7MMDk=
 github.com/openshift/imagebuilder v1.2.0/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=
