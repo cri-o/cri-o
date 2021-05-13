@@ -136,23 +136,23 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 }
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store
-func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr error) {
+func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandbox.Sandbox, retErr error) {
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var m rspec.Spec
 	if err := json.Unmarshal(config, &m); err != nil {
-		return errors.Wrap(err, "error unmarshalling sandbox spec")
+		return nil, errors.Wrap(err, "error unmarshalling sandbox spec")
 	}
 	labels := make(map[string]string)
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
-		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Labels)
+		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Labels)
 	}
 	name := m.Annotations[annotations.Name]
 	name, err = c.ReservePodName(id, name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		if retErr != nil {
@@ -161,7 +161,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 	}()
 	var metadata sandbox.Metadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
-		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Metadata)
+		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Metadata)
 	}
 
 	processLabel := m.Process.SelinuxLabel
@@ -171,29 +171,29 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 
 	kubeAnnotations := make(map[string]string)
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
-		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Annotations)
+		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Annotations)
 	}
 
 	portMappings := []*hostport.PortMapping{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.PortMappings]), &portMappings); err != nil {
-		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.PortMappings)
+		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.PortMappings)
 	}
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
 	nsOpts := types.NamespaceOption{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
-		return errors.Wrapf(err, "error unmarshalling %s annotation", annotations.NamespaceOptions)
+		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.NamespaceOptions)
 	}
 
 	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
 	if err != nil {
-		return errors.Wrap(err, "parsing created timestamp annotation")
+		return nil, errors.Wrap(err, "parsing created timestamp annotation")
 	}
 
-	sb, err := sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[crioann.UsernsModeAnnotation])
+	sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[crioann.UsernsModeAnnotation])
 	if err != nil {
-		return err
+		return nil, err
 	}
 	sb.AddHostnamePath(m.Annotations[annotations.HostnamePath])
 	sb.SetSeccompProfilePath(spp)
@@ -221,13 +221,13 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 		path, err := configNsPath(&m, namespaceToJoin.rspecNS)
 		if err == nil {
 			if nsErr := namespaceToJoin.joinFunc(path); nsErr != nil {
-				return nsErr
+				return sb, nsErr
 			}
 		}
 	}
 
 	if err := c.AddSandbox(sb); err != nil {
-		return err
+		return sb, err
 	}
 
 	defer func() {
@@ -240,19 +240,19 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 
 	sandboxPath, err := c.store.ContainerRunDirectory(id)
 	if err != nil {
-		return err
+		return sb, err
 	}
 
 	sandboxDir, err := c.store.ContainerDirectory(id)
 	if err != nil {
-		return err
+		return sb, err
 	}
 
 	cID := m.Annotations[annotations.ContainerID]
 
 	cname, err := c.ReserveContainerName(cID, m.Annotations[annotations.ContainerName])
 	if err != nil {
-		return err
+		return sb, err
 	}
 	defer func() {
 		if retErr != nil {
@@ -272,7 +272,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 	if !wasSpoofed {
 		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], "", "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 		if err != nil {
-			return err
+			return sb, err
 		}
 		scontainer.SetSpec(&m)
 		scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
@@ -280,7 +280,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 		if m.Annotations[annotations.Volumes] != "" {
 			containerVolumes := []oci.ContainerVolume{}
 			if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
-				return fmt.Errorf("failed to unmarshal container volumes: %v", err)
+				return sb, fmt.Errorf("failed to unmarshal container volumes: %v", err)
 			}
 			for _, cv := range containerVolumes {
 				scontainer.AddVolume(cv)
@@ -291,28 +291,28 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 	}
 
 	if err := c.ContainerStateFromDisk(ctx, scontainer); err != nil {
-		return fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
+		return sb, fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
 	}
 
 	// We write back the state because it is possible that crio did not have a chance to
 	// read the exit file and persist exit code into the state on reboot.
 	if err := c.ContainerStateToDisk(ctx, scontainer); err != nil {
-		return fmt.Errorf("failed to write container %q state to disk: %v", scontainer.ID(), err)
+		return sb, fmt.Errorf("failed to write container %q state to disk: %v", scontainer.ID(), err)
 	}
 
 	if err := sb.SetInfraContainer(scontainer); err != nil {
-		return err
+		return sb, err
 	}
 
 	sb.SetCreated()
 	if err := label.ReserveLabel(processLabel); err != nil {
-		return err
+		return sb, err
 	}
 
 	sb.RestoreStopped()
 
 	if err := c.ctrIDIndex.Add(scontainer.ID()); err != nil {
-		return err
+		return sb, err
 	}
 	defer func() {
 		if retErr != nil {
@@ -322,9 +322,9 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (retErr er
 		}
 	}()
 	if err := c.podIDIndex.Add(id); err != nil {
-		return err
+		return sb, err
 	}
-	return nil
+	return sb, nil
 }
 
 func configNsPath(spec *rspec.Spec, nsType rspec.LinuxNamespaceType) (string, error) {
