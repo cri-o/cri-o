@@ -53,7 +53,7 @@
 
             - fail:
                 msg: Cannot enable nested virtualization
-              when: nested.stdout != "Y" and result.stdout != "1"
+              when: nested.stdout != "Y" and nested.stdout != "1"
           # You will find "Y" in Fedora and "1" in CentOS 8
           when: result.stdout != "Y" and result.stdout != "1"
 
