@@ -13,12 +13,12 @@ require (
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
 	github.com/containers/buildah v1.20.1
-	github.com/containers/common v0.37.1
+	github.com/containers/common v0.38.1
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.12.0
 	github.com/containers/ocicrypt v1.1.1
 	github.com/containers/podman/v3 v3.1.2
-	github.com/containers/storage v1.30.2
+	github.com/containers/storage v1.30.3
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
@@ -40,8 +40,8 @@ require (
 	github.com/onsi/gomega v1.12.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
-	github.com/opencontainers/runc v1.0.0-rc93
-	github.com/opencontainers/runtime-spec v1.0.3-0.20201121164853-7413a7f753e1
+	github.com/opencontainers/runc v1.0.0-rc94
+	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
 	github.com/opencontainers/selinux v1.8.1
 	github.com/pkg/errors v0.9.1
@@ -55,7 +55,7 @@ require (
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
+	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
 	google.golang.org/grpc v1.37.1
 	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0
