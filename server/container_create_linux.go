@@ -26,6 +26,7 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 	ctrIface "github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/server/cri/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -452,17 +453,39 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	if ctr.Privileged() {
+		sysMountOptions := []string{"nosuid", "noexec", "nodev", "rw"}
+		sysFsCgroupMountOptions := []string{"nosuid", "noexec", "nodev", "rw", "relatime"}
+
+		runtimeHandler := sb.RuntimeHandler()
+		runtimeType, err := s.Runtime().RuntimeType(runtimeHandler)
+		if err != nil {
+			return nil, err
+		}
+
+		// A container is kernel separated if we're using shimv2, or we're using a kata v1 binary
+		podIsKernelSeparated := runtimeType == libconfig.RuntimeTypeVM ||
+			strings.Contains(strings.ToLower(runtimeHandler), "kata") ||
+			(runtimeHandler == "" && strings.Contains(strings.ToLower(s.config.DefaultRuntime), "kata"))
+
+		if !podIsKernelSeparated {
+			// Setting "rslave" as a mount option caused regressions on kata-containers side,
+			// where privileged pods can't be created, resulting on ContainerCreate returning
+			// EINVAL.
+			sysMountOptions = append(sysMountOptions, "rslave")
+			sysFsCgroupMountOptions = append(sysFsCgroupMountOptions, "rslave")
+		}
+
 		ctr.SpecAddMount(rspec.Mount{
 			Destination: "/sys",
 			Type:        "sysfs",
 			Source:      "sysfs",
-			Options:     []string{"nosuid", "noexec", "nodev", "rw", "rslave"},
+			Options:     sysMountOptions,
 		})
 		ctr.SpecAddMount(rspec.Mount{
 			Destination: "/sys/fs/cgroup",
 			Type:        "cgroup",
 			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime", "rslave"},
+			Options:     sysFsCgroupMountOptions,
 		})
 	}
 
