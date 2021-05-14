@@ -47,6 +47,57 @@ function check_cpu_fields() {
 	fi
 }
 
+function check_conmon_fields() {
+	local ctr_id="$1"
+	local cpushares="$2"
+	local cpuset="$3"
+
+	if [[ "$CONTAINER_CGROUP_MANAGER" == "cgroupfs" ]]; then
+		if is_cgroup_v2; then
+			cpuset_path="/sys/fs/cgroup"
+			cpushare_path="/sys/fs/cgroup"
+			cpushare_filename="cpu.weight"
+			# see https://github.com/containers/crun/blob/e5874864918f8f07acdff083f83a7a59da8abb72/crun.1.md#cpu-controller for conversion
+			cpushares=$((1 + ((cpushares - 2) * 9999) / 262142))
+		else
+			cpuset_path="/sys/fs/cgroup/cpuset"
+			cpushare_path="/sys/fs/cgroup/cpu"
+			cpushare_filename="cpu.shares"
+		fi
+
+		found_cpuset=$(cat "$cpuset_path/pod_123-456/crio-conmon-$ctr_id/cpuset.cpus")
+		echo "$found_cpuset" AND "$cpuset"
+		if [ -z "$cpuset" ]; then
+			[[ -z "$found_cpushares" ]]
+		else
+			[[ "$cpuset" == *"$found_cpuset"* ]]
+		fi
+
+		echo "$found_cpushares" AND "$cpushares"
+		found_cpushares=$(cat "$cpushare_path/pod_123-456/crio-conmon-$ctr_id/$cpushare_filename")
+		if [ -z "$cpushares" ]; then
+			[[ -z "$found_cpushares" ]]
+		else
+			[[ "$cpushares" == *"$found_cpushares"* ]]
+		fi
+	else
+		info="$(systemctl show --property=AllowedCPUs --property=CPUShares crio-conmon-"$ctr_id".scope)"
+		if [ -z "$cpuset" ]; then
+			echo "$info" | grep -E '^AllowedCPUs=$'
+		else
+			[[ "$info" == *"AllowedCPUs=$cpuset"* ]]
+		fi
+
+		info="$(systemctl show --property=CPUShares crio-conmon-"$ctr_id".scope)"
+		if [ -z "$cpushares" ]; then
+			# 18446744073709551615 is 2^64-1, which is the default systemd set in RHEL 7
+			echo "$info" | grep -E '^CPUShares=\[not set\]$' || echo "$info" | grep 'CPUShares=18446744073709551615'
+		else
+			[[ "$info" == *"CPUShares=$cpushares"* ]]
+		fi
+	fi
+}
+
 @test "test workload gets configured to defaults" {
 	shares="200"
 	set="0-1"
@@ -69,7 +120,7 @@ function check_cpu_fields() {
 	shares="200"
 	set="0-1"
 	name=helloctr
-	create_workload "$shares" "0-2"
+	create_workload "$shares" "0"
 
 	start_crio
 
@@ -88,7 +139,7 @@ function check_cpu_fields() {
 	check_cpu_fields "$ctr_id" "$shares" "$set"
 }
 
-@test "test workload should not set if not defaulted or specified" {
+@test "test workload should not be set if not defaulted or specified" {
 	shares="200"
 	set=""
 	name=helloctr
@@ -111,7 +162,7 @@ function check_cpu_fields() {
 	check_cpu_fields "$ctr_id" "$shares" "$set"
 }
 
-@test "test workload should not set if annotation not specified" {
+@test "test workload should not be set if annotation not specified" {
 	shares=""
 	set=""
 	name=helloctr
@@ -131,4 +182,90 @@ function check_cpu_fields() {
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
 	check_cpu_fields "$ctr_id" "$shares" "$set"
+}
+
+@test "test workload pod gets configured to defaults" {
+	shares="200"
+	set="0-1"
+	create_workload "$shares" "$set"
+
+	start_crio
+
+	jq --arg act "$activation" ' .annotations[$act] = "true"' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq --arg act "$activation" ' .annotations[$act] = "true"' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+
+	check_conmon_fields "$ctr_id" "$shares" "$set"
+}
+
+@test "test workload can override pod defaults" {
+	shares="200"
+	set="0-1"
+	name=POD
+	create_workload "$shares" "0"
+
+	start_crio
+
+	jq --arg act "$activation" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
+		'   .annotations[$act] = "true"
+		|   .annotations[$setkey] = $set' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
+		'   .annotations[$act] = "true"
+		|   .annotations[$setkey] = $set
+		|   .metadata.name = $name' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	check_conmon_fields "$ctr_id" "$shares" "$set"
+}
+
+@test "test workload pod should not be set if not defaulted or specified" {
+	shares="200"
+	set=""
+	name=POD
+	create_workload "$shares" ""
+
+	start_crio
+
+	jq --arg act "$activation" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
+		'   .annotations[$act] = "true"
+		|   .annotations[$setkey] = $set' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
+		'   .annotations[$act] = "true"
+		|   .annotations[$setkey] = $set
+		|   .metadata.name = $name' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	check_conmon_fields "$ctr_id" "$shares" "$set"
+}
+
+@test "test workload pod should not be set if annotation not specified" {
+	shares=""
+	set=""
+	name=POD
+	create_workload "200" "0-1"
+
+	start_crio
+
+	jq --arg act "$activation" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
+		'   .annotations[$setkey] = $set' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
+		'   .annotations[$setkey] = $set
+		|   .metadata.name = $name
+		|   del(.linux.resources.cpu_shares)' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	check_conmon_fields "$ctr_id" "$shares" "$set"
 }
