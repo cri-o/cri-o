@@ -98,11 +98,11 @@ func main() {
 
 		if imageName != "" {
 			if rootDir == "" && runrootDir != "" {
-				log.Errorf(ctx, "must set --root and --runroot, or neither")
+				log.Errorf(ctx, "Must set --root and --runroot, or neither")
 				os.Exit(1)
 			}
 			if rootDir != "" && runrootDir == "" {
-				log.Errorf(ctx, "must set --root and --runroot, or neither")
+				log.Errorf(ctx, "Must set --root and --runroot, or neither")
 				os.Exit(1)
 			}
 			storeOptions, err := sstorage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
@@ -117,20 +117,20 @@ func main() {
 			}
 			store, err = sstorage.GetStore(storeOptions)
 			if err != nil {
-				log.Errorf(ctx, "error opening storage: %v", err)
+				log.Errorf(ctx, "Error opening storage: %v", err)
 				os.Exit(1)
 			}
 			defer func() {
 				_, err = store.Shutdown(false)
 				if err != nil {
-					log.Warnf(ctx, "unable to shutdown store: %v", err)
+					log.Warnf(ctx, "Unable to shutdown store: %v", err)
 				}
 			}()
 
 			storage.Transport.SetStore(store)
 			ref, err = storage.Transport.ParseStoreReference(store, imageName)
 			if err != nil {
-				log.Errorf(ctx, "error parsing image name: %v", err)
+				log.Errorf(ctx, "Error parsing image name: %v", err)
 				os.Exit(1)
 			}
 		}
@@ -140,18 +140,18 @@ func main() {
 		}
 		policy, err := signature.DefaultPolicy(&systemContext)
 		if err != nil {
-			log.Errorf(ctx, "error loading signature policy: %v", err)
+			log.Errorf(ctx, "Error loading signature policy: %v", err)
 			os.Exit(1)
 		}
 		policyContext, err := signature.NewPolicyContext(policy)
 		if err != nil {
-			log.Errorf(ctx, "error loading signature policy: %v", err)
+			log.Errorf(ctx, "Error loading signature policy: %v", err)
 			os.Exit(1)
 		}
 		defer func() {
 			err = policyContext.Destroy()
 			if err != nil {
-				log.Fatalf(ctx, "unable to destroy policy context: %v", err)
+				log.Fatalf(ctx, "Unable to destroy policy context: %v", err)
 			}
 		}()
 		options := &copy.Options{}
@@ -159,7 +159,7 @@ func main() {
 		if importFrom != "" {
 			importRef, err = alltransports.ParseImageName(importFrom)
 			if err != nil {
-				log.Errorf(ctx, "error parsing image name %v: %v", importFrom, err)
+				log.Errorf(ctx, "Error parsing image name %v: %v", importFrom, err)
 				os.Exit(1)
 			}
 		}
@@ -167,7 +167,7 @@ func main() {
 		if exportTo != "" {
 			exportRef, err = alltransports.ParseImageName(exportTo)
 			if err != nil {
-				log.Errorf(ctx, "error parsing image name %v: %v", exportTo, err)
+				log.Errorf(ctx, "Error parsing image name %v: %v", exportTo, err)
 				os.Exit(1)
 			}
 		}
@@ -176,34 +176,34 @@ func main() {
 			if importFrom != "" {
 				_, err = copy.Image(ctx, policyContext, ref, importRef, options)
 				if err != nil {
-					log.Errorf(ctx, "error importing %s: %v", importFrom, err)
+					log.Errorf(ctx, "Error importing %s: %v", importFrom, err)
 					os.Exit(1)
 				}
 			}
 			if addName != "" {
 				destImage, err1 := storage.Transport.GetStoreImage(store, ref)
 				if err1 != nil {
-					log.Errorf(ctx, "error finding image: %v", err1)
+					log.Errorf(ctx, "Error finding image: %v", err1)
 					os.Exit(1)
 				}
 				names := append([]string{imageName, addName}, destImage.Names...)
 				err = store.SetNames(destImage.ID, names)
 				if err != nil {
-					log.Errorf(ctx, "error adding name to %s: %v", imageName, err)
+					log.Errorf(ctx, "Error adding name to %s: %v", imageName, err)
 					os.Exit(1)
 				}
 			}
 			if exportTo != "" {
 				_, err = copy.Image(ctx, policyContext, exportRef, ref, options)
 				if err != nil {
-					log.Errorf(ctx, "error exporting %s: %v", exportTo, err)
+					log.Errorf(ctx, "Error exporting %s: %v", exportTo, err)
 					os.Exit(1)
 				}
 			}
 		} else if importFrom != "" && exportTo != "" {
 			_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
 			if err != nil {
-				log.Errorf(ctx, "error copying %s to %s: %v", importFrom, exportTo, err)
+				log.Errorf(ctx, "Error copying %s to %s: %v", importFrom, exportTo, err)
 				os.Exit(1)
 			}
 		}
