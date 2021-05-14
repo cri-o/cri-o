@@ -54,8 +54,8 @@ type containerInfo struct {
 
 // newRuntimeVM creates a new runtimeVM instance
 func newRuntimeVM(path, root string) RuntimeImpl {
-	logrus.Debug("oci.newRuntimeVM() start")
-	defer logrus.Debug("oci.newRuntimeVM() end")
+	logrus.Debug("oci.newRuntimeVM() start || ")
+	defer logrus.Debug("oci.newRuntimeVM() end || ")
 
 	// FIXME: We need to register those types for now, but this should be
 	// defined as a specific package that would be shared both by CRI-O and
