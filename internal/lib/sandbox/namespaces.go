@@ -239,7 +239,7 @@ func infraPid(infra *oci.Container) int {
 		// or find we have an invalid /proc entry (a negative pid).
 		// Thus, we don't need to error here if the pid is not initialized
 		if err != nil && err != oci.ErrNotInitialized {
-			logrus.Errorf("pid for infra container %s not found: %v", infra.ID(), err)
+			logrus.Errorf("Pid for infra container %s not found: %v", infra.ID(), err)
 		}
 	}
 	return pid
