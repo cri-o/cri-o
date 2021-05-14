@@ -44,7 +44,8 @@ kata_int_test_env:
     JOBS: "1"  # TODO: add support to parallelization in kata (causes failures in the integration tests)
 
 kata_skip_ctr_tests:
-  - 'test "ctr oom"'  # https://github.com/kata-containers/tests/issues/714
+  - 'test "ctr lifecycle"'
+  - 'test "ctr logging"'
   - 'test "ctr journald logging"'
   - 'test "ctr log max"'
   - 'test "ctr log max with minimum value"'
@@ -53,12 +54,13 @@ kata_skip_ctr_tests:
   - 'test "ctr execsync should not overwrite initial spec args"'
   - 'test "privileged ctr device add"'
   - 'test "ctr execsync std{out,err}"'
-  - 'test "ctr with default list of capabilities from crio.conf"'
-  - 'test "ctr with list of capabilities given by user in crio.conf"'
-  - 'test "ctr /etc/resolv.conf rw/ro mode"'
+  - 'test "ctr create with non-existent command"'
+  - 'test "ctr create with non-existent command \[tty\]"'
   - 'test "ctr update resources"'
-  - 'test "ctr execsync conflicting with conmon env"'
   - 'test "ctr resources"'
   - 'test "ctr with non-root user has no effective capabilities"'
+  - 'test "ctr with low memory configured should not be created"'
   - 'test "privileged ctr -- check for rw mounts"'
+  - 'test "annotations passed through"'
   - 'test "ctr with default_env set in configuration"'
+  - 'test "ctr with absent mount that should be rejected"'
