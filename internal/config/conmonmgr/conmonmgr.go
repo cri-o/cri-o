@@ -60,7 +60,7 @@ func (c *ConmonManager) initializeSupportsSync() {
 		verb = "does"
 	}
 
-	logrus.Infof("conmon %s support the --sync option", verb)
+	logrus.Infof("Conmon %s support the --sync option", verb)
 }
 
 func (c *ConmonManager) SupportsSync() bool {
