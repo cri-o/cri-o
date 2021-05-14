@@ -846,7 +846,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	// value defined in the configuration file to be too low.
 	if c.CtrStopTimeout < defaultCtrStopTimeout {
 		c.CtrStopTimeout = defaultCtrStopTimeout
-		logrus.Warnf("forcing ctr_stop_timeout to lowest possible value of %ds", c.CtrStopTimeout)
+		logrus.Warnf("Forcing ctr_stop_timeout to lowest possible value of %ds", c.CtrStopTimeout)
 	}
 
 	if _, err := c.Sysctls(); err != nil {
@@ -886,15 +886,15 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		for _, hooksDir := range c.HooksDir {
 			if err := utils.IsDirectory(hooksDir); err != nil {
 				if !os.IsNotExist(err) {
-					logrus.Warnf("skipping invalid hooks directory: %s exists but is not a directory", hooksDir)
+					logrus.Warnf("Skipping invalid hooks directory: %s exists but is not a directory", hooksDir)
 					continue
 				}
 				if err := os.MkdirAll(hooksDir, 0o755); err != nil {
-					logrus.Debugf("failed to create requested hooks dir: %v", err)
+					logrus.Debugf("Failed to create requested hooks dir: %v", err)
 					continue
 				}
 			}
-			logrus.Debugf("using hooks directory: %s", hooksDir)
+			logrus.Debugf("Using hooks directory: %s", hooksDir)
 			hooksDirs = append(hooksDirs, hooksDir)
 			continue
 		}
@@ -1023,13 +1023,13 @@ func validateExecutablePath(executable, currentPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		logrus.Debugf("using %s from $PATH: %s", executable, path)
+		logrus.Debugf("Using %s from $PATH: %s", executable, path)
 		return path, nil
 	}
 	if _, err := os.Stat(currentPath); err != nil {
 		return "", errors.Wrapf(err, "invalid %s path", executable)
 	}
-	logrus.Infof("using %s executable: %s", executable, currentPath)
+	logrus.Infof("Using %s executable: %s", executable, currentPath)
 	return currentPath, nil
 }
 
@@ -1119,7 +1119,7 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 			return errors.Wrapf(err, "%q not found in $PATH", name)
 		}
 		r.RuntimePath = executable
-		logrus.Debugf("using runtime executable from $PATH %q", executable)
+		logrus.Debugf("Using runtime executable from $PATH %q", executable)
 	} else if _, err := os.Stat(r.RuntimePath); err != nil && os.IsNotExist(err) {
 		return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
 			name, err)
