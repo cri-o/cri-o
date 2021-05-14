@@ -111,7 +111,7 @@ func translateLabelsToDescription(labels map[string]string) string {
 // getDecryptionKeys reads the keys from the given directory
 func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
 	if _, err := os.Stat(keysPath); os.IsNotExist(err) {
-		logrus.Debugf("skipping non-existing decryption_keys_path: %s", keysPath)
+		logrus.Debugf("Skipping non-existing decryption_keys_path: %s", keysPath)
 		return &encconfig.DecryptConfig{}, nil
 	}
 

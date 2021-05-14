@@ -27,7 +27,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 		// the CRI interface which expects to not error out in not found
 		// cases.
 
-		log.Warnf(ctx, "could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxID, err)
+		log.Warnf(ctx, "Could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxID, err)
 		log.Debugf(ctx, "StopPodSandboxResponse %s", req.PodSandboxID)
 		return nil
 	}
@@ -36,10 +36,10 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 
 // stopAllPodSandboxes removes all pod sandboxes
 func (s *Server) stopAllPodSandboxes(ctx context.Context) {
-	log.Debugf(ctx, "stopAllPodSandboxes")
+	log.Debugf(ctx, "StopAllPodSandboxes")
 	for _, sb := range s.ContainerServer.ListSandboxes() {
 		if err := s.stopPodSandbox(ctx, sb); err != nil {
-			log.Warnf(ctx, "could not StopPodSandbox %s: %v", sb.ID(), err)
+			log.Warnf(ctx, "Could not StopPodSandbox %s: %v", sb.ID(), err)
 		}
 	}
 }

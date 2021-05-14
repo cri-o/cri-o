@@ -154,9 +154,9 @@ func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInf
 			})
 
 		case config.ImageVolumesIgnore:
-			log.Debugf(ctx, "ignoring volume %v", dest)
+			log.Debugf(ctx, "Ignoring volume %v", dest)
 		default:
-			log.Errorf(ctx, "unrecognized image volumes setting")
+			log.Errorf(ctx, "Unrecognized image volumes setting")
 		}
 	}
 	return mounts, nil
@@ -495,7 +495,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		log.Infof(ctx, description)
 		err := s.CtrIDIndex().Delete(ctr.ID())
 		if err != nil {
-			log.Warnf(ctx, "couldn't delete ctr id %s from idIndex", ctr.ID())
+			log.Warnf(ctx, "Couldn't delete ctr id %s from idIndex", ctr.ID())
 		}
 		return err
 	})
@@ -513,7 +513,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		if retErr != nil {
 			log.Infof(ctx, description)
 			if err := s.Runtime().DeleteContainer(ctx, newContainer); err != nil {
-				log.Warnf(ctx, "failed to delete container in runtime %s: %v", ctr.ID(), err)
+				log.Warnf(ctx, "Failed to delete container in runtime %s: %v", ctr.ID(), err)
 				return err
 			}
 		}
@@ -521,14 +521,14 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	})
 
 	if err := s.ContainerStateToDisk(ctx, newContainer); err != nil {
-		log.Warnf(ctx, "unable to write containers %s state to disk: %v", newContainer.ID(), err)
+		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
 	if isContextError(ctx.Err()) {
 		if err := s.resourceStore.Put(ctr.Name(), newContainer, resourceCleaner); err != nil {
-			log.Errorf(ctx, "createCtr: failed to save progress of container %s: %v", newContainer.ID(), err)
+			log.Errorf(ctx, "CreateCtr: failed to save progress of container %s: %v", newContainer.ID(), err)
 		}
-		log.Infof(ctx, "createCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+		log.Infof(ctx, "CreateCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
 		return nil, ctx.Err()
 	}
 

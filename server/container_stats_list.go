@@ -45,7 +45,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 			// is deleted from underneath the call to this function.
 			if !errors.Is(err, cgroups.ErrCgroupDeleted) {
 				// The other errors are much less likely, and possibly useful to hear about.
-				log.Warnf(ctx, "unable to get stats for container %s: %v", container.ID(), err)
+				log.Warnf(ctx, "Unable to get stats for container %s: %v", container.ID(), err)
 			}
 			continue
 		}

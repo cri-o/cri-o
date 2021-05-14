@@ -41,7 +41,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 				// Not finding an ID in a filtered list should not be considered
 				// and error; it might have been deleted when stop was done.
 				// Log and return an empty struct.
-				log.Warnf(ctx, "unable to find pod %s with filter", filter.ID)
+				log.Warnf(ctx, "Unable to find pod %s with filter", filter.ID)
 				return &types.ListPodSandboxResponse{}, nil
 			}
 			sb := s.getSandbox(id)

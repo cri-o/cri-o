@@ -169,7 +169,7 @@ func (s *Server) restore(ctx context.Context) []string {
 	containersAndTheirImages := map[string]string{}
 	containers, err := s.Store().Containers()
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		log.Warnf(ctx, "could not read containers and sandboxes: %v", err)
+		log.Warnf(ctx, "Could not read containers and sandboxes: %v", err)
 	}
 	pods := map[string]*storage.RuntimeContainerMetadata{}
 	podContainers := map[string]*storage.RuntimeContainerMetadata{}
@@ -178,11 +178,11 @@ func (s *Server) restore(ctx context.Context) []string {
 	for i := range containers {
 		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(containers[i].ID)
 		if err2 != nil {
-			log.Warnf(ctx, "error parsing metadata for %s: %v, ignoring", containers[i].ID, err2)
+			log.Warnf(ctx, "Error parsing metadata for %s: %v, ignoring", containers[i].ID, err2)
 			continue
 		}
 		if !storage.IsCrioContainer(&metadata) {
-			log.Debugf(ctx, "container %s determined to not be a CRI-O container or sandbox", containers[i].ID)
+			log.Debugf(ctx, "Container %s determined to not be a CRI-O container or sandbox", containers[i].ID)
 			continue
 		}
 		names[containers[i].ID] = containers[i].Names
@@ -201,10 +201,10 @@ func (s *Server) restore(ctx context.Context) []string {
 		if err == nil {
 			continue
 		}
-		log.Warnf(ctx, "could not restore sandbox %s; deleting it and containers underneath it: %v", sbID, err)
+		log.Warnf(ctx, "Could not restore sandbox %s: %v", sbID, err)
 		for _, n := range names[sbID] {
 			if err := s.Store().DeleteContainer(n); err != nil && err != storageTypes.ErrNotAContainer {
-				log.Warnf(ctx, "unable to delete container %s: %v", n, err)
+				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the infra container name and the pod name for future use
 			if strings.Contains(n, infraName) {
@@ -214,13 +214,14 @@ func (s *Server) restore(ctx context.Context) []string {
 			}
 		}
 		// Go through the containers and delete any container that was under the deleted pod
+		log.Warnf(ctx, "Deleting all containers under sandbox %s since it could not be restored", sbID)
 		for k, v := range podContainers {
 			if v.PodID != sbID {
 				continue
 			}
 			for _, n := range names[k] {
 				if err := s.Store().DeleteContainer(n); err != nil && err != storageTypes.ErrNotAContainer {
-					log.Warnf(ctx, "unable to delete container %s: %v", n, err)
+					log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 				}
 				// Release the container name for future use
 				s.ReleaseContainerName(n)
@@ -299,7 +300,7 @@ func (s *Server) restore(ctx context.Context) []string {
 func (s *Server) cleanupSandboxesOnShutdown(ctx context.Context) {
 	_, err := os.Stat(shutdownFile)
 	if err == nil || !os.IsNotExist(err) {
-		log.Debugf(ctx, "shutting down all sandboxes, on shutdown")
+		log.Debugf(ctx, "Shutting down all sandboxes, on shutdown")
 		s.stopAllPodSandboxes(ctx)
 		err = os.Remove(shutdownFile)
 		if err != nil {
@@ -513,7 +514,7 @@ func New(
 		}
 	}()
 
-	log.Debugf(ctx, "sandboxes: %v", s.ContainerServer.ListSandboxes())
+	log.Debugf(ctx, "Sandboxes: %v", s.ContainerServer.ListSandboxes())
 
 	// Start a configuration watcher for the default config
 	s.config.StartWatcher()
@@ -537,7 +538,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 	// If so, we have upgrade, and we should wipe images.
 	shouldWipeImages, err := version.ShouldCrioWipe(s.config.VersionFilePersist)
 	if err != nil {
-		log.Warnf(ctx, "error encountered when checking whether cri-o should wipe images: %v", err)
+		log.Warnf(ctx, "Error encountered when checking whether cri-o should wipe images: %v", err)
 	}
 
 	// Note: some of these will fail if some aspect of the pod cleanup failed as well,
@@ -546,7 +547,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 	if shouldWipeImages {
 		for _, img := range imagesToDelete {
 			if err := s.removeImage(ctx, img); err != nil {
-				log.Warnf(ctx, "failed to remove image %s: %v", img, err)
+				log.Warnf(ctx, "Failed to remove image %s: %v", img, err)
 			}
 		}
 	}
@@ -708,50 +709,50 @@ func (s *Server) StartExitMonitor(ctx context.Context) {
 		for {
 			select {
 			case event := <-watcher.Events:
-				log.Debugf(ctx, "event: %v", event)
+				log.Debugf(ctx, "Event: %v", event)
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					containerID := filepath.Base(event.Name)
-					log.Debugf(ctx, "container or sandbox exited: %v", containerID)
+					log.Debugf(ctx, "Container or sandbox exited: %v", containerID)
 					c := s.GetContainer(containerID)
 					if c != nil {
-						log.Debugf(ctx, "container exited and found: %v", containerID)
+						log.Debugf(ctx, "Container exited and found: %v", containerID)
 						err := s.Runtime().UpdateContainerStatus(ctx, c)
 						if err != nil {
 							log.Warnf(ctx, "Failed to update container status %s: %v", containerID, err)
 						} else if err := s.ContainerStateToDisk(ctx, c); err != nil {
-							log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
+							log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), err)
 						}
 					} else {
 						sb := s.GetSandbox(containerID)
 						if sb != nil {
 							c := sb.InfraContainer()
 							if c == nil {
-								log.Warnf(ctx, "no infra container set for sandbox: %v", containerID)
+								log.Warnf(ctx, "No infra container set for sandbox: %v", containerID)
 								continue
 							}
-							log.Debugf(ctx, "sandbox exited and found: %v", containerID)
+							log.Debugf(ctx, "Sandbox exited and found: %v", containerID)
 							err := s.Runtime().UpdateContainerStatus(ctx, c)
 							if err != nil {
 								log.Warnf(ctx, "Failed to update sandbox infra container status %s: %v", c.ID(), err)
 							} else if err := s.ContainerStateToDisk(ctx, c); err != nil {
-								log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
+								log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), err)
 							}
 						}
 					}
 				}
 			case err := <-watcher.Errors:
-				log.Debugf(ctx, "watch error: %v", err)
+				log.Debugf(ctx, "Watch error: %v", err)
 				close(done)
 				return
 			case <-s.monitorsChan:
-				log.Debugf(ctx, "closing exit monitor...")
+				log.Debugf(ctx, "Closing exit monitor...")
 				close(done)
 				return
 			}
 		}
 	}()
 	if err := watcher.Add(s.config.ContainerExitsDir); err != nil {
-		log.Errorf(ctx, "watcher.Add(%q) failed: %s", s.config.ContainerExitsDir, err)
+		log.Errorf(ctx, "Watcher.Add(%q) failed: %s", s.config.ContainerExitsDir, err)
 		close(done)
 	}
 	<-done

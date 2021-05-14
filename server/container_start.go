@@ -39,12 +39,12 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			c.SetStartFailed(retErr)
 			if hooks != nil {
 				if err := hooks.PreStop(ctx, c, sandbox); err != nil {
-					log.Warnf(ctx, "failed to run pre-stop hook for container %q: %v", c.ID(), err)
+					log.Warnf(ctx, "Failed to run pre-stop hook for container %q: %v", c.ID(), err)
 				}
 			}
 		}
 		if err := s.ContainerStateToDisk(ctx, c); err != nil {
-			log.Warnf(ctx, "unable to write containers %s state to disk: %v", c.ID(), err)
+			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), err)
 		}
 	}()
 
