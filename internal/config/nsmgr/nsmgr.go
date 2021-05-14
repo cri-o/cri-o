@@ -118,14 +118,14 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 			"--gid-mapping="+getMappingsForPinns(cfg.IDMappings.GIDs()))
 	}
 
-	logrus.Debugf("calling pinns with %v", pinnsArgs)
+	logrus.Debugf("Calling pinns with %v", pinnsArgs)
 	output, err := exec.Command(mgr.pinnsPath, pinnsArgs...).CombinedOutput()
 	if err != nil {
-		logrus.Warnf("pinns %v failed: %s (%v)", pinnsArgs, string(output), err)
+		logrus.Warnf("Pinns %v failed: %s (%v)", pinnsArgs, string(output), err)
 		// cleanup the mounts
 		for _, ns := range cfg.Namespaces {
 			if mErr := unix.Unmount(ns.Path, unix.MNT_DETACH); mErr != nil && mErr != unix.EINVAL {
-				logrus.Warnf("failed to unmount %s: %v", ns.Path, mErr)
+				logrus.Warnf("Failed to unmount %s: %v", ns.Path, mErr)
 			}
 		}
 
@@ -138,7 +138,7 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 		if err != nil {
 			for _, nsToClose := range returnedNamespaces {
 				if err2 := nsToClose.Remove(); err2 != nil {
-					logrus.Errorf("failed to remove namespace after failed to create: %v", err2)
+					logrus.Errorf("Failed to remove namespace after failed to create: %v", err2)
 				}
 			}
 			return nil, err
