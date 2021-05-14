@@ -53,6 +53,20 @@ jobs:
           restore-keys: go-
       - run: make check-vendor
 
+  log-capitalization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-
+      - run: make check-log-lines
+
   get-script:
     runs-on: ubuntu-latest
     steps:

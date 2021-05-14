@@ -137,6 +137,10 @@ lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} linters
 	${GOLANGCI_LINT} run
 
+check-log-lines:
+	./hack/log-capitalized.sh
+	./hack/tree_status.sh
+
 shellfiles: ${SHFMT}
 	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh))
 
@@ -529,4 +533,5 @@ metrics-exporter: bin/metrics-exporter
 	bin/metrics-exporter \
 	metrics-exporter \
 	release \
-	get-script
+	get-script \
+	check-log-lines
