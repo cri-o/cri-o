@@ -405,7 +405,7 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 		return "", err
 	}
 
-	logrus.Debugf("setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
+	logrus.Debugf("Setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
 		sboxLogDir, c.config.LogPath, logPath,
 	)
 	return logPath, nil
