@@ -181,7 +181,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		if image == "" {
 			return ContainerInfo{}, ErrInvalidImageName
 		}
-		logrus.Debugf("couldn't find image %q, retrieving it", image)
+		logrus.Debugf("Couldn't find image %q, retrieving it", image)
 		sourceCtx := types.SystemContext{}
 		if systemContext != nil {
 			sourceCtx = *systemContext // A shallow copy
@@ -200,7 +200,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		if err != nil {
 			return ContainerInfo{}, err
 		}
-		logrus.Debugf("successfully pulled image %q", image)
+		logrus.Debugf("Successfully pulled image %q", image)
 	}
 	if img == nil && errors.Is(err, storage.ErrImageUnknown) {
 		if imageID == "" {
@@ -266,9 +266,9 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, img.ID, "", string(mdata), &coptions)
 	if err != nil {
 		if metadata.Pod {
-			logrus.Debugf("failed to create pod sandbox %s(%s): %v", metadata.PodName, metadata.PodID, err)
+			logrus.Debugf("Failed to create pod sandbox %s(%s): %v", metadata.PodName, metadata.PodID, err)
 		} else {
-			logrus.Debugf("failed to create container %s(%s): %v", metadata.ContainerName, containerID, err)
+			logrus.Debugf("Failed to create container %s(%s): %v", metadata.ContainerName, containerID, err)
 		}
 		return ContainerInfo{}, err
 	}
@@ -276,9 +276,9 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		*idMappingsOptions = coptions.IDMappingOptions
 	}
 	if metadata.Pod {
-		logrus.Debugf("created pod sandbox %q", container.ID)
+		logrus.Debugf("Created pod sandbox %q", container.ID)
 	} else {
-		logrus.Debugf("created container %q", container.ID)
+		logrus.Debugf("Created container %q", container.ID)
 	}
 
 	// If anything fails after this point, we need to delete the incomplete
@@ -293,7 +293,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 				}
 				return
 			}
-			logrus.Debugf("deleted partially-created container %q", container.ID)
+			logrus.Debugf("Deleted partially-created container %q", container.ID)
 		}
 	}()
 
@@ -316,9 +316,9 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		return ContainerInfo{}, err
 	}
 	if metadata.Pod {
-		logrus.Debugf("pod sandbox %q has work directory %q", container.ID, containerDir)
+		logrus.Debugf("Pod sandbox %q has work directory %q", container.ID, containerDir)
 	} else {
-		logrus.Debugf("container %q has work directory %q", container.ID, containerDir)
+		logrus.Debugf("Container %q has work directory %q", container.ID, containerDir)
 	}
 
 	containerRunDir, err := r.storageImageServer.GetStore().ContainerRunDirectory(container.ID)
@@ -326,9 +326,9 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		return ContainerInfo{}, err
 	}
 	if metadata.Pod {
-		logrus.Debugf("pod sandbox %q has run directory %q", container.ID, containerRunDir)
+		logrus.Debugf("Pod sandbox %q has run directory %q", container.ID, containerRunDir)
 	} else {
-		logrus.Debugf("container %q has run directory %q", container.ID, containerRunDir)
+		logrus.Debugf("Container %q has run directory %q", container.ID, containerRunDir)
 	}
 
 	metadata.MountLabel = container.MountLabel()
@@ -359,7 +359,7 @@ func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
 
 	image, err := store.Image(imageID)
 	if err != nil {
-		logrus.Debugf("failed to retrieve image %q: %v", imageID, err)
+		logrus.Debugf("Failed to retrieve image %q: %v", imageID, err)
 		return
 	}
 
@@ -388,11 +388,11 @@ func (r *runtimeService) DeleteContainer(idOrName string) error {
 	}
 	layer, err := r.storageImageServer.GetStore().Layer(container.LayerID)
 	if err != nil {
-		logrus.Debugf("failed to retrieve layer %q: %v", container.LayerID, err)
+		logrus.Debugf("Failed to retrieve layer %q: %v", container.LayerID, err)
 	}
 	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
 	if err != nil {
-		logrus.Debugf("failed to delete container %q: %v", container.ID, err)
+		logrus.Debugf("Failed to delete container %q: %v", container.ID, err)
 		return err
 	}
 	if layer != nil {
@@ -404,7 +404,7 @@ func (r *runtimeService) DeleteContainer(idOrName string) error {
 func (r *runtimeService) SetContainerMetadata(idOrName string, metadata *RuntimeContainerMetadata) error {
 	mdata, err := json.Marshal(&metadata)
 	if err != nil {
-		logrus.Debugf("failed to encode metadata for %q: %v", idOrName, err)
+		logrus.Debugf("Failed to encode metadata for %q: %v", idOrName, err)
 		return err
 	}
 	return r.storageImageServer.GetStore().SetMetadata(idOrName, string(mdata))
@@ -436,10 +436,10 @@ func (r *runtimeService) StartContainer(idOrName string) (string, error) {
 	}
 	mountPoint, err := r.storageImageServer.GetStore().Mount(container.ID, metadata.MountLabel)
 	if err != nil {
-		logrus.Debugf("failed to mount container %q: %v", container.ID, err)
+		logrus.Debugf("Failed to mount container %q: %v", container.ID, err)
 		return "", err
 	}
-	logrus.Debugf("mounted container %q at %q", container.ID, mountPoint)
+	logrus.Debugf("Mounted container %q at %q", container.ID, mountPoint)
 	return mountPoint, nil
 }
 
@@ -453,10 +453,10 @@ func (r *runtimeService) StopContainer(idOrName string) error {
 	}
 	_, err = r.storageImageServer.GetStore().Unmount(container.ID, false)
 	if err != nil {
-		logrus.Debugf("failed to unmount container %q: %v", container.ID, err)
+		logrus.Debugf("Failed to unmount container %q: %v", container.ID, err)
 		return err
 	}
-	logrus.Debugf("unmounted container %q", container.ID)
+	logrus.Debugf("Unmounted container %q", container.ID)
 	return nil
 }
 
