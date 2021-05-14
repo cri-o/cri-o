@@ -259,7 +259,7 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 	if !isServiceEnabled(irqBalancedName) || !isIrqConfigExists {
 		if _, err := exec.LookPath(irqBalancedName); err != nil {
 			// irqbalance is not installed, skip the rest; pod should still start, so return nil instead
-			logrus.Warnf("irqbalance binary not found: %v", err)
+			logrus.Warnf("Irqbalance binary not found: %v", err)
 			return nil
 		}
 		// run irqbalance in daemon mode, so this won't cause delay
@@ -270,7 +270,7 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 	}
 
 	if err := restartIrqBalanceService(); err != nil {
-		logrus.Warnf("irqbalance service restart failed: %v", err)
+		logrus.Warnf("Irqbalance service restart failed: %v", err)
 	}
 	return nil
 }
@@ -385,7 +385,7 @@ func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSm
 	}
 	if isServiceEnabled(irqBalancedName) {
 		if err := restartIrqBalanceService(); err != nil {
-			logrus.Warnf("irqbalance service restart failed: %v", err)
+			logrus.Warnf("Irqbalance service restart failed: %v", err)
 		}
 	}
 	return nil
