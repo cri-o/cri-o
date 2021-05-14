@@ -37,7 +37,7 @@ func main() {
 	command.SetGlobalVerbose(true)
 
 	if err := run(); err != nil {
-		logrus.Fatalf("unable to %v", err)
+		logrus.Fatalf("Unable to %v", err)
 	}
 }
 
