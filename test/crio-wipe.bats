@@ -11,6 +11,8 @@ function setup() {
 	export CONTAINER_VERSION_FILE="$TESTDIR"/version.tmp
 	export CONTAINER_VERSION_FILE_PERSIST="$TESTDIR"/version-persist.tmp
 	export CONTAINER_CLEAN_SHUTDOWN_FILE="$TESTDIR"/clean-shutdown.tmp
+	CONTAINER_NAMESPACES_DIR=$(mktemp -d)
+	export CONTAINER_NAMESPACES_DIR
 }
 
 function run_podman_with_args() {
@@ -23,6 +25,7 @@ function teardown() {
 	cleanup_test
 	run_podman_with_args stop -a
 	run_podman_with_args rm -fa
+	cleanup_namespaces_dir
 }
 
 # run crio_wipe calls crio_wipe and tests it succeeded
@@ -55,6 +58,12 @@ function test_crio_did_not_wipe_images() {
 	# check that the pause image was not removed
 	output=$(crictl images)
 	[[ "$output" == *"$IMAGE_USED"* ]]
+}
+
+# simulate a reboot by unmounting and removing the namespaces
+function cleanup_namespaces_dir() {
+	find "$CONTAINER_NAMESPACES_DIR" -type f -exec umount {} \;
+	rm -fr "$CONTAINER_NAMESPACES_DIR"
 }
 
 function start_crio_with_stopped_pod() {
@@ -205,11 +214,14 @@ function start_crio_with_stopped_pod() {
 }
 
 @test "internal_wipe remove containers and images when remove both" {
+	# simulate a reboot by having a removable namespaces dir
 	start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	rm "$CONTAINER_VERSION_FILE"
 	rm "$CONTAINER_VERSION_FILE_PERSIST"
+	# simulate a reboot by having a removable namespaces dir
+	cleanup_namespaces_dir
 
 	CONTAINER_INTERNAL_WIPE=true start_crio_no_setup
 	test_crio_wiped_containers
@@ -221,6 +233,8 @@ function start_crio_with_stopped_pod() {
 	stop_crio_no_clean
 
 	rm "$CONTAINER_VERSION_FILE"
+	# simulate a reboot by having a removable namespaces dir
+	cleanup_namespaces_dir
 
 	CONTAINER_INTERNAL_WIPE=true start_crio_no_setup
 	test_crio_wiped_containers
@@ -232,6 +246,8 @@ function start_crio_with_stopped_pod() {
 	stop_crio_no_clean
 
 	rm "$CONTAINER_VERSION_FILE_PERSIST"
+	# simulate a reboot by having a removable namespaces dir
+	cleanup_namespaces_dir
 
 	CONTAINER_INTERNAL_WIPE=true start_crio_no_setup
 	test_crio_wiped_containers
@@ -276,6 +292,8 @@ function start_crio_with_stopped_pod() {
 
 	runtime kill "$ctr_id" || true
 	runtime kill "$pod_id" || true
+	# simulate a reboot by having a removable namespaces dir
+	cleanup_namespaces_dir
 
 	# pretend like the CNI plugin is waiting for a container to start
 	mv "$CRIO_CNI_PLUGIN"/"$CNI_TYPE" "$CRIO_CNI_PLUGIN"/"$CNI_TYPE"-hidden
