@@ -814,9 +814,11 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *t
 		if dest == "" {
 			return nil, nil, fmt.Errorf("mount.ContainerPath is empty")
 		}
-
 		if m.HostPath == "" {
 			return nil, nil, fmt.Errorf("mount.HostPath is empty")
+		}
+		if m.HostPath == "/" && dest == "/" {
+			log.Warnf(ctx, "configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
 		src := filepath.Join(bindMountPrefix, m.HostPath)
 
