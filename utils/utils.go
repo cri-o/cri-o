@@ -21,6 +21,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
@@ -53,7 +54,8 @@ func StatusToExitCode(status int) int {
 
 // RunUnderSystemdScope adds the specified pid to a systemd scope
 func RunUnderSystemdScope(pid int, slice, unitName string, properties ...systemdDbus.Property) error {
-	conn, err := systemdDbus.New()
+	ctx := context.Background()
+	conn, err := systemdDbus.NewWithContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -67,7 +69,7 @@ func RunUnderSystemdScope(pid int, slice, unitName string, properties ...systemd
 		properties = append(properties, systemdDbus.PropSlice(slice))
 	}
 	ch := make(chan string)
-	_, err = conn.StartTransientUnit(unitName, "replace", properties, ch)
+	_, err = conn.StartTransientUnitContext(ctx, unitName, "replace", properties, ch)
 	if err != nil {
 		return err
 	}

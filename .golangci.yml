@@ -22,8 +22,10 @@ linters:
     - depguard
     - dogsled
     - dupl
+    - durationcheck
     - errcheck
     - exportloopref
+    - forcetypeassert
     - gochecknoinits
     - goconst
     - gocritic
@@ -32,20 +34,17 @@ linters:
     - gofumpt
     - goheader
     - goimports
-    - golint
     - goprintffuncname
     - gosimple
     - govet
+    - importas
     - ineffassign
-    - interfacer
     - makezero
-    - maligned
     - misspell
     - nakedret
     - nolintlint
     - prealloc
     - rowserrcheck
-    - scopelint
     - sqlclosecheck
     - staticcheck
     - structcheck
@@ -57,6 +56,7 @@ linters:
     - unused
     - varcheck
     - whitespace
+    # - cyclop
     # - errorlint
     # - exhaustive
     # - exhaustivestruct
@@ -69,16 +69,23 @@ linters:
     # - godox
     # - goerr113
     # - gomnd
+    # - gomoddirectives
     # - gomodguard
     # - gosec
+    # - ifshort
     # - lll
     # - nestif
+    # - nilerr
     # - nlreturn
     # - noctx
     # - paralleltest
     # - predeclared
+    # - promlinter
+    # - revive
+    # - tagliatelle
     # - testpackage
     # - thelper
+    # - wastedassign
     # - wrapcheck
     # - wsl
 linters-settings:
