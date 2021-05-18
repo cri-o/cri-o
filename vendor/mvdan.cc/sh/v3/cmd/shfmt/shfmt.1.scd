@@ -37,19 +37,23 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-d*
 	Error with a diff when the formatting differs.
 
+	The diff uses color when the output is a terminal.
+	To never use color, set a non-empty *NO_COLOR* or *TERM=dumb*.
+	To always use color, set a non-empty *FORCE_COLOR*.
+
 *-s*
 	Simplify the code.
 
 *-mn*
-	Minify the code to reduce its size (implies -s).
+	Minify the code to reduce its size (implies *-s*).
 
 ## Parser flags
 
 *-ln* <str>
-	Language variant to parse (bash/posix/mksh/bats, default "bash").
+	Language variant to parse (*bash*/*posix*/*mksh*/*bats*, default *bash*).
 
 *-p*
-	Shorthand for -ln=posix.
+	Shorthand for *-ln=posix*.
 
 *-filename* str
 	Provide a name for the standard input file.
@@ -57,10 +61,10 @@ predictable. Some aspects of the format can be configured via printer flags.
 ## Printer flags
 
 *-i* <uint>
-	Indent: 0 for tabs (default), >0 for number of spaces.
+	Indent: *0* for tabs (default), *>0* for number of spaces.
 
 *-bn*
-	Binary ops like && and | may start a line.
+	Binary ops like *&&* and *|* may start a line.
 
 *-ci*
 	Switch cases will be indented.
@@ -95,7 +99,7 @@ For CI, one can use a variant where formatting changes are just shown as diffs:
 The following formatting flags closely resemble Google's shell style defined in
 <https://google.github.io/styleguide/shell.xml>:
 
-	shfmt -i 2 -ci
+	shfmt -i 2 -ci -bn
 
 Below is a sample EditorConfig file as defined by <https://editorconfig.org/>,
 showing how to set any option:
