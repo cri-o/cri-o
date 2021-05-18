@@ -547,6 +547,7 @@ github.com/google/gofuzz
 # github.com/google/renameio v1.0.1
 ## explicit
 github.com/google/renameio
+github.com/google/renameio/maybe
 # github.com/google/uuid v1.2.0
 ## explicit
 github.com/google/uuid
@@ -746,7 +747,7 @@ github.com/openshift/imagebuilder/strslice
 # github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913
 github.com/ostreedev/ostree-go/pkg/glibobject
 github.com/ostreedev/ostree-go/pkg/otbuiltin
-# github.com/pkg/diff v0.0.0-20200914180035-5b29258ca4f7
+# github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e
 github.com/pkg/diff
 github.com/pkg/diff/ctxt
 github.com/pkg/diff/edit
@@ -920,7 +921,7 @@ golang.org/x/oauth2/internal
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
+# golang.org/x/sys v0.0.0-20210503080704-8803ae5d1324
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -928,7 +929,7 @@ golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
+# golang.org/x/term v0.0.0-20210503060354-a79de5458b56
 golang.org/x/term
 # golang.org/x/text v0.3.6
 golang.org/x/text/encoding
@@ -1430,9 +1431,9 @@ k8s.io/utils/net
 k8s.io/utils/nsenter
 k8s.io/utils/path
 k8s.io/utils/trace
-# mvdan.cc/editorconfig v0.1.1-0.20200121172147-e40951bde157
+# mvdan.cc/editorconfig v0.2.0
 mvdan.cc/editorconfig
-# mvdan.cc/sh/v3 v3.2.4
+# mvdan.cc/sh/v3 v3.3.0
 ## explicit
 mvdan.cc/sh/v3/cmd/shfmt
 mvdan.cc/sh/v3/fileutil
