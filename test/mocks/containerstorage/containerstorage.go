@@ -55,6 +55,35 @@ func (mr *MockStoreMockRecorder) ApplyDiff(arg0, arg1 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiff", reflect.TypeOf((*MockStore)(nil).ApplyDiff), arg0, arg1)
 }
 
+// ApplyDiffFromStagingDirectory mocks base method.
+func (m *MockStore) ApplyDiffFromStagingDirectory(arg0, arg1 string, arg2 *graphdriver.DriverWithDifferOutput, arg3 *graphdriver.ApplyDiffOpts) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ApplyDiffFromStagingDirectory", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ApplyDiffFromStagingDirectory indicates an expected call of ApplyDiffFromStagingDirectory.
+func (mr *MockStoreMockRecorder) ApplyDiffFromStagingDirectory(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiffFromStagingDirectory", reflect.TypeOf((*MockStore)(nil).ApplyDiffFromStagingDirectory), arg0, arg1, arg2, arg3)
+}
+
+// ApplyDiffWithDiffer mocks base method.
+func (m *MockStore) ApplyDiffWithDiffer(arg0 string, arg1 *graphdriver.ApplyDiffOpts, arg2 graphdriver.Differ) (*graphdriver.DriverWithDifferOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ApplyDiffWithDiffer", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*graphdriver.DriverWithDifferOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ApplyDiffWithDiffer indicates an expected call of ApplyDiffWithDiffer.
+func (mr *MockStoreMockRecorder) ApplyDiffWithDiffer(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiffWithDiffer", reflect.TypeOf((*MockStore)(nil).ApplyDiffWithDiffer), arg0, arg1, arg2)
+}
+
 // Changes mocks base method.
 func (m *MockStore) Changes(arg0, arg1 string) ([]archive.Change, error) {
 	m.ctrl.T.Helper()
@@ -68,6 +97,20 @@ func (m *MockStore) Changes(arg0, arg1 string) ([]archive.Change, error) {
 func (mr *MockStoreMockRecorder) Changes(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Changes", reflect.TypeOf((*MockStore)(nil).Changes), arg0, arg1)
+}
+
+// CleanupStagingDirectory mocks base method.
+func (m *MockStore) CleanupStagingDirectory(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanupStagingDirectory", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanupStagingDirectory indicates an expected call of CleanupStagingDirectory.
+func (mr *MockStoreMockRecorder) CleanupStagingDirectory(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupStagingDirectory", reflect.TypeOf((*MockStore)(nil).CleanupStagingDirectory), arg0)
 }
 
 // Container mocks base method.
@@ -351,6 +394,21 @@ func (m *MockStore) DiffSize(arg0, arg1 string) (int64, error) {
 func (mr *MockStoreMockRecorder) DiffSize(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiffSize", reflect.TypeOf((*MockStore)(nil).DiffSize), arg0, arg1)
+}
+
+// DifferTarget mocks base method.
+func (m *MockStore) DifferTarget(arg0 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DifferTarget", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DifferTarget indicates an expected call of DifferTarget.
+func (mr *MockStoreMockRecorder) DifferTarget(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DifferTarget", reflect.TypeOf((*MockStore)(nil).DifferTarget), arg0)
 }
 
 // Exists mocks base method.
