@@ -6,11 +6,12 @@ http://src.illumos.org/source/xref/illumos-gate/usr/src/lib/libc/port/gen/pt.c
 
 import (
 	"errors"
-	"golang.org/x/sys/unix"
 	"os"
 	"strconv"
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 const NODEV = ^uint64(0)
@@ -45,13 +46,13 @@ func open() (pty, tty *os.File, err error) {
 	t := os.NewFile(uintptr(slavefd), sname)
 
 	// pushing terminal driver STREAMS modules as per pts(7)
-	for _, mod := range([]string{"ptem", "ldterm", "ttcompat"}) {
+	for _, mod := range []string{"ptem", "ldterm", "ttcompat"} {
 		err = streams_push(t, mod)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
-	
+
 	return p, t, nil
 }
 
@@ -129,7 +130,7 @@ func streams_push(f *os.File, mod string) error {
 	// https://www.illumos.org/issues/9042
 	// but since we are not using libc or XPG4.2, we should not be
 	// double-pushing modules
-	
+
 	err = ioctl(f.Fd(), I_FIND, uintptr(unsafe.Pointer(&buf[0])))
 	if err != nil {
 		return nil
