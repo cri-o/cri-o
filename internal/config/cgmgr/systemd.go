@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
@@ -88,14 +89,18 @@ func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string
 
 	if resources != nil && resources.CPU != nil {
 		if resources.CPU.Cpus != "" {
-			bits, err := systemd.RangeToBits(resources.CPU.Cpus)
-			if err != nil {
-				return "", errors.Wrapf(err, "cpuset conversion error")
+			if !node.SystemdHasAllowedCPUs() {
+				logrus.Errorf("Systemd does not support AllowedCPUs; skipping setting for workload")
+			} else {
+				bits, err := systemd.RangeToBits(resources.CPU.Cpus)
+				if err != nil {
+					return "", errors.Wrapf(err, "cpuset conversion error")
+				}
+				props = append(props, systemdDbus.Property{
+					Name:  "AllowedCPUs",
+					Value: dbus.MakeVariant(bits),
+				})
 			}
-			props = append(props, systemdDbus.Property{
-				Name:  "AllowedCPUs",
-				Value: dbus.MakeVariant(bits),
-			})
 		}
 		if resources.CPU.Shares != nil {
 			props = append(props, systemdDbus.Property{
