@@ -13,12 +13,12 @@ require (
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
 	github.com/containers/buildah v1.20.1
-	github.com/containers/common v0.37.1
+	github.com/containers/common v0.38.2
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.12.0
 	github.com/containers/ocicrypt v1.1.1
 	github.com/containers/podman/v3 v3.1.2
-	github.com/containers/storage v1.30.2
+	github.com/containers/storage v1.30.3
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.12
