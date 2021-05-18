@@ -8,6 +8,8 @@ function setup() {
 	setup_test
 	sboxconfig="$TESTDIR/sbox.json"
 	ctrconfig="$TESTDIR/ctr.json"
+	systemd_supports_cpuset=$(systemctl show --property=AllowedCPUs systemd || true)
+	export systemd_supports_cpuset
 }
 
 function teardown() {
@@ -81,11 +83,14 @@ function check_conmon_fields() {
 			[[ "$cpushares" == *"$found_cpushares"* ]]
 		fi
 	else
-		info="$(systemctl show --property=AllowedCPUs --property=CPUShares crio-conmon-"$ctr_id".scope)"
-		if [ -z "$cpuset" ]; then
-			echo "$info" | grep -E '^AllowedCPUs=$'
-		else
-			[[ "$info" == *"AllowedCPUs=$cpuset"* ]]
+		# don't test cpuset if it's not supported by systemd
+		if [[ -n "$systemd_supports_cpuset" ]]; then
+			info="$(systemctl show --property=AllowedCPUs crio-conmon-"$ctr_id".scope)"
+			if [ -z "$cpuset" ]; then
+				echo "$info" | grep -E '^AllowedCPUs=$'
+			else
+				[[ "$info" == *"AllowedCPUs=$cpuset"* ]]
+			fi
 		fi
 
 		info="$(systemctl show --property=CPUShares crio-conmon-"$ctr_id".scope)"

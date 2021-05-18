@@ -56,6 +56,13 @@ func ValidateConfig() error {
 			fatal:     false,
 		},
 		{
+			name:      "systemd AllowedCPUs",
+			init:      SystemdHasAllowedCPUs,
+			err:       &systemdHasAllowedCPUsErr,
+			activated: &systemdHasAllowedCPUs,
+			fatal:     false,
+		},
+		{
 			name:      "fs.may_detach_mounts sysctl",
 			init:      checkFsMayDetachMounts,
 			err:       &checkFsMayDetachMountsErr,
