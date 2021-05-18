@@ -17,53 +17,19 @@ limitations under the License.
 package http
 
 import (
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
-
-	"github.com/pkg/errors"
+	"bytes"
 )
 
 // GetURLResponse returns the HTTP response for the provided URL if the request succeeds
 func GetURLResponse(url string, trim bool) (string, error) {
-	respBytes, err := GetURLResponseWithTimeOut(url, 0*time.Second)
+	resp, err := NewAgent().Get(url)
 	if err != nil {
 		return "", err
 	}
 
-	respString := string(respBytes)
 	if trim {
-		respString = strings.TrimSpace(respString)
+		resp = bytes.TrimSpace(resp)
 	}
 
-	return respString, nil
-}
-
-// GetURLResponseWithTimeOut returns the HTTP response for the provided URL if the request succeeds
-// using a timeout
-func GetURLResponseWithTimeOut(url string, timeout time.Duration) ([]byte, error) {
-	client := http.Client{
-		Timeout: timeout,
-	}
-
-	resp, httpErr := client.Get(url)
-	if httpErr != nil {
-		return nil, errors.Wrapf(httpErr, "an error occurred GET-ing %s", url)
-	}
-
-	defer resp.Body.Close()
-	statusOK := resp.StatusCode >= 200 && resp.StatusCode < 300
-	if !statusOK {
-		errMsg := fmt.Sprintf("HTTP status not OK (%v) for %s", resp.StatusCode, url)
-		return nil, errors.New(errMsg)
-	}
-
-	respBytes, ioErr := ioutil.ReadAll(resp.Body)
-	if ioErr != nil {
-		return nil, errors.Wrapf(ioErr, "could not handle the response body for %s", url)
-	}
-
-	return respBytes, nil
+	return string(resp), nil
 }
