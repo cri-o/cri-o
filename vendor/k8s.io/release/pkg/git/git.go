@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/url"
 	"os"
@@ -40,9 +39,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/release/pkg/command"
 	"k8s.io/release/pkg/release/regex"
-	"k8s.io/release/pkg/util"
+	"sigs.k8s.io/release-utils/command"
+	"sigs.k8s.io/release-utils/util"
 )
 
 const (
@@ -343,7 +342,7 @@ func CloneOrOpenRepo(repoPath, repoURL string, useSSH bool) (*Repo, error) {
 		}
 	} else {
 		// No repoPath given, use a random temp dir instead
-		t, err := ioutil.TempDir("", "k8s-")
+		t, err := os.MkdirTemp("", "k8s-")
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to create temp dir")
 		}
@@ -438,9 +437,10 @@ func (r *Repo) Cleanup() error {
 	return os.RemoveAll(r.dir)
 }
 
-// RevParse parses a git revision and returns a SHA1 on success, otherwise an
+// RevParseTag parses a git revision and returns a SHA1 on success, otherwise an
 // error.
-func (r *Repo) RevParse(rev string) (string, error) {
+// If the revision does not match a tag add the remote origin in the revision.
+func (r *Repo) RevParseTag(rev string) (string, error) {
 	matched, err := regexp.MatchString(`v\d+\.\d+\.\d+.*`, rev)
 	if err != nil {
 		return "", err
@@ -459,7 +459,31 @@ func (r *Repo) RevParse(rev string) (string, error) {
 	return ref.String(), nil
 }
 
-// RevParseShort parses a git revision and returns a SHA1 trimmed to the length
+// RevParse parses a git revision and returns a SHA1 on success, otherwise an
+// error.
+func (r *Repo) RevParse(rev string) (string, error) {
+	// Try to resolve the rev
+	ref, err := r.inner.ResolveRevision(plumbing.Revision(rev))
+	if err != nil {
+		return "", err
+	}
+
+	return ref.String(), nil
+}
+
+// RevParseTagShort parses a git revision and returns a SHA1 trimmed to the length
+// 10 on success, otherwise an error.
+// If the revision does not match a tag add the remote origin in the revision.
+func (r *Repo) RevParseTagShort(rev string) (string, error) {
+	fullRev, err := r.RevParseTag(rev)
+	if err != nil {
+		return "", err
+	}
+
+	return fullRev[:10], nil
+}
+
+// RevParseTagShort parses a git revision and returns a SHA1 trimmed to the length
 // 10 on success, otherwise an error.
 func (r *Repo) RevParseShort(rev string) (string, error) {
 	fullRev, err := r.RevParse(rev)
@@ -519,7 +543,7 @@ func (r *Repo) LatestNonPatchFinalToMinor() (DiscoverResult, error) {
 	latestVersion := versions[0]
 	latestVersionTag := util.SemverToTagString(latestVersion)
 	logrus.Debugf("Latest non patch version %s", latestVersionTag)
-	end, err := r.RevParse(latestVersionTag)
+	end, err := r.RevParseTag(latestVersionTag)
 	if err != nil {
 		return DiscoverResult{}, err
 	}
@@ -527,7 +551,7 @@ func (r *Repo) LatestNonPatchFinalToMinor() (DiscoverResult, error) {
 	previousVersion := versions[1]
 	previousVersionTag := util.SemverToTagString(previousVersion)
 	logrus.Debugf("Previous non patch version %s", previousVersionTag)
-	start, err := r.RevParse(previousVersionTag)
+	start, err := r.RevParseTag(previousVersionTag)
 	if err != nil {
 		return DiscoverResult{}, err
 	}
@@ -569,13 +593,13 @@ func (r *Repo) latestNonPatchFinalVersions() ([]semver.Version, error) {
 
 func (r *Repo) releaseBranchOrMainRef(major, minor uint64) (sha, rev string, err error) {
 	relBranch := fmt.Sprintf("release-%d.%d", major, minor)
-	sha, err = r.RevParse(relBranch)
+	sha, err = r.RevParseTag(relBranch)
 	if err == nil {
 		logrus.Debugf("Found release branch %s", relBranch)
 		return sha, relBranch, nil
 	}
 
-	sha, err = r.RevParse(DefaultBranch)
+	sha, err = r.RevParseTag(DefaultBranch)
 	if err == nil {
 		logrus.Debugf("No release branch found, using %s", DefaultBranch)
 		return sha, DefaultBranch, nil
@@ -794,14 +818,14 @@ func (r *Repo) LatestPatchToPatch(branch string) (DiscoverResult, error) {
 
 	logrus.Debugf("Parsing latest tag %s%v", util.TagPrefix, latestTag)
 	latestVersionTag := util.SemverToTagString(latestTag)
-	end, err := r.RevParse(latestVersionTag)
+	end, err := r.RevParseTag(latestVersionTag)
 	if err != nil {
 		return DiscoverResult{}, errors.Wrapf(err, "parsing version %v", latestTag)
 	}
 
 	logrus.Debugf("Parsing previous tag %s%v", util.TagPrefix, prevTag)
 	previousVersionTag := util.SemverToTagString(prevTag)
-	start, err := r.RevParse(previousVersionTag)
+	start, err := r.RevParseTag(previousVersionTag)
 	if err != nil {
 		return DiscoverResult{}, errors.Wrapf(err, "parsing previous version %v", prevTag)
 	}
@@ -830,7 +854,7 @@ func (r *Repo) LatestPatchToLatest(branch string) (DiscoverResult, error) {
 
 	logrus.Debugf("Parsing latest tag %s%v", util.TagPrefix, latestTag)
 	latestVersionTag := util.SemverToTagString(latestTag)
-	start, err := r.RevParse(latestVersionTag)
+	start, err := r.RevParseTag(latestVersionTag)
 	if err != nil {
 		return DiscoverResult{}, errors.Wrapf(err, "parsing version %v", latestTag)
 	}

@@ -9,9 +9,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/release/pkg/command"
 	kgit "k8s.io/release/pkg/git"
-	"k8s.io/release/pkg/util"
+	"sigs.k8s.io/release-utils/command"
+	"sigs.k8s.io/release-utils/env"
 )
 
 const (
@@ -29,7 +29,7 @@ func main() {
 	flag.BoolVar(
 		&dryRun,
 		"dry-run",
-		!util.IsEnvSet(dryRunEnv),
+		!env.IsSet(dryRunEnv),
 		"do not really push, just do a dry run",
 	)
 	flag.Parse()

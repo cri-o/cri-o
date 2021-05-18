@@ -26,7 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/release/pkg/release/regex"
-	"k8s.io/release/pkg/util"
+	"sigs.k8s.io/release-utils/util"
 )
 
 const (

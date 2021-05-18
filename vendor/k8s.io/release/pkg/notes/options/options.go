@@ -105,6 +105,9 @@ type Options struct {
 	// log level
 	Debug bool
 
+	// EXPERIMENTAL: Feature flag for using v2 implementation to list commits
+	ListReleaseNotesV2 bool
+
 	// RecordDir specifies the directory for API call recordings. Cannot be
 	// used together with ReplayDir.
 	RecordDir string
@@ -207,7 +210,7 @@ func (o *Options) ValidateAndFinish() (err error) {
 			return err
 		}
 		if o.StartRev != "" && o.StartSHA == "" {
-			sha, err := repo.RevParse(o.StartRev)
+			sha, err := repo.RevParseTag(o.StartRev)
 			if err != nil {
 				return errors.Wrapf(err, "resolving %s", o.StartRev)
 			}
@@ -215,7 +218,7 @@ func (o *Options) ValidateAndFinish() (err error) {
 			o.StartSHA = sha
 		}
 		if o.EndRev != "" && o.EndSHA == "" {
-			sha, err := repo.RevParse(o.EndRev)
+			sha, err := repo.RevParseTag(o.EndRev)
 			if err != nil {
 				return errors.Wrapf(err, "resolving %s", o.EndRev)
 			}

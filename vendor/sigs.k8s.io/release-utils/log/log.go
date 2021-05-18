@@ -25,14 +25,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/release/pkg/command"
+	"sigs.k8s.io/release-utils/command"
 )
 
 // SetupGlobalLogger uses to provided log level string and applies it globally.
 func SetupGlobalLogger(level string) error {
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableTimestamp: true,
-		ForceColors:      true,
+		ForceColors:      false,
 	})
 
 	lvl, err := logrus.ParseLevel(level)

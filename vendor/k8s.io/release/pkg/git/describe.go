@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"k8s.io/release/pkg/command"
+	"sigs.k8s.io/release-utils/command"
 )
 
 // DescribeOptions is the type for the argument passed to repo.Describe

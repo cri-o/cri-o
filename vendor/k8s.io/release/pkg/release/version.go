@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/release/pkg/git"
-	"k8s.io/release/pkg/http"
+	"sigs.k8s.io/release-utils/http"
 )
 
 // Version is a wrapper around version related functionality

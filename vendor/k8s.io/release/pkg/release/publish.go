@@ -19,7 +19,6 @@ package release
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,9 +27,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/release/pkg/gcp"
-	"k8s.io/release/pkg/http"
 	"k8s.io/release/pkg/object"
-	"k8s.io/release/pkg/util"
+	"sigs.k8s.io/release-utils/http"
+	"sigs.k8s.io/release-utils/util"
 )
 
 // Publisher is the structure for publishing anything release related
@@ -114,7 +113,7 @@ func (d *defaultPublisher) NormalizePath(pathParts ...string) (string, error) {
 }
 
 func (*defaultPublisher) TempDir(dir, pattern string) (name string, err error) {
-	return ioutil.TempDir(dir, pattern)
+	return os.MkdirTemp(dir, pattern)
 }
 
 func (d *defaultPublisher) CopyToLocal(remote, local string) error {
@@ -122,7 +121,7 @@ func (d *defaultPublisher) CopyToLocal(remote, local string) error {
 }
 
 func (*defaultPublisher) ReadFile(filename string) ([]byte, error) {
-	return ioutil.ReadFile(filename)
+	return os.ReadFile(filename)
 }
 
 func (*defaultPublisher) Unmarshal(data []byte, v interface{}) error {
@@ -134,7 +133,7 @@ func (*defaultPublisher) Marshal(v interface{}) ([]byte, error) {
 }
 
 func (*defaultPublisher) TempFile(dir, pattern string) (f *os.File, err error) {
-	return ioutil.TempFile(dir, pattern)
+	return os.CreateTemp(dir, pattern)
 }
 
 func (d *defaultPublisher) CopyToRemote(local, remote string) error {
@@ -320,7 +319,7 @@ func (p *Publisher) PublishToGcs(
 	}
 
 	latestFile := filepath.Join(uploadDir, "latest")
-	if err := ioutil.WriteFile(
+	if err := os.WriteFile(
 		latestFile, []byte(version), os.FileMode(0o644),
 	); err != nil {
 		return errors.Wrap(err, "write latest version file")

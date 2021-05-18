@@ -14,24 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+package env
 
 import (
-	"os"
+	"sigs.k8s.io/release-utils/env/internal"
 )
 
-// EnvDefault returns either the provided environment variable for the given
-// `key` or the default value `def` if not set.
-func EnvDefault(key, def string) string {
-	value, ok := os.LookupEnv(key)
+// Default returns either the provided environment variable for the given key
+// or the default value def if not set.
+func Default(key, def string) string {
+	value, ok := internal.Impl.LookupEnv(key)
 	if !ok || value == "" {
 		return def
 	}
 	return value
 }
 
-// IsEnvSet returns true if an environment variable is set
-func IsEnvSet(key string) bool {
-	_, ok := os.LookupEnv(key)
+// IsSet returns true if an environment variable is set.
+func IsSet(key string) bool {
+	_, ok := internal.Impl.LookupEnv(key)
 	return ok
 }
