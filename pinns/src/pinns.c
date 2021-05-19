@@ -19,6 +19,8 @@
 #include "sysctl.h"
 
 static bool is_host_ns(const char* const optarg);
+static int setup_unbindable_bindpath(const char *pin_path, const char *ns_name);
+static int create_bind_root(char *bind_root, size_t size, const char *pin_path, const char *ns_name);
 static int bind_ns(const char *pin_path, const char *filename, const char *ns_name, pid_t pid);
 static int directory_exists_or_create(const char* path);
 
@@ -46,6 +48,7 @@ int main(int argc, char **argv) {
   bool bind_ipc = false;
   bool bind_user = false;
   bool bind_cgroup = false;
+  bool bind_mount = false;
   char *sysctls = NULL;
   char res;
 
@@ -56,6 +59,7 @@ int main(int argc, char **argv) {
       {"net", optional_argument, NULL, 'n'},
       {"user", optional_argument, NULL, 'U'},
       {"cgroup", optional_argument, NULL, 'c'},
+      {"mnt", optional_argument, NULL, 'm'},
       {"dir", required_argument, NULL, 'd'},
       {"filename", required_argument, NULL, 'f'},
       {"uid-mapping", optional_argument, NULL, UID_MAPPING},
@@ -63,7 +67,7 @@ int main(int argc, char **argv) {
       {"sysctl", optional_argument, NULL, 's'},
   };
 
-  while ((c = getopt_long(argc, argv, "pchuUind:f:s:", long_options, NULL)) != -1) {
+  while ((c = getopt_long(argc, argv, "mpchuUind:f:s:", long_options, NULL)) != -1) {
     switch (c) {
     case 'u':
       if (!is_host_ns (optarg))
@@ -99,6 +103,12 @@ int main(int argc, char **argv) {
       break;
 #endif
       pexit("unsharing cgroups is not supported by this pinns version");
+    case 'm':
+      if (!is_host_ns (optarg))
+        unshare_flags |= CLONE_NEWNS;
+      bind_mount = true;
+      num_unshares++;
+      break;
     case 'd':
       pin_path = optarg;
       break;
@@ -143,7 +153,7 @@ int main(int argc, char **argv) {
   if (!bind_user && (uid_mapping != NULL || gid_mapping != NULL))
     nexit("Mappings specified without creating a new user namespace");
 
-  if (!bind_user) {
+  if (!bind_user && !bind_mount) {
     /* Use pid=0 to indicate using the current process.  */
     pid = 0;
 
@@ -151,7 +161,7 @@ int main(int argc, char **argv) {
       pexit("Failed to unshare namespaces");
     }
   } else {
-    /* if we create a user namespace, we need a new process.  */
+    /* if we create a user or mount namespace, we need a new process. */
     if (socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, p))
       pexit("socketpair");
 
@@ -164,22 +174,25 @@ int main(int argc, char **argv) {
 
       if (prctl(PR_SET_PDEATHSIG, SIGKILL) < 0)
         pexit("Failed to prctl");
-      if (unshare(CLONE_NEWUSER) < 0)
-        pexit("Failed to unshare namespaces");
 
-      /* Notify that the user namespace is created.  */
-      if (TEMP_FAILURE_RETRY(write(p[1], "0", 1)) < 0)
-        pexit("Failed to write on sync pipe");
+      if (bind_user) {
+        if (unshare(CLONE_NEWUSER) < 0)
+          pexit("Failed to unshare namespaces");
 
-      /* Wait for the mappings to be written.  */
-      res = '1';
-      if (TEMP_FAILURE_RETRY(read(p[1], &res, 1)) < 0 || res != '0')
-        pexit("Failed to read from the sync pipe");
+        /* Notify that the user namespace is created.  */
+        if (TEMP_FAILURE_RETRY(write(p[1], "0", 1)) < 0)
+          pexit("Failed to write on sync pipe");
 
-      if (TEMP_FAILURE_RETRY(setresuid(0, 0, 0)) < 0)
-        pexit("Failed to setresuid");
-      if (TEMP_FAILURE_RETRY(setresgid(0, 0, 0)) < 0)
-        pexit("Failed to setresgid");
+        /* Wait for the mappings to be written.  */
+        res = '1';
+        if (TEMP_FAILURE_RETRY(read(p[1], &res, 1)) < 0 || res != '0')
+          pexit("Failed to read from the sync pipe");
+
+        if (TEMP_FAILURE_RETRY(setresuid(0, 0, 0)) < 0)
+          pexit("Failed to setresuid");
+        if (TEMP_FAILURE_RETRY(setresgid(0, 0, 0)) < 0)
+          pexit("Failed to setresgid");
+      }
 
       /* Now create all the other namespaces that are owned by the correct user.  */
       if (unshare(unshare_flags & ~CLONE_NEWUSER) < 0)
@@ -196,25 +209,29 @@ int main(int argc, char **argv) {
         pause();
       _exit (EXIT_SUCCESS);
     }
+
     if (TEMP_FAILURE_RETRY(close(p[1])) < 0)
       pexit("Failed to close pipe");
 
-    /* Wait for user namespace creation.  */
-    res = '1';
-    if (TEMP_FAILURE_RETRY(read(p[0], &res, 1)) < 0 || res != '0')
-      pexit("Failed to read from the sync pipe");
+    if (bind_user) {
+      /* Wait for user namespace creation.  */
+      res = '1';
+      if (TEMP_FAILURE_RETRY(read(p[0], &res, 1)) < 0 || res != '0')
+        pexit("Failed to read from the sync pipe");
 
-    if (gid_mapping && write_mapping_file(pid, gid_mapping, true) < 0)
-      pexit("Cannot write gid mappings");
+      /* Write user mappings */
+      if (gid_mapping && write_mapping_file(pid, gid_mapping, true) < 0)
+        pexit("Cannot write gid mappings");
 
-    if (uid_mapping && write_mapping_file(pid, uid_mapping, false) < 0)
-      pexit("Cannot write gid mappings");
+      if (uid_mapping && write_mapping_file(pid, uid_mapping, false) < 0)
+        pexit("Cannot write gid mappings");
 
-    /* Notify that the mappings were written.  */
-    if (TEMP_FAILURE_RETRY(write(p[0], "0", 1)) < 0)
-      pexit("Failed to write on sync pipe");
+      /* Notify that the mappings were written.  */
+      if (TEMP_FAILURE_RETRY(write(p[0], "0", 1)) < 0)
+        pexit("Failed to write on sync pipe");
+    }
 
-    /* Wait for namespaces creation.  */
+    /* Wait for non-user namespace creation.  */
     res = '1';
     if (TEMP_FAILURE_RETRY(read(p[0], &res, 1)) < 0 || res != '0')
       pexit("Failed to read from the sync pipe");
@@ -256,6 +273,16 @@ int main(int argc, char **argv) {
     }
   }
 
+  if (bind_mount) {
+    const char *ns_name = "mnt";
+    if (setup_unbindable_bindpath(pin_path, ns_name) < 0) {
+        return EXIT_FAILURE;
+    }
+    if (bind_ns(pin_path, filename, ns_name, pid) < 0) {
+      return EXIT_FAILURE;
+    }
+  }
+
   /* Avoid creating a zombie.  */
   if (pid > 0 && kill(pid, SIGKILL) == 0)
     waitpid(pid, NULL, 0);
@@ -268,20 +295,48 @@ static bool is_host_ns(const char* const optarg) {
   return optarg && !strcmp (optarg, HOSTNS);
 }
 
+/* Mount namespaces can only be bound into unsharable mount namespaces (to
+ * avoid infinite loops), so force the pin_path to be a bind-mount to
+ * itself and then marked as unsharable. */
+static int setup_unbindable_bindpath(const char *pin_path, const char *ns_name) {
+  char bind_root[PATH_MAX];
+
+  // first, verify the /$PATH/$NSns directory exists
+  if (create_bind_root(bind_root, PATH_MAX - 1, pin_path, ns_name) < 0) {
+    return -1;
+  }
+
+  // TODO: Check if bind_root is already a mountpoint
+  // For now, just blindly try to bindmount itself to itself, ignoring
+  // failures.  If this succeeds, we know it's a mountpoint.  If it fails it
+  // probably failed because it's already a mountpoint, and if it's not, the
+  // call to set MS_UNBINDABLE will fail next.
+  mount(bind_root, bind_root, NULL, MS_BIND, NULL);
+
+  // Now that bind_root is definitely a mountpoint, set it to be UNBINDABLE (idempotent-safe)
+  if (mount(NULL, bind_root, NULL, MS_UNBINDABLE, NULL) < 0) {
+    pwarnf("Could not make %s an unsharable mountpoint", bind_root);
+    return -1;
+  }
+  return 0;
+}
+
 static int bind_ns(const char *pin_path, const char *filename, const char *ns_name, pid_t pid) {
   char bind_path[PATH_MAX];
+  int bind_path_len;
   char ns_path[PATH_MAX];
   int fd;
 
   // first, verify the /$PATH/$NSns directory exists
-  snprintf(bind_path, PATH_MAX - 1, "%s/%sns", pin_path, ns_name);
-  if (directory_exists_or_create(bind_path) < 0) {
-    pwarnf("%s exists and is not a directory", bind_path);
+  bind_path_len = create_bind_root(bind_path, PATH_MAX - 1, pin_path, ns_name);
+  if (bind_path_len < 0) {
     return -1;
   }
 
-  // now, get the real path we want
-  snprintf(bind_path, PATH_MAX - 1, "%s/%sns/%s", pin_path, ns_name, filename);
+  // now, get the real path we want: /$PATH/$NSns/$FILENAME
+  bind_path[bind_path_len++] = '/';
+  bind_path[bind_path_len] = '\0';
+  strncat(bind_path, filename, PATH_MAX - bind_path_len - 1);
 
   fd = open(bind_path, O_RDONLY | O_CREAT | O_EXCL, 0);
   if (fd < 0) {
@@ -365,3 +420,16 @@ static int directory_exists_or_create(const char* path) {
   }
   return 0;
 }
+
+// Verify the /$PATH/$NSns directory exists and is a directory, returning the
+// expanded path name in bind_root and returning the length of bind_root (or -1
+// on error)
+static int create_bind_root(char *bind_root, size_t size, const char *pin_path, const char *ns_name) {
+  int len = snprintf(bind_root, size, "%s/%sns", pin_path, ns_name);
+  if (directory_exists_or_create(bind_root) < 0) {
+    pwarnf("%s exists and is not a directory", bind_root);
+    return -1;
+  }
+  return len;
+}
+
