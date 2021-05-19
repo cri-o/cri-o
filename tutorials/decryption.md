@@ -37,12 +37,12 @@ Although the latest master branch of the `docker/distribution` registry supports
 
 For the easy verification of the image decryption capabilities, we are hosting a test image at,
 
-`us.icr.io/ecins/encrypted_image:encrypted`
+`docker.io/enccont/encrypted_image:encrypted`
 
 Go ahead and try to download this image using the read-only credentials given below,
 
 ```sh
-crictl -r unix:///var/run/crio/crio.sock pull --creds iamapikey:x_egxeGnaXi4GfKMbp0pYw0iErUAIjn5uYQIHTZ2RKof us.icr.io/ecins/encrypted_image:encrypted
+crictl -r unix:///var/run/crio/crio.sock pull docker.io/enccont/encrypted_image:encrypted
 ```
 
 Since we haven't provided `CRI-O` the access to the private key required to decrypt this image you should see a failure like this on your console,
@@ -77,20 +77,20 @@ Please save this key in the folder `/etc/crio/keys` with the name of your choice
 Now that we have the private key that can be used by `CRI-O`, let's try to download the image again,
 
 ```sh
-crictl -r unix:///var/run/crio/crio.sock pull --creds iamapikey:x_egxeGnaXi4GfKMbp0pYw0iErUAIjn5uYQIHTZ2RKof us.icr.io/ecins/encrypted_image:encrypted
+crictl -r unix:///var/run/crio/crio.sock pull docker.io/enccont/encrypted_image:encrypted
 ```
 
 If `CRI-O` was able to read the keys, it would have decrypted the image. You should see something like this on your console,
 
 ```sh
-Image is up to date for us.icr.io/ecins/encrypted_image@sha256:2c3c078642b13e34069e55adfd8b93186950860383e49bdeab4858b4a4bdb1bd
+Image is up to date for docker.io/enccont/encrypted_image@sha256:2c3c078642b13e34069e55adfd8b93186950860383e49bdeab4858b4a4bdb1bd
 ```
 
 Verify that image indeed got downloaded and decrypted using `crictl -r unix:///var/run/crio/crio.sock images`
 
 ```
-IMAGE                             TAG                 IMAGE ID            SIZE
-us.icr.io/ecins/encrypted_image   encrypted           5eb6083c55f01       130MB
+IMAGE                                   TAG                 IMAGE ID            SIZE
+docker.io/enccont/encrypted_image       encrypted           5eb6083c55f01       130MB
 ```
 
 Please note that the confidentiality provided by the encrypted images could get compromised if the private keys are accessed by unauthorized and/or unintended entities. Also, in case of loss of private key, there is no way to access the contents of the encrypted image rendering it completely unusable. Hence, it's extremely important to keep the private keys securely and safely.
