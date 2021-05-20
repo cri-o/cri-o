@@ -11,6 +11,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/resourcestore"
@@ -283,13 +284,13 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 }
 
 // setupCapabilities sets process.capabilities in the OCI runtime config.
-func setupCapabilities(specgen *generate.Generator, capabilities *types.Capability) error {
+func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defaultCaps capabilities.Capabilities) error {
 	// Remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
 	// and pods expect that switching to a non-root user results in the capabilities being
 	// dropped. This should be revisited in the future.
 	specgen.Config.Process.Capabilities.Ambient = []string{}
 
-	if capabilities == nil {
+	if caps == nil {
 		return nil
 	}
 
@@ -300,12 +301,24 @@ func setupCapabilities(specgen *generate.Generator, capabilities *types.Capabili
 		return cap
 	}
 
+	addAll := inStringSlice(caps.AddCapabilities, "ALL")
+	dropAll := inStringSlice(caps.DropCapabilities, "ALL")
+
+	// Only add the default capabilities to the AddCapabilities list
+	// if neither add or drop are set to "ALL". If add is set to "ALL" it
+	// is a super set of the default capabilties. If drop is set to "ALL"
+	// then we first want to clear the entire list (including defaults)
+	// so the user may selectively add *only* the capabilities they need.
+	if !(addAll || dropAll) {
+		caps.AddCapabilities = append(caps.AddCapabilities, defaultCaps...)
+	}
+
 	// Add/drop all capabilities if "all" is specified, so that
 	// following individual add/drop could still work. E.g.
 	// AddCapabilities: []string{"ALL"}, DropCapabilities: []string{"CHOWN"}
 	// will be all capabilities without `CAP_CHOWN`.
 	// see https://github.com/kubernetes/kubernetes/issues/51980
-	if inStringSlice(capabilities.AddCapabilities, "ALL") {
+	if addAll {
 		for _, c := range getOCICapabilitiesList() {
 			if err := specgen.AddProcessCapabilityBounding(c); err != nil {
 				return err
@@ -321,7 +334,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *types.Capabili
 			}
 		}
 	}
-	if inStringSlice(capabilities.DropCapabilities, "ALL") {
+	if dropAll {
 		for _, c := range getOCICapabilitiesList() {
 			if err := specgen.DropProcessCapabilityBounding(c); err != nil {
 				return err
@@ -338,7 +351,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *types.Capabili
 		}
 	}
 
-	for _, cap := range capabilities.AddCapabilities {
+	for _, cap := range caps.AddCapabilities {
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
@@ -361,7 +374,7 @@ func setupCapabilities(specgen *generate.Generator, capabilities *types.Capabili
 		}
 	}
 
-	for _, cap := range capabilities.DropCapabilities {
+	for _, cap := range caps.DropCapabilities {
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
