@@ -22,6 +22,8 @@ const (
 
 	PodSandboxStateSandboxReady    PodSandboxState = 0
 	PodSandboxStateSandboxNotReady PodSandboxState = 1
+
+	InfraContainerName = "POD"
 )
 
 type VersionRequest struct {

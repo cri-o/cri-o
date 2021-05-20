@@ -23,6 +23,7 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 	if c.Spoofed() {
 		return nil
 	}
+
 	// Move conmon to specified cgroup
 	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.id, cgroupParent, r.config.ConmonCgroup, pid)
 	if err != nil {
