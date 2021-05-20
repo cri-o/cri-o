@@ -30,15 +30,6 @@ var _ = AfterSuite(func() {
 
 // The actual test suite
 var _ = t.Describe("Metrics", func() {
-	t.Describe("Register", func() {
-		It("should succeed", func() {
-			// Given
-			// When
-			// Then
-			metrics.Register()
-		})
-	})
-
 	t.Describe("SinceInMicroseconds", func() {
 		It("should succeed", func() {
 			// Given

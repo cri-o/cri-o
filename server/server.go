@@ -35,7 +35,6 @@ import (
 	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -519,8 +518,12 @@ func New(
 	s.config.StartWatcher()
 
 	// Start the metrics server if configured to be enabled
-	if err := s.startMetricsServer(); err != nil {
-		return nil, err
+	if s.config.EnableMetrics {
+		if err := metrics.New(&s.config.MetricsConfig).Start(s.monitorsChan); err != nil {
+			return nil, err
+		}
+	} else {
+		logrus.Debug("Metrics are disabled")
 	}
 
 	return s, nil
@@ -602,86 +605,6 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 		return nil, errSandboxNotCreated
 	}
 	return sb, nil
-}
-
-func (s *Server) startMetricsServer() error {
-	if !s.config.EnableMetrics {
-		logrus.Debug("Metrics are disabled")
-		return nil
-	}
-
-	me, err := s.CreateMetricsEndpoint()
-	if err != nil {
-		return errors.Wrap(err, "failed to create metrics endpoint")
-	}
-
-	if s.config.MetricsKey != "" && s.config.MetricsCert != "" {
-		if err := startMetricsEndpoint(
-			"tcp", fmt.Sprintf(":%v", s.config.MetricsPort),
-			s.config.MetricsCert, s.config.MetricsKey, me,
-		); err != nil {
-			return errors.Wrapf(
-				err,
-				"creating secure metrics endpoint on port %d",
-				s.config.MetricsPort,
-			)
-		}
-	} else if err := startMetricsEndpoint(
-		"tcp", fmt.Sprintf(":%v", s.config.MetricsPort), "", "", me,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"creating insecure metrics endpoint on port %d",
-			s.config.MetricsPort,
-		)
-	}
-
-	metricsSocket := s.config.MetricsSocket
-	if metricsSocket != "" {
-		if err := libconfig.RemoveUnusedSocket(metricsSocket); err != nil {
-			return errors.Wrapf(err, "removing ununsed socket %s", metricsSocket)
-		}
-
-		return errors.Wrap(
-			startMetricsEndpoint("unix", s.config.MetricsSocket, "", "", me),
-			"creating path metrics endpoint",
-		)
-	}
-
-	return nil
-}
-
-func startMetricsEndpoint(network, address, cert, key string, me *http.ServeMux) error {
-	l, err := net.Listen(network, address)
-	if err != nil {
-		return errors.Wrap(err, "creating listener")
-	}
-
-	go func() {
-		var err error
-		if cert != "" && key != "" {
-			logrus.Infof("Serving metrics on %s via HTTPs", address)
-			err = http.ServeTLS(l, me, cert, key)
-		} else {
-			logrus.Infof("Serving metrics on %s via HTTP", address)
-			err = http.Serve(l, me)
-		}
-
-		if err != nil {
-			logrus.Fatalf("Failed to serve metrics endpoint %v: %v", l, err)
-		}
-	}()
-
-	return nil
-}
-
-// CreateMetricsEndpoint creates a /metrics endpoint
-// for prometheus monitoring
-func (s *Server) CreateMetricsEndpoint() (*http.ServeMux, error) {
-	metrics.Register()
-	mux := &http.ServeMux{}
-	mux.Handle("/metrics", promhttp.Handler())
-	return mux, nil
 }
 
 // StopMonitors stops all the monitors

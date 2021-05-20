@@ -225,23 +225,6 @@ var _ = t.Describe("Server", func() {
 		})
 	})
 
-	t.Describe("CreateMetricsEndpoint", func() {
-		// Prepare the sut
-		BeforeEach(setupSUT)
-
-		It("should succeed", func() {
-			// Given
-
-			// When
-			mux, err := sut.CreateMetricsEndpoint()
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(mux).NotTo(BeNil())
-			sut.StopMonitors()
-		})
-	})
-
 	t.Describe("StartExitMonitor", func() {
 		// Prepare the sut
 		BeforeEach(setupSUT)
