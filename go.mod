@@ -58,7 +58,7 @@ require (
 	golang.org/x/sys v0.0.0-20210503080704-8803ae5d1324
 	google.golang.org/grpc v1.38.0
 	k8s.io/api v0.21.1
-	k8s.io/apimachinery v0.21.0
+	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v0.21.0
 	k8s.io/cri-api v0.21.0
 	k8s.io/klog/v2 v2.8.0
