@@ -147,9 +147,10 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(testManifest)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).NotTo(BeNil())
 			Expect(err).To(BeNil())
 		})
 
@@ -163,9 +164,10 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(manifest)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).NotTo(BeNil())
 			Expect(err).To(BeNil())
 		})
 
@@ -179,9 +181,10 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(manifest)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).NotTo(BeNil())
 			Expect(err).To(BeNil())
 		})
 
@@ -190,9 +193,10 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(testManifest)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "")
+			sb, err := sut.LoadSandbox(context.Background(), "")
 
 			// Then
+			Expect(sb).NotTo(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -205,9 +209,10 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(manifest)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).NotTo(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -220,9 +225,10 @@ var _ = t.Describe("ContainerServer", func() {
 			mockDirs(manifest)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).NotTo(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -239,9 +245,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).NotTo(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -256,9 +263,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).NotTo(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -275,9 +283,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).To(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -294,9 +303,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).To(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -313,9 +323,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).To(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -332,9 +343,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).To(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -351,9 +363,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).To(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -370,9 +383,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).NotTo(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 
@@ -385,9 +399,10 @@ var _ = t.Describe("ContainerServer", func() {
 			)
 
 			// When
-			err := sut.LoadSandbox(context.Background(), "id")
+			sb, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
+			Expect(sb).To(BeNil())
 			Expect(err).NotTo(BeNil())
 		})
 	})
