@@ -103,7 +103,7 @@ We provide [useful information for operations and development transfer](transfer
 
 For async communication and long running discussions please use issues and pull requests on the github repo. This will be the best place to discuss design and implementation.
 
-For chat communication we have an IRC channel #CRI-O on chat.freenode.net, and a [channel on the Kubernetes slack](https://kubernetes.slack.com/archives/crio) that everyone is welcome to join and chat about development.
+For chat communication we have a [channel on the Kubernetes slack](https://kubernetes.slack.com/archives/crio) that everyone is welcome to join and chat about development.
 
 ## Awesome CRI-O
 

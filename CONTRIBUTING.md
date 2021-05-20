@@ -145,9 +145,7 @@ commit automatically with `git commit -s`.
 
 ## Communications
 
-For general questions, or discussions, please use the
-IRC group on `irc.freenode.net` called `cri-o`
-that has been setup.
+For general questions, or discussions, please use our [channel on the Kubernetes slack](https://kubernetes.slack.com/archives/crio).
 
 For discussions around issues/bugs and features, you can use the github
 [issues](https://github.com/cri-o/cri-o/issues)

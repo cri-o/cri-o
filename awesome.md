@@ -30,7 +30,6 @@ collects useful resources about CRI-O.
 ### Community
 
 - [Kubernetes Slack #cri-o](https://slack.com/app_redirect?channel=CAZH62UR1)
-- [Freenode IRC #cri-o](https://webchat.freenode.net)
 
 ### Podcasts
 
