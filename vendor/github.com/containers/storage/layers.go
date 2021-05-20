@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	drivers "github.com/containers/storage/drivers"
@@ -260,6 +261,7 @@ type layerStore struct {
 	byuncompressedsum map[digest.Digest][]string
 	uidMap            []idtools.IDMap
 	gidMap            []idtools.IDMap
+	loadMut           sync.Mutex
 }
 
 func copyLayer(l *Layer) *Layer {
@@ -1479,4 +1481,15 @@ func (r *layerStore) TouchedSince(when time.Time) bool {
 
 func (r *layerStore) Locked() bool {
 	return r.lockfile.Locked()
+}
+
+func (r *layerStore) ReloadIfChanged() error {
+	r.loadMut.Lock()
+	defer r.loadMut.Unlock()
+
+	modified, err := r.Modified()
+	if err == nil && modified {
+		return r.Load()
+	}
+	return nil
 }
