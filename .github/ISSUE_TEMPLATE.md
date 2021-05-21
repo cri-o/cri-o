@@ -19,8 +19,7 @@ GENERAL SUPPORT INFORMATION
 The GitHub issue tracker is for bug reports and feature requests.
 General support for **CRI-O** can be found at the following locations:
 
-- IRC - #cri-o channel on irc.freenode.org
-- Slack - kubernetes.slack.com #sig-node channel
+- Slack - kubernetes.slack.com #crio channel
 - Post a question on StackOverflow, using the CRI-O tag
 
 ---------------------------------------------------
