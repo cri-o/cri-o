@@ -75,7 +75,8 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
-			Expect(sut.LoadSandbox(context.Background(), sandboxID)).To(BeNil())
+			_, err := sut.LoadSandbox(context.Background(), sandboxID)
+			Expect(err).To(BeNil())
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
@@ -93,7 +94,8 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
-			Expect(sut.LoadSandbox(context.Background(), sandboxID)).To(BeNil())
+			_, err := sut.LoadSandbox(context.Background(), sandboxID)
+			Expect(err).To(BeNil())
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
@@ -114,7 +116,8 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
-			Expect(sut.LoadSandbox(context.Background(), sandboxID)).To(BeNil())
+			_, err := sut.LoadSandbox(context.Background(), sandboxID)
+			Expect(err).To(BeNil())
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
