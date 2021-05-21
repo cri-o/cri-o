@@ -19,7 +19,7 @@ package http
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/http"
 	"time"
@@ -215,7 +215,7 @@ func (impl *defaultAgentImplementation) SendGetRequest(client *http.Client, url 
 func (a *Agent) readResponse(response *http.Response) (body []byte, err error) {
 	// Read the response body
 	defer response.Body.Close()
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err, "reading the response body from %s", response.Request.URL)

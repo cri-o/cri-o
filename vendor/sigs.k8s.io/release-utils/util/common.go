@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -436,7 +435,7 @@ func CopyDirContentsLocal(src, dst string) error {
 			return errors.Wrapf(err, "create destination directory %s", dst)
 		}
 	}
-	files, err := ioutil.ReadDir(src)
+	files, err := os.ReadDir(src)
 	if err != nil {
 		return errors.Wrapf(err, "reading source dir %s", src)
 	}
@@ -531,7 +530,7 @@ func CleanLogFile(logPath string) (err error) {
 	logrus.Debugf("Sanitizing logfile %s", logPath)
 
 	// Open a tempfile to write sanitized log
-	tempFile, err := ioutil.TempFile(os.TempDir(), "temp-release-log-")
+	tempFile, err := os.CreateTemp("", "temp-release-log-")
 	if err != nil {
 		return errors.Wrap(err, "creating temp file for sanitizing log")
 	}
