@@ -84,6 +84,9 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 	var stderrBuf bytes.Buffer
 	parentPipe, childPipe, err := newPipe()
+	if err != nil {
+		return fmt.Errorf("error creating socket pair: %v", err)
+	}
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
 		return fmt.Errorf("error creating socket pair: %v", err)
