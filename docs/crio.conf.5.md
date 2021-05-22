@@ -168,7 +168,7 @@ the container runtime configuration.
   One example would be allowing ping inside of containers.  On systems that support `/proc/sys/net/ipv4/ping_group_range`, the default list could be:
 ```
   default_sysctls = [
-       "net.ipv4.ping_group_range" = "0   2147483647",
+       "net.ipv4.ping_group_range = 0   2147483647",
   ]
 ```
 
