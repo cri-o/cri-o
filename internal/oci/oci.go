@@ -51,9 +51,9 @@ type Runtime struct {
 type RuntimeImpl interface {
 	CreateContainer(*Container, string) error
 	StartContainer(*Container) error
-	ExecContainer(*Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
+	ExecContainer(context.Context, *Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
-	ExecSyncContainer(*Container, []string, int64) (*ExecSyncResponse, error)
+	ExecSyncContainer(context.Context, *Container, []string, int64) (*ExecSyncResponse, error)
 	UpdateContainer(*Container, *rspec.LinuxResources) error
 	StopContainer(context.Context, *Container, int64) error
 	DeleteContainer(*Container) error
@@ -305,23 +305,23 @@ func (r *Runtime) StartContainer(c *Container) error {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *Runtime) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.ExecContainer(c, cmd, stdin, stdout, stderr, tty, resize)
+	return impl.ExecContainer(ctx, c, cmd, stdin, stdout, stderr, tty, resize)
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *Runtime) ExecSyncContainer(c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
+func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return impl.ExecSyncContainer(c, command, timeout)
+	return impl.ExecSyncContainer(ctx, c, command, timeout)
 }
 
 // UpdateContainer updates container resources
