@@ -69,12 +69,6 @@ type syncInfo struct {
 	Message string `json:"message,omitempty"`
 }
 
-// exitCodeInfo is used to return the monitored process exit code to the daemon
-type exitCodeInfo struct {
-	ExitCode int32  `json:"exit_code"`
-	Message  string `json:"message,omitempty"`
-}
-
 // CreateContainer creates a container.
 func (r *runtimeOCI) CreateContainer(c *Container, cgroupParent string) (retErr error) {
 	if c.Spoofed() {
@@ -255,71 +249,8 @@ func (r *runtimeOCI) StartContainer(c *Container) error {
 	return nil
 }
 
-func prepareExec() (pidFileName string, parentPipe, childPipe *os.File, _ error) {
-	var err error
-	parentPipe, childPipe, err = os.Pipe()
-	if err != nil {
-		return "", nil, nil, err
-	}
-
-	pidFile, err := ioutil.TempFile("", "pidfile")
-	if err != nil {
-		parentPipe.Close()
-		childPipe.Close()
-		return "", nil, nil, err
-	}
-	pidFile.Close()
-	pidFileName = pidFile.Name()
-
-	return pidFileName, parentPipe, childPipe, nil
-}
-
-func parseLog(l []byte) (stdout, stderr []byte) {
-	// Split the log on newlines, which is what separates entries.
-	lines := bytes.SplitAfter(l, []byte{'\n'})
-	for _, line := range lines {
-		// Ignore empty lines.
-		if len(line) == 0 {
-			continue
-		}
-
-		// The format of log lines is "DATE pipe LogTag REST".
-		parts := bytes.SplitN(line, []byte{' '}, 4)
-		if len(parts) < 4 {
-			// Ignore the line if it's formatted incorrectly, but complain
-			// about it so it can be debugged.
-			logrus.Warnf("hit invalid log format: %q", string(line))
-			continue
-		}
-
-		pipe := string(parts[1])
-		content := parts[3]
-
-		linetype := string(parts[2])
-		if linetype == "P" {
-			contentLen := len(content)
-			if contentLen > 0 && content[contentLen-1] == '\n' {
-				content = content[:contentLen-1]
-			}
-		}
-
-		switch pipe {
-		case "stdout":
-			stdout = append(stdout, content...)
-		case "stderr":
-			stderr = append(stderr, content...)
-		default:
-			// Complain about unknown pipes.
-			logrus.Warnf("hit invalid log format [unknown pipe %s]: %q", pipe, string(line))
-			continue
-		}
-	}
-
-	return stdout, stderr
-}
-
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	if c.Spoofed() {
 		return nil
 	}
@@ -330,12 +261,7 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 	}
 	defer os.RemoveAll(processFile)
 
-	args := []string{rootFlag, r.root, "exec"}
-	args = append(args, "--process", processFile, c.ID())
-	execCmd := exec.Command(r.path, args...) // nolint: gosec
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
-	}
+	execCmd := r.constructExecCommand(ctx, c, processFile, "")
 	var cmdErr, copyError error
 	if tty {
 		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
@@ -389,58 +315,9 @@ func (r *runtimeOCI) ExecContainer(c *Container, cmd []string, stdin io.Reader, 
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
+func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
 	if c.Spoofed() {
 		return nil, nil
-	}
-
-	pidFile, parentPipe, childPipe, err := prepareExec()
-	if err != nil {
-		return nil, &ExecSyncError{
-			ExitCode: -1,
-			Err:      err,
-		}
-	}
-	defer parentPipe.Close()
-	defer func() {
-		if e := os.Remove(pidFile); e != nil {
-			logrus.Warnf("could not remove temporary PID file %s", pidFile)
-		}
-	}()
-
-	logFile, err := ioutil.TempFile("", "crio-log-"+c.id)
-	if err != nil {
-		return nil, &ExecSyncError{
-			ExitCode: -1,
-			Err:      err,
-		}
-	}
-	logFile.Close()
-
-	logPath := logFile.Name()
-	defer func() {
-		os.RemoveAll(logPath)
-	}()
-
-	args := []string{
-		"-c", c.id,
-		"-n", c.name,
-		"-r", r.path,
-		"-p", pidFile,
-		"-e",
-		"-l", logPath,
-		"--socket-dir-path", r.config.ContainerAttachSocketDir,
-		"--log-level", logrus.GetLevel().String(),
-	}
-
-	if r.config.ConmonSupportsSync() {
-		args = append(args, "--sync")
-	}
-	if c.terminal {
-		args = append(args, "-t")
-	}
-	if timeout > 0 {
-		args = append(args, "-T", fmt.Sprintf("%d", timeout))
 	}
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
@@ -452,26 +329,21 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 	}
 	defer os.RemoveAll(processFile)
 
-	args = append(args,
-		"--exec-process-spec", processFile,
-		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
+	pidFile, err := createPidFile()
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(pidFile)
 
-	cmd := exec.Command(r.config.Conmon, args...) // nolint: gosec
+	cmd := r.constructExecCommand(ctx, c, processFile, pidFile)
+	cmd.SysProcAttr = sysProcAttrPlatform()
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
-	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
-	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = r.config.ConmonEnv
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
-	}
 
 	err = cmd.Start()
 	if err != nil {
-		childPipe.Close()
 		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
@@ -480,85 +352,109 @@ func (r *runtimeOCI) ExecSyncContainer(c *Container, command []string, timeout i
 		}
 	}
 
-	// We don't need childPipe on the parent side
-	childPipe.Close()
+	// wait till the command is done
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
 
-	// first, wait till the command is done
-	waitErr := cmd.Wait()
+	if timeout > 0 {
+		select {
+		case <-time.After(time.Second * time.Duration(timeout)):
+			// Ensure the process is not left behind
+			killContainerExecProcess(ctx, pidFile)
 
-	// regardless of what is in waitErr
-	// we should attempt to decode the output of the parent pipe
-	// this allows us to catch TimedOutMessage, which will cause waitErr to not be nil
-	var ec *exitCodeInfo
-	decodeErr := json.NewDecoder(parentPipe).Decode(&ec)
-	if decodeErr == nil {
-		logrus.Debugf("Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
+			// Make sure the runtime process has been cleaned up
+			<-done
 
-		// When we timeout the command in conmon then we should return
-		// an ExecSyncResponse with a non-zero exit code because
-		// the prober code in the kubelet checks for it. If we return
-		// a custom error, then the probes transition into Unknown status
-		// and the container isn't restarted as expected.
-		if ec.ExitCode == -1 && ec.Message == conmonconfig.TimedOutMessage {
+			// If the command timed out, we should return an ExecSyncResponse with a non-zero exit code because
+			// the prober code in the kubelet checks for it. If we return a custom error,
+			// then the probes transition into Unknown status and the container isn't restarted as expected.
+
 			return &ExecSyncResponse{
 				Stderr:   []byte(conmonconfig.TimedOutMessage),
 				ExitCode: -1,
 			}, nil
+		case err = <-done:
+			break
 		}
+	} else {
+		err = <-done
 	}
 
-	if waitErr != nil {
-		// if we aren't a ExitError, some I/O problems probably occurred
-		if _, ok := waitErr.(*exec.ExitError); !ok {
-			return nil, &ExecSyncError{
-				Stdout:   stdoutBuf,
-				Stderr:   stderrBuf,
-				ExitCode: -1,
-				Err:      waitErr,
-			}
-		}
-	}
-
-	if decodeErr != nil {
-		return nil, &ExecSyncError{
-			Stdout:   stdoutBuf,
-			Stderr:   stderrBuf,
-			ExitCode: -1,
-			Err:      decodeErr,
-		}
-	}
-
-	if ec.ExitCode == -1 {
-		return nil, &ExecSyncError{
-			Stdout:   stdoutBuf,
-			Stderr:   stderrBuf,
-			ExitCode: -1,
-			Err:      fmt.Errorf(ec.Message),
-		}
-	}
-
-	// The actual logged output is not the same as stdoutBuf and stderrBuf,
-	// which are used for getting error information. For the actual
-	// ExecSyncResponse we have to read the logfile.
-	// XXX: Currently runC dups the same console over both stdout and stderr,
-	//      so we can't differentiate between the two.
-	logBytes, err := ioutil.ReadFile(logPath)
+	// gather exit code from err
+	exitCode := int32(0)
 	if err != nil {
-		return nil, &ExecSyncError{
-			Stdout:   stdoutBuf,
-			Stderr:   stderrBuf,
-			ExitCode: -1,
-			Err:      err,
+		if exitError, ok := err.(*exec.ExitError); ok {
+			exitCode = int32(exitError.ExitCode())
 		}
 	}
 
-	// We have to parse the log output into {stdout, stderr} buffers.
-	stdoutBytes, stderrBytes := parseLog(logBytes)
 	return &ExecSyncResponse{
-		Stdout:   stdoutBytes,
-		Stderr:   stderrBytes,
-		ExitCode: ec.ExitCode,
+		Stdout:   stdoutBuf.Bytes(),
+		Stderr:   stderrBuf.Bytes(),
+		ExitCode: exitCode,
 	}, nil
+}
+
+func (r *runtimeOCI) constructExecCommand(ctx context.Context, c *Container, processFile, pidFile string) *exec.Cmd {
+	args := []string{rootFlag, r.root, "exec"}
+	if pidFile != "" {
+		args = append(args, "--pid-file", pidFile)
+	}
+	args = append(args, "--process", processFile, c.ID())
+	execCmd := exec.CommandContext(ctx, r.path, args...) // nolint: gosec
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
+	return execCmd
+}
+
+func createPidFile() (string, error) {
+	pidFile, err := ioutil.TempFile("", "pidfile")
+	if err != nil {
+		return "", err
+	}
+	pidFile.Close()
+	pidFileName := pidFile.Name()
+
+	return pidFileName, nil
+}
+
+func killContainerExecProcess(ctx context.Context, pidFile string) {
+	// Attempt to get the container PID and PGID from the file the runtime should have written.
+	// TODO(haircommander): There does exist a race that we could time out before the runtime actually creates the file.
+	// Should we do inotify on this file to ensure it exists? Is that overkill?
+	ctrPid, ctrPgid, err := pidAndpgidFromFile(pidFile)
+	if err != nil {
+		log.Errorf(ctx, "Failed to get pid (%d) or pgid (%d) from file %s: %v", ctrPid, ctrPgid, pidFile, err)
+	}
+
+	if ctrPgid > 1 {
+		// First attempt to kill the container group
+		if err := syscall.Kill(-ctrPgid, syscall.SIGKILL); err != nil {
+			log.Errorf(ctx, "Failed to kill process group after timeout: %v", err)
+		}
+	} else if ctrPid > 0 {
+		// If that fails, kill the container PID itself
+		if err := syscall.Kill(ctrPid, syscall.SIGKILL); err != nil {
+			log.Errorf(ctx, "Failed to kill process after timeout: %v", err)
+		}
+	}
+}
+
+func pidAndpgidFromFile(pidFile string) (pid, pgid int, _ error) {
+	// find the pid of the parent process
+	pidStr, err := ioutil.ReadFile(pidFile)
+	if err != nil {
+		return -1, -1, err
+	}
+	pid, err = strconv.Atoi(string(pidStr))
+	if err != nil {
+		return -1, -1, err
+	}
+	pgid, err = syscall.Getpgid(pid)
+	return pid, pgid, err
 }
 
 // UpdateContainer updates container resources
