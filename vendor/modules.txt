@@ -287,7 +287,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.31.2
+# github.com/containers/storage v1.32.0
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
