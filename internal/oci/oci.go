@@ -1,7 +1,6 @@
 package oci
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"sync"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
+	types "github.com/cri-o/cri-o/server/cri/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 
@@ -53,7 +53,7 @@ type RuntimeImpl interface {
 	StartContainer(*Container) error
 	ExecContainer(context.Context, *Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
-	ExecSyncContainer(context.Context, *Container, []string, int64) (*ExecSyncResponse, error)
+	ExecSyncContainer(context.Context, *Container, []string, int64) (*types.ExecSyncResponse, error)
 	UpdateContainer(*Container, *rspec.LinuxResources) error
 	StopContainer(context.Context, *Container, int64) error
 	DeleteContainer(*Container) error
@@ -315,7 +315,7 @@ func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string,
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
+func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
@@ -444,23 +444,4 @@ func (r *Runtime) ReopenContainerLog(c *Container) error {
 	}
 
 	return impl.ReopenContainerLog(c)
-}
-
-// ExecSyncResponse is returned from ExecSync.
-type ExecSyncResponse struct {
-	Stdout   []byte
-	Stderr   []byte
-	ExitCode int32
-}
-
-// ExecSyncError wraps command's streams, exit code and error on ExecSync error.
-type ExecSyncError struct {
-	Stdout   bytes.Buffer
-	Stderr   bytes.Buffer
-	ExitCode int32
-	Err      error
-}
-
-func (e *ExecSyncError) Error() string {
-	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
 }

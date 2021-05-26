@@ -7,6 +7,7 @@ package ocimock
 import (
 	context "context"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	server "github.com/cri-o/cri-o/server/cri/types"
 	gomock "github.com/golang/mock/gomock"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	io "io"
@@ -96,32 +97,32 @@ func (mr *MockRuntimeImplMockRecorder) DeleteContainer(arg0 interface{}) *gomock
 }
 
 // ExecContainer mocks base method
-func (m *MockRuntimeImpl) ExecContainer(arg0 *oci.Container, arg1 []string, arg2 io.Reader, arg3, arg4 io.WriteCloser, arg5 bool, arg6 <-chan remotecommand.TerminalSize) error {
+func (m *MockRuntimeImpl) ExecContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3 io.Reader, arg4, arg5 io.WriteCloser, arg6 bool, arg7 <-chan remotecommand.TerminalSize) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecContainer", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret := m.ctrl.Call(m, "ExecContainer", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ExecContainer indicates an expected call of ExecContainer
-func (mr *MockRuntimeImplMockRecorder) ExecContainer(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
+func (mr *MockRuntimeImplMockRecorder) ExecContainer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ExecContainer), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ExecContainer), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 }
 
 // ExecSyncContainer mocks base method
-func (m *MockRuntimeImpl) ExecSyncContainer(arg0 *oci.Container, arg1 []string, arg2 int64) (*oci.ExecSyncResponse, error) {
+func (m *MockRuntimeImpl) ExecSyncContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3 int64) (*server.ExecSyncResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecSyncContainer", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*oci.ExecSyncResponse)
+	ret := m.ctrl.Call(m, "ExecSyncContainer", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*server.ExecSyncResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExecSyncContainer indicates an expected call of ExecSyncContainer
-func (mr *MockRuntimeImplMockRecorder) ExecSyncContainer(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockRuntimeImplMockRecorder) ExecSyncContainer(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecSyncContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ExecSyncContainer), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecSyncContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ExecSyncContainer), arg0, arg1, arg2, arg3)
 }
 
 // PauseContainer mocks base method
