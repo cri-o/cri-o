@@ -11,6 +11,7 @@ import (
 	syscall "syscall"
 
 	oci "github.com/cri-o/cri-o/internal/oci"
+	types "github.com/cri-o/cri-o/server/cri/types"
 	gomock "github.com/golang/mock/gomock"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	remotecommand "k8s.io/client-go/tools/remotecommand"
@@ -111,10 +112,10 @@ func (mr *MockRuntimeImplMockRecorder) ExecContainer(arg0, arg1, arg2, arg3, arg
 }
 
 // ExecSyncContainer mocks base method.
-func (m *MockRuntimeImpl) ExecSyncContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3 int64) (*oci.ExecSyncResponse, error) {
+func (m *MockRuntimeImpl) ExecSyncContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3 int64) (*types.ExecSyncResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ExecSyncContainer", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(*oci.ExecSyncResponse)
+	ret0, _ := ret[0].(*types.ExecSyncResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

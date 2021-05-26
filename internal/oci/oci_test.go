@@ -175,19 +175,6 @@ var _ = t.Describe("Oci", func() {
 		})
 	})
 
-	t.Describe("ExecSyncError", func() {
-		It("should succeed to get the exec sync error", func() {
-			// Given
-			sut := oci.ExecSyncError{}
-
-			// When
-			result := sut.Error()
-
-			// Then
-			Expect(result).To(ContainSubstring("error"))
-		})
-	})
-
 	t.Describe("BuildContainerdBinaryName", func() {
 		It("Simple binary name (containerd-shim-kata-v2)", func() {
 			binaryName := oci.BuildContainerdBinaryName("containerd-shim-kata-v2")
