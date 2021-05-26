@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
@@ -316,17 +317,14 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
+func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
 	if c.Spoofed() {
 		return nil, nil
 	}
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
 	if err != nil {
-		return nil, &ExecSyncError{
-			ExitCode: -1,
-			Err:      err,
-		}
+		return nil, err
 	}
 	defer os.RemoveAll(processFile)
 
@@ -345,12 +343,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	err = cmd.Start()
 	if err != nil {
-		return nil, &ExecSyncError{
-			Stdout:   stdoutBuf,
-			Stderr:   stderrBuf,
-			ExitCode: -1,
-			Err:      err,
-		}
+		return nil, err
 	}
 
 	// wait till the command is done
@@ -371,7 +364,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			// If the command timed out, we should return an ExecSyncResponse with a non-zero exit code because
 			// the prober code in the kubelet checks for it. If we return a custom error,
 			// then the probes transition into Unknown status and the container isn't restarted as expected.
-			return &ExecSyncResponse{
+			return &types.ExecSyncResponse{
 				Stderr:   []byte(conmonconfig.TimedOutMessage),
 				ExitCode: -1,
 			}, nil
@@ -390,7 +383,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		}
 	}
 
-	return &ExecSyncResponse{
+	return &types.ExecSyncResponse{
 		Stdout:   stdoutBuf.Bytes(),
 		Stderr:   stderrBuf.Bytes(),
 		ExitCode: exitCode,
