@@ -46,13 +46,13 @@ var _ = t.Describe("HookFilter", func() {
 		})
 	})
 
-	t.Describe("Fire", func() {
+	t.Describe("Filter", func() {
 		It("should succeed to filter", func() {
 			// Given
 			hook, err := log.NewFilterHook("none")
 			Expect(err).To(BeNil())
 			entry := &logrus.Entry{
-				Message: "this message will be filtered out",
+				Message: "This message will be filtered out",
 			}
 
 			// When
@@ -68,7 +68,7 @@ var _ = t.Describe("HookFilter", func() {
 			hook, err := log.NewFilterHook("")
 			Expect(err).To(BeNil())
 			entry := &logrus.Entry{
-				Message: fmt.Sprintf("a slice: %v", []byte{1, 2, 3, 4}),
+				Message: fmt.Sprintf("A slice: %v", []byte{1, 2, 3, 4}),
 				Level:   logrus.DebugLevel,
 			}
 
