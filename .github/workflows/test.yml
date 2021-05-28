@@ -285,6 +285,9 @@ jobs:
     if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -310,6 +313,9 @@ jobs:
     needs: release-notes
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -333,6 +339,9 @@ jobs:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
