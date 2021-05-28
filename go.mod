@@ -4,21 +4,21 @@ module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.17-0.20210211115548-6eac466e5fa3
+	github.com/Microsoft/go-winio v0.4.17
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/containerd/cgroups v0.0.0-20210114181951-8a68de567b68
-	github.com/containerd/containerd v1.5.0-beta.4
+	github.com/containerd/cgroups v1.0.1
+	github.com/containerd/containerd v1.5.1
 	github.com/containerd/ttrpc v1.0.2
-	github.com/containerd/typeurl v1.0.1
+	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
 	github.com/containers/buildah v1.20.0
 	github.com/containers/common v0.35.4
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.11.1
-	github.com/containers/ocicrypt v1.1.0
+	github.com/containers/ocicrypt v1.1.1
 	github.com/containers/podman/v3 v3.1.0
-	github.com/containers/storage v1.29.0
+	github.com/containers/storage v1.31.1
 	github.com/coreos/go-systemd/v22 v22.3.1
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
@@ -35,7 +35,7 @@ require (
 	github.com/google/renameio v1.0.0
 	github.com/google/uuid v1.2.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
-	github.com/json-iterator/go v1.1.10
+	github.com/json-iterator/go v1.1.11
 	github.com/onsi/ginkgo v1.15.2
 	github.com/onsi/gomega v1.11.0
 	github.com/opencontainers/go-digest v1.0.0
@@ -43,7 +43,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc94
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
-	github.com/opencontainers/selinux v1.8.0
+	github.com/opencontainers/selinux v1.8.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.10.0
 	github.com/psampaz/go-mod-outdated v0.7.0
