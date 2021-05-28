@@ -69,9 +69,14 @@ func RunUnderSystemdScope(pid int, slice, unitName string, properties ...systemd
 		properties = append(properties, systemdDbus.PropSlice(slice))
 	}
 	ch := make(chan string)
-	_, err = conn.StartTransientUnitContext(ctx, unitName, "replace", properties, ch)
-	if err != nil {
-		return err
+	for {
+		_, err = conn.StartTransientUnitContext(ctx, unitName, "replace", properties, ch)
+		if err == nil {
+			break
+		}
+		if !errors.Is(err, syscall.EAGAIN) {
+			return err
+		}
 	}
 	defer conn.Close()
 
