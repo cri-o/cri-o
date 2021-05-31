@@ -141,7 +141,7 @@ var _ = t.Describe("ResourceStore", func() {
 			// When
 			go func() {
 				time.Sleep(timeout * 6)
-				Expect(sut.Put(testName, e, cleaner)).To(BeNil())
+				Expect(sut.Put(testName, e, cleanupFuncs)).To(BeNil())
 				timedOutChan <- true
 			}()
 
