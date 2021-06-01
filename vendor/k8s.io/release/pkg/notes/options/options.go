@@ -146,13 +146,14 @@ const (
 // New creates a new Options instance with the default values
 func New() *Options {
 	return &Options{
-		DiscoverMode: RevisionDiscoveryModeNONE,
-		GithubOrg:    git.DefaultGithubOrg,
-		GithubRepo:   git.DefaultGithubRepo,
-		Format:       FormatMarkdown,
-		GoTemplate:   GoTemplateDefault,
-		Pull:         true,
-		gitCloneFn:   git.CloneOrOpenGitHubRepo,
+		DiscoverMode:       RevisionDiscoveryModeNONE,
+		GithubOrg:          git.DefaultGithubOrg,
+		GithubRepo:         git.DefaultGithubRepo,
+		Format:             FormatMarkdown,
+		GoTemplate:         GoTemplateDefault,
+		Pull:               true,
+		gitCloneFn:         git.CloneOrOpenGitHubRepo,
+		MapProviderStrings: []string{},
 	}
 }
 

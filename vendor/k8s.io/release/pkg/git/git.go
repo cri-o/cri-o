@@ -930,13 +930,16 @@ func (r *Repo) TagsForBranch(branch string) (res []string, err error) {
 	defer func() { err = r.Checkout(previousBranch) }()
 
 	status, err := command.NewWithWorkDir(
-		r.Dir(), gitExecutable, "tag", "--sort=-creatordate", "--merged",
+		r.Dir(), gitExecutable, "tag", "--sort=creatordate", "--merged",
 	).RunSilentSuccessOutput()
 	if err != nil {
 		return nil, errors.Wrapf(safeError(err), "retrieving merged tags for branch %s", branch)
 	}
 
-	return strings.Fields(status.Output()), nil
+	tags := strings.Fields(status.Output())
+	sort.Sort(sort.Reverse(sort.StringSlice(tags)))
+
+	return tags, nil
 }
 
 // Tags returns a list of tags for the repository.

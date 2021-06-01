@@ -28,6 +28,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"k8s.io/release/pkg/cve"
 	"k8s.io/release/pkg/notes"
 	"k8s.io/release/pkg/notes/options"
 	"k8s.io/release/pkg/release"
@@ -41,7 +42,7 @@ type Document struct {
 	Downloads               *FileMetadata  `json:"downloads"`
 	CurrentRevision         string         `json:"release_tag"`
 	PreviousRevision        string
-	CVEList                 []notes.CVEData
+	CVEList                 []cve.CVE
 }
 
 // FileMetadata contains metadata about files associated with the release.
@@ -216,48 +217,27 @@ func New(
 	for _, pr := range releaseNotes.History() {
 		note := releaseNotes.Get(pr)
 
+		if _, hasCVE := note.DataFields["cve"]; hasCVE {
+			logrus.Infof("Release note for PR #%d has CVE vulnerability info", note.PrNumber)
+
+			// Create a new CVE data struct for the document
+			newcve := cve.CVE{}
+
+			// Populate the struct from the raw interface
+			if err := newcve.ReadRawInterface(note.DataFields["cve"]); err != nil {
+				return nil, errors.Wrap(err, "reading CVE data embedded in map file")
+			}
+
+			// Verify that CVE data has the minimum fields defined
+			if err := newcve.Validate(); err != nil {
+				return nil, errors.Wrapf(err, "checking CVE map file for PR #%d", pr)
+			}
+			doc.CVEList = append(doc.CVEList, newcve)
+		}
+
 		if note.DoNotPublish {
 			logrus.Debugf("skipping PR %d as (marked to not be published)", pr)
 			continue
-		}
-
-		cvedata, hasCVE := note.DataFields["cve"]
-		if hasCVE {
-			logrus.Infof("Release note for PR #%d has CVE vulnerability info", note.PrNumber)
-			cve := notes.CVEData{}
-			if val, ok := cvedata.(map[interface{}]interface{})["id"].(string); ok {
-				cve.ID = val
-			}
-			if val, ok := cvedata.(map[interface{}]interface{})["title"].(string); ok {
-				cve.Title = val
-			}
-			if val, ok := cvedata.(map[interface{}]interface{})["issue"].(string); ok {
-				cve.TrackingIssue = val
-			}
-			if val, ok := cvedata.(map[interface{}]interface{})["vector"].(string); ok {
-				cve.CVSSVector = val
-			}
-			if val, ok := cvedata.(map[interface{}]interface{})["score"].(float64); ok {
-				cve.CVSSScore = float32(val)
-			}
-			if val, ok := cvedata.(map[interface{}]interface{})["rating"].(string); ok {
-				cve.CVSSRating = val
-			}
-			if val, ok := cvedata.(map[interface{}]interface{})["description"].(string); ok {
-				cve.Description = val
-			}
-			// Linked PRs is a list of the PR IDs
-			if val, ok := cvedata.(map[interface{}]interface{})["linkedPRs"].([]interface{}); ok {
-				cve.LinkedPRs = []int{}
-				for _, prid := range val {
-					cve.LinkedPRs = append(cve.LinkedPRs, prid.(int))
-				}
-			}
-			// Verify that CVE data has the minimum fields defined
-			if err := cve.Validate(); err != nil {
-				return nil, errors.Wrapf(err, "checking CVE map file for PR #%d", pr)
-			}
-			doc.CVEList = append(doc.CVEList, cve)
 		}
 
 		// TODO: Refactor the logic here and add testing.
@@ -399,7 +379,7 @@ func CreateDownloadsTable(w io.Writer, bucket, tars, prevTag, newTag string) err
 
 	// Sort the files by their headers
 	headers := [4]string{
-		"", "Client Binaries", "Server Binaries", "Node Binaries",
+		"Source Code", "Client Binaries", "Server Binaries", "Node Binaries",
 	}
 	files := map[string][]File{
 		headers[0]: fileMetadata.Source,
