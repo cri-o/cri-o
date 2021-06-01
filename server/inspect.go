@@ -71,7 +71,7 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 	}
 	sb := getSandboxFunc(ctr.Sandbox())
 	if sb == nil {
-		logrus.Debugf("can't find sandbox %s for container %s", ctr.Sandbox(), id)
+		logrus.Debugf("Can't find sandbox %s for container %s", ctr.Sandbox(), id)
 		return types.ContainerInfo{}, errSandboxNotFound
 	}
 	image := ctr.Image()

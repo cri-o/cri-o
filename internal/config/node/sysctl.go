@@ -28,7 +28,7 @@ func checkFsMayDetachMounts() bool {
 	str := strings.TrimSpace(string(data))
 	val, err := strconv.ParseInt(str, 10, 64)
 	if err != nil { // should never happen
-		logrus.WithError(err).Warnf("checkFsMayDetachMounts: file %s, value %q, can't convert to int", file, str)
+		logrus.WithError(err).Warnf("CheckFsMayDetachMounts: file %s, value %q, can't convert to int", file, str)
 		return true
 	}
 	if val != 1 {

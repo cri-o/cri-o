@@ -60,7 +60,7 @@ func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-
 
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		if err := setSize(p.Fd(), size); err != nil {
-			logrus.Warnf("unable to set terminal size: %v", err)
+			logrus.Warnf("Unable to set terminal size: %v", err)
 		}
 	})
 
@@ -76,10 +76,10 @@ func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-
 	err = execCmd.Wait()
 
 	if stdinErr != nil {
-		logrus.Warnf("stdin copy error: %v", stdinErr)
+		logrus.Warnf("Stdin copy error: %v", stdinErr)
 	}
 	if stdoutErr != nil {
-		logrus.Warnf("stdout copy error: %v", stdoutErr)
+		logrus.Warnf("Stdout copy error: %v", stdoutErr)
 	}
 
 	return err

@@ -33,7 +33,7 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 		if emptyStreamOnError && stream != nil {
 			go func() {
 				_, copyError := pools.Copy(ioutil.Discard, stream)
-				log.Errorf(ctx, "error closing port forward stream after other error: %v", copyError)
+				log.Errorf(ctx, "Error closing port forward stream after other error: %v", copyError)
 			}()
 		}
 	}()

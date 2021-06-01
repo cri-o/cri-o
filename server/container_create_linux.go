@@ -240,7 +240,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 	defer func() {
 		if retErr != nil {
-			log.Infof(ctx, "createCtrLinux: deleting container %s from storage", containerInfo.ID)
+			log.Infof(ctx, "CreateCtrLinux: deleting container %s from storage", containerInfo.ID)
 			if err := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID); err != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err)
 			}
@@ -562,9 +562,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	defer func() {
 		if retErr != nil {
-			log.Infof(ctx, "createCtrLinux: stopping storage container %s", containerID)
+			log.Infof(ctx, "CreateCtrLinux: stopping storage container %s", containerID)
 			if err := s.StorageRuntimeServer().StopContainer(containerID); err != nil {
-				log.Warnf(ctx, "couldn't stop storage container: %v: %v", containerID, err)
+				log.Warnf(ctx, "Couldn't stop storage container: %v: %v", containerID, err)
 			}
 		}
 	}()
@@ -817,7 +817,7 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *t
 			return nil, nil, fmt.Errorf("mount.HostPath is empty")
 		}
 		if m.HostPath == "/" && dest == "/" {
-			log.Warnf(ctx, "configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
+			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
 		src := filepath.Join(bindMountPrefix, m.HostPath)
 
@@ -872,7 +872,7 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *t
 				}
 			}
 		default:
-			log.Warnf(ctx, "unknown propagation mode for hostPath %q", m.HostPath)
+			log.Warnf(ctx, "Unknown propagation mode for hostPath %q", m.HostPath)
 			options = append(options, "rprivate")
 		}
 

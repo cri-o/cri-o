@@ -30,7 +30,7 @@ func (c *ContainerServer) StopContainer(ctx context.Context, ctr *oci.Container,
 	}
 
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
-		log.Warnf(ctx, "unable to write containers %s state to disk: %v", ctr.ID(), err)
+		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 
 	return nil

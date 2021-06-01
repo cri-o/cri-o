@@ -202,7 +202,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	defer func() {
 		if retErr != nil {
 			if err := sb.RemoveManagedNamespaces(); err != nil {
-				log.Warnf(ctx, "failed to remove namespaces: %v", err)
+				log.Warnf(ctx, "Failed to remove namespaces: %v", err)
 			}
 		}
 	}()
@@ -233,7 +233,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	defer func() {
 		if retErr != nil {
 			if err := c.RemoveSandbox(sb.ID()); err != nil {
-				log.Warnf(ctx, "could not remove sandbox ID %s: %v", sb.ID(), err)
+				log.Warnf(ctx, "Could not remove sandbox ID %s: %v", sb.ID(), err)
 			}
 		}
 	}()
@@ -317,7 +317,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	defer func() {
 		if retErr != nil {
 			if err1 := c.ctrIDIndex.Delete(scontainer.ID()); err1 != nil {
-				log.Warnf(ctx, "could not delete container ID %s: %v", scontainer.ID(), err1)
+				log.Warnf(ctx, "Could not delete container ID %s: %v", scontainer.ID(), err1)
 			}
 		}
 	}()
@@ -471,7 +471,7 @@ func (c *ContainerServer) ContainerStateFromDisk(ctx context.Context, ctr *oci.C
 // on disk
 func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Container) error {
 	if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
-		log.Warnf(ctx, "error updating the container status %q: %v", ctr.ID(), err)
+		log.Warnf(ctx, "Error updating the container status %q: %v", ctr.ID(), err)
 	}
 
 	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0o644)

@@ -44,10 +44,10 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	// but an error happened between plugin success and the end of networkStart()
 	defer func() {
 		if retErr != nil {
-			log.Infof(ctx, "networkStart: stopping network for sandbox %s", sb.ID())
+			log.Infof(ctx, "NetworkStart: stopping network for sandbox %s", sb.ID())
 			// use a new context to prevent an expired context from preventing a stop
 			if err2 := s.networkStop(context.Background(), sb); err2 != nil {
-				log.Errorf(ctx, "error stopping network on cleanup: %v", err2)
+				log.Errorf(ctx, "Error stopping network on cleanup: %v", err2)
 			}
 		}
 	}()
@@ -117,7 +117,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 		}
 	}
 
-	log.Debugf(ctx, "found POD IPs: %v", podIPs)
+	log.Debugf(ctx, "Found POD IPs: %v", podIPs)
 
 	// metric about the whole network setup operation
 	metrics.CRIOOperationsLatency.WithLabelValues("network_setup_overall").
@@ -170,7 +170,7 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	}
 	// portMapping removal does not need the IP address
 	if err := s.hostportManager.Remove(sb.ID(), mapping); err != nil {
-		log.Warnf(ctx, "failed to remove hostport for pod sandbox %s(%s): %v",
+		log.Warnf(ctx, "Failed to remove hostport for pod sandbox %s(%s): %v",
 			sb.Name(), sb.ID(), err)
 	}
 

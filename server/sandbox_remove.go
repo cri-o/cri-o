@@ -28,7 +28,7 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandb
 		// If the sandbox isn't found we just return an empty response to adhere
 		// the CRI interface which expects to not error out in not found
 		// cases.
-		log.Warnf(ctx, "could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxID, err)
+		log.Warnf(ctx, "Could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxID, err)
 		return nil
 	}
 	return s.removePodSandbox(ctx, sb)
@@ -64,7 +64,7 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 
 	s.ReleasePodName(sb.Name())
 	if err := s.removeSandbox(sb.ID()); err != nil {
-		log.Warnf(ctx, "failed to remove sandbox: %v", err)
+		log.Warnf(ctx, "Failed to remove sandbox: %v", err)
 	}
 	if err := s.PodIDIndex().Delete(sb.ID()); err != nil {
 		return fmt.Errorf("failed to delete pod sandbox %s from index: %v", sb.ID(), err)
@@ -90,7 +90,7 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 	if !c.Spoofed() {
 		if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
 			// assume container already umounted
-			log.Warnf(ctx, "failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+			log.Warnf(ctx, "Failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 		}
 		if err := s.StorageRuntimeServer().DeleteContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
 			return fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)

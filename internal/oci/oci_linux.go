@@ -98,7 +98,7 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerSt
 
 	totalInactiveFile, err := getTotalInactiveFile(cgroupPath)
 	if err != nil { // nolint: gocritic
-		logrus.Warnf("error in memory working set stats retrieval: %v", err)
+		logrus.Warnf("Error in memory working set stats retrieval: %v", err)
 	} else if stats.MemUsage > totalInactiveFile {
 		stats.WorkingSetBytes = stats.MemUsage - totalInactiveFile
 	} else {

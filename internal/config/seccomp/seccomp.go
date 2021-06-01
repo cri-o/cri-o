@@ -202,7 +202,7 @@ func (c *Config) setupFromField(
 				"seccomp is not enabled, cannot run with custom profile",
 			)
 		}
-		log.Warnf(ctx, "seccomp is not enabled, running without profile")
+		log.Warnf(ctx, "Seccomp is not enabled, running without profile")
 		specGenerator.Config.Linux.Seccomp = nil
 		return nil
 	}

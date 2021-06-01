@@ -73,12 +73,12 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			gserver.GracefulStop()
 			hserver.Shutdown(ctx) // nolint: errcheck
 			if err := sserver.StopStreamServer(); err != nil {
-				logrus.Warnf("error shutting down streaming server: %v", err)
+				logrus.Warnf("Error shutting down streaming server: %v", err)
 			}
 			sserver.StopMonitors()
 			cancel()
 			if err := sserver.Shutdown(ctx); err != nil {
-				logrus.Warnf("error shutting down main service %v", err)
+				logrus.Warnf("Error shutting down main service %v", err)
 			}
 			return
 		}
@@ -185,9 +185,9 @@ func main() {
 			profilePort := c.Int("profile-port")
 			profileEndpoint := fmt.Sprintf("localhost:%v", profilePort)
 			go func() {
-				logrus.Debugf("starting profiling server on %v", profileEndpoint)
+				logrus.Debugf("Starting profiling server on %v", profileEndpoint)
 				if err := http.ListenAndServe(profileEndpoint, nil); err != nil {
-					logrus.Fatalf("unable to run profiling server: %v", err)
+					logrus.Fatalf("Unable to run profiling server: %v", err)
 				}
 			}()
 		}
@@ -264,7 +264,7 @@ func main() {
 
 			// and sync the changes to disk
 			if err := utils.SyncParent(config.CleanShutdownFile); err != nil {
-				logrus.Errorf("failed to sync parent directory of clean shutdown file: %v", err)
+				logrus.Errorf("Failed to sync parent directory of clean shutdown file: %v", err)
 			}
 		}
 
@@ -304,12 +304,12 @@ func main() {
 
 		go func() {
 			if err := grpcServer.Serve(grpcL); err != nil {
-				logrus.Errorf("unable to run GRPC server: %v", err)
+				logrus.Errorf("Unable to run GRPC server: %v", err)
 			}
 		}()
 		go func() {
 			if err := httpServer.Serve(httpL); err != nil {
-				logrus.Debugf("closed http server")
+				logrus.Debugf("Closed http server")
 			}
 		}()
 
@@ -334,22 +334,22 @@ func main() {
 		}
 
 		if err := crioServer.Shutdown(ctx); err != nil {
-			logrus.Warnf("error shutting down service: %v", err)
+			logrus.Warnf("Error shutting down service: %v", err)
 		}
 		cancel()
 
 		<-streamServerCloseCh
-		logrus.Debugf("closed stream server")
+		logrus.Debugf("Closed stream server")
 		<-serverMonitorsCh
-		logrus.Debugf("closed monitors")
+		logrus.Debugf("Closed monitors")
 		err = <-hookSync
 		if err == nil || err == context.Canceled {
-			logrus.Debugf("closed hook monitor")
+			logrus.Debugf("Closed hook monitor")
 		} else {
-			logrus.Errorf("hook monitor failed: %v", err)
+			logrus.Errorf("Hook monitor failed: %v", err)
 		}
 		<-serverCloseCh
-		logrus.Debugf("closed main server")
+		logrus.Debugf("Closed main server")
 
 		return nil
 	}

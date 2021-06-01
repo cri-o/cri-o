@@ -320,7 +320,7 @@ func (s *Sandbox) SetStopped(createFile bool) {
 	s.stopped = true
 	if createFile {
 		if err := s.createFileInInfraDir(sbStoppedFilename); err != nil {
-			logrus.Errorf("failed to create stopped file in container state. Restore may fail: %v", err)
+			logrus.Errorf("Failed to create stopped file in container state. Restore may fail: %v", err)
 		}
 	}
 }
@@ -397,7 +397,7 @@ func (s *Sandbox) fileExistsInInfraDir(filename string) bool {
 	infraFilePath := filepath.Join(infra.Dir(), filename)
 	if _, err := os.Stat(infraFilePath); err != nil {
 		if !os.IsNotExist(err) {
-			logrus.Warnf("error checking if %s exists: %v", infraFilePath, err)
+			logrus.Warnf("Error checking if %s exists: %v", infraFilePath, err)
 		}
 		return false
 	}

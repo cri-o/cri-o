@@ -23,19 +23,19 @@ func (c *Config) StartWatcher() {
 			// Block until the signal is received
 			<-ch
 			if err := c.Reload(); err != nil {
-				logrus.Errorf("unable to reload configuration: %v", err)
+				logrus.Errorf("Unable to reload configuration: %v", err)
 				continue
 			}
 		}
 	}()
 
-	logrus.Debugf("registered SIGHUP watcher for config")
+	logrus.Debugf("Registered SIGHUP watcher for config")
 }
 
 // Reload reloads the configuration for the single crio.conf and the drop-in
 // configuration directory.
 func (c *Config) Reload() error {
-	logrus.Infof("reloading configuration")
+	logrus.Infof("Reloading configuration")
 
 	// Reload the config
 	newConfig, err := DefaultConfig()
@@ -44,21 +44,21 @@ func (c *Config) Reload() error {
 	}
 
 	if _, err := os.Stat(c.singleConfigPath); !os.IsNotExist(err) {
-		logrus.Infof("updating config from file %s", c.singleConfigPath)
+		logrus.Infof("Updating config from file %s", c.singleConfigPath)
 		if err := newConfig.UpdateFromFile(c.singleConfigPath); err != nil {
 			return err
 		}
 	} else {
-		logrus.Infof("skipping not-existing config file %q", c.singleConfigPath)
+		logrus.Infof("Skipping not-existing config file %q", c.singleConfigPath)
 	}
 
 	if _, err := os.Stat(c.dropInConfigDir); !os.IsNotExist(err) {
-		logrus.Infof("updating config from path %s", c.dropInConfigDir)
+		logrus.Infof("Updating config from path %s", c.dropInConfigDir)
 		if err := newConfig.UpdateFromPath(c.dropInConfigDir); err != nil {
 			return err
 		}
 	} else {
-		logrus.Infof("skipping not-existing config path %q", c.dropInConfigDir)
+		logrus.Infof("Skipping not-existing config path %q", c.dropInConfigDir)
 	}
 
 	// Reload all available options
@@ -89,7 +89,7 @@ func (c *Config) Reload() error {
 // use this function for setting configuration options to ensure consistent
 // log outputs
 func logConfig(option, value string) {
-	logrus.Infof("set config %s to %q", option, value)
+	logrus.Infof("Set config %s to %q", option, value)
 }
 
 // ReloadLogLevel updates the LogLevel with the provided `newConfig`. It errors
@@ -159,7 +159,7 @@ func (c *Config) ReloadRegistries() error {
 			sysregistriesv2.ConfigPath(c.SystemContext),
 		)
 	}
-	logrus.Infof("applied new registry configuration: %+v", registries)
+	logrus.Infof("Applied new registry configuration: %+v", registries)
 	return nil
 }
 

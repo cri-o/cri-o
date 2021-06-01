@@ -186,7 +186,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	defer func() {
 		if retErr != nil {
 			if err := r.DeleteContainer(ctx, c); err != nil {
-				log.Warnf(ctx, "unable to delete container %s: %v", c.ID(), err)
+				log.Warnf(ctx, "Unable to delete container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -498,7 +498,7 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 				if err := c.verifyPid(); err != nil {
 					// The initial container process either doesn't exist, or isn't ours.
 					if !errors.Is(err, ErrNotFound) {
-						log.Warnf(ctx, "failed to find process for container %s: %v", c.id, err)
+						log.Warnf(ctx, "Failed to find process for container %s: %v", c.id, err)
 					}
 					close(done)
 					return
@@ -682,9 +682,9 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			// We always populate the fields below so kube can restart/reschedule
 			// containers failing.
 			if exitErr, isExitError := err.(*exec.ExitError); isExitError {
-				log.Errorf(ctx, "failed to update container state for %s: stdout: %s, stderr: %s", c.id, string(out), string(exitErr.Stderr))
+				log.Errorf(ctx, "Failed to update container state for %s: stdout: %s, stderr: %s", c.id, string(out), string(exitErr.Stderr))
 			} else {
-				log.Errorf(ctx, "failed to update container state for %s: %v", c.id, err)
+				log.Errorf(ctx, "Failed to update container state for %s: %v", c.id, err)
 			}
 			c.state.Status = ContainerStateStopped
 			if err := updateContainerStatusFromExitFile(c); err != nil {
@@ -741,7 +741,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 	*c.state = *state
 	if err != nil {
-		log.Warnf(ctx, "failed to find container exit file for %v: %v", c.id, err)
+		log.Warnf(ctx, "Failed to find container exit file for %v: %v", c.id, err)
 	} else {
 		c.state.Finished, err = getFinishedTime(fi)
 		if err != nil {
@@ -756,7 +756,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			return fmt.Errorf("status code conversion failed: %v", err)
 		}
 		c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
-		log.Debugf(ctx, "found exit code for %s: %d", c.id, statusCode)
+		log.Debugf(ctx, "Found exit code for %s: %d", c.id, statusCode)
 	}
 
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
@@ -1029,11 +1029,11 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 		for {
 			select {
 			case event := <-watcher.Events:
-				log.Debugf(ctx, "event: %v", event)
+				log.Debugf(ctx, "Event: %v", event)
 				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
-					log.Debugf(ctx, "file created %s", event.Name)
+					log.Debugf(ctx, "File created %s", event.Name)
 					if event.Name == c.LogPath() {
-						log.Debugf(ctx, "expected log file created")
+						log.Debugf(ctx, "Expected log file created")
 						done <- struct{}{}
 						return
 					}
@@ -1047,7 +1047,7 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 	}()
 	cLogDir := filepath.Dir(c.LogPath())
 	if err := watcher.Add(cLogDir); err != nil {
-		log.Errorf(ctx, "watcher.Add(%q) failed: %s", cLogDir, err)
+		log.Errorf(ctx, "Watcher.Add(%q) failed: %s", cLogDir, err)
 		close(done)
 		doneClosed = true
 	}

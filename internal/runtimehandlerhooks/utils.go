@@ -145,7 +145,7 @@ func isServiceEnabled(serviceName string) bool {
 	cmd := exec.Command("systemctl", "is-enabled", serviceName)
 	status, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Infof("service %s is-enabled check returned with: %v", serviceName, err)
+		logrus.Infof("Service %s is-enabled check returned with: %v", serviceName, err)
 		return false
 	}
 	if strings.TrimSpace(string(status)) == "enabled" {

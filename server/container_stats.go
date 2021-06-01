@@ -18,7 +18,7 @@ func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerSt
 		diffDir := filepath.Join(filepath.Dir(container.MountPoint()), "diff")
 		bytesUsed, inodeUsed, err := crioStorage.GetDiskUsageStats(diffDir)
 		if err != nil {
-			log.Warnf(ctx, "unable to get disk usage for container %s， %s", container.ID(), err)
+			log.Warnf(ctx, "Unable to get disk usage for container %s， %s", container.ID(), err)
 		}
 		writableLayer = &types.FilesystemUsage{
 			Timestamp:  stats.SystemNano,

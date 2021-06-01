@@ -44,7 +44,7 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 		if req.Auth.Auth != "" {
 			username, password, err = decodeDockerAuth(req.Auth.Auth)
 			if err != nil {
-				log.Debugf(ctx, "error decoding authentication for image %s: %v", image, err)
+				log.Debugf(ctx, "Error decoding authentication for image %s: %v", image, err)
 				return nil, err
 			}
 		}
@@ -140,7 +140,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 					break
 				}
 			}
-			log.Debugf(ctx, "error preparing image %s: %v", img, err)
+			log.Debugf(ctx, "Error preparing image %s: %v", img, err)
 			tryIncrementImagePullFailureMetric(ctx, img, err)
 			continue
 		}
@@ -153,9 +153,9 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			if tmpImgConfigDigest.String() == "" {
 				// this means we are playing with a schema1 image, in which
 				// case, we're going to repull the image in any case
-				log.Debugf(ctx, "image config digest is empty, re-pulling image")
+				log.Debugf(ctx, "Image config digest is empty, re-pulling image")
 			} else if tmpImgConfigDigest.String() == storedImage.ConfigDigest.String() {
-				log.Debugf(ctx, "image %s already in store, skipping pull", img)
+				log.Debugf(ctx, "Image %s already in store, skipping pull", img)
 				pulled = img
 
 				// Skipped digests metrics
@@ -173,7 +173,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 
 				break
 			}
-			log.Debugf(ctx, "image in store has different ID, re-pulling %s", img)
+			log.Debugf(ctx, "Image in store has different ID, re-pulling %s", img)
 		}
 
 		// Pull by collecting progress metrics
@@ -247,7 +247,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			},
 		})
 		if err != nil {
-			log.Debugf(ctx, "error pulling image %s: %v", img, err)
+			log.Debugf(ctx, "Error pulling image %s: %v", img, err)
 			tryIncrementImagePullFailureMetric(ctx, img, err)
 			continue
 		}

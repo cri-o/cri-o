@@ -46,7 +46,7 @@ func crioWipe(c *cli.Context) error {
 		// will not be there.
 		shouldWipeContainers, err = version.ShouldCrioWipe(config.VersionFile)
 		if err != nil {
-			logrus.Infof("checking whether cri-o should wipe containers: %v", err)
+			logrus.Infof("Checking whether cri-o should wipe containers: %v", err)
 		}
 
 		// there are two locations we check before wiping:
@@ -83,9 +83,9 @@ func crioWipe(c *cli.Context) error {
 		// However, now, we cannot expect users to have version-file-persist after having upgraded
 		// to this version. Skip the wipe, for now, and log about it.
 		if shouldWipeImages {
-			logrus.Infof("legacy version-file path found, but new version-file-persist path not. Skipping wipe")
+			logrus.Infof("Legacy version-file path found, but new version-file-persist path not. Skipping wipe")
 		}
-		logrus.Infof("version unchanged and node not rebooted; no wipe needed")
+		logrus.Infof("Version unchanged and node not rebooted; no wipe needed")
 		return nil
 	}
 
@@ -114,11 +114,11 @@ func shutdownWasUnclean(config *crioconf.Config) bool {
 }
 
 func handleCleanShutdown(config *crioconf.Config, store cstorage.Store) error {
-	logrus.Infof("file %s not found. Wiping storage directory %s because of suspected dirty shutdown", config.CleanShutdownFile, store.GraphRoot())
+	logrus.Infof("File %s not found. Wiping storage directory %s because of suspected dirty shutdown", config.CleanShutdownFile, store.GraphRoot())
 	// If we do not do this, we may leak other resources that are not directly in the graphroot.
 	// Erroring here should not be fatal though, it's a best effort cleanup
 	if err := store.Wipe(); err != nil {
-		logrus.Infof("failed to wipe storage cleanly: %v", err)
+		logrus.Infof("Failed to wipe storage cleanly: %v", err)
 	}
 	// unmount storage or else we will fail with EBUSY
 	if _, err := store.Shutdown(false); err != nil {
@@ -163,7 +163,7 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 		if errors.Is(err, os.ErrNotExist) {
 			return crioContainers, crioImages, err
 		}
-		logrus.Errorf("could not read containers and sandboxes: %v", err)
+		logrus.Errorf("Could not read containers and sandboxes: %v", err)
 	}
 
 	for i := range containers {
@@ -188,20 +188,20 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 
 func (c ContainerStore) deleteContainer(id string) {
 	if mounted, err := c.store.Unmount(id, true); err != nil || mounted {
-		logrus.Errorf("unable to unmount container %s: %v", id, err)
+		logrus.Errorf("Unable to unmount container %s: %v", id, err)
 		return
 	}
 	if err := c.store.DeleteContainer(id); err != nil {
-		logrus.Errorf("unable to delete container %s: %v", id, err)
+		logrus.Errorf("Unable to delete container %s: %v", id, err)
 		return
 	}
-	logrus.Infof("deleted container %s", id)
+	logrus.Infof("Deleted container %s", id)
 }
 
 func (c ContainerStore) deleteImage(id string) {
 	if _, err := c.store.DeleteImage(id, true); err != nil {
-		logrus.Errorf("unable to delete image %s: %v", id, err)
+		logrus.Errorf("Unable to delete image %s: %v", id, err)
 		return
 	}
-	logrus.Infof("deleted image %s", id)
+	logrus.Infof("Deleted image %s", id)
 }
