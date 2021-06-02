@@ -48,6 +48,7 @@ MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
+ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
 BATS_FILES := $(wildcard test/*.bats)
@@ -251,6 +252,9 @@ ${SHFMT}:
 ${GO_MOD_OUTDATED}:
 	$(call go-build,./vendor/github.com/psampaz/go-mod-outdated)
 
+${ZEITGEIST}:
+	$(call go-build,./vendor/sigs.k8s.io/zeitgeist)
+
 ${GOLANGCI_LINT}:
 	export VERSION=v1.40.1 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
@@ -408,6 +412,9 @@ get-script:
 	sed -i '/# INCLUDE/q' scripts/get
 	cat contrib/bundle/install-paths contrib/bundle/install >> scripts/get
 
+verify-dependencies: ${ZEITGEIST}
+	${BUILD_BIN_PATH}/zeitgeist validate --local-only --base-path . --config dependencies.yaml
+
 install: .gopathok install.bin install.man install.completions install.systemd install.config
 
 install.bin-nobuild:
@@ -534,4 +541,5 @@ metrics-exporter: bin/metrics-exporter
 	metrics-exporter \
 	release \
 	get-script \
-	check-log-lines
+	check-log-lines \
+	verify-dependencies
