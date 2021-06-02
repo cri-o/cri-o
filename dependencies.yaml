@@ -60,7 +60,7 @@ dependencies:
       match: runc
 
   - name: crun
-    version: 0.19.1
+    version: 0.20.1
     refPaths:
     - path: scripts/versions
       match: crun
