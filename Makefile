@@ -246,8 +246,7 @@ ${GO_MOD_OUTDATED}:
 	$(call go-build,./vendor/github.com/psampaz/go-mod-outdated)
 
 ${GOLANGCI_LINT}:
-	export \
-		VERSION=v1.30.0 \
+	export VERSION=v1.32.2 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
@@ -260,11 +259,14 @@ ${SHELLCHECK}:
 	curl -sfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$$VERSION/shellcheck && \
 	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
 
+vendor: export GOSUMDB :=
 vendor:
-	export GO111MODULE=on \
-		$(GO) mod tidy && \
-		$(GO) mod vendor && \
-		$(GO) mod verify
+	$(GO) mod tidy
+	$(GO) mod vendor
+	$(GO) mod verify
+
+check-vendor: vendor
+	./hack/tree_status.sh
 
 testunit: ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
@@ -517,6 +519,7 @@ metrics-exporter: bin/metrics-exporter
 	test-images \
 	uninstall \
 	vendor \
+	check-vendor \
 	bin/pinns \
 	dependencies \
 	upload-artifacts \
