@@ -36,7 +36,7 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/json-iterator/go v1.1.11
-	github.com/onsi/ginkgo v1.16.3
+	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
