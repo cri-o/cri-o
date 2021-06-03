@@ -38,7 +38,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
-// nolint:gocyclo
 func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest) (resp *pb.RunPodSandboxResponse, retErr error) {
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
