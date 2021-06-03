@@ -5,6 +5,7 @@ on:
       - v*
     branches:
       - master
+      - release-*
   pull_request:
 jobs:
   build:
@@ -125,7 +126,7 @@ jobs:
           make completions
           hack/tree_status.sh
 
-  build-static:
+  build-static-amd64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -138,23 +139,47 @@ jobs:
       - run: result/bin/crio version
       - uses: actions/upload-artifact@v2
         with:
-          name: build-static
+          name: build-static-amd64
           path: |
             result/bin/crio
             result/bin/crio-status
             result/bin/pinns
 
-  bundle:
+  build-static-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v12
+      - uses: cachix/cachix-action@v8
+        with:
+          name: cri-o-static
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+      - run: nix-build nix/default-arm64.nix
+      - run: file result/bin/crio
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build-static-arm64
+          path: |
+            result/bin/crio
+            result/bin/crio-status
+            result/bin/pinns
+
+  bundles:
     runs-on: ubuntu-latest
     needs:
       - build
-      - build-static
+      - build-static-amd64
+      - build-static-arm64
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
-          name: build-static
-          path: bin/static
+          name: build-static-amd64
+          path: bin/static-amd64
+      - uses: actions/download-artifact@v2
+        with:
+          name: build-static-arm64
+          path: bin/static-arm64
       - uses: actions/download-artifact@v2
         with:
           name: docs
@@ -163,7 +188,7 @@ jobs:
         with:
           name: config
       - run: chmod -R +x bin
-      - run: make bundle
+      - run: make bundles
       - uses: actions/upload-artifact@v2
         with:
           name: bundle
@@ -171,7 +196,7 @@ jobs:
 
   bundle-test:
     runs-on: ubuntu-latest
-    needs: bundle
+    needs: bundles
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
@@ -181,6 +206,7 @@ jobs:
       - run: make bundle-test
 
   upload-artifacts:
+    if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     needs: bundle-test
     steps:
@@ -232,7 +258,7 @@ jobs:
       - run: make codecov
 
   release-notes:
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -256,7 +282,7 @@ jobs:
           if-no-files-found: ignore
 
   dependencies:
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     needs: release-notes
     runs-on: ubuntu-latest
     steps:
