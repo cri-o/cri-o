@@ -1,10 +1,19 @@
 package metrics
 
 import (
+	"crypto/tls"
+	"fmt"
+	"net"
+	"net/http"
 	"sync"
 	"time"
 
+	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -171,27 +180,195 @@ var (
 	)
 )
 
-var registerMetrics sync.Once
-
-// Register all metrics
-func Register() {
-	registerMetrics.Do(func() {
-		prometheus.MustRegister(CRIOOperations)
-		prometheus.MustRegister(CRIOOperationsLatency)
-		prometheus.MustRegister(CRIOOperationsLatencyTotal)
-		prometheus.MustRegister(CRIOOperationsErrors)
-		prometheus.MustRegister(CRIOImagePullsByDigest)
-		prometheus.MustRegister(CRIOImagePullsByName)
-		prometheus.MustRegister(CRIOImagePullsByNameSkipped)
-		prometheus.MustRegister(CRIOImagePullsFailures)
-		prometheus.MustRegister(CRIOImagePullsSuccesses)
-		prometheus.MustRegister(CRIOImageLayerReuse)
-		prometheus.MustRegister(CRIOContainersOOMTotal)
-		prometheus.MustRegister(CRIOContainersOOM)
-	})
-}
-
 // SinceInMicroseconds gets the time since the specified start in microseconds.
 func SinceInMicroseconds(start time.Time) float64 {
 	return float64(time.Since(start).Microseconds())
+}
+
+// Metrics is the main structure for starting the metrics endpoints.
+type Metrics struct {
+	config *libconfig.MetricsConfig
+}
+
+// New creates a new metrics instance.
+func New(config *libconfig.MetricsConfig) *Metrics {
+	return &Metrics{config}
+}
+
+// Start starts serving the metrics in the background.
+func (m *Metrics) Start(stop chan struct{}) error {
+	if m.config == nil {
+		return errors.New("provided config is nil")
+	}
+
+	me, err := m.createEndpoint()
+	if err != nil {
+		return errors.Wrap(err, "create endpoint")
+	}
+
+	if err := m.startEndpoint(
+		stop, "tcp", fmt.Sprintf(":%v", m.config.MetricsPort), me,
+	); err != nil {
+		return errors.Wrapf(
+			err, "create metrics endpoint on port %d", m.config.MetricsPort,
+		)
+	}
+
+	metricsSocket := m.config.MetricsSocket
+	if metricsSocket != "" {
+		if err := libconfig.RemoveUnusedSocket(metricsSocket); err != nil {
+			return errors.Wrapf(err, "removing unused socket %s", metricsSocket)
+		}
+
+		return errors.Wrap(
+			m.startEndpoint(stop, "unix", m.config.MetricsSocket, me),
+			"creating metrics endpoint socket",
+		)
+	}
+
+	return nil
+}
+
+// createEndpoint creates a /metrics endpoint for prometheus monitoring.
+func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
+	for _, collector := range []prometheus.Collector{
+		CRIOOperations,
+		CRIOOperationsLatency,
+		CRIOOperationsLatencyTotal,
+		CRIOOperationsErrors,
+		CRIOImagePullsByDigest,
+		CRIOImagePullsByName,
+		CRIOImagePullsByNameSkipped,
+		CRIOImagePullsFailures,
+		CRIOImagePullsSuccesses,
+		CRIOImageLayerReuse,
+		CRIOContainersOOMTotal,
+		CRIOContainersOOM,
+	} {
+		if err := prometheus.Register(collector); err != nil {
+			return nil, errors.Wrap(err, "register metric")
+		}
+	}
+
+	mux := &http.ServeMux{}
+	mux.Handle("/metrics", promhttp.Handler())
+	return mux, nil
+}
+
+func (m *Metrics) startEndpoint(
+	stop chan struct{}, network, address string, me http.Handler,
+) error {
+	l, err := net.Listen(network, address)
+	if err != nil {
+		return errors.Wrap(err, "creating listener")
+	}
+
+	go func() {
+		var err error
+		if m.config.MetricsCert != "" && m.config.MetricsKey != "" {
+			logrus.Infof("Serving metrics on %s via HTTPs", address)
+
+			kpr, reloadErr := newCertReloader(
+				stop, m.config.MetricsCert, m.config.MetricsKey,
+			)
+			if reloadErr != nil {
+				logrus.Fatalf("Creating key pair reloader: %v", reloadErr)
+			}
+
+			srv := http.Server{
+				Handler: me,
+				TLSConfig: &tls.Config{
+					GetCertificate: kpr.getCertificate,
+					MinVersion:     tls.VersionTLS12,
+				},
+			}
+			err = srv.ServeTLS(l, m.config.MetricsCert, m.config.MetricsKey)
+		} else {
+			logrus.Infof("Serving metrics on %s via HTTP", address)
+			err = http.Serve(l, me)
+		}
+
+		if err != nil {
+			logrus.Fatalf("Failed to serve metrics endpoint %v: %v", l, err)
+		}
+	}()
+
+	return nil
+}
+
+type certReloader struct {
+	certLock    sync.RWMutex
+	certificate *tls.Certificate
+	certPath    string
+	keyPath     string
+}
+
+func newCertReloader(doneChan chan struct{}, certPath, keyPath string) (*certReloader, error) {
+	reloader := &certReloader{
+		certPath: certPath,
+		keyPath:  keyPath,
+	}
+
+	if err := reloader.reload(); err != nil {
+		return nil, errors.Wrap(err, "load certificate")
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, errors.Wrap(err, "create new watcher")
+	}
+	go func() {
+		defer watcher.Close()
+		done := make(chan struct{})
+		go func() {
+			for {
+				select {
+				case event := <-watcher.Events:
+					logrus.Debugf(
+						"Got cert watcher event for %s (%s), reloading certificates",
+						event.Name, event.Op.String(),
+					)
+					if err := reloader.reload(); err != nil {
+						logrus.Warnf("Keeping previous certificates: %v", err)
+					}
+				case err := <-watcher.Errors:
+					logrus.Errorf("Cert watcher error: %v", err)
+					close(done)
+					return
+				case <-doneChan:
+					logrus.Debug("Closing cert watcher")
+					close(done)
+					return
+				}
+			}
+		}()
+		for _, f := range []string{certPath, keyPath} {
+			logrus.Debugf("Watching file %s for changes", f)
+			if err := watcher.Add(f); err != nil {
+				logrus.Fatalf("Unable to watch %s: %v", f, err)
+			}
+		}
+		<-done
+	}()
+
+	return reloader, nil
+}
+
+func (c *certReloader) reload() error {
+	certificate, err := tls.LoadX509KeyPair(c.certPath, c.keyPath)
+	if err != nil {
+		return errors.Wrap(err, "load x509 key pair")
+	}
+
+	c.certLock.Lock()
+	c.certificate = &certificate
+	c.certLock.Unlock()
+
+	return nil
+}
+
+func (c *certReloader) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	c.certLock.RLock()
+	defer c.certLock.RUnlock()
+	return c.certificate, nil
 }

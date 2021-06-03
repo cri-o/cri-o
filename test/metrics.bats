@@ -53,6 +53,12 @@ function teardown() {
 
 	# get metrics
 	curl -sfk "https://localhost:$PORT/metrics" | grep crio_operations
+
+	# remove the watched cert
+	rm "$TESTDIR/cert.pem"
+
+	# serving metrics should still work
+	curl -sfk "https://localhost:$PORT/metrics" | grep crio_operations
 }
 
 @test "metrics container oom" {
