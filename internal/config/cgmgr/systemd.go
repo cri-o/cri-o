@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/pkg/errors"
@@ -23,6 +24,19 @@ const defaultSystemdParent = "system.slice"
 // it defines all of the common functionality between V1 and V2
 type SystemdManager struct {
 	memoryPath, memoryMaxFile string
+}
+
+func NewSystemdManager() *SystemdManager {
+	systemdMgr := SystemdManager{
+		memoryPath:    cgroupMemoryPathV1,
+		memoryMaxFile: cgroupMemoryMaxFileV1,
+	}
+	if node.CgroupIsV2() {
+		systemdMgr.memoryPath = cgroupMemoryPathV2
+		systemdMgr.memoryMaxFile = cgroupMemoryMaxFileV2
+	}
+
+	return &systemdMgr
 }
 
 // Name returns the name of the cgroup manager (systemd)
