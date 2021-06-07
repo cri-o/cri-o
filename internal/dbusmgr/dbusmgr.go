@@ -25,10 +25,13 @@ type DbusConnManager struct{}
 
 // NewDbusConnManager initializes systemd dbus connection manager.
 func NewDbusConnManager(rootless bool) *DbusConnManager {
+	dbusMu.Lock()
+	defer dbusMu.Unlock()
 	if dbusInited && rootless != dbusRootless {
 		panic("can't have both root and rootless dbus")
 	}
 	dbusRootless = rootless
+	dbusInited = true
 	return &DbusConnManager{}
 }
 
