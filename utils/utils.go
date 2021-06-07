@@ -87,6 +87,7 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 
 	// Block until job is started
 	<-ch
+	close(ch)
 
 	return nil
 }
