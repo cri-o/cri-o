@@ -82,15 +82,7 @@ func New() CgroupManager {
 func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 	switch cgroupManager {
 	case systemdCgroupManager:
-		systemdMgr := SystemdManager{
-			memoryPath:    cgroupMemoryPathV1,
-			memoryMaxFile: cgroupMemoryMaxFileV1,
-		}
-		if node.CgroupIsV2() {
-			systemdMgr.memoryPath = cgroupMemoryPathV2
-			systemdMgr.memoryMaxFile = cgroupMemoryMaxFileV2
-		}
-		return &systemdMgr, nil
+		return NewSystemdManager(), nil
 	case cgroupfsCgroupManager:
 		cgroupfsMgr := CgroupfsManager{
 			memoryPath:    cgroupMemoryPathV1,
