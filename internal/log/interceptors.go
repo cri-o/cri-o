@@ -51,14 +51,14 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		newCtx := AddRequestNameAndID(ctx, info.FullMethod)
-		Debugf(newCtx, "request: %+v", req)
+		Debugf(newCtx, "Request: %+v", req)
 
 		resp, err := handler(newCtx, req)
 
 		if err != nil {
-			Debugf(newCtx, "response error: %+v", err)
+			Debugf(newCtx, "Response error: %+v", err)
 		} else {
-			Debugf(newCtx, "response: %+v", resp)
+			Debugf(newCtx, "Response: %+v", resp)
 		}
 
 		return resp, err
