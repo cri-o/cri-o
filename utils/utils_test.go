@@ -7,15 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/v2/pkg/rootless"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-type errorReaderWriter struct {
-}
+type errorReaderWriter struct{}
 
 func (m *errorReaderWriter) Write(p []byte) (int, error) {
 	return 0, t.TestError
