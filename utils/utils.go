@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/pkg/lookup"
+	"github.com/cri-o/cri-o/internal/dbusmgr"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
@@ -52,11 +53,12 @@ func StatusToExitCode(status int) int {
 }
 
 // RunUnderSystemdScope adds the specified pid to a systemd scope
-func RunUnderSystemdScope(pid int, slice, unitName string) error {
+func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName string) error {
 	var properties []systemdDbus.Property
-	conn, err := systemdDbus.New()
-	if err != nil {
-		return err
+	var err error
+	// sanity check
+	if mgr == nil {
+		return errors.New("dbus manager is nil")
 	}
 	properties = append(properties,
 		newProp("PIDs", []uint32{uint32(pid)}),
@@ -67,7 +69,11 @@ func RunUnderSystemdScope(pid int, slice, unitName string) error {
 	}
 	ch := make(chan string)
 	for {
-		_, err = conn.StartTransientUnit(unitName, "replace", properties, ch)
+		err := mgr.RetryOnDisconnect(func(c *systemdDbus.Conn) error {
+			_, err = c.StartTransientUnit(unitName, "replace", properties, ch)
+			return err
+		})
+
 		if err == nil {
 			break
 		}
@@ -75,7 +81,6 @@ func RunUnderSystemdScope(pid int, slice, unitName string) error {
 			return err
 		}
 	}
-	defer conn.Close()
 
 	// Block until job is started
 	<-ch
