@@ -6,7 +6,6 @@ package dbusmgr
 
 import (
 	"errors"
-	"strings"
 	"sync"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -70,8 +69,6 @@ func (d *DbusConnManager) newConnection() (*systemdDbus.Conn, error) {
 	return systemdDbus.New()
 }
 
-var errDbusConnClosed = dbus.ErrClosed.Error()
-
 // RetryOnDisconnect calls op, and if the error it returns is about closed dbus
 // connection, the connection is re-established and the op is retried. This helps
 // with the situation when dbus is restarted and we have a stale connection.
@@ -82,7 +79,7 @@ func (d *DbusConnManager) RetryOnDisconnect(op func(*systemdDbus.Conn) error) er
 			return err
 		}
 		err = op(conn)
-		if !isDbusError(err, errDbusConnClosed) {
+		if !errors.Is(err, dbus.ErrClosed) {
 			return err
 		}
 		d.resetConnection(conn)
@@ -98,15 +95,4 @@ func (d *DbusConnManager) resetConnection(conn *systemdDbus.Conn) {
 		dbusC.Close()
 		dbusC = nil
 	}
-}
-
-// isDbusError returns true if the error is a specific dbus error.
-func isDbusError(err error, name string) bool {
-	if err != nil {
-		var derr dbus.Error
-		if errors.As(err, &derr) {
-			return strings.Contains(derr.Name, name)
-		}
-	}
-	return false
 }
