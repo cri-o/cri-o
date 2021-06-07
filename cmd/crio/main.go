@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -32,7 +31,6 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
-	"k8s.io/klog/v2"
 )
 
 func writeCrioGoroutineStacks() {
@@ -100,9 +98,7 @@ scope of the CRI.
 6. Resource isolation as required by the CRI.`
 
 func main() {
-	// Configure klog to not write any output
-	klog.LogToStderr(true)
-	klog.SetOutput(ioutil.Discard)
+	log.InitKlogShim()
 
 	if reexec.Init() {
 		fmt.Fprintf(os.Stderr, "unable to initialize container storage\n")
