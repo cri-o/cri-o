@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v3/pkg/rootless"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
@@ -26,6 +27,7 @@ const defaultSystemdParent = "system.slice"
 // it defines all of the common functionality between V1 and V2
 type SystemdManager struct {
 	memoryPath, memoryMaxFile string
+	dbusMgr                   *dbusmgr.DbusConnManager
 }
 
 func NewSystemdManager() *SystemdManager {
@@ -37,6 +39,7 @@ func NewSystemdManager() *SystemdManager {
 		systemdMgr.memoryPath = cgroupMemoryPathV2
 		systemdMgr.memoryMaxFile = cgroupMemoryMaxFileV2
 	}
+	systemdMgr.dbusMgr = dbusmgr.NewDbusConnManager(rootless.IsRootless())
 
 	return &systemdMgr
 }
@@ -84,7 +87,7 @@ func (*SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID string)
 // cgroupPathToClean should always be returned empty. It is part of the interface to return the cgroup path
 // that cri-o is responsible for cleaning up upon the container's death.
 // Systemd takes care of this cleaning for us, so return an empty string
-func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (cgroupPathToClean string, _ error) {
+func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (cgroupPathToClean string, _ error) {
 	if strings.HasSuffix(conmonCgroup, ".slice") {
 		cgroupParent = conmonCgroup
 	}
@@ -125,7 +128,7 @@ func (*SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string
 	}
 
 	logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, conmonUnitName)
-	if err := utils.RunUnderSystemdScope(pid, cgroupParent, conmonUnitName, props...); err != nil {
+	if err := utils.RunUnderSystemdScope(m.dbusMgr, pid, cgroupParent, conmonUnitName, props...); err != nil {
 		return "", errors.Wrapf(err, "failed to add conmon to systemd sandbox cgroup")
 	}
 	// return empty string as path because cgroup cleanup is done by systemd
