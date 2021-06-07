@@ -1,0 +1,68 @@
+dependencies:
+  - name: go
+    version: 1.16
+    refPaths:
+    - path: .github/workflows/verify.yml
+      match: go-version
+    - path: .github/workflows/integration.yml
+      match: go-version
+    - path: .github/workflows/test.yml
+      match: go-version
+    - path: contrib/test/integration/main.yml
+      match: version
+
+  - name: golangci-lint
+    version: v1.40.1
+    refPaths:
+    - path: .github/workflows/verify.yml
+      match: version
+    - path: Makefile
+      match: VERSION
+
+  - name: shellcheck
+    version: v0.7.0
+    refPaths:
+    - path: Makefile
+      match: VERSION
+
+  - name: cni-plugins
+    version: v0.9.1
+    refPaths:
+    - path: scripts/versions
+      match: cni-plugins
+    - path: contrib/test/integration/build/plugins.yml
+      match: version
+
+  - name: conmon
+    version: v2.0.26
+    refPaths:
+    - path: scripts/versions
+      match: conmon
+
+  - name: cri-tools
+    version: v1.21.0
+    refPaths:
+    - path: scripts/versions
+      match: cri-tools
+    - path: contrib/test/integration/main.yml
+      match: cri_tools_git_version
+
+  - name: runc
+    version: v1.0.0-rc95
+    refPaths:
+    - path: scripts/versions
+      match: runc
+
+  - name: crun
+    version: 0.19.1
+    refPaths:
+    - path: scripts/versions
+      match: crun
+
+  - name: bats
+    version: v1.3.0
+    refPaths:
+    - path: scripts/versions
+      match: bats
+    - path: contrib/test/integration/build/bats.yml
+      match: version

@@ -76,3 +76,17 @@ jobs:
           hack/tree_status.sh
       - run: sudo scripts/get
       - run: crio version
+
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: go-verify-dependencies-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-verify-dependencies-
+      - run: make verify-dependencies
