@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"syscall"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	dbus "github.com/godbus/dbus/v5"
@@ -80,9 +81,16 @@ func (d *DbusConnManager) RetryOnDisconnect(op func(*systemdDbus.Conn) error) er
 			return err
 		}
 		err = op(conn)
+		if err == nil {
+			return nil
+		}
+		if errors.Is(err, syscall.EAGAIN) {
+			continue
+		}
 		if !errors.Is(err, dbus.ErrClosed) {
 			return err
 		}
+		// dbus connection closed, we should reconnect and try again
 		d.resetConnection(conn)
 	}
 }

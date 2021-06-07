@@ -71,18 +71,11 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 		properties = append(properties, systemdDbus.PropSlice(slice))
 	}
 	ch := make(chan string)
-	for {
-		err := mgr.RetryOnDisconnect(func(c *systemdDbus.Conn) error {
-			_, err = c.StartTransientUnitContext(ctx, unitName, "replace", properties, ch)
-			return err
-		})
-
-		if err == nil {
-			break
-		}
-		if !errors.Is(err, syscall.EAGAIN) {
-			return err
-		}
+	if err := mgr.RetryOnDisconnect(func(c *systemdDbus.Conn) error {
+		_, err = c.StartTransientUnitContext(ctx, unitName, "replace", properties, ch)
+		return err
+	}); err != nil {
+		return err
 	}
 
 	// Block until job is started
