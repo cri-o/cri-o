@@ -7,13 +7,16 @@ on:
       - master
       - release-*
   pull_request:
+env:
+  GO_VERSION: '1.16'
+  GO_VERSION_LEGACY: '1.14'
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.16'
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:
@@ -49,7 +52,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.14'
+          go-version: ${{ env.GO_VERSION_LEGACY }}
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:
@@ -81,7 +84,7 @@ jobs:
             -v ~/.cache/go-build:/root/.cache/go-build \
             -v $PWD:/build \
             -w /build \
-            -it i386/golang:1.15-alpine \
+            -it i386/golang:${{ env.GO_VERSION }}-alpine \
             sh -c \
               "apk --no-cache add \
                 bash \
@@ -214,7 +217,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.16'
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/download-artifact@v2
         with:
           name: bundle
@@ -249,7 +252,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.16'
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:
@@ -287,7 +290,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.16'
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -315,7 +318,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.16'
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -341,7 +344,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.16'
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0

@@ -3,13 +3,19 @@ dependencies:
     version: 1.16
     refPaths:
     - path: .github/workflows/verify.yml
-      match: go-version
+      match: GO_VERSION
     - path: .github/workflows/integration.yml
-      match: go-version
+      match: GO_VERSION
     - path: .github/workflows/test.yml
-      match: go-version
+      match: GO_VERSION
     - path: contrib/test/integration/main.yml
       match: version
+
+  - name: go-legacy
+    version: 1.14
+    refPaths:
+    - path: .github/workflows/test.yml
+      match: GO_VERSION_LEGACY
 
   - name: golangci-lint
     version: v1.40.1
