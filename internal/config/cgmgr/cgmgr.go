@@ -58,11 +58,11 @@ type CgroupManager interface {
 	// returns the cgroup parent, cgroup path, and error. For systemd cgroups,
 	// it also checks there is enough memory in the given cgroup
 	SandboxCgroupPath(string, string) (string, string, error)
-	// MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID
-	// It attempts to move conmon to the correct cgroup.
+	// MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config), conmon's PID, and some customized resources
+	// It attempts to move conmon to the correct cgroup, and set the resources for that cgroup.
 	// It returns the cgroupfs parent that conmon was put into
 	// so that CRI-O can clean the parent cgroup of the newly added conmon once the process terminates (systemd handles this for us)
-	MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error)
+	MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (string, error)
 	// CreateSandboxCgroup takes the sandbox parent, and sandbox ID.
 	// It creates a new cgroup for that sandbox, which is useful when spoofing an infra container.
 	CreateSandboxCgroup(sbParent, containerID string) error

@@ -207,7 +207,7 @@ func (s *Server) restore(ctx context.Context) []string {
 				log.Warnf(ctx, "unable to delete container %s: %v", n, err)
 			}
 			// Release the infra container name and the pod name for future use
-			if strings.Contains(n, infraName) {
+			if strings.Contains(n, types.InfraContainerName) {
 				s.ReleaseContainerName(n)
 			} else {
 				s.ReleasePodName(n)

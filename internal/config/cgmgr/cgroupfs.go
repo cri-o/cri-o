@@ -9,6 +9,13 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v3/pkg/cgroups"
+	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/cri-o/cri-o/internal/config/node"
+	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
+	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
+	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -68,9 +75,13 @@ func (m *CgroupfsManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cg
 // It attempts to move conmon to the correct cgroup.
 // It returns the cgroupfs parent that conmon was put into
 // so that CRI-O can clean the cgroup path of the newly added conmon once the process terminates (systemd handles this for us)
-func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int) (string, error) {
+func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (cgroupPathToClean string, _ error) {
 	if conmonCgroup != "pod" && conmonCgroup != "" {
 		return "", errors.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
+	}
+
+	if resources == nil {
+		resources = &rspec.LinuxResources{}
 	}
 
 	cgroupPath := fmt.Sprintf("%s/crio-conmon-%s", cgroupParent, cid)
@@ -80,6 +91,10 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 	}
 	if control == nil {
 		return cgroupPath, nil
+	}
+
+	if err := setWorkloadSettings(cgroupPath, resources); err != nil {
+		return cgroupPath, err
 	}
 
 	// Record conmon's cgroup path in the container, so we can properly
@@ -94,6 +109,51 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 		return "", errors.Wrapf(err, "Failed to add conmon to cgroupfs sandbox cgroup")
 	}
 	return cgroupPath, nil
+}
+
+func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) error {
+	var mgr libctr.Manager
+	if resources.CPU == nil {
+		return nil
+	}
+
+	paths := map[string]string{
+		"cpuset":  filepath.Join("/sys/fs/cgroup", "cpuset", cgPath),
+		"cpu":     filepath.Join("/sys/fs/cgroup", "cpu", cgPath),
+		"freezer": filepath.Join("/sys/fs/cgroup", "freezer", cgPath),
+		"devices": filepath.Join("/sys/fs/cgroup", "devices", cgPath),
+	}
+
+	cg := &cgcfgs.Cgroup{
+		Name:      cgPath,
+		Resources: &cgcfgs.Resources{},
+	}
+	if resources.CPU.Cpus != "" {
+		cg.Resources.CpusetCpus = resources.CPU.Cpus
+	}
+	if resources.CPU.Shares != nil {
+		cg.Resources.CpuShares = *resources.CPU.Shares
+	}
+
+	// We need to white list all devices
+	// so containers created underneath won't fail
+	cg.Resources.Devices = []*devices.Rule{
+		{
+			Type:  devices.WildcardDevice,
+			Allow: true,
+		},
+	}
+
+	if node.CgroupIsV2() {
+		var err error
+		mgr, err = fs2.NewManager(cg, cgPath, rootless.IsRootless())
+		if err != nil {
+			return err
+		}
+	} else {
+		mgr = fs.NewManager(cg, paths, rootless.IsRootless())
+	}
+	return mgr.Set(cg.Resources)
 }
 
 // CreateSandboxCgroup calls the helper function createSandboxCgroup for this manager.
