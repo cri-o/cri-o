@@ -13,17 +13,35 @@ var (
 	systemdHasCollectModeOnce sync.Once
 	systemdHasCollectMode     bool
 	systemdHasCollectModeErr  error
+
+	systemdHasAllowedCPUsOnce sync.Once
+	systemdHasAllowedCPUs     bool
+	systemdHasAllowedCPUsErr  error
 )
 
 func SystemdHasCollectMode() bool {
 	systemdHasCollectModeOnce.Do(func() {
-		// This will show whether the currently running systemd supports CollectMode
-		_, err := exec.Command("systemctl", "show", "-p", "CollectMode", "systemd").Output()
-		if err != nil {
-			systemdHasCollectModeErr = errors.Wrapf(err, "check systemd CollectMode")
-			return
-		}
-		systemdHasCollectMode = true
+		systemdHasCollectMode, systemdHasCollectModeErr = systemdSupportsProperty("CollectMode")
 	})
 	return systemdHasCollectMode
+}
+
+func SystemdHasAllowedCPUs() bool {
+	systemdHasAllowedCPUsOnce.Do(func() {
+		systemdHasAllowedCPUs, systemdHasAllowedCPUsErr = systemdSupportsProperty("AllowedCPUs")
+	})
+	return systemdHasAllowedCPUs
+}
+
+// systemdSupportsProperty checks whether systemd supports a property
+// It returns an error if it does not.
+func systemdSupportsProperty(property string) (bool, error) {
+	output, err := exec.Command("systemctl", "show", "-p", property, "systemd").Output()
+	if err != nil {
+		return false, errors.Wrapf(err, "check systemd %s", property)
+	}
+	if len(output) == 0 {
+		return false, nil
+	}
+	return true, nil
 }

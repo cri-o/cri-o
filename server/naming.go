@@ -10,14 +10,13 @@ import (
 
 const (
 	kubePrefix    = "k8s"
-	infraName     = "POD"
 	nameDelimiter = "_"
 )
 
 func makeSandboxContainerName(sandboxConfig *types.PodSandboxConfig) string {
 	return strings.Join([]string{
 		kubePrefix,
-		infraName,
+		types.InfraContainerName,
 		sandboxConfig.Metadata.Name,
 		sandboxConfig.Metadata.Namespace,
 		sandboxConfig.Metadata.UID,

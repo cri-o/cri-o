@@ -38,7 +38,6 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/kubelet/leaky"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
@@ -281,7 +280,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	pathsToChown := []string{}
 
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
-	log.Infof(ctx, "Running pod sandbox: %s%s", translateLabelsToDescription(sbox.Config().Labels), leaky.PodInfraContainerName)
+	log.Infof(ctx, "Running pod sandbox: %s%s", translateLabelsToDescription(sbox.Config().Labels), types.InfraContainerName)
 
 	kubeName := sbox.Config().Metadata.Name
 	namespace := sbox.Config().Metadata.Namespace
@@ -431,7 +430,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	// Add special container name label for the infra container
 	if labels != nil {
-		labels[kubeletTypes.KubernetesContainerNameLabel] = leaky.PodInfraContainerName
+		labels[kubeletTypes.KubernetesContainerNameLabel] = types.InfraContainerName
 	}
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
