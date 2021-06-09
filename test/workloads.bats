@@ -68,17 +68,15 @@ function check_conmon_fields() {
 		fi
 
 		found_cpuset=$(cat "$cpuset_path/pod_123-456/crio-conmon-$ctr_id/cpuset.cpus")
-		echo "$found_cpuset" AND "$cpuset"
 		if [ -z "$cpuset" ]; then
-			[[ -z "$found_cpushares" ]]
+			[[ $(cat "$cpuset_path/pod_123-456/cpuset.cpus") == *"$found_cpuset"* ]]
 		else
 			[[ "$cpuset" == *"$found_cpuset"* ]]
 		fi
 
-		echo "$found_cpushares" AND "$cpushares"
 		found_cpushares=$(cat "$cpushare_path/pod_123-456/crio-conmon-$ctr_id/$cpushare_filename")
 		if [ -z "$cpushares" ]; then
-			[[ -z "$found_cpushares" ]]
+			[[ $(cat "$cpushare_path/pod_123-456/$cpushare_filename") == *"$found_cpushares"* ]]
 		else
 			[[ "$cpushares" == *"$found_cpushares"* ]]
 		fi
@@ -222,8 +220,7 @@ function check_conmon_fields() {
 
 	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$act] = "true"
-		|   .annotations[$setkey] = $set
-		|   .metadata.name = $name' \
+		|   .annotations[$setkey] = $set' \
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
@@ -245,8 +242,7 @@ function check_conmon_fields() {
 
 	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$act] = "true"
-		|   .annotations[$setkey] = $set
-		|   .metadata.name = $name' \
+		|   .annotations[$setkey] = $set' \
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
@@ -267,7 +263,6 @@ function check_conmon_fields() {
 
 	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$setkey] = $set
-		|   .metadata.name = $name
 		|   del(.linux.resources.cpu_shares)' \
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
