@@ -19,6 +19,7 @@ import (
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
@@ -303,7 +304,7 @@ func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []strin
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
+func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
 	log.Debugf(ctx, "runtimeVM.ExecSyncContainer() start")
 	defer log.Debugf(ctx, "runtimeVM.ExecSyncContainer() end")
 
@@ -313,13 +314,10 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 
 	exitCode, err := r.execContainerCommon(ctx, c, command, timeout, nil, stdout, stderr, c.terminal, nil)
 	if err != nil {
-		return nil, &ExecSyncError{
-			ExitCode: -1,
-			Err:      errors.Wrap(err, "ExecSyncContainer failed"),
-		}
+		return nil, errors.Wrap(err, "ExecSyncContainer failed")
 	}
 
-	return &ExecSyncResponse{
+	return &types.ExecSyncResponse{
 		Stdout:   stdoutBuf.Bytes(),
 		Stderr:   stderrBuf.Bytes(),
 		ExitCode: exitCode,
