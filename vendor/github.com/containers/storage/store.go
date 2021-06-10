@@ -788,6 +788,15 @@ func (s *store) load() error {
 	}
 	s.containerStore = rcs
 
+	for _, store := range driver.AdditionalImageStores() {
+		gipath := filepath.Join(store, driverPrefix+"images")
+		ris, err := newROImageStore(gipath)
+		if err != nil {
+			return err
+		}
+		s.roImageStores = append(s.roImageStores, ris)
+	}
+
 	s.digestLockRoot = filepath.Join(s.runRoot, driverPrefix+"locks")
 	if err := os.MkdirAll(s.digestLockRoot, 0700); err != nil {
 		return err
@@ -910,22 +919,10 @@ func (s *store) ImageStore() (ImageStore, error) {
 // Store.  Accessing these stores directly will bypass locking and
 // synchronization, so it is not a part of the exported Store interface.
 func (s *store) ROImageStores() ([]ROImageStore, error) {
-	if len(s.roImageStores) != 0 {
-		return s.roImageStores, nil
+	if s.imageStore == nil {
+		return nil, ErrLoadError
 	}
-	driver, err := s.getGraphDriver()
-	if err != nil {
-		return nil, err
-	}
-	driverPrefix := s.graphDriverName + "-"
-	for _, store := range driver.AdditionalImageStores() {
-		gipath := filepath.Join(store, driverPrefix+"images")
-		ris, err := newROImageStore(gipath)
-		if err != nil {
-			return nil, err
-		}
-		s.roImageStores = append(s.roImageStores, ris)
-	}
+
 	return s.roImageStores, nil
 }
 
@@ -940,7 +937,7 @@ func (s *store) ContainerStore() (ContainerStore, error) {
 }
 
 func (s *store) canUseShifting(uidmap, gidmap []idtools.IDMap) bool {
-	if !s.graphDriver.SupportsShifting() {
+	if s.graphDriver == nil || !s.graphDriver.SupportsShifting() {
 		return false
 	}
 	if uidmap != nil && !idtools.IsContiguous(uidmap) {
@@ -2655,8 +2652,13 @@ func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 		return "", err
 	}
 
+	modified, err := s.graphLock.Modified()
+	if err != nil {
+		return "", err
+	}
+
 	/* We need to make sure the home mount is present when the Mount is done.  */
-	if s.graphLock.TouchedSince(s.lastLoaded) {
+	if modified {
 		s.graphDriver = nil
 		s.layerStore = nil
 		s.graphDriver, err = s.getGraphDriver()
@@ -2664,6 +2666,10 @@ func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 			return "", err
 		}
 		s.lastLoaded = time.Now()
+	}
+
+	if options.UidMaps != nil || options.GidMaps != nil {
+		options.DisableShifting = !s.canUseShifting(options.UidMaps, options.GidMaps)
 	}
 
 	if rlstore.Exists(id) {
@@ -2706,7 +2712,6 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 				options.Volatile = v.(bool)
 			}
 		}
-		options.DisableShifting = !s.canUseShifting(container.UIDMap, container.GIDMap)
 	}
 	return s.mount(id, options)
 }
