@@ -17,6 +17,7 @@ import (
 	"github.com/containerd/containerd/runtime/v2/task"
 	"github.com/containerd/ttrpc"
 	"github.com/containers/libpod/v2/pkg/cgroups"
+	types "github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
 	"github.com/cri-o/cri-o/utils/fifo"
@@ -284,7 +285,7 @@ func (r *runtimeVM) StartContainer(c *Container) error {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *runtimeVM) ExecContainer(c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
 	logrus.Debug("runtimeVM.ExecContainer() start")
 	defer logrus.Debug("runtimeVM.ExecContainer() end")
 
@@ -303,7 +304,7 @@ func (r *runtimeVM) ExecContainer(c *Container, cmd []string, stdin io.Reader, s
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *runtimeVM) ExecSyncContainer(c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
+func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
 	logrus.Debug("runtimeVM.ExecSyncContainer() start")
 	defer logrus.Debug("runtimeVM.ExecSyncContainer() end")
 
@@ -313,13 +314,10 @@ func (r *runtimeVM) ExecSyncContainer(c *Container, command []string, timeout in
 
 	exitCode, err := r.execContainerCommon(c, command, timeout, nil, stdout, stderr, c.terminal, nil)
 	if err != nil {
-		return nil, &ExecSyncError{
-			ExitCode: -1,
-			Err:      errors.Wrap(err, "ExecSyncContainer failed"),
-		}
+		return nil, errors.Wrap(err, "ExecSyncContainer failed")
 	}
 
-	return &ExecSyncResponse{
+	return &types.ExecSyncResponse{
 		Stdout:   stdoutBuf.Bytes(),
 		Stderr:   stderrBuf.Bytes(),
 		ExitCode: exitCode,

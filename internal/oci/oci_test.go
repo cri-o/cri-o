@@ -142,17 +142,4 @@ var _ = t.Describe("Oci", func() {
 			Expect(allowed).To(Equal(true))
 		})
 	})
-
-	t.Describe("ExecSyncError", func() {
-		It("should succeed to get the exec sync error", func() {
-			// Given
-			sut := oci.ExecSyncError{}
-
-			// When
-			result := sut.Error()
-
-			// Then
-			Expect(result).To(ContainSubstring("error"))
-		})
-	})
 })
