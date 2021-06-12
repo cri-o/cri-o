@@ -4,6 +4,8 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -15,6 +17,9 @@ import (
 func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainerRequest) error {
 	log.Infof(ctx, "Removing container: %s", req.ContainerID)
 
+	ctx = baggage.ContextWithValues(ctx,
+		attribute.String("remove-container-request-id", req.ContainerID),
+	)
 	tracer := otel.GetTracerProvider().Tracer(s.tracerName)
 	var span trace.Span
 	ctx, span = tracer.Start(ctx, "remove-container")
@@ -30,6 +35,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 		return err
 	}
 
+	span.AddEvent("container removed", trace.WithAttributes(attribute.String("container-id", c.ID())))
 	log.Infof(ctx, "Removed container %s: %s", c.ID(), c.Description())
 	return nil
 }
