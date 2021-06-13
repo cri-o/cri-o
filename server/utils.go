@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -208,4 +209,48 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 	}
 
 	return "", errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
+}
+
+func getCPUsMask(cpus []int) (string, error) {
+	var binaryString string
+	var mask string
+	cpuIndex := 0
+	for i := 0; i <= cpus[len(cpus)-1]; i++ {
+		// we should create a separate bitmask for each 32 CPUs
+		if i%32 == 0 && binaryString != "" {
+			hexString, err := parseBinToHex(binaryString)
+			if err != nil {
+				return "", err
+			}
+			mask = "," + hexString + mask
+			binaryString = ""
+		}
+
+		if i != cpus[cpuIndex] {
+			binaryString = "0" + binaryString
+			continue
+		}
+
+		binaryString = "1" + binaryString
+		cpuIndex++
+	}
+
+	if binaryString != "" {
+		hexString, err := parseBinToHex(binaryString)
+		if err != nil {
+			return "", err
+		}
+		mask = hexString + mask
+	}
+
+	return mask, nil
+}
+
+func parseBinToHex(s string) (string, error) {
+	ui, err := strconv.ParseUint(s, 2, 64)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%08x", ui), nil
 }

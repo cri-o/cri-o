@@ -3,7 +3,11 @@ package server
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"math"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
@@ -16,8 +20,11 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 	utilnet "k8s.io/utils/net"
 )
+
+const sysDeviceDir = "/sys/devices"
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error
@@ -73,6 +80,25 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	network, err := cnicurrent.GetResult(result)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+	}
+
+	// update network devices RPS to run on top of infra CPUs
+	var infraCPUSet cpuset.CPUSet
+	if s.config.InfraCtrCPUSet != "" {
+		var err error
+		infraCPUSet, err = cpuset.Parse(s.config.InfraCtrCPUSet)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		infraCPUSetMask, err := getCPUsMask(infraCPUSet.ToSlice())
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if err := updateNetRPS(infraCPUSetMask); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// only do portmapping to the first IP of each IP family
@@ -230,4 +256,17 @@ func (s *Server) newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
 			network: {Bandwidth: bwConfig},
 		},
 	}, nil
+}
+
+func updateNetRPS(mask string) error {
+	err := filepath.Walk(sysDeviceDir, func(path string, info os.FileInfo, err error) error {
+		if strings.Contains(path, "rps_cpus") {
+			if err := ioutil.WriteFile(path, []byte(mask), 644); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	return err
 }
