@@ -13,3 +13,4 @@ Below is a non-exhaustive list of CRI-O adopters in production environments:
   runtime for Kubernetes.
 * [Digital Science](https://www.digital-science.com/) is using CRI-O as the runtime in data processing clusters behind [Dimensions](https://www.dimension.ai) due to it being just enough runtime for Kubernetes, and the flexibility to use more than runc.
 * [HERE Technologies](https://here.com) uses CRI-O as the runtime for our home grown Kubernetes clusters. We like that it is purpose built for Kubernetes and has a strong community backing it.
+* [Particule](https://particule.io/en) uses CRI-O as part of our bare metal solution [Symplegma](https://github.com/particuleio/symplegma) to deploy Kubernetes with Ansible. We aim to be as vanilla and up to date with community standards as possible.
