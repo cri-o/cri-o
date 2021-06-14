@@ -58,6 +58,7 @@ const (
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
 type Config struct {
+	Comment          string
 	singleConfigPath string // Path to the single config file
 	dropInConfigDir  string // Path to the drop-in config files
 
@@ -553,6 +554,7 @@ func (t *tomlConfig) SetSystemContext(c *Config) {
 }
 
 func (t *tomlConfig) toConfig(c *Config) {
+	c.Comment = "# "
 	c.RootConfig = t.Crio.RootConfig
 	c.APIConfig = t.Crio.API.APIConfig
 	c.RuntimeConfig = t.Crio.Runtime.RuntimeConfig
@@ -708,6 +710,7 @@ func DefaultConfig() (*Config, error) {
 	}
 	cgroupManager := cgmgr.New()
 	return &Config{
+		Comment: "# ",
 		SystemContext: &types.SystemContext{
 			DockerRegistryUserAgent: useragent.Get(),
 		},
