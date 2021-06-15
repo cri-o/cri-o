@@ -764,15 +764,10 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		c.state.OOMKilled = true
 
 		// Collect total metric
-		metrics.CRIOContainersOOMTotal.Inc()
+		metrics.Instance().MetricContainersOOMTotalInc()
 
 		// Collect metric by container name
-		counter, err := metrics.CRIOContainersOOM.GetMetricWithLabelValues(c.Name())
-		if err != nil {
-			log.Warnf(ctx, "Unable to write OOM metric by container: %v", err)
-		} else {
-			counter.Inc()
-		}
+		metrics.Instance().MetricContainersOOMInc(c.Name())
 	}
 
 	return nil
