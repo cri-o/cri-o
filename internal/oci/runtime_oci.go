@@ -358,7 +358,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		select {
 		case <-time.After(time.Second * time.Duration(timeout)):
 			// Ensure the process is not left behind
-			killContainerExecProcess(ctx, pidFile)
+			killContainerExecProcess(ctx, pidFile, cmd)
 
 			// Make sure the runtime process has been cleaned up
 			<-done
@@ -416,13 +416,15 @@ func createPidFile() (string, error) {
 	return pidFileName, nil
 }
 
-func killContainerExecProcess(ctx context.Context, pidFile string) {
+func killContainerExecProcess(ctx context.Context, pidFile string, cmd *exec.Cmd) {
 	// Attempt to get the container PID and PGID from the file the runtime should have written.
-	// TODO(haircommander): There does exist a race that we could time out before the runtime actually creates the file.
-	// Should we do inotify on this file to ensure it exists? Is that overkill?
 	ctrPid, ctrPgid, err := pidAndpgidFromFile(pidFile)
-	if err != nil {
-		log.Errorf(ctx, "Failed to get pid (%d) or pgid (%d) from file %s: %v", ctrPid, ctrPgid, pidFile, err)
+	if err != nil && ctrPid <= 0 {
+		// only kill the runtime process if we failed to find a ctrPid
+		// as this means the runtime exec hasn't successfully written the pid file
+		if killErr := cmd.Process.Kill(); killErr != nil {
+			log.Errorf(ctx, "Error killing runtime exec process(%v) after error finding runtime pid: (%v)", killErr, err)
+		}
 	}
 
 	if ctrPgid > 1 {
