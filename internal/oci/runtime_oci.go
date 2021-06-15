@@ -331,11 +331,13 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	}
 	defer os.RemoveAll(processFile)
 
-	pidFile, err := createPidFile()
+	pidDir, err := ioutil.TempDir("", "pidfile")
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(pidFile)
+	defer os.RemoveAll(pidDir)
+
+	pidFile := filepath.Join(pidDir, c.id)
 
 	cmd := r.constructExecCommand(ctx, c, processFile, pidFile)
 	cmd.SysProcAttr = sysProcAttrPlatform()
