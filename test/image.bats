@@ -301,3 +301,27 @@ function teardown() {
 
 	cleanup_images
 }
+
+@test "layer index corrupted" {
+	start_crio
+	crictl pull "$IMAGE"
+
+	# corrupt the index
+	LAYERS_JSON=$(find "$TESTDIR" -name layers.json)
+
+	LAYERS=$(jq length "$LAYERS_JSON")
+
+	TMPFILE="$TESTDIR/layers.tmp.json"
+	jq -c 'del(.[] | select(."diff-digest" == "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"))' \
+		"$LAYERS_JSON" > "$TMPFILE"
+	mv "$TMPFILE" "$LAYERS_JSON"
+
+	# repull the image
+	crictl pull "$IMAGE"
+
+	# the index should be restored
+	LAYERS_NEW=$(jq length "$LAYERS_JSON")
+	[[ "$LAYERS" == "$LAYERS_NEW" ]]
+
+	cleanup_images
+}
