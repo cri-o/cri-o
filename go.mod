@@ -15,7 +15,7 @@ require (
 	github.com/containers/buildah v1.20.1
 	github.com/containers/common v0.37.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.12.0
+	github.com/containers/image/v5 v5.13.0
 	github.com/containers/ocicrypt v1.1.1
 	github.com/containers/podman/v3 v3.1.2
 	github.com/containers/storage v1.32.2
@@ -55,7 +55,7 @@ require (
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40
+	golang.org/x/sys v0.0.0-20210603125802-9665404d3644
 	google.golang.org/grpc v1.38.0
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
