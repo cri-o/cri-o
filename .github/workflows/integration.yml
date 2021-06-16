@@ -50,6 +50,9 @@ jobs:
       - run: sudo -E test/test_runner.sh
         env:
           JOBS: '2'
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
 
   test-cgroupfs:
     runs-on: ubuntu-latest
@@ -74,6 +77,9 @@ jobs:
           JOBS: '2'
           CONTAINER_CGROUP_MANAGER: cgroupfs
           CONTAINER_CONMON_CGROUP: pod
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
 
   test-userns:
     runs-on: ubuntu-latest
@@ -96,3 +102,6 @@ jobs:
         env:
           JOBS: '2'
           TEST_USERNS: '1'
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
