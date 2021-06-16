@@ -31,7 +31,7 @@
 
 - name: link crictl and critest
   file:
-    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools/_output/{{ item }}"
+    src: "{{ ansible_env.GOPATH }}/bin/{{ item }}"
     dest: "/usr/bin/{{ item }}"
     state: link
   with_items:
