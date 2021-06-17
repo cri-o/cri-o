@@ -8,7 +8,7 @@ oc project otel
 oc create sa otel && oc adm policy add-role-to-user admin -z otel && oc adm policy add-cluster-role-to-user cluster-admin -z otel
 ```
 
-Create otel-agent and oytel-collector YAML objects from stdin
+Create otel-agent and otel-collector YAML objects from stdin
 
 ```sh
 cat <<EOF | kubectl apply -f -
@@ -229,20 +229,27 @@ spec:
           name: otel-collector-config-vol
 EOF
 ```
-This will create 2 configmaps `` and ``. `otel-agent` is created as a `DaemonSet` and `otel-collector` is created as a `Deployment`
+This will create 2 configmaps `otel-agent-conf` and `otel-collector-conf`. `otel-agent` is created as a `DaemonSet` and `otel-collector` is created as a `Deployment`
 
 ```sh
 watch oc get configmaps, ds, deployment, services
 ```
+
 Once the service is up and running take the `ClusterIp` and update the otlp exporter endpoint in the configmap as
 
 ```sh
+oc get svc -l component=otel-collector
+
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                                          AGE
+otel-collector   ClusterIP   172.30.240.70   <none>        4317/TCP,14250/TCP,14268/TCP,9411/TCP,8888/TCP   136m
+
+
  oc edit cm/otel-agent-conf -o yaml
 
  exporters:
       logging:
       otlp:
-        endpoint: "ClusterIP:4317" # replace with the ClusterIP for otel-collector service
+        endpoint: "ClusterIP:4317" # replace with the ClusterIP for otel-collector service from above 
 
 ```
 Now delete the three agent pods so that the otel-agent DaemonSet can launch new pods with updated endpoint. 
@@ -262,7 +269,7 @@ oc logs --selector=component=otel-collector
 2021-06-15T13:39:04.005Z        INFO    loggingexporter/logging_exporter.go:42  TracesExporter  {"#spans": 77}
 ```
 
-Since `Jaeger` is not running right now you will also notice below error in the collector log but that will be resolved as soon as you install and create Jaeger. 
+Since `Jaeger` is not running right now, you will also notice the below error in the collector log, but that will be resolved as soon as you install and create Jaeger. 
 
 ```
 Exporting failed. Will retry the request after interval.        {"kind": "exporter", "name": "jaeger", "error": "failed to push trace data via Jaeger exporter: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing dial tcp: lookup jaeger-collector.otel.svc.cluster.local on 172.30.0.10:53: no such host\"", "interval": "5.934115365s"}
@@ -329,13 +336,13 @@ spec:
 
 
 ```sh
-oc get deployment
+oc get deployment -n observability
 
 NAME              READY   UP-TO-DATE   AVAILABLE   AGE
 jaeger-operator   1/1     1            1           7m40s
 
 
-oc edit deployments/jaeger-operator
+oc edit deployments/jaeger-operator -n observability
 
   ...
   spec:
@@ -364,6 +371,10 @@ EOF
 Edit the deployment/jaeger to disable tls in `.spec.spec.containers.args` as below. (These values are true by default)
 
 ```sh
+oc edit deployment/jaeger -n otel
+
+
+...
 spec:
       containers:
       - args:
@@ -375,7 +386,7 @@ spec:
 (These values are true by default). Check if Jaeger instance is up and running
 
 ```sh
-oc get pods -l app.kubernetes.io/instance=jaeger
+oc get pods -l app.kubernetes.io/instance=jaeger -n otel
 
 NAME                        READY     STATUS    RESTARTS   AGE
 jaeger-6499bb6cdd-kqx75     1/1       Running   0          2m
@@ -385,7 +396,7 @@ The `otel-collector` configmap needs to be updated with jaeger endpoint. To do s
 
 ```sh
 
-oc get svc -l app=jaeger
+oc get svc -l app=jaeger -n otel
 
 NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                                  AGE
 jaeger-agent                ClusterIP   None             <none>        5775/UDP,5778/TCP,6831/UDP,6832/UDP      19m
@@ -397,7 +408,7 @@ jaeger-query                ClusterIP   172.30.249.54    <none>        443/TCP  
 Note the Cluster-IP of `jaeger-collector`. This IP will be added to ote-collector-conf configmap
 
 ```sh
-oc edit cm/otel-collector-conf
+oc edit cm/otel-collector-conf -n otel
 ```
 
 ```
@@ -414,9 +425,9 @@ exporters:
 Delete otel-collector so that new collector pod is created with new endpoint. The new otel-collector pod will have logs indicating that connection to jaeger exporter has been established
 
 ```sh
-oc delete pod --selector=component=otel-collector
+oc delete pod --selector=component=otel-collector -n otel
 
-oc  logs --selector=component=otel-collector
+oc  logs --selector=component=otel-collector -n otel
 
 2021-06-17T16:02:07.918Z        info    builder/exporters_builder.go:92 Exporter is starting... {"kind": "exporter", "name": "jaeger"}
 2021-06-17T16:02:07.918Z        info    jaegerexporter/exporter.go:186  State of the connection with the Jaeger Collector backend    {"kind": "exporter", "name": "jaeger", "state": "CONNECTING"}
@@ -426,7 +437,7 @@ oc  logs --selector=component=otel-collector
 To watch the spans in Jaeger UI
 
 ```sh
-oc get routes
+oc get routes -n otel
 
 NAME     HOST/PORT                                                                  PATH   SERVICES       PORT    TERMINATION   WILDCARD
 jaeger   jaeger-otel.apps.ci-ln-lwx6n82-f76d1.origin-ci-int-gce.dev.openshift.com          jaeger-query   <all>   reencrypt     None
