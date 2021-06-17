@@ -3,8 +3,11 @@ package metrics
 import (
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -14,6 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/util/cert"
 )
 
 const (
@@ -307,6 +311,37 @@ func newCertReloader(doneChan chan struct{}, certPath, keyPath string) (*certRel
 	reloader := &certReloader{
 		certPath: certPath,
 		keyPath:  keyPath,
+	}
+
+	// Generate self-signed certificate and key if the provided ones are not
+	// available.
+	_, errCertPath := os.Stat(certPath)
+	_, errKeyPath := os.Stat(keyPath)
+	if errCertPath != nil && os.IsNotExist(errCertPath) &&
+		errKeyPath != nil && os.IsNotExist(errKeyPath) {
+		logrus.Info("Metrics key and cert path does not exist, generating self-signed")
+
+		hostname, err := os.Hostname()
+		if err != nil {
+			return nil, errors.Wrap(err, "retrieve hostname")
+		}
+
+		certBytes, keyBytes, err := cert.GenerateSelfSignedCertKey(hostname, nil, nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "generate self-signed cert/key")
+		}
+
+		for path, bytes := range map[string][]byte{
+			certPath: certBytes,
+			keyPath:  keyBytes,
+		} {
+			if err := os.MkdirAll(filepath.Dir(path), os.FileMode(0o700)); err != nil {
+				return nil, errors.Wrap(err, "create path")
+			}
+			if err := ioutil.WriteFile(path, bytes, os.FileMode(0o600)); err != nil {
+				return nil, errors.Wrap(err, "write file")
+			}
+		}
 	}
 
 	if err := reloader.reload(); err != nil {
