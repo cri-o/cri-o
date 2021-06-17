@@ -188,7 +188,8 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 
 	// Prepare the command to run
 	args := []string{"-id", c.ID()}
-	if logrus.GetLevel() == logrus.DebugLevel {
+	switch logrus.GetLevel() {
+	case logrus.DebugLevel, logrus.TraceLevel:
 		args = append(args, "-debug")
 	}
 	args = append(args, "start")
