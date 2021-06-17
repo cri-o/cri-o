@@ -446,4 +446,6 @@ jaeger   jaeger-otel.apps.ci-ln-lwx6n82-f76d1.origin-ci-int-gce.dev.openshift.co
 
 Access the above routes to see cri-o spans in Jaeger UI
 
+![cri-o spans in Jaeger UI](./JaegerUI.png)
+
 
