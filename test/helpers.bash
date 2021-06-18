@@ -88,75 +88,42 @@ POD_IPV6_CIDR="1100:200::/24"
 POD_IPV6_CIDR_START="1100:200::"
 POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
-# Make sure we have a copy of the redis:alpine image.
-if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/redis-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
-        echo "Error pulling quay.io/crio/redis"
-        rm -fr "$ARTIFACTS_PATH"/redis-image
-        exit 1
-    fi
-fi
+IMAGES=(
+    k8s.gcr.io/pause:3.2
+    quay.io/crio/busybox:latest
+    quay.io/crio/fedora-ping:latest
+    quay.io/crio/image-volume-test:latest
+    quay.io/crio/oom:latest
+    quay.io/crio/redis:alpine
+    quay.io/crio/stderr-test:latest
+)
 
-# Make sure we have a copy of the k8s.gcr.io/pause:3.2 image.
-if ! [ -d "$ARTIFACTS_PATH"/pause-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/pause-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://k8s.gcr.io/pause:3.2 --export-to=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
-        echo "Error pulling k8s.gcr.io/pause:3.2"
-        rm -fr "$ARTIFACTS_PATH"/pause-image
-        exit 1
-    fi
-fi
+function img2dir() {
+    local dir
+    dir=$(echo "$@" | sed -e 's|^.*/||' -e 's/:.*$//' -e 's/-/_/' -e 's/$/-image/')
+    echo "$ARTIFACTS_PATH/$dir"
+}
 
-# Make sure we have a copy of the runcom/stderr-test image.
-if ! [ -d "$ARTIFACTS_PATH"/stderr-test ]; then
-    mkdir -p "$ARTIFACTS_PATH"/stderr-test
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/stderr-test:latest --export-to=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json; then
-        echo "Error pulling quay.io/crio/stderr-test"
-        rm -fr "$ARTIFACTS_PATH"/stderr-test
-        exit 1
-    fi
-fi
+function get_img() {
+    local img="docker://$1" dir
+    dir="$(img2dir "$img")"
 
-# Make sure we have a copy of the busybox:latest image.
-if ! [ -d "$ARTIFACTS_PATH"/busybox-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/busybox-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/busybox:latest --export-to=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
-        echo "Error pulling quay.io/crio/busybox"
-        rm -fr "$ARTIFACTS_PATH"/busybox-image
-        exit 1
+    if ! [ -d "$dir" ]; then
+        mkdir -p "$dir"
+        if ! "$COPYIMG_BINARY" \
+            --import-from="$img" \
+            --export-to="dir:$dir" \
+            --signature-policy="$INTEGRATION_ROOT"/policy.json; then
+            echo "Error pulling $img" >&2
+            rm -fr "$dir"
+            exit 1
+        fi
     fi
-fi
+}
 
-# Make sure we have a copy of the mrunalp/oom:latest image.
-if ! [ -d "$ARTIFACTS_PATH"/oom-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/oom-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/oom:latest --export-to=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
-        echo "Error pulling quay.io/crio/oom"
-        rm -fr "$ARTIFACTS_PATH"/oom-image
-        exit 1
-    fi
-fi
-
-# Make sure we have a copy of the mrunalp/image-volume-test:latest image.
-if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/image-volume-test:latest --export-to=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
-        echo "Error pulling quay.io/crio/image-volume-test-image"
-        rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
-        exit 1
-    fi
-fi
-
-# Make sure we have a copy of the fedora-ping image.
-if ! [ -d "$ARTIFACTS_PATH"/fedora-ping-image ]; then
-    mkdir -p "$ARTIFACTS_PATH"/image-volume-test-image
-    if ! "$COPYIMG_BINARY" --import-from=docker://quay.io/crio/fedora-ping:latest --export-to=dir:"$ARTIFACTS_PATH"/fedora-ping-image --signature-policy="$INTEGRATION_ROOT"/policy.json; then
-        echo "Error pulling quay.io/crio/fedora-ping-image"
-        rm -fr "$ARTIFACTS_PATH"/image-volume-test-image
-        exit 1
-    fi
-fi
+for img in "${IMAGES[@]}"; do
+    get_img "$img"
+done
 
 function setup_test() {
     TESTDIR=$(mktemp -d)
@@ -220,6 +187,20 @@ function setup_test() {
     cp "$INTEGRATION_ROOT"/cni_plugin_helper.bash "$CRIO_CNI_PLUGIN"
     sed -i "s;%TEST_DIR%;$TESTDIR;" "$CRIO_CNI_PLUGIN"/cni_plugin_helper.bash
 
+    # Configure crictl to not try pulling images on create/run,
+    # as $IMAGES are already preloaded, and eliminating network
+    # interaction results in less flakes when creating containers.
+    #
+    # A test case that requires an image not listed in $IMAGES
+    # should either do an explicit "crictl pull", or use --with-pull.
+    crictl config \
+        --set pull-image-on-create=false \
+        --set disable-pull-on-run=true \
+        2>/dev/null || true
+    #   ^^^^^^^^^^^^^^^^^^^ TODO: remove the line above once crictl is updated
+    # to >= 1.19. It is not a problem if this setting is not working, and since
+    # some CI jobs (kata) use older crictl, set this on a best-effort basis.
+
     PATH=$PATH:$TESTDIR
 }
 
@@ -264,30 +245,35 @@ function wait_until_reachable() {
     retry 15 1 crictl info
 }
 
+function copyimg() {
+    # Don't forget: copyimg and crio have their own default drivers,
+    # so if you override any, you probably need to override them all.
+
+    # shellcheck disable=SC2086
+    "$COPYIMG_BINARY" \
+        --root "$TESTDIR/crio" \
+        --runroot "$TESTDIR/crio-run" \
+        --signature-policy="$INTEGRATION_ROOT"/policy.json \
+        $STORAGE_OPTIONS \
+        "$@"
+}
+
+function setup_img() {
+    local name="$1" dir
+    dir="$(img2dir "$name")"
+
+    copyimg --image-name="$name" --import-from="dir:$dir"
+}
+
 function setup_crio() {
     apparmor=""
     if [[ -n "$1" ]]; then
         apparmor="$1"
     fi
 
-    # Don't forget: copyimg and crio have their own default drivers, so if you override any, you probably need to override them all
-    # shellcheck disable=SC2086
-    "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=k8s.gcr.io/pause:3.2 --import-from=dir:"$ARTIFACTS_PATH"/pause-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-
-    # shellcheck disable=SC2086
-    "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-
-    # shellcheck disable=SC2086
-    "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/oom:latest --import-from=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-
-    # shellcheck disable=SC2086
-    "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/image-volume-test:latest --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-
-    # shellcheck disable=SC2086
-    "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-
-    # shellcheck disable=SC2086
-    "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=quay.io/crio/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
+    for img in "${IMAGES[@]}"; do
+        setup_img "$img"
+    done
 
     # Prepare the CNI configuration files, we're running with non host
     # networking by default
@@ -328,38 +314,25 @@ function setup_crio() {
     ${netfunc}
 }
 
-function pull_test_containers() {
-    if ! crictl inspecti quay.io/crio/redis:alpine; then
-        crictl pull quay.io/crio/redis:alpine
-    fi
-    REDIS_IMAGEID=$(crictl inspecti --output=table quay.io/crio/redis:alpine | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-    export REDIS_IMAGEID
-    REDIS_IMAGEREF=$(crictl inspecti --output=table quay.io/crio/redis:alpine | grep ^Digest: | head -n 1 | sed -e "s/Digest: //g")
-    export REDIS_IMAGEREF
+function check_images() {
+    local img json list
 
-    if ! crictl inspecti quay.io/crio/oom; then
-        crictl pull quay.io/crio/oom
-    fi
-    OOM_IMAGEID=$(crictl inspecti quay.io/crio/oom | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-    export OOM_IMAGEID
+    # check that images are there
+    json=$(crictl images -o json)
+    [ -n "$json" ]
+    list=$(jq -r '.images[] | .repoTags[]' <<<"$json")
+    for img in "${IMAGES[@]}"; do
+        if [[ "$list" != *"$img"* ]]; then
+            echo "Image $img is not present but it should!" >&2
+            exit 1
+        fi
+    done
 
-    if ! crictl inspecti quay.io/crio/stderr-test; then
-        crictl pull quay.io/crio/stderr-test:latest
-    fi
-    STDERR_IMAGEID=$(crictl inspecti quay.io/crio/stderr-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-    export STDERR_IMAGEID
-
-    if ! crictl inspecti quay.io/crio/busybox; then
-        crictl pull quay.io/crio/busybox:latest
-    fi
-    BUSYBOX_IMAGEID=$(crictl inspecti quay.io/crio/busybox | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-    export BUSYBOX_IMAGEID
-
-    if ! crictl inspecti quay.io/crio/image-volume-test; then
-        crictl pull quay.io/crio/image-volume-test:latest
-    fi
-    VOLUME_IMAGEID=$(crictl inspecti quay.io/crio/image-volume-test | grep ^ID: | head -n 1 | sed -e "s/ID: //g")
-    export VOLUME_IMAGEID
+    # these two variables are used by a few tests
+    eval "$(jq -r '.images[] |
+        select(.repoTags[0] == "quay.io/crio/redis:alpine") |
+        "REDIS_IMAGEID=" + .id + "\n" +
+	"REDIS_IMAGEREF=" + .repoDigests[0]' <<<"$json")"
 }
 
 function start_crio_no_setup() {
@@ -378,7 +351,7 @@ function start_crio_no_setup() {
 function start_crio() {
     setup_crio "$@"
     start_crio_no_setup
-    pull_test_containers
+    check_images
 }
 
 function check_journald() {

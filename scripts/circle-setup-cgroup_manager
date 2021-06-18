@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-if [ "$CONTAINER_CGROUP_MANAGER" == "cgroupfs" ]; then
-    sed -i 's/\.slice//g' test/testdata/*.json
-fi

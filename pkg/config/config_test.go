@@ -23,7 +23,7 @@ var _ = t.Describe("Config", func() {
 		}
 		sut.PinnsPath = validFilePath
 		sut.NamespacesDir = os.TempDir()
-		sut.Conmon = validConmonPath
+		sut.Conmon = validConmonPath()
 		tmpDir := t.MustTempDir("cni-test")
 		sut.NetworkConfig.PluginDirs = []string{tmpDir}
 		sut.NetworkDir = os.TempDir()
@@ -33,9 +33,14 @@ var _ = t.Describe("Config", func() {
 		return sut
 	}
 
+	isRootless := func() bool {
+		return os.Geteuid() != 0
+	}
+
 	t.Describe("ValidateConfig", func() {
 		It("should succeed with default config", func() {
 			// Given
+
 			// When
 			err := sut.Validate(false)
 
@@ -44,6 +49,10 @@ var _ = t.Describe("Config", func() {
 		})
 
 		It("should succeed with runtime checks", func() {
+			if isRootless() {
+				Skip("this test does not work rootless")
+			}
+
 			// Given
 			sut = runtimeValidConfig()
 
@@ -91,7 +100,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid network config", func() {
 			// Given
 			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validDirPath}
-			sut.Conmon = validConmonPath
+			sut.Conmon = validConmonPath()
 			sut.NetworkConfig.NetworkDir = invalidPath
 
 			// When
@@ -213,7 +222,7 @@ var _ = t.Describe("Config", func() {
 			}
 			sut.PinnsPath = validFilePath
 			sut.NamespacesDir = os.TempDir()
-			sut.Conmon = validConmonPath
+			sut.Conmon = validConmonPath()
 			sut.HooksDir = []string{validDirPath, validDirPath, validDirPath}
 
 			// When
@@ -227,7 +236,7 @@ var _ = t.Describe("Config", func() {
 		It("should sort out invalid hooks directories", func() {
 			// Given
 			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
-			sut.Conmon = validConmonPath
+			sut.Conmon = validConmonPath()
 			sut.PinnsPath = validFilePath
 			sut.NamespacesDir = os.TempDir()
 			sut.HooksDir = []string{invalidPath, validDirPath, validDirPath}
@@ -243,7 +252,7 @@ var _ = t.Describe("Config", func() {
 		It("should create non-existent hooks directory", func() {
 			// Given
 			sut.Runtimes["runc"] = &config.RuntimeHandler{RuntimePath: validFilePath}
-			sut.Conmon = validConmonPath
+			sut.Conmon = validConmonPath()
 			sut.PinnsPath = validFilePath
 			sut.NamespacesDir = os.TempDir()
 			sut.HooksDir = []string{filepath.Join(validDirPath, "new")}
@@ -517,11 +526,11 @@ var _ = t.Describe("Config", func() {
 			sut.RuntimeConfig.Conmon = ""
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath(validConmonPath)
+			err := sut.RuntimeConfig.ValidateConmonPath(validConmonPath())
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(sut.RuntimeConfig.Conmon).To(Equal(validConmonPath))
+			Expect(sut.RuntimeConfig.Conmon).To(Equal(validConmonPath()))
 		})
 
 		It("should fail with invalid file in $PATH", func() {
@@ -537,7 +546,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with valid file outside $PATH", func() {
 			// Given
-			sut.RuntimeConfig.Conmon = validConmonPath
+			sut.RuntimeConfig.Conmon = validConmonPath()
 
 			// When
 			err := sut.RuntimeConfig.ValidateConmonPath("")
@@ -674,6 +683,10 @@ var _ = t.Describe("Config", func() {
 		})
 
 		It("should succeed during runtime", func() {
+			if isRootless() {
+				Skip("this test does not work rootless")
+			}
+
 			// Given
 			sut = runtimeValidConfig()
 
@@ -707,6 +720,10 @@ var _ = t.Describe("Config", func() {
 		})
 
 		It("should get default storage options when options are empty", func() {
+			if isRootless() {
+				Skip("this test does not work rootless")
+			}
+
 			// Given
 			defaultStore, err := storage.GetStore(storage.StoreOptions{})
 			Expect(err).To(BeNil())
@@ -728,6 +745,10 @@ var _ = t.Describe("Config", func() {
 		})
 
 		It("should override default storage options", func() {
+			if isRootless() {
+				Skip("this test does not work rootless")
+			}
+
 			// Given
 			defaultStore, err := storage.GetStore(storage.StoreOptions{})
 			Expect(err).To(BeNil())

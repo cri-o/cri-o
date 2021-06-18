@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+sudo apt update
+sudo apt install -y \
+    conntrack \
+    libaio-dev \
+    libapparmor-dev \
+    libbtrfs-dev \
+    libcap-dev \
+    libdevmapper-dev \
+    libfuse-dev \
+    libgpgme11-dev \
+    libnet1-dev \
+    libnl-3-dev \
+    libprotobuf-c-dev \
+    libprotobuf-dev \
+    libseccomp-dev \
+    libsystemd-dev \
+    libudev-dev \
+    socat \
+    uuid-dev

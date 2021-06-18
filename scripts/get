@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ARCH_AMD64=amd64
+ARCH_ARM64=arm64
+ARCH=
+VERSION=
+GITHUB_TOKEN=${GITHUB_TOKEN:-}
+
+usage() {
+    printf "Usage: %s [-a ARCH] [ -t TAG|SHA ] [ -h ]\n\n" "$(basename "$0")"
+    echo "Possible arguments:"
+    printf "  -a\tArchitecture to retrieve (defaults to the local system)\n"
+    printf "  -t\tVersion tag or full length SHA to be used (defaults to the latest available master)\n"
+    printf "  -h\tShow this help message\n"
+}
+
+parse_args() {
+    echo "Welcome to the CRI-O install script!"
+    echo "Export a GITHUB_TOKEN environment variable to avoid GitHub API rate limits"
+
+    while getopts 'a:t:h' OPTION; do
+        case "$OPTION" in
+        a)
+            ARCH="$OPTARG"
+            echo "Using architecture: $ARCH"
+            ;;
+        t)
+            VERSION="$OPTARG"
+            echo "Using version: $VERSION"
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        ?)
+            usage
+            exit 1
+            ;;
+        esac
+    done
+
+    if [[ $ARCH == "" ]]; then
+        LOCAL_ARCH=$(uname -m)
+        if [[ "$LOCAL_ARCH" == x86_64 ]]; then
+            ARCH=$ARCH_AMD64
+        elif [[ "$LOCAL_ARCH" == aarch64 ]]; then
+            ARCH=$ARCH_ARM64
+        else
+            echo "Unsupported local architecture: $LOCAL_ARCH"
+            exit 1
+        fi
+        echo "No architecture provided, using: $ARCH"
+    fi
+}
+
+verify_requirements() {
+    CMDS=(curl jq tar make)
+    echo "Checking if all commands are available: ${CMDS[*]}"
+    for CMD in "${CMDS[@]}"; do
+        if ! command -v "$CMD" >/dev/null; then
+            echo "Command $CMD not available but required"
+            exit 1
+        fi
+    done
+}
+
+latest_version() {
+    GH_API_URL="https://api.github.com/repos/cri-o/cri-o/actions/runs"
+    GH_QUERY="$GH_API_URL?event=push&status=success&branch=master"
+
+    GH_HEADERS=(-H "Accept: application/vnd.github.v3+json")
+    if [[ $GITHUB_TOKEN != "" ]]; then
+        GH_HEADERS+=(-H "Authorization: token $GITHUB_TOKEN")
+    fi
+
+    if [[ $VERSION == "" ]]; then
+        echo No version provided, finding latest successful GitHub actions run
+        VERSION=$(curl -sSfL "${GH_HEADERS[@]}" "$GH_QUERY" |
+            jq -r '.workflow_runs | map(select(.name == "test")) | first | .head_sha')
+
+        echo "Using latest successful GitHub action master: $VERSION"
+    fi
+}
+
+download_and_install() {
+    GCB_URL=https://storage.googleapis.com/k8s-conform-cri-o/artifacts
+    TARBALL_URL=$GCB_URL/cri-o.$ARCH.$VERSION.tar.gz
+
+    TMPDIR="$(mktemp -d)"
+    trap 'rm -rf -- "$TMPDIR"' EXIT
+
+    echo "Downloading $TARBALL_URL to $TMPDIR"
+    curl -sSfL "$TARBALL_URL" | tar xfz - --strip-components=1 -C "$TMPDIR"
+
+    echo Installing CRI-O
+    make -C "$TMPDIR"
+
+}
+
+main() {
+    parse_args "$@"
+    verify_requirements
+    latest_version
+    download_and_install
+}
+
+main "$@"
