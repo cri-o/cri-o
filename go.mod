@@ -4,7 +4,7 @@ module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.17
+	github.com/Microsoft/go-winio v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/containerd v1.5.1
@@ -18,7 +18,7 @@ require (
 	github.com/containers/image/v5 v5.11.1
 	github.com/containers/ocicrypt v1.1.1
 	github.com/containers/podman/v3 v3.1.0
-	github.com/containers/storage v1.31.1
+	github.com/containers/storage v1.32.3
 	github.com/coreos/go-systemd/v22 v22.3.1
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
@@ -43,7 +43,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc95.0.20210521141834-a95237f81684
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
-	github.com/opencontainers/selinux v1.8.1
+	github.com/opencontainers/selinux v1.8.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.10.0
 	github.com/psampaz/go-mod-outdated v0.7.0
