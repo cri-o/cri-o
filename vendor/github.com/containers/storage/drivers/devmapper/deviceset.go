@@ -2229,7 +2229,7 @@ func (devices *DeviceSet) cancelDeferredRemovalIfNeeded(info *devInfo) error {
 	// Cancel deferred remove
 	if err := devices.cancelDeferredRemoval(info); err != nil {
 		// If Error is ErrEnxio. Device is probably already gone. Continue.
-		if errors.Cause(err) != devicemapper.ErrBusy {
+		if errors.Cause(err) != devicemapper.ErrEnxio {
 			return err
 		}
 	}
@@ -2446,7 +2446,9 @@ func (devices *DeviceSet) UnmountDevice(hash, mountPath string) error {
 
 	logrus.Debugf("devmapper: Unmount(%s)", mountPath)
 	if err := mount.Unmount(mountPath); err != nil {
-		return err
+		if ok, _ := Mounted(mountPath); ok {
+			return err
+		}
 	}
 	logrus.Debug("devmapper: Unmount done")
 
