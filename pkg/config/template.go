@@ -1145,11 +1145,15 @@ metrics_socket = "{{ .MetricsSocket }}"
 `
 
 const templateStringCrioMetricsMetricsCert = `# The certificate for the secure metrics server.
+# If the certificate is not available on disk, then CRI-O will generate a
+# self-signed one. CRI-O also watches for changes of this path and reloads the
+# certificate on any modification event.
 metrics_cert = "{{ .MetricsCert }}"
 
 `
 
 const templateStringCrioMetricsMetricsKey = `# The certificate key for the secure metrics server.
+# Behaves in the same way as the metrics_cert.
 metrics_key = "{{ .MetricsKey }}"
 
 `
