@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -393,6 +394,26 @@ func (c *certReloader) reload() error {
 	certificate, err := tls.LoadX509KeyPair(c.certPath, c.keyPath)
 	if err != nil {
 		return errors.Wrap(err, "load x509 key pair")
+	}
+	if len(certificate.Certificate) == 0 {
+		return errors.New("certificates chain is empty")
+	}
+
+	x509Cert, err := x509.ParseCertificate(certificate.Certificate[0])
+	if err != nil {
+		return errors.Wrap(err, "parse x509 certificate")
+	}
+	logrus.Infof(
+		"Metrics certificate is valid between %v and %v",
+		x509Cert.NotBefore, x509Cert.NotAfter,
+	)
+
+	now := time.Now()
+	if now.After(x509Cert.NotAfter) {
+		return errors.New("certificate is not valid any more")
+	}
+	if now.Before(x509Cert.NotBefore) {
+		return errors.New("certificate is not yet valid")
 	}
 
 	c.certLock.Lock()
