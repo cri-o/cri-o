@@ -1541,7 +1541,7 @@ mvdan.cc/sh/v3/fileutil
 mvdan.cc/sh/v3/syntax
 # sigs.k8s.io/mdtoc v1.0.1
 sigs.k8s.io/mdtoc/pkg/mdtoc
-# sigs.k8s.io/release-utils v0.2.1
+# sigs.k8s.io/release-utils v0.3.0
 ## explicit
 sigs.k8s.io/release-utils/command
 sigs.k8s.io/release-utils/env

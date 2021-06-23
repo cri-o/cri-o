@@ -67,7 +67,7 @@ require (
 	k8s.io/release v0.8.0
 	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10
 	mvdan.cc/sh/v3 v3.3.0
-	sigs.k8s.io/release-utils v0.2.1
+	sigs.k8s.io/release-utils v0.3.0
 	sigs.k8s.io/zeitgeist v0.3.0
 )
 

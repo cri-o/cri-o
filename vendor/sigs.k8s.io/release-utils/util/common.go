@@ -141,7 +141,8 @@ func PackagesAvailable(packages ...string) (bool, error) {
 	for _, pkg := range packages {
 		logrus.Infof("Checking if %q has been installed", pkg)
 
-		args := append(checker.verifier.args, pkg)
+		args := checker.verifier.args
+		args = append(args, pkg)
 		if err := command.New(checker.verifier.cmd, args...).
 			RunSilentSuccess(); err != nil {
 			logrus.Infof("Adding %s to missing packages", pkg)
