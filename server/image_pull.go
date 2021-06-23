@@ -141,7 +141,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				}
 			}
 			log.Debugf(ctx, "Error preparing image %s: %v", img, err)
-			tryIncrementImagePullFailureMetric(ctx, img, err)
+			tryIncrementImagePullFailureMetric(img, err)
 			continue
 		}
 		defer tmpImg.Close()
@@ -163,12 +163,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 
 				// Skipped bytes metrics
 				if storedImage.Size != nil {
-					counter, err := metrics.CRIOImagePullsByNameSkipped.GetMetricWithLabelValues(img)
-					if err != nil {
-						log.Warnf(ctx, "Unable to write image pull name (skipped) metrics: %v", err)
-					} else {
-						counter.Add(float64(*storedImage.Size))
-					}
+					metrics.Instance().MetricImagePullsByNameSkippedAdd(float64(*storedImage.Size), img)
 				}
 
 				break
@@ -197,25 +192,17 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				}
 
 				// Metrics for every digest
-				digestCounter, err := metrics.CRIOImagePullsByDigest.GetMetricWithLabelValues(
+				metrics.Instance().MetricImagePullsByDigestAdd(
+					float64(p.OffsetUpdate),
 					img, p.Artifact.Digest.String(), p.Artifact.MediaType,
 					fmt.Sprintf("%d", p.Artifact.Size),
 				)
-				if err != nil {
-					log.Warnf(ctx, "Unable to write image pull digest metrics: %v", err)
-				} else {
-					digestCounter.Add(float64(p.OffsetUpdate))
-				}
 
 				// Metrics for the overall image
-				nameCounter, err := metrics.CRIOImagePullsByName.GetMetricWithLabelValues(
+				metrics.Instance().MetricImagePullsByNameAdd(
+					float64(p.OffsetUpdate),
 					img, fmt.Sprintf("%d", imageSize(tmpImg)),
 				)
-				if err != nil {
-					log.Warnf(ctx, "Unable to write image pull name metrics: %v", err)
-				} else {
-					nameCounter.Add(float64(p.OffsetUpdate))
-				}
 			}
 		}()
 
@@ -248,7 +235,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		})
 		if err != nil {
 			log.Debugf(ctx, "Error pulling image %s: %v", img, err)
-			tryIncrementImagePullFailureMetric(ctx, img, err)
+			tryIncrementImagePullFailureMetric(img, err)
 			continue
 		}
 		pulled = img
@@ -260,12 +247,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	}
 
 	// Update metric for successful image pulls
-	nameCounter, err := metrics.CRIOImagePullsSuccesses.GetMetricWithLabelValues(pulled)
-	if err != nil {
-		log.Warnf(ctx, "Unable to write image pull success metric: %v", err)
-	} else {
-		nameCounter.Inc()
-	}
+	metrics.Instance().MetricImagePullsSuccessesInc(pulled)
 
 	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
 	if err != nil {
@@ -279,7 +261,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	return imageRef, nil
 }
 
-func tryIncrementImagePullFailureMetric(ctx context.Context, img string, err error) {
+func tryIncrementImagePullFailureMetric(img string, err error) {
 	// We try to cover some basic use-cases
 	const labelUnknown = "UNKNOWN"
 	label := labelUnknown
@@ -302,24 +284,13 @@ func tryIncrementImagePullFailureMetric(ctx context.Context, img string, err err
 	}
 
 	// Update metric for failed image pulls
-	nameCounter, err := metrics.CRIOImagePullsFailures.GetMetricWithLabelValues(img, label)
-	if err != nil {
-		log.Warnf(ctx, "Unable to write image pull failure metric: %v", err)
-	} else {
-		nameCounter.Inc()
-	}
+	metrics.Instance().MetricImagePullsFailuresInc(img, label)
 }
 
 func tryRecordSkippedMetric(ctx context.Context, name, digest string) {
 	layer := fmt.Sprintf("%s@%s", name, digest)
 	log.Debugf(ctx, "Skipped layer %s", layer)
-
-	counter, err := metrics.CRIOImageLayerReuse.GetMetricWithLabelValues(layer)
-	if err != nil {
-		log.Warnf(ctx, "Unable to write image layer reuse metrics: %v", err)
-	} else {
-		counter.Inc()
-	}
+	metrics.Instance().MetricImageLayerReuseInc(layer)
 }
 
 func decodeDockerAuth(s string) (user, password string, _ error) {
