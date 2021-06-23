@@ -71,12 +71,14 @@ type BandwidthConfig struct {
 
 // PodNetwork configures the network of a pod sandbox.
 type PodNetwork struct {
-	// Name is the name of the sandbox.
+	// Name is the name of the pod.
 	Name string
-	// Namespace is the namespace of the sandbox.
+	// Namespace is the namespace of the pod.
 	Namespace string
 	// ID is the id of the sandbox container.
 	ID string
+	// UID is the UID of the pod that owns the sandbox.
+	UID string
 	// NetNS is the network namespace path of the sandbox.
 	NetNS string
 
@@ -89,6 +91,11 @@ type PodNetwork struct {
 	// It is optional, and can be omitted for some or all specified networks
 	// without issue.
 	RuntimeConfig map[string]RuntimeConfig
+
+	// Aliases are network-scoped names for resolving a container
+	// by name. The key value is the network name and the value is
+	// is a string slice of aliases
+	Aliases map[string][]string
 }
 
 // NetAttachment describes a container network attachment
