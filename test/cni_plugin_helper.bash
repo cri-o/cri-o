@@ -20,6 +20,8 @@ for arg in "${array[@]}"; do
         K8S_POD_NAMESPACE="${item[1]}"
     elif [[ "${item[0]}" == "K8S_POD_NAME" ]]; then
         K8S_POD_NAME="${item[1]}"
+    elif [[ "${item[0]}" == "K8S_POD_UID" ]]; then
+        K8S_POD_UID="${item[1]}"
     fi
 done
 
@@ -29,6 +31,8 @@ elif [[ -z "${K8S_POD_NAMESPACE}" ]]; then
     exit 1
 elif [[ -z "${K8S_POD_NAME}" ]]; then
     exit 1
+elif [[ -z "${K8S_POD_UID}" ]]; then
+    exit 1
 fi
 
 TEST_DIR=%TEST_DIR%
@@ -37,6 +41,7 @@ cat <<EOT >"$TEST_DIR/plugin_test_args.out"
 FOUND_CNI_CONTAINERID="${CNI_CONTAINERID}"
 FOUND_K8S_POD_NAMESPACE="${K8S_POD_NAMESPACE}"
 FOUND_K8S_POD_NAME="${K8S_POD_NAME}"
+FOUND_K8S_POD_UID="${K8S_POD_UID}"
 EOT
 
 # shellcheck disable=1090

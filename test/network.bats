@@ -74,6 +74,7 @@ function teardown() {
 	[ "$FOUND_CNI_CONTAINERID" != "podsandbox1" ]
 	[ "$FOUND_K8S_POD_NAMESPACE" = "redhat.test.crio" ]
 	[ "$FOUND_K8S_POD_NAME" = "podsandbox1" ]
+	[ "$FOUND_K8S_POD_UID" = "redhat-test-crio" ]
 }
 
 @test "Connect to pod hostport from the host" {
