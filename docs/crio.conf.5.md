@@ -268,6 +268,9 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
 **runtime_type**="oci"
   Type of the runtime used for this runtime handler. "oci", "vm"
 
+**runtime_config_path**=""
+  Path to the runtime configuration file, should only be used with VM runtime types
+
 **privileged_without_host_devices**=false
   Whether this runtime handler prevents host devices from being passed to privileged containers.
 

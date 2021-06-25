@@ -137,8 +137,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 
 			runtimeType := libconfig.DefaultRuntimeType
 			privilegedWithoutHostDevices := false
+			runtimeConfigPath := ""
 
 			switch len(fields) {
+			case 6:
+				runtimeConfigPath = fields[5]
+				fallthrough
 			case 5:
 				if fields[4] == "true" {
 					privilegedWithoutHostDevices = true
@@ -153,6 +157,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 					RuntimeRoot:                  fields[2],
 					RuntimeType:                  runtimeType,
 					PrivilegedWithoutHostDevices: privilegedWithoutHostDevices,
+					RuntimeConfigPath:            runtimeConfigPath,
 				}
 			default:
 				return fmt.Errorf("wrong format for --runtimes: %q", r)
@@ -538,7 +543,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringSliceFlag{
 			Name:    "runtimes",
-			Usage:   "OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices",
+			Usage:   "OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path",
 			EnvVars: []string{"CONTAINER_RUNTIMES"},
 		},
 		&cli.StringFlag{

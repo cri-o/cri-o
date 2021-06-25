@@ -1015,4 +1015,45 @@ var _ = t.Describe("Config", func() {
 			Expect(ok).To(BeFalse())
 		})
 	})
+
+	t.Describe("ValidateRuntimeConfigPath", func() {
+		It("should fail with OCI runtime type when runtime_config_path is used", func() {
+			// Given
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimeConfigPath: validFilePath, RuntimeType: config.DefaultRuntimeType,
+			}
+
+			// When
+			err := sut.Runtimes["runc"].ValidateRuntimeConfigPath("runc")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail with VM runtime type and runtime_config_path points to an invalid path", func() {
+			// Given
+			sut.Runtimes["kata"] = &config.RuntimeHandler{
+				RuntimeConfigPath: invalidPath, RuntimeType: config.RuntimeTypeVM,
+			}
+
+			// When
+			err := sut.Runtimes["kata"].ValidateRuntimeConfigPath("kata")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should succeed with VM runtime type and runtime_config_path points to a valid path", func() {
+			// Given
+			sut.Runtimes["kata"] = &config.RuntimeHandler{
+				RuntimeConfigPath: validFilePath, RuntimeType: config.RuntimeTypeVM,
+			}
+
+			// When
+			err := sut.Runtimes["kata"].ValidateRuntimeConfigPath("kata")
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+	})
 })

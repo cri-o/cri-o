@@ -65,6 +65,7 @@ var _ = t.Describe("Oci", func() {
 				RuntimeType:                  "vm",
 				RuntimeRoot:                  "/run/vc",
 				PrivilegedWithoutHostDevices: true,
+				RuntimeConfigPath:            "/opt/kata-containers/config.toml",
 			},
 		}
 

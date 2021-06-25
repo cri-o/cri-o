@@ -951,6 +951,8 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   omitted, an "oci" runtime is assumed.
 # - runtime_root (optional, string): root directory for storage of containers
 #   state.
+# - runtime_config_path (optional, string): the path for the runtime configuration
+#   file. This can only be used with when using the VM runtime_type.
 # - privileged_without_host_devices (optional, bool): an option for restricting
 #   host devices from being passed to privileged containers.
 # - allowed_annotations (optional, array of strings): an option for specifying
@@ -967,6 +969,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 runtime_path = "{{ $runtime_handler.RuntimePath }}"
 runtime_type = "{{ $runtime_handler.RuntimeType }}"
 runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
+runtime_config_path = "{{ $runtime_handler.RuntimeConfigPath }}"
 {{ if $runtime_handler.PrivilegedWithoutHostDevices }}
 privileged_without_host_devices = {{ $runtime_handler.PrivilegedWithoutHostDevices }}
 {{ end }}

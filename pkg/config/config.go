@@ -161,9 +161,11 @@ type RootConfig struct {
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
 // config table.
 type RuntimeHandler struct {
-	RuntimePath string `toml:"runtime_path"`
-	RuntimeType string `toml:"runtime_type"`
-	RuntimeRoot string `toml:"runtime_root"`
+	RuntimeConfigPath string `toml:"runtime_config_path"`
+	RuntimePath       string `toml:"runtime_path"`
+	RuntimeType       string `toml:"runtime_type"`
+	RuntimeRoot       string `toml:"runtime_root"`
+
 	// PrivilegedWithoutHostDevices can be used to restrict passing host devices
 	// to a container running as privileged.
 	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices,omitempty"`
@@ -821,9 +823,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			// first. If it does not exist then we add runc + its path to the runtimes map.
 			if _, ok := c.Runtimes[defaultRuntime]; !ok {
 				c.Runtimes[defaultRuntime] = &RuntimeHandler{
-					RuntimePath: "",
-					RuntimeType: DefaultRuntimeType,
-					RuntimeRoot: DefaultRuntimeRoot,
+					RuntimePath:       "",
+					RuntimeType:       DefaultRuntimeType,
+					RuntimeRoot:       DefaultRuntimeRoot,
+					RuntimeConfigPath: "",
 				}
 			}
 			// Set the DefaultRuntime to runc so we don't fail further along in the code
@@ -1088,6 +1091,9 @@ func (r *RuntimeHandler) Validate(name string) error {
 	if err := r.ValidateRuntimePath(name); err != nil {
 		return err
 	}
+	if err := r.ValidateRuntimeConfigPath(name); err != nil {
+		return err
+	}
 	if err := r.ValidateRuntimeAllowedAnnotations(); err != nil {
 		return err
 	}
@@ -1142,6 +1148,21 @@ func (r *RuntimeHandler) ValidateRuntimeType(name string) error {
 	if r.RuntimeType != "" && r.RuntimeType != DefaultRuntimeType && r.RuntimeType != RuntimeTypeVM {
 		return errors.Errorf("invalid `runtime_type` %q for runtime %q",
 			r.RuntimeType, name)
+	}
+	return nil
+}
+
+// ValidateRuntimeConfigPath checks if the `RuntimeConfigPath` exists.
+func (r *RuntimeHandler) ValidateRuntimeConfigPath(name string) error {
+	if r.RuntimeConfigPath == "" {
+		return nil
+	}
+	if r.RuntimeType != RuntimeTypeVM {
+		return fmt.Errorf("runtime_config_path can only be used with the 'vm' runtime type")
+	}
+	if _, err := os.Stat(r.RuntimeConfigPath); err != nil && os.IsNotExist(err) {
+		return fmt.Errorf("invalid runtime_config_path for runtime '%s': %q",
+			name, err)
 	}
 	return nil
 }
