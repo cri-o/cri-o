@@ -29,67 +29,71 @@ func (s *service) ListContainerStats(
 		Stats: []*pb.ContainerStats{},
 	}
 
-	for _, x := range res.Stats {
-		if x == nil {
+	for _, stat := range res.Stats {
+		if stat == nil {
 			continue
 		}
-		stats := &pb.ContainerStats{}
 
-		if x.Attributes != nil {
-			stats.Attributes = &pb.ContainerAttributes{
-				Id:          x.Attributes.ID,
-				Labels:      x.Attributes.Labels,
-				Annotations: x.Attributes.Annotations,
-			}
-			if x.Attributes.Metadata != nil {
-				stats.Attributes.Metadata = &pb.ContainerMetadata{
-					Name:    x.Attributes.Metadata.Name,
-					Attempt: x.Attributes.Metadata.Attempt,
-				}
-			}
-		}
-		if x.CPU != nil {
-			stats.Cpu = &pb.CpuUsage{
-				Timestamp: x.CPU.Timestamp,
-			}
-			if x.CPU.UsageCoreNanoSeconds != nil {
-				stats.Cpu.UsageCoreNanoSeconds = &pb.UInt64Value{
-					Value: x.CPU.UsageCoreNanoSeconds.Value,
-				}
-			}
-		}
-		if x.Memory != nil {
-			stats.Memory = &pb.MemoryUsage{
-				Timestamp: x.Memory.Timestamp,
-			}
-			if x.Memory.WorkingSetBytes != nil {
-				stats.Memory.WorkingSetBytes = &pb.UInt64Value{
-					Value: x.Memory.WorkingSetBytes.Value,
-				}
-			}
-		}
-		if x.WritableLayer != nil {
-			stats.WritableLayer = &pb.FilesystemUsage{
-				Timestamp: x.WritableLayer.Timestamp,
-			}
-			if x.WritableLayer.FsID != nil {
-				stats.WritableLayer.FsId = &pb.FilesystemIdentifier{
-					Mountpoint: x.WritableLayer.FsID.Mountpoint,
-				}
-			}
-			if x.WritableLayer.UsedBytes != nil {
-				stats.WritableLayer.UsedBytes = &pb.UInt64Value{
-					Value: x.WritableLayer.UsedBytes.Value,
-				}
-			}
-			if x.WritableLayer.InodesUsed != nil {
-				stats.WritableLayer.InodesUsed = &pb.UInt64Value{
-					Value: x.WritableLayer.InodesUsed.Value,
-				}
-			}
-		}
-
-		resp.Stats = append(resp.Stats, stats)
+		resp.Stats = append(resp.Stats, serverContainerStatToCRI(stat))
 	}
 	return resp, nil
+}
+
+func serverContainerStatToCRI(from *types.ContainerStats) *pb.ContainerStats {
+	to := &pb.ContainerStats{}
+
+	if from.Attributes != nil {
+		to.Attributes = &pb.ContainerAttributes{
+			Id:          from.Attributes.ID,
+			Labels:      from.Attributes.Labels,
+			Annotations: from.Attributes.Annotations,
+		}
+		if from.Attributes.Metadata != nil {
+			to.Attributes.Metadata = &pb.ContainerMetadata{
+				Name:    from.Attributes.Metadata.Name,
+				Attempt: from.Attributes.Metadata.Attempt,
+			}
+		}
+	}
+	if from.CPU != nil {
+		to.Cpu = &pb.CpuUsage{
+			Timestamp: from.CPU.Timestamp,
+		}
+		if from.CPU.UsageCoreNanoSeconds != nil {
+			to.Cpu.UsageCoreNanoSeconds = &pb.UInt64Value{
+				Value: from.CPU.UsageCoreNanoSeconds.Value,
+			}
+		}
+	}
+	if from.Memory != nil {
+		to.Memory = &pb.MemoryUsage{
+			Timestamp: from.Memory.Timestamp,
+		}
+		if from.Memory.WorkingSetBytes != nil {
+			to.Memory.WorkingSetBytes = &pb.UInt64Value{
+				Value: from.Memory.WorkingSetBytes.Value,
+			}
+		}
+	}
+	if from.WritableLayer != nil {
+		to.WritableLayer = &pb.FilesystemUsage{
+			Timestamp: from.WritableLayer.Timestamp,
+		}
+		if from.WritableLayer.FsID != nil {
+			to.WritableLayer.FsId = &pb.FilesystemIdentifier{
+				Mountpoint: from.WritableLayer.FsID.Mountpoint,
+			}
+		}
+		if from.WritableLayer.UsedBytes != nil {
+			to.WritableLayer.UsedBytes = &pb.UInt64Value{
+				Value: from.WritableLayer.UsedBytes.Value,
+			}
+		}
+		if from.WritableLayer.InodesUsed != nil {
+			to.WritableLayer.InodesUsed = &pb.UInt64Value{
+				Value: from.WritableLayer.InodesUsed.Value,
+			}
+		}
+	}
+	return to
 }
