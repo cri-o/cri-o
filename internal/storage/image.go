@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"sort"
 	"strings"
@@ -558,17 +557,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 			rem = "library/" + rem
 		}
 		image := r + "/" + rem
-		registry, err := sysregistriesv2.FindRegistry(systemContext, image)
-		if err != nil {
-			return nil, err
-		}
-		if registry != nil && registry.Blocked {
-			continue
-		}
 		images = append(images, image)
-	}
-	if len(images) == 0 {
-		return nil, fmt.Errorf("all search registries for %q are blocked", remainder)
 	}
 	return imageNamesWithDigestOrTag(images)
 }
