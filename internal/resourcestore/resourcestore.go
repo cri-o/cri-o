@@ -27,11 +27,11 @@ type ResourceStore struct {
 // as well as stores function pointers that pertain to how that resource should be cleaned up,
 // and keeps track of other requests that are watching for the successful creation of this resource.
 type Resource struct {
-	resource     IdentifiableCreatable
-	cleanupFuncs []func()
-	watchers     []chan struct{}
-	stale        bool
-	name         string
+	resource IdentifiableCreatable
+	cleaner  *ResourceCleaner
+	watchers []chan struct{}
+	stale    bool
+	name     string
 }
 
 // wasPut checks that a resource has been fully defined yet.
@@ -70,7 +70,7 @@ func NewWithTimeout(timeout time.Duration) *ResourceStore {
 // It runs on a loop, sleeping `sleepTimeBeforeCleanup` between each loop.
 // A resource will first be marked as stale before being cleaned up.
 // This means a resource will stay in the store between `sleepTimeBeforeCleanup` and `2*sleepTimeBeforeCleanup`.
-// When a resource is cleaned up, it's removed from the store and its cleanupFuncs are called.
+// When a resource is cleaned up, it's removed from the store and the cleanup funcs in its cleaner are called.
 func (rc *ResourceStore) cleanupStaleResources() {
 	for {
 		time.Sleep(rc.timeout)
@@ -97,8 +97,8 @@ func (rc *ResourceStore) cleanupStaleResources() {
 
 		for _, r := range resourcesToReap {
 			logrus.Infof("cleaning up stale resource %s", r.name)
-			for _, f := range r.cleanupFuncs {
-				f()
+			if err := r.cleaner.Cleanup(); err != nil {
+				logrus.Errorf("Unable to cleanup: %v", err)
 			}
 		}
 	}
@@ -130,7 +130,7 @@ func (rc *ResourceStore) Get(name string) string {
 // a newly created resource, and functions to clean up that newly created resource.
 // It adds the Resource to the ResourceStore. It expects name to be unique, and
 // returns an error if a duplicate name is detected.
-func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleanupFuncs []func()) error {
+func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleaner *ResourceCleaner) error {
 	rc.Lock()
 	defer rc.Unlock()
 
@@ -146,7 +146,7 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleanu
 	}
 
 	r.resource = resource
-	r.cleanupFuncs = cleanupFuncs
+	r.cleaner = cleaner
 	r.name = name
 
 	// now the resource is created, notify the watchers
