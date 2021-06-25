@@ -17,6 +17,7 @@ limitations under the License.
 package hash
 
 import (
+	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
@@ -36,6 +37,11 @@ func SHA512ForFile(filename string) (string, error) {
 // SHA256ForFile returns the hex-encoded sha256 hash for the provided filename.
 func SHA256ForFile(filename string) (string, error) {
 	return ForFile(filename, sha256.New())
+}
+
+// SHA1ForFile returns the hex-encoded sha1 hash for the provided filename.
+func SHA1ForFile(filename string) (string, error) {
+	return ForFile(filename, sha1.New())
 }
 
 // ForFile returns the hex-encoded hash for the provided filename and hasher.

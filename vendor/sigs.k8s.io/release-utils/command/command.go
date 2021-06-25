@@ -21,6 +21,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"syscall"
@@ -35,12 +36,19 @@ type Command struct {
 	stdErrWriters, stdOutWriters []io.Writer
 	env                          []string
 	verbose                      bool
+	filter                       *filter
 }
 
 // The internal command representation
 type command struct {
 	*exec.Cmd
 	pipeWriter *io.PipeWriter
+}
+
+// filter is the internally used struct for filtering command output.
+type filter struct {
+	regex      *regexp.Regexp
+	replaceAll string
 }
 
 // A generic command exit status
@@ -123,6 +131,7 @@ func (c *Command) isVerbose() bool {
 func (c *Command) Add(cmd string, args ...string) Commands {
 	addCmd := NewWithWorkDir(c.cmds[0].Dir, cmd, args...)
 	addCmd.verbose = c.verbose
+	addCmd.filter = c.filter
 	return Commands{c, addCmd}
 }
 
@@ -147,6 +156,20 @@ func (c *Command) AddErrorWriter(writer io.Writer) *Command {
 func (c *Command) AddOutputWriter(writer io.Writer) *Command {
 	c.stdOutWriters = append(c.stdOutWriters, writer)
 	return c
+}
+
+// Filter adds an output filter regular expression to the command. Every output
+// will then be replaced with the string provided by replaceAll.
+func (c *Command) Filter(regex, replaceAll string) (*Command, error) {
+	filterRegex, err := regexp.Compile(regex)
+	if err != nil {
+		return nil, errors.Wrap(err, "compile regular expression")
+	}
+	c.filter = &filter{
+		regex:      filterRegex,
+		replaceAll: replaceAll,
+	}
+	return c, nil
 }
 
 // Run starts the command and waits for it to finish. It returns an error if
@@ -266,12 +289,31 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 				wg := sync.WaitGroup{}
 
 				wg.Add(2)
+
+				filterCopy := func(read io.ReadCloser, write io.Writer) (err error) {
+					if c.filter != nil {
+						builder := &strings.Builder{}
+						_, err = io.Copy(builder, read)
+						if err != nil {
+							return err
+						}
+						str := c.filter.regex.ReplaceAllString(
+							builder.String(), c.filter.replaceAll,
+						)
+						_, err = io.Copy(write, strings.NewReader(str))
+					} else {
+						_, err = io.Copy(write, read)
+					}
+					return err
+				}
+
 				go func() {
-					_, stdoutErr = io.Copy(stdOutWriter, stdout)
+					stdoutErr = filterCopy(stdout, stdOutWriter)
 					wg.Done()
 				}()
+
 				go func() {
-					_, stderrErr = io.Copy(stdErrWriter, stderr)
+					stderrErr = filterCopy(stderr, stdErrWriter)
 					wg.Done()
 				}()
 
@@ -390,6 +432,7 @@ func Available(commands ...string) (ok bool) {
 func (c Commands) Add(cmd string, args ...string) Commands {
 	addCmd := NewWithWorkDir(c[0].cmds[0].Dir, cmd, args...)
 	addCmd.verbose = c[0].verbose
+	addCmd.filter = c[0].filter
 	return append(c, addCmd)
 }
 
