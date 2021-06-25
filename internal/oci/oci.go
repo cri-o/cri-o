@@ -230,7 +230,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	}
 
 	if rh.RuntimeType == config.RuntimeTypeVM {
-		return newRuntimeVM(rh.RuntimePath, rh.RuntimeRoot), nil
+		return newRuntimeVM(rh.RuntimePath, rh.RuntimeRoot, rh.RuntimeConfigPath), nil
 	}
 
 	// If the runtime type is different from "vm", then let's fallback

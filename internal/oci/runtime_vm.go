@@ -16,6 +16,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	client "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/containerd/runtime/v2/task"
+	runtimeoptions "github.com/containerd/cri-containerd/pkg/api/runtimeoptions/v1"
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
 	conmonconfig "github.com/containers/conmon/runner/config"
@@ -27,6 +28,7 @@ import (
 	"github.com/cri-o/cri-o/utils/fifo"
 	cio "github.com/cri-o/cri-o/utils/io"
 	cioutil "github.com/cri-o/cri-o/utils/ioutil"
+	ptypes "github.com/gogo/protobuf/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -40,11 +42,12 @@ import (
 // runtimeVM is the Runtime interface implementation that is more appropriate
 // for VM based container runtimes.
 type runtimeVM struct {
-	path    string
-	fifoDir string
-	ctx     context.Context
-	client  *ttrpc.Client
-	task    task.TaskService
+	path       string
+	fifoDir    string
+	configPath string
+	ctx        context.Context
+	client     *ttrpc.Client
+	task       task.TaskService
 
 	sync.Mutex
 	ctrs map[string]containerInfo
@@ -60,7 +63,7 @@ const (
 )
 
 // newRuntimeVM creates a new runtimeVM instance
-func newRuntimeVM(path, root string) RuntimeImpl {
+func newRuntimeVM(path, root, configPath string) RuntimeImpl {
 	logrus.Debug("oci.newRuntimeVM() start")
 	defer logrus.Debug("oci.newRuntimeVM() end")
 
@@ -77,10 +80,11 @@ func newRuntimeVM(path, root string) RuntimeImpl {
 	typeurl.Register(&rspec.WindowsResources{}, prefix, "opencontainers/runtime-spec", major, "WindowsResources")
 
 	return &runtimeVM{
-		path:    path,
-		fifoDir: filepath.Join(root, "crio", "fifo"),
-		ctx:     context.Background(),
-		ctrs:    make(map[string]containerInfo),
+		path:       path,
+		configPath: configPath,
+		fifoDir:    filepath.Join(root, "crio", "fifo"),
+		ctx:        context.Background(),
+		ctrs:       make(map[string]containerInfo),
 	}
 }
 
@@ -92,6 +96,24 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	// Lock the container
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	// Lets ensure we're able to properly get construct the Options
+	// that we'll pass to the ContainerCreateTask, as admins can set
+	// the runtime_config_path to an arbitrary location.  Also, lets
+	// fail early if something goes wrong.
+	var opts *ptypes.Any = nil
+	if r.configPath != "" {
+		runtimeOptions := &runtimeoptions.Options{
+			ConfigPath: r.configPath,
+		}
+
+		marshaledOtps, err := typeurl.MarshalAny(runtimeOptions)
+		if err != nil {
+			return err
+		}
+
+		opts = marshaledOtps
+	}
 
 	// First thing, we need to start the runtime daemon
 	if err := r.startRuntimeDaemon(ctx, c); err != nil {
@@ -158,6 +180,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		Stdout:   containerIO.Config().Stdout,
 		Stderr:   containerIO.Config().Stderr,
 		Terminal: containerIO.Config().Terminal,
+		Options:  opts,
 	}
 
 	createdCh := make(chan error)
