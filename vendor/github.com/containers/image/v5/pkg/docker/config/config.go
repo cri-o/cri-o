@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/homedir"
 	helperclient "github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
-	"github.com/docker/docker/pkg/homedir"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -35,6 +35,7 @@ type authPath struct {
 
 var (
 	defaultPerUIDPathFormat = filepath.FromSlash("/run/containers/%d/auth.json")
+	xdgConfigHomePath       = filepath.FromSlash("containers/auth.json")
 	xdgRuntimeDirPath       = filepath.FromSlash("containers/auth.json")
 	dockerHomePath          = filepath.FromSlash(".docker/config.json")
 	dockerLegacyHomePath    = ".dockercfg"
@@ -85,7 +86,7 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 	// Note: we need to read the auth files in the inverse order to prevent
 	// a priority inversion when writing to the map.
 	authConfigs := make(map[string]types.DockerAuthConfig)
-	paths := getAuthFilePaths(sys)
+	paths := getAuthFilePaths(sys, homedir.Get())
 	for i := len(paths) - 1; i >= 0; i-- {
 		path := paths[i]
 		// readJSONFile returns an empty map in case the path doesn't exist.
@@ -117,7 +118,7 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 		}
 	}
 
-	// TODO(keyring): if we ever reenable the keyring support, we had to
+	// TODO(keyring): if we ever re-enable the keyring support, we had to
 	// query all credentials from the keyring here.
 
 	return authConfigs, nil
@@ -125,7 +126,9 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 
 // getAuthFilePaths returns a slice of authPaths based on the system context
 // in the order they should be searched. Note that some paths may not exist.
-func getAuthFilePaths(sys *types.SystemContext) []authPath {
+// The homeDir parameter should always be homedir.Get(), and is only intended to be overridden
+// by tests.
+func getAuthFilePaths(sys *types.SystemContext, homeDir string) []authPath {
 	paths := []authPath{}
 	pathToAuth, lf, err := getPathToAuth(sys)
 	if err == nil {
@@ -136,9 +139,22 @@ func getAuthFilePaths(sys *types.SystemContext) []authPath {
 		// Logging the error as a warning instead and moving on to pulling the image
 		logrus.Warnf("%v: Trying to pull image in the event that it is a public image.", err)
 	}
+	xdgCfgHome := os.Getenv("XDG_CONFIG_HOME")
+	if xdgCfgHome == "" {
+		xdgCfgHome = filepath.Join(homeDir, ".config")
+	}
+	paths = append(paths, authPath{path: filepath.Join(xdgCfgHome, xdgConfigHomePath), legacyFormat: false})
+	if dockerConfig := os.Getenv("DOCKER_CONFIG"); dockerConfig != "" {
+		paths = append(paths,
+			authPath{path: filepath.Join(dockerConfig, "config.json"), legacyFormat: false},
+		)
+	} else {
+		paths = append(paths,
+			authPath{path: filepath.Join(homeDir, dockerHomePath), legacyFormat: false},
+		)
+	}
 	paths = append(paths,
-		authPath{path: filepath.Join(homedir.Get(), dockerHomePath), legacyFormat: false},
-		authPath{path: filepath.Join(homedir.Get(), dockerLegacyHomePath), legacyFormat: true},
+		authPath{path: filepath.Join(homeDir, dockerLegacyHomePath), legacyFormat: true},
 	)
 	return paths
 }
@@ -147,6 +163,12 @@ func getAuthFilePaths(sys *types.SystemContext) []authPath {
 // file or .docker/config.json, including support for OAuth2 and IdentityToken.
 // If an entry is not found, an empty struct is returned.
 func GetCredentials(sys *types.SystemContext, registry string) (types.DockerAuthConfig, error) {
+	return getCredentialsWithHomeDir(sys, registry, homedir.Get())
+}
+
+// getCredentialsWithHomeDir is an internal implementation detail of GetCredentials,
+// it exists only to allow testing it with an artificial home directory.
+func getCredentialsWithHomeDir(sys *types.SystemContext, registry, homeDir string) (types.DockerAuthConfig, error) {
 	if sys != nil && sys.DockerAuthConfig != nil {
 		logrus.Debug("Returning credentials from DockerAuthConfig")
 		return *sys.DockerAuthConfig, nil
@@ -163,7 +185,7 @@ func GetCredentials(sys *types.SystemContext, registry string) (types.DockerAuth
 		}
 	}
 
-	for _, path := range getAuthFilePaths(sys) {
+	for _, path := range getAuthFilePaths(sys, homeDir) {
 		authConfig, err := findAuthentication(registry, path.path, path.legacyFormat)
 		if err != nil {
 			logrus.Debugf("Credentials not found")
@@ -189,7 +211,13 @@ func GetCredentials(sys *types.SystemContext, registry string) (types.DockerAuth
 // GetCredentials API. The new API should be used and this API is kept to
 // maintain backward compatibility.
 func GetAuthentication(sys *types.SystemContext, registry string) (string, string, error) {
-	auth, err := GetCredentials(sys, registry)
+	return getAuthenticationWithHomeDir(sys, registry, homedir.Get())
+}
+
+// getAuthenticationWithHomeDir is an internal implementation detail of GetAuthentication,
+// it exists only to allow testing it with an artificial home directory.
+func getAuthenticationWithHomeDir(sys *types.SystemContext, registry, homeDir string) (string, string, error) {
+	auth, err := getCredentialsWithHomeDir(sys, registry, homeDir)
 	if err != nil {
 		return "", "", err
 	}
@@ -245,9 +273,15 @@ func RemoveAllAuthentication(sys *types.SystemContext) error {
 	})
 }
 
-// getPathToAuth gets the path of the auth.json file used for reading and writting credentials
+// getPathToAuth gets the path of the auth.json file used for reading and writing credentials
 // returns the path, and a bool specifies whether the file is in legacy format
 func getPathToAuth(sys *types.SystemContext) (string, bool, error) {
+	return getPathToAuthWithOS(sys, runtime.GOOS)
+}
+
+// getPathToAuthWithOS is an internal implementation detail of getPathToAuth,
+// it exists only to allow testing it with an artificial runtime.GOOS.
+func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (string, bool, error) {
 	if sys != nil {
 		if sys.AuthFilePath != "" {
 			return sys.AuthFilePath, false, nil
@@ -259,7 +293,7 @@ func getPathToAuth(sys *types.SystemContext) (string, bool, error) {
 			return filepath.Join(sys.RootForImplicitAbsolutePaths, fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid())), false, nil
 		}
 	}
-	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+	if goOS == "windows" || goOS == "darwin" {
 		return filepath.Join(homedir.Get(), nonLinuxAuthFilePath), false, nil
 	}
 
@@ -345,7 +379,7 @@ func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (
 			return errors.Wrapf(err, "error marshaling JSON %q", path)
 		}
 
-		if err = ioutil.WriteFile(path, newData, 0755); err != nil {
+		if err = ioutil.WriteFile(path, newData, 0600); err != nil {
 			return errors.Wrapf(err, "error writing to file %q", path)
 		}
 	}

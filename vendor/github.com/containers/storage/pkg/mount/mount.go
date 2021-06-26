@@ -4,8 +4,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/containers/storage/pkg/fileutils"
 )
 
 // mountError holds an error from a mount or unmount operation
@@ -41,33 +39,6 @@ func (e *mountError) Error() string {
 // Cause returns the underlying cause of the error
 func (e *mountError) Cause() error {
 	return e.err
-}
-
-// GetMounts retrieves a list of mounts for the current running process.
-func GetMounts() ([]*Info, error) {
-	return parseMountTable()
-}
-
-// Mounted determines if a specified mountpoint has been mounted.
-// On Linux it looks at /proc/self/mountinfo and on Solaris at mnttab.
-func Mounted(mountpoint string) (bool, error) {
-	entries, err := parseMountTable()
-	if err != nil {
-		return false, err
-	}
-
-	mountpoint, err = fileutils.ReadSymlinkedPath(mountpoint)
-	if err != nil {
-		return false, err
-	}
-
-	// Search the table for the mountpoint
-	for _, e := range entries {
-		if e.Mountpoint == mountpoint {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // Mount will mount filesystem according to the specified configuration, on the
@@ -119,7 +90,7 @@ func RecursiveUnmount(target string) error {
 		if err := Unmount(m.Mountpoint); err != nil && i == len(mounts)-1 {
 			return err
 			// Ignore errors for submounts and continue trying to unmount others
-			// The final unmount should fail if there ane any submounts remaining
+			// The final unmount should fail if there are any submounts remaining
 		}
 	}
 	return nil

@@ -5,7 +5,6 @@
 package zstd
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"sync"
@@ -85,6 +84,17 @@ func NewReader(r io.Reader, opts ...DOption) (*Decoder, error) {
 	d.current.output = make(chan decodeOutput, d.o.concurrent)
 	d.current.flushed = true
 
+	if r == nil {
+		d.current.err = ErrDecoderNilInput
+	}
+
+	// Transfer option dicts.
+	d.dicts = make(map[uint32]dict, len(d.o.dicts))
+	for _, dc := range d.o.dicts {
+		d.dicts[dc.id] = dc
+	}
+	d.o.dicts = nil
+
 	// Create decoders
 	d.decoders = make(chan *blockDec, d.o.concurrent)
 	for i := 0; i < d.o.concurrent; i++ {
@@ -104,7 +114,7 @@ func NewReader(r io.Reader, opts ...DOption) (*Decoder, error) {
 // When the stream is done, io.EOF will be returned.
 func (d *Decoder) Read(p []byte) (int, error) {
 	if d.stream == nil {
-		return 0, errors.New("no input has been initialized")
+		return 0, ErrDecoderNilInput
 	}
 	var n int
 	for {
@@ -145,12 +155,20 @@ func (d *Decoder) Read(p []byte) (int, error) {
 
 // Reset will reset the decoder the supplied stream after the current has finished processing.
 // Note that this functionality cannot be used after Close has been called.
+// Reset can be called with a nil reader to release references to the previous reader.
+// After being called with a nil reader, no other operations than Reset or DecodeAll or Close
+// should be used.
 func (d *Decoder) Reset(r io.Reader) error {
 	if d.current.err == ErrDecoderClosed {
 		return d.current.err
 	}
+
+	d.drainOutput()
+
 	if r == nil {
-		return errors.New("nil Reader sent as input")
+		d.current.err = ErrDecoderNilInput
+		d.current.flushed = true
+		return nil
 	}
 
 	if d.stream == nil {
@@ -159,14 +177,14 @@ func (d *Decoder) Reset(r io.Reader) error {
 		go d.startStreamDecoder(d.stream)
 	}
 
-	d.drainOutput()
-
 	// If bytes buffer and < 1MB, do sync decoding anyway.
-	if bb, ok := r.(*bytes.Buffer); ok && bb.Len() < 1<<20 {
+	if bb, ok := r.(byter); ok && bb.Len() < 1<<20 {
+		var bb2 byter
+		bb2 = bb
 		if debug {
 			println("*bytes.Buffer detected, doing sync decode, len:", bb.Len())
 		}
-		b := bb.Bytes()
+		b := bb2.Bytes()
 		var dst []byte
 		if cap(d.current.b) > 0 {
 			dst = d.current.b
@@ -180,7 +198,7 @@ func (d *Decoder) Reset(r io.Reader) error {
 		d.current.err = err
 		d.current.flushed = true
 		if debug {
-			println("sync decode to ", len(dst), "bytes, err:", err)
+			println("sync decode to", len(dst), "bytes, err:", err)
 		}
 		return nil
 	}
@@ -242,7 +260,7 @@ func (d *Decoder) drainOutput() {
 // Any error encountered during the write is also returned.
 func (d *Decoder) WriteTo(w io.Writer) (int64, error) {
 	if d.stream == nil {
-		return 0, errors.New("no input has been initialized")
+		return 0, ErrDecoderNilInput
 	}
 	var n int64
 	for {
@@ -296,6 +314,9 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 		frame.history.reset()
 		err := frame.reset(&frame.bBuf)
 		if err == io.EOF {
+			if debug {
+				println("frame reset return EOF")
+			}
 			return dst, nil
 		}
 		if frame.DictionaryID != nil {
@@ -313,18 +334,22 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 		}
 		if frame.FrameContentSize > 0 && frame.FrameContentSize < 1<<30 {
 			// Never preallocate moe than 1 GB up front.
-			if uint64(cap(dst)) < frame.FrameContentSize {
+			if cap(dst)-len(dst) < int(frame.FrameContentSize) {
 				dst2 := make([]byte, len(dst), len(dst)+int(frame.FrameContentSize))
 				copy(dst2, dst)
 				dst = dst2
 			}
 		}
 		if cap(dst) == 0 {
-			// Allocate window size * 2 by default if nothing is provided and we didn't get frame content size.
-			size := frame.WindowSize * 2
+			// Allocate len(input) * 2 by default if nothing is provided
+			// and we didn't get frame content size.
+			size := len(input) * 2
 			// Cap to 1 MB.
 			if size > 1<<20 {
 				size = 1 << 20
+			}
+			if uint64(size) > d.o.maxDecodedSize {
+				size = int(d.o.maxDecodedSize)
 			}
 			dst = make([]byte, 0, size)
 		}
@@ -334,6 +359,9 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 			return dst, err
 		}
 		if len(frame.bBuf) == 0 {
+			if debug {
+				println("frame dbuf empty")
+			}
 			break
 		}
 	}
@@ -397,19 +425,6 @@ func (d *Decoder) Close() {
 		d.current.d = nil
 	}
 	d.current.err = ErrDecoderClosed
-}
-
-// RegisterDict will load a dictionary
-func (d *Decoder) RegisterDict(b []byte) error {
-	dc, err := loadDict(b)
-	if err != nil {
-		return err
-	}
-	if d.dicts == nil {
-		d.dicts = make(map[uint32]dict, 1)
-	}
-	d.dicts[dc.id] = *dc
-	return nil
 }
 
 // IOReadCloser returns the decoder as an io.ReadCloser for convenience.

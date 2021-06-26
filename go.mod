@@ -4,7 +4,7 @@ module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.15-0.20200113171025-3fe6c5262873
+	github.com/Microsoft/go-winio v0.4.16-0.20201130162521-d1ffc52c7331
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/containerd v1.3.6
 	github.com/containerd/ttrpc v1.0.1
@@ -13,10 +13,10 @@ require (
 	github.com/containers/buildah v1.15.1
 	github.com/containers/common v0.14.7
 	github.com/containers/conmon v2.0.17+incompatible
-	github.com/containers/image/v5 v5.5.3
+	github.com/containers/image/v5 v5.10.1
 	github.com/containers/libpod v1.9.2
 	github.com/containers/ocicrypt v1.0.3
-	github.com/containers/storage v1.20.6-0.20210607204025-dc67d2fbc8c5
+	github.com/containers/storage v1.24.5
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
@@ -41,20 +41,20 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc91.0.20200707015106-819fcc687efb
 	github.com/opencontainers/runtime-spec v1.0.3-0.20200710190001-3e4195d92445
 	github.com/opencontainers/runtime-tools v0.9.1-0.20200714183735-07406c5828aa
-	github.com/opencontainers/selinux v1.5.2
+	github.com/opencontainers/selinux v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
 	github.com/psampaz/go-mod-outdated v0.6.0
 	github.com/seccomp/containers-golang v0.5.0
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.7.0
 	github.com/soheilhy/cmux v0.1.4
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
+	golang.org/x/sys v0.0.0-20201218084310-7d0127a74742
 	google.golang.org/grpc v1.30.0
 	k8s.io/api v0.17.4
 	k8s.io/apimachinery v0.18.3

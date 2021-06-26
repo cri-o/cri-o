@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PatternMatcher allows checking paths agaist a list of patterns
+// PatternMatcher allows checking paths against a list of patterns
 type PatternMatcher struct {
 	patterns   []*Pattern
 	exclusions bool
@@ -262,7 +262,7 @@ func (p *Pattern) compile() error {
 		}
 	}
 
-	regStr += "(/.*)?$"
+	regStr += "(" + escSL + ".*)?$"
 
 	re, err := regexp.Compile(regStr)
 	if err != nil {

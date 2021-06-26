@@ -366,6 +366,18 @@ func (mr *MockStoreMockRecorder) Exists(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockStore)(nil).Exists), arg0)
 }
 
+// Free mocks base method
+func (m *MockStore) Free() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Free")
+}
+
+// Free indicates an expected call of Free
+func (mr *MockStoreMockRecorder) Free() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Free", reflect.TypeOf((*MockStore)(nil).Free))
+}
+
 // FromContainerDirectory mocks base method
 func (m *MockStore) FromContainerDirectory(arg0, arg1 string) ([]byte, error) {
 	m.ctrl.T.Helper()
@@ -768,6 +780,21 @@ func (mr *MockStoreMockRecorder) Mount(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mount", reflect.TypeOf((*MockStore)(nil).Mount), arg0, arg1)
 }
 
+// MountImage mocks base method
+func (m *MockStore) MountImage(arg0 string, arg1 []string, arg2 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MountImage", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MountImage indicates an expected call of MountImage
+func (mr *MockStoreMockRecorder) MountImage(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MountImage", reflect.TypeOf((*MockStore)(nil).MountImage), arg0, arg1, arg2)
+}
+
 // Mounted mocks base method
 func (m *MockStore) Mounted(arg0 string) (int, error) {
 	m.ctrl.T.Helper()
@@ -969,6 +996,21 @@ func (m *MockStore) Unmount(arg0 string, arg1 bool) (bool, error) {
 func (mr *MockStoreMockRecorder) Unmount(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unmount", reflect.TypeOf((*MockStore)(nil).Unmount), arg0, arg1)
+}
+
+// UnmountImage mocks base method
+func (m *MockStore) UnmountImage(arg0 string, arg1 bool) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnmountImage", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnmountImage indicates an expected call of UnmountImage
+func (mr *MockStoreMockRecorder) UnmountImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnmountImage", reflect.TypeOf((*MockStore)(nil).UnmountImage), arg0, arg1)
 }
 
 // Version mocks base method

@@ -50,7 +50,7 @@ func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.
 	if uid != int(st.Uid) || gid != int(st.Gid) {
 		cap, err := system.Lgetxattr(path, "security.capability")
 		if err != nil && err != system.ErrNotSupportedPlatform {
-			return fmt.Errorf("%s: Lgetxattr(%q): %v", os.Args[0], path, err)
+			return fmt.Errorf("%s: %v", os.Args[0], err)
 		}
 
 		// Make the change.
@@ -65,7 +65,7 @@ func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.
 		}
 		if cap != nil {
 			if err := system.Lsetxattr(path, "security.capability", cap, 0); err != nil {
-				return fmt.Errorf("%s: Lsetxattr(%q): %v", os.Args[0], path, err)
+				return fmt.Errorf("%s: %v", os.Args[0], err)
 			}
 		}
 
