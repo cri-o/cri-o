@@ -783,14 +783,6 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 
 	domain, remainder := splitDockerDomain(imageName)
 	if domain != "" {
-		// this means the image is already fully qualified
-		registry, err := sysregistriesv2.FindRegistry(systemContext, imageName)
-		if err != nil {
-			return nil, err
-		}
-		if registry != nil && registry.Blocked {
-			return nil, fmt.Errorf("cannot use %q because it's blocked", imageName)
-		}
 		return imageNamesWithDigestOrTag([]string{imageName})
 	}
 	UnqualifiedSearchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(systemContext)
@@ -812,17 +804,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 			rem = "library/" + rem
 		}
 		image := r + "/" + rem
-		registry, err := sysregistriesv2.FindRegistry(systemContext, image)
-		if err != nil {
-			return nil, err
-		}
-		if registry != nil && registry.Blocked {
-			continue
-		}
 		images = append(images, image)
-	}
-	if len(images) == 0 {
-		return nil, fmt.Errorf("all search registries for %q are blocked", remainder)
 	}
 	return imageNamesWithDigestOrTag(images)
 }
