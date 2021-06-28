@@ -203,7 +203,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.13.2
+# github.com/containers/image/v5 v5.13.2 => github.com/saschagrunert/image/v5 v5.4.5-0.20210628122519-d15951058288
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -1569,6 +1569,7 @@ sigs.k8s.io/zeitgeist/internal/github/internal
 sigs.k8s.io/zeitgeist/internal/release/regex
 sigs.k8s.io/zeitgeist/pkg/gitlab
 sigs.k8s.io/zeitgeist/upstreams
+# github.com/containers/image/v5 => github.com/saschagrunert/image/v5 v5.4.5-0.20210628122519-d15951058288
 # github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20201121164853-7413a7f753e1
 # github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 # google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24

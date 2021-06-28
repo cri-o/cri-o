@@ -213,8 +213,7 @@ func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
 // “write” specifies whether the client will be used for "write" access (in particular passed to lookaside.go:toplevelFromSection)
 // signatureBase is always set in the return value
 func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, write bool, actions string) (*dockerClient, error) {
-	registry := reference.Domain(ref.ref)
-	auth, err := config.GetCredentials(sys, registry)
+	auth, err := config.GetCredentialsWithRef(sys, ref.ref)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting username and password")
 	}
@@ -224,6 +223,7 @@ func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, write
 		return nil, err
 	}
 
+	registry := reference.Domain(ref.ref)
 	client, err := newDockerClient(sys, registry, ref.ref.Name())
 	if err != nil {
 		return nil, err

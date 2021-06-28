@@ -72,6 +72,7 @@ require (
 )
 
 replace (
+	github.com/containers/image/v5 => github.com/saschagrunert/image/v5 v5.4.5-0.20210628122519-d15951058288
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20201121164853-7413a7f753e1
 	// Pinning the syndtr/gocapability until https://github.com/opencontainers/runc/commit/6dfbe9b80707b1ca188255e8def15263348e0f9a
 	// is included in the runc release
