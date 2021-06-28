@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"time"
 
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
@@ -24,24 +22,6 @@ func Kill(pid int) error {
 		return fmt.Errorf("failed to kill process: %v", err)
 	}
 	return nil
-}
-
-func calculateCPUPercent(stats *cgroups.Metrics) float64 {
-	return genericCalculateCPUPercent(stats.CPU.Usage.Total, stats.CPU.Usage.PerCPU)
-}
-
-func genericCalculateCPUPercent(cpuTotal uint64, perCPU []uint64) float64 {
-	var (
-		cpuPercent = 0.0
-		cpuUsage   = float64(cpuTotal)
-		systemTime = float64(uint64(time.Now().UnixNano()))
-	)
-	if systemTime > 0.0 && cpuUsage > 0.0 {
-		// gets a ratio of container cpu usage total, multiplies it by the number of cores (4 cores running
-		// at 100% utilization should be 400% utilization), and multiplies that by 100 to get a percentage
-		cpuPercent = (cpuUsage / systemTime) * float64(len(perCPU)) * 100
-	}
-	return cpuPercent
 }
 
 func setSize(fd uintptr, size remotecommand.TerminalSize) error {

@@ -782,28 +782,19 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 
 func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *ContainerStats {
 	var (
-		blockInput      uint64
-		blockOutput     uint64
-		cpu             float64
 		cpuNano         uint64
 		memLimit        uint64
-		memPerc         float64
 		memUsage        uint64
-		netInput        uint64
-		netOutput       uint64
-		pids            uint64
 		workingSetBytes uint64
+		rssBytes        uint64
+		pageFaults      uint64
+		majorPageFaults uint64
 	)
 
 	if m != nil {
-		pids = m.Pids.Current
-
 		cpuNano = m.CPU.Usage.Total
-		cpu = genericCalculateCPUPercent(cpuNano, m.CPU.Usage.PerCPU)
-
 		memUsage = m.Memory.Usage.Usage
 		memLimit = getMemLimit(m.Memory.Usage.Limit)
-		memPerc = float64(memUsage) / float64(memLimit)
 		if memUsage > m.Memory.TotalInactiveFile {
 			workingSetBytes = memUsage - m.Memory.TotalInactiveFile
 		} else {
@@ -812,31 +803,21 @@ func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *C
 				m.Memory.TotalInactiveFile, memUsage,
 			)
 		}
-
-		for _, entry := range m.Blkio.IoServiceBytesRecursive {
-			switch strings.ToLower(entry.Op) {
-			case "read":
-				blockInput += entry.Value
-			case "write":
-				blockOutput += entry.Value
-			}
-		}
+		rssBytes = m.Memory.RSS
+		pageFaults = m.Memory.PgFault
+		majorPageFaults = m.Memory.PgMajFault
 	}
 
 	return &ContainerStats{
-		BlockInput:      blockInput,
-		BlockOutput:     blockOutput,
 		Container:       c.ID(),
-		CPU:             cpu,
 		CPUNano:         cpuNano,
-		MemLimit:        memLimit,
 		MemUsage:        memUsage,
-		MemPerc:         memPerc,
-		NetInput:        netInput,
-		NetOutput:       netOutput,
-		PIDs:            pids,
 		SystemNano:      time.Now().UnixNano(),
 		WorkingSetBytes: workingSetBytes,
+		AvailableBytes:  memLimit - memUsage,
+		PageFaults:      pageFaults,
+		MajorPageFaults: majorPageFaults,
+		RssBytes:        rssBytes,
 	}
 }
 

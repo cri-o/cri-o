@@ -74,6 +74,15 @@ type Container struct {
 	stopLock           sync.Mutex
 }
 
+func (c *Container) CRIAttributes() *types.ContainerAttributes {
+	return &types.ContainerAttributes{
+		ID:          c.ID(),
+		Metadata:    c.Metadata(),
+		Labels:      c.Labels(),
+		Annotations: c.Annotations(),
+	}
+}
+
 // ContainerVolume is a bind mount for the container.
 type ContainerVolume struct {
 	ContainerPath string `json:"container_path"`

@@ -1,11 +1,9 @@
 package oci
 
 import (
-	"strings"
 	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -14,18 +12,14 @@ import (
 // ContainerStats contains the statistics information for a running container
 type ContainerStats struct {
 	Container       string
-	CPU             float64
 	CPUNano         uint64
 	SystemNano      int64
-	MemUsage        uint64
-	MemLimit        uint64
-	MemPerc         float64
-	NetInput        uint64
-	NetOutput       uint64
-	BlockInput      uint64
-	BlockOutput     uint64
-	PIDs            uint64
+	MemUsage        uint64 // UsageBytes
 	WorkingSetBytes uint64
+	AvailableBytes  uint64
+	RssBytes        uint64
+	PageFaults      uint64
+	MajorPageFaults uint64
 }
 
 // Returns the total number of bytes transmitted and received for the given container stats
@@ -48,18 +42,6 @@ func getContainerNetIO(netNsPath string) (received, transmitted uint64) {
 	})
 
 	return received, transmitted
-}
-
-func calculateBlockIO(stats *cgroups.Metrics) (read, write uint64) {
-	for _, blkIOEntry := range stats.Blkio.IoServiceBytesRecursive {
-		switch strings.ToLower(blkIOEntry.Op) {
-		case "read":
-			read += blkIOEntry.Value
-		case "write":
-			write += blkIOEntry.Value
-		}
-	}
-	return read, write
 }
 
 // getMemory limit returns the memory limit for a given cgroup
