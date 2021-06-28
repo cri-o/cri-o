@@ -18,6 +18,7 @@ import (
 	"github.com/containerd/containerd/runtime/v2/task"
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
+	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -318,6 +319,14 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 		return nil, errors.Wrap(err, "ExecSyncContainer failed")
 	}
 
+	// if the execution stopped because of the timeout, report it as such
+	if exitCode == -2 {
+		return &types.ExecSyncResponse{
+			Stderr:   []byte(conmonconfig.TimedOutMessage),
+			ExitCode: -1,
+		}, nil
+	}
+
 	return &types.ExecSyncResponse{
 		Stdout:   stdoutBuf.Bytes(),
 		Stderr:   stderrBuf.Bytes(),
@@ -453,7 +462,8 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 			return -1, killErr
 		}
 		<-execCh
-		return -1, errors.Errorf("ExecSyncContainer timeout (%v)", timeoutDuration)
+		// do not make an error for timeout: report it with a specific error code
+		return -2, nil
 	}
 
 	if err == nil {
