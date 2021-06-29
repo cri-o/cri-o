@@ -18,6 +18,7 @@ import (
 	"github.com/containerd/containerd/runtime/v2/task"
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
+	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -52,6 +53,11 @@ type runtimeVM struct {
 type containerInfo struct {
 	cio *cio.ContainerIO
 }
+
+const (
+	execError   = -1
+	execTimeout = -2
+)
 
 // newRuntimeVM creates a new runtimeVM instance
 func newRuntimeVM(path, root string) RuntimeImpl {
@@ -318,6 +324,14 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 		return nil, errors.Wrap(err, "ExecSyncContainer failed")
 	}
 
+	// if the execution stopped because of the timeout, report it as such
+	if exitCode == execTimeout {
+		return &types.ExecSyncResponse{
+			Stderr:   []byte(conmonconfig.TimedOutMessage),
+			ExitCode: -1,
+		}, nil
+	}
+
 	return &types.ExecSyncResponse{
 		Stdout:   stdoutBuf.Bytes(),
 		Stderr:   stderrBuf.Bytes(),
@@ -336,13 +350,13 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	// Generate a unique execID
 	execID, err := utils.GenerateID()
 	if err != nil {
-		return -1, errors.Wrap(err, "exec container")
+		return execError, errors.Wrap(err, "exec container")
 	}
 
 	// Create IO fifos
 	execIO, err := cio.NewExecIO(c.ID(), r.fifoDir, tty, stdin != nil)
 	if err != nil {
-		return -1, errdefs.FromGRPC(err)
+		return execError, errdefs.FromGRPC(err)
 	}
 	defer execIO.Close()
 
@@ -373,7 +387,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 
 	any, err := typeurl.MarshalAny(pSpec)
 	if err != nil {
-		return -1, errdefs.FromGRPC(err)
+		return execError, errdefs.FromGRPC(err)
 	}
 
 	request := &task.ExecProcessRequest{
@@ -388,7 +402,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 
 	// Create the "exec" process
 	if _, err = r.task.Exec(r.ctx, request); err != nil {
-		return -1, errdefs.FromGRPC(err)
+		return execError, errdefs.FromGRPC(err)
 	}
 
 	defer func() {
@@ -401,7 +415,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 
 	// Start the process
 	if err := r.start(c.ID(), execID); err != nil {
-		return -1, err
+		return execError, err
 	}
 
 	// close closeIOChan to notify execIO exec has started.
@@ -444,16 +458,17 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	case err = <-execCh:
 		if err != nil {
 			if killErr := r.kill(c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
-				return -1, killErr
+				return execError, killErr
 			}
-			return -1, err
+			return execError, err
 		}
 	case <-timeoutCh:
 		if killErr := r.kill(c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
-			return -1, killErr
+			return execError, killErr
 		}
 		<-execCh
-		return -1, errors.Errorf("ExecSyncContainer timeout (%v)", timeoutDuration)
+		// do not make an error for timeout: report it with a specific error code
+		return execTimeout, nil
 	}
 
 	if err == nil {
