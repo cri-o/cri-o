@@ -5,11 +5,15 @@
 package config
 
 import (
+	"github.com/cri-o/cri-o/internal/config/cnimgr"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
 // SetCNIPlugin sets the network plugin for the Configuration. The function
 // errors if a sane shutdown of the initially created network plugin failed.
 func (c *Config) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
+	if c.cniManager == nil {
+		c.cniManager = &cnimgr.CNIManager{}
+	}
 	return c.cniManager.SetCNIPlugin(plugin)
 }
