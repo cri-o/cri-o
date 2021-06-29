@@ -34,19 +34,21 @@ func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, 
 
 func (c *CNIManager) pollUntilReady() {
 	// nolint:errcheck
-	_ = wait.PollInfinite(500*time.Millisecond, func() (bool, error) {
-		c.Lock()
-		defer c.Unlock()
-		if err := c.plugin.Status(); err != nil {
-			c.lastError = err
-			return false, nil
-		}
-		c.lastError = nil
-		for _, watcher := range c.watchers {
-			watcher <- struct{}{}
-		}
-		return true, nil
-	})
+	_ = wait.PollInfinite(500*time.Millisecond, c.pollFunc)
+}
+
+func (c *CNIManager) pollFunc() (bool, error) {
+	c.Lock()
+	defer c.Unlock()
+	if err := c.plugin.Status(); err != nil {
+		c.lastError = err
+		return false, nil
+	}
+	c.lastError = nil
+	for _, watcher := range c.watchers {
+		watcher <- struct{}{}
+	}
+	return true, nil
 }
 
 func (c *CNIManager) ReadyOrError() error {

@@ -38,11 +38,6 @@ var _ = t.Describe("Status", func() {
 		})
 
 		It("should succeed when CNI plugin status errors", func() {
-			// Given
-			gomock.InOrder(
-				cniPluginMock.EXPECT().Status().Return(t.TestError),
-			)
-
 			// When
 			response, err := sut.Status(context.Background(),
 				&types.StatusRequest{})
