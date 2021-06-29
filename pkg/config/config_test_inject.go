@@ -10,12 +10,6 @@ import (
 
 // SetCNIPlugin sets the network plugin for the Configuration. The function
 // errors if a sane shutdown of the initially created network plugin failed.
-func (c *NetworkConfig) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
-	if c.CNIPlugin() != nil {
-		if err := c.CNIPlugin().Shutdown(); err != nil {
-			return err
-		}
-	}
-	c.cniPlugin = plugin
-	return nil
+func (c *Config) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
+	return c.cniManager.SetCNIPlugin(plugin)
 }
