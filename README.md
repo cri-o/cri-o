@@ -226,6 +226,10 @@ Please refer to the [CRI-O Metrics guide](tutorials/metrics.md).
 Some aspects of the Container Runtime are worth some additional explanation.
 These details are summarized in a [dedicated guide](cri.md).
 
+#### Debugging tips
+
+Having an issue? There are some tips and tricks for debugging located in [our debugging guide](tutorials/debugging.md)
+
 ## Adopters
 
 An incomplete list of adopters of CRI-O in production environments can be found [here](ADOPTERS.md).
