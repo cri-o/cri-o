@@ -690,6 +690,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	specgen.SetProcessSelinuxLabel(processLabel)
 
 	ociContainer.SetIDMappings(containerIDMappings)
+	var rootPair idtools.IDPair
 	if containerIDMappings != nil {
 		s.finalizeUserMapping(specgen, containerIDMappings)
 
@@ -700,7 +701,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
 
-		rootPair := containerIDMappings.RootPair()
+		rootPair = containerIDMappings.RootPair()
 
 		pathsToChown := []string{mountPoint, containerInfo.RunDir}
 		for _, m := range secretMounts {
@@ -712,6 +713,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			}
 		}
 	} else if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
+		return nil, err
+	}
+
+	if containerIDMappings == nil {
+		rootPair = idtools.IDPair{UID: 0, GID: 0}
+	}
+	// add symlink /etc/mtab to /proc/mounts allow looking for mountfiles there in the container
+	// compatible with Docker
+	mtab := filepath.Join(mountPoint, "/etc/mtab")
+	if err := idtools.MkdirAllAs(filepath.Dir(mtab), 0755, rootPair.UID, rootPair.GID); err != nil {
+		return nil, errors.Wrap(err, "error creating mtab directory")
+	}
+	if err := os.Symlink("/proc/mounts", mtab); err != nil && !os.IsExist(err) {
 		return nil, err
 	}
 
