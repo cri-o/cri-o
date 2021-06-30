@@ -493,6 +493,11 @@ func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) 
 	return name, nil
 }
 
+// ContainerIDForName gets the container ID given the container name from the ID Index
+func (c *ContainerServer) ContainerIDForName(name string) (string, error) {
+	return c.ctrNameIndex.Get(name)
+}
+
 // ReleaseContainerName releases a container name from the index so that it can
 // be used by other containers
 func (c *ContainerServer) ReleaseContainerName(name string) {
@@ -513,6 +518,11 @@ func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
 // pods
 func (c *ContainerServer) ReleasePodName(name string) {
 	c.podNameIndex.Release(name)
+}
+
+// PodIDForName gets the pod ID given the pod name from the ID Index
+func (c *ContainerServer) PodIDForName(name string) (string, error) {
+	return c.podNameIndex.Get(name)
 }
 
 // recoverLogError recovers a runtime panic and logs the returned error if

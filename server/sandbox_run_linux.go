@@ -302,6 +302,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}()
 
 	if _, err := s.ReservePodName(sbox.ID(), sbox.Name()); err != nil {
+		reservedID, getErr := s.PodIDForName(sbox.Name())
+		if getErr != nil {
+			return nil, errors.Wrapf(getErr, "Failed to get ID of pod with reserved name (%s), after failing to reserve name with %v", sbox.Name(), getErr)
+		}
+		// if we're able to find the sandbox, and it's created, this is actually a duplicate request
+		// from a client that does not behave like the kubelet (like crictl)
+		if reservedSbox := s.GetSandbox(reservedID); reservedSbox != nil && reservedSbox.Created() {
+			return nil, err
+		}
 		cachedID, resourceErr := s.getResourceOrWait(ctx, sbox.Name(), "sandbox")
 		if resourceErr == nil {
 			return &types.RunPodSandboxResponse{PodSandboxID: cachedID}, nil
