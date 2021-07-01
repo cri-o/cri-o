@@ -1,21 +1,13 @@
 package oci
 
 import (
-	"bufio"
 	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v3/pkg/cgroups"
-	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/server/cri/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -59,10 +51,10 @@ func newPipe() (parent, child *os.File, _ error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
-func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerStats, error) {
-	stats := &ContainerStats{}
-	stats.Container = ctr.ID()
-	stats.SystemNano = time.Now().UnixNano()
+func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*types.ContainerStats, error) {
+	stats := &types.ContainerStats{
+		Attributes: ctr.CRIAttributes(),
+	}
 
 	if ctr.Spoofed() {
 		return stats, nil
@@ -84,91 +76,9 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*ContainerSt
 		}
 		return stats, nil
 	}
-	// gets the real path of the cgroup on disk
-	cgroupPath, err := r.config.CgroupManager().ContainerCgroupAbsolutePath(cgroup, ctr.ID())
-	if err != nil {
+	// update the stats object with information from the cgroup
+	if err := r.config.CgroupManager().PopulateContainerCgroupStats(cgroup, ctr.ID(), stats); err != nil {
 		return nil, err
 	}
-	// checks cgroup just for the container, not the entire pod
-	cg, err := cgroups.Load(cgroupPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to load cgroup at %s", cgroup)
-	}
-
-	cgroupStats, err := cg.Stat()
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to obtain cgroup stats")
-	}
-
-	stats.CPUNano = cgroupStats.CPU.Usage.Total
-	stats.MemUsage = cgroupStats.Memory.Usage.Usage
-	memLimit := getMemLimit(cgroupStats.Memory.Usage.Limit)
-
-	if err := updateWithMemoryStats(cgroupPath, stats); err != nil {
-		return nil, errors.Wrap(err, "unable to update with memory.stat info")
-	}
-	stats.AvailableBytes = memLimit - stats.MemUsage
-
 	return stats, nil
-}
-
-// updateWithMemoryStats updates the ContainerStats object with info
-// from cgroup's memory.stat. Returns an error if the file does not exists,
-// or not parsable.
-func updateWithMemoryStats(path string, stats *ContainerStats) error {
-	var filename, inactive string
-	var totalInactive uint64
-	if node.CgroupIsV2() {
-		filename = filepath.Join("/sys/fs/cgroup", path, "memory.stat")
-		inactive = "inactive_file "
-	} else {
-		filename = filepath.Join("/sys/fs/cgroup/memory", path, "memory.stat")
-		inactive = "total_inactive_file "
-	}
-
-	toUpdate := []struct {
-		prefix string
-		field  *uint64
-	}{
-		{inactive, &totalInactive},
-		{"rss ", &stats.RssBytes},
-		{"pgfault ", &stats.PageFaults},
-		{"pgmajfault ", &stats.MajorPageFaults},
-	}
-
-	f, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		for _, field := range toUpdate {
-			if !strings.HasPrefix(scanner.Text(), field.prefix) {
-				continue
-			}
-			val, err := strconv.Atoi(
-				strings.TrimPrefix(scanner.Text(), field.prefix),
-			)
-			if err != nil {
-				return errors.Wrapf(err, "unable to parse %s", field.prefix)
-			}
-			valUint := uint64(val)
-			field.field = &valUint
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-	if stats.MemUsage > totalInactive {
-		stats.WorkingSetBytes = stats.MemUsage - totalInactive
-	} else {
-		logrus.Warnf(
-			"unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
-			totalInactive, stats.MemUsage,
-		)
-	}
-
-	return nil
 }

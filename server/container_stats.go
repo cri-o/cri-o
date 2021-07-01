@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"path/filepath"
+	"time"
 
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
@@ -11,42 +12,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *Server) buildContainerStats(ctx context.Context, stats *oci.ContainerStats, container *oci.Container) *types.ContainerStats {
+func (s *Server) buildContainerStats(ctx context.Context, stats *types.ContainerStats, container *oci.Container) *types.ContainerStats {
 	// TODO: Fix this for other storage drivers. This will only work with overlay.
-	var writableLayer *types.FilesystemUsage
 	if s.ContainerServer.Config().RootConfig.Storage == "overlay" {
 		diffDir := filepath.Join(filepath.Dir(container.MountPoint()), "diff")
 		bytesUsed, inodeUsed, err := crioStorage.GetDiskUsageStats(diffDir)
 		if err != nil {
 			log.Warnf(ctx, "Unable to get disk usage for container %s， %s", container.ID(), err)
 		}
-		writableLayer = &types.FilesystemUsage{
-			Timestamp:  stats.SystemNano,
+		stats.WritableLayer = &types.FilesystemUsage{
+			Timestamp:  time.Now().UnixNano(),
 			FsID:       &types.FilesystemIdentifier{Mountpoint: container.MountPoint()},
 			UsedBytes:  &types.UInt64Value{Value: bytesUsed},
 			InodesUsed: &types.UInt64Value{Value: inodeUsed},
 		}
 	}
-	return &types.ContainerStats{
-		Attributes: &types.ContainerAttributes{
-			ID: container.ID(),
-			Metadata: &types.ContainerMetadata{
-				Name:    container.Metadata().Name,
-				Attempt: container.Metadata().Attempt,
-			},
-			Labels:      container.Labels(),
-			Annotations: container.Annotations(),
-		},
-		CPU: &types.CPUUsage{
-			Timestamp:            stats.SystemNano,
-			UsageCoreNanoSeconds: &types.UInt64Value{Value: stats.CPUNano},
-		},
-		Memory: &types.MemoryUsage{
-			Timestamp:       stats.SystemNano,
-			WorkingSetBytes: &types.UInt64Value{Value: stats.WorkingSetBytes},
-		},
-		WritableLayer: writableLayer,
-	}
+	return stats
 }
 
 // ContainerStats returns stats of the container. If the container does not

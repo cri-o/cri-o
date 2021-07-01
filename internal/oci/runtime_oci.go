@@ -933,7 +933,7 @@ func (r *runtimeOCI) WaitContainerStateStopped(ctx context.Context, c *Container
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*ContainerStats, error) {
+func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*types.ContainerStats, error) {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 	return r.containerStats(c, cgroup)
