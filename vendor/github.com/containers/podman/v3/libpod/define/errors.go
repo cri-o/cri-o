@@ -12,15 +12,6 @@ var (
 	// ErrNoSuchPod indicates the requested pod does not exist
 	ErrNoSuchPod = errors.New("no such pod")
 
-	// ErrNoSuchImage indicates the requested image does not exist
-	ErrNoSuchImage = errors.New("no such image")
-
-	// ErrMultipleImages found multiple name and tag matches
-	ErrMultipleImages = errors.New("found multiple name and tag matches")
-
-	// ErrNoSuchTag indicates the requested image tag does not exist
-	ErrNoSuchTag = errors.New("no such tag")
-
 	// ErrNoSuchVolume indicates the requested volume does not exist
 	ErrNoSuchVolume = errors.New("no such volume")
 
@@ -30,6 +21,10 @@ var (
 	// ErrNoSuchExecSession indicates that the requested exec session does
 	// not exist.
 	ErrNoSuchExecSession = errors.New("no such exec session")
+
+	// ErrDepExists indicates that the current object has dependencies and
+	// cannot be removed before them.
+	ErrDepExists = errors.New("dependency exists")
 
 	// ErrNoAliases indicates that the container does not have any network
 	// aliases.
@@ -157,7 +152,7 @@ var (
 
 	// ErrOCIRuntimeNotFound indicates the OCI runtime attempted to invoke a command
 	// that was not found
-	ErrOCIRuntimeNotFound = errors.New("OCI not found")
+	ErrOCIRuntimeNotFound = errors.New("OCI runtime attempted to invoke a command that was not found")
 
 	// ErrOCIRuntimeUnavailable indicates that the OCI runtime associated to a container
 	// could not be found in the configuration
@@ -169,9 +164,6 @@ var (
 	// ErrConmonDead indicates that the container's conmon process has been
 	// killed, preventing normal operation.
 	ErrConmonDead = errors.New("conmon process killed")
-
-	// ErrImageInUse indicates the requested operation failed because the image was in use
-	ErrImageInUse = errors.New("image is being used")
 
 	// ErrNetworkOnPodContainer indicates the user wishes to alter network attributes on a container
 	// in a pod.  This cannot be done as the infra container has all the network information
@@ -186,6 +178,9 @@ var (
 
 	// ErrNoNetwork indicates that a container has no net namespace, like network=none
 	ErrNoNetwork = errors.New("container has no network namespace")
+
+	// ErrNetworkModeInvalid indicates that a container has the wrong network mode for an operation
+	ErrNetworkModeInvalid = errors.New("invalid network mode")
 
 	// ErrSetSecurityAttribute indicates that a request to set a container's security attribute
 	// was not possible.
@@ -202,4 +197,8 @@ var (
 	// ErrCanceled indicates that an operation has been cancelled by a user.
 	// Useful for potentially long running tasks.
 	ErrCanceled = errors.New("cancelled by user")
+
+	// ErrConmonVersionFormat is used when the expected versio-format of conmon
+	// has changed.
+	ErrConmonVersionFormat = "conmon version changed format"
 )

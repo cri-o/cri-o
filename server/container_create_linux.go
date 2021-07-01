@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/podman/v3/pkg/rootless"
 	selinux "github.com/containers/podman/v3/pkg/selinux"
 	cstorage "github.com/containers/storage"
@@ -625,7 +625,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	// Add secrets from the default and override mounts.conf files
-	secretMounts := secrets.SecretMounts(mountLabel, containerInfo.RunDir, s.config.DefaultMountsFile, rootless.IsRootless(), ctr.DisableFips())
+	secretMounts := subscriptions.MountsWithUIDGID(
+		mountLabel,
+		containerInfo.RunDir,
+		s.config.DefaultMountsFile,
+		containerInfo.RunDir,
+		0,
+		0,
+		rootless.IsRootless(),
+		ctr.DisableFips(),
+	)
 
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)

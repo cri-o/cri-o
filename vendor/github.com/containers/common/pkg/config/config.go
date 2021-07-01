@@ -47,18 +47,6 @@ const (
 	BoltDBStateStore RuntimeStateStore = iota
 )
 
-// PullPolicy whether to pull new image
-type PullPolicy int
-
-const (
-	// PullImageAlways always try to pull new image when create or run
-	PullImageAlways PullPolicy = iota
-	// PullImageMissing pulls image if it is not locally
-	PullImageMissing
-	// PullImageNever will never pull new image
-	PullImageNever
-)
-
 // Config contains configuration options for container tools
 type Config struct {
 	// Containers specify settings that configure how containers will run ont the system
@@ -244,7 +232,7 @@ type EngineConfig struct {
 	// will fall back to containers/image defaults.
 	ImageParallelCopies uint `toml:"image_parallel_copies,omitempty"`
 
-	// ImageDefaultFormat sepecified the manifest Type (oci, v2s2, or v2s1)
+	// ImageDefaultFormat specified the manifest Type (oci, v2s2, or v2s1)
 	// to use when pulling, pushing, building container images. By default
 	// image pulled and pushed match the format of the source image.
 	// Building/committing defaults to OCI.
@@ -437,6 +425,12 @@ type NetworkConfig struct {
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
 
+	// DefaultSubnet is the subnet to be used for the default CNI network.
+	// If a network with the name given in DefaultNetwork is not present
+	// then a new network using this subnet will be created.
+	// Must be a valid IPv4 CIDR block.
+	DefaultSubnet string `toml:"default_subnet,omitempty"`
+
 	// NetworkConfigDir is where CNI network configuration files are stored.
 	NetworkConfigDir string `toml:"network_config_dir,omitempty"`
 }
@@ -532,11 +526,11 @@ func systemConfigs() ([]string, error) {
 	if _, err := os.Stat(OverrideContainersConfig); err == nil {
 		configs = append(configs, OverrideContainersConfig)
 	}
-	if unshare.IsRootless() {
-		path, err := rootlessConfigPath()
-		if err != nil {
-			return nil, err
-		}
+	path, err := ifRootlessConfigPath()
+	if err != nil {
+		return nil, err
+	}
+	if path != "" {
 		if _, err := os.Stat(path); err == nil {
 			configs = append(configs, path)
 		}
@@ -698,23 +692,6 @@ func (c *NetworkConfig) Validate() error {
 	}
 
 	return errors.Errorf("invalid cni_plugin_dirs: %s", strings.Join(c.CNIPluginDirs, ","))
-}
-
-// ValidatePullPolicy check if the pullPolicy from CLI is valid and returns the valid enum type
-// if the value from CLI or containers.conf is invalid returns the error
-func ValidatePullPolicy(pullPolicy string) (PullPolicy, error) {
-	switch strings.ToLower(pullPolicy) {
-	case "always":
-		return PullImageAlways, nil
-	case "missing", "ifnotpresent":
-		return PullImageMissing, nil
-	case "never":
-		return PullImageNever, nil
-	case "":
-		return PullImageMissing, nil
-	default:
-		return PullImageMissing, errors.Errorf("invalid pull policy %q", pullPolicy)
-	}
 }
 
 // FindConmon iterates over (*Config).ConmonPath and returns the path
@@ -1004,7 +981,7 @@ func (c *Config) Write() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
-	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
+	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}

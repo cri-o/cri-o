@@ -151,6 +151,9 @@ type ContainerRootFSConfig struct {
 	Secrets []*secrets.Secret `json:"secrets,omitempty"`
 	// SecretPath is the secrets location in storage
 	SecretsPath string `json:"secretsPath"`
+	// Volatile specifies whether the container storage can be optimized
+	// at the cost of not syncing all the dirty files in memory.
+	Volatile bool `json:"volatile,omitempty"`
 }
 
 // ContainerSecurityConfig is an embedded sub-config providing security configuration
@@ -298,6 +301,8 @@ type ContainerMiscConfig struct {
 	StopSignal uint `json:"stopSignal,omitempty"`
 	// StopTimeout is the signal that will be used to stop the container
 	StopTimeout uint `json:"stopTimeout,omitempty"`
+	// Timeout is maximum time a container will run before getting the kill signal
+	Timeout uint `json:"timeout,omitempty"`
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
 	// CgroupManager is the cgroup manager used to create this container.
@@ -364,4 +369,10 @@ type ContainerMiscConfig struct {
 	Timezone string `json:"timezone,omitempty"`
 	// Umask is the umask inside the container.
 	Umask string `json:"umask,omitempty"`
+	// PidFile is the file that saves the pid of the container process
+	PidFile string `json:"pid_file,omitempty"`
+	// CDIDevices contains devices that use the CDI
+	CDIDevices []string `json:"cdiDevices,omitempty"`
+	// EnvSecrets are secrets that are set as environment variables
+	EnvSecrets map[string]*secrets.Secret `json:"secret_env,omitempty"`
 }

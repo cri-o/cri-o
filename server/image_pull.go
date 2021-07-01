@@ -8,7 +8,6 @@ import (
 	"time"
 
 	imageTypes "github.com/containers/image/v5/types"
-	libpodImage "github.com/containers/podman/v3/libpod/image"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/cri/types"
@@ -17,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var localRegistryPrefix = libpodImage.DefaultLocalRegistry + "/"
+var localRegistryPrefix = "localhost/"
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {

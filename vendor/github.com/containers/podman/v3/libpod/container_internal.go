@@ -41,6 +41,7 @@ const (
 	// name of the directory holding the artifacts
 	artifactsDir      = "artifacts"
 	execDirPermission = 0755
+	preCheckpointDir  = "pre-checkpoint"
 )
 
 // rootFsSize gets the size of the container's root filesystem
@@ -140,7 +141,7 @@ func (c *Container) CheckpointPath() string {
 
 // PreCheckpointPath returns the path to the directory containing the pre-checkpoint-images
 func (c *Container) PreCheckPointPath() string {
-	return filepath.Join(c.bundlePath(), "pre-checkpoint")
+	return filepath.Join(c.bundlePath(), preCheckpointDir)
 }
 
 // AttachSocketPath retrieves the path of the container's attach socket
@@ -283,6 +284,14 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 		return false, err
 	}
 
+	// setup slirp4netns again because slirp4netns will die when conmon exits
+	if c.config.NetMode.IsSlirp4netns() {
+		err := c.runtime.setupSlirp4netns(c)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	if c.state.State == define.ContainerStateStopped {
 		// Reinitialize the container if we need to
 		if err := c.reinit(ctx, true); err != nil {
@@ -418,7 +427,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		},
 		LabelOpts: c.config.LabelOpts,
 	}
-	if c.restoreFromCheckpoint {
+	if c.restoreFromCheckpoint && !c.config.Privileged {
 		// If restoring from a checkpoint, the root file-system
 		// needs to be mounted with the same SELinux labels as
 		// it was mounted previously.
@@ -450,6 +459,8 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		}
 		options.MountOpts = newOptions
 	}
+
+	options.Volatile = c.config.Volatile
 
 	c.setupStorageMapping(&options.IDMappingOptions, &c.config.IDMappings)
 
@@ -685,7 +696,11 @@ func (c *Container) removeIPv4Allocations() error {
 // This is necessary for restarting containers
 func (c *Container) removeConmonFiles() error {
 	// Files are allowed to not exist, so ignore ENOENT
-	attachFile := filepath.Join(c.bundlePath(), "attach")
+	attachFile, err := c.AttachSocketPath()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get attach socket path for container %s", c.ID())
+	}
+
 	if err := os.Remove(attachFile); err != nil && !os.IsNotExist(err) {
 		return errors.Wrapf(err, "error removing container %s attach file", c.ID())
 	}
@@ -966,9 +981,7 @@ func (c *Container) completeNetworkSetup() error {
 	if err := c.syncContainer(); err != nil {
 		return err
 	}
-	if rootless.IsRootless() {
-		return c.runtime.setupRootlessNetNS(c)
-	} else if c.config.NetMode.IsSlirp4netns() {
+	if c.config.NetMode.IsSlirp4netns() {
 		return c.runtime.setupSlirp4netns(c)
 	}
 	if err := c.runtime.setupNetNS(c); err != nil {
@@ -1048,7 +1061,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	for _, v := range c.config.NamedVolumes {
-		if err := c.chownVolume(v.Name); err != nil {
+		if err := c.fixVolumePermissions(v); err != nil {
 			return err
 		}
 	}
@@ -1311,7 +1324,7 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	// We have to check stopErr *after* we lock again - otherwise, we have a
-	// change of panicing on a double-unlock. Ref: GH Issue 9615
+	// change of panicking on a double-unlock. Ref: GH Issue 9615
 	if stopErr != nil {
 		return stopErr
 	}
@@ -1518,6 +1531,16 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		}()
 	}
 
+	// If /etc/mtab does not exist in container image, then we need to
+	// create it, so that mount command within the container will work.
+	mtab := filepath.Join(mountPoint, "/etc/mtab")
+	if err := idtools.MkdirAllAs(filepath.Dir(mtab), 0755, c.RootUID(), c.RootGID()); err != nil {
+		return "", errors.Wrap(err, "error creating mtab directory")
+	}
+	if err = os.Symlink("/proc/mounts", mtab); err != nil && !os.IsExist(err) {
+		return "", err
+	}
+
 	// Request a mount of all named volumes
 	for _, v := range c.config.NamedVolumes {
 		vol, err := c.mountNamedVolume(v, mountPoint)
@@ -1657,64 +1680,6 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	return vol, nil
 }
 
-// Chown the specified volume if necessary.
-func (c *Container) chownVolume(volumeName string) error {
-	vol, err := c.runtime.state.Volume(volumeName)
-	if err != nil {
-		return errors.Wrapf(err, "error retrieving named volume %s for container %s", volumeName, c.ID())
-	}
-
-	vol.lock.Lock()
-	defer vol.lock.Unlock()
-
-	// The volume may need a copy-up. Check the state.
-	if err := vol.update(); err != nil {
-		return err
-	}
-
-	// TODO: For now, I've disabled chowning volumes owned by non-Podman
-	// drivers. This may be safe, but it's really going to be a case-by-case
-	// thing, I think - safest to leave disabled now and reenable later if
-	// there is a demand.
-	if vol.state.NeedsChown && !vol.UsesVolumeDriver() {
-		vol.state.NeedsChown = false
-
-		uid := int(c.config.Spec.Process.User.UID)
-		gid := int(c.config.Spec.Process.User.GID)
-
-		if c.config.IDMappings.UIDMap != nil {
-			p := idtools.IDPair{
-				UID: uid,
-				GID: gid,
-			}
-			mappings := idtools.NewIDMappingsFromMaps(c.config.IDMappings.UIDMap, c.config.IDMappings.GIDMap)
-			newPair, err := mappings.ToHost(p)
-			if err != nil {
-				return errors.Wrapf(err, "error mapping user %d:%d", uid, gid)
-			}
-			uid = newPair.UID
-			gid = newPair.GID
-		}
-
-		vol.state.UIDChowned = uid
-		vol.state.GIDChowned = gid
-
-		if err := vol.save(); err != nil {
-			return err
-		}
-
-		mountPoint, err := vol.MountPoint()
-		if err != nil {
-			return err
-		}
-
-		if err := os.Lchown(mountPoint, uid, gid); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // cleanupStorage unmounts and cleans up the container's root filesystem
 func (c *Container) cleanupStorage() error {
 	if !c.state.Mounted {
@@ -1840,7 +1805,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	// Unmount image volumes
 	for _, v := range c.config.ImageVolumes {
-		img, err := c.runtime.ImageRuntime().NewFromLocal(v.Source)
+		img, _, err := c.runtime.LibimageRuntime().LookupImage(v.Source, nil)
 		if err != nil {
 			if lastError == nil {
 				lastError = err

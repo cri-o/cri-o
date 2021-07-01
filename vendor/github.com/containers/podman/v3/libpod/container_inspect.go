@@ -128,6 +128,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		StaticDir:       config.StaticDir,
 		OCIRuntime:      config.OCIRuntime,
 		ConmonPidFile:   config.ConmonPidFile,
+		PidFile:         config.PidFile,
 		Name:            config.Name,
 		RestartCount:    int32(runtimeInfo.RestartCount),
 		Driver:          driverData.Name,
@@ -303,6 +304,8 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 		ctrConfig.WorkingDir = spec.Process.Cwd
 	}
 
+	ctrConfig.StopTimeout = c.config.StopTimeout
+	ctrConfig.Timeout = c.config.Timeout
 	ctrConfig.OpenStdin = c.config.Stdin
 	ctrConfig.Image = c.config.RootfsImageName
 	ctrConfig.SystemdMode = c.config.Systemd
@@ -886,4 +889,27 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.ConsoleSize = []uint{0, 0}
 
 	return hostConfig, nil
+}
+
+// Return true if the container is running in the host's PID NS.
+func (c *Container) inHostPidNS() (bool, error) {
+	if c.config.PIDNsCtr != "" {
+		return false, nil
+	}
+	ctrSpec, err := c.specFromState()
+	if err != nil {
+		return false, err
+	}
+	if ctrSpec.Linux != nil {
+		// Locate the spec's PID namespace.
+		// If there is none, it's pid=host.
+		// If there is one and it has a path, it's "ns:".
+		// If there is no path, it's default - the empty string.
+		for _, ns := range ctrSpec.Linux.Namespaces {
+			if ns.Type == spec.PIDNamespace {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
 }

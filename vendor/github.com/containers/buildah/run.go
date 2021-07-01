@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/buildah/define"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -70,6 +71,8 @@ const (
 
 // RunOptions can be used to alter how a command is run in the container.
 type RunOptions struct {
+	// Logger is the logrus logger to write log messages with
+	Logger *logrus.Logger `json:"-"`
 	// Hostname is the hostname we set for the running container.
 	Hostname string
 	// Isolation is either IsolationDefault, IsolationOCI, IsolationChroot, or IsolationOCIRootless.
@@ -134,4 +137,9 @@ type RunOptions struct {
 	DropCapabilities []string
 	// Devices are the additional devices to add to the containers
 	Devices define.ContainerDevices
+	// Secrets are the available secrets to use in a RUN
+	Secrets map[string]string
+	// RunMounts are mounts for this run. RunMounts for this run
+	// will not show up in subsequent runs.
+	RunMounts []string
 }

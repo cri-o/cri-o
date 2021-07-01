@@ -87,30 +87,10 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting hostname")
 	}
-	info := define.HostInfo{
-		Arch:           runtime.GOARCH,
-		BuildahVersion: buildah.Version,
-		CgroupManager:  r.config.Engine.CgroupManager,
-		Linkmode:       linkmode.Linkmode(),
-		CPUs:           runtime.NumCPU(),
-		Distribution:   hostDistributionInfo,
-		EventLogger:    r.eventer.String(),
-		Hostname:       host,
-		IDMappings:     define.IDMappings{},
-		Kernel:         kv,
-		MemFree:        mi.MemFree,
-		MemTotal:       mi.MemTotal,
-		OS:             runtime.GOOS,
-		Security: define.SecurityInfo{
-			AppArmorEnabled:     apparmor.IsEnabled(),
-			DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities, ","),
-			Rootless:            rootless.IsRootless(),
-			SECCOMPEnabled:      seccomp.IsEnabled(),
-			SELinuxEnabled:      selinux.GetEnabled(),
-		},
-		Slirp4NetNS: define.SlirpInfo{},
-		SwapFree:    mi.SwapFree,
-		SwapTotal:   mi.SwapTotal,
+
+	seccompProfilePath, err := DefaultSeccompPath()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting Seccomp profile path")
 	}
 
 	// CGroups version
@@ -118,6 +98,41 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading cgroups mode")
 	}
+
+	// Get Map of all available controllers
+	availableControllers, err := cgroups.GetAvailableControllers(nil, unified)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting available cgroup controllers")
+	}
+
+	info := define.HostInfo{
+		Arch:              runtime.GOARCH,
+		BuildahVersion:    buildah.Version,
+		CgroupManager:     r.config.Engine.CgroupManager,
+		CgroupControllers: availableControllers,
+		Linkmode:          linkmode.Linkmode(),
+		CPUs:              runtime.NumCPU(),
+		Distribution:      hostDistributionInfo,
+		EventLogger:       r.eventer.String(),
+		Hostname:          host,
+		IDMappings:        define.IDMappings{},
+		Kernel:            kv,
+		MemFree:           mi.MemFree,
+		MemTotal:          mi.MemTotal,
+		OS:                runtime.GOOS,
+		Security: define.SecurityInfo{
+			AppArmorEnabled:     apparmor.IsEnabled(),
+			DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities, ","),
+			Rootless:            rootless.IsRootless(),
+			SECCOMPEnabled:      seccomp.IsEnabled(),
+			SECCOMPProfilePath:  seccompProfilePath,
+			SELinuxEnabled:      selinux.GetEnabled(),
+		},
+		Slirp4NetNS: define.SlirpInfo{},
+		SwapFree:    mi.SwapFree,
+		SwapTotal:   mi.SwapTotal,
+	}
+
 	cgroupVersion := "v1"
 	if unified {
 		cgroupVersion = "v2"

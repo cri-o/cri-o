@@ -2,21 +2,27 @@ package libpod
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
+	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/libpod/lock"
 	"github.com/containers/podman/v3/libpod/plugin"
 	"github.com/containers/podman/v3/libpod/shutdown"
@@ -25,11 +31,23 @@ import (
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/namesgenerator"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	// conmonMinMajorVersion is the major version required for conmon.
+	conmonMinMajorVersion = 2
+
+	// conmonMinMinorVersion is the minor version required for conmon.
+	conmonMinMinorVersion = 0
+
+	// conmonMinPatchVersion is the sub-minor version required for conmon.
+	conmonMinPatchVersion = 24
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -51,17 +69,18 @@ type Runtime struct {
 	storageConfig storage.StoreOptions
 	storageSet    storageSet
 
-	state             State
-	store             storage.Store
-	storageService    *storageService
-	imageContext      *types.SystemContext
-	defaultOCIRuntime OCIRuntime
-	ociRuntimes       map[string]OCIRuntime
-	runtimeFlags      []string
-	netPlugin         ocicni.CNIPlugin
-	conmonPath        string
-	imageRuntime      *image.Runtime
-	lockManager       lock.Manager
+	state                  State
+	store                  storage.Store
+	storageService         *storageService
+	imageContext           *types.SystemContext
+	defaultOCIRuntime      OCIRuntime
+	ociRuntimes            map[string]OCIRuntime
+	runtimeFlags           []string
+	netPlugin              ocicni.CNIPlugin
+	conmonPath             string
+	libimageRuntime        *libimage.Runtime
+	libimageEventsShutdown chan bool
+	lockManager            lock.Manager
 
 	// doRenumber indicates that the runtime should perform a lock renumber
 	// during initialization.
@@ -196,6 +215,8 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 		return nil, err
 	}
 
+	runtime.libimageEventsShutdown = make(chan bool)
+
 	return runtime, nil
 }
 
@@ -260,7 +281,7 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// Find a working conmon binary
-	cPath, err := runtime.config.FindConmon()
+	cPath, err := findConmon(runtime.config.Engine.ConmonPath)
 	if err != nil {
 		return err
 	}
@@ -282,11 +303,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// package.
 	switch runtime.config.Engine.StateType {
 	case config.InMemoryStateStore:
-		state, err := NewInMemoryState()
-		if err != nil {
-			return err
-		}
-		runtime.state = state
+		return errors.Wrapf(define.ErrInvalidArg, "in-memory state is currently disabled")
 	case config.SQLiteStateStore:
 		return errors.Wrapf(define.ErrInvalidArg, "SQLite state is currently disabled")
 	case config.BoltDBStateStore:
@@ -327,9 +344,16 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 	logrus.Debugf("Set libpod namespace to %q", runtime.config.Engine.Namespace)
 
+	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
+	if err != nil {
+		return err
+	}
+
+	needsUserns := !hasCapSysAdmin
+
 	// Set up containers/storage
 	var store storage.Store
-	if os.Geteuid() != 0 {
+	if needsUserns {
 		logrus.Debug("Not configuring container store")
 	} else if runtime.noStore {
 		logrus.Debug("No store required. Not opening container store.")
@@ -352,13 +376,13 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		return err
 	}
 	runtime.eventer = eventer
-	if runtime.imageRuntime != nil {
-		runtime.imageRuntime.Eventer = eventer
-	}
+	// TODO: events for libimage
 
 	// Set up containers/image
 	if runtime.imageContext == nil {
-		runtime.imageContext = &types.SystemContext{}
+		runtime.imageContext = &types.SystemContext{
+			BigFilesTemporaryDir: parse.GetTempDir(),
+		}
 	}
 	runtime.imageContext.SignaturePolicyPath = runtime.config.Engine.SignaturePolicyPath
 
@@ -437,13 +461,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 
 	// Set up the CNI net plugin
-	if !rootless.IsRootless() {
-		netPlugin, err := ocicni.InitCNI(runtime.config.Network.DefaultNetwork, runtime.config.Network.NetworkConfigDir, runtime.config.Network.CNIPluginDirs...)
-		if err != nil {
-			return errors.Wrapf(err, "error configuring CNI network plugin")
-		}
-		runtime.netPlugin = netPlugin
+	netPlugin, err := ocicni.InitCNINoInotify(runtime.config.Network.DefaultNetwork, runtime.config.Network.NetworkConfigDir, "", runtime.config.Network.CNIPluginDirs...)
+	if err != nil {
+		return errors.Wrapf(err, "error configuring CNI network plugin")
 	}
+	runtime.netPlugin = netPlugin
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this
@@ -471,7 +493,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		// If we need to refresh, then it is safe to assume there are
 		// no containers running.  Create immediately a namespace, as
 		// we will need to access the storage.
-		if os.Geteuid() != 0 {
+		if needsUserns {
 			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
 			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
@@ -538,6 +560,102 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	return nil
 }
 
+// findConmon iterates over conmonPaths and returns the path
+// to the first conmon binary with a new enough version. If none is found,
+// we try to do a path lookup of "conmon".
+func findConmon(conmonPaths []string) (string, error) {
+	foundOutdatedConmon := false
+	for _, path := range conmonPaths {
+		stat, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+		if stat.IsDir() {
+			continue
+		}
+		if err := probeConmon(path); err != nil {
+			logrus.Warnf("Conmon at %s invalid: %v", path, err)
+			foundOutdatedConmon = true
+			continue
+		}
+		logrus.Debugf("Using conmon: %q", path)
+		return path, nil
+	}
+
+	// Search the $PATH as last fallback
+	if path, err := exec.LookPath("conmon"); err == nil {
+		if err := probeConmon(path); err != nil {
+			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
+			foundOutdatedConmon = true
+		} else {
+			logrus.Debugf("Using conmon from $PATH: %q", path)
+			return path, nil
+		}
+	}
+
+	if foundOutdatedConmon {
+		return "", errors.Wrapf(define.ErrConmonOutdated,
+			"please update to v%d.%d.%d or later",
+			conmonMinMajorVersion, conmonMinMinorVersion, conmonMinPatchVersion)
+	}
+
+	return "", errors.Wrapf(define.ErrInvalidArg,
+		"could not find a working conmon binary (configured options: %v)",
+		conmonPaths)
+}
+
+// probeConmon calls conmon --version and verifies it is a new enough version for
+// the runtime expectations the container engine currently has.
+func probeConmon(conmonBinary string) error {
+	cmd := exec.Command(conmonBinary, "--version")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
+
+	matches := r.FindStringSubmatch(out.String())
+	if len(matches) != 4 {
+		return errors.Wrap(err, define.ErrConmonVersionFormat)
+	}
+	major, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return errors.Wrap(err, define.ErrConmonVersionFormat)
+	}
+	if major < conmonMinMajorVersion {
+		return define.ErrConmonOutdated
+	}
+	if major > conmonMinMajorVersion {
+		return nil
+	}
+
+	minor, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return errors.Wrap(err, define.ErrConmonVersionFormat)
+	}
+	if minor < conmonMinMinorVersion {
+		return define.ErrConmonOutdated
+	}
+	if minor > conmonMinMinorVersion {
+		return nil
+	}
+
+	patch, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return errors.Wrap(err, define.ErrConmonVersionFormat)
+	}
+	if patch < conmonMinPatchVersion {
+		return define.ErrConmonOutdated
+	}
+	if patch > conmonMinPatchVersion {
+		return nil
+	}
+
+	return nil
+}
+
 // TmpDir gets the current Libpod temporary files directory.
 func (r *Runtime) TmpDir() (string, error) {
 	if !r.valid {
@@ -564,6 +682,62 @@ func (r *Runtime) GetConfig() (*config.Config, error) {
 	}
 
 	return config, nil
+}
+
+// libimageEventsMap translates a libimage event type to a libpod event status.
+var libimageEventsMap = map[libimage.EventType]events.Status{
+	libimage.EventTypeImagePull:    events.Pull,
+	libimage.EventTypeImagePush:    events.Push,
+	libimage.EventTypeImageRemove:  events.Remove,
+	libimage.EventTypeImageLoad:    events.LoadFromArchive,
+	libimage.EventTypeImageSave:    events.Save,
+	libimage.EventTypeImageTag:     events.Tag,
+	libimage.EventTypeImageUntag:   events.Untag,
+	libimage.EventTypeImageMount:   events.Mount,
+	libimage.EventTypeImageUnmount: events.Unmount,
+}
+
+// libimageEvents spawns a goroutine in the background which is listenting for
+// events on the libimage.Runtime.  The gourtine will be cleaned up implicitly
+// when the main() exists.
+func (r *Runtime) libimageEvents() {
+	toLibpodEventStatus := func(e *libimage.Event) events.Status {
+		status, found := libimageEventsMap[e.Type]
+		if !found {
+			return "Unknown"
+		}
+		return status
+	}
+
+	go func() {
+		eventChannel := r.libimageRuntime.EventChannel()
+
+		for {
+			// Make sure to read and write all events before
+			// checking if we're about to shutdown.
+			for len(eventChannel) > 0 {
+				libimageEvent := <-eventChannel
+				e := events.Event{
+					ID:     libimageEvent.ID,
+					Name:   libimageEvent.Name,
+					Status: toLibpodEventStatus(libimageEvent),
+					Time:   libimageEvent.Time,
+					Type:   events.Image,
+				}
+				if err := r.eventer.Write(e); err != nil {
+					logrus.Errorf("unable to write image event: %q", err)
+				}
+			}
+
+			select {
+			case <-r.libimageEventsShutdown:
+				return
+
+			default:
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
 }
 
 // DeferredShutdown shuts down the runtime without exposing any
@@ -605,7 +779,11 @@ func (r *Runtime) Shutdown(force bool) error {
 	// If no store was requested, it can be nil and there is no need to
 	// attempt to shut it down
 	if r.store != nil {
-		if _, err := r.store.Shutdown(force); err != nil {
+		// Wait for the events to be written.
+		r.libimageEventsShutdown <- true
+
+		// Note that the libimage runtime shuts down the store.
+		if err := r.libimageRuntime.Shutdown(force); err != nil {
 			lastError = errors.Wrapf(err, "error shutting down container storage")
 		}
 	}
@@ -723,21 +901,23 @@ func (r *Runtime) configureStore() error {
 	// images
 	r.storageService = getStorageService(r.store)
 
-	ir := image.NewImageRuntimeFromStore(r.store)
-	ir.SignaturePolicyPath = r.config.Engine.SignaturePolicyPath
-	ir.EventsLogFilePath = r.config.Engine.EventsLogFilePath
-	ir.EventsLogger = r.config.Engine.EventsLogger
-
-	r.imageRuntime = ir
+	runtimeOptions := &libimage.RuntimeOptions{
+		SystemContext: r.imageContext,
+	}
+	libimageRuntime, err := libimage.RuntimeFromStore(store, runtimeOptions)
+	if err != nil {
+		return err
+	}
+	r.libimageRuntime = libimageRuntime
+	// Run the libimage events routine.
+	r.libimageEvents()
 
 	return nil
 }
 
-// ImageRuntime returns the imageruntime for image operations.
-// If WithNoStore() was used, no image runtime will be available, and this
-// function will return nil.
-func (r *Runtime) ImageRuntime() *image.Runtime {
-	return r.imageRuntime
+// LibimageRuntime ... to allow for a step-by-step migration to libimage.
+func (r *Runtime) LibimageRuntime() *libimage.Runtime {
+	return r.libimageRuntime
 }
 
 // SystemContext returns the imagecontext

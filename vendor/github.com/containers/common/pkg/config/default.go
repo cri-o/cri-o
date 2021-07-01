@@ -114,6 +114,9 @@ const (
 	// DefaultSignaturePolicyPath is the default value for the
 	// policy.json file.
 	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
+	// DefaultSubnet is the subnet that will be used for the default CNI
+	// network.
+	DefaultSubnet = "10.88.0.0/16"
 	// DefaultRootlessSignaturePolicyPath is the location within
 	// XDG_CONFIG_HOME of the rootless policy.json file.
 	DefaultRootlessSignaturePolicyPath = "containers/policy.json"
@@ -183,27 +186,27 @@ func DefaultConfig() (*Config, error) {
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 				"TERM=xterm",
 			},
-			EnvHost:        false,
-			HTTPProxy:      true,
-			Init:           false,
-			InitPath:       "",
-			IPCNS:          "private",
-			LogDriver:      DefaultLogDriver,
-			LogSizeMax:     DefaultLogSizeMax,
-			NetNS:          netns,
-			NoHosts:        false,
-			PidsLimit:      DefaultPidsLimit,
-			PidNS:          "private",
-			SeccompProfile: SeccompDefaultPath,
-			ShmSize:        DefaultShmSize,
-			TZ:             "",
-			Umask:          "0022",
-			UTSNS:          "private",
-			UserNS:         "host",
-			UserNSSize:     DefaultUserNSSize,
+			EnvHost:    false,
+			HTTPProxy:  true,
+			Init:       false,
+			InitPath:   "",
+			IPCNS:      "private",
+			LogDriver:  DefaultLogDriver,
+			LogSizeMax: DefaultLogSizeMax,
+			NetNS:      netns,
+			NoHosts:    false,
+			PidsLimit:  DefaultPidsLimit,
+			PidNS:      "private",
+			ShmSize:    DefaultShmSize,
+			TZ:         "",
+			Umask:      "0022",
+			UTSNS:      "private",
+			UserNS:     "host",
+			UserNSSize: DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:   "podman",
+			DefaultSubnet:    DefaultSubnet,
 			NetworkConfigDir: cniConfig,
 			CNIPluginDirs:    cniBinDir,
 		},

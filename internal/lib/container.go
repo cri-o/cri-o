@@ -3,8 +3,8 @@ package lib
 import (
 	"fmt"
 
-	"github.com/containers/podman/v3/pkg/registrar"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/registrar"
 )
 
 // GetContainerFromShortID gets an oci container matching the specified full or partial id

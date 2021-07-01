@@ -72,13 +72,16 @@ type OCIRuntime interface {
 	// has completed, as one might expect. The attach session will remain
 	// running, in a goroutine that will return via the chan error in the
 	// return signature.
-	ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams) (int, chan error, error)
+	// newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
+	ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams, newSize *define.TerminalSize) (int, chan error, error)
 	// ExecContainerHTTP executes a command in a running container and
 	// attaches its standard streams to a provided hijacked HTTP session.
 	// Maintains the same invariants as ExecContainer (returns on session
 	// start, with a goroutine running in the background to handle attach).
 	// The HTTP attach itself maintains the same invariants as HTTPAttach.
-	ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool) (int, chan error, error)
+	// newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
+	ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, r *http.Request, w http.ResponseWriter,
+		streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *define.TerminalSize) (int, chan error, error)
 	// ExecContainerDetached executes a command in a running container, but
 	// does not attach to it. Returns the PID of the exec session and an
 	// error (if starting the exec session failed)
@@ -94,10 +97,6 @@ type OCIRuntime interface {
 	// ExecUpdateStatus checks the status of a given exec session.
 	// Returns true if the session is still running, or false if it exited.
 	ExecUpdateStatus(ctr *Container, sessionID string) (bool, error)
-	// ExecContainerCleanup cleans up after an exec session exits.
-	// It removes any files left by the exec session that are no longer
-	// needed, including the attach socket.
-	ExecContainerCleanup(ctr *Container, sessionID string) error
 
 	// CheckpointContainer checkpoints the given container.
 	// Some OCI runtimes may not support this - if SupportsCheckpoint()

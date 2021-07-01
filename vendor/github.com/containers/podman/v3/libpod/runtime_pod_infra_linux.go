@@ -6,8 +6,8 @@ import (
 	"context"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -104,7 +104,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 		default:
 			// Since user namespace sharing is not implemented, we only need to check if it's rootless
 			netmode := "bridge"
-			if isRootless || p.config.InfraContainer.Slirp4netns {
+			if p.config.InfraContainer.Slirp4netns {
 				netmode = "slirp4netns"
 				if len(p.config.InfraContainer.NetworkOptions) != 0 {
 					options = append(options, WithNetworkOptions(p.config.InfraContainer.NetworkOptions))
@@ -212,20 +212,23 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 		return nil, define.ErrRuntimeStopped
 	}
 
-	img := p.config.InfraContainer.InfraImage
-	if img == "" {
-		img = r.config.Engine.InfraImage
+	imageName := p.config.InfraContainer.InfraImage
+	if imageName == "" {
+		imageName = r.config.Engine.InfraImage
 	}
-	newImage, err := r.ImageRuntime().New(ctx, img, "", "", nil, nil, image.SigningOptions{}, nil, util.PullImageMissing, nil)
+
+	pulledImages, err := r.LibimageRuntime().Pull(ctx, imageName, config.PullPolicyMissing, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "error pulling infra-container image")
+	}
+
+	newImage := pulledImages[0]
+	data, err := newImage.Inspect(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := newImage.InspectNoSize(ctx)
-	if err != nil {
-		return nil, err
-	}
-	imageName := "none"
+	imageName = "none"
 	if len(newImage.Names()) > 0 {
 		imageName = newImage.Names()[0]
 	}
