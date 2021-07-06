@@ -566,6 +566,8 @@ type SystemContext struct {
 	DockerDisableV1Ping bool
 	// If true, dockerImageDestination.SupportedManifestMIMETypes will omit the Schema1 media types from the supported list
 	DockerDisableDestSchema1MIMETypes bool
+	// If true, the physical pull source of docker transport images logged as info level
+	DockerLogMirrorChoice bool
 	// Directory to use for OSTree temporary files
 	OSTreeTmpDirPath string
 
