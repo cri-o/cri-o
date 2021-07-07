@@ -49,6 +49,9 @@ const (
 	// CRIOImagePullsSuccessesKey is the key for successful image downloads in CRI-O.
 	CRIOImagePullsSuccessesKey = "crio_image_pulls_successes"
 
+	// CRIOImagePullsLayerSize is the key for CRI-O image pull metrics per layer.
+	CRIOImagePullsLayerSize = "crio_image_pulls_layer_size"
+
 	// CRIOImageLayerReuseKey is the key for the CRI-O image layer reuse metrics.
 	CRIOImageLayerReuseKey = "crio_image_layer_reuse"
 
@@ -78,6 +81,7 @@ type Metrics struct {
 	metricImagePullsByNameSkipped *prometheus.CounterVec
 	metricImagePullsFailures      *prometheus.CounterVec
 	metricImagePullsSuccesses     *prometheus.CounterVec
+	metricImagePullsLayerSize     prometheus.Histogram
 	metricImageLayerReuse         *prometheus.CounterVec
 	metricContainersOOMTotal      prometheus.Counter
 	metricContainersOOM           *prometheus.CounterVec
@@ -160,6 +164,26 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "Cumulative number of CRI-O image pull successes.",
 			},
 			[]string{"name"},
+		),
+		metricImagePullsLayerSize: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Subsystem: subsystem,
+				Name:      CRIOImagePullsLayerSize,
+				Help:      "Bytes transferred by CRI-O image pulls per layer",
+				Buckets: []float64{ // in bytes
+					1000,                    //   1 KiB
+					1000 * 1000,             //   1 MiB
+					10 * 1000 * 1000,        //  10 MiB
+					50 * 1000 * 1000,        //  50 MiB
+					100 * 1000 * 1000,       // 100 MiB
+					200 * 1000 * 1000,       // 200 MiB
+					300 * 1000 * 1000,       // 300 MiB
+					400 * 1000 * 1000,       // 400 MiB
+					500 * 1000 * 1000,       // 500 MiB
+					1000 * 1000 * 1000,      //   1 GiB
+					10 * 1000 * 1000 * 1000, //  10 GiB
+				},
+			},
 		),
 		metricImageLayerReuse: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -279,6 +303,10 @@ func (m *Metrics) MetricContainersOOMTotalInc() {
 	m.metricContainersOOMTotal.Inc()
 }
 
+func (m *Metrics) MetricImagePullsLayerSizeObserve(size int64) {
+	m.metricImagePullsLayerSize.Observe(float64(size))
+}
+
 func (m *Metrics) MetricImagePullsByNameSkippedAdd(add float64, name string) {
 	c, err := m.metricImagePullsByNameSkipped.GetMetricWithLabelValues(name)
 	if err != nil {
@@ -345,6 +373,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		m.metricImagePullsByNameSkipped,
 		m.metricImagePullsFailures,
 		m.metricImagePullsSuccesses,
+		m.metricImagePullsLayerSize,
 		m.metricImageLayerReuse,
 		m.metricContainersOOMTotal,
 		m.metricContainersOOM,
