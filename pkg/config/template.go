@@ -446,6 +446,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.EnableMetrics, c.EnableMetrics),
 		},
 		{
+			templateString: templateStringCrioMetricsCollectors,
+			group:          crioMetricsConfig,
+			isDefaultValue: stringSliceEqual(dc.MetricsCollectors.ToSlice(), c.MetricsCollectors.ToSlice()),
+		},
+		{
 			templateString: templateStringCrioMetricsMetricsPort,
 			group:          crioMetricsConfig,
 			isDefaultValue: simpleEqual(dc.MetricsPort, c.MetricsPort),
@@ -1134,6 +1139,16 @@ const templateStringCrioMetrics = `# A necessary configuration for Prometheus ba
 
 const templateStringCrioMetricsEnableMetrics = `# Globally enable or disable metrics support.
 enable_metrics = {{ .EnableMetrics }}
+
+`
+
+const templateStringCrioMetricsCollectors = `# Specify enabled metrics collectors.
+# Per default all metrics are enabled.
+# It is possible, to prefix the metrics with "container_runtime_" and "crio_".
+# For example, the metrics collector "operations" would be treated in the same
+# way as "crio_operations" and "container_runtime_crio_operations".
+metrics_collectors = [
+{{ range $opt := .MetricsCollectors }}{{ printf "\t%q,\n" $opt }}{{ end }}]
 
 `
 
