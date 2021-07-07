@@ -20,7 +20,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 			return err
 		}
 		if err == errSandboxNotCreated {
-			return fmt.Errorf("StopPodSandbox failed as the sandbox is not created: %s", sb.ID())
+			return fmt.Errorf("StopPodSandbox failed as the sandbox is not created: %s", req.PodSandboxID)
 		}
 
 		// If the sandbox isn't found we just return an empty response to adhere
