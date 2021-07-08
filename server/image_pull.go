@@ -203,6 +203,11 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 					float64(p.OffsetUpdate),
 					img, fmt.Sprintf("%d", imageSize(tmpImg)),
 				)
+
+				// Metrics for size histogram
+				if p.Event == imageTypes.ProgressEventDone {
+					metrics.Instance().MetricImagePullsLayerSizeObserve(p.Artifact.Size)
+				}
 			}
 		}()
 
