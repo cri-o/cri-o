@@ -21,10 +21,10 @@ import (
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
-	"github.com/fsnotify/fsnotify"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/rjeczalik/notify"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -1004,57 +1004,13 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 	}
 	defer controlFile.Close()
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return fmt.Errorf("failed to create new watch: %v", err)
-	}
-	defer watcher.Close()
-
-	done := make(chan struct{})
-	doneClosed := false
-	errorCh := make(chan error)
-	go func() {
-		for {
-			select {
-			case event := <-watcher.Events:
-				log.Debugf(ctx, "Event: %v", event)
-				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
-					log.Debugf(ctx, "File created %s", event.Name)
-					if event.Name == c.LogPath() {
-						log.Debugf(ctx, "Expected log file created")
-						done <- struct{}{}
-						return
-					}
-				}
-			case err := <-watcher.Errors:
-				errorCh <- fmt.Errorf("watch error for container log reopen %v: %v", c.ID(), err)
-				close(errorCh)
-				return
-			}
-		}
-	}()
-	cLogDir := filepath.Dir(c.LogPath())
-	if err := watcher.Add(cLogDir); err != nil {
-		log.Errorf(ctx, "Watcher.Add(%q) failed: %s", cLogDir, err)
-		close(done)
-		doneClosed = true
-	}
+	errorCh := WatchForFile(ctx, c.LogPath(), []notify.Event{notify.InCreate, notify.InModify})
 
 	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
 		log.Debugf(ctx, "Failed to write to control file to reopen log file: %v", err)
 	}
-
-	select {
-	case err := <-errorCh:
-		if !doneClosed {
-			close(done)
-		}
-		return err
-	case <-done:
-		if !doneClosed {
-			close(done)
-		}
-		break
+	if err := <-errorCh; err != nil {
+		return errors.Wrapf(err, "for container %s reopen", c.ID())
 	}
 
 	return nil
@@ -1098,4 +1054,27 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 
 func (c *Container) conmonPidFilePath() string {
 	return filepath.Join(c.bundlePath, "conmon-pidfile")
+}
+
+func WatchForFile(ctx context.Context, path string, opsToWatch []notify.Event) chan error {
+	c := make(chan notify.EventInfo, 1)
+	externalErrorCh := make(chan error)
+
+	dir := filepath.Dir(path)
+	if err := notify.Watch(dir, c, opsToWatch...); err != nil {
+		externalErrorCh <- err
+		return externalErrorCh
+	}
+	go func() {
+		defer notify.Stop(c)
+		for ei := range c {
+			fmt.Println(ei)
+			externalErrorCh <- nil
+			if ei.Path() == path {
+				externalErrorCh <- nil
+				return
+			}
+		}
+	}()
+	return externalErrorCh
 }
