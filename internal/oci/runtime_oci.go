@@ -346,8 +346,10 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 
-	err = cmd.Start()
-	if err != nil {
+	errorCh := WatchForFile(ctx, pidFile, []notify.Event{notify.InModify, notify.InMovedTo})
+
+	doneErr := cmd.Start()
+	if doneErr != nil {
 		return nil, err
 	}
 
@@ -357,7 +359,23 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		done <- cmd.Wait()
 	}()
 
-	if timeout > 0 {
+	select {
+	case err := <-errorCh:
+		if err != nil {
+			close(done)
+			return nil, errors.Wrapf(err, "exec sync for container %s", c.ID())
+		}
+	case doneErr = <-done:
+		close(done)
+	}
+
+	switch {
+	case doneErr != nil:
+		// If we've already gotten an error from done
+		// the runtime finished before writing the error chan
+		// (probably because the command didn't exist).
+	case timeout > 0:
+		// If there's a timeout, wait for that timeout duration.
 		select {
 		case <-time.After(time.Second * time.Duration(timeout)):
 			// Ensure the process is not left behind
@@ -373,17 +391,18 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				Stderr:   []byte(conmonconfig.TimedOutMessage),
 				ExitCode: -1,
 			}, nil
-		case err = <-done:
+		case doneErr = <-done:
 			break
 		}
-	} else {
-		err = <-done
+	default:
+		// If no timeout, just wait until the command finishes.
+		doneErr = <-done
 	}
 
 	// gather exit code from err
 	exitCode := int32(0)
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
+	if doneErr != nil {
+		if exitError, ok := doneErr.(*exec.ExitError); ok {
 			exitCode = int32(exitError.ExitCode())
 		}
 	}
@@ -1068,8 +1087,6 @@ func WatchForFile(ctx context.Context, path string, opsToWatch []notify.Event) c
 	go func() {
 		defer notify.Stop(c)
 		for ei := range c {
-			fmt.Println(ei)
-			externalErrorCh <- nil
 			if ei.Path() == path {
 				externalErrorCh <- nil
 				return
