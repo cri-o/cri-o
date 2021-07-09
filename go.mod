@@ -17,7 +17,7 @@ require (
 	github.com/containers/libpod v1.9.2
 	github.com/containers/ocicrypt v1.0.3
 	github.com/containers/storage v1.20.6-0.20210607204025-dc67d2fbc8c5
-	github.com/coreos/go-systemd/v22 v22.1.0
+	github.com/coreos/go-systemd/v22 v22.2.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
 	github.com/cri-o/ocicni v0.2.1-0.20200422173648-513ef787b8c9
