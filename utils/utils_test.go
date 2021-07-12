@@ -7,13 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/v2/pkg/rootless"
+	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-type errorReaderWriter struct {
-}
+type errorReaderWriter struct{}
 
 func (m *errorReaderWriter) Write(p []byte) (int, error) {
 	return 0, t.TestError
@@ -214,7 +215,7 @@ var _ = t.Describe("Utils", func() {
 		It("should fail unauthenticated", func() {
 			// Given
 			// When
-			err := utils.RunUnderSystemdScope(1, "", "")
+			err := utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(rootless.IsRootless()), 1, "", "")
 
 			// Then
 			Expect(err).NotTo(BeNil())
