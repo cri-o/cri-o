@@ -520,6 +520,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		log.Infof(ctx, description)
 		err2 := s.CtrIDIndex().Delete(sbox.ID())
 		if err2 != nil {
+			// already deleted
+			if strings.Contains(err2.Error(), noSuchID) {
+				return nil
+			}
 			log.Warnf(ctx, "Could not delete ctr id %s from idIndex", sbox.ID())
 		}
 		return err2
