@@ -467,6 +467,16 @@ function wait_until_exit() {
 	crictl rm -f "$ctr_id"
 }
 
+@test "ctr execsync precise timeout" {
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	crictl exec --sync --timeout 1 "$ctr_id" sleep .9
+	! crictl exec --sync --timeout 1 "$ctr_id" sleep 1.1
+}
+
 @test "ctr device add" {
 	# In an user namespace we can only bind mount devices from the host, not mknod
 	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481

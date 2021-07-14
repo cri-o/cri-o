@@ -3,13 +3,16 @@ package oci_test
 import (
 	"context"
 	"math/rand"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"github.com/rjeczalik/notify"
 )
 
 const (
@@ -142,6 +145,56 @@ var _ = t.Describe("Oci", func() {
 			})
 		}
 	})
+	t.Describe("WatchForFile", func() {
+		var notifyFile string
+		BeforeEach(func() {
+			notifyFile = filepath.Join(t.MustTempDir("watch"), "file")
+		})
+		It("should catch file creation", func() {
+			// Given
+			errCh := oci.WatchForFile(context.TODO(), notifyFile, []notify.Event{notify.InCreate, notify.InModify})
+
+			// When
+			f, err := os.Create(notifyFile)
+			Expect(err).To(BeNil())
+			f.Close()
+
+			Expect(<-errCh).To(BeNil())
+		})
+		It("should not catch file create if doesn't exist", func() {
+			// Given
+			errCh := oci.WatchForFile(context.TODO(), notifyFile, []notify.Event{notify.InCreate, notify.InModify})
+
+			// When
+			f, err := os.Create(notifyFile + "-backup")
+			Expect(err).To(BeNil())
+			f.Close()
+			checkChannelEmpty(errCh)
+
+			// Then
+			f, err = os.Create(notifyFile)
+			Expect(err).To(BeNil())
+			f.Close()
+
+			Expect(<-errCh).To(BeNil())
+		})
+		It("should only catch file write", func() {
+			// Given
+			errCh := oci.WatchForFile(context.TODO(), notifyFile, []notify.Event{notify.InModify})
+
+			// When
+			f, err := os.Create(notifyFile)
+			Expect(err).To(BeNil())
+			defer f.Close()
+
+			checkChannelEmpty(errCh)
+
+			_, err = f.Write([]byte("hello"))
+			Expect(err).To(BeNil())
+
+			Expect(<-errCh).To(BeNil())
+		})
+	})
 })
 
 func waitContainerStopAndFailAfterTimeout(ctx context.Context,
@@ -182,4 +235,13 @@ func verifyContainerNotStopped(sut *oci.Container, _ *exec.Cmd, waitError error)
 
 func inSeconds(d int64) time.Duration {
 	return time.Duration(d) * time.Second
+}
+
+func checkChannelEmpty(errCh chan error) {
+	select {
+	case <-errCh:
+		// We don't expect to get anything here
+		Expect(true).To(Equal(false))
+	case <-time.After(time.Second * 3):
+	}
 }
