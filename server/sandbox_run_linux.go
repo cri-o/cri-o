@@ -309,6 +309,16 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
 
+	securityContext := sbox.Config().Linux.SecurityContext
+	hostNetwork := securityContext.NamespaceOptions.Network == types.NamespaceModeNODE
+
+	if err := s.config.CNIPluginReadyOrError(); err != nil && !hostNetwork {
+		// if the cni plugin isn't ready yet, we should wait until it is
+		// before proceeding
+		watcher := s.config.CNIPluginAddWatcher()
+		<-watcher
+	}
+
 	description := fmt.Sprintf("runSandbox: releasing pod sandbox name: %s", sbox.Name())
 	resourceCleaner.Add(ctx, description, func() error {
 		log.Infof(ctx, description)
@@ -347,7 +357,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	})
 
 	var labelOptions []string
-	securityContext := sbox.Config().Linux.SecurityContext
 	selinuxConfig := securityContext.SelinuxOptions
 	if selinuxConfig != nil {
 		labelOptions = utils.GetLabelOptions(selinuxConfig)
@@ -532,8 +541,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := utils.EnsureSaneLogPath(logPath); err != nil {
 		return nil, err
 	}
-
-	hostNetwork := securityContext.NamespaceOptions.Network == types.NamespaceModeNODE
 
 	hostname, err := getHostname(sbox.ID(), sbox.Config().Hostname, hostNetwork)
 	if err != nil {
