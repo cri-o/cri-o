@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
@@ -268,8 +269,11 @@ func WithRegistriesConf(path string) RuntimeOption {
 			return errors.Wrap(err, "error locating specified registries.conf")
 		}
 		if rt.imageContext == nil {
-			rt.imageContext = &types.SystemContext{}
+			rt.imageContext = &types.SystemContext{
+				BigFilesTemporaryDir: parse.GetTempDir(),
+			}
 		}
+
 		rt.imageContext.SystemRegistriesConfPath = path
 		return nil
 	}
@@ -289,6 +293,17 @@ func WithHooksDir(hooksDirs ...string) RuntimeOption {
 		}
 
 		rt.config.Engine.HooksDir = hooksDirs
+		return nil
+	}
+}
+
+// WithCDI sets the devices to check for for CDI configuration.
+func WithCDI(devices []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.CDIDevices = devices
 		return nil
 	}
 }
@@ -753,6 +768,19 @@ func WithStopTimeout(timeout uint) CtrCreateOption {
 		}
 
 		ctr.config.StopTimeout = timeout
+
+		return nil
+	}
+}
+
+// WithTimeout sets the maximum time a container is allowed to run"
+func WithTimeout(timeout uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.Timeout = timeout
 
 		return nil
 	}
@@ -1617,6 +1645,19 @@ func WithVolumeGID(gid int) VolumeCreateOption {
 	}
 }
 
+// WithVolumeNoChown prevents the volume from being chowned to the process uid at first use.
+func WithVolumeNoChown() VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.state.NeedsChown = false
+
+		return nil
+	}
+}
+
 // withSetAnon sets a bool notifying libpod that this volume is anonymous and
 // should be removed when containers using it are removed and volumes are
 // specified for removal.
@@ -1688,6 +1729,39 @@ func WithSecrets(secretNames []string) CtrCreateOption {
 			ctr.config.Secrets = append(ctr.config.Secrets, secr)
 		}
 
+		return nil
+	}
+}
+
+// WithSecrets adds environment variable secrets to the container
+func WithEnvSecrets(envSecrets map[string]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		ctr.config.EnvSecrets = make(map[string]*secrets.Secret)
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		manager, err := secrets.NewManager(ctr.runtime.GetSecretsStorageDir())
+		if err != nil {
+			return err
+		}
+		for target, src := range envSecrets {
+			secr, err := manager.Lookup(src)
+			if err != nil {
+				return err
+			}
+			ctr.config.EnvSecrets[target] = secr
+		}
+		return nil
+	}
+}
+
+// WithPidFile adds pidFile to the container
+func WithPidFile(pidFile string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.PidFile = pidFile
 		return nil
 	}
 }
@@ -2280,6 +2354,19 @@ func WithPodSlirp4netns(networkOptions map[string][]string) PodCreateOption {
 		pod.config.InfraContainer.Slirp4netns = true
 		pod.config.InfraContainer.NetworkOptions = networkOptions
 
+		return nil
+	}
+}
+
+// WithVolatile sets the volatile flag for the container storage.
+// The option can potentially cause data loss when used on a container that must survive a machine reboot.
+func WithVolatile() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.Volatile = true
 		return nil
 	}
 }

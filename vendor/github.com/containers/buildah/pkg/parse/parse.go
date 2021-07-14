@@ -125,6 +125,8 @@ func CommonBuildOptions(c *cobra.Command) (*define.CommonBuildOptions, error) {
 		ulimit, _ = c.Flags().GetStringSlice("ulimit")
 	}
 
+	secrets, _ := c.Flags().GetStringArray("secret")
+
 	commonOpts := &define.CommonBuildOptions{
 		AddHost:      addHost,
 		CPUPeriod:    cpuPeriod,
@@ -142,6 +144,7 @@ func CommonBuildOptions(c *cobra.Command) (*define.CommonBuildOptions, error) {
 		ShmSize:      c.Flag("shm-size").Value.String(),
 		Ulimit:       ulimit,
 		Volumes:      volumes,
+		Secrets:      secrets,
 	}
 	securityOpts, _ := c.Flags().GetStringArray("security-opt")
 	if err := parseSecurityOpts(securityOpts, commonOpts); err != nil {
@@ -586,6 +589,14 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 		ctx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!tlsVerify)
 		ctx.OCIInsecureSkipTLSVerify = !tlsVerify
 		ctx.DockerDaemonInsecureSkipTLSVerify = !tlsVerify
+	}
+	disableCompression, err := c.Flags().GetBool("disable-compression")
+	if err == nil {
+		if disableCompression {
+			ctx.OCIAcceptUncompressedLayers = true
+		} else {
+			ctx.DirForceCompress = true
+		}
 	}
 	creds, err := c.Flags().GetString("creds")
 	if err == nil && c.Flag("creds").Changed {
@@ -1042,4 +1053,38 @@ func GetTempDir() string {
 		return tmpdir
 	}
 	return "/var/tmp"
+}
+
+// Secrets parses the --secret flag
+func Secrets(secrets []string) (map[string]string, error) {
+	parsed := make(map[string]string)
+	invalidSyntax := errors.Errorf("incorrect secret flag format: should be --secret id=foo,src=bar")
+	for _, secret := range secrets {
+		split := strings.Split(secret, ",")
+		if len(split) > 2 {
+			return nil, invalidSyntax
+		}
+		if len(split) == 2 {
+			id := strings.Split(split[0], "=")
+			src := strings.Split(split[1], "=")
+			if len(split) == 2 && strings.ToLower(id[0]) == "id" && strings.ToLower(src[0]) == "src" {
+				fullPath, err := filepath.Abs(src[1])
+				if err != nil {
+					return nil, err
+				}
+				_, err = os.Stat(fullPath)
+				if err == nil {
+					parsed[id[1]] = fullPath
+				}
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse secrets")
+				}
+			} else {
+				return nil, invalidSyntax
+			}
+		} else {
+			return nil, invalidSyntax
+		}
+	}
+	return parsed, nil
 }

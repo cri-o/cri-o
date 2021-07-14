@@ -83,6 +83,11 @@ type ContainerBasicConfig struct {
 	// instead.
 	// Optional.
 	StopTimeout *uint `json:"stop_timeout,omitempty"`
+	// Timeout is a maximum time in seconds the container will run before
+	// main process is sent SIGKILL.
+	// If 0 is used, signal will not be sent. Container can run indefinitely
+	// Optional.
+	Timeout uint `json:"timeout,omitempty"`
 	// LogConfiguration describes the logging for a container including
 	// driver, path, and options.
 	// Optional
@@ -160,10 +165,24 @@ type ContainerBasicConfig struct {
 	// to 0, 1, 2) that will be passed to the executed process. The total FDs
 	// passed will be 3 + PreserveFDs.
 	// set tags as `json:"-"` for not supported remote
+	// Optional.
 	PreserveFDs uint `json:"-"`
 	// Timezone is the timezone inside the container.
 	// Local means it has the same timezone as the host machine
+	// Optional.
 	Timezone string `json:"timezone,omitempty"`
+	// DependencyContainers is an array of containers this container
+	// depends on. Dependency containers must be started before this
+	// container. Dependencies can be specified by name or full/partial ID.
+	// Optional.
+	DependencyContainers []string `json:"dependencyContainers,omitempty"`
+	// PidFile is the file that saves container process id.
+	// set tags as `json:"-"` for not supported remote
+	// Optional.
+	PidFile string `json:"-"`
+	// EnvSecrets are secrets that will be set as environment variables
+	// Optional.
+	EnvSecrets map[string]string `json:"secret_env,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
@@ -240,6 +259,9 @@ type ContainerStorageConfig struct {
 	// Secrets are the secrets that will be added to the container
 	// Optional.
 	Secrets []string `json:"secrets,omitempty"`
+	// Volatile specifies whether the container storage can be optimized
+	// at the cost of not syncing all the dirty files in memory.
+	Volatile bool `json:"volatile,omitempty"`
 }
 
 // ContainerSecurityConfig is a container's security features, including

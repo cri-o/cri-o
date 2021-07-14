@@ -26,12 +26,12 @@ env:
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # See https://github.com/containers/podman/blob/master/contrib/cirrus/README.md#test_build_cache_images_task-task
-    FEDORA_NAME: "fedora-34beta"
+    FEDORA_NAME: "fedora-34"
     PRIOR_FEDORA_NAME: "fedora-33"
-    UBUNTU_NAME: "ubuntu-2010"
-    PRIOR_UBUNTU_NAME: "ubuntu-2004"
+    UBUNTU_NAME: "ubuntu-2104"
+    PRIOR_UBUNTU_NAME: "ubuntu-2010"
 
-    IMAGE_SUFFIX: "c5032481331085312"
+    IMAGE_SUFFIX: "c6032583541653504"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -135,7 +135,7 @@ vendor_task:
 unit_task:
     name: 'Unit tests w/ $STORAGE_DRIVER'
     alias: unit
-
+    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     depends_on:
       - smoke
       - vendor
@@ -159,7 +159,7 @@ unit_task:
 conformance_task:
     name: 'Build Conformance w/ $STORAGE_DRIVER'
     alias: conformance
-
+    only_if: *not_docs
     depends_on:
       - unit
 
@@ -182,7 +182,7 @@ conformance_task:
 cross_build_task:
     name: "Cross Compile"
     alias: cross_build
-
+    only_if: *not_docs
     depends_on:
       - unit
 
@@ -202,7 +202,7 @@ cross_build_task:
 static_build_task:
     name: "Static Build"
     alias: static_build
-
+    only_if: *not_docs
     depends_on:
       - unit
 
@@ -252,7 +252,7 @@ static_build_task:
 integration_task:
     name: "Integration $DISTRO_NV w/ $STORAGE_DRIVER"
     alias: integration
-
+    only_if: *not_docs
     depends_on:
       - unit
 
@@ -317,7 +317,7 @@ integration_task:
 in_podman_task:
     name: "Containerized Integration"
     alias: in_podman
-
+    only_if: *not_docs
     depends_on:
         - unit
 

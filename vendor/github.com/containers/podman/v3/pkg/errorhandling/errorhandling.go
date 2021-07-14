@@ -15,6 +15,12 @@ func JoinErrors(errs []error) error {
 		return nil
 	}
 
+	// If there's just one error, return it.  This prevents the "%d errors
+	// occurred:" header plus list from the multierror package.
+	if len(errs) == 1 {
+		return errs[0]
+	}
+
 	// `multierror` appends new lines which we need to remove to prevent
 	// blank lines when printing the error.
 	var multiE *multierror.Error
@@ -24,15 +30,15 @@ func JoinErrors(errs []error) error {
 	if finalErr == nil {
 		return finalErr
 	}
-	if len(multiE.WrappedErrors()) == 1 && logrus.IsLevelEnabled(logrus.TraceLevel) {
-		return multiE.WrappedErrors()[0]
-	}
 	return errors.New(strings.TrimSpace(finalErr.Error()))
 }
 
 // ErrorsToString converts the slice of errors into a slice of corresponding
 // error messages.
 func ErrorsToStrings(errs []error) []string {
+	if len(errs) == 0 {
+		return nil
+	}
 	strErrs := make([]string, len(errs))
 	for i := range errs {
 		strErrs[i] = errs[i].Error()
@@ -43,6 +49,9 @@ func ErrorsToStrings(errs []error) []string {
 // StringsToErrors converts a slice of error messages into a slice of
 // corresponding errors.
 func StringsToErrors(strErrs []string) []error {
+	if len(strErrs) == 0 {
+		return nil
+	}
 	errs := make([]error, len(strErrs))
 	for i := range strErrs {
 		errs[i] = errors.New(strErrs[i])

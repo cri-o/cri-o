@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v3/libpod/image"
+	"github.com/containers/common/libimage"
+	"github.com/containers/podman/v3/utils"
+
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
@@ -218,7 +220,7 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 				// Only get a random candidate for single entries or the start
 				// of a range. Otherwise we just increment the candidate.
 				if !tmp.isInRange || tmp.startOfRange {
-					candidate, err = getRandomPort()
+					candidate, err = utils.GetRandomPort()
 					if err != nil {
 						return nil, nil, nil, errors.Wrapf(err, "error getting candidate host port for container port %d", p.ContainerPort)
 					}
@@ -251,7 +253,7 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 }
 
 // Make final port mappings for the container
-func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, img *image.Image) ([]ocicni.PortMapping, error) {
+func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]ocicni.PortMapping, error) {
 	finalMappings, containerPortValidate, hostPortValidate, err := parsePortMapping(s.PortMappings)
 	if err != nil {
 		return nil, err
@@ -260,7 +262,7 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, img *imag
 	// If not publishing exposed ports, or if we are publishing and there is
 	// nothing to publish - then just return the port mappings we've made so
 	// far.
-	if !s.PublishExposedPorts || (len(s.Expose) == 0 && img == nil) {
+	if !s.PublishExposedPorts || (len(s.Expose) == 0 && imageData == nil) {
 		return finalMappings, nil
 	}
 
@@ -271,12 +273,8 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, img *imag
 	for k, v := range s.Expose {
 		expose[k] = v
 	}
-	if img != nil {
-		inspect, err := img.InspectNoSize(ctx)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error inspecting image to get exposed ports")
-		}
-		for imgExpose := range inspect.Config.ExposedPorts {
+	if imageData != nil {
+		for imgExpose := range imageData.Config.ExposedPorts {
 			// Expose format is portNumber[/protocol]
 			splitExpose := strings.SplitN(imgExpose, "/", 2)
 			num, err := strconv.Atoi(splitExpose[0])
@@ -344,7 +342,7 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, img *imag
 			for hostPort == 0 && tries > 0 {
 				// We can't select a specific protocol, which is
 				// unfortunate for the UDP case.
-				candidate, err := getRandomPort()
+				candidate, err := utils.GetRandomPort()
 				if err != nil {
 					return nil, err
 				}
@@ -418,22 +416,4 @@ func checkProtocol(protocol string, allowSCTP bool) ([]string, error) {
 	}
 
 	return finalProto, nil
-}
-
-// Find a random, open port on the host
-func getRandomPort() (int, error) {
-	l, err := net.Listen("tcp", ":0")
-	if err != nil {
-		return 0, errors.Wrapf(err, "unable to get free TCP port")
-	}
-	defer l.Close()
-	_, randomPort, err := net.SplitHostPort(l.Addr().String())
-	if err != nil {
-		return 0, errors.Wrapf(err, "unable to determine free port")
-	}
-	rp, err := strconv.Atoi(randomPort)
-	if err != nil {
-		return 0, errors.Wrapf(err, "unable to convert random port to int")
-	}
-	return rp, nil
 }

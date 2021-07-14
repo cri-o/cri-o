@@ -16,10 +16,12 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	is "github.com/containers/image/v5/storage"
+	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -54,6 +56,7 @@ var builtinAllowedBuildArgs = map[string]bool{
 // interface.  It coordinates the entire build by using one or more
 // StageExecutors to handle each stage of the build.
 type Executor struct {
+	logger                         *logrus.Logger
 	stages                         map[string]*StageExecutor
 	store                          storage.Store
 	contextDir                     string
@@ -117,6 +120,7 @@ type Executor struct {
 	imageInfoCache                 map[string]imageTypeAndHistoryAndDiffIDs
 	fromOverride                   string
 	manifest                       string
+	secrets                        map[string]string
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -127,7 +131,7 @@ type imageTypeAndHistoryAndDiffIDs struct {
 }
 
 // NewExecutor creates a new instance of the imagebuilder.Executor interface.
-func NewExecutor(store storage.Store, options define.BuildOptions, mainNode *parser.Node) (*Executor, error) {
+func NewExecutor(logger *logrus.Logger, store storage.Store, options define.BuildOptions, mainNode *parser.Node) (*Executor, error) {
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get container config")
@@ -164,6 +168,11 @@ func NewExecutor(store storage.Store, options define.BuildOptions, mainNode *par
 		transientMounts = append([]Mount{Mount(mount)}, transientMounts...)
 	}
 
+	secrets, err := parse.Secrets(options.CommonBuildOpts.Secrets)
+	if err != nil {
+		return nil, err
+	}
+
 	jobs := 1
 	if options.Jobs != nil {
 		jobs = *options.Jobs
@@ -175,6 +184,7 @@ func NewExecutor(store storage.Store, options define.BuildOptions, mainNode *par
 	}
 
 	exec := Executor{
+		logger:                         logger,
 		stages:                         make(map[string]*StageExecutor),
 		store:                          store,
 		contextDir:                     options.ContextDirectory,
@@ -234,6 +244,7 @@ func NewExecutor(store storage.Store, options define.BuildOptions, mainNode *par
 		imageInfoCache:                 make(map[string]imageTypeAndHistoryAndDiffIDs),
 		fromOverride:                   options.From,
 		manifest:                       options.Manifest,
+		secrets:                        secrets,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -301,22 +312,23 @@ func (b *Executor) startStage(ctx context.Context, stage *imagebuilder.Stage, st
 
 // resolveNameToImageRef creates a types.ImageReference for the output name in local storage
 func (b *Executor) resolveNameToImageRef(output string) (types.ImageReference, error) {
-	imageRef, err := alltransports.ParseImageName(output)
-	if err != nil {
-		candidates, _, _, err := util.ResolveName(output, "", b.systemContext, b.store)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing target image name %q", output)
-		}
-		if len(candidates) == 0 {
-			return nil, errors.Errorf("error parsing target image name %q", output)
-		}
-		imageRef2, err2 := is.Transport.ParseStoreReference(b.store, candidates[0])
-		if err2 != nil {
-			return nil, errors.Wrapf(err, "error parsing target image name %q", output)
-		}
-		return imageRef2, nil
+	if imageRef, err := alltransports.ParseImageName(output); err == nil {
+		return imageRef, nil
 	}
-	return imageRef, nil
+	runtime, err := libimage.RuntimeFromStore(b.store, &libimage.RuntimeOptions{SystemContext: b.systemContext})
+	if err != nil {
+		return nil, err
+	}
+	resolved, err := runtime.ResolveName(output)
+	if err != nil {
+		return nil, err
+	}
+	imageRef, err := storageTransport.Transport.ParseStoreReference(b.store, resolved)
+	if err == nil {
+		return imageRef, nil
+	}
+
+	return imageRef, err
 }
 
 // waitForStage waits for an entry to be added to terminatedStage indicating
@@ -661,20 +673,32 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		fmt.Fprintf(b.out, "[Warning] one or more build args were not consumed: %v\n", unusedList)
 	}
 
-	if len(b.additionalTags) > 0 {
-		if dest, err := b.resolveNameToImageRef(b.output); err == nil {
-			switch dest.Transport().Name() {
-			case is.Transport.Name():
-				img, err := is.Transport.GetStoreImage(b.store, dest)
-				if err != nil {
-					return imageID, ref, errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
-				}
+	// Add additional tags and print image names recorded in storage
+	if dest, err := b.resolveNameToImageRef(b.output); err == nil {
+		switch dest.Transport().Name() {
+		case is.Transport.Name():
+			img, err := is.Transport.GetStoreImage(b.store, dest)
+			if err != nil {
+				return imageID, ref, errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
+			}
+			if len(b.additionalTags) > 0 {
 				if err = util.AddImageNames(b.store, "", b.systemContext, img, b.additionalTags); err != nil {
 					return imageID, ref, errors.Wrapf(err, "error setting image names to %v", append(img.Names, b.additionalTags...))
 				}
 				logrus.Debugf("assigned names %v to image %q", img.Names, img.ID)
-			default:
-				logrus.Warnf("don't know how to add tags to images stored in %q transport", dest.Transport().Name())
+			}
+			// Report back the caller the tags applied, if any.
+			img, err = is.Transport.GetStoreImage(b.store, dest)
+			if err != nil {
+				return imageID, ref, errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
+			}
+			for _, name := range img.Names {
+				fmt.Fprintf(b.out, "Successfully tagged %s\n", name)
+			}
+
+		default:
+			if len(b.additionalTags) > 0 {
+				b.logger.Warnf("don't know how to add tags to images stored in %q transport", dest.Transport().Name())
 			}
 		}
 	}
@@ -703,7 +727,7 @@ func (b *Executor) deleteSuccessfulIntermediateCtrs() error {
 	for _, s := range b.stages {
 		for _, ctr := range s.containerIDs {
 			if err := b.store.DeleteContainer(ctr); err != nil {
-				logrus.Errorf("error deleting build container %q: %v\n", ctr, err)
+				b.logger.Errorf("error deleting build container %q: %v\n", ctr, err)
 				lastErr = err
 			}
 		}

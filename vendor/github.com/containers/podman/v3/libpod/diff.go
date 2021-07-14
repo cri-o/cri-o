@@ -1,14 +1,13 @@
 package libpod
 
 import (
-	"io"
-
+	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod/layers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 )
 
-var containerMounts = map[string]bool{
+var initInodes = map[string]bool{
 	"/dev":               true,
 	"/etc/hostname":      true,
 	"/etc/hosts":         true,
@@ -18,6 +17,7 @@ var containerMounts = map[string]bool{
 	"/run/.containerenv": true,
 	"/run/secrets":       true,
 	"/sys":               true,
+	"/etc/mtab":          true,
 }
 
 // GetDiff returns the differences between the two images, layers, or containers
@@ -37,7 +37,7 @@ func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 	changes, err := r.store.Changes(fromLayer, toLayer)
 	if err == nil {
 		for _, c := range changes {
-			if containerMounts[c.Path] {
+			if initInodes[c.Path] {
 				continue
 			}
 			rchanges = append(rchanges, c)
@@ -46,22 +46,12 @@ func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 	return rchanges, err
 }
 
-// ApplyDiffTarStream applies the changes stored in 'diff' to the layer 'to'
-func (r *Runtime) ApplyDiffTarStream(to string, diff io.Reader) error {
-	toLayer, err := r.getLayerID(to)
-	if err != nil {
-		return err
-	}
-	_, err = r.store.ApplyDiff(toLayer, diff)
-	return err
-}
-
 // GetLayerID gets a full layer id given a full or partial id
 // If the id matches a container or image, the id of the top layer is returned
 // If the id matches a layer, the top layer id is returned
 func (r *Runtime) getLayerID(id string) (string, error) {
 	var toLayer string
-	toImage, err := r.imageRuntime.NewFromLocal(id)
+	toImage, _, err := r.libimageRuntime.LookupImage(id, &libimage.LookupImageOptions{IgnorePlatform: true})
 	if err == nil {
 		return toImage.TopLayer(), nil
 	}

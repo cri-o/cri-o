@@ -59,7 +59,6 @@ type ConmonOCIRuntime struct {
 	conmonEnv         []string
 	tmpDir            string
 	exitsDir          string
-	socketsDir        string
 	logSizeMax        int64
 	noPivot           bool
 	reservePorts      bool
@@ -149,7 +148,6 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	}
 
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
-	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
 
 	// Create the exit files and attach sockets directories
 	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
@@ -158,13 +156,6 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 			return nil, errors.Wrapf(err, "error creating OCI runtime exit files directory")
 		}
 	}
-	if err := os.MkdirAll(runtime.socketsDir, 0750); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return nil, errors.Wrap(err, "error creating OCI runtime attach sockets directory")
-		}
-	}
-
 	return runtime, nil
 }
 
@@ -796,7 +787,11 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 		args = append(args, "--pre-dump")
 	}
 	if !options.PreCheckPoint && options.WithPrevious {
-		args = append(args, "--parent-path", ctr.PreCheckPointPath())
+		args = append(
+			args,
+			"--parent-path",
+			filepath.Join("..", preCheckpointDir),
+		)
 	}
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
@@ -865,7 +860,7 @@ func (r *ConmonOCIRuntime) AttachSocketPath(ctr *Container) (string, error) {
 		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a valid container to get attach socket path")
 	}
 
-	return filepath.Join(r.socketsDir, ctr.ID(), "attach"), nil
+	return filepath.Join(ctr.bundlePath(), "attach"), nil
 }
 
 // ExitFilePath is the path to a container's exit file.
@@ -1025,12 +1020,21 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
-	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
+	pidfile := ctr.config.PidFile
+	if pidfile == "" {
+		pidfile = filepath.Join(ctr.state.RunDir, "pidfile")
+	}
+
+	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
 
 	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")
 	} else if ctr.config.Stdin {
 		args = append(args, "-i")
+	}
+
+	if ctr.config.Timeout > 0 {
+		args = append(args, fmt.Sprintf("--timeout=%d", ctr.config.Timeout))
 	}
 
 	if !r.enableKeyring {
@@ -1240,7 +1244,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		"-p", pidPath,
 		"-n", ctr.Name(),
 		"--exit-dir", exitDir,
-		"--socket-dir-path", r.socketsDir,
+		"--full-attach",
 	}
 	if len(r.runtimeFlags) > 0 {
 		rFlags := []string{}
