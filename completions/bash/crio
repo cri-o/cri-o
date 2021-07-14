@@ -60,6 +60,7 @@ h
 --log-level
 --log-size-max
 --metrics-cert
+--metrics-collectors
 --metrics-key
 --metrics-port
 --metrics-socket

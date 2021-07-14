@@ -28,6 +28,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -456,6 +457,9 @@ type MetricsConfig struct {
 	// EnableMetrics can be used to globally enable or disable metrics support
 	EnableMetrics bool `toml:"enable_metrics"`
 
+	// MetricsCollectors specifies enabled metrics collectors.
+	MetricsCollectors collectors.Collectors `toml:"metrics_collectors"`
+
 	// MetricsPort is the port on which the metrics server will listen.
 	MetricsPort int `toml:"metrics_port"`
 
@@ -681,7 +685,8 @@ func DefaultConfig() (*Config, error) {
 			PluginDirs: []string{cniBinDir},
 		},
 		MetricsConfig: MetricsConfig{
-			MetricsPort: 9090,
+			MetricsPort:       9090,
+			MetricsCollectors: collectors.All(),
 		},
 	}, nil
 }

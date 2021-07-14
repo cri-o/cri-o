@@ -13,55 +13,13 @@ import (
 	"time"
 
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/util/cert"
-)
-
-const (
-	// CRIOOperationsKey is the key for CRI-O operation metrics.
-	CRIOOperationsKey = "crio_operations"
-
-	// CRIOOperationsLatencyTotalKey is the key for the operation latency metrics.
-	CRIOOperationsLatencyTotalKey = "crio_operations_latency_microseconds_total"
-
-	// CRIOOperationsLatencyKey is the key for the operation latency metrics for each CRI call.
-	CRIOOperationsLatencyKey = "crio_operations_latency_microseconds"
-
-	// CRIOOperationsErrorsKey is the key for the operation error metrics.
-	CRIOOperationsErrorsKey = "crio_operations_errors"
-
-	// CRIOImagePullsByDigestKey is the key for CRI-O image pull metrics by digest.
-	CRIOImagePullsByDigestKey = "crio_image_pulls_by_digest"
-
-	// CRIOImagePullsByNameKey is the key for CRI-O image pull metrics by name.
-	CRIOImagePullsByNameKey = "crio_image_pulls_by_name"
-
-	// CRIOImagePullsByNameSkippedKey is the key for CRI-O skipped image pull metrics by name (skipped).
-	CRIOImagePullsByNameSkippedKey = "crio_image_pulls_by_name_skipped"
-
-	// CRIOImagePullsFailuresKey is the key for failed image downloads in CRI-O.
-	CRIOImagePullsFailuresKey = "crio_image_pulls_failures"
-
-	// CRIOImagePullsSuccessesKey is the key for successful image downloads in CRI-O.
-	CRIOImagePullsSuccessesKey = "crio_image_pulls_successes"
-
-	// CRIOImagePullsLayerSize is the key for CRI-O image pull metrics per layer.
-	CRIOImagePullsLayerSize = "crio_image_pulls_layer_size"
-
-	// CRIOImageLayerReuseKey is the key for the CRI-O image layer reuse metrics.
-	CRIOImageLayerReuseKey = "crio_image_layer_reuse"
-
-	// CRIOContainersOOMTotalKey is the key for the total CRI-O container out of memory metrics.
-	CRIOContainersOOMTotalKey = "crio_containers_oom_total"
-
-	// CRIOContainersOOMKey is the key for the CRI-O container out of memory metrics per container name.
-	CRIOContainersOOMKey = "crio_containers_oom"
-
-	subsystem = "container_runtime"
 )
 
 // SinceInMicroseconds gets the time since the specified start in microseconds.
@@ -95,80 +53,80 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 		config: config,
 		metricOperations: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOOperationsKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.Operations.String(),
 				Help:      "Cumulative number of CRI-O operations by operation type.",
 			},
 			[]string{"operation_type"},
 		),
 		metricOperationsLatency: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Subsystem: subsystem,
-				Name:      CRIOOperationsLatencyKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.OperationsLatency.String(),
 				Help:      "Latency in microseconds of individual CRI calls for CRI-O operations. Broken down by operation type.",
 			},
 			[]string{"operation_type"},
 		),
 		metricOperationsLatencyTotal: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
-				Subsystem: subsystem,
-				Name:      CRIOOperationsLatencyTotalKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.OperationsLatencyTotal.String(),
 				Help:      "Latency in microseconds of CRI-O operations. Broken down by operation type.",
 			},
 			[]string{"operation_type"},
 		),
 		metricOperationsErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOOperationsErrorsKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.OperationsErrors.String(),
 				Help:      "Cumulative number of CRI-O operation errors by operation type.",
 			},
 			[]string{"operation_type"},
 		),
 		metricImagePullsByDigest: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOImagePullsByDigestKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsByDigest.String(),
 				Help:      "Bytes transferred by CRI-O image pulls by digest",
 			},
 			[]string{"name", "digest", "mediatype", "size"},
 		),
 		metricImagePullsByName: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOImagePullsByNameKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsByName.String(),
 				Help:      "Bytes transferred by CRI-O image pulls by name",
 			},
 			[]string{"name", "size"},
 		),
 		metricImagePullsByNameSkipped: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOImagePullsByNameSkippedKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsByNameSkipped.String(),
 				Help:      "Bytes skipped by CRI-O image pulls by name",
 			},
 			[]string{"name"},
 		),
 		metricImagePullsFailures: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOImagePullsFailuresKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsFailures.String(),
 				Help:      "Cumulative number of CRI-O image pull failures by error.",
 			},
 			[]string{"name", "error"},
 		),
 		metricImagePullsSuccesses: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOImagePullsSuccessesKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsSuccesses.String(),
 				Help:      "Cumulative number of CRI-O image pull successes.",
 			},
 			[]string{"name"},
 		),
 		metricImagePullsLayerSize: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Subsystem: subsystem,
-				Name:      CRIOImagePullsLayerSize,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsLayerSize.String(),
 				Help:      "Bytes transferred by CRI-O image pulls per layer",
 				Buckets: []float64{ // in bytes
 					1000,                    //   1 KiB
@@ -187,23 +145,23 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 		),
 		metricImageLayerReuse: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOImageLayerReuseKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageLayerReuse.String(),
 				Help:      "Reused (not pulled) local image layer count by name",
 			},
 			[]string{"name"},
 		),
 		metricContainersOOMTotal: prometheus.NewCounter(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOContainersOOMTotalKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ContainersOOMTotal.String(),
 				Help:      "Amount of containers killed because they ran out of memory (OOM)",
 			},
 		),
 		metricContainersOOM: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Subsystem: subsystem,
-				Name:      CRIOContainersOOMKey,
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ContainersOOM.String(),
 				Help:      "Amount of containers killed because they ran out of memory (OOM) by their name",
 			},
 			[]string{"name"},
@@ -363,23 +321,28 @@ func (m *Metrics) MetricImagePullsByNameAdd(add float64, values ...string) {
 
 // createEndpoint creates a /metrics endpoint for prometheus monitoring.
 func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
-	for _, collector := range []prometheus.Collector{
-		m.metricOperations,
-		m.metricOperationsLatency,
-		m.metricOperationsLatencyTotal,
-		m.metricOperationsErrors,
-		m.metricImagePullsByDigest,
-		m.metricImagePullsByName,
-		m.metricImagePullsByNameSkipped,
-		m.metricImagePullsFailures,
-		m.metricImagePullsSuccesses,
-		m.metricImagePullsLayerSize,
-		m.metricImageLayerReuse,
-		m.metricContainersOOMTotal,
-		m.metricContainersOOM,
+	for collector, metric := range map[collectors.Collector]prometheus.Collector{
+		collectors.Operations:              m.metricOperations,
+		collectors.OperationsLatency:       m.metricOperationsLatency,
+		collectors.OperationsLatencyTotal:  m.metricOperationsLatencyTotal,
+		collectors.OperationsErrors:        m.metricOperationsErrors,
+		collectors.ImagePullsByDigest:      m.metricImagePullsByDigest,
+		collectors.ImagePullsByName:        m.metricImagePullsByName,
+		collectors.ImagePullsByNameSkipped: m.metricImagePullsByNameSkipped,
+		collectors.ImagePullsFailures:      m.metricImagePullsFailures,
+		collectors.ImagePullsSuccesses:     m.metricImagePullsSuccesses,
+		collectors.ImagePullsLayerSize:     m.metricImagePullsLayerSize,
+		collectors.ImageLayerReuse:         m.metricImageLayerReuse,
+		collectors.ContainersOOMTotal:      m.metricContainersOOMTotal,
+		collectors.ContainersOOM:           m.metricContainersOOM,
 	} {
-		if err := prometheus.Register(collector); err != nil {
-			return nil, errors.Wrap(err, "register metric")
+		if m.config.MetricsCollectors.Contains(collector) {
+			logrus.Debugf("Enabling metric: %s", collector.Stripped())
+			if err := prometheus.Register(metric); err != nil {
+				return nil, errors.Wrap(err, "register metric")
+			}
+		} else {
+			logrus.Debugf("Skipping metric: %s", collector.Stripped())
 		}
 	}
 

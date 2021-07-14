@@ -60,6 +60,7 @@ crio
 [--log-size-max]=[value]
 [--log]=[value]
 [--metrics-cert]=[value]
+[--metrics-collectors]=[value]
 [--metrics-key]=[value]
 [--metrics-port]=[value]
 [--metrics-socket]=[value]
@@ -259,6 +260,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer (default: -1)
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint
+
+**--metrics-collectors**="": Enabled metrics collectors (default: [operations operations_latency_microseconds_total operations_latency_microseconds operations_errors image_pulls_by_digest image_pulls_by_name image_pulls_by_name_skipped image_pulls_failures image_pulls_successes image_pulls_layer_size image_layer_reuse containers_oom_total containers_oom])
 
 **--metrics-key**="": Certificate key for the secure metrics endpoint
 
