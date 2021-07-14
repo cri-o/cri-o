@@ -41,10 +41,10 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.2-0.20200206005212-79b036d80240
+	github.com/opencontainers/image-spec v1.0.2-0.20210708142037-083f635f2b04
 	github.com/opencontainers/runc v1.0.0-rc95.0.20210521141834-a95237f81684
-	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
-	github.com/opencontainers/runtime-tools v0.9.1-0.20200121211434-d1bf3e66ff0a
+	github.com/opencontainers/runtime-spec v1.0.3-0.20210709190330-896175883324
+	github.com/opencontainers/runtime-tools v0.9.1-0.20210326182921-59cdde06764b
 	github.com/opencontainers/selinux v1.8.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
@@ -73,7 +73,6 @@ require (
 )
 
 replace (
-	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20201121164853-7413a7f753e1
 	// Pinning the syndtr/gocapability until https://github.com/opencontainers/runc/commit/6dfbe9b80707b1ca188255e8def15263348e0f9a
 	// is included in the runc release
 	github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2

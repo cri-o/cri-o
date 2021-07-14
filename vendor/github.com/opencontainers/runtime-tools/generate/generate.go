@@ -444,6 +444,13 @@ func (g *Generator) SetProcessUsername(username string) {
 	g.Config.Process.User.Username = username
 }
 
+// SetProcessUmask sets g.Config.Process.User.Umask.
+func (g *Generator) SetProcessUmask(umask uint32) {
+	g.initConfigProcess()
+	u := umask
+	g.Config.Process.User.Umask = &u
+}
+
 // SetProcessGID sets g.Config.Process.User.GID.
 func (g *Generator) SetProcessGID(gid uint32) {
 	g.initConfigProcess()
@@ -1494,9 +1501,6 @@ func (g *Generator) AddDevice(device rspec.LinuxDevice) {
 		if dev.Path == device.Path {
 			g.Config.Linux.Devices[i] = device
 			return
-		}
-		if dev.Type == device.Type && dev.Major == device.Major && dev.Minor == device.Minor {
-			fmt.Fprintf(os.Stderr, "WARNING: Creating device %q with same type, major and minor as existing %q.\n", device.Path, dev.Path)
 		}
 	}
 
