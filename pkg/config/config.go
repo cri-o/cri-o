@@ -21,6 +21,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/cnimgr"
 	"github.com/cri-o/cri-o/internal/config/conmonmgr"
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
@@ -410,8 +411,8 @@ type NetworkConfig struct {
 	// PluginDirs is where CNI plugin binaries are stored.
 	PluginDirs []string `toml:"plugin_dirs"`
 
-	// cniPlugin is the internal OCI CNI plugin
-	cniPlugin ocicni.CNIPlugin
+	// cniManager manages the internal ocicni plugin
+	cniManager *cnimgr.CNIManager
 }
 
 // APIConfig represents the "crio.api" TOML config table.
@@ -1074,13 +1075,13 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 		}
 
 		// Init CNI plugin
-		cniPlugin, err := ocicni.InitCNI(
+		cniManager, err := cnimgr.New(
 			c.CNIDefaultNetwork, c.NetworkDir, c.PluginDirs...,
 		)
 		if err != nil {
 			return errors.Wrap(err, "initialize CNI plugin")
 		}
-		c.cniPlugin = cniPlugin
+		c.cniManager = cniManager
 	}
 
 	return nil
@@ -1189,7 +1190,17 @@ func (r *RuntimeHandler) ValidateRuntimeAllowedAnnotations() error {
 
 // CNIPlugin returns the network configuration CNI plugin
 func (c *NetworkConfig) CNIPlugin() ocicni.CNIPlugin {
-	return c.cniPlugin
+	return c.cniManager.Plugin()
+}
+
+// CNIPluginReadyOrError returns whether the cni plugin is ready
+func (c *NetworkConfig) CNIPluginReadyOrError() error {
+	return c.cniManager.ReadyOrError()
+}
+
+// CNIPluginAddWatcher returns the network configuration CNI plugin
+func (c *NetworkConfig) CNIPluginAddWatcher() chan struct{} {
+	return c.cniManager.AddWatcher()
 }
 
 // SetSingleConfigPath set single config path for config
