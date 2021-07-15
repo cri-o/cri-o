@@ -239,6 +239,9 @@ type ContainerStorageConfig struct {
 	// Devices are devices that will be added to the container.
 	// Optional.
 	Devices []spec.LinuxDevice `json:"devices,omitempty"`
+	// DeviceCGroupRule are device cgroup rules that allow containers
+	// to use additional types of devices.
+	DeviceCGroupRule []spec.LinuxDeviceCgroup `json:"device_cgroup_rule,omitempty"`
 	// IpcNS is the container's IPC namespace.
 	// Default is private.
 	// Conflicts with ShmSize if not set to private.
@@ -470,6 +473,10 @@ type ContainerResourceConfig struct {
 	// that are used to configure cgroup v2.
 	// Optional.
 	CgroupConf map[string]string `json:"unified,omitempty"`
+	// CPU period of the cpuset, determined by --cpus
+	CPUPeriod uint64 `json:"cpu_period,omitempty"`
+	// CPU quota of the cpuset, determined by --cpus
+	CPUQuota int64 `json:"cpu_quota,omitempty"`
 }
 
 // ContainerHealthCheckConfig describes a container healthcheck with attributes

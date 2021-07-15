@@ -54,6 +54,14 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 	if len(p.Name) > 0 {
 		options = append(options, libpod.WithPodName(p.Name))
 	}
+	if p.ResourceLimits != nil && p.ResourceLimits.CPU != nil && p.ResourceLimits.CPU.Period != nil && p.ResourceLimits.CPU.Quota != nil {
+		if *p.ResourceLimits.CPU.Period != 0 || *p.ResourceLimits.CPU.Quota != 0 {
+			options = append(options, libpod.WithPodCPUPAQ((*p.ResourceLimits.CPU.Period), (*p.ResourceLimits.CPU.Quota)))
+		}
+	}
+	if p.ResourceLimits != nil && p.ResourceLimits.CPU != nil && p.ResourceLimits.CPU.Cpus != "" {
+		options = append(options, libpod.WithPodCPUSetCPUs(p.ResourceLimits.CPU.Cpus))
+	}
 	if len(p.Hostname) > 0 {
 		options = append(options, libpod.WithPodHostname(p.Hostname))
 	}
@@ -90,8 +98,16 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 		options = append(options, libpod.WithInfraImage(p.InfraImage))
 	}
 
+	if len(p.InfraName) > 0 {
+		options = append(options, libpod.WithInfraName(p.InfraName))
+	}
+
 	if len(p.InfraCommand) > 0 {
 		options = append(options, libpod.WithInfraCommand(p.InfraCommand))
+	}
+
+	if !p.Pid.IsDefault() {
+		options = append(options, libpod.WithPodPidNS(p.Pid))
 	}
 
 	switch p.NetNS.NSMode {
@@ -125,7 +141,7 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 		options = append(options, libpod.WithPodUseImageHosts())
 	}
 	if len(p.PortMappings) > 0 {
-		ports, _, _, err := parsePortMapping(p.PortMappings)
+		ports, _, _, err := ParsePortMapping(p.PortMappings)
 		if err != nil {
 			return nil, err
 		}

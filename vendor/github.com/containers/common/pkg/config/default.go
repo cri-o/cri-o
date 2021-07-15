@@ -82,6 +82,10 @@ var (
 		"/usr/local/lib/cni",
 		"/opt/cni/bin",
 	}
+
+	// DefaultRootlessNetwork is the kind of of rootless networking
+	// for containers
+	DefaultRootlessNetwork = "slirp4netns"
 )
 
 const (
@@ -101,8 +105,6 @@ const (
 	DefaultApparmorProfile = apparmor.Profile
 	// SystemdCgroupsManager represents systemd native cgroup manager
 	SystemdCgroupsManager = "systemd"
-	// DefaultLogDriver is the default type of log files
-	DefaultLogDriver = "k8s-file"
 	// DefaultLogSizeMax is the default value for the maximum log size
 	// allowed for a container. Negative values mean that no limit is imposed.
 	DefaultLogSizeMax = -1
@@ -140,8 +142,6 @@ func DefaultConfig() (*Config, error) {
 		return nil, err
 	}
 
-	netns := "bridge"
-
 	cniConfig := _cniConfigDir
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
@@ -157,7 +157,6 @@ func DefaultConfig() (*Config, error) {
 				defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 			}
 		}
-		netns = "slirp4netns"
 		cniConfig = filepath.Join(configHome, _cniConfigDirRootless)
 	}
 
@@ -186,23 +185,23 @@ func DefaultConfig() (*Config, error) {
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 				"TERM=xterm",
 			},
-			EnvHost:    false,
-			HTTPProxy:  true,
-			Init:       false,
-			InitPath:   "",
-			IPCNS:      "private",
-			LogDriver:  defaultLogDriver(),
-			LogSizeMax: DefaultLogSizeMax,
-			NetNS:      netns,
-			NoHosts:    false,
-			PidsLimit:  DefaultPidsLimit,
-			PidNS:      "private",
-			ShmSize:    DefaultShmSize,
-			TZ:         "",
-			Umask:      "0022",
-			UTSNS:      "private",
-			UserNS:     "host",
-			UserNSSize: DefaultUserNSSize,
+			EnvHost:            false,
+			HTTPProxy:          true,
+			Init:               false,
+			InitPath:           "",
+			IPCNS:              "private",
+			LogDriver:          defaultLogDriver(),
+			LogSizeMax:         DefaultLogSizeMax,
+			NoHosts:            false,
+			PidsLimit:          DefaultPidsLimit,
+			PidNS:              "private",
+			RootlessNetworking: DefaultRootlessNetwork,
+			ShmSize:            DefaultShmSize,
+			TZ:                 "",
+			Umask:              "0022",
+			UTSNS:              "private",
+			UserNS:             "host",
+			UserNSSize:         DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:   "podman",
@@ -210,8 +209,17 @@ func DefaultConfig() (*Config, error) {
 			NetworkConfigDir: cniConfig,
 			CNIPluginDirs:    cniBinDir,
 		},
-		Engine: *defaultEngineConfig,
+		Engine:  *defaultEngineConfig,
+		Secrets: defaultSecretConfig(),
 	}, nil
+}
+
+// defaultSecretConfig returns the default secret configuration.
+// Please note that the default is choosing the "file" driver.
+func defaultSecretConfig() SecretConfig {
+	return SecretConfig{
+		Driver: "file",
+	}
 }
 
 // defaultConfigFromMemory returns a default engine configuration. Note that the
@@ -329,6 +337,9 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	// constants.
 	c.LockType = "shm"
 	c.MachineEnabled = false
+	c.MachineImage = "testing"
+
+	c.ChownCopiedFiles = true
 
 	return c, nil
 }
@@ -409,9 +420,6 @@ func probeConmon(conmonBinary string) error {
 
 // NetNS returns the default network namespace
 func (c *Config) NetNS() string {
-	if c.Containers.NetNS == "private" && unshare.IsRootless() {
-		return "slirp4netns"
-	}
 	return c.Containers.NetNS
 }
 
@@ -540,6 +548,19 @@ func (c *Config) LogDriver() string {
 	return c.Containers.LogDriver
 }
 
+// MachineEnabled returns if podman is running inside a VM or not
 func (c *Config) MachineEnabled() bool {
 	return c.Engine.MachineEnabled
+}
+
+// RootlessNetworking returns the "kind" of networking
+// rootless containers should use
+func (c *Config) RootlessNetworking() string {
+	return c.Containers.RootlessNetworking
+}
+
+// MachineImage returns the image to be
+// used when creating a podman-machine VM
+func (c *Config) MachineImage() string {
+	return c.Engine.MachineImage
 }

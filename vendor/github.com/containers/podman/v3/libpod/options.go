@@ -16,10 +16,12 @@ import (
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -457,6 +459,19 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 	}
 }
 
+// WithDefaultInfraName sets the infra container name for a single pod.
+func WithDefaultInfraName(name string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.config.Engine.InfraImage = name
+
+		return nil
+	}
+}
+
 // WithRenumber instructs libpod to perform a lock renumbering while
 // initializing. This will handle migrations from early versions of libpod with
 // file locks to newer versions with SHM locking, as well as changes in the
@@ -559,7 +574,6 @@ func WithMaxLogSize(limit int64) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrRuntimeFinalized
 		}
-
 		ctr.config.LogSize = limit
 
 		return nil
@@ -867,7 +881,6 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
 			return err
 		}
-
 		ctr.config.MountNsCtr = nsCtr.ID()
 
 		return nil
@@ -1787,6 +1800,19 @@ func WithInfraCommand(cmd []string) PodCreateOption {
 	}
 }
 
+// WithInfraName sets the infra container name for a single pod.
+func WithInfraName(name string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.InfraContainer.InfraName = name
+
+		return nil
+	}
+}
+
 // WithPodName sets the name of the pod.
 func WithPodName(name string) PodCreateOption {
 	return func(pod *Pod) error {
@@ -2356,6 +2382,64 @@ func WithVolatile() CtrCreateOption {
 		}
 
 		ctr.config.Volatile = true
+		return nil
+	}
+}
+
+// WithPodCPUPAQ takes the given cpu period and quota and inserts them in the proper place.
+func WithPodCPUPAQ(period uint64, quota int64) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+		if pod.CPUPeriod() != 0 && pod.CPUQuota() != 0 {
+			pod.config.InfraContainer.ResourceLimits.CPU = &specs.LinuxCPU{
+				Period: &period,
+				Quota:  &quota,
+			}
+		} else {
+			pod.config.InfraContainer.ResourceLimits = &specs.LinuxResources{}
+			pod.config.InfraContainer.ResourceLimits.CPU = &specs.LinuxCPU{
+				Period: &period,
+				Quota:  &quota,
+			}
+		}
+		return nil
+	}
+}
+
+// WithPodCPUSetCPUS computes and sets the Cpus linux resource string which determines the amount of cores, from those available,  we are allowed to execute on
+func WithPodCPUSetCPUs(inp string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+		if pod.ResourceLim().CPU.Period != nil {
+			pod.config.InfraContainer.ResourceLimits.CPU.Cpus = inp
+		} else {
+			pod.config.InfraContainer.ResourceLimits = &specs.LinuxResources{}
+			pod.config.InfraContainer.ResourceLimits.CPU = &specs.LinuxCPU{}
+			pod.config.InfraContainer.ResourceLimits.CPU.Cpus = inp
+		}
+		return nil
+	}
+}
+
+func WithPodPidNS(inp specgen.Namespace) PodCreateOption {
+	return func(p *Pod) error {
+		if p.valid {
+			return define.ErrPodFinalized
+		}
+		if p.config.UsePodPID {
+			switch inp.NSMode {
+			case "container":
+				return errors.Wrap(define.ErrInvalidArg, "Cannot take container in a different NS as an argument")
+			case "host":
+				p.config.UsePodPID = false
+			}
+			p.config.InfraContainer.PidNS = inp
+		}
+
 		return nil
 	}
 }

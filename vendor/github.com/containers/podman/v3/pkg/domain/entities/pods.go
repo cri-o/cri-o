@@ -7,6 +7,8 @@ import (
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/pkg/util"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type PodKillOptions struct {
@@ -110,19 +112,55 @@ type PodCreateOptions struct {
 	Hostname           string
 	Infra              bool
 	InfraImage         string
+	InfraName          string
 	InfraCommand       string
 	InfraConmonPidFile string
 	Labels             map[string]string
 	Name               string
 	Net                *NetOptions
 	Share              []string
+	Pid                string
+	Cpus               float64
+	CpusetCpus         string
 }
 
 type PodCreateReport struct {
 	Id string //nolint
 }
 
-func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
+func (p *PodCreateOptions) CPULimits() *specs.LinuxCPU {
+	cpu := &specs.LinuxCPU{}
+	hasLimits := false
+
+	if p.Cpus != 0 {
+		period, quota := util.CoresToPeriodAndQuota(p.Cpus)
+		cpu.Period = &period
+		cpu.Quota = &quota
+		hasLimits = true
+	}
+	if p.CpusetCpus != "" {
+		cpu.Cpus = p.CpusetCpus
+		hasLimits = true
+	}
+	if !hasLimits {
+		return cpu
+	}
+	return cpu
+}
+
+func setNamespaces(p *PodCreateOptions) ([4]specgen.Namespace, error) {
+	allNS := [4]specgen.Namespace{}
+	if p.Pid != "" {
+		pid, err := specgen.ParseNamespace(p.Pid)
+		if err != nil {
+			return [4]specgen.Namespace{}, err
+		}
+		allNS[0] = pid
+	}
+	return allNS, nil
+}
+
+func (p *PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) error {
 	// Basic Config
 	s.Name = p.Name
 	s.Hostname = p.Hostname
@@ -135,6 +173,7 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 		s.InfraConmonPidFile = p.InfraConmonPidFile
 	}
 	s.InfraImage = p.InfraImage
+	s.InfraName = p.InfraName
 	s.SharedNamespaces = p.Share
 	s.PodCreateCommand = p.CreateCommand
 
@@ -154,8 +193,31 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 	s.NoManageHosts = p.Net.NoHosts
 	s.HostAdd = p.Net.AddHosts
 
+	namespaces, err := setNamespaces(p)
+	if err != nil {
+		return err
+	}
+	if !namespaces[0].IsDefault() {
+		s.Pid = namespaces[0]
+	}
+
 	// Cgroup
 	s.CgroupParent = p.CGroupParent
+
+	// Resource config
+	cpuDat := p.CPULimits()
+	if s.ResourceLimits == nil {
+		s.ResourceLimits = &specs.LinuxResources{}
+		s.ResourceLimits.CPU = &specs.LinuxCPU{}
+	}
+	if cpuDat != nil {
+		s.ResourceLimits.CPU = cpuDat
+		if p.Cpus != 0 {
+			s.CPUPeriod = *cpuDat.Period
+			s.CPUQuota = *cpuDat.Quota
+		}
+	}
+	return nil
 }
 
 type PodPruneOptions struct {

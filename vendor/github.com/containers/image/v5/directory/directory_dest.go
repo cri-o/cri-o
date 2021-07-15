@@ -21,20 +21,33 @@ const version = "Directory Transport Version: 1.1\n"
 var ErrNotContainerImageDir = errors.New("not a containers image directory, don't want to overwrite important data")
 
 type dirImageDestination struct {
-	ref      dirReference
-	compress bool
+	ref                     dirReference
+	desiredLayerCompression types.LayerCompression
 }
 
 // newImageDestination returns an ImageDestination for writing to a directory.
-func newImageDestination(ref dirReference, compress bool) (types.ImageDestination, error) {
-	d := &dirImageDestination{ref: ref, compress: compress}
+func newImageDestination(sys *types.SystemContext, ref dirReference) (types.ImageDestination, error) {
+	desiredLayerCompression := types.PreserveOriginal
+	if sys != nil {
+		if sys.DirForceCompress {
+			desiredLayerCompression = types.Compress
+
+			if sys.DirForceDecompress {
+				return nil, errors.Errorf("Cannot compress and decompress at the same time")
+			}
+		}
+		if sys.DirForceDecompress {
+			desiredLayerCompression = types.Decompress
+		}
+	}
+	d := &dirImageDestination{ref: ref, desiredLayerCompression: desiredLayerCompression}
 
 	// If directory exists check if it is empty
 	// if not empty, check whether the contents match that of a container image directory and overwrite the contents
 	// if the contents don't match throw an error
 	dirExists, err := pathExists(d.ref.resolvedPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error checking for path %q", d.ref.resolvedPath)
+		return nil, errors.Wrapf(err, "checking for path %q", d.ref.resolvedPath)
 	}
 	if dirExists {
 		isEmpty, err := isDirEmpty(d.ref.resolvedPath)
@@ -45,7 +58,7 @@ func newImageDestination(ref dirReference, compress bool) (types.ImageDestinatio
 		if !isEmpty {
 			versionExists, err := pathExists(d.ref.versionPath())
 			if err != nil {
-				return nil, errors.Wrapf(err, "error checking if path exists %q", d.ref.versionPath())
+				return nil, errors.Wrapf(err, "checking if path exists %q", d.ref.versionPath())
 			}
 			if versionExists {
 				contents, err := ioutil.ReadFile(d.ref.versionPath())
@@ -61,7 +74,7 @@ func newImageDestination(ref dirReference, compress bool) (types.ImageDestinatio
 			}
 			// delete directory contents so that only one image is in the directory at a time
 			if err = removeDirContents(d.ref.resolvedPath); err != nil {
-				return nil, errors.Wrapf(err, "error erasing contents in %q", d.ref.resolvedPath)
+				return nil, errors.Wrapf(err, "erasing contents in %q", d.ref.resolvedPath)
 			}
 			logrus.Debugf("overwriting existing container image directory %q", d.ref.resolvedPath)
 		}
@@ -74,7 +87,7 @@ func newImageDestination(ref dirReference, compress bool) (types.ImageDestinatio
 	// create version file
 	err = ioutil.WriteFile(d.ref.versionPath(), []byte(version), 0644)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating version file %q", d.ref.versionPath())
+		return nil, errors.Wrapf(err, "creating version file %q", d.ref.versionPath())
 	}
 	return d, nil
 }
@@ -101,10 +114,7 @@ func (d *dirImageDestination) SupportsSignatures(ctx context.Context) error {
 }
 
 func (d *dirImageDestination) DesiredLayerCompression() types.LayerCompression {
-	if d.compress {
-		return types.Compress
-	}
-	return types.PreserveOriginal
+	return d.desiredLayerCompression
 }
 
 // AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
@@ -239,6 +249,9 @@ func (d *dirImageDestination) PutSignatures(ctx context.Context, signatures [][]
 }
 
 // Commit marks the process of storing the image as successful and asks for the image to be persisted.
+// unparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
+// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
+// original manifest list digest, if desired.
 // WARNING: This does not have any transactional semantics:
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)

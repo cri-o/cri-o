@@ -86,3 +86,8 @@
     content: |
       [crio.image]
       registries = [ "quay.io", "docker.io" ]
+
+- name: remove storage.conf to avoid configuration conflicts
+  file:
+    path: /etc/containers/storage.conf
+    state: absent
