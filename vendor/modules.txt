@@ -876,6 +876,13 @@ github.com/saschagrunert/go-modiff/pkg/modiff
 github.com/seccomp/libseccomp-golang
 # github.com/sergi/go-diff v1.1.0
 github.com/sergi/go-diff/diffmatchpatch
+# github.com/shirou/gopsutil v3.21.6+incompatible
+## explicit
+github.com/shirou/gopsutil/cpu
+github.com/shirou/gopsutil/internal/common
+github.com/shirou/gopsutil/mem
+github.com/shirou/gopsutil/net
+github.com/shirou/gopsutil/process
 # github.com/shirou/gopsutil/v3 v3.20.12
 github.com/shirou/gopsutil/v3/disk
 github.com/shirou/gopsutil/v3/internal/common
@@ -904,6 +911,11 @@ github.com/stretchr/testify/assert
 github.com/syndtr/gocapability/capability
 # github.com/tchap/go-patricia v2.3.0+incompatible
 github.com/tchap/go-patricia/patricia
+# github.com/tklauser/go-sysconf v0.3.7
+## explicit
+github.com/tklauser/go-sysconf
+# github.com/tklauser/numcpus v0.2.3
+github.com/tklauser/numcpus
 # github.com/ulikunitz/xz v0.5.10
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
@@ -998,7 +1010,7 @@ golang.org/x/oauth2/internal
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210603125802-9665404d3644
+# golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
