@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -322,6 +323,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 	if ctx.IsSet("metrics-key") {
 		config.MetricsKey = ctx.String("metrics-key")
+	}
+	if ctx.IsSet("metrics-collectors") {
+		config.MetricsCollectors = collectors.FromSlice(ctx.StringSlice("metrics-collectors"))
 	}
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
@@ -714,6 +718,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "metrics-key",
 			Usage:   "Certificate key for the secure metrics endpoint",
 			EnvVars: []string{"CONTAINER_METRICS_KEY"},
+		},
+		&cli.StringSliceFlag{
+			Name:    "metrics-collectors",
+			Usage:   "Enabled metrics collectors",
+			Value:   cli.NewStringSlice(collectors.All().ToSlice()...),
+			EnvVars: []string{"CONTAINER_METRICS_COLLECTORS"},
 		},
 		&cli.StringFlag{
 			Name:    "big-files-temporary-dir",
