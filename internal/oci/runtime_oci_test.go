@@ -15,12 +15,14 @@ import (
 var _ = t.Describe("Oci", func() {
 	t.Describe("WatchForFile", func() {
 		var notifyFile string
+		var done chan struct{}
 		BeforeEach(func() {
 			notifyFile = filepath.Join(t.MustTempDir("watch"), "file")
+			done = make(chan struct{}, 1)
 		})
 		It("should catch file creation", func() {
 			// Given
-			ch, err := oci.WatchForFile(notifyFile, notify.InCreate, notify.InModify)
+			ch, err := oci.WatchForFile(notifyFile, done, notify.InCreate, notify.InModify)
 			Expect(err).To(BeNil())
 
 			// When
@@ -32,7 +34,7 @@ var _ = t.Describe("Oci", func() {
 		})
 		It("should not catch file create if doesn't exist", func() {
 			// Given
-			ch, err := oci.WatchForFile(notifyFile, notify.InCreate, notify.InModify)
+			ch, err := oci.WatchForFile(notifyFile, done, notify.InCreate, notify.InModify)
 			Expect(err).To(BeNil())
 
 			// When
@@ -50,7 +52,7 @@ var _ = t.Describe("Oci", func() {
 		})
 		It("should only catch file write", func() {
 			// Given
-			ch, err := oci.WatchForFile(notifyFile, notify.InModify)
+			ch, err := oci.WatchForFile(notifyFile, done, notify.InModify)
 			Expect(err).To(BeNil())
 
 			// When
@@ -63,6 +65,16 @@ var _ = t.Describe("Oci", func() {
 			_, err = f.Write([]byte("hello"))
 			Expect(err).To(BeNil())
 
+			<-ch
+		})
+		It("should give up after sending on done", func() {
+			// Given
+			ch, err := oci.WatchForFile(notifyFile, done, notify.InModify)
+			Expect(err).To(BeNil())
+
+			// When
+			checkChannelEmpty(ch)
+			done <- struct{}{}
 			<-ch
 		})
 	})
