@@ -346,7 +346,8 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 
-	pidFileCreatedCh, err := WatchForFile(pidFile, notify.InModify, notify.InMovedTo)
+	pidFileCreatedDone := make(chan struct{}, 1)
+	pidFileCreatedCh, err := WatchForFile(pidFile, pidFileCreatedDone, notify.InModify, notify.InMovedTo)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to watch %s", pidFile)
 	}
@@ -360,6 +361,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	done := make(chan error, 1)
 	go func() {
 		done <- cmd.Wait()
+		close(done)
 	}()
 
 	// First, wait for the pid file to be created.
@@ -369,8 +371,8 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	select {
 	case <-pidFileCreatedCh:
 	case doneErr = <-done:
-		close(done)
 	}
+	close(pidFileCreatedDone)
 
 	switch {
 	case doneErr != nil:
@@ -1026,7 +1028,8 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 	}
 	defer controlFile.Close()
 
-	ch, err := WatchForFile(c.LogPath(), notify.InCreate, notify.InModify)
+	done := make(chan struct{}, 1)
+	ch, err := WatchForFile(c.LogPath(), done, notify.InCreate, notify.InModify)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create watch for %s", c.LogPath())
 	}
@@ -1034,7 +1037,13 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
 		log.Debugf(ctx, "Failed to write to control file to reopen log file: %v", err)
 	}
-	<-ch
+	select {
+	case <-ch:
+	case <-time.After(time.Minute * 3):
+		// Give up after 3 minutes, as something wrong probably happened
+		log.Errorf(ctx, "Failed to reopen log file for container %s: timed out", c.ID())
+	}
+	close(done)
 
 	return nil
 }
@@ -1079,7 +1088,11 @@ func (c *Container) conmonPidFilePath() string {
 	return filepath.Join(c.bundlePath, "conmon-pidfile")
 }
 
-func WatchForFile(path string, opsToWatch ...notify.Event) (chan struct{}, error) {
+// WatchForFile creates a watch on the parent directory of path, looking for events opsToWatch.
+// It returns immediately with a channel to find when path had one of those events.
+// done can be used to stop the watch.
+// WatchForFile is responsible for closing all internal channels and the returned channel, but not for closing done.
+func WatchForFile(path string, done chan struct{}, opsToWatch ...notify.Event) (chan struct{}, error) {
 	eiCh := make(chan notify.EventInfo, 1)
 	ch := make(chan struct{})
 
@@ -1088,10 +1101,17 @@ func WatchForFile(path string, opsToWatch ...notify.Event) (chan struct{}, error
 		return nil, err
 	}
 	go func() {
+		defer close(ch)
+		defer close(eiCh)
 		defer notify.Stop(eiCh)
-		for ei := range eiCh {
-			if ei.Path() == path {
-				ch <- struct{}{}
+		for {
+			select {
+			case ei := <-eiCh:
+				if ei.Path() == path {
+					ch <- struct{}{}
+					return
+				}
+			case <-done:
 				return
 			}
 		}
