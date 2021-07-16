@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 16 Jul 2021 22:10:28 UTC for commit [c969a38][0]._
+_Generated on Fri, 16 Jul 2021 23:50:50 UTC for commit [e00180d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c969a387c1f107bca7cc2c0dfa5162e5d104093f
+[0]: https://github.com/cri-o/cri-o/commit/e00180da725e624041127452143365d0ad90a655
 
 ## Outdated Dependencies
 
@@ -53,7 +53,7 @@ _Generated on Fri, 16 Jul 2021 22:10:28 UTC for commit [c969a38][0]._
 | github.com/BurntSushi/toml                                           | v0.3.1                                            |                                    | true   | true             |
 | github.com/BurntSushi/xgb                                            | v0.0.0-20160522181843-27f122750802                | v0.0.0-20210121224620-deaf085860bc | false  | true             |
 | github.com/GoogleCloudPlatform/k8s-cloud-provider                    | v0.0.0-20200415212048-7901bc822317                | v1.16.0                            | false  | true             |
-| github.com/GoogleCloudPlatform/testgrid                              | v0.0.38                                           | v0.0.78                            | false  | true             |
+| github.com/GoogleCloudPlatform/testgrid                              | v0.0.38                                           | v0.0.79                            | false  | true             |
 | github.com/JeffAshton/win_pdh                                        | v0.0.0-20161109143554-76bb4ee9f0ab                |                                    | false  | true             |
 | github.com/MakeNowJust/heredoc                                       | v0.0.0-20170808103936-bb23615498cd                | v1.0.0                             | false  | true             |
 | github.com/Microsoft/go-winio                                        | v0.5.0                                            |                                    | true   | true             |
