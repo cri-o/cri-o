@@ -1,14 +1,13 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 16 Jul 2021 23:50:50 UTC for commit [e00180d][0]._
+_Generated on Sat, 17 Jul 2021 06:18:49 UTC for commit [635b2d9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e00180da725e624041127452143365d0ad90a655
+[0]: https://github.com/cri-o/cri-o/commit/635b2d98dff9cdbbfd85d2448afa1627410659bd
 
 ## Outdated Dependencies
 
 |             MODULE              |                  VERSION                  |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |---------------------------------|-------------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/buildah   | v1.21.2                                   | v1.21.3                            | true   | true             |
 | github.com/containers/common    | v0.38.12                                  | v1.0.0                             | true   | false            |
 | github.com/containers/podman/v3 | v3.2.2                                    | v3.2.3                             | true   | true             |
 | github.com/containers/storage   | v1.32.3                                   | v1.32.6                            | true   | true             |
@@ -145,7 +144,7 @@ _Generated on Fri, 16 Jul 2021 23:50:50 UTC for commit [e00180d][0]._
 | github.com/containerd/zfs                                            | v1.0.0                                            |                                    | false  | true             |
 | github.com/containernetworking/cni                                   | v0.8.1                                            |                                    | true   | true             |
 | github.com/containernetworking/plugins                               | v0.9.1                                            |                                    | true   | true             |
-| github.com/containers/buildah                                        | v1.21.2                                           | v1.21.3                            | true   | true             |
+| github.com/containers/buildah                                        | v1.21.3                                           |                                    | true   | true             |
 | github.com/containers/common                                         | v0.38.12                                          | v1.0.0                             | true   | false            |
 | github.com/containers/conmon                                         | v2.0.20+incompatible                              |                                    | true   | true             |
 | github.com/containers/image/v5                                       | v5.13.2                                           |                                    | true   | true             |
