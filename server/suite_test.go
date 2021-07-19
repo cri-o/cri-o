@@ -192,9 +192,7 @@ var setupSUT = func() {
 	sut.SetStorageImageServer(imageServerMock)
 	sut.SetStorageRuntimeServer(runtimeServerMock)
 
-	gomock.InOrder(
-		cniPluginMock.EXPECT().Status().Return(t.TestError),
-	)
+	gomock.InOrder(cniPluginMock.EXPECT().Status().Return(nil))
 	Expect(sut.SetCNIPlugin(cniPluginMock)).To(BeNil())
 }
 

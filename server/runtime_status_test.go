@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/server/cri/types"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,11 +20,6 @@ var _ = t.Describe("Status", func() {
 
 	t.Describe("Status", func() {
 		It("should succeed", func() {
-			// Given
-			gomock.InOrder(
-				cniPluginMock.EXPECT().Status().Return(nil),
-			)
-
 			// When
 			response, err := sut.Status(context.Background(),
 				&types.StatusRequest{})
