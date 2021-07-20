@@ -7,7 +7,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v1.0.1
-	github.com/containerd/containerd v1.5.3
+	github.com/containerd/containerd v1.5.4
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/ttrpc v1.0.2
 	github.com/containerd/typeurl v1.0.2
