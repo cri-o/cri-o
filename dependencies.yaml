@@ -11,12 +11,6 @@ dependencies:
     - path: contrib/test/integration/main.yml
       match: version
 
-  - name: go-legacy
-    version: 1.14
-    refPaths:
-    - path: .github/workflows/test.yml
-      match: GO_VERSION_LEGACY
-
   - name: golangci-lint
     version: v1.40.1
     refPaths:
