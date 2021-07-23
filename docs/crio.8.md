@@ -261,7 +261,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint
 
-**--metrics-collectors**="": Enabled metrics collectors (default: [operations operations_latency_microseconds_total operations_latency_microseconds operations_errors image_pulls_by_digest image_pulls_by_name image_pulls_by_name_skipped image_pulls_failures image_pulls_successes image_pulls_layer_size image_layer_reuse containers_oom_total containers_oom])
+**--metrics-collectors**="": Enabled metrics collectors (default: [operations operations_latency_microseconds_total operations_latency_microseconds operations_errors image_pulls_by_digest image_pulls_by_name image_pulls_by_name_skipped image_pulls_failures image_pulls_successes image_pulls_layer_size image_layer_reuse containers_oom_total containers_oom processes_defunct])
 
 **--metrics-key**="": Certificate key for the secure metrics endpoint
 
