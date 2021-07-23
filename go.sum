@@ -317,12 +317,12 @@ github.com/containernetworking/plugins v0.8.7/go.mod h1:R7lXeZaBzpfqapcAbHRW8/CY
 github.com/containernetworking/plugins v0.9.1 h1:FD1tADPls2EEi3flPc2OegIY1M9pUa9r2Quag7HMLV8=
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containers/buildah v1.21.0/go.mod h1:yPdlpVd93T+i91yGxrJbW1YOWrqN64j5ZhHOZmHUejs=
-github.com/containers/buildah v1.21.3 h1:YY9WKcJ4Z/y7o+LAq57+HUbGftqp+uNltjn0KWiivT8=
-github.com/containers/buildah v1.21.3/go.mod h1:ncw3+bwxJq3b/5ALL3XAchIJh7EGXoR5ZXo/c6yZQ9U=
+github.com/containers/buildah v1.21.4 h1:Mo1hax+tZ3uhZVmaCSW7hcZC/IOTYUm/XgmFQuqHlQc=
+github.com/containers/buildah v1.21.4/go.mod h1:c6iXcnj0Fr+9DVIailML6Bazk3ivMqWqhJZade1jK+M=
 github.com/containers/common v0.38.4/go.mod h1:egfpX/Y3+19Dz4Wa1eRZDdgzoEOeneieF9CQppKzLBg=
 github.com/containers/common v0.38.11/go.mod h1:egfpX/Y3+19Dz4Wa1eRZDdgzoEOeneieF9CQppKzLBg=
-github.com/containers/common v0.38.12 h1:f6v1X7zNjc4kbJ0ZWIsi4acwaauN53VRkRihtSTa/5U=
-github.com/containers/common v0.38.12/go.mod h1:egfpX/Y3+19Dz4Wa1eRZDdgzoEOeneieF9CQppKzLBg=
+github.com/containers/common v0.38.16 h1:m8wF48XUmh47Z1kiYCdfGu4Rok0zqCL2v53P3jSKSCQ=
+github.com/containers/common v0.38.16/go.mod h1:egfpX/Y3+19Dz4Wa1eRZDdgzoEOeneieF9CQppKzLBg=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.10.4/go.mod h1:SgIbWEedCNBbn2FI5cH0/jed1Ecy2s8XK5zTxvJTzII=
