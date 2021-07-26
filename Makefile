@@ -3,7 +3,8 @@ GO ?= go
 export GOPROXY=https://proxy.golang.org
 export GOSUMDB=https://sum.golang.org
 
-GO_BUILD ?= $(GO) build
+TRIMPATH ?= -trimpath
+GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_RUN ?= $(GO) run
 
 PROJECT := github.com/cri-o/cri-o
