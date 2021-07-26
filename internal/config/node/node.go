@@ -77,7 +77,7 @@ func ValidateConfig() error {
 			if i.fatal {
 				return err
 			}
-			logrus.Error(err.Error())
+			logrus.Warn(err)
 		}
 		if i.activated != nil {
 			logrus.Infof("Node configuration value for %s is %v", i.name, *i.activated)
