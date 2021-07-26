@@ -28,7 +28,8 @@
 	},
 	"annotations": {
 		"owner": "hmeng",
-		"security.alpha.kubernetes.io/seccomp/pod": "unconfined"
+		"security.alpha.kubernetes.io/seccomp/pod": "unconfined",
+		"com.example.test": "sandbox annotation"
 	},
 	"linux": {
 		"cgroup_parent": "pod_123-456.slice",

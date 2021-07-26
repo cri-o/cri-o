@@ -27,6 +27,17 @@ function wait_until_exit() {
 	return 1
 }
 
+function check_oci_annotation() {
+	# check for OCI annotation in container's config.json
+	local ctr_id="$1"
+	local key="$2"
+	local value="$3"
+
+	config=$(runtime state "$ctr_id" | jq -r .bundle)/config.json
+
+	[ "$(jq -r .annotations.\""$key"\" < "$config")" = "$value" ]
+}
+
 @test "ctr not found correct error message" {
 	start_crio
 	! crictl inspect "container_not_exist"
@@ -886,6 +897,10 @@ function wait_until_exit() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	crictl inspectp "$pod_id" | grep '"owner": "hmeng"'
 	crictl inspectp "$pod_id" | grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
+
+	# sandbox annotations passed through to container OCI config
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	check_oci_annotation "$ctr_id" "com.example.test" "sandbox annotation"
 }
 
 @test "ctr with default_env set in configuration" {
