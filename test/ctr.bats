@@ -876,6 +876,15 @@ function wait_until_exit() {
     [ "$status" -eq 0 ]
 }
 
+@test "ctr execsync should succeed if container has a terminal" {
+	start_crio
+
+	jq ' .tty = true' "$TESTDATA"/container_sleep.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+	crictl exec --sync "$ctr_id" /bin/sh -c "[[ -t 1 ]]"
+}
+
 @test "ctr device add" {
 	# In an user namespace we can only bind mount devices from the host, not mknod
 	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481

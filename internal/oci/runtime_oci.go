@@ -260,54 +260,8 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		return err
 	}
 	defer os.RemoveAll(processFile)
-
 	execCmd := r.constructExecCommand(ctx, c, processFile, "")
-	var cmdErr, copyError error
-	if tty {
-		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
-	} else {
-		var r, w *os.File
-		if stdin != nil {
-			// Use an os.Pipe here as it returns true *os.File objects.
-			// This way, if you run 'kubectl exec <pod> -i bash' (no tty) and type 'exit',
-			// the call below to execCmd.Run() can unblock because its Stdin is the read half
-			// of the pipe.
-			r, w, err = os.Pipe()
-			if err != nil {
-				return err
-			}
-			execCmd.Stdin = r
-			go func() {
-				_, copyError = pools.Copy(w, stdin)
-				w.Close()
-			}()
-		}
-
-		if stdout != nil {
-			execCmd.Stdout = stdout
-		}
-
-		if stderr != nil {
-			execCmd.Stderr = stderr
-		}
-
-		if err := execCmd.Start(); err != nil {
-			return err
-		}
-
-		// The read side of the pipe should be closed after the container process has been started.
-		if r != nil {
-			if err := r.Close(); err != nil {
-				return err
-			}
-		}
-
-		cmdErr = execCmd.Wait()
-	}
-
-	if copyError != nil {
-		return copyError
-	}
+	cmdErr := r.executeExec(execCmd, stdin, stdout, stderr, tty, resize)
 	if exitErr, ok := cmdErr.(*exec.ExitError); ok {
 		return &utilexec.ExitErrorWrapper{ExitError: exitErr}
 	}
@@ -340,9 +294,9 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	cmd := r.constructExecCommand(ctx, c, processFile, pidFile)
 	cmd.SysProcAttr = sysProcAttrPlatform()
 
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
+	stdoutBuf := nopWriteCloser{&bytes.Buffer{}}
+	stderrBuf := nopWriteCloser{&bytes.Buffer{}}
+	resize := make(chan remotecommand.TerminalSize)
 
 	pidFileCreatedDone := make(chan struct{}, 1)
 	pidFileCreatedCh, err := WatchForFile(pidFile, pidFileCreatedDone, notify.InModify, notify.InMovedTo)
@@ -350,15 +304,10 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		return nil, errors.Wrapf(err, "failed to watch %s", pidFile)
 	}
 
-	doneErr := cmd.Start()
-	if doneErr != nil {
-		return nil, err
-	}
-
 	// wait till the command is done
 	done := make(chan error, 1)
 	go func() {
-		done <- cmd.Wait()
+		done <- r.executeExec(cmd, nil, stdoutBuf, stderrBuf, c.terminal, resize)
 		close(done)
 	}()
 
@@ -366,6 +315,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	// When it is, the timer begins for the exec process.
 	// If the command fails before that happens, however,
 	// that needs to be caught.
+	var doneErr error
 	select {
 	case <-pidFileCreatedCh:
 	case doneErr = <-done:
@@ -416,6 +366,65 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		Stderr:   stderrBuf.Bytes(),
 		ExitCode: exitCode,
 	}, nil
+}
+
+func (r *runtimeOCI) executeExec(execCmd *exec.Cmd, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	var cmdErr, copyError error
+	if tty {
+		return ttyCmd(execCmd, stdin, stdout, resize)
+	}
+	var rd, w *os.File
+	var err error
+	if stdin != nil {
+		// Use an os.Pipe here as it returns true *os.File objects.
+		// This way, if you run 'kubectl exec <pod> -i bash' (no tty) and type 'exit',
+		// the call below to execCmd.Run() can unblock because its Stdin is the read half
+		// of the pipe.
+		rd, w, err = os.Pipe()
+		if err != nil {
+			return err
+		}
+		execCmd.Stdin = rd
+		go func() {
+			_, copyError = pools.Copy(w, stdin)
+			w.Close()
+		}()
+	}
+
+	if stdout != nil {
+		execCmd.Stdout = stdout
+	}
+
+	if stderr != nil {
+		execCmd.Stderr = stderr
+	}
+
+	if err := execCmd.Start(); err != nil {
+		return err
+	}
+
+	// The read side of the pipe should be closed after the container process has been started.
+	if rd != nil {
+		if err := rd.Close(); err != nil {
+			return err
+		}
+	}
+
+	cmdErr = execCmd.Wait()
+
+	if copyError != nil {
+		return copyError
+	}
+	return cmdErr
+}
+
+// Needed because https://github.com/golang/go/issues/22823 was denied
+type nopWriteCloser struct {
+	*bytes.Buffer
+}
+
+func (nopWriteCloser) Close() error {
+	return nil
 }
 
 func (r *runtimeOCI) constructExecCommand(ctx context.Context, c *Container, processFile, pidFile string) *exec.Cmd {
