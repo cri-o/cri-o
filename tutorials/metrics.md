@@ -54,6 +54,7 @@ Beside the [default golang based metrics][2], CRI-O provides the following addit
 | `crio_image_layer_reuse`                     | `name`                                                                                                                                  | Counter   | Reused (not pulled) local image layer count by name.                                                 |
 | `crio_containers_oom_total`                  |                                                                                                                                         | Counter   | Total number of containers killed because they ran out of memory (OOM)                               |
 | `crio_containers_oom`                        | `name`                                                                                                                                  | Counter   | Containers killed because they ran out of memory (OOM) by their name                                 |
+| `crio_processes_defunct`                     |                                                                                                                                         | Gauge     | Total number of defunct processes in the node                                                        |
 
 - Available CRI-O RPC's from the [gRPC API][3]: `Attach`, `ContainerStats`, `ContainerStatus`,
   `CreateContainer`, `Exec`, `ExecSync`, `ImageFsInfo`, `ImageStatus`,

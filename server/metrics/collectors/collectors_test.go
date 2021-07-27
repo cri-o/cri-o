@@ -49,11 +49,12 @@ var _ = t.Describe("Collectors", func() {
 				collectors.ImageLayerReuse,
 				collectors.ContainersOOMTotal,
 				collectors.ContainersOOM,
+				collectors.ProcessesDefunct,
 			} {
 				Expect(all.Contains(collector)).To(BeTrue())
 			}
 
-			Expect(all).To(HaveLen(13))
+			Expect(all).To(HaveLen(14))
 		})
 	})
 

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/process"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/fsnotify/fsnotify"
@@ -43,6 +44,7 @@ type Metrics struct {
 	metricImageLayerReuse         *prometheus.CounterVec
 	metricContainersOOMTotal      prometheus.Counter
 	metricContainersOOM           *prometheus.CounterVec
+	metricProcessesDefunct        prometheus.GaugeFunc
 }
 
 var instance *Metrics
@@ -165,6 +167,21 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "Amount of containers killed because they ran out of memory (OOM) by their name",
 			},
 			[]string{"name"},
+		),
+		metricProcessesDefunct: prometheus.NewGaugeFunc(
+			prometheus.GaugeOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ProcessesDefunct.String(),
+				Help:      "Total number of defunct processes in the node",
+			},
+			func() float64 {
+				total, err := process.DefunctProcesses()
+				if err == nil {
+					return float64(total)
+				}
+				logrus.Warn(err)
+				return 0
+			},
 		),
 	}
 	return Instance()
@@ -335,6 +352,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ImageLayerReuse:         m.metricImageLayerReuse,
 		collectors.ContainersOOMTotal:      m.metricContainersOOMTotal,
 		collectors.ContainersOOM:           m.metricContainersOOM,
+		collectors.ProcessesDefunct:        m.metricProcessesDefunct,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())

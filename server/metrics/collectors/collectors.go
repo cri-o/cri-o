@@ -54,6 +54,9 @@ const (
 
 	// ContainersOOM is the key for the CRI-O container out of memory metrics per container name.
 	ContainersOOM Collector = crioPrefix + "containers_oom"
+
+	// ProcessesDefunct is the key for the total number of defunct processes in a node.
+	ProcessesDefunct Collector = crioPrefix + "processes_defunct"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -89,6 +92,7 @@ func All() Collectors {
 		ImageLayerReuse.Stripped(),
 		ContainersOOMTotal.Stripped(),
 		ContainersOOM.Stripped(),
+		ProcessesDefunct.Stripped(),
 	}
 }
 
