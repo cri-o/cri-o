@@ -19,10 +19,10 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/fsnotify/fsnotify"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/rjeczalik/notify"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -299,7 +299,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	resize := make(chan remotecommand.TerminalSize)
 
 	pidFileCreatedDone := make(chan struct{}, 1)
-	pidFileCreatedCh, err := WatchForFile(pidFile, pidFileCreatedDone, notify.InModify, notify.InMovedTo)
+	pidFileCreatedCh, err := WatchForFile(pidFile, pidFileCreatedDone, fsnotify.Write, fsnotify.Rename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to watch %s", pidFile)
 	}
@@ -1001,7 +1001,8 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 	defer controlFile.Close()
 
 	done := make(chan struct{}, 1)
-	ch, err := WatchForFile(c.LogPath(), done, notify.InCreate, notify.InModify)
+	defer close(done)
+	ch, err := WatchForFile(c.LogPath(), done, fsnotify.Create, fsnotify.Write)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create watch for %s", c.LogPath())
 	}
@@ -1010,12 +1011,14 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 		logrus.Debugf("Failed to write to control file to reopen log file: %v", err)
 	}
 	select {
-	case <-ch:
+	case err := <-ch:
+		if err != nil {
+			return errors.Wrapf(err, "failed to watch for %s", c.LogPath())
+		}
 	case <-time.After(time.Minute * 3):
 		// Give up after 3 minutes, as something wrong probably happened
 		logrus.Errorf("Failed to reopen log file for container %s: timed out", c.ID())
 	}
-	close(done)
 
 	return nil
 }
@@ -1117,29 +1120,41 @@ func ConmonPath(r *Runtime) string {
 // It returns immediately with a channel to find when path had one of those events.
 // done can be used to stop the watch.
 // WatchForFile is responsible for closing all internal channels and the returned channel, but not for closing done.
-func WatchForFile(path string, done chan struct{}, opsToWatch ...notify.Event) (chan struct{}, error) {
-	eiCh := make(chan notify.EventInfo, 1)
-	ch := make(chan struct{})
-
-	dir := filepath.Dir(path)
-	if err := notify.Watch(dir, eiCh, opsToWatch...); err != nil {
+func WatchForFile(path string, done chan struct{}, opsToWatch ...fsnotify.Op) (chan error, error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
 		return nil, err
 	}
+
+	ch := make(chan error)
+
+	dir := filepath.Dir(path)
 	go func() {
+		defer watcher.Close()
 		defer close(ch)
-		defer close(eiCh)
-		defer notify.Stop(eiCh)
 		for {
 			select {
-			case ei := <-eiCh:
-				if ei.Path() == path {
-					ch <- struct{}{}
-					return
+			case event := <-watcher.Events:
+				if event.Name != path {
+					continue
 				}
+				for op := range opsToWatch {
+					if event.Op&fsnotify.Op(op) == fsnotify.Op(op) {
+						ch <- nil
+						return
+					}
+				}
+			case err := <-watcher.Errors:
+				ch <- err
+				return
 			case <-done:
 				return
 			}
 		}
 	}()
+	if err := watcher.Add(dir); err != nil {
+		close(done)
+		return nil, err
+	}
 	return ch, nil
 }
