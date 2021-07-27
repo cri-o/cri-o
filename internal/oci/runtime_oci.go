@@ -271,7 +271,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
 	if c.Spoofed() {
-		return nil, nil
+		return &types.ExecSyncResponse{}, nil
 	}
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
