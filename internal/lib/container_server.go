@@ -107,7 +107,10 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 
 	storageRuntimeService := storage.GetRuntimeService(ctx, imageService)
 
-	runtime := oci.New(config)
+	runtime, err := oci.New(config)
+	if err != nil {
+		return nil, err
+	}
 
 	newHooks, err := hooks.New(ctx, config.HooksDir, []string{})
 	if err != nil {
