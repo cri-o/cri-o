@@ -21,6 +21,9 @@ load helpers
 	[[ "$output" == *"Compiler:"* ]]
 	[[ "$output" == *"Platform:"* ]]
 	[[ "$output" == *"Linkmode:"* ]]
+	[[ "$output" == *"BuildTags:"* ]]
+	[[ "$output" == *"SeccompEnabled:"* ]]
+	[[ "$output" == *"AppArmorEnabled:"* ]]
 }
 
 @test "version -j" {
@@ -43,4 +46,7 @@ load helpers
 	echo "$JSON" | jq -e '.gitTreeState != ""'
 	echo "$JSON" | jq -e '.version != ""'
 	echo "$JSON" | jq -e '.linkmode != ""'
+	echo "$JSON" | jq -e '.buildTags != ""'
+	echo "$JSON" | jq -e '.seccompEnabled != ""'
+	echo "$JSON" | jq -e '.appArmorEnabled != ""'
 }
