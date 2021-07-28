@@ -1,6 +1,6 @@
-//go:build (386 || amd64 || arm || arm64) && solaris
+//go:build (386 || amd64 || arm || arm64 || mips64) && solaris
 //+build openbsd
-//+build 386 amd64 arm arm64
+//+build 386 amd64 arm arm64 mips64
 
 package pty
 
