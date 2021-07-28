@@ -58,6 +58,11 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		return fmt.Errorf("failed to start container %s: %v", c.ID(), err)
 	}
 
-	log.Infof(ctx, "Started container %s: %s", c.ID(), c.Description())
+	log.WithFields(ctx, map[string]interface{}{
+		"description": c.Description(),
+		"containerID": c.ID(),
+		"sandboxID":   sandbox.ID(),
+		"PID":         state.Pid,
+	}).Infof("Started container")
 	return nil
 }
