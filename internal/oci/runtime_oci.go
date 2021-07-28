@@ -21,6 +21,7 @@ import (
 	types "github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
+	"github.com/google/uuid"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -281,13 +282,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	}
 	defer os.RemoveAll(processFile)
 
-	pidDir, err := ioutil.TempDir("", "pidfile")
-	if err != nil {
-		return nil, err
-	}
-	defer os.RemoveAll(pidDir)
-
-	pidFile := filepath.Join(pidDir, c.id)
+	pidFile := filepath.Join(r.execNotifier.Directory(), c.id+uuid.New().String())
 
 	cmd := r.constructExecCommand(ctx, c, processFile, pidFile)
 	cmd.SysProcAttr = sysProcAttrPlatform()
@@ -296,8 +291,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	stderrBuf := nopWriteCloser{&bytes.Buffer{}}
 	resize := make(chan remotecommand.TerminalSize)
 
-	pidFileCreatedDone := make(chan struct{}, 1)
-	pidFileCreatedCh, err := WatchForFile(pidFile, pidFileCreatedDone, fsnotify.Write, fsnotify.Rename)
+	pidFileCreatedCh, err := r.execNotifier.NotifierForFile(pidFile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to watch %s", pidFile)
 	}
@@ -318,7 +312,6 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	case <-pidFileCreatedCh:
 	case doneErr = <-done:
 	}
-	close(pidFileCreatedDone)
 
 	switch {
 	case doneErr != nil:

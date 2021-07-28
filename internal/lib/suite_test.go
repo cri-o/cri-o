@@ -126,6 +126,8 @@ func beforeEach() {
 	Expect(err).To(BeNil())
 	config.LogDir = "."
 	config.HooksDir = []string{}
+	// so we have permission to make a directory within it
+	config.ContainerAttachSocketDir = t.MustTempDir("crio")
 
 	gomock.InOrder(
 		libMock.EXPECT().GetStore().Return(storeMock, nil),
