@@ -594,7 +594,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 			if strings.Contains(err2.Error(), noSuchID) {
 				return nil
 			}
-			log.Warnf(ctx, "Could not delete ctr id %s from idIndex", sbox.ID())
+			log.Warnf(ctx, "Could not delete ctr id %s from idIndex: %v", sbox.ID(), err2)
 		}
 		return err2
 	})
@@ -708,7 +708,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 		log.Infof(ctx, description)
 		err := s.PodIDIndex().Delete(sbox.ID())
 		if err != nil {
-			log.Warnf(ctx, "could not delete pod id %s from idIndex", sbox.ID())
+			if strings.Contains(err.Error(), noSuchID) {
+				return nil
+			}
+			log.Warnf(ctx, "Could not delete pod id %s from idIndex: %v", sbox.ID(), err)
 		}
 		return err
 	})
