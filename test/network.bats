@@ -145,7 +145,7 @@ function check_networking() {
 }
 
 @test "Clean up network if pod sandbox gets killed" {
-	CONTAINER_DROP_INFRA_CTR=false start_crio
+	start_crio
 
 	CNI_RESULTS_DIR=/var/lib/cni/results
 	POD=$(crictl runp "$TESTDATA/sandbox_config.json")

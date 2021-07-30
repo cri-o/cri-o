@@ -4,7 +4,7 @@ load helpers
 
 function setup() {
 	setup_test
-	CONTAINER_INFRA_CTR_CPUSET="0" CONTAINER_DROP_INFRA_CTR=false start_crio
+	CONTAINER_INFRA_CTR_CPUSET="0" start_crio
 }
 
 function teardown() {
