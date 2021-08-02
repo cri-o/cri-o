@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 02 Aug 2021 10:21:29 UTC for commit [ee8e721][0]._
+_Generated on Mon, 02 Aug 2021 16:25:37 UTC for commit [79a25c4][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ee8e72146ee1ebb5ce700b6a9103999573eb2af1
+[0]: https://github.com/cri-o/cri-o/commit/79a25c4c3123e1adb8511848564bcbcd0d853a3f
 
 ## Outdated Dependencies
 
@@ -23,7 +23,7 @@ _Generated on Mon, 02 Aug 2021 10:21:29 UTC for commit [ee8e721][0]._
 | k8s.io/cri-api                   | v0.0.0-20210408162405-cb303e613a12        | v0.0.0-20210730184538-5be21c50c269 | true   | true             |
 | k8s.io/kubernetes                | v1.21.0                                   | v1.21.3                            | true   | true             |
 | k8s.io/release                   | v0.8.0                                    | v0.9.0                             | true   | true             |
-| k8s.io/utils                     | v0.0.0-20210305010621-2afb4311ab10        | v0.0.0-20210722164352-7f3ee0f31471 | true   | true             |
+| k8s.io/utils                     | v0.0.0-20210305010621-2afb4311ab10        | v0.0.0-20210802155522-efc7438f0176 | true   | true             |
 | mvdan.cc/sh/v3                   | v3.3.0                                    | v3.3.1                             | true   | true             |
 
 ## All Dependencies
@@ -314,7 +314,7 @@ _Generated on Mon, 02 Aug 2021 10:21:29 UTC for commit [ee8e721][0]._
 | github.com/googleapis/gax-go/v2                                      | v2.0.5                                            |                                    | false  | true             |
 | github.com/googleapis/gnostic                                        | v0.4.1                                            | v0.5.5                             | false  | true             |
 | github.com/gophercloud/gophercloud                                   | v0.1.0                                            | v0.19.0                            | false  | true             |
-| github.com/gopherjs/gopherjs                                         | v0.0.0-20181017120253-0766667cb4d1                | v0.0.0-20210722203344-69c5ea87048d | false  | true             |
+| github.com/gopherjs/gopherjs                                         | v0.0.0-20181017120253-0766667cb4d1                | v0.0.0-20210802130818-32a0b93d987c | false  | true             |
 | github.com/gorilla/handlers                                          | v0.0.0-20150720190736-60c7bfde3e33                | v1.5.1                             | false  | true             |
 | github.com/gorilla/mux                                               | v1.8.0                                            |                                    | false  | true             |
 | github.com/gorilla/schema                                            | v1.2.0                                            |                                    | false  | true             |
@@ -378,7 +378,7 @@ _Generated on Mon, 02 Aug 2021 10:21:29 UTC for commit [ee8e721][0]._
 | github.com/kevinburke/ssh_config                                     | v0.0.0-20190725054713-01f96b0aa0cd                | v1.1.0                             | false  | true             |
 | github.com/kisielk/errcheck                                          | v1.5.0                                            | v1.6.0                             | false  | true             |
 | github.com/kisielk/gotool                                            | v1.0.0                                            |                                    | false  | true             |
-| github.com/klauspost/compress                                        | v1.13.1                                           |                                    | false  | true             |
+| github.com/klauspost/compress                                        | v1.13.1                                           | v1.13.2                            | false  | true             |
 | github.com/klauspost/cpuid                                           | v1.2.0                                            | v1.3.1                             | false  | true             |
 | github.com/klauspost/pgzip                                           | v1.2.5                                            |                                    | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences                   | v1.0.3                                            |                                    | false  | true             |
@@ -683,7 +683,7 @@ _Generated on Mon, 02 Aug 2021 10:21:29 UTC for commit [ee8e721][0]._
 | k8s.io/release                                                       | v0.8.0                                            | v0.9.0                             | true   | true             |
 | k8s.io/sample-apiserver                                              | v0.0.0-20210408162405-cb303e613a12                | v0.0.0-20210730184538-5be21c50c269 | false  | true             |
 | k8s.io/system-validators                                             | v1.4.0                                            | v1.5.0                             | false  | true             |
-| k8s.io/utils                                                         | v0.0.0-20210305010621-2afb4311ab10                | v0.0.0-20210722164352-7f3ee0f31471 | true   | true             |
+| k8s.io/utils                                                         | v0.0.0-20210305010621-2afb4311ab10                | v0.0.0-20210802155522-efc7438f0176 | true   | true             |
 | modernc.org/cc                                                       | v1.0.0                                            | v1.0.1                             | false  | true             |
 | modernc.org/golex                                                    | v1.0.0                                            | v1.0.1                             | false  | true             |
 | modernc.org/mathutil                                                 | v1.0.0                                            | v1.4.1                             | false  | true             |
