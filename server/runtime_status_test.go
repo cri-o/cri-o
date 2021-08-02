@@ -28,7 +28,9 @@ var _ = t.Describe("Status", func() {
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.Status.Conditions)).To(BeEquivalentTo(2))
-			Expect(response.Status.Conditions[0].Status).To(BeTrue())
+			for _, condition := range response.Status.Conditions {
+				Expect(condition.Status).To(BeTrue())
+			}
 		})
 
 		It("should succeed when CNI plugin status errors", func() {
@@ -40,7 +42,9 @@ var _ = t.Describe("Status", func() {
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.Status.Conditions)).To(BeEquivalentTo(2))
-			Expect(response.Status.Conditions[0].Status).To(BeTrue())
+			for _, condition := range response.Status.Conditions {
+				Expect(condition.Status).To(BeTrue())
+			}
 		})
 	})
 })
