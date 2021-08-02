@@ -74,12 +74,6 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 		logrus.Debugf("Can't find sandbox %s for container %s", ctr.Sandbox(), id)
 		return types.ContainerInfo{}, errSandboxNotFound
 	}
-	image := ctr.Image()
-	if s.ContainerServer != nil && s.ContainerServer.StorageImageServer() != nil {
-		if status, err := s.ContainerServer.StorageImageServer().ImageStatus(s.config.SystemContext, ctr.ImageRef()); err == nil {
-			image = status.Name
-		}
-	}
 
 	pidToReturn := ctrState.Pid
 	if isInfra && pidToReturn == 0 {
@@ -100,7 +94,7 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 	return types.ContainerInfo{
 		Name:            ctr.Name(),
 		Pid:             pidToReturn,
-		Image:           image,
+		Image:           ctr.ImageName(),
 		ImageRef:        ctr.ImageRef(),
 		CreatedTime:     ctrState.Created.UnixNano(),
 		Labels:          ctr.Labels(),
