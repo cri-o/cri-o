@@ -59,6 +59,7 @@ function teardown() {
 	out=$(echo -e "GET /containers/$pod_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	[[ "$out" == *"\"sandbox\":\"$pod_id\""* ]]
 	[[ "$out" == *"\"pid\":0"* ]]
+	[[ "$out" == *"\"root\":\"$TESTDIR/crio/overlay/"* ]]
 
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"

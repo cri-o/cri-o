@@ -853,10 +853,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			}
 			g.SetProcessSelinuxLabel(processLabel)
 		}
-
-		container.SetMountPoint(mountPoint)
-
-		container.SetSpec(g.Config)
 	} else {
 		log.Debugf(ctx, "Dropping infra container for pod %s", sbox.ID())
 		container = oci.NewSpoofedContainer(sbox.ID(), containerName, labels, sbox.ID(), created, podContainer.RunDir)
@@ -865,6 +861,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			return nil, errors.Wrapf(err, "create dropped infra %s cgroup", sbox.ID())
 		}
 	}
+	container.SetMountPoint(mountPoint)
+	container.SetSpec(g.Config)
+
 	// needed for getSandboxIDMappings()
 	container.SetIDMappings(sandboxIDMappings)
 
