@@ -28,6 +28,7 @@ var (
 	gitCommit    string // sha1 from git, output of $(git rev-parse HEAD)
 	gitTreeState string // state of git tree, either "clean" or "dirty"
 	buildDate    string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+	buildTags    string // build tags when compiling binaries
 )
 
 type Info struct {
@@ -39,6 +40,7 @@ type Info struct {
 	Compiler     string `json:"compiler,omitempty"`
 	Platform     string `json:"platform,omitempty"`
 	Linkmode     string `json:"linkmode,omitempty"`
+	BuildTags    string `json:"buildTags,omitempty"`
 }
 
 // ShouldCrioWipe opens the version file, and parses it and the version string
@@ -136,6 +138,13 @@ func parseVersionConstant(versionString, gitCommit string) (*semver.Version, err
 }
 
 func Get() *Info {
+	var formattedBuildTags []string
+	for _, tag := range strings.Split(buildTags, " ") {
+		if tag != "" {
+			formattedBuildTags = append(formattedBuildTags, tag)
+		}
+	}
+
 	return &Info{
 		Version:      Version,
 		GitCommit:    gitCommit,
@@ -145,6 +154,7 @@ func Get() *Info {
 		Compiler:     runtime.Compiler,
 		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		Linkmode:     getLinkmode(),
+		BuildTags:    strings.Join(formattedBuildTags, " "),
 	}
 }
 
