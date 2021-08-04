@@ -24,13 +24,5 @@ func (s *Server) ExecSync(ctx context.Context, req *types.ExecSyncRequest) (*typ
 		return nil, errors.New("exec command cannot be empty")
 	}
 
-	execResp, err := s.Runtime().ExecSyncContainer(ctx, c, cmd, req.Timeout)
-	if err != nil {
-		return nil, err
-	}
-	return &types.ExecSyncResponse{
-		Stdout:   execResp.Stdout,
-		Stderr:   execResp.Stderr,
-		ExitCode: execResp.ExitCode,
-	}, nil
+	return s.Runtime().ExecSyncContainer(ctx, c, cmd, req.Timeout)
 }
