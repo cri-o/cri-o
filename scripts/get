@@ -7,12 +7,14 @@ ARCH=
 VERSION=
 GITHUB_TOKEN=${GITHUB_TOKEN:-}
 GCB_URL=https://storage.googleapis.com/cri-o
+NODE_E2E_COMMIT=4d14fd61d2d533a0bb81557b54d3505be830efa7 # commit used by upstream node e2e
 
 usage() {
     printf "Usage: %s [-a ARCH] [ -t TAG|SHA ] [ -h ]\n\n" "$(basename "$0")"
     echo "Possible arguments:"
     printf "  -a\tArchitecture to retrieve (defaults to the local system)\n"
     printf "  -t\tVersion tag or full length SHA to be used (defaults to the latest available master)\n"
+    printf "  -s\tName of the test scenario for automatically seleting the appropriate version (e.g. node_e2e)"
     printf "  -h\tShow this help message\n"
 }
 
@@ -28,6 +30,14 @@ parse_args() {
         t)
             VERSION="$OPTARG"
             echo "Using version: $VERSION"
+            ;;
+        s)  SCENARIO="$OPTARG"
+            if [ "$SCENARIO" == "node_e2e" ]; then
+                VERSION=$NODE_E2E_COMMIT
+            else
+                echo "Unknown scenario: $SCENARIO"
+                exit 1
+            fi
             ;;
         h)
             usage
