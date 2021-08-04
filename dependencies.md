@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 03 Aug 2021 16:54:03 UTC for commit [a414fed][0]._
+_Generated on Wed, 04 Aug 2021 10:38:39 UTC for commit [8d4df4e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a414fed5131f9377daaa380e811c05f11a746a1a
+[0]: https://github.com/cri-o/cri-o/commit/8d4df4ea25cd6446f91ee9944ac92c1c726cf475
 
 ## Outdated Dependencies
 
@@ -32,7 +32,7 @@ _Generated on Tue, 03 Aug 2021 16:54:03 UTC for commit [a414fed][0]._
 |----------------------------------------------------------------------|---------------------------------------------------|------------------------------------|--------|------------------|
 | bazil.org/fuse                                                       | v0.0.0-20160811212531-371fbbdaa898                | v0.0.0-20200524192727-fb710f7dfd05 | false  | true             |
 | bitbucket.org/bertimus9/systemstat                                   | v0.0.0-20180207000608-0eeff89b0690                |                                    | false  | true             |
-| cloud.google.com/go                                                  | v0.75.0                                           | v0.89.0                            | false  | true             |
+| cloud.google.com/go                                                  | v0.75.0                                           | v0.90.0                            | false  | true             |
 | cloud.google.com/go/bigquery                                         | v1.8.0                                            | v1.20.0                            | false  | true             |
 | cloud.google.com/go/datastore                                        | v1.1.0                                            | v1.5.0                             | false  | true             |
 | cloud.google.com/go/firestore                                        | v1.1.0                                            | v1.5.0                             | false  | true             |
@@ -55,12 +55,12 @@ _Generated on Tue, 03 Aug 2021 16:54:03 UTC for commit [a414fed][0]._
 | github.com/BurntSushi/toml                                           | v0.3.1                                            | v0.4.0                             | true   | true             |
 | github.com/BurntSushi/xgb                                            | v0.0.0-20160522181843-27f122750802                | v0.0.0-20210121224620-deaf085860bc | false  | true             |
 | github.com/GoogleCloudPlatform/k8s-cloud-provider                    | v0.0.0-20200415212048-7901bc822317                | v1.17.0                            | false  | true             |
-| github.com/GoogleCloudPlatform/testgrid                              | v0.0.38                                           | v0.0.87                            | false  | true             |
+| github.com/GoogleCloudPlatform/testgrid                              | v0.0.38                                           | v0.0.88                            | false  | true             |
 | github.com/JeffAshton/win_pdh                                        | v0.0.0-20161109143554-76bb4ee9f0ab                |                                    | false  | true             |
 | github.com/MakeNowJust/heredoc                                       | v0.0.0-20170808103936-bb23615498cd                | v1.0.0                             | false  | true             |
 | github.com/Microsoft/go-winio                                        | v0.5.0                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                         | v0.8.18                                           | v0.8.20                            | false  | true             |
-| github.com/Microsoft/hcsshim/test                                    | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20210728211921-477581578971 | false  | true             |
+| github.com/Microsoft/hcsshim/test                                    | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20210804034220-264a47d1abd8 | false  | true             |
 | github.com/NYTimes/gziphandler                                       | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                           | v1.2.2                                            | v1.2.8                             | false  | true             |
 | github.com/OpenPeeDeeP/depguard                                      | v1.0.1                                            |                                    | false  | true             |
@@ -87,7 +87,7 @@ _Generated on Tue, 03 Aug 2021 16:54:03 UTC for commit [a414fed][0]._
 | github.com/armon/go-socks5                                           | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                    | v0.0.0-20190424111038-f61b66f89f4a                | v0.0.0-20210307081110-f21760c49a8d | false  | true             |
 | github.com/auth0/go-jwt-middleware                                   | v0.0.0-20170425171159-5493cabe49f7                | v1.0.1                             | false  | true             |
-| github.com/aws/aws-sdk-go                                            | v1.37.6                                           | v1.40.13                           | false  | true             |
+| github.com/aws/aws-sdk-go                                            | v1.37.6                                           | v1.40.14                           | false  | true             |
 | github.com/beorn7/perks                                              | v1.0.1                                            |                                    | false  | true             |
 | github.com/bgentry/speakeasy                                         | v0.1.0                                            |                                    | false  | true             |
 | github.com/bifurcation/mint                                          | v0.0.0-20180715133206-93c51c6ce115                | v0.0.0-20210616192047-fd18df995463 | false  | true             |
@@ -127,7 +127,7 @@ _Generated on Tue, 03 Aug 2021 16:54:03 UTC for commit [a414fed][0]._
 | github.com/cncf/udpa/go                                              | v0.0.0-20201120205902-5459f2c99403                | v0.0.0-20210322005330-6414d713912e | false  | true             |
 | github.com/cncf/xds/go                                               | v0.0.0-20210312221358-fbca930ec8ed                | v0.0.0-20210722021550-dd25fe81a445 | false  | true             |
 | github.com/cockroachdb/datadriven                                    | v0.0.0-20190809214429-80d97fb3cbaa                | v1.0.0                             | false  | true             |
-| github.com/container-orchestrated-devices/container-device-interface | v0.0.0-20210325223243-f99e8b6c10b9                | v0.0.0-20210630201133-52edcb4f837a | false  | true             |
+| github.com/container-orchestrated-devices/container-device-interface | v0.0.0-20210325223243-f99e8b6c10b9                | v0.0.0-20210803181656-3d693ac9de01 | false  | true             |
 | github.com/container-storage-interface/spec                          | v1.3.0                                            | v1.5.0                             | false  | true             |
 | github.com/containerd/aufs                                           | v1.0.0                                            |                                    | false  | true             |
 | github.com/containerd/btrfs                                          | v1.0.0                                            |                                    | false  | true             |
@@ -186,9 +186,9 @@ _Generated on Tue, 03 Aug 2021 16:54:03 UTC for commit [a414fed][0]._
 | github.com/digitalocean/go-qemu                                      | v0.0.0-20210209191958-152a1535e49f                | v0.0.0-20210326154740-ac9e0b687001 | false  | true             |
 | github.com/disiqueira/gotree/v3                                      | v3.0.2                                            |                                    | false  | true             |
 | github.com/dnaeon/go-vcr                                             | v1.0.1                                            | v1.2.0                             | false  | true             |
-| github.com/docker/cli                                                | v0.0.0-20191017083524-a8ff7f821017                | v20.10.7+incompatible              | false  | true             |
+| github.com/docker/cli                                                | v0.0.0-20191017083524-a8ff7f821017                | v20.10.8+incompatible              | false  | true             |
 | github.com/docker/distribution                                       | v2.7.1+incompatible                               |                                    | true   | true             |
-| github.com/docker/docker                                             | v20.10.6+incompatible                             | v20.10.7+incompatible              | false  | true             |
+| github.com/docker/docker                                             | v20.10.6+incompatible                             | v20.10.8+incompatible              | false  | true             |
 | github.com/docker/docker-credential-helpers                          | v0.6.4                                            |                                    | false  | true             |
 | github.com/docker/go-connections                                     | v0.4.0                                            |                                    | false  | true             |
 | github.com/docker/go-events                                          | v0.0.0-20190806004212-e31b211e4f1c                |                                    | false  | true             |
@@ -499,11 +499,10 @@ _Generated on Tue, 03 Aug 2021 16:54:03 UTC for commit [a414fed][0]._
 | github.com/quobyte/api                                               | v0.1.8                                            | v1.2.0                             | false  | true             |
 | github.com/remyoudompheng/bigfft                                     | v0.0.0-20170806203942-52369c62f446                | v0.0.0-20200410134404-eec4a21b6bb0 | false  | true             |
 | github.com/rivo/uniseg                                               | v0.2.0                                            |                                    | false  | true             |
-| github.com/rjeczalik/notify                                          | v0.9.2                                            |                                    | true   | true             |
 | github.com/robfig/cron                                               | v1.1.0                                            | v1.2.0                             | false  | true             |
 | github.com/rogpeppe/fastuuid                                         | v1.2.0                                            |                                    | false  | true             |
 | github.com/rogpeppe/go-internal                                      | v1.7.0                                            | v1.8.0                             | false  | true             |
-| github.com/rootless-containers/rootlesskit                           | v0.14.2                                           | v0.14.3                            | false  | true             |
+| github.com/rootless-containers/rootlesskit                           | v0.14.2                                           | v0.14.4                            | false  | true             |
 | github.com/rubiojr/go-vhd                                            | v0.0.0-20200706105327-02e210299021                | v0.0.0-20200706122120-ccecf6c0760f | false  | true             |
 | github.com/russross/blackfriday                                      | v1.5.2                                            | v1.6.0                             | false  | true             |
 | github.com/russross/blackfriday/v2                                   | v2.1.0                                            |                                    | false  | true             |
@@ -594,7 +593,7 @@ _Generated on Tue, 03 Aug 2021 16:54:03 UTC for commit [a414fed][0]._
 | github.com/yvasiyarov/newrelic_platform_go                           | v0.0.0-20140908184405-b21fdbd4370f                | v0.0.0-20160601141957-9c099fbc30e9 | false  | true             |
 | go.etcd.io/bbolt                                                     | v1.3.6                                            |                                    | false  | true             |
 | go.etcd.io/etcd                                                      | v0.5.0-alpha.5.0.20200910180754-dd1b699fc489      |                                    | false  | true             |
-| go.mongodb.org/mongo-driver                                          | v1.1.2                                            | v1.7.0                             | false  | true             |
+| go.mongodb.org/mongo-driver                                          | v1.1.2                                            | v1.7.1                             | false  | true             |
 | go.mozilla.org/pkcs7                                                 | v0.0.0-20200128120323-432b2356ecb1                | v0.0.0-20210730143726-725912489c62 | false  | true             |
 | go.opencensus.io                                                     | v0.22.5                                           | v0.23.0                            | false  | true             |
 | go.opentelemetry.io/proto/otlp                                       | v0.7.0                                            | v0.9.0                             | false  | true             |
@@ -623,7 +622,7 @@ _Generated on Tue, 03 Aug 2021 16:54:03 UTC for commit [a414fed][0]._
 | gonum.org/v1/plot                                                    | v0.0.0-20190515093506-e2840ee46a6b                | v0.9.0                             | false  | true             |
 | google.golang.org/api                                                | v0.36.0                                           | v0.52.0                            | false  | true             |
 | google.golang.org/appengine                                          | v1.6.7                                            |                                    | false  | true             |
-| google.golang.org/cloud                                              | v0.0.0-20151119220103-975617b05ea8                | v0.89.0                            | false  | true             |
+| google.golang.org/cloud                                              | v0.0.0-20151119220103-975617b05ea8                | v0.90.0                            | false  | true             |
 | google.golang.org/genproto                                           | v0.0.0-20200117163144-32f20d992d24                | v0.0.0-20210803142424-70bd63adacf2 | false  | true             |
 | google.golang.org/grpc                                               | v1.39.0                                           |                                    | true   | true             |
 | google.golang.org/protobuf                                           | v1.26.0                                           | v1.27.1                            | false  | true             |
