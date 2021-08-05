@@ -39,7 +39,7 @@ rpmbuild -ba "${OS_RPM_SPECFILE}" \
     --define "version ${OS_RPM_VERSION}" \
     --define "release ${OS_RPM_RELEASE}" \
     --define "commit ${OS_GIT_COMMIT}" \
-    --define 'dist .el7'
+    --define 'dist .el8'
 
 # migrate the rpm artifacts to the output directory, must be clean or move will fail
 make clean
