@@ -13,11 +13,11 @@ import (
 	"text/tabwriter"
 
 	"github.com/blang/semver"
-	"github.com/cri-o/cri-o/utils"
 	"github.com/google/renameio"
 	json "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"sigs.k8s.io/release-utils/command"
 )
 
 // Version is the version of the build.
@@ -171,22 +171,34 @@ func (i *Info) String() string {
 }
 
 func getLinkmode() string {
+	const (
+		unknown = "unknown"
+		ldd     = "ldd"
+	)
 	abspath, err := os.Executable()
 	if err != nil {
-		logrus.Warnf("Encountered error finding binary to detect link mode: %v", err)
-		return ""
+		logrus.Warnf("Unable to find currently running executable: %v", err)
+		return unknown
 	}
 
-	if _, err = exec.LookPath("ldd"); err != nil {
-		return ""
+	if _, err = exec.LookPath(ldd); err != nil {
+		logrus.Warnf("Unable to find ldd command: %v", err)
+		return unknown
 	}
-	if _, err = utils.ExecCmd("ldd", abspath); err != nil {
-		if strings.Contains(err.Error(), "not a dynamic executable") ||
-			strings.Contains(strings.ToLower(err.Error()), "not a valid dynamic program") {
+
+	out, err := command.New(ldd, abspath).Env("LANG=C").RunSilent()
+	if err != nil {
+		logrus.Warnf("Unable to run ldd command: %v", err)
+		return unknown
+	}
+
+	if !out.Success() {
+		if strings.Contains(out.Error(), "not a dynamic executable") ||
+			strings.Contains(strings.ToLower(out.Error()), "not a valid dynamic program") {
 			return "static"
 		}
-		logrus.Warnf("Encountered error detecting link mode of binary: %v", err)
-		return ""
+		logrus.Warnf("Encountered error detecting link mode of binary: %s", out.Error())
+		return unknown
 	}
 
 	return "dynamic"
