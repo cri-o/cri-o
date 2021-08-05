@@ -457,7 +457,6 @@ install.completions:
 install.systemd:
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
 	ln -sf crio.service $(PREFIX)/lib/systemd/system/cri-o.service
-	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio-shutdown.service $(PREFIX)/lib/systemd/system/crio-shutdown.service
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio-wipe.service $(PREFIX)/lib/systemd/system/crio-wipe.service
 
 uninstall:
@@ -477,7 +476,6 @@ uninstall:
 	rm -f ${FISHINSTALLDIR}/crio-status.fish
 	rm -f ${ZSHINSTALLDIR}/_crio-status
 	rm -f $(PREFIX)/lib/systemd/system/crio-wipe.service
-	rm -f $(PREFIX)/lib/systemd/system/crio-shutdown.service
 	rm -f $(PREFIX)/lib/systemd/system/crio.service
 	rm -f $(PREFIX)/lib/systemd/system/cri-o.service
 	rm -rf $(DATAROOTDIR)/oci/hooks.d
