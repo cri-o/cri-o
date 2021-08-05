@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/dirnotifier"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/fsnotify/fsnotify"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -37,6 +42,7 @@ type Runtime struct {
 	config              *config.Config
 	runtimeImplMap      map[string]RuntimeImpl
 	runtimeImplMapMutex sync.RWMutex
+	execNotifier        *dirnotifier.DirectoryNotifier
 }
 
 // RuntimeImpl is an interface used by the caller to interact with the
@@ -69,11 +75,21 @@ type RuntimeImpl interface {
 }
 
 // New creates a new Runtime with options provided
-func New(c *config.Config) *Runtime {
+func New(c *config.Config) (*Runtime, error) {
+	execNotifyDir := filepath.Join(c.ContainerAttachSocketDir, "exec-pid-dir")
+	if err := os.MkdirAll(execNotifyDir, 0o750); err != nil {
+		return nil, errors.Wrapf(err, "create oci runtime pid dir")
+	}
+
+	notifier, err := dirnotifier.New(execNotifyDir, fsnotify.Write, fsnotify.Rename)
+	if err != nil {
+		return nil, err
+	}
 	return &Runtime{
 		config:         c,
 		runtimeImplMap: make(map[string]RuntimeImpl),
-	}
+		execNotifier:   notifier,
+	}, nil
 }
 
 // Runtimes returns the map of OCI runtimes.
