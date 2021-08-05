@@ -9,7 +9,7 @@ on:
   pull_request:
 env:
   GO_VERSION: '1.16'
-  GO_VERSION_LEGACY: '1.14'
+  GO_VERSION_LEGACY: '1.15'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -47,7 +47,7 @@ jobs:
           name: config
           path: crio.conf
 
-  build-go1_14:
+  build-go1_15:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v2
