@@ -126,6 +126,7 @@ func main() {
 	app.Commands = criocli.DefaultCommands
 	app.Commands = append(app.Commands, []*cli.Command{
 		configCommand,
+		publishCommand,
 		versionCommand,
 		wipeCommand,
 	}...)

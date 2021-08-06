@@ -867,6 +867,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			TakesFile:   true,
 		},
 		&cli.StringFlag{
+			Name:   "address",
+			Usage:  "address used for the publish command",
+			Hidden: true,
+		},
+		&cli.StringFlag{
 			Name:      "version-file",
 			Usage:     "Location for CRI-O to lay down the temporary version file. It is used to check if crio wipe should wipe containers, which should always happen on a node reboot",
 			Value:     defConf.VersionFile,
