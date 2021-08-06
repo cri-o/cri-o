@@ -22,5 +22,4 @@ _testmain.go
 *.exe
 *.test
 *.prof
-
-target
+/s2/cmd/_s2sx/sfx-exe
