@@ -41,7 +41,6 @@ Source0: %{name}-test.tar.gz
 Source3: %{service_name}-network.sysconfig
 Source4: %{service_name}-storage.sysconfig
 Source5: %{service_name}-metrics.sysconfig
-Source6: %{service_name}.service
 %if ! 0%{?centos} && 0%{?rhel}
 BuildRequires: go-toolset-1.%{gominver}
 %else
@@ -72,7 +71,6 @@ Requires: conmon
 
 %prep
 %setup -qn %{name}-test
-cp %{SOURCE6} contrib/systemd/.
 sed -i 's/install.config: crio.conf/install.config:/' Makefile
 sed -i 's/install.bin: binaries/install.bin:/' Makefile
 sed -i 's/\.gopathok//' Makefile
@@ -167,7 +165,6 @@ rm -f %{_unitdir}/%{repo}.service
 %config(noreplace) %{_sysconfdir}/cni/net.d/200-loopback.conf
 %config(noreplace) %{_sysconfdir}/crictl.yaml
 %{_unitdir}/%{service_name}.service
-%{_unitdir}/%{name}.service
 %dir %{_sharedstatedir}/containers
 %dir %{_datadir}/oci-umount
 %dir %{_datadir}/oci-umount/oci-umount.d
