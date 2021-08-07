@@ -25,7 +25,13 @@ type Stat struct {
 
 // DefunctProcesses returns the number of zombie processes in the node.
 func DefunctProcesses() (defunctCount uint, retErr error) {
-	directories, err := os.Open(ProcessFS)
+	return DefunctProcessesForPath(ProcessFS)
+}
+
+// DefunctProcessesForPath retrieves the number of zombie processes from
+// a specific process filesystem.
+func DefunctProcessesForPath(path string) (defunctCount uint, retErr error) {
+	directories, err := os.Open(path)
 	if err != nil {
 		return 0, err
 	}
@@ -43,7 +49,7 @@ func DefunctProcesses() (defunctCount uint, retErr error) {
 			continue
 		}
 
-		stat, err := processStats(name)
+		stat, err := processStats(path, name)
 		if err != nil {
 			logrus.Debugf("Failed to get the status of process with PID %s: %v", name, err)
 			continue
@@ -57,8 +63,8 @@ func DefunctProcesses() (defunctCount uint, retErr error) {
 }
 
 // processStats returns status information of a process as defined in /proc/[pid]/stat
-func processStats(pid string) (*Stat, error) {
-	bytes, err := ioutil.ReadFile(filepath.Join(ProcessFS, pid, "stat"))
+func processStats(fsPath, pid string) (*Stat, error) {
+	bytes, err := ioutil.ReadFile(filepath.Join(fsPath, pid, "stat"))
 	if err != nil {
 		return nil, err
 	}
