@@ -13,6 +13,7 @@ import (
 // We check the error at server configuration validation, and if we error, shutdown
 // cri-o early, instead of when we're already trying to run containers.
 func ValidateConfig() error {
+	cgroupIsV2 := CgroupIsV2()
 	toInit := []struct {
 		name      string
 		init      func() bool
@@ -45,7 +46,7 @@ func ValidateConfig() error {
 			name:      "cgroup v2",
 			init:      CgroupIsV2,
 			err:       &cgroupIsV2Err,
-			activated: nil,
+			activated: &cgroupIsV2,
 			fatal:     false,
 		},
 		{
