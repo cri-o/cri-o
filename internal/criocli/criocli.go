@@ -246,6 +246,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("additional-devices") {
 		config.AdditionalDevices = StringSliceTrySplit(ctx, "additional-devices")
 	}
+	if ctx.IsSet("device-ownership-from-security-context") {
+		config.DeviceOwnershipFromSecurityContext = ctx.Bool("device-ownership-from-security-context")
+	}
 	if ctx.IsSet("conmon-env") {
 		config.ConmonEnv = StringSliceTrySplit(ctx, "conmon-env")
 	}
@@ -757,6 +760,10 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Devices to add to the containers ",
 			Value:   cli.NewStringSlice(defConf.AdditionalDevices...),
 			EnvVars: []string{"CONTAINER_ADDITIONAL_DEVICES"},
+		},
+		&cli.BoolFlag{
+			Name:  "device-ownership-from-security-context",
+			Usage: "Set devices' uid/gid ownership from runAsUser/runAsGroup",
 		},
 		&cli.StringSliceFlag{
 			Name:    "conmon-env",

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	devicecfg "github.com/cri-o/cri-o/internal/config/device"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/devices"
@@ -13,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *container) SpecAddDevices(configuredDevices, annotationDevices []devicecfg.Device, privilegedWithoutHostDevices bool) error {
+func (c *container) SpecAddDevices(configuredDevices, annotationDevices []devicecfg.Device, privilegedWithoutHostDevices, enableDeviceOwnershipFromSecurityContext bool) error {
 	// First, clear the existing devices from the spec
 	c.Spec().Config.Linux.Devices = []rspec.LinuxDevice{}
 
@@ -39,7 +40,7 @@ func (c *container) SpecAddDevices(configuredDevices, annotationDevices []device
 	}
 
 	// Finally, add container config devices
-	return c.specAddContainerConfigDevices()
+	return c.specAddContainerConfigDevices(enableDeviceOwnershipFromSecurityContext)
 }
 
 func (c *container) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices bool) error {
@@ -74,7 +75,7 @@ func (c *container) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices 
 	return nil
 }
 
-func (c *container) specAddContainerConfigDevices() error {
+func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecurityContext bool) error {
 	sp := c.Spec().Config
 
 	for _, device := range c.Config().Devices {
@@ -108,8 +109,8 @@ func (c *container) specAddContainerConfigDevices() error {
 				Type:  string(dev.Type),
 				Major: dev.Major,
 				Minor: dev.Minor,
-				UID:   &dev.Uid,
-				GID:   &dev.Gid,
+				UID:   getDeviceUserGroupID(c.Config().Linux.SecurityContext.RunAsUser, dev.Uid, enableDeviceOwnershipFromSecurityContext),
+				GID:   getDeviceUserGroupID(c.Config().Linux.SecurityContext.RunAsGroup, dev.Uid, enableDeviceOwnershipFromSecurityContext),
 			}
 			c.Spec().AddDevice(rd)
 			sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
@@ -162,4 +163,32 @@ func (c *container) specAddContainerConfigDevices() error {
 		}
 	}
 	return nil
+}
+
+// getDeviceUserGroupID() is used to find the right uid/gid
+// value for the device node created in the container namespace.
+// The runtime executes mknod() and chmod()s the created
+// device with the values returned here.
+//
+// TODO(mythi): In case of user namespaces, the runtime simply bind
+// mounts the devices from the host. Additional logic is needed
+// to check that the runtimes effective UID/GID on the host has the
+// permissions to access the device node and/or the right user namespace
+// mappings are created.
+//
+// CRI-O has an experimental support for setting user namespace mappings
+// via annotations when pod's securitycontext runs as root/uid=0. When
+// enabled, the logic below does not change the behavior for existing
+// mappings unless container's securitycontext user/group overrides what
+// is set for the pod.
+//
+// Ref: https://github.com/kubernetes/kubernetes/issues/92211
+func getDeviceUserGroupID(runAsVal *types.Int64Value, hostVal uint32, enableDeviceOwnershipFromSecurityContext bool) *uint32 {
+	if runAsVal != nil {
+		id := uint32(runAsVal.Value)
+		if id > 0 && enableDeviceOwnershipFromSecurityContext {
+			return &id
+		}
+	}
+	return &hostVal
 }

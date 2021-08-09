@@ -282,7 +282,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	if err := ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices); err != nil {
+	if err := ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices, s.config.DeviceOwnershipFromSecurityContext); err != nil {
 		return nil, err
 	}
 

@@ -93,7 +93,7 @@ type Container interface {
 	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) error
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
-	SpecAddDevices([]device.Device, []device.Device, bool) error
+	SpecAddDevices([]device.Device, []device.Device, bool, bool) error
 
 	// AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation
 	AddUnifiedResourcesFromAnnotations(annotationsMap map[string]string) error
