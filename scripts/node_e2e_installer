@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+NODE_E2E_COMMIT=4d14fd61d2d533a0bb81557b54d3505be830efa7 # Commit to run upstream node e2e tests
+
+enable_selinux() {
+    # Make sure SELinux is enabled
+    setenforce 1
+
+    # Get the SELinux package
+    curl --fail --retry 5 --retry-delay 3 --silent --show-error -o /tmp/kubelet-e2e.pp https://storage.googleapis.com/cri-o/selinux/kubelet-e2e.pp
+    semodule -i /tmp/kubelet-e2e.pp
+}
+
+install_crio() {
+    # Download and install CRIO
+    curl --fail --retry 5 --retry-delay 3 --silent --show-error -o /usr/local/crio-install.sh https://raw.githubusercontent.com/cri-o/cri-o/master/scripts/get
+    bash /usr/local/crio-install.sh -t "$NODE_E2E_COMMIT"
+
+    # Setup SELinux labels
+    mkdir -p /var/lib/kubelet
+    chcon -R -u system_u -r object_r -t var_lib_t /var/lib/kubelet
+    chcon -u system_u -r object_r -t container_runtime_exec_t /usr/local/bin/crio /usr/local/bin/crio-status /usr/local/bin/runc /usr/local/bin/crun
+    chcon -u system_u -r object_r -t bin_t /usr/local/bin/conmon /usr/local/bin/crictl /usr/local/bin/pinns
+    chcon -R -u system_u -r object_r -t bin_t /opt/cni/bin/
+    chcon -R -u system_u -r object_r -t container_config_t /etc/crio /etc/crio/crio.conf /usr/local/share/oci-umount/oci-umount.d/crio-umount.conf
+    chcon -R -u system_u -r object_r -t systemd_unit_file_t /usr/local/lib/systemd/system/crio.service
+
+    mount /tmp /tmp -o remount,exec,suid
+
+    # Remove unwanted cni configuration files
+    rm -f /etc/cni/net.d/87-podman-bridge.conflist
+
+    # Setup log level
+    echo "CONTAINER_LOG_LEVEL=debug" >>/etc/sysconfig/crio
+
+    # Setup secondary runtime
+    cat <<EOF >/etc/crio/crio.conf.d/20-runc.conf
+[crio.runtime]
+default_runtime = "runc"
+[crio.runtime.runtimes]
+[crio.runtime.runtimes.runc]
+    runtime_path="/usr/local/bin/runc"
+EOF
+
+    cat <<EOF >/etc/crio/crio.conf.d/10-crun.conf
+[crio.runtime]
+[crio.runtime.runtimes]
+[crio.runtime.runtimes.test-handler]
+    runtime_path="/usr/local/bin/crun"
+EOF
+
+}
+
+enable_selinux
+
+install_crio
+
+# Finally start crio
+systemctl enable crio.service
+systemctl start crio.service
