@@ -13,7 +13,7 @@
 
 %if ! 0%{?centos} && 0%{?rhel}
 # Golang minor version
-%global gominver 10
+%global gominver 16
 %define gobuild(o:) scl enable go-toolset-1.%{gominver} -- go build -buildmode pie -compiler gc -tags="rpm_crashtraceback no_openssl ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
 %else
 %define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback no_openssl ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
@@ -45,7 +45,7 @@ Source6: %{service_name}.service
 %if ! 0%{?centos} && 0%{?rhel}
 BuildRequires: go-toolset-1.%{gominver}
 %else
-BuildRequires: %{?go_compiler:compiler(go-compiler)}%{!?go_compiler:golang}
+# Assume pre-installed golang (which is the case in our CI)
 BuildRequires: make
 %endif
 BuildRequires: git
