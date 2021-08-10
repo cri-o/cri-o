@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/image/v5/pkg/compression"
+	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	ociencspec "github.com/containers/ocicrypt/spec"
 	"github.com/opencontainers/go-digest"
@@ -96,14 +96,14 @@ func (m *OCI1) LayerInfos() []LayerInfo {
 
 var oci1CompressionMIMETypeSets = []compressionMIMETypeSet{
 	{
-		mtsUncompressed:         imgspecv1.MediaTypeImageLayerNonDistributable,
-		compression.Gzip.Name(): imgspecv1.MediaTypeImageLayerNonDistributableGzip,
-		compression.Zstd.Name(): imgspecv1.MediaTypeImageLayerNonDistributableZstd,
+		mtsUncompressed:                    imgspecv1.MediaTypeImageLayerNonDistributable,
+		compressiontypes.GzipAlgorithmName: imgspecv1.MediaTypeImageLayerNonDistributableGzip,
+		compressiontypes.ZstdAlgorithmName: imgspecv1.MediaTypeImageLayerNonDistributableZstd,
 	},
 	{
-		mtsUncompressed:         imgspecv1.MediaTypeImageLayer,
-		compression.Gzip.Name(): imgspecv1.MediaTypeImageLayerGzip,
-		compression.Zstd.Name(): imgspecv1.MediaTypeImageLayerZstd,
+		mtsUncompressed:                    imgspecv1.MediaTypeImageLayer,
+		compressiontypes.GzipAlgorithmName: imgspecv1.MediaTypeImageLayerGzip,
+		compressiontypes.ZstdAlgorithmName: imgspecv1.MediaTypeImageLayerZstd,
 	},
 }
 
@@ -127,7 +127,7 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 		}
 		mimeType, err := updatedMIMEType(oci1CompressionMIMETypeSets, mimeType, info)
 		if err != nil {
-			return errors.Wrapf(err, "Error preparing updated manifest, layer %q", info.Digest)
+			return errors.Wrapf(err, "preparing updated manifest, layer %q", info.Digest)
 		}
 		if info.CryptoOperation == types.Encrypt {
 			encMediaType, err := getEncryptedMediaType(mimeType)
