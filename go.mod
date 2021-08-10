@@ -3,7 +3,7 @@ go 1.15
 module github.com/cri-o/cri-o
 
 require (
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v0.4.1
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v1.0.1
@@ -19,7 +19,7 @@ require (
 	github.com/containers/image/v5 v5.13.2
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/podman/v3 v3.2.3
-	github.com/containers/storage v1.32.3
+	github.com/containers/storage v1.34.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.14
