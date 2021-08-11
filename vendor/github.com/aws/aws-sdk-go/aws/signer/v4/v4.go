@@ -689,12 +689,9 @@ func (ctx *signingCtx) buildBodyDigest() error {
 	if hash == "" {
 		includeSHA256Header := ctx.unsignedPayload ||
 			ctx.ServiceName == "s3" ||
-			ctx.ServiceName == "s3-object-lambda" ||
 			ctx.ServiceName == "glacier"
 
-		s3Presign := ctx.isPresign &&
-			(ctx.ServiceName == "s3" ||
-				ctx.ServiceName == "s3-object-lambda")
+		s3Presign := ctx.isPresign && ctx.ServiceName == "s3"
 
 		if ctx.unsignedPayload || s3Presign {
 			hash = "UNSIGNED-PAYLOAD"

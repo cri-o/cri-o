@@ -71,7 +71,7 @@ func NewLocalPort(desc, ip string, ipFamily IPFamily, port int, protocol Protoco
 		return nil, fmt.Errorf("Invalid IP family %s", ipFamily)
 	}
 	if ip != "" {
-		parsedIP := ParseIPSloppy(ip)
+		parsedIP := net.ParseIP(ip)
 		if parsedIP == nil {
 			return nil, fmt.Errorf("invalid ip address %s", ip)
 		}

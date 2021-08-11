@@ -44,9 +44,7 @@ var (
 )
 
 func init() {
-	//lint:ignore SA1019 - replacement function still calls prometheus.NewProcessCollector().
 	RawMustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
-	//lint:ignore SA1019 - replacement function still calls prometheus.NewGoCollector().
 	RawMustRegister(prometheus.NewGoCollector())
 }
 

@@ -20,12 +20,9 @@ package fs
 
 import (
 	"fmt"
-)
 
-type UsageInfo struct {
-	Bytes  int64
-	Inodes int64
-}
+	"k8s.io/apimachinery/pkg/api/resource"
+)
 
 // Info unsupported returns 0 values for available and capacity and an error.
 func Info(path string) (int64, int64, int64, int64, int64, int64, error) {
@@ -33,7 +30,11 @@ func Info(path string) (int64, int64, int64, int64, int64, int64, error) {
 }
 
 // DiskUsage gets disk usage of specified path.
-func DiskUsage(path string) (UsageInfo, error) {
-	var usage UsageInfo
-	return usage, fmt.Errorf("directory disk usage not supported for this build.")
+func DiskUsage(path string) (*resource.Quantity, error) {
+	return nil, fmt.Errorf("du not supported for this build")
+}
+
+// Find will always return zero since is on unsupported platform.
+func Find(path string) (int64, error) {
+	return 0, fmt.Errorf("find not supported for this build")
 }

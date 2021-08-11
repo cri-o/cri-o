@@ -46,7 +46,12 @@ func (md *metricsDu) GetMetrics() (*Metrics, error) {
 		return metrics, NewNoPathDefinedError()
 	}
 
-	err := md.getDiskUsage(metrics)
+	err := md.runDiskUsage(metrics)
+	if err != nil {
+		return metrics, err
+	}
+
+	err = md.runFind(metrics)
 	if err != nil {
 		return metrics, err
 	}
@@ -59,14 +64,23 @@ func (md *metricsDu) GetMetrics() (*Metrics, error) {
 	return metrics, nil
 }
 
-// getDiskUsage writes metrics.Used and metric.InodesUsed from fs.DiskUsage
-func (md *metricsDu) getDiskUsage(metrics *Metrics) error {
-	usage, err := fs.DiskUsage(md.path)
+// runDiskUsage gets disk usage of md.path and writes the results to metrics.Used
+func (md *metricsDu) runDiskUsage(metrics *Metrics) error {
+	used, err := fs.DiskUsage(md.path)
 	if err != nil {
 		return err
 	}
-	metrics.Used = resource.NewQuantity(usage.Bytes, resource.BinarySI)
-	metrics.InodesUsed = resource.NewQuantity(usage.Inodes, resource.BinarySI)
+	metrics.Used = used
+	return nil
+}
+
+// runFind executes the "find" command and writes the results to metrics.InodesUsed
+func (md *metricsDu) runFind(metrics *Metrics) error {
+	inodesUsed, err := fs.Find(md.path)
+	if err != nil {
+		return err
+	}
+	metrics.InodesUsed = resource.NewQuantity(inodesUsed, resource.BinarySI)
 	return nil
 }
 

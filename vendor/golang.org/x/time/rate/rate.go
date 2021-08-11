@@ -145,6 +145,7 @@ func (r *Reservation) DelayFrom(now time.Time) time.Duration {
 // Cancel is shorthand for CancelAt(time.Now()).
 func (r *Reservation) Cancel() {
 	r.CancelAt(time.Now())
+	return
 }
 
 // CancelAt indicates that the reservation holder will not perform the reserved action
@@ -185,6 +186,8 @@ func (r *Reservation) CancelAt(now time.Time) {
 			r.lim.lastEvent = prevEvent
 		}
 	}
+
+	return
 }
 
 // Reserve is shorthand for ReserveN(time.Now(), 1).
@@ -364,13 +367,20 @@ func (lim *Limiter) advance(now time.Time) (newNow time.Time, newLast time.Time,
 		last = now
 	}
 
-	// Calculate the new number of tokens, due to time that passed.
+	// Avoid making delta overflow below when last is very old.
+	maxElapsed := lim.limit.durationFromTokens(float64(lim.burst) - lim.tokens)
 	elapsed := now.Sub(last)
+	if elapsed > maxElapsed {
+		elapsed = maxElapsed
+	}
+
+	// Calculate the new number of tokens, due to time that passed.
 	delta := lim.limit.tokensFromDuration(elapsed)
 	tokens := lim.tokens + delta
 	if burst := float64(lim.burst); tokens > burst {
 		tokens = burst
 	}
+
 	return now, last, tokens
 }
 
@@ -378,11 +388,15 @@ func (lim *Limiter) advance(now time.Time) (newNow time.Time, newLast time.Time,
 // of time it takes to accumulate them at a rate of limit tokens per second.
 func (limit Limit) durationFromTokens(tokens float64) time.Duration {
 	seconds := tokens / float64(limit)
-	return time.Duration(float64(time.Second) * seconds)
+	return time.Nanosecond * time.Duration(1e9*seconds)
 }
 
 // tokensFromDuration is a unit conversion function from a time duration to the number of tokens
 // which could be accumulated during that duration at a rate of limit tokens per second.
 func (limit Limit) tokensFromDuration(d time.Duration) float64 {
-	return d.Seconds() * float64(limit)
+	// Split the integer and fractional parts ourself to minimize rounding errors.
+	// See golang.org/issues/34861.
+	sec := float64(d/time.Second) * float64(limit)
+	nsec := float64(d%time.Second) * float64(limit)
+	return sec + nsec/1e9
 }

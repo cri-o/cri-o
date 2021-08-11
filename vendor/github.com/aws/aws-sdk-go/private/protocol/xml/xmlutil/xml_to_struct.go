@@ -18,14 +18,6 @@ type XMLNode struct {
 	parent     *XMLNode
 }
 
-// textEncoder is a string type alias that implemnts the TextMarshaler interface.
-// This alias type is used to ensure that the line feed (\n) (U+000A) is escaped.
-type textEncoder string
-
-func (t textEncoder) MarshalText() ([]byte, error) {
-	return []byte(t), nil
-}
-
 // NewXMLElement returns a pointer to a new XMLNode initialized to default values.
 func NewXMLElement(name xml.Name) *XMLNode {
 	return &XMLNode{
@@ -138,16 +130,11 @@ func StructToXML(e *xml.Encoder, node *XMLNode, sorted bool) error {
 		attrs = sortedAttrs
 	}
 
-	startElement := xml.StartElement{Name: node.Name, Attr: attrs}
+	e.EncodeToken(xml.StartElement{Name: node.Name, Attr: attrs})
 
 	if node.Text != "" {
-		e.EncodeElement(textEncoder(node.Text), startElement)
-		return e.Flush()
-	}
-
-	e.EncodeToken(startElement)
-
-	if sorted {
+		e.EncodeToken(xml.CharData([]byte(node.Text)))
+	} else if sorted {
 		sortedNames := []string{}
 		for k := range node.Children {
 			sortedNames = append(sortedNames, k)
@@ -167,7 +154,6 @@ func StructToXML(e *xml.Encoder, node *XMLNode, sorted bool) error {
 		}
 	}
 
-	e.EncodeToken(startElement.End())
-
+	e.EncodeToken(xml.EndElement{Name: node.Name})
 	return e.Flush()
 }

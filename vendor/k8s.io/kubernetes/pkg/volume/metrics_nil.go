@@ -23,11 +23,6 @@ var _ MetricsProvider = &MetricsNil{}
 // metrics.
 type MetricsNil struct{}
 
-// SupportsMetrics returns false for the MetricsNil type.
-func (*MetricsNil) SupportsMetrics() bool {
-	return false
-}
-
 // GetMetrics returns an empty Metrics and an error.
 // See MetricsProvider.GetMetrics
 func (*MetricsNil) GetMetrics() (*Metrics, error) {

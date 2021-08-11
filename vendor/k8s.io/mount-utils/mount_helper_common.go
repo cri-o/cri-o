@@ -122,10 +122,6 @@ func removePathIfNotMountPoint(mountPath string, mounter Interface, extensiveMou
 	}
 
 	if err != nil {
-		if os.IsNotExist(err) {
-			klog.V(4).Infof("%q does not exist", mountPath)
-			return true, nil
-		}
 		return notMnt, err
 	}
 

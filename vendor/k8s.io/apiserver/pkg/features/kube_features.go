@@ -38,13 +38,12 @@ const (
 	// StreamingProxyRedirects controls whether the apiserver should intercept (and follow)
 	// redirects from the backend (Kubelet) for streaming requests (exec/attach/port-forward).
 	//
-	// This feature is deprecated, and will be removed in v1.24.
+	// This feature is deprecated, and will be removed in v1.22.
 	StreamingProxyRedirects featuregate.Feature = "StreamingProxyRedirects"
 
 	// owner: @tallclair
 	// alpha: v1.12
 	// beta: v1.14
-	// deprecated: v1.22
 	//
 	// ValidateProxyRedirects controls whether the apiserver should validate that redirects are only
 	// followed to the same host. Only used if StreamingProxyRedirects is enabled.
@@ -96,7 +95,6 @@ const (
 	// owner: @apelisse, @lavalamp
 	// alpha: v1.14
 	// beta: v1.16
-	// stable: v1.22
 	//
 	// Server-side apply. Merging happens on the server.
 	ServerSideApply featuregate.Feature = "ServerSideApply"
@@ -147,7 +145,6 @@ const (
 
 	// owner: @liggitt
 	// beta: v1.19
-	// GA: v1.22
 	//
 	// Allows sending warning headers in API responses.
 	WarningHeaders featuregate.Feature = "WarningHeaders"
@@ -164,12 +161,6 @@ const (
 	//
 	// Assigns each kube-apiserver an ID in a cluster.
 	APIServerIdentity featuregate.Feature = "APIServerIdentity"
-
-	// owner: @dashpole
-	// alpha: v1.22
-	//
-	// Add support for distributed tracing in the API Server
-	APIServerTracing featuregate.Feature = "APIServerTracing"
 )
 
 func init() {
@@ -180,22 +171,21 @@ func init() {
 // To add a new feature, define a key for it above and add it here. The features will be
 // available throughout Kubernetes binaries.
 var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
-	StreamingProxyRedirects:  {Default: false, PreRelease: featuregate.Deprecated},
-	ValidateProxyRedirects:   {Default: true, PreRelease: featuregate.Deprecated},
+	StreamingProxyRedirects:  {Default: true, PreRelease: featuregate.Deprecated},
+	ValidateProxyRedirects:   {Default: true, PreRelease: featuregate.Beta},
 	AdvancedAuditing:         {Default: true, PreRelease: featuregate.GA},
 	APIResponseCompression:   {Default: true, PreRelease: featuregate.Beta},
 	APIListChunking:          {Default: true, PreRelease: featuregate.Beta},
 	DryRun:                   {Default: true, PreRelease: featuregate.GA},
 	RemainingItemCount:       {Default: true, PreRelease: featuregate.Beta},
-	ServerSideApply:          {Default: true, PreRelease: featuregate.GA},
+	ServerSideApply:          {Default: true, PreRelease: featuregate.Beta},
 	StorageVersionHash:       {Default: true, PreRelease: featuregate.Beta},
 	StorageVersionAPI:        {Default: false, PreRelease: featuregate.Alpha},
 	WatchBookmark:            {Default: true, PreRelease: featuregate.GA, LockToDefault: true},
 	APIPriorityAndFairness:   {Default: true, PreRelease: featuregate.Beta},
 	RemoveSelfLink:           {Default: true, PreRelease: featuregate.Beta},
 	SelectorIndex:            {Default: true, PreRelease: featuregate.GA, LockToDefault: true},
-	WarningHeaders:           {Default: true, PreRelease: featuregate.GA, LockToDefault: true},
+	WarningHeaders:           {Default: true, PreRelease: featuregate.Beta},
 	EfficientWatchResumption: {Default: true, PreRelease: featuregate.Beta},
 	APIServerIdentity:        {Default: false, PreRelease: featuregate.Alpha},
-	APIServerTracing:         {Default: false, PreRelease: featuregate.Alpha},
 }
