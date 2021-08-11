@@ -68,12 +68,12 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 	tags := make([]string, 0)
 
 	for {
-		res, err := client.makeRequest(ctx, "GET", path, nil, nil, v2Auth, nil)
+		res, err := client.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
 		if err != nil {
 			return nil, err
 		}
 		defer res.Body.Close()
-		if err := httpResponseToError(res, "Error fetching tags list"); err != nil {
+		if err := httpResponseToError(res, "fetching tags list"); err != nil {
 			return nil, err
 		}
 
@@ -134,14 +134,14 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 		"Accept": manifest.DefaultRequestedManifestMIMETypes,
 	}
 
-	res, err := client.makeRequest(ctx, "HEAD", path, headers, nil, v2Auth, nil)
+	res, err := client.makeRequest(ctx, http.MethodHead, path, headers, nil, v2Auth, nil)
 	if err != nil {
 		return "", err
 	}
 
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return "", errors.Wrapf(registryHTTPResponseToError(res), "Error reading digest %s in %s", tagOrDigest, dr.ref.Name())
+		return "", errors.Wrapf(registryHTTPResponseToError(res), "reading digest %s in %s", tagOrDigest, dr.ref.Name())
 	}
 
 	dig, err := digest.Parse(res.Header.Get("Docker-Content-Digest"))
