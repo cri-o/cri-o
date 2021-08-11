@@ -211,7 +211,7 @@ subscription-manager repos --enable=codeready-builder-for-rhel-8-x86_64-rpms
 Follow the guide below to subscribe to the repositories if not already subscribed:\
 https://access.redhat.com/solutions/265523
 
-This requires go version 1.12 or greater:
+This requires go version 1.16 or greater:
 ```
 yum module -y install go-toolset
 ```
@@ -283,7 +283,7 @@ apt-get update -qq && apt-get install -y \
 If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough (running `runc --version` should produce `spec: 1.0.0`), or else build your own.
 
 Be careful to double-check that the version of golang is new enough, version
-1.12.x or higher is required. If needed, newer golang versions are available at
+1.16.x or higher is required. If needed, newer golang versions are available at
 [the official download website](https://golang.org/dl).
 
 ### Get Source Code
