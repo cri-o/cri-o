@@ -18,8 +18,8 @@ require (
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.15.0
 	github.com/containers/ocicrypt v1.1.2
-	github.com/containers/podman/v3 v3.3.0-rc1
-	github.com/containers/storage v1.34.0
+	github.com/containers/podman/v3 v3.3.0-rc2
+	github.com/containers/storage v1.34.1
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.14
@@ -75,8 +75,6 @@ require (
 )
 
 replace (
-	// Unpin if containers/storage and friends are supporting the latest release
-	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc95.0.20210521141834-a95237f81684
 	// Pinning the syndtr/gocapability until https://github.com/opencontainers/runc/commit/6dfbe9b80707b1ca188255e8def15263348e0f9a
 	// is included in the runc release
 	github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
