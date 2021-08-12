@@ -23,6 +23,10 @@ type ImportOptions struct {
 	CommitMessage string
 	// Tag the imported image with this value.
 	Tag string
+	// Overwrite OS of imported image.
+	OS string
+	// Overwrite Arch of imported image.
+	Arch string
 }
 
 // Import imports a custom tarball at the specified path.  Returns the name of
@@ -48,8 +52,10 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 	}
 
 	config := v1.Image{
-		Config:  ic,
-		History: hist,
+		Config:       ic,
+		History:      hist,
+		OS:           options.OS,
+		Architecture: options.Arch,
 	}
 
 	u, err := url.ParseRequestURI(path)
@@ -80,7 +86,7 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 		return "", err
 	}
 
-	id, err := getImageDigest(ctx, srcRef, r.systemContextCopy())
+	id, err := getImageID(ctx, srcRef, r.systemContextCopy())
 	if err != nil {
 		return "", err
 	}

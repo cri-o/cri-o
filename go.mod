@@ -3,7 +3,7 @@ go 1.15
 module github.com/cri-o/cri-o
 
 require (
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v0.4.1
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v1.0.1
@@ -14,12 +14,12 @@ require (
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
 	github.com/containers/buildah v1.21.3
-	github.com/containers/common v0.38.16
+	github.com/containers/common v0.43.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.13.2
+	github.com/containers/image/v5 v5.15.0
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/podman/v3 v3.2.3
-	github.com/containers/storage v1.32.3
+	github.com/containers/storage v1.34.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.14
@@ -39,13 +39,13 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/json-iterator/go v1.1.11
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.14.0
+	github.com/onsi/gomega v1.15.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20210708142037-083f635f2b04
 	github.com/opencontainers/runc v1.0.1
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210709190330-896175883324
 	github.com/opencontainers/runtime-tools v0.9.1-0.20210326182921-59cdde06764b
-	github.com/opencontainers/selinux v1.8.3
+	github.com/opencontainers/selinux v1.8.4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	github.com/psampaz/go-mod-outdated v0.8.0
