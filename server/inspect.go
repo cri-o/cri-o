@@ -5,6 +5,11 @@ import (
 	"math"
 	"net/http"
 	"net/http/pprof"
+	"os"
+	"path/filepath"
+	"runtime/debug"
+	"strings"
+	"time"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -184,6 +189,26 @@ func (s *Server) GetInfoMux(enableProfile bool) *bone.Mux {
 		mux.Get("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
 		mux.Get("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 		mux.Get("/debug/pprof/*", http.HandlerFunc(pprof.Index))
+	}
+
+	if enableProfile {
+		mux.Get("/debug/dumpheap", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			dumpFilePath := filepath.Join("/tmp", fmt.Sprintf(
+				"crio-heapdump-%s.out",
+				strings.ReplaceAll(time.Now().Format(time.RFC3339), ":", ""),
+			))
+			f, err := os.Create(dumpFilePath)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			defer f.Close()
+
+			debug.WriteHeapDump(f.Fd())
+
+			if _, err := w.Write([]byte(fmt.Sprintf("Wrote crio heapdump to %q. Please move it to avoid using memory.\n", dumpFilePath))); err != nil {
+				http.Error(w, fmt.Sprintf("unable to write heap dump status: %v", err), http.StatusInternalServerError)
+			}
+		}))
 	}
 
 	return mux
