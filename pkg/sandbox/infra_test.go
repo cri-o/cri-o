@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	defaultDNSPath = "/etc/resolv.conf"
-	testDNSPath    = "fixtures/resolv_test.conf"
-	dnsPath        = "fixtures/resolv.conf"
+	defaultDNSPath  = "/etc/resolv.conf"
+	testDNSPath     = "fixtures/resolv_test.conf"
+	dnsPath         = "fixtures/resolv.conf"
+	expandedDNSPath = "fixtures/expanded_resolv.conf"
 )
 
 var _ = Describe("Sandbox", func() {
@@ -35,6 +36,12 @@ var _ = Describe("Sandbox", func() {
 				[]string{"192.30.253.113", "192.30.252.153"},
 				[]string{"timeout:5", "attempts:3"},
 				testDNSPath, dnsPath,
+			},
+			{
+				[]string{"cri-o.io", "github.com"},
+				[]string{"1.com", "2.com", "3.com", "4.com", "5.com", "6.com", "7.com"},
+				[]string{"timeout:5", "attempts:3"},
+				testDNSPath, expandedDNSPath,
 			},
 		}
 
