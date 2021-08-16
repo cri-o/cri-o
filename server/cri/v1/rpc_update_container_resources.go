@@ -15,13 +15,15 @@ func (s *service) UpdateContainerResources(
 	}
 	if req.Linux != nil {
 		r.Linux = &types.LinuxContainerResources{
-			CPUPeriod:          req.Linux.CpuPeriod,
-			CPUQuota:           req.Linux.CpuQuota,
-			CPUShares:          req.Linux.CpuShares,
-			MemoryLimitInBytes: req.Linux.MemoryLimitInBytes,
-			OomScoreAdj:        req.Linux.OomScoreAdj,
-			CPUsetCPUs:         req.Linux.CpusetCpus,
-			CPUsetMems:         req.Linux.CpusetMems,
+			CPUPeriod:              req.Linux.CpuPeriod,
+			CPUQuota:               req.Linux.CpuQuota,
+			CPUShares:              req.Linux.CpuShares,
+			MemoryLimitInBytes:     req.Linux.MemoryLimitInBytes,
+			OomScoreAdj:            req.Linux.OomScoreAdj,
+			CPUsetCPUs:             req.Linux.CpusetCpus,
+			CPUsetMems:             req.Linux.CpusetMems,
+			Unified:                req.Linux.Unified,
+			MemorySwapLimitInBytes: req.Linux.MemorySwapLimitInBytes,
 		}
 		hugePageLimits := []*types.HugepageLimit{}
 		for _, x := range req.Linux.HugepageLimits {

@@ -494,14 +494,16 @@ func NewLinuxContainerConfig() *LinuxContainerConfig {
 }
 
 type LinuxContainerResources struct {
-	CPUPeriod          int64
-	CPUQuota           int64
-	CPUShares          int64
-	MemoryLimitInBytes int64
-	OomScoreAdj        int64
-	CPUsetCPUs         string
-	CPUsetMems         string
-	HugepageLimits     []*HugepageLimit
+	CPUPeriod              int64
+	CPUQuota               int64
+	CPUShares              int64
+	MemoryLimitInBytes     int64
+	MemorySwapLimitInBytes int64
+	OomScoreAdj            int64
+	CPUsetCPUs             string
+	CPUsetMems             string
+	Unified                map[string]string
+	HugepageLimits         []*HugepageLimit
 }
 
 type HugepageLimit struct {
