@@ -16,7 +16,7 @@ require (
 	github.com/containers/image/v5 v5.5.4
 	github.com/containers/libpod v1.9.2
 	github.com/containers/ocicrypt v1.0.3
-	github.com/containers/storage v1.20.6-0.20210726142922-bcd609a5b19f
+	github.com/containers/storage v1.20.6-0.20210812201218-ec9d0ccd7e37
 	github.com/coreos/go-systemd/v22 v22.2.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.11
