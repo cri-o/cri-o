@@ -731,13 +731,7 @@ function check_oci_annotation() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 
-	# set memory {,swap} max file for cgroupv1 or v2
-	CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
-	CGROUP_MEM_FILE="/sys/fs/cgroup/memory/memory.limit_in_bytes"
-	if is_cgroup_v2; then
-		CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory.swap.max"
-		CGROUP_MEM_FILE="/sys/fs/cgroup/memory.max"
-	fi
+	set_swap_fields_given_cgroup_version
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_FILE")
 	[[ "$output" == *"209715200"* ]]

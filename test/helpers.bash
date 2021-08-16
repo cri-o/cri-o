@@ -566,3 +566,13 @@ runtime_type = "$RUNTIME_TYPE"
 allowed_annotations = ["$ANNOTATION"]
 EOF
 }
+
+function set_swap_fields_given_cgroup_version() {
+    # set memory {,swap} max file for cgroupv1 or v2
+    export CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
+    export CGROUP_MEM_FILE="/sys/fs/cgroup/memory/memory.limit_in_bytes"
+    if is_cgroup_v2; then
+        export CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory.swap.max"
+        export CGROUP_MEM_FILE="/sys/fs/cgroup/memory.max"
+    fi
+}
