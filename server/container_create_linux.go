@@ -392,6 +392,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 					specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
 				}
 			}
+
+			if node.CgroupIsV2() {
+				for key, value := range resources.Unified {
+					specgen.Config.Linux.Resources.Unified[key] = value
+				}
+			}
 		}
 
 		specgen.SetLinuxCgroupsPath(s.config.CgroupManager().ContainerCgroupPath(sb.CgroupParent(), containerID))

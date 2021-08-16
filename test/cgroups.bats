@@ -3,6 +3,7 @@
 load helpers
 
 function setup() {
+	newconfig="$TESTDIR/config.json"
 	setup_test
 }
 
@@ -69,4 +70,20 @@ function teardown() {
 		"$TESTDATA"/container_sleep.json > "$newconfig"
 
 	! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
+}
+
+@test "cgroupv2 unified support" {
+	if ! is_cgroup_v2; then
+		skip "node must be configured with cgroupv2 for this test"
+	fi
+	start_crio
+
+	jq '	  .linux.resources.unified = {"memory.min": "209715200", "memory.high": "210763776"}' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory.min")
+	[[ "$output" == *"209715200"* ]]
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory.high")
+	[[ "$output" == *"210763776"* ]]
 }
