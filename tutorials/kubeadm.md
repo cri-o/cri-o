@@ -15,7 +15,7 @@ If you're using a flannel network, set
 To configure the Kubelet, you can use the [yq](https://github.com/mikefarah/yq) tool, as is shown below.
 You can also manually configure a kubeadm configuration.
 
-Run the following stript, passing the location you'd like the kubeadm configuration to be as the first argument:
+Run the following script, passing the location you'd like the kubeadm configuration to be as the first argument:
 
 ```bash
 #!/bin/bash                                                                                                                                                                                                                                   
