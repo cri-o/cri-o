@@ -2,6 +2,7 @@ package config
 
 import (
 	"io"
+	"reflect"
 	"text/template"
 )
 
@@ -378,12 +379,12 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeRuntimesRuntimeHandler,
 			group:          crioRuntimeConfig,
-			isDefaultValue: runtimesEqual(dc.Runtimes, c.Runtimes),
+			isDefaultValue: RuntimesEqual(dc.Runtimes, c.Runtimes),
 		},
 		{
 			templateString: templateStringCrioRuntimeWorkloads,
 			group:          crioRuntimeConfig,
-			isDefaultValue: workloadsEqual(dc.Workloads, c.Workloads),
+			isDefaultValue: WorkloadsEqual(dc.Workloads, c.Workloads),
 		},
 		{
 			templateString: templateStringCrioImageDefaultTransport,
@@ -510,14 +511,17 @@ func stringSliceEqual(a, b []string) bool {
 	return true
 }
 
-func runtimesEqual(a, b Runtimes) bool {
+func RuntimesEqual(a, b Runtimes) bool {
 	if len(a) != len(b) {
 		return false
 	}
 
-	// only check the name of runtime
-	for key := range a {
-		if _, ok := b[key]; !ok {
+	for key, valueA := range a {
+		valueB, ok := b[key]
+		if !ok {
+			return false
+		}
+		if !reflect.DeepEqual(valueA, valueB) {
 			return false
 		}
 	}
@@ -525,14 +529,17 @@ func runtimesEqual(a, b Runtimes) bool {
 	return true
 }
 
-func workloadsEqual(a, b Workloads) bool {
+func WorkloadsEqual(a, b Workloads) bool {
 	if len(a) != len(b) {
 		return false
 	}
 
-	// only check the name of workload
-	for key := range a {
-		if _, ok := b[key]; !ok {
+	for key, valueA := range a {
+		valueB, ok := b[key]
+		if !ok {
+			return false
+		}
+		if !reflect.DeepEqual(valueA, valueB) {
 			return false
 		}
 	}
