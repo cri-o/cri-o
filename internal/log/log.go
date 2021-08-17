@@ -32,6 +32,10 @@ func Fatalf(ctx context.Context, format string, args ...interface{}) {
 	entry(ctx).Fatalf(format, args...)
 }
 
+func WithFields(ctx context.Context, fields map[string]interface{}) *logrus.Entry {
+	return entry(ctx).WithFields(fields)
+}
+
 func entry(ctx context.Context) *logrus.Entry {
 	logger := logrus.StandardLogger()
 	if ctx == nil {
