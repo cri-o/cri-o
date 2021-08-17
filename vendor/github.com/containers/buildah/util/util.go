@@ -123,12 +123,6 @@ func resolveName(name string, sc *types.SystemContext, store storage.Store) ([]s
 	return candidates, DefaultTransport, searchRegistriesAreEmpty, nil
 }
 
-// StartsWithValidTransport validates the name starts with Buildah supported transport
-// to avoid the corner case image name same as the transport name
-func StartsWithValidTransport(name string) bool {
-	return strings.HasPrefix(name, "dir:") || strings.HasPrefix(name, "docker://") || strings.HasPrefix(name, "docker-archive:") || strings.HasPrefix(name, "docker-daemon:") || strings.HasPrefix(name, "oci:") || strings.HasPrefix(name, "oci-archive:")
-}
-
 // ExpandNames takes unqualified names, parses them as image names, and returns
 // the fully expanded result, including a tag.  Names which don't include a registry
 // name will be marked for the most-preferred registry (i.e., the first one in our
@@ -169,7 +163,7 @@ func FindImage(store storage.Store, firstRegistry string, systemContext *types.S
 		return nil, nil, err
 	}
 
-	localImage, _, err := runtime.LookupImage(image, &libimage.LookupImageOptions{IgnorePlatform: true})
+	localImage, _, err := runtime.LookupImage(image, nil)
 	if err != nil {
 		return nil, nil, err
 	}
