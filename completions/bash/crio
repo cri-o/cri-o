@@ -75,6 +75,7 @@ h
 --pinns-path
 --profile
 --profile-port
+--rdt-config-file
 --read-only
 --registries-conf
 --registries-conf-dir
