@@ -92,8 +92,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithRootFS(s.Rootfs))
 	} else {
 		var resolvedImageName string
-		lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
-		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, lookupOptions)
+		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -154,7 +153,15 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if err != nil {
 		return nil, err
 	}
-	return rt.NewContainer(ctx, runtimeSpec, options...)
+
+	ctr, err := rt.NewContainer(ctx, runtimeSpec, options...)
+	if err != nil {
+		return ctr, err
+	}
+
+	// Copy the content from the underlying image into the newly created
+	// volume if configured to do so.
+	return ctr, rt.PrepareVolumeOnCreateContainer(ctx, ctr)
 }
 
 func extractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {

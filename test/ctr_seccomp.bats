@@ -40,7 +40,6 @@ function teardown() {
 	crictl start "$ctr_id"
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Operation not permitted"* ]]
 }
 
 # 3. test running with ctr unconfined and profile empty
@@ -74,7 +73,6 @@ function teardown() {
 	crictl start "$ctr_id"
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Operation not permitted"* ]]
 }
 
 # 6. test running with ctr docker/default
@@ -87,7 +85,6 @@ function teardown() {
 	crictl start "$ctr_id"
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Operation not permitted"* ]]
 }
 
 # 7. test running with ctr runtime/default if seccomp_override_empty is true
@@ -104,5 +101,4 @@ function teardown() {
 	crictl start "$ctr_id"
 	run crictl exec --sync "$ctr_id" chmod 777 .
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Operation not permitted"* ]]
 }

@@ -91,7 +91,7 @@ jobs:
           chmod -R +x bin
           sudo rm /etc/containers/storage.conf
       - run: |
-          make docs-generation
+          sudo -E make docs-generation
           hack/tree_status.sh
 
   validate-completions:
@@ -107,7 +107,7 @@ jobs:
           chmod -R +x bin
           sudo rm /etc/containers/storage.conf
       - run: |
-          make completions-generation
+          sudo -E make completions-generation
           hack/tree_status.sh
 
   build-static-amd64:

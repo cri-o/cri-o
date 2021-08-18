@@ -6,14 +6,17 @@ import (
 	"io"
 	"io/ioutil"
 	"mime"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
+	internalTypes "github.com/containers/image/v5/internal/types"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
@@ -36,7 +39,7 @@ type dockerImageSource struct {
 func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerReference) (*dockerImageSource, error) {
 	registry, err := sysregistriesv2.FindRegistry(sys, ref.ref.Name())
 	if err != nil {
-		return nil, errors.Wrapf(err, "error loading registries configuration")
+		return nil, errors.Wrapf(err, "loading registries configuration")
 	}
 	if registry == nil {
 		// No configuration was found for the provided reference, so use the
@@ -69,7 +72,6 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerRef
 		} else {
 			logrus.Debugf("Trying to access %q", pullSource.Reference)
 		}
-		logrus.Debugf("Trying to access %q", pullSource.Reference)
 		s, err := newImageSourceAttempt(ctx, sys, ref, pullSource)
 		if err == nil {
 			return s, nil
@@ -190,14 +192,14 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	headers := map[string][]string{
 		"Accept": manifest.DefaultRequestedManifestMIMETypes,
 	}
-	res, err := s.c.makeRequest(ctx, "GET", path, headers, nil, v2Auth, nil)
+	res, err := s.c.makeRequest(ctx, http.MethodGet, path, headers, nil, v2Auth, nil)
 	if err != nil {
 		return nil, "", err
 	}
 	logrus.Debugf("Content-Type from manifest GET is %q", res.Header.Get("Content-Type"))
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, "", errors.Wrapf(registryHTTPResponseToError(res), "Error reading manifest %s in %s", tagOrDigest, s.physicalRef.ref.Name())
+		return nil, "", errors.Wrapf(registryHTTPResponseToError(res), "reading manifest %s in %s", tagOrDigest, s.physicalRef.ref.Name())
 	}
 
 	manblob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxManifestBodySize)
@@ -246,7 +248,7 @@ func (s *dockerImageSource) getExternalBlob(ctx context.Context, urls []string) 
 		// NOTE: we must not authenticate on additional URLs as those
 		//       can be abused to leak credentials or tokens.  Please
 		//       refer to CVE-2020-15157 for more information.
-		resp, err = s.c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth, nil)
+		resp, err = s.c.makeRequestToResolvedURL(ctx, http.MethodGet, url, nil, nil, -1, noAuth, nil)
 		if err == nil {
 			if resp.StatusCode != http.StatusOK {
 				err = errors.Errorf("error fetching external blob from %q: %d (%s)", url, resp.StatusCode, http.StatusText(resp.StatusCode))
@@ -276,6 +278,82 @@ func (s *dockerImageSource) HasThreadSafeGetBlob() bool {
 	return true
 }
 
+// GetBlobAt returns a stream for the specified blob.
+func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []internalTypes.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
+	headers := make(map[string][]string)
+
+	var rangeVals []string
+	for _, c := range chunks {
+		rangeVals = append(rangeVals, fmt.Sprintf("%d-%d", c.Offset, c.Offset+c.Length-1))
+	}
+
+	headers["Range"] = []string{fmt.Sprintf("bytes=%s", strings.Join(rangeVals, ","))}
+
+	if len(info.URLs) != 0 {
+		return nil, nil, fmt.Errorf("external URLs not supported with GetBlobAt")
+	}
+
+	path := fmt.Sprintf(blobsPath, reference.Path(s.physicalRef.ref), info.Digest.String())
+	logrus.Debugf("Downloading %s", path)
+	res, err := s.c.makeRequest(ctx, http.MethodGet, path, headers, nil, v2Auth, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := httpResponseToError(res, "Error fetching partial blob"); err != nil {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, nil, err
+	}
+	if res.StatusCode != http.StatusPartialContent {
+		res.Body.Close()
+		return nil, nil, errors.Errorf("invalid status code returned when fetching blob %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
+	}
+
+	mediaType, params, err := mime.ParseMediaType(res.Header.Get("Content-Type"))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	streams := make(chan io.ReadCloser)
+	errs := make(chan error)
+
+	go func() {
+		defer close(streams)
+		defer close(errs)
+		if !strings.HasPrefix(mediaType, "multipart/") {
+			streams <- res.Body
+			return
+		}
+		boundary, found := params["boundary"]
+		if !found {
+			errs <- errors.Errorf("could not find boundary")
+			return
+		}
+		buffered := makeBufferedNetworkReader(res.Body, 64, 16384)
+		defer buffered.Close()
+		mr := multipart.NewReader(buffered, boundary)
+		for {
+			p, err := mr.NextPart()
+			if err != nil {
+				if err != io.EOF {
+					errs <- err
+				}
+				return
+			}
+			s := signalCloseReader{
+				Closed: make(chan interface{}),
+				Stream: p,
+			}
+			streams <- s
+			// NextPart() cannot be called while the current part
+			// is being read, so wait until it is closed
+			<-s.Closed
+		}
+	}()
+	return streams, errs, nil
+}
+
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
 // The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
@@ -286,7 +364,7 @@ func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 
 	path := fmt.Sprintf(blobsPath, reference.Path(s.physicalRef.ref), info.Digest.String())
 	logrus.Debugf("Downloading %s", path)
-	res, err := s.c.makeRequest(ctx, "GET", path, nil, nil, v2Auth, nil)
+	res, err := s.c.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -376,11 +454,10 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 
 	case "http", "https":
 		logrus.Debugf("GET %s", url)
-		req, err := http.NewRequest("GET", url.String(), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
 		if err != nil {
 			return nil, false, err
 		}
-		req = req.WithContext(ctx)
 		res, err := s.c.client.Do(req)
 		if err != nil {
 			return nil, false, err
@@ -445,7 +522,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 		return err
 	}
 	getPath := fmt.Sprintf(manifestPath, reference.Path(ref.ref), refTail)
-	get, err := c.makeRequest(ctx, "GET", getPath, headers, nil, v2Auth, nil)
+	get, err := c.makeRequest(ctx, http.MethodGet, getPath, headers, nil, v2Auth, nil)
 	if err != nil {
 		return err
 	}
@@ -467,7 +544,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 
 	// When retrieving the digest from a registry >= 2.3 use the following header:
 	//   "Accept": "application/vnd.docker.distribution.manifest.v2+json"
-	delete, err := c.makeRequest(ctx, "DELETE", deletePath, headers, nil, v2Auth, nil)
+	delete, err := c.makeRequest(ctx, http.MethodDelete, deletePath, headers, nil, v2Auth, nil)
 	if err != nil {
 		return err
 	}
@@ -498,4 +575,120 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 	}
 
 	return nil
+}
+
+type bufferedNetworkReaderBuffer struct {
+	data     []byte
+	len      int
+	consumed int
+	err      error
+}
+
+type bufferedNetworkReader struct {
+	stream      io.Reader
+	emptyBuffer chan *bufferedNetworkReaderBuffer
+	readyBuffer chan *bufferedNetworkReaderBuffer
+	terminate   chan bool
+	current     *bufferedNetworkReaderBuffer
+	mutex       sync.Mutex
+	gotEOF      bool
+}
+
+// handleBufferedNetworkReader runs in a goroutine
+func handleBufferedNetworkReader(br *bufferedNetworkReader) {
+	defer close(br.readyBuffer)
+	for {
+		select {
+		case b := <-br.emptyBuffer:
+			b.len, b.err = br.stream.Read(b.data)
+			br.readyBuffer <- b
+			if b.err != nil {
+				return
+			}
+		case <-br.terminate:
+			return
+		}
+	}
+}
+
+func (n *bufferedNetworkReader) Close() {
+	close(n.terminate)
+	close(n.emptyBuffer)
+}
+
+func (n *bufferedNetworkReader) read(p []byte) (int, error) {
+	if n.current != nil {
+		copied := copy(p, n.current.data[n.current.consumed:n.current.len])
+		n.current.consumed += copied
+		if n.current.consumed == n.current.len {
+			n.emptyBuffer <- n.current
+			n.current = nil
+		}
+		if copied > 0 {
+			return copied, nil
+		}
+	}
+	if n.gotEOF {
+		return 0, io.EOF
+	}
+
+	var b *bufferedNetworkReaderBuffer
+
+	select {
+	case b = <-n.readyBuffer:
+		if b.err != nil {
+			if b.err != io.EOF {
+				return b.len, b.err
+			}
+			n.gotEOF = true
+		}
+		b.consumed = 0
+		n.current = b
+		return n.read(p)
+	case <-n.terminate:
+		return 0, io.EOF
+	}
+}
+
+func (n *bufferedNetworkReader) Read(p []byte) (int, error) {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
+	return n.read(p)
+}
+
+func makeBufferedNetworkReader(stream io.Reader, nBuffers, bufferSize uint) *bufferedNetworkReader {
+	br := bufferedNetworkReader{
+		stream:      stream,
+		emptyBuffer: make(chan *bufferedNetworkReaderBuffer, nBuffers),
+		readyBuffer: make(chan *bufferedNetworkReaderBuffer, nBuffers),
+		terminate:   make(chan bool),
+	}
+
+	go func() {
+		handleBufferedNetworkReader(&br)
+	}()
+
+	for i := uint(0); i < nBuffers; i++ {
+		b := bufferedNetworkReaderBuffer{
+			data: make([]byte, bufferSize),
+		}
+		br.emptyBuffer <- &b
+	}
+
+	return &br
+}
+
+type signalCloseReader struct {
+	Closed chan interface{}
+	Stream io.ReadCloser
+}
+
+func (s signalCloseReader) Read(p []byte) (int, error) {
+	return s.Stream.Read(p)
+}
+
+func (s signalCloseReader) Close() error {
+	defer close(s.Closed)
+	return s.Stream.Close()
 }

@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "master"
+    DEST_BRANCH: "main"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -25,13 +25,12 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    # See https://github.com/containers/podman/blob/master/contrib/cirrus/README.md#test_build_cache_images_task-task
     FEDORA_NAME: "fedora-34"
     PRIOR_FEDORA_NAME: "fedora-33"
     UBUNTU_NAME: "ubuntu-2104"
     PRIOR_UBUNTU_NAME: "ubuntu-2010"
 
-    IMAGE_SUFFIX: "c6032583541653504"
+    IMAGE_SUFFIX: "c6248193773010944"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -99,7 +98,7 @@ smoke_task:
     # the git-validate tool which are difficult to debug and fix.
     skip: $CIRRUS_PR == ''
 
-    timeout_in: 10m
+    timeout_in: 30m
 
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
     build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
@@ -174,7 +173,7 @@ conformance_task:
         - env:
             STORAGE_DRIVER: 'overlay'
 
-    setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
+    setup_script: '${SCRIPT_BASE}/setup.sh conformance |& ${_TIMESTAMP}'
     conformance_test_script: '${SCRIPT_BASE}/test.sh conformance |& ${_TIMESTAMP}'
 
 
@@ -190,6 +189,7 @@ cross_build_task:
         image: 'catalina-base'
 
     script:
+        - brew update
         - brew install go
         - brew install go-md2man
         - brew install gpgme
@@ -358,9 +358,12 @@ success_task:
       - static_build
 
     container:
-        image: "quay.io/libpod/fedora-minimal:latest"
+        image: "quay.io/libpod/alpine:latest"
         cpu: 1
         memory: 1
+
+    env:
+        CIRRUS_SHELL: direct  # execute command directly
 
     clone_script: mkdir -p $CIRRUS_WORKING_DIR
     script: /bin/true

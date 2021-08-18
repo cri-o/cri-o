@@ -14,11 +14,13 @@ import (
 	"os/user"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"unsafe"
 
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/storage/pkg/idtools"
+	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -235,6 +237,24 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, 0, nil
 	}
 
+	if mounts, err := pmount.GetMounts(); err == nil {
+		for _, m := range mounts {
+			if m.Mountpoint == "/" {
+				isShared := false
+				for _, o := range strings.Split(m.Optional, ",") {
+					if strings.HasPrefix(o, "shared:") {
+						isShared = true
+						break
+					}
+				}
+				if !isShared {
+					logrus.Warningf("%q is not a shared mount, this could cause issues or missing mounts with rootless containers", m.Mountpoint)
+				}
+				break
+			}
+		}
+	}
+
 	cPausePid := C.CString(pausePid)
 	defer C.free(unsafe.Pointer(cPausePid))
 
@@ -268,7 +288,9 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		}
 		if retErr != nil && pid > 0 {
 			if err := unix.Kill(pid, unix.SIGKILL); err != nil {
-				logrus.Errorf("failed to kill %d", pid)
+				if err != unix.ESRCH {
+					logrus.Errorf("failed to cleanup process %d: %v", pid, err)
+				}
 			}
 			C.reexec_in_user_namespace_wait(C.int(pid), 0)
 		}
@@ -394,7 +416,9 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 			}
 
 			if err := unix.Kill(int(pidC), s.(unix.Signal)); err != nil {
-				logrus.Errorf("failed to kill %d", int(pidC))
+				if err != unix.ESRCH {
+					logrus.Errorf("failed to propagate signal to child process %d: %v", int(pidC), err)
+				}
 			}
 		}
 	}()

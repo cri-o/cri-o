@@ -110,19 +110,33 @@ type PodCreateOptions struct {
 	Hostname           string
 	Infra              bool
 	InfraImage         string
+	InfraName          string
 	InfraCommand       string
 	InfraConmonPidFile string
 	Labels             map[string]string
 	Name               string
 	Net                *NetOptions
 	Share              []string
+	Pid                string
 }
 
 type PodCreateReport struct {
 	Id string //nolint
 }
 
-func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
+func setNamespaces(p *PodCreateOptions) ([4]specgen.Namespace, error) {
+	allNS := [4]specgen.Namespace{}
+	if p.Pid != "" {
+		pid, err := specgen.ParseNamespace(p.Pid)
+		if err != nil {
+			return [4]specgen.Namespace{}, err
+		}
+		allNS[0] = pid
+	}
+	return allNS, nil
+}
+
+func (p *PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) error {
 	// Basic Config
 	s.Name = p.Name
 	s.Hostname = p.Hostname
@@ -135,6 +149,7 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 		s.InfraConmonPidFile = p.InfraConmonPidFile
 	}
 	s.InfraImage = p.InfraImage
+	s.InfraName = p.InfraName
 	s.SharedNamespaces = p.Share
 	s.PodCreateCommand = p.CreateCommand
 
@@ -154,8 +169,18 @@ func (p PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) {
 	s.NoManageHosts = p.Net.NoHosts
 	s.HostAdd = p.Net.AddHosts
 
+	namespaces, err := setNamespaces(p)
+	if err != nil {
+		return err
+	}
+	if !namespaces[0].IsDefault() {
+		s.Pid = namespaces[0]
+	}
+
 	// Cgroup
 	s.CgroupParent = p.CGroupParent
+
+	return nil
 }
 
 type PodPruneOptions struct {

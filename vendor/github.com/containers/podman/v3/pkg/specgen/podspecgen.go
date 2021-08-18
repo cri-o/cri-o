@@ -41,6 +41,12 @@ type PodBasicConfig struct {
 	// Conflicts with NoInfra=true.
 	// Optional.
 	InfraImage string `json:"infra_image,omitempty"`
+	// InfraName is the name that will be used for the infra container.
+	// If not set, the default set in the Libpod configuration file will be
+	// used.
+	// Conflicts with NoInfra=true.
+	// Optional.
+	InfraName string `json:"infra_name,omitempty"`
 	// SharedNamespaces instructs the pod to share a set of namespaces.
 	// Shared namespaces will be joined (by default) by every container
 	// which joins the pod.
@@ -55,6 +61,10 @@ type PodBasicConfig struct {
 	// (e.g. `podman generate systemd --new`).
 	// Optional.
 	PodCreateCommand []string `json:"pod_create_command,omitempty"`
+	// Pid sets the process id namespace of the pod
+	// Optional (defaults to private if unset). This sets the PID namespace of the infra container
+	// This configuration will then be shared with the entire pod if PID namespace sharing is enabled via --share
+	Pid Namespace `json:"pid,omitempty:"`
 }
 
 // PodNetworkConfig contains networking configuration for a pod.

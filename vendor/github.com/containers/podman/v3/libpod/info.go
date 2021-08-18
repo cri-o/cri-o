@@ -15,10 +15,10 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/seccomp"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/linkmode"
 	"github.com/containers/podman/v3/pkg/cgroups"
-	registries2 "github.com/containers/podman/v3/pkg/registries"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
@@ -49,14 +49,16 @@ func (r *Runtime) info() (*define.Info, error) {
 	}
 	info.Store = storeInfo
 	registries := make(map[string]interface{})
-	data, err := registries2.GetRegistriesData()
+
+	sys := r.SystemContext()
+	data, err := sysregistriesv2.GetRegistries(sys)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
 	for _, reg := range data {
 		registries[reg.Prefix] = reg
 	}
-	regs, err := registries2.GetRegistries()
+	regs, err := sysregistriesv2.UnqualifiedSearchRegistries(sys)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
@@ -139,19 +141,24 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	}
 	info.CGroupsVersion = cgroupVersion
 
-	if rootless.IsRootless() {
-		if path, err := exec.LookPath("slirp4netns"); err == nil {
-			version, err := programVersion(path)
-			if err != nil {
-				logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
-			}
-			program := define.SlirpInfo{
-				Executable: path,
-				Package:    packageVersion(path),
-				Version:    version,
-			}
-			info.Slirp4NetNS = program
+	slirp4netnsPath := r.config.Engine.NetworkCmdPath
+	if slirp4netnsPath == "" {
+		slirp4netnsPath, _ = exec.LookPath("slirp4netns")
+	}
+	if slirp4netnsPath != "" {
+		version, err := programVersion(slirp4netnsPath)
+		if err != nil {
+			logrus.Warnf("Failed to retrieve program version for %s: %v", slirp4netnsPath, err)
 		}
+		program := define.SlirpInfo{
+			Executable: slirp4netnsPath,
+			Package:    packageVersion(slirp4netnsPath),
+			Version:    version,
+		}
+		info.Slirp4NetNS = program
+	}
+
+	if rootless.IsRootless() {
 		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading uid mappings")

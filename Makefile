@@ -24,7 +24,8 @@ BUILDTAGS ?= containers_image_ostree_stub \
 			 $(shell hack/libdm_no_deferred_remove_tag.sh) \
 			 $(shell hack/openpgp_tag.sh) \
 			 $(shell hack/seccomp_tag.sh) \
-			 $(shell hack/selinux_tag.sh)
+			 $(shell hack/selinux_tag.sh) \
+			 $(shell hack/libsubid_tag.sh)
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 CONTAINER_RUNTIME ?= podman
 BUILD_PATH := $(shell pwd)/build

@@ -538,6 +538,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig.StaticMAC = p.config.InfraContainer.StaticMAC.String()
 		infraConfig.NoManageResolvConf = p.config.InfraContainer.UseImageResolvConf
 		infraConfig.NoManageHosts = p.config.InfraContainer.UseImageHosts
+		infraConfig.PidNS = p.PidMode()
 
 		if len(p.config.InfraContainer.DNSServer) > 0 {
 			infraConfig.DNSServer = make([]string, 0, len(p.config.InfraContainer.DNSServer))

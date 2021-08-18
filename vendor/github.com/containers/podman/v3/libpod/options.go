@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
@@ -452,6 +453,19 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 		}
 
 		rt.config.Engine.InfraCommand = cmd
+
+		return nil
+	}
+}
+
+// WithDefaultInfraName sets the infra container name for a single pod.
+func WithDefaultInfraName(name string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.config.Engine.InfraImage = name
 
 		return nil
 	}
@@ -1787,6 +1801,19 @@ func WithInfraCommand(cmd []string) PodCreateOption {
 	}
 }
 
+// WithInfraName sets the infra container name for a single pod.
+func WithInfraName(name string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.InfraContainer.InfraName = name
+
+		return nil
+	}
+}
+
 // WithPodName sets the name of the pod.
 func WithPodName(name string) PodCreateOption {
 	return func(pod *Pod) error {
@@ -2356,6 +2383,25 @@ func WithVolatile() CtrCreateOption {
 		}
 
 		ctr.config.Volatile = true
+		return nil
+	}
+}
+
+func WithPodPidNS(inp specgen.Namespace) PodCreateOption {
+	return func(p *Pod) error {
+		if p.valid {
+			return define.ErrPodFinalized
+		}
+		if p.config.UsePodPID {
+			switch inp.NSMode {
+			case "container":
+				return errors.Wrap(define.ErrInvalidArg, "Cannot take container in a different NS as an argument")
+			case "host":
+				p.config.UsePodPID = false
+			}
+			p.config.InfraContainer.PidNS = inp
+		}
+
 		return nil
 	}
 }

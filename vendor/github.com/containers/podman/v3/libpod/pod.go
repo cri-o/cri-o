@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/lock"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
@@ -95,6 +96,7 @@ type InfraContainerConfig struct {
 	HasInfraContainer  bool                 `json:"makeInfraContainer"`
 	NoNetwork          bool                 `json:"noNetwork,omitempty"`
 	HostNetwork        bool                 `json:"infraHostNetwork,omitempty"`
+	PidNS              specgen.Namespace    `json:"infraPid,omitempty"`
 	PortBindings       []ocicni.PortMapping `json:"infraPortBindings"`
 	StaticIP           net.IP               `json:"staticIP,omitempty"`
 	StaticMAC          net.HardwareAddr     `json:"staticMAC,omitempty"`
@@ -108,6 +110,7 @@ type InfraContainerConfig struct {
 	ExitCommand        []string             `json:"exitCommand,omitempty"`
 	InfraImage         string               `json:"infraImage,omitempty"`
 	InfraCommand       []string             `json:"infraCommand,omitempty"`
+	InfraName          string               `json:"infraName,omitempty"`
 	Slirp4netns        bool                 `json:"slirp4netns,omitempty"`
 	NetworkOptions     map[string][]string  `json:"network_options,omitempty"`
 }
@@ -126,6 +129,11 @@ func (p *Pod) Name() string {
 // Namespaces are used to logically separate containers and pods in the state.
 func (p *Pod) Namespace() string {
 	return p.config.Namespace
+}
+
+// PidMode returns the PID mode given by the user ex: pod, private...
+func (p *Pod) PidMode() string {
+	return string(p.config.InfraContainer.PidNS.NSMode)
 }
 
 // Labels returns the pod's labels

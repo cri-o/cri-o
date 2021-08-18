@@ -91,6 +91,8 @@ type InspectPodInfraConfig struct {
 	Networks []string
 	// NetworkOptions are additional options for each network
 	NetworkOptions map[string][]string
+	// Pid is the PID namespace mode of the pod's infra container
+	PidNS string `json:"pid_ns,omitempty"`
 }
 
 // InspectPodContainerInfo contains information on a container in a pod.

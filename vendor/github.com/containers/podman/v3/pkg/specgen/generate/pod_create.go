@@ -90,8 +90,16 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 		options = append(options, libpod.WithInfraImage(p.InfraImage))
 	}
 
+	if len(p.InfraName) > 0 {
+		options = append(options, libpod.WithInfraName(p.InfraName))
+	}
+
 	if len(p.InfraCommand) > 0 {
 		options = append(options, libpod.WithInfraCommand(p.InfraCommand))
+	}
+
+	if !p.Pid.IsDefault() {
+		options = append(options, libpod.WithPodPidNS(p.Pid))
 	}
 
 	switch p.NetNS.NSMode {
@@ -125,7 +133,7 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 		options = append(options, libpod.WithPodUseImageHosts())
 	}
 	if len(p.PortMappings) > 0 {
-		ports, _, _, err := parsePortMapping(p.PortMappings)
+		ports, _, _, err := ParsePortMapping(p.PortMappings)
 		if err != nil {
 			return nil, err
 		}
