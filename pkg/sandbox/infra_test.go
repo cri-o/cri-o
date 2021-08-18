@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	defaultDNSPath = "/etc/resolv.conf"
-	testDNSPath    = "fixtures/resolv_test.conf"
-	dnsPath        = "fixtures/resolv.conf"
+	defaultDNSPath  = "/etc/resolv.conf"
+	testDNSPath     = "fixtures/resolv_test.conf"
+	dnsPath         = "fixtures/resolv.conf"
+	expandedDNSPath = "fixtures/expanded_resolv.conf"
 )
 
 var _ = Describe("Sandbox", func() {
@@ -36,11 +37,18 @@ var _ = Describe("Sandbox", func() {
 				[]string{"timeout:5", "attempts:3"},
 				testDNSPath, dnsPath,
 			},
+			{
+				[]string{"cri-o.io", "github.com"},
+				[]string{"1.com", "2.com", "3.com", "4.com", "5.com", "6.com", "7.com"},
+				[]string{"timeout:5", "attempts:3"},
+				testDNSPath, expandedDNSPath,
+			},
 		}
 
 		for _, c := range testCases {
-			Expect(sandbox.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)).To(BeNil())
+			err := sandbox.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)
 			defer os.Remove(c.Path)
+			Expect(err).To(BeNil())
 
 			expect, _ := ioutil.ReadFile(c.Want) // nolint: errcheck
 			result, _ := ioutil.ReadFile(c.Path) // nolint: errcheck

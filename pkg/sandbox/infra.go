@@ -17,12 +17,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const (
-	// According to http://man7.org/linux/man-pages/man5/resolv.conf.5.html:
-	// "The search list is currently limited to six domains with a total of 256 characters."
-	maxDNSSearches = 6
-)
-
 func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo) error {
 	var err error
 	s.infra, err = container.New()
@@ -127,10 +121,6 @@ func ParseDNSOptions(servers, searches, options []string, path string) (retErr e
 	nOptions := len(options)
 	if nServers == 0 && nSearches == 0 && nOptions == 0 {
 		return copyFile("/etc/resolv.conf", path)
-	}
-
-	if nSearches > maxDNSSearches {
-		return fmt.Errorf("DNSOption.Searches has more than %d domains", maxDNSSearches)
 	}
 
 	f, err := os.Create(path)
