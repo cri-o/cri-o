@@ -46,8 +46,9 @@ var _ = Describe("Sandbox", func() {
 		}
 
 		for _, c := range testCases {
-			Expect(sandbox.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)).To(BeNil())
+			err := sandbox.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)
 			defer os.Remove(c.Path)
+			Expect(err).To(BeNil())
 
 			expect, _ := ioutil.ReadFile(c.Want) // nolint: errcheck
 			result, _ := ioutil.ReadFile(c.Path) // nolint: errcheck
