@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
+	"github.com/cri-o/cri-o/internal/config/blockio"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/cnimgr"
@@ -363,6 +364,9 @@ type RuntimeConfig struct {
 	// apparmorConfig is the internal AppArmor configuration
 	apparmorConfig *apparmor.Config
 
+	// blockioConfig is the internal blockio configuration
+	blockioConfig *blockio.Config
+
 	// rdtConfig is the internal Rdt configuration
 	rdtConfig *rdt.Config
 
@@ -693,6 +697,7 @@ func DefaultConfig() (*Config, error) {
 			DropInfraCtr:             true,
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
+			blockioConfig:            blockio.New(),
 			rdtConfig:                rdt.New(),
 			ulimitsConfig:            ulimits.New(),
 			cgroupManager:            cgroupManager,
@@ -960,6 +965,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "unable to load AppArmor profile")
 		}
 
+		if err := c.blockioConfig.Load(c.BlockIOConfigFile); err != nil {
+			return errors.Wrap(err, "blockio configuration")
+		}
+
 		if err := c.rdtConfig.Load(c.RdtConfigFile); err != nil {
 			return errors.Wrap(err, "rdt configuration")
 		}
@@ -1034,6 +1043,11 @@ func (c *RuntimeConfig) Seccomp() *seccomp.Config {
 // AppArmor returns the AppArmor configuration
 func (c *RuntimeConfig) AppArmor() *apparmor.Config {
 	return c.apparmorConfig
+}
+
+// BlockIO returns the blockio configuration
+func (c *RuntimeConfig) BlockIO() *blockio.Config {
+	return c.blockioConfig
 }
 
 // Rdt returns the RDT configuration

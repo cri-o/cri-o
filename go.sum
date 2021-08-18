@@ -761,8 +761,8 @@ github.com/imdario/mergo v0.3.12/go.mod h1:jmQim1M+e3UYxmgPu/WyfjB3N3VflVyUjjjwH
 github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/insomniacslk/dhcp v0.0.0-20210120172423-cc9239ac6294/go.mod h1:TKl4jN3Voofo4UJIicyNhWGp/nlQqQkFxmwIFTvBkKI=
-github.com/intel/goresctrl v0.0.0-20210623080121-be5fa857f4b4 h1:p1oaKfbi31/qnFP0SLgeo8gN4/gpG3/MLqhh7/4IbGQ=
-github.com/intel/goresctrl v0.0.0-20210623080121-be5fa857f4b4/go.mod h1:VyYDHANYKMmWY0vM+OL91NLPrCbcG+AKeSJSsU+kzVw=
+github.com/intel/goresctrl v0.1.0 h1:nhcM6BXq9jqJT7W8VR/RRpWdq5LoJnSuAxhCzXrc9DA=
+github.com/intel/goresctrl v0.1.0/go.mod h1:VyYDHANYKMmWY0vM+OL91NLPrCbcG+AKeSJSsU+kzVw=
 github.com/ishidawataru/sctp v0.0.0-20190723014705-7c296d48a2b5/go.mod h1:DM4VvS+hD/kDi1U1QsX2fnZowwBhqD0Dk3bRPKF/Oc8=
 github.com/ishidawataru/sctp v0.0.0-20210226210310-f2269e66cdee h1:PAXLXk1heNZ5yokbMBpVLZQxo43wCZxRwl00mX+dd44=
 github.com/ishidawataru/sctp v0.0.0-20210226210310-f2269e66cdee/go.mod h1:co9pwDoBCm1kGxawmb4sPq0cSIOOWNPT4KnHotMP1Zg=
