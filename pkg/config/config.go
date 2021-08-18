@@ -158,6 +158,7 @@ type RootConfig struct {
 
 	// InternalWipe is whether CRI-O should wipe containers and images after a reboot when the server starts.
 	// If set to false, one must use the external command `crio wipe` to wipe the containers and images in these situations.
+	// The option InternalWipe is deprecated, and will be removed in a future release.
 	InternalWipe bool `toml:"internal_wipe"`
 }
 
@@ -642,6 +643,7 @@ func DefaultConfig() (*Config, error) {
 			VersionFile:        CrioVersionPathTmp,
 			VersionFilePersist: CrioVersionPathPersist,
 			CleanShutdownFile:  CrioCleanShutdownFile,
+			InternalWipe:       true,
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,

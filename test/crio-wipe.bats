@@ -80,38 +80,38 @@ function start_crio_with_stopped_pod() {
 }
 
 @test "remove containers and images when remove both" {
-	start_crio_with_stopped_pod
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	rm "$CONTAINER_VERSION_FILE"
 	rm "$CONTAINER_VERSION_FILE_PERSIST"
 	run_crio_wipe
 
-	start_crio_no_setup
+	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
 	test_crio_wiped_containers
 	test_crio_wiped_images
 }
 
 @test "remove containers when remove temporary" {
-	start_crio_with_stopped_pod
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	rm "$CONTAINER_VERSION_FILE"
 	run_crio_wipe
 
-	start_crio_no_setup
+	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
 	test_crio_wiped_containers
 	test_crio_did_not_wipe_images
 }
 
 @test "clear neither when remove persist" {
-	start_crio_with_stopped_pod
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	rm "$CONTAINER_VERSION_FILE_PERSIST"
 	run_crio_wipe
 
-	start_crio_no_setup
+	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
 	test_crio_did_not_wipe_containers
 	test_crio_did_not_wipe_images
 }
@@ -121,7 +121,7 @@ function start_crio_with_stopped_pod() {
 		skip "Podman not installed"
 	fi
 
-	start_crio_with_stopped_pod
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	run_podman_with_args run --name test -d quay.io/crio/busybox:latest top
@@ -132,7 +132,7 @@ function start_crio_with_stopped_pod() {
 }
 
 @test "do clear everything when shutdown file not found" {
-	start_crio_with_stopped_pod
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
@@ -140,7 +140,7 @@ function start_crio_with_stopped_pod() {
 
 	run_crio_wipe
 
-	start_crio_no_setup
+	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
 
 	test_crio_wiped_containers
 	test_crio_wiped_images
@@ -151,7 +151,7 @@ function start_crio_with_stopped_pod() {
 		skip "Podman not installed"
 	fi
 
-	start_crio_with_stopped_pod
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	run_podman_with_args run --name test quay.io/crio/busybox:latest ls
@@ -172,7 +172,7 @@ function start_crio_with_stopped_pod() {
 		skip "Podman not installed"
 	fi
 
-	start_crio_with_stopped_pod
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	# all podman containers would be stopped after a reboot
@@ -188,26 +188,26 @@ function start_crio_with_stopped_pod() {
 }
 
 @test "don't clear containers on a forced restart of crio" {
-	start_crio_with_stopped_pod
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean "-9" || true
 
 	run_crio_wipe
 
-	start_crio_no_setup
+	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
 
 	test_crio_did_not_wipe_containers
 	test_crio_did_not_wipe_images
 }
 
 @test "don't clear containers if clean shutdown supported file not present" {
-	start_crio_with_stopped_pod
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE.supported"
 
 	run_crio_wipe
 
-	start_crio_no_setup
+	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
 
 	test_crio_did_not_wipe_containers
 	test_crio_did_not_wipe_images
