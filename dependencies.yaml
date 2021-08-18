@@ -48,7 +48,7 @@ dependencies:
       match: cri_tools_git_version
 
   - name: runc
-    version: v1.0.0-rc95
+    version: v1.0.1
     refPaths:
     - path: scripts/versions
       match: runc
