@@ -13,6 +13,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/blang/semver"
+	"github.com/containers/common/pkg/apparmor"
+	"github.com/containers/common/pkg/seccomp"
 	"github.com/google/renameio"
 	json "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -25,20 +27,24 @@ const Version = "1.22.0"
 
 // Variables injected during build-time
 var (
-	gitCommit    string // sha1 from git, output of $(git rev-parse HEAD)
-	gitTreeState string // state of git tree, either "clean" or "dirty"
-	buildDate    string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+	gitCommit    string   // sha1 from git, output of $(git rev-parse HEAD)
+	gitTreeState string   // state of git tree, either "clean" or "dirty"
+	buildDate    string   // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+	buildTags    []string // tags to be used during build time
 )
 
 type Info struct {
-	Version      string `json:"version,omitempty"`
-	GitCommit    string `json:"gitCommit,omitempty"`
-	GitTreeState string `json:"gitTreeState,omitempty"`
-	BuildDate    string `json:"buildDate,omitempty"`
-	GoVersion    string `json:"goVersion,omitempty"`
-	Compiler     string `json:"compiler,omitempty"`
-	Platform     string `json:"platform,omitempty"`
-	Linkmode     string `json:"linkmode,omitempty"`
+	Version         string   `json:"version,omitempty"`
+	GitCommit       string   `json:"gitCommit,omitempty"`
+	GitTreeState    string   `json:"gitTreeState,omitempty"`
+	BuildDate       string   `json:"buildDate,omitempty"`
+	GoVersion       string   `json:"goVersion,omitempty"`
+	Compiler        string   `json:"compiler,omitempty"`
+	Platform        string   `json:"platform,omitempty"`
+	Linkmode        string   `json:"linkmode,omitempty"`
+	BuildTags       []string `json:"buildTags,omitempty"`
+	SeccompEnabled  bool     `json:"seccompEnabled"`
+	AppArmorEnabled bool     `json:"appArmorEnabled"`
 }
 
 // ShouldCrioWipe opens the version file, and parses it and the version string
@@ -137,14 +143,17 @@ func parseVersionConstant(versionString, gitCommit string) (*semver.Version, err
 
 func Get() *Info {
 	return &Info{
-		Version:      Version,
-		GitCommit:    gitCommit,
-		GitTreeState: gitTreeState,
-		BuildDate:    buildDate,
-		GoVersion:    runtime.Version(),
-		Compiler:     runtime.Compiler,
-		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		Linkmode:     getLinkmode(),
+		Version:         Version,
+		GitCommit:       gitCommit,
+		GitTreeState:    gitTreeState,
+		BuildDate:       buildDate,
+		GoVersion:       runtime.Version(),
+		Compiler:        runtime.Compiler,
+		Platform:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		Linkmode:        getLinkmode(),
+		BuildTags:       buildTags,
+		SeccompEnabled:  seccomp.IsEnabled(),
+		AppArmorEnabled: apparmor.IsEnabled(),
 	}
 }
 
@@ -157,9 +166,22 @@ func (i *Info) String() string {
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		value := v.FieldByName(field.Name).String()
-		if value != "" {
-			fmt.Fprintf(w, "%s:\t%s", field.Name, value)
+		value := v.FieldByName(field.Name)
+
+		valueString := ""
+		switch field.Type.Kind() {
+		case reflect.Bool:
+			valueString = fmt.Sprint(value.Bool())
+
+		case reflect.Slice:
+			valueString = strings.Join(value.Interface().([]string), ", ")
+
+		case reflect.String:
+			valueString = value.String()
+		}
+
+		if valueString != "" {
+			fmt.Fprintf(w, "%s:\t%s", field.Name, valueString)
 			if i+1 < t.NumField() {
 				fmt.Fprintf(w, "\n")
 			}
