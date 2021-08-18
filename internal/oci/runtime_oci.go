@@ -1146,7 +1146,6 @@ func WatchForFile(path string, done chan struct{}, opsToWatch ...fsnotify.Op) (c
 		}
 	}()
 	if err := watcher.Add(dir); err != nil {
-		close(done)
 		return nil, err
 	}
 	return ch, nil
