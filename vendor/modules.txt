@@ -183,7 +183,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/util
-# github.com/containers/common v0.43.0
+# github.com/containers/common v0.43.2
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
