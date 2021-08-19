@@ -214,12 +214,18 @@ func getLinkmode() string {
 		return unknown
 	}
 
+	isStatic := func(input string) bool {
+		if strings.Contains(strings.ToLower(input), "not a dynamic executable") ||
+			strings.Contains(strings.ToLower(input), "not a valid dynamic program") {
+			return true
+		}
+		return false
+	}
+
 	if !out.Success() {
-		if strings.Contains(out.Error(), "not a dynamic executable") ||
-			strings.Contains(strings.ToLower(out.Error()), "not a valid dynamic program") {
+		if isStatic(out.Error()) || isStatic(out.Output()) {
 			return "static"
 		}
-		logrus.Warnf("Encountered error detecting link mode of binary: %s", out.Error())
 		return unknown
 	}
 
