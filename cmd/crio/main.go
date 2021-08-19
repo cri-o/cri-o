@@ -247,8 +247,7 @@ func main() {
 
 		if config.CleanShutdownFile != "" {
 			// clear out the shutdown file
-			if err := os.Remove(config.CleanShutdownFile); err != nil {
-				// not a fatal error, as it could have been cleaned up
+			if err := os.Remove(config.CleanShutdownFile); err != nil && !os.IsNotExist(err) {
 				logrus.Error(err)
 			}
 
