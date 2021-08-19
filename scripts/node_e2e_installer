@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NODE_E2E_COMMIT=4d14fd61d2d533a0bb81557b54d3505be830efa7 # Commit to run upstream node e2e tests
+# Commit to run upstream node e2e tests
+NODE_E2E_COMMIT=359c7f8df802bdcffc12436d07c238ef23e8990c
 
 enable_selinux() {
     # Make sure SELinux is enabled
