@@ -139,7 +139,6 @@ func (p *Printer) Print(w io.Writer, node Node) error {
 	case *Stmt:
 		p.stmtList([]*Stmt{x}, nil)
 	case Command:
-		p.line = x.Pos().Line()
 		p.command(x, nil)
 	case *Word:
 		p.line = x.Pos().Line()
@@ -987,31 +986,28 @@ func (p *Printer) stmt(s *Stmt) {
 			p.pendingHdocs = append(p.pendingHdocs, r)
 		}
 	}
-	p.wroteSemi = true
-	switch {
-	case s.Semicolon.IsValid() && s.Semicolon.Line() > p.line && !p.singleLine:
-		p.bslashNewl()
-		p.WriteByte(';')
-	case s.Background:
-		if !p.minify {
+	sep := s.Semicolon.IsValid() && s.Semicolon.Line() > p.line && !p.singleLine
+	if sep || s.Background || s.Coprocess {
+		if sep {
+			p.bslashNewl()
+		} else if !p.minify {
 			p.space()
 		}
-		p.WriteString("&")
-	case s.Coprocess:
-		if !p.minify {
-			p.space()
+		if s.Background {
+			p.WriteString("&")
+		} else if s.Coprocess {
+			p.WriteString("|&")
+		} else {
+			p.WriteString(";")
 		}
-		p.WriteString("|&")
-	default:
-		p.wroteSemi = false
-	}
-	if p.wroteSemi {
+		p.wroteSemi = true
 		p.wantSpace = true
 	}
 	p.decLevel()
 }
 
 func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
+	p.line = cmd.Pos().Line()
 	p.spacePad(cmd.Pos())
 	switch x := cmd.(type) {
 	case *CallExpr:
@@ -1098,7 +1094,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.spacedToken(x.Op.String(), x.OpPos)
 			if len(x.Y.Comments) > 0 {
 				p.wantSpace = false
-				p.newline(Pos{})
+				p.newline(x.Y.Pos())
 				p.indent()
 				p.comments(x.Y.Comments...)
 				p.newline(Pos{})
