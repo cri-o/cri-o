@@ -61,11 +61,11 @@ require (
 	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
 	google.golang.org/grpc v1.40.0
 	k8s.io/api v0.22.0
-	k8s.io/apimachinery v0.21.3
-	k8s.io/client-go v0.21.2
-	k8s.io/cri-api v0.21.2
+	k8s.io/apimachinery v0.22.0
+	k8s.io/client-go v0.22.0
+	k8s.io/cri-api v0.22.0
 	k8s.io/klog/v2 v2.10.0
-	k8s.io/kubernetes v1.21.2
+	k8s.io/kubernetes v1.22.0
 	k8s.io/release v0.8.0
 	k8s.io/utils v0.0.0-20210707171843-4b05e18ac7d9
 	mvdan.cc/sh/v3 v3.3.0
