@@ -39,8 +39,7 @@ func (dn *DirectoryNotifier) initializeWatcher() {
 	for event := range dn.watcher.Events {
 		for op := range dn.opsToWatch {
 			if event.Op&fsnotify.Op(op) == fsnotify.Op(op) {
-				if notifyChan, ok := dn.filesToNotifiers.Load(event.Name); ok {
-					dn.filesToNotifiers.Delete(event.Name)
+				if notifyChan, ok := dn.filesToNotifiers.LoadAndDelete(event.Name); ok {
 					close(notifyChan.(chan struct{}))
 					break
 				}
@@ -50,11 +49,10 @@ func (dn *DirectoryNotifier) initializeWatcher() {
 }
 
 func (dn *DirectoryNotifier) NotifierForFile(file string) (chan struct{}, error) {
-	if _, ok := dn.filesToNotifiers.Load(file); ok {
+	c := make(chan struct{}, 1)
+	if _, ok := dn.filesToNotifiers.LoadOrStore(file, c); ok {
 		return nil, errors.Errorf("exec watcher already watching file %s", file)
 	}
-	c := make(chan struct{}, 1)
-	dn.filesToNotifiers.Store(file, c)
 	return c, nil
 }
 
