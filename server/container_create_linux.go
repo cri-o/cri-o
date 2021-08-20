@@ -426,7 +426,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	} else if securityContext.NamespaceOptions.Pid == types.NamespaceModePOD {
 		pidNsPath := sb.PidNsPath()
 		if pidNsPath == "" {
-			return nil, errors.New("PID namespace requested, but sandbox infra container invalid")
+			if sb.NamespaceOptions().Pid != types.NamespaceModePOD {
+				return nil, errors.New("Pod level PID namespace requested for the container, but pod sandbox was not similarly configured, and does not have an infra container")
+			}
+			return nil, errors.New("PID namespace requested, but sandbox infra container unexpectedly invalid")
 		}
 
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
