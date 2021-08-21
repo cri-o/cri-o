@@ -7,18 +7,18 @@ require (
 	github.com/Microsoft/go-winio v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/cgroups v1.0.1
-	github.com/containerd/containerd v1.5.4
+	github.com/containerd/containerd v1.5.5
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/ttrpc v1.0.2
 	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
-	github.com/containers/buildah v1.22.0
+	github.com/containers/buildah v1.22.3
 	github.com/containers/common v0.43.2
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.15.0
+	github.com/containers/image/v5 v5.15.2
 	github.com/containers/ocicrypt v1.1.2
-	github.com/containers/podman/v3 v3.3.0-rc2
+	github.com/containers/podman/v3 v3.3.0
 	github.com/containers/storage v1.34.1
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
