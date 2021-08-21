@@ -168,7 +168,6 @@ rm -f %{_unitdir}/%{repo}.service
 %config(noreplace) %{_sysconfdir}/crictl.yaml
 %{_unitdir}/%{service_name}.service
 %{_unitdir}/%{name}.service
-%{_unitdir}/%{service_name}-shutdown.service
 %dir %{_sharedstatedir}/containers
 %dir %{_datadir}/oci-umount
 %dir %{_datadir}/oci-umount/oci-umount.d
