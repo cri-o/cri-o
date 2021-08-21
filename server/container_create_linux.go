@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v3/pkg/rootless"
 	selinux "github.com/containers/podman/v3/pkg/selinux"
 	cstorage "github.com/containers/storage"
+	"github.com/containers/storage/drivers/quota"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
@@ -35,6 +36,8 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
+
+const defaultInodes uint64 = 1000000
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
 func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
@@ -564,6 +567,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
 	}
 
+	// set inode quota limits on mountPoint if applicable
+	// inode quota limits does not applied to privileged containers
+	if !ctr.Privileged() {
+		if q, err := quota.NewControl(mountPoint); err == nil {
+			if err = q.SetQuota(mountPoint, quota.Quota{Inodes: defaultInodes}); err != nil {
+				return nil, fmt.Errorf("failed to set the quota limits for mountPoint: %v", err)
+			}
+		}
+	}
+
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: stopping storage container %s", containerID)
@@ -763,6 +776,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	for _, cv := range containerVolumes {
 		ociContainer.AddVolume(cv)
+	}
+	// set inode quota limits for volumes if applicable
+	// inode quota limits does not applied to privileged containers
+	if !ctr.Privileged() {
+		for _, cv := range containerVolumes {
+			if q, err := quota.NewControl(cv.HostPath); err == nil {
+				if err = q.SetQuota(cv.ContainerPath, quota.Quota{Inodes: defaultInodes}); err != nil {
+					return nil, fmt.Errorf("failed to set the quota limits for volume directory %s: %v", cv.ContainerPath, err)
+				}
+			}
+		}
 	}
 
 	return ociContainer, nil
