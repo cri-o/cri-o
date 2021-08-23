@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -19,7 +18,6 @@ import (
 	json "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"sigs.k8s.io/release-utils/command"
 )
 
 // Version is the version of the build.
@@ -150,7 +148,7 @@ func Get() *Info {
 		GoVersion:       runtime.Version(),
 		Compiler:        runtime.Compiler,
 		Platform:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		Linkmode:        getLinkmode(),
+		Linkmode:        linkmode,
 		BuildTags:       buildTags,
 		SeccompEnabled:  seccomp.IsEnabled(),
 		AppArmorEnabled: apparmor.IsEnabled(),
@@ -190,40 +188,6 @@ func (i *Info) String() string {
 
 	w.Flush()
 	return b.String()
-}
-
-func getLinkmode() string {
-	const (
-		unknown = "unknown"
-		ldd     = "ldd"
-	)
-	abspath, err := os.Executable()
-	if err != nil {
-		logrus.Warnf("Unable to find currently running executable: %v", err)
-		return unknown
-	}
-
-	if _, err = exec.LookPath(ldd); err != nil {
-		logrus.Warnf("Unable to find ldd command: %v", err)
-		return unknown
-	}
-
-	out, err := command.New(ldd, abspath).Env("LANG=C").RunSilent()
-	if err != nil {
-		logrus.Warnf("Unable to run ldd command: %v", err)
-		return unknown
-	}
-
-	if !out.Success() {
-		if strings.Contains(out.Error(), "not a dynamic executable") ||
-			strings.Contains(strings.ToLower(out.Error()), "not a valid dynamic program") {
-			return "static"
-		}
-		logrus.Warnf("Encountered error detecting link mode of binary: %s", out.Error())
-		return unknown
-	}
-
-	return "dynamic"
 }
 
 // JSONString returns the JSON representation of the version info
