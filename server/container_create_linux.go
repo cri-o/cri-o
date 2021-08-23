@@ -440,12 +440,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		}
 
 		if !isInCRIMounts("/sys", containerConfig.Mounts) {
-			specgen.RemoveMount("/sys")
 			ctr.SpecAddMount(rspec.Mount{
 				Destination: "/sys",
 				Type:        "sysfs",
 				Source:      "sysfs",
 				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
+			})
+			ctr.SpecAddMount(rspec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "cgroup",
+				Source:      "cgroup",
+				Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
 			})
 		}
 	}
