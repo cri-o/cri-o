@@ -237,6 +237,28 @@ func main() {
 			logrus.Fatal(err)
 		}
 
+		if config.CleanShutdownFile != "" {
+			// clear out the shutdown file
+			if err := os.Remove(config.CleanShutdownFile); err != nil && !os.IsNotExist(err) {
+				logrus.Error(err)
+			}
+
+			// Write "$CleanShutdownFile".supported to show crio-wipe that
+			// we should be wiping if the CleanShutdownFile wasn't found.
+			// This protects us from wiping after an upgrade from a version that don't support
+			// CleanShutdownFile.
+			f, err := os.Create(config.CleanShutdownSupportedFileName())
+			if err != nil {
+				logrus.Errorf("Writing clean shutdown supported file: %v", err)
+			}
+			f.Close()
+
+			// and sync the changes to disk
+			if err := utils.SyncParent(config.CleanShutdownFile); err != nil {
+				logrus.Errorf("failed to sync parent directory of clean shutdown file: %v", err)
+			}
+		}
+
 		runtime.RegisterRuntimeServiceServer(grpcServer, service)
 		runtime.RegisterImageServiceServer(grpcServer, service)
 

@@ -10,6 +10,7 @@ function setup() {
 	setup_test
 	export CONTAINER_VERSION_FILE="$TESTDIR"/version.tmp
 	export CONTAINER_VERSION_FILE_PERSIST="$TESTDIR"/version-persist.tmp
+	export CONTAINER_CLEAN_SHUTDOWN_FILE="$TESTDIR"/clean-shutdown.tmp
 }
 
 function run_podman_with_args() {
@@ -133,4 +134,86 @@ function start_crio_with_stopped_pod() {
 
 	run_podman_with_args ps -a
 	[[ "$output" == *"test"* ]]
+}
+
+@test "do clear everything when shutdown file not found" {
+	start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
+	rm "$CONTAINER_VERSION_FILE"
+
+	run_crio_wipe
+
+	start_crio_no_setup
+
+	test_crio_wiped_containers
+	test_crio_wiped_images
+}
+
+@test "do clear podman containers when shutdown file not found" {
+	if [[ -z "$PODMAN_BINARY" ]]; then
+		skip "Podman not installed"
+	fi
+
+	start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	run_podman_with_args run --name test quay.io/crio/busybox:latest ls
+	# all podman containers would be stopped after a reboot
+	run_podman_with_args stop -a
+
+	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
+	rm "$CONTAINER_VERSION_FILE"
+
+	run_crio_wipe
+
+	run_podman_with_args ps -a
+	[[ ! "$output" =~ "test" ]]
+}
+
+@test "fail to clear podman containers when shutdown file not found but container still running" {
+	if [[ -z "$PODMAN_BINARY" ]]; then
+		skip "Podman not installed"
+	fi
+
+	start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	# all podman containers would be stopped after a reboot
+	run_podman_with_args run --name test -d quay.io/crio/busybox:latest top
+
+	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
+	rm "$CONTAINER_VERSION_FILE"
+
+	run "$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" wipe
+	echo "$status"
+	echo "$output"
+	[ "$status" -ne 0 ]
+}
+
+@test "don't clear containers on a forced restart of crio" {
+	start_crio_with_stopped_pod
+	stop_crio_no_clean "-9" || true
+
+	run_crio_wipe
+
+	start_crio_no_setup
+
+	test_crio_did_not_wipe_containers
+	test_crio_did_not_wipe_images
+}
+
+@test "don't clear containers if clean shutdown supported file not present" {
+	start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE.supported"
+
+	run_crio_wipe
+
+	start_crio_no_setup
+
+	test_crio_did_not_wipe_containers
+	test_crio_did_not_wipe_images
 }
