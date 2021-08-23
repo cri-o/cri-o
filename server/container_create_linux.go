@@ -434,7 +434,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
-	if sb.HostNetwork() {
+	if hostNet {
 		if err := specgen.RemoveLinuxNamespace(string(rspec.NetworkNamespace)); err != nil {
 			return nil, err
 		}
