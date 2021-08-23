@@ -24,6 +24,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/process"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -74,6 +75,8 @@ type Server struct {
 	pullOperationsLock sync.Mutex
 
 	resourceStore *resourcestore.ResourceStore
+
+	zombieMonitor *process.ZombieMonitor
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -297,6 +300,7 @@ func (s *Server) restore(ctx context.Context) []string {
 // Shutdown attempts to shut down the server's storage cleanly
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.resourceStore.Close()
+	s.zombieMonitor.Shutdown()
 
 	if err := s.ContainerServer.Shutdown(); err != nil {
 		return err
@@ -506,6 +510,8 @@ func New(
 	} else {
 		logrus.Debug("Metrics are disabled")
 	}
+
+	s.zombieMonitor = process.NewZombieMonitor()
 
 	return s, nil
 }

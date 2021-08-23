@@ -176,12 +176,8 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "Total number of defunct processes in the node",
 			},
 			func() float64 {
-				total, err := process.DefunctProcesses()
-				if err == nil {
-					return float64(total)
-				}
-				logrus.Warn(err)
-				return 0
+				count, _, _ := process.ParseDefunctProcesses() // nolint:errcheck
+				return float64(count)
 			},
 		),
 	}
