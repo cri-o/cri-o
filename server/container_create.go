@@ -399,15 +399,6 @@ func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defa
 	return nil
 }
 
-func hostNetwork(containerConfig *types.ContainerConfig) bool {
-	securityContext := containerConfig.Linux.SecurityContext
-	if securityContext == nil || securityContext.NamespaceOptions == nil {
-		return false
-	}
-
-	return securityContext.NamespaceOptions.Network == types.NamespaceModeNODE
-}
-
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.Config.Labels))
