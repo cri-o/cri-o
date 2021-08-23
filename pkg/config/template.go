@@ -62,6 +62,11 @@ version_file = "{{ .VersionFile }}"
 # only happen when CRI-O has been upgraded
 version_file_persist = "{{ .VersionFilePersist }}"
 
+# Location for CRI-O to lay down the clean shutdown file.
+# It is used to check whether crio had time to sync before shutting down.
+# If not found, crio wipe will clear the storage directory.
+clean_shutdown_file = "{{ .CleanShutdownFile }}"
+
 # InternalWipe is whether CRI-O should wipe containers and images after a reboot when the server starts.
 # If set to false, one must use the external command 'crio wipe' to wipe the containers and images in these situations.
 internal_wipe = {{ .InternalWipe }}
