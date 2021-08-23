@@ -525,7 +525,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		})
 	}
 
-	if !isInCRIMounts("/etc/hosts", containerConfig.Mounts) && hostNetwork(containerConfig) {
+	if !isInCRIMounts("/etc/hosts", containerConfig.Mounts) && hostNet {
 		// Only bind mount for host netns and when CRI does not give us any hosts file
 		ctr.SpecAddMount(rspec.Mount{
 			Destination: "/etc/hosts",
