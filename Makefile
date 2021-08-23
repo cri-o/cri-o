@@ -456,7 +456,6 @@ install.completions:
 
 install.systemd:
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
-	ln -sf crio.service $(PREFIX)/lib/systemd/system/cri-o.service
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio-wipe.service $(PREFIX)/lib/systemd/system/crio-wipe.service
 
 uninstall:

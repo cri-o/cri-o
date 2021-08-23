@@ -1,2 +1,0 @@
-# /etc/sysconfig/crio-metrics
-CRIO_METRICS_OPTIONS="--enable-metrics=true --metrics-port=9537"
