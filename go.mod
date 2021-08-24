@@ -40,7 +40,7 @@ require (
 	github.com/intel/goresctrl v0.0.0-20210623080121-be5fa857f4b4
 	github.com/json-iterator/go v1.1.11
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.15.0
+	github.com/onsi/gomega v1.16.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20210708142037-083f635f2b04
 	github.com/opencontainers/runc v1.0.1
