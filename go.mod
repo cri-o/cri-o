@@ -37,7 +37,7 @@ require (
 	github.com/google/renameio v1.0.1
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/intel/goresctrl v0.0.0-20210623080121-be5fa857f4b4
+	github.com/intel/goresctrl v0.1.0
 	github.com/json-iterator/go v1.1.11
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0

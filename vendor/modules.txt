@@ -646,8 +646,10 @@ github.com/hpcloud/tail/winfile
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
-# github.com/intel/goresctrl v0.0.0-20210623080121-be5fa857f4b4
+# github.com/intel/goresctrl v0.1.0
 ## explicit
+github.com/intel/goresctrl/pkg/blockio
+github.com/intel/goresctrl/pkg/cgroups
 github.com/intel/goresctrl/pkg/kubernetes
 github.com/intel/goresctrl/pkg/log
 github.com/intel/goresctrl/pkg/rdt
