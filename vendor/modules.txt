@@ -495,7 +495,7 @@ github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
 # github.com/fatih/color v1.9.0
 github.com/fatih/color
-# github.com/fsnotify/fsnotify v1.4.9
+# github.com/fsnotify/fsnotify v1.5.1
 ## explicit
 github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.7.3
