@@ -342,7 +342,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.34.1
+# github.com/containers/storage v1.35.0
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -923,7 +923,7 @@ github.com/ulikunitz/xz/lzma
 # github.com/urfave/cli/v2 v2.3.0
 ## explicit
 github.com/urfave/cli/v2
-# github.com/vbatts/tar-split v0.11.1
+# github.com/vbatts/tar-split v0.11.2
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
@@ -1007,7 +1007,7 @@ golang.org/x/oauth2/internal
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+# golang.org/x/sys v0.0.0-20210820121016-41cdb8703e55
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs

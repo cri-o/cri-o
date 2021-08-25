@@ -19,7 +19,7 @@ require (
 	github.com/containers/image/v5 v5.15.2
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/podman/v3 v3.3.0
-	github.com/containers/storage v1.34.1
+	github.com/containers/storage v1.35.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.15
@@ -58,7 +58,7 @@ require (
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+	golang.org/x/sys v0.0.0-20210820121016-41cdb8703e55
 	google.golang.org/grpc v1.40.0
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
