@@ -1,7 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"regexp"
 
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/criocli"
@@ -13,6 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
+
+const kubeletLogDir = "/var/log/containers"
 
 var wipeCommand = &cli.Command{
 	Name:   "wipe",
@@ -195,7 +201,36 @@ func (c ContainerStore) deleteContainer(id string) {
 		logrus.Errorf("Unable to delete container %s: %v", id, err)
 		return
 	}
-	logrus.Infof("Deleted container %s", id)
+
+	if err := c.removeLogSymlinks(id); err != nil {
+		logrus.Errorf("Unable to remove log symlink for container %s: %v", id, err)
+		return
+	}
+}
+
+func (c ContainerStore) removeLogSymlinks(id string) error {
+	files, err := ioutil.ReadDir(kubeletLogDir)
+	if err != nil {
+		return err
+	}
+
+	re := regexp.MustCompile(`\S.+-(\S{64})\.log`)
+
+	for _, f := range files {
+		res := re.FindStringSubmatch(f.Name())
+
+		if len(res) != 2 {
+			return fmt.Errorf("invalid log symlink name %s", f.Name())
+		}
+
+		if res[1] == id {
+			if err := os.Remove(filepath.Join(kubeletLogDir, f.Name())); err != nil {
+				return fmt.Errorf("error removing log symlink %s: %v", f.Name(), err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (c ContainerStore) deleteImage(id string) {
