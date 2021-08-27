@@ -49,10 +49,6 @@ var _ = t.Describe("Inspect", func() {
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{})
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
 			sut.AddContainer(testContainer)
-			gomock.InOrder(
-				imageServerMock.EXPECT().ImageStatus(gomock.Any(),
-					gomock.Any()).Return(&storage.ImageResult{}, nil),
-			)
 
 			// When
 			request, err := http.NewRequest("GET",

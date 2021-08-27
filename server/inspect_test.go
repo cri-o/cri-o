@@ -81,8 +81,8 @@ func TestGetContainerInfo(t *testing.T) {
 	if ci.Name != "testname" {
 		t.Fatalf("expected name testname, got %s", ci.Name)
 	}
-	if ci.Image != "image" {
-		t.Fatalf("expected image name image, got %s", ci.Image)
+	if ci.Image != "imageName" {
+		t.Fatalf("expected image name imageName, got %s", ci.Image)
 	}
 	if ci.ImageRef != "imageRef" {
 		t.Fatalf("expected image ref imageRef, got %s", ci.ImageRef)
