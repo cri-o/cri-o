@@ -53,9 +53,10 @@ var (
 	// type.
 	CRIOOperationsLatency = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Subsystem: subsystem,
-			Name:      CRIOOperationsLatencyKey,
-			Help:      "Latency in microseconds of CRI-O operations. Broken down by operation type.",
+			Subsystem:  subsystem,
+			Name:       CRIOOperationsLatencyKey,
+			Help:       "Latency in microseconds of CRI-O operations. Broken down by operation type.",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		},
 		[]string{"operation_type"},
 	)
