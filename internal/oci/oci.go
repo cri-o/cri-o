@@ -1,6 +1,7 @@
 package oci
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -10,10 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/dirnotifier"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/cri/types"
-	"github.com/fsnotify/fsnotify"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -44,7 +43,6 @@ type Runtime struct {
 	config              *config.Config
 	runtimeImplMap      map[string]RuntimeImpl
 	runtimeImplMapMutex sync.RWMutex
-	execNotifier        *dirnotifier.DirectoryNotifier
 }
 
 // RuntimeImpl is an interface used by the caller to interact with the
@@ -83,14 +81,9 @@ func New(c *config.Config) (*Runtime, error) {
 		return nil, errors.Wrapf(err, "create oci runtime pid dir")
 	}
 
-	notifier, err := dirnotifier.New(execNotifyDir, fsnotify.Write, fsnotify.Rename)
-	if err != nil {
-		return nil, err
-	}
 	return &Runtime{
 		config:         c,
 		runtimeImplMap: make(map[string]RuntimeImpl),
-		execNotifier:   notifier,
 	}, nil
 }
 
@@ -431,6 +424,18 @@ func (r *Runtime) ReopenContainerLog(ctx context.Context, c *Container) error {
 	}
 
 	return impl.ReopenContainerLog(ctx, c)
+}
+
+// ExecSyncError wraps command's streams, exit code and error on ExecSync error.
+type ExecSyncError struct {
+	Stdout   bytes.Buffer
+	Stderr   bytes.Buffer
+	ExitCode int32
+	Err      error
+}
+
+func (e *ExecSyncError) Error() string {
+	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
 }
 
 // BuildContainerdBinaryName() is responsible for ensuring the binary passed will
