@@ -18,7 +18,7 @@ require (
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.15.2
 	github.com/containers/ocicrypt v1.1.2
-	github.com/containers/podman/v3 v3.3.0
+	github.com/containers/podman/v3 v3.3.1
 	github.com/containers/storage v1.34.1
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
