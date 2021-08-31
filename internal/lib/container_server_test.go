@@ -34,8 +34,6 @@ var _ = t.Describe("ContainerServer", func() {
 			config, err := libconfig.DefaultConfig()
 			Expect(err).To(BeNil())
 			config.HooksDir = []string{}
-			// so we have permission to make a directory within it
-			config.ContainerAttachSocketDir = t.MustTempDir("crio")
 
 			// Specify mocks
 			gomock.InOrder(
