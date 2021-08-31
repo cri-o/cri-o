@@ -8,7 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	gruntime "runtime"
+	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli/v2"
@@ -56,7 +58,7 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 				writeCrioGoroutineStacks()
 				continue
 			case unix.SIGUSR2:
-				gruntime.GC()
+				runtime.GC()
 				continue
 			case unix.SIGPIPE:
 				continue
@@ -178,6 +180,25 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		ctx, cancel := context.WithCancel(context.Background())
+
+		cpuProfilePath := c.String("profile-cpu")
+		if cpuProfilePath != "" {
+			logrus.Infof("Creating CPU profile in: %v", cpuProfilePath)
+
+			file, err := os.Create(cpuProfilePath)
+			if err != nil {
+				cancel()
+				return errors.Wrap(err, "could not create CPU profile")
+			}
+			defer file.Close()
+
+			if err := pprof.StartCPUProfile(file); err != nil {
+				cancel()
+				return errors.Wrap(err, "could not start CPU profiling")
+			}
+			defer pprof.StopCPUProfile()
+		}
+
 		if c.Bool("profile") {
 			profilePort := c.Int("profile-port")
 			profileEndpoint := fmt.Sprintf("localhost:%v", profilePort)
@@ -346,6 +367,22 @@ func main() {
 		}
 		<-serverCloseCh
 		logrus.Debugf("Closed main server")
+
+		memProfilePath := c.String("profile-mem")
+		if memProfilePath != "" {
+			logrus.Infof("Creating memory profile in: %v", memProfilePath)
+
+			file, err := os.Create(memProfilePath)
+			if err != nil {
+				return errors.Wrap(err, "could not create memory profile")
+			}
+			defer file.Close()
+			runtime.GC()
+
+			if err := pprof.WriteHeapProfile(file); err != nil {
+				return errors.Wrap(err, "could not write memory profile")
+			}
+		}
 
 		return nil
 	}
