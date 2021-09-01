@@ -278,7 +278,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v3 v3.3.0
+# github.com/containers/podman/v3 v3.3.1
 ## explicit
 github.com/containers/podman/v3/libpod
 github.com/containers/podman/v3/libpod/define
