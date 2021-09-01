@@ -474,6 +474,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 
 	newContainer.SetCreated()
 
+	if err := s.nri.postCreateContainer(ctx, sb, newContainer); err != nil {
+		log.Warnf(ctx, "NRI post-create event failed for container %q: %v",
+			newContainer.ID(), err)
+	}
+
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	return &types.CreateContainerResponse{
 		ContainerId: ctr.ID(),

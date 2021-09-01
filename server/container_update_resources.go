@@ -27,13 +27,21 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 	}
 
 	if req.Linux != nil {
-		resources := toOCIResources(req.Linux)
+		updated, err := s.nri.updateContainer(ctx, c, req.Linux)
+		if err != nil {
+			return nil, err
+		}
+		resources := toOCIResources(updated)
 		if err := s.Runtime().UpdateContainer(ctx, c, resources); err != nil {
 			return nil, err
 		}
 
 		// update memory store with updated resources
 		s.UpdateContainerLinuxResources(c, resources)
+
+		if err := s.nri.postUpdateContainer(ctx, c); err != nil {
+			log.Errorf(ctx, "NRI container post-update failed: %v", err)
+		}
 	}
 
 	return &types.UpdateContainerResourcesResponse{}, nil
