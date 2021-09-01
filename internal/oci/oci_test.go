@@ -14,12 +14,9 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			c, err := config.DefaultConfig()
 			Expect(err).To(BeNil())
-			// so we have permission to make a directory within it
-			c.ContainerAttachSocketDir = t.MustTempDir("crio")
 
 			// When
-			runtime, err := oci.New(c)
-			Expect(err).To(BeNil())
+			runtime := oci.New(c)
 
 			// Then
 			Expect(runtime).NotTo(BeNil())
@@ -48,11 +45,8 @@ var _ = t.Describe("Oci", func() {
 			Expect(err).To(BeNil())
 			c.DefaultRuntime = defaultRuntime
 			c.Runtimes = runtimes
-			// so we have permission to make a directory within it
-			c.ContainerAttachSocketDir = t.MustTempDir("crio")
 
-			sut, err = oci.New(c)
-			Expect(err).To(BeNil())
+			sut = oci.New(c)
 			Expect(sut).NotTo(BeNil())
 		})
 

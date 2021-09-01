@@ -20,7 +20,6 @@ import (
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
-	"github.com/google/uuid"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -261,8 +260,54 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		return err
 	}
 	defer os.RemoveAll(processFile)
+
 	execCmd := r.constructExecCommand(ctx, c, processFile, "")
-	cmdErr := r.executeExec(execCmd, stdin, stdout, stderr, tty, resize)
+	var cmdErr, copyError error
+	if tty {
+		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
+	} else {
+		var r, w *os.File
+		if stdin != nil {
+			// Use an os.Pipe here as it returns true *os.File objects.
+			// This way, if you run 'kubectl exec <pod> -i bash' (no tty) and type 'exit',
+			// the call below to execCmd.Run() can unblock because its Stdin is the read half
+			// of the pipe.
+			r, w, err = os.Pipe()
+			if err != nil {
+				return err
+			}
+			execCmd.Stdin = r
+			go func() {
+				_, copyError = pools.Copy(w, stdin)
+				w.Close()
+			}()
+		}
+
+		if stdout != nil {
+			execCmd.Stdout = stdout
+		}
+
+		if stderr != nil {
+			execCmd.Stderr = stderr
+		}
+
+		if err := execCmd.Start(); err != nil {
+			return err
+		}
+
+		// The read side of the pipe should be closed after the container process has been started.
+		if r != nil {
+			if err := r.Close(); err != nil {
+				return err
+			}
+		}
+
+		cmdErr = execCmd.Wait()
+	}
+
+	if copyError != nil {
+		return copyError
+	}
 	if exitErr, ok := cmdErr.(*exec.ExitError); ok {
 		return &utilexec.ExitErrorWrapper{ExitError: exitErr}
 	}
@@ -272,7 +317,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*ExecSyncResponse, error) {
 	if c.Spoofed() {
-		return &ExecSyncResponse{}, nil
+		return nil, nil
 	}
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
@@ -284,44 +329,33 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	}
 	defer os.RemoveAll(processFile)
 
-	pidFile := filepath.Join(r.execNotifier.Directory(), c.id+uuid.New().String())
+	pidDir, err := ioutil.TempDir("", "pidfile")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(pidDir)
+
+	pidFile := filepath.Join(pidDir, c.id)
 
 	cmd := r.constructExecCommand(ctx, c, processFile, pidFile)
 	cmd.SysProcAttr = sysProcAttrPlatform()
 
-	stdoutBuf := nopWriteCloser{&bytes.Buffer{}}
-	stderrBuf := nopWriteCloser{&bytes.Buffer{}}
-	resize := make(chan remotecommand.TerminalSize)
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
 
-	pidFileCreatedCh, err := r.execNotifier.NotifierForFile(pidFile)
+	err = cmd.Start()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to watch %s", pidFile)
+		return nil, err
 	}
 
 	// wait till the command is done
 	done := make(chan error, 1)
 	go func() {
-		done <- r.executeExec(cmd, nil, stdoutBuf, stderrBuf, c.terminal, resize)
-		close(done)
+		done <- cmd.Wait()
 	}()
 
-	// First, wait for the pid file to be created.
-	// When it is, the timer begins for the exec process.
-	// If the command fails before that happens, however,
-	// that needs to be caught.
-	var doneErr error
-	select {
-	case <-pidFileCreatedCh:
-	case doneErr = <-done:
-	}
-
-	switch {
-	case doneErr != nil:
-		// If we've already gotten an error from done
-		// the runtime finished before writing the pid file
-		// (probably because the command didn't exist).
-	case timeout > 0:
-		// If there's a timeout, wait for that timeout duration.
+	if timeout > 0 {
 		select {
 		case <-time.After(time.Second * time.Duration(timeout)):
 			// Ensure the process is not left behind
@@ -338,18 +372,17 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				Stderr:   []byte(conmonconfig.TimedOutMessage),
 				ExitCode: -1,
 			}, nil
-		case doneErr = <-done:
+		case err = <-done:
 			break
 		}
-	default:
-		// If no timeout, just wait until the command finishes.
-		doneErr = <-done
+	} else {
+		err = <-done
 	}
 
 	// gather exit code from err
 	exitCode := int32(0)
-	if doneErr != nil {
-		if exitError, ok := doneErr.(*exec.ExitError); ok {
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
 			exitCode = int32(exitError.ExitCode())
 		}
 	}
@@ -359,65 +392,6 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		Stderr:   stderrBuf.Bytes(),
 		ExitCode: exitCode,
 	}, nil
-}
-
-func (r *runtimeOCI) executeExec(execCmd *exec.Cmd, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	var cmdErr, copyError error
-	if tty {
-		return ttyCmd(execCmd, stdin, stdout, resize)
-	}
-	var rd, w *os.File
-	var err error
-	if stdin != nil {
-		// Use an os.Pipe here as it returns true *os.File objects.
-		// This way, if you run 'kubectl exec <pod> -i bash' (no tty) and type 'exit',
-		// the call below to execCmd.Run() can unblock because its Stdin is the read half
-		// of the pipe.
-		rd, w, err = os.Pipe()
-		if err != nil {
-			return err
-		}
-		execCmd.Stdin = rd
-		go func() {
-			_, copyError = pools.Copy(w, stdin)
-			w.Close()
-		}()
-	}
-
-	if stdout != nil {
-		execCmd.Stdout = stdout
-	}
-
-	if stderr != nil {
-		execCmd.Stderr = stderr
-	}
-
-	if err := execCmd.Start(); err != nil {
-		return err
-	}
-
-	// The read side of the pipe should be closed after the container process has been started.
-	if rd != nil {
-		if err := rd.Close(); err != nil {
-			return err
-		}
-	}
-
-	cmdErr = execCmd.Wait()
-
-	if copyError != nil {
-		return copyError
-	}
-	return cmdErr
-}
-
-// Needed because https://github.com/golang/go/issues/22823 was denied
-type nopWriteCloser struct {
-	*bytes.Buffer
-}
-
-func (nopWriteCloser) Close() error {
-	return nil
 }
 
 func (r *runtimeOCI) constructExecCommand(ctx context.Context, c *Container, processFile, pidFile string) *exec.Cmd {
@@ -993,24 +967,57 @@ func (r *runtimeOCI) ReopenContainerLog(c *Container) error {
 	}
 	defer controlFile.Close()
 
-	done := make(chan struct{}, 1)
-	defer close(done)
-	ch, err := WatchForFile(c.LogPath(), done, fsnotify.Create, fsnotify.Write)
+	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return errors.Wrapf(err, "failed to create watch for %s", c.LogPath())
+		return fmt.Errorf("failed to create new watch: %v", err)
+	}
+	defer watcher.Close()
+
+	done := make(chan struct{})
+	doneClosed := false
+	errorCh := make(chan error)
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				logrus.Debugf("event: %v", event)
+				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
+					logrus.Debugf("file created %s", event.Name)
+					if event.Name == c.LogPath() {
+						logrus.Debugf("expected log file created")
+						done <- struct{}{}
+						return
+					}
+				}
+			case err := <-watcher.Errors:
+				errorCh <- fmt.Errorf("watch error for container log reopen %v: %v", c.ID(), err)
+				close(errorCh)
+				return
+			}
+		}
+	}()
+	cLogDir := filepath.Dir(c.LogPath())
+	if err := watcher.Add(cLogDir); err != nil {
+		logrus.Errorf("watcher.Add(%q) failed: %s", cLogDir, err)
+		close(done)
+		doneClosed = true
 	}
 
 	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
 		logrus.Debugf("Failed to write to control file to reopen log file: %v", err)
 	}
+
 	select {
-	case err := <-ch:
-		if err != nil {
-			return errors.Wrapf(err, "failed to watch for %s", c.LogPath())
+	case err := <-errorCh:
+		if !doneClosed {
+			close(done)
 		}
-	case <-time.After(time.Minute * 3):
-		// Give up after 3 minutes, as something wrong probably happened
-		logrus.Errorf("Failed to reopen log file for container %s: timed out", c.ID())
+		return err
+	case <-done:
+		if !doneClosed {
+			close(done)
+		}
+		break
 	}
 
 	return nil
@@ -1107,46 +1114,4 @@ func (r *Runtime) SpoofOOM(c *Container) {
 
 func ConmonPath(r *Runtime) string {
 	return r.config.Conmon
-}
-
-// WatchForFile creates a watch on the parent directory of path, looking for events opsToWatch.
-// It returns immediately with a channel to find when path had one of those events.
-// done can be used to stop the watch.
-// WatchForFile is responsible for closing all internal channels and the returned channel, but not for closing done.
-func WatchForFile(path string, done chan struct{}, opsToWatch ...fsnotify.Op) (chan error, error) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-
-	ch := make(chan error)
-
-	dir := filepath.Dir(path)
-	go func() {
-		defer watcher.Close()
-		defer close(ch)
-		for {
-			select {
-			case event := <-watcher.Events:
-				if event.Name != path {
-					continue
-				}
-				for op := range opsToWatch {
-					if event.Op&fsnotify.Op(op) == fsnotify.Op(op) {
-						ch <- nil
-						return
-					}
-				}
-			case err := <-watcher.Errors:
-				ch <- err
-				return
-			case <-done:
-				return
-			}
-		}
-	}()
-	if err := watcher.Add(dir); err != nil {
-		return nil, err
-	}
-	return ch, nil
 }
