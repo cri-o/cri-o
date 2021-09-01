@@ -49,10 +49,10 @@
     - "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
 
 - name: install Go tools and dependencies
-  shell: go get -u "github.com/{{ item }}"
+  shell: GO111MODULE=on go get -u "github.com/{{ item }}"
   args:
     chdir: /
   with_items:
-    - onsi/ginkgo/ginkgo
-    - onsi/gomega
+    - onsi/ginkgo/ginkgo@v1.16.4
+    - onsi/gomega@v1.16.0
     - jteeuwen/go-bindata/go-bindata
