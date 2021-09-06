@@ -61,6 +61,7 @@ func ParseReleaseNotesMap(mapPath string) (*[]ReleaseNotesMap, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "opening maps")
 	}
+	defer yamlReader.Close()
 
 	decoder := yaml.NewDecoder(yamlReader)
 

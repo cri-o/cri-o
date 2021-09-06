@@ -369,11 +369,17 @@ func (g *GCS) PathExists(gcsPath string) (bool, error) {
 		)
 	}
 
-	err := gcp.GSUtil(
+	// Do an ls with gsutil to check if the file exists:
+	if err := gcp.GSUtil(
 		"ls",
 		gcsPath,
-	)
-	if err != nil {
+	); err != nil {
+		// .. but check the message because if not found
+		// it will exit with an error
+		if strings.Contains(err.Error(), "One or more URLs matched no objects") {
+			return false, nil
+		}
+		// Anything else we treat as error
 		return false, err
 	}
 

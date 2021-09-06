@@ -34,11 +34,29 @@ import (
 // release.
 type PrerequisitesChecker struct {
 	impl prerequisitesCheckerImpl
+	opts *PrerequisitesCheckerOptions
+}
+
+// Type prerequisites checker
+type PrerequisitesCheckerOptions struct {
+	CheckGitHubToken bool
+}
+
+var DefaultPrerequisitesCheckerOptions = &PrerequisitesCheckerOptions{
+	CheckGitHubToken: true,
 }
 
 // NewPrerequisitesChecker creates a new PrerequisitesChecker instance.
 func NewPrerequisitesChecker() *PrerequisitesChecker {
-	return &PrerequisitesChecker{&defaultPrerequisitesChecker{}}
+	return &PrerequisitesChecker{
+		&defaultPrerequisitesChecker{},
+		DefaultPrerequisitesCheckerOptions,
+	}
+}
+
+// Options return the options from the prereq checker
+func (p *PrerequisitesChecker) Options() *PrerequisitesCheckerOptions {
+	return p.opts
 }
 
 // SetImpl can be used to set the internal PrerequisitesChecker implementation.
@@ -129,11 +147,13 @@ func (p *PrerequisitesChecker) Run(workdir string) error {
 	}
 
 	// GitHub checks
-	logrus.Infof(
-		"Verifying that %s environemt variable is set", github.TokenEnvKey,
-	)
-	if !p.impl.IsEnvSet(github.TokenEnvKey) {
-		return errors.Errorf("no %s env variable set", github.TokenEnvKey)
+	if p.opts.CheckGitHubToken {
+		logrus.Infof(
+			"Verifying that %s environemt variable is set", github.TokenEnvKey,
+		)
+		if !p.impl.IsEnvSet(github.TokenEnvKey) {
+			return errors.Errorf("no %s env variable set", github.TokenEnvKey)
+		}
 	}
 
 	// Disk space check
