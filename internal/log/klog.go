@@ -14,19 +14,19 @@ import (
 // Info klog message in logrus Debug verbosity.
 func InitKlogShim() {
 	klog.LogToStderr(false)
-	klog.SetLogger(&logger{})
+	klog.SetLogger(logr.New(&logSink{}))
 }
 
-type logger struct{}
+type logSink struct{}
 
-func (l *logger) Info(msg string, keysAndValues ...interface{}) {
+func (l *logSink) Info(level int, msg string, keysAndValues ...interface{}) {
 	res := &strings.Builder{}
 	res.WriteString(msg)
 	writeKeysAndValues(res, keysAndValues...)
 	logrus.Debug(res.String())
 }
 
-func (l *logger) Error(err error, msg string, keysAndValues ...interface{}) {
+func (l *logSink) Error(err error, msg string, keysAndValues ...interface{}) {
 	res := &strings.Builder{}
 	res.WriteString(msg)
 	if err != nil {
@@ -73,7 +73,7 @@ func writeKeysAndValues(b *strings.Builder, keysAndValues ...interface{}) {
 	}
 }
 
-func (l *logger) Enabled() bool                         { return true }
-func (l *logger) V(level int) logr.Logger               { return l }
-func (l *logger) WithValues(...interface{}) logr.Logger { return l }
-func (l *logger) WithName(string) logr.Logger           { return l }
+func (l *logSink) Init(logr.RuntimeInfo)                  {}
+func (l *logSink) Enabled(int) bool                       { return true }
+func (l *logSink) WithValues(...interface{}) logr.LogSink { return l }
+func (l *logSink) WithName(string) logr.LogSink           { return l }
