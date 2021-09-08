@@ -296,6 +296,7 @@ func (s *Server) restore(ctx context.Context) []string {
 
 // Shutdown attempts to shut down the server's storage cleanly
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.config.CNIManagerShutdown()
 	s.resourceStore.Close()
 
 	if err := s.ContainerServer.Shutdown(); err != nil {

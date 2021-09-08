@@ -13,7 +13,8 @@ type CNIManager struct {
 	// cniPlugin is the internal OCI CNI plugin
 	plugin    ocicni.CNIPlugin
 	lastError error
-	watchers  []chan struct{}
+	watchers  []chan bool
+	shutdown  bool
 	sync.RWMutex
 }
 
@@ -40,32 +41,52 @@ func (c *CNIManager) pollUntilReady() {
 func (c *CNIManager) pollFunc() (bool, error) {
 	c.Lock()
 	defer c.Unlock()
+	if c.shutdown {
+		return true, nil
+	}
 	if err := c.plugin.Status(); err != nil {
 		c.lastError = err
 		return false, nil
 	}
 	c.lastError = nil
 	for _, watcher := range c.watchers {
-		watcher <- struct{}{}
+		watcher <- true
 	}
 	return true, nil
 }
 
+// ReadyOrError returns nil if the plugin is ready,
+// or the last error that was received in checking.
 func (c *CNIManager) ReadyOrError() error {
 	c.RLock()
 	defer c.RUnlock()
 	return c.lastError
 }
 
+// Plugin returns the CNI plugin
 func (c *CNIManager) Plugin() ocicni.CNIPlugin {
 	return c.plugin
 }
 
-func (c *CNIManager) AddWatcher() chan struct{} {
+// Add watcher creates a new watcher for the CNI manager
+// said watcher will send a `true` value if the CNI plugin was successfully ready
+// or `false` if the server shutdown first
+func (c *CNIManager) AddWatcher() chan bool {
 	c.Lock()
 	defer c.Unlock()
-	watcher := make(chan struct{}, 1)
+	watcher := make(chan bool, 1)
 	c.watchers = append(c.watchers, watcher)
 
 	return watcher
+}
+
+// Shutdown shuts down the CNI manager, and notifies the watcher
+// that the CNI manager is not ready
+func (c *CNIManager) Shutdown() {
+	c.Lock()
+	defer c.Unlock()
+	c.shutdown = true
+	for _, watcher := range c.watchers {
+		watcher <- false
+	}
 }
