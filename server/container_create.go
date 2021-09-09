@@ -412,8 +412,6 @@ func hostNetwork(containerConfig *types.ContainerConfig) bool {
 func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.Config.Labels))
 
-	s.updateLock.RLock()
-	defer s.updateLock.RUnlock()
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
