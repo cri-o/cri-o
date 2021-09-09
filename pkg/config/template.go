@@ -1005,6 +1005,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   a list of experimental annotations that this runtime handler is allowed to process.
 #   The currently recognized values are:
 #   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
+#   "io.kubernetes.cri-o.cgroup2-mount-hierarchy-rw" for mounting cgroups writably when set to "true".
 #   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
 #   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 #   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.

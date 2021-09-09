@@ -291,7 +291,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		skipRelabel = true
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel)
+	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
+
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW)
 	if err != nil {
 		return nil, err
 	}
@@ -843,7 +845,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	containerConfig := ctr.Config()
@@ -978,7 +980,13 @@ func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, b
 			Destination: "/sys/fs/cgroup",
 			Type:        "cgroup",
 			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+			Options:     []string{"nosuid", "noexec", "nodev", "relatime"},
+		}
+
+		if cgroup2RW {
+			m.Options = append(m.Options, "rw")
+		} else {
+			m.Options = append(m.Options, "ro")
 		}
 		specgen.AddMount(m)
 	}
