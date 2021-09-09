@@ -567,7 +567,7 @@ github.com/go-task/slim-sprig
 # github.com/go-zoo/bone v1.3.0
 ## explicit
 github.com/go-zoo/bone
-# github.com/godbus/dbus/v5 v5.0.4
+# github.com/godbus/dbus/v5 v5.0.5
 ## explicit
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
