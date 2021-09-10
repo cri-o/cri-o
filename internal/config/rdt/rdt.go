@@ -34,7 +34,6 @@ func New() *Config {
 	rdt.SetLogger(logrus.StandardLogger())
 
 	if err := rdt.Initialize(ResctrlPrefix); err != nil {
-		logrus.Infof("RDT is not enabled: %v", err)
 		c.supported = false
 	}
 	return c
