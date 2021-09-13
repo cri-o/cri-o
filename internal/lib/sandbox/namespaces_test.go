@@ -23,6 +23,10 @@ func (s *spoofedIface) Type() nsmgr.NSType {
 	return s.nsType
 }
 
+func (s *spoofedIface) Close() error {
+	return nil
+}
+
 func (s *spoofedIface) Remove() error {
 	s.removed = true
 	return nil
@@ -210,39 +214,6 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			// When
 			err := testSandbox.UserNsJoin("/proc/self/ns/user")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-		It("should fail when asked to join a non-namespace", func() {
-			// Given
-			// When
-			err := testSandbox.NetNsJoin("/tmp")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-		It("should fail when asked to join a non-namespace", func() {
-			// Given
-
-			// When
-			err := testSandbox.IpcNsJoin("/tmp")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-		It("should fail when asked to join a non-namespace", func() {
-			// Given
-			// When
-			err := testSandbox.UtsNsJoin("/tmp")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-		It("should fail when asked to join a non-namespace", func() {
-			// Given
-			// When
-			err := testSandbox.UserNsJoin("/tmp")
 
 			// Then
 			Expect(err).NotTo(BeNil())
