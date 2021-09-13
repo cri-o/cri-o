@@ -51,7 +51,10 @@ type Namespace interface {
 	// Type returns the namespace type (net, ipc, user, pid or uts).
 	Type() NSType
 
-	// Remove ensures this namespace is closed and removed.
+	// Close ensures this namespace is closed.
+	Close() error
+
+	// Remove ensures this namespace is removed.
 	Remove() error
 }
 
@@ -84,13 +87,13 @@ func (n *namespace) Type() NSType {
 	return n.nsType
 }
 
-// Remove ensures this namespace is closed and removed.
-func (n *namespace) Remove() error {
+// Close ensures this namespace is closed.
+func (n *namespace) Close() error {
 	n.Lock()
 	defer n.Unlock()
 
 	if n.closed {
-		// Remove() can be called multiple
+		// Close() can be called multiple
 		// times without returning an error.
 		return nil
 	}
@@ -101,16 +104,29 @@ func (n *namespace) Remove() error {
 
 	n.closed = true
 
-	fp := n.Path()
-	if fp == "" {
+	if n.nsPath == "" {
 		return nil
 	}
 
 	// try to unmount, ignoring "not mounted" (EINVAL) error.
-	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
-		return errors.Wrapf(err, "unable to unmount %s", fp)
+	if err := unix.Unmount(n.nsPath, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
+		return errors.Wrapf(err, "unable to unmount %s", n.nsPath)
 	}
-	return os.RemoveAll(fp)
+	return nil
+}
+
+// Remove ensures this namespace is closed and removed.
+func (n *namespace) Remove() error {
+	n.Lock()
+	defer n.Unlock()
+	if !n.closed {
+		return errors.New("Namespace must be closed before it can be removed")
+	}
+
+	if n.nsPath == "" {
+		return nil
+	}
+	return os.Remove(n.nsPath)
 }
 
 // GetNamespace takes a path and type, checks if it is a namespace, and if so
@@ -118,6 +134,10 @@ func (n *namespace) Remove() error {
 func GetNamespace(nsPath string, nsType NSType) (Namespace, error) {
 	ns, err := nspkg.GetNS(nsPath)
 	if err != nil {
+		// path exists but is not an NS, the namespace must have been closed
+		if _, ok := err.(nspkg.NSPathNotNSErr); ok {
+			return &namespace{nsType: nsType, nsPath: nsPath, closed: true}, nil
+		}
 		return nil, err
 	}
 
