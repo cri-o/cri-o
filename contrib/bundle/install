@@ -26,6 +26,6 @@ install $SELINUX -D -m 644 -t "$DESTDIR$SYSTEMDDIR" contrib/crio.service
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/pinns
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crun
 
-if [[ $ARCH == amd64 ]]; then
+if [ "$ARCH" = amd64 ]; then
     install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/runc
 fi
