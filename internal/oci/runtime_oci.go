@@ -169,8 +169,8 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 	// Platform specific container setup
 	if err := r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid); err != nil {
-		if waitErr := cmd.Wait(); waitErr != nil {
-			return errors.Wrap(err, waitErr.Error())
+		if killErr := cmd.Process.Kill(); killErr != nil {
+			return errors.Wrap(err, killErr.Error())
 		}
 		return err
 	}
