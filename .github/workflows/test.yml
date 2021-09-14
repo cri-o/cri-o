@@ -150,17 +150,12 @@ jobs:
     needs:
       - build
       - build-static-amd64
-      - build-static-arm64
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
           name: build-static-amd64
           path: bin/static-amd64
-      - uses: actions/download-artifact@v2
-        with:
-          name: build-static-arm64
-          path: bin/static-arm64
       - uses: actions/download-artifact@v2
         with:
           name: docs
