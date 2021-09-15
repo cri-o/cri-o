@@ -81,17 +81,23 @@ func toPodIPs(ips []string) (result []*types.PodIP) {
 }
 
 func createSandboxInfo(c *oci.Container) (map[string]string, error) {
+	var info interface{}
 	if c.Spoofed() {
-		return map[string]string{"info": "{}"}, nil
-	}
-	info := struct {
-		Image       string    `json:"image"`
-		Pid         int       `json:"pid"`
-		RuntimeSpec spec.Spec `json:"runtimeSpec,omitempty"`
-	}{
-		c.Image(),
-		c.State().Pid,
-		c.Spec(),
+		info = struct {
+			RuntimeSpec spec.Spec `json:"runtimeSpec,omitempty"`
+		}{
+			c.Spec(),
+		}
+	} else {
+		info = struct {
+			Image       string    `json:"image"`
+			Pid         int       `json:"pid"`
+			RuntimeSpec spec.Spec `json:"runtimeSpec,omitempty"`
+		}{
+			c.Image(),
+			c.State().Pid,
+			c.Spec(),
+		}
 	}
 	bytes, err := json.Marshal(info)
 	if err != nil {
