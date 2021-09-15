@@ -277,20 +277,20 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		if err != nil {
 			return sb, err
 		}
-		scontainer.SetSpec(&m)
-		scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
-
-		if m.Annotations[annotations.Volumes] != "" {
-			containerVolumes := []oci.ContainerVolume{}
-			if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
-				return sb, fmt.Errorf("failed to unmarshal container volumes: %v", err)
-			}
-			for _, cv := range containerVolumes {
-				scontainer.AddVolume(cv)
-			}
-		}
 	} else {
 		scontainer = oci.NewSpoofedContainer(cID, cname, labels, id, created, sandboxPath)
+	}
+	scontainer.SetSpec(&m)
+	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
+
+	if m.Annotations[annotations.Volumes] != "" {
+		containerVolumes := []oci.ContainerVolume{}
+		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
+			return sb, fmt.Errorf("failed to unmarshal container volumes: %v", err)
+		}
+		for _, cv := range containerVolumes {
+			scontainer.AddVolume(cv)
+		}
 	}
 
 	if err := c.ContainerStateFromDisk(ctx, scontainer); err != nil {
