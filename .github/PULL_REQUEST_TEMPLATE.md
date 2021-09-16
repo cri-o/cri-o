@@ -5,7 +5,7 @@ to this project. This means that we have to use this mandatory template for all
 of our pull requests.
 
 Please also make sure you've read and understood our contributing guidelines
-(https://github.com/cri-o/cri-o/blob/master/CONTRIBUTING.md) as well as ensuring
+(https://github.com/cri-o/cri-o/blob/main/CONTRIBUTING.md) as well as ensuring
 that all your commits are signed with `git commit -s`.
 
 Here are some additional tips for you:

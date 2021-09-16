@@ -1,8 +1,8 @@
-![CRI-O logo](https://github.com/cri-o/cri-o/blob/master/logo/crio-logo.svg?raw=true)
+![CRI-O logo](https://github.com/cri-o/cri-o/blob/main/logo/crio-logo.svg?raw=true)
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
 [![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
-[![codecov](https://codecov.io/gh/cri-o/cri-o/branch/master/graph/badge.svg)](https://codecov.io/gh/cri-o/cri-o)
+[![codecov](https://codecov.io/gh/cri-o/cri-o/branch/main/graph/badge.svg)](https://codecov.io/gh/cri-o/cri-o)
 [![Release Notes](https://img.shields.io/badge/release-notes-blue.svg)](https://cri-o.github.io/cri-o)
 [![Dependencies](https://img.shields.io/badge/report-dependencies-blue.svg)](https://cri-o.github.io/cri-o/dependencies)
 [![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
@@ -30,7 +30,7 @@ documentation](https://github.com/kubernetes/community/blob/master/contributors/
 
 | Version - Branch             | Kubernetes branch/version       | Maintenance status |
 |------------------------------|---------------------------------|--------------------|
-| CRI-O HEAD    - master       | Kubernetes master branch        | ✓                  |
+| CRI-O HEAD    - main         | Kubernetes master branch        | ✓                  |
 | CRI-O 1.21.x  - release-1.21 | Kubernetes 1.21 branch, v1.21.x | =                  |
 | CRI-O 1.20.x  - release-1.20 | Kubernetes 1.20 branch, v1.20.x | =                  |
 | CRI-O 1.19.x  - release-1.19 | Kubernetes 1.19 branch, v1.19.x | =                  |
@@ -87,9 +87,9 @@ Note that kpod and its container management and debugging commands have moved to
 | File                                       | Description                                                                                          |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [crio.conf(5)](/docs/crio.conf.5.md)       | CRI-O Configuration file |
-| [policy.json(5)](https://github.com/containers/image/blob/master/docs/containers-policy.json.5.md)     | Signature Verification Policy File(s) |
-| [registries.conf(5)](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md) | Registries Configuration file |
-| [storage.conf(5)](https://github.com/containers/storage/blob/master/docs/containers-storage.conf.5.md) | Storage Configuration file |
+| [policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)     | Signature Verification Policy File(s) |
+| [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md) | Registries Configuration file |
+| [storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md) | Storage Configuration file |
 
 ## OCI Hooks Support
 
@@ -125,20 +125,20 @@ This means that the latest commit can be installed via our convinience script:
 [bucket]: https://console.cloud.google.com/storage/browser/cri-o/artifacts
 
 ```shell
-> curl https://raw.githubusercontent.com/cri-o/cri-o/master/scripts/get | bash
+> curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash
 ```
 
 Beside `amd64` we also support the `arm64` bit architecture. This can be
 selected via the script, too:
 
 ```shell
-> curl https://raw.githubusercontent.com/cri-o/cri-o/master/scripts/get | bash -s -- -a arm64
+> curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash -s -- -a arm64
 ```
 
 It is also possible to select a specific git SHA or tag by:
 
 ```shell
-> curl https://raw.githubusercontent.com/cri-o/cri-o/master/scripts/get | bash -s -- -t v1.21.0
+> curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash -s -- -t v1.21.0
 ```
 
 The above script resolves to the download URL of the static binary bundle
