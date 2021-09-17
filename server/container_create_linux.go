@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -751,7 +752,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	// add symlink /etc/mtab to /proc/mounts allow looking for mountfiles there in the container
 	// compatible with Docker
 	mtab := filepath.Join(mountPoint, "/etc/mtab")
-	if err := idtools.MkdirAllAs(filepath.Dir(mtab), 0755, rootPair.UID, rootPair.GID); err != nil {
+	if idtools.MkdirAllAs(filepath.Dir(mtab), 0o755, rootPair.UID, rootPair.GID) != nil {
 		return nil, errors.Wrap(err, "error creating mtab directory")
 	}
 	if err := os.Symlink("/proc/mounts", mtab); err != nil && !os.IsExist(err) {
