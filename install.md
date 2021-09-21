@@ -254,6 +254,8 @@ The following dependencies:
 On Debian, Raspbian and Ubuntu distributions, [enable the Kubic project
 repositories](../README.md#installing-crio) and install the following packages:
 
+##### Debian up to buster - Raspbian - Ubuntu up to 18.04
+
 ```bash
 apt-get update -qq && apt-get install -y \
   btrfs-tools \
@@ -265,6 +267,32 @@ apt-get update -qq && apt-get install -y \
   libglib2.0-dev \
   libc6-dev \
   libgpgme11-dev \
+  libgpg-error-dev \
+  libseccomp-dev \
+  libsystemd-dev \
+  libselinux1-dev \
+  pkg-config \
+  go-md2man \
+  cri-o-runc \
+  libudev-dev \
+  software-properties-common \
+  gcc \
+  make
+```
+
+##### Debian bullseye or higher - Ubuntu 20.04 or higher
+
+```bash
+apt-get update -qq && apt-get install -y \
+  libbtrfs-dev \
+  containers-common \
+  git \
+  golang-go \
+  libassuan-dev \
+  libdevmapper-dev \
+  libglib2.0-dev \
+  libc6-dev \
+  libgpgme-dev \
   libgpg-error-dev \
   libseccomp-dev \
   libsystemd-dev \
@@ -339,23 +367,23 @@ To add build tags to the make option the `BUILDTAGS` variable must be set.
 make BUILDTAGS='seccomp apparmor'
 ```
 
-| Build Tag                        | Feature                                         | Dependency   |
-|----------------------------------|-------------------------------------------------|--------------|
-| seccomp                          | syscall filtering                               | libseccomp   |
-| selinux                          | selinux process and mount labeling              | libselinux   |
-| apparmor                         | apparmor profile support                        | <none>       |
+| Build Tag | Feature                            | Dependency |
+| --------- | ---------------------------------- | ---------- |
+| seccomp   | syscall filtering                  | libseccomp |
+| selinux   | selinux process and mount labeling | libselinux |
+| apparmor  | apparmor profile support           | <none>     |
 
 `CRI-O` manages images with [containers/image](https://github.com/containers/image), which uses the following buildtags.
 
-| Build Tag                        | Feature                                         | Dependency   |
-|----------------------------------|-------------------------------------------------|--------------|
-| containers_image_openpgp         | use native golang pgp instead of cgo            | <none>       |
-| containers_image_ostree_stub     | disable use of ostree as an image transport     | <none>       |
+| Build Tag                    | Feature                                     | Dependency |
+| ---------------------------- | ------------------------------------------- | ---------- |
+| containers_image_openpgp     | use native golang pgp instead of cgo        | <none>     |
+| containers_image_ostree_stub | disable use of ostree as an image transport | <none>     |
 
 `CRI-O` also uses [containers/storage](https://github.com/containers/storage) for managing container storage.
 
 | Build Tag                        | Feature                                         | Dependency   |
-|----------------------------------|-------------------------------------------------|--------------|
+| -------------------------------- | ----------------------------------------------- | ------------ |
 | exclude_graphdriver_btrfs        | exclude btrfs as a storage option               | <none>       |
 | btrfs_noversion                  | for building btrfs version < 3.16.1             | btrfs        |
 | exclude_graphdriver_devicemapper | exclude devicemapper as a storage option        | <none>       |
