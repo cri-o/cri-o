@@ -76,16 +76,14 @@ var (
 		"CAP_SYS_CHROOT",
 	}
 
-	cniBinDir = []string{
+	// It may seem a bit unconventional, but it is necessary to do so
+	DefaultCNIPluginDirs = []string{
+		"/usr/local/libexec/cni",
 		"/usr/libexec/cni",
-		"/usr/lib/cni",
 		"/usr/local/lib/cni",
+		"/usr/lib/cni",
 		"/opt/cni/bin",
 	}
-
-	// DefaultRootlessNetwork is the kind of of rootless networking
-	// for containers
-	DefaultRootlessNetwork = "slirp4netns"
 )
 
 const (
@@ -195,19 +193,18 @@ func DefaultConfig() (*Config, error) {
 			NoHosts:            false,
 			PidsLimit:          DefaultPidsLimit,
 			PidNS:              "private",
-			RootlessNetworking: DefaultRootlessNetwork,
+			RootlessNetworking: getDefaultRootlessNetwork(),
 			ShmSize:            DefaultShmSize,
 			TZ:                 "",
 			Umask:              "0022",
 			UTSNS:              "private",
-			UserNS:             "host",
 			UserNSSize:         DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:   "podman",
 			DefaultSubnet:    DefaultSubnet,
 			NetworkConfigDir: cniConfig,
-			CNIPluginDirs:    cniBinDir,
+			CNIPluginDirs:    DefaultCNIPluginDirs,
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
@@ -246,9 +243,12 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		logrus.Warnf("Storage configuration is unset - using hardcoded default graph root %q", _defaultGraphRoot)
 		storeOpts.GraphRoot = _defaultGraphRoot
 	}
+	c.graphRoot = storeOpts.GraphRoot
+	c.ImageCopyTmpDir = "/var/tmp"
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
 
+	c.HelperBinariesDir = defaultHelperBinariesDir
 	c.HooksDir = DefaultHooksDirs
 	c.ImageDefaultTransport = _defaultTransport
 	c.StateType = BoltDBStateStore
@@ -256,8 +256,11 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.ImageBuildFormat = "oci"
 
 	c.CgroupManager = defaultCgroupManager()
+	c.ServiceTimeout = uint(5)
 	c.StopTimeout = uint(10)
-
+	c.NetworkCmdOptions = []string{
+		"enable_ipv6=true",
+	}
 	c.Remote = isRemote()
 	c.OCIRuntimes = map[string][]string{
 		"crun": {
@@ -298,6 +301,10 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/sbin/runsc",
 			"/run/current-system/sw/bin/runsc",
 		},
+		"krun": {
+			"/usr/bin/krun",
+			"/usr/local/bin/krun",
+		},
 	}
 	// Needs to be called after populating c.OCIRuntimes
 	c.OCIRuntime = c.findRuntime()
@@ -321,9 +328,10 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"runc",
 		"kata",
 		"runsc",
+		"krun",
 	}
-	c.RuntimeSupportsNoCgroups = []string{"crun"}
-	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc"}
+	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}
+	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc", "krun"}
 	c.InitPath = DefaultInitPath
 	c.NoPivotRoot = false
 
