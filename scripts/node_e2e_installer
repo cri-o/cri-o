@@ -51,6 +51,11 @@ EOF
     runtime_path="/usr/local/bin/crun"
 EOF
 
+    cat <<EOF >/etc/crio/crio.conf.d/30-infra container.conf
+[crio.runtime]
+drop_infra_ctr = false
+EOF
+
 }
 
 enable_selinux
