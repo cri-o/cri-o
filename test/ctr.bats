@@ -188,9 +188,9 @@ function check_oci_annotation() {
 	crictl rm "$ctr_id"
 
 	# priority of 5 is LOG_NOTICE
-	journalctl -t conmon -p info CONTAINER_ID_FULL="$ctr_id" | grep -F "here is some output"
+	journalctl -p info CONTAINER_ID_FULL="$ctr_id" | grep -F "here is some output"
 	# priority of 3 is LOG_ERR
-	journalctl -t conmon -p err CONTAINER_ID_FULL="$ctr_id" | grep -F "and some from stderr"
+	journalctl -p err CONTAINER_ID_FULL="$ctr_id" | grep -F "and some from stderr"
 }
 
 @test "ctr logging [tty=true]" {
