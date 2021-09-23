@@ -60,7 +60,7 @@ xUbuntu 18.04
 To install, choose a supported version for your operating system, and export it as a variable, like so:
 `export VERSION=1.19`
 
-We also save releases as subprojects. If you'd, for instance, like to use `1.18.3` you can set
+We also save releases as subprojects. If you'd, for instance, like to use `1.19.1` you can set
 `export VERSION=1.19:1.19.1`
 
 Packaging for CRI-O is done best-effort, and is largely driven by requests.
