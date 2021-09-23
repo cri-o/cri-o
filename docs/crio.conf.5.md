@@ -201,11 +201,6 @@ the container runtime configuration.
 
     2) `/usr/share/containers/mounts.conf`: This is the default file read for mounts. If you want CRI-O to read from a different, specific mounts file, you can change the default_mounts_file. Note, if this is done, CRI-O will only add mounts it finds in this file.
 
-**bind_mount_prefix**="prefix"
-  A prefix to use for the source of the bind mounts.
-
-  One potential use for this option would be running CRI-O in a container, and mounting / on the host as /host in the container.  CRI-O could then be ran with --bind-mount-prefix=/host, and CRI-O would add /host to any bind mounts it hands over the CRI, thus specifying the correct directory on the host.
-
 **pids_limit**=1024
   Maximum number of processes allowed in a container.
 
