@@ -32,3 +32,12 @@ function teardown() {
 	output=$(crictl exec --sync "$ctr_id" cat /proc/1/cmdline)
 	[[ "$output" == *"pause"* ]]
 }
+
+@test "should have host network" {
+	start_crio
+
+	pod_config="$TESTDIR"/sandbox_config.json
+	jq '	  .linux.security_context.namespace_options.network = 2' \
+		"$TESTDATA"/sandbox_config.json > "$pod_config"
+	crictl run "$TESTDATA"/container_config.json "$pod_config"
+}
