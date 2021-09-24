@@ -1,13 +1,10 @@
 package cgroups
 
 import (
-	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
-
-	"golang.org/x/sys/unix"
 )
 
 // CgroupID implements mapping kernel cgroup IDs to cgroupfs paths with transparent caching.
@@ -23,15 +20,6 @@ func NewCgroupID(root string) *CgroupID {
 		root:  root,
 		cache: make(map[uint64]string),
 	}
-}
-
-func getID(path string) uint64 {
-	h, _, err := unix.NameToHandleAt(unix.AT_FDCWD, path, 0)
-	if err != nil {
-		return 0
-	}
-
-	return binary.LittleEndian.Uint64(h.Bytes())
 }
 
 // Find finds the path for the given cgroup id.
