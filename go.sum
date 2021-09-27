@@ -395,8 +395,8 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.11/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.13/go.mod h1:MOBLtS5ELjhRRrroQr9kyvTxUAFNvYEK993ew/Vr4O4=
-github.com/creack/pty v1.1.15 h1:cKRCLMj3Ddm54bKSpemfQ8AtYFBhAI2MPmdys22fBdc=
-github.com/creack/pty v1.1.15/go.mod h1:MOBLtS5ELjhRRrroQr9kyvTxUAFNvYEK993ew/Vr4O4=
+github.com/creack/pty v1.1.16 h1:vfetlOf3A+9YKggibynnX9mnFjuSVvkRj+IWpcTSLEQ=
+github.com/creack/pty v1.1.16/go.mod h1:MOBLtS5ELjhRRrroQr9kyvTxUAFNvYEK993ew/Vr4O4=
 github.com/cri-o/ocicni v0.2.1-0.20210621164014-d0acc7862283/go.mod h1:vingr1ztOAzP2WyTgGbpMov9dFhbjNxdLtDv0+PhAvY=
 github.com/cri-o/ocicni v0.2.1-0.20210623033107-4ea5fb8752cf h1:2Ju8czUjjHavv6wIizDsCOvp2+d71o6VuM1VSwWfcuU=
 github.com/cri-o/ocicni v0.2.1-0.20210623033107-4ea5fb8752cf/go.mod h1:vingr1ztOAzP2WyTgGbpMov9dFhbjNxdLtDv0+PhAvY=
