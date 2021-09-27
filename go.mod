@@ -13,10 +13,10 @@ require (
 	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
-	github.com/containers/buildah v1.22.3
-	github.com/containers/common v0.43.2
+	github.com/containers/buildah v1.23.0
+	github.com/containers/common v0.44.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.15.2
+	github.com/containers/image/v5 v5.16.0
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/podman/v3 v3.3.1
 	github.com/containers/storage v1.36.0
@@ -42,7 +42,7 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.2-0.20210708142037-083f635f2b04
+	github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210709190330-896175883324
 	github.com/opencontainers/runtime-tools v0.9.1-0.20210326182921-59cdde06764b

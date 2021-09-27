@@ -171,7 +171,7 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.22.3
+# github.com/containers/buildah v1.23.0
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -185,8 +185,9 @@ github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
+github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/util
-# github.com/containers/common v0.43.2
+# github.com/containers/common v0.44.0
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
@@ -216,7 +217,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.15.2
+# github.com/containers/image/v5 v5.16.0
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -233,6 +234,7 @@ github.com/containers/image/v5/internal/blobinfocache
 github.com/containers/image/v5/internal/iolimits
 github.com/containers/image/v5/internal/pkg/keyctl
 github.com/containers/image/v5/internal/pkg/platform
+github.com/containers/image/v5/internal/putblobdigest
 github.com/containers/image/v5/internal/rootless
 github.com/containers/image/v5/internal/tmpdir
 github.com/containers/image/v5/internal/types
@@ -501,7 +503,7 @@ github.com/fatih/color
 # github.com/fsnotify/fsnotify v1.5.1
 ## explicit
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.7.3
+# github.com/fsouza/go-dockerclient v1.7.4
 github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
@@ -718,7 +720,7 @@ github.com/moby/spdystream/spdy
 github.com/moby/sys/mount
 # github.com/moby/sys/mountinfo v0.4.1
 github.com/moby/sys/mountinfo
-# github.com/moby/term v0.0.0-20210610120745-9d4ed1856297
+# github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 github.com/moby/term
 github.com/moby/term/windows
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
@@ -784,7 +786,7 @@ github.com/onsi/gomega/types
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.0.2-0.20210708142037-083f635f2b04
+# github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
 ## explicit
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
@@ -929,7 +931,7 @@ github.com/urfave/cli/v2
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v7 v7.0.3
+# github.com/vbauerster/mpb/v7 v7.1.3
 github.com/vbauerster/mpb/v7
 github.com/vbauerster/mpb/v7/cwriter
 github.com/vbauerster/mpb/v7/decor
@@ -960,11 +962,12 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+# golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
+golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/internal/subtle
