@@ -51,7 +51,7 @@ EOF
     runtime_path="/usr/local/bin/crun"
 EOF
 
-    cat <<EOF >/etc/crio/crio.conf.d/30-infra container.conf
+    cat container.conf <<EOF >/etc/crio/crio.conf.d/30-infra
 [crio.runtime]
 drop_infra_ctr = false
 EOF
