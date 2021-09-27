@@ -37,7 +37,7 @@ require (
 	github.com/google/renameio v1.0.1
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/intel/goresctrl v0.1.0
+	github.com/intel/goresctrl v0.2.0
 	github.com/json-iterator/go v1.1.12
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
@@ -58,7 +58,7 @@ require (
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210820121016-41cdb8703e55
+	golang.org/x/sys v0.0.0-20210903071746-97244b99971b
 	google.golang.org/grpc v1.40.0
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
