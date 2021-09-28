@@ -10,11 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
-type Resources struct {
-	CPUShares uint64 `json:"cpushares,omitempty"`
-	CPUSet    string `json:"cpuset,omitempty"`
-}
-
 type Workloads map[string]*WorkloadConfig
 
 type WorkloadConfig struct {
@@ -23,6 +18,16 @@ type WorkloadConfig struct {
 	// AnnotationPrefix is the way a pod can override a specific resource for a container.
 	// The full annotation must be of the form $annotation_prefix.$resource/$ctrname = $value
 	AnnotationPrefix string `toml:"annotation_prefix"`
+	// AllowedAnnotations is a slice of experimental annotations that this workload is allowed to process.
+	// The currently recognized values are:
+	// "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
+	// "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
+	// "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
+	// "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+	// "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
+	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
+	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this workload.
+	DisallowedAnnotations []string
 	// Resources are the names of the resources that can be overridden by annotation.
 	// The key of the map is the resource name. The following resources are supported:
 	// `cpushares`: configure cpu shares for a given container
@@ -32,17 +37,16 @@ type WorkloadConfig struct {
 	// the annotation with the resource and value, the default value will apply.
 	// Default values do not need to be specified.
 	Resources *Resources `toml:"resources"`
-	// AllowedAnnotations is a slice of experimental annotations that this workload is allowed to process.
-	// The currently recognized values are:
-	// "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
-	// "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
-	// "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
-	// "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
-	// "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
-	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
+}
 
-	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this workload.
-	DisallowedAnnotations []string
+// Resources is a structure for overriding certain resources for the pod.
+// This resources structure provides a default value, and can be overridden
+// by using the AnnotationPrefix.
+type Resources struct {
+	// Specifies the number of CPU shares this pod has access to.
+	CPUShares uint64 `json:"cpushares,omitempty"`
+	// Specifies the cpuset this pod has access to.
+	CPUSet string `json:"cpuset,omitempty"`
 }
 
 func (w Workloads) Validate() error {

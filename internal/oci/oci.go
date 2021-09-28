@@ -200,6 +200,7 @@ func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
 	return rh.PrivilegedWithoutHostDevices, nil
 }
 
+// AllowedAnnotations returns the allowed annotations for this runtime.
 func (r *Runtime) AllowedAnnotations(handler string) ([]string, error) {
 	rh, err := r.getRuntimeHandler(handler)
 	if err != nil {

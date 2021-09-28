@@ -278,11 +278,43 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
 
 **allowed_annotations**=[]
   A list of experimental annotations this runtime handler is allowed to process.
+  This field is currently DEPRECATED. If you'd like to use allowed_annotations, please use a workload.
   The currently recognized values are:
   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+  "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
+
+### CRIO.RUNTIME.WORKLOADS TABLE
+The "crio.runtime.workloads" table defines a list of workloads - a way to customize the behavior of a pod and container.
+A workload is chosen for a pod based on whether the workload's **activation_annotation** is an annotation on the pod.
+
+**activation_annotation**=""
+  activation_annotation is the pod annotation that activates these workload settings.
+
+**annotation_prefix**=""
+  annotation_prefix is the way a pod can override a specific resource for a container.
+  The full annotation must be of the form `$annotation_prefix.$resource/$ctrname = $value`.
+
+**allowed_annotations**=[]
+  allowed_annotations is a slice of experimental annotations that this workload is allowed to process.
+  The currently recognized values are:
+  "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
+  "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
+  "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
+  "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+  "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
+
+### CRIO.RUNTIME.WORKLOAD.RESOURCES TABLE
+The resources table is a structure for overriding certain resources for pods using this workload.
+This structure provides a default value, and can be overridden by using the AnnotationPrefix.
+
+**cpushares**=""
+Specifies the number of CPU shares this pod has access to.
+
+**cpuset**=""
+Specifies the cpuset this pod has access to.
 
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.
