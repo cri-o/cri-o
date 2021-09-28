@@ -1494,7 +1494,7 @@ k8s.io/component-base/featuregate
 k8s.io/component-base/metrics
 k8s.io/component-base/metrics/legacyregistry
 k8s.io/component-base/version
-# k8s.io/cri-api v0.22.1 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20210804175619-c2b5237ccd9c
+# k8s.io/cri-api v0.22.2 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20210804175619-c2b5237ccd9c
 ## explicit
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
