@@ -106,22 +106,24 @@ yum install cri-o
 Note: this tutorial assumes you have curl and gnupg installed
 
 To install on the following operating systems, set the environment variable $OS as the appropriate field in the following table:
+
 | Operating system | $OS               |
 | ---------------- | ----------------- |
 | Debian Unstable  | `Debian_Unstable` |
 | Debian Testing   | `Debian_Testing`  |
+| Debian 10        | `Debian_10`       |
 | Raspberry Pi OS  | `Raspbian_10`     |
 | Ubuntu 20.04     | `xUbuntu_20.04`   |
 | Ubuntu 19.10     | `xUbuntu_19.10`   |
 | Ubuntu 19.04     | `xUbuntu_19.04`   |
 | Ubuntu 18.04     | `xUbuntu_18.04`   |
 
-If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1. This is not available in distros based on Debian buster or below, so buster backports will need to be enabled:
+If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1. **NOTE: This is not available in distros based on Debian 10(buster) or below, so buster backports will need to be enabled:**
 
 ```shell
 echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
 apt update
-apt install -y libseccomp2 || apt update -y libseccomp2
+apt install -y -t buster-backports libseccomp2 || apt update -y -t buster-backports libseccomp2
 ```
 
 And then run the following as root:
@@ -137,7 +139,7 @@ apt-get update
 apt-get install cri-o cri-o-runc
 ```
 
-Note: We include cri-o-runc because Ubuntu and Debian include their own packaged version of runc.
+**Note: We include cri-o-runc because Ubuntu and Debian include their own packaged version of runc.**
 While this version should work with CRI-O, keeping the packaged versions of CRI-O and runc in sync ensures they work together.
 If you'd like to use the distribution's runc, you'll have to add the file:
 
@@ -251,13 +253,16 @@ The following dependencies:
 ```
 
 #### Debian - Raspbian - Ubuntu
+
 On Debian, Raspbian and Ubuntu distributions, [enable the Kubic project
 repositories](../README.md#installing-crio) and install the following packages:
 
 ##### Debian up to buster - Raspbian - Ubuntu up to 18.04
 
 ```bash
-apt-get update -qq && apt-get install -y \
+apt update -qq && \
+# For Debian 10(buster) or below: use "apt install -t buster-backports"
+apt install -y  \
   btrfs-tools \
   containers-common \
   git \
@@ -270,6 +275,7 @@ apt-get update -qq && apt-get install -y \
   libgpg-error-dev \
   libseccomp-dev \
   libsystemd-dev \
+  libbtrfs-dev \
   libselinux1-dev \
   pkg-config \
   go-md2man \
