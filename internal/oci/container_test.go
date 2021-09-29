@@ -159,6 +159,22 @@ var _ = t.Describe("Container", func() {
 		Expect(signal).To(Equal("15"))
 	})
 
+	It("should succeed get the right stop signal on SIGRTMIN", func() {
+		// Given
+		container, err := oci.NewContainer("", "", "", "",
+			map[string]string{}, map[string]string{}, map[string]string{},
+			"", "", "", &oci.Metadata{}, "",
+			false, false, false, "", "", time.Now(), "RTMIN+1")
+		Expect(err).To(BeNil())
+		Expect(container).NotTo(BeNil())
+
+		// When
+		signal := container.GetStopSignal()
+
+		// Then
+		Expect(signal).To(Equal("35"))
+	})
+
 	It("should succeed get the non default stop signal", func() {
 		// Given
 		container, err := oci.NewContainer("", "", "", "",
