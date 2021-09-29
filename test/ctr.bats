@@ -808,6 +808,15 @@ function wait_until_exit() {
 	[[ "$output" == *"Attempt: 1"* ]]
 }
 
+@test "ctr execsync should succeed if container has a terminal" {
+	start_crio
+
+	jq ' .tty = true' "$TESTDATA"/container_sleep.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+	crictl exec --sync "$ctr_id" /bin/sh -c "[[ -t 1 ]]"
+}
+
 @test "ctr execsync conflicting with conmon flags parsing" {
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
