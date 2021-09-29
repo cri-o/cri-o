@@ -1,4 +1,5 @@
 ![CRI-O logo](https://github.com/cri-o/cri-o/blob/main/logo/crio-logo.svg?raw=true)
+
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
 [![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
@@ -28,18 +29,18 @@ applies to features which are independent from Kubernetes.
 For more information visit the [Kubernetes versioning
 documentation](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/release/versioning.md).
 
-| Version - Branch             | Kubernetes branch/version       | Maintenance status |
-|------------------------------|---------------------------------|--------------------|
-| CRI-O HEAD    - main         | Kubernetes master branch        | ✓                  |
-| CRI-O 1.21.x  - release-1.21 | Kubernetes 1.21 branch, v1.21.x | =                  |
-| CRI-O 1.20.x  - release-1.20 | Kubernetes 1.20 branch, v1.20.x | =                  |
-| CRI-O 1.19.x  - release-1.19 | Kubernetes 1.19 branch, v1.19.x | =                  |
-| CRI-O 1.18.x  - release-1.18 | Kubernetes 1.18 branch, v1.18.x | =                  |
+| Version - Branch            | Kubernetes branch/version       | Maintenance status |
+| --------------------------- | ------------------------------- | ------------------ |
+| CRI-O HEAD - main           | Kubernetes master branch        | ✓                  |
+| CRI-O 1.21.x - release-1.21 | Kubernetes 1.21 branch, v1.21.x | =                  |
+| CRI-O 1.20.x - release-1.20 | Kubernetes 1.20 branch, v1.20.x | =                  |
+| CRI-O 1.19.x - release-1.19 | Kubernetes 1.19 branch, v1.19.x | =                  |
+| CRI-O 1.18.x - release-1.18 | Kubernetes 1.18 branch, v1.18.x | =                  |
 
 Key:
 
-* `✓` Changes in main Kubernetes repo about CRI are actively implemented in CRI-O
-* `=` Maintenance is manual, only bugs will be patched.
+- `✓` Changes in main Kubernetes repo about CRI are actively implemented in CRI-O
+- `=` Maintenance is manual, only bugs will be patched.
 
 The release notes for CRI-O are hand-crafted and can be continuously retrieved
 from [our GitHub pages website](https://cri-o.github.io/cri-o).
@@ -52,44 +53,45 @@ The scope of CRI-O is tied to the scope of the CRI.
 
 At a high level, we expect the scope of CRI-O to be restricted to the following functionalities:
 
-* Support multiple image formats including the existing Docker image format
-* Support for multiple means to download images including trust & image verification
-* Container image management (managing image layers, overlay filesystems, etc)
-* Container process lifecycle management
-* Monitoring and logging required to satisfy the CRI
-* Resource isolation as required by the CRI
+- Support multiple image formats including the existing Docker image format
+- Support for multiple means to download images including trust & image verification
+- Container image management (managing image layers, overlay filesystems, etc)
+- Container process lifecycle management
+- Monitoring and logging required to satisfy the CRI
+- Resource isolation as required by the CRI
 
 ## What is not in scope for this project?
 
-* Building, signing and pushing images to various image storages
-* A CLI utility for interacting with CRI-O. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backward compatibility with it.
+- Building, signing and pushing images to various image storages
+- A CLI utility for interacting with CRI-O. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backward compatibility with it.
 
 This is an implementation of the Kubernetes Container Runtime Interface (CRI) that will allow Kubernetes to directly launch and manage Open Container Initiative (OCI) containers.
 
 The plan is to use OCI projects and best of breed libraries for different aspects:
+
 - Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI runtime-spec implementation) and [oci runtime tools](https://github.com/opencontainers/runtime-tools)
 - Images: Image management using [containers/image](https://github.com/containers/image)
 - Storage: Storage and management of image layers using [containers/storage](https://github.com/containers/storage)
 - Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
 
-It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788).  Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
+It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788). Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
 ## Commands
 
-| Command                                              | Description                                                               |
-| ---------------------------------------------------- | --------------------------------------------------------------------------|
-| [crio(8)](/docs/crio.8.md)                           | OCI Kubernetes Container Runtime daemon                                   |
+| Command                    | Description                             |
+| -------------------------- | --------------------------------------- |
+| [crio(8)](/docs/crio.8.md) | OCI Kubernetes Container Runtime daemon |
 
 Note that kpod and its container management and debugging commands have moved to a separate repository, located [here](https://github.com/containers/podman).
 
 ## Configuration
 
-| File                                       | Description                                                                                          |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [crio.conf(5)](/docs/crio.conf.5.md)       | CRI-O Configuration file |
-| [policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)     | Signature Verification Policy File(s) |
-| [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md) | Registries Configuration file |
-| [storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md) | Storage Configuration file |
+| File                                                                                                     | Description                           |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| [crio.conf(5)](/docs/crio.conf.5.md)                                                                     | CRI-O Configuration file              |
+| [policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)         | Signature Verification Policy File(s) |
+| [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md) | Registries Configuration file         |
+| [storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)     | Storage Configuration file            |
 
 ## OCI Hooks Support
 
@@ -124,20 +126,20 @@ This means that the latest commit can be installed via our convinience script:
 
 [bucket]: https://console.cloud.google.com/storage/browser/cri-o/artifacts
 
-```shell
+```console
 > curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash
 ```
 
 Beside `amd64` we also support the `arm64` bit architecture. This can be
 selected via the script, too:
 
-```shell
+```console
 > curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash -s -- -a arm64
 ```
 
 It is also possible to select a specific git SHA or tag by:
 
-```shell
+```console
 > curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash -s -- -t v1.21.0
 ```
 
@@ -161,7 +163,7 @@ You can run a local version of Kubernetes with `CRI-O` using `local-up-cluster.s
 1. Clone the [Kubernetes repository](https://github.com/kubernetes/kubernetes)
 1. From the Kubernetes project directory, run:
 
-```shell
+```console
 CGROUP_DRIVER=systemd \
 CONTAINER_RUNTIME=remote \
 CONTAINER_RUNTIME_ENDPOINT='unix:///var/run/crio/crio.sock' \
@@ -184,7 +186,7 @@ use-cases should not rely on it.
 On a running CRI-O instance, we can access the API via an HTTP transfer tool like
 [curl](https://curl.haxx.se):
 
-```bash
+```console
 $ sudo curl -v --unix-socket /var/run/crio/crio.sock http://localhost/info | jq
 {
   "storage_driver": "btrfs",
@@ -206,7 +208,7 @@ The tool `crio-status` can be used to access the API with a dedicated command
 line tool. It supports all API endpoints via the dedicated subcommands `config`,
 `info` and `containers`, for example:
 
-```
+```console
 $ sudo go run cmd/crio-status/main.go info
 cgroup driver: systemd
 storage driver: btrfs
@@ -236,6 +238,7 @@ An incomplete list of adopters of CRI-O in production environments can be found 
 If you're a user, please help us complete it by submitting a pull-request!
 
 ## Weekly Meeting
+
 A weekly meeting is held to discuss CRI-O development. It is open to everyone.
 The details to join the meeting are on the [wiki](https://github.com/cri-o/cri-o/wiki/CRI-O-Weekly-Meeting).
 
