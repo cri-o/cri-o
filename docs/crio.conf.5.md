@@ -55,9 +55,9 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
   only happen when CRI-O has been upgraded
 
 **internal_wipe**=true
+  **This option is currently DEPRECATED, and will be removed in the future.**
   Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts.
   If set to false, one must run `crio wipe` to wipe the containers and images in these situations.
-  This option is deprecated, and will be removed in the future.
 
 **clean_shutdown_file**="/var/lib/crio/clean.shutdown"
   Location for CRI-O to lay down the clean shutdown file.
@@ -277,8 +277,8 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
   Whether this runtime handler prevents host devices from being passed to privileged containers.
 
 **allowed_annotations**=[]
+  **This field is currently DEPRECATED. If you'd like to use allowed_annotations, please use a workload.**
   A list of experimental annotations this runtime handler is allowed to process.
-  This field is currently DEPRECATED. If you'd like to use allowed_annotations, please use a workload.
   The currently recognized values are:
   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
