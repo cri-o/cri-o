@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -265,7 +266,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		processLabel = ""
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, specgen, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject)
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject)
 	if err != nil {
 		return nil, err
 	}
@@ -774,9 +775,11 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *types.ContainerConfig, specgen *generate.Generator, bindMountPrefix string, absentMountSourcesToReject []string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
+	containerConfig := ctr.Config()
+	specgen := ctr.Spec()
 	mounts := containerConfig.Mounts
 
 	// Sort mounts in number of parts. This ensures that high level mounts don't

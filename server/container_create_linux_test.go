@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -6,28 +7,38 @@ import (
 	"context"
 	"testing"
 
+	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/server/cri/types"
-	"github.com/opencontainers/runtime-tools/generate"
 )
 
 func TestAddOCIBindsForDev(t *testing.T) {
-	specgen, err := generate.New("linux")
+	ctr, err := container.New()
 	if err != nil {
 		t.Error(err)
 	}
-	config := &types.ContainerConfig{
+	if err := ctr.SetConfig(&types.ContainerConfig{
 		Mounts: []*types.Mount{
 			{
 				ContainerPath: "/dev",
 				HostPath:      "/dev",
 			},
 		},
+		Metadata: &types.ContainerMetadata{
+			Name: "testctr",
+		},
+	}, &types.PodSandboxConfig{
+		Metadata: &types.PodSandboxMetadata{
+			Name: "testpod",
+		},
+	}); err != nil {
+		t.Error(err)
 	}
-	_, binds, err := addOCIBindMounts(context.Background(), "", config, &specgen, "", nil)
+
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil)
 	if err != nil {
 		t.Error(err)
 	}
-	for _, m := range specgen.Mounts() {
+	for _, m := range ctr.Spec().Mounts() {
 		if m.Destination == "/dev" {
 			t.Error("/dev shouldn't be in the spec if it's bind mounted from kube")
 		}
@@ -45,19 +56,29 @@ func TestAddOCIBindsForDev(t *testing.T) {
 }
 
 func TestAddOCIBindsForSys(t *testing.T) {
-	specgen, err := generate.New("linux")
+	ctr, err := container.New()
 	if err != nil {
 		t.Error(err)
 	}
-	config := &types.ContainerConfig{
+	if err := ctr.SetConfig(&types.ContainerConfig{
 		Mounts: []*types.Mount{
 			{
 				ContainerPath: "/sys",
 				HostPath:      "/sys",
 			},
 		},
+		Metadata: &types.ContainerMetadata{
+			Name: "testctr",
+		},
+	}, &types.PodSandboxConfig{
+		Metadata: &types.PodSandboxMetadata{
+			Name: "testpod",
+		},
+	}); err != nil {
+		t.Error(err)
 	}
-	_, binds, err := addOCIBindMounts(context.Background(), "", config, &specgen, "", nil)
+
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil)
 	if err != nil {
 		t.Error(err)
 	}
