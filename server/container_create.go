@@ -131,7 +131,7 @@ func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInf
 				return nil, err1
 			}
 			if mountLabel != "" {
-				if err1 := securityLabel(fp, mountLabel, true); err1 != nil {
+				if err1 := securityLabel(fp, mountLabel, true, false); err1 != nil {
 					return nil, err1
 				}
 			}
@@ -143,7 +143,7 @@ func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInf
 			}
 			// Label the source with the sandbox selinux mount label
 			if mountLabel != "" {
-				if err1 := securityLabel(src, mountLabel, true); err1 != nil {
+				if err1 := securityLabel(src, mountLabel, true, false); err1 != nil {
 					return nil, err1
 				}
 			}
@@ -235,7 +235,7 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 			return err
 		}
 		if passwdPath != "" {
-			if err := securityLabel(passwdPath, mountLabel, false); err != nil {
+			if err := securityLabel(passwdPath, mountLabel, false, false); err != nil {
 				return err
 			}
 
