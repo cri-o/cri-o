@@ -34,7 +34,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil)
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,7 +78,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil)
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false)
 	if err != nil {
 		t.Error(err)
 	}

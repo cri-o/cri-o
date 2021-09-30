@@ -266,7 +266,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		processLabel = ""
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject)
+	maybeRelabel := false
+	if val, present := sb.Annotations()[crioann.TrySkipVolumeSELinuxLabelAnnotation]; present && val == "true" {
+		maybeRelabel = true
+	}
+
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel)
 	if err != nil {
 		return nil, err
 	}
@@ -508,7 +513,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
-		if err := securityLabel(sb.ResolvPath(), mountLabel, false); err != nil {
+		if err := securityLabel(sb.ResolvPath(), mountLabel, false, false); err != nil {
 			return nil, err
 		}
 		ctr.SpecAddMount(rspec.Mount{
@@ -520,7 +525,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	if sb.HostnamePath() != "" {
-		if err := securityLabel(sb.HostnamePath(), mountLabel, false); err != nil {
+		if err := securityLabel(sb.HostnamePath(), mountLabel, false, false); err != nil {
 			return nil, err
 		}
 		ctr.SpecAddMount(rspec.Mount{
@@ -745,7 +750,7 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 		return err
 	}
 	if mountLabel != "" {
-		if err1 := securityLabel(fp, mountLabel, false); err1 != nil {
+		if err1 := securityLabel(fp, mountLabel, false, false); err1 != nil {
 			return err1
 		}
 	}
@@ -775,7 +780,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	containerConfig := ctr.Config()
@@ -883,7 +888,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, b
 		}
 
 		if m.SelinuxRelabel {
-			if err := securityLabel(src, mountLabel, false); err != nil {
+			if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
 				return nil, nil, err
 			}
 		}
