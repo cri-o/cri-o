@@ -548,3 +548,17 @@ function fail() {
 function is_cgroup_v2() {
     test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
 }
+
+function create_runtime_with_allowed_annotation() {
+    local NAME="$1"
+    local ANNOTATION="$2"
+    cat <<EOF >"$CRIO_CONFIG_DIR/01-$NAME.conf"
+[crio.runtime]
+default_runtime = "$NAME"
+[crio.runtime.runtimes.$NAME]
+runtime_path = "$RUNTIME_BINARY_PATH"
+runtime_root = "$RUNTIME_ROOT"
+runtime_type = "$RUNTIME_TYPE"
+allowed_annotations = ["$ANNOTATION"]
+EOF
+}
