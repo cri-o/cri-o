@@ -222,7 +222,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	defer errorhandling.CloseQuiet(syncR)
 	defer errorhandling.CloseQuiet(syncW)
 
-	havePortMapping := len(ctr.Config().PortMappings) > 0
+	havePortMapping := len(ctr.config.PortMappings) > 0
 	logPath := filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
 	ctrNetworkSlipOpts := []string{}
@@ -632,16 +632,7 @@ func (c *Container) reloadRootlessRLKPortMapping() error {
 	childIP := getRootlessPortChildIP(c)
 	logrus.Debugf("reloading rootless ports for container %s, childIP is %s", c.config.ID, childIP)
 
-	var conn net.Conn
-	var err error
-	// try three times to connect to the socket, maybe it is not ready yet
-	for i := 0; i < 3; i++ {
-		conn, err = net.Dial("unix", filepath.Join(c.runtime.config.Engine.TmpDir, "rp", c.config.ID))
-		if err == nil {
-			break
-		}
-		time.Sleep(250 * time.Millisecond)
-	}
+	conn, err := openUnixSocket(filepath.Join(c.runtime.config.Engine.TmpDir, "rp", c.config.ID))
 	if err != nil {
 		// This is not a hard error for backwards compatibility. A container started
 		// with an old version did not created the rootlessport socket.

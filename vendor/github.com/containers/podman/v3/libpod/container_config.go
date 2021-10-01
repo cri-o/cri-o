@@ -229,6 +229,12 @@ type ContainerNetworkConfig struct {
 	// namespace
 	// These are not used unless CreateNetNS is true
 	PortMappings []ocicni.PortMapping `json:"portMappings,omitempty"`
+	// ExposedPorts are the ports which are exposed but not forwarded
+	// into the container.
+	// The map key is the port and the string slice contains the protocols,
+	// e.g. tcp and udp
+	// These are only set when exposed ports are given but not published.
+	ExposedPorts map[uint16][]string `json:"exposedPorts,omitempty"`
 	// UseImageResolvConf indicates that resolv.conf should not be
 	// bind-mounted inside the container.
 	// Conflicts with DNSServer, DNSSearch, DNSOption.
@@ -375,4 +381,7 @@ type ContainerMiscConfig struct {
 	CDIDevices []string `json:"cdiDevices,omitempty"`
 	// EnvSecrets are secrets that are set as environment variables
 	EnvSecrets map[string]*secrets.Secret `json:"secret_env,omitempty"`
+	// InitContainerType specifies if the container is an initcontainer
+	// and if so, what type: always or once are possible non-nil entries
+	InitContainerType string `json:"init_container_type,omitempty"`
 }

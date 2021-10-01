@@ -34,7 +34,6 @@ import (
 	"github.com/containers/podman/v3/utils"
 	"github.com/containers/storage/pkg/homedir"
 	pmount "github.com/containers/storage/pkg/mount"
-	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/coreos/go-systemd/v22/daemon"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -47,7 +46,9 @@ import (
 const (
 	// This is Conmon's STDIO_BUF_SIZE. I don't believe we have access to it
 	// directly from the Go code, so const it here
-	bufferSize = conmonConfig.BufSize
+	// Important: The conmon attach socket uses an extra byte at the beginning of each
+	// message to specify the STREAM so we have to increase the buffer size by one
+	bufferSize = conmonConfig.BufSize + 1
 )
 
 // ConmonOCIRuntime is an OCI runtime managed by Conmon.
@@ -66,7 +67,6 @@ type ConmonOCIRuntime struct {
 	supportsJSON      bool
 	supportsKVM       bool
 	supportsNoCgroups bool
-	sdNotify          bool
 	enableKeyring     bool
 }
 
@@ -105,7 +105,6 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.logSizeMax = runtimeCfg.Containers.LogSizeMax
 	runtime.noPivot = runtimeCfg.Engine.NoPivotRoot
 	runtime.reservePorts = runtimeCfg.Engine.EnablePortReservation
-	runtime.sdNotify = runtimeCfg.Engine.SDNotify
 	runtime.enableKeyring = runtimeCfg.Containers.EnableKeyring
 
 	// TODO: probe OCI runtime for feature and enable automatically if
@@ -1048,8 +1047,22 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
-	if ctr.config.PreserveFDs > 0 {
-		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", ctr.config.PreserveFDs))...)
+	// Pass down the LISTEN_* environment (see #10443).
+	preserveFDs := ctr.config.PreserveFDs
+	if val := os.Getenv("LISTEN_FDS"); val != "" {
+		if ctr.config.PreserveFDs > 0 {
+			logrus.Warnf("Ignoring LISTEN_FDS to preserve custom user-specified FDs")
+		} else {
+			fds, err := strconv.Atoi(val)
+			if err != nil {
+				return fmt.Errorf("converting LISTEN_FDS=%s: %w", val, err)
+			}
+			preserveFDs = uint(fds)
+		}
+	}
+
+	if preserveFDs > 0 {
+		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", preserveFDs))...)
 	}
 
 	if restoreOptions != nil {
@@ -1102,11 +1115,11 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	// 0, 1 and 2 are stdin, stdout and stderr
-	conmonEnv, envFiles := r.configureConmonEnv(ctr, runtimeDir)
+	conmonEnv := r.configureConmonEnv(ctr, runtimeDir)
 
 	var filesToClose []*os.File
-	if ctr.config.PreserveFDs > 0 {
-		for fd := 3; fd < int(3+ctr.config.PreserveFDs); fd++ {
+	if preserveFDs > 0 {
+		for fd := 3; fd < int(3+preserveFDs); fd++ {
 			f := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd))
 			filesToClose = append(filesToClose, f)
 			cmd.ExtraFiles = append(cmd.ExtraFiles, f)
@@ -1116,16 +1129,16 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	cmd.Env = r.conmonEnv
 	// we don't want to step on users fds they asked to preserve
 	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", ctr.config.PreserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", ctr.config.PreserveFDs+4))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", preserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", preserveFDs+4))
 	cmd.Env = append(cmd.Env, conmonEnv...)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childSyncPipe, childStartPipe)
-	cmd.ExtraFiles = append(cmd.ExtraFiles, envFiles...)
 
 	if r.reservePorts && !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
 		ports, err := bindPorts(ctr.config.PortMappings)
 		if err != nil {
 			return err
 		}
+		filesToClose = append(filesToClose, ports...)
 
 		// Leak the port we bound in the conmon process.  These fd's won't be used
 		// by the container and conmon will keep the ports busy so that another
@@ -1135,7 +1148,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	if ctr.config.NetMode.IsSlirp4netns() || rootless.IsRootless() {
 		if ctr.config.PostConfigureNetNS {
-			havePortMapping := len(ctr.Config().PortMappings) > 0
+			havePortMapping := len(ctr.config.PortMappings) > 0
 			if havePortMapping {
 				ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
 				if err != nil {
@@ -1223,7 +1236,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 // configureConmonEnv gets the environment values to add to conmon's exec struct
 // TODO this may want to be less hardcoded/more configurable in the future
-func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string) ([]string, []*os.File) {
+func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string) []string {
 	var env []string
 	for _, e := range os.Environ() {
 		if strings.HasPrefix(e, "LC_") {
@@ -1238,17 +1251,7 @@ func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string)
 		env = append(env, fmt.Sprintf("HOME=%s", home))
 	}
 
-	extraFiles := make([]*os.File, 0)
-	if !r.sdNotify {
-		if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
-			env = append(env, fmt.Sprintf("LISTEN_FDS=%s", listenfds), "LISTEN_PID=1")
-			fds := activation.Files(false)
-			extraFiles = append(extraFiles, fds...)
-		}
-	} else {
-		logrus.Debug("disabling SD notify")
-	}
-	return env, extraFiles
+	return env
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI

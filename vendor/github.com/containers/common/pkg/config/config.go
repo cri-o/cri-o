@@ -54,6 +54,8 @@ type Config struct {
 	Containers ContainersConfig `toml:"containers"`
 	// Engine specifies how the container engine based on Engine will run
 	Engine EngineConfig `toml:"engine"`
+	// Machine specifies configurations of podman machine VMs
+	Machine MachineConfig `toml:"machine"`
 	// Network section defines the configuration of CNI Plugins
 	Network NetworkConfig `toml:"network"`
 	// Secret section defines configurations for the secret management
@@ -167,7 +169,7 @@ type ContainersConfig struct {
 
 	// RootlessNetworking depicts the "kind" of networking for rootless
 	// containers.  Valid options are `slirp4netns` and `cni`. Default is
-	// `slirp4netns`
+	// `slirp4netns` on Linux, and `cni` on non-Linux OSes.
 	RootlessNetworking string `toml:"rootless_networking,omitempty"`
 
 	// SeccompProfile is the seccomp.json profile path which is used as the
@@ -234,6 +236,10 @@ type EngineConfig struct {
 	// EventsLogger determines where events should be logged.
 	EventsLogger string `toml:"events_logger,omitempty"`
 
+	// HelperBinariesDir is a list of directories which are used to search for
+	// helper binaries.
+	HelperBinariesDir []string `toml:"helper_binaries_dir"`
+
 	// configuration files. When the same filename is present in in
 	// multiple directories, the file in the directory listed last in
 	// this slice takes precedence.
@@ -273,9 +279,6 @@ type EngineConfig struct {
 
 	// MachineEnabled indicates if Podman is running in a podman-machine VM
 	MachineEnabled bool `toml:"machine_enabled,omitempty"`
-
-	// MachineImage is the image used when creating a podman-machine VM
-	MachineImage string `toml:"machine_image,omitempty"`
 
 	// MultiImageArchive - if true, the container engine allows for storing
 	// archives (e.g., of the docker-archive transport) with multiple
@@ -471,6 +474,18 @@ type SecretConfig struct {
 	Driver string `toml:"driver,omitempty"`
 	// Opts contains driver specific options
 	Opts map[string]string `toml:"opts,omitempty"`
+}
+
+// MachineConfig represents the "machine" TOML config table
+type MachineConfig struct {
+	// Number of CPU's a machine is created with.
+	CPUs uint64 `toml:"cpus,omitempty"`
+	// DiskSize is the size of the disk in GB created when init-ing a podman-machine VM
+	DiskSize uint64 `toml:"disk_size,omitempty"`
+	// MachineImage is the image used when init-ing a podman-machine VM
+	Image string `toml:"image,omitempty"`
+	// Memory in MB a machine is created with.
+	Memory uint64 `toml:"memory,omitempty"`
 }
 
 // Destination represents destination for remote service
@@ -778,7 +793,7 @@ func (c *NetworkConfig) Validate() error {
 		}
 	}
 
-	if stringsEq(c.CNIPluginDirs, cniBinDir) {
+	if stringsEq(c.CNIPluginDirs, DefaultCNIPluginDirs) {
 		return nil
 	}
 
@@ -1125,4 +1140,22 @@ func (c *Config) ActiveDestination() (uri, identity string, err error) {
 		return c.Engine.RemoteURI, c.Engine.RemoteIdentity, nil
 	}
 	return "", "", errors.New("no service destination configured")
+}
+
+// FindHelperBinary will search the given binary name in the configured directories.
+// If searchPATH is set to true it will also search in $PATH.
+func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) {
+	for _, path := range c.Engine.HelperBinariesDir {
+		fullpath := filepath.Join(path, name)
+		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
+			return fullpath, nil
+		}
+	}
+	if searchPATH {
+		return exec.LookPath(name)
+	}
+	if len(c.Engine.HelperBinariesDir) == 0 {
+		return "", errors.Errorf("could not find %q because there are no helper binary directories configured", name)
+	}
+	return "", errors.Errorf("could not find %q in one of %v", name, c.Engine.HelperBinariesDir)
 }

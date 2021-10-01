@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package libpod
@@ -173,11 +174,6 @@ func (c *Container) prepare() error {
 
 	// Save changes to container state
 	if err := c.save(); err != nil {
-		return err
-	}
-
-	// Make sure the workdir exists
-	if err := c.resolveWorkDir(); err != nil {
 		return err
 	}
 
@@ -663,7 +659,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if c.config.IDMappings.AutoUserNs {
+	if c.config.UserNsCtr == "" && c.config.IDMappings.AutoUserNs {
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
 			return nil, err
 		}
@@ -775,6 +771,18 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 				return nil, err
 			}
 			g.AddProcessEnv(name, string(data))
+		}
+	}
+
+	// Pass down the LISTEN_* environment (see #10443).
+	for _, key := range []string{"LISTEN_PID", "LISTEN_FDS", "LISTEN_FDNAMES"} {
+		if val, ok := os.LookupEnv(key); ok {
+			// Force the PID to `1` since we cannot rely on (all
+			// versions of) all runtimes to do it for us.
+			if key == "LISTEN_PID" {
+				val = "1"
+			}
+			g.AddProcessEnv(key, val)
 		}
 	}
 
@@ -1138,6 +1146,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 
 	if !options.KeepRunning && !options.PreCheckPoint {
 		c.state.State = define.ContainerStateStopped
+		c.state.Checkpointed = true
 
 		// Cleanup Storage and Network
 		if err := c.cleanup(ctx); err != nil {
@@ -1822,7 +1831,7 @@ func (c *Container) generateResolvConf() (string, error) {
 	cniResponse := c.state.NetworkStatus
 	for _, i := range cniResponse {
 		for _, ip := range i.IPs {
-			// Note: only using To16() does not work since it also returns a vaild ip for ipv4
+			// Note: only using To16() does not work since it also returns a valid ip for ipv4
 			if ip.Address.IP.To4() == nil && ip.Address.IP.To16() != nil {
 				ipv6 = true
 			}
@@ -1924,7 +1933,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(c.state.RunDir, "resolv.conf"), nil
+	return destPath, nil
 }
 
 // generateHosts creates a containers hosts file
@@ -1935,7 +1944,22 @@ func (c *Container) generateHosts(path string) (string, error) {
 	}
 	hosts := string(orig)
 	hosts += c.getHosts()
+
+	hosts = c.appendLocalhost(hosts)
+
 	return c.writeStringToRundir("hosts", hosts)
+}
+
+// based on networking mode we may want to append the localhost
+// if there isn't any record for it and also this shoud happen
+// in slirp4netns and similar network modes.
+func (c *Container) appendLocalhost(hosts string) string {
+	if !strings.Contains(hosts, "localhost") &&
+		!c.config.NetMode.IsHost() {
+		hosts += "127.0.0.1\tlocalhost\n::1\tlocalhost\n"
+	}
+
+	return hosts
 }
 
 // appendHosts appends a container's config and state pertaining to hosts to a container's
@@ -1977,15 +2001,16 @@ func (c *Container) getHosts() string {
 
 		// Do we have a network namespace?
 		netNone := false
-		for _, ns := range c.config.Spec.Linux.Namespaces {
-			if ns.Type == spec.NetworkNamespace {
-				if ns.Path == "" && !c.config.CreateNetNS {
-					netNone = true
+		if c.config.NetNsCtr == "" && !c.config.CreateNetNS {
+			for _, ns := range c.config.Spec.Linux.Namespaces {
+				if ns.Type == spec.NetworkNamespace {
+					if ns.Path == "" {
+						netNone = true
+					}
+					break
 				}
-				break
 			}
 		}
-
 		// If we are net=none (have a network namespace, but not connected to
 		// anything) add the container's name and hostname to localhost.
 		if netNone {
@@ -2465,15 +2490,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	switch {
 	case c.config.NoCgroups:
 		return "", nil
-	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)):
-		if !isRootlessCgroupSet(c.config.CgroupParent) {
-			return "", nil
-		}
-		return c.config.CgroupParent, nil
 	case c.config.CgroupsMode == cgroupSplit:
-		if c.config.CgroupParent != "" {
-			return c.config.CgroupParent, nil
-		}
 		selfCgroup, err := utils.GetOwnCgroup()
 		if err != nil {
 			return "", err
@@ -2486,6 +2503,11 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
+	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)):
+		if c.config.CgroupParent == "" || !isRootlessCgroupSet(c.config.CgroupParent) {
+			return "", nil
+		}
+		fallthrough
 	case cgroupManager == config.CgroupfsCgroupsManager:
 		cgroupPath := filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()))
 		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)

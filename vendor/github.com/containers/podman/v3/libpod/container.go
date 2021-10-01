@@ -159,6 +159,9 @@ type ContainerState struct {
 	// OOMKilled indicates that the container was killed as it ran out of
 	// memory
 	OOMKilled bool `json:"oomKilled,omitempty"`
+	// Checkpointed indicates that the container was stopped by a checkpoint
+	// operation.
+	Checkpointed bool `json:"checkpointed,omitempty"`
 	// PID is the PID of a running container
 	PID int `json:"pid,omitempty"`
 	// ConmonPID is the PID of the container's conmon
@@ -244,7 +247,7 @@ type ContainerImageVolume struct {
 type ContainerSecret struct {
 	// Secret is the secret
 	*secrets.Secret
-	// UID is tbe UID of the secret file
+	// UID is the UID of the secret file
 	UID uint32
 	// GID is the GID of the secret file
 	GID uint32
@@ -1024,8 +1027,8 @@ func (c *Container) RWSize() (int64, error) {
 }
 
 // IDMappings returns the UID/GID mapping used for the container
-func (c *Container) IDMappings() (storage.IDMappingOptions, error) {
-	return c.config.IDMappings, nil
+func (c *Container) IDMappings() storage.IDMappingOptions {
+	return c.config.IDMappings
 }
 
 // RootUID returns the root user mapping from container
@@ -1057,6 +1060,11 @@ func (c *Container) RootGID() int {
 // IsInfra returns whether the container is an infra container
 func (c *Container) IsInfra() bool {
 	return c.config.IsInfra
+}
+
+// IsInitCtr returns whether the container is an init container
+func (c *Container) IsInitCtr() bool {
+	return len(c.config.InitContainerType) > 0
 }
 
 // IsReadOnly returns whether the container is running in read only mode

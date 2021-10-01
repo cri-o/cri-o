@@ -49,6 +49,10 @@ type VolumeConfig struct {
 	UID int `json:"uid"`
 	// GID the volume will be created as.
 	GID int `json:"gid"`
+	// Size maximum of the volume.
+	Size uint64 `json:"size"`
+	// Inodes maximum of the volume.
+	Inodes uint64 `json:"inodes"`
 }
 
 // VolumeState holds the volume's mutable state.
@@ -133,6 +137,17 @@ func (v *Volume) MountPoint() (string, error) {
 	}
 
 	return v.mountPoint(), nil
+}
+
+// MountCount returns the volume's mountcount on the host from state
+// Useful in determining if volume is using plugin or a filesystem mount and its mount
+func (v *Volume) MountCount() (uint, error) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	if err := v.update(); err != nil {
+		return 0, err
+	}
+	return v.state.MountCount, nil
 }
 
 // Internal-only helper for volume mountpoint

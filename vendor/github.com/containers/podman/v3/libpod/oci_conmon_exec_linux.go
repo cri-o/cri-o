@@ -438,7 +438,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// 	}
 	// }
 
-	conmonEnv, extraFiles := r.configureConmonEnv(c, runtimeDir)
+	conmonEnv := r.configureConmonEnv(c, runtimeDir)
 
 	var filesToClose []*os.File
 	if options.PreserveFDs > 0 {
@@ -456,7 +456,6 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	execCmd.Env = append(execCmd.Env, conmonEnv...)
 
 	execCmd.ExtraFiles = append(execCmd.ExtraFiles, childSyncPipe, childStartPipe, childAttachPipe)
-	execCmd.ExtraFiles = append(execCmd.ExtraFiles, extraFiles...)
 	execCmd.Dir = c.execBundlePath(sessionID)
 	execCmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
@@ -683,6 +682,19 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 	}
 	if len(env) > 0 {
 		pspec.Env = append(pspec.Env, env...)
+	}
+
+	// Add secret envs if they exist
+	manager, err := c.runtime.SecretsManager()
+	if err != nil {
+		return nil, err
+	}
+	for name, secr := range c.config.EnvSecrets {
+		_, data, err := manager.LookupSecretData(secr.Name)
+		if err != nil {
+			return nil, err
+		}
+		pspec.Env = append(pspec.Env, fmt.Sprintf("%s=%s", name, string(data)))
 	}
 
 	if options.Cwd != "" {
