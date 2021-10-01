@@ -36,7 +36,7 @@ It is assumed you are running a Linux machine.
 
 ## Install packaged versions of CRI-O
 
-CRI-O builds for native package managers using [openSUSE's OBS](build.opensuse.org)
+CRI-O builds for native package managers using [openSUSE's OBS](https://build.opensuse.org)
 
 ### Supported versions
 
@@ -64,7 +64,7 @@ We also save releases as subprojects. If you'd, for instance, like to use `1.19.
 `export VERSION=1.19:1.19.1`
 
 Packaging for CRI-O is done best-effort, and is largely driven by requests.
-If there's a version or operating system that is missing, please [open an issue](github.com/cri-o/cri-o/issues/new).
+If there's a version or operating system that is missing, please [open an issue](https://github.com/cri-o/cri-o/issues/new).
 
 ### Installation Instructions
 
