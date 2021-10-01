@@ -136,6 +136,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	// eventually, we'd like to access all of these variables through the interface themselves, and do most
 	// of the translation between CRI config -> oci/storage container in the container package
+
+	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
+	// and SpecAddAnnotations is already being passed too many arguments
+	// Filter early so any use of the annotations don't use the wrong values
+	if err := s.Runtime().FilterDisallowedAnnotations(sb.RuntimeHandler(), ctr.Config().Annotations); err != nil {
+		return nil, err
+	}
+
 	containerID := ctr.ID()
 	containerName := ctr.Name()
 	containerConfig := ctr.Config()
@@ -597,12 +605,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			}
 		}
 	}()
-
-	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
-	// and SpecAddAnnotations is already passed too many arguments
-	if err := s.Runtime().FilterDisallowedAnnotations(sb.RuntimeHandler(), ctr.Config().Annotations); err != nil {
-		return nil, err
-	}
 
 	// Get RDT class
 	rdtClass, err := s.Config().Rdt().ContainerClassFromAnnotations(metadata.Name, containerConfig.Annotations, sb.Annotations())
