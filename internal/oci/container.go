@@ -184,8 +184,13 @@ func (c *Container) GetStopSignal() string {
 		return defaultStopSignal
 	}
 
-	if _, err := strconv.Atoi(c.stopSignal); err == nil {
-		return c.stopSignal
+	// check if signal number has been passed
+	if signum, err := strconv.Atoi(c.stopSignal); err == nil {
+		if unix.SignalName(syscall.Signal(signum)) == "" {
+			return defaultStopSignal
+		} else {
+			return c.stopSignal
+		}
 	}
 
 	signal := unix.SignalNum(strings.ToUpper(c.stopSignal))
@@ -204,8 +209,12 @@ func (c *Container) StopSignal() syscall.Signal {
 		return defaultStopSignalInt
 	}
 
-	if signal, err := strconv.Atoi(c.stopSignal); err == nil {
-		return syscall.Signal(signal)
+	if signum, err := strconv.Atoi(c.stopSignal); err == nil {
+		if unix.SignalName(syscall.Signal(signum)) == "" {
+			return defaultStopSignalInt
+		} else {
+			return syscall.Signal(signum)
+		}
 	}
 
 	signal := unix.SignalNum(strings.ToUpper(c.stopSignal))
