@@ -1009,7 +1009,7 @@ golang.org/x/oauth2/internal
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210903071746-97244b99971b
+# golang.org/x/sys v0.0.0-20210925032602-92d5a993a665
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -1017,7 +1017,7 @@ golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
+# golang.org/x/term v0.0.0-20210916214954-140adaaadfaf
 golang.org/x/term
 # golang.org/x/text v0.3.6
 golang.org/x/text/encoding
@@ -1571,7 +1571,7 @@ k8s.io/utils/path
 k8s.io/utils/trace
 # mvdan.cc/editorconfig v0.2.0
 mvdan.cc/editorconfig
-# mvdan.cc/sh/v3 v3.3.1
+# mvdan.cc/sh/v3 v3.4.0
 ## explicit
 mvdan.cc/sh/v3/cmd/shfmt
 mvdan.cc/sh/v3/fileutil

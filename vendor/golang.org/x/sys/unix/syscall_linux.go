@@ -13,7 +13,6 @@ package unix
 
 import (
 	"encoding/binary"
-	"runtime"
 	"syscall"
 	"unsafe"
 )
@@ -36,6 +35,13 @@ func Chown(path string, uid int, gid int) (err error) {
 
 func Creat(path string, mode uint32) (fd int, err error) {
 	return Open(path, O_CREAT|O_WRONLY|O_TRUNC, mode)
+}
+
+func EpollCreate(size int) (fd int, err error) {
+	if size <= 0 {
+		return -1, EINVAL
+	}
+	return EpollCreate1(0)
 }
 
 //sys	FanotifyInit(flags uint, event_f_flags uint) (fd int, err error)
@@ -64,6 +70,10 @@ func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 		return EOPNOTSUPP
 	}
 	return fchmodat(dirfd, path, mode)
+}
+
+func InotifyInit() (fd int, err error) {
+	return InotifyInit1(0)
 }
 
 //sys	ioctl(fd int, req uint, arg uintptr) (err error) = SYS_IOCTL
@@ -107,6 +117,23 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 
 func Openat2(dirfd int, path string, how *OpenHow) (fd int, err error) {
 	return openat2(dirfd, path, how, SizeofOpenHow)
+}
+
+func Pipe(p []int) error {
+	return Pipe2(p, 0)
+}
+
+//sysnb	pipe2(p *[2]_C_int, flags int) (err error)
+
+func Pipe2(p []int, flags int) error {
+	if len(p) != 2 {
+		return EINVAL
+	}
+	var pp [2]_C_int
+	err := pipe2(&pp, flags)
+	p[0] = int(pp[0])
+	p[1] = int(pp[1])
+	return err
 }
 
 //sys	ppoll(fds *PollFd, nfds int, timeout *Timespec, sigmask *Sigset_t) (n int, err error)
@@ -1792,11 +1819,7 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sys	Dup(oldfd int) (fd int, err error)
 
 func Dup2(oldfd, newfd int) error {
-	// Android O and newer blocks dup2; riscv and arm64 don't implement dup2.
-	if runtime.GOOS == "android" || runtime.GOARCH == "riscv64" || runtime.GOARCH == "arm64" {
-		return Dup3(oldfd, newfd, 0)
-	}
-	return dup2(oldfd, newfd)
+	return Dup3(oldfd, newfd, 0)
 }
 
 //sys	Dup3(oldfd int, newfd int, flags int) (err error)
@@ -2283,6 +2306,9 @@ type RemoteIovec struct {
 
 //sys	ProcessVMReadv(pid int, localIov []Iovec, remoteIov []RemoteIovec, flags uint) (n int, err error) = SYS_PROCESS_VM_READV
 //sys	ProcessVMWritev(pid int, localIov []Iovec, remoteIov []RemoteIovec, flags uint) (n int, err error) = SYS_PROCESS_VM_WRITEV
+
+//sys	PidfdOpen(pid int, flags int) (fd int, err error) = SYS_PIDFD_OPEN
+//sys	PidfdGetfd(pidfd int, targetfd int, flags int) (fd int, err error) = SYS_PIDFD_GETFD
 
 /*
  * Unimplemented
