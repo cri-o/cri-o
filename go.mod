@@ -16,7 +16,7 @@ require (
 	github.com/containers/buildah v1.22.3
 	github.com/containers/common v0.43.2
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.15.2
+	github.com/containers/image/v5 v5.16.0
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/podman/v3 v3.3.1
 	github.com/containers/storage v1.36.0
@@ -42,7 +42,7 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.2-0.20210708142037-083f635f2b04
+	github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210709190330-896175883324
 	github.com/opencontainers/runtime-tools v0.9.1-0.20210326182921-59cdde06764b
@@ -55,10 +55,11 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/urfave/cli/v2 v2.3.0
+	github.com/vbauerster/mpb/v7 v7.1.4 // indirect
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210903071746-97244b99971b
+	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34
 	google.golang.org/grpc v1.40.0
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
