@@ -20,14 +20,18 @@ We also save releases as subprojects. If you'd, for instance, like to use `1.18.
 ## Installation Instructions
 
 ### openSUSE:
+
+Run the following as root:
 ```shell
-sudo zypper install cri-o
+zypper install -y cri-o
 ```
 
 ### Fedora 31 or later
+
+Run the following as root:
 ```shell
-sudo dnf module enable cri-o:$VERSION
-sudo dnf install cri-o
+dnf module enable cri-o:$VERSION
+dnf install -y cri-o
 ```
 For Fedora, we only support setting minor versions. i.e: `VERSION=1.18`, and do not support pinning patch versions: `VERSION=1.18.3`
 
@@ -45,12 +49,12 @@ And then run the following as root:
 ```shell
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
-yum install cri-o
+yum install -y cri-o
 ```
 
 ### Apt based operating systems
 
-Note: this tutorial assumes you have curl and gnupg installed
+Note: these are prerequisites for installing
 
 To install on the following operating systems, set the environment variable $OS as the appropriate field in the following table:
 | Operating system | $OS               |
@@ -64,6 +68,9 @@ To install on the following operating systems, set the environment variable $OS 
 
 And then run the following as root:
 ```shell
+apt update
+apt install -y ca-certificates curl gnupg
+
 echo "deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
 echo "deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
 
@@ -71,6 +78,5 @@ mkdir -p /usr/share/keyrings
 curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
 curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg
 
-apt-get update
-apt-get install cri-o
+apt install -y cri-o
 ```
