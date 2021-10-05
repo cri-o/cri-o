@@ -145,6 +145,12 @@ simply apply the [cluster.yaml][7] from the root directory of this repository:
 > kubectl create -f contrib/metrics-exporter/cluster.yaml
 ```
 
+or directly without the need to be inside the repo:
+
+```
+> kubectl create -f https://raw.githubusercontent.com/cri-o/cri-o/main/contrib/metrics-exporter/cluster.yaml
+```
+
 The `CRIO_METRICS_PORT` environment variable is set per default to `"9090"` and
 can be used to customize the metrics port for the nodes. If the deployment is
 up and running, it should log the registered nodes as well as that a new
