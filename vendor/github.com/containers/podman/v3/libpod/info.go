@@ -18,7 +18,6 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/linkmode"
-	"github.com/containers/podman/v3/libpod/network"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage"
@@ -73,8 +72,7 @@ func (r *Runtime) info() (*define.Info, error) {
 		volumePlugins = append(volumePlugins, plugin)
 	}
 	info.Plugins.Volume = volumePlugins
-	// TODO move this into the new network interface
-	info.Plugins.Network = []string{network.BridgeNetworkDriver, network.MacVLANNetworkDriver}
+	info.Plugins.Network = r.network.Drivers()
 	info.Plugins.Log = logDrivers
 
 	info.Registries = registries
@@ -188,7 +186,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 
 	conmonInfo, ociruntimeInfo, err := r.defaultOCIRuntime.RuntimeInfo()
 	if err != nil {
-		logrus.Errorf("Error getting info on OCI runtime %s: %v", r.defaultOCIRuntime.Name(), err)
+		logrus.Errorf("Getting info on OCI runtime %s: %v", r.defaultOCIRuntime.Name(), err)
 	} else {
 		info.Conmon = conmonInfo
 		info.OCIRuntime = ociruntimeInfo
@@ -288,6 +286,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 
 	info := define.StoreInfo{
 		ImageStore:      imageInfo,
+		ImageCopyTmpDir: os.Getenv("TMPDIR"),
 		ContainerStore:  conInfo,
 		GraphRoot:       r.store.GraphRoot(),
 		RunRoot:         r.store.RunRoot(),

@@ -8,14 +8,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/containernetworking/cni/pkg/types"
-	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	types040 "github.com/containernetworking/cni/pkg/types/040"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/lock"
+	"github.com/containers/podman/v3/libpod/network/cni"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/storage"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -114,14 +114,11 @@ type Container struct {
 	rootlessPortSyncR *os.File
 	rootlessPortSyncW *os.File
 
-	// A restored container should have the same IP address as before
-	// being checkpointed. If requestedIP is set it will be used instead
-	// of config.StaticIP.
-	requestedIP net.IP
-	// A restored container should have the same MAC address as before
-	// being checkpointed. If requestedMAC is set it will be used instead
-	// of config.StaticMAC.
-	requestedMAC net.HardwareAddr
+	// perNetworkOpts should be set when you want to use special network
+	// options when calling network setup/teardown. This should be used for
+	// container restore or network reload for example. Leave this nil if
+	// the settings from the container config should be used.
+	perNetworkOpts map[string]types.PerNetworkOptions
 
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
@@ -173,11 +170,20 @@ type ContainerState struct {
 	// Podman.
 	// These are DEPRECATED and will be removed in a future release.
 	LegacyExecSessions map[string]*legacyExecSession `json:"execSessions,omitempty"`
-	// NetworkStatus contains the configuration results for all networks
+	// NetworkStatusOld contains the configuration results for all networks
 	// the pod is attached to. Only populated if we created a network
 	// namespace for the container, and the network namespace is currently
-	// active
-	NetworkStatus []*cnitypes.Result `json:"networkResults,omitempty"`
+	// active.
+	// These are DEPRECATED and will be removed in a future release.
+	// This field is only used for backwarts compatibility.
+	NetworkStatusOld []*types040.Result `json:"networkResults,omitempty"`
+	// NetworkStatus contains the network Status for all networks
+	// the container is attached to. Only populated if we created a network
+	// namespace for the container, and the network namespace is currently
+	// active.
+	// To read this field use container.getNetworkStatus() instead, this will
+	// take care of migrating the old DEPRECATED network status to the new format.
+	NetworkStatus map[string]types.StatusBlock `json:"networkStatus,omitempty"`
 	// BindMounts contains files that will be bind-mounted into the
 	// container when it is mounted.
 	// These include /etc/hosts and /etc/resolv.conf
@@ -270,6 +276,11 @@ func (c *Container) Config() *ContainerConfig {
 	}
 
 	return returnConfig
+}
+
+// DeviceHostSrc returns the user supplied device to be passed down in the pod
+func (c *Container) DeviceHostSrc() []spec.LinuxDevice {
+	return c.config.DeviceHostSrc
 }
 
 // Runtime returns the container's Runtime.
@@ -454,7 +465,7 @@ func (c *Container) NewNetNS() bool {
 // PortMappings returns the ports that will be mapped into a container if
 // a new network namespace is created
 // If NewNetNS() is false, this value is unused
-func (c *Container) PortMappings() ([]ocicni.PortMapping, error) {
+func (c *Container) PortMappings() ([]types.OCICNIPortMapping, error) {
 	// First check if the container belongs to a network namespace (like a pod)
 	if len(c.config.NetNsCtr) > 0 {
 		netNsCtr, err := c.runtime.GetContainer(c.config.NetNsCtr)
@@ -763,9 +774,9 @@ func (c *Container) ExecSessions() ([]string, error) {
 	return ids, nil
 }
 
-// ExecSession retrieves detailed information on a single active exec session in
-// a container
-func (c *Container) ExecSession(id string) (*ExecSession, error) {
+// execSessionNoCopy returns the associated exec session to id.
+// Note that the session is not a deep copy.
+func (c *Container) execSessionNoCopy(id string) (*ExecSession, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -780,72 +791,23 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 		return nil, errors.Wrapf(define.ErrNoSuchExecSession, "no exec session with ID %s found in container %s", id, c.ID())
 	}
 
+	return session, nil
+}
+
+// ExecSession retrieves detailed information on a single active exec session in
+// a container
+func (c *Container) ExecSession(id string) (*ExecSession, error) {
+	session, err := c.execSessionNoCopy(id)
+	if err != nil {
+		return nil, err
+	}
+
 	returnSession := new(ExecSession)
 	if err := JSONDeepCopy(session, returnSession); err != nil {
 		return nil, errors.Wrapf(err, "error copying contents of container %s exec session %s", c.ID(), session.ID())
 	}
 
 	return returnSession, nil
-}
-
-// IPs retrieves a container's IP address(es)
-// This will only be populated if the container is configured to created a new
-// network namespace, and that namespace is presently active
-func (c *Container) IPs() ([]net.IPNet, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-
-	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(define.ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
-	}
-
-	ips := make([]net.IPNet, 0)
-
-	for _, r := range c.state.NetworkStatus {
-		for _, ip := range r.IPs {
-			ips = append(ips, ip.Address)
-		}
-	}
-
-	return ips, nil
-}
-
-// Routes retrieves a container's routes
-// This will only be populated if the container is configured to created a new
-// network namespace, and that namespace is presently active
-func (c *Container) Routes() ([]types.Route, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-
-	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(define.ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
-	}
-
-	routes := make([]types.Route, 0)
-
-	for _, r := range c.state.NetworkStatus {
-		for _, route := range r.Routes {
-			newRoute := types.Route{
-				Dst: route.Dst,
-				GW:  route.GW,
-			}
-			routes = append(routes, newRoute)
-		}
-	}
-
-	return routes, nil
 }
 
 // BindMounts retrieves bind mounts that were created by libpod and will be
@@ -1144,7 +1106,7 @@ func (c *Container) AutoRemove() bool {
 	if spec.Annotations == nil {
 		return false
 	}
-	return c.Spec().Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue
+	return spec.Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue
 }
 
 // Timezone returns the timezone configured inside the container.
@@ -1230,7 +1192,7 @@ func (c *Container) networks() ([]string, bool, error) {
 	networks, err := c.runtime.state.GetNetworks(c)
 	if err != nil && errors.Cause(err) == define.ErrNoSuchNetwork {
 		if len(c.config.Networks) == 0 && c.config.NetMode.IsBridge() {
-			return []string{c.runtime.netPlugin.GetDefaultNetworkName()}, true, nil
+			return []string{c.runtime.config.Network.DefaultNetwork}, true, nil
 		}
 		return c.config.Networks, false, nil
 	}
@@ -1266,4 +1228,38 @@ func (d ContainerNetworkDescriptions) getInterfaceByName(networkName string) (st
 		return "", exists
 	}
 	return fmt.Sprintf("eth%d", val), exists
+}
+
+// getNetworkStatus get the current network status from the state. If the container
+// still uses the old network status it is converted to the new format. This function
+// should be used instead of reading c.state.NetworkStatus directly.
+func (c *Container) getNetworkStatus() map[string]types.StatusBlock {
+	if c.state.NetworkStatus != nil {
+		return c.state.NetworkStatus
+	}
+	if c.state.NetworkStatusOld != nil {
+		// Note: NetworkStatusOld does not contain the network names so we get them extra
+		// Generally the order should be the same
+		networks, _, err := c.networks()
+		if err != nil {
+			return nil
+		}
+		if len(networks) != len(c.state.NetworkStatusOld) {
+			return nil
+		}
+		result := make(map[string]types.StatusBlock, len(c.state.NetworkStatusOld))
+		for i := range c.state.NetworkStatusOld {
+			status, err := cni.CNIResultToStatus(c.state.NetworkStatusOld[i])
+			if err != nil {
+				return nil
+			}
+			result[networks[i]] = status
+		}
+		c.state.NetworkStatus = result
+		_ = c.save()
+		// TODO remove debug for final version
+		logrus.Debugf("converted old network result to new result %v", result)
+		return result
+	}
+	return nil
 }

@@ -26,7 +26,7 @@ dependencies:
       match: VERSION
 
   - name: cni-plugins
-    version: v0.9.1
+    version: v1.0.1
     refPaths:
     - path: scripts/versions
       match: cni-plugins

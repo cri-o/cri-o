@@ -161,9 +161,9 @@ tar xf "$ARCHIVE"
 pushd $TAR_DIR
 export DESTDIR=test/
 ./install
-EXP_CNT=65
+EXP_CNT=64
 if [[ $ARCH == "$ARCH_AMD64" ]]; then
-    EXP_CNT=66
+    EXP_CNT=65
 fi
 ACT_CNT=$(find test | wc -l)
 if [[ "$EXP_CNT" != "$ACT_CNT" ]]; then

@@ -2,6 +2,7 @@ package generate
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,20 +24,53 @@ import (
 // Returns the created, container and any warnings resulting from creating the
 // container, or an error.
 func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator) (*spec.Spec, *specgen.SpecGenerator, []libpod.CtrCreateOption, error) {
-	rtc, err := rt.GetConfig()
+	rtc, err := rt.GetConfigNoCopy()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	// If joining a pod, retrieve the pod for use.
+	// If joining a pod, retrieve the pod for use, and its infra container
 	var pod *libpod.Pod
+	var infraConfig *libpod.ContainerConfig
 	if s.Pod != "" {
 		pod, err = rt.LookupPod(s.Pod)
 		if err != nil {
 			return nil, nil, nil, errors.Wrapf(err, "error retrieving pod %s", s.Pod)
 		}
+		if pod.HasInfraContainer() {
+			infra, err := pod.InfraContainer()
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			infraConfig = infra.Config()
+		}
 	}
 
+	if infraConfig != nil && (len(infraConfig.NamedVolumes) > 0 || len(infraConfig.UserVolumes) > 0 || len(infraConfig.ImageVolumes) > 0 || len(infraConfig.OverlayVolumes) > 0) {
+		s.VolumesFrom = append(s.VolumesFrom, infraConfig.ID)
+	}
+
+	if infraConfig != nil && len(infraConfig.Spec.Linux.Devices) > 0 {
+		s.DevicesFrom = append(s.DevicesFrom, infraConfig.ID)
+	}
+	if infraConfig != nil && infraConfig.Spec.Linux.Resources != nil && infraConfig.Spec.Linux.Resources.BlockIO != nil && len(infraConfig.Spec.Linux.Resources.BlockIO.ThrottleReadBpsDevice) > 0 {
+		tempDev := make(map[string]spec.LinuxThrottleDevice)
+		for _, val := range infraConfig.Spec.Linux.Resources.BlockIO.ThrottleReadBpsDevice {
+			nodes, err := util.FindDeviceNodes()
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			key := fmt.Sprintf("%d:%d", val.Major, val.Minor)
+			tempDev[nodes[key]] = spec.LinuxThrottleDevice{Rate: uint64(val.Rate)}
+		}
+		for i, dev := range s.ThrottleReadBpsDevice {
+			tempDev[i] = dev
+		}
+		s.ThrottleReadBpsDevice = tempDev
+	}
+	if err := FinishThrottleDevices(s); err != nil {
+		return nil, nil, nil, err
+	}
 	// Set defaults for unset namespaces
 	if s.PidNS.IsDefault() {
 		defaultNS, err := GetDefaultNamespaceMode("pid", rtc, pod)
@@ -87,20 +121,15 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithCreateCommand(s.ContainerCreateCommand))
 	}
 
-	var newImage *libimage.Image
-	var imageData *libimage.ImageData
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs))
-	} else {
-		var resolvedImageName string
-		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, nil)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		imageData, err = newImage.Inspect(ctx, false)
-		if err != nil {
-			return nil, nil, nil, err
-		}
+		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay))
+	}
+
+	newImage, resolvedImageName, imageData, err := getImageFromSpec(ctx, rt, s)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if newImage != nil {
 		// If the input name changed, we could properly resolve the
 		// image. Otherwise, it must have been an ID where we're
 		// defaulting to the first name or an empty one if no names are
@@ -154,6 +183,16 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		logrus.Debugf("setting container name %s", s.Name)
 		options = append(options, libpod.WithName(s.Name))
 	}
+	if len(s.DevicesFrom) > 0 {
+		for _, dev := range s.DevicesFrom {
+			ctr, err := rt.GetContainer(dev)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			devices := ctr.DeviceHostSrc()
+			s.Devices = append(s.Devices, devices...)
+		}
+	}
 	if len(s.Devices) > 0 {
 		opts = extractCDIDevices(s)
 		options = append(options, opts...)
@@ -161,6 +200,9 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command)
 	if err != nil {
 		return nil, nil, nil, err
+	}
+	if len(s.HostDeviceList) > 0 {
+		options = append(options, libpod.WithHostDevice(s.HostDeviceList))
 	}
 	return runtimeSpec, s, options, err
 }
@@ -394,7 +436,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		options = append(options, libpod.WithShmSize(*s.ShmSize))
 	}
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs))
+		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay))
 	}
 	// Default used if not overridden on command line
 
@@ -470,6 +512,7 @@ func CreateExitCommandArgs(storageConfig types.StoreOptions, config *config.Conf
 		"--log-level", logrus.GetLevel().String(),
 		"--cgroup-manager", config.Engine.CgroupManager,
 		"--tmpdir", config.Engine.TmpDir,
+		"--cni-config-dir", config.Network.NetworkConfigDir,
 	}
 	if config.Engine.OCIRuntime != "" {
 		command = append(command, []string{"--runtime", config.Engine.OCIRuntime}...)

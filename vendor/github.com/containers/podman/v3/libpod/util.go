@@ -15,8 +15,8 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/utils"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -240,14 +240,14 @@ func hijackWriteError(toWrite error, cid string, terminal bool, httpBuf *bufio.R
 			// We need a header.
 			header := makeHTTPAttachHeader(2, uint32(len(errString)))
 			if _, err := httpBuf.Write(header); err != nil {
-				logrus.Errorf("Error writing header for container %s attach connection error: %v", cid, err)
+				logrus.Errorf("Writing header for container %s attach connection error: %v", cid, err)
 			}
 		}
 		if _, err := httpBuf.Write(errString); err != nil {
-			logrus.Errorf("Error writing error to container %s HTTP attach connection: %v", cid, err)
+			logrus.Errorf("Writing error to container %s HTTP attach connection: %v", cid, err)
 		}
 		if err := httpBuf.Flush(); err != nil {
-			logrus.Errorf("Error flushing HTTP buffer for container %s HTTP attach connection: %v", cid, err)
+			logrus.Errorf("Flushing HTTP buffer for container %s HTTP attach connection: %v", cid, err)
 		}
 	}
 }
@@ -259,7 +259,7 @@ func hijackWriteErrorAndClose(toWrite error, cid string, terminal bool, httpCon 
 	hijackWriteError(toWrite, cid, terminal, httpBuf)
 
 	if err := httpCon.Close(); err != nil {
-		logrus.Errorf("Error closing container %s HTTP attach connection: %v", cid, err)
+		logrus.Errorf("Closing container %s HTTP attach connection: %v", cid, err)
 	}
 }
 
@@ -295,8 +295,8 @@ func writeHijackHeader(r *http.Request, conn io.Writer) {
 }
 
 // Convert OCICNI port bindings into Inspect-formatted port bindings.
-func makeInspectPortBindings(bindings []ocicni.PortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
-	portBindings := make(map[string][]define.InspectHostPort, len(bindings))
+func makeInspectPortBindings(bindings []types.OCICNIPortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
+	portBindings := make(map[string][]define.InspectHostPort)
 	for _, port := range bindings {
 		key := fmt.Sprintf("%d/%s", port.ContainerPort, port.Protocol)
 		hostPorts := portBindings[key]

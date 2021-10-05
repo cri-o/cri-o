@@ -62,7 +62,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
-				logrus.Warnf("failed to return RLIMIT_NOFILE ulimit %q", err)
+				logrus.Warnf("Failed to return RLIMIT_NOFILE ulimit %q", err)
 			}
 			if rlimit.Cur < current {
 				current = rlimit.Cur
@@ -79,7 +79,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {
-				logrus.Warnf("failed to return RLIMIT_NPROC ulimit %q", err)
+				logrus.Warnf("Failed to return RLIMIT_NPROC ulimit %q", err)
 			}
 			if rlimit.Cur < current {
 				current = rlimit.Cur
@@ -301,8 +301,8 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	g.AddProcessEnv("container", "podman")
 
 	g.Config.Linux.Resources = s.ResourceLimits
-
 	// Devices
+
 	if s.Privileged {
 		// If privileged, we need to add all the host devices to the
 		// spec.  We do not add the user provided ones because we are
@@ -313,17 +313,18 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	} else {
 		// add default devices from containers.conf
 		for _, device := range rtc.Containers.Devices {
-			if err := DevicesFromPath(&g, device); err != nil {
+			if err = DevicesFromPath(&g, device); err != nil {
 				return nil, err
 			}
 		}
 		// add default devices specified by caller
 		for _, device := range s.Devices {
-			if err := DevicesFromPath(&g, device.Path); err != nil {
+			if err = DevicesFromPath(&g, device.Path); err != nil {
 				return nil, err
 			}
 		}
 	}
+	s.HostDeviceList = s.Devices
 
 	for _, dev := range s.DeviceCGroupRule {
 		g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)

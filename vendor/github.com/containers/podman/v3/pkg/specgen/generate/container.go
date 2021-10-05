@@ -18,19 +18,43 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) (*libimage.Image, string, *libimage.ImageData, error) {
+	if s.Image == "" || s.Rootfs != "" {
+		return nil, "", nil, nil
+	}
+
+	// Image may already have been set in the generator.
+	image, resolvedName := s.GetImage()
+	if image != nil {
+		inspectData, err := image.Inspect(ctx, false)
+		if err != nil {
+			return nil, "", nil, err
+		}
+		return image, resolvedName, inspectData, nil
+	}
+
+	// Need to look up image.
+	image, resolvedName, err := r.LibimageRuntime().LookupImage(s.Image, nil)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	s.SetImage(image, resolvedName)
+	inspectData, err := image.Inspect(ctx, false)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	return image, resolvedName, inspectData, err
+}
+
 // Fill any missing parts of the spec generator (e.g. from the image).
 // Returns a set of warnings or any fatal error that occurred.
 func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) ([]string, error) {
 	// Only add image configuration if we have an image
-	var newImage *libimage.Image
-	var inspectData *libimage.ImageData
-	var err error
-	if s.Image != "" {
-		newImage, _, err = r.LibimageRuntime().LookupImage(s.Image, nil)
-		if err != nil {
-			return nil, err
-		}
-
+	newImage, _, inspectData, err := getImageFromSpec(ctx, r, s)
+	if err != nil {
+		return nil, err
+	}
+	if inspectData != nil {
 		inspectData, err = newImage.Inspect(ctx, false)
 		if err != nil {
 			return nil, err
@@ -54,7 +78,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 	}
 
-	rtc, err := r.GetConfig()
+	rtc, err := r.GetConfigNoCopy()
 	if err != nil {
 		return nil, err
 	}
@@ -191,9 +215,6 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if len(s.User) == 0 && inspectData != nil {
 		s.User = inspectData.Config.User
 	}
-	if err := finishThrottleDevices(s); err != nil {
-		return nil, err
-	}
 	// Unless already set via the CLI, check if we need to disable process
 	// labels or set the defaults.
 	if len(s.SelinuxOpts) == 0 {
@@ -251,10 +272,10 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	return warnings, nil
 }
 
-// finishThrottleDevices takes the temporary representation of the throttle
+// FinishThrottleDevices takes the temporary representation of the throttle
 // devices in the specgen and looks up the major and major minors. it then
 // sets the throttle devices proper in the specgen
-func finishThrottleDevices(s *specgen.SpecGenerator) error {
+func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 	if bps := s.ThrottleReadBpsDevice; len(bps) > 0 {
 		for k, v := range bps {
 			statT := unix.Stat_t{}
@@ -263,6 +284,9 @@ func finishThrottleDevices(s *specgen.SpecGenerator) error {
 			}
 			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
 			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
+			if s.ResourceLimits.BlockIO == nil {
+				s.ResourceLimits.BlockIO = new(spec.LinuxBlockIO)
+			}
 			s.ResourceLimits.BlockIO.ThrottleReadBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleReadBpsDevice, v)
 		}
 	}

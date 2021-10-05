@@ -22,7 +22,6 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
-	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
@@ -34,6 +33,7 @@ import (
 	"github.com/containers/common/pkg/umask"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
@@ -70,7 +70,7 @@ func (c *Container) unmountSHM(mount string) error {
 			return errors.Wrapf(err, "error unmounting container %s SHM mount %s", c.ID(), mount)
 		}
 		// If it's just an EINVAL or ENOENT, debug logs only
-		logrus.Debugf("container %s failed to unmount %s : %v", c.ID(), mount, err)
+		logrus.Debugf("Container %s failed to unmount %s : %v", c.ID(), mount, err)
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func (c *Container) prepare() error {
 	var (
 		wg                              sync.WaitGroup
 		netNS                           ns.NetNS
-		networkStatus                   []*cnitypes.Result
+		networkStatus                   map[string]types.StatusBlock
 		createNetNSErr, mountStorageErr error
 		mountPoint                      string
 		tmpStateLock                    sync.Mutex
@@ -143,7 +143,7 @@ func (c *Container) prepare() error {
 	}
 	if mountStorageErr != nil {
 		if createErr != nil {
-			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
 		}
 		createErr = mountStorageErr
 	}
@@ -154,7 +154,7 @@ func (c *Container) prepare() error {
 		if err := c.cleanupStorage(); err != nil {
 			// createErr is guaranteed non-nil, so print
 			// unconditionally
-			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
 			createErr = errors.Wrapf(err, "error unmounting storage for container %s after network create failure", c.ID())
 		}
 	}
@@ -163,7 +163,7 @@ func (c *Container) prepare() error {
 	// isn't ready it will do nothing.
 	if createErr != nil {
 		if err := c.cleanupNetwork(); err != nil {
-			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
 			createErr = errors.Wrapf(err, "error cleaning up container %s network after setup failure", c.ID())
 		}
 	}
@@ -258,11 +258,12 @@ func (c *Container) cleanupNetwork() error {
 
 	// Stop the container's network namespace (if it has one)
 	if err := c.runtime.teardownNetNS(c); err != nil {
-		logrus.Errorf("unable to cleanup network for container %s: %q", c.ID(), err)
+		logrus.Errorf("Unable to cleanup network for container %s: %q", c.ID(), err)
 	}
 
 	c.state.NetNS = nil
 	c.state.NetworkStatus = nil
+	c.state.NetworkStatusOld = nil
 
 	if c.valid {
 		return c.save()
@@ -368,13 +369,46 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if err != nil {
 			return nil, err
 		}
-		volMount := spec.Mount{
-			Type:        "bind",
-			Source:      mountPoint,
-			Destination: namedVol.Dest,
-			Options:     namedVol.Options,
+
+		overlayFlag := false
+		for _, o := range namedVol.Options {
+			if o == "O" {
+				overlayFlag = true
+			}
 		}
-		g.AddMount(volMount)
+
+		if overlayFlag {
+			contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
+			if err != nil {
+				return nil, err
+			}
+			overlayMount, err := overlay.Mount(contentDir, mountPoint, namedVol.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+			if err != nil {
+				return nil, errors.Wrapf(err, "mounting overlay failed %q", mountPoint)
+			}
+
+			for _, o := range namedVol.Options {
+				switch o {
+				case "U":
+					if err := chown.ChangeHostPathOwnership(mountPoint, true, int(hostUID), int(hostGID)); err != nil {
+						return nil, err
+					}
+
+					if err := chown.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
+						return nil, err
+					}
+				}
+			}
+			g.AddMount(overlayMount)
+		} else {
+			volMount := spec.Mount{
+				Type:        "bind",
+				Source:      mountPoint,
+				Destination: namedVol.Dest,
+				Options:     namedVol.Options,
+			}
+			g.AddMount(volMount)
+		}
 	}
 
 	// Check if the spec file mounts contain the options z, Z or U.
@@ -565,7 +599,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			if isGIDAvailable {
 				g.AddProcessAdditionalGid(uint32(gid))
 			} else {
-				logrus.Warnf("additional gid=%d is not present in the user namespace, skip setting it", gid)
+				logrus.Warnf("Additional gid=%d is not present in the user namespace, skip setting it", gid)
 			}
 		}
 	}
@@ -606,7 +640,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// The kernel-provided files only exist if user namespaces are supported
-			logrus.Debugf("user or group ID mappings not available: %s", err)
+			logrus.Debugf("User or group ID mappings not available: %s", err)
 		} else {
 			return nil, err
 		}
@@ -747,7 +781,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	if rootPropagation != "" {
-		logrus.Debugf("set root propagation to %q", rootPropagation)
+		logrus.Debugf("Set root propagation to %q", rootPropagation)
 		if err := g.SetLinuxRootPropagation(rootPropagation); err != nil {
 			return nil, err
 		}
@@ -804,7 +838,7 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 	}
 
 	notifyDir := filepath.Join(c.bundlePath(), "notify")
-	logrus.Debugf("checking notify %q dir", notifyDir)
+	logrus.Debugf("Checking notify %q dir", notifyDir)
 	if err := os.MkdirAll(notifyDir, 0755); err != nil {
 		if !os.IsExist(err) {
 			return errors.Wrapf(err, "unable to create notify %q dir", notifyDir)
@@ -813,7 +847,7 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 	if err := label.Relabel(notifyDir, c.MountLabel(), true); err != nil {
 		return errors.Wrapf(err, "relabel failed %q", notifyDir)
 	}
-	logrus.Debugf("add bindmount notify %q dir", notifyDir)
+	logrus.Debugf("Add bindmount notify %q dir", notifyDir)
 	if _, ok := c.state.BindMounts["/run/notify"]; !ok {
 		c.state.BindMounts["/run/notify"] = notifyDir
 	}
@@ -974,15 +1008,12 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 
 	includeFiles := []string{
 		"artifacts",
+		"ctr.log",
 		metadata.ConfigDumpFile,
 		metadata.SpecDumpFile,
 		metadata.NetworkStatusFile,
 	}
 
-	if c.LogDriver() == define.KubernetesLogging ||
-		c.LogDriver() == define.JSONLogging {
-		includeFiles = append(includeFiles, "ctr.log")
-	}
 	if options.PreCheckPoint {
 		includeFiles = append(includeFiles, preCheckpointDir)
 	} else {
@@ -1124,7 +1155,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	// Save network.status. This is needed to restore the container with
 	// the same IP. Currently limited to one IP address in a container
 	// with one interface.
-	if _, err := metadata.WriteJSONFile(c.state.NetworkStatus, c.bundlePath(), metadata.NetworkStatusFile); err != nil {
+	// FIXME: will this break something?
+	if _, err := metadata.WriteJSONFile(c.getNetworkStatus(), c.bundlePath(), metadata.NetworkStatusFile); err != nil {
 		return err
 	}
 
@@ -1167,7 +1199,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		for _, del := range cleanup {
 			file := filepath.Join(c.bundlePath(), del)
 			if err := os.Remove(file); err != nil {
-				logrus.Debugf("unable to remove file %s", file)
+				logrus.Debugf("Unable to remove file %s", file)
 			}
 		}
 	}
@@ -1264,8 +1296,11 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	// Read network configuration from checkpoint
-	// Currently only one interface with one IP is supported.
-	networkStatus, _, err := metadata.ReadContainerCheckpointNetworkStatus(c.bundlePath())
+	var netStatus map[string]types.StatusBlock
+	_, err := metadata.ReadJSONFile(&netStatus, c.bundlePath(), metadata.NetworkStatusFile)
+	if err != nil {
+		logrus.Infof("Failed to unmarshal network status, cannot restore the same ip/mac: %v", err)
+	}
 	// If the restored container should get a new name, the IP address of
 	// the container will not be restored. This assumes that if a new name is
 	// specified, the container is restored multiple times.
@@ -1274,25 +1309,47 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	//       best solution.
 	if err == nil && options.Name == "" && (!options.IgnoreStaticIP || !options.IgnoreStaticMAC) {
 		// The file with the network.status does exist. Let's restore the
-		// container with the same IP address / MAC address as during checkpointing.
-		if !options.IgnoreStaticIP {
-			if IP := metadata.GetIPFromNetworkStatus(networkStatus); IP != nil {
-				// Tell CNI which IP address we want.
-				c.requestedIP = IP
-			}
+		// container with the same networks settings as during checkpointing.
+		aliases, err := c.GetAllNetworkAliases()
+		if err != nil {
+			return err
 		}
-		if !options.IgnoreStaticMAC {
-			if MAC := metadata.GetMACFromNetworkStatus(networkStatus); MAC != nil {
-				// Tell CNI which MAC address we want.
-				c.requestedMAC = MAC
+		netOpts := make(map[string]types.PerNetworkOptions, len(netStatus))
+		for network, status := range netStatus {
+			perNetOpts := types.PerNetworkOptions{}
+			for name, netInt := range status.Interfaces {
+				perNetOpts = types.PerNetworkOptions{
+					InterfaceName: name,
+					Aliases:       aliases[network],
+				}
+				if !options.IgnoreStaticMAC {
+					perNetOpts.StaticMAC = netInt.MacAddress
+				}
+				if !options.IgnoreStaticIP {
+					for _, netAddress := range netInt.Networks {
+						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.Subnet.IP)
+					}
+				}
+				// Normally interfaces have a length of 1, only for some special cni configs we could get more.
+				// For now just use the first interface to get the ips this should be good enough for most cases.
+				break
 			}
+			if perNetOpts.InterfaceName == "" {
+				eth, exists := c.state.NetInterfaceDescriptions.getInterfaceByName(network)
+				if !exists {
+					return errors.Errorf("no network interface name for container %s on network %s", c.config.ID, network)
+				}
+				perNetOpts.InterfaceName = eth
+			}
+			netOpts[network] = perNetOpts
 		}
+		c.perNetworkOpts = netOpts
 	}
 
 	defer func() {
 		if retErr != nil {
 			if err := c.cleanup(ctx); err != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
+				logrus.Errorf("Cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -1788,9 +1845,9 @@ rootless=%d
 // generateResolvConf generates a containers resolv.conf
 func (c *Container) generateResolvConf() (string, error) {
 	var (
-		nameservers      []string
-		cniNameServers   []string
-		cniSearchDomains []string
+		nameservers          []string
+		networkNameServers   []string
+		networkSearchDomains []string
 	)
 
 	resolvConf := "/etc/resolv.conf"
@@ -1830,22 +1887,27 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	ipv6 := false
-	// Check if CNI gave back and DNS servers for us to add in
-	cniResponse := c.state.NetworkStatus
-	for _, i := range cniResponse {
-		for _, ip := range i.IPs {
-			// Note: only using To16() does not work since it also returns a valid ip for ipv4
-			if ip.Address.IP.To4() == nil && ip.Address.IP.To16() != nil {
-				ipv6 = true
+	// If network status is set check for ipv6 and dns namesevers
+	netStatus := c.getNetworkStatus()
+	for _, status := range netStatus {
+		for _, netInt := range status.Interfaces {
+			for _, netAddress := range netInt.Networks {
+				// Note: only using To16() does not work since it also returns a valid ip for ipv4
+				if netAddress.Subnet.IP.To4() == nil && netAddress.Subnet.IP.To16() != nil {
+					ipv6 = true
+				}
 			}
 		}
-		if i.DNS.Nameservers != nil {
-			cniNameServers = append(cniNameServers, i.DNS.Nameservers...)
-			logrus.Debugf("adding nameserver(s) from cni response of '%q'", i.DNS.Nameservers)
+
+		if status.DNSServerIPs != nil {
+			for _, nsIP := range status.DNSServerIPs {
+				networkNameServers = append(networkNameServers, nsIP.String())
+			}
+			logrus.Debugf("Adding nameserver(s) from network status of '%q'", status.DNSServerIPs)
 		}
-		if i.DNS.Search != nil {
-			cniSearchDomains = append(cniSearchDomains, i.DNS.Search...)
-			logrus.Debugf("adding search domain(s) from cni response of '%q'", i.DNS.Search)
+		if status.DNSSearchDomains != nil {
+			networkSearchDomains = append(networkSearchDomains, status.DNSSearchDomains...)
+			logrus.Debugf("Adding search domain(s) from network status of '%q'", status.DNSSearchDomains)
 		}
 	}
 
@@ -1885,8 +1947,8 @@ func (c *Container) generateResolvConf() (string, error) {
 		for _, server := range dnsServers {
 			nameservers = append(nameservers, server.String())
 		}
-	case len(cniNameServers) > 0:
-		nameservers = append(nameservers, cniNameServers...)
+	case len(networkNameServers) > 0:
+		nameservers = append(nameservers, networkNameServers...)
 	default:
 		// Make a new resolv.conf
 		nameservers = resolvconf.GetNameservers(resolv.Content)
@@ -1894,7 +1956,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		if c.config.NetMode.IsSlirp4netns() {
 			slirp4netnsDNS, err := GetSlirp4netnsDNS(c.slirp4netnsSubnet)
 			if err != nil {
-				logrus.Warn("failed to determine Slirp4netns DNS: ", err.Error())
+				logrus.Warn("Failed to determine Slirp4netns DNS: ", err.Error())
 			} else {
 				nameservers = append([]string{slirp4netnsDNS.String()}, nameservers...)
 			}
@@ -1902,11 +1964,11 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	var search []string
-	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 || len(cniSearchDomains) > 0 {
+	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 || len(networkSearchDomains) > 0 {
 		if !util.StringInSlice(".", c.config.DNSSearch) {
 			search = c.runtime.config.Containers.DNSSearches
 			search = append(search, c.config.DNSSearch...)
-			search = append(search, cniSearchDomains...)
+			search = append(search, networkSearchDomains...)
 		}
 	} else {
 		search = resolvconf.GetSearchDomains(resolv.Content)
@@ -1996,7 +2058,7 @@ func (c *Container) getHosts() string {
 			// When using slirp4netns, the interface gets a static IP
 			slirp4netnsIP, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
 			if err != nil {
-				logrus.Warnf("failed to determine slirp4netnsIP: %v", err.Error())
+				logrus.Warnf("Failed to determine slirp4netnsIP: %v", err.Error())
 			} else {
 				hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", slirp4netnsIP.String(), c.Hostname(), c.config.Name)
 			}
@@ -2021,33 +2083,39 @@ func (c *Container) getHosts() string {
 		}
 	}
 
-	// Add gateway entry
-	var depCtr *Container
-	if c.config.NetNsCtr != "" {
-		// ignoring the error because there isn't anything to do
-		depCtr, _ = c.getRootNetNsDepCtr()
-	} else if len(c.state.NetworkStatus) != 0 {
-		depCtr = c
-	} else {
-		depCtr = nil
-	}
+	// Add gateway entry if we are not in a machine. If we use podman machine
+	// the gvproxy dns server will take care of host.containers.internal.
+	// https://github.com/containers/gvisor-tap-vsock/commit/1108ea45162281046d239047a6db9bc187e64b08
+	if !c.runtime.config.Engine.MachineEnabled {
+		var depCtr *Container
+		netStatus := c.getNetworkStatus()
+		if c.config.NetNsCtr != "" {
+			// ignoring the error because there isn't anything to do
+			depCtr, _ = c.getRootNetNsDepCtr()
+		} else if len(netStatus) != 0 {
+			depCtr = c
+		}
 
-	if depCtr != nil {
-		for _, pluginResultsRaw := range depCtr.state.NetworkStatus {
-			pluginResult, _ := cnitypes.GetResult(pluginResultsRaw)
-			for _, ip := range pluginResult.IPs {
-				hosts += fmt.Sprintf("%s host.containers.internal\n", ip.Gateway)
+		if depCtr != nil {
+			for _, status := range depCtr.getNetworkStatus() {
+				for _, netInt := range status.Interfaces {
+					for _, netAddress := range netInt.Networks {
+						if netAddress.Gateway != nil {
+							hosts += fmt.Sprintf("%s host.containers.internal\n", netAddress.Gateway.String())
+						}
+					}
+				}
 			}
-		}
-	} else if c.config.NetMode.IsSlirp4netns() {
-		gatewayIP, err := GetSlirp4netnsGateway(c.slirp4netnsSubnet)
-		if err != nil {
-			logrus.Warn("failed to determine gatewayIP: ", err.Error())
+		} else if c.config.NetMode.IsSlirp4netns() {
+			gatewayIP, err := GetSlirp4netnsGateway(c.slirp4netnsSubnet)
+			if err != nil {
+				logrus.Warn("Failed to determine gatewayIP: ", err.Error())
+			} else {
+				hosts += fmt.Sprintf("%s host.containers.internal\n", gatewayIP.String())
+			}
 		} else {
-			hosts += fmt.Sprintf("%s host.containers.internal\n", gatewayIP.String())
+			logrus.Debug("Network configuration does not support host.containers.internal address")
 		}
-	} else {
-		logrus.Debug("network configuration does not support host.containers.internal address")
 	}
 
 	return hosts

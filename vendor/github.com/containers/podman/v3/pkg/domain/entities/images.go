@@ -251,8 +251,9 @@ type ImageListOptions struct {
 }
 
 type ImagePruneOptions struct {
-	All    bool     `json:"all" schema:"all"`
-	Filter []string `json:"filter" schema:"filter"`
+	All      bool     `json:"all" schema:"all"`
+	External bool     `json:"external" schema:"external"`
+	Filter   []string `json:"filter" schema:"filter"`
 }
 
 type ImageTagOptions struct{}
@@ -301,6 +302,8 @@ type ImageSaveOptions struct {
 	// than one image.  Additional tags will be interpreted as references
 	// to images which are added to the archive.
 	MultiImageArchive bool
+	// Accept uncompressed layers when copying OCI images.
+	OciAcceptUncompressedLayers bool
 	// Output - write image to the specified path.
 	Output string
 	// Quiet - suppress output when copying images
