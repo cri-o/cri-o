@@ -31,6 +31,8 @@ const (
 	// LangBash corresponds to the GNU Bash language, as described in its
 	// manual at https://www.gnu.org/software/bash/manual/bash.html.
 	//
+	// We currently follow Bash version 5.1.
+	//
 	// Its string representation is "bash".
 	LangBash LangVariant = iota
 
@@ -44,6 +46,8 @@ const (
 	// mksh, as described at http://www.mirbsd.org/htman/i386/man1/mksh.htm.
 	// Note that it shares some features with Bash, due to the the shared
 	// ancestry that is ksh.
+	//
+	// We currently follow mksh version 59.
 	//
 	// Its string representation is "mksh".
 	LangMirBSDKorn
@@ -2127,7 +2131,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 	p.got(_Newl)
 	var left TestExpr
 	if pastAndOr {
-		left = p.testExprBase(ftok, fpos)
+		left = p.testExprBase()
 	} else {
 		left = p.testExpr(ftok, fpos, true)
 	}
@@ -2189,7 +2193,7 @@ func (p *Parser) testExpr(ftok token, fpos Pos, pastAndOr bool) TestExpr {
 	return b
 }
 
-func (p *Parser) testExprBase(ftok token, fpos Pos) TestExpr {
+func (p *Parser) testExprBase() TestExpr {
 	switch p.tok {
 	case _EOF, rightParen:
 		return nil
