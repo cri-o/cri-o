@@ -1,4 +1,4 @@
-![CRI-O logo](https://github.com/cri-o/cri-o/blob/master/logo/crio-logo.svg?raw=true)
+![CRI-O logo](https://github.com/cri-o/cri-o/blob/main/logo/crio-logo.svg?raw=true)
 # CRI-O Installation Instructions
 
 This guide will walk you through the installation of [CRI-O](https://github.com/cri-o/cri-o), an Open Container Initiative-based implementation of the [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md).
@@ -36,38 +36,55 @@ It is assumed you are running a Linux machine.
 
 ## Install packaged versions of CRI-O
 
-CRI-O builds for native package managers using [openSUSE's OBS](build.opensuse.org)
+CRI-O builds for native package managers using [openSUSE's OBS](https://build.opensuse.org)
 
 ### Supported versions
-Below is a compatiblity matrix between versions of CRI-O (y-axis) and distributions (x-axis)
 
-|      | Fedora 31+ | openSUSE | CentOS_8 | CentOS_8_Stream | CentOS_7 | Debian_Unstable | Debian_Testing | Debian 10 | Rasbian_10 | xUbuntu_20.04 | xUbuntu_19.10 | xUbuntu_19.04 | xUbuntu_18.04 |
-| ---- | ---------- | -------- | -------- | --------------- | -------- | --------------- | -------------- | --------- | ---------- | ------------- | ------------- | ------------- | ------------- |
-| 1.18 | ✓          | ✓        | ✓        | ✓               |          | ✓               | ✓              |           |            | ✓             |               |               |               |
-| 1.17 | ✓          | ✓        | ✓        | ✓               | ✓        | ✓               | ✓              | ✓         | ✓          | ✓             | ✓             | ✓             | ✓             |
-| 1.16 | ✓          | ✓        | ✓        | ✓               | ✓        | ✓               | ✓              | ✓         | ✓          | ✓             | ✓             | ✓             | ✓             |
+CRI-O follows the [Kubernetes support cycle](https://kubernetes.io/docs/setup/release/version-skew-policy/#supported-versions) of three minor releases.
+CRI-O also attempts to package for the following operating systems:
+```
+Fedora 31+
+openSUSE
+CentOS 8
+CentOS 8 Stream
+CentOS 7
+Debian Unstable
+Debian Testing
+Debian 10
+Rasbian 10
+xUbuntu 20.10
+xUbuntu 20.04
+xUbuntu 18.04
+```
 
 To install, choose a supported version for your operating system, and export it as a variable, like so:
-`export VERSION=1.18`
+`export VERSION=1.19`
 
-We also save releases as subprojects. If you'd, for instance, like to use `1.18.3` you can set
-`export VERSION=1.18:1.18.3`
+We also save releases as subprojects. If you'd, for instance, like to use `1.19.1` you can set
+`export VERSION=1.19:1.19.1`
+
+Packaging for CRI-O is done best-effort, and is largely driven by requests.
+If there's a version or operating system that is missing, please [open an issue](https://github.com/cri-o/cri-o/issues/new).
 
 ### Installation Instructions
 
 #### openSUSE:
+
 ```shell
 sudo zypper install cri-o
 ```
 
 #### Fedora 31 or later
+
 ```shell
 sudo dnf module enable cri-o:$VERSION
 sudo dnf install cri-o
 ```
+
 For Fedora, we only support setting minor versions. i.e: `VERSION=1.18`, and do not support pinning patch versions: `VERSION=1.18.3`
 
 #### Other yum based operating systems
+
 To install on the following operating systems, set the environment variable $OS as the appropriate field in the following table:
 
 | Operating system | $OS               |
@@ -76,8 +93,8 @@ To install on the following operating systems, set the environment variable $OS 
 | Centos 8 Stream  | `CentOS_8_Stream` |
 | Centos 7         | `CentOS_7`        |
 
-
 And then run the following as root:
+
 ```shell
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
@@ -89,36 +106,51 @@ yum install cri-o
 Note: this tutorial assumes you have curl and gnupg installed
 
 To install on the following operating systems, set the environment variable $OS as the appropriate field in the following table:
+
 | Operating system | $OS               |
 | ---------------- | ----------------- |
 | Debian Unstable  | `Debian_Unstable` |
 | Debian Testing   | `Debian_Testing`  |
+| Debian 10        | `Debian_10`       |
+| Raspberry Pi OS  | `Raspbian_10`     |
 | Ubuntu 20.04     | `xUbuntu_20.04`   |
 | Ubuntu 19.10     | `xUbuntu_19.10`   |
 | Ubuntu 19.04     | `xUbuntu_19.04`   |
 | Ubuntu 18.04     | `xUbuntu_18.04`   |
 
-And then run the following as root:
-```shell
-echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1. **NOTE: This is not available in distros based on Debian 10(buster) or below, so buster backports will need to be enabled:**
 
-curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | apt-key add -
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | apt-key add -
+```shell
+echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
+apt update
+apt install -y -t buster-backports libseccomp2 || apt update -y -t buster-backports libseccomp2
+```
+
+And then run the following as root:
+
+```shell
+echo "deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+echo "deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+
+mkdir -p /usr/share/keyrings
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg
 
 apt-get update
 apt-get install cri-o cri-o-runc
 ```
 
-Note: We include cri-o-runc because Ubuntu and Debian include their own packaged version of runc.
+**Note: We include cri-o-runc because Ubuntu and Debian include their own packaged version of runc.**
 While this version should work with CRI-O, keeping the packaged versions of CRI-O and runc in sync ensures they work together.
 If you'd like to use the distribution's runc, you'll have to add the file:
+
 ```toml
 [crio.runtime.runtimes.runc]
 runtime_path = ""
 runtime_type = "oci"
 runtime_root = "/run/runc"
 ```
+
 to `/etc/crio/crio.conf.d/`
 
 ## Build and install CRI-O from source
@@ -133,8 +165,8 @@ Latest version of `runc` is expected to be installed on the system. It is picked
 
 ### Build and Run Dependencies
 
-
 #### Fedora - RHEL 7 - CentOS
+
 **Required**
 
 Fedora, RHEL 7, CentOS and related distributions:
@@ -159,12 +191,14 @@ yum install -y \
 ```
 
 **Please note**:
+
 - `CentOS 8` (or higher): `pkgconfig` package is replaced by `pkgconf-pkg-config`
 - By default btrfs is not enabled. To add the btrfs support, install the
   following package: `btrfs-progs-devel`
 - It is possible the distribution packaged version of runc is out of date. If you'd like to get the latest and greatest runc, consider using the one found in https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable
 
 #### RHEL 8
+
 RHEL 8 distributions:\
 Make sure you are subscribed to the following repositories: \
 BaseOS/x86_64 \
@@ -220,11 +254,16 @@ The following dependencies:
 ```
 
 #### Debian - Raspbian - Ubuntu
+
 On Debian, Raspbian and Ubuntu distributions, [enable the Kubic project
 repositories](../README.md#installing-crio) and install the following packages:
 
+##### Debian up to buster - Raspbian - Ubuntu up to 18.04
+
 ```bash
-apt-get update -qq && apt-get install -y \
+apt update -qq && \
+# For Debian 10(buster) or below: use "apt install -t buster-backports"
+apt install -y  \
   btrfs-tools \
   containers-common \
   git \
@@ -234,6 +273,33 @@ apt-get update -qq && apt-get install -y \
   libglib2.0-dev \
   libc6-dev \
   libgpgme11-dev \
+  libgpg-error-dev \
+  libseccomp-dev \
+  libsystemd-dev \
+  libbtrfs-dev \
+  libselinux1-dev \
+  pkg-config \
+  go-md2man \
+  cri-o-runc \
+  libudev-dev \
+  software-properties-common \
+  gcc \
+  make
+```
+
+##### Debian bullseye or higher - Ubuntu 20.04 or higher
+
+```bash
+apt-get update -qq && apt-get install -y \
+  libbtrfs-dev \
+  containers-common \
+  git \
+  golang-go \
+  libassuan-dev \
+  libdevmapper-dev \
+  libglib2.0-dev \
+  libc6-dev \
+  libgpgme-dev \
   libgpg-error-dev \
   libseccomp-dev \
   libsystemd-dev \
@@ -308,23 +374,23 @@ To add build tags to the make option the `BUILDTAGS` variable must be set.
 make BUILDTAGS='seccomp apparmor'
 ```
 
-| Build Tag                        | Feature                                         | Dependency   |
-|----------------------------------|-------------------------------------------------|--------------|
-| seccomp                          | syscall filtering                               | libseccomp   |
-| selinux                          | selinux process and mount labeling              | libselinux   |
-| apparmor                         | apparmor profile support                        | <none>       |
+| Build Tag | Feature                            | Dependency |
+| --------- | ---------------------------------- | ---------- |
+| seccomp   | syscall filtering                  | libseccomp |
+| selinux   | selinux process and mount labeling | libselinux |
+| apparmor  | apparmor profile support           | <none>     |
 
 `CRI-O` manages images with [containers/image](https://github.com/containers/image), which uses the following buildtags.
 
-| Build Tag                        | Feature                                         | Dependency   |
-|----------------------------------|-------------------------------------------------|--------------|
-| containers_image_openpgp         | use native golang pgp instead of cgo            | <none>       |
-| containers_image_ostree_stub     | disable use of ostree as an image transport     | <none>       |
+| Build Tag                    | Feature                                     | Dependency |
+| ---------------------------- | ------------------------------------------- | ---------- |
+| containers_image_openpgp     | use native golang pgp instead of cgo        | <none>     |
+| containers_image_ostree_stub | disable use of ostree as an image transport | <none>     |
 
 `CRI-O` also uses [containers/storage](https://github.com/containers/storage) for managing container storage.
 
 | Build Tag                        | Feature                                         | Dependency   |
-|----------------------------------|-------------------------------------------------|--------------|
+| -------------------------------- | ----------------------------------------------- | ------------ |
 | exclude_graphdriver_btrfs        | exclude btrfs as a storage option               | <none>       |
 | btrfs_noversion                  | for building btrfs version < 3.16.1             | btrfs        |
 | exclude_graphdriver_devicemapper | exclude devicemapper as a storage option        | <none>       |
@@ -337,7 +403,7 @@ make BUILDTAGS='seccomp apparmor'
 It is possible to build a statically linked binary of CRI-O by using the
 officially provided [nix](https://nixos.org/nix) package and the derivation of
 it [within this repository](../nix). The builds are completely reproducible and
-will create a `x86_64`/`amd64` stripped ELF binary for
+will create a `x86_64`/`amd64` or `aarch64`/`arm64` stripped ELF binary for
 [glibc](https://www.gnu.org/software/libc). These binaries are integration
 tested as well and support the following features:
 
@@ -349,36 +415,11 @@ tested as well and support the following features:
 - selinux
 
 To build the binaries locally either [install the nix package
-manager](https://nixos.org/nix/download.html) or setup a new container image
-from the root directory of this repository by executing:
-
-```
-make test-image-nix
-```
-
-Please note that you can specify the container runtime and image name by
-specifying:
-
-```
-make test-image-nix \
-    CONTAINER_RUNTIME=podman \
-    TESTIMAGE_NIX=crionix
-```
+manager](https://nixos.org/nix/download.html) or use the `make build-static`
+target which relies on the nixos/nix container image.
 
 The overall build process can take a tremendous amount of CPU time depending on
-the hardware. After the image has been successfully built, it should be possible
-to build the binaries:
-
-```
-make build-static
-```
-
-There exist an already pre-built container image used for the internal CI. This
-means that invoking `make build-static` should work even without building the
-image before.
-
-Note that the container runtime and nix image can be specified here, too. The
-resulting binaries should now be available within:
+the hardware. The resulting binaries should now be available within:
 
 - `bin/static/crio`
 
@@ -390,7 +431,12 @@ directory of this repository:
 nix build -f nix
 ```
 
-The resulting binary should be now available in `result-bin/bin`.
+The resulting binaries should be now available in `result/bin`. To build the arm
+variant of the binaries, just run:
+
+```
+nix build -f nix/default-arm64.nix
+```
 
 #### Creating a release archive
 
@@ -401,7 +447,7 @@ used to build a new release archive within the current repository:
 ```
 make release-bundle
 …
-Created ./bundle/crio-v1.15.0.tar.gz
+Created ./bundle/cri-o.amd64.v1.20.0.tar.gz
 ```
 
 ### Download conmon
@@ -510,6 +556,6 @@ sudo systemctl start crio
 
 ### Using CRI-O
 
-- Follow this [tutorial](crictl.md) to quickly get started running simple pods and containers.
-- To run a full cluster, see [the instructions](kubernetes.md).
-- To run with kubeadm, see [kubeadm instructions](kubeadm.md).
+- Follow this [tutorial](tutorials/crictl.md) to quickly get started running simple pods and containers.
+- To run a full cluster, see [the instructions](tutorials/kubernetes.md).
+- To run with kubeadm, see [kubeadm instructions](tutorials/kubeadm.md).
