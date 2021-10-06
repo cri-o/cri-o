@@ -1,6 +1,7 @@
 package oci
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"sync"
@@ -444,4 +445,16 @@ func (r *Runtime) ReopenContainerLog(c *Container) error {
 	}
 
 	return impl.ReopenContainerLog(c)
+}
+
+// ExecSyncError wraps command's streams, exit code and error on ExecSync error.
+type ExecSyncError struct {
+	Stdout   bytes.Buffer
+	Stderr   bytes.Buffer
+	ExitCode int32
+	Err      error
+}
+
+func (e *ExecSyncError) Error() string {
+	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
 }
