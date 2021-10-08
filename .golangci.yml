@@ -163,6 +163,6 @@ linters-settings:
       - unnamedResult
       - unnecessaryBlock
   gocyclo:
-    min-complexity: 122
+    min-complexity: 127
   nakedret:
     max-func-lines: 15
