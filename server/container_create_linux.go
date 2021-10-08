@@ -33,6 +33,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -279,7 +280,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		maybeRelabel = true
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel)
+	skipRelabel := false
+	const superPrivilegedType = "spc_t"
+	if securityContext.SelinuxOptions.Type == superPrivilegedType || // super privileged container
+		(ctr.SandboxConfig().Linux.SecurityContext.SelinuxOptions.Type == superPrivilegedType && // super privileged pod
+			securityContext.SelinuxOptions.Type == "") {
+		skipRelabel = true
+	}
+
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel)
 	if err != nil {
 		return nil, err
 	}
@@ -782,7 +791,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	containerConfig := ctr.Config()
@@ -890,7 +899,9 @@ func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, b
 		}
 
 		if m.SelinuxRelabel {
-			if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
+			if skipRelabel {
+				logrus.Debugf("Skipping relabel for %s because of super privileged container (type: spc_t)", src)
+			} else if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
 				return nil, nil, err
 			}
 		}
