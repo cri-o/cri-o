@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -31,6 +32,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -265,7 +267,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		processLabel = ""
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, specgen, s.config.RuntimeConfig.BindMountPrefix)
+	skipRelabel := false
+	const superPrivilegedType = "spc_t"
+	if ctrType := securityContext.GetSelinuxOptions().GetType(); ctrType == superPrivilegedType || // super privileged container
+		(ctr.SandboxConfig().GetLinux().GetSecurityContext().GetSelinuxOptions().GetType() == superPrivilegedType && // super privileged pod
+			ctrType == "") {
+		skipRelabel = true
+	}
+
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, specgen, s.config.RuntimeConfig.BindMountPrefix, skipRelabel)
 	if err != nil {
 		return nil, err
 	}
@@ -761,7 +771,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator, bindMountPrefix string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *pb.ContainerConfig, specgen *generate.Generator, bindMountPrefix string, skipRelabel bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	mounts := containerConfig.GetMounts()
@@ -859,7 +869,9 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 		}
 
 		if m.SelinuxRelabel {
-			if err := securityLabel(src, mountLabel, false); err != nil {
+			if skipRelabel {
+				logrus.Debugf("Skipping relabel for %s because of super privileged container (type: spc_t)", src)
+			} else if err := securityLabel(src, mountLabel, false); err != nil {
 				return nil, nil, err
 			}
 		}
