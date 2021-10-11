@@ -434,18 +434,23 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
-	if sb.HostNetwork() {
+	if hostNet {
 		if err := specgen.RemoveLinuxNamespace(string(rspec.NetworkNamespace)); err != nil {
 			return nil, err
 		}
 
 		if !isInCRIMounts("/sys", containerConfig.Mounts) {
-			specgen.RemoveMount("/sys")
 			ctr.SpecAddMount(rspec.Mount{
 				Destination: "/sys",
 				Type:        "sysfs",
 				Source:      "sysfs",
 				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
+			})
+			ctr.SpecAddMount(rspec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "cgroup",
+				Source:      "cgroup",
+				Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
 			})
 		}
 	}
@@ -525,7 +530,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		})
 	}
 
-	if !isInCRIMounts("/etc/hosts", containerConfig.Mounts) && hostNetwork(containerConfig) {
+	if !isInCRIMounts("/etc/hosts", containerConfig.Mounts) && hostNet {
 		// Only bind mount for host netns and when CRI does not give us any hosts file
 		ctr.SpecAddMount(rspec.Mount{
 			Destination: "/etc/hosts",
