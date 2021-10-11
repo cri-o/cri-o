@@ -68,7 +68,6 @@ To install on the following operating systems, set the environment variable $OS 
 
 And then run the following as root:
 ```shell
-apt update
 apt install -y ca-certificates curl gnupg
 apt upgrade
 
