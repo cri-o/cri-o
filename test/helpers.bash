@@ -501,12 +501,16 @@ function ping_pod_from_pod() {
     # in such an environment without giving all containers NET_RAW capability
     # rather than reducing the security of the tests for all cases, skip this check
     # instead
-    if grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep -q " 7"; then
+    if is_rhel_7; then
         return
     fi
 
     ip=$(pod_ip -6 "$1")
     crictl exec --sync "$2" ping6 -W 1 -c 2 "$ip"
+}
+
+function is_rhel_7() {
+    grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep -q " 7"
 }
 
 function cleanup_network_conf() {
