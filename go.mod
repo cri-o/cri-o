@@ -70,7 +70,7 @@ require (
 	k8s.io/utils v0.0.0-20210707171843-4b05e18ac7d9
 	mvdan.cc/sh/v3 v3.3.1
 	sigs.k8s.io/release-utils v0.3.0
-	sigs.k8s.io/yaml v1.2.0
+	sigs.k8s.io/yaml v1.3.0
 	sigs.k8s.io/zeitgeist v0.3.0
 )
 
