@@ -157,6 +157,7 @@ func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) ([]string, error) {
 // must call the network plugin even if the network namespace is already gone
 func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if sb.HostNetwork() || sb.NetworkStopped() {
+		log.Debugf(ctx, "Network already stopped or sandbox is using host network")
 		return nil
 	}
 	// give a network stop call 1 minutes, half of a StopPod request timeout limit
@@ -168,20 +169,24 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 		PortMappings: sb.PortMappings(),
 		HostNetwork:  false,
 	}
+	log.Debugf(ctx, "Removing hostport mappings: %v", sb.PortMappings())
 	// portMapping removal does not need the IP address
 	if err := s.hostportManager.Remove(sb.ID(), mapping); err != nil {
 		log.Warnf(ctx, "failed to remove hostport for pod sandbox %s(%s): %v",
 			sb.Name(), sb.ID(), err)
 	}
 
+	log.Debugf(ctx, "Retrieving pod network for sandbox")
 	podNetwork, err := s.newPodNetwork(sb)
 	if err != nil {
 		return err
 	}
+	log.Debugf(ctx, "Stopping pod network: %v", podNetwork)
 	if err := s.config.CNIPlugin().TearDownPodWithContext(stopCtx, podNetwork); err != nil {
 		return errors.Wrapf(err, "failed to destroy network for pod sandbox %s(%s)", sb.Name(), sb.ID())
 	}
 
+	log.Debugf(ctx, "Setting network stopped")
 	return sb.SetNetworkStopped(true)
 }
 

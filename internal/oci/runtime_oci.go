@@ -596,6 +596,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 }
 
 func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration, ignoreKill bool) error {
+	log.Debugf(ctx, "Waiting for container to stop: %s (for %v)", c.ID(), timeout)
 	done := make(chan struct{})
 	// we could potentially re-use "done" channel to exit the loop on timeout,
 	// but we use another channel "chControl" so that we never panic
@@ -608,10 +609,13 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 		for {
 			select {
 			case <-chControl:
+				log.Debugf(ctx, "Closing 'done' channel")
 				close(done)
 				return
 			default:
+				log.Debugf(ctx, "Verifying PID (WaitContainerStop)")
 				if err := c.verifyPid(); err != nil {
+					log.Debugf(ctx, "Unable to verify PID: %v", err)
 					// The initial container process either doesn't exist, or isn't ours.
 					if !errors.Is(err, ErrNotFound) {
 						log.Warnf(ctx, "failed to find process for container %s: %v", c.id, err)
@@ -632,11 +636,14 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 	for !killed {
 		select {
 		case <-done:
+			log.Debugf(ctx, "Got done signal")
 			return nil
 		case <-ctx.Done():
+			log.Debugf(ctx, "Context is done")
 			close(chControl)
 			return ctx.Err()
 		case <-time.After(time.Until(targetTime)):
+			log.Debugf(ctx, "Stop timeout reached")
 			close(chControl)
 			if ignoreKill {
 				return fmt.Errorf("timeout reached after %.0f seconds waiting for container process to exit",
@@ -646,11 +653,14 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			if err != nil {
 				return err
 			}
+			log.Debugf(ctx, "Killing container PID: %v", pid)
 			if err := Kill(pid); err != nil {
 				return fmt.Errorf("failed to kill process: %v", err)
 			}
+			log.Debugf(ctx, "Setting container to 'killed'")
 			killed = true
 		case newTimeout := <-c.stopTimeoutChan:
+			log.Debugf(ctx, "New timeout %v", newTimeout)
 			// If a new timeout comes in,
 			// interrupt the old one, and start a new one
 			newTargetTime := time.Now().Add(newTimeout)
@@ -662,8 +672,10 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 
 			targetTime = newTargetTime
 			timeout = newTimeout
+			log.Debugf(ctx, "Setting new target time %v and timeout %v", targetTime, timeout)
 		}
 	}
+	log.Debugf(ctx, "Set container to finished and closing stop channel")
 	c.state.Finished = time.Now()
 	// Successfully stopped! This is to prevent other routines from
 	// racing with this one and waiting forever.
@@ -675,9 +687,11 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout int64) (retErr error) {
+	log.Debugf(ctx, "Set container to 'stopping'")
 	c.SetAsStopping(timeout)
 	defer func() {
 		if retErr != nil {
+			log.Debugf(ctx, "Unset container as 'stopping'")
 			// Failed to stop, set stopping to false.
 			// Otherwise, we won't actually
 			// attempt to stop when a new request comes in,
@@ -689,27 +703,33 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	log.Debugf(ctx, "Checking if container should be stopped")
 	if err := c.ShouldBeStopped(); err != nil {
 		return err
 	}
 
+	log.Debugf(ctx, "Checking if container is spoofed")
 	if c.Spoofed() {
 		c.state.Status = ContainerStateStopped
 		c.state.Finished = time.Now()
 		return nil
 	}
 
+	log.Debugf(ctx, "Verifying PID (StopContainer)")
 	// The initial container process either doesn't exist, or isn't ours.
 	if err := c.verifyPid(); err != nil {
 		c.state.Finished = time.Now()
+		log.Debugf(ctx, "Wrong PID: %v", err)
 		return nil
 	}
 
 	if timeout > 0 {
+		log.Debugf(ctx, "Timeout > 0, killing container with signal %s", c.GetStopSignal())
 		if _, err := utils.ExecCmd(
 			r.path, rootFlag, r.root, "kill", c.id, c.GetStopSignal(),
 		); err != nil {
-			checkProcessGone(c)
+			log.Debugf(ctx, "Checking that container process is gone")
+			checkProcessGone(ctx, c)
 		}
 		err := WaitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
 		if err == nil {
@@ -718,17 +738,21 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		log.Warnf(ctx, "Stopping container %v with stop signal timed out: %v", c.id, err)
 	}
 
+	log.Debugf(ctx, "Killing container with SIGKILL")
 	if _, err := utils.ExecCmd(
 		r.path, rootFlag, r.root, "kill", c.id, "KILL",
 	); err != nil {
-		checkProcessGone(c)
+		log.Debugf(ctx, "Checking that container process is gone")
+		checkProcessGone(ctx, c)
 	}
 
 	return WaitContainerStop(ctx, c, killContainerTimeout, false)
 }
 
-func checkProcessGone(c *Container) {
+func checkProcessGone(ctx context.Context, c *Container) {
+	log.Debugf(ctx, "Verifying container PID")
 	if err := c.verifyPid(); err != nil {
+		log.Debugf(ctx, "Unable to verify container PID: %v", err)
 		// The initial container process either doesn't exist, or isn't ours.
 		// Set state accordingly.
 		c.state.Finished = time.Now()
@@ -772,6 +796,7 @@ func updateContainerStatusFromExitFile(c *Container) error {
 
 // UpdateContainerStatus refreshes the status of the container.
 func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) error {
+	log.Debugf(ctx, "Updating container status")
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 

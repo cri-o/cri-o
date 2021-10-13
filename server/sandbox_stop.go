@@ -28,9 +28,9 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 		// cases.
 
 		log.Warnf(ctx, "could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxID, err)
-		log.Debugf(ctx, "StopPodSandboxResponse %s", req.PodSandboxID)
 		return nil
 	}
+	log.Debugf(ctx, "Found pod sandbox, stopping it now")
 	return s.stopPodSandbox(ctx, sb)
 }
 

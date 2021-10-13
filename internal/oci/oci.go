@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/cri/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -123,6 +124,7 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) e
 	// No need to go further and spawn the go routine if the container
 	// is already in the expected status.
 	if c.State().Status == ContainerStateStopped {
+		log.Debugf(ctx, "Container state is already stopped")
 		return nil
 	}
 
@@ -133,14 +135,18 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) e
 		for {
 			select {
 			case <-chControl:
+				log.Debugf(ctx, "Control channel done")
 				return
 			default:
+				log.Debugf(ctx, "Updating container status")
 				// Check if the container is stopped
 				if err := impl.UpdateContainerStatus(ctx, c); err != nil {
 					done <- err
 					return
 				}
+				log.Debugf(ctx, "Verifying container status")
 				if c.State().Status == ContainerStateStopped {
+					log.Debugf(ctx, "Container is stopped")
 					done <- nil
 					return
 				}
@@ -150,11 +156,13 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) e
 	}()
 	select {
 	case err = <-done:
+		log.Debugf(ctx, "Err on waiting: %v", err)
 		break
 	case <-ctx.Done():
 		close(chControl)
 		return ctx.Err()
 	case <-time.After(time.Duration(r.config.CtrStopTimeout) * time.Second):
+		log.Debugf(ctx, "Timeout on waiting for container stop")
 		close(chControl)
 		return fmt.Errorf(
 			"failed to get container stopped status: %ds timeout reached",
@@ -166,6 +174,7 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) e
 		return fmt.Errorf("failed to get container stopped status: %v", err)
 	}
 
+	log.Debugf(ctx, "Done waiting for container state stopped")
 	return nil
 }
 
