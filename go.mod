@@ -46,7 +46,7 @@ require (
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210709190330-896175883324
 	github.com/opencontainers/runtime-tools v0.9.1-0.20210326182921-59cdde06764b
-	github.com/opencontainers/selinux v1.8.4
+	github.com/opencontainers/selinux v1.9.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	github.com/psampaz/go-mod-outdated v0.8.0
