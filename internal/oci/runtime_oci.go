@@ -320,6 +320,55 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		return nil, nil
 	}
 
+	pidFile, parentPipe, childPipe, err := prepareExec()
+	if err != nil {
+		return nil, &ExecSyncError{
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+	defer parentPipe.Close()
+	defer func() {
+		if e := os.Remove(pidFile); e != nil {
+			log.Warnf(ctx, "Could not remove temporary PID file %s", pidFile)
+		}
+	}()
+
+	logFile, err := ioutil.TempFile("", "crio-log-"+c.id)
+	if err != nil {
+		return nil, &ExecSyncError{
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+	logFile.Close()
+
+	logPath := logFile.Name()
+	defer func() {
+		os.RemoveAll(logPath)
+	}()
+
+	args := []string{
+		"-c", c.id,
+		"-n", c.name,
+		"-r", r.path,
+		"-p", pidFile,
+		"-e",
+		"-l", logPath,
+		"--socket-dir-path", r.config.ContainerAttachSocketDir,
+		"--log-level", logrus.GetLevel().String(),
+	}
+
+	if r.config.ConmonSupportsSync() {
+		args = append(args, "--sync")
+	}
+	if c.terminal {
+		args = append(args, "-t")
+	}
+	if timeout > 0 {
+		args = append(args, "-T", fmt.Sprintf("%d", timeout))
+	}
+
 	processFile, err := prepareProcessExec(c, command, c.terminal)
 	if err != nil {
 		return nil, &ExecSyncError{
@@ -329,69 +378,182 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	}
 	defer os.RemoveAll(processFile)
 
-	pidDir, err := ioutil.TempDir("", "pidfile")
-	if err != nil {
-		return nil, err
-	}
-	defer os.RemoveAll(pidDir)
+	args = append(args,
+		"--exec-process-spec", processFile,
+		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 
-	pidFile := filepath.Join(pidDir, c.id)
-
-	cmd := r.constructExecCommand(ctx, c, processFile, pidFile)
-	cmd.SysProcAttr = sysProcAttrPlatform()
+	cmd := exec.Command(r.config.Conmon, args...) // nolint: gosec
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
+	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
+	// 0, 1 and 2 are stdin, stdout and stderr
+	cmd.Env = r.config.ConmonEnv
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
 
 	err = cmd.Start()
 	if err != nil {
-		return nil, err
+		childPipe.Close()
+		return nil, &ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: -1,
+			Err:      err,
+		}
 	}
 
-	// wait till the command is done
-	done := make(chan error, 1)
-	go func() {
-		done <- cmd.Wait()
-	}()
+	// We don't need childPipe on the parent side
+	childPipe.Close()
 
-	if timeout > 0 {
-		select {
-		case <-time.After(time.Second * time.Duration(timeout)):
-			// Ensure the process is not left behind
-			killContainerExecProcess(ctx, pidFile, cmd)
+	// first, wait till the command is done
+	waitErr := cmd.Wait()
 
-			// Make sure the runtime process has been cleaned up
-			<-done
+	// regardless of what is in waitErr
+	// we should attempt to decode the output of the parent pipe
+	// this allows us to catch TimedOutMessage, which will cause waitErr to not be nil
+	var ec *exitCodeInfo
+	decodeErr := json.NewDecoder(parentPipe).Decode(&ec)
+	if decodeErr == nil {
+		log.Debugf(ctx, "Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
 
-			// If the command timed out, we should return an ExecSyncResponse with a non-zero exit code because
-			// the prober code in the kubelet checks for it. If we return a custom error,
-			// then the probes transition into Unknown status and the container isn't restarted as expected.
-
+		// When we timeout the command in conmon then we should return
+		// an ExecSyncResponse with a non-zero exit code because
+		// the prober code in the kubelet checks for it. If we return
+		// a custom error, then the probes transition into Unknown status
+		// and the container isn't restarted as expected.
+		if ec.ExitCode == -1 && ec.Message == conmonconfig.TimedOutMessage {
 			return &ExecSyncResponse{
 				Stderr:   []byte(conmonconfig.TimedOutMessage),
 				ExitCode: -1,
 			}, nil
-		case err = <-done:
-			break
 		}
-	} else {
-		err = <-done
 	}
 
-	// gather exit code from err
-	exitCode := int32(0)
+	if waitErr != nil {
+		// if we aren't a ExitError, some I/O problems probably occurred
+		if _, ok := waitErr.(*exec.ExitError); !ok {
+			return nil, &ExecSyncError{
+				Stdout:   stdoutBuf,
+				Stderr:   stderrBuf,
+				ExitCode: -1,
+				Err:      waitErr,
+			}
+		}
+	}
+
+	if decodeErr != nil {
+		return nil, &ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: -1,
+			Err:      decodeErr,
+		}
+	}
+
+	if ec.ExitCode == -1 {
+		return nil, &ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: -1,
+			Err:      fmt.Errorf(ec.Message),
+		}
+	}
+
+	// The actual logged output is not the same as stdoutBuf and stderrBuf,
+	// which are used for getting error information. For the actual
+	// ExecSyncResponse we have to read the logfile.
+	// XXX: Currently runC dups the same console over both stdout and stderr,
+	//      so we can't differentiate between the two.
+	logBytes, err := ioutil.ReadFile(logPath)
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			exitCode = int32(exitError.ExitCode())
+		return nil, &ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: -1,
+			Err:      err,
 		}
 	}
 
+	// We have to parse the log output into {stdout, stderr} buffers.
+	stdoutBytes, stderrBytes := parseLog(ctx, logBytes)
 	return &ExecSyncResponse{
-		Stdout:   stdoutBuf.Bytes(),
-		Stderr:   stderrBuf.Bytes(),
-		ExitCode: exitCode,
+		Stdout:   stdoutBytes,
+		Stderr:   stderrBytes,
+		ExitCode: ec.ExitCode,
 	}, nil
+}
+
+// exitCodeInfo is used to return the monitored process exit code to the daemon
+type exitCodeInfo struct {
+	ExitCode int32  `json:"exit_code"`
+	Message  string `json:"message,omitempty"`
+}
+
+func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
+	// Split the log on newlines, which is what separates entries.
+	lines := bytes.SplitAfter(l, []byte{'\n'})
+	for _, line := range lines {
+		// Ignore empty lines.
+		if len(line) == 0 {
+			continue
+		}
+
+		// The format of log lines is "DATE pipe LogTag REST".
+		parts := bytes.SplitN(line, []byte{' '}, 4)
+		if len(parts) < 4 {
+			// Ignore the line if it's formatted incorrectly, but complain
+			// about it so it can be debugged.
+			log.Warnf(ctx, "Hit invalid log format: %q", string(line))
+			continue
+		}
+
+		pipe := string(parts[1])
+		content := parts[3]
+
+		linetype := string(parts[2])
+		if linetype == "P" {
+			contentLen := len(content)
+			if contentLen > 0 && content[contentLen-1] == '\n' {
+				content = content[:contentLen-1]
+			}
+		}
+
+		switch pipe {
+		case "stdout":
+			stdout = append(stdout, content...)
+		case "stderr":
+			stderr = append(stderr, content...)
+		default:
+			// Complain about unknown pipes.
+			log.Warnf(ctx, "Hit invalid log format [unknown pipe %s]: %q", pipe, string(line))
+			continue
+		}
+	}
+
+	return stdout, stderr
+}
+
+func prepareExec() (pidFileName string, parentPipe, childPipe *os.File, _ error) {
+	var err error
+	parentPipe, childPipe, err = os.Pipe()
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	pidFile, err := ioutil.TempFile("", "pidfile")
+	if err != nil {
+		parentPipe.Close()
+		childPipe.Close()
+		return "", nil, nil, err
+	}
+	pidFile.Close()
+	pidFileName = pidFile.Name()
+
+	return pidFileName, parentPipe, childPipe, nil
 }
 
 func (r *runtimeOCI) constructExecCommand(ctx context.Context, c *Container, processFile, pidFile string) *exec.Cmd {
