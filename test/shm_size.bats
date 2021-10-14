@@ -23,7 +23,7 @@ EOF
 }
 
 @test "check /dev/shm is changed" {
-	create_shmsize_runtime
+	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
 	start_crio
 	# Run base container to ensure it creates at all
 	pod_id=$(crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' "$TESTDATA"/sandbox_config.json))
@@ -40,7 +40,7 @@ EOF
 }
 
 @test "check /dev/shm fails with incorrect values" {
-	create_shmsize_runtime
+	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
 	start_crio
 	# Ensure pod fails if /dev/shm size is negative
 	! crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "-1"' "$TESTDATA"/sandbox_config.json)
