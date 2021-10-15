@@ -45,13 +45,8 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 			State:       rStatus,
 			Labels:      sb.Labels(),
 			Annotations: sb.Annotations(),
-			Metadata: &types.PodSandboxMetadata{
-				Name:      sb.Metadata().Name,
-				UID:       sb.Metadata().UID,
-				Namespace: sb.Metadata().Namespace,
-				Attempt:   sb.Metadata().Attempt,
-			},
-			Linux: linux,
+			Metadata:    sb.Metadata(),
+			Linux:       linux,
 		},
 	}
 

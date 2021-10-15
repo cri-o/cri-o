@@ -162,7 +162,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 			c.ReleasePodName(name)
 		}
 	}()
-	var metadata sandbox.Metadata
+	var metadata types.PodSandboxMetadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Metadata)
 	}
