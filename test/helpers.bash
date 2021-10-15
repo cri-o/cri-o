@@ -501,12 +501,16 @@ function ping_pod_from_pod() {
     # in such an environment without giving all containers NET_RAW capability
     # rather than reducing the security of the tests for all cases, skip this check
     # instead
-    if grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep -q " 7"; then
+    if is_rhel_7; then
         return
     fi
 
     ip=$(pod_ip -6 "$1")
     crictl exec --sync "$2" ping6 -W 1 -c 2 "$ip"
+}
+
+function is_rhel_7() {
+    grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep -q " 7"
 }
 
 function cleanup_network_conf() {
@@ -549,4 +553,18 @@ function fail() {
 # tests whether the node is configured to use cgroupv2
 function is_cgroup_v2() {
     test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
+}
+
+function create_runtime_with_allowed_annotation() {
+    local NAME="$1"
+    local ANNOTATION="$2"
+    cat <<EOF >"$CRIO_CONFIG_DIR/01-$NAME.conf"
+[crio.runtime]
+default_runtime = "$NAME"
+[crio.runtime.runtimes.$NAME]
+runtime_path = "$RUNTIME_BINARY_PATH"
+runtime_root = "$RUNTIME_ROOT"
+runtime_type = "$RUNTIME_TYPE"
+allowed_annotations = ["$ANNOTATION"]
+EOF
 }

@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -32,6 +33,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -132,6 +134,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	// eventually, we'd like to access all of these variables through the interface themselves, and do most
 	// of the translation between CRI config -> oci/storage container in the container package
+
+	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
+	// and SpecAddAnnotations is already being passed too many arguments
+	// Filter early so any use of the annotations don't use the wrong values
+	if err := s.Runtime().FilterDisallowedAnnotations(sb.RuntimeHandler(), ctr.Config().Annotations); err != nil {
+		return nil, err
+	}
+
 	containerID := ctr.ID()
 	containerName := ctr.Name()
 	containerConfig := ctr.Config()
@@ -265,7 +275,20 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		processLabel = ""
 	}
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, mountLabel, containerConfig, specgen, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject)
+	maybeRelabel := false
+	if val, present := sb.Annotations()[crioann.TrySkipVolumeSELinuxLabelAnnotation]; present && val == "true" {
+		maybeRelabel = true
+	}
+
+	skipRelabel := false
+	const superPrivilegedType = "spc_t"
+	if securityContext.SelinuxOptions.Type == superPrivilegedType || // super privileged container
+		(ctr.SandboxConfig().Linux.SecurityContext.SelinuxOptions.Type == superPrivilegedType && // super privileged pod
+			securityContext.SelinuxOptions.Type == "") {
+		skipRelabel = true
+	}
+
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel)
 	if err != nil {
 		return nil, err
 	}
@@ -507,7 +530,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
-		if err := securityLabel(sb.ResolvPath(), mountLabel, false); err != nil {
+		if err := securityLabel(sb.ResolvPath(), mountLabel, false, false); err != nil {
 			return nil, err
 		}
 		ctr.SpecAddMount(rspec.Mount{
@@ -519,7 +542,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	if sb.HostnamePath() != "" {
-		if err := securityLabel(sb.HostnamePath(), mountLabel, false); err != nil {
+		if err := securityLabel(sb.HostnamePath(), mountLabel, false, false); err != nil {
 			return nil, err
 		}
 		ctr.SpecAddMount(rspec.Mount{
@@ -573,12 +596,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			}
 		}
 	}()
-
-	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
-	// and SpecAddAnnotations is already passed too many arguments
-	if err := s.Runtime().FilterDisallowedAnnotations(sb.RuntimeHandler(), ctr.Config().Annotations); err != nil {
-		return nil, err
-	}
 
 	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode())
 	if err != nil {
@@ -744,7 +761,7 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 		return err
 	}
 	if mountLabel != "" {
-		if err1 := securityLabel(fp, mountLabel, false); err1 != nil {
+		if err1 := securityLabel(fp, mountLabel, false, false); err1 != nil {
 			return err1
 		}
 	}
@@ -774,9 +791,11 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *types.ContainerConfig, specgen *generate.Generator, bindMountPrefix string, absentMountSourcesToReject []string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
+	containerConfig := ctr.Config()
+	specgen := ctr.Spec()
 	mounts := containerConfig.Mounts
 
 	// Sort mounts in number of parts. This ensures that high level mounts don't
@@ -880,7 +899,9 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *t
 		}
 
 		if m.SelinuxRelabel {
-			if err := securityLabel(src, mountLabel, false); err != nil {
+			if skipRelabel {
+				logrus.Debugf("Skipping relabel for %s because of super privileged container (type: spc_t)", src)
+			} else if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
 				return nil, nil, err
 			}
 		}
