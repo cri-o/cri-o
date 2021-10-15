@@ -28,11 +28,8 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	containerID := c.ID()
 	resp := &types.ContainerStatusResponse{
 		Status: &types.ContainerStatus{
-			ID: containerID,
-			Metadata: &types.ContainerMetadata{
-				Name:    c.Metadata().Name,
-				Attempt: c.Metadata().Attempt,
-			},
+			ID:          containerID,
+			Metadata:    c.Metadata(),
 			Labels:      c.Labels(),
 			Annotations: c.Annotations(),
 			ImageRef:    c.ImageRef(),

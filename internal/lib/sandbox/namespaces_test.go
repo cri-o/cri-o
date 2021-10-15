@@ -7,6 +7,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -322,7 +323,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			testContainer, err := oci.NewContainer("testid", "testname", "",
 				"/container/logs", map[string]string{},
 				map[string]string{}, map[string]string{}, "image",
-				"imageName", "imageRef", &oci.Metadata{},
+				"imageName", "imageRef", &types.ContainerMetadata{},
 				"testsandboxid", false, false, false, "",
 				"/root/for/container", time.Now(), "SIGKILL")
 			Expect(err).To(BeNil())

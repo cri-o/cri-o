@@ -380,7 +380,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		}
 	}()
 
-	var metadata oci.Metadata
+	var metadata types.ContainerMetadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}
