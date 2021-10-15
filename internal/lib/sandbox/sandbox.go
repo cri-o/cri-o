@@ -28,7 +28,7 @@ var (
 // Sandbox contains data surrounding kubernetes sandboxes on the server
 type Sandbox struct {
 	portMappings []*hostport.PortMapping
-	createdAt    time.Time
+	createdAt    int64
 	id           string
 	namespace    string
 	// OCI pod name (eg "<namespace>-<name>-<attempt>")
@@ -95,14 +95,14 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.resolvPath = resolvPath
 	sb.hostname = hostname
 	sb.portMappings = portMappings
-	sb.createdAt = createdAt
+	sb.createdAt = createdAt.UnixNano()
 	sb.hostNetwork = hostNetwork
 	sb.usernsMode = usernsMode
 
 	return sb, nil
 }
 
-func (s *Sandbox) CreatedAt() time.Time {
+func (s *Sandbox) CreatedAt() int64 {
 	return s.createdAt
 }
 

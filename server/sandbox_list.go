@@ -66,7 +66,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 
 		pod := &types.PodSandbox{
 			ID:          sb.ID(),
-			CreatedAt:   sb.CreatedAt().UnixNano(),
+			CreatedAt:   sb.CreatedAt(),
 			State:       rStatus,
 			Labels:      sb.Labels(),
 			Annotations: sb.Annotations(),

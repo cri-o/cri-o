@@ -68,7 +68,7 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(sandbox.HostNetwork()).To(Equal(hostNetwork))
 			Expect(sandbox.StopMutex()).NotTo(BeNil())
 			Expect(sandbox.Containers()).NotTo(BeNil())
-			Expect(sandbox.CreatedAt()).To(Equal(createdAt))
+			Expect(sandbox.CreatedAt()).To(Equal(createdAt.UnixNano()))
 		})
 	})
 
