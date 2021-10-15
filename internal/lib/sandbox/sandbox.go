@@ -27,9 +27,8 @@ var (
 
 // Sandbox contains data surrounding kubernetes sandboxes on the server
 type Sandbox struct {
+	criSandbox   *types.PodSandbox
 	portMappings []*hostport.PortMapping
-	createdAt    int64
-	id           string
 	namespace    string
 	// OCI pod name (eg "<namespace>-<name>-<attempt>")
 	name string
@@ -52,10 +51,7 @@ type Sandbox struct {
 	// ipv4 or ipv6 cache
 	ips                []string
 	seccompProfilePath string
-	labels             fields.Set
-	annotations        map[string]string
 	infraContainer     *oci.Container
-	metadata           *types.PodSandboxMetadata
 	nsOpts             *types.NamespaceOption
 	stopMutex          sync.RWMutex
 	created            bool
@@ -77,17 +73,21 @@ var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 // An infra container must be attached before the sandbox is added to the state
 func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *types.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string) (*Sandbox, error) {
 	sb := new(Sandbox)
-	sb.id = id
+
+	sb.criSandbox = &types.PodSandbox{
+		ID:          id,
+		CreatedAt:   createdAt.UnixNano(),
+		Labels:      labels,
+		Annotations: annotations,
+		Metadata:    metadata,
+	}
 	sb.namespace = namespace
 	sb.name = name
 	sb.kubeName = kubeName
 	sb.logDir = logDir
-	sb.labels = labels
-	sb.annotations = annotations
 	sb.containers = oci.NewMemoryStore()
 	sb.processLabel = processLabel
 	sb.mountLabel = mountLabel
-	sb.metadata = metadata
 	sb.shmPath = shmPath
 	sb.cgroupParent = cgroupParent
 	sb.privileged = privileged
@@ -95,15 +95,18 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.resolvPath = resolvPath
 	sb.hostname = hostname
 	sb.portMappings = portMappings
-	sb.createdAt = createdAt.UnixNano()
 	sb.hostNetwork = hostNetwork
 	sb.usernsMode = usernsMode
 
 	return sb, nil
 }
 
+func (s *Sandbox) CRISandbox() *types.PodSandbox {
+	return s.criSandbox
+}
+
 func (s *Sandbox) CreatedAt() int64 {
-	return s.createdAt
+	return s.criSandbox.CreatedAt
 }
 
 // SetSeccompProfilePath sets the seccomp profile path
@@ -143,7 +146,7 @@ func (s *Sandbox) IPs() []string {
 
 // ID returns the id of the sandbox
 func (s *Sandbox) ID() string {
-	return s.id
+	return s.criSandbox.ID
 }
 
 // UsernsMode returns the mode for setting the user namespace, if any.
@@ -173,12 +176,12 @@ func (s *Sandbox) LogDir() string {
 
 // Labels returns the labels associated with the sandbox
 func (s *Sandbox) Labels() fields.Set {
-	return s.labels
+	return s.criSandbox.Labels
 }
 
 // Annotations returns a list of annotations for the sandbox
 func (s *Sandbox) Annotations() map[string]string {
-	return s.annotations
+	return s.criSandbox.Annotations
 }
 
 // Containers returns the ContainerStorer that contains information on all
@@ -199,7 +202,7 @@ func (s *Sandbox) MountLabel() string {
 
 // Metadata returns a set of metadata about the sandbox
 func (s *Sandbox) Metadata() *types.PodSandboxMetadata {
-	return s.metadata
+	return s.criSandbox.Metadata
 }
 
 // ShmPath returns the shm path of the sandbox

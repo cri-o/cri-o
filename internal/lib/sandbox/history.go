@@ -16,7 +16,7 @@ func (history *History) Len() int {
 func (history *History) Less(i, j int) bool {
 	sandboxes := *history
 	// FIXME: state access should be serialized
-	return sandboxes[j].createdAt < sandboxes[i].createdAt
+	return sandboxes[j].CreatedAt() < sandboxes[i].CreatedAt()
 }
 
 // Swap switches sandboxes i and j positions in the history.

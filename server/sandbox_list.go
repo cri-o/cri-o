@@ -64,19 +64,8 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 			rStatus = types.PodSandboxStateSandboxReady
 		}
 
-		pod := &types.PodSandbox{
-			ID:          sb.ID(),
-			CreatedAt:   sb.CreatedAt(),
-			State:       rStatus,
-			Labels:      sb.Labels(),
-			Annotations: sb.Annotations(),
-			Metadata: &types.PodSandboxMetadata{
-				Name:      sb.Metadata().Name,
-				UID:       sb.Metadata().UID,
-				Namespace: sb.Metadata().Namespace,
-				Attempt:   sb.Metadata().Attempt,
-			},
-		}
+		pod := sb.CRISandbox()
+		pod.State = rStatus
 
 		// Filter by other criteria such as state and labels.
 		if filterSandbox(pod, req.Filter) {
