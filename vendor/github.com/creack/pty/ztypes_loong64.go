@@ -1,6 +1,5 @@
-//go:build (loongarch32 || loongarch64) && linux
-//+build linux
-//+build loongarch32 loongarch64
+//go:build loong64
+// +build loong64
 
 // Created by cgo -godefs - DO NOT EDIT
 // cgo -godefs types.go

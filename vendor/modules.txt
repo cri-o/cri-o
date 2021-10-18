@@ -409,7 +409,7 @@ github.com/cpuguy83/go-md2man
 github.com/cpuguy83/go-md2man/md2man
 # github.com/cpuguy83/go-md2man/v2 v2.0.0
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/creack/pty v1.1.16
+# github.com/creack/pty v1.1.17
 ## explicit
 github.com/creack/pty
 # github.com/cri-o/ocicni v0.2.1-0.20210623033107-4ea5fb8752cf
