@@ -200,23 +200,14 @@ func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
 	return rh.PrivilegedWithoutHostDevices, nil
 }
 
-// FilterDisallowedAnnotations filters annotations that are not specified in the allowed_annotations map
-// for a given handler.
-// This function returns an error if the runtime handler can't be found.
-// The annotations map is mutated in-place.
-func (r *Runtime) FilterDisallowedAnnotations(handler string, annotations map[string]string) error {
+// AllowedAnnotations returns the allowed annotations for this runtime.
+func (r *Runtime) AllowedAnnotations(handler string) ([]string, error) {
 	rh, err := r.getRuntimeHandler(handler)
 	if err != nil {
-		return err
+		return []string{}, err
 	}
-	for ann := range annotations {
-		for _, disallowed := range rh.DisallowedAnnotations {
-			if strings.HasPrefix(ann, disallowed) {
-				delete(annotations, disallowed)
-			}
-		}
-	}
-	return nil
+
+	return rh.AllowedAnnotations, nil
 }
 
 // RuntimeType returns the type of runtimeHandler

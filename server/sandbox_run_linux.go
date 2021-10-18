@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -338,8 +339,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	if err := s.Runtime().FilterDisallowedAnnotations(runtimeHandler, sbox.Config().Annotations); err != nil {
-		return nil, errors.Wrap(err, "filter disallowed annotations")
+	if err := s.FilterDisallowedAnnotations(sbox.Config().Annotations, sbox.Config().Annotations, runtimeHandler); err != nil {
+		return nil, err
 	}
 
 	kubeAnnotations := sbox.Config().Annotations

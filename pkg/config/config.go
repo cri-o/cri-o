@@ -913,6 +913,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "runtime validation")
 		}
 
+		if err := c.ValidateAllowedAnnotations(); err != nil {
+			return errors.Wrap(err, "allowed annotations validation")
+		}
+
 		// Validate the system registries configuration
 		if _, err := sysregistriesv2.GetRegistries(systemContext); err != nil {
 			return errors.Wrap(err, "invalid registries")
@@ -1224,22 +1228,61 @@ func (r *RuntimeHandler) ValidateRuntimeConfigPath(name string) error {
 }
 
 func (r *RuntimeHandler) ValidateRuntimeAllowedAnnotations() error {
-	disallowedAnnotations := make(map[string]struct{})
-	for _, ann := range annotations.AllAllowedAnnotations {
-		disallowedAnnotations[ann] = struct{}{}
-	}
-	for _, allowed := range r.AllowedAnnotations {
-		if _, ok := disallowedAnnotations[allowed]; !ok {
-			return errors.Errorf("invalid allowed_annotation: %s", allowed)
-		}
-		delete(disallowedAnnotations, allowed)
-	}
-	for ann := range disallowedAnnotations {
-		r.DisallowedAnnotations = append(r.DisallowedAnnotations, ann)
+	disallowed, err := validateAllowedAndGenerateDisallowedAnnotations(r.AllowedAnnotations)
+	if err != nil {
+		return err
 	}
 	logrus.Debugf(
 		"Allowed annotations for runtime: %v", r.AllowedAnnotations,
 	)
+	r.DisallowedAnnotations = disallowed
+	return nil
+}
+
+func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {
+	disallowedMap := make(map[string]struct{})
+	for _, ann := range annotations.AllAllowedAnnotations {
+		disallowedMap[ann] = struct{}{}
+	}
+	for _, ann := range allowed {
+		if _, ok := disallowedMap[ann]; !ok {
+			return nil, errors.Errorf("invalid allowed_annotation: %s", ann)
+		}
+		delete(disallowedMap, ann)
+	}
+	disallowed = make([]string, 0, len(disallowedMap))
+	for ann := range disallowedMap {
+		disallowed = append(disallowed, ann)
+	}
+	return disallowed, nil
+}
+
+// In the interim between adding workload level allowed annotations
+// and disabling runtime level allowed annotations, we need to do a separate
+// validation step to ensure neither list are stepping on the other's toes.
+// Instead of complicated logic, declare workload level allowed annotations to
+// always overwrite runtime level ones.
+func (c *RuntimeConfig) ValidateAllowedAnnotations() error {
+	var workloadHasAnnotation bool
+	for _, wl := range c.Workloads {
+		if len(wl.AllowedAnnotations) != 0 {
+			workloadHasAnnotation = true
+		}
+	}
+	if !workloadHasAnnotation {
+		for _, wl := range c.Workloads {
+			wl.AllowedAnnotations = []string{}
+			wl.DisallowedAnnotations = []string{}
+		}
+		logrus.Infof("Workload does not have an allowed annotation configured. Clearing allowed annotations from runtimes")
+		return nil
+	}
+	logrus.Infof("Workload has an allowed annotation configured. Clearing allowed annotations from runtimes")
+	for name, rh := range c.Runtimes {
+		logrus.Infof("Clearing allowed annotations from %s", name)
+		rh.AllowedAnnotations = []string{}
+		rh.DisallowedAnnotations = []string{}
+	}
 	return nil
 }
 
