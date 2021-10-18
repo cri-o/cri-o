@@ -405,7 +405,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 
 	s.updateLock.RLock()
 	defer s.updateLock.RUnlock()
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxID)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return nil, err

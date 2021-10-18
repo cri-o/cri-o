@@ -14,7 +14,7 @@ import (
 func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRequest) error {
 	// platform dependent call
 	log.Infof(ctx, "Stopping pod sandbox: %s", req.PodSandboxID)
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxID)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return err

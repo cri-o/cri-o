@@ -16,7 +16,7 @@ import (
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandboxRequest) error {
 	log.Infof(ctx, "Removing pod sandbox: %s", req.PodSandboxID)
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxID)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return err

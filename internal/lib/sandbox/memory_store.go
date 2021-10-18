@@ -1,6 +1,10 @@
 package sandbox
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/sirupsen/logrus"
+)
 
 // memoryStore implements a Store in memory.
 type memoryStore struct {
@@ -25,10 +29,12 @@ func (c *memoryStore) Add(id string, cont *Sandbox) {
 
 // Get returns a sandbox from the store by id.
 func (c *memoryStore) Get(id string) *Sandbox {
+	logrus.Debugf("Getting ID from memory store: %s", id)
 	var res *Sandbox
 	c.RLock()
 	res = c.s[id]
 	c.RUnlock()
+	logrus.Debugf("Got memory store result for ID: %s", id)
 	return res
 }
 

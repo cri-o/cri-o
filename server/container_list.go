@@ -49,7 +49,7 @@ func (s *Server) filterContainerList(ctx context.Context, filter *types.Containe
 			return nil
 		}
 	} else if filter.PodSandboxID != "" {
-		sb, err := s.getPodSandboxFromRequest(filter.PodSandboxID)
+		sb, err := s.getPodSandboxFromRequest(ctx, filter.PodSandboxID)
 		if err != nil {
 			return nil
 		}

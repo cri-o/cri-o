@@ -584,20 +584,25 @@ func (s *Server) removeInfraContainer(c *oci.Container) {
 	s.ContainerServer.RemoveInfraContainer(c)
 }
 
-func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox, error) {
+func (s *Server) getPodSandboxFromRequest(ctx context.Context, podSandboxID string) (*sandbox.Sandbox, error) {
+	log.Debugf(ctx, "Getting pod sandbox ID from request: %v", podSandboxID)
 	if podSandboxID == "" {
 		return nil, sandbox.ErrIDEmpty
 	}
 
+	log.Debugf(ctx, "Requesting pod from ID index")
 	sandboxID, err := s.PodIDIndex().Get(podSandboxID)
 	if err != nil {
 		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
 	}
 
+	log.Debugf(ctx, "Getting sandbox")
 	sb := s.getSandbox(sandboxID)
 	if sb == nil {
 		return nil, fmt.Errorf("specified pod sandbox not found: %s", sandboxID)
 	}
+
+	log.Debugf(ctx, "Checking if sandbox is not already created")
 	if !sb.Created() {
 		return nil, errSandboxNotCreated
 	}

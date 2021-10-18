@@ -13,7 +13,7 @@ import (
 
 // PodSandboxStatus returns the Status of the PodSandbox.
 func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStatusRequest) (*types.PodSandboxStatusResponse, error) {
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxID)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.PodSandboxID, err)
 	}
