@@ -5,8 +5,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -23,6 +25,16 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 				Resources: &rspec.LinuxResources{},
 			},
 		},
+	}
+
+	// First, set the cpuset as the one for the infra container.
+	// This should be overridden if specified in a workload.
+	// It should not be applied unless the conmon cgroup is "pod".
+	// Otherwise, the cpuset will be configured for whatever cgroup the conmons share
+	// (which by default is system.slice).
+	if r.config.InfraCtrCPUSet != "" && r.config.ConmonCgroup == utils.PodCgroupName {
+		logrus.Debugf("Set the conmon cpuset to %q", r.config.InfraCtrCPUSet)
+		g.SetLinuxResourcesCPUCpus(r.config.InfraCtrCPUSet)
 	}
 
 	// Mutate our newly created spec to find the customizations that are needed for conmon
