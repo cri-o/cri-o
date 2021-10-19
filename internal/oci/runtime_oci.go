@@ -97,7 +97,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 	args := []string{
 		"-b", c.bundlePath,
-		"-c", c.id,
+		"-c", c.ID(),
 		"--exit-dir", r.config.ContainerExitsDir,
 		"-l", c.logPath,
 		"--log-level", logrus.GetLevel().String(),
@@ -108,7 +108,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		"-r", r.path,
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root),
 		"--socket-dir-path", r.config.ContainerAttachSocketDir,
-		"-u", c.id,
+		"-u", c.ID(),
 	}
 
 	if r.config.CgroupManager().IsSystemd() {
@@ -255,7 +255,7 @@ func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
 	}
 
 	if _, err := utils.ExecCmd(
-		r.path, rootFlag, r.root, "start", c.id,
+		r.path, rootFlag, r.root, "start", c.ID(),
 	); err != nil {
 		return err
 	}
@@ -419,7 +419,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		}
 	}()
 
-	logFile, err := ioutil.TempFile("", "crio-log-"+c.id)
+	logFile, err := ioutil.TempFile("", "crio-log-"+c.ID())
 	if err != nil {
 		return nil, &ExecSyncError{
 			ExitCode: -1,
@@ -434,7 +434,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	}()
 
 	args := []string{
-		"-c", c.id,
+		"-c", c.ID(),
 		"-n", c.name,
 		"-r", r.path,
 		"-p", pidFile,
@@ -578,7 +578,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 		return nil
 	}
 
-	cmd := exec.Command(r.path, rootFlag, r.root, "update", "--resources", "-", c.id) // nolint: gosec
+	cmd := exec.Command(r.path, rootFlag, r.root, "update", "--resources", "-", c.ID()) // nolint: gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -593,7 +593,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 	cmd.Stdin = bytes.NewReader(jsonResources)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("updating resources for container %q failed: %v %v (%v)", c.id, stderr.String(), stdout.String(), err)
+		return fmt.Errorf("updating resources for container %q failed: %v %v (%v)", c.ID(), stderr.String(), stdout.String(), err)
 	}
 	return nil
 }
@@ -617,7 +617,7 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 				if err := c.verifyPid(); err != nil {
 					// The initial container process either doesn't exist, or isn't ours.
 					if !errors.Is(err, ErrNotFound) {
-						log.Warnf(ctx, "Failed to find process for container %s: %v", c.id, err)
+						log.Warnf(ctx, "Failed to find process for container %s: %v", c.ID(), err)
 					}
 					close(done)
 					return
@@ -710,7 +710,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 
 	if timeout > 0 {
 		if _, err := utils.ExecCmd(
-			r.path, rootFlag, r.root, "kill", c.id, c.GetStopSignal(),
+			r.path, rootFlag, r.root, "kill", c.ID(), c.GetStopSignal(),
 		); err != nil {
 			checkProcessGone(c)
 		}
@@ -718,11 +718,11 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		if err == nil {
 			return nil
 		}
-		log.Warnf(ctx, "Stopping container %v with stop signal timed out: %v", c.id, err)
+		log.Warnf(ctx, "Stopping container %v with stop signal timed out: %v", c.ID(), err)
 	}
 
 	if _, err := utils.ExecCmd(
-		r.path, rootFlag, r.root, "kill", c.id, "KILL",
+		r.path, rootFlag, r.root, "kill", c.ID(), "KILL",
 	); err != nil {
 		checkProcessGone(c)
 	}
@@ -747,7 +747,7 @@ func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "delete", "--force", c.id)
+	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "delete", "--force", c.ID())
 	return err
 }
 
@@ -755,7 +755,7 @@ func updateContainerStatusFromExitFile(c *Container) error {
 	exitFilePath := c.exitFilePath()
 	fi, err := os.Stat(exitFilePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to find container exit file for %s", c.id)
+		return errors.Wrapf(err, "failed to find container exit file for %s", c.ID())
 	}
 	c.state.Finished, err = getFinishedTime(fi)
 	if err != nil {
@@ -788,7 +788,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 
 	stateCmd := func() (*ContainerState, bool, error) {
-		cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id) // nolint: gosec
+		cmd := exec.Command(r.path, rootFlag, r.root, "state", c.ID()) // nolint: gosec
 		if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 		}
@@ -801,9 +801,9 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			// We always populate the fields below so kube can restart/reschedule
 			// containers failing.
 			if exitErr, isExitError := err.(*exec.ExitError); isExitError {
-				log.Errorf(ctx, "Failed to update container state for %s: stdout: %s, stderr: %s", c.id, string(out), string(exitErr.Stderr))
+				log.Errorf(ctx, "Failed to update container state for %s: stdout: %s, stderr: %s", c.ID(), string(out), string(exitErr.Stderr))
 			} else {
-				log.Errorf(ctx, "Failed to update container state for %s: %v", c.id, err)
+				log.Errorf(ctx, "Failed to update container state for %s: %v", c.ID(), err)
 			}
 			c.state.Status = ContainerStateStopped
 			if err := updateContainerStatusFromExitFile(c); err != nil {
@@ -814,7 +814,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		}
 		state := *c.state
 		if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&state); err != nil {
-			return &state, false, fmt.Errorf("failed to decode container status for %s: %s", c.id, err)
+			return &state, false, fmt.Errorf("failed to decode container status for %s: %s", c.ID(), err)
 		}
 		return &state, false, nil
 	}
@@ -860,7 +860,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 	*c.state = *state
 	if err != nil {
-		log.Warnf(ctx, "Failed to find container exit file for %v: %v", c.id, err)
+		log.Warnf(ctx, "Failed to find container exit file for %v: %v", c.ID(), err)
 	} else {
 		c.state.Finished, err = getFinishedTime(fi)
 		if err != nil {
@@ -875,7 +875,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			return fmt.Errorf("status code conversion failed: %v", err)
 		}
 		c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
-		log.Debugf(ctx, "Found exit code for %s: %d", c.id, statusCode)
+		log.Debugf(ctx, "Found exit code for %s: %d", c.ID(), statusCode)
 	}
 
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
@@ -901,7 +901,7 @@ func (r *runtimeOCI) PauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "pause", c.id)
+	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "pause", c.ID())
 	return err
 }
 
@@ -914,7 +914,7 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "resume", c.id)
+	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "resume", c.ID())
 	return err
 }
 

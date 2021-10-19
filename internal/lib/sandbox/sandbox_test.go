@@ -28,7 +28,7 @@ var _ = t.Describe("Sandbox", func() {
 			annotations := map[string]string{"a": "annotA", "b": "annotB"}
 			processLabel := "processLabel"
 			mountLabel := "mountLabel"
-			metadata := sandbox.Metadata{Name: name}
+			metadata := types.PodSandboxMetadata{Name: name}
 			shmPath := "shmPath"
 			cgroupParent := "cgroupParent"
 			privileged := true
@@ -68,7 +68,7 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(sandbox.HostNetwork()).To(Equal(hostNetwork))
 			Expect(sandbox.StopMutex()).NotTo(BeNil())
 			Expect(sandbox.Containers()).NotTo(BeNil())
-			Expect(sandbox.CreatedAt()).To(Equal(createdAt))
+			Expect(sandbox.CreatedAt()).To(Equal(createdAt.UnixNano()))
 		})
 	})
 
@@ -184,7 +184,7 @@ var _ = t.Describe("Sandbox", func() {
 			testContainer, err = oci.NewContainer("testid", "testname", "",
 				"/container/logs", map[string]string{},
 				map[string]string{}, map[string]string{}, "image",
-				"imageName", "imageRef", &oci.Metadata{},
+				"imageName", "imageRef", &types.ContainerMetadata{},
 				"testsandboxid", false, false, false, "",
 				"/root/for/container", time.Now(), "SIGKILL")
 			Expect(err).To(BeNil())

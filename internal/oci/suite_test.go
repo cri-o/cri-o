@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/cri-o/cri-o/test/framework"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
@@ -38,7 +39,7 @@ func getTestContainer() *oci.Container {
 		map[string]string{"key": "label"},
 		map[string]string{"key": "crioAnnotation"},
 		map[string]string{"key": "annotation"},
-		"image", "imageName", "imageRef", &oci.Metadata{}, "sandbox",
+		"image", "imageName", "imageRef", &types.ContainerMetadata{}, "sandbox",
 		false, false, false, "", "dir", time.Now(), "")
 	Expect(err).To(BeNil())
 	Expect(container).NotTo(BeNil())

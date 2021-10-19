@@ -27,11 +27,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 	if sb.NamespaceOptions() != nil {
 		linux = &types.LinuxPodSandboxStatus{
 			Namespaces: &types.Namespace{
-				Options: &types.NamespaceOption{
-					Network: sb.NamespaceOptions().Network,
-					Ipc:     sb.NamespaceOptions().Ipc,
-					Pid:     sb.NamespaceOptions().Pid,
-				},
+				Options: sb.NamespaceOptions(),
 			},
 		}
 	}
@@ -40,18 +36,13 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 	resp := &types.PodSandboxStatusResponse{
 		Status: &types.PodSandboxStatus{
 			ID:          sandboxID,
-			CreatedAt:   sb.CreatedAt().UnixNano(),
+			CreatedAt:   sb.CreatedAt(),
 			Network:     &types.PodSandboxNetworkStatus{},
 			State:       rStatus,
 			Labels:      sb.Labels(),
 			Annotations: sb.Annotations(),
-			Metadata: &types.PodSandboxMetadata{
-				Name:      sb.Metadata().Name,
-				UID:       sb.Metadata().UID,
-				Namespace: sb.Metadata().Namespace,
-				Attempt:   sb.Metadata().Attempt,
-			},
-			Linux: linux,
+			Metadata:    sb.Metadata(),
+			Linux:       linux,
 		},
 	}
 
