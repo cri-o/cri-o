@@ -1,5 +1,5 @@
 // This tools automatically finds the latest CRI-O release branch and merges
-// the latest master branch into it. This happens only if there is no
+// the latest main branch into it. This happens only if there is no
 // tag present on the release branch.
 package main
 
@@ -21,6 +21,7 @@ const (
 	tail                = "tail"
 	releaseBranchPrefix = "release-"
 	dryRunEnv           = "DRY_RUN"
+	defaultBranch       = "main"
 )
 
 var dryRun bool
@@ -108,8 +109,8 @@ func run() error {
 		err = repo.Checkout(currentBranch)
 	}()
 
-	// Merge the latest master
-	mergeTarget := kgit.Remotify(kgit.DefaultBranch)
+	// Merge the latest main
+	mergeTarget := kgit.Remotify(defaultBranch)
 	if err := repo.Merge(mergeTarget); err != nil {
 		return errors.Wrapf(err,
 			"unable to merge %s into release branch", mergeTarget,
