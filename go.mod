@@ -13,12 +13,12 @@ require (
 	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
-	github.com/containers/buildah v1.22.3
+	github.com/containers/buildah v1.23.1
 	github.com/containers/common v0.46.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.16.1
 	github.com/containers/ocicrypt v1.1.2
-	github.com/containers/podman/v3 v3.3.1
+	github.com/containers/podman/v3 v3.4.1
 	github.com/containers/storage v1.37.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10

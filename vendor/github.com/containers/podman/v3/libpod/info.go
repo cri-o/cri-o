@@ -18,6 +18,7 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/linkmode"
+	"github.com/containers/podman/v3/libpod/network"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage"
@@ -65,6 +66,16 @@ func (r *Runtime) info() (*define.Info, error) {
 	if len(regs) > 0 {
 		registries["search"] = regs
 	}
+	volumePlugins := make([]string, 0, len(r.config.Engine.VolumePlugins)+1)
+	// the local driver always exists
+	volumePlugins = append(volumePlugins, "local")
+	for plugin := range r.config.Engine.VolumePlugins {
+		volumePlugins = append(volumePlugins, plugin)
+	}
+	info.Plugins.Volume = volumePlugins
+	// TODO move this into the new network interface
+	info.Plugins.Network = []string{network.BridgeNetworkDriver, network.MacVLANNetworkDriver}
+	info.Plugins.Log = logDrivers
 
 	info.Registries = registries
 	return &info, nil
@@ -115,6 +126,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		Linkmode:          linkmode.Linkmode(),
 		CPUs:              runtime.NumCPU(),
 		Distribution:      hostDistributionInfo,
+		LogDriver:         r.config.Containers.LogDriver,
 		EventLogger:       r.eventer.String(),
 		Hostname:          host,
 		IDMappings:        define.IDMappings{},
@@ -358,8 +370,14 @@ func (r *Runtime) GetHostDistributionInfo() define.DistributionInfo {
 		if strings.HasPrefix(l.Text(), "ID=") {
 			dist.Distribution = strings.TrimPrefix(l.Text(), "ID=")
 		}
+		if strings.HasPrefix(l.Text(), "VARIANT_ID=") {
+			dist.Variant = strings.Trim(strings.TrimPrefix(l.Text(), "VARIANT_ID="), "\"")
+		}
 		if strings.HasPrefix(l.Text(), "VERSION_ID=") {
 			dist.Version = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_ID="), "\"")
+		}
+		if strings.HasPrefix(l.Text(), "VERSION_CODENAME=") {
+			dist.Codename = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_CODENAME="), "\"")
 		}
 	}
 	return dist
