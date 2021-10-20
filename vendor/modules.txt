@@ -186,7 +186,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/util
-# github.com/containers/common v0.43.2
+# github.com/containers/common v0.46.0
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
@@ -706,7 +706,7 @@ github.com/miekg/pkcs11
 github.com/mistifyio/go-zfs
 # github.com/mitchellh/go-homedir v1.1.0
 github.com/mitchellh/go-homedir
-# github.com/mitchellh/mapstructure v1.4.1
+# github.com/mitchellh/mapstructure v1.4.2
 github.com/mitchellh/mapstructure
 # github.com/mmarkdown/mmark v2.0.40+incompatible
 github.com/mmarkdown/mmark/mast
