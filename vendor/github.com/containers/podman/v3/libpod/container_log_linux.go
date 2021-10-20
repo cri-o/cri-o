@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/logs"
+	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -23,6 +25,23 @@ const (
 	// journaldLogErr is the journald priority signifying stderr
 	journaldLogErr = "3"
 )
+
+func init() {
+	logDrivers = append(logDrivers, define.JournaldLogging)
+}
+
+// initializeJournal will write an empty string to the journal
+// when a journal is created. This solves a problem when people
+// attempt to read logs from a container that has never had stdout/stderr
+func (c *Container) initializeJournal(ctx context.Context) error {
+	m := make(map[string]string)
+	m["SYSLOG_IDENTIFIER"] = "podman"
+	m["PODMAN_ID"] = c.ID()
+	m["CONTAINER_ID_FULL"] = c.ID()
+	history := events.History
+	m["PODMAN_EVENT"] = history.String()
+	return journal.Send("", journal.PriInfo, m)
+}
 
 func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	journal, err := sdjournal.NewJournal()
@@ -58,12 +77,12 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	}
 	// API requires Next() immediately after SeekHead().
 	if _, err := journal.Next(); err != nil {
-		return errors.Wrap(err, "initial journal cursor")
+		return errors.Wrap(err, "next journal")
 	}
 
 	// API requires a next|prev before getting a cursor.
 	if _, err := journal.Previous(); err != nil {
-		return errors.Wrap(err, "initial journal cursor")
+		return errors.Wrap(err, "previous journal")
 	}
 
 	// Note that the initial cursor may not yet be ready, so we'll do an
@@ -72,14 +91,14 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	var cursorError error
 	for i := 1; i <= 3; i++ {
 		cursor, cursorError = journal.GetCursor()
-		if err != nil {
+		if cursorError != nil {
+			time.Sleep(time.Duration(i*100) * time.Millisecond)
 			continue
 		}
-		time.Sleep(time.Duration(i*100) * time.Millisecond)
 		break
 	}
 	if cursorError != nil {
-		return errors.Wrap(cursorError, "inital journal cursor")
+		return errors.Wrap(cursorError, "initial journal cursor")
 	}
 
 	// We need the container's events in the same journal to guarantee
@@ -99,6 +118,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 
 		tailQueue := []*logs.LogLine{} // needed for options.Tail
 		doTail := options.Tail > 0
+		lastReadCursor := ""
 		for {
 			select {
 			case <-ctx.Done():
@@ -108,18 +128,25 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 				// Fallthrough
 			}
 
-			if _, err := journal.Next(); err != nil {
-				logrus.Errorf("Failed to move journal cursor to next entry: %v", err)
-				return
+			if lastReadCursor != "" {
+				// Advance to next entry if we read this one.
+				if _, err := journal.Next(); err != nil {
+					logrus.Errorf("Failed to move journal cursor to next entry: %v", err)
+					return
+				}
 			}
-			latestCursor, err := journal.GetCursor()
+
+			// Fetch the location of this entry, presumably either
+			// the one that follows the last one we read, or that
+			// same last one, if there is no next entry (yet).
+			cursor, err = journal.GetCursor()
 			if err != nil {
 				logrus.Errorf("Failed to get journal cursor: %v", err)
 				return
 			}
 
-			// Hit the end of the journal.
-			if cursor == latestCursor {
+			// Hit the end of the journal (so far?).
+			if cursor == lastReadCursor {
 				if doTail {
 					// Flush *once* we hit the end of the journal.
 					startIndex := int64(len(tailQueue)-1) - options.Tail
@@ -140,8 +167,9 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 				journal.Wait(sdjournal.IndefiniteWait)
 				continue
 			}
-			cursor = latestCursor
+			lastReadCursor = cursor
 
+			// Read the journal entry.
 			entry, err := journal.GetEntry()
 			if err != nil {
 				logrus.Errorf("Failed to get journal entry: %v", err)
