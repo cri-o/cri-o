@@ -69,8 +69,8 @@ To install on the following operating systems, set the environment variable $OS 
 And then run the following as root:
 ```shell
 sudo apt update -y
-sudo apt install ca-certificates -y
-sudo apt upgrade -y
+apt install -y ca-certificates curl gnupg
+apt upgrade
 
 echo "deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
 echo "deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
