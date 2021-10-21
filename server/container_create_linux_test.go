@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -23,7 +24,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 			},
 		},
 	}
-	_, binds, err := addOCIBindMounts(context.Background(), "", config, &specgen, "")
+	_, binds, err := addOCIBindMounts(context.Background(), "", config, &specgen, "", false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -57,7 +58,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 			},
 		},
 	}
-	_, binds, err := addOCIBindMounts(context.Background(), "", config, &specgen, "")
+	_, binds, err := addOCIBindMounts(context.Background(), "", config, &specgen, "", false)
 	if err != nil {
 		t.Error(err)
 	}
