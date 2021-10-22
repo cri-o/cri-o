@@ -13,6 +13,7 @@ require (
 	github.com/containerd/containerd v1.7.0-beta.0
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/fifo v1.0.0
+	github.com/containerd/nri v0.2.0
 	github.com/containerd/ttrpc v1.1.1-0.20220420014843-944ef4a40df3
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
@@ -51,7 +52,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b
 	github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/runtime-spec v1.0.3-0.20220825212826-86290f6a00fb
-	github.com/opencontainers/runtime-tools v0.9.1-0.20221014010322-58c91d646d86
+	github.com/opencontainers/runtime-tools v0.9.1-0.20221026201742-946c877fa809
 	github.com/opencontainers/selinux v1.10.2
 	github.com/prometheus/client_golang v1.14.0
 	github.com/psampaz/go-mod-outdated v0.8.0
@@ -76,7 +77,7 @@ require (
 	k8s.io/api v0.25.0
 	k8s.io/apimachinery v0.25.0
 	k8s.io/client-go v1.5.2
-	k8s.io/cri-api v0.25.0
+	k8s.io/cri-api v0.25.3
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kubernetes v1.24.1
 	k8s.io/release v0.14.0

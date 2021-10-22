@@ -465,6 +465,20 @@ The `crio.stats` table specifies all necessary configuration for reporting conta
 **stats_collection_period**=0
   The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead.
 
+## CRIO.NRI TABLE
+The `crio.nri` table contains settings for controlling NRI (Node Resource Interface) support in CRI-O.
+**enable_nri**=false
+  Enable CRI-O NRI support.
+
+**nri_config_file**="/etc/nri/nri.conf"
+  NRI configuration file to use.
+
+**nri_plugin_dir**="/opt/nri/plugins"
+  Directory to scan for pre-installed plugins to automatically start.
+
+**nri_listen**="/var/run/nri.sock"
+  Socket to listen on for externally started NRI plugins to connect to.
+
 # SEE ALSO
 crio.conf.d(5), containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
 
