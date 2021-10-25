@@ -44,6 +44,7 @@ h
 --drop-infra-ctr
 --enable-metrics
 --enable-profile-unix-socket
+--enable-tracing
 --gid-mappings
 --global-auth-file
 --grpc-max-recv-msg-size
@@ -100,6 +101,8 @@ h
 --stream-tls-ca
 --stream-tls-cert
 --stream-tls-key
+--tracing-endpoint
+--tracing-sampling-rate-per-million
 --uid-mappings
 --version-file
 --version-file-persist

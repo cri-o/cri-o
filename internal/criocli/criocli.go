@@ -336,6 +336,15 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("metrics-collectors") {
 		config.MetricsCollectors = collectors.FromSlice(ctx.StringSlice("metrics-collectors"))
 	}
+	if ctx.IsSet("enable-tracing") {
+		config.EnableTracing = ctx.Bool("enable-tracing")
+	}
+	if ctx.IsSet("tracing-endpoint") {
+		config.TracingEndpoint = ctx.String("tracing-endpoint")
+	}
+	if ctx.IsSet("tracing-sampling-rate-per-million") {
+		config.TracingSamplingRatePerMillion = ctx.Int("tracing-sampling-rate-per-million")
+	}
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
 	}
@@ -753,6 +762,23 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Enabled metrics collectors",
 			Value:   cli.NewStringSlice(collectors.All().ToSlice()...),
 			EnvVars: []string{"CONTAINER_METRICS_COLLECTORS"},
+		},
+		&cli.BoolFlag{
+			Name:    "enable-tracing",
+			Usage:   "Enable OpenTelemetry trace data exporting",
+			EnvVars: []string{"CONTAINER_ENABLE_TRACING"},
+		},
+		&cli.IntFlag{
+			Name:    "tracing-sampling-rate-per-million",
+			Value:   defConf.TracingSamplingRatePerMillion,
+			Usage:   "Number of samples to collect per million OpenTelemetry spans",
+			EnvVars: []string{"CONTAINER_TRACING_SAMPLING_RATE_PER_MILLION"},
+		},
+		&cli.StringFlag{
+			Name:    "tracing-endpoint",
+			Value:   defConf.TracingEndpoint,
+			Usage:   "Address on which the gRPC tracing collector will listen",
+			EnvVars: []string{"CONTAINER_TRACING_ENDPOINT"},
 		},
 		&cli.StringFlag{
 			Name:    "big-files-temporary-dir",

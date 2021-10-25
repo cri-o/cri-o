@@ -91,11 +91,11 @@ The `crio.api` table contains settings for the kubelet/gRPC interface.
 **stream_tls_ca**=""
   Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
-**grpc_max_send_msg_size**=16777216
-  Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 * 1024 * 1024.
+**grpc_max_send_msg_size**=83886080
+  Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 80 * 1024 * 1024.
 
-**grpc_max_recv_msg_size**=16777216
-  Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 16 * 1024 * 1024.
+**grpc_max_recv_msg_size**=83886080
+  Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 80 * 1024 * 1024.
 
 ## CRIO.RUNTIME TABLE
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
@@ -389,6 +389,18 @@ If set to true, enable users to set a custom shm size instead of using the defau
 
 **metrics_key**=""
   The certificate key for the secure metrics server.
+
+## CRIO.TRACING TABLE
+[EXPERIMENTAL] The `crio.tracing` table containers settings pertaining to the export of OpenTelemetry trace data.
+
+**enable_tracing**=false
+  Globally enable or disable OpenTelemetry trace data exporting.
+
+**tracing_endpoint**="0.0.0.0:4317"
+  Address on which the gRPC trace collector will listen.
+
+**tracing_sampling_rate_per_million**=""
+  Number of samples to collect per million OpenTelemetry spans.
 
 # SEE ALSO
 crio.conf.d(5), containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)

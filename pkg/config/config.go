@@ -47,7 +47,7 @@ const (
 	defaultRuntime             = "runc"
 	DefaultRuntimeType         = "oci"
 	DefaultRuntimeRoot         = "/run/runc"
-	defaultGRPCMaxMsgSize      = 16 * 1024 * 1024
+	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
 	OCIBufSize                 = 8192
 	RuntimeTypeVM              = "vm"
 	defaultCtrStopTimeout      = 30 // seconds
@@ -67,6 +67,7 @@ type Config struct {
 	ImageConfig
 	NetworkConfig
 	MetricsConfig
+	TracingConfig
 	SystemContext *types.SystemContext
 }
 
@@ -499,6 +500,19 @@ type MetricsConfig struct {
 	MetricsKey string `toml:"metrics_key"`
 }
 
+// TracingConfig specifies all necessary configuration for opentelemetry trace exports
+type TracingConfig struct {
+	// EnableTracing can be used to globally enable or disable tracing support
+	EnableTracing bool `toml:"enable_tracing"`
+
+	// TracingEndpoint is the address on which the grpc tracing collector server will listen.
+	TracingEndpoint string `toml:"tracing_endpoint"`
+
+	// TracingSamplingRatePerMillion is the number of samples to collect per million spans.
+	// Defaults to 0.
+	TracingSamplingRatePerMillion int `toml:"tracing_sampling_rate_per_million"`
+}
+
 // tomlConfig is another way of looking at a Config, which is
 // TOML-friendly (it has all of the explicit tables). It's just used for
 // conversions.
@@ -510,6 +524,7 @@ type tomlConfig struct {
 		Image   struct{ ImageConfig }   `toml:"image"`
 		Network struct{ NetworkConfig } `toml:"network"`
 		Metrics struct{ MetricsConfig } `toml:"metrics"`
+		Tracing struct{ TracingConfig } `toml:"tracing"`
 	} `toml:"crio"`
 }
 
@@ -525,6 +540,7 @@ func (t *tomlConfig) toConfig(c *Config) {
 	c.ImageConfig = t.Crio.Image.ImageConfig
 	c.NetworkConfig = t.Crio.Network.NetworkConfig
 	c.MetricsConfig = t.Crio.Metrics.MetricsConfig
+	c.TracingConfig = t.Crio.Tracing.TracingConfig
 	t.SetSystemContext(c)
 }
 
@@ -535,6 +551,7 @@ func (t *tomlConfig) fromConfig(c *Config) {
 	t.Crio.Image.ImageConfig = c.ImageConfig
 	t.Crio.Network.NetworkConfig = c.NetworkConfig
 	t.Crio.Metrics.MetricsConfig = c.MetricsConfig
+	t.Crio.Tracing.TracingConfig = c.TracingConfig
 }
 
 // UpdateFromFile populates the Config from the TOML-encoded file at the given
@@ -719,6 +736,11 @@ func DefaultConfig() (*Config, error) {
 		MetricsConfig: MetricsConfig{
 			MetricsPort:       9090,
 			MetricsCollectors: collectors.All(),
+		},
+		TracingConfig: TracingConfig{
+			TracingEndpoint:               "0.0.0.0:4317",
+			TracingSamplingRatePerMillion: 0,
+			EnableTracing:                 false,
 		},
 	}, nil
 }

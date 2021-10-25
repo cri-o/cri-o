@@ -42,6 +42,7 @@ crio
 [--drop-infra-ctr]
 [--enable-metrics]
 [--enable-profile-unix-socket]
+[--enable-tracing]
 [--gid-mappings]=[value]
 [--global-auth-file]=[value]
 [--grpc-max-recv-msg-size]=[value]
@@ -97,6 +98,8 @@ crio
 [--stream-tls-ca]=[value]
 [--stream-tls-cert]=[value]
 [--stream-tls-key]=[value]
+[--tracing-endpoint]=[value]
+[--tracing-sampling-rate-per-million]=[value]
 [--uid-mappings]=[value]
 [--version-file-persist]=[value]
 [--version-file]=[value]
@@ -198,13 +201,15 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--enable-profile-unix-socket**: Enable pprof profiler on crio unix domain socket
 
+**--enable-tracing**: Enable OpenTelemetry trace data exporting
+
 **--gid-mappings**="": Specify the GID mappings to use for the user namespace (default: "")
 
 **--global-auth-file**="": Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries (default: "")
 
-**--grpc-max-recv-msg-size**="": Maximum grpc receive message size in bytes (default: 16777216)
+**--grpc-max-recv-msg-size**="": Maximum grpc receive message size in bytes (default: 83886080)
 
-**--grpc-max-send-msg-size**="": Maximum grpc receive message size (default: 16777216)
+**--grpc-max-send-msg-size**="": Maximum grpc receive message size (default: 83886080)
 
 **--help, -h**: show help
 
@@ -339,6 +344,10 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--stream-tls-cert**="": Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")
 
 **--stream-tls-key**="": Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")
+
+**--tracing-endpoint**="": Address on which the gRPC tracing collector will listen (default: 0.0.0.0:4317)
+
+**--tracing-sampling-rate-per-million**="": Number of samples to collect per million OpenTelemetry spans (default: 0)
 
 **--uid-mappings**="": Specify the UID mappings to use for the user namespace (default: "")
 
