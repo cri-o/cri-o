@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package overlay
@@ -1175,7 +1176,7 @@ func (d *Driver) recreateSymlinks() error {
 			// Read the "link" file under each layer to get the name of the symlink
 			data, err := ioutil.ReadFile(path.Join(d.dir(dir.Name()), "link"))
 			if err != nil {
-				errs = multierror.Append(errs, errors.Wrapf(err, "reading name of symlink for %q", dir))
+				errs = multierror.Append(errs, errors.Wrapf(err, "reading name of symlink for %q", dir.Name()))
 				continue
 			}
 			linkPath := path.Join(d.home, linkDir, strings.Trim(string(data), "\n"))
