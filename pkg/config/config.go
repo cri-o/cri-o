@@ -739,8 +739,8 @@ func DefaultConfig() (*Config, error) {
 		},
 		TracingConfig: TracingConfig{
 			TracingEndpoint:               "0.0.0.0:4317",
-			TracingSamplingRatePerMillion: 0,
-			EnableTracing:                 false,
+			TracingSamplingRatePerMillion: 999999,
+			EnableTracing:                 true,
 		},
 	}, nil
 }
