@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -269,9 +270,6 @@ func (s *Server) getSandboxIDMappings(sb *libsandbox.Sandbox) (*idtools.IDMappin
 }
 
 func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (resp *types.RunPodSandboxResponse, retErr error) {
-	s.updateLock.RLock()
-	defer s.updateLock.RUnlock()
-
 	sbox := sandbox.New()
 	if err := sbox.SetConfig(req.Config); err != nil {
 		return nil, errors.Wrap(err, "setting sandbox config")
@@ -341,8 +339,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	if err := s.Runtime().FilterDisallowedAnnotations(runtimeHandler, sbox.Config().Annotations); err != nil {
-		return nil, errors.Wrap(err, "filter disallowed annotations")
+	if err := s.FilterDisallowedAnnotations(sbox.Config().Annotations, sbox.Config().Annotations, runtimeHandler); err != nil {
+		return nil, err
 	}
 
 	kubeAnnotations := sbox.Config().Annotations
@@ -621,13 +619,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 	}
 
-	sbMetadata := &libsandbox.Metadata{
-		Name:      metadata.Name,
-		UID:       metadata.UID,
-		Namespace: metadata.Namespace,
-		Attempt:   metadata.Attempt,
-	}
-	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, sbMetadata, shmPath, cgroupParent, privileged, runtimeHandler, sbox.ResolvPath(), hostname, portMappings, hostNetwork, created, usernsMode)
+	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, sbox.ResolvPath(), hostname, portMappings, hostNetwork, created, usernsMode)
 	if err != nil {
 		return nil, err
 	}

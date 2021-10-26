@@ -75,6 +75,8 @@ h
 --pids-limit
 --pinns-path
 --profile
+--profile-cpu
+--profile-mem
 --profile-port
 --rdt-config-file
 --read-only

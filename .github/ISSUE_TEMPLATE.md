@@ -10,7 +10,7 @@ information within 7 days, we cannot debug your issue and will close it. We
 will, however, reopen it if you later provide the information.
 
 For more information about reporting issues, see
-https://github.com/cri-o/cri-o/blob/master/CONTRIBUTING.md#reporting-issues
+https://github.com/cri-o/cri-o/blob/main/CONTRIBUTING.md#reporting-issues
 
 ---------------------------------------------------
 GENERAL SUPPORT INFORMATION

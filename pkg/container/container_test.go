@@ -90,7 +90,7 @@ var _ = t.Describe("Container", func() {
 
 			sb, err := sandbox.New("sandboxID", "", "", "", "test",
 				make(map[string]string), make(map[string]string), "", "",
-				&sandbox.Metadata{}, "", "", false, "", "", "",
+				&types.PodSandboxMetadata{}, "", "", false, "", "", "",
 				[]*hostport.PortMapping{}, false, currentTime, "")
 			Expect(err).To(BeNil())
 

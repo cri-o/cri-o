@@ -9,15 +9,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/bits-and-blooms/bitset"
 	"golang.org/x/sys/unix"
 )
 
@@ -34,8 +33,6 @@ const (
 	xattrNameSelinux = "security.selinux"
 )
 
-var policyRoot = filepath.Join(selinuxDir, readConfig(selinuxTypeTag))
-
 type selinuxState struct {
 	enabledSet    bool
 	enabled       bool
@@ -47,7 +44,7 @@ type selinuxState struct {
 
 type level struct {
 	sens uint
-	cats *bitset.BitSet
+	cats *big.Int
 }
 
 type mlsRange struct {
@@ -70,7 +67,6 @@ const (
 )
 
 var (
-	assignRegex       = regexp.MustCompile(`^([^=]+)=(.*)$`)
 	readOnlyFileLabel string
 	state             = selinuxState{
 		mcsList: make(map[string]bool),
@@ -79,7 +75,23 @@ var (
 	// for attrPath()
 	attrPathOnce   sync.Once
 	haveThreadSelf bool
+
+	// for policyRoot()
+	policyRootOnce sync.Once
+	policyRootVal  string
+
+	// for label()
+	loadLabelsOnce sync.Once
+	labels         map[string]string
 )
+
+func policyRoot() string {
+	policyRootOnce.Do(func() {
+		policyRootVal = filepath.Join(selinuxDir, readConfig(selinuxTypeTag))
+	})
+
+	return policyRootVal
+}
 
 func (s *selinuxState) setEnable(enabled bool) bool {
 	s.Lock()
@@ -222,7 +234,7 @@ func readConfig(target string) string {
 	scanner := bufio.NewScanner(in)
 
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+		line := bytes.TrimSpace(scanner.Bytes())
 		if len(line) == 0 {
 			// Skip blank lines
 			continue
@@ -231,11 +243,12 @@ func readConfig(target string) string {
 			// Skip comments
 			continue
 		}
-		if groups := assignRegex.FindStringSubmatch(line); groups != nil {
-			key, val := strings.TrimSpace(groups[1]), strings.TrimSpace(groups[2])
-			if key == target {
-				return strings.Trim(val, "\"")
-			}
+		fields := bytes.SplitN(line, []byte{'='}, 2)
+		if len(fields) != 2 {
+			continue
+		}
+		if bytes.Equal(fields[0], []byte(target)) {
+			return string(bytes.Trim(fields[1], `"`))
 		}
 	}
 	return ""
@@ -274,12 +287,15 @@ func readCon(fpath string) (string, error) {
 	if err := isProcHandle(in); err != nil {
 		return "", err
 	}
+	return readConFd(in)
+}
 
-	var retval string
-	if _, err := fmt.Fscanf(in, "%s", &retval); err != nil {
+func readConFd(in *os.File) (string, error) {
+	data, err := ioutil.ReadAll(in)
+	if err != nil {
 		return "", err
 	}
-	return strings.Trim(retval, "\x00"), nil
+	return string(bytes.TrimSuffix(data, []byte{0})), nil
 }
 
 // classIndex returns the int index for an object class in the loaded policy,
@@ -389,7 +405,7 @@ func writeCon(fpath, val string) error {
 		_, err = out.Write(nil)
 	}
 	if err != nil {
-		return &os.PathError{Op: "write", Path: fpath, Err: err}
+		return err
 	}
 	return nil
 }
@@ -439,8 +455,8 @@ func computeCreateContext(source string, target string, class string) (string, e
 }
 
 // catsToBitset stores categories in a bitset.
-func catsToBitset(cats string) (*bitset.BitSet, error) {
-	bitset := &bitset.BitSet{}
+func catsToBitset(cats string) (*big.Int, error) {
+	bitset := new(big.Int)
 
 	catlist := strings.Split(cats, ",")
 	for _, r := range catlist {
@@ -455,14 +471,14 @@ func catsToBitset(cats string) (*bitset.BitSet, error) {
 				return nil, err
 			}
 			for i := catstart; i <= catend; i++ {
-				bitset.Set(i)
+				bitset.SetBit(bitset, int(i), 1)
 			}
 		} else {
 			cat, err := parseLevelItem(ranges[0], category)
 			if err != nil {
 				return nil, err
 			}
-			bitset.Set(cat)
+			bitset.SetBit(bitset, int(cat), 1)
 		}
 	}
 
@@ -532,37 +548,30 @@ func rangeStrToMLSRange(rangeStr string) (*mlsRange, error) {
 
 // bitsetToStr takes a category bitset and returns it in the
 // canonical selinux syntax
-func bitsetToStr(c *bitset.BitSet) string {
+func bitsetToStr(c *big.Int) string {
 	var str string
-	i, e := c.NextSet(0)
-	len := 0
-	for e {
-		if len == 0 {
+
+	length := 0
+	for i := int(c.TrailingZeroBits()); i < c.BitLen(); i++ {
+		if c.Bit(i) == 0 {
+			continue
+		}
+		if length == 0 {
 			if str != "" {
 				str += ","
 			}
-			str += "c" + strconv.Itoa(int(i))
+			str += "c" + strconv.Itoa(i)
 		}
-
-		next, e := c.NextSet(i + 1)
-		if e {
-			// consecutive cats
-			if next == i+1 {
-				len++
-				i = next
-				continue
-			}
+		if c.Bit(i+1) == 1 {
+			length++
+			continue
 		}
-		if len == 1 {
-			str += ",c" + strconv.Itoa(int(i))
-		} else if len > 1 {
-			str += ".c" + strconv.Itoa(int(i))
+		if length == 1 {
+			str += ",c" + strconv.Itoa(i)
+		} else if length > 1 {
+			str += ".c" + strconv.Itoa(i)
 		}
-		if !e {
-			break
-		}
-		len = 0
-		i = next
+		length = 0
 	}
 
 	return str
@@ -575,13 +584,16 @@ func (l1 *level) equal(l2 *level) bool {
 	if l1.sens != l2.sens {
 		return false
 	}
-	return l1.cats.Equal(l2.cats)
+	if l2.cats == nil || l1.cats == nil {
+		return l2.cats == l1.cats
+	}
+	return l1.cats.Cmp(l2.cats) == 0
 }
 
 // String returns an mlsRange as a string.
 func (m mlsRange) String() string {
 	low := "s" + strconv.Itoa(int(m.low.sens))
-	if m.low.cats != nil && m.low.cats.Count() > 0 {
+	if m.low.cats != nil && m.low.cats.BitLen() > 0 {
 		low += ":" + bitsetToStr(m.low.cats)
 	}
 
@@ -590,7 +602,7 @@ func (m mlsRange) String() string {
 	}
 
 	high := "s" + strconv.Itoa(int(m.high.sens))
-	if m.high.cats != nil && m.high.cats.Count() > 0 {
+	if m.high.cats != nil && m.high.cats.BitLen() > 0 {
 		high += ":" + bitsetToStr(m.high.cats)
 	}
 
@@ -640,10 +652,12 @@ func calculateGlbLub(sourceRange, targetRange string) (string, error) {
 
 	/* find the intersecting categories */
 	if s.low.cats != nil && t.low.cats != nil {
-		outrange.low.cats = s.low.cats.Intersection(t.low.cats)
+		outrange.low.cats = new(big.Int)
+		outrange.low.cats.And(s.low.cats, t.low.cats)
 	}
 	if s.high.cats != nil && t.high.cats != nil {
-		outrange.high.cats = s.high.cats.Intersection(t.high.cats)
+		outrange.high.cats = new(big.Int)
+		outrange.high.cats.And(s.high.cats, t.high.cats)
 	}
 
 	return outrange.String(), nil
@@ -664,11 +678,7 @@ func readWriteCon(fpath string, val string) (string, error) {
 		return "", err
 	}
 
-	var retval string
-	if _, err := fmt.Fscanf(f, "%s", &retval); err != nil {
-		return "", err
-	}
-	return strings.Trim(retval, "\x00"), nil
+	return readConFd(f)
 }
 
 // setExecLabel sets the SELinux label that the kernel will use for any programs
@@ -723,10 +733,10 @@ func keyLabel() (string, error) {
 
 // get returns the Context as a string
 func (c Context) get() string {
-	if c["level"] != "" {
-		return fmt.Sprintf("%s:%s:%s:%s", c["user"], c["role"], c["type"], c["level"])
+	if level := c["level"]; level != "" {
+		return c["user"] + ":" + c["role"] + ":" + c["type"] + ":" + level
 	}
-	return fmt.Sprintf("%s:%s:%s", c["user"], c["role"], c["type"])
+	return c["user"] + ":" + c["role"] + ":" + c["type"]
 }
 
 // newContext creates a new Context struct from the specified label
@@ -891,24 +901,21 @@ func openContextFile() (*os.File, error) {
 	if f, err := os.Open(contextFile); err == nil {
 		return f, nil
 	}
-	lxcPath := filepath.Join(policyRoot, "/contexts/lxc_contexts")
-	return os.Open(lxcPath)
+	return os.Open(filepath.Join(policyRoot(), "/contexts/lxc_contexts"))
 }
 
-var labels, privContainerMountLabel = loadLabels()
-
-func loadLabels() (map[string]string, string) {
-	labels := make(map[string]string)
+func loadLabels() {
+	labels = make(map[string]string)
 	in, err := openContextFile()
 	if err != nil {
-		return labels, ""
+		return
 	}
 	defer in.Close()
 
 	scanner := bufio.NewScanner(in)
 
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+		line := bytes.TrimSpace(scanner.Bytes())
 		if len(line) == 0 {
 			// Skip blank lines
 			continue
@@ -917,38 +924,47 @@ func loadLabels() (map[string]string, string) {
 			// Skip comments
 			continue
 		}
-		if groups := assignRegex.FindStringSubmatch(line); groups != nil {
-			key, val := strings.TrimSpace(groups[1]), strings.TrimSpace(groups[2])
-			labels[key] = strings.Trim(val, "\"")
+		fields := bytes.SplitN(line, []byte{'='}, 2)
+		if len(fields) != 2 {
+			continue
 		}
+		key, val := bytes.TrimSpace(fields[0]), bytes.TrimSpace(fields[1])
+		labels[string(key)] = string(bytes.Trim(val, `"`))
 	}
 
 	con, _ := NewContext(labels["file"])
 	con["level"] = fmt.Sprintf("s0:c%d,c%d", maxCategory-2, maxCategory-1)
-	reserveLabel(con.get())
-	return labels, con.get()
+	privContainerMountLabel = con.get()
+	reserveLabel(privContainerMountLabel)
+}
+
+func label(key string) string {
+	loadLabelsOnce.Do(func() {
+		loadLabels()
+	})
+	return labels[key]
 }
 
 // kvmContainerLabels returns the default processLabel and mountLabel to be used
 // for kvm containers by the calling process.
 func kvmContainerLabels() (string, string) {
-	processLabel := labels["kvm_process"]
+	processLabel := label("kvm_process")
 	if processLabel == "" {
-		processLabel = labels["process"]
+		processLabel = label("process")
 	}
 
-	return addMcs(processLabel, labels["file"])
+	return addMcs(processLabel, label("file"))
 }
 
 // initContainerLabels returns the default processLabel and file labels to be
 // used for containers running an init system like systemd by the calling process.
 func initContainerLabels() (string, string) {
-	processLabel := labels["init_process"]
+	processLabel := label("init_process")
 	if processLabel == "" {
-		processLabel = labels["process"]
+		processLabel = label("process")
 	}
 
-	return addMcs(processLabel, labels["file"])
+	return addMcs(processLabel, label("file"))
 }
 
 // containerLabels returns an allocated processLabel and fileLabel to be used for
@@ -958,9 +974,9 @@ func containerLabels() (processLabel string, fileLabel string) {
 		return "", ""
 	}
 
-	processLabel = labels["process"]
-	fileLabel = labels["file"]
-	readOnlyFileLabel = labels["ro_file"]
+	processLabel = label("process")
+	fileLabel = label("file")
+	readOnlyFileLabel = label("ro_file")
 
 	if processLabel == "" || fileLabel == "" {
 		return "", fileLabel
@@ -1180,15 +1196,14 @@ func getDefaultContextFromReaders(c *defaultSECtx) (string, error) {
 }
 
 func getDefaultContextWithLevel(user, level, scon string) (string, error) {
-	userPath := filepath.Join(policyRoot, selinuxUsersDir, user)
-	defaultPath := filepath.Join(policyRoot, defaultContexts)
-
+	userPath := filepath.Join(policyRoot(), selinuxUsersDir, user)
 	fu, err := os.Open(userPath)
 	if err != nil {
 		return "", err
 	}
 	defer fu.Close()
 
+	defaultPath := filepath.Join(policyRoot(), defaultContexts)
 	fd, err := os.Open(defaultPath)
 	if err != nil {
 		return "", err

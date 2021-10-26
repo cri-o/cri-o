@@ -10,6 +10,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -24,7 +25,7 @@ var _ = Describe("high_performance_hooks", func() {
 	container, err := oci.NewContainer("containerID", "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "pauseImage", "", "",
-		&oci.Metadata{}, "sandboxID", false, false,
+		&types.ContainerMetadata{}, "sandboxID", false, false,
 		false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
 

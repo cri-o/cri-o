@@ -145,4 +145,4 @@ single digest entry:
 ```
 
 [0]: https://github.com/kubernetes/cri-api/blob/ca4df7a/pkg/apis/runtime/v1/api.proto
-[1]: https://github.com/cri-o/cri-o/blob/master/server/image_list.go#L31
+[1]: https://github.com/cri-o/cri-o/blob/main/server/image_list.go#L31

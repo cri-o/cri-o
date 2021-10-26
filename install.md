@@ -1,4 +1,4 @@
-![CRI-O logo](https://github.com/cri-o/cri-o/blob/master/logo/crio-logo.svg?raw=true)
+![CRI-O logo](https://github.com/cri-o/cri-o/blob/main/logo/crio-logo.svg?raw=true)
 # CRI-O Installation Instructions
 
 This guide will walk you through the installation of [CRI-O](https://github.com/cri-o/cri-o), an Open Container Initiative-based implementation of the [Kubernetes Container Runtime Interface](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/container-runtime-interface-v1.md).
@@ -36,7 +36,7 @@ It is assumed you are running a Linux machine.
 
 ## Install packaged versions of CRI-O
 
-CRI-O builds for native package managers using [openSUSE's OBS](build.opensuse.org)
+CRI-O builds for native package managers using [openSUSE's OBS](https://build.opensuse.org)
 
 ### Supported versions
 
@@ -60,11 +60,11 @@ xUbuntu 18.04
 To install, choose a supported version for your operating system, and export it as a variable, like so:
 `export VERSION=1.19`
 
-We also save releases as subprojects. If you'd, for instance, like to use `1.18.3` you can set
+We also save releases as subprojects. If you'd, for instance, like to use `1.19.1` you can set
 `export VERSION=1.19:1.19.1`
 
 Packaging for CRI-O is done best-effort, and is largely driven by requests.
-If there's a version or operating system that is missing, please [open an issue](github.com/cri-o/cri-o/issues/new).
+If there's a version or operating system that is missing, please [open an issue](https://github.com/cri-o/cri-o/issues/new).
 
 ### Installation Instructions
 
@@ -106,38 +106,41 @@ yum install cri-o
 Note: this tutorial assumes you have curl and gnupg installed
 
 To install on the following operating systems, set the environment variable $OS as the appropriate field in the following table:
+
 | Operating system | $OS               |
 | ---------------- | ----------------- |
 | Debian Unstable  | `Debian_Unstable` |
 | Debian Testing   | `Debian_Testing`  |
+| Debian 10        | `Debian_10`       |
 | Raspberry Pi OS  | `Raspbian_10`     |
 | Ubuntu 20.04     | `xUbuntu_20.04`   |
 | Ubuntu 19.10     | `xUbuntu_19.10`   |
 | Ubuntu 19.04     | `xUbuntu_19.04`   |
 | Ubuntu 18.04     | `xUbuntu_18.04`   |
 
-If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1. This is not available in distros based on Debian buster or below, so buster backports will need to be enabled:
+If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1. **NOTE: This is not available in distros based on Debian 10(buster) or below, so buster backports will need to be enabled:**
 
 ```shell
 echo 'deb http://deb.debian.org/debian buster-backports main' > /etc/apt/sources.list.d/backports.list
 apt update
-apt install -y libseccomp2 || apt update -y libseccomp2
+apt install -y -t buster-backports libseccomp2 || apt update -y -t buster-backports libseccomp2
 ```
 
 And then run the following as root:
 
 ```shell
-echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+echo "deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+echo "deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
 
-curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | apt-key add -
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | apt-key add -
+mkdir -p /usr/share/keyrings
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg
 
 apt-get update
 apt-get install cri-o cri-o-runc
 ```
 
-Note: We include cri-o-runc because Ubuntu and Debian include their own packaged version of runc.
+**Note: We include cri-o-runc because Ubuntu and Debian include their own packaged version of runc.**
 While this version should work with CRI-O, keeping the packaged versions of CRI-O and runc in sync ensures they work together.
 If you'd like to use the distribution's runc, you'll have to add the file:
 
@@ -251,11 +254,16 @@ The following dependencies:
 ```
 
 #### Debian - Raspbian - Ubuntu
+
 On Debian, Raspbian and Ubuntu distributions, [enable the Kubic project
 repositories](../README.md#installing-crio) and install the following packages:
 
+##### Debian up to buster - Raspbian - Ubuntu up to 18.04
+
 ```bash
-apt-get update -qq && apt-get install -y \
+apt update -qq && \
+# For Debian 10(buster) or below: use "apt install -t buster-backports"
+apt install -y  \
   btrfs-tools \
   containers-common \
   git \
@@ -265,6 +273,33 @@ apt-get update -qq && apt-get install -y \
   libglib2.0-dev \
   libc6-dev \
   libgpgme11-dev \
+  libgpg-error-dev \
+  libseccomp-dev \
+  libsystemd-dev \
+  libbtrfs-dev \
+  libselinux1-dev \
+  pkg-config \
+  go-md2man \
+  cri-o-runc \
+  libudev-dev \
+  software-properties-common \
+  gcc \
+  make
+```
+
+##### Debian bullseye or higher - Ubuntu 20.04 or higher
+
+```bash
+apt-get update -qq && apt-get install -y \
+  libbtrfs-dev \
+  containers-common \
+  git \
+  golang-go \
+  libassuan-dev \
+  libdevmapper-dev \
+  libglib2.0-dev \
+  libc6-dev \
+  libgpgme-dev \
   libgpg-error-dev \
   libseccomp-dev \
   libsystemd-dev \
@@ -339,23 +374,23 @@ To add build tags to the make option the `BUILDTAGS` variable must be set.
 make BUILDTAGS='seccomp apparmor'
 ```
 
-| Build Tag                        | Feature                                         | Dependency   |
-|----------------------------------|-------------------------------------------------|--------------|
-| seccomp                          | syscall filtering                               | libseccomp   |
-| selinux                          | selinux process and mount labeling              | libselinux   |
-| apparmor                         | apparmor profile support                        | <none>       |
+| Build Tag | Feature                            | Dependency |
+| --------- | ---------------------------------- | ---------- |
+| seccomp   | syscall filtering                  | libseccomp |
+| selinux   | selinux process and mount labeling | libselinux |
+| apparmor  | apparmor profile support           | <none>     |
 
 `CRI-O` manages images with [containers/image](https://github.com/containers/image), which uses the following buildtags.
 
-| Build Tag                        | Feature                                         | Dependency   |
-|----------------------------------|-------------------------------------------------|--------------|
-| containers_image_openpgp         | use native golang pgp instead of cgo            | <none>       |
-| containers_image_ostree_stub     | disable use of ostree as an image transport     | <none>       |
+| Build Tag                    | Feature                                     | Dependency |
+| ---------------------------- | ------------------------------------------- | ---------- |
+| containers_image_openpgp     | use native golang pgp instead of cgo        | <none>     |
+| containers_image_ostree_stub | disable use of ostree as an image transport | <none>     |
 
 `CRI-O` also uses [containers/storage](https://github.com/containers/storage) for managing container storage.
 
 | Build Tag                        | Feature                                         | Dependency   |
-|----------------------------------|-------------------------------------------------|--------------|
+| -------------------------------- | ----------------------------------------------- | ------------ |
 | exclude_graphdriver_btrfs        | exclude btrfs as a storage option               | <none>       |
 | btrfs_noversion                  | for building btrfs version < 3.16.1             | btrfs        |
 | exclude_graphdriver_devicemapper | exclude devicemapper as a storage option        | <none>       |

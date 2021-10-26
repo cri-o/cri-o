@@ -121,32 +121,23 @@ var _ = t.Describe("Oci", func() {
 			Expect(err).To(BeNil())
 			Expect(runtimeType).To(Equal(config.RuntimeTypeVM))
 		})
-		Context("FilterDisallowedAnnotations", func() {
-			It("should succeed to filter disallowed annotation", func() {
+		Context("AllowedAnnotations", func() {
+			It("should succeed to return allowed annotation", func() {
 				// Given
-				testAnn := map[string]string{
-					annotations.DevicesAnnotation:          "/dev",
-					annotations.IRQLoadBalancingAnnotation: "true",
-				}
 				Expect(runtimes[performanceRuntime].ValidateRuntimeAllowedAnnotations()).To(BeNil())
 
 				// When
-				err := sut.FilterDisallowedAnnotations(performanceRuntime, testAnn)
+				foundAnn, err := sut.AllowedAnnotations(performanceRuntime)
 
 				// Then
 				Expect(err).To(BeNil())
-				_, ok := testAnn[annotations.DevicesAnnotation]
-				Expect(ok).To(Equal(false))
-
-				_, ok = testAnn[annotations.IRQLoadBalancingAnnotation]
-				Expect(ok).To(Equal(true))
+				Expect(foundAnn).NotTo(ContainElement(annotations.DevicesAnnotation))
+				Expect(foundAnn).To(ContainElement(annotations.IRQLoadBalancingAnnotation))
 			})
-			It("should fail to filter disallowed annotation of unknown runtime", func() {
+			It("should fail to return allowed annotation of unknown runtime", func() {
 				// Given
-				testAnn := map[string]string{}
-
 				// When
-				err := sut.FilterDisallowedAnnotations("invalid", testAnn)
+				_, err := sut.AllowedAnnotations("invalid")
 
 				// Then
 				Expect(err).NotTo(BeNil())

@@ -278,10 +278,10 @@ func NewPodSandboxConfig() *PodSandboxConfig {
 }
 
 type PodSandboxMetadata struct {
-	Name      string
-	UID       string
-	Namespace string
-	Attempt   uint32
+	Name      string `json:"name,omitempty"`
+	UID       string `json:"uid,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Attempt   uint32 `json:"attempt,omitempty"`
 }
 
 type DNSConfig struct {

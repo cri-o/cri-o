@@ -126,8 +126,7 @@ func (s *Server) GetInfoMux(enableProfile bool) *bone.Mux {
 
 		w.Header().Set("Content-Type", "application/toml")
 		if _, err := w.Write(b); err != nil {
-			http.Error(w, fmt.Sprintf("unable to write TOML: %v", err),
-				http.StatusInternalServerError)
+			logrus.Errorf("Unable to write response TOML: %v", err)
 		}
 	}))
 
@@ -140,7 +139,7 @@ func (s *Server) GetInfoMux(enableProfile bool) *bone.Mux {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write(js); err != nil {
-			http.Error(w, fmt.Sprintf("unable to write JSON: %v", err), http.StatusInternalServerError)
+			logrus.Errorf("Unable to write response JSON: %v", err)
 		}
 	}))
 
@@ -167,7 +166,7 @@ func (s *Server) GetInfoMux(enableProfile bool) *bone.Mux {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write(js); err != nil {
-			http.Error(w, fmt.Sprintf("unable to write JSON: %v", err), http.StatusInternalServerError)
+			logrus.Errorf("Unable to write response JSON: %v", err)
 		}
 	}))
 

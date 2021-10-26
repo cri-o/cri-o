@@ -162,7 +162,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 			c.ReleasePodName(name)
 		}
 	}()
-	var metadata sandbox.Metadata
+	var metadata types.PodSandboxMetadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Metadata)
 	}
@@ -277,20 +277,20 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		if err != nil {
 			return sb, err
 		}
-		scontainer.SetSpec(&m)
-		scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
-
-		if m.Annotations[annotations.Volumes] != "" {
-			containerVolumes := []oci.ContainerVolume{}
-			if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
-				return sb, fmt.Errorf("failed to unmarshal container volumes: %v", err)
-			}
-			for _, cv := range containerVolumes {
-				scontainer.AddVolume(cv)
-			}
-		}
 	} else {
 		scontainer = oci.NewSpoofedContainer(cID, cname, labels, id, created, sandboxPath)
+	}
+	scontainer.SetSpec(&m)
+	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
+
+	if m.Annotations[annotations.Volumes] != "" {
+		containerVolumes := []oci.ContainerVolume{}
+		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
+			return sb, fmt.Errorf("failed to unmarshal container volumes: %v", err)
+		}
+		for _, cv := range containerVolumes {
+			scontainer.AddVolume(cv)
+		}
 	}
 
 	if err := c.ContainerStateFromDisk(ctx, scontainer); err != nil {
@@ -380,7 +380,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		}
 	}()
 
-	var metadata oci.Metadata
+	var metadata types.ContainerMetadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}

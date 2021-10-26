@@ -5,6 +5,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -18,7 +19,7 @@ var _ = t.Describe("History", func() {
 		beforeEach()
 		otherTestSandbox, err := sandbox.New("sandboxID", "", "", "", "",
 			make(map[string]string), make(map[string]string), "", "",
-			&sandbox.Metadata{}, "", "", false, "", "", "",
+			&types.PodSandboxMetadata{}, "", "", false, "", "", "",
 			[]*hostport.PortMapping{}, false, time.Now(), "")
 		Expect(err).To(BeNil())
 		Expect(testSandbox).NotTo(BeNil())

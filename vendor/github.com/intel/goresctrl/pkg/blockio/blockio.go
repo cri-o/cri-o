@@ -435,8 +435,8 @@ func (dpm defaultPlatform) configurableBlockDevices(devWildcards []string) ([]tB
 			continue
 		}
 		sys, ok := fileInfo.Sys().(*syscall.Stat_t)
-		major := unix.Major(sys.Rdev)
-		minor := unix.Minor(sys.Rdev)
+		major := unix.Major(uint64(sys.Rdev))
+		minor := unix.Minor(uint64(sys.Rdev))
 		if !ok {
 			errors = multierror.Append(errors, fmt.Errorf("cannot get syscall stat_t from %#v: %w%s", devRealpath, err, origin))
 			continue

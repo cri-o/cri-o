@@ -17,6 +17,7 @@
     src: https://ftp.gnu.org/gnu/parallel/parallel-20190322.tar.bz2
     dest: "{{ ansible_env.HOME }}"
     remote_src: yes
+    validate_certs: False
   when: ansible_distribution in ['RedHat', 'CentOS']
 
 - name: install parallel from sources
