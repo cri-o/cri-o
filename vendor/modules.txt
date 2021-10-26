@@ -94,7 +94,7 @@ github.com/blang/semver
 github.com/cenkalti/backoff/v4
 # github.com/cespare/xxhash/v2 v2.1.2
 github.com/cespare/xxhash/v2
-# github.com/checkpoint-restore/checkpointctl v0.0.0-20210301084134-a2024f5584e7
+# github.com/checkpoint-restore/checkpointctl v0.0.0-20210922093614-c31748bec9f2
 github.com/checkpoint-restore/checkpointctl/lib
 # github.com/checkpoint-restore/go-criu/v5 v5.1.0
 github.com/checkpoint-restore/go-criu/v5
@@ -156,23 +156,21 @@ github.com/containerd/ttrpc
 # github.com/containerd/typeurl v1.0.2
 ## explicit
 github.com/containerd/typeurl
-# github.com/containernetworking/cni v0.8.1
+# github.com/containernetworking/cni v1.0.1
 ## explicit
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/types
 github.com/containernetworking/cni/pkg/types/020
-github.com/containernetworking/cni/pkg/types/current
+github.com/containernetworking/cni/pkg/types/040
+github.com/containernetworking/cni/pkg/types/100
+github.com/containernetworking/cni/pkg/types/create
+github.com/containernetworking/cni/pkg/types/internal
 github.com/containernetworking/cni/pkg/utils
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v0.9.1
+# github.com/containernetworking/plugins v1.0.1
 ## explicit
-github.com/containernetworking/plugins/pkg/ip
 github.com/containernetworking/plugins/pkg/ns
-github.com/containernetworking/plugins/pkg/utils/hwaddr
-github.com/containernetworking/plugins/pkg/utils/sysctl
-github.com/containernetworking/plugins/plugins/ipam/host-local/backend
-github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
 # github.com/containers/buildah v1.23.1
 ## explicit
 github.com/containers/buildah
@@ -189,7 +187,7 @@ github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/util
-# github.com/containers/common v0.46.0
+# github.com/containers/common v0.46.1-0.20211001143714-161e078e4c7f
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
@@ -285,7 +283,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v3 v3.4.1
+# github.com/containers/podman/v3 v3.2.0-rc1.0.20211005134800-8bcc086b1b9d
 ## explicit
 github.com/containers/podman/v3/libpod
 github.com/containers/podman/v3/libpod/define
@@ -298,8 +296,9 @@ github.com/containers/podman/v3/libpod/lock/file
 github.com/containers/podman/v3/libpod/lock/shm
 github.com/containers/podman/v3/libpod/logs
 github.com/containers/podman/v3/libpod/logs/reversereader
-github.com/containers/podman/v3/libpod/network
+github.com/containers/podman/v3/libpod/network/cni
 github.com/containers/podman/v3/libpod/network/types
+github.com/containers/podman/v3/libpod/network/util
 github.com/containers/podman/v3/libpod/plugin
 github.com/containers/podman/v3/libpod/shutdown
 github.com/containers/podman/v3/pkg/annotations
@@ -322,7 +321,6 @@ github.com/containers/podman/v3/pkg/kubeutils
 github.com/containers/podman/v3/pkg/lookup
 github.com/containers/podman/v3/pkg/namespaces
 github.com/containers/podman/v3/pkg/netns
-github.com/containers/podman/v3/pkg/network
 github.com/containers/podman/v3/pkg/parallel
 github.com/containers/podman/v3/pkg/ps/define
 github.com/containers/podman/v3/pkg/resolvconf
@@ -396,8 +394,6 @@ github.com/containers/storage/pkg/tarlog
 github.com/containers/storage/pkg/truncindex
 github.com/containers/storage/pkg/unshare
 github.com/containers/storage/types
-# github.com/coreos/go-iptables v0.5.0
-github.com/coreos/go-iptables/iptables
 # github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
 github.com/coreos/go-systemd/activation
 # github.com/coreos/go-systemd/v22 v22.3.2
@@ -416,7 +412,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/creack/pty v1.1.17
 ## explicit
 github.com/creack/pty
-# github.com/cri-o/ocicni v0.2.1-0.20210623033107-4ea5fb8752cf
+# github.com/cri-o/ocicni v0.2.1-0.20211005135702-b38844812e64
 ## explicit
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.3
@@ -439,7 +435,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v20.10.8+incompatible
+# github.com/docker/docker v20.10.9+incompatible
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/blkiodev
@@ -703,7 +699,7 @@ github.com/manifoldco/promptui/list
 github.com/manifoldco/promptui/screenbuf
 # github.com/mattn/go-colorable v0.1.8
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.12
+# github.com/mattn/go-isatty v0.0.14
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.13
 github.com/mattn/go-runewidth
@@ -893,8 +889,6 @@ github.com/rootless-containers/rootlesskit/pkg/port/portutil
 github.com/russross/blackfriday
 # github.com/russross/blackfriday/v2 v2.1.0
 github.com/russross/blackfriday/v2
-# github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8
-github.com/safchain/ethtool
 # github.com/saschagrunert/go-modiff v1.3.0
 github.com/saschagrunert/go-modiff/pkg/modiff
 # github.com/seccomp/libseccomp-golang v0.9.2-0.20200616122406-847368b35ebf
@@ -946,11 +940,11 @@ github.com/vbauerster/mpb/v7
 github.com/vbauerster/mpb/v7/cwriter
 github.com/vbauerster/mpb/v7/decor
 github.com/vbauerster/mpb/v7/internal
-# github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
+# github.com/vishvananda/netlink v1.1.1-0.20210811191823-e1a867c6b452
 ## explicit
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
-# github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae
+# github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f
 github.com/vishvananda/netns
 # github.com/xanzy/go-gitlab v0.43.0
 github.com/xanzy/go-gitlab

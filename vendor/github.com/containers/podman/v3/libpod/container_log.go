@@ -18,7 +18,7 @@ import (
 var logDrivers []string
 
 func init() {
-	logDrivers = append(logDrivers, define.KubernetesLogging, define.NoLogging)
+	logDrivers = append(logDrivers, define.KubernetesLogging, define.NoLogging, define.PassthroughLogging)
 }
 
 // Log is a runtime function that can read one or more container logs.
@@ -34,6 +34,8 @@ func (r *Runtime) Log(ctx context.Context, containers []*Container, options *log
 // ReadLog reads a containers log based on the input options and returns log lines over a channel.
 func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	switch c.LogDriver() {
+	case define.PassthroughLogging:
+		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'passthrough' log driver, cannot read logs")
 	case define.NoLogging:
 		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'none' log driver, cannot read logs")
 	case define.JournaldLogging:
@@ -83,7 +85,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			}
 			nll, err := logs.NewLogLine(line.Text)
 			if err != nil {
-				logrus.Errorf("Error getting new log line: %v", err)
+				logrus.Errorf("Getting new log line: %v", err)
 				continue
 			}
 			if nll.Partial() {
@@ -108,7 +110,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 		state, err := c.State()
 		if err != nil || state != define.ContainerStateRunning {
 			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
-				logrus.Errorf("Error getting container state: %v", err)
+				logrus.Errorf("Getting container state: %v", err)
 			}
 			go func() {
 				// Make sure to wait at least for the poll duration
@@ -116,7 +118,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 				time.Sleep(watch.POLL_DURATION)
 				tailError := t.StopAtEOF()
 				if tailError != nil && tailError.Error() != "tail: stop at eof" {
-					logrus.Errorf("Error stopping logger: %v", tailError)
+					logrus.Errorf("Stopping logger: %v", tailError)
 				}
 			}()
 			return nil
@@ -132,7 +134,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			}
 			go func() {
 				if err := c.runtime.Events(ctx, eventOptions); err != nil {
-					logrus.Errorf("Error waiting for container to exit: %v", err)
+					logrus.Errorf("Waiting for container to exit: %v", err)
 				}
 			}()
 			// Now wait for the died event and signal to finish
@@ -143,7 +145,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			time.Sleep(watch.POLL_DURATION)
 			tailError := t.StopAtEOF()
 			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
-				logrus.Errorf("Error stopping logger: %v", tailError)
+				logrus.Errorf("Stopping logger: %v", tailError)
 			}
 		}()
 	}

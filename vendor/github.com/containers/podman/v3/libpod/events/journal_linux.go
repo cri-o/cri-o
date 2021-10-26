@@ -63,7 +63,7 @@ func (e EventJournalD) Write(ee Event) error {
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
 	}
-	return journal.Send(string(ee.ToHumanReadable()), journal.PriInfo, m)
+	return journal.Send(string(ee.ToHumanReadable(false)), journal.PriInfo, m)
 }
 
 // Read reads events from the journal and sends qualified events to the event channel
@@ -195,7 +195,7 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { /
 		if code, ok := entry.Fields["PODMAN_EXIT_CODE"]; ok {
 			intCode, err := strconv.Atoi(code)
 			if err != nil {
-				logrus.Errorf("Error parsing event exit code %s", code)
+				logrus.Errorf("Parsing event exit code %s", code)
 			} else {
 				newEvent.ContainerExitCode = intCode
 			}

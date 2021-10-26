@@ -23,8 +23,8 @@ import (
 	"path/filepath"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	rkport "github.com/rootless-containers/rootlesskit/pkg/port"
 	rkbuiltin "github.com/rootless-containers/rootlesskit/pkg/port/builtin"
@@ -44,7 +44,7 @@ const (
 // Config needs to be provided to the process via stdin as a JSON string.
 // stdin needs to be closed after the message has been written.
 type Config struct {
-	Mappings    []ocicni.PortMapping
+	Mappings    []types.OCICNIPortMapping
 	NetNSPath   string
 	ExitFD      int
 	ReadyFD     int
@@ -125,17 +125,17 @@ func parent() error {
 	quit := make(chan struct{})
 	errCh := make(chan error)
 	// start the parent driver. initComplete will be closed when the child connected to the parent.
-	logrus.Infof("starting parent driver")
+	logrus.Infof("Starting parent driver")
 	go func() {
 		driverErr := driver.RunParentDriver(initComplete, quit, nil)
 		if driverErr != nil {
-			logrus.WithError(driverErr).Warn("parent driver exited")
+			logrus.WithError(driverErr).Warn("Parent driver exited")
 		}
 		errCh <- driverErr
 		close(errCh)
 	}()
 	opaque := driver.OpaqueForChild()
-	logrus.Infof("opaque=%+v", opaque)
+	logrus.Infof("Opaque=%+v", opaque)
 	opaqueJSON, err := json.Marshal(opaque)
 	if err != nil {
 		return err
@@ -146,9 +146,9 @@ func parent() error {
 	}
 	defer func() {
 		// stop the child
-		logrus.Info("stopping child driver")
+		logrus.Info("Stopping child driver")
 		if err := childQuitW.Close(); err != nil {
-			logrus.WithError(err).Warn("unable to close childQuitW")
+			logrus.WithError(err).Warn("Unable to close childQuitW")
 		}
 	}()
 
@@ -164,7 +164,7 @@ func parent() error {
 		return err
 	}
 	if err := childNS.Do(func(_ ns.NetNS) error {
-		logrus.Infof("starting child driver in child netns (%q %v)", cmd.Path, cmd.Args)
+		logrus.Infof("Starting child driver in child netns (%q %v)", cmd.Path, cmd.Args)
 		return cmd.Start()
 	}); err != nil {
 		return err
@@ -179,11 +179,11 @@ func parent() error {
 
 	defer func() {
 		if err := unix.Kill(cmd.Process.Pid, unix.SIGTERM); err != nil {
-			logrus.WithError(err).Warn("kill child process")
+			logrus.WithError(err).Warn("Kill child process")
 		}
 	}()
 
-	logrus.Info("waiting for initComplete")
+	logrus.Info("Waiting for initComplete")
 	// wait for the child to connect to the parent
 outer:
 	for {
@@ -203,15 +203,15 @@ outer:
 	}
 
 	defer func() {
-		logrus.Info("stopping parent driver")
+		logrus.Info("Stopping parent driver")
 		quit <- struct{}{}
 		if err := <-errCh; err != nil {
-			logrus.WithError(err).Warn("parent driver returned error on exit")
+			logrus.WithError(err).Warn("Parent driver returned error on exit")
 		}
 	}()
 
 	// let parent expose ports
-	logrus.Infof("exposing ports %v", cfg.Mappings)
+	logrus.Infof("Exposing ports %v", cfg.Mappings)
 	if err := exposePorts(driver, cfg.Mappings, cfg.ChildIP); err != nil {
 		return err
 	}
@@ -235,13 +235,13 @@ outer:
 		// remove the socket file on exit
 		defer os.Remove(socketfile)
 		if err != nil {
-			logrus.Warnf("failed to close the socketDir fd: %v", err)
+			logrus.Warnf("Failed to close the socketDir fd: %v", err)
 		}
 		defer socket.Close()
 		go serve(socket, driver)
 	}
 
-	logrus.Info("ready")
+	logrus.Info("Ready")
 
 	// https://github.com/containers/podman/issues/11248
 	// Copy /dev/null to stdout and stderr to prevent SIGPIPE errors
@@ -259,7 +259,7 @@ outer:
 	}
 
 	// wait for ExitFD to be closed
-	logrus.Info("waiting for exitfd to be closed")
+	logrus.Info("Waiting for exitfd to be closed")
 	if _, err := ioutil.ReadAll(exitR); err != nil {
 		return err
 	}
@@ -313,7 +313,7 @@ func handler(ctx context.Context, conn io.Reader, pm rkport.Manager) error {
 	return nil
 }
 
-func exposePorts(pm rkport.Manager, portMappings []ocicni.PortMapping, childIP string) error {
+func exposePorts(pm rkport.Manager, portMappings []types.OCICNIPortMapping, childIP string) error {
 	ctx := context.TODO()
 	for _, i := range portMappings {
 		hostIP := i.HostIP
@@ -353,10 +353,10 @@ func child() error {
 		errCh <- dErr
 	}()
 	defer func() {
-		logrus.Info("stopping child driver")
+		logrus.Info("Stopping child driver")
 		quit <- struct{}{}
 		if err := <-errCh; err != nil {
-			logrus.WithError(err).Warn("child driver returned error on exit")
+			logrus.WithError(err).Warn("Child driver returned error on exit")
 		}
 	}()
 

@@ -40,7 +40,9 @@ func openUnixSocket(path string) (*net.UnixConn, error) {
 // Does not check if state is appropriate
 // started is only required if startContainer is true
 func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize, startContainer bool, started chan bool, attachRdy chan<- bool) error {
-	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
+	passthrough := c.LogDriver() == define.PassthroughLogging
+
+	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput && !passthrough {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
 	if startContainer && started == nil {
@@ -52,24 +54,27 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 		return err
 	}
 
-	logrus.Debugf("Attaching to container %s", c.ID())
+	var conn *net.UnixConn
+	if !passthrough {
+		logrus.Debugf("Attaching to container %s", c.ID())
 
-	registerResizeFunc(resize, c.bundlePath())
+		registerResizeFunc(resize, c.bundlePath())
 
-	attachSock, err := c.AttachSocketPath()
-	if err != nil {
-		return err
-	}
-
-	conn, err := openUnixSocket(attachSock)
-	if err != nil {
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", attachSock)
-	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			logrus.Errorf("unable to close socket: %q", err)
+		attachSock, err := c.AttachSocketPath()
+		if err != nil {
+			return err
 		}
-	}()
+
+		conn, err = openUnixSocket(attachSock)
+		if err != nil {
+			return errors.Wrapf(err, "failed to connect to container's attach socket: %v", attachSock)
+		}
+		defer func() {
+			if err := conn.Close(); err != nil {
+				logrus.Errorf("unable to close socket: %q", err)
+			}
+		}()
+	}
 
 	// If starting was requested, start the container and notify when that's
 	// done.
@@ -80,11 +85,15 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 		started <- true
 	}
 
+	if passthrough {
+		return nil
+	}
+
 	receiveStdoutError, stdinDone := setupStdioChannels(streams, conn, detachKeys)
 	if attachRdy != nil {
 		attachRdy <- true
 	}
-	return readStdio(conn, streams, receiveStdoutError, stdinDone)
+	return readStdio(streams, receiveStdoutError, stdinDone)
 }
 
 // Attach to the given container's exec session
@@ -142,7 +151,7 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 	if newSize != nil {
 		err = c.ociRuntime.ExecAttachResize(c, sessionID, *newSize)
 		if err != nil {
-			logrus.Warn("resize failed", err)
+			logrus.Warnf("Resize failed: %v", err)
 		}
 	}
 
@@ -153,7 +162,7 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
-			logrus.Errorf("unable to close socket: %q", err)
+			logrus.Errorf("Unable to close socket: %q", err)
 		}
 	}()
 
@@ -165,7 +174,7 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 		return err
 	}
 
-	return readStdio(conn, streams, receiveStdoutError, stdinDone)
+	return readStdio(streams, receiveStdoutError, stdinDone)
 }
 
 func processDetachKeys(keys string) ([]byte, error) {
@@ -208,6 +217,11 @@ func setupStdioChannels(streams *define.AttachStreams, conn *net.UnixConn, detac
 		var err error
 		if streams.AttachInput {
 			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
+			if err == nil {
+				if connErr := conn.CloseWrite(); connErr != nil {
+					logrus.Errorf("Unable to close conn: %q", connErr)
+				}
+			}
 		}
 		stdinDone <- err
 	}()
@@ -260,7 +274,7 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeO
 	return err
 }
 
-func readStdio(conn *net.UnixConn, streams *define.AttachStreams, receiveStdoutError, stdinDone chan error) error {
+func readStdio(streams *define.AttachStreams, receiveStdoutError, stdinDone chan error) error {
 	var err error
 	select {
 	case err = <-receiveStdoutError:
@@ -268,12 +282,6 @@ func readStdio(conn *net.UnixConn, streams *define.AttachStreams, receiveStdoutE
 	case err = <-stdinDone:
 		if err == define.ErrDetach {
 			return err
-		}
-		if err == nil {
-			// copy stdin is done, close it
-			if connErr := conn.CloseWrite(); connErr != nil {
-				logrus.Errorf("Unable to close conn: %v", connErr)
-			}
 		}
 		if streams.AttachOutput || streams.AttachError {
 			return <-receiveStdoutError

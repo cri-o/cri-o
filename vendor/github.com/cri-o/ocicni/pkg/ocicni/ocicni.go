@@ -16,7 +16,7 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	cniinvoke "github.com/containernetworking/cni/pkg/invoke"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
-	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
+	cniv1 "github.com/containernetworking/cni/pkg/types/100"
 	cniversion "github.com/containernetworking/cni/pkg/version"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
@@ -748,22 +748,21 @@ func (network *cniNetwork) checkNetwork(ctx context.Context, rt *libcni.RuntimeC
 	// result doesn't exist, create one
 	logrus.Infof("Checking CNI network %s (config version=%v) nsManager=%v", network.name, network.config.CNIVersion, nsManager)
 
-	var cniInterface *cnicurrent.Interface
-	ips := []*cnicurrent.IPConfig{}
+	var cniInterface *cniv1.Interface
+	ips := []*cniv1.IPConfig{}
 	errs := []error{}
 	for _, version := range []string{"4", "6"} {
 		ip, mac, err := getContainerDetails(nsManager, netns, rt.IfName, "-"+version)
 		if err == nil {
 			if cniInterface == nil {
-				cniInterface = &cnicurrent.Interface{
+				cniInterface = &cniv1.Interface{
 					Name:    rt.IfName,
 					Mac:     mac.String(),
 					Sandbox: netns,
 				}
 			}
-			ips = append(ips, &cnicurrent.IPConfig{
-				Version:   version,
-				Interface: cnicurrent.Int(0),
+			ips = append(ips, &cniv1.IPConfig{
+				Interface: cniv1.Int(0),
 				Address:   *ip,
 			})
 		} else {
@@ -774,9 +773,9 @@ func (network *cniNetwork) checkNetwork(ctx context.Context, rt *libcni.RuntimeC
 		return nil, fmt.Errorf("neither IPv4 nor IPv6 found when retrieving network status: %v", errs)
 	}
 
-	result = &cnicurrent.Result{
+	result = &cniv1.Result{
 		CNIVersion: network.config.CNIVersion,
-		Interfaces: []*cnicurrent.Interface{cniInterface},
+		Interfaces: []*cniv1.Interface{cniInterface},
 		IPs:        ips,
 	}
 

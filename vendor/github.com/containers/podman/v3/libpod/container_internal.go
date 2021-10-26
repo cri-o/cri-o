@@ -15,6 +15,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/buildah/copier"
+	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
@@ -175,7 +176,7 @@ func (c *Container) waitForExitFileAndSync() error {
 		c.state.State = define.ContainerStateStopped
 
 		if err2 := c.save(); err2 != nil {
-			logrus.Errorf("Error saving container %s state: %v", c.ID(), err2)
+			logrus.Errorf("Saving container %s state: %v", c.ID(), err2)
 		}
 
 		return err
@@ -277,7 +278,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	defer func() {
 		if retErr != nil {
 			if err := c.cleanup(ctx); err != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
+				logrus.Errorf("Cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -643,17 +644,8 @@ func (c *Container) refresh() error {
 	}
 	c.lock = lock
 
-	// Try to delete any lingering IP allocations.
-	// If this fails, just log and ignore.
-	// I'm a little concerned that this is so far down in refresh() and we
-	// could fail before getting to it - but the worst that would happen is
-	// that Inspect() would return info on IPs we no longer own.
-	if len(c.state.NetworkStatus) > 0 {
-		if err := c.removeIPv4Allocations(); err != nil {
-			logrus.Errorf("Error removing IP allocations for container %s: %v", c.ID(), err)
-		}
-	}
 	c.state.NetworkStatus = nil
+	c.state.NetworkStatusOld = nil
 
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
@@ -662,57 +654,6 @@ func (c *Container) refresh() error {
 	// Remove ctl and attach files, which may persist across reboot
 	if err := c.removeConmonFiles(); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// Try and remove IP address allocations. Presently IPv4 only.
-// Should be safe as rootless because NetworkStatus should only be populated if
-// CNI is running.
-func (c *Container) removeIPv4Allocations() error {
-	cniNetworksDir, err := getCNINetworksDir()
-	if err != nil {
-		return err
-	}
-
-	if len(c.state.NetworkStatus) == 0 {
-		return nil
-	}
-
-	cniDefaultNetwork := ""
-	if c.runtime.netPlugin != nil {
-		cniDefaultNetwork = c.runtime.netPlugin.GetDefaultNetworkName()
-	}
-
-	networks, _, err := c.networks()
-	if err != nil {
-		return err
-	}
-
-	if len(networks) != len(c.state.NetworkStatus) {
-		return errors.Wrapf(define.ErrInternal, "network mismatch: asked to join %d CNI networks but got %d CNI results", len(networks), len(c.state.NetworkStatus))
-	}
-
-	for index, result := range c.state.NetworkStatus {
-		for _, ctrIP := range result.IPs {
-			if ctrIP.Version != "4" {
-				continue
-			}
-			candidate := ""
-			if len(networks) > 0 {
-				// CNI returns networks in order we passed them.
-				// So our index into results should be our index
-				// into networks.
-				candidate = filepath.Join(cniNetworksDir, networks[index], ctrIP.Address.IP.String())
-			} else {
-				candidate = filepath.Join(cniNetworksDir, cniDefaultNetwork, ctrIP.Address.IP.String())
-			}
-			logrus.Debugf("Going to try removing IP address reservation file %q for container %s", candidate, c.ID())
-			if err := os.Remove(candidate); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error removing CNI IP reservation file %q for container %s", candidate, c.ID())
-			}
-		}
 	}
 
 	return nil
@@ -768,7 +709,7 @@ func (c *Container) export(path string) error {
 		mountPoint = containerMount
 		defer func() {
 			if _, err := c.runtime.store.Unmount(c.ID(), false); err != nil {
-				logrus.Errorf("error unmounting container %q: %v", c.ID(), err)
+				logrus.Errorf("Unmounting container %q: %v", c.ID(), err)
 			}
 		}()
 	}
@@ -837,7 +778,7 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (retErr 
 	defer func() {
 		if retErr != nil {
 			if err := c.cleanup(ctx); err != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
+				logrus.Errorf("Cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -918,7 +859,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 	}
 
 	if len(ctrErrors) > 0 {
-		logrus.Errorf("error starting some container dependencies")
+		logrus.Errorf("Starting some container dependencies")
 		for _, e := range ctrErrors {
 			logrus.Errorf("%q", e)
 		}
@@ -1015,11 +956,9 @@ func (c *Container) completeNetworkSetup() error {
 	}
 	state := c.state
 	// collect any dns servers that cni tells us to use (dnsname)
-	for _, cni := range state.NetworkStatus {
-		if cni.DNS.Nameservers != nil {
-			for _, server := range cni.DNS.Nameservers {
-				outResolvConf = append(outResolvConf, fmt.Sprintf("nameserver %s", server))
-			}
+	for _, status := range c.getNetworkStatus() {
+		for _, server := range status.DNSServerIPs {
+			outResolvConf = append(outResolvConf, fmt.Sprintf("nameserver %s", server))
 		}
 	}
 	// check if we have a bindmount for /etc/hosts
@@ -1060,9 +999,12 @@ func (c *Container) completeNetworkSetup() error {
 
 func (c *Container) cniHosts() string {
 	var hosts string
-	if len(c.state.NetworkStatus) > 0 && len(c.state.NetworkStatus[0].IPs) > 0 {
-		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
-		hosts += fmt.Sprintf("%s\t%s %s\n", ipAddress, c.Hostname(), c.config.Name)
+	for _, status := range c.getNetworkStatus() {
+		for _, netInt := range status.Interfaces {
+			for _, netAddress := range netInt.Networks {
+				hosts += fmt.Sprintf("%s\t%s %s\n", netAddress.Subnet.IP.String(), c.Hostname(), c.config.Name)
+			}
+		}
 	}
 	return hosts
 }
@@ -1104,7 +1046,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 		// upstream in any OCI runtime.
 		// TODO: Remove once runc supports cgroupsv2
 		if strings.Contains(err.Error(), "this version of runc doesn't work on cgroups v2") {
-			logrus.Errorf("oci runtime %q does not support CGroups V2: use system migrate to mitigate", c.ociRuntime.Name())
+			logrus.Errorf("Oci runtime %q does not support CGroups V2: use system migrate to mitigate", c.ociRuntime.Name())
 		}
 		return err
 	}
@@ -1114,7 +1056,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	// Remove any exec sessions leftover from a potential prior run.
 	if len(c.state.ExecSessions) > 0 {
 		if err := c.runtime.state.RemoveContainerExecSessions(c); err != nil {
-			logrus.Errorf("Error removing container %s exec sessions from DB: %v", c.ID(), err)
+			logrus.Errorf("Removing container %s exec sessions from DB: %v", c.ID(), err)
 		}
 		c.state.ExecSessions = make(map[string]*ExecSession)
 	}
@@ -1221,7 +1163,7 @@ func (c *Container) initAndStart(ctx context.Context) (retErr error) {
 	defer func() {
 		if retErr != nil {
 			if err := c.cleanup(ctx); err != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
+				logrus.Errorf("Cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -1268,7 +1210,7 @@ func (c *Container) start() error {
 			payload += daemon.SdNotifyReady
 		}
 		if sent, err := daemon.SdNotify(false, payload); err != nil {
-			logrus.Errorf("Error notifying systemd of Conmon PID: %s", err.Error())
+			logrus.Errorf("Notifying systemd of Conmon PID: %s", err.Error())
 		} else if sent {
 			logrus.Debugf("Notify sent successfully")
 		}
@@ -1347,7 +1289,7 @@ func (c *Container) stop(timeout uint) error {
 				return stopErr
 			default:
 				if stopErr != nil {
-					logrus.Errorf("Error syncing container %s status: %v", c.ID(), err)
+					logrus.Errorf("Syncing container %s status: %v", c.ID(), err)
 					return stopErr
 				}
 				return err
@@ -1385,7 +1327,7 @@ func (c *Container) stop(timeout uint) error {
 		c.state.FinishedTime = time.Now()
 		c.state.State = define.ContainerStateStopped
 		if err := c.save(); err != nil {
-			logrus.Errorf("Error saving container %s status: %v", c.ID(), err)
+			logrus.Errorf("Saving container %s status: %v", c.ID(), err)
 		}
 
 		return errors.Wrapf(define.ErrConmonDead, "container %s conmon process missing, cannot retrieve exit code", c.ID())
@@ -1489,7 +1431,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 	defer func() {
 		if retErr != nil {
 			if err := c.cleanup(ctx); err != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
+				logrus.Errorf("Cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -1540,7 +1482,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		defer func() {
 			if deferredErr != nil {
 				if err := c.unmountSHM(c.config.ShmDir); err != nil {
-					logrus.Errorf("Error unmounting SHM for container %s after mount error: %v", c.ID(), err)
+					logrus.Errorf("Unmounting SHM for container %s after mount error: %v", c.ID(), err)
 				}
 			}
 		}()
@@ -1549,6 +1491,32 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	// We need to mount the container before volumes - to ensure the copyup
 	// works properly.
 	mountPoint := c.config.Rootfs
+	// Check if overlay has to be created on top of Rootfs
+	if c.config.RootfsOverlay {
+		overlayDest := c.runtime.store.GraphRoot()
+		contentDir, err := overlay.GenerateStructure(c.runtime.store.GraphRoot(), c.ID(), "rootfs", c.RootUID(), c.RootGID())
+		if err != nil {
+			return "", errors.Wrapf(err, "rootfs-overlay: failed to create TempDir in the %s directory", overlayDest)
+		}
+		overlayMount, err := overlay.Mount(contentDir, c.config.Rootfs, overlayDest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+		if err != nil {
+			return "", errors.Wrapf(err, "rootfs-overlay: creating overlay failed %q", c.config.Rootfs)
+		}
+
+		// Seems fuse-overlayfs is not present
+		// fallback to native overlay
+		if overlayMount.Type == "overlay" {
+			overlayMount.Options = append(overlayMount.Options, "nodev")
+			mountOpts := label.FormatMountLabel(strings.Join(overlayMount.Options, ","), c.MountLabel())
+			err = mount.Mount("overlay", overlayMount.Source, overlayMount.Type, mountOpts)
+			if err != nil {
+				return "", errors.Wrapf(err, "rootfs-overlay: creating overlay failed %q from native overlay", c.config.Rootfs)
+			}
+		}
+
+		mountPoint = overlayMount.Source
+	}
+
 	if mountPoint == "" {
 		mountPoint, err = c.mount()
 		if err != nil {
@@ -1557,7 +1525,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		defer func() {
 			if deferredErr != nil {
 				if err := c.unmount(false); err != nil {
-					logrus.Errorf("Error unmounting container %s after mount error: %v", c.ID(), err)
+					logrus.Errorf("Unmounting container %s after mount error: %v", c.ID(), err)
 				}
 			}
 		}()
@@ -1585,7 +1553,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 			}
 			vol.lock.Lock()
 			if err := vol.unmount(false); err != nil {
-				logrus.Errorf("Error unmounting volume %s after error mounting container %s: %v", vol.Name(), c.ID(), err)
+				logrus.Errorf("Unmounting volume %s after error mounting container %s: %v", vol.Name(), c.ID(), err)
 			}
 			vol.lock.Unlock()
 		}()
@@ -1700,7 +1668,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		if err := copier.Put(volMount, "", copyOpts, reader); err != nil {
 			err2 := <-errChan
 			if err2 != nil {
-				logrus.Errorf("Error streaming contents of container %s directory for volume copy-up: %v", c.ID(), err2)
+				logrus.Errorf("Streaming contents of container %s directory for volume copy-up: %v", c.ID(), err2)
 			}
 			return nil, errors.Wrapf(err, "error copying up to volume %s", vol.Name())
 		}
@@ -1722,10 +1690,21 @@ func (c *Container) cleanupStorage() error {
 
 	var cleanupErr error
 
+	// umount rootfs overlay if it was created
+	if c.config.RootfsOverlay {
+		overlayBasePath := c.runtime.store.GraphRoot()
+		overlayBasePath = filepath.Join(overlayBasePath, "rootfs")
+		if err := overlay.Unmount(overlayBasePath); err != nil {
+			// If the container can't remove content report the error
+			logrus.Errorf("Failed to cleanup overlay mounts for %s: %v", c.ID(), err)
+			cleanupErr = err
+		}
+	}
+
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {
 			if cleanupErr != nil {
-				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
 			}
 			cleanupErr = err
 		}
@@ -1750,7 +1729,7 @@ func (c *Container) cleanupStorage() error {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
 		} else {
 			if cleanupErr != nil {
-				logrus.Errorf("Error cleaning up container %s storage: %v", c.ID(), cleanupErr)
+				logrus.Errorf("Cleaning up container %s storage: %v", c.ID(), cleanupErr)
 			}
 			cleanupErr = err
 		}
@@ -1761,7 +1740,7 @@ func (c *Container) cleanupStorage() error {
 		vol, err := c.runtime.state.Volume(v.Name)
 		if err != nil {
 			if cleanupErr != nil {
-				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
 			}
 			cleanupErr = errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
 
@@ -1774,7 +1753,7 @@ func (c *Container) cleanupStorage() error {
 			vol.lock.Lock()
 			if err := vol.unmount(false); err != nil {
 				if cleanupErr != nil {
-					logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+					logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
 				}
 				cleanupErr = errors.Wrapf(err, "error unmounting volume %s for container %s", vol.Name(), c.ID())
 			}
@@ -1788,7 +1767,7 @@ func (c *Container) cleanupStorage() error {
 	if c.valid {
 		if err := c.save(); err != nil {
 			if cleanupErr != nil {
-				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
 			}
 			cleanupErr = err
 		}
@@ -1805,7 +1784,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 	// Remove healthcheck unit/timer file if it execs
 	if c.config.HealthCheckConfig != nil {
 		if err := c.removeTimer(); err != nil {
-			logrus.Errorf("Error removing timer for container %s healthcheck: %v", c.ID(), err)
+			logrus.Errorf("Removing timer for container %s healthcheck: %v", c.ID(), err)
 		}
 	}
 
@@ -1820,7 +1799,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 	// exists.
 	if err := c.cleanupRuntime(ctx); err != nil {
 		if lastError != nil {
-			logrus.Errorf("Error removing container %s from OCI runtime: %v", c.ID(), err)
+			logrus.Errorf("Removing container %s from OCI runtime: %v", c.ID(), err)
 		} else {
 			lastError = err
 		}
@@ -1829,7 +1808,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 	// Unmount storage
 	if err := c.cleanupStorage(); err != nil {
 		if lastError != nil {
-			logrus.Errorf("Error unmounting container %s storage: %v", c.ID(), err)
+			logrus.Errorf("Unmounting container %s storage: %v", c.ID(), err)
 		} else {
 			lastError = errors.Wrapf(err, "error unmounting container %s storage", c.ID())
 		}
@@ -1843,14 +1822,14 @@ func (c *Container) cleanup(ctx context.Context) error {
 				lastError = err
 				continue
 			}
-			logrus.Errorf("error unmounting image volume %q:%q :%v", v.Source, v.Dest, err)
+			logrus.Errorf("Unmounting image volume %q:%q :%v", v.Source, v.Dest, err)
 		}
 		if err := img.Unmount(false); err != nil {
 			if lastError == nil {
 				lastError = err
 				continue
 			}
-			logrus.Errorf("error unmounting image volume %q:%q :%v", v.Source, v.Dest, err)
+			logrus.Errorf("Unmounting image volume %q:%q :%v", v.Source, v.Dest, err)
 		}
 	}
 
@@ -1894,7 +1873,7 @@ func (c *Container) postDeleteHooks(ctx context.Context) error {
 				var stderr, stdout bytes.Buffer
 				hookErr, err := exec.Run(ctx, &hook, state, &stdout, &stderr, exec.DefaultPostKillTimeout)
 				if err != nil {
-					logrus.Warnf("container %s: poststop hook %d: %v", c.ID(), i, err)
+					logrus.Warnf("Container %s: poststop hook %d: %v", c.ID(), i, err)
 					if hookErr != err {
 						logrus.Debugf("container %s: poststop hook %d (hook error): %v", c.ID(), i, hookErr)
 					}
@@ -2025,12 +2004,12 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 				}
 				return nil, err
 			}
-			ociHooks, err := manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+			ociHooks, err := manager.Hooks(config, c.config.Spec.Annotations, len(c.config.UserVolumes) > 0)
 			if err != nil {
 				return nil, err
 			}
 			if len(ociHooks) > 0 || config.Hooks != nil {
-				logrus.Warnf("implicit hook directories are deprecated; set --ociHooks-dir=%q explicitly to continue to load ociHooks from this directory", hDir)
+				logrus.Warnf("Implicit hook directories are deprecated; set --ociHooks-dir=%q explicitly to continue to load ociHooks from this directory", hDir)
 			}
 			for i, hook := range ociHooks {
 				allHooks[i] = hook
@@ -2042,7 +2021,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 			return nil, err
 		}
 
-		allHooks, err = manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+		allHooks, err = manager.Hooks(config, c.config.Spec.Annotations, len(c.config.UserVolumes) > 0)
 		if err != nil {
 			return nil, err
 		}
@@ -2050,7 +2029,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 
 	hookErr, err := exec.RuntimeConfigFilter(ctx, allHooks["precreate"], config, exec.DefaultPostKillTimeout)
 	if err != nil {
-		logrus.Warnf("container %s: precreate hook: %v", c.ID(), err)
+		logrus.Warnf("Container %s: precreate hook: %v", c.ID(), err)
 		if hookErr != nil && hookErr != err {
 			logrus.Debugf("container %s: precreate hook (hook error): %v", c.ID(), hookErr)
 		}

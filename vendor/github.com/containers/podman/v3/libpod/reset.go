@@ -18,16 +18,17 @@ import (
 
 // Reset removes all storage
 func (r *Runtime) Reset(ctx context.Context) error {
+	var timeout *uint
 	pods, err := r.GetAllPods()
 	if err != nil {
 		return err
 	}
 	for _, p := range pods {
-		if err := r.RemovePod(ctx, p, true, true); err != nil {
+		if err := r.RemovePod(ctx, p, true, true, timeout); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchPod {
 				continue
 			}
-			logrus.Errorf("Error removing Pod %s: %v", p.ID(), err)
+			logrus.Errorf("Removing Pod %s: %v", p.ID(), err)
 		}
 	}
 
@@ -37,18 +38,18 @@ func (r *Runtime) Reset(ctx context.Context) error {
 	}
 
 	for _, c := range ctrs {
-		if err := r.RemoveContainer(ctx, c, true, true); err != nil {
+		if err := r.RemoveContainer(ctx, c, true, true, timeout); err != nil {
 			if err := r.RemoveStorageContainer(c.ID(), true); err != nil {
 				if errors.Cause(err) == define.ErrNoSuchCtr {
 					continue
 				}
-				logrus.Errorf("Error removing container %s: %v", c.ID(), err)
+				logrus.Errorf("Removing container %s: %v", c.ID(), err)
 			}
 		}
 	}
 
 	if err := r.stopPauseProcess(); err != nil {
-		logrus.Errorf("Error stopping pause process: %v", err)
+		logrus.Errorf("Stopping pause process: %v", err)
 	}
 
 	rmiOptions := &libimage.RemoveImagesOptions{Filters: []string{"readonly=false"}}
@@ -61,11 +62,11 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		return err
 	}
 	for _, v := range volumes {
-		if err := r.RemoveVolume(ctx, v, true); err != nil {
+		if err := r.RemoveVolume(ctx, v, true, timeout); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchVolume {
 				continue
 			}
-			logrus.Errorf("Error removing volume %s: %v", v.config.Name, err)
+			logrus.Errorf("Removing volume %s: %v", v.config.Name, err)
 		}
 	}
 
@@ -123,7 +124,7 @@ func (r *Runtime) Reset(ctx context.Context) error {
 	if storageConfPath, err := storage.DefaultConfigFile(rootless.IsRootless()); err == nil {
 		if _, err = os.Stat(storageConfPath); err == nil {
 			fmt.Printf("A storage.conf file exists at %s\n", storageConfPath)
-			fmt.Println("You should remove this file if you did not modified the configuration.")
+			fmt.Println("You should remove this file if you did not modify the configuration.")
 		}
 	} else {
 		if prevError != nil {

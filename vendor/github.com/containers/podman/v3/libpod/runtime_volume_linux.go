@@ -140,7 +140,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	defer func() {
 		if deferredErr != nil {
 			if err := volume.lock.Free(); err != nil {
-				logrus.Errorf("Error freeing volume lock after failed creation: %v", err)
+				logrus.Errorf("Freeing volume lock after failed creation: %v", err)
 			}
 		}
 	}()
@@ -189,7 +189,7 @@ func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin
 }
 
 // removeVolume removes the specified volume from state as well tears down its mountpoint and storage
-func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error {
+func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeout *uint) error {
 	if !v.valid {
 		if ok, _ := r.state.HasVolume(v.Name()); !ok {
 			return nil
@@ -234,7 +234,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 			// containers?
 			// I'm inclined to say no, in case someone accidentally
 			// wipes a container they're using...
-			if err := r.removeContainer(ctx, ctr, false, false, false); err != nil {
+			if err := r.removeContainer(ctx, ctr, false, false, false, timeout); err != nil {
 				return errors.Wrapf(err, "error removing container %s that depends on volume %s", ctr.ID(), v.Name())
 			}
 		}
@@ -246,7 +246,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 			// If force is set, evict the volume, even if errors
 			// occur. Otherwise we'll never be able to get rid of
 			// them.
-			logrus.Errorf("Error unmounting volume %s: %v", v.Name(), err)
+			logrus.Errorf("Unmounting volume %s: %v", v.Name(), err)
 		} else {
 			return errors.Wrapf(err, "error unmounting volume %s", v.Name())
 		}
@@ -290,7 +290,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 	// Remove the volume from the state
 	if err := r.state.RemoveVolume(v); err != nil {
 		if removalErr != nil {
-			logrus.Errorf("Error removing volume %s from plugin %s: %v", v.Name(), v.Driver(), removalErr)
+			logrus.Errorf("Removing volume %s from plugin %s: %v", v.Name(), v.Driver(), removalErr)
 		}
 		return errors.Wrapf(err, "error removing volume %s", v.Name())
 	}
@@ -300,7 +300,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		if removalErr == nil {
 			removalErr = errors.Wrapf(err, "error freeing lock for volume %s", v.Name())
 		} else {
-			logrus.Errorf("Error freeing lock for volume %q: %v", v.Name(), err)
+			logrus.Errorf("Freeing lock for volume %q: %v", v.Name(), err)
 		}
 	}
 
@@ -310,7 +310,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		if removalErr == nil {
 			removalErr = errors.Wrapf(err, "error cleaning up volume storage for %q", v.Name())
 		} else {
-			logrus.Errorf("Error cleaning up volume storage for volume %q: %v", v.Name(), err)
+			logrus.Errorf("Cleaning up volume storage for volume %q: %v", v.Name(), err)
 		}
 	}
 

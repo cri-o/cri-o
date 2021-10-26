@@ -51,6 +51,20 @@ type InspectPodData struct {
 	// Containers gives a brief summary of all containers in the pod and
 	// their current status.
 	Containers []InspectPodContainerInfo `json:"Containers,omitempty"`
+	// CPUPeriod contains the CPU period of the pod
+	CPUPeriod uint64 `json:"cpu_period,omitempty"`
+	// CPUQuota contains the CPU quota of the pod
+	CPUQuota int64 `json:"cpu_quota,omitempty"`
+	// CPUSetCPUs contains linux specific CPU data for the pod
+	CPUSetCPUs string `json:"cpuset_cpus,omitempty"`
+	// Mounts contains volume related information for the pod
+	Mounts []InspectMount `json:"mounts,omitempty"`
+	// Devices contains the specified host devices
+	Devices []InspectDevice `json:"devices,omitempty"`
+	// BlkioDeviceReadBps contains the Read/Access limit for the pod's devices
+	BlkioDeviceReadBps []InspectBlkioThrottleDevice `json:"device_read_bps,omitempty"`
+	// VolumesFrom contains the containers that the pod inherits mounts from
+	VolumesFrom []string `json:"volumes_from,omitempty"`
 }
 
 // InspectPodInfraConfig contains the configuration of the pod's infra
@@ -91,6 +105,12 @@ type InspectPodInfraConfig struct {
 	Networks []string
 	// NetworkOptions are additional options for each network
 	NetworkOptions map[string][]string
+	// CPUPeriod contains the CPU period of the pod
+	CPUPeriod uint64 `json:"cpu_period,omitempty"`
+	// CPUQuota contains the CPU quota of the pod
+	CPUQuota int64 `json:"cpu_quota,omitempty"`
+	// CPUSetCPUs contains linux specific CPU data for the container
+	CPUSetCPUs string `json:"cpuset_cpus,omitempty"`
 	// Pid is the PID namespace mode of the pod's infra container
 	PidNS string `json:"pid_ns,omitempty"`
 	// UserNS is the usernamespace that all the containers in the pod will join.

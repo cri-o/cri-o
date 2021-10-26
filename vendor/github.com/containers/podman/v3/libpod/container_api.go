@@ -53,7 +53,7 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 
 	if err := c.prepare(); err != nil {
 		if err2 := c.cleanup(ctx); err2 != nil {
-			logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+			logrus.Errorf("Cleaning up container %s: %v", c.ID(), err2)
 		}
 		return err
 	}
@@ -184,7 +184,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		return define.ErrCtrStopped
 	}
 
-	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopping) {
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created or running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
@@ -229,6 +229,10 @@ func (c *Container) Kill(signal uint) error {
 // This function returns when the attach finishes. It does not hold the lock for
 // the duration of its runtime, only using it at the beginning to verify state.
 func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize) error {
+	switch c.LogDriver() {
+	case define.PassthroughLogging:
+		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'passthrough' log driver, cannot attach")
+	}
 	if !c.batched {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {
@@ -686,7 +690,7 @@ func (c *Container) Sync() error {
 
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
-	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopped, define.ContainerStateStopping) {
+	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopped) {
 		oldState := c.state.State
 		if err := c.ociRuntime.UpdateContainerStatus(c); err != nil {
 			return err
