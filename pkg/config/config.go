@@ -68,6 +68,7 @@ type Config struct {
 	NetworkConfig
 	MetricsConfig
 	TracingConfig
+	StatsConfig
 	SystemContext *types.SystemContext
 }
 
@@ -513,6 +514,13 @@ type TracingConfig struct {
 	TracingSamplingRatePerMillion int `toml:"tracing_sampling_rate_per_million"`
 }
 
+// StatsConfig specifies all necessary configuration for reporting container and pod stats
+type StatsConfig struct {
+	// StatsCollectionPeriod is the number of seconds between collecting pod and container stats.
+	// If set to 0, the stats are collected on-demand instead.
+	StatsCollectionPeriod int `toml:"stats_collection_period"`
+}
+
 // tomlConfig is another way of looking at a Config, which is
 // TOML-friendly (it has all of the explicit tables). It's just used for
 // conversions.
@@ -525,6 +533,7 @@ type tomlConfig struct {
 		Network struct{ NetworkConfig } `toml:"network"`
 		Metrics struct{ MetricsConfig } `toml:"metrics"`
 		Tracing struct{ TracingConfig } `toml:"tracing"`
+		Stats   struct{ StatsConfig }   `toml:"stats"`
 	} `toml:"crio"`
 }
 
@@ -541,6 +550,7 @@ func (t *tomlConfig) toConfig(c *Config) {
 	c.NetworkConfig = t.Crio.Network.NetworkConfig
 	c.MetricsConfig = t.Crio.Metrics.MetricsConfig
 	c.TracingConfig = t.Crio.Tracing.TracingConfig
+	c.StatsConfig = t.Crio.Stats.StatsConfig
 	t.SetSystemContext(c)
 }
 
@@ -552,6 +562,7 @@ func (t *tomlConfig) fromConfig(c *Config) {
 	t.Crio.Network.NetworkConfig = c.NetworkConfig
 	t.Crio.Metrics.MetricsConfig = c.MetricsConfig
 	t.Crio.Tracing.TracingConfig = c.TracingConfig
+	t.Crio.Stats.StatsConfig = c.StatsConfig
 }
 
 // UpdateFromFile populates the Config from the TOML-encoded file at the given

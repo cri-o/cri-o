@@ -351,9 +351,11 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("separate-pull-cgroup") {
 		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
 	}
-
 	if ctx.IsSet("infra-ctr-cpuset") {
 		config.InfraCtrCPUSet = ctx.String("infra-ctr-cpuset")
+	}
+	if ctx.IsSet("stats-collection-period") {
+		config.StatsCollectionPeriod = ctx.Int("stats-collection-period")
 	}
 
 	return nil
@@ -967,6 +969,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   cli.NewStringSlice(defConf.AbsentMountSourcesToReject...),
 			Usage:   "A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory).",
 			EnvVars: []string{"CONTAINER_ABSENT_MOUNT_SOURCES_TO_REJECT"},
+		},
+		&cli.IntFlag{
+			Name:    "stats-collection-period",
+			Value:   defConf.StatsCollectionPeriod,
+			Usage:   "The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead.",
+			EnvVars: []string{"CONTAINER_STATS_COLLECTION_PERIOD"},
 		},
 	}
 }

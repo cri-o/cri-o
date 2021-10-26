@@ -92,6 +92,7 @@ h
 --selinux
 --separate-pull-cgroup
 --signature-policy
+--stats-collection-period
 --storage-driver
 --storage-opt
 --stream-address
