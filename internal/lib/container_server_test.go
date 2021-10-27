@@ -12,6 +12,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -586,7 +587,7 @@ var _ = t.Describe("ContainerServer", func() {
 			container, err := oci.NewContainer(containerID, "", "", "",
 				make(map[string]string), make(map[string]string),
 				make(map[string]string), "", "", "",
-				&oci.Metadata{}, sandboxID, false,
+				&types.ContainerMetadata{}, sandboxID, false,
 				false, false, "", "/invalid", time.Now(), "")
 			Expect(err).To(BeNil())
 

@@ -12,6 +12,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/cri-o/cri-o/test/framework"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	libmock "github.com/cri-o/cri-o/test/mocks/lib"
@@ -142,14 +143,14 @@ func beforeEach() {
 	// Setup test vars
 	mySandbox, err = sandbox.New(sandboxID, "", "", "", "",
 		make(map[string]string), make(map[string]string), "", "",
-		&sandbox.Metadata{}, "", "", false, "", "", "",
+		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
 		[]*hostport.PortMapping{}, false, time.Now(), "")
 	Expect(err).To(BeNil())
 
 	myContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", "", "",
-		&oci.Metadata{}, sandboxID, false,
+		&types.ContainerMetadata{}, sandboxID, false,
 		false, false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
 }

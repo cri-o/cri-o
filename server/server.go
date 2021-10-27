@@ -65,8 +65,6 @@ type Server struct {
 	monitorsChan      chan struct{}
 	defaultIDMappings *idtools.IDMappings
 
-	updateLock sync.RWMutex
-
 	// pullOperationsInProgress is used to avoid pulling the same image in parallel. Goroutines
 	// will block on the pullResult.
 	pullOperationsInProgress map[pullArguments]*pullOperation

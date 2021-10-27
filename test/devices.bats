@@ -15,18 +15,6 @@ function teardown() {
 	cleanup_test
 }
 
-function create_device_runtime() {
-	cat << EOF > "$CRIO_CONFIG_DIR/01-device.conf"
-[crio.runtime]
-default_runtime = "device"
-[crio.runtime.runtimes.device]
-runtime_path = "$RUNTIME_BINARY_PATH"
-runtime_root = "$RUNTIME_ROOT"
-runtime_type = "$RUNTIME_TYPE"
-allowed_annotations = ["io.kubernetes.cri-o.Devices"]
-EOF
-}
-
 @test "additional devices support" {
 	OVERRIDE_OPTIONS="--additional-devices /dev/null:/dev/qifoo:rwm" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
@@ -80,7 +68,7 @@ EOF
 }
 
 @test "annotation devices support" {
-	create_device_runtime
+	create_runtime_with_allowed_annotation "device" "io.kubernetes.cri-o.Devices"
 	start_crio
 
 	jq '      .annotations."io.kubernetes.cri-o.Devices" = "/dev/null:/dev/qifoo:rwm"' \
@@ -110,7 +98,7 @@ EOF
 }
 
 @test "annotation should override configured additional_devices" {
-	create_device_runtime
+	create_runtime_with_allowed_annotation "device" "io.kubernetes.cri-o.Devices"
 
 	OVERRIDE_OPTIONS="--additional-devices /dev/urandom:/dev/qifoo:rwm" start_crio
 
@@ -128,7 +116,7 @@ EOF
 }
 
 @test "annotation should configure multiple devices" {
-	create_device_runtime
+	create_runtime_with_allowed_annotation "device" "io.kubernetes.cri-o.Devices"
 	start_crio
 
 	jq '      .annotations."io.kubernetes.cri-o.Devices" = "/dev/null:/dev/qifoo:rwm,/dev/urandom:/dev/peterfoo:rwm"' \
@@ -147,7 +135,7 @@ EOF
 }
 
 @test "annotation should fail if one device is invalid" {
-	create_device_runtime
+	create_runtime_with_allowed_annotation "device" "io.kubernetes.cri-o.Devices"
 	start_crio
 
 	jq '      .annotations."io.kubernetes.cri-o.Devices" = "/dev/null:/dev/qifoo:rwm,/dove/null"' \

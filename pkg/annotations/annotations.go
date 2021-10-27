@@ -31,6 +31,10 @@ const (
 
 	// OCISeccompBPFHookAnnotation is the annotation used by the OCI seccomp BPF hook for tracing container syscalls
 	OCISeccompBPFHookAnnotation = "io.containers.trace-syscall"
+
+	// TrySkipVolumeSELinuxLabelAnnotation is the annotation used for optionally skipping relabeling a volume
+	// with the specified SELinux label.  The relabeling will be skipped if the top layer is already labeled correctly.
+	TrySkipVolumeSELinuxLabelAnnotation = "io.kubernetes.cri-o.TrySkipVolumeSELinuxLabel"
 )
 
 var AllAllowedAnnotations = []string{
@@ -43,4 +47,5 @@ var AllAllowedAnnotations = []string{
 	IRQLoadBalancingAnnotation,
 	OCISeccompBPFHookAnnotation,
 	rdt.RdtContainerAnnotation,
+	TrySkipVolumeSELinuxLabelAnnotation,
 }

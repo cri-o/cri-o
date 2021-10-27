@@ -132,5 +132,10 @@ func (c *Container) validate() error {
 		return errors.Wrapf(define.ErrInvalidArg, "please set User explicitly via WithUser() instead of in OCI spec directly")
 	}
 
+	// Init-ctrs must be used inside a Pod.  Check if a init container type is
+	// passed and if no pod is passed
+	if len(c.config.InitContainerType) > 0 && len(c.config.Pod) < 1 {
+		return errors.Wrap(define.ErrInvalidArg, "init containers must be created in a pod")
+	}
 	return nil
 }

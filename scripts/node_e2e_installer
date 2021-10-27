@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Commit to run upstream node e2e tests
-NODE_E2E_COMMIT=87d9f169dad21a9049f25e47c3c8f78635bea340
+NODE_E2E_COMMIT=eb02bc9caa0ba88f590e95744fc5a76dc9f8559f
 
 enable_selinux() {
     # Make sure SELinux is enabled
@@ -15,7 +15,7 @@ enable_selinux() {
 
 install_crio() {
     # Download and install CRIO
-    curl --fail --retry 5 --retry-delay 3 --silent --show-error -o /usr/local/crio-install.sh https://raw.githubusercontent.com/cri-o/cri-o/master/scripts/get
+    curl --fail --retry 5 --retry-delay 3 --silent --show-error -o /usr/local/crio-install.sh https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get
     bash /usr/local/crio-install.sh -t "$NODE_E2E_COMMIT"
 
     # Setup SELinux labels
@@ -49,6 +49,11 @@ EOF
 [crio.runtime.runtimes]
 [crio.runtime.runtimes.test-handler]
     runtime_path="/usr/local/bin/crun"
+EOF
+
+    cat <<EOF >/etc/crio/crio.conf.d/30-infra-container.conf
+[crio.runtime]
+drop_infra_ctr = false
 EOF
 
 }

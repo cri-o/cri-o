@@ -55,9 +55,9 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
   only happen when CRI-O has been upgraded
 
 **internal_wipe**=true
+  **This option is currently DEPRECATED, and will be removed in the future.**
   Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts.
   If set to false, one must run `crio wipe` to wipe the containers and images in these situations.
-  This option is deprecated, and will be removed in the future.
 
 **clean_shutdown_file**="/var/lib/crio/clean.shutdown"
   Location for CRI-O to lay down the clean shutdown file.
@@ -201,11 +201,6 @@ the container runtime configuration.
 
     2) `/usr/share/containers/mounts.conf`: This is the default file read for mounts. If you want CRI-O to read from a different, specific mounts file, you can change the default_mounts_file. Note, if this is done, CRI-O will only add mounts it finds in this file.
 
-**bind_mount_prefix**="prefix"
-  A prefix to use for the source of the bind mounts.
-
-  One potential use for this option would be running CRI-O in a container, and mounting / on the host as /host in the container.  CRI-O could then be ran with --bind-mount-prefix=/host, and CRI-O would add /host to any bind mounts it hands over the CRI, thus specifying the correct directory on the host.
-
 **pids_limit**=1024
   Maximum number of processes allowed in a container.
 
@@ -264,7 +259,7 @@ the container runtime configuration.
   Changes the default behavior of setting container devices uid/gid from CRI's SecurityContext (RunAsUser/RunAsGroup) instead of taking host's uid/gid.
 
 ### CRIO.RUNTIME.RUNTIMES TABLE
-The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime_handler provided by the CRI.  If no runtime_handler is provided, the runtime will be picked based on the level of trust of the workload.
+The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime handler provided by the CRI.  If no runtime handler is provided, the runtime will be picked based on the level of trust of the workload.
 
 **runtime_path**=""
   Path to the OCI compatible runtime used for this runtime handler.
@@ -282,12 +277,44 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
   Whether this runtime handler prevents host devices from being passed to privileged containers.
 
 **allowed_annotations**=[]
+  **This field is currently DEPRECATED. If you'd like to use allowed_annotations, please use a workload.**
   A list of experimental annotations this runtime handler is allowed to process.
   The currently recognized values are:
   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+  "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
+
+### CRIO.RUNTIME.WORKLOADS TABLE
+The "crio.runtime.workloads" table defines a list of workloads - a way to customize the behavior of a pod and container.
+A workload is chosen for a pod based on whether the workload's **activation_annotation** is an annotation on the pod.
+
+**activation_annotation**=""
+  activation_annotation is the pod annotation that activates these workload settings.
+
+**annotation_prefix**=""
+  annotation_prefix is the way a pod can override a specific resource for a container.
+  The full annotation must be of the form `$annotation_prefix.$resource/$ctrname = $value`.
+
+**allowed_annotations**=[]
+  allowed_annotations is a slice of experimental annotations that this workload is allowed to process.
+  The currently recognized values are:
+  "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
+  "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
+  "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
+  "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+  "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
+
+### CRIO.RUNTIME.WORKLOAD.RESOURCES TABLE
+The resources table is a structure for overriding certain resources for pods using this workload.
+This structure provides a default value, and can be overridden by using the AnnotationPrefix.
+
+**cpushares**=""
+Specifies the number of CPU shares this pod has access to.
+
+**cpuset**=""
+Specifies the cpuset this pod has access to.
 
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.
@@ -300,7 +327,7 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **global_auth_file**=""
   The path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
 
-**pause_image**="k8s.gcr.io/pause:3.5"
+**pause_image**="k8s.gcr.io/pause:3.6"
   The image used to instantiate infra containers. This option supports live configuration reload.
 
 **pause_image_auth_file**=""

@@ -84,7 +84,7 @@ make CONTAINER_DEFAULT_RUNTIME=containerd-shim-kata-v2 RUNTIME_TYPE=vm localinte
 
 ## Writing integration tests
 
-[Helper functions](https://github.com/cri-o/cri-o/blob/master/test/helpers.bash)
+[Helper functions](https://github.com/cri-o/cri-o/blob/main/test/helpers.bash)
 are provided in order to facilitate writing tests.
 
 ```sh

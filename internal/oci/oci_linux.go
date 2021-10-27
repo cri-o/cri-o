@@ -39,7 +39,7 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 	}
 
 	// Move conmon to specified cgroup
-	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.id, cgroupParent, r.config.ConmonCgroup, pid, g.Config.Linux.Resources)
+	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.ID(), cgroupParent, r.config.ConmonCgroup, pid, g.Config.Linux.Resources)
 	if err != nil {
 		return err
 	}

@@ -73,6 +73,8 @@ crio
 [--pause-image]=[value]
 [--pids-limit]=[value]
 [--pinns-path]=[value]
+[--profile-cpu]=[value]
+[--profile-mem]=[value]
 [--profile-port]=[value]
 [--profile]
 [--rdt-config-file]=[value]
@@ -282,7 +284,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--pause-command**="": Path to the pause executable in the pause image (default: /pause)
 
-**--pause-image**="": Image which contains the pause executable (default: k8s.gcr.io/pause:3.5)
+**--pause-image**="": Image which contains the pause executable (default: k8s.gcr.io/pause:3.6)
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 
@@ -291,6 +293,10 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: "")
 
 **--profile**: Enable pprof remote profiler on localhost:6060
+
+**--profile-cpu**="": Write a pprof CPU profile to the provided path
+
+**--profile-mem**="": Write a pprof memory profile to the provided path
 
 **--profile-port**="": Port for the pprof profiler (default: 6060)
 

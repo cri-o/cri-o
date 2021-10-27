@@ -701,6 +701,16 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Enable pprof remote profiler on localhost:6060",
 			EnvVars: []string{"CONTAINER_PROFILE"},
 		},
+		&cli.StringFlag{
+			Name:    "profile-cpu",
+			Usage:   "Write a pprof CPU profile to the provided path",
+			EnvVars: []string{"CONTAINER_PROFILE_CPU"},
+		},
+		&cli.StringFlag{
+			Name:    "profile-mem",
+			Usage:   "Write a pprof memory profile to the provided path",
+			EnvVars: []string{"CONTAINER_PROFILE_MEM"},
+		},
 		&cli.IntFlag{
 			Name:    "profile-port",
 			Value:   6060,

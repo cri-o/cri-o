@@ -586,6 +586,9 @@ func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName
 	}
 	if err := json.NewEncoder(stdin).Encode(&stdinArguments); err != nil {
 		stdin.Close()
+		if waitErr := cmd.Wait(); waitErr != nil {
+			return errors.Wrap(err, waitErr.Error())
+		}
 		return errors.Wrap(err, "json encode to pipe failed")
 	}
 	stdin.Close()

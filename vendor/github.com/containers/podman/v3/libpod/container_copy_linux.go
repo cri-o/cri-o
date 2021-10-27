@@ -15,8 +15,8 @@ import (
 	"github.com/containers/buildah/util"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/docker/docker/pkg/archive"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -174,7 +174,7 @@ func (c *Container) copyToArchive(ctx context.Context, path string, writer io.Wr
 
 // getContainerUser returns the specs.User and ID mappings of the container.
 func getContainerUser(container *Container, mountPoint string) (specs.User, error) {
-	userspec := container.Config().User
+	userspec := container.config.User
 
 	uid, gid, _, err := chrootuser.GetUser(mountPoint, userspec)
 	u := specs.User{

@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
@@ -30,7 +32,9 @@ import (
 	"github.com/containers/podman/v3/libpod/shutdown"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/systemd"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/podman/v3/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -327,6 +331,24 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 	runtime.mergeDBConfig(dbConfig)
 
+	unified, _ := cgroups.IsCgroup2UnifiedMode()
+	if unified && rootless.IsRootless() && !systemd.IsSystemdSessionValid(rootless.GetRootlessUID()) {
+		// If user is rootless and XDG_RUNTIME_DIR is found, podman will not proceed with /tmp directory
+		// it will try to use existing XDG_RUNTIME_DIR
+		// if current user has no write access to XDG_RUNTIME_DIR we will fail later
+		if err := unix.Access(runtime.storageConfig.RunRoot, unix.W_OK); err != nil {
+			msg := "XDG_RUNTIME_DIR is pointing to a path which is not writable. Most likely podman will fail."
+			if errors.Is(err, os.ErrNotExist) {
+				// if dir does not exists try to create it
+				if err := os.MkdirAll(runtime.storageConfig.RunRoot, 0700); err != nil {
+					logrus.Warn(msg)
+				}
+			} else {
+				logrus.Warn(msg)
+			}
+		}
+	}
+
 	logrus.Debugf("Using graph driver %s", runtime.storageConfig.GraphDriverName)
 	logrus.Debugf("Using graph root %s", runtime.storageConfig.GraphRoot)
 	logrus.Debugf("Using run root %s", runtime.storageConfig.RunRoot)
@@ -500,6 +522,15 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		// no containers running.  Create immediately a namespace, as
 		// we will need to access the storage.
 		if needsUserns {
+			// warn users if mode is rootless and cgroup manager is systemd
+			// and no valid systemd session is present
+			// warn only whenever new namespace is created
+			if runtime.config.Engine.CgroupManager == config.SystemdCgroupsManager {
+				unified, _ := cgroups.IsCgroup2UnifiedMode()
+				if unified && rootless.IsRootless() && !systemd.IsSystemdSessionValid(rootless.GetRootlessUID()) {
+					logrus.Debug("Invalid systemd user session for current user")
+				}
+			}
 			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
 			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
@@ -510,6 +541,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 				return err
 			}
 			if became {
+				utils.MovePauseProcessToScope(pausePid)
 				os.Exit(ret)
 			}
 		}
@@ -939,6 +971,11 @@ func (r *Runtime) SystemContext() *types.SystemContext {
 // GetOCIRuntimePath retrieves the path of the default OCI runtime.
 func (r *Runtime) GetOCIRuntimePath() string {
 	return r.defaultOCIRuntime.Path()
+}
+
+// DefaultOCIRuntime return copy of Default OCI Runtime
+func (r *Runtime) DefaultOCIRuntime() OCIRuntime {
+	return r.defaultOCIRuntime
 }
 
 // StorageConfig retrieves the storage options for the container runtime

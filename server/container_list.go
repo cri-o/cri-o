@@ -77,28 +77,10 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 		if !ctr.Created() {
 			continue
 		}
-		podSandboxID := ctr.Sandbox()
+		c := ctr.CRIContainer()
 		cState := ctr.StateNoLock()
-		created := ctr.CreatedAt().UnixNano()
-		rState := types.ContainerStateContainerUnknown
-		cID := ctr.ID()
-		img := &types.ImageSpec{
-			Image: ctr.Image(),
-		}
-		c := &types.Container{
-			ID:           cID,
-			PodSandboxID: podSandboxID,
-			CreatedAt:    created,
-			Labels:       ctr.Labels(),
-			Metadata: &types.ContainerMetadata{
-				Name:    ctr.Metadata().Name,
-				Attempt: ctr.Metadata().Attempt,
-			},
-			Annotations: ctr.Annotations(),
-			Image:       img,
-			ImageRef:    ctr.ImageRef(),
-		}
 
+		rState := types.ContainerStateContainerUnknown
 		switch cState.Status {
 		case oci.ContainerStateCreated:
 			rState = types.ContainerStateContainerCreated
