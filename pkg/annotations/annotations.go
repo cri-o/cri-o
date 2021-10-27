@@ -8,6 +8,9 @@ const (
 	// UsernsMode is the user namespace mode to use
 	UsernsModeAnnotation = "io.kubernetes.cri-o.userns-mode"
 
+	// CgroupRW specifies mounting v2 cgroups as an rw filesystem.
+	Cgroup2RWAnnotation = "io.kubernetes.cri-o.cgroup2-mount-hierarchy-rw"
+
 	// UnifiedCgroupAnnotation specifies the unified configuration for cgroup v2
 	UnifiedCgroupAnnotation = "io.kubernetes.cri-o.UnifiedCgroup"
 
@@ -39,6 +42,7 @@ const (
 
 var AllAllowedAnnotations = []string{
 	UsernsModeAnnotation,
+	Cgroup2RWAnnotation,
 	UnifiedCgroupAnnotation,
 	ShmSizeAnnotation,
 	DevicesAnnotation,

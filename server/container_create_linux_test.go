@@ -34,7 +34,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false)
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,7 +78,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false)
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -90,5 +90,74 @@ func TestAddOCIBindsForSys(t *testing.T) {
 	}
 	if howManySys != 1 {
 		t.Error("there is not a single /sys bind mount")
+	}
+}
+
+func TestAddOCIBindsCGroupRW(t *testing.T) {
+	ctr, err := container.New()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if err := ctr.SetConfig(&types.ContainerConfig{
+		Metadata: &types.ContainerMetadata{
+			Name: "testctr",
+		},
+	}, &types.PodSandboxConfig{
+		Metadata: &types.PodSandboxMetadata{
+			Name: "testpod",
+		},
+	}); err != nil {
+		t.Error(err)
+	}
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+	var hasCgroupRW bool
+	for _, m := range ctr.Spec().Mounts() {
+		if m.Destination == "/sys/fs/cgroup" {
+			for _, o := range m.Options {
+				if o == "rw" {
+					hasCgroupRW = true
+				}
+			}
+		}
+	}
+	if !hasCgroupRW {
+		t.Error("Cgroup mount not added with RW.")
+	}
+
+	ctr, err = container.New()
+	if err != nil {
+		t.Error(err)
+	}
+	if err := ctr.SetConfig(&types.ContainerConfig{
+		Metadata: &types.ContainerMetadata{
+			Name: "testctr",
+		},
+	}, &types.PodSandboxConfig{
+		Metadata: &types.PodSandboxMetadata{
+			Name: "testpod",
+		},
+	}); err != nil {
+		t.Error(err)
+	}
+	var hasCgroupRO bool
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false)
+	if err != nil {
+		t.Error(err)
+	}
+	for _, m := range ctr.Spec().Mounts() {
+		if m.Destination == "/sys/fs/cgroup" {
+			for _, o := range m.Options {
+				if o == "ro" {
+					hasCgroupRO = true
+				}
+			}
+		}
+	}
+	if !hasCgroupRO {
+		t.Error("Cgroup mount not added with RO.")
 	}
 }
