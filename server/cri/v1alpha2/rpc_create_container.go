@@ -44,13 +44,15 @@ func (s *service) CreateContainer(
 			r.Config.Linux = types.NewLinuxContainerConfig()
 			if req.Config.Linux.Resources != nil {
 				r.Config.Linux.Resources = &types.LinuxContainerResources{
-					CPUPeriod:          req.Config.Linux.Resources.CpuPeriod,
-					CPUQuota:           req.Config.Linux.Resources.CpuQuota,
-					CPUShares:          req.Config.Linux.Resources.CpuShares,
-					MemoryLimitInBytes: req.Config.Linux.Resources.MemoryLimitInBytes,
-					OomScoreAdj:        req.Config.Linux.Resources.OomScoreAdj,
-					CPUsetCPUs:         req.Config.Linux.Resources.CpusetCpus,
-					CPUsetMems:         req.Config.Linux.Resources.CpusetMems,
+					CPUPeriod:              req.Config.Linux.Resources.CpuPeriod,
+					CPUQuota:               req.Config.Linux.Resources.CpuQuota,
+					CPUShares:              req.Config.Linux.Resources.CpuShares,
+					MemoryLimitInBytes:     req.Config.Linux.Resources.MemoryLimitInBytes,
+					OomScoreAdj:            req.Config.Linux.Resources.OomScoreAdj,
+					CPUsetCPUs:             req.Config.Linux.Resources.CpusetCpus,
+					CPUsetMems:             req.Config.Linux.Resources.CpusetMems,
+					Unified:                req.Config.Linux.Resources.Unified,
+					MemorySwapLimitInBytes: req.Config.Linux.Resources.MemorySwapLimitInBytes,
 				}
 				hugepageLimits := []*types.HugepageLimit{}
 				for _, x := range req.Config.Linux.Resources.HugepageLimits {

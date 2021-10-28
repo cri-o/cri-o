@@ -3,6 +3,7 @@
 load helpers
 
 function setup() {
+	newconfig="$TESTDIR/config.json"
 	setup_test
 }
 
@@ -35,4 +36,54 @@ function teardown() {
 
 	output=$(systemctl status "crio-conmon-$pod_id.scope")
 	[[ "$output" == *"customcrioconmon.slice"* ]]
+}
+
+@test "ctr with swap should be configured" {
+	if ! grep -v Filename < /proc/swaps; then
+		skip "swap not enabled"
+	fi
+	start_crio
+	# memsw should be greater than or equal to memory limit
+	# 210763776 = 1024*1024*200
+	jq '	  .linux.resources.memory_swap_limit_in_bytes = 210763776
+	 	|     .linux.resources.memory_limit_in_bytes = 209715200' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+	set_swap_fields_given_cgroup_version
+
+	if test -r "$CGROUP_MEM_SWAP_FILE"; then
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE")
+		[[ "$output" == "210763776" ]]
+	fi
+}
+
+@test "ctr with swap should fail when swap is lower" {
+	if ! grep -v Filename < /proc/swaps; then
+		skip "swap not enabled"
+	fi
+	start_crio
+	# memsw should be greater than or equal to memory limit
+	# 210763776 = 1024*1024*200
+	jq '	  .linux.resources.memory_swap_limit_in_bytes = 209715200
+	    |     .linux.resources.memory_limit_in_bytes = 210763776' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+
+	! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
+}
+
+@test "cgroupv2 unified support" {
+	if ! is_cgroup_v2; then
+		skip "node must be configured with cgroupv2 for this test"
+	fi
+	start_crio
+
+	jq '	  .linux.resources.unified = {"memory.min": "209715200", "memory.high": "210763776"}' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory.min")
+	[[ "$output" == *"209715200"* ]]
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory.high")
+	[[ "$output" == *"210763776"* ]]
 }
