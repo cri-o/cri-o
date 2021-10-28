@@ -31,7 +31,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-logr/logr v1.2.0
 	github.com/go-zoo/bone v1.3.0
-	github.com/godbus/dbus/v5 v5.0.5
+	github.com/godbus/dbus/v5 v5.0.6
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0
 	github.com/google/renameio v1.0.1
