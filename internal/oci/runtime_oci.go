@@ -358,6 +358,13 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 			if err != nil {
 				return err
 			}
+
+			u := c.Spec().Process.User
+			// Change the owner for the pipe to the user in the container
+			if err := unix.Fchown(int(r.Fd()), int(u.UID), int(u.GID)); err != nil {
+				return err
+			}
+
 			execCmd.Stdin = r
 			go func() {
 				_, copyError = pools.Copy(w, stdin)
