@@ -126,8 +126,8 @@ func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) e
 		return nil
 	}
 
-	done := make(chan error)
-	chControl := make(chan struct{})
+	done := make(chan error, 1)
+	chControl := make(chan struct{}, 1)
 	go func() {
 		defer close(done)
 		for {
