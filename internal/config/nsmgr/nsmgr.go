@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/google/uuid"
@@ -184,4 +185,20 @@ func getSysctlForPinns(sysctls map[string]string) string {
 // which is of the form `$namespaceDir/$nsType+"ns"`
 func (mgr *NamespaceManager) dirForType(ns NSType) string {
 	return filepath.Join(mgr.namespacesDir, string(ns)+"ns")
+}
+
+// NamespacePathFromProc returns the namespace path of type nsType for a given pid and type.
+func NamespacePathFromProc(nsType NSType, pid int) string {
+	// verify nsPath exists on the host. This will prevent us from fatally erroring
+	// on network tear down if the path doesn't exist
+	// Technically, this is pretty racy, but so is every check using the infra container PID.
+	nsPath := fmt.Sprintf("/proc/%d/ns/%s", pid, nsType)
+	if _, err := os.Stat(nsPath); err != nil {
+		return ""
+	}
+	// verify the path we found is indeed a namespace
+	if err := nspkg.IsNSorErr(nsPath); err != nil {
+		return ""
+	}
+	return nsPath
 }
