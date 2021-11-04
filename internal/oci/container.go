@@ -15,6 +15,7 @@ import (
 	"github.com/containers/common/pkg/signal"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -72,6 +73,7 @@ type Container struct {
 	stoppedChan        chan struct{}
 	stopStoppingChan   chan struct{}
 	stopLock           sync.Mutex
+	pidns              nsmgr.Namespace
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -588,4 +590,8 @@ func (c *Container) SetAsNotStopping() {
 	c.stopLock.Lock()
 	c.stopping = false
 	c.stopLock.Unlock()
+}
+
+func (c *Container) AddManagedPIDNamespace(ns nsmgr.Namespace) {
+	c.pidns = ns
 }
