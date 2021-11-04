@@ -25,6 +25,7 @@ import (
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	ctrIface "github.com/cri-o/cri-o/pkg/container"
 	"github.com/cri-o/cri-o/pkg/sandbox"
 	"github.com/cri-o/cri-o/utils"
 	json "github.com/json-iterator/go"
@@ -1073,36 +1074,9 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 
 	cleanupFuncs = append(cleanupFuncs, sb.RemoveManagedNamespaces)
 
-	if err := configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), g); err != nil {
+	if err := ctrIface.ConfigureGeneratorGivenNamespacePaths(sb.NamespacePaths(), g); err != nil {
 		return cleanupFuncs, err
 	}
 
 	return cleanupFuncs, nil
-}
-
-// configureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
-// to add or replace the defaults to these paths
-func configureGeneratorGivenNamespacePaths(managedNamespaces []*libsandbox.ManagedNamespace, g *generate.Generator) error {
-	typeToSpec := map[nsmgr.NSType]spec.LinuxNamespaceType{
-		nsmgr.IPCNS:  spec.IPCNamespace,
-		nsmgr.NETNS:  spec.NetworkNamespace,
-		nsmgr.UTSNS:  spec.UTSNamespace,
-		nsmgr.USERNS: spec.UserNamespace,
-	}
-
-	for _, ns := range managedNamespaces {
-		// allow for empty paths, as this namespace just shouldn't be configured
-		if ns.Path() == "" {
-			continue
-		}
-		nsForSpec := typeToSpec[ns.Type()]
-		if nsForSpec == "" {
-			return errors.Errorf("Invalid namespace type %s", nsForSpec)
-		}
-		err := g.AddOrReplaceLinuxNamespace(string(nsForSpec), ns.Path())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

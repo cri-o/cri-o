@@ -482,36 +482,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	// Join the namespace paths for the pod sandbox container.
-	if err := configureGeneratorGivenNamespacePaths(sb.NamespacePaths(), specgen); err != nil {
-		return nil, errors.Wrap(err, "failed to configure namespaces in container create")
-	}
-
-	if securityContext.NamespaceOptions.Pid == types.NamespaceMode_NODE {
-		// kubernetes PodSpec specify to use Host PID namespace
-		if err := specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace)); err != nil {
-			return nil, err
-		}
-	} else if securityContext.NamespaceOptions.Pid == types.NamespaceMode_POD {
-		pidNsPath := sb.PidNsPath()
-		if pidNsPath == "" {
-			if sb.NamespaceOptions().Pid != types.NamespaceMode_POD {
-				return nil, errors.New("Pod level PID namespace requested for the container, but pod sandbox was not similarly configured, and does not have an infra container")
-			}
-			return nil, errors.New("PID namespace requested, but sandbox infra container unexpectedly invalid")
-		}
-
-		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
-			return nil, err
-		}
+	if err := ctr.SpecAddNamespaces(sb); err != nil {
+		return nil, err
 	}
 
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
 	if hostNet {
-		if err := specgen.RemoveLinuxNamespace(string(rspec.NetworkNamespace)); err != nil {
-			return nil, err
-		}
-
 		if !isInCRIMounts("/sys", containerConfig.Mounts) {
 			ctr.SpecAddMount(rspec.Mount{
 				Destination: "/sys",

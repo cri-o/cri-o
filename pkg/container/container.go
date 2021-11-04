@@ -102,6 +102,9 @@ type Container interface {
 	// given the image information and passed-in container config
 	SpecSetProcessArgs(imageOCIConfig *v1.Image) error
 
+	// SpecAddNamespaces sets the container's namespaces.
+	SpecAddNamespaces(sb *sandbox.Sandbox) error
+
 	// WillRunSystemd checks whether the process args
 	// are configured to be run as a systemd instance.
 	WillRunSystemd() bool
@@ -260,20 +263,20 @@ func (c *container) Spec() *generate.Generator {
 }
 
 // SetConfig sets the configuration to the container and validates it
-func (c *container) SetConfig(config *types.ContainerConfig, sboxConfig *types.PodSandboxConfig) error {
+func (c *container) SetConfig(cfg *types.ContainerConfig, sboxConfig *types.PodSandboxConfig) error {
 	if c.config != nil {
 		return errors.New("config already set")
 	}
 
-	if config == nil {
+	if cfg == nil {
 		return errors.New("config is nil")
 	}
 
-	if config.Metadata == nil {
+	if cfg.Metadata == nil {
 		return errors.New("metadata is nil")
 	}
 
-	if config.Metadata.Name == "" {
+	if cfg.Metadata.Name == "" {
 		return errors.New("name is nil")
 	}
 
@@ -285,7 +288,7 @@ func (c *container) SetConfig(config *types.ContainerConfig, sboxConfig *types.P
 		return errors.New("sandbox config is already set")
 	}
 
-	c.config = config
+	c.config = cfg
 	c.sboxConfig = sboxConfig
 	return nil
 }
