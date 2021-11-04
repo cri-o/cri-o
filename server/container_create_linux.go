@@ -482,9 +482,23 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	if err := ctr.SpecAddNamespaces(sb); err != nil {
+	var nsTargetCtr *oci.Container
+	if target := containerConfig.Linux.SecurityContext.NamespaceOptions.TargetId; target != "" {
+		nsTargetCtr = s.GetContainer(target)
+	}
+
+	if err := ctr.SpecAddNamespaces(sb, nsTargetCtr, &s.config); err != nil {
 		return nil, err
 	}
+
+	defer func() {
+		if retErr != nil && ctr.PidNamespace() != nil {
+			log.Infof(ctx, "CreateCtrLinux: clearing PID namespace for container %s", containerInfo.ID)
+			if err := ctr.PidNamespace().Remove(); err != nil {
+				log.Warnf(ctx, "Failed to remove PID namespace: %v", err)
+			}
+		}
+	}()
 
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
 	if hostNet {
@@ -759,6 +773,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	specgen.SetLinuxMountLabel(mountLabel)
 	specgen.SetProcessSelinuxLabel(processLabel)
+
+	ociContainer.AddManagedPIDNamespace(ctr.PidNamespace())
 
 	ociContainer.SetIDMappings(containerIDMappings)
 	var rootPair idtools.IDPair

@@ -6,6 +6,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	nsmgrtest "github.com/cri-o/cri-o/internal/config/nsmgr/test"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -15,7 +16,7 @@ import (
 var _ = t.Describe("Container:SpecAddNamespaces", func() {
 	It("should inherit pod namespaces", func() {
 		// Given
-		config := &types.ContainerConfig{
+		ctrConfig := &types.ContainerConfig{
 			Metadata: &types.ContainerMetadata{Name: "name"},
 			Linux: &types.LinuxContainerConfig{
 				SecurityContext: &types.LinuxContainerSecurityContext{
@@ -34,8 +35,8 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		sut.Spec().ClearLinuxNamespaces()
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
-		Expect(sut.SpecAddNamespaces(sb)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
 
 		// Then
 		spec := sut.Spec()
@@ -52,7 +53,7 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 	})
 	It("should drop network if hostNet", func() {
 		// Given
-		config := &types.ContainerConfig{
+		ctrConfig := &types.ContainerConfig{
 			Metadata: &types.ContainerMetadata{Name: "name"},
 			Linux: &types.LinuxContainerConfig{
 				SecurityContext: &types.LinuxContainerSecurityContext{
@@ -70,9 +71,9 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		sb.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
 		sut.Spec().ClearLinuxNamespaces()
-		Expect(sut.SpecAddNamespaces(sb)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
 
 		// Then
 		spec := sut.Spec()
@@ -84,7 +85,7 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 	})
 	It("should drop PID if hostPID", func() {
 		// Given
-		config := &types.ContainerConfig{
+		ctrConfig := &types.ContainerConfig{
 			Metadata: &types.ContainerMetadata{Name: "name"},
 			Linux: &types.LinuxContainerConfig{
 				SecurityContext: &types.LinuxContainerSecurityContext{
@@ -102,9 +103,9 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		sb.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
 		sut.Spec().ClearLinuxNamespaces()
-		Expect(sut.SpecAddNamespaces(sb)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
 
 		// Then
 		spec := sut.Spec()
@@ -116,7 +117,7 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 	})
 	It("should use pod PID", func() {
 		// Given
-		config := &types.ContainerConfig{
+		ctrConfig := &types.ContainerConfig{
 			Metadata: &types.ContainerMetadata{Name: "name"},
 			Linux: &types.LinuxContainerConfig{
 				SecurityContext: &types.LinuxContainerSecurityContext{
@@ -147,9 +148,9 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		sb.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
 		sut.Spec().ClearLinuxNamespaces()
-		Expect(sut.SpecAddNamespaces(sb)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
 
 		// Then
 		spec := sut.Spec()
@@ -163,9 +164,54 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		}
 		Expect(found).To(Equal(true))
 	})
+	It("should use target PID namespace", func() {
+		// Given
+		ctrConfig := &types.ContainerConfig{
+			Metadata: &types.ContainerMetadata{Name: "name"},
+			Linux: &types.LinuxContainerConfig{
+				SecurityContext: &types.LinuxContainerSecurityContext{
+					NamespaceOptions: &types.NamespaceOption{
+						Network: types.NamespaceMode_POD,
+						Ipc:     types.NamespaceMode_POD,
+						Pid:     types.NamespaceMode_TARGET,
+					},
+				},
+			},
+		}
+
+		sboxConfig := &types.PodSandboxConfig{}
+		sb := &sandbox.Sandbox{}
+		targetCtr, err := nsmgrtest.ContainerWithPid(os.Getpid())
+		Expect(err).To(BeNil())
+
+		sb.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
+		cfg := &config.Config{}
+		nsMgr := nsmgr.New(t.MustTempDir("ns"), "")
+		Expect(nsMgr.Initialize()).To(BeNil())
+		cfg.SetNamespaceManager(nsMgr)
+
+		// When
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
+		sut.Spec().ClearLinuxNamespaces()
+		Expect(sut.SpecAddNamespaces(sb, targetCtr, cfg)).To(BeNil())
+		defer Expect(sut.PidNamespace().Remove()).To(BeNil())
+
+		// Then
+		spec := sut.Spec()
+		Expect(len(spec.Config.Linux.Namespaces)).To(Equal(len(nsmgrtest.AllSpoofedNamespaces) + 1))
+
+		found := false
+		for _, specNs := range spec.Config.Linux.Namespaces {
+			if specNs.Type == rspec.PIDNamespace {
+				Expect(specNs.Path).To(Equal(sut.PidNamespace().Path()))
+				found = true
+			}
+		}
+		Expect(found).To(Equal(true))
+	})
 	It("should ignore if empty", func() {
 		// Given
-		config := &types.ContainerConfig{
+		ctrConfig := &types.ContainerConfig{
 			Metadata: &types.ContainerMetadata{Name: "name"},
 			Linux: &types.LinuxContainerConfig{
 				SecurityContext: &types.LinuxContainerSecurityContext{
@@ -186,9 +232,9 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		}})
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
 		sut.Spec().ClearLinuxNamespaces()
-		Expect(sut.SpecAddNamespaces(sb)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
 
 		// Then
 		spec := sut.Spec()

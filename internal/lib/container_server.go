@@ -597,6 +597,9 @@ func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 	}
 	sb.RemoveContainer(ctr)
 	c.RemoveStatsForContainer(ctr)
+	if err := ctr.RemoveManagedPIDNamespace(); err != nil {
+		logrus.Errorf("Failed to remove container %s PID namespace: %v", ctr.ID(), err)
+	}
 	c.state.containers.Delete(ctr.ID())
 }
 

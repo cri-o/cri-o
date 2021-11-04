@@ -3,13 +3,15 @@ package container
 import (
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func (c *container) SpecAddNamespaces(sb *sandbox.Sandbox) error {
+func (c *container) SpecAddNamespaces(sb *sandbox.Sandbox, targetCtr *oci.Container, serverConfig *config.Config) error {
 	// Join the namespace paths for the pod sandbox container.
 	if err := ConfigureGeneratorGivenNamespacePaths(sb.NamespacePaths(), &c.spec); err != nil {
 		return errors.Wrap(err, "failed to configure namespaces in container create")
@@ -41,6 +43,22 @@ func (c *container) SpecAddNamespaces(sb *sandbox.Sandbox) error {
 		if err := c.spec.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
 			return errors.Wrapf(err, "updating container PID namespace to pod")
 		}
+	case types.NamespaceMode_TARGET:
+		if targetCtr == nil {
+			return errors.New("Target PID namespace specified with invalid target ID")
+		}
+		targetPID, err := targetCtr.Pid()
+		if err != nil {
+			return errors.Wrapf(err, "target PID namespace find PID")
+		}
+		ns, err := serverConfig.NamespaceManager().NamespaceFromProcEntry(targetPID, nsmgr.PIDNS)
+		if err != nil {
+			return errors.Wrapf(err, "target PID namespace namespace from proc")
+		}
+		if err := c.spec.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), ns.Path()); err != nil {
+			return errors.Wrapf(err, "updating container PID namespace to target %s", targetCtr.ID())
+		}
+		c.pidns = ns
 	}
 	return nil
 }
@@ -69,4 +87,8 @@ func ConfigureGeneratorGivenNamespacePaths(managedNamespaces []*sandbox.ManagedN
 		}
 	}
 	return nil
+}
+
+func (c *container) PidNamespace() nsmgr.Namespace {
+	return c.pidns
 }

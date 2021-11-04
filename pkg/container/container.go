@@ -13,12 +13,14 @@ import (
 	"github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/config/device"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -103,7 +105,10 @@ type Container interface {
 	SpecSetProcessArgs(imageOCIConfig *v1.Image) error
 
 	// SpecAddNamespaces sets the container's namespaces.
-	SpecAddNamespaces(sb *sandbox.Sandbox) error
+	SpecAddNamespaces(*sandbox.Sandbox, *oci.Container, *config.Config) error
+
+	// PidNamespace returns the pid namespace created by SpecAddNamespaces.
+	PidNamespace() nsmgr.Namespace
 
 	// WillRunSystemd checks whether the process args
 	// are configured to be run as a systemd instance.
@@ -118,6 +123,7 @@ type container struct {
 	name       string
 	privileged bool
 	spec       generate.Generator
+	pidns      nsmgr.Namespace
 }
 
 // New creates a new, empty Sandbox instance
