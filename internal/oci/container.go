@@ -70,6 +70,7 @@ type Container struct {
 	stopping           bool
 	stopTimeoutChan    chan time.Duration
 	stoppedChan        chan struct{}
+	stopStoppingChan   chan struct{}
 	stopLock           sync.Mutex
 }
 
@@ -113,20 +114,21 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			},
 			ImageRef: imageRef,
 		},
-		name:            name,
-		bundlePath:      bundlePath,
-		logPath:         logPath,
-		terminal:        terminal,
-		stdin:           stdin,
-		stdinOnce:       stdinOnce,
-		runtimeHandler:  runtimeHandler,
-		crioAnnotations: crioAnnotations,
-		imageName:       imageName,
-		dir:             dir,
-		state:           state,
-		stopSignal:      stopSignal,
-		stopTimeoutChan: make(chan time.Duration, 1),
-		stoppedChan:     make(chan struct{}, 1),
+		name:             name,
+		bundlePath:       bundlePath,
+		logPath:          logPath,
+		terminal:         terminal,
+		stdin:            stdin,
+		stdinOnce:        stdinOnce,
+		runtimeHandler:   runtimeHandler,
+		crioAnnotations:  crioAnnotations,
+		imageName:        imageName,
+		dir:              dir,
+		state:            state,
+		stopSignal:       stopSignal,
+		stopTimeoutChan:  make(chan time.Duration, 1),
+		stoppedChan:      make(chan struct{}, 1),
+		stopStoppingChan: make(chan struct{}, 1),
 	}
 	return c, nil
 }
@@ -561,11 +563,14 @@ func (c *Container) SetAsStopping(timeout int64) {
 		select {
 		case c.stopTimeoutChan <- time.Duration(timeout) * time.Second:
 		case <-c.stoppedChan: // This case is to avoid waiting forever once another routine has finished.
-			return
+		case <-c.stopStoppingChan: // This case is to avoid deadlocking with SetAsNotStopping.
 		}
+		return
 	}
 	// Regardless, set the container as actively stopping.
 	c.stopping = true
+	// And reset the stopStoppingChan
+	c.stopStoppingChan = make(chan struct{}, 1)
 }
 
 // SetAsNotStopping unsets the stopping field indicating to new callers that the container
