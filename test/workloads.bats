@@ -294,10 +294,10 @@ function check_conmon_fields() {
 }
 
 @test "test workload allowed annotation overrides runtime" {
+	setup_crio
 	create_workload_with_allowed_annotation "io.kubernetes.cri-o.userns-mode"
 	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
-
-	start_crio
+	start_crio_no_setup
 
 	jq '.annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
