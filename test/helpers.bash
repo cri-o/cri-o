@@ -169,6 +169,10 @@ function setup_test() {
         --set disable-pull-on-run=true
 
     PATH=$PATH:$TESTDIR
+
+    RUNTIME_ROOT=${RUNTIME_ROOT:-"$TESTDIR/crio-runtime-root"}
+    # export here so direct calls to crio later inherit the variable
+    export CONTAINER_RUNTIMES=${CONTAINER_RUNTIMES:-$CONTAINER_DEFAULT_RUNTIME:$RUNTIME_BINARY_PATH:$RUNTIME_ROOT:$RUNTIME_TYPE:$PRIVILEGED_WITHOUT_HOST_DEVICES:$RUNTIME_CONFIG_PATH}
 }
 
 # Run crio using the binary specified by $CRIO_BINARY_PATH.
@@ -251,10 +255,6 @@ function setup_crio() {
     # networking by default
     CNI_DEFAULT_NETWORK=${CNI_DEFAULT_NETWORK:-crio}
     CNI_TYPE=${CNI_TYPE:-bridge}
-
-    RUNTIME_ROOT=${RUNTIME_ROOT:-"$TESTDIR/crio-runtime-root"}
-    # export here so direct calls to crio later inherit the variable
-    export CONTAINER_RUNTIMES=${CONTAINER_RUNTIMES:-$CONTAINER_DEFAULT_RUNTIME:$RUNTIME_BINARY_PATH:$RUNTIME_ROOT:$RUNTIME_TYPE:$PRIVILEGED_WITHOUT_HOST_DEVICES:$RUNTIME_CONFIG_PATH}
 
     # generate the default config file
     "$CRIO_BINARY_PATH" config --default >"$CRIO_CONFIG"
