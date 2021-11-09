@@ -395,7 +395,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 				}
 			}
 
-			if node.CgroupIsV2() {
+			if node.CgroupIsV2() && len(resources.Unified) != 0 {
+				if specgen.Config.Linux.Resources.Unified == nil {
+					specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
+				}
 				for key, value := range resources.Unified {
 					specgen.Config.Linux.Resources.Unified[key] = value
 				}
