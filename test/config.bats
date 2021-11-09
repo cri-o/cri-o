@@ -42,6 +42,7 @@ function teardown() {
 @test "replace default runtime should succeed" {
 	# when
 	unset CONTAINER_RUNTIMES
+	unset CONTAINER_DEFAULT_RUNTIME
 	RES=$("$CRIO_BINARY_PATH" -c "$TESTDATA"/50-crun-default.conf -d "" config 2>&1)
 
 	# then
@@ -52,6 +53,8 @@ function teardown() {
 
 @test "retain default runtime should succeed" {
 	# when
+	unset CONTAINER_RUNTIMES
+	unset CONTAINER_DEFAULT_RUNTIME
 	RES=$("$CRIO_BINARY_PATH" -c "$TESTDATA"/50-crun.conf -d "" config 2>&1)
 
 	# then
