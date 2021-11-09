@@ -27,15 +27,15 @@ CRICTL_PATH=$(command -v crictl || true)
 CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
 # Path of the conmon binary set as a variable to allow overwriting.
 CONMON_BINARY=${CONMON_BINARY:-$(command -v conmon)}
+# Note: all of the fields that start with CONTAINER_ (CRI-O env variables)
+# should be exported, so when we call CRI-O it inherits them.
 # Cgroup for the conmon process
-CONTAINER_CONMON_CGROUP=${CONTAINER_CONMON_CGROUP:-pod}
+export CONTAINER_CONMON_CGROUP=${CONTAINER_CONMON_CGROUP:-pod}
 # Path of the default seccomp profile.
-CONTAINER_SECCOMP_PROFILE=${CONTAINER_SECCOMP_PROFILE:-${CRIO_ROOT}/vendor/github.com/containers/common/pkg/seccomp/seccomp.json}
-CONTAINER_UID_MAPPINGS=${CONTAINER_UID_MAPPINGS:-}
-CONTAINER_GID_MAPPINGS=${CONTAINER_GID_MAPPINGS:-}
+export CONTAINER_SECCOMP_PROFILE=${CONTAINER_SECCOMP_PROFILE:-${CRIO_ROOT}/vendor/github.com/containers/common/pkg/seccomp/seccomp.json}
 OVERRIDE_OPTIONS=${OVERRIDE_OPTIONS:-}
 # Runtime
-CONTAINER_DEFAULT_RUNTIME=${CONTAINER_DEFAULT_RUNTIME:-runc}
+export CONTAINER_DEFAULT_RUNTIME=${CONTAINER_DEFAULT_RUNTIME:-runc}
 RUNTIME_BINARY_PATH=$(command -v "$CONTAINER_DEFAULT_RUNTIME")
 RUNTIME_TYPE=${RUNTIME_TYPE:-oci}
 PRIVILEGED_WITHOUT_HOST_DEVICES=${PRIVILEGED_WITHOUT_HOST_DEVICES:-}
@@ -63,17 +63,9 @@ CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/test/checkseccomp/checks
 # The default log directory where all logs will go unless directly specified by the kubelet
 DEFAULT_LOG_PATH=${DEFAULT_LOG_PATH:-/var/log/crio/pods}
 # Cgroup manager to be used
-CONTAINER_CGROUP_MANAGER=${CONTAINER_CGROUP_MANAGER:-systemd}
-# Image volumes handling
-CONTAINER_IMAGE_VOLUMES=${CONTAINER_IMAGE_VOLUMES:-mkdir}
-# Container pids limit
-CONTAINER_PIDS_LIMIT=${CONTAINER_PIDS_LIMIT:-1024}
-# Log size max limit
-CONTAINER_LOG_SIZE_MAX=${CONTAINER_LOG_SIZE_MAX:--1}
+export CONTAINER_CGROUP_MANAGER=${CONTAINER_CGROUP_MANAGER:-systemd}
 # Stream Port
 STREAM_PORT=${STREAM_PORT:-10010}
-# Metrics Port
-CONTAINER_METRICS_PORT=${CONTAINER_METRICS_PORT:-9090}
 
 POD_IPV4_CIDR="10.88.0.0/16"
 # shellcheck disable=SC2034
