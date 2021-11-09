@@ -1325,7 +1325,7 @@ func (c *RuntimeConfig) ValidateAllowedAnnotations() error {
 		logrus.Infof("Workload does not have an allowed annotation configured. Clearing allowed annotations from runtimes")
 		return nil
 	}
-	logrus.Infof("Workload has an allowed annotation configured. Clearing allowed annotations from runtimes")
+	logrus.Infof("Workload has an allowed annotation configured. Not clearing allowed annotations from runtimes")
 	for name, rh := range c.Runtimes {
 		logrus.Infof("Clearing allowed annotations from %s", name)
 		rh.AllowedAnnotations = []string{}
