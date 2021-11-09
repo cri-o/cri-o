@@ -2,6 +2,12 @@
 
 load helpers
 
+function setup() {
+	# if we don't do this, users can't just set CONTAINER_DEFAULT_RUNTIME and have the test pass as expected.
+	RUNTIME_ROOT=${RUNTIME_ROOT:-"$TESTDIR/crio-runtime-root"}
+	export CONTAINER_RUNTIMES=${CONTAINER_RUNTIMES:-$CONTAINER_DEFAULT_RUNTIME:$RUNTIME_BINARY_PATH:$RUNTIME_ROOT:$RUNTIME_TYPE:$PRIVILEGED_WITHOUT_HOST_DEVICES:$RUNTIME_CONFIG_PATH}
+}
+
 @test "crio commands" {
 	${CRIO_BINARY_PATH} -c /dev/null config > /dev/null
 	! ${CRIO_BINARY_PATH} badoption > /dev/null
