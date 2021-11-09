@@ -557,6 +557,7 @@ runtime_root = "$RUNTIME_ROOT"
 runtime_type = "$RUNTIME_TYPE"
 allowed_annotations = ["$ANNOTATION"]
 EOF
+    export CONTAINER_DEFAULT_RUNTIME="$NAME"
 }
 
 function set_swap_fields_given_cgroup_version() {
