@@ -917,7 +917,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			// Set the DefaultRuntime to runc so we don't fail further along in the code
 			c.DefaultRuntime = defaultRuntime
 		} else {
-			return fmt.Errorf("default_runtime set to %q, but no runtime entry was found for it", c.DefaultRuntime)
+			return fmt.Errorf("default_runtime set to %q, but no runtime entry table [crio.runtime.runtimes.%s] was found", c.DefaultRuntime, c.DefaultRuntime)
 		}
 	}
 
