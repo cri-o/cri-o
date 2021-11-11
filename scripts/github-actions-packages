@@ -18,5 +18,6 @@ sudo apt install -y \
     libseccomp-dev \
     libsystemd-dev \
     libudev-dev \
+    sed \
     socat \
     uuid-dev
