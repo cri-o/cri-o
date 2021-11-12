@@ -35,6 +35,9 @@ function teardown() {
 }
 
 @test "pid namespace mode target test" {
+	if [[ -n "$TEST_USERNS" ]]; then
+		skip "test fails in a user namespace"
+	fi
 	start_crio
 
 	pod1="$TESTDIR"/sandbox1.json
