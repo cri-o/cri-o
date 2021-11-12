@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	branch   = "gh-pages"
-	tokenKey = "GITHUB_TOKEN"
+	branch        = "gh-pages"
+	tokenKey      = "GITHUB_TOKEN"
+	defaultBranch = "main"
 )
 
 var outputPath string
@@ -73,13 +74,13 @@ func run() error {
 	}
 	logrus.Infof("Using HEAD commit %s", head)
 
-	targetBranch := git.DefaultBranch
+	targetBranch := defaultBranch
 	currentBranch, err := repo.CurrentBranch()
 	if err != nil {
 		return errors.Wrap(err, "get current branch")
 	}
 	logrus.Infof("Found current branch %s", currentBranch)
-	if git.IsReleaseBranch(currentBranch) && currentBranch != git.DefaultBranch {
+	if git.IsReleaseBranch(currentBranch) && currentBranch != defaultBranch {
 		targetBranch = currentBranch
 	}
 	logrus.Infof("Using target branch %s", targetBranch)
