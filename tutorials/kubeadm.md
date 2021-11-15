@@ -47,7 +47,6 @@ fi
                                                                                                                                                                                                                                               
 kubeadm config print init-defaults --component-configs=KubeletConfiguration > "$KUBEADM_CONFIG"                                                                                                                                                      
 yq -i eval 'select(.nodeRegistration.criSocket) |= .nodeRegistration.criSocket = "unix:///var/run/crio/crio.sock"' "$KUBEADM_CONFIG"
-yq -i eval 'select(di == 1) |= .cgroupDriver = "systemd"' "$KUBEADM_CONFIG"
 ```
 
 This will create a kubeadm configuration file that kubeadm will use to configure the Kubelet to be able to communicate with CRI-O.
