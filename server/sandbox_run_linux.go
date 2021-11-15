@@ -89,11 +89,20 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 
 	_, uidMappingsPresent := values["uidmapping"]
 	_, gidMappingsPresent := values["gidmapping"]
-	// allow these options only if running as root
+	// limit mappings for pods that aren't going to be running as root
+	minimumMappableUID, minimumMappableGID := s.minimumMappableUID, s.minimumMappableGID
 	if uidMappingsPresent || gidMappingsPresent {
 		user := sc.RunAsUser
-		if user == nil || user.Value != 0 {
+		if user == nil {
 			return nil, errors.New("cannot use uidmapping or gidmapping if not running as root")
+		}
+		if user.Value != 0 {
+			if minimumMappableUID < 0 {
+				return nil, errors.New("cannot use uidmapping or gidmapping if not running as root")
+			}
+			if user.Value < minimumMappableUID {
+				return nil, errors.Errorf("cannot use uidmapping or gidmapping if running as a UID below minimum mappable ID %d", minimumMappableUID)
+			}
 		}
 	}
 
@@ -184,6 +193,21 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 				ret.AutoUserNsOpts.AdditionalGIDMappings = m
 			}
 		}
+		// make sure we haven't asked to map any sensitive and/or privileged IDs
+		if minimumMappableUID >= 0 {
+			for _, uidSlice := range ret.AutoUserNsOpts.AdditionalUIDMappings {
+				if int64(uidSlice.HostID) < minimumMappableUID {
+					return nil, errors.Errorf("not allowed to map UID range (%d-%d), below minimum mappable UID %d", uidSlice.HostID, uidSlice.HostID+uidSlice.Size-1, minimumMappableUID)
+				}
+			}
+		}
+		if minimumMappableGID >= 0 {
+			for _, gidSlice := range ret.AutoUserNsOpts.AdditionalGIDMappings {
+				if int64(gidSlice.HostID) < minimumMappableGID {
+					return nil, errors.Errorf("not allowed to map GID range (%d-%d), below minimum mappable GID %d", gidSlice.HostID, gidSlice.HostID+gidSlice.Size-1, minimumMappableGID)
+				}
+			}
+		}
 		return ret, nil
 	case "private":
 		var err error
@@ -229,6 +253,22 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 		}
 		for _, g := range sc.SupplementalGroups {
 			gids = addToMappingsIfMissing(gids, g)
+		}
+
+		// make sure we haven't mapped any sensitive and/or privileged IDs
+		if minimumMappableUID >= 0 {
+			for _, uidSlice := range uids {
+				if int64(uidSlice.HostID) < minimumMappableUID {
+					return nil, errors.Errorf("not allowed to map UID range (%d-%d), below minimum mappable UID %d", uidSlice.HostID, uidSlice.HostID+uidSlice.Size-1, minimumMappableUID)
+				}
+			}
+		}
+		if minimumMappableGID >= 0 {
+			for _, gidSlice := range gids {
+				if int64(gidSlice.HostID) < minimumMappableGID {
+					return nil, errors.Errorf("not allowed to map GID range (%d-%d), below minimum mappable GID %d", gidSlice.HostID, gidSlice.HostID+gidSlice.Size-1, minimumMappableGID)
+				}
+			}
 		}
 
 		return &storage.IDMappingOptions{UIDMap: uids, GIDMap: gids}, nil

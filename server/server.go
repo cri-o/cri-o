@@ -65,6 +65,8 @@ type Server struct {
 	monitorsChan      chan struct{}
 	defaultIDMappings *idtools.IDMappings
 
+	minimumMappableUID, minimumMappableGID int64
+
 	// pullOperationsInProgress is used to avoid pulling the same image in parallel. Goroutines
 	// will block on the pullResult.
 	pullOperationsInProgress map[pullArguments]*pullOperation
@@ -414,6 +416,8 @@ func New(
 		config:                   *config,
 		monitorsChan:             make(chan struct{}),
 		defaultIDMappings:        idMappings,
+		minimumMappableUID:       config.MinimumMappableUID,
+		minimumMappableGID:       config.MinimumMappableGID,
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
 		resourceStore:            resourcestore.New(),
 	}

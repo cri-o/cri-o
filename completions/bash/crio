@@ -68,6 +68,8 @@ h
 --metrics-key
 --metrics-port
 --metrics-socket
+--minimum-mappable-gid
+--minimum-mappable-uid
 --namespaces-dir
 --no-pivot
 --pause-command

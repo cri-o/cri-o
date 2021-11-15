@@ -67,6 +67,8 @@ crio
 [--metrics-key]=[value]
 [--metrics-port]=[value]
 [--metrics-socket]=[value]
+[--minimum-mappable-gid]=[value]
+[--minimum-mappable-uid]=[value]
 [--namespaces-dir]=[value]
 [--no-pivot]
 [--pause-command]=[value]
@@ -283,6 +285,10 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--metrics-port**="": Port for the metrics endpoint (default: 9090)
 
 **--metrics-socket**="": Socket for the metrics endpoint
+
+**--minimum-mappable-gid**="": Specify the lowest host GID which can be specified in mappings for a pod that will be run as a UID other than 0 (default: -1)
+
+**--minimum-mappable-uid**="": Specify the lowest host UID which can be specified in mappings for a pod that will be run as a UID other than 0 (default: -1)
 
 **--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: /var/run)
 
