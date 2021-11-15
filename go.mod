@@ -57,7 +57,7 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/vishvananda/netlink v1.1.1-0.20210811191823-e1a867c6b452
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.26.1
-	go.opentelemetry.io/otel v1.1.0
+	go.opentelemetry.io/otel v1.2.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.1.0
 	go.opentelemetry.io/otel/sdk v1.1.0
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
