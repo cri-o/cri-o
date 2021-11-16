@@ -293,20 +293,29 @@ function check_conmon_fields() {
 	[[ "$df" != *'16384'* ]]
 }
 
-@test "test workload allowed annotation overrides runtime" {
-	create_workload_with_allowed_annotation "io.kubernetes.cri-o.userns-mode"
+@test "test workload allowed annotation appended with runtime" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+	create_workload_with_allowed_annotation "io.kubernetes.cri-o.Devices"
 	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
 
 	start_crio
 
-	jq '.annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' \
+	jq --arg act "$activation" \
+		'   .annotations[$act] = "true"
+	    |   .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"
+	    |   .annotations."io.kubernetes.cri-o.Devices" = "/dev/null:/dev/peterfoo:rwm"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	ctrconfig="$TESTDATA"/container_sleep.json
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
 
 	df=$(crictl exec --sync "$ctr_id" df | grep /dev/shm)
-	[[ "$df" != *'16384'* ]]
+	[[ "$df" == *'16384'* ]]
+
+	crictl exec --sync "$ctr_id" sh -c "head -n1 /dev/peterfoo"
+
 }
 
 @test "test workload allowed annotation works for pod" {
