@@ -506,11 +506,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *pb.RunPodSandboxRequest
 
 	// Add capabilities from crio.conf if default_capabilities is defined
 	capabilities := &pb.Capability{}
-	if s.config.DefaultCapabilities != nil {
-		g.ClearProcessCapabilities()
-		capabilities.AddCapabilities = append(capabilities.AddCapabilities, s.config.DefaultCapabilities...)
-	}
-	if err := setupCapabilities(&g, capabilities); err != nil {
+	g.ClearProcessCapabilities()
+	if err := setupCapabilities(&g, capabilities, s.config.DefaultCapabilities); err != nil {
 		return nil, err
 	}
 
