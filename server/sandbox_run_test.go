@@ -135,6 +135,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 							RunAsGroup:       &types.Int64Value{},
 						},
 					},
+					LogDirectory: "./tmp",
 				}})
 
 			// Then
