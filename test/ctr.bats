@@ -920,3 +920,12 @@ function check_oci_annotation() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	! crictl create "$pod_id" "$TESTDIR/config" "$TESTDATA"/sandbox_config.json
 }
+
+@test "ctr has containerenv" {
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	crictl exec --sync "$ctr_id" sh -c "stat /run/.containerenv"
+}

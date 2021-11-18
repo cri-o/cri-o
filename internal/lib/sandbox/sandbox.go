@@ -60,6 +60,7 @@ type Sandbox struct {
 	privileged         bool
 	hostNetwork        bool
 	usernsMode         string
+	containerEnvPath   string
 }
 
 // DefaultShmSize is the default shm size
@@ -248,6 +249,11 @@ func (s *Sandbox) HostnamePath() string {
 	return s.hostnamePath
 }
 
+// ContainerEnvPath retrieves the .containerenv path from a sandbox
+func (s *Sandbox) ContainerEnvPath() string {
+	return s.containerEnvPath
+}
+
 // Hostname returns the hostname of the sandbox
 func (s *Sandbox) Hostname() string {
 	return s.hostname
@@ -347,6 +353,23 @@ func (s *Sandbox) SetNetworkStopped(createFile bool) error {
 			return fmt.Errorf("failed to create state file in container directory. Restores may fail: %v", err)
 		}
 	}
+	return nil
+}
+
+// SetContainerEnvFile sets the container environment file.
+func (s *Sandbox) SetContainerEnvFile() error {
+	if s.containerEnvPath != "" {
+		return nil
+	}
+
+	infra := s.InfraContainer()
+	filePath := filepath.Join(infra.Dir(), ".containerenv")
+
+	f, err := os.Create(filePath)
+	if err == nil {
+		f.Close()
+	}
+	s.containerEnvPath = filePath
 	return nil
 }
 
