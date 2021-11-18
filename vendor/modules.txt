@@ -12,7 +12,7 @@ github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/pkg/security
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.8.22
+# github.com/Microsoft/hcsshim v0.8.23
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
 github.com/Microsoft/hcsshim/internal/cow
@@ -119,7 +119,7 @@ github.com/container-orchestrated-devices/container-device-interface/specs-go
 github.com/containerd/cgroups/stats/v1
 # github.com/containerd/console v1.0.2
 github.com/containerd/console
-# github.com/containerd/containerd v1.5.7
+# github.com/containerd/containerd v1.5.8
 ## explicit
 github.com/containerd/containerd/api/services/ttrpc/events/v1
 github.com/containerd/containerd/api/types
