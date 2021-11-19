@@ -6,22 +6,28 @@ const (
 	RuntimeReady = "RuntimeReady"
 	NetworkReady = "NetworkReady"
 
-	NamespaceModePOD       NamespaceMode = 0
-	NamespaceModeCONTAINER NamespaceMode = 1
-	NamespaceModeNODE      NamespaceMode = 2
-	NamespaceModeTARGET    NamespaceMode = 3
+	NamespaceModePOD NamespaceMode = iota
+	NamespaceModeCONTAINER
+	NamespaceModeNODE
+	NamespaceModeTARGET
+)
 
-	MountPropagationPropagationPrivate         MountPropagation = 0
-	MountPropagationPropagationHostToContainer MountPropagation = 1
-	MountPropagationPropagationBidirectional   MountPropagation = 2
+const (
+	MountPropagationPropagationPrivate MountPropagation = iota
+	MountPropagationPropagationHostToContainer
+	MountPropagationPropagationBidirectional
+)
 
-	ContainerStateContainerCreated ContainerState = 0
-	ContainerStateContainerRunning ContainerState = 1
-	ContainerStateContainerExited  ContainerState = 2
-	ContainerStateContainerUnknown ContainerState = 3
+const (
+	ContainerStateContainerCreated ContainerState = iota
+	ContainerStateContainerRunning
+	ContainerStateContainerExited
+	ContainerStateContainerUnknown
+)
 
-	PodSandboxStateSandboxReady    PodSandboxState = 0
-	PodSandboxStateSandboxNotReady PodSandboxState = 1
+const (
+	PodSandboxStateSandboxReady PodSandboxState = iota
+	PodSandboxStateSandboxNotReady
 
 	InfraContainerName = "POD"
 )
