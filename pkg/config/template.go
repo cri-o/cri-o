@@ -73,13 +73,13 @@ func crioTemplateString(group templateGroup, prefix string, displayAll bool, cri
 type templateGroup int32
 
 const (
-	crioRootConfig    templateGroup = 1
-	crioAPIConfig     templateGroup = 2
-	crioRuntimeConfig templateGroup = 3
-	crioImageConfig   templateGroup = 4
-	crioNetworkConfig templateGroup = 5
-	crioMetricsConfig templateGroup = 6
-	crioTracingConfig templateGroup = 7
+	crioRootConfig templateGroup = iota + 1
+	crioAPIConfig
+	crioRuntimeConfig
+	crioImageConfig
+	crioNetworkConfig
+	crioMetricsConfig
+	crioTracingConfig
 )
 
 type templateConfigValue struct {
