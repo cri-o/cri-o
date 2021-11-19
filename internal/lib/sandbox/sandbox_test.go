@@ -256,6 +256,18 @@ var _ = t.Describe("Sandbox", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
+
+		It("should set containerenv file", func() {
+			// Given
+			Expect(testSandbox.ContainerEnvPath()).To(BeEmpty())
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+
+			// When
+			Expect(testSandbox.SetContainerEnvFile()).To(BeNil())
+
+			// Then
+			Expect(testSandbox.ContainerEnvPath()).To(ContainSubstring(".containerenv"))
+		})
 	})
 	t.Describe("NeedsInfra", func() {
 		It("should not need when managing NS and NS mode NODE", func() {

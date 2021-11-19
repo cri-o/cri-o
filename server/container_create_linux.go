@@ -591,6 +591,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		})
 	}
 
+	if sb.ContainerEnvPath() != "" {
+		ctr.SpecAddMount(rspec.Mount{
+			Destination: "/run/.containerenv",
+			Type:        "bind",
+			Source:      sb.ContainerEnvPath(),
+			Options:     append(options, "bind"),
+		})
+	}
+
 	if !isInCRIMounts("/etc/hosts", containerConfig.Mounts) && hostNet {
 		// Only bind mount for host netns and when CRI does not give us any hosts file
 		ctr.SpecAddMount(rspec.Mount{
