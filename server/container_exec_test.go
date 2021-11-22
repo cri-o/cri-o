@@ -3,10 +3,10 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/tools/remotecommand"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -25,7 +25,7 @@ var _ = t.Describe("ContainerStart", func() {
 			// When
 			response, err := sut.Exec(context.Background(),
 				&types.ExecRequest{
-					ContainerID: testContainer.ID(),
+					ContainerId: testContainer.ID(),
 					Stdout:      true,
 				})
 

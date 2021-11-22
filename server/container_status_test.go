@@ -5,13 +5,13 @@ import (
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -44,7 +44,7 @@ var _ = t.Describe("ContainerStatus", func() {
 			response, err := sut.ContainerStatus(context.Background(),
 				&types.ContainerStatusRequest{
 					Verbose:     true,
-					ContainerID: testContainer.ID(),
+					ContainerId: testContainer.ID(),
 				})
 
 			// Then
@@ -56,22 +56,22 @@ var _ = t.Describe("ContainerStatus", func() {
 		},
 			Entry("Created", &oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateCreated},
-			}, types.ContainerStateContainerCreated),
+			}, types.ContainerState_CONTAINER_CREATED),
 			Entry("Running", &oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
-			}, types.ContainerStateContainerRunning),
+			}, types.ContainerState_CONTAINER_RUNNING),
 			Entry("Stopped: ExitCode 0", &oci.ContainerState{
 				ExitCode: utils.Int32Ptr(0),
 				State:    specs.State{Status: oci.ContainerStateStopped},
-			}, types.ContainerStateContainerExited),
+			}, types.ContainerState_CONTAINER_EXITED),
 			Entry("Stopped: ExitCode -1", &oci.ContainerState{
 				ExitCode: utils.Int32Ptr(-1),
 				State:    specs.State{Status: oci.ContainerStateStopped},
-			}, types.ContainerStateContainerExited),
+			}, types.ContainerState_CONTAINER_EXITED),
 			Entry("Stopped: OOMKilled", &oci.ContainerState{
 				OOMKilled: true,
 				State:     specs.State{Status: oci.ContainerStateStopped},
-			}, types.ContainerStateContainerExited),
+			}, types.ContainerState_CONTAINER_EXITED),
 		)
 
 		It("should fail with invalid container ID", func() {

@@ -30,13 +30,13 @@ import (
 	"path"
 	"time"
 
-	"github.com/cri-o/cri-o/server/cri/types"
 	restful "github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apiTypes "k8s.io/apimachinery/pkg/types"
 	remotecommandconsts "k8s.io/apimachinery/pkg/util/remotecommand"
 	"k8s.io/client-go/tools/remotecommand"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/kubernetes/pkg/kubelet/cri/streaming/portforward"
 	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/cri/streaming/remotecommand"
 )
@@ -164,7 +164,7 @@ type server struct {
 }
 
 func validateExecRequest(req *types.ExecRequest) error {
-	if req.ContainerID == "" {
+	if req.ContainerId == "" {
 		return status.Errorf(codes.InvalidArgument, "missing required container_id")
 	}
 	if req.Tty && req.Stderr {
@@ -187,12 +187,12 @@ func (s *server) GetExec(req *types.ExecRequest) (*types.ExecResponse, error) {
 		return nil, err
 	}
 	return &types.ExecResponse{
-		URL: s.buildURL("exec", token),
+		Url: s.buildURL("exec", token),
 	}, nil
 }
 
 func validateAttachRequest(req *types.AttachRequest) error {
-	if req.ContainerID == "" {
+	if req.ContainerId == "" {
 		return status.Errorf(codes.InvalidArgument, "missing required container_id")
 	}
 	if req.Tty && req.Stderr {
@@ -215,12 +215,12 @@ func (s *server) GetAttach(req *types.AttachRequest) (*types.AttachResponse, err
 		return nil, err
 	}
 	return &types.AttachResponse{
-		URL: s.buildURL("attach", token),
+		Url: s.buildURL("attach", token),
 	}, nil
 }
 
 func (s *server) GetPortForward(req *types.PortForwardRequest) (*types.PortForwardResponse, error) {
-	if req.PodSandboxID == "" {
+	if req.PodSandboxId == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "missing required pod_sandbox_id")
 	}
 	token, err := s.cache.Insert(req)
@@ -228,7 +228,7 @@ func (s *server) GetPortForward(req *types.PortForwardRequest) (*types.PortForwa
 		return nil, err
 	}
 	return &types.PortForwardResponse{
-		URL: s.buildURL("portforward", token),
+		Url: s.buildURL("portforward", token),
 	}, nil
 }
 
@@ -290,7 +290,7 @@ func (s *server) serveExec(req *restful.Request, resp *restful.Response) {
 		s.runtime,
 		"", // unused: podName
 		"", // unusued: podUID
-		exec.ContainerID,
+		exec.ContainerId,
 		exec.Cmd,
 		streamOpts,
 		s.config.StreamIdleTimeout,
@@ -323,7 +323,7 @@ func (s *server) serveAttach(req *restful.Request, resp *restful.Response) {
 		s.runtime,
 		"", // unused: podName
 		"", // unusued: podUID
-		attach.ContainerID,
+		attach.ContainerId,
 		streamOpts,
 		s.config.StreamIdleTimeout,
 		s.config.StreamCreationTimeout,
@@ -353,7 +353,7 @@ func (s *server) servePortForward(req *restful.Request, resp *restful.Response) 
 		resp.ResponseWriter,
 		req.Request,
 		s.runtime,
-		pf.PodSandboxID,
+		pf.PodSandboxId,
 		"", // unused: podUID
 		portForwardOptions,
 		s.config.StreamIdleTimeout,

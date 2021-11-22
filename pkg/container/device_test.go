@@ -1,10 +1,10 @@
 package container_test
 
 import (
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runc/libcontainer/devices"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 var _ = t.Describe("Container", func() {

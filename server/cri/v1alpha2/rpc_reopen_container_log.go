@@ -2,18 +2,16 @@ package v1alpha2
 
 import (
 	"context"
+	"unsafe"
 
-	"github.com/cri-o/cri-o/server/cri/types"
+	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 func (s *service) ReopenContainerLog(
 	ctx context.Context, req *pb.ReopenContainerLogRequest,
 ) (*pb.ReopenContainerLogResponse, error) {
-	r := &types.ReopenContainerLogRequest{
-		ContainerID: req.ContainerId,
-	}
-	if err := s.server.ReopenContainerLog(ctx, r); err != nil {
+	if err := s.server.ReopenContainerLog(ctx, (*v1.ReopenContainerLogRequest)(unsafe.Pointer(req))); err != nil {
 		return nil, err
 	}
 	return &pb.ReopenContainerLogResponse{}, nil

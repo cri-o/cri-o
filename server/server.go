@@ -29,7 +29,6 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/server/streaming"
 	"github.com/cri-o/cri-o/utils"
@@ -37,6 +36,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const (
@@ -203,7 +203,7 @@ func (s *Server) restore(ctx context.Context) []string {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the infra container name and the pod name for future use
-			if strings.Contains(n, types.InfraContainerName) {
+			if strings.Contains(n, oci.InfraContainerName) {
 				s.ReleaseContainerName(n)
 			} else {
 				s.ReleasePodName(n)

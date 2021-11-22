@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -30,7 +30,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 
 			// When
 			response, err := sut.PodSandboxStatus(context.Background(),
-				&types.PodSandboxStatusRequest{PodSandboxID: testSandbox.ID()})
+				&types.PodSandboxStatusRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -51,14 +51,14 @@ var _ = t.Describe("PodSandboxStatus", func() {
 
 			// When
 			response, err := sut.PodSandboxStatus(context.Background(),
-				&types.PodSandboxStatusRequest{PodSandboxID: testSandbox.ID()})
+				&types.PodSandboxStatusRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Status.Network.IP).To(Equal(ipv4))
+			Expect(response.Status.Network.Ip).To(Equal(ipv4))
 			Expect(response.Status.Network.AdditionalIps).To(HaveLen(1))
-			Expect(response.Status.Network.AdditionalIps[0].IP).To(Equal(ipv6))
+			Expect(response.Status.Network.AdditionalIps[0].Ip).To(Equal(ipv6))
 		})
 
 		It("should fail with empty sandbox ID", func() {
@@ -82,7 +82,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 
 			// When
 			response, err := sut.PodSandboxStatus(context.Background(),
-				&types.PodSandboxStatusRequest{PodSandboxID: testSandbox.ID(), Verbose: true})
+				&types.PodSandboxStatusRequest{PodSandboxId: testSandbox.ID(), Verbose: true})
 
 			// Then
 			Expect(err).To(BeNil())

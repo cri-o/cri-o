@@ -8,12 +8,12 @@ import (
 
 	"github.com/containers/common/pkg/seccomp"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/server/cri/types"
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	k8sV1 "k8s.io/api/core/v1"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // Config is the global seccomp configuration type
@@ -194,10 +194,10 @@ func (c *Config) setupFromField(
 	log.Debugf(ctx, "Setup seccomp from profile field: %+v", profileField)
 
 	if c.IsDisabled() {
-		if profileField.ProfileType != types.SecurityProfileTypeUnconfined &&
+		if profileField.ProfileType != types.SecurityProfile_Unconfined &&
 			// Kubernetes sandboxes run per default with `SecurityProfileTypeRuntimeDefault`:
 			// https://github.com/kubernetes/kubernetes/blob/629d5ab/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L155-L162
-			profileField.ProfileType != types.SecurityProfileTypeRuntimeDefault {
+			profileField.ProfileType != types.SecurityProfile_RuntimeDefault {
 			return errors.Errorf(
 				"seccomp is not enabled, cannot run with custom profile",
 			)
@@ -207,13 +207,13 @@ func (c *Config) setupFromField(
 		return nil
 	}
 
-	if profileField.ProfileType == types.SecurityProfileTypeUnconfined {
+	if profileField.ProfileType == types.SecurityProfile_Unconfined {
 		// running w/o seccomp, aka unconfined
 		specGenerator.Config.Linux.Seccomp = nil
 		return nil
 	}
 
-	if profileField.ProfileType == types.SecurityProfileTypeRuntimeDefault {
+	if profileField.ProfileType == types.SecurityProfile_RuntimeDefault {
 		linuxSpecs, err := seccomp.LoadProfileFromConfig(
 			c.Profile(), specGenerator.Config,
 		)

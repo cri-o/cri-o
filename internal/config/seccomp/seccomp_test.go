@@ -6,11 +6,11 @@ import (
 
 	containers_seccomp "github.com/containers/common/pkg/seccomp"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-tools/generate"
 	k8sV1 "k8s.io/api/core/v1"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -149,7 +149,7 @@ var _ = t.Describe("Config", func() {
 			generator, err := generate.New("linux")
 			Expect(err).To(BeNil())
 			field := &types.SecurityProfile{
-				ProfileType: types.SecurityProfileTypeRuntimeDefault,
+				ProfileType: types.SecurityProfile_RuntimeDefault,
 			}
 
 			// When
@@ -170,7 +170,7 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 			file := writeProfileFile()
 			field := &types.SecurityProfile{
-				ProfileType:  types.SecurityProfileTypeLocalhost,
+				ProfileType:  types.SecurityProfile_Localhost,
 				LocalhostRef: file,
 			}
 
@@ -191,7 +191,7 @@ var _ = t.Describe("Config", func() {
 			generator, err := generate.New("linux")
 			Expect(err).To(BeNil())
 			field := &types.SecurityProfile{
-				ProfileType:  types.SecurityProfileTypeLocalhost,
+				ProfileType:  types.SecurityProfile_Localhost,
 				LocalhostRef: "not-existing",
 			}
 

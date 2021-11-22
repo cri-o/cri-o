@@ -5,7 +5,8 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/cri-o/cri-o/server/cri/types"
+	"github.com/cri-o/cri-o/internal/oci"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const (
@@ -16,10 +17,10 @@ const (
 func makeSandboxContainerName(sandboxConfig *types.PodSandboxConfig) string {
 	return strings.Join([]string{
 		kubePrefix,
-		types.InfraContainerName,
+		oci.InfraContainerName,
 		sandboxConfig.Metadata.Name,
 		sandboxConfig.Metadata.Namespace,
-		sandboxConfig.Metadata.UID,
+		sandboxConfig.Metadata.Uid,
 		fmt.Sprintf("%d", sandboxConfig.Metadata.Attempt),
 	}, nameDelimiter)
 }

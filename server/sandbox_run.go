@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"github.com/cri-o/cri-o/internal/hostport"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const (
@@ -36,9 +36,9 @@ func (s *Server) privilegedSandbox(req *types.RunPodSandboxRequest) bool {
 		return false
 	}
 
-	if namespaceOptions.Network == types.NamespaceModeNODE ||
-		namespaceOptions.Pid == types.NamespaceModeNODE ||
-		namespaceOptions.Ipc == types.NamespaceModeNODE {
+	if namespaceOptions.Network == types.NamespaceMode_NODE ||
+		namespaceOptions.Pid == types.NamespaceMode_NODE ||
+		namespaceOptions.Ipc == types.NamespaceMode_NODE {
 		return true
 	}
 
@@ -78,7 +78,7 @@ func convertPortMappings(in []*types.PortMapping) []*hostport.PortMapping {
 			HostPort:      v.HostPort,
 			ContainerPort: v.ContainerPort,
 			Protocol:      v1.Protocol(v.Protocol.String()),
-			HostIP:        v.HostIP,
+			HostIP:        v.HostIp,
 		})
 	}
 	return out

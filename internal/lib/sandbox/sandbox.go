@@ -10,11 +10,11 @@ import (
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // DevShmPath is the default system wide shared memory path
@@ -76,7 +76,7 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb := new(Sandbox)
 
 	sb.criSandbox = &types.PodSandbox{
-		ID:          id,
+		Id:          id,
 		CreatedAt:   createdAt.UnixNano(),
 		Labels:      labels,
 		Annotations: annotations,
@@ -147,7 +147,7 @@ func (s *Sandbox) IPs() []string {
 
 // ID returns the id of the sandbox
 func (s *Sandbox) ID() string {
-	return s.criSandbox.ID
+	return s.criSandbox.Id
 }
 
 // UsernsMode returns the mode for setting the user namespace, if any.
@@ -423,9 +423,9 @@ func (s *Sandbox) Created() bool {
 
 func (s *Sandbox) State() types.PodSandboxState {
 	if s.Ready(false) {
-		return types.PodSandboxStateSandboxReady
+		return types.PodSandboxState_SANDBOX_READY
 	}
-	return types.PodSandboxStateSandboxNotReady
+	return types.PodSandboxState_SANDBOX_NOTREADY
 }
 
 // Ready returns whether the sandbox should be marked as ready to the kubelet
@@ -474,5 +474,5 @@ func (s *Sandbox) UnmountShm() error {
 // If the server manages the namespace lifecycles, and the Pid option on the sandbox
 // is node or container level, the infra container is not needed
 func (s *Sandbox) NeedsInfra(serverDropsInfra bool) bool {
-	return !serverDropsInfra || s.nsOpts.Pid == types.NamespaceModePOD
+	return !serverDropsInfra || s.nsOpts.Pid == types.NamespaceMode_POD
 }

@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	devicecfg "github.com/cri-o/cri-o/internal/config/device"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func (c *container) SpecAddDevices(configuredDevices, annotationDevices []devicecfg.Device, privilegedWithoutHostDevices, enableDeviceOwnershipFromSecurityContext bool) error {

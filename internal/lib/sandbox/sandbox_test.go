@@ -6,9 +6,9 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -274,7 +274,7 @@ var _ = t.Describe("Sandbox", func() {
 			// Given
 			manageNS := true
 			newNamespaceOption := &types.NamespaceOption{
-				Pid: types.NamespaceModeNODE,
+				Pid: types.NamespaceMode_NODE,
 			}
 
 			// When
@@ -288,7 +288,7 @@ var _ = t.Describe("Sandbox", func() {
 			// Given
 			manageNS := true
 			newNamespaceOption := &types.NamespaceOption{
-				Pid: types.NamespaceModeCONTAINER,
+				Pid: types.NamespaceMode_CONTAINER,
 			}
 
 			// When
@@ -302,7 +302,7 @@ var _ = t.Describe("Sandbox", func() {
 			// Given
 			manageNS := false
 			newNamespaceOption := &types.NamespaceOption{
-				Pid: types.NamespaceModePOD,
+				Pid: types.NamespaceMode_POD,
 			}
 
 			// When
@@ -316,7 +316,7 @@ var _ = t.Describe("Sandbox", func() {
 			// Given
 			manageNS := true
 			newNamespaceOption := &types.NamespaceOption{
-				Pid: types.NamespaceModeCONTAINER,
+				Pid: types.NamespaceMode_CONTAINER,
 			}
 
 			// When

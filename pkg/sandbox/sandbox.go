@@ -8,9 +8,9 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/container"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // Sandbox is the interface for managing pod sandboxes
@@ -97,7 +97,7 @@ func (s *sandbox) SetNameAndID() error {
 		"k8s",
 		s.config.Metadata.Name,
 		s.config.Metadata.Namespace,
-		s.config.Metadata.UID,
+		s.config.Metadata.Uid,
 		fmt.Sprintf("%d", s.config.Metadata.Attempt),
 	}, "_")
 

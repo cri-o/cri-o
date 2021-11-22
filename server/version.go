@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/version"
-	"github.com/cri-o/cri-o/server/cri/types"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const (
@@ -22,6 +22,6 @@ func (s *Server) Version(_ context.Context, apiVersion string) (*types.VersionRe
 		Version:           kubeAPIVersion,
 		RuntimeName:       containerName,
 		RuntimeVersion:    version.Get().Version,
-		RuntimeAPIVersion: apiVersion,
+		RuntimeApiVersion: apiVersion,
 	}, nil
 }

@@ -30,7 +30,7 @@ var _ = t.Describe("Version", func() {
 			Expect(response.Version).NotTo(BeEmpty())
 			Expect(response.RuntimeName).NotTo(BeEmpty())
 			Expect(response.RuntimeName).NotTo(BeEmpty())
-			Expect(response.RuntimeAPIVersion).To(Equal(testVersion))
+			Expect(response.RuntimeApiVersion).To(Equal(testVersion))
 		})
 	})
 })

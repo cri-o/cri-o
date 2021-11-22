@@ -5,18 +5,18 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequest) error {
-	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerID, req.Timeout)
-	c, err := s.GetContainerFromShortID(req.ContainerID)
+	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
+	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
-		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerID, err)
+		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
 	sandbox := s.getSandbox(c.Sandbox())

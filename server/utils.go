@@ -14,12 +14,12 @@ import (
 	cryptUtils "github.com/containers/ocicrypt/utils"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/server/cri/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 

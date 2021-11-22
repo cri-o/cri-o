@@ -18,13 +18,13 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/pkg/container"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // sync with https://github.com/containers/storage/blob/7fe03f6c765f2adbc75a5691a1fb4f19e56e7071/pkg/truncindex/truncindex.go#L92
@@ -403,12 +403,12 @@ func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defa
 func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.Config.Labels))
 
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
+	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "specified sandbox not found: %s", req.PodSandboxID)
+		return nil, errors.Wrapf(err, "specified sandbox not found: %s", req.PodSandboxId)
 	}
 
 	stopMutex := sb.StopMutex()
@@ -454,7 +454,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		}
 		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
 		if resourceErr == nil {
-			return &types.CreateContainerResponse{ContainerID: cachedID}, nil
+			return &types.CreateContainerResponse{ContainerId: cachedID}, nil
 		}
 		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
@@ -541,7 +541,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	return &types.CreateContainerResponse{
-		ContainerID: ctr.ID(),
+		ContainerId: ctr.ID(),
 	}, nil
 }
 

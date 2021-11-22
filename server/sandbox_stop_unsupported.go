@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cri-o/cri-o/server/cri/types"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func (s *Server) stopPodSandbox(ctx context.Context, req *types.StopPodSandboxRequest) error {

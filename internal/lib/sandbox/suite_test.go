@@ -6,11 +6,11 @@ import (
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // TestSandbox runs the created specs

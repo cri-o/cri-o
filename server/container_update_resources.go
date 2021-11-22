@@ -5,16 +5,16 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"golang.org/x/net/context"
 )
 
 // UpdateContainerResources updates ContainerConfig of the container.
 func (s *Server) UpdateContainerResources(ctx context.Context, req *types.UpdateContainerResourcesRequest) error {
-	c, err := s.GetContainerFromShortID(req.ContainerID)
+	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
 		return err
 	}
@@ -41,19 +41,19 @@ func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
 	update := rspec.LinuxResources{
 		// TODO(runcom): OOMScoreAdj is missing
 		CPU: &rspec.LinuxCPU{
-			Cpus: r.CPUsetCPUs,
-			Mems: r.CPUsetMems,
+			Cpus: r.CpusetCpus,
+			Mems: r.CpusetMems,
 		},
 		Memory: &rspec.LinuxMemory{},
 	}
-	if r.CPUShares != 0 {
-		update.CPU.Shares = proto.Uint64(uint64(r.CPUShares))
+	if r.CpuShares != 0 {
+		update.CPU.Shares = proto.Uint64(uint64(r.CpuShares))
 	}
-	if r.CPUPeriod != 0 {
-		update.CPU.Period = proto.Uint64(uint64(r.CPUPeriod))
+	if r.CpuPeriod != 0 {
+		update.CPU.Period = proto.Uint64(uint64(r.CpuPeriod))
 	}
-	if r.CPUQuota != 0 {
-		update.CPU.Quota = proto.Int64(r.CPUQuota)
+	if r.CpuQuota != 0 {
+		update.CPU.Quota = proto.Int64(r.CpuQuota)
 	}
 
 	memory := r.MemoryLimitInBytes

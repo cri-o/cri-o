@@ -19,7 +19,6 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -27,6 +26,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
@@ -310,7 +310,7 @@ func (c *container) SetNameAndID() error {
 		c.config.Metadata.Name,
 		c.sboxConfig.Metadata.Name,
 		c.sboxConfig.Metadata.Namespace,
-		c.sboxConfig.Metadata.UID,
+		c.sboxConfig.Metadata.Uid,
 		fmt.Sprintf("%d", c.config.Metadata.Attempt),
 	}, "_")
 

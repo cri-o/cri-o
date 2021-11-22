@@ -82,13 +82,13 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 
 func (s *sandbox) createResolvConf(podContainer *storage.ContainerInfo) (retErr error) {
 	// set DNS options
-	if s.config.DNSConfig == nil {
+	if s.config.DnsConfig == nil {
 		return nil
 	}
 
-	dnsServers := s.config.DNSConfig.Servers
-	dnsSearches := s.config.DNSConfig.Searches
-	dnsOptions := s.config.DNSConfig.Options
+	dnsServers := s.config.DnsConfig.Servers
+	dnsSearches := s.config.DnsConfig.Searches
+	dnsOptions := s.config.DnsConfig.Options
 	s.resolvPath = fmt.Sprintf("%s/resolv.conf", podContainer.RunDir)
 	err := ParseDNSOptions(dnsServers, dnsSearches, dnsOptions, s.resolvPath)
 	defer func() {

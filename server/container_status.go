@@ -3,13 +3,13 @@ package server
 import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	json "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const (
@@ -20,15 +20,15 @@ const (
 
 // ContainerStatus returns status of the container.
 func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatusRequest) (*types.ContainerStatusResponse, error) {
-	c, err := s.GetContainerFromShortID(req.ContainerID)
+	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerID, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
 	containerID := c.ID()
 	resp := &types.ContainerStatusResponse{
 		Status: &types.ContainerStatus{
-			ID:          containerID,
+			Id:          containerID,
 			Metadata:    c.Metadata(),
 			Labels:      c.Labels(),
 			Annotations: c.Annotations(),
@@ -50,7 +50,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	resp.Status.Mounts = mounts
 
 	cState := c.StateNoLock()
-	rStatus := types.ContainerStateContainerUnknown
+	rStatus := types.ContainerState_CONTAINER_UNKNOWN
 
 	// If we defaulted to exit code not set earlier then we attempt to
 	// get the exit code from the exit file again.
@@ -65,15 +65,15 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	created := c.CreatedAt().UnixNano()
 	switch cState.Status {
 	case oci.ContainerStateCreated:
-		rStatus = types.ContainerStateContainerCreated
+		rStatus = types.ContainerState_CONTAINER_CREATED
 		resp.Status.CreatedAt = created
 	case oci.ContainerStateRunning:
-		rStatus = types.ContainerStateContainerRunning
+		rStatus = types.ContainerState_CONTAINER_RUNNING
 		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
 	case oci.ContainerStateStopped:
-		rStatus = types.ContainerStateContainerExited
+		rStatus = types.ContainerState_CONTAINER_EXITED
 		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started

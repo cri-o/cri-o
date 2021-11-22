@@ -12,7 +12,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/cri-o/cri-o/test/framework"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	libmock "github.com/cri-o/cri-o/test/mocks/lib"
@@ -21,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // TestLib runs the created specs

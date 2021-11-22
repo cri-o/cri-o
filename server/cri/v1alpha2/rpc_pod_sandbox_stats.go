@@ -2,22 +2,15 @@ package v1alpha2
 
 import (
 	"context"
+	"unsafe"
 
-	"github.com/cri-o/cri-o/server/cri/types"
+	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 func (s *service) PodSandboxStats(
 	ctx context.Context, req *pb.PodSandboxStatsRequest,
 ) (*pb.PodSandboxStatsResponse, error) {
-	r := &types.PodSandboxStatsRequest{}
-	res, err := s.server.PodSandboxStats(ctx, r)
-	if err != nil {
-		return nil, err
-	}
-	resp := &pb.PodSandboxStatsResponse{}
-	if res.Stats != nil {
-		resp.Stats = serverPodSandboxStatToCRI(res.Stats)
-	}
-	return resp, nil
+	resp, err := s.server.PodSandboxStats(ctx, (*v1.PodSandboxStatsRequest)(unsafe.Pointer(req)))
+	return (*pb.PodSandboxStatsResponse)(unsafe.Pointer(resp)), err
 }

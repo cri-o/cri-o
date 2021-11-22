@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/cri-o/cri-o/internal/config/node"
-	"github.com/cri-o/cri-o/server/cri/types"
 	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
@@ -21,6 +20,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // CgroupfsManager defines functionality whrn **** TODO: Update this

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	"github.com/cri-o/cri-o/server/cri/types"
 	crioStorage "github.com/cri-o/cri-o/utils"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func getStorageFsInfo(store storage.Store) (*types.FilesystemUsage, error) {
@@ -22,7 +22,7 @@ func getStorageFsInfo(store storage.Store) (*types.FilesystemUsage, error) {
 
 	usage := types.FilesystemUsage{
 		Timestamp:  time.Now().UnixNano(),
-		FsID:       &types.FilesystemIdentifier{Mountpoint: imagesPath},
+		FsId:       &types.FilesystemIdentifier{Mountpoint: imagesPath},
 		UsedBytes:  &types.UInt64Value{Value: bytesUsed},
 		InodesUsed: &types.UInt64Value{Value: inodesUsed},
 	}

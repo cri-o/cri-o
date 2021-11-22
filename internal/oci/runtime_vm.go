@@ -22,7 +22,6 @@ import (
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
@@ -36,6 +35,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	utilexec "k8s.io/utils/exec"
 )
@@ -813,7 +813,7 @@ func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *t
 
 	return &types.ContainerStats{
 		Attributes: c.CRIAttributes(),
-		CPU: &types.CPUUsage{
+		Cpu: &types.CpuUsage{
 			Timestamp:            systemNano,
 			UsageCoreNanoSeconds: &types.UInt64Value{Value: cpuNano},
 		},

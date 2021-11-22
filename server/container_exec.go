@@ -5,11 +5,11 @@ import (
 	"io"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/client-go/tools/remotecommand"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // Exec prepares a streaming endpoint to execute a command in the container.

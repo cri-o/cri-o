@@ -10,10 +10,10 @@ import (
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/pkg/errors"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 var localRegistryPrefix = "localhost/"

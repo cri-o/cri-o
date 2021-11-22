@@ -11,9 +11,9 @@ import (
 
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func populateSandboxCgroupStatsFromPath(cgroupPath string, stats *types.PodSandboxStats) error {
@@ -22,9 +22,9 @@ func populateSandboxCgroupStatsFromPath(cgroupPath string, stats *types.PodSandb
 		return err
 	}
 	systemNano := time.Now().UnixNano()
-	stats.CPU = createCPUStats(systemNano, cgroupStats)
-	stats.Process = createProcessUsage(systemNano, cgroupStats)
-	stats.Memory, err = createMemoryStats(systemNano, cgroupStats, cgroupPath)
+	stats.Linux.Cpu = createCPUStats(systemNano, cgroupStats)
+	stats.Linux.Process = createProcessUsage(systemNano, cgroupStats)
+	stats.Linux.Memory, err = createMemoryStats(systemNano, cgroupStats, cgroupPath)
 	return err
 }
 
@@ -35,7 +35,7 @@ func populateContainerCgroupStatsFromPath(cgroupPath string, stats *types.Contai
 		return err
 	}
 	systemNano := time.Now().UnixNano()
-	stats.CPU = createCPUStats(systemNano, cgroupStats)
+	stats.Cpu = createCPUStats(systemNano, cgroupStats)
 	stats.Memory, err = createMemoryStats(systemNano, cgroupStats, cgroupPath)
 	return err
 }
@@ -49,8 +49,8 @@ func cgroupStatsFromPath(cgroupPath string) (*cgroups.Metrics, error) {
 	return cg.Stat()
 }
 
-func createCPUStats(systemNano int64, cgroupStats *cgroups.Metrics) *types.CPUUsage {
-	return &types.CPUUsage{
+func createCPUStats(systemNano int64, cgroupStats *cgroups.Metrics) *types.CpuUsage {
+	return &types.CpuUsage{
 		Timestamp:            systemNano,
 		UsageCoreNanoSeconds: &types.UInt64Value{Value: cgroupStats.CPU.Usage.Total},
 	}
