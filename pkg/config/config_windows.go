@@ -1,5 +1,3 @@
-// +build windows
-
 package config
 
 import "github.com/cri-o/cri-o/internal/oci"
