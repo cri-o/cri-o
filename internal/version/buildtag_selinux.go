@@ -1,3 +1,4 @@
+//go:build selinux
 // +build selinux
 
 package version

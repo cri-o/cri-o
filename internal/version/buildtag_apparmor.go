@@ -1,3 +1,4 @@
+//go:build apparmor
 // +build apparmor
 
 package version
