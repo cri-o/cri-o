@@ -1,3 +1,4 @@
+//go:build containers_image_ostree_stub
 // +build containers_image_ostree_stub
 
 package version
