@@ -20,6 +20,7 @@ import (
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -749,7 +750,7 @@ func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*ContainerStats, error) {
+func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*types.ContainerStats, error) {
 	log.Debugf(ctx, "RuntimeVM.ContainerStats() start")
 	defer log.Debugf(ctx, "RuntimeVM.ContainerStats() end")
 
@@ -780,30 +781,23 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 	return metricsToCtrStats(ctx, c, m), nil
 }
 
-func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *ContainerStats {
+func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *types.ContainerStats {
 	var (
-		blockInput      uint64
-		blockOutput     uint64
-		cpu             float64
 		cpuNano         uint64
 		memLimit        uint64
-		memPerc         float64
 		memUsage        uint64
-		netInput        uint64
-		netOutput       uint64
-		pids            uint64
 		workingSetBytes uint64
+		rssBytes        uint64
+		pageFaults      uint64
+		majorPageFaults uint64
 	)
 
+	systemNano := time.Now().UnixNano()
+
 	if m != nil {
-		pids = m.Pids.Current
-
 		cpuNano = m.CPU.Usage.Total
-		cpu = genericCalculateCPUPercent(cpuNano, m.CPU.Usage.PerCPU)
-
 		memUsage = m.Memory.Usage.Usage
-		memLimit = getMemLimit(m.Memory.Usage.Limit)
-		memPerc = float64(memUsage) / float64(memLimit)
+		memLimit = cgmgr.MemLimitGivenSystem(m.Memory.Usage.Limit)
 		if memUsage > m.Memory.TotalInactiveFile {
 			workingSetBytes = memUsage - m.Memory.TotalInactiveFile
 		} else {
@@ -812,31 +806,25 @@ func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *C
 				m.Memory.TotalInactiveFile, memUsage,
 			)
 		}
-
-		for _, entry := range m.Blkio.IoServiceBytesRecursive {
-			switch strings.ToLower(entry.Op) {
-			case "read":
-				blockInput += entry.Value
-			case "write":
-				blockOutput += entry.Value
-			}
-		}
+		rssBytes = m.Memory.RSS
+		pageFaults = m.Memory.PgFault
+		majorPageFaults = m.Memory.PgMajFault
 	}
 
-	return &ContainerStats{
-		BlockInput:      blockInput,
-		BlockOutput:     blockOutput,
-		Container:       c.ID(),
-		CPU:             cpu,
-		CPUNano:         cpuNano,
-		MemLimit:        memLimit,
-		MemUsage:        memUsage,
-		MemPerc:         memPerc,
-		NetInput:        netInput,
-		NetOutput:       netOutput,
-		PIDs:            pids,
-		SystemNano:      time.Now().UnixNano(),
-		WorkingSetBytes: workingSetBytes,
+	return &types.ContainerStats{
+		Attributes: c.CRIAttributes(),
+		CPU: &types.CPUUsage{
+			Timestamp:            systemNano,
+			UsageCoreNanoSeconds: &types.UInt64Value{Value: cpuNano},
+		},
+		Memory: &types.MemoryUsage{
+			Timestamp:       systemNano,
+			WorkingSetBytes: &types.UInt64Value{Value: workingSetBytes},
+			PageFaults:      &types.UInt64Value{Value: pageFaults},
+			MajorPageFaults: &types.UInt64Value{Value: majorPageFaults},
+			RssBytes:        &types.UInt64Value{Value: rssBytes},
+			AvailableBytes:  &types.UInt64Value{Value: memUsage - memLimit},
+		},
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/truncindex"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	statsserver "github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/registrar"
@@ -44,6 +45,7 @@ type ContainerServer struct {
 	podNameIndex         *registrar.Registrar
 	podIDIndex           *truncindex.TruncIndex
 	Hooks                *hooks.Manager
+	*statsserver.StatsServer
 
 	stateLock sync.Locker
 	state     *containerServerState
@@ -117,7 +119,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		return nil, err
 	}
 
-	return &ContainerServer{
+	c := &ContainerServer{
 		runtime:              runtime,
 		store:                store,
 		storageImageServer:   imageService,
@@ -135,7 +137,9 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 			processLevels:   make(map[string]int),
 		},
 		config: config,
-	}, nil
+	}
+	c.StatsServer = statsserver.New(c)
+	return c, nil
 }
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store
@@ -543,6 +547,7 @@ func (c *ContainerServer) Shutdown() error {
 	if err != nil && !errors.Is(err, cstorage.ErrLayerUsedByContainer) {
 		return err
 	}
+	c.StatsServer.Shutdown()
 	return nil
 }
 
@@ -592,6 +597,7 @@ func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
 		return
 	}
 	sb.RemoveContainer(ctr)
+	c.RemoveStatsForContainer(ctr)
 	c.state.containers.Delete(ctr.ID())
 }
 
@@ -665,6 +671,7 @@ func (c *ContainerServer) RemoveSandbox(id string) error {
 		return err
 	}
 
+	c.RemoveStatsForSandbox(sb)
 	c.state.sandboxes.Delete(id)
 	return nil
 }

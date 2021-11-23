@@ -7,6 +7,7 @@ import (
 	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 )
 
 // The actual test suite
@@ -46,6 +47,8 @@ var _ = t.Describe("ContainerStatsList", func() {
 		It("should succeed", func() {
 			// Given
 			addContainerAndSandbox()
+			storeMock.EXPECT().GraphDriver().Return(nil, errors.New("not implemented"))
+
 			// When
 			response, err := sut.ListContainerStats(context.Background(),
 				&types.ListContainerStatsRequest{})

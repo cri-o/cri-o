@@ -45,6 +45,9 @@ func assembleTemplateString(displayAllConfig bool, c *Config) string {
 	// [crio.tracing] configuration
 	templateString += crioTemplateString(crioTracingConfig, templateStringCrioTracing, displayAllConfig, crioTemplateConfig)
 
+	// [crio.stats] configuration
+	templateString += crioTemplateString(crioStatsConfig, templateStringCrioStats, displayAllConfig, crioTemplateConfig)
+
 	if templateString != "" {
 		templateString = templateStringPrefix + templateStringCrio + templateString
 	}
@@ -73,13 +76,14 @@ func crioTemplateString(group templateGroup, prefix string, displayAll bool, cri
 type templateGroup int32
 
 const (
-	crioRootConfig    templateGroup = 1
-	crioAPIConfig     templateGroup = 2
-	crioRuntimeConfig templateGroup = 3
-	crioImageConfig   templateGroup = 4
-	crioNetworkConfig templateGroup = 5
-	crioMetricsConfig templateGroup = 6
-	crioTracingConfig templateGroup = 7
+	crioRootConfig templateGroup = iota + 1
+	crioAPIConfig
+	crioRuntimeConfig
+	crioImageConfig
+	crioNetworkConfig
+	crioMetricsConfig
+	crioTracingConfig
+	crioStatsConfig
 )
 
 type templateConfigValue struct {
@@ -504,6 +508,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			templateString: templateStringCrioTracingTracingSamplingRatePerMillion,
 			group:          crioTracingConfig,
 			isDefaultValue: simpleEqual(dc.TracingSamplingRatePerMillion, c.TracingSamplingRatePerMillion),
+		},
+		{
+			templateString: templateStringCrioStatsStatsCollectionPeriod,
+			group:          crioStatsConfig,
+			isDefaultValue: simpleEqual(dc.StatsCollectionPeriod, c.StatsCollectionPeriod),
 		},
 	}
 
@@ -1255,5 +1264,16 @@ tracing_endpoint = "{{ .TracingEndpoint }}"
 
 const templateStringCrioTracingTracingSamplingRatePerMillion = `# Number of samples to collect per million spans.
 tracing_sampling_rate_per_million = {{ .TracingSamplingRatePerMillion }}
+
+`
+
+const templateStringCrioStats = `# Necessary information pertaining to container and pod stats reporting.
+[crio.stats]
+
+`
+
+const templateStringCrioStatsStatsCollectionPeriod = `# The number of seconds between collecting pod and container stats.
+# If set to 0, the stats are collected on-demand instead.
+stats_collection_period = {{ .StatsCollectionPeriod }}
 
 `

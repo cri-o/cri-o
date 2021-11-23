@@ -17,7 +17,7 @@ const (
 )
 
 // The actual test suite
-var _ = t.Describe("Config", func() {
+var _ = t.Describe("Cgmgr", func() {
 	var sut cgmgr.CgroupManager
 
 	BeforeEach(func() {

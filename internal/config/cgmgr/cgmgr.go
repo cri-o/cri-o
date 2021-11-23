@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/server/cri/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -55,10 +56,16 @@ type CgroupManager interface {
 	// returns the cgroup path on disk for that containerID. If parentCgroup is empty, it
 	// uses the default parent for that particular manager
 	ContainerCgroupAbsolutePath(string, string) (string, error)
+	// PopulateContainerCgroupStats fills the stats object with information from the cgroup found
+	// given a cgroup parent and container ID.
+	PopulateContainerCgroupStats(sbParent, containerID string, stats *types.ContainerStats) error
 	// SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 	// returns the cgroup parent, cgroup path, and error. For systemd cgroups,
 	// it also checks there is enough memory in the given cgroup
 	SandboxCgroupPath(string, string) (string, string, error)
+	// PopulateContainerCgroupStats takes arguments sandbox parent cgroup, and sandbox stats object.
+	// It fills the object with information from the cgroup found given that parent.
+	PopulateSandboxCgroupStats(sbParent string, stats *types.PodSandboxStats) error
 	// MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config), conmon's PID, and some customized resources
 	// It attempts to move conmon to the correct cgroup, and set the resources for that cgroup.
 	// It returns the cgroupfs parent that conmon was put into

@@ -421,6 +421,13 @@ func (s *Sandbox) Created() bool {
 	return s.created
 }
 
+func (s *Sandbox) State() types.PodSandboxState {
+	if s.Ready(false) {
+		return types.PodSandboxStateSandboxReady
+	}
+	return types.PodSandboxStateSandboxNotReady
+}
+
 // Ready returns whether the sandbox should be marked as ready to the kubelet
 // if there is no infra container, it is always considered ready.
 // `takeLock` should be set if we need to take the lock to get the infra container's state.

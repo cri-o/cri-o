@@ -402,6 +402,12 @@ If set to true, enable users to set a custom shm size instead of using the defau
 **tracing_sampling_rate_per_million**=""
   Number of samples to collect per million OpenTelemetry spans.
 
+## CRIO.STATS TABLE
+The `crio.stats` table specifies all necessary configuration for reporting container and pod stats.
+
+**stats_collection_period**=0
+  The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead.
+
 # SEE ALSO
 crio.conf.d(5), containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
 

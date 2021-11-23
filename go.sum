@@ -1538,8 +1538,9 @@ golang.org/x/net v0.0.0-20210331212208-0fccb6fa2b5c/go.mod h1:p54w0d4576C0XHj96b
 golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4/go.mod h1:p54w0d4576C0XHj96bSt6lcn1PtDYWL6XObtHCRCNQM=
 golang.org/x/net v0.0.0-20210428140749-89ef3d95e781/go.mod h1:OJAsFXCWl8Ukc7SiCT/9KSuxbyM7479/AVlXFRxuMCk=
 golang.org/x/net v0.0.0-20210520170846-37e1c6afe023/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
-golang.org/x/net v0.0.0-20210525063256-abc453219eb5 h1:wjuX4b5yYQnEQHzd+CBcrcC6OVR2J1CN6mUy0oSxIPo=
 golang.org/x/net v0.0.0-20210525063256-abc453219eb5/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
+golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d h1:LO7XpTYMwTqxjLcGWPijK3vRXg1aWdlNOVOHRq45d7c=
+golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20181106182150-f42d05182288/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
@@ -1974,8 +1975,8 @@ k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20210915213132-8b5a19
 k8s.io/kubernetes/staging/src/k8s.io/component-helpers v0.0.0-20210915213132-8b5a19147530 h1:0+mecJdoPert4AyZZANMnYEs8k36Scq4i0Ud4gzhCFg=
 k8s.io/kubernetes/staging/src/k8s.io/component-helpers v0.0.0-20210915213132-8b5a19147530/go.mod h1:9Bx6HezI9sKzn5Boasw7vMT8FRgcXsExOoT87Wzdls4=
 k8s.io/kubernetes/staging/src/k8s.io/controller-manager v0.0.0-20210915213132-8b5a19147530/go.mod h1:aPin+82yKPEirDGBtNS/4fcc3a1QVOqdt6zzxOlrfc8=
-k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20210915213132-8b5a19147530 h1:TJWxdbcm0amNDD9SxUI59DsS+ZcjoQ+G8QBv0wX1EAI=
-k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20210915213132-8b5a19147530/go.mod h1:2XpB3zC24SSO5mhWTzWwBHrO5rO19ncH1bdqS+VuQsI=
+k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20210928072042-90051602459c h1:fDaVFEHeDenucbpGfzN4zUJYLQb5sZlnsQpGN1wh4zg=
+k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20210928072042-90051602459c/go.mod h1:9/iOLM7O5FjuFC/92n/5gSH+pLy8kfU1ugnNLe7I90Q=
 k8s.io/kubernetes/staging/src/k8s.io/csi-translation-lib v0.0.0-20210915213132-8b5a19147530/go.mod h1:B1gPUSbK2PVSnkxCgw/fmDckzQU6UCuyl670XFbEw6Q=
 k8s.io/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20210915213132-8b5a19147530/go.mod h1:LyGGFXi1A101JZQjBNy4RgVgAwtQ5UhRy2KfX/STctk=
 k8s.io/kubernetes/staging/src/k8s.io/kube-controller-manager v0.0.0-20210915213132-8b5a19147530/go.mod h1:46iKO45TZat/zvPyqe8TjLLrTS/U/nGB92Ft63PEPF0=

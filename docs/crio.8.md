@@ -89,6 +89,7 @@ crio
 [--selinux]
 [--separate-pull-cgroup]=[value]
 [--signature-policy]=[value]
+[--stats-collection-period]=[value]
 [--storage-driver|-s]=[value]
 [--storage-opt]=[value]
 [--stream-address]=[value]
@@ -326,6 +327,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup (default: "")
 
 **--signature-policy**="": Path to signature policy JSON file. (default: "", to use the system-wide default)
+
+**--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. (default: 0)
 
 **--storage-driver, -s**="": OCI storage driver (default: "")
 

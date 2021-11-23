@@ -72,6 +72,22 @@ type ListPodSandboxResponse struct {
 	Items []*PodSandbox
 }
 
+type PodSandboxStatsRequest struct {
+	PodSandboxID string
+}
+
+type PodSandboxStatsResponse struct {
+	Stats *PodSandboxStats
+}
+
+type ListPodSandboxStatsRequest struct {
+	Filter *PodSandboxStatsFilter
+}
+
+type ListPodSandboxStatsResponse struct {
+	Stats []*PodSandboxStats
+}
+
 type CreateContainerRequest struct {
 	PodSandboxID  string
 	Config        *ContainerConfig
@@ -616,11 +632,17 @@ type ContainerAttributes struct {
 type CPUUsage struct {
 	Timestamp            int64
 	UsageCoreNanoSeconds *UInt64Value
+	UsageNanoCores       *UInt64Value
 }
 
 type MemoryUsage struct {
 	Timestamp       int64
 	WorkingSetBytes *UInt64Value
+	AvailableBytes  *UInt64Value
+	UsageBytes      *UInt64Value
+	RssBytes        *UInt64Value
+	PageFaults      *UInt64Value
+	MajorPageFaults *UInt64Value
 }
 
 type ContainerStatsFilter struct {
@@ -641,3 +663,44 @@ const (
 	SecurityProfileTypeUnconfined     SecurityProfileType = 1
 	SecurityProfileTypeLocalhost      SecurityProfileType = 2
 )
+
+type PodSandboxStats struct {
+	Attributes *PodSandboxAttributes
+	CPU        *CPUUsage
+	Memory     *MemoryUsage
+	Network    *NetworkUsage
+	Process    *ProcessUsage
+	Containers []*ContainerStats
+}
+
+type PodSandboxAttributes struct {
+	ID          string
+	Metadata    *PodSandboxMetadata
+	Labels      map[string]string
+	Annotations map[string]string
+}
+
+type PodSandboxStatsFilter struct {
+	ID            string
+	PodSandboxID  string
+	LabelSelector map[string]string
+}
+
+type NetworkUsage struct {
+	Timestamp        int64
+	DefaultInterface *NetworkInterfaceUsage
+	Interfaces       []*NetworkInterfaceUsage
+}
+
+type NetworkInterfaceUsage struct {
+	Name     string
+	RxBytes  *UInt64Value
+	RxErrors *UInt64Value
+	TxBytes  *UInt64Value
+	TxErrors *UInt64Value
+}
+
+type ProcessUsage struct {
+	Timestamp    int64
+	ProcessCount *UInt64Value
+}
