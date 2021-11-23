@@ -972,10 +972,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrap(err, "runtime validation")
 		}
 
-		if err := c.ValidateAllowedAnnotations(); err != nil {
-			return errors.Wrap(err, "allowed annotations validation")
-		}
-
 		// Validate the system registries configuration
 		if _, err := sysregistriesv2.GetRegistries(systemContext); err != nil {
 			return errors.Wrap(err, "invalid registries")
@@ -1314,35 +1310,6 @@ func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallow
 		disallowed = append(disallowed, ann)
 	}
 	return disallowed, nil
-}
-
-// In the interim between adding workload level allowed annotations
-// and disabling runtime level allowed annotations, we need to do a separate
-// validation step to ensure neither list are stepping on the other's toes.
-// Instead of complicated logic, declare workload level allowed annotations to
-// always overwrite runtime level ones.
-func (c *RuntimeConfig) ValidateAllowedAnnotations() error {
-	var workloadHasAnnotation bool
-	for _, wl := range c.Workloads {
-		if len(wl.AllowedAnnotations) != 0 {
-			workloadHasAnnotation = true
-		}
-	}
-	if !workloadHasAnnotation {
-		for _, wl := range c.Workloads {
-			wl.AllowedAnnotations = []string{}
-			wl.DisallowedAnnotations = []string{}
-		}
-		logrus.Infof("Workload does not have an allowed annotation configured. Clearing allowed annotations from runtimes")
-		return nil
-	}
-	logrus.Infof("Workload has an allowed annotation configured. Clearing allowed annotations from runtimes")
-	for name, rh := range c.Runtimes {
-		logrus.Infof("Clearing allowed annotations from %s", name)
-		rh.AllowedAnnotations = []string{}
-		rh.DisallowedAnnotations = []string{}
-	}
-	return nil
 }
 
 // CNIPlugin returns the network configuration CNI plugin

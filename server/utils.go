@@ -221,14 +221,12 @@ func (s *Server) FilterDisallowedAnnotations(toFind, toFilter map[string]string,
 	// When runtime level allowed annotations are deprecated, this will be dropped.
 	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
 	// and SpecAddAnnotations is already passed too many arguments
-	rtAllowed, err := s.Runtime().AllowedAnnotations(runtimeHandler)
+	allowed, err := s.Runtime().AllowedAnnotations(runtimeHandler)
 	if err != nil {
 		return err
 	}
-	allowed := s.config.Workloads.AllowedAnnotations(toFind)
-	if len(allowed) == 0 {
-		allowed = rtAllowed
-	}
+	allowed = append(allowed, s.config.Workloads.AllowedAnnotations(toFind)...)
+	logrus.Warnf("Allowed annotations are specified for workload %v %s", allowed, runtimeHandler)
 
 	return s.config.Workloads.FilterDisallowedAnnotations(allowed, toFilter)
 }
