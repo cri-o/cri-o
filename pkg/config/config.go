@@ -556,6 +556,10 @@ func (c *Config) UpdateFromFile(path string) error {
 // Returns errors encountered when reading or parsing the files, or nil
 // otherwise.
 func (c *Config) UpdateFromDropInFile(path string) error {
+	// keeps the storage options from storage.conf and merge it to crio config
+	var storageOpts []string
+	storageOpts = append(storageOpts, c.StorageOptions...)
+
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
@@ -575,6 +579,10 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 		delete(c.Runtimes, defaultRuntime)
 	}
 
+	storageOpts = append(storageOpts, t.Crio.RootConfig.StorageOptions...)
+	storageOpts = removeDupStorageOpts(storageOpts)
+	t.Crio.RootConfig.StorageOptions = storageOpts
+
 	// Registries are deprecated in cri-o.conf and turned into a NOP.
 	// Users should use registries.conf instead, so let's log it.
 	if len(t.Crio.Image.Registries) > 0 {
@@ -584,6 +592,24 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 
 	t.toConfig(c)
 	return nil
+}
+
+// removeDupStorageOpts removes duplicated storage option from the list
+// keeps the last appearance
+func removeDupStorageOpts(storageOpts []string) []string {
+	var resOpts []string
+	opts := make(map[string]bool)
+	for i := len(storageOpts) - 1; i >= 0; i-- {
+		if ok := opts[storageOpts[i]]; ok {
+			continue
+		}
+		opts[storageOpts[i]] = true
+		resOpts = append(resOpts, storageOpts[i])
+	}
+	for i, j := 0, len(resOpts)-1; i < j; i, j = i+1, j-1 {
+		resOpts[i], resOpts[j] = resOpts[j], resOpts[i]
+	}
+	return resOpts
 }
 
 // UpdateFromPath recursively iterates the provided path and updates the
