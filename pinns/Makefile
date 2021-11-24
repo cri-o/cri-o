@@ -8,7 +8,7 @@ CFLAGS ?= -std=c99 -Os -Wall -Werror -Wextra -static
 all: ../bin/pinns
 
 ../bin/pinns: $(obj) | ../bin
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
 	$(STRIP) -s $@
 
 %.o: %.c $(HEADERS)
