@@ -31,6 +31,13 @@ prepare_system() {
     # needed for crictl test
     sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
     sudo iptables -t nat -I POSTROUTING -s 127.0.0.0/8 ! -d 127.0.0.0/8 -j MASQUERADE
+
+    if ! grep -q containers /etc/subuid; then
+        echo "containers:100000:65536" | sudo tee -a /etc/subuid
+    fi
+    if ! grep -q containers /etc/subgid; then
+        echo "containers:100000:65536" | sudo tee -a /etc/subgid
+    fi
 }
 
 install_bats() {

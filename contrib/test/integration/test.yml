@@ -7,6 +7,20 @@
     regexp: ' go test \"\$'
     state: present
 
+- name: Setup /etc/subuid
+  lineinfile:
+    dest: "/etc/subuid"
+    line: "containers:100000:65536"
+    regexp: ' go test \"\$'
+    state: present
+
+- name: Setup /etc/subgid
+  lineinfile:
+    dest: "/etc/subgid"
+    line: "containers:100000:65536"
+    insertafter: EOF
+    state: present
+
 - name: ensure directory exists for e2e reports
   file:
     path: "{{ artifacts }}"
