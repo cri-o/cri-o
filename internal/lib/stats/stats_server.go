@@ -22,6 +22,7 @@ import (
 // Otherwise, it only updates the stats as they're requested.
 type StatsServer struct {
 	shutdown         chan struct{}
+	alreadyShutdown  bool
 	collectionPeriod time.Duration
 	sboxStats        map[string]*types.PodSandboxStats
 	ctrStats         map[string]*types.ContainerStats
@@ -44,6 +45,7 @@ type parentServerIface interface {
 func New(cs parentServerIface) *StatsServer {
 	ss := &StatsServer{
 		shutdown:          make(chan struct{}, 1),
+		alreadyShutdown:   false,
 		collectionPeriod:  time.Duration(cs.Config().StatsCollectionPeriod) * time.Second,
 		sboxStats:         make(map[string]*types.PodSandboxStats),
 		ctrStats:          make(map[string]*types.ContainerStats),
@@ -335,5 +337,9 @@ func (ss *StatsServer) RemoveStatsForContainer(c *oci.Container) {
 
 // Shutdown tells the updateLoop to stop updating.
 func (ss *StatsServer) Shutdown() {
+	if ss.alreadyShutdown {
+		return
+	}
 	close(ss.shutdown)
+	ss.alreadyShutdown = true
 }
