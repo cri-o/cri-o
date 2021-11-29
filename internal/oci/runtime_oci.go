@@ -685,6 +685,9 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 			// Otherwise, we won't actually
 			// attempt to stop when a new request comes in,
 			// even though we're not actively stopping anymore.
+			// Also, close the stopStoppingChan to tell
+			// routines waiting to change the stop timeout to give up.
+			close(c.stopStoppingChan)
 			c.SetAsNotStopping()
 		}
 	}()
