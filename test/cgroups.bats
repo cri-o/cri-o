@@ -54,13 +54,21 @@ function teardown() {
 
 	if test -r "$CGROUP_MEM_SWAP_FILE"; then
 		output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE")
-		[[ "$output" == "210763776" ]]
+		if is_cgroup_v2; then {
+			[[ "$output" == "$(( 210763776 - 209715200 ))" ]]
+		}
+		else {
+			[[ "$output" == "210763776" ]]
+		}
 	fi
 }
 
 @test "ctr with swap should fail when swap is lower" {
 	if ! grep -v Filename < /proc/swaps; then
 		skip "swap not enabled"
+	fi
+	if is_cgroup_v2; then
+		skip "node cannot be configured with cgroupv2 for this test"
 	fi
 	start_crio
 	# memsw should be greater than or equal to memory limit

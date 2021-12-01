@@ -376,6 +376,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 						)
 					}
 					memoryLimit = resources.MemorySwapLimitInBytes
+					if node.CgroupIsV2() {
+						// Kubelet specifies these fields assuming cgroupv1. In cgroupv1,
+						// swap is memoryLimitInBytes + amount that can be used for swap.
+						// However, in cgroupv2, swap and memory are specified separately.
+						// Since kubelet assumes v1, it sends swap+memory as swap value,
+						// but the correct way to specify swap subtracts memory from that.
+						memoryLimit = resources.MemorySwapLimitInBytes - resources.MemoryLimitInBytes
+					}
 				}
 				specgen.SetLinuxResourcesMemorySwap(memoryLimit)
 			}
