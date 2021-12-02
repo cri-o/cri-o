@@ -237,8 +237,14 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("uid-mappings") {
 		config.UIDMappings = ctx.String("uid-mappings")
 	}
+	if ctx.IsSet("minimum-mappable-uid") {
+		config.MinimumMappableUID = ctx.Int64("minimum-mappable-uid")
+	}
 	if ctx.IsSet("gid-mappings") {
 		config.GIDMappings = ctx.String("gid-mappings")
+	}
+	if ctx.IsSet("minimum-mappable-gid") {
+		config.MinimumMappableGID = ctx.Int64("minimum-mappable-gid")
 	}
 	if ctx.IsSet("log-level") {
 		config.LogLevel = ctx.String("log-level")
@@ -808,6 +814,18 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   fmt.Sprintf("Specify the GID mappings to use for the user namespace (default: %q)", defConf.GIDMappings),
 			Value:   "",
 			EnvVars: []string{"CONTAINER_GID_MAPPINGS"},
+		},
+		&cli.Int64Flag{
+			Name:    "minimum-mappable-uid",
+			Usage:   "Specify the lowest host UID which can be specified in mappings for a pod that will be run as a UID other than 0",
+			Value:   defConf.MinimumMappableUID,
+			EnvVars: []string{"CONTAINER_MINIMUM_MAPPABLE_UID"},
+		},
+		&cli.Int64Flag{
+			Name:    "minimum-mappable-gid",
+			Usage:   "Specify the lowest host GID which can be specified in mappings for a pod that will be run as a UID other than 0",
+			Value:   defConf.MinimumMappableGID,
+			EnvVars: []string{"CONTAINER_MINIMUM_MAPPABLE_GID"},
 		},
 		&cli.StringSliceFlag{
 			Name:    "additional-devices",

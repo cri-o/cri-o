@@ -307,10 +307,20 @@ type RuntimeConfig struct {
 	// ranges are separated by comma.
 	UIDMappings string `toml:"uid_mappings"`
 
+	// MinimumMappableUID specifies the minimum UID value which can be
+	// specified in a uid_mappings value, whether configured here or sent
+	// to us via CRI, for a pod that isn't to be run as UID 0.
+	MinimumMappableUID int64 `toml:"minimum_mappable_uid"`
+
 	// GIDMappings specifies the GID mappings to have in the user namespace.
 	// A range is specified in the form containerUID:HostUID:Size.  Multiple
 	// ranges are separated by comma.
 	GIDMappings string `toml:"gid_mappings"`
+
+	// MinimumMappableGID specifies the minimum GID value which can be
+	// specified in a gid_mappings value, whether configured here or sent
+	// to us via CRI, for a pod that isn't to be run as UID 0.
+	MinimumMappableGID int64 `toml:"minimum_mappable_gid"`
 
 	// LogLevel determines the verbosity of the logs based on the level it is set to.
 	// Options are fatal, panic, error (default), warn, info, debug, and trace.
@@ -744,6 +754,8 @@ func DefaultConfig() (*Config, error) {
 			PidsLimit:                DefaultPidsLimit,
 			ContainerExitsDir:        containerExitsDir,
 			ContainerAttachSocketDir: conmonconfig.ContainerAttachSocketDir,
+			MinimumMappableUID:       -1,
+			MinimumMappableGID:       -1,
 			LogSizeMax:               DefaultLogSizeMax,
 			CtrStopTimeout:           defaultCtrStopTimeout,
 			DefaultCapabilities:      capabilities.Default(),

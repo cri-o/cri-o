@@ -360,6 +360,16 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.GIDMappings, c.GIDMappings),
 		},
 		{
+			templateString: templateStringCrioRuntimeMinimumMappableUID,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.MinimumMappableUID, c.MinimumMappableUID),
+		},
+		{
+			templateString: templateStringCrioRuntimeMinimumMappableGID,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.MinimumMappableGID, c.MinimumMappableGID),
+		},
+		{
 			templateString: templateStringCrioRuntimeCtrStopTimeout,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.CtrStopTimeout, c.CtrStopTimeout),
@@ -950,6 +960,20 @@ const templateStringCrioRuntimeGIDMappings = `# The GID mappings for the user na
 # specified in the form containerGID:HostGID:Size. Multiple ranges must be
 # separated by comma.
 gid_mappings = "{{ .GIDMappings }}"
+
+`
+
+const templateStringCrioRuntimeMinimumMappableUID = `# If set, CRI-O will reject any attempt to map host UIDs below this value
+# into user namespaces.  A negative value indicates that no minimum is set,
+# so specifying mappings will only be allowed for pods that run as UID 0.
+minimum_mappable_uid = {{ .MinimumMappableUID }}
+
+`
+
+const templateStringCrioRuntimeMinimumMappableGID = `# If set, CRI-O will reject any attempt to map host GIDs below this value
+# into user namespaces.  A negative value indicates that no minimum is set,
+# so specifying mappings will only be allowed for pods that run as UID 0.
+minimum_mappable_gid = {{ .MinimumMappableGID}}
 
 `
 
