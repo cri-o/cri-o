@@ -96,6 +96,9 @@ func resourcesFromAnnotation(prefix, ctrName string, annotations map[string]stri
 }
 
 func (r *Resources) ValidateDefaults() error {
+	if r == nil {
+		return nil
+	}
 	if r.CPUSet == "" {
 		return nil
 	}
@@ -104,6 +107,9 @@ func (r *Resources) ValidateDefaults() error {
 }
 
 func (r *Resources) MutateSpec(specgen *generate.Generator) {
+	if r == nil {
+		return
+	}
 	if r.CPUSet != "" {
 		specgen.SetLinuxResourcesCPUCpus(r.CPUSet)
 	}

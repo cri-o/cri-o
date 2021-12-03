@@ -269,3 +269,20 @@ function check_conmon_fields() {
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
 	check_conmon_fields "$ctr_id" "$shares" "$set"
 }
+
+@test "should succeed to create workload with empty resources" {
+	cat << EOF > "$CRIO_CONFIG_DIR/01-workload.conf"
+[crio.runtime.workloads.management]
+activation_annotation = "$activation"
+annotation_prefix = "$prefix"
+EOF
+	start_crio
+
+	jq --arg act "$activation" ' .annotations[$act] = "true"' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq --arg act "$activation" ' .annotations[$act] = "true"' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+}
