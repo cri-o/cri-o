@@ -589,6 +589,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	}
 
 	if sb.ContainerEnvPath() != "" {
+		if err := securityLabel(sb.ContainerEnvPath(), mountLabel, false, false); err != nil {
+			return nil, err
+		}
 		ctr.SpecAddMount(rspec.Mount{
 			Destination: "/run/.containerenv",
 			Type:        "bind",
