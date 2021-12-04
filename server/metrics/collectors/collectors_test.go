@@ -36,25 +36,35 @@ var _ = t.Describe("Collectors", func() {
 
 			// When / Then
 			for _, collector := range []collectors.Collector{
-				collectors.Operations,
-				collectors.OperationsLatencyTotal,
-				collectors.OperationsLatency,
-				collectors.OperationsErrors,
-				collectors.ImagePullsByDigest,
-				collectors.ImagePullsByName,
-				collectors.ImagePullsByNameSkipped,
-				collectors.ImagePullsFailures,
-				collectors.ImagePullsSuccesses,
+				collectors.Operations,              // Deprecated: in favour of OperationsTotal
+				collectors.OperationsLatencyTotal,  // Deprecated: in favour of OperationsLatencySecondsTotal
+				collectors.OperationsLatency,       // Deprecated: in favour of OperationsLatencySeconds
+				collectors.OperationsErrors,        // Deprecated: in favour of OperationsErrorsTotal
+				collectors.ImagePullsByDigest,      // Deprecated: in favour of ImagePullsBytesTotal
+				collectors.ImagePullsByName,        // Deprecated: in favour of ImagePullsBytesTotal
+				collectors.ImagePullsByNameSkipped, // Deprecated: in favour of ImagePullsSkippedBytesTotal
+				collectors.ImagePullsFailures,      // Deprecated:  in favour of ImagePullsFailureTotal
+				collectors.ImagePullsSuccesses,     // Deprecated:  in favour of ImagePullsSuccessTotal
 				collectors.ImagePullsLayerSize,
-				collectors.ImageLayerReuse,
+				collectors.ImageLayerReuse, // Deprecated: in favour of ImageLayerReuseTotal
 				collectors.ContainersOOMTotal,
-				collectors.ContainersOOM,
+				collectors.ContainersOOM, // Deprecated: in favour of ContainersOOMCountTotal
 				collectors.ProcessesDefunct,
+				collectors.OperationsTotal,
+				collectors.OperationsLatencySeconds,
+				collectors.OperationsLatencySecondsTotal,
+				collectors.OperationsErrorsTotal,
+				collectors.ImagePullsBytesTotal,
+				collectors.ImagePullsSkippedBytesTotal,
+				collectors.ImagePullsFailureTotal,
+				collectors.ImagePullsSuccessTotal,
+				collectors.ImageLayerReuseTotal,
+				collectors.ContainersOOMCountTotal,
 			} {
 				Expect(all.Contains(collector)).To(BeTrue())
 			}
 
-			Expect(all).To(HaveLen(14))
+			Expect(all).To(HaveLen(24))
 		})
 	})
 

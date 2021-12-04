@@ -707,7 +707,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 			metrics.Instance().MetricContainersOOMTotalInc()
 
 			// Collect metric by container name
-			metrics.Instance().MetricContainersOOMInc(c.Name())
+			metrics.Instance().MetricContainersOOMCountTotalInc(c.Name())
 		}
 	}
 	return nil
