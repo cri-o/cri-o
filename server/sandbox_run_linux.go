@@ -353,12 +353,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
 
-	if sbox.Config().Linux == nil {
-		sbox.Config().Linux = &types.LinuxPodSandboxConfig{}
-	}
-	if sbox.Config().Linux.SecurityContext == nil {
-		sbox.Config().Linux.SecurityContext = newLinuxSandboxSecurityContext()
-	}
 	securityContext := sbox.Config().Linux.SecurityContext
 
 	if securityContext.NamespaceOptions == nil {
@@ -1111,15 +1105,4 @@ func configureGeneratorGivenNamespacePaths(managedNamespaces []*libsandbox.Manag
 		}
 	}
 	return nil
-}
-
-func newLinuxSandboxSecurityContext() *types.LinuxSandboxSecurityContext {
-	return &types.LinuxSandboxSecurityContext{
-		NamespaceOptions: &types.NamespaceOption{},
-		SelinuxOptions:   &types.SELinuxOption{},
-		RunAsUser:        &types.Int64Value{},
-		RunAsGroup:       &types.Int64Value{},
-		Seccomp:          &types.SecurityProfile{},
-		Apparmor:         &types.SecurityProfile{},
-	}
 }
