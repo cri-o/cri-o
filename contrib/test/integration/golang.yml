@@ -46,13 +46,28 @@
     - "{{ ansible_env.GOPATH }}/src/github.com/k8s.io"
     - "{{ ansible_env.GOPATH }}/src/github.com/bats-core"
     - "{{ ansible_env.GOPATH }}/src/github.com/opencontainers"
+    - "{{ ansible_env.GOPATH }}/src/github.com/onsi"
     - "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
 
-- name: install Go tools and dependencies
-  shell: go get -u "github.com/{{ item }}"
+- name: install go-bindata
+  shell: go get -u "github.com/jteeuwen/go-bindata/go-bindata"
   args:
     chdir: /
-  with_items:
-    - onsi/ginkgo/ginkgo
-    - onsi/gomega
-    - jteeuwen/go-bindata/go-bindata
+
+- name: install ginkgo
+  shell: |
+    git clone "https://github.com/onsi/ginkgo"
+    pushd ginkgo
+    git checkout v1.16.3
+    go get -u "github.com/onsi/ginkgo/ginkgo"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/onsi"
+
+- name: install gomega
+  shell: |
+    git clone "https://github.com/onsi/gomega"
+    pushd ginkgo
+    git checkout v1.16.0
+    go get -u "github.com/onsi/gomega"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/onsi"
