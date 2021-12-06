@@ -62,12 +62,3 @@
     go get -u "github.com/onsi/ginkgo/ginkgo"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/onsi"
-
-- name: install gomega
-  shell: |
-    git clone "https://github.com/onsi/gomega"
-    pushd ginkgo
-    git checkout v1.16.0
-    go get -u "github.com/onsi/gomega"
-  args:
-    chdir: "{{ ansible_env.GOPATH }}/src/github.com/onsi"
