@@ -2,36 +2,15 @@ package v1alpha2
 
 import (
 	"context"
+	"unsafe"
 
-	"github.com/cri-o/cri-o/server/cri/types"
+	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 func (s *service) Status(
 	ctx context.Context, req *pb.StatusRequest,
 ) (*pb.StatusResponse, error) {
-	r := &types.StatusRequest{
-		Verbose: req.Verbose,
-	}
-	res, err := s.server.Status(ctx, r)
-	if err != nil {
-		return nil, err
-	}
-	resp := &pb.StatusResponse{
-		Info:   res.Info,
-		Status: &pb.RuntimeStatus{},
-	}
-	if res.Status != nil {
-		conditions := []*pb.RuntimeCondition{}
-		for _, x := range res.Status.Conditions {
-			conditions = append(conditions, &pb.RuntimeCondition{
-				Type:    x.Type,
-				Status:  x.Status,
-				Reason:  x.Reason,
-				Message: x.Message,
-			})
-		}
-		resp.Status.Conditions = conditions
-	}
-	return resp, nil
+	resp, err := s.server.Status(ctx, (*v1.StatusRequest)(unsafe.Pointer(req)))
+	return (*pb.StatusResponse)(unsafe.Pointer(resp)), err
 }

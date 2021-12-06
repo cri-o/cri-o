@@ -6,18 +6,18 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRequest) (retErr error) {
-	log.Infof(ctx, "Starting container: %s", req.ContainerID)
-	c, err := s.GetContainerFromShortID(req.ContainerID)
+	log.Infof(ctx, "Starting container: %s", req.ContainerId)
+	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
-		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerID, err)
+		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 	state := c.State()
 	if state.Status != oci.ContainerStateCreated {

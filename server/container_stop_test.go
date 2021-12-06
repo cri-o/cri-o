@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -31,7 +31,7 @@ var _ = t.Describe("ContainerStop", func() {
 			// When
 			err := sut.StopContainer(context.Background(),
 				&types.StopContainerRequest{
-					ContainerID: testContainer.ID(),
+					ContainerId: testContainer.ID(),
 				})
 
 			// Then
@@ -42,7 +42,7 @@ var _ = t.Describe("ContainerStop", func() {
 			// Given
 			// When
 			err := sut.StopContainer(context.Background(),
-				&types.StopContainerRequest{ContainerID: "id"})
+				&types.StopContainerRequest{ContainerId: "id"})
 
 			// Then
 			Expect(err).NotTo(BeNil())

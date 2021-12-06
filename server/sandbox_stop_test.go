@@ -3,10 +3,10 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -28,7 +28,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 
 			// When
 			err := sut.StopPodSandbox(context.Background(),
-				&types.StopPodSandboxRequest{PodSandboxID: testSandbox.ID()})
+				&types.StopPodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -38,7 +38,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			// Given
 			// When
 			err := sut.StopPodSandbox(context.Background(),
-				&types.StopPodSandboxRequest{PodSandboxID: "invalid"})
+				&types.StopPodSandboxRequest{PodSandboxId: "invalid"})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -54,7 +54,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 
 			// When
 			err := sut.StopPodSandbox(context.Background(),
-				&types.StopPodSandboxRequest{PodSandboxID: testSandbox.ID()})
+				&types.StopPodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
 			Expect(err).NotTo(BeNil())

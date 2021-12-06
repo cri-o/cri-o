@@ -3,9 +3,9 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -18,6 +18,39 @@ var _ = t.Describe("ContainerCreate", func() {
 
 	AfterEach(afterEach)
 
+	newContainerConfig := func() *types.ContainerConfig {
+		return &types.ContainerConfig{
+			Metadata: &types.ContainerMetadata{},
+			Image:    &types.ImageSpec{},
+			Linux: &types.LinuxContainerConfig{
+				Resources: &types.LinuxContainerResources{},
+				SecurityContext: &types.LinuxContainerSecurityContext{
+					Capabilities:     &types.Capability{},
+					NamespaceOptions: &types.NamespaceOption{},
+					SelinuxOptions:   &types.SELinuxOption{},
+					RunAsUser:        &types.Int64Value{},
+					RunAsGroup:       &types.Int64Value{},
+				},
+			},
+		}
+	}
+
+	newPodSandboxConfig := func() *types.PodSandboxConfig {
+		return &types.PodSandboxConfig{
+			Metadata:     &types.PodSandboxMetadata{},
+			DnsConfig:    &types.DNSConfig{},
+			PortMappings: []*types.PortMapping{},
+			Linux: &types.LinuxPodSandboxConfig{
+				SecurityContext: &types.LinuxSandboxSecurityContext{
+					NamespaceOptions: &types.NamespaceOption{},
+					SelinuxOptions:   &types.SELinuxOption{},
+					RunAsUser:        &types.Int64Value{},
+					RunAsGroup:       &types.Int64Value{},
+				},
+			},
+		}
+	}
+
 	t.Describe("ContainerCreate", func() {
 		It("should fail when container config image is nil", func() {
 			// Given
@@ -26,7 +59,7 @@ var _ = t.Describe("ContainerCreate", func() {
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
-					PodSandboxID: testSandbox.ID(),
+					PodSandboxId: testSandbox.ID(),
 					Config: &types.ContainerConfig{
 						Metadata: &types.ContainerMetadata{
 							Name: "name",
@@ -46,7 +79,7 @@ var _ = t.Describe("ContainerCreate", func() {
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
-					PodSandboxID: testSandbox.ID(),
+					PodSandboxId: testSandbox.ID(),
 					Config: &types.ContainerConfig{
 						Metadata: &types.ContainerMetadata{},
 					},
@@ -64,7 +97,7 @@ var _ = t.Describe("ContainerCreate", func() {
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
-					PodSandboxID: testSandbox.ID(),
+					PodSandboxId: testSandbox.ID(),
 					Config:       &types.ContainerConfig{},
 				})
 
@@ -80,9 +113,9 @@ var _ = t.Describe("ContainerCreate", func() {
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
-					PodSandboxID:  testSandbox.ID(),
-					Config:        types.NewContainerConfig(),
-					SandboxConfig: types.NewPodSandboxConfig(),
+					PodSandboxId:  testSandbox.ID(),
+					Config:        newContainerConfig(),
+					SandboxConfig: newPodSandboxConfig(),
 				})
 
 			// Then
@@ -98,9 +131,9 @@ var _ = t.Describe("ContainerCreate", func() {
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
-					PodSandboxID:  testSandbox.ID(),
-					Config:        types.NewContainerConfig(),
-					SandboxConfig: types.NewPodSandboxConfig(),
+					PodSandboxId:  testSandbox.ID(),
+					Config:        newContainerConfig(),
+					SandboxConfig: newPodSandboxConfig(),
 				})
 
 			// Then
@@ -115,9 +148,9 @@ var _ = t.Describe("ContainerCreate", func() {
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
-					PodSandboxID:  testSandbox.ID(),
-					Config:        types.NewContainerConfig(),
-					SandboxConfig: types.NewPodSandboxConfig(),
+					PodSandboxId:  testSandbox.ID(),
+					Config:        newContainerConfig(),
+					SandboxConfig: newPodSandboxConfig(),
 				})
 
 			// Then
@@ -130,9 +163,9 @@ var _ = t.Describe("ContainerCreate", func() {
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
-					PodSandboxID:  testSandbox.ID(),
-					Config:        types.NewContainerConfig(),
-					SandboxConfig: types.NewPodSandboxConfig(),
+					PodSandboxId:  testSandbox.ID(),
+					Config:        newContainerConfig(),
+					SandboxConfig: newPodSandboxConfig(),
 				})
 
 			// Then
@@ -145,8 +178,8 @@ var _ = t.Describe("ContainerCreate", func() {
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
-					Config:        types.NewContainerConfig(),
-					SandboxConfig: types.NewPodSandboxConfig(),
+					Config:        newContainerConfig(),
+					SandboxConfig: newPodSandboxConfig(),
 				})
 
 			// Then

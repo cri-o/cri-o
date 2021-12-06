@@ -16,13 +16,13 @@ import (
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/server/cri/types"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
@@ -76,7 +76,7 @@ type Container struct {
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
 	return &types.ContainerAttributes{
-		ID:          c.ID(),
+		Id:          c.ID(),
 		Metadata:    c.Metadata(),
 		Labels:      c.Labels(),
 		Annotations: c.Annotations(),
@@ -112,8 +112,8 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 	state.Created = created
 	c := &Container{
 		criContainer: &types.Container{
-			ID:           id,
-			PodSandboxID: sandbox,
+			Id:           id,
+			PodSandboxId: sandbox,
 			CreatedAt:    created.UnixNano(),
 			Labels:       labels,
 			Metadata:     metadata,
@@ -148,10 +148,10 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 	state.Started = created
 	c := &Container{
 		criContainer: &types.Container{
-			ID:           id,
+			Id:           id,
 			CreatedAt:    created.UnixNano(),
 			Labels:       labels,
-			PodSandboxID: sandbox,
+			PodSandboxId: sandbox,
 			Metadata:     &types.ContainerMetadata{},
 			Annotations: map[string]string{
 				ann.SpoofedContainer: "true",
@@ -273,7 +273,7 @@ func (c *Container) Name() string {
 
 // ID returns the id of the container.
 func (c *Container) ID() string {
-	return c.criContainer.ID
+	return c.criContainer.Id
 }
 
 // CleanupConmonCgroup cleans up conmon's group when using cgroupfs.
@@ -347,7 +347,7 @@ func (c *Container) ImageRef() string {
 
 // Sandbox returns the sandbox name of the container.
 func (c *Container) Sandbox() string {
-	return c.criContainer.PodSandboxID
+	return c.criContainer.PodSandboxId
 }
 
 // Dir returns the dir of the container

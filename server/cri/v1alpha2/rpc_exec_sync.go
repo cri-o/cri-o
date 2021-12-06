@@ -2,26 +2,15 @@ package v1alpha2
 
 import (
 	"context"
+	"unsafe"
 
-	"github.com/cri-o/cri-o/server/cri/types"
+	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 func (s *service) ExecSync(
 	ctx context.Context, req *pb.ExecSyncRequest,
 ) (*pb.ExecSyncResponse, error) {
-	r := &types.ExecSyncRequest{
-		ContainerID: req.ContainerId,
-		Cmd:         req.Cmd,
-		Timeout:     req.Timeout,
-	}
-	res, err := s.server.ExecSync(ctx, r)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.ExecSyncResponse{
-		Stdout:   res.Stdout,
-		Stderr:   res.Stderr,
-		ExitCode: res.ExitCode,
-	}, nil
+	resp, err := s.server.ExecSync(ctx, (*v1.ExecSyncRequest)(unsafe.Pointer(req)))
+	return (*pb.ExecSyncResponse)(unsafe.Pointer(resp)), err
 }

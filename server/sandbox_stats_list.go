@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/server/cri/types"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // ListPodSandboxStats returns stats of all sandboxes.
@@ -11,7 +11,7 @@ func (s *Server) ListPodSandboxStats(ctx context.Context, req *types.ListPodSand
 	sboxList := s.ContainerServer.ListSandboxes()
 	if req.Filter != nil {
 		sbFilter := &types.PodSandboxFilter{
-			ID:            req.Filter.ID,
+			Id:            req.Filter.Id,
 			LabelSelector: req.Filter.LabelSelector,
 		}
 		sboxList = s.filterSandboxList(ctx, sbFilter, sboxList)

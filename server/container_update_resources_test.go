@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,7 +38,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			// When
 			err := sut.UpdateContainerResources(context.Background(),
 				&types.UpdateContainerResourcesRequest{
-					ContainerID: testContainer.ID(),
+					ContainerId: testContainer.ID(),
 				},
 			)
 
@@ -61,13 +61,13 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			// When
 			err := sut.UpdateContainerResources(context.Background(),
 				&types.UpdateContainerResourcesRequest{
-					ContainerID: testContainer.ID(),
+					ContainerId: testContainer.ID(),
 					Linux: &types.LinuxContainerResources{
-						CPUPeriod:  100000,
-						CPUQuota:   20000,
-						CPUShares:  1024,
-						CPUsetCPUs: "0-3,12-15",
-						CPUsetMems: "0,1",
+						CpuPeriod:  100000,
+						CpuQuota:   20000,
+						CpuShares:  1024,
+						CpusetCpus: "0-3,12-15",
+						CpusetMems: "0,1",
 					},
 				},
 			)
@@ -90,7 +90,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			// When
 			err := sut.UpdateContainerResources(context.Background(),
 				&types.UpdateContainerResourcesRequest{
-					ContainerID: testContainer.ID(),
+					ContainerId: testContainer.ID(),
 				})
 
 			// Then
@@ -102,7 +102,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			// When
 			err := sut.UpdateContainerResources(context.Background(),
 				&types.UpdateContainerResourcesRequest{
-					ContainerID: testContainer.ID(),
+					ContainerId: testContainer.ID(),
 				})
 
 			// Then

@@ -3,9 +3,9 @@ package server
 import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // ListPodSandbox returns a list of SandBoxes.
@@ -40,13 +40,13 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 	if filter == nil {
 		return podList
 	}
-	if filter.ID != "" {
-		id, err := s.PodIDIndex().Get(filter.ID)
+	if filter.Id != "" {
+		id, err := s.PodIDIndex().Get(filter.Id)
 		if err != nil {
 			// Not finding an ID in a filtered list should not be considered
 			// and error; it might have been deleted when stop was done.
 			// Log and return an empty struct.
-			log.Warnf(ctx, "Unable to find pod %s with filter", filter.ID)
+			log.Warnf(ctx, "Unable to find pod %s with filter", filter.Id)
 			return []*sandbox.Sandbox{}
 		}
 		sb := s.getSandbox(id)

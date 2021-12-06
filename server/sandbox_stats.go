@@ -3,12 +3,12 @@ package server
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/server/cri/types"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // PodSandboxStats returns stats of the sandbox. If the sandbox does not exist, the call returns an error.
 func (s *Server) PodSandboxStats(ctx context.Context, req *types.PodSandboxStatsRequest) (*types.PodSandboxStatsResponse, error) {
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
+	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		return nil, err
 	}

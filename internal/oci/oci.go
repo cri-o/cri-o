@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/cri/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"k8s.io/client-go/tools/remotecommand"
 )

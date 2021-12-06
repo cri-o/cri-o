@@ -1,9 +1,9 @@
 package sandbox_test
 
 import (
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 var _ = Describe("Sandbox:SetNameAndID", func() {
@@ -13,7 +13,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			config := &types.PodSandboxConfig{
 				Metadata: &types.PodSandboxMetadata{
 					Name:      "name",
-					UID:       "uid",
+					Uid:       "uid",
 					Namespace: "namespace",
 				},
 			}
@@ -45,7 +45,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			// Given
 			config := &types.PodSandboxConfig{
 				Metadata: &types.PodSandboxMetadata{
-					UID:       "uid",
+					Uid:       "uid",
 					Namespace: "namespace",
 				},
 			}
@@ -64,7 +64,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			config := &types.PodSandboxConfig{
 				Metadata: &types.PodSandboxMetadata{
 					Name: "name",
-					UID:  "uid",
+					Uid:  "uid",
 				},
 			}
 			Expect(sut.SetConfig(config)).To(BeNil())

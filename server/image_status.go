@@ -9,10 +9,10 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/log"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server/cri/types"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // ImageStatus returns the status of the image.
@@ -63,10 +63,10 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 
 		resp = &types.ImageStatusResponse{
 			Image: &types.Image{
-				ID:          status.ID,
+				Id:          status.ID,
 				RepoTags:    status.RepoTags,
 				RepoDigests: status.RepoDigests,
-				Size:        size,
+				Size_:       size,
 			},
 		}
 		if req.Verbose {
@@ -78,7 +78,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		}
 		uid, username := getUserFromImage(status.User)
 		if uid != nil {
-			resp.Image.UID = &types.Int64Value{Value: *uid}
+			resp.Image.Uid = &types.Int64Value{Value: *uid}
 		}
 		resp.Image.Username = username
 		break

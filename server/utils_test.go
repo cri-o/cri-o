@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/containers/storage/pkg/mount"
-	"github.com/cri-o/cri-o/server/cri/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func TestMergeEnvs(t *testing.T) {

@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -50,13 +50,13 @@ var _ = t.Describe("RunPodSandbox", func() {
 					Metadata: &types.PodSandboxMetadata{
 						Name:      "name",
 						Namespace: "default",
-						UID:       "uid",
+						Uid:       "uid",
 					},
 					LogDirectory: "/tmp",
 					Linux: &types.LinuxPodSandboxConfig{
 						SecurityContext: &types.LinuxSandboxSecurityContext{
 							NamespaceOptions: &types.NamespaceOption{
-								Ipc: types.NamespaceModeNODE,
+								Ipc: types.NamespaceMode_NODE,
 							},
 						},
 					},
@@ -125,10 +125,15 @@ var _ = t.Describe("RunPodSandbox", func() {
 					Metadata: &types.PodSandboxMetadata{
 						Name:      "name",
 						Namespace: "default",
-						UID:       "uid",
+						Uid:       "uid",
 					},
 					Linux: &types.LinuxPodSandboxConfig{
-						SecurityContext: types.NewLinuxSandboxSecurityContext(),
+						SecurityContext: &types.LinuxSandboxSecurityContext{
+							NamespaceOptions: &types.NamespaceOption{},
+							SelinuxOptions:   &types.SELinuxOption{},
+							RunAsUser:        &types.Int64Value{},
+							RunAsGroup:       &types.Int64Value{},
+						},
 					},
 				}})
 

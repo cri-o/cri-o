@@ -5,11 +5,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cri-o/cri-o/server/cri/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/sys/unix"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
+
+const InfraContainerName = "POD"
 
 func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
 	if c.Spoofed() {
@@ -23,7 +25,7 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 		},
 	}
 	// Mutate our newly created spec to find the customizations that are needed for conmon
-	if err := r.config.Workloads.MutateSpecGivenAnnotations(types.InfraContainerName, g, c.Annotations()); err != nil {
+	if err := r.config.Workloads.MutateSpecGivenAnnotations(InfraContainerName, g, c.Annotations()); err != nil {
 		return err
 	}
 
@@ -65,7 +67,7 @@ func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*types.Conta
 	// (such as critest) assume we can call stats on a cgroupless container
 	if cgroup == "" {
 		systemNano := time.Now().UnixNano()
-		stats.CPU = &types.CPUUsage{
+		stats.Cpu = &types.CpuUsage{
 			Timestamp: systemNano,
 		}
 		stats.Memory = &types.MemoryUsage{

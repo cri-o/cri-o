@@ -1,9 +1,9 @@
 package sandbox_test
 
 import (
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 var _ = Describe("Sandbox", func() {

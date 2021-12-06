@@ -26,13 +26,13 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	ctrIface "github.com/cri-o/cri-o/pkg/container"
-	"github.com/cri-o/cri-o/server/cri/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/intel/goresctrl/pkg/blockio"
 )
@@ -148,6 +148,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	if err := ctr.SetPrivileged(); err != nil {
 		return nil, err
 	}
+	if containerConfig.Linux == nil {
+		containerConfig.Linux = &types.LinuxContainerConfig{}
+	}
+	if containerConfig.Linux.SecurityContext == nil {
+		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
+	}
 	securityContext := containerConfig.Linux.SecurityContext
 
 	// creates a spec Generator with the default spec.
@@ -262,9 +268,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	if !ctr.Privileged() {
 		processLabel = containerInfo.ProcessLabel
 	}
-	hostIPC := securityContext.NamespaceOptions.Ipc == types.NamespaceModeNODE
-	hostPID := securityContext.NamespaceOptions.Pid == types.NamespaceModeNODE
-	hostNet := securityContext.NamespaceOptions.Network == types.NamespaceModeNODE
+	if securityContext.NamespaceOptions == nil {
+		securityContext.NamespaceOptions = &types.NamespaceOption{}
+	}
+	hostIPC := securityContext.NamespaceOptions.Ipc == types.NamespaceMode_NODE
+	hostPID := securityContext.NamespaceOptions.Pid == types.NamespaceMode_NODE
+	hostNet := securityContext.NamespaceOptions.Network == types.NamespaceMode_NODE
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
 	if hostPID || hostIPC {
@@ -282,8 +291,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	skipRelabel := false
 	const superPrivilegedType = "spc_t"
+	if securityContext.SelinuxOptions == nil {
+		securityContext.SelinuxOptions = &types.SELinuxOption{}
+	}
 	if securityContext.SelinuxOptions.Type == superPrivilegedType || // super privileged container
-		(ctr.SandboxConfig().Linux.SecurityContext.SelinuxOptions.Type == superPrivilegedType && // super privileged pod
+		(ctr.SandboxConfig().Linux != nil &&
+			ctr.SandboxConfig().Linux.SecurityContext != nil &&
+			ctr.SandboxConfig().Linux.SecurityContext.SelinuxOptions != nil &&
+			ctr.SandboxConfig().Linux.SecurityContext.SelinuxOptions.Type == superPrivilegedType && // super privileged pod
 			securityContext.SelinuxOptions.Type == "") {
 		skipRelabel = true
 	}
@@ -356,9 +371,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	if linux != nil {
 		resources := linux.Resources
 		if resources != nil {
-			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CPUPeriod))
-			specgen.SetLinuxResourcesCPUQuota(resources.CPUQuota)
-			specgen.SetLinuxResourcesCPUShares(uint64(resources.CPUShares))
+			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CpuPeriod))
+			specgen.SetLinuxResourcesCPUQuota(resources.CpuQuota)
+			specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
 
 			memoryLimit := resources.MemoryLimitInBytes
 			if memoryLimit != 0 {
@@ -381,8 +396,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			}
 
 			specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
-			specgen.SetLinuxResourcesCPUCpus(resources.CPUsetCPUs)
-			specgen.SetLinuxResourcesCPUMems(resources.CPUsetMems)
+			specgen.SetLinuxResourcesCPUCpus(resources.CpusetCpus)
+			specgen.SetLinuxResourcesCPUMems(resources.CpusetMems)
 
 			// If the kernel has no support for hugetlb, silently ignore the limits
 			if node.CgroupHasHugetlb() {
@@ -472,15 +487,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, errors.Wrap(err, "failed to configure namespaces in container create")
 	}
 
-	if securityContext.NamespaceOptions.Pid == types.NamespaceModeNODE {
+	if securityContext.NamespaceOptions.Pid == types.NamespaceMode_NODE {
 		// kubernetes PodSpec specify to use Host PID namespace
 		if err := specgen.RemoveLinuxNamespace(string(rspec.PIDNamespace)); err != nil {
 			return nil, err
 		}
-	} else if securityContext.NamespaceOptions.Pid == types.NamespaceModePOD {
+	} else if securityContext.NamespaceOptions.Pid == types.NamespaceMode_POD {
 		pidNsPath := sb.PidNsPath()
 		if pidNsPath == "" {
-			if sb.NamespaceOptions().Pid != types.NamespaceModePOD {
+			if sb.NamespaceOptions().Pid != types.NamespaceMode_POD {
 				return nil, errors.New("Pod level PID namespace requested for the container, but pod sandbox was not similarly configured, and does not have an infra container")
 			}
 			return nil, errors.New("PID namespace requested, but sandbox infra container unexpectedly invalid")
@@ -953,11 +968,11 @@ func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, b
 
 		// mount propagation
 		switch m.Propagation {
-		case types.MountPropagationPropagationPrivate:
+		case types.MountPropagation_PROPAGATION_PRIVATE:
 			options = append(options, "rprivate")
 			// Since default root propagation in runc is rprivate ignore
 			// setting the root propagation
-		case types.MountPropagationPropagationBidirectional:
+		case types.MountPropagation_PROPAGATION_BIDIRECTIONAL:
 			if err := ensureShared(src, mountInfos); err != nil {
 				return nil, nil, err
 			}
@@ -965,7 +980,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, b
 			if err := specgen.SetLinuxRootPropagation("rshared"); err != nil {
 				return nil, nil, err
 			}
-		case types.MountPropagationPropagationHostToContainer:
+		case types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER:
 			if err := ensureSharedOrSlave(src, mountInfos); err != nil {
 				return nil, nil, err
 			}
@@ -1081,4 +1096,16 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 	}
 	g.AddProcessEnv("container", "crio")
+}
+
+func newLinuxContainerSecurityContext() *types.LinuxContainerSecurityContext {
+	return &types.LinuxContainerSecurityContext{
+		Capabilities:     &types.Capability{},
+		NamespaceOptions: &types.NamespaceOption{},
+		SelinuxOptions:   &types.SELinuxOption{},
+		RunAsUser:        &types.Int64Value{},
+		RunAsGroup:       &types.Int64Value{},
+		Seccomp:          &types.SecurityProfile{},
+		Apparmor:         &types.SecurityProfile{},
+	}
 }

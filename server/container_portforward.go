@@ -7,9 +7,9 @@ import (
 
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // PortForward prepares a streaming endpoint to forward ports from a PodSandbox.

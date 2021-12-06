@@ -2,8 +2,8 @@ package server
 
 import (
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // ListContainerStats returns stats of all running containers.
@@ -19,8 +19,8 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 	filter := req.Filter
 	if filter != nil {
 		cFilter := &types.ContainerFilter{
-			ID:            req.Filter.ID,
-			PodSandboxID:  req.Filter.PodSandboxID,
+			Id:            req.Filter.Id,
+			PodSandboxId:  req.Filter.PodSandboxId,
 			LabelSelector: req.Filter.LabelSelector,
 		}
 		ctrList = s.filterContainerList(ctx, cFilter, ctrList)

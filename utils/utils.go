@@ -17,12 +17,12 @@ import (
 
 	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
-	"github.com/cri-o/cri-o/server/cri/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"

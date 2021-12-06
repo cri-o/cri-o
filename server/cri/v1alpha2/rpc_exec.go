@@ -2,25 +2,15 @@ package v1alpha2
 
 import (
 	"context"
+	"unsafe"
 
-	"github.com/cri-o/cri-o/server/cri/types"
+	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 func (s *service) Exec(
 	ctx context.Context, req *pb.ExecRequest,
 ) (*pb.ExecResponse, error) {
-	r := &types.ExecRequest{
-		ContainerID: req.ContainerId,
-		Cmd:         req.Cmd,
-		Tty:         req.Tty,
-		Stdin:       req.Stdin,
-		Stdout:      req.Stdout,
-		Stderr:      req.Stderr,
-	}
-	res, err := s.server.Exec(ctx, r)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.ExecResponse{Url: res.URL}, nil
+	resp, err := s.server.Exec(ctx, (*v1.ExecRequest)(unsafe.Pointer(req)))
+	return (*pb.ExecResponse)(unsafe.Pointer(resp)), err
 }

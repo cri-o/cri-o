@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -37,7 +37,7 @@ var _ = t.Describe("ContainerRemove", func() {
 			// When
 			err := sut.RemoveContainer(context.Background(),
 				&types.RemoveContainerRequest{
-					ContainerID: testContainer.ID(),
+					ContainerId: testContainer.ID(),
 				})
 
 			// Then

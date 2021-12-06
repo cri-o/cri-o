@@ -11,10 +11,10 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // StatsServer is responsible for maintaining a list of container and sandbox stats.
@@ -93,7 +93,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	}
 	sandboxStats := &types.PodSandboxStats{
 		Attributes: &types.PodSandboxAttributes{
-			ID:          sb.ID(),
+			Id:          sb.ID(),
 			Labels:      sb.Labels(),
 			Metadata:    sb.Metadata(),
 			Annotations: sb.Annotations(),
@@ -117,12 +117,12 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		}
 		ss.populateWritableLayer(cStats, c)
 		if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
-			updateUsageNanoCores(oldcStats.CPU, cStats.CPU)
+			updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
 		}
 	}
-	sandboxStats.Containers = containerStats
+	sandboxStats.Linux.Containers = containerStats
 	if old, ok := ss.sboxStats[sb.ID()]; ok {
-		updateUsageNanoCores(old.CPU, sandboxStats.CPU)
+		updateUsageNanoCores(old.Linux.Cpu, sandboxStats.Linux.Cpu)
 	}
 	ss.sboxStats[sb.ID()] = sandboxStats
 	return sandboxStats
@@ -145,7 +145,7 @@ func (ss *StatsServer) updateContainer(c *oci.Container, sb *sandbox.Sandbox) *t
 	}
 	ss.populateWritableLayer(cStats, c)
 	if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
-		updateUsageNanoCores(oldcStats.CPU, cStats.CPU)
+		updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
 	}
 	ss.ctrStats[c.ID()] = cStats
 	return cStats
@@ -153,7 +153,7 @@ func (ss *StatsServer) updateContainer(c *oci.Container, sb *sandbox.Sandbox) *t
 
 // updateUsageNanoCores calculates the usage nano cores by averaging the CPU usage between the timestamps
 // of the old usage and the recently gathered usage.
-func updateUsageNanoCores(old, current *types.CPUUsage) {
+func updateUsageNanoCores(old, current *types.CpuUsage) {
 	if old == nil || current == nil || old.UsageCoreNanoSeconds == nil || current.UsageCoreNanoSeconds == nil {
 		return
 	}
@@ -182,7 +182,7 @@ func (ss *StatsServer) populateWritableLayer(stats *types.ContainerStats, contai
 func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*types.FilesystemUsage, error) {
 	writableLayer := &types.FilesystemUsage{
 		Timestamp: time.Now().UnixNano(),
-		FsID:      &types.FilesystemIdentifier{Mountpoint: container.MountPoint()},
+		FsId:      &types.FilesystemIdentifier{Mountpoint: container.MountPoint()},
 	}
 	driver, err := ss.Store().GraphDriver()
 	if err != nil {
@@ -207,7 +207,7 @@ func (ss *StatsServer) populateNetworkUsage(stats *types.PodSandboxStats, sb *sa
 			logrus.Errorf("Unable to retrieve network namespace links: %v", err)
 			return err
 		}
-		stats.Network = &types.NetworkUsage{
+		stats.Linux.Network = &types.NetworkUsage{
 			Interfaces: make([]*types.NetworkInterfaceUsage, 0, len(links)-1),
 		}
 		for i := range links {
@@ -218,9 +218,9 @@ func (ss *StatsServer) populateNetworkUsage(stats *types.PodSandboxStats, sb *sa
 			}
 			// TODO FIXME or DefaultInterfaceName?
 			if i == 0 {
-				stats.Network.DefaultInterface = iface
+				stats.Linux.Network.DefaultInterface = iface
 			} else {
-				stats.Network.Interfaces = append(stats.Network.Interfaces, iface)
+				stats.Linux.Network.Interfaces = append(stats.Linux.Network.Interfaces, iface)
 			}
 		}
 		return nil

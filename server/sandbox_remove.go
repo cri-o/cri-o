@@ -7,28 +7,28 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandboxRequest) error {
-	log.Infof(ctx, "Removing pod sandbox: %s", req.PodSandboxID)
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxID)
+	log.Infof(ctx, "Removing pod sandbox: %s", req.PodSandboxId)
+	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return err
 		}
 		if err == errSandboxNotCreated {
-			return fmt.Errorf("sandbox %s is not yet created", req.PodSandboxID)
+			return fmt.Errorf("sandbox %s is not yet created", req.PodSandboxId)
 		}
 
 		// If the sandbox isn't found we just return an empty response to adhere
 		// the CRI interface which expects to not error out in not found
 		// cases.
-		log.Warnf(ctx, "Could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxID, err)
+		log.Warnf(ctx, "Could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxId, err)
 		return nil
 	}
 	return s.removePodSandbox(ctx, sb)

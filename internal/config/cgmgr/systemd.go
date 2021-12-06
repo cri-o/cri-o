@@ -13,7 +13,6 @@ import (
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
@@ -21,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const defaultSystemdParent = "system.slice"

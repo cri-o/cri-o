@@ -1,10 +1,10 @@
 package server_test
 
 import (
-	"github.com/cri-o/cri-o/server/cri/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -25,7 +25,7 @@ var _ = t.Describe("PodSandboxRemove", func() {
 
 			// When
 			err := sut.RemovePodSandbox(context.Background(),
-				&types.RemovePodSandboxRequest{PodSandboxID: testSandbox.ID()})
+				&types.RemovePodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
 			Expect(err).NotTo(BeNil())

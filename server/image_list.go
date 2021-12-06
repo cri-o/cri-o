@@ -2,8 +2,8 @@ package server
 
 import (
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server/cri/types"
 	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // ListImages lists existing images.
@@ -50,7 +50,7 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	}
 
 	to := &types.Image{
-		ID:          from.ID,
+		Id:          from.ID,
 		RepoTags:    repoTags,
 		RepoDigests: repoDigests,
 	}
@@ -59,10 +59,10 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	to.Username = username
 
 	if uid != nil {
-		to.UID = &types.Int64Value{Value: *uid}
+		to.Uid = &types.Int64Value{Value: *uid}
 	}
 	if from.Size != nil {
-		to.Size = *from.Size
+		to.Size_ = *from.Size
 	}
 
 	return to
