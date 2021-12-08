@@ -227,7 +227,7 @@ bin/crio.cross.%: .gopathok .explicit_phony
 	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
 
 nixpkgs:
-	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -c nix-prefetch-git \
+	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -- \
 		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
 
 

@@ -38,9 +38,12 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - run: scripts/github-actions-packages
-    - run: make docs-validation
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - run: scripts/github-actions-packages
+      - run: make docs-validation
 
   vendor:
     runs-on: ubuntu-latest
