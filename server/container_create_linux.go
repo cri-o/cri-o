@@ -220,9 +220,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	imageName := imgResult.Name
 	imageRef := imgResult.ID
-	if len(imgResult.RepoDigests) > 0 {
-		imageRef = imgResult.RepoDigests[0]
-	}
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
 	if err != nil {

@@ -317,7 +317,7 @@ function check_images() {
     eval "$(jq -r '.images[] |
         select(.repoTags[0] == "quay.io/crio/redis:alpine") |
         "REDIS_IMAGEID=" + .id + "\n" +
-	"REDIS_IMAGEREF=" + .repoDigests[0]' <<<"$json")"
+	"REDIS_IMAGEREF=" + .id' <<<"$json")"
 }
 
 function start_crio_no_setup() {

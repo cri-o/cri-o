@@ -257,12 +257,8 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	if err != nil {
 		return "", err
 	}
-	imageRef := status.ID
-	if len(status.RepoDigests) > 0 {
-		imageRef = status.RepoDigests[0]
-	}
 
-	return imageRef, nil
+	return status.ID, nil
 }
 
 func tryIncrementImagePullFailureMetric(img string, err error) {
