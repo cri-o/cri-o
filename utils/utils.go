@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
@@ -54,9 +55,8 @@ func StatusToExitCode(status int) int {
 }
 
 // RunUnderSystemdScope adds the specified pid to a systemd scope
-func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName string, properties ...systemdDbus.Property) error {
+func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName string, properties ...systemdDbus.Property) (err error) {
 	ctx := context.Background()
-	var err error
 	// sanity check
 	if mgr == nil {
 		return errors.New("dbus manager is nil")
@@ -73,14 +73,24 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 	ch := make(chan string)
 	if err := mgr.RetryOnDisconnect(func(c *systemdDbus.Conn) error {
 		_, err = c.StartTransientUnitContext(ctx, unitName, "replace", properties, ch)
-		return err
+		return errors.Wrap(err, "start transient unit")
 	}); err != nil {
 		return err
 	}
 
 	// Block until job is started
-	<-ch
-	close(ch)
+	select {
+	case <-ch:
+		close(ch)
+	case <-time.After(time.Minute * 6):
+		// This case is a work around to catch situations where the dbus library sends the
+		// request but it unexpectedly disappears. We set the timeout very high to make sure
+		// we wait as long as possible to catch situations where dbus is overwhelmed.
+		// We also don't use the native context cancelling behavior of the dbus library,
+		// because experience has shown that it does not help.
+		// TODO: Find cause of the request being dropped in the dbus library and fix it.
+		return errors.Errorf("timed out moving conmon with pid %d to cgroup", pid)
+	}
 
 	return nil
 }
