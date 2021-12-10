@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
@@ -79,7 +80,13 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 	}
 
 	// Block until job is started
-	<-ch
+	select {
+	// We usually have only 2 minutes (configurable on the kubelet side) before
+	// the RPC times out and should stay below it.
+	case <-time.After(time.Minute):
+		return errors.Errorf("timed out moving pid %d to systemd scope", pid)
+	case <-ch:
+	}
 	close(ch)
 
 	return nil
