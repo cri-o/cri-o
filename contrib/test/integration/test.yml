@@ -21,6 +21,14 @@
     insertafter: EOF
     state: present
 
+- name: set user.max_user_namespaces
+  sysctl:
+    name: user.max_user_namespaces
+    state: present
+    value: 255945
+    sysctl_set: yes
+    ignoreerrors: yes
+
 - name: ensure directory exists for e2e reports
   file:
     path: "{{ artifacts }}"
