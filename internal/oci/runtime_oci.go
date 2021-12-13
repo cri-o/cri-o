@@ -167,24 +167,37 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	childPipe.Close()
 	childStartPipe.Close()
 
-	// Platform specific container setup
-	if err := r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid); err != nil {
-		if killErr := cmd.Process.Kill(); killErr != nil {
-			return errors.Wrap(err, killErr.Error())
+	// Create new scope to reduce cleanup code.
+	if err := func() (retErr error) {
+		defer func() {
+			if retErr != nil {
+				// We need to always kill and wait on this process.
+				// Failing to do so will cause us to leak a zombie.
+				killErr := cmd.Process.Kill()
+				waitErr := cmd.Wait()
+				if killErr != nil {
+					retErr = errors.Wrapf(retErr, "failed to kill %+v after failing with", killErr)
+				}
+				// Per https://pkg.go.dev/os#ProcessState.ExitCode, the exit code is -1 when the process died because
+				// of a signal. We expect this in this case, as we've just killed it with a signal. Don't append the
+				// error in this case to reduce noise.
+				if exitErr, ok := waitErr.(*exec.ExitError); !ok || exitErr.ExitCode() != -1 {
+					retErr = errors.Wrapf(retErr, "failed to wait %+v after failing with", waitErr)
+				}
+			}
+		}()
+		// Platform specific container setup
+		if err := r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid); err != nil {
+			return err
 		}
+
+		/* We set the cgroup, now the child can start creating children */
+		someData := []byte{0}
+		_, err = parentStartPipe.Write(someData)
+		return err
+	}(); err != nil {
 		return err
 	}
-
-	/* We set the cgroup, now the child can start creating children */
-	someData := []byte{0}
-	_, err = parentStartPipe.Write(someData)
-	if err != nil {
-		if waitErr := cmd.Wait(); waitErr != nil {
-			return errors.Wrap(err, waitErr.Error())
-		}
-		return err
-	}
-
 	/* Wait for initial setup and fork, and reap child */
 	err = cmd.Wait()
 	if err != nil {
