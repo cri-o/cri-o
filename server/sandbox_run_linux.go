@@ -94,11 +94,11 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 	if uidMappingsPresent || gidMappingsPresent {
 		user := sc.RunAsUser
 		if user == nil {
-			return nil, errors.New("cannot use uidmapping or gidmapping if not running as root")
+			return nil, errors.New("cannot use uidmapping or gidmapping if RunAsUser is not set")
 		}
 		if user.Value != 0 {
 			if minimumMappableUID < 0 {
-				return nil, errors.New("cannot use uidmapping or gidmapping if not running as root")
+				return nil, errors.New("cannot use uidmapping or gidmapping if not running as root and minimum mappable ID is not set")
 			}
 			if user.Value < minimumMappableUID {
 				return nil, errors.Errorf("cannot use uidmapping or gidmapping if running as a UID below minimum mappable ID %d", minimumMappableUID)
