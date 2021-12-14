@@ -91,29 +91,34 @@ func (s *Sandbox) NamespacePaths() []*ManagedNamespace {
 	return typesAndPaths
 }
 
-// RemoveManagedNamespaces cleans up after managing the namespaces. It removes all of the namespaces
-// and the parent directory in which they lived.
+// CloseManagedNamespaces cleans up after managing the namespaces.
+// It unmounts all of the namespaces, but does not remove their parent directory.
+func (s *Sandbox) CloseManagedNamespaces() error {
+	return s.runFunctionOnNamespaces(func(ns nsmgr.Namespace) error {
+		return ns.Close()
+	})
+}
+
+// RemoveManagedNamespaces removes the formerly mounted namespace.
+// Must be stopped first or this will fail.
 func (s *Sandbox) RemoveManagedNamespaces() error {
+	return s.runFunctionOnNamespaces(func(ns nsmgr.Namespace) error {
+		if err := ns.Close(); err != nil {
+			return err
+		}
+		return ns.Remove()
+	})
+}
+
+func (s *Sandbox) runFunctionOnNamespaces(toRun func(nsmgr.Namespace) error) error {
 	errs := make([]error, 0)
 
-	// use a map as a set to delete each parent directory just once
-	if s.utsns != nil {
-		if err := s.utsns.Remove(); err != nil {
-			errs = append(errs, err)
+	allNamespaces := []nsmgr.Namespace{s.utsns, s.ipcns, s.netns, s.userns}
+	for _, ns := range allNamespaces {
+		if ns == nil {
+			continue
 		}
-	}
-	if s.ipcns != nil {
-		if err := s.ipcns.Remove(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if s.netns != nil {
-		if err := s.netns.Remove(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if s.userns != nil {
-		if err := s.userns.Remove(); err != nil {
+		if err := toRun(ns); err != nil {
 			errs = append(errs, err)
 		}
 	}

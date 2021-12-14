@@ -88,6 +88,10 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		}
 	}
 
+	if err := sb.CloseManagedNamespaces(); err != nil {
+		return errors.Wrap(err, "unable to close managed namespaces")
+	}
+
 	if err := sb.UnmountShm(); err != nil {
 		return err
 	}
