@@ -9,41 +9,28 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Remove removes a container
-func (c *ContainerServer) Remove(ctx context.Context, ctr *oci.Container, force bool) (string, error) {
+// RemoveAndDeleteContainer performs the steps needed to delete a container's storage and from the runtime,
+// and removes it from the container server
+func (c *ContainerServer) RemoveAndDeleteContainer(ctx context.Context, ctr *oci.Container) error {
 	ctrID := ctr.ID()
 
-	cStatus := ctr.State()
-	switch cStatus.Status {
-	case oci.ContainerStatePaused:
-		return "", errors.Errorf("cannot remove paused container %s", ctrID)
-	case oci.ContainerStateCreated, oci.ContainerStateRunning:
-		if force {
-			if err := c.StopContainer(ctx, ctr, 10); err != nil {
-				return "", errors.Wrapf(err, "unable to stop container %s", ctrID)
-			}
-		} else {
-			return "", errors.Errorf("cannot remove running container %s", ctrID)
-		}
-	}
-
 	if err := c.runtime.DeleteContainer(ctx, ctr); err != nil {
-		return "", errors.Wrapf(err, "failed to delete container %s", ctrID)
+		return errors.Wrapf(err, "failed to delete container %s", ctrID)
 	}
 	if err := os.Remove(filepath.Join(c.Config().RuntimeConfig.ContainerExitsDir, ctrID)); err != nil && !os.IsNotExist(err) {
-		return "", errors.Wrapf(err, "failed to remove container exit file %s", ctrID)
+		return errors.Wrapf(err, "failed to remove container exit file %s", ctrID)
 	}
 	c.RemoveContainer(ctr)
 
 	if err := c.storageRuntimeServer.DeleteContainer(ctrID); err != nil {
-		return "", errors.Wrapf(err, "failed to delete storage for container %s", ctrID)
+		return errors.Wrapf(err, "failed to delete storage for container %s", ctrID)
 	}
 
 	ctr.CleanupConmonCgroup()
 	c.ReleaseContainerName(ctr.Name())
 
 	if err := c.ctrIDIndex.Delete(ctrID); err != nil {
-		return "", err
+		return err
 	}
-	return ctrID, nil
+	return nil
 }
