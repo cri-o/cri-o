@@ -10,11 +10,7 @@ import (
 )
 
 // Remove removes a container
-func (c *ContainerServer) Remove(ctx context.Context, container string, force bool) (string, error) {
-	ctr, err := c.LookupContainer(container)
-	if err != nil {
-		return "", err
-	}
+func (c *ContainerServer) Remove(ctx context.Context, ctr *oci.Container, force bool) (string, error) {
 	ctrID := ctr.ID()
 
 	cStatus := ctr.State()
@@ -23,7 +19,7 @@ func (c *ContainerServer) Remove(ctx context.Context, container string, force bo
 		return "", errors.Errorf("cannot remove paused container %s", ctrID)
 	case oci.ContainerStateCreated, oci.ContainerStateRunning:
 		if force {
-			if err = c.StopContainer(ctx, ctr, 10); err != nil {
+			if err := c.StopContainer(ctx, ctr, 10); err != nil {
 				return "", errors.Wrapf(err, "unable to stop container %s", ctrID)
 			}
 		} else {

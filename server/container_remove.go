@@ -18,7 +18,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	if _, err := s.ContainerServer.Remove(ctx, req.ContainerId, true); err != nil {
+	if _, err := s.ContainerServer.Remove(ctx, c, true); err != nil {
 		return err
 	}
 
