@@ -2,7 +2,6 @@ package server
 
 import (
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -20,14 +19,8 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	cStatus := c.State()
-	switch cStatus.Status {
-	case oci.ContainerStatePaused:
-		return errors.Errorf("cannot remove paused container %s", c.ID())
-	case oci.ContainerStateCreated, oci.ContainerStateRunning:
-		if err := s.ContainerServer.StopContainer(ctx, c, 10); err != nil {
-			return errors.Wrapf(err, "unable to stop container %s", c.ID())
-		}
+	if err := s.ContainerServer.StopContainer(ctx, c, 10); err != nil {
+		return errors.Wrapf(err, "unable to stop container %s", c.ID())
 	}
 
 	if err := s.ContainerServer.RemoveAndDeleteContainer(ctx, c); err != nil {
