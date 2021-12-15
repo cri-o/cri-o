@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 
-	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
@@ -80,27 +79,5 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 			return errors.Errorf("failed to stop container for removal")
 		}
 	}
-
-	if err := s.Runtime().DeleteContainer(ctx, c); err != nil {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-	}
-
-	c.CleanupConmonCgroup()
-
-	if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
-		// assume container already umounted
-		log.Warnf(ctx, "Failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-	}
-	if err := s.StorageRuntimeServer().DeleteContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-	}
-
-	s.ReleaseContainerName(c.Name())
-	s.removeContainer(c)
-	if err := s.CtrIDIndex().Delete(c.ID()); err != nil {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %v", c.Name(), sb.ID(), err)
-	}
-	sb.RemoveContainer(c)
-
-	return nil
+	return s.ContainerServer.RemoveAndDeleteContainer(ctx, c)
 }
