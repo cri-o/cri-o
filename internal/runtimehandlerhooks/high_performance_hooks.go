@@ -15,6 +15,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/pkg/errors"
@@ -263,7 +264,7 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 			return nil
 		}
 		// run irqbalance in daemon mode, so this won't cause delay
-		cmd := exec.Command(irqBalancedName, "--oneshot")
+		cmd := cmdrunner.Command(irqBalancedName, "--oneshot")
 		additionalEnv := irqBalanceBannedCpus + "=" + newIRQBalanceSetting
 		cmd.Env = append(os.Environ(), additionalEnv)
 		return cmd.Run()
