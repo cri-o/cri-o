@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/containers/libpod/v2/pkg/lookup"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
@@ -31,7 +31,7 @@ import (
 // ExecCmd executes a command with args and returns its output as a string along
 // with an error, if any
 func ExecCmd(name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
+	cmd := cmdrunner.Command(name, args...)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
