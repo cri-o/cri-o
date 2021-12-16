@@ -567,6 +567,20 @@ allowed_annotations = ["$ANNOTATION"]
 EOF
 }
 
+function create_workload_with_allowed_annotation() {
+    local act="$2"
+    # Fallback on the specified allowed annotation if
+    # a specific activation annotation wasn't specified.
+    if [[ -z "$act" ]]; then
+        act="$1"
+    fi
+    cat <<EOF >"$CRIO_CONFIG_DIR/01-workload.conf"
+[crio.runtime.workloads.management]
+activation_annotation = "$act"
+allowed_annotations = ["$1"]
+EOF
+}
+
 function set_swap_fields_given_cgroup_version() {
     # set memory {,swap} max file for cgroupv1 or v2
     export CGROUP_MEM_SWAP_FILE="/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"

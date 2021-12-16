@@ -7,6 +7,28 @@
     regexp: ' go test \"\$'
     state: present
 
+- name: Setup /etc/subuid
+  lineinfile:
+    dest: "/etc/subuid"
+    line: "containers:100000:65536"
+    regexp: ' go test \"\$'
+    state: present
+
+- name: Setup /etc/subgid
+  lineinfile:
+    dest: "/etc/subgid"
+    line: "containers:100000:65536"
+    insertafter: EOF
+    state: present
+
+- name: set user.max_user_namespaces
+  sysctl:
+    name: user.max_user_namespaces
+    state: present
+    value: 255945
+    sysctl_set: yes
+    ignoreerrors: yes
+
 - name: ensure directory exists for e2e reports
   file:
     path: "{{ artifacts }}"

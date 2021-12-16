@@ -27,14 +27,6 @@ cpuset = "$cpuset"
 EOF
 }
 
-function create_workload_with_allowed_annotation() {
-	cat << EOF > "$CRIO_CONFIG_DIR/01-workload.conf"
-[crio.runtime.workloads.management]
-activation_annotation = "$activation"
-allowed_annotations = ["$1"]
-EOF
-}
-
 function check_cpu_fields() {
 	local ctr_id="$1"
 	local cpushares="$2"
@@ -281,7 +273,7 @@ function check_conmon_fields() {
 }
 
 @test "test workload allowed annotation should not work if not configured" {
-	create_workload_with_allowed_annotation "io.kubernetes.cri-o.ShmSize"
+	create_workload_with_allowed_annotation "io.kubernetes.cri-o.ShmSize" "$activation"
 
 	start_crio
 
@@ -305,8 +297,7 @@ function check_conmon_fields() {
 	start_crio
 
 	jq --arg act "$activation" \
-		'   .annotations[$act] = "true"
-	    |   .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"
+		'   .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"
 	    |   .annotations."io.kubernetes.cri-o.Devices" = "/dev/null:/dev/peterfoo:rwm"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
@@ -327,8 +318,7 @@ function check_conmon_fields() {
 	start_crio
 
 	jq --arg act "$activation" \
-		'   .annotations[$act] = "true"
-		| .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' \
+		' .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	ctrconfig="$TESTDATA"/container_sleep.json
