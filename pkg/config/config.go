@@ -492,6 +492,10 @@ func (t *tomlConfig) fromConfig(c *Config) {
 // Returns errors encountered when reading or parsing the files, or nil
 // otherwise.
 func (c *Config) UpdateFromFile(path string) error {
+	// keeps the storage options from storage.conf and merge it to crio config
+	var storageOpts []string
+	storageOpts = append(storageOpts, c.StorageOptions...)
+
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
@@ -511,6 +515,10 @@ func (c *Config) UpdateFromFile(path string) error {
 		delete(c.Runtimes, defaultRuntime)
 	}
 
+	storageOpts = append(storageOpts, t.Crio.RootConfig.StorageOptions...)
+	storageOpts = removeDupStorageOpts(storageOpts)
+	t.Crio.RootConfig.StorageOptions = storageOpts
+
 	if len(t.Crio.Image.Registries) > 0 {
 		logrus.Warnf("The 'registries' option in crio.conf(5) (referenced in %q) has been deprecated and will be removed with CRI-O 1.21.", path)
 		logrus.Warn("Please refer to containers-registries.conf(5) for configuring unqualified-search registries.")
@@ -519,6 +527,24 @@ func (c *Config) UpdateFromFile(path string) error {
 	t.toConfig(c)
 	c.singleConfigPath = path
 	return nil
+}
+
+// removeDupStorageOpts removes duplicated storage option from the list
+// keeps the last appearance
+func removeDupStorageOpts(storageOpts []string) []string {
+	var resOpts []string
+	opts := make(map[string]bool)
+	for i := len(storageOpts) - 1; i >= 0; i-- {
+		if ok := opts[storageOpts[i]]; ok {
+			continue
+		}
+		opts[storageOpts[i]] = true
+		resOpts = append(resOpts, storageOpts[i])
+	}
+	for i, j := 0, len(resOpts)-1; i < j; i, j = i+1, j-1 {
+		resOpts[i], resOpts[j] = resOpts[j], resOpts[i]
+	}
+	return resOpts
 }
 
 // UpdateFromPath recursively iterates the provided path and updates the
