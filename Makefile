@@ -299,6 +299,7 @@ testunit-bin:
 	done
 
 mockgen: \
+	mock-cmdrunner \
 	mock-containerstorage \
 	mock-criostorage \
 	mock-lib-config \
