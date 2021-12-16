@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -12,6 +11,7 @@ import (
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -120,7 +120,7 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 	}
 
 	logrus.Debugf("Calling pinns with %v", pinnsArgs)
-	output, err := exec.Command(mgr.pinnsPath, pinnsArgs...).CombinedOutput()
+	output, err := cmdrunner.Command(mgr.pinnsPath, pinnsArgs...).CombinedOutput()
 	if err != nil {
 		logrus.Warnf("Pinns %v failed: %s (%v)", pinnsArgs, string(output), err)
 		// cleanup the mounts

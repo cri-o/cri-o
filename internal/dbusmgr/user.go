@@ -6,12 +6,12 @@ import (
 	"bufio"
 	"bytes"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	dbus "github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/userns"
 	"github.com/pkg/errors"
@@ -55,7 +55,7 @@ func DetectUID() (int, error) {
 	if !userns.RunningInUserNS() {
 		return os.Getuid(), nil
 	}
-	b, err := exec.Command("busctl", "--user", "--no-pager", "status").CombinedOutput()
+	b, err := cmdrunner.Command("busctl", "--user", "--no-pager", "status").CombinedOutput()
 	if err != nil {
 		return -1, errors.Wrapf(err, "could not execute `busctl --user --no-pager status`: %q", string(b))
 	}
@@ -91,7 +91,7 @@ func DetectUserDbusSessionBusAddress() (string, error) {
 			return busAddress, nil
 		}
 	}
-	b, err := exec.Command("systemctl", "--user", "--no-pager", "show-environment").CombinedOutput()
+	b, err := cmdrunner.Command("systemctl", "--user", "--no-pager", "show-environment").CombinedOutput()
 	if err != nil {
 		return "", errors.Wrapf(err, "could not execute `systemctl --user --no-pager show-environment`, output=%q", string(b))
 	}
