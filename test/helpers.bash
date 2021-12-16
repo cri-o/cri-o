@@ -576,3 +576,36 @@ function set_swap_fields_given_cgroup_version() {
         export CGROUP_MEM_FILE="/sys/fs/cgroup/memory.max"
     fi
 }
+
+function check_conmon_cpuset() {
+    local ctr_id="$1"
+    local cpuset="$2"
+    systemd_supports_cpuset=$(systemctl show --property=AllowedCPUs systemd || true)
+
+    if [[ "$CONTAINER_CGROUP_MANAGER" == "cgroupfs" ]]; then
+        if is_cgroup_v2; then
+            cpuset_path="/sys/fs/cgroup"
+            # see https://github.com/containers/crun/blob/e5874864918f8f07acdff083f83a7a59da8abb72/crun.1.md#cpu-controller for conversion
+            cpushares=$((1 + ((cpushares - 2) * 9999) / 262142))
+        else
+            cpuset_path="/sys/fs/cgroup/cpuset"
+        fi
+
+        found_cpuset=$(cat "$cpuset_path/pod_123-456/crio-conmon-$ctr_id/cpuset.cpus")
+        if [ -z "$cpuset" ]; then
+            [[ $(cat "$cpuset_path/pod_123-456/cpuset.cpus") == *"$found_cpuset"* ]]
+        else
+            [[ "$cpuset" == *"$found_cpuset"* ]]
+        fi
+    else
+        # don't test cpuset if it's not supported by systemd
+        if [[ -n "$systemd_supports_cpuset" ]]; then
+            info="$(systemctl show --property=AllowedCPUs crio-conmon-"$ctr_id".scope)"
+            if [ -z "$cpuset" ]; then
+                echo "$info" | grep -E '^AllowedCPUs=$'
+            else
+                [[ "$info" == *"AllowedCPUs=$cpuset"* ]]
+            fi
+        fi
+    fi
+}

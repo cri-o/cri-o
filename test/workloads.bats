@@ -8,8 +8,6 @@ function setup() {
 	setup_test
 	sboxconfig="$TESTDIR/sbox.json"
 	ctrconfig="$TESTDIR/ctr.json"
-	systemd_supports_cpuset=$(systemctl show --property=AllowedCPUs systemd || true)
-	export systemd_supports_cpuset
 }
 
 function teardown() {
@@ -64,22 +62,13 @@ function check_conmon_fields() {
 
 	if [[ "$CONTAINER_CGROUP_MANAGER" == "cgroupfs" ]]; then
 		if is_cgroup_v2; then
-			cpuset_path="/sys/fs/cgroup"
 			cpushare_path="/sys/fs/cgroup"
 			cpushare_filename="cpu.weight"
 			# see https://github.com/containers/crun/blob/e5874864918f8f07acdff083f83a7a59da8abb72/crun.1.md#cpu-controller for conversion
 			cpushares=$((1 + ((cpushares - 2) * 9999) / 262142))
 		else
-			cpuset_path="/sys/fs/cgroup/cpuset"
 			cpushare_path="/sys/fs/cgroup/cpu"
 			cpushare_filename="cpu.shares"
-		fi
-
-		found_cpuset=$(cat "$cpuset_path/pod_123-456/crio-conmon-$ctr_id/cpuset.cpus")
-		if [ -z "$cpuset" ]; then
-			[[ $(cat "$cpuset_path/pod_123-456/cpuset.cpus") == *"$found_cpuset"* ]]
-		else
-			[[ "$cpuset" == *"$found_cpuset"* ]]
 		fi
 
 		found_cpushares=$(cat "$cpushare_path/pod_123-456/crio-conmon-$ctr_id/$cpushare_filename")
@@ -89,16 +78,6 @@ function check_conmon_fields() {
 			[[ "$cpushares" == *"$found_cpushares"* ]]
 		fi
 	else
-		# don't test cpuset if it's not supported by systemd
-		if [[ -n "$systemd_supports_cpuset" ]]; then
-			info="$(systemctl show --property=AllowedCPUs crio-conmon-"$ctr_id".scope)"
-			if [ -z "$cpuset" ]; then
-				echo "$info" | grep -E '^AllowedCPUs=$'
-			else
-				[[ "$info" == *"AllowedCPUs=$cpuset"* ]]
-			fi
-		fi
-
 		info="$(systemctl show --property=CPUShares crio-conmon-"$ctr_id".scope)"
 		if [ -z "$cpushares" ]; then
 			# 18446744073709551615 is 2^64-1, which is the default systemd set in RHEL 7
@@ -107,6 +86,7 @@ function check_conmon_fields() {
 			[[ "$info" == *"CPUShares=$cpushares"* ]]
 		fi
 	fi
+	check_conmon_cpuset "$ctr_id" "$cpuset"
 }
 
 @test "test workload gets configured to defaults" {
@@ -272,6 +252,28 @@ function check_conmon_fields() {
 	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
 		'   .annotations[$setkey] = $set
 		|   del(.linux.resources.cpu_shares)' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	check_conmon_fields "$ctr_id" "$shares" "$set"
+}
+
+@test "test workload pod should override infra_ctr_cpuset option" {
+	shares="200"
+	set="0-1"
+	name=POD
+	create_workload "$shares" "0"
+
+	CONTAINER_INFRA_CTR_CPUSET="1" start_crio
+
+	jq --arg act "$activation" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
+		'   .annotations[$act] = "true"
+		|   .annotations[$setkey] = $set' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq --arg act "$activation" --arg name "$name" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
+		'   .annotations[$act] = "true"
+		|   .annotations[$setkey] = $set' \
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")

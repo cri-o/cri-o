@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/utils"
 	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
@@ -99,7 +100,7 @@ func (m *CgroupfsManager) PopulateSandboxCgroupStats(sbParent string, stats *typ
 // It returns the cgroupfs parent that conmon was put into
 // so that CRI-O can clean the cgroup path of the newly added conmon once the process terminates (systemd handles this for us)
 func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (cgroupPathToClean string, _ error) {
-	if conmonCgroup != "pod" && conmonCgroup != "" {
+	if conmonCgroup != utils.PodCgroupName && conmonCgroup != "" {
 		return "", errors.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
 	}
 

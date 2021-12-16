@@ -11,6 +11,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -216,7 +217,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			if !s.config.CgroupManager().IsSystemd() {
 				return "", errors.New("--separate-pull-cgroup is supported only with systemd")
 			}
-			if s.config.SeparatePullCgroup == "pod" {
+			if s.config.SeparatePullCgroup == utils.PodCgroupName {
 				cgroup = pullArgs.sandboxCgroup
 			} else {
 				cgroup = s.config.SeparatePullCgroup
