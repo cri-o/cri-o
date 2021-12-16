@@ -74,6 +74,22 @@ func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
 	if config.Metadata.Name == "" {
 		return errors.New("PodSandboxConfig.Metadata.Name should not be empty")
 	}
+
+	if config.Linux == nil {
+		config.Linux = &types.LinuxPodSandboxConfig{}
+	}
+
+	if config.Linux.SecurityContext == nil {
+		config.Linux.SecurityContext = &types.LinuxSandboxSecurityContext{
+			NamespaceOptions: &types.NamespaceOption{},
+			SelinuxOptions:   &types.SELinuxOption{},
+			RunAsUser:        &types.Int64Value{},
+			RunAsGroup:       &types.Int64Value{},
+			Seccomp:          &types.SecurityProfile{},
+			Apparmor:         &types.SecurityProfile{},
+		}
+	}
+
 	s.config = config
 	return nil
 }

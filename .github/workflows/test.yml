@@ -246,7 +246,7 @@ jobs:
       - run: |
           make mockgen -j $(nproc)
           hack/tree_status.sh
-      - run: make testunit
+      - run: sudo PATH="$PATH" make testunit
       - uses: actions/upload-artifact@v2
         with:
           name: unit

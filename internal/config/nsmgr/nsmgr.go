@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/google/uuid"
@@ -180,8 +181,67 @@ func getSysctlForPinns(sysctls map[string]string) string {
 	return strings.TrimSuffix(g.String(), pinnsSysctlDelim)
 }
 
+// NamespaceFromProcEntry creates a new namespace object from a bind mount from a processes proc entry.
+// The caller is responsible for cleaning up the namespace by calling Namespace.Remove().
+// This function is heavily based on containernetworking ns package found at:
+// https://github.com/containernetworking/plugins/blob/5c3c17164270150467498a32c71436c7cd5501be/pkg/ns/ns.go#L140
+// Credit goes to the CNI authors.
+func (mgr *NamespaceManager) NamespaceFromProcEntry(pid int, nsType NSType) (_ Namespace, retErr error) {
+	// now create an empty file
+	f, err := os.CreateTemp(mgr.dirForType(PIDNS), string(PIDNS))
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating namespace path")
+	}
+	pinnedNamespace := f.Name()
+	f.Close()
+
+	defer func() {
+		if retErr != nil {
+			if err := os.Remove(pinnedNamespace); err != nil {
+				logrus.Errorf("Failed to remove namespace after failure to pin namespace: %v", err)
+			}
+		}
+	}()
+
+	podPidnsProc := NamespacePathFromProc(nsType, pid)
+	// pid must have stopped or be incorrect, report error
+	if podPidnsProc == "" {
+		return nil, errors.Errorf("proc entry for pid %d is gone; pid not created or stopped", pid)
+	}
+
+	// bind mount the new ns from the proc entry onto the mount point
+	if err := unix.Mount(podPidnsProc, pinnedNamespace, "none", unix.MS_BIND, ""); err != nil {
+		return nil, errors.Wrapf(err, "error mounting %s namespace path", string(nsType))
+	}
+	defer func() {
+		if retErr != nil {
+			if err := unix.Unmount(pinnedNamespace, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
+				logrus.Errorf("Failed umount after failed to pin %s namespace: %v", string(nsType), err)
+			}
+		}
+	}()
+
+	return GetNamespace(pinnedNamespace, nsType)
+}
+
 // dirForType returns the sub-directory for that particular NSType
 // which is of the form `$namespaceDir/$nsType+"ns"`
 func (mgr *NamespaceManager) dirForType(ns NSType) string {
 	return filepath.Join(mgr.namespacesDir, string(ns)+"ns")
+}
+
+// NamespacePathFromProc returns the namespace path of type nsType for a given pid and type.
+func NamespacePathFromProc(nsType NSType, pid int) string {
+	// verify nsPath exists on the host. This will prevent us from fatally erroring
+	// on network tear down if the path doesn't exist
+	// Technically, this is pretty racy, but so is every check using the infra container PID.
+	nsPath := fmt.Sprintf("/proc/%d/ns/%s", pid, nsType)
+	if _, err := os.Stat(nsPath); err != nil {
+		return ""
+	}
+	// verify the path we found is indeed a namespace
+	if err := nspkg.IsNSorErr(nsPath); err != nil {
+		return ""
+	}
+	return nsPath
 }

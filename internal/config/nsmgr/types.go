@@ -22,14 +22,14 @@ const (
 	UTSNS                NSType = "uts"
 	USERNS               NSType = "user"
 	PIDNS                NSType = "pid"
-	ManagedNamespacesNum        = 4
+	ManagedNamespacesNum        = 5
 )
 
 // supportedNamespacesForPinning returns a slice of
 // the names of namespaces that CRI-O supports
 // pinning.
 func supportedNamespacesForPinning() []NSType {
-	return []NSType{NETNS, IPCNS, UTSNS, USERNS}
+	return []NSType{NETNS, IPCNS, UTSNS, USERNS, PIDNS}
 }
 
 type PodNamespacesConfig struct {

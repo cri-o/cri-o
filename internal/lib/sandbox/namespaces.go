@@ -2,7 +2,6 @@ package sandbox
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -257,24 +256,10 @@ func nsPathGivenInfraPid(ns nsmgr.Namespace, nsType nsmgr.NSType, infraPid int) 
 	// is valid. If not, infraPid should be less than or equal to 0
 	if ns == nil {
 		if infraPid > 0 {
-			return infraNsPath(nsType, infraPid)
+			return nsmgr.NamespacePathFromProc(nsType, infraPid)
 		}
 		return ""
 	}
 
 	return ns.Path()
-}
-
-// infraNsPath returns the namespace path of type nsType for infra
-// with pid infraContainerPid
-func infraNsPath(nsType nsmgr.NSType, infraContainerPid int) string {
-	// verify nsPath exists on the host. This will prevent us from fatally erroring
-	// on network tear down if the path doesn't exist
-	// Technically, this is pretty racy, but so is every check using the infra container PID.
-	// Without managing the namespaces, this is the best we can do
-	nsPath := fmt.Sprintf("/proc/%d/ns/%s", infraContainerPid, nsType)
-	if _, err := os.Stat(nsPath); err != nil {
-		return ""
-	}
-	return nsPath
 }

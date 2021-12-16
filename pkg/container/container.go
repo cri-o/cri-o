@@ -13,12 +13,14 @@ import (
 	"github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/config/device"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -102,6 +104,12 @@ type Container interface {
 	// given the image information and passed-in container config
 	SpecSetProcessArgs(imageOCIConfig *v1.Image) error
 
+	// SpecAddNamespaces sets the container's namespaces.
+	SpecAddNamespaces(*sandbox.Sandbox, *oci.Container, *config.Config) error
+
+	// PidNamespace returns the pid namespace created by SpecAddNamespaces.
+	PidNamespace() nsmgr.Namespace
+
 	// WillRunSystemd checks whether the process args
 	// are configured to be run as a systemd instance.
 	WillRunSystemd() bool
@@ -115,6 +123,7 @@ type container struct {
 	name       string
 	privileged bool
 	spec       generate.Generator
+	pidns      nsmgr.Namespace
 }
 
 // New creates a new, empty Sandbox instance
@@ -260,20 +269,20 @@ func (c *container) Spec() *generate.Generator {
 }
 
 // SetConfig sets the configuration to the container and validates it
-func (c *container) SetConfig(config *types.ContainerConfig, sboxConfig *types.PodSandboxConfig) error {
+func (c *container) SetConfig(cfg *types.ContainerConfig, sboxConfig *types.PodSandboxConfig) error {
 	if c.config != nil {
 		return errors.New("config already set")
 	}
 
-	if config == nil {
+	if cfg == nil {
 		return errors.New("config is nil")
 	}
 
-	if config.Metadata == nil {
+	if cfg.Metadata == nil {
 		return errors.New("metadata is nil")
 	}
 
-	if config.Metadata.Name == "" {
+	if cfg.Metadata.Name == "" {
 		return errors.New("name is nil")
 	}
 
@@ -285,7 +294,7 @@ func (c *container) SetConfig(config *types.ContainerConfig, sboxConfig *types.P
 		return errors.New("sandbox config is already set")
 	}
 
-	c.config = config
+	c.config = cfg
 	c.sboxConfig = sboxConfig
 	return nil
 }

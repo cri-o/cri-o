@@ -14,6 +14,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const alwaysPresentPath = "/tmp"
+
 // The actual test suite
 var _ = t.Describe("Config", func() {
 	BeforeEach(beforeEach)
@@ -751,6 +753,8 @@ var _ = t.Describe("Config", func() {
 			sut.RootConfig.Root = ""
 			sut.RootConfig.Storage = ""
 			sut.RootConfig.StorageOptions = make([]string, 0)
+			// this must be set in case pinns isn't downloaded to the $PATH
+			sut.RuntimeConfig.PinnsPath = alwaysPresentPath
 
 			// When
 			err = sut.Validate(true)
@@ -772,8 +776,10 @@ var _ = t.Describe("Config", func() {
 			defaultStore, err := storage.GetStore(storage.StoreOptions{})
 			Expect(err).To(BeNil())
 
-			sut.RootConfig.RunRoot = "/tmp"
-			sut.RootConfig.Root = "/tmp"
+			sut.RootConfig.RunRoot = alwaysPresentPath
+			sut.RootConfig.Root = alwaysPresentPath
+			// this must be set in case pinns isn't downloaded to the $PATH
+			sut.RuntimeConfig.PinnsPath = alwaysPresentPath
 
 			// When
 			err = sut.Validate(true)

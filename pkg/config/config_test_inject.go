@@ -8,6 +8,7 @@ package config
 
 import (
 	"github.com/cri-o/cri-o/internal/config/cnimgr"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
@@ -18,4 +19,9 @@ func (c *Config) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
 		c.cniManager = &cnimgr.CNIManager{}
 	}
 	return c.cniManager.SetCNIPlugin(plugin)
+}
+
+// SetNamespaceManager sets the namespaceManager for the Configuration.
+func (c *Config) SetNamespaceManager(nsMgr *nsmgr.NamespaceManager) {
+	c.namespaceManager = nsMgr
 }
