@@ -21,6 +21,7 @@ import (
 	"github.com/cri-o/cri-o/server/cri/types"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/fsnotify/fsnotify"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -137,7 +138,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		"args": args,
 	}).Debugf("running conmon: %s", r.config.Conmon)
 
-	cmd := exec.Command(r.config.Conmon, args...) // nolint: gosec
+	cmd := cmdrunner.Command(r.config.Conmon, args...) // nolint: gosec
 	cmd.Dir = c.bundlePath
 	cmd.SysProcAttr = sysProcAttrPlatform()
 	cmd.Stdin = os.Stdin
@@ -353,7 +354,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 
 	args := []string{rootFlag, r.root, "exec"}
 	args = append(args, "--process", processFile, c.ID())
-	execCmd := exec.Command(r.path, args...) // nolint: gosec
+	execCmd := cmdrunner.Command(r.path, args...) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
@@ -480,7 +481,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		"--exec-process-spec", processFile,
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 
-	cmd := exec.Command(r.config.Conmon, args...) // nolint: gosec
+	cmd := cmdrunner.Command(r.config.Conmon, args...) // nolint: gosec
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
@@ -591,7 +592,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 		return nil
 	}
 
-	cmd := exec.Command(r.path, rootFlag, r.root, "update", "--resources", "-", c.id) // nolint: gosec
+	cmd := cmdrunner.Command(r.path, rootFlag, r.root, "update", "--resources", "-", c.ID()) // nolint: gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -804,7 +805,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 
 	stateCmd := func() (*ContainerState, bool, error) {
-		cmd := exec.Command(r.path, rootFlag, r.root, "state", c.id) // nolint: gosec
+		cmd := cmdrunner.Command(r.path, rootFlag, r.root, "state", c.ID()) // nolint: gosec
 		if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 		}
