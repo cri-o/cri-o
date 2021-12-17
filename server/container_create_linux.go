@@ -280,10 +280,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		processLabel, mountLabel = "", ""
 	}
 
-	if hostNet {
-		processLabel = ""
-	}
-
 	maybeRelabel := false
 	if val, present := sb.Annotations()[crioann.TrySkipVolumeSELinuxLabelAnnotation]; present && val == "true" {
 		maybeRelabel = true
