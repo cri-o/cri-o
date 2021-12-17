@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	crioPrefix = "crio"
+	crioPrefix = "crio-conmon"
 	// minMemoryLimit is the minimum memory that must be set for a container.
 	// A lower value would result in the container failing to start.
 	// this value has been arrived at for runc on x86_64 hardware
