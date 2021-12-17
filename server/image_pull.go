@@ -164,6 +164,8 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				// Skipped bytes metrics
 				if storedImage.Size != nil {
 					metrics.Instance().MetricImagePullsByNameSkippedAdd(float64(*storedImage.Size), img)
+					// Metrics for image pull skipped bytes
+					metrics.Instance().MetricImagePullsSkippedBytesAdd(float64(*storedImage.Size))
 				}
 
 				break
@@ -202,6 +204,13 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				metrics.Instance().MetricImagePullsByNameAdd(
 					float64(p.OffsetUpdate),
 					img, fmt.Sprintf("%d", imageSize(tmpImg)),
+				)
+
+				// Metrics for image pulls bytes
+				metrics.Instance().MetricImagePullsBytesAdd(
+					float64(p.OffsetUpdate),
+					p.Artifact.MediaType,
+					p.Artifact.Size,
 				)
 
 				// Metrics for size histogram

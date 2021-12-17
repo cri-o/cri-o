@@ -909,7 +909,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		metrics.Instance().MetricContainersOOMTotalInc()
 
 		// Collect metric by container name
-		metrics.Instance().MetricContainersOOMInc(c.Name())
+		metrics.Instance().MetricContainersOOMCountTotalInc(c.Name())
 	}
 
 	return nil

@@ -28,23 +28,66 @@ func SinceInMicroseconds(start time.Time) float64 {
 	return float64(time.Since(start).Microseconds())
 }
 
+// SinceInSeconds gets the time since specified start in seconds.
+func SinceInSeconds(start time.Time) float64 {
+	return time.Since(start).Seconds()
+}
+
+// GetSizeBucket gets a bucket name for given size sorted according to 1 KiB, 1 MiB, 10 MiB, ...
+func GetSizeBucket(size float64) string {
+	sizeBuckets := []float64{
+		10 * 1000 * 1000 * 1000, //  10 GiB
+		1000 * 1000 * 1000,      //   1 GiB
+		500 * 1000 * 1000,       // 500 MiB
+		400 * 1000 * 1000,       // 400 MiB
+		300 * 1000 * 1000,       // 300 MiB
+		200 * 1000 * 1000,       // 200 MiB
+		100 * 1000 * 1000,       // 100 MiB
+		50 * 1000 * 1000,        //  50 MiB
+		10 * 1000 * 1000,        //  10 MiB
+		1000 * 1000,             //   1 MiB
+		1000,                    //   1 KiB
+	}
+	sizeBucketNames := []string{
+		">10 GiB", ">1 GiB", ">500 MiB", ">400 MiB",
+		">300 MiB", ">200 MiB", ">100 MiB", ">50 MiB",
+		">10 MiB", ">1 MiB", ">1 KiB",
+	}
+	for bucketIdx := range sizeBuckets {
+		if size > sizeBuckets[bucketIdx] {
+			return sizeBucketNames[bucketIdx]
+		}
+	}
+	return ">0 B"
+}
+
 // Metrics is the main structure for starting the metrics endpoints.
 type Metrics struct {
-	config                        *libconfig.MetricsConfig
-	metricOperations              *prometheus.CounterVec
-	metricOperationsLatency       *prometheus.GaugeVec
-	metricOperationsLatencyTotal  *prometheus.SummaryVec
-	metricOperationsErrors        *prometheus.CounterVec
-	metricImagePullsByDigest      *prometheus.CounterVec
-	metricImagePullsByName        *prometheus.CounterVec
-	metricImagePullsByNameSkipped *prometheus.CounterVec
-	metricImagePullsFailures      *prometheus.CounterVec
-	metricImagePullsSuccesses     *prometheus.CounterVec
-	metricImagePullsLayerSize     prometheus.Histogram
-	metricImageLayerReuse         *prometheus.CounterVec
-	metricContainersOOMTotal      prometheus.Counter
-	metricContainersOOM           *prometheus.CounterVec
-	metricProcessesDefunct        prometheus.GaugeFunc
+	config                              *libconfig.MetricsConfig
+	metricOperations                    *prometheus.CounterVec // Deprecated: in favour of metricOperationsTotal
+	metricOperationsLatency             *prometheus.GaugeVec   // Deprecated: in favour of metricOperationsLatencySeconds
+	metricOperationsLatencyTotal        *prometheus.SummaryVec // Deprecated: in favour of metricOperationsLatencySecondsTotal
+	metricOperationsErrors              *prometheus.CounterVec // Deprecated: in favour of metricOperationsErrorsTotal
+	metricImagePullsByDigest            *prometheus.CounterVec // Deprecated: in favour of metricImagePullsBytesTotal
+	metricImagePullsByName              *prometheus.CounterVec // Deprecated: in favour of metricImagePullsBytesTotal
+	metricImagePullsByNameSkipped       *prometheus.CounterVec // Deprecated: in favour of metricImagePullsSkippedBytesTotal
+	metricImagePullsFailures            *prometheus.CounterVec // Deprecated: in favour of metricImagePullsFailureTotal
+	metricImagePullsSuccesses           *prometheus.CounterVec // Deprecated: in favour of metricImagePullsSuccessTotal
+	metricImagePullsLayerSize           prometheus.Histogram
+	metricImageLayerReuse               *prometheus.CounterVec // Deprecated: in favour of metricImageLayerReuseTotal
+	metricContainersOOMTotal            prometheus.Counter
+	metricContainersOOM                 *prometheus.CounterVec // Deprecated: in favour of metricContainersOOMCountTotal
+	metricProcessesDefunct              prometheus.GaugeFunc
+	metricOperationsTotal               *prometheus.CounterVec
+	metricOperationsLatencySeconds      *prometheus.GaugeVec
+	metricOperationsLatencySecondsTotal *prometheus.SummaryVec
+	metricOperationsErrorsTotal         *prometheus.CounterVec
+	metricImagePullsBytesTotal          *prometheus.CounterVec
+	metricImagePullsSkippedBytesTotal   *prometheus.CounterVec
+	metricImagePullsFailureTotal        *prometheus.CounterVec
+	metricImagePullsSuccessTotal        prometheus.Counter
+	metricImageLayerReuseTotal          *prometheus.CounterVec
+	metricContainersOOMCountTotal       *prometheus.CounterVec
 }
 
 var instance *Metrics
@@ -57,7 +100,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.Operations.String(),
-				Help:      "Cumulative number of CRI-O operations by operation type.",
+				Help:      "[DEPRECATED: in favour of `operations_total`] Cumulative number of CRI-O operations by operation type.",
 			},
 			[]string{"operation_type"},
 		),
@@ -65,7 +108,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.GaugeOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.OperationsLatency.String(),
-				Help:      "Latency in microseconds of individual CRI calls for CRI-O operations. Broken down by operation type.",
+				Help:      "[DEPRECATED: in favour of `operations_latency_seconds`] Latency in microseconds of individual CRI calls for CRI-O operations. Broken down by operation type.",
 			},
 			[]string{"operation_type"},
 		),
@@ -73,7 +116,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.SummaryOpts{
 				Subsystem:  collectors.Subsystem,
 				Name:       collectors.OperationsLatencyTotal.String(),
-				Help:       "Latency in microseconds of CRI-O operations. Broken down by operation type.",
+				Help:       "[DEPRECATED:  in favour of `operations_latency_seconds_total`] Latency in microseconds of CRI-O operations. Broken down by operation type.",
 				Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 			},
 			[]string{"operation_type"},
@@ -82,7 +125,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.OperationsErrors.String(),
-				Help:      "Cumulative number of CRI-O operation errors by operation type.",
+				Help:      "[DEPRECATED: in favour of `operations_errors_total`] Cumulative number of CRI-O operation errors by operation type.",
 			},
 			[]string{"operation_type"},
 		),
@@ -90,7 +133,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.ImagePullsByDigest.String(),
-				Help:      "Bytes transferred by CRI-O image pulls by digest",
+				Help:      "[DEPRECATED: in favour of `image_pulls_bytes_total`] Bytes transferred by CRI-O image pulls by digest",
 			},
 			[]string{"name", "digest", "mediatype", "size"},
 		),
@@ -98,7 +141,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.ImagePullsByName.String(),
-				Help:      "Bytes transferred by CRI-O image pulls by name",
+				Help:      "[DEPRECATED: in favour of `image_pulls_bytes_total`] Bytes transferred by CRI-O image pulls by name",
 			},
 			[]string{"name", "size"},
 		),
@@ -106,7 +149,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.ImagePullsByNameSkipped.String(),
-				Help:      "Bytes skipped by CRI-O image pulls by name",
+				Help:      "[DEPRECATED: in favour of `image_pulls_skipped_bytes_total`] Bytes skipped by CRI-O image pulls by name",
 			},
 			[]string{"name"},
 		),
@@ -114,7 +157,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.ImagePullsFailures.String(),
-				Help:      "Cumulative number of CRI-O image pull failures by error.",
+				Help:      "[DEPRECATED: in favour of `image_pulls_failure_total`] Cumulative number of CRI-O image pull failures by error.",
 			},
 			[]string{"name", "error"},
 		),
@@ -122,7 +165,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.ImagePullsSuccesses.String(),
-				Help:      "Cumulative number of CRI-O image pull successes.",
+				Help:      "[DEPRECATED: in favour of `image_pulls_success_total`] Cumulative number of CRI-O image pull successes.",
 			},
 			[]string{"name"},
 		),
@@ -150,7 +193,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.ImageLayerReuse.String(),
-				Help:      "Reused (not pulled) local image layer count by name",
+				Help:      "[DEPRECATED: in favour of `image_layer_reuse_total`] Reused (not pulled) local image layer count by name",
 			},
 			[]string{"name"},
 		),
@@ -165,7 +208,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.ContainersOOM.String(),
-				Help:      "Amount of containers killed because they ran out of memory (OOM) by their name",
+				Help:      "[DEPRECATED: in favour of `containers_oom_count_total`] Amount of containers killed because they ran out of memory (OOM) by their name",
 			},
 			[]string{"name"},
 		),
@@ -183,6 +226,89 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				logrus.Warn(err)
 				return 0
 			},
+		),
+		metricOperationsTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.OperationsTotal.String(),
+				Help:      "Cumulative number of CRI-O operations by operation type.",
+			},
+			[]string{"operation"},
+		),
+		metricOperationsLatencySeconds: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.OperationsLatencySeconds.String(),
+				Help:      "Latency in seconds of individual CRI calls for CRI-O operations. Broken down by operation type.",
+			},
+			[]string{"operation"},
+		),
+		metricOperationsLatencySecondsTotal: prometheus.NewSummaryVec(
+			prometheus.SummaryOpts{
+				Subsystem:  collectors.Subsystem,
+				Name:       collectors.OperationsLatencySecondsTotal.String(),
+				Help:       "Latency in seconds of CRI-O operations. Broken down by operation type.",
+				Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+			},
+			[]string{"operation"},
+		),
+		metricOperationsErrorsTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.OperationsErrorsTotal.String(),
+				Help:      "Cumulative number of CRI-O operation errors by operation type.",
+			},
+			[]string{"operation"},
+		),
+		metricImagePullsBytesTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsBytesTotal.String(),
+				Help:      "Bytes transferred by CRI-O image pulls",
+			},
+			[]string{"mediatype", "size"},
+		),
+		metricImagePullsSkippedBytesTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsSkippedBytesTotal.String(),
+				Help:      "Bytes skipped by CRI-O image pulls",
+			},
+			[]string{"size"},
+		),
+		metricImagePullsFailureTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsFailureTotal.String(),
+				Help:      "Cumulative number of CRI-O image pull failures by error.",
+			},
+			[]string{"error"},
+		),
+		metricImagePullsSuccessTotal: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImagePullsSuccessTotal.String(),
+				Help:      "Cumulative number of CRI-O image pull successes.",
+			},
+		),
+		metricImageLayerReuseTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageLayerReuseTotal.String(),
+				Help:      "Reused (not pulled) local image layer count by name",
+			},
+			[]string{"name"},
+		),
+		metricContainersOOMCountTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ContainersOOMCountTotal.String(),
+				Help:      "Amount of containers killed because they ran out of memory (OOM) by their name",
+			},
+			// The label `name` can have high cardinality sometimes but it is in the interest of users giving them the
+			// ease to identify which container(s) are going into OOM state. Also, ideally very few containers should OOM
+			// keeping the label cardinality of `name` reasonably low.
+			[]string{"name"},
 		),
 	}
 	return Instance()
@@ -231,7 +357,14 @@ func (m *Metrics) Start(stop chan struct{}) error {
 }
 
 func (m *Metrics) MetricOperationsInc(operation string) {
-	c, err := m.metricOperations.GetMetricWithLabelValues(operation)
+	c, err := m.metricOperations.GetMetricWithLabelValues(operation) // deprecated metric name
+	if err != nil {
+		logrus.Warnf("Unable to write operations metric: %v", err)
+		return
+	}
+	c.Inc()
+
+	c, err = m.metricOperationsTotal.GetMetricWithLabelValues(operation)
 	if err != nil {
 		logrus.Warnf("Unable to write operations metric: %v", err)
 		return
@@ -240,25 +373,46 @@ func (m *Metrics) MetricOperationsInc(operation string) {
 }
 
 func (m *Metrics) MetricOperationsLatencySet(operation string, start time.Time) {
-	g, err := m.metricOperationsLatency.GetMetricWithLabelValues(operation)
+	g, err := m.metricOperationsLatency.GetMetricWithLabelValues(operation) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write operation latency metric: %v", err)
 		return
 	}
 	g.Set(SinceInMicroseconds(start))
+
+	g, err = m.metricOperationsLatencySeconds.GetMetricWithLabelValues(operation)
+	if err != nil {
+		logrus.Warnf("Unable to write operation latency metric: %v", err)
+		return
+	}
+	g.Set(SinceInSeconds(start))
 }
 
 func (m *Metrics) MetricOperationsLatencyTotalObserve(operation string, start time.Time) {
-	o, err := m.metricOperationsLatencyTotal.GetMetricWithLabelValues(operation)
+	o, err := m.metricOperationsLatencyTotal.GetMetricWithLabelValues(operation) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write operation latency (total) metric: %v", err)
 		return
 	}
 	o.Observe(SinceInMicroseconds(start))
+
+	o, err = m.metricOperationsLatencySecondsTotal.GetMetricWithLabelValues(operation)
+	if err != nil {
+		logrus.Warnf("Unable to write operation latency (total) metric: %v", err)
+		return
+	}
+	o.Observe(SinceInSeconds(start))
 }
 
 func (m *Metrics) MetricOperationsErrorsInc(operation string) {
-	c, err := m.metricOperationsErrors.GetMetricWithLabelValues(operation)
+	c, err := m.metricOperationsErrors.GetMetricWithLabelValues(operation) // deprecated metric name
+	if err != nil {
+		logrus.Warnf("Unable to write operation errors metric: %v", err)
+		return
+	}
+	c.Inc()
+
+	c, err = m.metricOperationsErrorsTotal.GetMetricWithLabelValues(operation)
 	if err != nil {
 		logrus.Warnf("Unable to write operation errors metric: %v", err)
 		return
@@ -266,8 +420,15 @@ func (m *Metrics) MetricOperationsErrorsInc(operation string) {
 	c.Inc()
 }
 
-func (m *Metrics) MetricContainersOOMInc(name string) {
-	c, err := m.metricContainersOOM.GetMetricWithLabelValues(name)
+func (m *Metrics) MetricContainersOOMCountTotalInc(name string) {
+	c, err := m.metricContainersOOM.GetMetricWithLabelValues(name) // deprecated metric name
+	if err != nil {
+		logrus.Warnf("Unable to write container OOM metric: %v", err)
+		return
+	}
+	c.Inc()
+
+	c, err = m.metricContainersOOMCountTotal.GetMetricWithLabelValues(name)
 	if err != nil {
 		logrus.Warnf("Unable to write container OOM metric: %v", err)
 		return
@@ -284,7 +445,7 @@ func (m *Metrics) MetricImagePullsLayerSizeObserve(size int64) {
 }
 
 func (m *Metrics) MetricImagePullsByNameSkippedAdd(add float64, name string) {
-	c, err := m.metricImagePullsByNameSkipped.GetMetricWithLabelValues(name)
+	c, err := m.metricImagePullsByNameSkipped.GetMetricWithLabelValues(name) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image pulls by name skipped metric: %v", err)
 		return
@@ -292,35 +453,76 @@ func (m *Metrics) MetricImagePullsByNameSkippedAdd(add float64, name string) {
 	c.Add(add)
 }
 
+func (m *Metrics) MetricImagePullsSkippedBytesAdd(add float64) {
+	c, err := m.metricImagePullsSkippedBytesTotal.GetMetricWithLabelValues(GetSizeBucket(add))
+	if err != nil {
+		logrus.Warnf("Unable to write image pulls skipped bytes metric: %v", err)
+		return
+	}
+	c.Add(add)
+}
+
 func (m *Metrics) MetricImagePullsFailuresInc(image, label string) {
-	c, err := m.metricImagePullsFailures.GetMetricWithLabelValues(image, label)
+	c, err := m.metricImagePullsFailures.GetMetricWithLabelValues(image, label) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image pull failures metric: %v", err)
+		return
+	}
+	c.Inc()
+
+	c, err = m.metricImagePullsFailureTotal.GetMetricWithLabelValues(label)
+	if err != nil {
+		logrus.Warnf("Unable to write image pull failures total metric: %v", err)
 		return
 	}
 	c.Inc()
 }
 
 func (m *Metrics) MetricImageLayerReuseInc(layer string) {
-	c, err := m.metricImageLayerReuse.GetMetricWithLabelValues(layer)
+	c, err := m.metricImageLayerReuse.GetMetricWithLabelValues(layer) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image layer reuse metric: %v", err)
+		return
+	}
+	c.Inc()
+
+	c, err = m.metricImageLayerReuseTotal.GetMetricWithLabelValues(layer)
+	if err != nil {
+		logrus.Warnf("Unable to write image layer reuse total metric: %v", err)
 		return
 	}
 	c.Inc()
 }
 
 func (m *Metrics) MetricImagePullsSuccessesInc(name string) {
-	c, err := m.metricImagePullsSuccesses.GetMetricWithLabelValues(name)
+	c, err := m.metricImagePullsSuccesses.GetMetricWithLabelValues(name) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image pull successes metric: %v", err)
 		return
 	}
 	c.Inc()
+
+	m.metricImagePullsSuccessTotal.Inc()
+}
+
+func (m *Metrics) MetricImagePullsBytesAdd(add float64, mediatype string, size int64) {
+	c, err := m.metricImagePullsBytesTotal.GetMetricWithLabelValues(mediatype, GetSizeBucket(float64(size)))
+	if err != nil {
+		logrus.Warnf("Unable to write image pulls bytes metric: %v", err)
+		return
+	}
+	c.Add(add)
 }
 
 func (m *Metrics) MetricImagePullsByDigestAdd(add float64, values ...string) {
-	c, err := m.metricImagePullsByDigest.GetMetricWithLabelValues(values...)
+	c, err := m.metricImagePullsByDigest.GetMetricWithLabelValues(values...) // deprecated metric name
+	if err != nil {
+		logrus.Warnf("Unable to write image pulls by digest metric: %v", err)
+		return
+	}
+	c.Add(add)
+
+	c, err = m.metricImagePullsBytesTotal.GetMetricWithLabelValues(values...)
 	if err != nil {
 		logrus.Warnf("Unable to write image pulls by digest metric: %v", err)
 		return
@@ -329,7 +531,7 @@ func (m *Metrics) MetricImagePullsByDigestAdd(add float64, values ...string) {
 }
 
 func (m *Metrics) MetricImagePullsByNameAdd(add float64, values ...string) {
-	c, err := m.metricImagePullsByName.GetMetricWithLabelValues(values...)
+	c, err := m.metricImagePullsByName.GetMetricWithLabelValues(values...) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image pulls by name metric: %v", err)
 		return
@@ -354,6 +556,17 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ContainersOOMTotal:      m.metricContainersOOMTotal,
 		collectors.ContainersOOM:           m.metricContainersOOM,
 		collectors.ProcessesDefunct:        m.metricProcessesDefunct,
+
+		collectors.OperationsTotal:               m.metricOperationsTotal,
+		collectors.OperationsLatencySeconds:      m.metricOperationsLatencySeconds,
+		collectors.OperationsLatencySecondsTotal: m.metricOperationsLatencySecondsTotal,
+		collectors.OperationsErrorsTotal:         m.metricOperationsErrorsTotal,
+		collectors.ImagePullsBytesTotal:          m.metricImagePullsBytesTotal,
+		collectors.ImagePullsSkippedBytesTotal:   m.metricImagePullsSkippedBytesTotal,
+		collectors.ImagePullsFailureTotal:        m.metricImagePullsFailureTotal,
+		collectors.ImagePullsSuccessTotal:        m.metricImagePullsSuccessTotal,
+		collectors.ImageLayerReuseTotal:          m.metricImageLayerReuseTotal,
+		collectors.ContainersOOMCountTotal:       m.metricContainersOOMCountTotal,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())
