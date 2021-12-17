@@ -217,7 +217,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.16.1
+# github.com/containers/image/v5 v5.17.0
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -236,6 +236,7 @@ github.com/containers/image/v5/internal/pkg/keyctl
 github.com/containers/image/v5/internal/pkg/platform
 github.com/containers/image/v5/internal/putblobdigest
 github.com/containers/image/v5/internal/rootless
+github.com/containers/image/v5/internal/streamdigest
 github.com/containers/image/v5/internal/tmpdir
 github.com/containers/image/v5/internal/types
 github.com/containers/image/v5/internal/uploadreader
@@ -435,7 +436,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v20.10.9+incompatible
+# github.com/docker/docker v20.10.11+incompatible
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/blkiodev
@@ -674,9 +675,6 @@ github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.12
 ## explicit
 github.com/json-iterator/go
-# github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a
-github.com/juju/ansiterm
-github.com/juju/ansiterm/tabwriter
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
 # github.com/klauspost/compress v1.13.6
@@ -691,9 +689,7 @@ github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/pgzip
 # github.com/lithammer/dedent v1.1.0
 github.com/lithammer/dedent
-# github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a
-github.com/lunixbochs/vtclean
-# github.com/manifoldco/promptui v0.8.0
+# github.com/manifoldco/promptui v0.9.0
 github.com/manifoldco/promptui
 github.com/manifoldco/promptui/list
 github.com/manifoldco/promptui/screenbuf
@@ -1031,7 +1027,7 @@ golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/modfile
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210825183410-e898025ed96a
+# golang.org/x/net v0.0.0-20211005001312-d4b1ae081e3b
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -1054,7 +1050,7 @@ golang.org/x/oauth2/internal
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
+# golang.org/x/sys v0.0.0-20211004093028-2c5d950f24ef
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -1112,7 +1108,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2 => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
+# google.golang.org/genproto v0.0.0-20211005153810-c76a74d43a8e => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
