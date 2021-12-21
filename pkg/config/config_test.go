@@ -835,6 +835,37 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.PidsLimit).To(BeEquivalentTo(2048))
 		})
 
+		It("should inherit storage_options from storage.conf and remove duplicates", func() {
+			f := t.MustTempFile("config")
+			// Given
+			Expect(ioutil.WriteFile(f,
+				[]byte(`
+					[crio]
+					storage_option = [
+						"foo=bar",
+					]`,
+				), 0),
+			).To(BeNil())
+			for _, tc := range []struct {
+				opts   []string
+				expect []string
+			}{
+				{[]string{"option1=v1", "option2=v2", "option3=v3"}, []string{"option1=v1", "option2=v2", "option3=v3", "foo=bar"}},
+				{[]string{"option1=v1", "option3=v3", "option2=v2", "option3=v3"}, []string{"option1=v1", "option2=v2", "option3=v3", "foo=bar"}},
+				{[]string{"option1=v1", "option2=v2", "option3=v3", "option1=v1"}, []string{"option2=v2", "option3=v3", "option1=v1", "foo=bar"}},
+				{[]string{"option1=v1", "option2=v2", "option3=v3", "option4=v4", "option3=v3", "option1=v1"}, []string{"option2=v2", "option4=v4", "option3=v3", "option1=v1", "foo=bar"}},
+			} {
+				// When
+				defaultcfg := defaultConfig()
+				defaultcfg.StorageOptions = tc.opts
+				err := defaultcfg.UpdateFromFile(f)
+
+				// Then
+				Expect(err).To(BeNil())
+				Expect(defaultcfg.RootConfig.StorageOptions).To(Equal(tc.expect))
+			}
+		})
+
 		It("should succeed with custom runtime", func() {
 			// Given
 			f := t.MustTempFile("config")
