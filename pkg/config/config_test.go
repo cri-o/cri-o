@@ -872,6 +872,96 @@ var _ = t.Describe("Config", func() {
 			}
 		})
 
+		It("should inherit graphroot from storage.conf if crio root is empty", func() {
+			f := t.MustTempFile("config")
+			for _, tc := range []struct {
+				criocfg   []byte
+				graphRoot string
+				expect    string
+			}{
+				{[]byte(`
+				[crio]
+				root = ""
+				`,
+				), "/test/storage", "/test/storage"},
+				{[]byte(`
+				[crio]
+				root = "/test/crio/storage"
+				`,
+				), "/test/storage", "/test/crio/storage"},
+			} {
+				Expect(ioutil.WriteFile(f, tc.criocfg, 0)).To(BeNil())
+				// When
+				defaultcfg := defaultConfig()
+				defaultcfg.Root = tc.graphRoot
+				err := defaultcfg.UpdateFromFile(f)
+
+				// Then
+				Expect(err).To(BeNil())
+				Expect(defaultcfg.Root).To(Equal(tc.expect))
+			}
+		})
+
+		It("should inherit runroot from storage.conf if crio runroot is empty", func() {
+			f := t.MustTempFile("config")
+			for _, tc := range []struct {
+				criocfg []byte
+				runRoot string
+				expect  string
+			}{
+				{[]byte(`
+				[crio]
+				runroot = ""
+				`,
+				), "/test/storage", "/test/storage"},
+				{[]byte(`
+				[crio]
+				runroot = "/test/crio/storage"
+				`,
+				), "/test/storage", "/test/crio/storage"},
+			} {
+				Expect(ioutil.WriteFile(f, tc.criocfg, 0)).To(BeNil())
+				// When
+				defaultcfg := defaultConfig()
+				defaultcfg.RunRoot = tc.runRoot
+				err := defaultcfg.UpdateFromFile(f)
+
+				// Then
+				Expect(err).To(BeNil())
+				Expect(defaultcfg.RunRoot).To(Equal(tc.expect))
+			}
+		})
+
+		It("should inherit runroot from storage.conf if crio runroot is empty", func() {
+			f := t.MustTempFile("config")
+			for _, tc := range []struct {
+				criocfg       []byte
+				storageDriver string
+				expect        string
+			}{
+				{[]byte(`
+				[crio]
+				storage_driver = ""
+				`,
+				), "/test/storage", "/test/storage"},
+				{[]byte(`
+				[crio]
+				storage_driver = "/test/crio/storage"
+				`,
+				), "/test/storage", "/test/crio/storage"},
+			} {
+				Expect(ioutil.WriteFile(f, tc.criocfg, 0)).To(BeNil())
+				// When
+				defaultcfg := defaultConfig()
+				defaultcfg.Storage = tc.storageDriver
+				err := defaultcfg.UpdateFromFile(f)
+
+				// Then
+				Expect(err).To(BeNil())
+				Expect(defaultcfg.Storage).To(Equal(tc.expect))
+			}
+		})
+
 		It("should succeed with custom runtime", func() {
 			// Given
 			f := t.MustTempFile("config")

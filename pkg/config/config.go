@@ -597,6 +597,10 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 	// keeps the storage options from storage.conf and merge it to crio config
 	var storageOpts []string
 	storageOpts = append(storageOpts, c.StorageOptions...)
+	// storage configurations from storage.conf, if crio config has no values for these, they will be merged to crio config
+	graphRoot := c.Root
+	runRoot := c.RunRoot
+	storageDriver := c.Storage
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -620,6 +624,16 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 	storageOpts = append(storageOpts, t.Crio.RootConfig.StorageOptions...)
 	storageOpts = removeDupStorageOpts(storageOpts)
 	t.Crio.RootConfig.StorageOptions = storageOpts
+	// inherits storage configurations from storage.conf
+	if t.Crio.Root == "" {
+		t.Crio.Root = graphRoot
+	}
+	if t.Crio.RunRoot == "" {
+		t.Crio.RunRoot = runRoot
+	}
+	if t.Crio.Storage == "" {
+		t.Crio.Storage = storageDriver
+	}
 
 	// Registries are deprecated in cri-o.conf and turned into a NOP.
 	// Users should use registries.conf instead, so let's log it.
