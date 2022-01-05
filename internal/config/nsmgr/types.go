@@ -118,7 +118,8 @@ func (n *namespace) Remove() error {
 func GetNamespace(nsPath string, nsType NSType) (Namespace, error) {
 	ns, err := nspkg.GetNS(nsPath)
 	if err != nil {
-		return nil, err
+		// Failed to GetNS. It's possible this is expected (pod is stopped).
+		return &namespace{nsType: nsType, nsPath: nsPath, closed: true}, err
 	}
 
 	return &namespace{ns: ns, nsType: nsType, nsPath: nsPath}, nil

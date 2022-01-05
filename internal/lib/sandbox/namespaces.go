@@ -131,10 +131,12 @@ func (s *Sandbox) NetNsPath() string {
 // This will fail if the sandbox is already part of a network namespace
 func (s *Sandbox) NetNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.NETNS, s.netns)
-	if err != nil {
+	// Regardless of error, set the namespace
+	s.netns = ns
+	// Only error if the sandbox is not stopped
+	if err != nil && !s.stopped {
 		return err
 	}
-	s.netns = ns
 	return nil
 }
 
@@ -149,12 +151,17 @@ func (s *Sandbox) IpcNsPath() string {
 // IpcNsJoin attempts to join the sandbox to an existing IPC namespace
 // This will fail if the sandbox is already part of a IPC namespace
 func (s *Sandbox) IpcNsJoin(nspath string) error {
+	if s.stopped {
+		return nil
+	}
 	ns, err := nsJoin(nspath, nsmgr.IPCNS, s.ipcns)
-	if err != nil {
+	// Regardless of error, set the namespace
+	s.ipcns = ns
+	// Only error if the sandbox is not stopped
+	if err != nil && !s.stopped {
 		return err
 	}
-	s.ipcns = ns
-	return err
+	return nil
 }
 
 // UtsNs specific functions
@@ -168,12 +175,17 @@ func (s *Sandbox) UtsNsPath() string {
 // UtsNsJoin attempts to join the sandbox to an existing UTS namespace
 // This will fail if the sandbox is already part of a UTS namespace
 func (s *Sandbox) UtsNsJoin(nspath string) error {
+	if s.stopped {
+		return nil
+	}
 	ns, err := nsJoin(nspath, nsmgr.UTSNS, s.utsns)
-	if err != nil {
+	// Regardless of error, set the namespace
+	s.utsns = ns
+	// Only error if the sandbox is not stopped
+	if err != nil && !s.stopped {
 		return err
 	}
-	s.utsns = ns
-	return err
+	return nil
 }
 
 // UserNs specific functions
@@ -188,11 +200,13 @@ func (s *Sandbox) UserNsPath() string {
 // This will fail if the sandbox is already part of a User namespace
 func (s *Sandbox) UserNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.USERNS, s.userns)
-	if err != nil {
+	// Regardless of error, set the namespace
+	s.userns = ns
+	// Only error if the sandbox is not stopped
+	if err != nil && !s.stopped {
 		return err
 	}
-	s.userns = ns
-	return err
+	return nil
 }
 
 // PidNs specific functions
