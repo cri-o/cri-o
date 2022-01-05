@@ -88,6 +88,10 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		}
 	}
 
+	if err := sb.RemoveManagedNamespaces(); err != nil {
+		return errors.Wrap(err, "unable to remove managed namespaces")
+	}
+
 	if err := sb.UnmountShm(); err != nil {
 		return err
 	}
