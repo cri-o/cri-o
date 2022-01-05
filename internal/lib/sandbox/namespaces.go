@@ -91,21 +91,10 @@ func (s *Sandbox) NamespacePaths() []*ManagedNamespace {
 	return typesAndPaths
 }
 
-// CloseManagedNamespaces cleans up after managing the namespaces.
-// It unmounts all of the namespaces, but does not remove their parent directory.
-func (s *Sandbox) CloseManagedNamespaces() error {
-	return s.runFunctionOnNamespaces(func(ns nsmgr.Namespace) error {
-		return ns.Close()
-	})
-}
-
 // RemoveManagedNamespaces removes the formerly mounted namespace.
 // Must be stopped first or this will fail.
 func (s *Sandbox) RemoveManagedNamespaces() error {
 	return s.runFunctionOnNamespaces(func(ns nsmgr.Namespace) error {
-		if err := ns.Close(); err != nil {
-			return err
-		}
 		return ns.Remove()
 	})
 }

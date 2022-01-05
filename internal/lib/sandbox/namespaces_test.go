@@ -218,6 +218,39 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
+		It("should fail when asked to join a non-namespace", func() {
+			// Given
+			// When
+			err := testSandbox.NetNsJoin("/tmp")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should fail when asked to join a non-namespace", func() {
+			// Given
+
+			// When
+			err := testSandbox.IpcNsJoin("/tmp")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should fail when asked to join a non-namespace", func() {
+			// Given
+			// When
+			err := testSandbox.UtsNsJoin("/tmp")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should fail when asked to join a non-namespace", func() {
+			// Given
+			// When
+			err := testSandbox.UserNsJoin("/tmp")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 	})
 	t.Describe("*NsPath", func() {
 		It("should get nothing when network not set", func() {
