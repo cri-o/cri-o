@@ -194,7 +194,6 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
 		sut.Spec().ClearLinuxNamespaces()
 		Expect(sut.SpecAddNamespaces(sb, targetCtr, cfg)).To(BeNil())
-		defer Expect(sut.PidNamespace().Close()).To(BeNil())
 		defer Expect(sut.PidNamespace().Remove()).To(BeNil())
 
 		// Then
