@@ -517,18 +517,56 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 	if !s.config.InternalWipe {
 		return
 	}
+	var (
+		shouldWipeContainers, shouldWipeImages bool
+		err                                    error
+	)
+
 	// Check if our persistent version file is out of date.
 	// If so, we have upgrade, and we should wipe images.
-	shouldWipeImages, err := version.ShouldCrioWipe(s.config.VersionFilePersist)
+	shouldWipeImages, err = version.ShouldCrioWipe(s.config.VersionFilePersist)
 	if err != nil {
 		log.Warnf(ctx, "Error encountered when checking whether cri-o should wipe images: %v", err)
+	}
+
+	// Unconditionally wipe containers if we should wipe images.
+	if shouldWipeImages {
+		shouldWipeContainers = true
+	} else {
+		// Check if our version file is out of date.
+		// If so, we rebooted, and we should wipe containers.
+		shouldWipeContainers, err = version.ShouldCrioWipe(s.config.VersionFile)
+		if err != nil {
+			log.Warnf(ctx, "Error encountered when checking whether cri-o should wipe containers: %v", err)
+		}
+	}
+
+	// Translate to a map so the images are only attempted to be deleted once.
+	imageMapToDelete := make(map[string]struct{})
+	for _, img := range imagesToDelete {
+		imageMapToDelete[img] = struct{}{}
+	}
+
+	// Attempt to wipe containers, adding the images that were removed on the way.
+	if shouldWipeContainers {
+		// Best-effort append to imageMapToDelete
+		if ctrs, err := s.ContainerServer.ListContainers(); err == nil {
+			for _, ctr := range ctrs {
+				imageMapToDelete[ctr.ImageRef()] = struct{}{}
+			}
+		}
+		for _, sb := range s.ContainerServer.ListSandboxes() {
+			if err := s.removePodSandbox(ctx, sb); err != nil {
+				log.Warnf(ctx, "Failed to remove sandbox %s: %v", sb.ID(), err)
+			}
+		}
 	}
 
 	// Note: some of these will fail if some aspect of the pod cleanup failed as well,
 	// but this is best-effort anyway, as the Kubelet will eventually cleanup images when
 	// disk usage gets too high.
 	if shouldWipeImages {
-		for _, img := range imagesToDelete {
+		for img := range imageMapToDelete {
 			if err := s.removeImage(ctx, img); err != nil {
 				log.Warnf(ctx, "Failed to remove image %s: %v", img, err)
 			}
