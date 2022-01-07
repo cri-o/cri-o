@@ -521,13 +521,6 @@ func (m *Metrics) MetricImagePullsByDigestAdd(add float64, values ...string) {
 		return
 	}
 	c.Add(add)
-
-	c, err = m.metricImagePullsBytesTotal.GetMetricWithLabelValues(values...)
-	if err != nil {
-		logrus.Warnf("Unable to write image pulls by digest metric: %v", err)
-		return
-	}
-	c.Add(add)
 }
 
 func (m *Metrics) MetricImagePullsByNameAdd(add float64, values ...string) {
