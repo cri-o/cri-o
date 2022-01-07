@@ -16,7 +16,7 @@ require (
 	github.com/containers/buildah v1.23.1
 	github.com/containers/common v0.46.1-0.20211001143714-161e078e4c7f
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.16.1
+	github.com/containers/image/v5 v5.17.0
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/podman/v3 v3.2.0-rc1.0.20211005134800-8bcc086b1b9d
 	github.com/containers/storage v1.37.0
@@ -60,9 +60,9 @@ require (
 	go.opentelemetry.io/otel v1.2.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.2.0
 	go.opentelemetry.io/otel/sdk v1.2.0
-	golang.org/x/net v0.0.0-20210825183410-e898025ed96a
+	golang.org/x/net v0.0.0-20211005001312-d4b1ae081e3b
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
+	golang.org/x/sys v0.0.0-20211004093028-2c5d950f24ef
 	google.golang.org/grpc v1.42.0
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
