@@ -72,6 +72,23 @@ function teardown() {
 	! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
 }
 
+@test "ctr swap only configured if enabled" {
+	set_swap_fields_given_cgroup_version
+	if test -r "$CGROUP_MEM_SWAP_FILE"; then
+		skip "swap cgroup enabled"
+	fi
+	start_crio
+	# memsw should be greater than or equal to memory limit
+	# 210763776 = 1024*1024*200
+	jq '	  .linux.resources.memory_swap_limit_in_bytes = 210763776
+	 	|     .linux.resources.memory_limit_in_bytes = 209715200' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+	# verify CRI-O did not specify memory swap value
+	jq -e .linux.resources.memory.swap "$(runtime list | grep "$ctr_id" | awk '{ print $4 }')/config.json"
+}
+
 @test "cgroupv2 unified support" {
 	if ! is_cgroup_v2; then
 		skip "node must be configured with cgroupv2 for this test"
