@@ -5,6 +5,7 @@
 package cmdrunnermock
 
 import (
+	exec "os/exec"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -51,4 +52,23 @@ func (mr *MockCommandRunnerMockRecorder) CombinedOutput(arg0 interface{}, arg1 .
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CombinedOutput", reflect.TypeOf((*MockCommandRunner)(nil).CombinedOutput), varargs...)
+}
+
+// Command mocks base method.
+func (m *MockCommandRunner) Command(arg0 string, arg1 ...string) *exec.Cmd {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Command", varargs...)
+	ret0, _ := ret[0].(*exec.Cmd)
+	return ret0
+}
+
+// Command indicates an expected call of Command.
+func (mr *MockCommandRunnerMockRecorder) Command(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Command", reflect.TypeOf((*MockCommandRunner)(nil).Command), varargs...)
 }

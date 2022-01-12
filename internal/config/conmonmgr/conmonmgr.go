@@ -19,14 +19,10 @@ type ConmonManager struct {
 
 // this function is heavily based on github.com/containers/common#probeConmon
 func New(conmonPath string) (*ConmonManager, error) {
-	return newWithCommandRunner(conmonPath, &cmdrunner.RealCommandRunner{})
-}
-
-func newWithCommandRunner(conmonPath string, runner cmdrunner.CommandRunner) (*ConmonManager, error) {
 	if !path.IsAbs(conmonPath) {
 		return nil, errors.Errorf("conmon path is not absolute: %s", conmonPath)
 	}
-	out, err := runner.CombinedOutput(conmonPath, "--version")
+	out, err := cmdrunner.CombinedOutput(conmonPath, "--version")
 	if err != nil {
 		return nil, errors.Wrapf(err, "get conmon version")
 	}
