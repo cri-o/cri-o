@@ -144,6 +144,9 @@ check-log-lines:
 	./hack/log-capitalized.sh
 	./hack/tree_status.sh
 
+check-config-template: 
+	./hack/validate-config.sh
+
 shellfiles: ${SHFMT}
 	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh))
 
