@@ -74,8 +74,13 @@ var _ = t.Describe("Version", func() {
 			_, err = ioutil.ReadFile(filename)
 			Expect(err).To(BeNil())
 		})
-		It("should fail to upgrade with unspecified version", func() {
+		It("should not upgrade with unspecified version file", func() {
 			upgrade, err := shouldCrioWipe("", tempVersion)
+			Expect(upgrade).NotTo(BeTrue())
+			Expect(err).To(BeNil())
+		})
+		It("should fail to upgrade with unspecified version", func() {
+			upgrade, err := shouldCrioWipe("/etc/fstab", tempVersion)
 			Expect(upgrade).To(BeTrue())
 			Expect(err).ToNot(BeNil())
 		})
