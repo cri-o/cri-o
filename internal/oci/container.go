@@ -600,8 +600,5 @@ func (c *Container) RemoveManagedPIDNamespace() error {
 	if c.pidns == nil {
 		return nil
 	}
-	if err := c.pidns.Close(); err != nil {
-		return errors.Wrapf(err, "close PID namespace for container %s", c.ID())
-	}
 	return errors.Wrapf(c.pidns.Remove(), "remove PID namespace for container %s", c.ID())
 }

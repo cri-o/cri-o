@@ -53,6 +53,22 @@ function teardown() {
 	[[ "${output}" == "${ctr_status_info}" ]]
 }
 
+@test "crio restore with pod stopped" {
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	crictl stopp "$pod_id"
+
+	output1=$(crictl pods -o json)
+
+	stop_crio
+
+	start_crio
+	output2=$(crictl pods -o json)
+
+	[[ "$output1" == "$output2" ]]
+}
+
 @test "crio restore with bad state and pod stopped" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
