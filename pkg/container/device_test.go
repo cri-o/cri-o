@@ -94,7 +94,16 @@ var _ = t.Describe("Container", func() {
 		hostDevices, err := devices.HostDevices()
 		Expect(err).To(BeNil())
 
+		// Find a host device with uid != gid using first device as fallback.
 		testDevice := hostDevices[0]
+		if testDevice.Uid == testDevice.Gid {
+			for _, d := range hostDevices {
+				if d.Uid != d.Gid {
+					testDevice = d
+					break
+				}
+			}
+		}
 
 		tests := []testdata{
 			{
