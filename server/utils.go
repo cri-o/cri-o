@@ -226,7 +226,6 @@ func (s *Server) FilterDisallowedAnnotations(toFind, toFilter map[string]string,
 		return err
 	}
 	allowed = append(allowed, s.config.Workloads.AllowedAnnotations(toFind)...)
-	logrus.Warnf("Allowed annotations are specified for workload %v %s", allowed, runtimeHandler)
 
 	return s.config.Workloads.FilterDisallowedAnnotations(allowed, toFilter)
 }
