@@ -247,6 +247,9 @@ type RuntimeConfig struct {
 	// DefaultUlimits specifies the default ulimits to apply to containers
 	DefaultUlimits []string `toml:"default_ulimits"`
 
+	// Devices that are allowed to be configured.
+	AllowedDevices []string `toml:"allowed_devices"`
+
 	// Devices to add to containers
 	AdditionalDevices []string `toml:"additional_devices"`
 
@@ -732,6 +735,7 @@ func DefaultConfig() (*Config, error) {
 			GRPCMaxRecvMsgSize: defaultGRPCMaxMsgSize,
 		},
 		RuntimeConfig: RuntimeConfig{
+			AllowedDevices:     []string{"/dev/fuse"},
 			DecryptionKeysPath: "/etc/crio/keys/",
 			DefaultRuntime:     defaultRuntime,
 			Runtimes: Runtimes{

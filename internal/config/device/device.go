@@ -41,7 +41,7 @@ func New() *Config {
 // It saves the resulting Device structs, so they are
 // processed once and used later.
 func (d *Config) LoadDevices(devsFromConfig []string) error {
-	devs, err := devicesFromStrings(devsFromConfig)
+	devs, err := devicesFromStrings(devsFromConfig, nil)
 	if err != nil {
 		return err
 	}
@@ -52,8 +52,12 @@ func (d *Config) LoadDevices(devsFromConfig []string) error {
 // DevicesFromAnnotation takes an annotation string of the form
 // io.kubernetes.cri-o.Device=$PATH:$PATH:$MODE,$PATH...
 // and returns a Device object that can be passed to a create config
-func DevicesFromAnnotation(annotation string) ([]Device, error) {
-	return devicesFromStrings(strings.Split(annotation, DeviceAnnotationDelim))
+func DevicesFromAnnotation(annotation string, allowedDevices []string) ([]Device, error) {
+	allowedMap := make(map[string]struct{})
+	for _, d := range allowedDevices {
+		allowedMap[d] = struct{}{}
+	}
+	return devicesFromStrings(strings.Split(annotation, DeviceAnnotationDelim), allowedMap)
 }
 
 // devicesFromStrings takes a slice of strings in the form $PATH{:$PATH}{:$MODE}
@@ -62,7 +66,7 @@ func DevicesFromAnnotation(annotation string) ([]Device, error) {
 // and the third is the mode the device will be mounted with (optional)
 // It returns a slice of Device structs, ready to be saved or given to a container
 // runtime spec generator
-func devicesFromStrings(devsFromConfig []string) ([]Device, error) {
+func devicesFromStrings(devsFromConfig []string, allowedDevices map[string]struct{}) ([]Device, error) {
 	linuxdevs := make([]Device, 0, len(devsFromConfig))
 
 	for _, d := range devsFromConfig {
@@ -73,6 +77,12 @@ func devicesFromStrings(devsFromConfig []string) ([]Device, error) {
 		src, dst, permissions, err := createconfig.ParseDevice(d)
 		if err != nil {
 			return nil, err
+		}
+
+		if allowedDevices != nil {
+			if _, ok := allowedDevices[src]; !ok {
+				return nil, errors.Errorf("device %s is specified but is not in allowed_devices", src)
+			}
 		}
 		// ParseDevice does not check the destination is in /dev,
 		// but it should be checked

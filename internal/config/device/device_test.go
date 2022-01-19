@@ -49,7 +49,7 @@ var _ = t.Describe("DeviceConfig", func() {
 		It("should fail with poorly formatted device", func() {
 			// Given
 			// When
-			d, err := device.DevicesFromAnnotation("invalid:invalid")
+			d, err := device.DevicesFromAnnotation("invalid:invalid", []string{"invalid"})
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(d).To(BeEmpty())
@@ -57,7 +57,7 @@ var _ = t.Describe("DeviceConfig", func() {
 		It("should fail if invalid device", func() {
 			// Given
 			// When
-			d, err := device.DevicesFromAnnotation("/dev/invalid")
+			d, err := device.DevicesFromAnnotation("/dev/invalid", []string{"/dev/invalid"})
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(d).To(BeEmpty())
@@ -65,7 +65,7 @@ var _ = t.Describe("DeviceConfig", func() {
 		It("should succeed with valid device", func() {
 			// Given
 			// When
-			d, err := device.DevicesFromAnnotation("/dev/null:/dev/null:w")
+			d, err := device.DevicesFromAnnotation("/dev/null:/dev/null:w", []string{"/dev/null"})
 			// Then
 			Expect(err).To(BeNil())
 			Expect(d).NotTo(BeEmpty())
@@ -73,7 +73,7 @@ var _ = t.Describe("DeviceConfig", func() {
 		It("should fail if one invalid device", func() {
 			// Given
 			// When
-			d, err := device.DevicesFromAnnotation("/dev/true,/dev/invalid")
+			d, err := device.DevicesFromAnnotation("/dev/true,/dev/invalid", []string{"/dev/null", "/dev/invalid"})
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(d).To(BeEmpty())
@@ -81,9 +81,17 @@ var _ = t.Describe("DeviceConfig", func() {
 		It("should succeed if no devices", func() {
 			// Given
 			// When
-			d, err := device.DevicesFromAnnotation("")
+			d, err := device.DevicesFromAnnotation("", []string{})
 			// Then
 			Expect(err).To(BeNil())
+			Expect(d).To(BeEmpty())
+		})
+		It("should fail if not in allowed devices", func() {
+			// Given
+			// When
+			d, err := device.DevicesFromAnnotation("/dev/true", []string{})
+			// Then
+			Expect(err).NotTo(BeNil())
 			Expect(d).To(BeEmpty())
 		})
 	})

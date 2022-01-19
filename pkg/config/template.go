@@ -285,6 +285,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: stringSliceEqual(dc.DefaultSysctls, c.DefaultSysctls),
 		},
 		{
+			templateString: templateStringCrioRuntimeAllowedDevices,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.AllowedDevices, c.AllowedDevices),
+		},
+		{
 			templateString: templateStringCrioRuntimeAdditionalDevices,
 			group:          crioRuntimeConfig,
 			isDefaultValue: stringSliceEqual(dc.AdditionalDevices, c.AdditionalDevices),
@@ -855,6 +860,13 @@ const templateStringCrioRuntimeDefaultSysctls = `# List of default sysctls. If i
 # defined in the container json file by the user/kube will be added.
 default_sysctls = [
 {{ range $sysctl := .DefaultSysctls}}{{ printf "\t%q,\n" $sysctl}}{{ end }}]
+
+`
+
+const templateStringCrioRuntimeAllowedDevices = `# List of devices on the host that a
+# user can specify with the "io.kubernetes.cri-o.Devices" allowed annotation.
+{{ $.Comment }}allowed_devices = [
+{{ range $device := .AllowedDevices}}{{ $.Comment }}{{ printf "\t%q,\n" $device}}{{ end }}{{ $.Comment }}]
 
 `
 
