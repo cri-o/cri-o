@@ -179,6 +179,9 @@ the container runtime configuration.
   ]
 ```
 
+**allowed_devices**=[]
+  List of devices on the host that a user can specify with the "io.kubernetes.cri-o.Devices" allowed annotation.
+
 **additional_devices**=[]
   List of additional devices. Specified as "<device-on-host>:<device-on-container>:<permissions>", for example: "--additional-devices=/dev/sdc:/dev/xvdc:rwm". If it is empty or commented out, only the devices defined in the container json file by the user/kube will be added.
 

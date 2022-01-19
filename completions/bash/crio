@@ -15,6 +15,7 @@ h
 --absent-mount-sources-to-reject
 --additional-devices
 --address
+--allowed-devices
 --apparmor-profile
 --big-files-temporary-dir
 --bind-mount-prefix
