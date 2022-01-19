@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"strings"
 	"unicode"
 
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
@@ -138,11 +138,11 @@ func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCP
 }
 
 func restartIrqBalanceService() error {
-	return exec.Command("systemctl", "restart", "irqbalance").Run()
+	return cmdrunner.Command("systemctl", "restart", "irqbalance").Run()
 }
 
 func isServiceEnabled(serviceName string) bool {
-	cmd := exec.Command("systemctl", "is-enabled", serviceName)
+	cmd := cmdrunner.Command("systemctl", "is-enabled", serviceName)
 	status, err := cmd.CombinedOutput()
 	if err != nil {
 		logrus.Infof("Service %s is-enabled check returned with: %v", serviceName, err)

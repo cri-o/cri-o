@@ -34,6 +34,7 @@ import (
 	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
@@ -53,6 +54,7 @@ const (
 	defaultCtrStopTimeout      = 30 // seconds
 	defaultNamespacesDir       = "/var/run"
 	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
+	tasksetBinary              = "taskset"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -924,9 +926,16 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	}
 
 	if c.InfraCtrCPUSet != "" {
-		if _, err := cpuset.Parse(c.InfraCtrCPUSet); err != nil {
+		set, err := cpuset.Parse(c.InfraCtrCPUSet)
+		if err != nil {
 			return errors.Wrap(err, "invalid infra_ctr_cpuset")
 		}
+
+		executable, err := exec.LookPath(tasksetBinary)
+		if err != nil {
+			return errors.Wrapf(err, "%q not found in $PATH", tasksetBinary)
+		}
+		cmdrunner.PrependCommandsWith(executable, "--cpu-list", set.String())
 	}
 
 	if err := c.Workloads.Validate(); err != nil {

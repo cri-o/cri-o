@@ -3,9 +3,9 @@
 package node
 
 import (
-	"os/exec"
 	"sync"
 
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/pkg/errors"
 )
 
@@ -36,7 +36,7 @@ func SystemdHasAllowedCPUs() bool {
 // systemdSupportsProperty checks whether systemd supports a property
 // It returns an error if it does not.
 func systemdSupportsProperty(property string) (bool, error) {
-	output, err := exec.Command("systemctl", "show", "-p", property, "systemd").Output()
+	output, err := cmdrunner.Command("systemctl", "show", "-p", property, "systemd").Output()
 	if err != nil {
 		return false, errors.Wrapf(err, "check systemd %s", property)
 	}
