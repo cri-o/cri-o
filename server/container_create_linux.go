@@ -92,7 +92,7 @@ func makeMountsAccessible(uid, gid int, mounts []rspec.Mount) error {
 	return nil
 }
 
-func toContainer(id uint32, idMap []idtools.IDMap) uint32 {
+func toContainer(id uint32, idMap []idtools.IDMap, usernsMode string) uint32 {
 	hostID := int(id)
 	if idMap == nil {
 		return uint32(hostID)
@@ -103,13 +103,50 @@ func toContainer(id uint32, idMap []idtools.IDMap) uint32 {
 			return uint32(contID)
 		}
 	}
+
 	// If the ID cannot be mapped, it means the RunAsUser or RunAsGroup was not specified
-	// so just use the original value.
+	// or that the specified host UID/GID is unmapped.
+	//
+	// From here, let's next check whether `id` corresponds to an ID on the container's
+	// side of the mapping.  If so, we can use it as-is.
+	for _, m := range idMap {
+		if hostID >= m.ContainerID && hostID < m.ContainerID+m.Size {
+			return id
+		}
+	}
+
+	// Finally, if we're in "auto" mode we know that CRI-O chose a unique host ID range
+	// to map into the container's user namespace (modulo 'keep-id' or 'map-to-root').
+	// Choose the lowest container ID in the mapping so that the container process can run,
+	// ignoring values that map to root on the host (to defend against privilege escalation).
+	if usernsMode == "auto" {
+		lowestContainerID := 0
+		lowestContainerIDSet := false
+		for _, m := range idMap {
+			containerID := m.ContainerID
+			if m.HostID == 0 { // host ID is root...
+				if m.Size < 2 {
+					continue // and no more IDs in this range; move on.
+				} else {
+					containerID += 1 // use next container ID
+				}
+			}
+			if !lowestContainerIDSet || containerID < lowestContainerID {
+				lowestContainerID = containerID
+				lowestContainerIDSet = true
+			}
+		}
+		if lowestContainerIDSet {
+			return uint32(lowestContainerID)
+		}
+	}
+
+	// None of the above heuristics worked; return original value
 	return id
 }
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
-func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idtools.IDMappings) {
+func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idtools.IDMappings, usernsAnn string) {
 	if mappings == nil {
 		return
 	}
@@ -119,11 +156,14 @@ func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idto
 		return
 	}
 
-	specgen.Config.Process.User.UID = toContainer(specgen.Config.Process.User.UID, mappings.UIDs())
+	parts := strings.SplitN(usernsAnn, ":", 2)
+	usernsMode := parts[0]
+
+	specgen.Config.Process.User.UID = toContainer(specgen.Config.Process.User.UID, mappings.UIDs(), usernsMode)
 	gids := mappings.GIDs()
-	specgen.Config.Process.User.GID = toContainer(specgen.Config.Process.User.GID, gids)
+	specgen.Config.Process.User.GID = toContainer(specgen.Config.Process.User.GID, gids, usernsMode)
 	for i := range specgen.Config.Process.User.AdditionalGids {
-		gid := toContainer(specgen.Config.Process.User.AdditionalGids[i], gids)
+		gid := toContainer(specgen.Config.Process.User.AdditionalGids[i], gids, usernsMode)
 		specgen.Config.Process.User.AdditionalGids[i] = gid
 	}
 }
@@ -779,7 +819,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	ociContainer.SetIDMappings(containerIDMappings)
 	var rootPair idtools.IDPair
 	if containerIDMappings != nil {
-		s.finalizeUserMapping(specgen, containerIDMappings)
+		s.finalizeUserMapping(specgen, containerIDMappings, sb.Annotations()[crioann.UsernsModeAnnotation])
 
 		for _, uidmap := range containerIDMappings.UIDs() {
 			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
