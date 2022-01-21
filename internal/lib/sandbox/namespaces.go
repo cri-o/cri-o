@@ -90,10 +90,21 @@ func (s *Sandbox) NamespacePaths() []*ManagedNamespace {
 	return typesAndPaths
 }
 
+// CloseManagedNamespaces cleans up after managing the namespaces.
+// It unmounts all of the namespaces, but does not remove their parent directory.
+func (s *Sandbox) CloseManagedNamespaces() error {
+	return s.runFunctionOnNamespaces(func(ns nsmgr.Namespace) error {
+		return ns.Close()
+	})
+}
+
 // RemoveManagedNamespaces removes the formerly mounted namespace.
 // Must be stopped first or this will fail.
 func (s *Sandbox) RemoveManagedNamespaces() error {
 	return s.runFunctionOnNamespaces(func(ns nsmgr.Namespace) error {
+		if err := ns.Close(); err != nil {
+			return err
+		}
 		return ns.Remove()
 	})
 }
@@ -130,12 +141,10 @@ func (s *Sandbox) NetNsPath() string {
 // This will fail if the sandbox is already part of a network namespace
 func (s *Sandbox) NetNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.NETNS, s.netns)
-	// Regardless of error, set the namespace
-	s.netns = ns
-	// Only error if the sandbox is not stopped
-	if err != nil && !s.stopped {
+	if err != nil {
 		return err
 	}
+	s.netns = ns
 	return nil
 }
 
@@ -150,17 +159,12 @@ func (s *Sandbox) IpcNsPath() string {
 // IpcNsJoin attempts to join the sandbox to an existing IPC namespace
 // This will fail if the sandbox is already part of a IPC namespace
 func (s *Sandbox) IpcNsJoin(nspath string) error {
-	if s.stopped {
-		return nil
-	}
 	ns, err := nsJoin(nspath, nsmgr.IPCNS, s.ipcns)
-	// Regardless of error, set the namespace
-	s.ipcns = ns
-	// Only error if the sandbox is not stopped
-	if err != nil && !s.stopped {
+	if err != nil {
 		return err
 	}
-	return nil
+	s.ipcns = ns
+	return err
 }
 
 // UtsNs specific functions
@@ -174,17 +178,12 @@ func (s *Sandbox) UtsNsPath() string {
 // UtsNsJoin attempts to join the sandbox to an existing UTS namespace
 // This will fail if the sandbox is already part of a UTS namespace
 func (s *Sandbox) UtsNsJoin(nspath string) error {
-	if s.stopped {
-		return nil
-	}
 	ns, err := nsJoin(nspath, nsmgr.UTSNS, s.utsns)
-	// Regardless of error, set the namespace
-	s.utsns = ns
-	// Only error if the sandbox is not stopped
-	if err != nil && !s.stopped {
+	if err != nil {
 		return err
 	}
-	return nil
+	s.utsns = ns
+	return err
 }
 
 // UserNs specific functions
@@ -199,13 +198,11 @@ func (s *Sandbox) UserNsPath() string {
 // This will fail if the sandbox is already part of a User namespace
 func (s *Sandbox) UserNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.USERNS, s.userns)
-	// Regardless of error, set the namespace
-	s.userns = ns
-	// Only error if the sandbox is not stopped
-	if err != nil && !s.stopped {
+	if err != nil {
 		return err
 	}
-	return nil
+	s.userns = ns
+	return err
 }
 
 // PidNs specific functions
