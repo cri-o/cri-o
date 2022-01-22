@@ -294,7 +294,7 @@ function check_conmon_fields() {
 	create_workload_with_allowed_annotation "io.kubernetes.cri-o.Devices"
 	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
 
-	start_crio
+	CONTAINER_ALLOWED_DEVICES="/dev/null" start_crio
 
 	jq --arg act "$activation" \
 		'   .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"

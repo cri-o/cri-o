@@ -13,6 +13,7 @@ crio
 ```
 [--absent-mount-sources-to-reject]=[value]
 [--additional-devices]=[value]
+[--allowed-devices]=[value]
 [--apparmor-profile]=[value]
 [--big-files-temporary-dir]=[value]
 [--bind-mount-prefix]=[value]
@@ -136,6 +137,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--absent-mount-sources-to-reject**="": A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory). (default: [])
 
 **--additional-devices**="": Devices to add to the containers  (default: [])
+
+**--allowed-devices**="": Devices a user is allowed to specify with the "io.kubernetes.cri-o.Devices" allowed annotation (default: [/dev/fuse])
 
 **--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation. (default: crio-default)
 

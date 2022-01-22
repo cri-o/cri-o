@@ -258,6 +258,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("additional-devices") {
 		config.AdditionalDevices = StringSliceTrySplit(ctx, "additional-devices")
 	}
+	if ctx.IsSet("allowed-devices") {
+		config.AllowedDevices = StringSliceTrySplit(ctx, "allowed-devices")
+	}
 	if ctx.IsSet("device-ownership-from-security-context") {
 		config.DeviceOwnershipFromSecurityContext = ctx.Bool("device-ownership-from-security-context")
 	}
@@ -826,6 +829,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Specify the lowest host GID which can be specified in mappings for a pod that will be run as a UID other than 0",
 			Value:   defConf.MinimumMappableGID,
 			EnvVars: []string{"CONTAINER_MINIMUM_MAPPABLE_GID"},
+		},
+		&cli.StringSliceFlag{
+			Name:    "allowed-devices",
+			Usage:   "Devices a user is allowed to specify with the \"io.kubernetes.cri-o.Devices\" allowed annotation",
+			Value:   cli.NewStringSlice(defConf.AllowedDevices...),
+			EnvVars: []string{"CONTAINER_ALLOWED_DEVICES"},
 		},
 		&cli.StringSliceFlag{
 			Name:    "additional-devices",
