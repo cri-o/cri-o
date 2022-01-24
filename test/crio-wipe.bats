@@ -228,13 +228,24 @@ function start_crio_with_stopped_pod() {
 	test_crio_wiped_images
 }
 
-@test "internal_wipe remove containers when remove temporary" {
+@test "internal_wipe remove containers when remove temporary and node reboots" {
 	start_crio_with_stopped_pod
 	stop_crio_no_clean
 
 	rm "$CONTAINER_VERSION_FILE"
 	# simulate a reboot by having a removable namespaces dir
 	cleanup_namespaces_dir
+
+	CONTAINER_INTERNAL_WIPE=true start_crio_no_setup
+	test_crio_wiped_containers
+	test_crio_did_not_wipe_images
+}
+
+@test "internal_wipe remove containers when remove temporary" {
+	start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	rm "$CONTAINER_VERSION_FILE"
 
 	CONTAINER_INTERNAL_WIPE=true start_crio_no_setup
 	test_crio_wiped_containers
