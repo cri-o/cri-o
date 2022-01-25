@@ -5,10 +5,16 @@ It also assumes you've set up your system to use kubeadm. If you haven't done so
 
 ## Configuring CNI
 
-You'll need to use your plugins to figure out your pod-network-cidr. If you use the default bridge plugin defined [here](/contrib/cni/10-crio-bridge.conf), set
-```CIDR=10.85.0.0/16```
-If you're using a flannel network, set
-```CIDR=10.244.0.0/16```
+kubeadm expects a POD Network CIDR (`--pod-network-cidr`) to be defined when you install the cluster. The value of `--pod-network-cidr` depends on which CNI plugin you choose.
+
+| CNI Plugin              | CIDR          | Notes                                                                                                                                         |
+| ----------------------- | ------------- | --------------                                                                                                                                |
+| Bridge plugin (default) | 10.85.0.0/16  | The default bridge plugin is defined [here](/contrib/cni/10-crio-bridge.conf). This is only suitable when your cluster has a **single node**. |
+| Flannel                 | 10.224.0.0/16 | This is a good choice for clusters with multiple nodes.                                                                                       |
+
+For example, to use the script below with the **bridge** plugin, run `export CIDR=10.85.0.0/16`. 
+
+A list of CNI plugins can be found in the [Cluster Networking](https://kubernetes.io/docs/concepts/cluster-administration/networking/) kubernetes documentation. Each plugin will define it's own default CIDR. 
 
 ## Configuring Kubelet
 
