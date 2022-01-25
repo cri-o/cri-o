@@ -298,6 +298,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: stringSliceEqual(dc.AdditionalDevices, c.AdditionalDevices),
 		},
 		{
+			templateString: templateStringCrioRuntimeCDISpecDirs,
+			group:          crioRuntimeConfig,
+			isDefaultValue: stringSliceEqual(dc.CDISpecDirs, c.CDISpecDirs),
+		},
+		{
 			templateString: templateStringCrioRuntimeDeviceOwnershipFromSecurityContext,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.DeviceOwnershipFromSecurityContext, c.DeviceOwnershipFromSecurityContext),
@@ -879,6 +884,12 @@ const templateStringCrioRuntimeAdditionalDevices = `# List of additional devices
 # defined in the container json file by the user/kube will be added.
 {{ $.Comment }}additional_devices = [
 {{ range $device := .AdditionalDevices}}{{ $.Comment }}{{ printf "\t%q,\n" $device}}{{ end }}{{ $.Comment }}]
+
+`
+
+const templateStringCrioRuntimeCDISpecDirs = `# List of directories to scan for CDI Spec files.
+{{ $.Comment }}cdi_spec_dirs = [
+{{ range $dir := .CDISpecDirs }}{{ $.Comment }}{{ printf "\t%q,\n" $dir}}{{ end }}{{ $.Comment }}]
 
 `
 

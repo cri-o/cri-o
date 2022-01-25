@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
@@ -253,6 +254,9 @@ type RuntimeConfig struct {
 
 	// Devices to add to containers
 	AdditionalDevices []string `toml:"additional_devices"`
+
+	// CDISpecDirs specifies the directories CRI-O/CDI will scan for CDI Spec files.
+	CDISpecDirs []string `toml:"cdi_spec_dirs"`
 
 	// DeviceOwnershipFromSecurityContext changes the default behavior of setting container devices uid/gid
 	// from CRI's SecurityContext (RunAsUser/RunAsGroup) instead of taking host's uid/gid. Defaults to false.
@@ -784,6 +788,7 @@ func DefaultConfig() (*Config, error) {
 			DefaultCapabilities:      capabilities.Default(),
 			LogLevel:                 "info",
 			HooksDir:                 []string{hooks.DefaultDir},
+			CDISpecDirs:              cdi.DefaultSpecDirs,
 			NamespacesDir:            defaultNamespacesDir,
 			DropInfraCtr:             true,
 			seccompConfig:            seccomp.New(),
@@ -1040,6 +1045,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			continue
 		}
 		c.HooksDir = hooksDirs
+
+		cdi.GetRegistry(cdi.WithSpecDirs(c.CDISpecDirs...))
 
 		// Validate the conmon path
 		if err := c.ValidateConmonPath("conmon"); err != nil {

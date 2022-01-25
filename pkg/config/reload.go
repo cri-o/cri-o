@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/signals"
@@ -87,6 +88,7 @@ func (c *Config) Reload() error {
 	if err := c.ReloadRdtConfig(newConfig); err != nil {
 		return err
 	}
+	cdi.GetRegistry(cdi.WithSpecDirs(newConfig.CDISpecDirs...))
 
 	return nil
 }
