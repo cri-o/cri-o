@@ -714,7 +714,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		mountLabel,
 		containerInfo.RunDir,
 		s.config.DefaultMountsFile,
-		containerInfo.RunDir,
+		mountPoint,
 		0,
 		0,
 		rootless.IsRootless(),
