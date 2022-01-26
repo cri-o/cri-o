@@ -114,7 +114,6 @@ var _ = t.Describe("ContainerCreate", func() {
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
 					PodSandboxId:  testSandbox.ID(),
-					Config:        newContainerConfig(),
 					SandboxConfig: newPodSandboxConfig(),
 				})
 
