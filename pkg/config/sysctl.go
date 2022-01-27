@@ -6,6 +6,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+func NewSysctl(key, value string) *Sysctl {
+	return &Sysctl{key, value}
+}
+
 // Sysctl is a generic abstraction over key value based sysctls
 type Sysctl struct {
 	key, value string
