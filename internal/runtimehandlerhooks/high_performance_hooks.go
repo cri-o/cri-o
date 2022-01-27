@@ -360,6 +360,15 @@ func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSm
 		return nil
 	}
 	if !fileExists(irqBannedCPUConfigFile) {
+
+		dir := filepath.Dir(irqBannedCPUConfigFile)
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			err = os.Mkdir(dir, 0755)
+			if err != nil {
+				return err
+			}
+		}
+
 		irqBannedCPUsConfig, err := os.Create(irqBannedCPUConfigFile)
 		if err != nil {
 			return err

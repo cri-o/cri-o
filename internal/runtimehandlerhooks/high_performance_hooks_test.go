@@ -344,4 +344,47 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 		})
 	})
+
+	Describe("restoreIrqBalanceConfig", func() {
+		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
+		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
+		irqBannedCPUConfigFile := filepath.Join(fixturesDir, "nonexistingdir", "orig_irq_banned_cpus")
+		verifyRestoreIrqBalanceConfig := func(expectedOrigBannedCPUs, expectedBannedCPUs string) {
+			err = RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityFile)
+			Expect(err).To(BeNil())
+
+			content, err := ioutil.ReadFile(irqBannedCPUConfigFile)
+			Expect(err).To(BeNil())
+			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedOrigBannedCPUs))
+
+			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			Expect(err).To(BeNil())
+			Expect(bannedCPUs).To(Equal(expectedBannedCPUs))
+		}
+
+		JustBeforeEach(func() {
+			// create tests affinity file
+			err = ioutil.WriteFile(irqSmpAffinityFile, []byte("ffffffff,ffffffff"), 0o644)
+			Expect(err).To(BeNil())
+			// set irqbalanace config file with banned cpus mask
+			err = ioutil.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
+			Expect(err).To(BeNil())
+			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, "0000ffff,ffffcfcc")
+			Expect(err).To(BeNil())
+			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			Expect(err).To(BeNil())
+			Expect(bannedCPUs).To(Equal("0000ffff,ffffcfcc"))
+		})
+
+		Context("when banned cpu config file doesn't exist", func() {
+			BeforeEach(func() {
+				// ensure banned cpu config file doesn't exist
+				os.Remove(irqBannedCPUConfigFile)
+			})
+
+			It("should set banned cpu config file from irq balance config", func() {
+				verifyRestoreIrqBalanceConfig("0000ffff,ffffcfcc", "0000ffff,ffffcfcc")
+			})
+		})
+	})
 })
