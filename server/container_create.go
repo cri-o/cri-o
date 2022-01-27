@@ -401,7 +401,7 @@ func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defa
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
-	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.Config.Labels))
+	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
 	if err != nil {
