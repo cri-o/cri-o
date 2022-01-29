@@ -91,52 +91,6 @@ func newRuntimeVM(path, root, configPath string) RuntimeImpl {
 	}
 }
 
-func (r *runtimeVM) createContainerIO(ctx context.Context, c *Container, cioOpts ...cio.ContainerIOOpts) (_ *cio.ContainerIO, retErr error) {
-	// Create IO fifos
-	containerIO, err := cio.NewContainerIO(c.ID(), cioOpts...)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if retErr != nil {
-			containerIO.Close()
-		}
-	}()
-
-	f, err := os.OpenFile(c.LogPath(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
-	if err != nil {
-		return nil, err
-	}
-
-	var stdoutCh, stderrCh <-chan struct{}
-	wc := cioutil.NewSerialWriteCloser(f)
-	stdout, stdoutCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stdout, -1)
-	stderr, stderrCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stderr, -1)
-
-	go func() {
-		if stdoutCh != nil {
-			<-stdoutCh
-		}
-		if stderrCh != nil {
-			<-stderrCh
-		}
-		log.Debugf(ctx, "Finish redirecting log file %q, closing it", c.LogPath())
-		f.Close()
-	}()
-
-	containerIO.AddOutput(c.LogPath(), stdout, stderr)
-	containerIO.Pipe()
-
-	r.Lock()
-	r.ctrs[c.ID()] = containerInfo{
-		cio: containerIO,
-	}
-	r.Unlock()
-
-	return containerIO, nil
-}
-
 // CreateContainer creates a container.
 func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupParent string) (retErr error) {
 	log.Debugf(ctx, "RuntimeVM.CreateContainer() start")
@@ -169,52 +123,14 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		return err
 	}
 
-	// Create IO fifos
-	containerIO, err := cio.NewContainerIO(c.ID(),
-		cio.WithNewFIFOs(r.fifoDir, c.terminal, c.stdin))
+	containerIO, err := r.createContainerIO(ctx, c, cio.WithNewFIFOs(r.fifoDir, c.terminal, c.stdin))
 	if err != nil {
 		return err
 	}
 
 	defer func() {
 		if retErr != nil {
-			containerIO.Close()
-		}
-	}()
-
-	f, err := os.OpenFile(c.LogPath(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
-	if err != nil {
-		return err
-	}
-
-	var stdoutCh, stderrCh <-chan struct{}
-	wc := cioutil.NewSerialWriteCloser(f)
-	stdout, stdoutCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stdout, -1)
-	stderr, stderrCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stderr, -1)
-
-	go func() {
-		if stdoutCh != nil {
-			<-stdoutCh
-		}
-		if stderrCh != nil {
-			<-stderrCh
-		}
-		log.Debugf(ctx, "Finish redirecting log file %q, closing it", c.LogPath())
-		f.Close()
-	}()
-
-	containerIO.AddOutput(c.LogPath(), stdout, stderr)
-	containerIO.Pipe()
-
-	r.Lock()
-	r.ctrs[c.ID()] = containerInfo{
-		cio: containerIO,
-	}
-	r.Unlock()
-
-	defer func() {
-		if retErr != nil {
-			log.Warnf(ctx, "Cleaning up container %s: %v", c.ID(), err)
+			log.Warnf(ctx, "Cleaning up container %s: %v", c.ID(), retErr)
 			if cleanupErr := r.deleteContainer(c, true); cleanupErr != nil {
 				log.Infof(ctx, "DeleteContainer failed for container %s: %v", c.ID(), cleanupErr)
 			}
@@ -705,50 +621,6 @@ func (r *runtimeVM) UpdateContainerStatus(ctx context.Context, c *Container) err
 	return r.updateContainerStatus(ctx, c)
 }
 
-func (r *runtimeVM) restoreContainerIO(ctx context.Context, c *Container, state *task.StateResponse) error {
-	r.Lock()
-	_, ok := r.ctrs[c.ID()]
-	if ok {
-		r.Unlock()
-		return nil
-	}
-	r.Unlock()
-
-	cioCfg := ctrio.Config{
-		Terminal: state.Terminal,
-		Stdin:    state.Stdin,
-		Stdout:   state.Stdout,
-		Stderr:   state.Stderr,
-	}
-	// The existing fifos is created by NewFIFOSetInDir. stdin, stdout, stderr should exist
-	// in a same temporary directory under r.fifoDir. crio is responsible for removing these
-	// files after container io is closed.
-	var iofiles []string
-	if cioCfg.Stdin != "" {
-		iofiles = append(iofiles, cioCfg.Stdin)
-	}
-	if cioCfg.Stdout != "" {
-		iofiles = append(iofiles, cioCfg.Stdout)
-	}
-	if cioCfg.Stderr != "" {
-		iofiles = append(iofiles, cioCfg.Stderr)
-	}
-	closer := func() error {
-		for _, f := range iofiles {
-			if err := os.Remove(f); err != nil {
-				return err
-			}
-		}
-		// Also try to remove the parent dir if it is empty.
-		for _, f := range iofiles {
-			_ = os.Remove(filepath.Dir(f))
-		}
-		return nil
-	}
-	_, err := r.createContainerIO(ctx, c, cio.WithFIFOs(ctrio.NewFIFOSet(cioCfg, closer)))
-	return err
-}
-
 // updateContainerStatus is a UpdateContainerStatus helper, which actually does the container's
 // status refresh.
 // It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
@@ -821,6 +693,96 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 		}
 	}
 	return nil
+}
+
+func (r *runtimeVM) restoreContainerIO(ctx context.Context, c *Container, state *task.StateResponse) error {
+	r.Lock()
+	_, ok := r.ctrs[c.ID()]
+	if ok {
+		r.Unlock()
+		return nil
+	}
+	r.Unlock()
+
+	cioCfg := ctrio.Config{
+		Terminal: state.Terminal,
+		Stdin:    state.Stdin,
+		Stdout:   state.Stdout,
+		Stderr:   state.Stderr,
+	}
+	// The existing fifos is created by NewFIFOSetInDir. stdin, stdout, stderr should exist
+	// in a same temporary directory under r.fifoDir. crio is responsible for removing these
+	// files after container io is closed.
+	var iofiles []string
+	if cioCfg.Stdin != "" {
+		iofiles = append(iofiles, cioCfg.Stdin)
+	}
+	if cioCfg.Stdout != "" {
+		iofiles = append(iofiles, cioCfg.Stdout)
+	}
+	if cioCfg.Stderr != "" {
+		iofiles = append(iofiles, cioCfg.Stderr)
+	}
+	closer := func() error {
+		for _, f := range iofiles {
+			if err := os.Remove(f); err != nil {
+				return err
+			}
+		}
+		// Also try to remove the parent dir if it is empty.
+		for _, f := range iofiles {
+			_ = os.Remove(filepath.Dir(f))
+		}
+		return nil
+	}
+	_, err := r.createContainerIO(ctx, c, cio.WithFIFOs(ctrio.NewFIFOSet(cioCfg, closer)))
+	return err
+}
+
+func (r *runtimeVM) createContainerIO(ctx context.Context, c *Container, cioOpts ...cio.ContainerIOOpts) (_ *cio.ContainerIO, retErr error) {
+	// Create IO fifos
+	containerIO, err := cio.NewContainerIO(c.ID(), cioOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if retErr != nil {
+			containerIO.Close()
+		}
+	}()
+
+	f, err := os.OpenFile(c.LogPath(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
+	if err != nil {
+		return nil, err
+	}
+
+	var stdoutCh, stderrCh <-chan struct{}
+	wc := cioutil.NewSerialWriteCloser(f)
+	stdout, stdoutCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stdout, -1)
+	stderr, stderrCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stderr, -1)
+
+	go func() {
+		if stdoutCh != nil {
+			<-stdoutCh
+		}
+		if stderrCh != nil {
+			<-stderrCh
+		}
+		log.Debugf(ctx, "Finish redirecting log file %q, closing it", c.LogPath())
+		f.Close()
+	}()
+
+	containerIO.AddOutput(c.LogPath(), stdout, stderr)
+	containerIO.Pipe()
+
+	r.Lock()
+	r.ctrs[c.ID()] = containerInfo{
+		cio: containerIO,
+	}
+	r.Unlock()
+
+	return containerIO, nil
 }
 
 // PauseContainer pauses a container.
