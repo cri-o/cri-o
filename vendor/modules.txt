@@ -136,7 +136,7 @@ github.com/containerd/cgroups/stats/v1
 # github.com/containerd/console v1.0.2
 ## explicit; go 1.13
 github.com/containerd/console
-# github.com/containerd/containerd v1.5.8
+# github.com/containerd/containerd v1.5.9
 ## explicit; go 1.16
 github.com/containerd/containerd/api/services/ttrpc/events/v1
 github.com/containerd/containerd/api/types
@@ -881,7 +881,7 @@ github.com/onsi/gomega/types
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
+# github.com/opencontainers/image-spec v1.0.2
 ## explicit
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
