@@ -177,7 +177,9 @@ func isContextError(err error) bool {
 }
 
 func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType string) (string, error) {
-	const resourceCreationWaitTime = time.Minute * 4
+	// In 99% of cases, we shouldn't hit this timeout. Instead, the context should be cancelled.
+	// This is really to catch an unlikely case where the kubelet doesn't cancel the context.
+	const resourceCreationWaitTime = time.Minute * 6
 
 	if cachedID := s.resourceStore.Get(name); cachedID != "" {
 		log.Infof(ctx, "Found %s %s with ID %s in resource cache; using it", resourceType, name, cachedID)
@@ -204,6 +206,14 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 	// after we stop paying attention. This would cause CRI-O to attempt to send back a resource that the kubelet
 	// will not receive, causing a resource leak.
 	case <-watcher:
+		// We need to wait again here. If we error out to the Kubelet before it times out
+		// it will bump the attempt number, nulllifying all of the work we've done so far.
+		// Just the same as above, use resourceCreationWaitTime to make sure we catch cases where the context
+		// is never done.
+		select {
+		case <-time.After(resourceCreationWaitTime):
+		case <-ctx.Done():
+		}
 		err = errors.Errorf("the requested %s %s is now ready and will be provided to the kubelet on next retry", resourceType, name)
 	}
 
