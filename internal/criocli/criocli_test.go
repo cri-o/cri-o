@@ -58,3 +58,35 @@ var _ = t.Describe("CLI", func() {
 		Expect(slice.Value()[0]).To(Equal("value1"))
 	})
 })
+
+// The actual test suite for zsh completion quoting.
+var _ = t.Describe("completion generation", func() {
+	DescribeTable("should quote and escape strings correctly", func(name, usage, expected string) {
+		// When
+		result := criocli.ZshQuoteCmd(name, usage)
+
+		// Then
+		Expect(result).To(Equal(expected))
+	},
+		Entry(
+			"should use single quotes by default",
+			"foo", "description of foo",
+			"'foo:description of foo'",
+		),
+		Entry(
+			"should use double quotes for strings containing single quotes",
+			"bar", "bar's description",
+			"\"bar:bar's description\"",
+		),
+		Entry(
+			"should not escape $'s within single quotes",
+			"foobar", "foobar handles $FOOBAR",
+			"'foobar:foobar handles $FOOBAR'",
+		),
+		Entry(
+			"should escape $'s within doube quotes",
+			"barfoo", "barfoo's usage $needs $escaped $dollars",
+			"\"barfoo:barfoo's usage \\$needs \\$escaped \\$dollars\"",
+		),
+	)
+})

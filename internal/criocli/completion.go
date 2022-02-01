@@ -75,11 +75,15 @@ func bashCompletion(c *cli.Context) error {
 const zshCompletionTemplate = `_cli_zsh_autocomplete() {
 
   local -a cmds
-  cmds=('%s')
+  cmds=(
+        %s
+  )
   _describe 'commands' cmds
 
   local -a opts
-  opts=('%s')
+  opts=(
+        %s
+  )
   _describe 'global options' opts
 
   return
@@ -94,22 +98,29 @@ func zshCompletion(c *cli.Context) error {
 			continue
 		}
 		for _, name := range command.Names() {
-			subcommands = append(subcommands, name+":"+command.Usage)
+			subcommands = append(subcommands, zshQuoteCmd(name, command.Usage))
 		}
 	}
 
 	opts := []string{}
 	for _, flag := range c.App.Flags {
 		// only includes full flag name.
-		opts = append(opts, "--"+flag.Names()[0])
+		opts = append(opts, "'--"+flag.Names()[0]+"'")
 	}
 
 	fmt.Fprintln(c.App.Writer,
 		fmt.Sprintf(zshCompletionTemplate,
-			strings.Join(subcommands, "' '"),
-			strings.Join(opts, "' '"),
+			strings.Join(subcommands, "\n        "),
+			strings.Join(opts, "\n        "),
 			c.App.Name))
 	return nil
+}
+
+func zshQuoteCmd(name, usage string) string {
+	if !strings.ContainsRune(usage, '\'') {
+		return "'" + name + ":" + usage + "'"
+	}
+	return "\"" + name + ":" + strings.ReplaceAll(usage, "$", "\\$") + "\""
 }
 
 func fishCompletion(c *cli.Context) error {
