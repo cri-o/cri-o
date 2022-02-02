@@ -26,15 +26,17 @@ type Config struct {
 // New creates a new default seccomp configuration instance
 func New() *Config {
 	return &Config{
-		enabled: seccomp.IsEnabled(),
-		profile: seccomp.DefaultProfile(),
+		enabled:          seccomp.IsEnabled(),
+		profile:          seccomp.DefaultProfile(),
+		defaultWhenEmpty: true,
 	}
 }
 
-// Set the seccomp config to use default profile
-// when the profile is empty
-func (c *Config) SetDefaultWhenEmpty() {
-	c.defaultWhenEmpty = true
+// SetUseDefaultWhenEmpty uses the default seccomp profile if true is passed as
+// argument, otherwise unconfined.
+func (c *Config) SetUseDefaultWhenEmpty(to bool) {
+	logrus.Infof("Using seccomp default profile when unspecified: %v", to)
+	c.defaultWhenEmpty = to
 }
 
 // Returns whether the seccomp config is set to

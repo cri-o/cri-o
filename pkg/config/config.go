@@ -732,6 +732,7 @@ func DefaultConfig() (*Config, error) {
 		return nil, err
 	}
 	cgroupManager := cgmgr.New()
+	seccompConfig := seccomp.New()
 	return &Config{
 		Comment: "# ",
 		SystemContext: &types.SystemContext{
@@ -771,34 +772,35 @@ func DefaultConfig() (*Config, error) {
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			ConmonCgroup:             "system.slice",
-			SELinux:                  selinuxEnabled(),
-			ApparmorProfile:          apparmor.DefaultProfile,
-			BlockIOConfigFile:        DefaultBlockIOConfigFile,
-			IrqBalanceConfigFile:     DefaultIrqBalanceConfigFile,
-			RdtConfigFile:            rdt.DefaultRdtConfigFile,
-			CgroupManagerName:        cgroupManager.Name(),
-			PidsLimit:                DefaultPidsLimit,
-			ContainerExitsDir:        containerExitsDir,
-			ContainerAttachSocketDir: conmonconfig.ContainerAttachSocketDir,
-			MinimumMappableUID:       -1,
-			MinimumMappableGID:       -1,
-			LogSizeMax:               DefaultLogSizeMax,
-			CtrStopTimeout:           defaultCtrStopTimeout,
-			DefaultCapabilities:      capabilities.Default(),
-			LogLevel:                 "info",
-			HooksDir:                 []string{hooks.DefaultDir},
-			CDISpecDirs:              cdi.DefaultSpecDirs,
-			NamespacesDir:            defaultNamespacesDir,
-			DropInfraCtr:             true,
-			seccompConfig:            seccomp.New(),
-			apparmorConfig:           apparmor.New(),
-			blockioConfig:            blockio.New(),
-			rdtConfig:                rdt.New(),
-			ulimitsConfig:            ulimits.New(),
-			cgroupManager:            cgroupManager,
-			deviceConfig:             device.New(),
-			namespaceManager:         nsmgr.New(defaultNamespacesDir, ""),
+			ConmonCgroup:               "system.slice",
+			SELinux:                    selinuxEnabled(),
+			ApparmorProfile:            apparmor.DefaultProfile,
+			BlockIOConfigFile:          DefaultBlockIOConfigFile,
+			IrqBalanceConfigFile:       DefaultIrqBalanceConfigFile,
+			RdtConfigFile:              rdt.DefaultRdtConfigFile,
+			CgroupManagerName:          cgroupManager.Name(),
+			PidsLimit:                  DefaultPidsLimit,
+			ContainerExitsDir:          containerExitsDir,
+			ContainerAttachSocketDir:   conmonconfig.ContainerAttachSocketDir,
+			MinimumMappableUID:         -1,
+			MinimumMappableGID:         -1,
+			LogSizeMax:                 DefaultLogSizeMax,
+			CtrStopTimeout:             defaultCtrStopTimeout,
+			DefaultCapabilities:        capabilities.Default(),
+			LogLevel:                   "info",
+			HooksDir:                   []string{hooks.DefaultDir},
+			CDISpecDirs:                cdi.DefaultSpecDirs,
+			NamespacesDir:              defaultNamespacesDir,
+			DropInfraCtr:               true,
+			SeccompUseDefaultWhenEmpty: seccompConfig.UseDefaultWhenEmpty(),
+			seccompConfig:              seccomp.New(),
+			apparmorConfig:             apparmor.New(),
+			blockioConfig:              blockio.New(),
+			rdtConfig:                  rdt.New(),
+			ulimitsConfig:              ulimits.New(),
+			cgroupManager:              cgroupManager,
+			deviceConfig:               device.New(),
+			namespaceManager:           nsmgr.New(defaultNamespacesDir, ""),
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
@@ -1063,9 +1065,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return errors.Wrapf(err, "initialize nsmgr")
 		}
 
-		if c.SeccompUseDefaultWhenEmpty {
-			c.seccompConfig.SetDefaultWhenEmpty()
-		}
+		c.seccompConfig.SetUseDefaultWhenEmpty(c.SeccompUseDefaultWhenEmpty)
 
 		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
 			return errors.Wrap(err, "unable to load seccomp profile")

@@ -89,7 +89,7 @@ crio
 [--runroot]=[value]
 [--runtimes]=[value]
 [--seccomp-profile]=[value]
-[--seccomp-use-default-when-empty]=[value]
+[--seccomp-use-default-when-empty]
 [--selinux]
 [--separate-pull-cgroup]=[value]
 [--signature-policy]=[value]
@@ -332,7 +332,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used. (default: "")
 
-**--seccomp-use-default-when-empty**="": Use the default seccomp profile when an empty one is specified (default: false)
+**--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified
 
 **--selinux**: Enable selinux support (default: false)
 
