@@ -98,6 +98,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 			Metadata:    sb.Metadata(),
 			Annotations: sb.Annotations(),
 		},
+		Linux: &types.LinuxPodSandboxStats{},
 	}
 	if err := ss.Config().CgroupManager().PopulateSandboxCgroupStats(sb.CgroupParent(), sandboxStats); err != nil {
 		logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
