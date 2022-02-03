@@ -3,8 +3,8 @@
 load helpers
 
 function setup() {
-	newconfig="$TESTDIR/config.json"
 	setup_test
+	newconfig="$TESTDIR/config.json"
 }
 
 function teardown() {
