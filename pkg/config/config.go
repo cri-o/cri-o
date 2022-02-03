@@ -796,11 +796,11 @@ func DefaultConfig() (*Config, error) {
 			seccompConfig:              seccomp.New(),
 			apparmorConfig:             apparmor.New(),
 			blockioConfig:              blockio.New(),
-			rdtConfig:                  rdt.New(),
-			ulimitsConfig:              ulimits.New(),
 			cgroupManager:              cgroupManager,
 			deviceConfig:               device.New(),
 			namespaceManager:           nsmgr.New(defaultNamespacesDir, ""),
+			rdtConfig:                  rdt.New(),
+			ulimitsConfig:              ulimits.New(),
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
