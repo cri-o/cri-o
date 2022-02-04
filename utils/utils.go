@@ -8,15 +8,16 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/containers/libpod/v2/pkg/lookup"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
@@ -30,7 +31,7 @@ import (
 // ExecCmd executes a command with args and returns its output as a string along
 // with an error, if any
 func ExecCmd(name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
+	cmd := cmdrunner.Command(name, args...)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -68,23 +69,26 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 		properties = append(properties, systemdDbus.PropSlice(slice))
 	}
 	ch := make(chan string)
-	for {
-		err := mgr.RetryOnDisconnect(func(c *systemdDbus.Conn) error {
-			_, err := c.StartTransientUnit(unitName, "replace", properties, ch)
-			return err
-		})
-
-		if err == nil {
-			break
-		}
-		if !errors.Is(err, syscall.EAGAIN) {
-			return err
-		}
+	if err := mgr.RetryOnDisconnect(func(c *systemdDbus.Conn) error {
+		_, err := c.StartTransientUnit(unitName, "replace", properties, ch)
+		return errors.Wrap(err, "start transient unit")
+	}); err != nil {
+		return err
 	}
 
 	// Block until job is started
-	<-ch
-	close(ch)
+	select {
+	case <-ch:
+		close(ch)
+	case <-time.After(time.Minute * 6):
+		// This case is a work around to catch situations where the dbus library sends the
+		// request but it unexpectedly disappears. We set the timeout very high to make sure
+		// we wait as long as possible to catch situations where dbus is overwhelmed.
+		// We also don't use the native context cancelling behavior of the dbus library,
+		// because experience has shown that it does not help.
+		// TODO: Find cause of the request being dropped in the dbus library and fix it.
+		return errors.Errorf("timed out moving conmon with pid %d to cgroup", pid)
+	}
 
 	return nil
 }
