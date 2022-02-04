@@ -51,6 +51,7 @@ CentOS 7
 Debian Unstable
 Debian Testing
 Debian 10
+Debian 11
 Rasbian 10
 xUbuntu 20.10
 xUbuntu 20.04
