@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 
+# BATS is broken wrt. 'set -u' with bash < 4.4.
+# Until/unless https://github.com/bats-core/bats-core/pull/550 is
+# merged, make sure we don't run with 'set -u' on offending bash.
+bash_version=$((1000 * $(echo "${BASH_VERSION%.[^.]*}" | tr '.' '+')))
+if [ "$bash_version" -ge 4004 ]; then
+    set -u
+fi
+
+# Work around skip() in old BATS versions not handling substitutions properly
+# wrt. 'set -u'. (fixed in commit 9b2b659e5ba769752c0d00dadb3ad9b58f59cbaa).
+# This can be removed once all CI nodes have been setup with new enough BATS.
+BATS_TEARDOWN_STARTED=${BATS_TEARDOWN_STARTED:-}
+
 # Root directory of integration tests.
 INTEGRATION_ROOT=${INTEGRATION_ROOT:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")}
 
@@ -246,11 +259,7 @@ function setup_img() {
 }
 
 function setup_crio() {
-    apparmor=""
-    if [[ -n "$1" ]]; then
-        apparmor="$1"
-    fi
-
+    apparmor="${1:-}"
     for img in "${IMAGES[@]}"; do
         setup_img "$img"
     done
@@ -373,8 +382,8 @@ function cleanup_pods() {
 }
 
 function stop_crio_no_clean() {
-    local signal="$1"
-    if [ -n "${CRIO_PID+x}" ]; then
+    local signal="${1:-}"
+    if [ -v CRIO_PID ]; then
         kill "$signal" "$CRIO_PID" >/dev/null 2>&1 || true
         wait "$CRIO_PID"
         unset CRIO_PID
@@ -399,7 +408,7 @@ function restart_crio() {
 }
 
 function cleanup_lvm() {
-    if [ -n "${LVM_DEVICE+x}" ]; then
+    if [ -v LVM_DEVICE ]; then
         lvm lvremove -y storage/thinpool
         lvm vgremove -y storage
         lvm pvremove -y "$LVM_DEVICE"
@@ -416,7 +425,7 @@ function cleanup_testdir() {
 }
 
 function cleanup_test() {
-    [ -z "$TESTDIR" ] && return
+    [ ! -v TESTDIR ] && return
     # show crio log (only shown by bats in case of test failure)
     if [ -f "$CRIO_LOG" ]; then
         echo "# --- crio.log :: ---"
@@ -561,19 +570,17 @@ function create_runtime_with_allowed_annotation() {
 default_runtime = "$NAME"
 [crio.runtime.runtimes.$NAME]
 runtime_path = "$RUNTIME_BINARY_PATH"
-runtime_root = "$RUNTIME_ROOT"
+runtime_root = "${RUNTIME_ROOT:-}"
 runtime_type = "$RUNTIME_TYPE"
 allowed_annotations = ["$ANNOTATION"]
 EOF
 }
 
 function create_workload_with_allowed_annotation() {
-    local act="$2"
+    local act="${2:-}"
     # Fallback on the specified allowed annotation if
     # a specific activation annotation wasn't specified.
-    if [[ -z "$act" ]]; then
-        act="$1"
-    fi
+    act="${act:-$1}"
     cat <<EOF >"$CRIO_CONFIG_DIR/01-workload.conf"
 [crio.runtime.workloads.management]
 activation_annotation = "$act"
@@ -593,7 +600,7 @@ function set_swap_fields_given_cgroup_version() {
 
 function check_conmon_cpuset() {
     local ctr_id="$1"
-    local cpuset="$2"
+    local cpuset="${2:-}"
     systemd_supports_cpuset=$(systemctl show --property=AllowedCPUs systemd || true)
 
     if [[ "$CONTAINER_CGROUP_MANAGER" == "cgroupfs" ]]; then

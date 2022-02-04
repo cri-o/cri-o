@@ -3,7 +3,7 @@
 load helpers
 
 function setup() {
-	if [[ -z $RUN_CRITEST ]]; then
+	if [ ! -v RUN_CRITEST ]; then
 		skip "critest because RUN_CRITEST is not set"
 	fi
 
@@ -19,7 +19,7 @@ function teardown() {
 	critest --parallel 8 \
 		--runtime-endpoint "unix://${CRIO_SOCKET}" \
 		--image-endpoint "unix://${CRIO_SOCKET}" \
-		--ginkgo.focus="${CRI_FOCUS}" \
-		--ginkgo.skip="${CRI_SKIP}" \
+		--ginkgo.focus="${CRI_FOCUS:-}" \
+		--ginkgo.skip="${CRI_SKIP:-}" \
 		--ginkgo.flakeAttempts=3 >&3
 }
