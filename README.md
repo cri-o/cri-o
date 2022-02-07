@@ -242,6 +242,10 @@ If you're a user, please help us complete it by submitting a pull-request!
 A weekly meeting is held to discuss CRI-O development. It is open to everyone.
 The details to join the meeting are on the [wiki](https://github.com/cri-o/cri-o/wiki/CRI-O-Weekly-Meeting).
 
+## Governance
+
+For more information on how CRI-O is goverened, take a look at the [governance file](GOVERNANCE.md)
+
 ## License Scan
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o?ref=badge_large)
