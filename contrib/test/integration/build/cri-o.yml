@@ -82,10 +82,9 @@
 
 - name: add quay.io and docker.io as default registries
   copy:
-    dest: /etc/crio/crio.conf.d/01-registries.conf
+    dest: /etc/containers/registries.conf
     content: |
-      [crio.image]
-      registries = [ "quay.io", "docker.io" ]
+      unqualified-search-registries = [ "quay.io", "docker.io" ]
 
 - name: remove storage.conf to avoid configuration conflicts
   file:
