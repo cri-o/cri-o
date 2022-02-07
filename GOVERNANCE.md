@@ -9,7 +9,7 @@ CRI-O, being a project whose purpose is linked to fulfilling the needs of Kubern
 	* Reviewers are a set of people responsible for reviewing PRs and triaging issues. In most cases, they're also responsible for fixing issues in the code base.
 	* Approvers are the set of people that have final say over the direction of the project. For any PR to merge, an approver must approve it.
 	* Emeritus Approvers can be considered "retired" maintainers--while they don't have approval rights, they are listed in the OWNERS file to indicate their expertise in the area.
-* The current list of reviewers and approvers can be found in the [CRI-O OWNERS file](github.com/cri-o/cri-o/blob/main/OWNERS).
+* The current list of reviewers and approvers can be found in the [CRI-O OWNERS file](https://github.com/cri-o/cri-o/blob/main/OWNERS).
 
 ## Community Member
 
@@ -48,7 +48,7 @@ CRI-O, being a project whose purpose is linked to fulfilling the needs of Kubern
 
 * Approvers have all of the responsibilities of the reviewers, as well as:
 * The expectation of reviews is higher. Approvers should be experts of their knowledge domain, and should serve as code owners of those pieces.
-* Participate when called upon in the [security release process](github.com/cri-o/cri-o/blob/main/SECURITY.md). Note that although this should be a rare occurrence, if a serious vulnerability is found, the process may take up to several full days of work to implement. This reality should be taken into account when discussing time commitment obligations with employers.
+* Participate when called upon in the [security release process](https://github.com/cri-o/cri-o/blob/main/SECURITY.md). Note that although this should be a rare occurrence, if a serious vulnerability is found, the process may take up to several full days of work to implement. This reality should be taken into account when discussing time commitment obligations with employers.
 
 ## Emeritus Approver
 
@@ -104,7 +104,7 @@ CRI-O, being a project whose purpose is linked to fulfilling the needs of Kubern
 
 # Adding new projects to the CRI-O GitHub organization
 
-* New projects will be added to the [CRI-O organization](github.com/cri-o) via GitHub issue discussion in one of the existing projects in the organization.
+* New projects will be added to the [CRI-O organization](https://github.com/cri-o) via GitHub issue discussion in one of the existing projects in the organization.
 * Once sufficient discussion has taken place (~3-5 business days but depending on the volume of conversation), the maintainers will decide whether the new project should be added.
 * See the section above on voting if the maintainers cannot easily decide.
 
