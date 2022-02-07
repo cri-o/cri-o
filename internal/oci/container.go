@@ -169,7 +169,10 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 }
 
 func (c *Container) CRIContainer() *types.Container {
-	return c.criContainer
+	// Return a deep copy so the State field doesn't get mutated mid-request,
+	// causing a proto panic.
+	cpy := *c.criContainer
+	return &cpy
 }
 
 // SetSpec loads the OCI spec in the container struct
