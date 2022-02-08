@@ -103,7 +103,10 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 }
 
 func (s *Sandbox) CRISandbox() *types.PodSandbox {
-	return s.criSandbox
+	// Return a deep copy so the State field doesn't get mutated mid-request,
+	// causing a proto panic.
+	cpy := *s.criSandbox
+	return &cpy
 }
 
 func (s *Sandbox) CreatedAt() int64 {
