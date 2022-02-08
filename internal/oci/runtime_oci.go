@@ -109,13 +109,12 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		"-r", r.path,
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root),
 		"--socket-dir-path", r.config.ContainerAttachSocketDir,
+		"--syslog",
 		"-u", c.ID(),
 	}
 
 	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "-s")
-	} else {
-		args = append(args, "--syslog")
 	}
 	if r.config.LogSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.config.LogSizeMax))
