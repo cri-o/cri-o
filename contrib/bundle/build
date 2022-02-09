@@ -154,7 +154,7 @@ TAR_DIR=cri-o
 tar cfz "$ARCHIVE" tmp --transform s/tmp/$TAR_DIR/
 rm -rf "$TMPDIR"
 echo "Created $ARCHIVE_PATH/$ARCHIVE"
-sha256sum "$ARCHIVE" > "$ARCHIVE_SHA256SUM"
+sha256sum "$ARCHIVE" >"$ARCHIVE_SHA256SUM"
 echo "Created $ARCHIVE_PATH/$ARCHIVE_SHA256SUM"
 
 # Test the archive
