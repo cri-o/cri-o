@@ -32,10 +32,10 @@ documentation](https://github.com/kubernetes/community/blob/master/contributors/
 | Version - Branch            | Kubernetes branch/version       | Maintenance status |
 | --------------------------- | ------------------------------- | ------------------ |
 | CRI-O HEAD - main           | Kubernetes master branch        | ✓                  |
+| CRI-O 1.23.x - release-1.23 | Kubernetes 1.23 branch, v1.23.x | =                  |
+| CRI-O 1.22.x - release-1.22 | Kubernetes 1.22 branch, v1.22.x | =                  |
 | CRI-O 1.21.x - release-1.21 | Kubernetes 1.21 branch, v1.21.x | =                  |
 | CRI-O 1.20.x - release-1.20 | Kubernetes 1.20 branch, v1.20.x | =                  |
-| CRI-O 1.19.x - release-1.19 | Kubernetes 1.19 branch, v1.19.x | =                  |
-| CRI-O 1.18.x - release-1.18 | Kubernetes 1.18 branch, v1.18.x | =                  |
 
 Key:
 
