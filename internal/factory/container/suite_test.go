@@ -3,7 +3,7 @@ package container_test
 import (
 	"testing"
 
-	"github.com/cri-o/cri-o/pkg/container"
+	"github.com/cri-o/cri-o/internal/factory/container"
 	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

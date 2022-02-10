@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/pkg/container"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
