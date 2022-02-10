@@ -3,7 +3,7 @@ package sandbox_test
 import (
 	"testing"
 
-	"github.com/cri-o/cri-o/pkg/sandbox"
+	"github.com/cri-o/cri-o/internal/factory/sandbox"
 	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
