@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/pkg/signal"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
@@ -34,7 +35,6 @@ const (
 )
 
 var (
-	defaultStopSignal   = strconv.Itoa(defaultStopSignalInt)
 	ErrContainerStopped = errors.New("container is already stopped")
 	ErrNotFound         = errors.New("container process not found")
 	ErrNotInitialized   = errors.New("container PID not initialized")
@@ -182,16 +182,9 @@ func (c *Container) ConmonCgroupfsPath() string {
 // GetStopSignal returns the container's own stop signal configured from the
 // image configuration or the default one.
 func (c *Container) GetStopSignal() string {
-	if c.stopSignal == "" {
-		return defaultStopSignal
-	}
-	signal := unix.SignalNum(strings.ToUpper(c.stopSignal))
-	if signal == 0 {
-		return defaultStopSignal
-	}
 	// return the stop signal in the form of its int converted to a string
 	// i.e stop signal 34 is returned as "34" to avoid back and forth conversion
-	return strconv.Itoa(int(signal))
+	return strconv.Itoa(int(c.StopSignal()))
 }
 
 // StopSignal returns the container's own stop signal configured from
@@ -201,11 +194,11 @@ func (c *Container) StopSignal() syscall.Signal {
 		return defaultStopSignalInt
 	}
 
-	signal := unix.SignalNum(strings.ToUpper(c.stopSignal))
-	if signal == 0 {
+	s, err := signal.ParseSignal(strings.ToUpper(c.stopSignal))
+	if err != nil {
 		return defaultStopSignalInt
 	}
-	return signal
+	return s
 }
 
 // FromDisk restores container's state from disk
