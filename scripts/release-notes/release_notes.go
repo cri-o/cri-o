@@ -140,6 +140,8 @@ Download one of our static release bundles via our Google Cloud Bucket:
 		time.Now().Format(time.RFC1123),
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
 		startTag,
 	)); err != nil {
 		return errors.Wrap(err, "writing tmplate to file")
