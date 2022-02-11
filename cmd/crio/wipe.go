@@ -65,7 +65,18 @@ func crioWipe(c *cli.Context) error {
 	// Note: this is only needed if the node rebooted.
 	// If there wasn't time to sync, we should clear the storage directory
 	if shouldWipeContainers && shutdownWasUnclean(config) {
-		return handleCleanShutdown(config, store)
+		var lastError error
+		for _, v := range store.GetStore() {
+			err := handleCleanShutdown(config, v)
+			if err != nil {
+				if lastError != nil {
+					lastError = errors.Wrap(lastError, err.Error())
+				} else {
+					lastError = err
+				}
+			}
+		}
+		return lastError
 	}
 
 	// If crio is configured to wipe internally (and `--force` wasn't set)
@@ -133,7 +144,7 @@ func handleCleanShutdown(config *crioconf.Config, store cstorage.Store) error {
 }
 
 type ContainerStore struct {
-	store cstorage.Store
+	store storage.MultiStore
 }
 
 func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
