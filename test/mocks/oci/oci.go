@@ -251,17 +251,3 @@ func (mr *MockRuntimeImplMockRecorder) UpdateContainerStatus(arg0, arg1 interfac
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateContainerStatus", reflect.TypeOf((*MockRuntimeImpl)(nil).UpdateContainerStatus), arg0, arg1)
 }
-
-// WaitContainerStateStopped mocks base method.
-func (m *MockRuntimeImpl) WaitContainerStateStopped(arg0 context.Context, arg1 *oci.Container) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitContainerStateStopped", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitContainerStateStopped indicates an expected call of WaitContainerStateStopped.
-func (mr *MockRuntimeImplMockRecorder) WaitContainerStateStopped(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitContainerStateStopped", reflect.TypeOf((*MockRuntimeImpl)(nil).WaitContainerStateStopped), arg0, arg1)
-}

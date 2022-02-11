@@ -21,8 +21,8 @@ func (c *ContainerServer) StopContainer(ctx context.Context, ctr *oci.Container,
 	} else {
 		// we only do these operations if StopContainer didn't fail (even if the failure
 		// was the container already being stopped)
-		if err := c.runtime.WaitContainerStateStopped(ctx, ctr); err != nil {
-			return errors.Wrapf(err, "failed to get container 'stopped' status %s", ctr.ID())
+		if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
+			return errors.Wrapf(err, "failed to update container status %s", ctr.ID())
 		}
 		if err := c.storageRuntimeServer.StopContainer(ctr.ID()); err != nil {
 			return errors.Wrapf(err, "failed to unmount container %s", ctr.ID())

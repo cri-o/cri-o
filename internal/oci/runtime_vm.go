@@ -963,10 +963,6 @@ func (r *runtimeVM) ReopenContainerLog(ctx context.Context, c *Container) error 
 	return nil
 }
 
-func (r *runtimeVM) WaitContainerStateStopped(ctx context.Context, c *Container) error {
-	return nil
-}
-
 func (r *runtimeVM) start(ctrID, execID string) error {
 	if _, err := r.task.Start(r.ctx, &task.StartRequest{
 		ID:     ctrID,
