@@ -25,7 +25,7 @@ require (
 	github.com/creack/pty v1.1.17
 	github.com/cri-o/ocicni v0.2.1-0.20211005135702-b38844812e64
 	github.com/cyphar/filepath-securejoin v0.2.3
-	github.com/docker/distribution v2.7.1+incompatible
+	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/emicklei/go-restful v2.15.0+incompatible
 	github.com/fsnotify/fsnotify v1.5.1
