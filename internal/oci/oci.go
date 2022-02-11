@@ -241,10 +241,17 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 	r.runtimeImplMapMutex.RLock()
 	impl, ok := r.runtimeImplMap[c.ID()]
 	r.runtimeImplMapMutex.RUnlock()
-	if !ok {
-		return r.newRuntimeImpl(c)
+	if ok {
+		return impl, nil
 	}
 
+	impl, err := r.newRuntimeImpl(c)
+	if err != nil {
+		return nil, err
+	}
+	r.runtimeImplMapMutex.Lock()
+	r.runtimeImplMap[c.ID()] = impl
+	r.runtimeImplMapMutex.Unlock()
 	return impl, nil
 }
 

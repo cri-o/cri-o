@@ -3,6 +3,7 @@ package oci
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 
 	cgroups "github.com/containerd/cgroups/stats/v1"
 	tasktypes "github.com/containerd/containerd/api/types/task"
+	ctrio "github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
 	client "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/containerd/runtime/v2/task"
@@ -121,52 +123,14 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		return err
 	}
 
-	// Create IO fifos
-	containerIO, err := cio.NewContainerIO(c.ID(),
-		cio.WithNewFIFOs(r.fifoDir, c.terminal, c.stdin))
+	containerIO, err := r.createContainerIO(ctx, c, cio.WithNewFIFOs(r.fifoDir, c.terminal, c.stdin))
 	if err != nil {
 		return err
 	}
 
 	defer func() {
 		if retErr != nil {
-			containerIO.Close()
-		}
-	}()
-
-	f, err := os.OpenFile(c.LogPath(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
-	if err != nil {
-		return err
-	}
-
-	var stdoutCh, stderrCh <-chan struct{}
-	wc := cioutil.NewSerialWriteCloser(f)
-	stdout, stdoutCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stdout, -1)
-	stderr, stderrCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stderr, -1)
-
-	go func() {
-		if stdoutCh != nil {
-			<-stdoutCh
-		}
-		if stderrCh != nil {
-			<-stderrCh
-		}
-		log.Debugf(ctx, "Finish redirecting log file %q, closing it", c.LogPath())
-		f.Close()
-	}()
-
-	containerIO.AddOutput(c.LogPath(), stdout, stderr)
-	containerIO.Pipe()
-
-	r.Lock()
-	r.ctrs[c.ID()] = containerInfo{
-		cio: containerIO,
-	}
-	r.Unlock()
-
-	defer func() {
-		if retErr != nil {
-			log.Warnf(ctx, "Cleaning up container %s: %v", c.ID(), err)
+			log.Warnf(ctx, "Cleaning up container %s: %v", c.ID(), retErr)
 			if cleanupErr := r.deleteContainer(c, true); cleanupErr != nil {
 				log.Infof(ctx, "DeleteContainer failed for container %s: %v", c.ID(), cleanupErr)
 			}
@@ -664,10 +628,24 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 	log.Debugf(ctx, "RuntimeVM.updateContainerStatus() start")
 	defer log.Debugf(ctx, "RuntimeVM.updateContainerStatus() end")
 
-	// This can happen on restore, for example if we switch the runtime type
-	// for a container from "oci" to "vm" for the same runtime.
+	// This can happen on restore. We need to read shim address from the bundle path.
+	// And then connect to the existing gRPC server with this address.
 	if r.task == nil {
-		return errors.New("runtime not correctly setup")
+		addressPath := filepath.Join(c.BundlePath(), "address")
+		data, err := ioutil.ReadFile(addressPath)
+		if err != nil {
+			log.Warnf(ctx, "Failed to read shim address: %v", err)
+			return errors.New("runtime not correctly setup")
+		}
+		address := strings.TrimSpace(string(data))
+		conn, err := client.Connect(address, client.AnonDialer)
+		if err != nil {
+			return err
+		}
+		options := ttrpc.WithOnClose(func() { conn.Close() })
+		cl := ttrpc.NewClient(conn, options)
+		r.client = cl
+		r.task = task.NewTaskClient(cl)
 	}
 
 	response, err := r.task.State(r.ctx, &task.StateRequest{
@@ -678,6 +656,10 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 			return errdefs.FromGRPC(err)
 		}
 		return errdefs.ErrNotFound
+	}
+
+	if err = r.restoreContainerIO(ctx, c, response); err != nil {
+		return errors.Wrapf(err, "failed to restore container io")
 	}
 
 	status := c.state.Status
@@ -711,6 +693,96 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 		}
 	}
 	return nil
+}
+
+func (r *runtimeVM) restoreContainerIO(ctx context.Context, c *Container, state *task.StateResponse) error {
+	r.Lock()
+	_, ok := r.ctrs[c.ID()]
+	if ok {
+		r.Unlock()
+		return nil
+	}
+	r.Unlock()
+
+	cioCfg := ctrio.Config{
+		Terminal: state.Terminal,
+		Stdin:    state.Stdin,
+		Stdout:   state.Stdout,
+		Stderr:   state.Stderr,
+	}
+	// The existing fifos is created by NewFIFOSetInDir. stdin, stdout, stderr should exist
+	// in a same temporary directory under r.fifoDir. crio is responsible for removing these
+	// files after container io is closed.
+	var iofiles []string
+	if cioCfg.Stdin != "" {
+		iofiles = append(iofiles, cioCfg.Stdin)
+	}
+	if cioCfg.Stdout != "" {
+		iofiles = append(iofiles, cioCfg.Stdout)
+	}
+	if cioCfg.Stderr != "" {
+		iofiles = append(iofiles, cioCfg.Stderr)
+	}
+	closer := func() error {
+		for _, f := range iofiles {
+			if err := os.Remove(f); err != nil {
+				return err
+			}
+		}
+		// Also try to remove the parent dir if it is empty.
+		for _, f := range iofiles {
+			_ = os.Remove(filepath.Dir(f))
+		}
+		return nil
+	}
+	_, err := r.createContainerIO(ctx, c, cio.WithFIFOs(ctrio.NewFIFOSet(cioCfg, closer)))
+	return err
+}
+
+func (r *runtimeVM) createContainerIO(ctx context.Context, c *Container, cioOpts ...cio.ContainerIOOpts) (_ *cio.ContainerIO, retErr error) {
+	// Create IO fifos
+	containerIO, err := cio.NewContainerIO(c.ID(), cioOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if retErr != nil {
+			containerIO.Close()
+		}
+	}()
+
+	f, err := os.OpenFile(c.LogPath(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
+	if err != nil {
+		return nil, err
+	}
+
+	var stdoutCh, stderrCh <-chan struct{}
+	wc := cioutil.NewSerialWriteCloser(f)
+	stdout, stdoutCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stdout, -1)
+	stderr, stderrCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stderr, -1)
+
+	go func() {
+		if stdoutCh != nil {
+			<-stdoutCh
+		}
+		if stderrCh != nil {
+			<-stderrCh
+		}
+		log.Debugf(ctx, "Finish redirecting log file %q, closing it", c.LogPath())
+		f.Close()
+	}()
+
+	containerIO.AddOutput(c.LogPath(), stdout, stderr)
+	containerIO.Pipe()
+
+	r.Lock()
+	r.ctrs[c.ID()] = containerInfo{
+		cio: containerIO,
+	}
+	r.Unlock()
+
+	return containerIO, nil
 }
 
 // PauseContainer pauses a container.
