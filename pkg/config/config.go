@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -18,7 +19,7 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/storage"
+	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/blockio"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
@@ -40,6 +41,7 @@ import (
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 
+	"github.com/cri-o/cri-o/internal/storage"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
@@ -79,10 +81,62 @@ type Config struct {
 	SystemContext *types.SystemContext
 }
 
+func NewMultiStoreFromConfig(c *Config) (storage.MultiStore, error) {
+	storageDriver := make(map[string]cstorage.Store)
+	// Add default storage
+	store, err := cstorage.GetStore(cstorage.StoreOptions{
+		RunRoot:            c.RootConfig.RunRoot,
+		GraphRoot:          c.RootConfig.Root,
+		GraphDriverName:    c.RootConfig.Storage,
+		GraphDriverOptions: c.RootConfig.StorageOptions,
+	})
+	if err != nil {
+		return nil, err
+	}
+	storageDriver[c.Storage] = store
+	// Add additional storage defined per runtime
+	for _, r := range c.RuntimeConfig.Runtimes {
+		if r.Storage != "" {
+			store, err := cstorage.GetStore(cstorage.StoreOptions{
+				RunRoot:            c.RootConfig.RunRoot,
+				GraphRoot:          c.RootConfig.Root,
+				GraphDriverName:    r.Storage,
+				GraphDriverOptions: r.StorageOptions,
+			})
+			if err != nil {
+				return nil, err
+			}
+			storageDriver[r.Storage] = store
+		}
+	}
+	return storage.NewMultiStore(storageDriver, c.RootConfig.Storage, c.RunRoot, c.Root), nil
+}
+
+func NewMultiStoreServer(ctx context.Context, configIface Iface) (storage.MultiStoreServer, error) {
+	imageStore, err := configIface.GetStore()
+	if err != nil {
+		return nil, err
+	}
+	config := configIface.GetData()
+	imageServices := make(map[string]storage.ImageServer)
+	for driver, store := range imageStore.GetStore() {
+		imageService, err := storage.GetImageService(ctx, config.SystemContext, store, config.DefaultTransport, config.InsecureRegistries)
+		if err != nil {
+			return nil, err
+		}
+		imageServices[driver] = imageService
+	}
+	return storage.NewMultiStoreServer(imageServices, imageStore), nil
+}
+
 // Iface provides a config interface for data encapsulation
 type Iface interface {
-	GetStore() (storage.Store, error)
+	GetStore() (storage.MultiStore, error)
 	GetData() *Config
+}
+
+func (c *Config) GetStore() (storage.MultiStore, error) {
+	return NewMultiStoreFromConfig(c)
 }
 
 // GetData returns the Config of a Iface
@@ -168,8 +222,8 @@ type RootConfig struct {
 }
 
 // GetStore returns the container storage for a given configuration
-func (c *RootConfig) GetStore() (storage.Store, error) {
-	return storage.GetStore(storage.StoreOptions{
+func (c *RootConfig) GetStore() (cstorage.Store, error) {
+	return cstorage.GetStore(cstorage.StoreOptions{
 		RunRoot:            c.RunRoot,
 		GraphRoot:          c.Root,
 		GraphDriverName:    c.Storage,
@@ -209,6 +263,13 @@ type RuntimeHandler struct {
 
 	// MonitorExecCgroup indicates whether to move exec probes to the container's cgroup.
 	MonitorExecCgroup string `toml:"monitor_exec_cgroup,omitempty"`
+
+	// Storage is the name of the storage driver which handles actually
+	// storing the contents of containers.
+	Storage string `toml:"storage_driver"`
+
+	// StorageOption is a list of storage driver specific options.
+	StorageOptions []string `toml:"storage_option"`
 }
 
 // Multiple runtime Handlers in a map
@@ -637,10 +698,8 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 	if err != nil {
 		return err
 	}
-
 	t := new(tomlConfig)
 	t.fromConfig(c)
-
 	metadata, err := toml.Decode(string(data), t)
 	if err != nil {
 		return fmt.Errorf("unable to decode configuration %v: %w", path, err)
@@ -651,7 +710,6 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 		t.Crio.Runtime.RuntimeConfig.DefaultRuntime != defaultRuntime {
 		delete(c.Runtimes, defaultRuntime)
 	}
-
 	storageOpts = append(storageOpts, t.Crio.RootConfig.StorageOptions...)
 	storageOpts = removeDupStorageOpts(storageOpts)
 	t.Crio.RootConfig.StorageOptions = storageOpts
@@ -747,7 +805,7 @@ func (c *Config) ToBytes() ([]byte, error) {
 
 // DefaultConfig returns the default configuration for crio.
 func DefaultConfig() (*Config, error) {
-	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+	storeOpts, err := cstorage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, err
 	}
@@ -1339,6 +1397,9 @@ func (r *RuntimeHandler) Validate(name string) error {
 	if err := r.ValidateRuntimeAllowedAnnotations(); err != nil {
 		return err
 	}
+	if err := r.ValidateRuntimeStorage(); err != nil {
+		return err
+	}
 	return r.ValidateRuntimeType(name)
 }
 
@@ -1437,6 +1498,13 @@ func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallow
 		disallowed = append(disallowed, ann)
 	}
 	return disallowed, nil
+}
+
+func (r *RuntimeHandler) ValidateRuntimeStorage() error {
+	if r.Storage == "" && len(r.StorageOptions) > 0 {
+		return fmt.Errorf("invalid storage configuration, options are set but not the storage driver")
+	}
+	return nil
 }
 
 // CNIPlugin returns the network configuration CNI plugin
