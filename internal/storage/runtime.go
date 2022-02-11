@@ -39,8 +39,8 @@ var (
 )
 
 type runtimeService struct {
-	storageImageServer ImageServer
-	ctx                context.Context
+	multiStoreServer MultiStoreServer
+	ctx              context.Context
 }
 
 // ContainerInfo wraps a subset of information about a container: its ID and
@@ -70,7 +70,7 @@ type RuntimeServer interface {
 	// both its pod's ID and its container ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
 	// omitted, but not both.  All other arguments are required.
-	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
+	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool, storageDriver string) (ContainerInfo, error)
 
 	// GetContainerMetadata returns the metadata we've stored for a container.
 	GetContainerMetadata(idOrName string) (RuntimeContainerMetadata, error)
@@ -80,7 +80,7 @@ type RuntimeServer interface {
 	// CreateContainer creates a container with the specified ID.
 	// Pointer arguments can be nil.  Either the image name or ID can be
 	// omitted, but not both.  All other arguments are required.
-	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
+	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool, storageDriver string) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
 	DeleteContainer(idOrName string) error
 
@@ -131,8 +131,9 @@ type RuntimeContainerMetadata struct {
 	CreatedAt    int64  `json:"created-at"`           // Applicable to both PodSandboxes and Containers
 	Attempt      uint32 `json:"attempt,omitempty"`    // Applicable to both PodSandboxes and Containers
 	// Pod is true if this is the pod's infrastructure container.
-	Pod        bool `json:"pod,omitempty"`        // Applicable to both PodSandboxes and Containers
-	Privileged bool `json:"privileged,omitempty"` // Applicable to both PodSandboxes and Containers
+	Pod           bool   `json:"pod,omitempty"`        // Applicable to both PodSandboxes and Containers
+	Privileged    bool   `json:"privileged,omitempty"` // Applicable to both PodSandboxes and Containers
+	StorageDriver string `json:"storageDriver"`
 }
 
 // SetMountLabel updates the mount label held by a RuntimeContainerMetadata
@@ -141,7 +142,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 	metadata.MountLabel = mountLabel
 }
 
-func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, isPauseImage, privileged bool) (ci ContainerInfo, retErr error) {
+func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, isPauseImage, privileged bool, storageDriver string) (ci ContainerInfo, retErr error) {
 	var ref types.ImageReference
 	if podName == "" || podID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
@@ -155,24 +156,28 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	if metadataName == "" {
 		metadataName = containerName
 	}
-
+	logrus.Debugf("Create container with storage driver %s", storageDriver)
+	imageServer, err := r.multiStoreServer.GetImageServer(storageDriver)
+	if err != nil {
+		return ContainerInfo{}, err
+	}
 	// Check if we have the specified image.
-	ref, err := istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), imageName)
+	ref, err = istorage.Transport.ParseStoreReference(imageServer.GetStore(), imageName)
 	if err != nil {
 		// Maybe it's some other transport's copy of the image?
 		otherRef, err2 := alltransports.ParseImageName(imageName)
 		if err2 == nil && otherRef.DockerReference() != nil {
-			ref, err = istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), otherRef.DockerReference().String())
+			ref, err = istorage.Transport.ParseStoreReference(imageServer.GetStore(), otherRef.DockerReference().String())
 		}
 		if err != nil {
 			// Maybe the image ID is sufficient?
-			ref, err = istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), "@"+imageID)
+			ref, err = istorage.Transport.ParseStoreReference(imageServer.GetStore(), "@"+imageID)
 			if err != nil {
 				return ContainerInfo{}, err
 			}
 		}
 	}
-	img, err := istorage.Transport.GetStoreImage(r.storageImageServer.GetStore(), ref)
+	img, err := istorage.Transport.GetStoreImage(imageServer.GetStore(), ref)
 	if img == nil && errors.Is(err, storage.ErrImageUnknown) && isPauseImage {
 		image := imageID
 		if imageName != "" {
@@ -189,14 +194,14 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		if imageAuthFile != "" {
 			sourceCtx.AuthFilePath = imageAuthFile
 		}
-		ref, err = r.storageImageServer.PullImage(systemContext, image, &ImageCopyOptions{
+		ref, err = imageServer.PullImage(systemContext, image, &ImageCopyOptions{
 			SourceCtx:      &sourceCtx,
 			DestinationCtx: systemContext,
 		})
 		if err != nil {
 			return ContainerInfo{}, err
 		}
-		img, err = istorage.Transport.GetStoreImage(r.storageImageServer.GetStore(), ref)
+		img, err = istorage.Transport.GetStoreImage(imageServer.GetStore(), ref)
 		if err != nil {
 			return ContainerInfo{}, err
 		}
@@ -244,6 +249,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		Attempt:       attempt,
 		CreatedAt:     time.Now().Unix(),
 		Privileged:    privileged,
+		StorageDriver: storageDriver,
 	}
 	mdata, err := json.Marshal(&metadata)
 	if err != nil {
@@ -263,7 +269,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	if idMappingsOptions != nil {
 		coptions.IDMappingOptions = *idMappingsOptions
 	}
-	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, img.ID, "", string(mdata), &coptions)
+	container, err := imageServer.GetStore().CreateContainer(containerID, names, img.ID, "", string(mdata), &coptions)
 	if err != nil {
 		if metadata.Pod {
 			logrus.Debugf("Failed to create pod sandbox %s(%s): %v", metadata.PodName, metadata.PodID, err)
@@ -285,7 +291,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	// container before returning.
 	defer func() {
 		if retErr != nil {
-			if err2 := r.storageImageServer.GetStore().DeleteContainer(container.ID); err2 != nil {
+			if err2 := imageServer.GetStore().DeleteContainer(container.ID); err2 != nil {
 				if metadata.Pod {
 					logrus.Debugf("%v deleting partially-created pod sandbox %q", err2, container.ID)
 				} else {
@@ -300,18 +306,18 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	// Add a name to the container's layer so that it's easier to follow
 	// what's going on if we're just looking at the storage-eye view of things.
 	layerName := metadata.ContainerName + "-layer"
-	names, err = r.storageImageServer.GetStore().Names(container.LayerID)
+	names, err = imageServer.GetStore().Names(container.LayerID)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
 	names = append(names, layerName)
-	err = r.storageImageServer.GetStore().SetNames(container.LayerID, names)
+	err = imageServer.GetStore().SetNames(container.LayerID, names)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
 
 	// Find out where the container work directories are, so that we can return them.
-	containerDir, err := r.storageImageServer.GetStore().ContainerDirectory(container.ID)
+	containerDir, err := imageServer.GetStore().ContainerDirectory(container.ID)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
@@ -321,7 +327,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		logrus.Debugf("Container %q has work directory %q", container.ID, containerDir)
 	}
 
-	containerRunDir, err := r.storageImageServer.GetStore().ContainerRunDirectory(container.ID)
+	containerRunDir, err := imageServer.GetStore().ContainerRunDirectory(container.ID)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
@@ -332,7 +338,6 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	}
 
 	metadata.MountLabel = container.MountLabel()
-
 	return ContainerInfo{
 		ID:           container.ID,
 		Dir:          containerDir,
@@ -343,19 +348,23 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	}, nil
 }
 
-func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, true, privileged)
+func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool, storageDriver string) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, true, privileged, storageDriver)
 }
 
-func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, "", imageID, containerName, containerID, metadataName, "", "", attempt, idMappingsOptions, labelOptions, false, privileged)
+func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool, storageDriver string) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, "", imageID, containerName, containerID, metadataName, "", "", attempt, idMappingsOptions, labelOptions, false, privileged, storageDriver)
 }
 
 func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
 	if layerID == "" {
 		return
 	}
-	store := r.storageImageServer.GetStore()
+	store, err := r.multiStoreServer.GetStoreForImage(imageID)
+	if err != nil {
+		logrus.Debugf("Failed to storage for  image %q: %v", imageID, err)
+		return
+	}
 
 	image, err := store.Image(imageID)
 	if err != nil {
@@ -382,7 +391,11 @@ func (r *runtimeService) DeleteContainer(idOrName string) error {
 	if idOrName == "" {
 		return ErrInvalidContainerID
 	}
-	container, err := r.storageImageServer.GetStore().Container(idOrName)
+	store, err := r.multiStoreServer.GetStoreForContainer(idOrName)
+	if err != nil {
+		return err
+	}
+	container, err := store.Container(idOrName)
 	// Already deleted
 	if errors.Is(err, storage.ErrContainerUnknown) {
 		return nil
@@ -390,11 +403,11 @@ func (r *runtimeService) DeleteContainer(idOrName string) error {
 	if err != nil {
 		return err
 	}
-	layer, err := r.storageImageServer.GetStore().Layer(container.LayerID)
+	layer, err := store.Layer(container.LayerID)
 	if err != nil {
 		logrus.Debugf("Failed to retrieve layer %q: %v", container.LayerID, err)
 	}
-	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
+	err = store.DeleteContainer(container.ID)
 	if err != nil {
 		logrus.Debugf("Failed to delete container %q: %v", container.ID, err)
 		return err
@@ -411,12 +424,20 @@ func (r *runtimeService) SetContainerMetadata(idOrName string, metadata *Runtime
 		logrus.Debugf("Failed to encode metadata for %q: %v", idOrName, err)
 		return err
 	}
-	return r.storageImageServer.GetStore().SetMetadata(idOrName, string(mdata))
+	store, err := r.multiStoreServer.GetStoreForContainer(idOrName)
+	if err != nil {
+		return err
+	}
+	return store.SetMetadata(idOrName, string(mdata))
 }
 
 func (r *runtimeService) GetContainerMetadata(idOrName string) (RuntimeContainerMetadata, error) {
 	metadata := RuntimeContainerMetadata{}
-	mdata, err := r.storageImageServer.GetStore().Metadata(idOrName)
+	store, err := r.multiStoreServer.GetStoreForContainer(idOrName)
+	if err != nil {
+		return metadata, err
+	}
+	mdata, err := store.Metadata(idOrName)
 	if err != nil {
 		return metadata, err
 	}
@@ -427,7 +448,11 @@ func (r *runtimeService) GetContainerMetadata(idOrName string) (RuntimeContainer
 }
 
 func (r *runtimeService) StartContainer(idOrName string) (string, error) {
-	container, err := r.storageImageServer.GetStore().Container(idOrName)
+	store, err := r.multiStoreServer.GetStoreForContainer(idOrName)
+	if err != nil {
+		return "", err
+	}
+	container, err := store.Container(idOrName)
 	if err != nil {
 		if errors.Is(err, storage.ErrContainerUnknown) {
 			return "", ErrInvalidContainerID
@@ -438,7 +463,7 @@ func (r *runtimeService) StartContainer(idOrName string) (string, error) {
 	if err := json.Unmarshal([]byte(container.Metadata), &metadata); err != nil {
 		return "", err
 	}
-	mountPoint, err := r.storageImageServer.GetStore().Mount(container.ID, metadata.MountLabel)
+	mountPoint, err := store.Mount(container.ID, metadata.MountLabel)
 	if err != nil {
 		logrus.Debugf("Failed to mount container %q: %v", container.ID, err)
 		return "", err
@@ -451,11 +476,15 @@ func (r *runtimeService) StopContainer(idOrName string) error {
 	if idOrName == "" {
 		return ErrInvalidContainerID
 	}
-	container, err := r.storageImageServer.GetStore().Container(idOrName)
+	store, err := r.multiStoreServer.GetStoreForContainer(idOrName)
 	if err != nil {
 		return err
 	}
-	_, err = r.storageImageServer.GetStore().Unmount(container.ID, false)
+	container, err := store.Container(idOrName)
+	if err != nil {
+		return err
+	}
+	_, err = store.Unmount(container.ID, false)
 	if err != nil {
 		logrus.Debugf("Failed to unmount container %q: %v", container.ID, err)
 		return err
@@ -465,33 +494,41 @@ func (r *runtimeService) StopContainer(idOrName string) error {
 }
 
 func (r *runtimeService) GetWorkDir(id string) (string, error) {
-	container, err := r.storageImageServer.GetStore().Container(id)
+	store, err := r.multiStoreServer.GetStoreForContainer(id)
+	if err != nil {
+		return "", err
+	}
+	container, err := store.Container(id)
 	if err != nil {
 		if errors.Is(err, storage.ErrContainerUnknown) {
 			return "", ErrInvalidContainerID
 		}
 		return "", err
 	}
-	return r.storageImageServer.GetStore().ContainerDirectory(container.ID)
+	return store.ContainerDirectory(container.ID)
 }
 
 func (r *runtimeService) GetRunDir(id string) (string, error) {
-	container, err := r.storageImageServer.GetStore().Container(id)
+	store, err := r.multiStoreServer.GetStoreForContainer(id)
+	if err != nil {
+		return "", err
+	}
+	container, err := store.Container(id)
 	if err != nil {
 		if errors.Is(err, storage.ErrContainerUnknown) {
 			return "", ErrInvalidContainerID
 		}
 		return "", err
 	}
-	return r.storageImageServer.GetStore().ContainerRunDirectory(container.ID)
+	return store.ContainerRunDirectory(container.ID)
 }
 
 // GetRuntimeService returns a RuntimeServer that uses the passed-in image
 // service to pull and manage images, and its store to manage containers based
 // on those images.
-func GetRuntimeService(ctx context.Context, storageImageServer ImageServer) RuntimeServer {
+func GetRuntimeService(ctx context.Context, multiStoreServer MultiStoreServer) RuntimeServer {
 	return &runtimeService{
-		storageImageServer: storageImageServer,
-		ctx:                ctx,
+		multiStoreServer: multiStoreServer,
+		ctx:              ctx,
 	}
 }

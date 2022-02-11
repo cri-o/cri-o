@@ -94,6 +94,17 @@ func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
 	return nil
 }
 
+// ConstructSandboxNameFromConfig returns the pod sandbox name from the configuration
+func ConstructSandboxNameFromConfig(config *types.PodSandboxConfig) string {
+	return strings.Join([]string{
+		"k8s",
+		config.Metadata.Name,
+		config.Metadata.Namespace,
+		config.Metadata.Uid,
+		fmt.Sprintf("%d", config.Metadata.Attempt),
+	}, "_")
+}
+
 // SetNameAndID sets the sandbox name and ID
 func (s *sandbox) SetNameAndID() error {
 	if s.config == nil {
@@ -109,13 +120,7 @@ func (s *sandbox) SetNameAndID() error {
 	}
 
 	s.id = stringid.GenerateNonCryptoID()
-	s.name = strings.Join([]string{
-		"k8s",
-		s.config.Metadata.Name,
-		s.config.Metadata.Namespace,
-		s.config.Metadata.Uid,
-		fmt.Sprintf("%d", s.config.Metadata.Attempt),
-	}, "_")
+	s.name = ConstructSandboxNameFromConfig(s.config)
 
 	return nil
 }

@@ -129,15 +129,42 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("decryption-keys-path") {
 		config.DecryptionKeysPath = ctx.String("decryption-keys-path")
 	}
-
 	if ctx.IsSet("runtimes") {
+		type storageOpts struct {
+			storage string
+			opts    []string
+		}
 		runtimes := StringSliceTrySplit(ctx, "runtimes")
+		storageRuntimeMap := make(map[string]storageOpts)
+		if ctx.IsSet("runtime-storage") {
+			for _, s := range StringSliceTrySplit(ctx, "runtime-storage") {
+				fields := strings.Split(s, ":")
+				if len(fields) < 2 {
+					return fmt.Errorf("invalid format runtime-storage: %s", s)
+				}
+				var opts []string
+				if len(fields) > 2 {
+					opts = fields[2:]
+				}
+				storageRuntimeMap[fields[0]] = storageOpts{
+					storage: fields[1],
+					opts:    opts,
+				}
+			}
+		}
+
 		for _, r := range runtimes {
 			fields := strings.Split(r, ":")
 
 			runtimeType := libconfig.DefaultRuntimeType
 			privilegedWithoutHostDevices := false
 			runtimeConfigPath := ""
+			storage := ""
+			var opts []string
+			if v, ok := storageRuntimeMap[fields[0]]; ok {
+				storage = v.storage
+				opts = v.opts
+			}
 
 			switch len(fields) {
 			case 6:
@@ -158,6 +185,8 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 					RuntimeType:                  runtimeType,
 					PrivilegedWithoutHostDevices: privilegedWithoutHostDevices,
 					RuntimeConfigPath:            runtimeConfigPath,
+					Storage:                      storage,
+					StorageOptions:               opts,
 				}
 			default:
 				return fmt.Errorf("wrong format for --runtimes: %q", r)
@@ -583,6 +612,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "runtimes",
 			Usage:   "OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path",
 			EnvVars: []string{"CONTAINER_RUNTIMES"},
+		},
+		&cli.StringSliceFlag{
+			Name:    "runtime-storage",
+			Usage:   "Storage for the runtime, format is runtime_name:storage_driver:opt1:opt2...:optN. The runtime_name needs to be listed with the  runtimes, otherwise this option doesn't have any effect.",
+			EnvVars: []string{"CONTAINER_RUNTIME_STORAGE"},
 		},
 		&cli.StringFlag{
 			Name:      "seccomp-profile",

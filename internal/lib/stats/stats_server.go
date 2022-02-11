@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -35,7 +35,7 @@ type StatsServer struct {
 // data duplication (mainly in the active list of sandboxes), and avoid circular dependencies to boot.
 type parentServerIface interface {
 	Runtime() *oci.Runtime
-	Store() cstorage.Store
+	Store() storage.MultiStore
 	ListSandboxes() []*sandbox.Sandbox
 	GetSandbox(string) *sandbox.Sandbox
 	Config() *config.Config
@@ -185,17 +185,21 @@ func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*typ
 		Timestamp: time.Now().UnixNano(),
 		FsId:      &types.FilesystemIdentifier{Mountpoint: container.MountPoint()},
 	}
-	driver, err := ss.Store().GraphDriver()
+	store, err := ss.Store().GetStoreForContainer(container.ID())
 	if err != nil {
-		return writableLayer, fmt.Errorf("unable to get graph driver for disk usage for container %s: %w", container.ID(), err)
+		return writableLayer, errors.Wrapf(err, "unable to get store for container %s", container.ID())
 	}
-	storageContainer, err := ss.Store().Container(container.ID())
+	driver, err := store.GraphDriver()
+	if err != nil {
+		return writableLayer, errors.Wrapf(err, "unable to get graph driver for disk usage for container %s", container.ID())
+	}
+	storageContainer, err := store.Container(container.ID())
 	if err != nil {
 		return writableLayer, fmt.Errorf("unable to get storage container for disk usage for container %s: %w", container.ID(), err)
 	}
 	usage, err := driver.ReadWriteDiskUsage(storageContainer.LayerID)
 	if err != nil {
-		return writableLayer, fmt.Errorf("unable to get disk usage for container %s: %w", container.ID(), err)
+		return writableLayer, errors.Wrapf(err, "unable to get disk usage for container %s", container.ID())
 	}
 	writableLayer.UsedBytes = &types.UInt64Value{Value: uint64(usage.Size)}
 	writableLayer.InodesUsed = &types.UInt64Value{Value: uint64(usage.InodeCount)}

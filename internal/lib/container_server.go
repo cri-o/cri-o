@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/hooks"
+	ctypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/annotations"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
@@ -37,8 +38,7 @@ const ContainerManagerCRIO = "cri-o"
 // ContainerServer implements the ImageServer
 type ContainerServer struct {
 	runtime              *oci.Runtime
-	store                cstorage.Store
-	storageImageServer   storage.ImageServer
+	multiStoreServer     storage.MultiStoreServer
 	storageRuntimeServer storage.RuntimeServer
 	ctrNameIndex         *registrar.Registrar
 	ctrIDIndex           *truncindex.TruncIndex
@@ -58,13 +58,38 @@ func (c *ContainerServer) Runtime() *oci.Runtime {
 }
 
 // Store returns the Store for the ContainerServer
-func (c *ContainerServer) Store() cstorage.Store {
-	return c.store
+func (c *ContainerServer) Store() storage.MultiStore {
+	return c.multiStoreServer.GetStore()
 }
 
-// StorageImageServer returns the ImageServer for the ContainerServer
-func (c *ContainerServer) StorageImageServer() storage.ImageServer {
-	return c.storageImageServer
+// StorageImageServer returns the ImageServer for the give storage driver
+func (c *ContainerServer) StorageImageServer(driver string) (storage.ImageServer, error) {
+	return c.multiStoreServer.GetImageServer(driver)
+}
+
+// StorageImageServerDefault returns the ImageServer for the default storage driver
+func (c *ContainerServer) StorageImageServerDefault() (storage.ImageServer, error) {
+	return c.multiStoreServer.GetImageServer("")
+}
+
+// StorageImageServerPerImage returns the ImageServer for the given image
+func (c *ContainerServer) StorageImageServerPerImage(image string) ([]storage.ImageServer, error) {
+	return c.multiStoreServer.GetImageServerForImage(image)
+}
+
+// MultiStorageImageServer returns the MultiStoreServer
+func (c *ContainerServer) MultiStorageImageServer() storage.MultiStoreServer {
+	return c.multiStoreServer
+}
+
+// GetAllStores returns all the store for the server
+func (c *ContainerServer) GetAllStores() []cstorage.Store {
+	return c.multiStoreServer.GetAllStores()
+}
+
+// ListAllImages lists all the images present in all storage drivers
+func (c *ContainerServer) ListAllImages(ctx *ctypes.SystemContext, filter string) ([]storage.ImageResult, error) {
+	return c.multiStoreServer.ListAllImages(ctx, filter)
 }
 
 // CtrIDIndex returns the TruncIndex for the ContainerServer
@@ -92,19 +117,16 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	if configIface == nil {
 		return nil, fmt.Errorf("provided config is nil")
 	}
-	store, err := configIface.GetStore()
+
+	imageService, err := libconfig.NewMultiStoreServer(ctx, configIface)
 	if err != nil {
 		return nil, err
 	}
+
 	config := configIface.GetData()
 
 	if config == nil {
 		return nil, fmt.Errorf("cannot create container server: interface is nil")
-	}
-
-	imageService, err := storage.GetImageService(ctx, config.SystemContext, store, config.DefaultTransport, config.InsecureRegistries)
-	if err != nil {
-		return nil, err
 	}
 
 	storageRuntimeService := storage.GetRuntimeService(ctx, imageService)
@@ -121,8 +143,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 
 	c := &ContainerServer{
 		runtime:              runtime,
-		store:                store,
-		storageImageServer:   imageService,
+		multiStoreServer:     imageService,
 		storageRuntimeServer: storageRuntimeService,
 		ctrNameIndex:         registrar.NewRegistrar(),
 		ctrIDIndex:           truncindex.NewTruncIndex([]string{}),
@@ -144,7 +165,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store
 func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandbox.Sandbox, retErr error) {
-	config, err := c.store.FromContainerDirectory(id, "config.json")
+	config, err := c.multiStoreServer.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return nil, err
 	}
@@ -225,12 +246,12 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		}
 	}()
 
-	sandboxPath, err := c.store.ContainerRunDirectory(id)
+	sandboxPath, err := c.multiStoreServer.ContainerRunDirectory(id)
 	if err != nil {
 		return sb, err
 	}
 
-	sandboxDir, err := c.store.ContainerDirectory(id)
+	sandboxDir, err := c.multiStoreServer.ContainerDirectory(id)
 	if err != nil {
 		return sb, err
 	}
@@ -353,7 +374,7 @@ var ErrIsNonCrioContainer = errors.New("non CRI-O container")
 
 // LoadContainer loads a container from the disk into the container store
 func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr error) {
-	config, err := c.store.FromContainerDirectory(id, "config.json")
+	config, err := c.multiStoreServer.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
 	}
@@ -396,12 +417,12 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	stdin := isTrue(m.Annotations[annotations.Stdin])
 	stdinOnce := isTrue(m.Annotations[annotations.StdinOnce])
 
-	containerPath, err := c.store.ContainerRunDirectory(id)
+	containerPath, err := c.multiStoreServer.ContainerRunDirectory(id)
 	if err != nil {
 		return err
 	}
 
-	containerDir, err := c.store.ContainerDirectory(id)
+	containerDir, err := c.multiStoreServer.ContainerDirectory(id)
 	if err != nil {
 		return err
 	}
@@ -542,7 +563,7 @@ func recoverLogError() {
 // Shutdown attempts to shut down the server's storage cleanly
 func (c *ContainerServer) Shutdown() error {
 	defer recoverLogError()
-	_, err := c.store.Shutdown(false)
+	_, err := c.multiStoreServer.Shutdown(false)
 	if err != nil && !errors.Is(err, cstorage.ErrLayerUsedByContainer) {
 		return err
 	}
