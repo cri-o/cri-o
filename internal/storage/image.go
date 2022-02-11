@@ -71,6 +71,8 @@ type indexInfo struct {
 // A set of information that we prefer to cache about images, so that we can
 // avoid having to reread them every time we need to return information about
 // images.
+// Every field in imageCacheItem are fixed properties of an "image", which in this
+// context is the image.ID stored in c/storage, and thus don't need to be recomputed.
 type imageCacheItem struct {
 	config       *specs.Image
 	size         *uint64
@@ -354,9 +356,15 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	if err != nil {
 		return nil, err
 	}
-	cacheItem, err := svc.buildImageCacheItem(systemContext, ref) // Single-use-only, not actually cached
-	if err != nil {
-		return nil, err
+	svc.imageCacheLock.Lock()
+	cacheItem, ok := svc.imageCache[image.ID]
+	svc.imageCacheLock.Unlock()
+
+	if !ok {
+		cacheItem, err = svc.buildImageCacheItem(systemContext, ref) // Single-use-only, not actually cached
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	result := svc.buildImageResult(image, cacheItem)
