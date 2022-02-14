@@ -18,7 +18,7 @@ body:
       required: true
     - label: I have [enabled 2FA on my GitHub account](https://github.com/settings/security)
       required: true
-    - label: I have one sponsor from the list of approvers in at least one OWNERS file within one of the CRI-O repository
+    - label: I have one sponsor from the list of approvers in at least one OWNERS file within the CRI-O repository
       required: true
     - label: I have spoken to my sponsor ahead of this application, and they have agreed to sponsor my application
       required: true
