@@ -1,7 +1,6 @@
 approvers:
   - mrunalp
   - runcom
-  - sameo
   - rhatdan
   - nalind
   - giuseppe
@@ -12,3 +11,5 @@ approvers:
   - haircommander
   - fidencio
   - kolyshkin
+emeritus_approvers:
+  - sameo
