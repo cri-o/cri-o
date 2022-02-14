@@ -28,7 +28,6 @@ It is assumed you are running a Linux machine.
   * [Setup CNI networking](#setup-cni-networking)
   * [CRI-O configuration](#cri-o-configuration)
     + [Validate registries in registries.conf](#validate-registries-in-registriesconf)
-    + [Recommended - Use systemd cgroups.](#recommended---use-systemd-cgroups)
     + [Optional - Modify verbosity of logs](#optional---modify-verbosity-of-logs)
     + [Optional - Modify capabilities and sysctls](#optional---modify-capabilities-and-sysctls)
   * [Starting CRI-O](#starting-cri-o)
