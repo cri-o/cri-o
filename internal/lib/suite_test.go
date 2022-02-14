@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -13,6 +14,7 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	. "github.com/cri-o/cri-o/test/framework"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
+	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
 	libmock "github.com/cri-o/cri-o/test/mocks/lib"
 	ocimock "github.com/cri-o/cri-o/test/mocks/oci"
 	"github.com/golang/mock/gomock"
@@ -29,16 +31,18 @@ func TestLib(t *testing.T) {
 }
 
 var (
-	t              *TestFramework
-	config         *libconfig.Config
-	mockCtrl       *gomock.Controller
-	libMock        *libmock.MockIface
-	storeMock      *containerstoragemock.MockStore
-	ociRuntimeMock *ocimock.MockRuntimeImpl
-	testManifest   []byte
-	sut            *lib.ContainerServer
-	mySandbox      *sandbox.Sandbox
-	myContainer    *oci.Container
+	t                    *TestFramework
+	config               *libconfig.Config
+	mockCtrl             *gomock.Controller
+	libMock              *libmock.MockIface
+	storeMock            *containerstoragemock.MockStore
+	multiStoreServerMock *criostoragemock.MockMultiStoreServer
+	ociRuntimeMock       *ocimock.MockRuntimeImpl
+	ociRuntimeMock       *ocimock.MockRuntimeImpl
+	testManifest         []byte
+	sut                  *lib.ContainerServer
+	mySandbox            *sandbox.Sandbox
+	myContainer          *oci.Container
 
 	validDirPath string
 )
@@ -101,6 +105,8 @@ var _ = BeforeSuite(func() {
 	mockCtrl = gomock.NewController(GinkgoT())
 	libMock = libmock.NewMockIface(mockCtrl)
 	storeMock = containerstoragemock.NewMockStore(mockCtrl)
+	multiStoreMock = criostoragemock.NewMockMultiStore(mockCtrl)
+	multiStoreServerMock = criostoragemock.NewMockMultiStoreServer(mockCtrl)
 	ociRuntimeMock = ocimock.NewMockRuntimeImpl(mockCtrl)
 
 	validDirPath = t.MustTempDir("crio-empty")
@@ -139,8 +145,13 @@ func beforeEach() {
 	// so we have permission to make a directory within it
 	config.ContainerAttachSocketDir = t.MustTempDir("crio")
 
+	store := map[string]cstorage.Store{"defaultStorage": storeMock}
+
 	gomock.InOrder(
-		libMock.EXPECT().GetStore().Return(storeMock, nil),
+		libMock.EXPECT().GetStore().Return(multiStoreMock, nil),
+		libMock.EXPECT().GetData().Return(config),
+		multiStoreMock.EXPECT().GetStore().Return(store),
+		multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 		libMock.EXPECT().GetData().Return(config),
 	)
 
@@ -166,11 +177,14 @@ func beforeEach() {
 
 func mockDirs(manifest []byte) {
 	gomock.InOrder(
+		storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 		storeMock.EXPECT().
 			FromContainerDirectory(gomock.Any(), gomock.Any()).
 			Return(manifest, nil),
+		storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 		storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 			Return("", nil),
+		storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 		storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 			Return("", nil),
 	)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	cstorage "github.com/containers/storage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -22,7 +23,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 		It("should succeed", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				multiStoreServerMock.EXPECT().GetAllStores().Return([]cstorage.Store{storeMock}),
 				storeMock.EXPECT().GraphRoot().Return(""),
 				storeMock.EXPECT().GraphDriverName().Return("test"),
 			)
@@ -42,7 +43,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 		It("should fail on invalid image dir", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				multiStoreServerMock.EXPECT().GetAllStores().Return([]cstorage.Store{storeMock}),
 				storeMock.EXPECT().GraphRoot().Return(""),
 				storeMock.EXPECT().GraphDriverName().Return(""),
 			)

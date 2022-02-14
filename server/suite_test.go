@@ -37,24 +37,27 @@ func TestServer(t *testing.T) {
 }
 
 var (
-	libMock           *libmock.MockIface
-	mockCtrl          *gomock.Controller
-	serverConfig      *config.Config
-	storeMock         *containerstoragemock.MockStore
-	imageServerMock   *criostoragemock.MockImageServer
-	runtimeServerMock *criostoragemock.MockRuntimeServer
-	imageCloserMock   *imagetypesmock.MockImageCloser
-	cniPluginMock     *ocicnitypesmock.MockCNIPlugin
-	ociRuntimeMock    *ocimock.MockRuntimeImpl
-	sut               *server.Server
-	t                 *TestFramework
-	testContainer     *oci.Container
-	testManifest      []byte
-	testPath          string
-	testSandbox       *sandbox.Sandbox
-	testStreamService server.StreamService
+	libMock              *libmock.MockIface
+	mockCtrl             *gomock.Controller
+	serverConfig         *config.Config
+	storeMock            *containerstoragemock.MockStore
+	imageServerMock      *criostoragemock.MockImageServer
+	multiStoreMock       *criostoragemock.MockMultiStore
+	multiStoreServerMock *criostoragemock.MockMultiStoreServer
+	runtimeServerMock    *criostoragemock.MockRuntimeServer
+	imageCloserMock      *imagetypesmock.MockImageCloser
+	cniPluginMock        *ocicnitypesmock.MockCNIPlugin
+	ociRuntimeMock       *ocimock.MockRuntimeImpl
+	sut                  *server.Server
+	t                    *TestFramework
+	testContainer        *oci.Container
+	testManifest         []byte
+	testPath             string
+	testSandbox          *sandbox.Sandbox
+	testStreamService    server.StreamService
 
 	emptyDir string
+	store    map[string]cstorage.Store
 )
 
 const (
@@ -71,6 +74,8 @@ var _ = BeforeSuite(func() {
 	libMock = libmock.NewMockIface(mockCtrl)
 	storeMock = containerstoragemock.NewMockStore(mockCtrl)
 	imageServerMock = criostoragemock.NewMockImageServer(mockCtrl)
+	multiStoreMock = criostoragemock.NewMockMultiStore(mockCtrl)
+	multiStoreServerMock = criostoragemock.NewMockMultiStoreServer(mockCtrl)
 	runtimeServerMock = criostoragemock.NewMockRuntimeServer(mockCtrl)
 	imageCloserMock = imagetypesmock.NewMockImageCloser(mockCtrl)
 	cniPluginMock = ocicnitypesmock.NewMockCNIPlugin(mockCtrl)
@@ -173,6 +178,7 @@ var beforeEach = func() {
 	server, err := streaming.NewServer(streamServerConfig, testStreamService)
 	Expect(err).To(BeNil())
 	Expect(server).NotTo(BeNil())
+	store = map[string]cstorage.Store{"defaultStorage": storeMock}
 }
 
 var afterEach = func() {
@@ -189,19 +195,27 @@ var setupSUT = func() {
 	Expect(sut).NotTo(BeNil())
 
 	// Inject the mock
-	sut.SetStorageImageServer(imageServerMock)
+	sut.SetStorageImageServer(multiStoreServerMock)
 	sut.SetStorageRuntimeServer(runtimeServerMock)
 
 	gomock.InOrder(cniPluginMock.EXPECT().Status().Return(nil))
 	Expect(sut.SetCNIPlugin(cniPluginMock)).To(BeNil())
 }
 
+func mockNewMultiStoreServer() {
+	gomock.InOrder(
+		multiStoreMock.EXPECT().GetStore().Return(store),
+		multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
+	)
+}
+
 func mockNewServer() {
+	mockNewMultiStoreServer()
 	gomock.InOrder(
 		libMock.EXPECT().GetData().Times(2).Return(serverConfig),
-		libMock.EXPECT().GetStore().Return(storeMock, nil),
-		libMock.EXPECT().GetData().Return(serverConfig),
-		storeMock.EXPECT().Containers().
+		libMock.EXPECT().GetStore().Return(multiStoreMock, nil),
+		libMock.EXPECT().GetData().Times(2).Return(serverConfig),
+		multiStoreMock.EXPECT().Containers().
 			Return([]cstorage.Container{}, nil),
 	)
 }
@@ -218,12 +232,12 @@ func addContainerAndSandbox() {
 
 var mockDirs = func(manifest []byte) {
 	gomock.InOrder(
-		storeMock.EXPECT().
+		multiStoreServerMock.EXPECT().
 			FromContainerDirectory(gomock.Any(), gomock.Any()).
 			Return(manifest, nil),
-		storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
+		multiStoreServerMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 			Return("", nil),
-		storeMock.EXPECT().ContainerDirectory(gomock.Any()).
+		multiStoreServerMock.EXPECT().ContainerDirectory(gomock.Any()).
 			Return("", nil),
 	)
 }

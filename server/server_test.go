@@ -84,25 +84,31 @@ var _ = t.Describe("Server", func() {
 		It("should succeed with container restore", func() {
 			// Given
 			testError := fmt.Errorf("error: %w", errors.New("/dev/null"))
+			mockNewMultiStoreServer()
 			gomock.InOrder(
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(serverConfig),
-				storeMock.EXPECT().Containers().
+				libMock.EXPECT().GetStore().Return(multiStoreMock, nil),
+				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
+				multiStoreMock.EXPECT().Containers().
 					Return([]cstorage.Container{
 						{},
 						{},
 						{},
 					}, testError),
+				storeMock.EXPECT().Container(gomock.Any()).Times(1).Return(nil, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return(`{"Pod": false, "pod-name": "name", "pod-id": "id" }`, nil),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return(`{"Pod": true, "pod-name": "name", "pod-id": "id" }`, nil),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return("", t.TestError),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return([]byte{}, nil),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return([]byte{}, nil),
@@ -158,10 +164,11 @@ var _ = t.Describe("Server", func() {
 
 		DescribeTable("should fail with wrong ID mappings", func(u, g string) {
 			// Given
+			mockNewMultiStoreServer()
 			gomock.InOrder(
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
-				libMock.EXPECT().GetStore().Return(storeMock, nil),
-				libMock.EXPECT().GetData().Return(serverConfig),
+				libMock.EXPECT().GetStore().Return(multiStoreMock, nil),
+				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 			)
 
 			serverConfig.UIDMappings = u
@@ -250,8 +257,9 @@ var _ = t.Describe("Server", func() {
 		It("should succeed", func() {
 			// Given
 			gomock.InOrder(
-				storeMock.EXPECT().Shutdown(gomock.Any()).Return(nil, nil),
-				storeMock.EXPECT().GraphRoot().Return(emptyDir),
+				multiStoreServerMock.EXPECT().Shutdown(gomock.Any()).Return(nil, nil),
+				multiStoreServerMock.EXPECT().GetStore().Return(multiStoreMock),
+				multiStoreMock.EXPECT().GraphRoot().Return(emptyDir),
 			)
 
 			// When

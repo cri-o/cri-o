@@ -25,6 +25,7 @@ var _ = t.Describe("ImagePull", func() {
 		It("should succeed with pull", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreServerMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock, nil),
 				imageServerMock.EXPECT().ResolveNames(
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
@@ -61,6 +62,7 @@ var _ = t.Describe("ImagePull", func() {
 		It("should succeed when already pulled", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreServerMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock, nil),
 				imageServerMock.EXPECT().ResolveNames(
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
@@ -102,6 +104,7 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when second image status retrieval errors", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreServerMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock, nil),
 				imageServerMock.EXPECT().ResolveNames(
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
@@ -156,6 +159,7 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when image pull errors", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreServerMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock, nil),
 				imageServerMock.EXPECT().ResolveNames(
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
@@ -186,6 +190,7 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when prepare image errors", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreServerMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock, nil),
 				imageServerMock.EXPECT().ResolveNames(
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
@@ -207,13 +212,19 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when resolve names errors", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreServerMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock, nil),
 				imageServerMock.EXPECT().ResolveNames(
 					gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
 			)
+			ann := make(map[string]string)
 			// When
 			response, err := sut.PullImage(context.Background(),
-				&types.PullImageRequest{})
+				&types.PullImageRequest{
+					Image: &types.ImageSpec{
+						Annotations: ann,
+					},
+				})
 
 			// Then
 			Expect(err).NotTo(BeNil())

@@ -27,9 +27,6 @@ func TestGetInfo(t *testing.T) {
 	if ci.CgroupDriver != systemdCgroupManager {
 		t.Fatalf("expected 'systemd', got %q", ci.CgroupDriver)
 	}
-	if ci.StorageDriver != "afoobarstorage" {
-		t.Fatalf("expected 'afoobarstorage', got %q", ci.StorageDriver)
-	}
 	if ci.StorageRoot != "afoobarroot" {
 		t.Fatalf("expected 'afoobarroot', got %q", ci.StorageRoot)
 	}

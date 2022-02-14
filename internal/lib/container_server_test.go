@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/annotations"
+	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	libmock "github.com/cri-o/cri-o/test/mocks/lib"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -36,10 +38,14 @@ var _ = t.Describe("ContainerServer", func() {
 			config.HooksDir = []string{}
 			// so we have permission to make a directory within it
 			config.ContainerAttachSocketDir = t.MustTempDir("crio")
+			store := map[string]cstorage.Store{"defaultStorage": storeMock}
 
 			// Specify mocks
 			gomock.InOrder(
-				libMock.EXPECT().GetStore().Return(storeMock, nil),
+				libMock.EXPECT().GetStore().Return(multiStoreMock, nil),
+				libMock.EXPECT().GetData().Return(config),
+				multiStoreMock.EXPECT().GetStore().Return(store),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				libMock.EXPECT().GetData().Return(config),
 			)
 
@@ -52,6 +58,8 @@ var _ = t.Describe("ContainerServer", func() {
 		})
 
 		It("should fail when GetStore fails", func() {
+			// Shadow the global variable as it fails sometimes if the GetStore is overwritten with other values
+			libMock := libmock.NewMockIface(mockCtrl)
 			// Given
 			gomock.InOrder(
 				libMock.EXPECT().GetStore().Return(nil, t.TestError),
@@ -93,15 +101,19 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(res).NotTo(BeNil())
-			Expect(res).To(Equal(storeMock))
+			Expect(res).To(Equal(multiStoreMock))
 		})
 
 		It("should succeed to get the StorageImageServer", func() {
+			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
+			)
 			// Given
 			// When
-			res := sut.StorageImageServer()
+			res, err := sut.StorageImageServer("")
 
 			// Then
+			Expect(err).To(BeNil())
 			Expect(res).NotTo(BeNil())
 		})
 
@@ -237,11 +249,14 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with failing container directory", func() {
 			// Given
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 					Return("", nil),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 					Return("", t.TestError),
 			)
@@ -257,9 +272,11 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with failing container run directory", func() {
 			// Given
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 					Return("", t.TestError),
 			)
@@ -279,6 +296,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.NamespaceOptions": "",`), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -299,6 +317,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.PortMappings": "{}",`), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -319,6 +338,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Annotations": "",`), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -339,6 +359,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Metadata": "",`), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -359,6 +380,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Labels": "",`), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -379,6 +401,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"selinuxLabel": "wrong"`), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -395,6 +418,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with container directory", func() {
 			// Given
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
@@ -426,6 +450,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with failing FromContainerDirectory", func() {
 			// Given
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
@@ -442,9 +467,11 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 					Return("", t.TestError),
 			)
@@ -460,11 +487,14 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 					Return("", nil),
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 					Return("", t.TestError),
 			)
@@ -479,6 +509,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with invalid manifest", func() {
 			// Given
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return([]byte{}, nil),
@@ -498,6 +529,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Labels": "",`), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -517,6 +549,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Metadata": "",`), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -536,6 +569,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Annotations": "",`), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -556,6 +590,7 @@ var _ = t.Describe("ContainerServer", func() {
 					annotations.ContainerManagerLibpod)), 1,
 			)
 			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(manifest, nil),
@@ -664,8 +699,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail when storage shutdown fails", func() {
 			// Given
 			gomock.InOrder(
-				storeMock.EXPECT().Shutdown(gomock.Any()).
-					Return(nil, t.TestError),
+				storeMock.EXPECT().Shutdown(gomock.Any()).Return([]string{}, t.TestError),
 			)
 
 			// When

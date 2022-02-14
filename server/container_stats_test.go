@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -47,8 +48,11 @@ var _ = t.Describe("ContainerStatsList", func() {
 		It("should succeed", func() {
 			// Given
 			addContainerAndSandbox()
-			storeMock.EXPECT().GraphDriver().Return(nil, errors.New("not implemented"))
-
+			gomock.InOrder(
+				multiStoreServerMock.EXPECT().GetStore().Return(multiStoreMock),
+				multiStoreMock.EXPECT().GetStoreForContainer(gomock.Any()).Return(storeMock, nil),
+				storeMock.EXPECT().GraphDriver().Return(nil, errors.New("not implemented")),
+			)
 			// When
 			response, err := sut.ListContainerStats(context.Background(),
 				&types.ListContainerStatsRequest{})
