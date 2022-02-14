@@ -86,7 +86,7 @@ cp kubernetes/test/bin/{ginkgo,e2e.test} _output/bin
 export CONTAINER_RUNTIME=remote
 export CGROUP_DRIVER=systemd
 export CGROUP_ROOT=/
-export KUBELET_FLAGS='--runtime-cgroups=/system.slice/crio.service --non-masquerade-cidr=0.0.0.0/0'
+export KUBELET_FLAGS='--runtime-cgroups=/system.slice/crio.service'
 export CONTAINER_RUNTIME_ENDPOINT=/var/run/crio/crio.sock
 export ALLOW_PRIVILEGED=1
 
