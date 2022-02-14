@@ -7,7 +7,7 @@ package libconfigmock
 import (
 	reflect "reflect"
 
-	storage "github.com/containers/storage"
+	storage "github.com/cri-o/cri-o/internal/storage"
 	config "github.com/cri-o/cri-o/pkg/config"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -50,10 +50,10 @@ func (mr *MockIfaceMockRecorder) GetData() *gomock.Call {
 }
 
 // GetStore mocks base method.
-func (m *MockIface) GetStore() (storage.Store, error) {
+func (m *MockIface) GetStore() (storage.MultiStore, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStore")
-	ret0, _ := ret[0].(storage.Store)
+	ret0, _ := ret[0].(storage.MultiStore)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
