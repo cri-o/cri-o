@@ -345,7 +345,7 @@ func (s *server) servePortForward(req *restful.Request, resp *restful.Response) 
 
 	portForwardOptions, err := portforward.BuildV4Options(pf.Port)
 	if err != nil {
-		resp.WriteError(http.StatusBadRequest, err) // nolint
+		resp.WriteError(http.StatusBadRequest, err) //nolint:errcheck
 		return
 	}
 
