@@ -44,7 +44,7 @@ FOUND_K8S_POD_NAME="${K8S_POD_NAME}"
 FOUND_K8S_POD_UID="${K8S_POD_UID}"
 EOT
 
-# shellcheck disable=1090
+# shellcheck disable=SC1091
 . "$TEST_DIR"/cni_plugin_helper_input.env
 rm -f "$TEST_DIR"/cni_plugin_helper_input.env
 
