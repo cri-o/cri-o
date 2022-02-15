@@ -219,15 +219,15 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		si  *syncInfo
 		err error
 	}
-	ch := make(chan syncStruct)
+	ch := make(chan syncStruct, 1)
 	go func() {
+		defer close(ch)
 		var si *syncInfo
 		if err = json.NewDecoder(parentPipe).Decode(&si); err != nil {
 			ch <- syncStruct{err: err}
 			return
 		}
 		ch <- syncStruct{si: si}
-		close(ch)
 	}()
 
 	var pid int
