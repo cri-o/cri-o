@@ -4,7 +4,6 @@ approvers:
   - rhatdan
   - nalind
   - giuseppe
-  - sboeuf
   - umohnani8
   - saschagrunert
   - vrothberg
@@ -13,3 +12,4 @@ approvers:
   - kolyshkin
 emeritus_approvers:
   - sameo
+  - sboeuf
