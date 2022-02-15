@@ -36,7 +36,7 @@ var _ = t.Describe("Stats", func() {
 				pgFaultVal         uint64 = 102
 				pgMajFaultVal      uint64 = 102
 				expectedUsage      uint64 = 1
-				inactiveFileSearch string = "inactive_file "
+				inactiveFileSearch        = "inactive_file "
 			)
 			data := fmt.Sprintf("%s%d\npgfault %d\npgmajfault %d\nrss %d", inactiveFileSearch,
 				inactiveFileVal, pgFaultVal, pgMajFaultVal, rssVal)
@@ -54,7 +54,7 @@ var _ = t.Describe("Stats", func() {
 			var (
 				inactiveFileVal    uint64 = 100
 				expectedUsage      uint64 = 1
-				inactiveFileSearch string = "total_inactive_file "
+				inactiveFileSearch        = "total_inactive_file "
 			)
 			data := fmt.Sprintf("%s%d", inactiveFileSearch, inactiveFileVal)
 
@@ -65,8 +65,8 @@ var _ = t.Describe("Stats", func() {
 		})
 		It("should fail from invalid", func() {
 			var (
-				inactiveFileVal    string = "failure"
-				inactiveFileSearch string = "total_inactive_file "
+				inactiveFileVal    = "failure"
+				inactiveFileSearch = "total_inactive_file "
 			)
 			data := fmt.Sprintf("%s%s", inactiveFileSearch, inactiveFileVal)
 
@@ -78,7 +78,7 @@ var _ = t.Describe("Stats", func() {
 			var (
 				inactiveFileVal    uint64 = 2
 				usage              uint64 = 1
-				inactiveFileSearch string = "total_inactive_file "
+				inactiveFileSearch        = "total_inactive_file "
 			)
 			data := fmt.Sprintf("%s%d", inactiveFileSearch, inactiveFileVal)
 
