@@ -368,7 +368,7 @@ type criAdapter struct {
 }
 
 var (
-	_ remotecommandserver.Executor = &criAdapter{} // nolint
+	_ remotecommandserver.Executor = &criAdapter{}
 	_ remotecommandserver.Attacher = &criAdapter{}
 	_ portforward.PortForwarder    = &criAdapter{}
 )
