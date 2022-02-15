@@ -10,6 +10,11 @@ approvers:
   - haircommander
   - fidencio
   - kolyshkin
+reviewers:
+  - wgahnagl
+  - fgiudici
+  - QiWang19
+  - klihub
 emeritus_approvers:
   - sameo
   - sboeuf
