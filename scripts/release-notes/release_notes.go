@@ -43,10 +43,10 @@ func main() {
 }
 
 func run() error {
-	// Precheck environemt
+	// Precheck environment.
 	token, tokenSet := os.LookupEnv(tokenKey)
 	if !tokenSet || token == "" {
-		logrus.Infof("%s environemt variable is not set", tokenKey)
+		logrus.Infof("%s environment variable is not set", tokenKey)
 		os.Exit(0)
 	}
 
