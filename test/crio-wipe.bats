@@ -128,7 +128,7 @@ function start_crio_with_stopped_pod() {
 
 	run_crio_wipe
 
-	run_podman_with_args ps -a | grep test
+	run_podman_with_args container exists test
 }
 
 @test "do clear everything when shutdown file not found" {
@@ -163,8 +163,7 @@ function start_crio_with_stopped_pod() {
 
 	run_crio_wipe
 
-	run_podman_with_args ps -a
-	[[ ! "$output" =~ "test" ]]
+	! run_podman_with_args container exists test
 }
 
 @test "fail to clear podman containers when shutdown file not found but container still running" {
