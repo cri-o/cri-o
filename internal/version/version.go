@@ -172,7 +172,10 @@ func (i *Info) String() string {
 			valueString = fmt.Sprint(value.Bool())
 
 		case reflect.Slice:
-			valueString = strings.Join(value.Interface().([]string), ", ")
+			// Only expecting []string here; ignore other slices.
+			if s, ok := value.Interface().([]string); ok {
+				valueString = strings.Join(s, ", ")
+			}
 
 		case reflect.String:
 			valueString = value.String()
