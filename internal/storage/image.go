@@ -649,8 +649,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	return destRef, nil
 }
 
-// nolint: gocritic
-func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName string) (*types.SystemContext, types.ImageReference, types.ImageReference, error) {
+func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName string) (_ *types.SystemContext, srcRef, destRef types.ImageReference, _ error) {
 	srcSystemContext, srcRef, err := svc.prepareReference(inputSystemContext, imageName)
 	if err != nil {
 		return nil, nil, nil, err
@@ -661,7 +660,7 @@ func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemCon
 		dest = srcRef.DockerReference().String()
 	}
 
-	destRef, err := istorage.Transport.ParseStoreReference(store, dest)
+	destRef, err = istorage.Transport.ParseStoreReference(store, dest)
 	if err != nil {
 		return nil, nil, nil, err
 	}
