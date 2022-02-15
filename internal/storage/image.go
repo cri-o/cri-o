@@ -197,14 +197,12 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, img *s
 	// it into a canonical reference using the digest and add it to the list.
 	for _, name := range append(tags, knownRepoDigests...) {
 		if ref, err2 := reference.ParseNormalizedNamed(name); err2 == nil {
-			if name, ok := ref.(reference.Named); ok {
-				trimmed := reference.TrimNamed(name)
-				for _, imageDigest := range imageDigests {
-					if imageRef, err3 := reference.WithDigest(trimmed, imageDigest); err3 == nil {
-						if _, ok := digestMap[imageRef.String()]; !ok {
-							repoDigests = append(repoDigests, imageRef.String())
-							digestMap[imageRef.String()] = struct{}{}
-						}
+			trimmed := reference.TrimNamed(ref)
+			for _, imageDigest := range imageDigests {
+				if imageRef, err3 := reference.WithDigest(trimmed, imageDigest); err3 == nil {
+					if _, ok := digestMap[imageRef.String()]; !ok {
+						repoDigests = append(repoDigests, imageRef.String())
+						digestMap[imageRef.String()] = struct{}{}
 					}
 				}
 			}
