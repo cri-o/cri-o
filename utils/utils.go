@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -275,21 +276,20 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	if err != nil {
 		return "", errors.Wrap(err, "unable to follow symlinks to passwd file")
 	}
-	info, err := os.Stat(originPasswdFile)
+	var st unix.Stat_t
+	err = unix.Stat(originPasswdFile, &st)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil
 		}
 		return "", errors.Wrapf(err, "unable to stat passwd file %s", originPasswdFile)
 	}
-	// Check if passwd file is world writable
-	if info.Mode().Perm()&(0o022) != 0 {
+	// Check if passwd file is world writable.
+	if st.Mode&0o022 != 0 {
 		return "", nil
 	}
-	passwdUID := info.Sys().(*syscall.Stat_t).Uid
-	passwdGID := info.Sys().(*syscall.Stat_t).Gid
 
-	if uid == passwdUID && info.Mode().Perm()&(0o200) != 0 {
+	if uid == st.Uid && st.Mode&0o200 != 0 {
 		return "", nil
 	}
 
@@ -308,10 +308,10 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		homedir = "/tmp"
 	}
 	pwd := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", orig, username, uid, gid, username, homedir)
-	if err := ioutil.WriteFile(passwdFile, []byte(pwd), info.Mode()); err != nil {
+	if err := ioutil.WriteFile(passwdFile, []byte(pwd), os.FileMode(st.Mode)&os.ModePerm); err != nil {
 		return "", errors.Wrap(err, "failed to create temporary passwd file")
 	}
-	if err := os.Chown(passwdFile, int(passwdUID), int(passwdGID)); err != nil {
+	if err := os.Chown(passwdFile, int(st.Uid), int(st.Gid)); err != nil {
 		return "", errors.Wrap(err, "failed to chown temporary passwd file")
 	}
 
