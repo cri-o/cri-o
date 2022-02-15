@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/containers/buildah/util"
@@ -32,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/intel/goresctrl/pkg/blockio"
@@ -61,18 +61,20 @@ func makeAccessible(path string, uid, gid int, doChown bool) error {
 		}
 	}
 	for ; path != "/"; path = filepath.Dir(path) {
-		st, err := os.Stat(path)
+		var st unix.Stat_t
+		err := unix.Stat(path, &st)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil
 			}
 			return err
 		}
-		if int(st.Sys().(*syscall.Stat_t).Uid) == uid && int(st.Sys().(*syscall.Stat_t).Gid) == gid {
+		if int(st.Uid) == uid && int(st.Gid) == gid {
 			continue
 		}
-		if st.Mode()&0o111 != 0o111 {
-			if err := os.Chmod(path, st.Mode()|0o111); err != nil {
+		perm := os.FileMode(st.Mode) & os.ModePerm
+		if perm&0o111 != 0o111 {
+			if err := os.Chmod(path, perm|0o111); err != nil {
 				return err
 			}
 		}
