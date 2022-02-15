@@ -107,7 +107,7 @@ var DefaultConfig = Config{
 
 // NewServer creates a new Server for stream requests.
 // TODO(tallclair): Add auth(n/z) interface & handling.
-func NewServer(ctx context.Context, config Config, runtime Runtime) (Server, error) { // nolint
+func NewServer(ctx context.Context, config *Config, runtime Runtime) (Server, error) {
 	s := &server{
 		config:  config,
 		runtime: &criAdapter{runtime},
@@ -156,7 +156,7 @@ func NewServer(ctx context.Context, config Config, runtime Runtime) (Server, err
 }
 
 type server struct {
-	config  Config
+	config  *Config
 	runtime *criAdapter
 	handler http.Handler
 	cache   *requestCache
