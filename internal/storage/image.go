@@ -199,14 +199,12 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, img *s
 	// it into a canonical reference using the digest and add it to the list.
 	for _, name := range append(tags, knownRepoDigests...) {
 		if ref, err2 := reference.ParseNormalizedNamed(name); err2 == nil {
-			if name, ok := ref.(reference.Named); ok {
-				trimmed := reference.TrimNamed(name)
-				for _, imageDigest := range imageDigests {
-					if imageRef, err3 := reference.WithDigest(trimmed, imageDigest); err3 == nil {
-						if _, ok := digestMap[imageRef.String()]; !ok {
-							repoDigests = append(repoDigests, imageRef.String())
-							digestMap[imageRef.String()] = struct{}{}
-						}
+			trimmed := reference.TrimNamed(ref)
+			for _, imageDigest := range imageDigests {
+				if imageRef, err3 := reference.WithDigest(trimmed, imageDigest); err3 == nil {
+					if _, ok := digestMap[imageRef.String()]; !ok {
+						repoDigests = append(repoDigests, imageRef.String())
+						digestMap[imageRef.String()] = struct{}{}
 					}
 				}
 			}
@@ -659,8 +657,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	return destRef, nil
 }
 
-// nolint: gocritic
-func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName string) (*types.SystemContext, types.ImageReference, types.ImageReference, error) {
+func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName string) (_ *types.SystemContext, srcRef, destRef types.ImageReference, _ error) {
 	srcSystemContext, srcRef, err := svc.prepareReference(inputSystemContext, imageName)
 	if err != nil {
 		return nil, nil, nil, err
@@ -671,7 +668,7 @@ func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemCon
 		dest = srcRef.DockerReference().String()
 	}
 
-	destRef, err := istorage.Transport.ParseStoreReference(store, dest)
+	destRef, err = istorage.Transport.ParseStoreReference(store, dest)
 	if err != nil {
 		return nil, nil, nil, err
 	}

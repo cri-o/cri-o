@@ -35,12 +35,12 @@ func main() {
 func run() error {
 	if !env.IsSet(githubTokenEnvKey) {
 		return errors.Errorf(
-			"run: $%s environemt variable is not set", githubTokenEnvKey,
+			"run: $%s environment variable is not set", githubTokenEnvKey,
 		)
 	}
 	if !env.IsSet(orgEnvKey) {
 		return errors.Errorf(
-			"run: $%s environemt variable is not set %s",
+			"run: $%s environment variable is not set %s",
 			orgEnvKey,
 			"(should be set to your CRI-O fork organization, like 'gh-name')",
 		)

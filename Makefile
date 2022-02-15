@@ -134,7 +134,7 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 endif
 	touch "$(GOPATH)/.gopathok"
 
-# See also: .github/workflows/lint.yml
+# See also: .github/workflows/verify.yml.
 lint: .gopathok ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} version
 	${GOLANGCI_LINT} linters
@@ -261,7 +261,7 @@ ${ZEITGEIST}:
 	$(call go-build,./vendor/sigs.k8s.io/zeitgeist)
 
 ${GOLANGCI_LINT}:
-	export VERSION=v1.40.1 \
+	export VERSION=v1.44.0 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sSfL $$URL/$$VERSION/install.sh | sh -s $$VERSION

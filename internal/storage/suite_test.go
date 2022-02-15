@@ -24,10 +24,9 @@ var _ = BeforeSuite(func() {
 	t.Setup()
 
 	// Setup test data
-	testManifest =
-		[]byte(`{"schemaVersion": 1,"fsLayers":[{"blobSum": ""}],` +
-			`"history": [{"v1Compatibility": "{\"id\":\"e45a5af57b00862e5ef57` +
-			`82a9925979a02ba2b12dff832fd0991335f4a11e5c5\",\"parent\":\"\"}\n"}]}`)
+	testManifest = []byte(`{"schemaVersion": 1,"fsLayers":[{"blobSum": ""}],` +
+		`"history": [{"v1Compatibility": "{\"id\":\"e45a5af57b00862e5ef57` +
+		`82a9925979a02ba2b12dff832fd0991335f4a11e5c5\",\"parent\":\"\"}\n"}]}`)
 })
 
 var _ = AfterSuite(func() {

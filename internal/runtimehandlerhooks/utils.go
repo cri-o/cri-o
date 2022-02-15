@@ -171,7 +171,7 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting strin
 	if !found {
 		output = output + "\n" + irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\"" + "\n"
 	}
-	if err := ioutil.WriteFile(irqBalanceConfigFile, []byte(output), 0644); err != nil {
+	if err := ioutil.WriteFile(irqBalanceConfigFile, []byte(output), 0o644); err != nil {
 		return err
 	}
 	return nil

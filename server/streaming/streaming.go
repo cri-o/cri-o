@@ -107,7 +107,7 @@ var DefaultConfig = Config{
 
 // NewServer creates a new Server for stream requests.
 // TODO(tallclair): Add auth(n/z) interface & handling.
-func NewServer(ctx context.Context, config Config, runtime Runtime) (Server, error) { // nolint
+func NewServer(ctx context.Context, config *Config, runtime Runtime) (Server, error) {
 	s := &server{
 		config:  config,
 		runtime: &criAdapter{runtime},
@@ -156,7 +156,7 @@ func NewServer(ctx context.Context, config Config, runtime Runtime) (Server, err
 }
 
 type server struct {
-	config  Config
+	config  *Config
 	runtime *criAdapter
 	handler http.Handler
 	cache   *requestCache
@@ -345,7 +345,7 @@ func (s *server) servePortForward(req *restful.Request, resp *restful.Response) 
 
 	portForwardOptions, err := portforward.BuildV4Options(pf.Port)
 	if err != nil {
-		resp.WriteError(http.StatusBadRequest, err) // nolint
+		resp.WriteError(http.StatusBadRequest, err) //nolint:errcheck
 		return
 	}
 
@@ -367,9 +367,11 @@ type criAdapter struct {
 	Runtime
 }
 
-var _ remotecommandserver.Executor = &criAdapter{} // nolint
-var _ remotecommandserver.Attacher = &criAdapter{}
-var _ portforward.PortForwarder = &criAdapter{}
+var (
+	_ remotecommandserver.Executor = &criAdapter{}
+	_ remotecommandserver.Attacher = &criAdapter{}
+	_ portforward.PortForwarder    = &criAdapter{}
+)
 
 func (a *criAdapter) ExecInContainer(podName string, podUID apiTypes.UID, container string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize, timeout time.Duration) error {
 	return a.Runtime.Exec(container, cmd, in, out, err, tty, resize)

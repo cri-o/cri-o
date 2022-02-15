@@ -483,7 +483,7 @@ func New(
 	}
 	s.stream.ctx = ctx
 	s.stream.runtimeServer = s
-	s.stream.streamServer, err = streaming.NewServer(ctx, streamServerConfig, s.stream)
+	s.stream.streamServer, err = streaming.NewServer(ctx, &streamServerConfig, s.stream)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create streaming server")
 	}
