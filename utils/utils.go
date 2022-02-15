@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/containers/podman/v3/pkg/lookup"
@@ -378,7 +377,7 @@ func Sync(path string) error {
 	}
 	defer f.Close()
 
-	if err := syscall.Fsync(int(f.Fd())); err != nil {
+	if err := f.Sync(); err != nil {
 		return err
 	}
 	return nil
