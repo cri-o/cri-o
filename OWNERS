@@ -1,6 +1,5 @@
 approvers:
   - mrunalp
-  - runcom
   - rhatdan
   - nalind
   - giuseppe
@@ -18,3 +17,4 @@ reviewers:
 emeritus_approvers:
   - sameo
   - sboeuf
+  - runcom
