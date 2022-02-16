@@ -1,6 +1,5 @@
 approvers:
   - mrunalp
-  - rhatdan
   - nalind
   - giuseppe
   - umohnani8
@@ -18,3 +17,4 @@ emeritus_approvers:
   - sameo
   - sboeuf
   - runcom
+  - rhatdan
