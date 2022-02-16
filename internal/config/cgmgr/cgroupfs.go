@@ -11,13 +11,9 @@ import (
 
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/utils"
-	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
+	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -136,47 +132,27 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 }
 
 func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) error {
-	var mgr libctr.Manager
 	if resources.CPU == nil {
 		return nil
 	}
 
-	paths := map[string]string{
-		"cpuset":  filepath.Join("/sys/fs/cgroup", "cpuset", cgPath),
-		"cpu":     filepath.Join("/sys/fs/cgroup", "cpu", cgPath),
-		"freezer": filepath.Join("/sys/fs/cgroup", "freezer", cgPath),
-		"devices": filepath.Join("/sys/fs/cgroup", "devices", cgPath),
-	}
-
 	cg := &cgcfgs.Cgroup{
-		Name:      cgPath,
-		Resources: &cgcfgs.Resources{},
-	}
-	if resources.CPU.Cpus != "" {
-		cg.Resources.CpusetCpus = resources.CPU.Cpus
+		Path: "/" + cgPath,
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+			CpusetCpus:  resources.CPU.Cpus,
+		},
+		Rootless: rootless.IsRootless(),
 	}
 	if resources.CPU.Shares != nil {
 		cg.Resources.CpuShares = *resources.CPU.Shares
 	}
 
-	// We need to white list all devices
-	// so containers created underneath won't fail
-	cg.Resources.Devices = []*devices.Rule{
-		{
-			Type:  devices.WildcardDevice,
-			Allow: true,
-		},
+	mgr, err := libctrCgMgr.New(cg)
+	if err != nil {
+		return err
 	}
 
-	if node.CgroupIsV2() {
-		var err error
-		mgr, err = fs2.NewManager(cg, cgPath, rootless.IsRootless())
-		if err != nil {
-			return err
-		}
-	} else {
-		mgr = fs.NewManager(cg, paths, rootless.IsRootless())
-	}
 	return mgr.Set(cg.Resources)
 }
 
