@@ -1,0 +1,41 @@
+name: Failing Test
+description: Report continuously failing tests or jobs in the CRI-O CI
+labels: kind/failing-test
+body:
+  - type: textarea
+    id: jobs
+    attributes:
+      label: Which jobs are failing?
+      placeholder: |
+        Please only use this template for submitting reports about continuously failing tests or jobs in the CRI-O CI.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: Which tests are failing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: since
+    attributes:
+      label: Since when has it been failing?
+    validations:
+      required: true
+
+  - type: input
+    id: testgrid
+    attributes:
+      label: Testgrid link
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason for failure (if possible)
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Anything else we need to know?
