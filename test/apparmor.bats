@@ -17,6 +17,7 @@ function teardown() {
 	load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile
 	run_a_container_with_wrong_apparmor_profile_name
 	run_a_container_after_unloading_default_apparmor_profile
+	run_a_container_with_invalid_localhost_apparmor_profile_name
 }
 
 # 1. test running with loading the default apparmor profile.
@@ -126,6 +127,26 @@ run_a_container_after_unloading_default_apparmor_profile() {
 	pod_id=$(crictl runp "$TESTDIR"/apparmor5.json)
 
 	crictl create "$pod_id" "$TESTDIR"/apparmor_container5.json "$TESTDIR"/apparmor5.json && fail
+
+	cleanup_test
+}
+
+# 6. test running with empty localhost profile name.
+run_a_container_with_invalid_localhost_apparmor_profile_name() {
+	local output status
+
+	setup_test
+	start_crio
+
+	jq '.linux.security_context.apparmor_profile = "localhost/"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/apparmor4.json
+
+	jq '.linux.security_context.apparmor_profile = "localhost/"' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR"/apparmor_container4.json
+
+	pod_id=$(crictl runp "$TESTDIR"/apparmor4.json)
+
+	! crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
 
 	cleanup_test
 }

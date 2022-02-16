@@ -99,6 +99,10 @@ func (c *Config) Apply(profile string) (string, error) {
 	}
 	profile = strings.TrimPrefix(profile, v1.AppArmorBetaProfileNamePrefix)
 
+	if profile == "" {
+		return "", errors.New("empty localhost AppArmor profile is forbidden")
+	}
+
 	// reload the profile if default
 	if profile == DefaultProfile {
 		if err := reloadDefaultProfile(); err != nil {
