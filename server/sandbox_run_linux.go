@@ -980,7 +980,7 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.G
 
 	for _, sysctl := range defaultSysctls {
 		if err := sysctl.Validate(hostNetwork, hostIPC); err != nil {
-			log.Warnf(ctx, "Skipping invalid sysctl %s: %v", sysctl, err)
+			log.Warnf(ctx, "Skipping invalid sysctl specified by config %s: %v", sysctl, err)
 			continue
 		}
 		g.AddLinuxSysctl(sysctl.Key(), sysctl.Value())
@@ -990,6 +990,11 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.G
 	// extract linux sysctls from annotations and pass down to oci runtime
 	// Will override any duplicate default systcl from crio.conf
 	for key, value := range sysctls {
+		sysctl := libconfig.NewSysctl(key, value)
+		if err := sysctl.Validate(hostNetwork, hostIPC); err != nil {
+			log.Warnf(ctx, "Skipping invalid sysctl specified over CRI %s: %v", sysctl, err)
+			continue
+		}
 		g.AddLinuxSysctl(key, value)
 		sysctlsToReturn[key] = value
 	}
