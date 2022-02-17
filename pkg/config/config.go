@@ -1289,8 +1289,13 @@ func (c *NetworkConfig) CNIPluginReadyOrError() error {
 }
 
 // CNIPluginAddWatcher returns the network configuration CNI plugin
-func (c *NetworkConfig) CNIPluginAddWatcher() chan struct{} {
+func (c *NetworkConfig) CNIPluginAddWatcher() chan bool {
 	return c.cniManager.AddWatcher()
+}
+
+// CNIManagerShutdown shuts down the CNI Manager
+func (c *NetworkConfig) CNIManagerShutdown() {
+	c.cniManager.Shutdown()
 }
 
 // SetSingleConfigPath set single config path for config

@@ -325,7 +325,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		// if the cni plugin isn't ready yet, we should wait until it is
 		// before proceeding
 		watcher := s.config.CNIPluginAddWatcher()
-		<-watcher
+		log.Infof(ctx, "CNI plugin not ready. Waiting to create %s as it is not host network", sbox.Name())
+		if ready := <-watcher; !ready {
+			return nil, errors.Wrapf(err, "server shutdown before network was ready")
+		}
+		log.Infof(ctx, "CNI plugin is now ready. Continuing to create %s", sbox.Name())
 	}
 
 	description := fmt.Sprintf("runSandbox: releasing pod sandbox name: %s", sbox.Name())
