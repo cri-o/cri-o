@@ -28,6 +28,17 @@ tar czf "${rpm_tmp_dir}/SOURCES/${OS_RPM_NAME}-test.tar.gz" \
     .
 cp -r "${ci_data}/." "${rpm_tmp_dir}/SOURCES"
 
+# Some CI environments do not have IPv6 connectivity, while vault.centos.org
+# resolves to both IPv4 and IPv6 addresses. This result in occasional
+# "Network is unreachable" errors. Workaround: disable IPv6 for yum.
+if [ -w /etc/yum.conf ] && ! grep -q '^ip_resolve' /etc/yum.conf; then
+	os::log::info "Disabling IPv6 for yum ..."
+	echo 'ip_resolve=4' >> /etc/yum.conf
+fi
+# The default configuration for source repos is to use vault.centos.org
+# (no mirrors provided), which is super slow as of late, resulting in
+# timeouts. Workaround: use mirrors.kernel.org instead.
+sed -i 's|//vault.centos.org/centos/|//archive.kernel.org/centos-vault/centos/|g' /etc/yum.repos.d/CentOS-Sources.repo
 yum-builddep -y "${OS_RPM_SPECFILE}"
 
 rpmbuild -ba "${OS_RPM_SPECFILE}" \
