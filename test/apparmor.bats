@@ -7,6 +7,7 @@ function teardown() {
 }
 
 # AppArmor tests have to run in sequence since they modify the system state
+# shellcheck disable=SC2030
 @test "apparmor tests (in sequence)" {
 	if ! is_apparmor_enabled; then
 		skip "apparmor not enabled"
@@ -40,6 +41,7 @@ load_default_apparmor_profile_and_run_a_container_with_it() {
 
 # 2. test running with loading a specific apparmor profile as crio default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.` as crio default apparmor profile.
+# shellcheck disable=SC2031
 load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it() {
 	local output status
 
@@ -65,6 +67,7 @@ load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it
 
 # 3. test running with loading a specific apparmor profile but not as crio default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.`
+# shellcheck disable=SC2031
 load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile() {
 	local output status
 

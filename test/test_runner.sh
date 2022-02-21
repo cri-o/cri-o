@@ -22,14 +22,14 @@ fi
 
 function execute() {
     echo >&2 ++ "$@"
-    eval "$@"
+    time "$@"
 }
 
-# Tests to run. Defaults to all.
-TESTS=${*:-.}
+# Tests to run. Default is "." (i.e. the current directory).
+TESTS=("${@:-.}")
 
 # The number of parallel jobs to execute
 export JOBS=${JOBS:-$(($(nproc --all) * 4))}
 
 # Run the tests.
-execute time bats --jobs "$JOBS" --tap "$TESTS"
+execute bats --jobs "$JOBS" --tap "${TESTS[@]}"
