@@ -25,8 +25,10 @@
       - "CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volumes should store data"
       # Started failing at https://github.com/kubernetes/kubernetes/pull/98587, and tests something out of the scope of CRI-O
       - "ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer"
-      # TODO: remove once https://github.com/kubernetes/kubernetes/issues/96565 is fixed
-      - "Pods Extended [k8s.io] Pod Container Status should never report success for a pending container"
+      # While fully conformant kubernetes clusters require more than 2 nodes, verifying that CRI-O
+      # is a compliant CRI implementation does not warrant  multiple nodes.
+      # TODO(haircommander): when refactoring CI, we should consider spawning multiple nodes to drop this line.
+      - "Conformance Tests should have at least two untainted nodes"
   set_fact:
     e2e_shell_cmd: >
         DBUS_SESSION_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket" KUBE_CONTAINER_RUNTIME="remote" GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y KUBE_SSH_USER="{{ ssh_user }}" LOCAL_SSH_KEY="{{ ssh_location }}"
