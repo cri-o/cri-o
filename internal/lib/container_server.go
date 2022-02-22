@@ -688,8 +688,8 @@ func (c *ContainerServer) StopContainerAndWait(ctx context.Context, ctr *oci.Con
 	if err := c.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
 		return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
 	}
-	if err := c.Runtime().WaitContainerStateStopped(ctx, ctr); err != nil {
-		return fmt.Errorf("failed to get container 'stopped' status %s: %v", ctr.Name(), err)
+	if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
+		return fmt.Errorf("failed to update container status %s: %v", ctr.Name(), err)
 	}
 	return nil
 }

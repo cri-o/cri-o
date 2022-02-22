@@ -941,10 +941,6 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 	return err
 }
 
-func (r *runtimeOCI) WaitContainerStateStopped(ctx context.Context, c *Container) error {
-	return nil
-}
-
 // ContainerStats provides statistics of a container.
 func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*types.ContainerStats, error) {
 	c.opLock.Lock()

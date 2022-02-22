@@ -71,7 +71,6 @@ type RuntimeImpl interface {
 	PortForwardContainer(context.Context, *Container, string,
 		int32, io.ReadWriteCloser) error
 	ReopenContainerLog(context.Context, *Container) error
-	WaitContainerStateStopped(context.Context, *Container) error
 }
 
 // New creates a new Runtime with options provided
@@ -109,63 +108,6 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 	}
 
 	return runtimeHandler, nil
-}
-
-// WaitContainerStateStopped runs a loop polling UpdateStatus(), seeking for
-// the container status to be updated to 'stopped'. Either it gets the expected
-// status and returns nil, or it reaches the timeout and returns an error.
-func (r *Runtime) WaitContainerStateStopped(ctx context.Context, c *Container) error {
-	impl, err := r.RuntimeImpl(c)
-	if err != nil {
-		return err
-	}
-
-	// No need to go further and spawn the go routine if the container
-	// is already in the expected status.
-	if c.State().Status == ContainerStateStopped {
-		return nil
-	}
-
-	done := make(chan error, 1)
-	chControl := make(chan struct{}, 1)
-	defer close(chControl)
-	go func() {
-		defer close(done)
-		for {
-			select {
-			case <-chControl:
-				return
-			default:
-				// Check if the container is stopped
-				if err := impl.UpdateContainerStatus(ctx, c); err != nil {
-					done <- err
-					return
-				}
-				if c.State().Status == ContainerStateStopped {
-					done <- nil
-					return
-				}
-				time.Sleep(100 * time.Millisecond)
-			}
-		}
-	}()
-	select {
-	case err = <-done:
-		break
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(time.Duration(r.config.CtrStopTimeout) * time.Second):
-		return fmt.Errorf(
-			"failed to get container stopped status: %ds timeout reached",
-			r.config.CtrStopTimeout,
-		)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to get container stopped status: %v", err)
-	}
-
-	return nil
 }
 
 func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
