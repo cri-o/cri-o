@@ -26,6 +26,7 @@ func (s *Sysctl) Value() string {
 }
 
 // Sysctls returns the parsed sysctl slice and an error if not parsable
+// Some validation based on https://github.com/containers/common/blob/main/pkg/sysctl/sysctl.go
 func (c *RuntimeConfig) Sysctls() ([]Sysctl, error) {
 	sysctls := make([]Sysctl, 0, len(c.DefaultSysctls))
 	for _, sysctl := range c.DefaultSysctls {
@@ -34,11 +35,17 @@ func (c *RuntimeConfig) Sysctls() ([]Sysctl, error) {
 			continue
 		}
 		split := strings.SplitN(sysctl, "=", 2)
-		if len(split) == 2 {
-			sysctls = append(sysctls, Sysctl{key: split[0], value: split[1]})
-		} else {
+		if len(split) != 2 {
 			return nil, errors.Errorf("%q is not in key=value format", sysctl)
 		}
+
+		// pinns nor runc expect sysctls of the form 'key = value', but rather
+		// 'key=value'
+		trimmed := strings.TrimSpace(split[0]) + "=" + strings.TrimSpace(split[1])
+		if trimmed != sysctl {
+			return nil, errors.Errorf("'%s' is invalid, extra spaces found: format should be key=value", sysctl)
+		}
+		sysctls = append(sysctls, Sysctl{key: split[0], value: split[1]})
 	}
 	return sysctls, nil
 }
