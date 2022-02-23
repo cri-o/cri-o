@@ -303,8 +303,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return err
 	}
 
-	// first, make sure we sync all storage changes
-	if err := utils.Sync(s.Store().GraphRoot()); err != nil {
+	// first, make sure we sync all the changes to the file system holding
+	// the graph root
+	if err := utils.Syncfs(s.Store().GraphRoot()); err != nil {
 		return errors.Wrapf(err, "failed to sync graph root after shutting down")
 	}
 

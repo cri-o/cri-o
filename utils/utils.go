@@ -382,3 +382,17 @@ func Sync(path string) error {
 	}
 	return nil
 }
+
+// Syncfs ensures the file system at path is synced to disk
+func Syncfs(path string) error {
+	f, err := os.OpenFile(path, os.O_RDONLY, 0o755)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if err := unix.Syncfs(int(f.Fd())); err != nil {
+		return err
+	}
+	return nil
+}
