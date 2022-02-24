@@ -383,6 +383,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil
 	})
 
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox creating")
+
 	securityContext := sbox.Config().Linux.SecurityContext
 
 	if securityContext.NamespaceOptions == nil {
@@ -400,6 +402,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 		log.Infof(ctx, "CNI plugin is now ready. Continuing to create %s", sbox.Name())
 	}
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox network ready")
 
 	// validate the runtime handler
 	runtimeHandler, err := s.runtimeHandler(req)
@@ -437,6 +440,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	privileged := s.privilegedSandbox(req)
 
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox storage creation")
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
 		sbox.Name(), sbox.ID(),
 		s.config.PauseImage,
@@ -537,6 +541,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.RemoveMount(libsandbox.DevShmPath)
 
 	// create shm mount for the pod containers.
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox shm creation")
 	var shmPath string
 	if hostIPC {
 		shmPath = libsandbox.DevShmPath
@@ -561,6 +566,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			return nil
 		})
 	}
+
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox spec configuration")
 
 	mnt := spec.Mount{
 		Type:        "bind",
@@ -700,6 +707,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	sysctls := s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC, req.Config.Linux.Sysctls)
 
 	// set up namespaces
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox namespace creation")
 	nsCleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sandboxIDMappings, sysctls, sb, g)
 	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
 	// However, we don't immediately register this func with resourceCleaner because we need to pair the
@@ -723,6 +731,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	var ips []string
 	var result cnitypes.Result
 
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox network creation")
 	ips, result, err = s.networkStart(ctx, sb)
 	if err != nil {
 		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
@@ -749,6 +758,18 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 		g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
 	}
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox storage start")
+
+	mountPoint, err := s.StorageRuntimeServer().StartContainer(sbox.ID())
+	if err != nil {
+		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %w", containerName, sb.Name(), sbox.ID(), err)
+	}
+	resourceCleaner.Add(ctx, "runSandbox: stopping storage container for sandbox "+sbox.ID(), func() error {
+		if err := s.StorageRuntimeServer().StopContainer(sbox.ID()); err != nil {
+			return fmt.Errorf("could not stop storage container: %s: %w", sbox.ID(), err)
+		}
+		return nil
+	})
 
 	// Set OOM score adjust of the infra container to be very low
 	// so it doesn't get killed.
@@ -763,16 +784,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	saveOptions := generate.ExportOptions{}
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(sbox.ID())
-	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %w", containerName, sb.Name(), sbox.ID(), err)
-	}
-	resourceCleaner.Add(ctx, "runSandbox: stopping storage container for sandbox "+sbox.ID(), func() error {
-		if err := s.StorageRuntimeServer().StopContainer(sbox.ID()); err != nil {
-			return fmt.Errorf("could not stop storage container: %s: %w", sbox.ID(), err)
-		}
-		return nil
-	})
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 
 	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
@@ -925,6 +936,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 	}
 
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox container runtime creation")
 	if err := s.createContainerPlatform(ctx, container, sb.CgroupParent(), sandboxIDMappings); err != nil {
 		return nil, err
 	}
