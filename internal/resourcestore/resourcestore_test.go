@@ -79,16 +79,17 @@ var _ = t.Describe("ResourceStore", func() {
 		})
 		It("Should not fail to Get after retrieving Watcher", func() {
 			// When
-			_ = sut.WatcherForResource(testName)
+			_, stage := sut.WatcherForResource(testName)
 
 			// Then
 			id := sut.Get(testName)
 			Expect(id).To(BeEmpty())
+			Expect(stage).To(Equal(resourcestore.StageUnknown))
 		})
 		It("Should be able to get multiple Watchers", func() {
 			// Given
-			watcher1 := sut.WatcherForResource(testName)
-			watcher2 := sut.WatcherForResource(testName)
+			watcher1, _ := sut.WatcherForResource(testName)
+			watcher2, _ := sut.WatcherForResource(testName)
 
 			waitWatcherSet := func(watcher chan struct{}) bool {
 				<-watcher
@@ -142,7 +143,7 @@ var _ = t.Describe("ResourceStore", func() {
 			timeout := 2 * time.Second
 			sut = resourcestore.NewWithTimeout(timeout)
 
-			_ = sut.WatcherForResource(testName)
+			_, _ = sut.WatcherForResource(testName)
 
 			timedOutChan := make(chan bool)
 
