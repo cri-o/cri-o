@@ -34,6 +34,7 @@ type Resource struct {
 	watchers []chan struct{}
 	stale    bool
 	name     string
+	stage    string
 }
 
 // wasPut checks that a resource has been fully defined yet.
@@ -194,4 +195,21 @@ func (rc *ResourceStore) WatcherForResource(name string) chan struct{} {
 	}
 	r.watchers = append(r.watchers, watcher)
 	return watcher
+}
+
+func (rc *ResourceStore) SetStageForResource(name, stage string) {
+	rc.mutex.Lock()
+	defer rc.mutex.Unlock()
+	r, ok := rc.resources[name]
+	if !ok {
+		logrus.Tracef("Initializing stage for resource %s to %s", name, stage)
+		rc.resources[name] = &Resource{
+			watchers: []chan struct{}{},
+			name:     name,
+			stage:    stage,
+		}
+		return
+	}
+	logrus.Tracef("Setting stage for resource %s from %s to %s", name, r.stage, stage)
+	r.stage = stage
 }
