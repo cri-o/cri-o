@@ -172,6 +172,13 @@ function setup_test() {
     #
     # A test case that requires an image not listed in $IMAGES
     # should either do an explicit "crictl pull", or use --with-pull.
+    #
+    # Make sure concurrent test cases don't stomp on each other by
+    # updating the configuration file in place while another test
+    # case is using it.
+
+    CRICTL_CONFIG_FILE="$TESTDIR"/crictl.yaml
+    touch "$CRICTL_CONFIG_FILE"
     crictl config \
         --set pull-image-on-create=false \
         --set disable-pull-on-run=true
@@ -187,7 +194,7 @@ function crio() {
 
 # Run crictl using the binary specified by $CRICTL_BINARY.
 function crictl() {
-    "$CRICTL_BINARY" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" "$@"
+    "$CRICTL_BINARY" --config "$CRICTL_CONFIG_FILE" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" "$@"
 }
 
 # Run the runtime binary with the specified RUNTIME_ROOT
