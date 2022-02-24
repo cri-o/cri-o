@@ -8,7 +8,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const sleepTimeBeforeCleanup = 1 * time.Minute
+const (
+	sleepTimeBeforeCleanup = 1 * time.Minute
+	StageUnknown           = "unknown"
+)
 
 // ResourceStore is a structure that saves information about a recently created resource.
 // Resources can be added and retrieved from the store. A retrieval (Get) also removes the Resource from the store.
@@ -181,25 +184,26 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleane
 // This is useful for situations where clients retry requests quickly after they "fail" because
 // they've taken too long. Adding a watcher allows the server to slow down the client, but still
 // return the resource in a timely manner once it's actually created.
-func (rc *ResourceStore) WatcherForResource(name string) chan struct{} {
+func (rc *ResourceStore) WatcherForResource(name string) (watcher chan struct{}, stage string) {
 	rc.mutex.Lock()
 	defer rc.mutex.Unlock()
-	watcher := make(chan struct{}, 1)
+	watcher = make(chan struct{}, 1)
+
 	r, ok := rc.resources[name]
 	if !ok {
 		rc.resources[name] = &Resource{
 			watchers: []chan struct{}{watcher},
 			name:     name,
 		}
-		return watcher
+		return watcher, StageUnknown
 	}
 	r.watchers = append(r.watchers, watcher)
-	return watcher
+	return watcher, r.stage
 }
 
 func (rc *ResourceStore) SetStageForResource(name, stage string) {
-	rc.Lock()
-	defer rc.Unlock()
+	rc.mutex.Lock()
+	defer rc.mutex.Unlock()
 	r, ok := rc.resources[name]
 	if !ok {
 		rc.resources[name] = &Resource{
