@@ -243,6 +243,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	metadata := containerConfig.Metadata
 
+	s.resourceStore.SetStageForResource(ctr.Name(), "container storage creation")
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
 		image, imgResult.ID,
@@ -296,11 +297,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		skipRelabel = true
 	}
 
+	s.resourceStore.SetStageForResource(ctr.Name(), "container volume configuration")
 	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel)
 	if err != nil {
 		return nil, err
 	}
 
+	s.resourceStore.SetStageForResource(ctr.Name(), "container device creation")
 	configuredDevices := s.config.Devices()
 
 	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
@@ -316,6 +319,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 	if err := ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices, s.config.DeviceOwnershipFromSecurityContext); err != nil {
 		return nil, err
 	}
+	s.resourceStore.SetStageForResource(ctr.Name(), "container spec configuration")
 
 	labels := containerConfig.Labels
 
