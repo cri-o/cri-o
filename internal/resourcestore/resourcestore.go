@@ -34,6 +34,7 @@ type Resource struct {
 	watchers []chan struct{}
 	stale    bool
 	name     string
+	stage    string
 }
 
 // wasPut checks that a resource has been fully defined yet.
@@ -194,4 +195,19 @@ func (rc *ResourceStore) WatcherForResource(name string) chan struct{} {
 	}
 	r.watchers = append(r.watchers, watcher)
 	return watcher
+}
+
+func (rc *ResourceStore) SetStageForResource(name, stage string) {
+	rc.Lock()
+	defer rc.Unlock()
+	r, ok := rc.resources[name]
+	if !ok {
+		rc.resources[name] = &Resource{
+			watchers: []chan struct{}{},
+			name:     name,
+			stage:    stage,
+		}
+		return
+	}
+	r.stage = stage
 }
