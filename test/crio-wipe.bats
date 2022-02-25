@@ -22,9 +22,9 @@ function run_podman_with_args() {
 }
 
 function teardown() {
-	cleanup_test
 	run_podman_with_args stop -a
 	run_podman_with_args rm -fa
+	cleanup_test
 	cleanup_namespaces_dir
 }
 
