@@ -18,6 +18,8 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
+	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
+	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
 	"github.com/cri-o/cri-o/internal/lib"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -25,8 +27,6 @@ import (
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	ctrIface "github.com/cri-o/cri-o/pkg/container"
-	"github.com/cri-o/cri-o/pkg/sandbox"
 	"github.com/cri-o/cri-o/utils"
 	json "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -308,7 +308,7 @@ func (s *Server) getSandboxIDMappings(sb *libsandbox.Sandbox) (*idtools.IDMappin
 }
 
 func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (resp *types.RunPodSandboxResponse, retErr error) {
-	sbox := sandbox.New()
+	sbox := sboxfactory.New()
 	if err := sbox.SetConfig(req.Config); err != nil {
 		return nil, errors.Wrap(err, "setting sandbox config")
 	}
@@ -1087,7 +1087,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, ho
 
 	cleanupFuncs = append(cleanupFuncs, sb.RemoveManagedNamespaces)
 
-	if err := ctrIface.ConfigureGeneratorGivenNamespacePaths(sb.NamespacePaths(), g); err != nil {
+	if err := ctrfactory.ConfigureGeneratorGivenNamespacePaths(sb.NamespacePaths(), g); err != nil {
 		return cleanupFuncs, err
 	}
 

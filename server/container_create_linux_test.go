@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cri-o/cri-o/pkg/container"
+	"github.com/cri-o/cri-o/internal/factory/container"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 

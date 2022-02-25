@@ -1,23 +1,23 @@
-package sandbox_test
+package container_test
 
 import (
 	"testing"
 
-	"github.com/cri-o/cri-o/pkg/sandbox"
+	"github.com/cri-o/cri-o/internal/factory/container"
 	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-// TestSandbox runs the specs
-func TestSandbox(t *testing.T) {
+// TestContainer runs the specs
+func TestContainer(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunFrameworkSpecs(t, "Sandbox")
+	RunFrameworkSpecs(t, "Container")
 }
 
 var (
 	t   *TestFramework
-	sut sandbox.Sandbox
+	sut container.Container
 )
 
 var _ = BeforeSuite(func() {
@@ -30,5 +30,7 @@ var _ = AfterSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	sut = sandbox.New()
+	var err error
+	sut, err = container.New()
+	Expect(err).To(BeNil())
 })

@@ -4,8 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/cri-o/cri-o/internal/factory/sandbox"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/pkg/sandbox"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
