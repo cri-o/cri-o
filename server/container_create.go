@@ -292,6 +292,9 @@ func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defa
 	// and pods expect that switching to a non-root user results in the capabilities being
 	// dropped. This should be revisited in the future.
 	specgen.Config.Process.Capabilities.Ambient = []string{}
+	// Also remove all inheritable capabilities in accordance with CVE-2022-27652,
+	// as it's not idiomatic for a manager of processes to set them.
+	specgen.Config.Process.Capabilities.Inheritable = []string{}
 
 	if caps == nil {
 		return nil
@@ -329,9 +332,6 @@ func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defa
 			if err := specgen.AddProcessCapabilityEffective(c); err != nil {
 				return err
 			}
-			if err := specgen.AddProcessCapabilityInheritable(c); err != nil {
-				return err
-			}
 			if err := specgen.AddProcessCapabilityPermitted(c); err != nil {
 				return err
 			}
@@ -343,9 +343,6 @@ func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defa
 				return err
 			}
 			if err := specgen.DropProcessCapabilityEffective(c); err != nil {
-				return err
-			}
-			if err := specgen.DropProcessCapabilityInheritable(c); err != nil {
 				return err
 			}
 			if err := specgen.DropProcessCapabilityPermitted(c); err != nil {
@@ -369,9 +366,6 @@ func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defa
 		if err := specgen.AddProcessCapabilityEffective(capPrefixed); err != nil {
 			return err
 		}
-		if err := specgen.AddProcessCapabilityInheritable(capPrefixed); err != nil {
-			return err
-		}
 		if err := specgen.AddProcessCapabilityPermitted(capPrefixed); err != nil {
 			return err
 		}
@@ -386,9 +380,6 @@ func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defa
 			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
 		}
 		if err := specgen.DropProcessCapabilityEffective(capPrefixed); err != nil {
-			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
-		}
-		if err := specgen.DropProcessCapabilityInheritable(capPrefixed); err != nil {
 			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
 		}
 		if err := specgen.DropProcessCapabilityPermitted(capPrefixed); err != nil {
