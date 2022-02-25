@@ -16,3 +16,4 @@
     src: /usr/local/bin/bats
     dest: /usr/bin/bats
     state: link
+    force: true
