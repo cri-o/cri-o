@@ -430,11 +430,21 @@ function cleanup_test() {
         cat "$CRIO_LOG"
         echo "# --- --- ---"
     fi
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
-    cleanup_lvm
-    cleanup_testdir
+
+    # Leave the test artifacts intact for failing tests if requested.
+    #
+    # BATS_TEST_COMPLETED is set by BATS to 1 if the test passed, otherwise
+    # it is left unset. The variable is also set if the test was skipped.
+    # See https://bats-core.readthedocs.io/en/stable/faq.html#how-can-i-check-if-a-test-failed-succeeded-during-teardown for more details.
+    if [ -z "$TEST_KEEP_ON_FAILURE" ] || [ "${BATS_TEST_COMPLETED:-}" = "1" ]; then
+        cleanup_ctrs
+        cleanup_pods
+        stop_crio
+        cleanup_lvm
+        cleanup_testdir
+    else
+        echo >&3 "* Failed \"$BATS_TEST_DESCRIPTION\", TESTDIR=$TESTDIR, LVM_DEVICE=${LVM_DEVICE:-}"
+    fi
 }
 
 function load_apparmor_profile() {
