@@ -156,11 +156,23 @@ function teardown() {
 	[[ "$output" == *"net.ipv4.ip_forward = 1"* ]]
 }
 
-@test "fail to pass pod sysctls to runtime if invalid" {
+@test "fail to pass pod sysctls to runtime if invalid spaces" {
 	CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward = 1" crio &
 	! wait_until_reachable
 }
 
+@test "fail to pass pod sysctl to runtime if invalid value" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+	start_crio
+
+	jq '	  .linux.sysctls = {
+			"net.ipv4.ip_local_port_range": "+net.ipv4.ip_local_port_range=1024 65000",
+		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	! crictl runp "$TESTDIR"/sandbox.json
+}
 @test "skip pod sysctls to runtime if host" {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
