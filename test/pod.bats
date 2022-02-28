@@ -156,6 +156,11 @@ function teardown() {
 	[[ "$output" == *"net.ipv4.ip_forward = 1"* ]]
 }
 
+@test "fail to pass pod sysctls to runtime if invalid" {
+	CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward = 1" crio &
+	! wait_until_reachable
+}
+
 @test "skip pod sysctls to runtime if host" {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"

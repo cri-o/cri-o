@@ -54,6 +54,18 @@ var _ = t.Describe("Sysctl", func() {
 		Expect(sysctls).To(BeNil())
 	})
 
+	It("should fail to parse sysctls with extra spaces", func() {
+		// Given
+		sut.DefaultSysctls = []string{"key = val"}
+
+		// When
+		sysctls, err := sut.Sysctls()
+
+		// Then
+		Expect(err).NotTo(BeNil())
+		Expect(sysctls).To(BeNil())
+	})
+
 	It("should fail to validate not whitelisted sysctl with host NET and IPC namespaces", func() {
 		// Given
 		sut.DefaultSysctls = []string{"a=b"}
