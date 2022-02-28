@@ -15,10 +15,8 @@ import (
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/log"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
@@ -26,29 +24,6 @@ import (
 const (
 	maxLabelSize = 4096
 )
-
-// inStringSlice checks whether a string is inside a string slice.
-// Comparison is case insensitive.
-func inStringSlice(ss []string, str string) bool {
-	for _, s := range ss {
-		if strings.EqualFold(s, str) {
-			return true
-		}
-	}
-	return false
-}
-
-// getOCICapabilitiesList returns a list of all available capabilities.
-func getOCICapabilitiesList() []string {
-	caps := make([]string, 0, len(capability.List()))
-	for _, cap := range capability.List() {
-		if cap > validate.LastCap() {
-			continue
-		}
-		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
-	}
-	return caps
-}
 
 func validateLabels(labels map[string]string) error {
 	for k, v := range labels {

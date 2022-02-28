@@ -15,6 +15,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo) error {
@@ -46,6 +47,11 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 
 	if err := s.createResolvConf(podContainer); err != nil {
 		return errors.Wrapf(err, "create resolv conf")
+	}
+
+	// Add capabilities from crio.conf if default_capabilities is defined
+	if err := s.infra.SpecSetupCapabilities(&types.Capability{}, serverConfig.DefaultCapabilities); err != nil {
+		return err
 	}
 
 	return nil

@@ -11,7 +11,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -284,119 +283,6 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 		return ""
 	}
 	return userstr
-}
-
-// setupCapabilities sets process.capabilities in the OCI runtime config.
-func setupCapabilities(specgen *generate.Generator, caps *types.Capability, defaultCaps capabilities.Capabilities) error {
-	// Remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
-	// and pods expect that switching to a non-root user results in the capabilities being
-	// dropped. This should be revisited in the future.
-	specgen.Config.Process.Capabilities.Ambient = []string{}
-
-	if caps == nil {
-		return nil
-	}
-
-	toCAPPrefixed := func(cap string) string {
-		if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
-			return "CAP_" + strings.ToUpper(cap)
-		}
-		return cap
-	}
-
-	addAll := inStringSlice(caps.AddCapabilities, "ALL")
-	dropAll := inStringSlice(caps.DropCapabilities, "ALL")
-
-	// Only add the default capabilities to the AddCapabilities list
-	// if neither add or drop are set to "ALL". If add is set to "ALL" it
-	// is a super set of the default capabilties. If drop is set to "ALL"
-	// then we first want to clear the entire list (including defaults)
-	// so the user may selectively add *only* the capabilities they need.
-	if !(addAll || dropAll) {
-		caps.AddCapabilities = append(caps.AddCapabilities, defaultCaps...)
-	}
-
-	// Add/drop all capabilities if "all" is specified, so that
-	// following individual add/drop could still work. E.g.
-	// AddCapabilities: []string{"ALL"}, DropCapabilities: []string{"CHOWN"}
-	// will be all capabilities without `CAP_CHOWN`.
-	// see https://github.com/kubernetes/kubernetes/issues/51980
-	if addAll {
-		for _, c := range getOCICapabilitiesList() {
-			if err := specgen.AddProcessCapabilityBounding(c); err != nil {
-				return err
-			}
-			if err := specgen.AddProcessCapabilityEffective(c); err != nil {
-				return err
-			}
-			if err := specgen.AddProcessCapabilityInheritable(c); err != nil {
-				return err
-			}
-			if err := specgen.AddProcessCapabilityPermitted(c); err != nil {
-				return err
-			}
-		}
-	}
-	if dropAll {
-		for _, c := range getOCICapabilitiesList() {
-			if err := specgen.DropProcessCapabilityBounding(c); err != nil {
-				return err
-			}
-			if err := specgen.DropProcessCapabilityEffective(c); err != nil {
-				return err
-			}
-			if err := specgen.DropProcessCapabilityInheritable(c); err != nil {
-				return err
-			}
-			if err := specgen.DropProcessCapabilityPermitted(c); err != nil {
-				return err
-			}
-		}
-	}
-
-	for _, cap := range caps.AddCapabilities {
-		if strings.EqualFold(cap, "ALL") {
-			continue
-		}
-		capPrefixed := toCAPPrefixed(cap)
-		// Validate capability
-		if !inStringSlice(getOCICapabilitiesList(), capPrefixed) {
-			return fmt.Errorf("unknown capability %q to add", capPrefixed)
-		}
-		if err := specgen.AddProcessCapabilityBounding(capPrefixed); err != nil {
-			return err
-		}
-		if err := specgen.AddProcessCapabilityEffective(capPrefixed); err != nil {
-			return err
-		}
-		if err := specgen.AddProcessCapabilityInheritable(capPrefixed); err != nil {
-			return err
-		}
-		if err := specgen.AddProcessCapabilityPermitted(capPrefixed); err != nil {
-			return err
-		}
-	}
-
-	for _, cap := range caps.DropCapabilities {
-		if strings.EqualFold(cap, "ALL") {
-			continue
-		}
-		capPrefixed := toCAPPrefixed(cap)
-		if err := specgen.DropProcessCapabilityBounding(capPrefixed); err != nil {
-			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
-		}
-		if err := specgen.DropProcessCapabilityEffective(capPrefixed); err != nil {
-			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
-		}
-		if err := specgen.DropProcessCapabilityInheritable(capPrefixed); err != nil {
-			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
-		}
-		if err := specgen.DropProcessCapabilityPermitted(capPrefixed); err != nil {
-			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
-		}
-	}
-
-	return nil
 }
 
 // CreateContainer creates a new container in specified PodSandbox
