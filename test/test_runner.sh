@@ -2,6 +2,7 @@
 set -e
 
 TEST_USERNS=${TEST_USERNS:-}
+TEST_KEEP_ON_FAILURE=${TEST_KEEP_ON_FAILURE:-}
 
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
