@@ -63,6 +63,20 @@ func addToMappingsIfMissing(ids []idtools.IDMap, id int64) []idtools.IDMap {
 }
 
 func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxSecurityContext) (*storage.IDMappingOptions, error) {
+	if sc.NamespaceOptions.UsernsOptions != nil {
+		switch sc.NamespaceOptions.UsernsOptions.Mode {
+		case types.NamespaceMode_NODE:
+			return nil, nil
+		case types.NamespaceMode_POD:
+			return &storage.IDMappingOptions{
+				UIDMap: convertToStorageIDMap(sc.NamespaceOptions.UsernsOptions.Uids),
+				GIDMap: convertToStorageIDMap(sc.NamespaceOptions.UsernsOptions.Gids),
+			}, nil
+		default:
+			return nil, fmt.Errorf("unsupported pod mode: %q", sc.NamespaceOptions.UsernsOptions.Mode)
+		}
+	}
+
 	if mode == "" {
 		// No mode specified but mappings set in the config file, let's use them.
 		if s.defaultIDMappings != nil {
@@ -274,6 +288,18 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 		return &storage.IDMappingOptions{UIDMap: uids, GIDMap: gids}, nil
 	}
 	return nil, fmt.Errorf("invalid userns mode: %q", mode)
+}
+
+func convertToStorageIDMap(mappings []*types.IDMapping) []idtools.IDMap {
+	ret := make([]idtools.IDMap, len(mappings))
+	for i, m := range mappings {
+		ret[i] = idtools.IDMap{
+			ContainerID: int(m.ContainerId),
+			HostID:      int(m.HostId),
+			Size:        int(m.Length),
+		}
+	}
+	return ret
 }
 
 func (s *Server) getSandboxIDMappings(sb *libsandbox.Sandbox) (*idtools.IDMappings, error) {

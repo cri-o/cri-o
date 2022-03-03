@@ -115,13 +115,17 @@ func toContainer(id uint32, idMap []idtools.IDMap) uint32 {
 }
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
-func (s *Server) finalizeUserMapping(specgen *generate.Generator, mappings *idtools.IDMappings) {
+func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Generator, mappings *idtools.IDMappings) {
 	if mappings == nil {
 		return
 	}
 
 	// if the namespace was configured because of a static configuration, do not attempt any mapping
 	if s.defaultIDMappings != nil && !s.defaultIDMappings.Empty() {
+		return
+	}
+
+	if sb.Annotations()[crioann.UsernsModeAnnotation] == "" {
 		return
 	}
 
@@ -781,7 +785,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	ociContainer.SetIDMappings(containerIDMappings)
 	var rootPair idtools.IDPair
 	if containerIDMappings != nil {
-		s.finalizeUserMapping(specgen, containerIDMappings)
+		s.finalizeUserMapping(sb, specgen, containerIDMappings)
 
 		for _, uidmap := range containerIDMappings.UIDs() {
 			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
