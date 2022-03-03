@@ -6,6 +6,7 @@ export GOSUMDB=https://sum.golang.org
 TRIMPATH ?= -trimpath
 GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_RUN ?= $(GO) run
+NIX_IMAGE ?= nixos/nix:2.3.16
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
@@ -179,9 +180,9 @@ bin/crio-status: $(GO_FILES) .gopathok
 
 build-static:
 	$(CONTAINER_RUNTIME) run --rm --privileged -ti -v /:/mnt \
-		nixos/nix cp -rfT /nix /mnt/nix
+		$(NIX_IMAGE) cp -rfT /nix /mnt/nix
 	$(CONTAINER_RUNTIME) run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} \
-		nixos/nix nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
+		$(NIX_IMAGE) nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
 	mkdir -p bin
 	cp -r result/bin bin/static
 
