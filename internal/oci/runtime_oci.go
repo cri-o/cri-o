@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
 	json "github.com/json-iterator/go"
@@ -892,6 +893,17 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
 	if _, err = os.Stat(oomFilePath); err == nil {
 		c.state.OOMKilled = true
+
+		// Collect total metric
+		metrics.CRIOContainersOOMTotal.Inc()
+
+		// Collect metric by container name
+		counter, err := metrics.CRIOContainersOOM.GetMetricWithLabelValues(c.Name())
+		if err != nil {
+			logrus.Warnf("Unable to write OOM metric by container: %v", err)
+		} else {
+			counter.Inc()
+		}
 	}
 
 	return nil
