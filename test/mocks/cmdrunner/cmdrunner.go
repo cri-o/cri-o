@@ -5,36 +5,35 @@
 package cmdrunnermock
 
 import (
+	gomock "github.com/golang/mock/gomock"
 	exec "os/exec"
 	reflect "reflect"
-
-	gomock "github.com/golang/mock/gomock"
 )
 
-// MockCommandRunner is a mock of CommandRunner interface.
+// MockCommandRunner is a mock of CommandRunner interface
 type MockCommandRunner struct {
 	ctrl     *gomock.Controller
 	recorder *MockCommandRunnerMockRecorder
 }
 
-// MockCommandRunnerMockRecorder is the mock recorder for MockCommandRunner.
+// MockCommandRunnerMockRecorder is the mock recorder for MockCommandRunner
 type MockCommandRunnerMockRecorder struct {
 	mock *MockCommandRunner
 }
 
-// NewMockCommandRunner creates a new mock instance.
+// NewMockCommandRunner creates a new mock instance
 func NewMockCommandRunner(ctrl *gomock.Controller) *MockCommandRunner {
 	mock := &MockCommandRunner{ctrl: ctrl}
 	mock.recorder = &MockCommandRunnerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockCommandRunner) EXPECT() *MockCommandRunnerMockRecorder {
 	return m.recorder
 }
 
-// CombinedOutput mocks base method.
+// CombinedOutput mocks base method
 func (m *MockCommandRunner) CombinedOutput(arg0 string, arg1 ...string) ([]byte, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
@@ -47,14 +46,14 @@ func (m *MockCommandRunner) CombinedOutput(arg0 string, arg1 ...string) ([]byte,
 	return ret0, ret1
 }
 
-// CombinedOutput indicates an expected call of CombinedOutput.
+// CombinedOutput indicates an expected call of CombinedOutput
 func (mr *MockCommandRunnerMockRecorder) CombinedOutput(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CombinedOutput", reflect.TypeOf((*MockCommandRunner)(nil).CombinedOutput), varargs...)
 }
 
-// Command mocks base method.
+// Command mocks base method
 func (m *MockCommandRunner) Command(arg0 string, arg1 ...string) *exec.Cmd {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
@@ -66,7 +65,7 @@ func (m *MockCommandRunner) Command(arg0 string, arg1 ...string) *exec.Cmd {
 	return ret0
 }
 
-// Command indicates an expected call of Command.
+// Command indicates an expected call of Command
 func (mr *MockCommandRunnerMockRecorder) Command(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
