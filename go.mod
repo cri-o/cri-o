@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.4.1
 	github.com/Microsoft/go-winio v0.5.1
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20220224133719-e5457123010b
 	github.com/containerd/cgroups v1.0.2
 	github.com/containerd/containerd v1.5.8
 	github.com/containerd/cri-containerd v1.19.0
@@ -62,7 +63,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.2.0
 	golang.org/x/net v0.0.0-20211005001312-d4b1ae081e3b
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20211004093028-2c5d950f24ef
+	golang.org/x/sys v0.0.0-20211116061358-0a5406a5449c
 	google.golang.org/grpc v1.43.0
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
@@ -94,7 +95,6 @@ require (
 	github.com/cheggaaa/pb/v3 v3.0.5 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/cilium/ebpf v0.6.2 // indirect
-	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9 // indirect
 	github.com/containerd/console v1.0.2 // indirect
 	github.com/containerd/fifo v1.0.0 // indirect
 	github.com/containerd/go-runc v1.0.0 // indirect

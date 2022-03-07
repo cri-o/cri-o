@@ -1,11 +1,15 @@
 package container
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	devicecfg "github.com/cri-o/cri-o/internal/config/device"
+
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/devices"
@@ -39,8 +43,13 @@ func (c *container) SpecAddDevices(configuredDevices, annotationDevices []device
 		return err
 	}
 
-	// Finally, add container config devices
-	return c.specAddContainerConfigDevices(enableDeviceOwnershipFromSecurityContext)
+	// Then, add container config devices
+	if err := c.specAddContainerConfigDevices(enableDeviceOwnershipFromSecurityContext); err != nil {
+		return err
+	}
+
+	// Finally, inject CDI devices
+	return c.specInjectCDIDevices()
 }
 
 func (c *container) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices bool) error {
@@ -162,6 +171,38 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 			}
 		}
 	}
+	return nil
+}
+
+func (c *container) specInjectCDIDevices() error {
+	// TODO: Once CRI is extended with native CDI support this will need to be updated...
+	_, names, err := cdi.ParseAnnotations(c.Config().GetAnnotations())
+	if err != nil {
+		return errors.Wrap(err, "failed to parse CDI device annotations")
+	}
+	if names == nil {
+		return nil
+	}
+
+	registry := cdi.GetRegistry()
+	if err := registry.Refresh(); err != nil {
+		// We don't consider registry refresh failure a fatal error.
+		// For instance, a dynamically generated invalid CDI Spec file for
+		// any particular vendor shouldn't prevent injection of devices of
+		// different vendors. CDI itself knows better and it will fail the
+		// injection if necessary.
+
+		log.Warnf(context.TODO(), "CDI registry has errors: %v", err)
+	}
+
+	if _, err := registry.InjectDevices(c.Spec().Config, names...); err != nil {
+		return errors.Wrap(err, "CDI device injection failed")
+	}
+
+	// One crucial thing to keep in mind is that CDI device injection
+	// might add OCI Spec environment variables, hooks, and mounts as
+	// well. Therefore it is important that none of the corresponding
+	// OCI Spec fields are reset up in the call stack once we return.
 	return nil
 }
 

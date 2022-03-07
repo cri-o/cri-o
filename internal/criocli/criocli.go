@@ -261,6 +261,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("allowed-devices") {
 		config.AllowedDevices = StringSliceTrySplit(ctx, "allowed-devices")
 	}
+	if ctx.IsSet("cdi-spec-dirs") {
+		config.CDISpecDirs = StringSliceTrySplit(ctx, "cdi-spec-dirs")
+	}
 	if ctx.IsSet("device-ownership-from-security-context") {
 		config.DeviceOwnershipFromSecurityContext = ctx.Bool("device-ownership-from-security-context")
 	}
@@ -841,6 +844,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Devices to add to the containers ",
 			Value:   cli.NewStringSlice(defConf.AdditionalDevices...),
 			EnvVars: []string{"CONTAINER_ADDITIONAL_DEVICES"},
+		},
+		&cli.StringSliceFlag{
+			Name:    "cdi-spec-dirs",
+			Usage:   "Directories to scan for CDI Spec files",
+			Value:   cli.NewStringSlice(defConf.CDISpecDirs...),
+			EnvVars: []string{"CONTAINER_CDI_SPEC_DIRS"},
 		},
 		&cli.BoolFlag{
 			Name:  "device-ownership-from-security-context",

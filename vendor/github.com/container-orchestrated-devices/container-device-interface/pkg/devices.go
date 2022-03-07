@@ -153,7 +153,7 @@ func UpdateOCISpecForDevices(ociconfig *spec.Spec, devs []string) error {
 	return UpdateOCISpecForDevicesWithSpec(ociconfig, devs, specs)
 }
 
-// UpdateOCISpecForDevicesWithLoggerAndSpecs is mainly used for testing
+// UpdateOCISpecForDevicesWithSpec updates the given OCI spec based on the requested CDI devices using the given CDI specs.
 func UpdateOCISpecForDevicesWithSpec(ociconfig *spec.Spec, devs []string, specs map[string]*cdispec.Spec) error {
 	edits := make(map[string]*cdispec.Spec)
 
@@ -164,7 +164,8 @@ func UpdateOCISpecForDevicesWithSpec(ociconfig *spec.Spec, devs []string, specs 
 		}
 
 		edits[spec.Kind] = spec
-		err = cdispec.ApplyOCIEditsForDevice(ociconfig, spec, d)
+		_, device := extractVendor(d)
+		err = cdispec.ApplyOCIEditsForDevice(ociconfig, spec, device)
 		if err != nil {
 			return err
 		}

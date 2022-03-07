@@ -1,20 +1,22 @@
 package specs
 
+import "os"
+
+// CurrentVersion is the current version of the Spec.
+const CurrentVersion = "0.3.0"
+
 // Spec is the base configuration for CDI
 type Spec struct {
-	Version          string   `json:"cdiVersion"`
-	Kind             string   `json:"kind"`
-	KindShort        []string `json:"kindShort,omitempty"`
-	ContainerRuntime []string `json:"containerRuntime,omitempty"`
+	Version string `json:"cdiVersion"`
+	Kind    string `json:"kind"`
 
-	Devices        []Devices      `json:"devices"`
+	Devices        []Device       `json:"devices"`
 	ContainerEdits ContainerEdits `json:"containerEdits,omitempty"`
 }
 
-// Devices is a "Device" a container runtime can add to a container
-type Devices struct {
+// Device is a "Device" a container runtime can add to a container
+type Device struct {
 	Name           string         `json:"name"`
-	NameShort      []string       `json:"nameShort"`
 	ContainerEdits ContainerEdits `json:"containerEdits"`
 }
 
@@ -28,9 +30,14 @@ type ContainerEdits struct {
 
 // DeviceNode represents a device node that needs to be added to the OCI spec.
 type DeviceNode struct {
-	HostPath      string   `json:"hostPath"`
-	ContainerPath string   `json:"containerPath"`
-	Permissions   []string `json:"permissions,omitempty"`
+	Path        string       `json:"path"`
+	Type        string       `json:"type,omitempty"`
+	Major       int64        `json:"major,omitempty"`
+	Minor       int64        `json:"minor,omitempty"`
+	FileMode    *os.FileMode `json:"fileMode,omitempty"`
+	Permissions string       `json:"permissions,omitempty"`
+	UID         *uint32      `json:"uid,omitempty"`
+	GID         *uint32      `json:"gid,omitempty"`
 }
 
 // Mount represents a mount that needs to be added to the OCI spec.

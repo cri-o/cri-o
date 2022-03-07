@@ -141,6 +141,17 @@ the container runtime configuration.
 **blockio_config_file**=""
   Path to the blockio class configuration file for configuring the cgroup blockio controller.
 
+**cdi_spec_dirs**=[]
+  Directories to scan for Container Device Interface Specifications to enable CDI device injection. For more details about CDI and the syntax of CDI Spec files please refer to https://github.com/container-orchestrated-devices/container-device-interface.
+
+  Directories later in the list have precedence over earlier ones. The default directory list is:
+```
+  cdi_spec_dirs = [
+	  "/etc/cdi",
+	  "/var/run/cdi",
+  ]
+```
+
 **irqbalance_config_file**="/etc/sysconfig/irqbalance"
   Used to change irqbalance service config file which is used by CRI-O.
   For CentOS/SUSE, this file is located at /etc/sysconfig/irqbalance. For Ubuntu, this file is located at /etc/default/irqbalance.

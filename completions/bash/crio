@@ -20,6 +20,7 @@ h
 --big-files-temporary-dir
 --bind-mount-prefix
 --blockio-config-file
+--cdi-spec-dirs
 --cgroup-manager
 --clean-shutdown-file
 --cni-config-dir

@@ -239,8 +239,9 @@ github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1/go.mod h1:eXthEFrGJvWH
 github.com/cockroachdb/datadriven v0.0.0-20200714090401-bf6692d28da5/go.mod h1:h6jFvWxBdQXxjopDMZyH2UVceIRfR84bdzbkoKrsWNo=
 github.com/cockroachdb/errors v1.2.4/go.mod h1:rQD95gz6FARkaKkQXUksEje/d9a6wBJoCr5oaCLELYA=
 github.com/cockroachdb/logtags v0.0.0-20190617123548-eb05cc24525f/go.mod h1:i/u985jwjWRlyHXQbwatDASoW0RMlZ/3i9yJHE2xLkI=
-github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9 h1:Kn0s9/APRtr5dk/83aXj97WX0+PYnJK9BO8g0Xclm0I=
 github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9/go.mod h1:eQt66kIaJpUhCrjCtBFQGQxGLbAUl0OuuwjTH16ON4s=
+github.com/container-orchestrated-devices/container-device-interface v0.0.0-20220224133719-e5457123010b h1:kfww7SrumR0HoZTwEXRDy2CzwhhmigCWK3mvvhYDaUQ=
+github.com/container-orchestrated-devices/container-device-interface v0.0.0-20220224133719-e5457123010b/go.mod h1:E1zcucIkq9P3eyNmY+68dBQsTcsXJh9cgRo2IVNScKQ=
 github.com/container-storage-interface/spec v1.5.0/go.mod h1:8K96oQNkJ7pFcC2R9Z1ynGGBB1I93kcS6PGg3SsOk8s=
 github.com/containerd/aufs v0.0.0-20200908144142-dab0cbea06f4/go.mod h1:nukgQABAEopAHvB6j7cnP5zJ+/3aVcE7hCYqvIwAHyE=
 github.com/containerd/aufs v0.0.0-20201003224125-76a6863f2989/go.mod h1:AkGGQs9NM2vtYHaUen+NljV0/baGCAPELGm2q9ZXpWU=
@@ -1074,6 +1075,7 @@ github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417/go.m
 github.com/opencontainers/runtime-spec v1.0.3-0.20210709190330-896175883324 h1:EPCbQw9GYqjcp8Y5Oz/RzEO3hlxA1MiQJ3DiYgzzUqg=
 github.com/opencontainers/runtime-spec v1.0.3-0.20210709190330-896175883324/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-tools v0.0.0-20181011054405-1d69bd0f9c39/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
+github.com/opencontainers/runtime-tools v0.0.0-20190417131837-cd1349b7c47e/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/runtime-tools v0.9.0/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/runtime-tools v0.9.1-0.20210326182921-59cdde06764b h1:BDT83NWjBPS3Esj/BS1Cf9F4NYzYmiitJZ0TlXx5M4w=
 github.com/opencontainers/runtime-tools v0.9.1-0.20210326182921-59cdde06764b/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
@@ -1700,8 +1702,9 @@ golang.org/x/sys v0.0.0-20210831042530-f4d43177bf5e/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20210903071746-97244b99971b/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20211004093028-2c5d950f24ef h1:fPxZ3Umkct3LZ8gK9nbk+DWDJ9fstZa2grBn+lWVKPs=
 golang.org/x/sys v0.0.0-20211004093028-2c5d950f24ef/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20211116061358-0a5406a5449c h1:DHcbWVXeY+0Y8HHKR+rbLwnoh2F4tNCY7rTiHJ30RmA=
+golang.org/x/sys v0.0.0-20211116061358-0a5406a5449c/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b h1:9zKuko04nR4gjZ4+DNjHqRlAJqbJETHwiNKDqTfOjfE=
 golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b/go.mod h1:jbD1KX2456YbFQfuXm/mYQcufACuNUgVhRMnK/tPxf8=
