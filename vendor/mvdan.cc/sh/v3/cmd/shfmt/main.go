@@ -8,7 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -199,16 +199,18 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 			// The only exception is the -f flag; in that case, we
 			// do want to report whether the file is a shell script.
 			if err := formatPath(path, false); err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				if err != errChangedWithDiff {
+					fmt.Fprintln(os.Stderr, err)
+				}
 				status = 1
 			}
 			continue
 		}
-		if err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err := filepath.WalkDir(path, func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
-			switch err := walkPath(path, info); err {
+			switch err := walkPath(path, entry); err {
 			case nil:
 			case filepath.SkipDir:
 				return err
@@ -233,7 +235,7 @@ func formatStdin(name string) error {
 	if *write {
 		return fmt.Errorf("-w cannot be used on standard input")
 	}
-	src, err := ioutil.ReadAll(in)
+	src, err := io.ReadAll(in)
 	if err != nil {
 		return err
 	}
@@ -242,8 +244,8 @@ func formatStdin(name string) error {
 
 var vcsDir = regexp.MustCompile(`^\.(git|svn|hg)$`)
 
-func walkPath(path string, info os.FileInfo) error {
-	if info.IsDir() && vcsDir.MatchString(info.Name()) {
+func walkPath(path string, entry fs.DirEntry) error {
+	if entry.IsDir() && vcsDir.MatchString(entry.Name()) {
 		return filepath.SkipDir
 	}
 	if useEditorConfig {
@@ -252,14 +254,14 @@ func walkPath(path string, info os.FileInfo) error {
 			return err
 		}
 		if props.Get("ignore") == "true" {
-			if info.IsDir() {
+			if entry.IsDir() {
 				return filepath.SkipDir
 			} else {
 				return nil
 			}
 		}
 	}
-	conf := fileutil.CouldBeScript(info)
+	conf := fileutil.CouldBeScript2(entry)
 	if conf == fileutil.ConfNotScript {
 		return nil
 	}
@@ -304,9 +306,12 @@ func formatPath(path string, checkShebang bool) error {
 	defer f.Close()
 	readBuf.Reset()
 	if checkShebang {
-		n, err := f.Read(copyBuf[:32])
+		n, err := io.ReadAtLeast(f, copyBuf[:32], len("#/bin/sh\n"))
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			return nil // too short to have a shebang
+		}
 		if err != nil {
-			return err
+			return err // some other read error
 		}
 		if !fileutil.HasShebang(copyBuf[:n]) {
 			return nil

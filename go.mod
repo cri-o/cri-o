@@ -73,7 +73,7 @@ require (
 	k8s.io/kubernetes v1.23.0
 	k8s.io/release v0.8.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
-	mvdan.cc/sh/v3 v3.3.1
+	mvdan.cc/sh/v3 v3.4.3
 	sigs.k8s.io/release-utils v0.3.0
 	sigs.k8s.io/yaml v1.3.0
 	sigs.k8s.io/zeitgeist v0.3.0
@@ -208,7 +208,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
-	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	golang.org/x/term v0.0.0-20210916214954-140adaaadfaf // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/tools v0.1.6-0.20210820212750-d4cc65f0b2ff // indirect
