@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"syscall"
 
 	"github.com/vishvananda/netlink/nl"
@@ -118,6 +119,131 @@ func (filter *Fw) Attrs() *FilterAttrs {
 
 func (filter *Fw) Type() string {
 	return "fw"
+}
+
+type Flower struct {
+	FilterAttrs
+	DestIP        net.IP
+	DestIPMask    net.IPMask
+	SrcIP         net.IP
+	SrcIPMask     net.IPMask
+	EthType       uint16
+	EncDestIP     net.IP
+	EncDestIPMask net.IPMask
+	EncSrcIP      net.IP
+	EncSrcIPMask  net.IPMask
+	EncDestPort   uint16
+	EncKeyId      uint32
+
+	Actions []Action
+}
+
+func (filter *Flower) Attrs() *FilterAttrs {
+	return &filter.FilterAttrs
+}
+
+func (filter *Flower) Type() string {
+	return "flower"
+}
+
+func (filter *Flower) encodeIP(parent *nl.RtAttr, ip net.IP, mask net.IPMask, v4Type, v6Type int, v4MaskType, v6MaskType int) {
+	ipType := v4Type
+	maskType := v4MaskType
+
+	encodeMask := mask
+	if mask == nil {
+		encodeMask = net.CIDRMask(32, 32)
+	}
+	v4IP := ip.To4()
+	if v4IP == nil {
+		ipType = v6Type
+		maskType = v6MaskType
+		if mask == nil {
+			encodeMask = net.CIDRMask(128, 128)
+		}
+	} else {
+		ip = v4IP
+	}
+
+	parent.AddRtAttr(ipType, ip)
+	parent.AddRtAttr(maskType, encodeMask)
+}
+
+func (filter *Flower) encode(parent *nl.RtAttr) error {
+	if filter.EthType != 0 {
+		parent.AddRtAttr(nl.TCA_FLOWER_KEY_ETH_TYPE, htons(filter.EthType))
+	}
+	if filter.SrcIP != nil {
+		filter.encodeIP(parent, filter.SrcIP, filter.SrcIPMask,
+			nl.TCA_FLOWER_KEY_IPV4_SRC, nl.TCA_FLOWER_KEY_IPV6_SRC,
+			nl.TCA_FLOWER_KEY_IPV4_SRC_MASK, nl.TCA_FLOWER_KEY_IPV6_SRC_MASK)
+	}
+	if filter.DestIP != nil {
+		filter.encodeIP(parent, filter.DestIP, filter.DestIPMask,
+			nl.TCA_FLOWER_KEY_IPV4_DST, nl.TCA_FLOWER_KEY_IPV6_DST,
+			nl.TCA_FLOWER_KEY_IPV4_DST_MASK, nl.TCA_FLOWER_KEY_IPV6_DST_MASK)
+	}
+	if filter.EncSrcIP != nil {
+		filter.encodeIP(parent, filter.EncSrcIP, filter.EncSrcIPMask,
+			nl.TCA_FLOWER_KEY_ENC_IPV4_SRC, nl.TCA_FLOWER_KEY_ENC_IPV6_SRC,
+			nl.TCA_FLOWER_KEY_ENC_IPV4_SRC_MASK, nl.TCA_FLOWER_KEY_ENC_IPV6_SRC_MASK)
+	}
+	if filter.EncDestIP != nil {
+		filter.encodeIP(parent, filter.EncDestIP, filter.EncSrcIPMask,
+			nl.TCA_FLOWER_KEY_ENC_IPV4_DST, nl.TCA_FLOWER_KEY_ENC_IPV6_DST,
+			nl.TCA_FLOWER_KEY_ENC_IPV4_DST_MASK, nl.TCA_FLOWER_KEY_ENC_IPV6_DST_MASK)
+	}
+	if filter.EncDestPort != 0 {
+		parent.AddRtAttr(nl.TCA_FLOWER_KEY_ENC_UDP_DST_PORT, htons(filter.EncDestPort))
+	}
+	if filter.EncKeyId != 0 {
+		parent.AddRtAttr(nl.TCA_FLOWER_KEY_ENC_KEY_ID, htonl(filter.EncKeyId))
+	}
+
+	actionsAttr := parent.AddRtAttr(nl.TCA_FLOWER_ACT, nil)
+	if err := EncodeActions(actionsAttr, filter.Actions); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (filter *Flower) decode(data []syscall.NetlinkRouteAttr) error {
+	for _, datum := range data {
+		switch datum.Attr.Type {
+		case nl.TCA_FLOWER_KEY_ETH_TYPE:
+			filter.EthType = ntohs(datum.Value)
+		case nl.TCA_FLOWER_KEY_IPV4_SRC, nl.TCA_FLOWER_KEY_IPV6_SRC:
+			filter.SrcIP = datum.Value
+		case nl.TCA_FLOWER_KEY_IPV4_SRC_MASK, nl.TCA_FLOWER_KEY_IPV6_SRC_MASK:
+			filter.SrcIPMask = datum.Value
+		case nl.TCA_FLOWER_KEY_IPV4_DST, nl.TCA_FLOWER_KEY_IPV6_DST:
+			filter.DestIP = datum.Value
+		case nl.TCA_FLOWER_KEY_IPV4_DST_MASK, nl.TCA_FLOWER_KEY_IPV6_DST_MASK:
+			filter.DestIPMask = datum.Value
+		case nl.TCA_FLOWER_KEY_ENC_IPV4_SRC, nl.TCA_FLOWER_KEY_ENC_IPV6_SRC:
+			filter.EncSrcIP = datum.Value
+		case nl.TCA_FLOWER_KEY_ENC_IPV4_SRC_MASK, nl.TCA_FLOWER_KEY_ENC_IPV6_SRC_MASK:
+			filter.EncSrcIPMask = datum.Value
+		case nl.TCA_FLOWER_KEY_ENC_IPV4_DST, nl.TCA_FLOWER_KEY_ENC_IPV6_DST:
+			filter.EncDestIP = datum.Value
+		case nl.TCA_FLOWER_KEY_ENC_IPV4_DST_MASK, nl.TCA_FLOWER_KEY_ENC_IPV6_DST_MASK:
+			filter.EncDestIPMask = datum.Value
+		case nl.TCA_FLOWER_KEY_ENC_UDP_DST_PORT:
+			filter.EncDestPort = ntohs(datum.Value)
+		case nl.TCA_FLOWER_KEY_ENC_KEY_ID:
+			filter.EncKeyId = ntohl(datum.Value)
+		case nl.TCA_FLOWER_ACT:
+			tables, err := nl.ParseRouteAttr(datum.Value)
+			if err != nil {
+				return err
+			}
+			filter.Actions, err = parseActions(tables)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // FilterDel will delete a filter from the system.
@@ -286,6 +412,10 @@ func (h *Handle) filterModify(filter Filter, flags int) error {
 		if filter.ClassId != 0 {
 			options.AddRtAttr(nl.TCA_MATCHALL_CLASSID, nl.Uint32Attr(filter.ClassId))
 		}
+	case *Flower:
+		if err := filter.encode(options); err != nil {
+			return err
+		}
 	}
 
 	req.AddData(options)
@@ -354,6 +484,8 @@ func (h *Handle) FilterList(link Link, parent uint32) ([]Filter, error) {
 					filter = &BpfFilter{}
 				case "matchall":
 					filter = &MatchAll{}
+				case "flower":
+					filter = &Flower{}
 				default:
 					filter = &GenericFilter{FilterType: filterType}
 				}
@@ -380,6 +512,11 @@ func (h *Handle) FilterList(link Link, parent uint32) ([]Filter, error) {
 					}
 				case "matchall":
 					detailed, err = parseMatchAllData(filter, data)
+					if err != nil {
+						return nil, err
+					}
+				case "flower":
+					detailed, err = parseFlowerData(filter, data)
 					if err != nil {
 						return nil, err
 					}
@@ -747,6 +884,10 @@ func parseMatchAllData(filter Filter, data []syscall.NetlinkRouteAttr) (bool, er
 		}
 	}
 	return detailed, nil
+}
+
+func parseFlowerData(filter Filter, data []syscall.NetlinkRouteAttr) (bool, error) {
+	return true, filter.(*Flower).decode(data)
 }
 
 func AlignToAtm(size uint) uint {

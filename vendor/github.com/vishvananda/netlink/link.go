@@ -1284,11 +1284,27 @@ func (ipoib *IPoIB) Type() string {
 	return "ipoib"
 }
 
+type BareUDP struct {
+	LinkAttrs
+	Port       uint16
+	EtherType  uint16
+	SrcPortMin uint16
+	MultiProto bool
+}
+
+func (bareudp *BareUDP) Attrs() *LinkAttrs {
+	return &bareudp.LinkAttrs
+}
+
+func (bareudp *BareUDP) Type() string {
+	return "bareudp"
+}
+
 // iproute2 supported devices;
 // vlan | veth | vcan | dummy | ifb | macvlan | macvtap |
 // bridge | bond | ipoib | ip6tnl | ipip | sit | vxlan |
 // gre | gretap | ip6gre | ip6gretap | vti | vti6 | nlmon |
-// bond_slave | ipvlan | xfrm
+// bond_slave | ipvlan | xfrm | bareudp
 
 // LinkNotFoundError wraps the various not found errors when
 // getting/reading links. This is intended for better error

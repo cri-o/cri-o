@@ -56,6 +56,7 @@ const (
 	RT_FILTER_PRIORITY
 	RT_FILTER_MARK
 	RT_FILTER_MASK
+	RT_FILTER_REALM
 )
 
 const (
@@ -249,7 +250,7 @@ func (e *SEG6Encap) String() string {
 	segs := make([]string, 0, len(e.Segments))
 	// append segment backwards (from n to 0) since seg#0 is the last segment.
 	for i := len(e.Segments); i > 0; i-- {
-		segs = append(segs, fmt.Sprintf("%s", e.Segments[i-1]))
+		segs = append(segs, e.Segments[i-1].String())
 	}
 	str := fmt.Sprintf("mode %s segs %d [ %s ]", nl.SEG6EncapModeString(e.Mode),
 		len(e.Segments), strings.Join(segs, " "))
@@ -419,7 +420,7 @@ func (e *SEG6LocalEncap) String() string {
 		segs := make([]string, 0, len(e.Segments))
 		//append segment backwards (from n to 0) since seg#0 is the last segment.
 		for i := len(e.Segments); i > 0; i-- {
-			segs = append(segs, fmt.Sprintf("%s", e.Segments[i-1]))
+			segs = append(segs, e.Segments[i-1].String())
 		}
 		strs = append(strs, fmt.Sprintf("segs %d [ %s ]", len(e.Segments), strings.Join(segs, " ")))
 	}
@@ -529,7 +530,7 @@ func (e *BpfEncap) Decode(buf []byte) error {
 				case nl.LWT_BPF_PROG_FD:
 					bpfO.progFd = int(native.Uint32(parsedAttr.Value))
 				case nl.LWT_BPF_PROG_NAME:
-					bpfO.progName = fmt.Sprintf("%s", parsedAttr.Value)
+					bpfO.progName = string(parsedAttr.Value)
 				default:
 					return fmt.Errorf("lwt bpf decode: received unknown attribute: type: %d, len: %d", parsedAttr.Attr.Type, parsedAttr.Attr.Len)
 				}
@@ -598,7 +599,7 @@ func (e *BpfEncap) Equal(x Encap) bool {
 	if e.headroom != o.headroom {
 		return false
 	}
-	for i, _ := range o.progs {
+	for i := range o.progs {
 		if o.progs[i] != e.progs[i] {
 			return false
 		}
@@ -893,6 +894,11 @@ func (h *Handle) routeHandle(route *Route, req *nl.NetlinkRequest, msg *nl.RtMsg
 		native.PutUint32(b, uint32(route.Priority))
 		rtAttrs = append(rtAttrs, nl.NewRtAttr(unix.RTA_PRIORITY, b))
 	}
+	if route.Realm > 0 {
+		b := make([]byte, 4)
+		native.PutUint32(b, uint32(route.Realm))
+		rtAttrs = append(rtAttrs, nl.NewRtAttr(unix.RTA_FLOW, b))
+	}
 	if route.Tos > 0 {
 		msg.Tos = uint8(route.Tos)
 	}
@@ -1061,6 +1067,8 @@ func (h *Handle) RouteListFiltered(family int, filter *Route, filterMask uint64)
 				continue
 			case filterMask&RT_FILTER_TOS != 0 && route.Tos != filter.Tos:
 				continue
+			case filterMask&RT_FILTER_REALM != 0 && route.Realm != filter.Realm:
+				continue
 			case filterMask&RT_FILTER_OIF != 0 && route.LinkIndex != filter.LinkIndex:
 				continue
 			case filterMask&RT_FILTER_IIF != 0 && route.ILinkIndex != filter.ILinkIndex:
@@ -1127,6 +1135,8 @@ func deserializeRoute(m []byte) (Route, error) {
 			route.ILinkIndex = int(native.Uint32(attr.Value[0:4]))
 		case unix.RTA_PRIORITY:
 			route.Priority = int(native.Uint32(attr.Value[0:4]))
+		case unix.RTA_FLOW:
+			route.Realm = int(native.Uint32(attr.Value[0:4]))
 		case unix.RTA_TABLE:
 			route.Table = int(native.Uint32(attr.Value[0:4]))
 		case unix.RTA_MULTIPATH:
@@ -1298,6 +1308,7 @@ func deserializeRoute(m []byte) (Route, error) {
 // RouteGetWithOptions
 type RouteGetOptions struct {
 	Iif     string
+	Oif     string
 	VrfName string
 	SrcAddr net.IP
 }
@@ -1362,6 +1373,18 @@ func (h *Handle) RouteGetWithOptions(destination net.IP, options *RouteGetOption
 			native.PutUint32(b, uint32(link.Attrs().Index))
 
 			req.AddData(nl.NewRtAttr(unix.RTA_IIF, b))
+		}
+
+		if len(options.Oif) > 0 {
+			link, err := LinkByName(options.Oif)
+			if err != nil {
+				return nil, err
+			}
+
+			b := make([]byte, 4)
+			native.PutUint32(b, uint32(link.Attrs().Index))
+
+			req.AddData(nl.NewRtAttr(unix.RTA_OIF, b))
 		}
 
 		if options.SrcAddr != nil {
