@@ -12,7 +12,7 @@ usage() {
     printf "Usage: %s [-a ARCH] [ -t TAG|SHA ] [ -h ]\n\n" "$(basename "$0")"
     echo "Possible arguments:"
     printf "  -a\tArchitecture to retrieve (defaults to the local system)\n"
-    printf "  -t\tVersion tag or full length SHA to be used (defaults to the latest available master)\n"
+    printf "  -t\tVersion tag or full length SHA to be used (defaults to the latest available main)\n"
     printf "  -h\tShow this help message\n"
 }
 
@@ -75,7 +75,7 @@ latest_version() {
 
     if [[ $VERSION == "" ]]; then
         echo Searching for latest version via marker file
-        COMMIT=$(curl -sSfL --retry 5 --retry-delay 3 "$GCB_URL/latest-master.txt")
+        COMMIT=$(curl -sSfL --retry 5 --retry-delay 3 "$GCB_URL/latest-main.txt")
         if [[ "$COMMIT" != "" ]]; then
             VERSION=$COMMIT
             echo "Found latest version $VERSION"
@@ -98,14 +98,14 @@ latest_version() {
             fi
 
             FOUND=$(echo "$JSON" |
-                jq -r '.workflow_runs | map(select(.name == "test" and .head_branch == "master" and .conclusion == "success")) | first | .head_sha')
+                jq -r '.workflow_runs | map(select(.name == "test" and .head_branch == "main" and .conclusion == "success")) | first | .head_sha')
 
             if [[ $FOUND == null ]]; then
                 continue
             fi
 
             VERSION=$FOUND
-            echo "Using latest successful GitHub action master: $VERSION"
+            echo "Using latest successful GitHub action main: $VERSION"
             break
         done
 
