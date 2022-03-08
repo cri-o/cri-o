@@ -21,11 +21,6 @@ install_crio() {
     # Setup SELinux labels
     mkdir -p /var/lib/kubelet
     chcon -R -u system_u -r object_r -t var_lib_t /var/lib/kubelet
-    chcon -u system_u -r object_r -t container_runtime_exec_t /usr/local/bin/crio /usr/local/bin/crio-status /usr/local/bin/runc /usr/local/bin/crun
-    chcon -u system_u -r object_r -t bin_t /usr/local/bin/conmon /usr/local/bin/crictl /usr/local/bin/pinns
-    chcon -R -u system_u -r object_r -t bin_t /opt/cni/bin/
-    chcon -R -u system_u -r object_r -t container_config_t /etc/crio /etc/crio/crio.conf /usr/local/share/oci-umount/oci-umount.d/crio-umount.conf
-    chcon -R -u system_u -r object_r -t systemd_unit_file_t /usr/local/lib/systemd/system/crio.service
 
     mount /tmp /tmp -o remount,exec,suid
 

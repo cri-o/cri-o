@@ -29,3 +29,32 @@ install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crun
 if [ "$ARCH" = amd64 ]; then
     install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/runc
 fi
+
+if [ -n "$SELINUX" ]; then
+    if command -v chcon >/dev/null; then
+        chcon -u system_u -r object_r -t container_runtime_exec_t \
+            "$DESTDIR$BINDIR/crio" \
+            "$DESTDIR$BINDIR/crio-status" \
+            "$DESTDIR$BINDIR/crun"
+
+        if [ "$ARCH" = amd64 ]; then
+            chcon -u system_u -r object_r -t container_runtime_exec_t \
+                "$DESTDIR$BINDIR/runc"
+        fi
+
+        chcon -u system_u -r object_r -t bin_t \
+            "$DESTDIR$BINDIR/conmon" \
+            "$DESTDIR$BINDIR/crictl" \
+            "$DESTDIR$BINDIR/pinns"
+
+        chcon -R -u system_u -r object_r -t bin_t \
+            "$DESTDIR$OPT_CNI_BIN_DIR"
+
+        chcon -R -u system_u -r object_r -t container_config_t \
+            "$DESTDIR$ETCDIR/crio" \
+            "$DESTDIR$OCIDIR/crio-umount.conf"
+
+        chcon -R -u system_u -r object_r -t systemd_unit_file_t \
+            "$DESTDIR$SYSTEMDDIR/crio.service"
+    fi
+fi
