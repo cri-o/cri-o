@@ -54,7 +54,12 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 
 	// If we defaulted to exit code not set earlier then we attempt to
 	// get the exit code from the exit file again.
-	if cState.Status == oci.ContainerStateStopped && cState.ExitCode == nil {
+	if (cState.Status == oci.ContainerStateStopped && cState.ExitCode == nil) ||
+		// Manually paused containers should be covered as well.
+		// Kubernetes has no way of displaying that information (state will be
+		// CONTAINER_UNKNOWN), but we should allow to go back to CONTAINER_RUNNING
+		// if a user resumes the workload.
+		cState.Status == oci.ContainerStatePaused {
 		err := s.Runtime().UpdateContainerStatus(ctx, c)
 		if err != nil {
 			log.Warnf(ctx, "Failed to UpdateStatus of container %s: %v", c.ID(), err)
@@ -69,6 +74,11 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 		resp.Status.CreatedAt = created
 	case oci.ContainerStateRunning:
 		rStatus = types.ContainerState_CONTAINER_RUNNING
+		resp.Status.CreatedAt = created
+		started := cState.Started.UnixNano()
+		resp.Status.StartedAt = started
+	case oci.ContainerStatePaused:
+		rStatus = types.ContainerState_CONTAINER_UNKNOWN
 		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started

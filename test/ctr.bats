@@ -27,6 +27,21 @@ function wait_until_exit() {
 	return 1
 }
 
+function runtime_state_wait_until() {
+	ctr_id=$1
+	expected_state=$2
+	attempt=0
+	while [ $attempt -le 100 ]; do
+		attempt=$((attempt + 1))
+		status=$(runtime state "$ctr_id" | jq -r .status)
+		if [[ "$status" == "$expected_state" ]]; then
+			return 0
+		fi
+		sleep 1
+	done
+	return 1
+}
+
 function check_oci_annotation() {
 	# check for OCI annotation in container's config.json
 	local ctr_id="$1"
@@ -928,4 +943,51 @@ function check_oci_annotation() {
 	crictl start "$ctr_id"
 
 	crictl exec --sync "$ctr_id" sh -c "stat /run/.containerenv"
+}
+
+@test "ctr manually paused can be removed" {
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	# Pause the container manually
+	runtime pause "$ctr_id"
+	runtime_state_wait_until "$ctr_id" paused
+
+	# Update the container status by running an execsync
+	! crictl exec "$ctr_id" echo
+
+	# Verify the state
+	crictl inspect "$ctr_id" | jq -e '.status.state == "CONTAINER_UNKNOWN"'
+
+	# Verify removal
+	crictl rmp -f "$pod_id"
+}
+
+@test "ctr manually paused can be resumed" {
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	# Pause the container manually
+	runtime pause "$ctr_id"
+	runtime_state_wait_until "$ctr_id" paused
+
+	# Update the container status by running an execsync
+	! crictl exec "$ctr_id" echo
+
+	# Verify the state
+	crictl inspect "$ctr_id" | jq -e '.status.state == "CONTAINER_UNKNOWN"'
+
+	# Manually resume the container
+	runtime resume "$ctr_id"
+	runtime_state_wait_until "$ctr_id" running
+
+	# Verify the state
+	crictl inspect "$ctr_id" | jq -e '.status.state == "CONTAINER_RUNNING"'
+
+	# Verify removal
+	crictl rmp -f "$pod_id"
 }

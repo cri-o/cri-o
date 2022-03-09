@@ -712,6 +712,18 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		}
 	}()
 
+	// Paused containers cannot be stopped, so we have to resume them and
+	// update the container status accordingly.
+	if c.state.Status == ContainerStatePaused {
+		logrus.Warnf("Container %s is paused, resuming before trying to stop", c.ID())
+		if err := r.UnpauseContainer(ctx, c); err != nil {
+			return errors.Wrap(err, "resume container")
+		}
+		if err := r.UpdateContainerStatus(ctx, c); err != nil {
+			return errors.Wrap(err, "update container status")
+		}
+	}
+
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
