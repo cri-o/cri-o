@@ -21,7 +21,7 @@ function teardown() {
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_no_infra.json
 	pod_id=$(crictl runp "$TESTDIR"/sandbox_no_infra.json)
 
-	output=$(runtime list)
+	output=$(runtime list || true)
 	[[ ! "$output" = *"$pod_id"* ]]
 }
 
