@@ -71,7 +71,11 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, sysctls map[string]stri
 	}
 
 	if len(sysctls) != 0 {
-		pinnsArgs = append(pinnsArgs, "-s", getSysctlForPinns(sysctls))
+		pinnsSysctls, err := getSysctlForPinns(sysctls)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid sysctl")
+		}
+		pinnsArgs = append(pinnsArgs, "-s", pinnsSysctls)
 	}
 
 	type namespaceInfo struct {
@@ -128,14 +132,18 @@ func pinNamespaces(nsTypes []NSType, cfg *config.Config, sysctls map[string]stri
 	return returnedNamespaces, nil
 }
 
-func getSysctlForPinns(sysctls map[string]string) string {
-	// this assumes there's no sysctl with a `+` in it
+func getSysctlForPinns(sysctls map[string]string) (string, error) {
+	// This assumes there's no valid sysctl value with a `+` in it
+	// and as such errors if one is found.
 	const pinnsSysctlDelim = "+"
 	g := new(bytes.Buffer)
 	for key, value := range sysctls {
+		if strings.Contains(key, pinnsSysctlDelim) || strings.Contains(value, pinnsSysctlDelim) {
+			return "", errors.Errorf("'%s=%s' is invalid: %s found yet should not be present", key, value, pinnsSysctlDelim)
+		}
 		fmt.Fprintf(g, "'%s=%s'%s", key, value, pinnsSysctlDelim)
 	}
-	return strings.TrimSuffix(g.String(), pinnsSysctlDelim)
+	return strings.TrimSuffix(g.String(), pinnsSysctlDelim), nil
 }
 
 // getNamespace takes a path, checks if it is a namespace, and if so
