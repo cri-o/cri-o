@@ -28,15 +28,11 @@ func (s *Sysctl) Value() string {
 // Sysctls returns the parsed sysctl slice and an error if not parsable
 // Some validation based on https://github.com/containers/common/blob/main/pkg/sysctl/sysctl.go
 func (c *RuntimeConfig) Sysctls() ([]Sysctl, error) {
-	const sysctlDelim = "+"
 	sysctls := make([]Sysctl, 0, len(c.DefaultSysctls))
 	for _, sysctl := range c.DefaultSysctls {
 		// skip empty values for sake of backwards compatibility
 		if sysctl == "" {
 			continue
-		}
-		if strings.Index(sysctl, sysctlDelim) < 0 {
-			return nil, errors.Errorf("'%s' is invalid: %s found yet should not be present", sysctl, sysctlDelim)
 		}
 		split := strings.SplitN(sysctl, "=", 2)
 		if len(split) != 2 {
