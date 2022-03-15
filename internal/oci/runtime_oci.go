@@ -681,9 +681,6 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 	c.state.Finished = time.Now()
 	// Successfully stopped! This is to prevent other routines from
 	// racing with this one and waiting forever.
-	// Close only the dedicated channel. If we close stopTimeoutChan,
-	// any other waiting goroutine will panic, not gracefully exit.
-	close(c.stoppedChan)
 	return nil
 }
 
