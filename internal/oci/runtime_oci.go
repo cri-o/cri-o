@@ -683,7 +683,10 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 	// racing with this one and waiting forever.
 	// Close only the dedicated channel. If we close stopTimeoutChan,
 	// any other waiting goroutine will panic, not gracefully exit.
-	close(c.stoppedChan)
+	_, ok := <-c.stoppedChan
+	if ok {
+		close(c.stoppedChan)
+	}
 	return nil
 }
 
