@@ -8,37 +8,27 @@
 
 static int separate_sysctl_key_value (char* sysctl_key_value, char** sysctl_key, char** sysctl_value);
 static int write_sysctl_to_file (char * sysctl_key, char* sysctl_value);
-const char *sysctl_delim = "+";
 
-int configure_sysctls (char * const sysctls)
+int configure_sysctls (char ** const sysctls, int size)
 {
-  char* sysctl = strtok(sysctls, sysctl_delim);
   char* key = NULL;
   char* value = NULL;
-  while (sysctl)
+
+  for (int i = 0; i < size; ++i)
   {
-    if (separate_sysctl_key_value (sysctl, &key, &value) < 0)
+    if (separate_sysctl_key_value (sysctls[i], &key, &value) < 0)
       return -1;
 
     if (write_sysctl_to_file (key, value) < 0)
       return -1;
-    sysctl = strtok (NULL, sysctl_delim);
   }
 
   return 0;
 }
 
-// key_value should be in the form `'k=v'`
+// key_value should be in the form `k=v`
 static int separate_sysctl_key_value (char* key_value, char** key, char** value)
 {
-  // begin by stripping the `'`, we now have `k=v'`
-  bool quote_stripped = false;
-  if (*key_value == '\'')
-  {
-    key_value++;
-    quote_stripped = true;
-  }
-
   // now find the `=` and convert it to a delimiter
   char * equals_token = strchr (key_value, '=');
   if (!equals_token)
@@ -55,31 +45,21 @@ static int separate_sysctl_key_value (char* key_value, char** key, char** value)
     return -1;
   }
 
-  // we now have `k\0v'`
+  // we now have `k\0v`
   *equals_token = '\0';
-
   // key is now `k`
   *key = key_value;
-
-  // equals_token is now `v'`
+  // equals_token is now `v`
   ++equals_token;
-
-  // if we stripped the beginning single quote
-  // we should find and strip the ending, as well as anything after
-  if (quote_stripped)
-  {
-    char* ending_char = strchr (equals_token, '\'');
-    if (ending_char)
-      *ending_char = '\0';
-  }
-
   // value is now `v`
   *value = equals_token;
+
   if (!strlen (*value))
   {
     nwarnf ("sysctl must be in the form of 'key=value'; value is empty");
     return -1;
   }
+
   return 0;
 }
 
