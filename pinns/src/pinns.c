@@ -49,7 +49,8 @@ int main(int argc, char **argv) {
   bool bind_user = false;
   bool bind_cgroup = false;
   bool bind_mount = false;
-  char *sysctls = NULL;
+  char **sysctls = NULL;
+  int sysctls_count = 0;
   char res;
 
   static const struct option long_options[] = {
@@ -66,6 +67,8 @@ int main(int argc, char **argv) {
       {"gid-mapping", optional_argument, NULL, GID_MAPPING},
       {"sysctl", optional_argument, NULL, 's'},
   };
+
+  sysctls = calloc(argc/2, sizeof(char *));
 
   while ((c = getopt_long(argc, argv, "mpchuUind:f:s:", long_options, NULL)) != -1) {
     switch (c) {
@@ -113,7 +116,8 @@ int main(int argc, char **argv) {
       pin_path = optarg;
       break;
     case 's':
-	  sysctls = optarg;
+      sysctls[sysctls_count] = optarg;
+      sysctls_count++;
       break;
     case 'f':
       filename = optarg;
@@ -239,7 +243,7 @@ int main(int argc, char **argv) {
     close(p[0]);
   }
 
-  if (sysctls && configure_sysctls(sysctls) < 0) {
+  if (sysctls_count != 0 && configure_sysctls(sysctls, sysctls_count) < 0) {
     pexit("Failed to configure sysctls after unshare");
   }
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
@@ -87,12 +86,8 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 		"-f", pinnedNamespace,
 	}
 
-	if len(cfg.Sysctls) != 0 {
-		pinnsSysctls, err := getSysctlForPinns(cfg.Sysctls)
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid sysctl")
-		}
-		pinnsArgs = append(pinnsArgs, "-s", pinnsSysctls)
+	for key, value := range cfg.Sysctls {
+		pinnsArgs = append(pinnsArgs, "-s", fmt.Sprintf("%s=%s", key, value))
 	}
 
 	var rootPair idtools.IDPair
@@ -173,20 +168,6 @@ func getMappingsForPinns(mappings []idtools.IDMap) string {
 		fmt.Fprintf(g, "%d-%d-%d@", m.ContainerID, m.HostID, m.Size)
 	}
 	return g.String()
-}
-
-func getSysctlForPinns(sysctls map[string]string) (string, error) {
-	// This assumes there's no valid sysctl value with a `+` in it
-	// and as such errors if one is found.
-	const pinnsSysctlDelim = "+"
-	g := new(bytes.Buffer)
-	for key, value := range sysctls {
-		if strings.Contains(key, pinnsSysctlDelim) || strings.Contains(value, pinnsSysctlDelim) {
-			return "", errors.Errorf("'%s=%s' is invalid: %s found yet should not be present", key, value, pinnsSysctlDelim)
-		}
-		fmt.Fprintf(g, "'%s=%s'%s", key, value, pinnsSysctlDelim)
-	}
-	return strings.TrimSuffix(g.String(), pinnsSysctlDelim), nil
 }
 
 // NamespaceFromProcEntry creates a new namespace object from a bind mount from a processes proc entry.
