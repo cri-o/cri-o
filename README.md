@@ -19,15 +19,15 @@ CRI-O follows the Kubernetes release cycles with respect to its minor versions
 (`1.x.0`). Patch releases (`1.x.y`) for CRI-O are not in sync with those from
 Kubernetes, because those are scheduled for each month, whereas CRI-O provides
 them only if necessary. If a Kubernetes release goes [End of
-Life](https://github.com/kubernetes/website/blob/main/content/en/releases/patch-releases.md),
+Life](https://kubernetes.io/releases/patch-releases/),
 then the corresponding CRI-O version can be considered in the same way.
 
 This means that CRI-O also follows the Kubernetes `n-2` release version skew
 policy when it comes to feature graduation, deprecation or removal. This also
 applies to features which are independent from Kubernetes.
 
-For more information visit the [Kubernetes versioning
-documentation](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/release/versioning.md).
+For more information visit the [Kubernetes Version Skew
+Policy](https://kubernetes.io/releases/version-skew-policy/).
 
 | Version - Branch            | Kubernetes branch/version       | Maintenance status |
 | --------------------------- | ------------------------------- | ------------------ |
