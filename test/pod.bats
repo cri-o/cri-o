@@ -196,14 +196,14 @@ function teardown() {
 	start_crio
 
 	jq --arg sysctl "1024 65000'+'net.ipv4.ip_forward=0'" \
-	'	  .linux.sysctls = {
+		'.linux.sysctls = {
 			"net.ipv4.ip_local_port_range": $sysctl,
 		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	! crictl runp "$TESTDIR"/sandbox.json
 
 	jq --arg sysctl "net.ipv4.ip_local_port_range=1024 65000'+'net.ipv4.ip_forward" \
-	'	  .linux.sysctls = {
+		'.linux.sysctls = {
 			($sysctl): "0",
 		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
