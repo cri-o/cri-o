@@ -1701,9 +1701,12 @@ k8s.io/component-helpers/node/util/sysctl
 ## explicit; go 1.16
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
-# k8s.io/klog/v2 v2.30.0
+# k8s.io/klog/v2 v2.60.0
 ## explicit; go 1.13
 k8s.io/klog/v2
+k8s.io/klog/v2/internal/buffer
+k8s.io/klog/v2/internal/serialize
+k8s.io/klog/v2/internal/severity
 # k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65
 ## explicit; go 1.16
 k8s.io/kube-openapi/pkg/schemaconv
@@ -1763,7 +1766,7 @@ k8s.io/release/pkg/notes/options
 k8s.io/release/pkg/object
 k8s.io/release/pkg/release
 k8s.io/release/pkg/release/regex
-# k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
+# k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 ## explicit; go 1.12
 k8s.io/utils/buffer
 k8s.io/utils/clock
