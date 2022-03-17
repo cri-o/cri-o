@@ -31,7 +31,7 @@ type config struct {
 // Option is the interface that applies a configuration option.
 type Option interface {
 	// apply sets the Option value of a config.
-	apply(*config)
+	apply(config) config
 }
 
 // WithAttributes adds attributes to the configured Resource.
@@ -56,8 +56,9 @@ type detectorsOption struct {
 	detectors []Detector
 }
 
-func (o detectorsOption) apply(cfg *config) {
+func (o detectorsOption) apply(cfg config) config {
 	cfg.detectors = append(cfg.detectors, o.detectors...)
+	return cfg
 }
 
 // WithFromEnv adds attributes from environment variables to the configured resource.
@@ -82,8 +83,9 @@ func WithSchemaURL(schemaURL string) Option {
 
 type schemaURLOption string
 
-func (o schemaURLOption) apply(cfg *config) {
+func (o schemaURLOption) apply(cfg config) config {
 	cfg.schemaURL = string(o)
+	return cfg
 }
 
 // WithOS adds all the OS attributes to the configured Resource.
@@ -168,4 +170,17 @@ func WithProcessRuntimeVersion() Option {
 // about the runtime of the process to the configured Resource.
 func WithProcessRuntimeDescription() Option {
 	return WithDetectors(processRuntimeDescriptionDetector{})
+}
+
+// WithContainer adds all the Container attributes to the configured Resource.
+// See individual WithContainer* functions to configure specific attributes.
+func WithContainer() Option {
+	return WithDetectors(
+		cgroupContainerIDDetector{},
+	)
+}
+
+// WithContainerID adds an attribute with the id of the container to the configured Resource.
+func WithContainerID() Option {
+	return WithDetectors(cgroupContainerIDDetector{})
 }
