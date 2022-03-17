@@ -20,7 +20,6 @@ import (
 	"sync"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal/tracetransform"
-
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -99,5 +98,16 @@ func New(ctx context.Context, client Client) (*Exporter, error) {
 func NewUnstarted(client Client) *Exporter {
 	return &Exporter{
 		client: client,
+	}
+}
+
+// MarshalLog is the marshaling function used by the logging system to represent this exporter.
+func (e *Exporter) MarshalLog() interface{} {
+	return struct {
+		Type   string
+		Client Client
+	}{
+		Type:   "otlptrace",
+		Client: e.client,
 	}
 }
