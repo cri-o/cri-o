@@ -31,8 +31,11 @@ jobs:
   shfmt:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - run: make shfmt
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - run: make shfmt
 
   docs:
     runs-on: ubuntu-latest

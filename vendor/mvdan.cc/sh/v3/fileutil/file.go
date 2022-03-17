@@ -6,6 +6,7 @@
 package fileutil
 
 import (
+	"io/fs"
 	"os"
 	"regexp"
 	"strings"
@@ -42,10 +43,14 @@ const (
 	ConfIsScript
 )
 
-// CouldBeScript reports how likely a file is to be a shell script. It
-// discards directories, symlinks, hidden files and files with non-shell
-// extensions.
+// CouldBeScript is a shortcut for CouldBeScript2(fs.FileInfoToDirEntry(info)).
+//
+// Deprecated: prefer CouldBeScript2, which usually requires fewer syscalls.
 func CouldBeScript(info os.FileInfo) ScriptConfidence {
+	// TODO: once we drop support for Go 1.16,
+	// make use of this Go 1.17 API instead:
+	// return CouldBeScript2(fs.FileInfoToDirEntry(info))
+
 	name := info.Name()
 	switch {
 	case info.IsDir(), name[0] == '.':
@@ -56,8 +61,25 @@ func CouldBeScript(info os.FileInfo) ScriptConfidence {
 		return ConfIsScript
 	case strings.IndexByte(name, '.') > 0:
 		return ConfNotScript // different extension
-	case info.Size() < int64(len("#/bin/sh\n")):
-		return ConfNotScript // cannot possibly hold valid shebang
+	default:
+		return ConfIfShebang
+	}
+}
+
+// CouldBeScript2 reports how likely a directory entry is to be a shell script.
+// It discards directories, symlinks, hidden files and files with non-shell
+// extensions.
+func CouldBeScript2(entry fs.DirEntry) ScriptConfidence {
+	name := entry.Name()
+	switch {
+	case entry.IsDir(), name[0] == '.':
+		return ConfNotScript
+	case entry.Type()&os.ModeSymlink != 0:
+		return ConfNotScript
+	case extRe.MatchString(name):
+		return ConfIsScript
+	case strings.IndexByte(name, '.') > 0:
+		return ConfNotScript // different extension
 	default:
 		return ConfIfShebang
 	}

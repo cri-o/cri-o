@@ -56,14 +56,14 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/urfave/cli/v2 v2.3.0
-	github.com/vishvananda/netlink v1.1.1-0.20210811191823-e1a867c6b452
+	github.com/vishvananda/netlink v1.1.1-0.20211118161826-650dca95af54
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.28.0
 	go.opentelemetry.io/otel v1.3.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.2.0
 	go.opentelemetry.io/otel/sdk v1.2.0
-	golang.org/x/net v0.0.0-20211005001312-d4b1ae081e3b
+	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20211116061358-0a5406a5449c
+	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d
 	google.golang.org/grpc v1.43.0
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
@@ -73,7 +73,7 @@ require (
 	k8s.io/kubernetes v1.23.0
 	k8s.io/release v0.8.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
-	mvdan.cc/sh/v3 v3.3.1
+	mvdan.cc/sh/v3 v3.4.3
 	sigs.k8s.io/release-utils v0.3.0
 	sigs.k8s.io/yaml v1.3.0
 	sigs.k8s.io/zeitgeist v0.3.0
@@ -206,9 +206,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.3.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.10.0 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
-	golang.org/x/mod v0.4.2 // indirect
+	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
-	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	golang.org/x/term v0.0.0-20210916214954-140adaaadfaf // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/tools v0.1.6-0.20210820212750-d4cc65f0b2ff // indirect
@@ -236,6 +236,7 @@ require (
 )
 
 replace (
+	github.com/u-root/u-root => github.com/u-root/u-root v0.8.1-0.20220307150114-d511ded1d944
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20211207180839-ab69524f795c
 	k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20211207180839-ab69524f795c
