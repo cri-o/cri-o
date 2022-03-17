@@ -91,6 +91,7 @@ h
 --registry
 --root
 --runroot
+--runtime-storage
 --runtimes
 --seccomp-profile
 --seccomp-use-default-when-empty
