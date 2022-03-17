@@ -9,7 +9,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -38,8 +37,8 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 
 func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, c *oci.Container) error {
 	if !sb.Stopped() {
-		if err := s.ContainerServer.StopContainer(ctx, c, int64(10)); err != nil {
-			return errors.Errorf("failed to stop container for removal")
+		if err := s.stopContainer(ctx, c, int64(10)); err != nil {
+			return fmt.Errorf("failed to stop container for removal")
 		}
 	}
 
@@ -48,7 +47,7 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 	}
 
 	if err := os.Remove(filepath.Join(s.config.ContainerExitsDir, c.ID())); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "failed to remove container exit file %s", c.ID())
+		return fmt.Errorf("failed to remove container exit file %s: %w", c.ID(), err)
 	}
 
 	c.CleanupConmonCgroup()
