@@ -42,15 +42,16 @@ function teardown() {
 	[ "$status" -ne 0 ]
 }
 
-# 3. test running with ctr unconfined and profile empty
-# test that we can run with a syscall which would be otherwise blocked
-@test "ctr seccomp profiles unconfined by empty field" {
+# 3. test running with ctr runtime/default and profile empty
+# test that we cannot run with a syscall blocked by the default seccomp profile
+@test "ctr seccomp profiles runtime/default by empty field" {
 	jq '	  .linux.security_context.seccomp_profile_path = ""' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
-	crictl exec --sync "$ctr_id" chmod 777 .
+	run crictl exec --sync "$ctr_id" chmod 777 .
+	[ "$status" -ne 0 ]
 }
 
 # 4. test running with ctr wrong profile name
@@ -87,10 +88,10 @@ function teardown() {
 	[ "$status" -ne 0 ]
 }
 
-# 7. test running with ctr runtime/default if seccomp_override_empty is true
-# test that we cannot run with a syscall blocked by the default seccomp profile
+# 7. test running with ctr unconfined if seccomp_override_empty is false
+# test that we can run with a syscall which would be otherwise blocked
 @test "ctr seccomp overrides unconfined profile with runtime/default when overridden" {
-	export CONTAINER_SECCOMP_USE_DEFAULT_WHEN_EMPTY=true
+	export CONTAINER_SECCOMP_USE_DEFAULT_WHEN_EMPTY=false
 	export CONTAINER_SECCOMP_PROFILE="$TESTDIR"/seccomp_profile1.json
 	restart_crio
 
@@ -99,6 +100,5 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
-	run crictl exec --sync "$ctr_id" chmod 777 .
-	[ "$status" -ne 0 ]
+	crictl exec --sync "$ctr_id" chmod 777 .
 }

@@ -588,10 +588,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars:   []string{"CONTAINER_SECCOMP_PROFILE"},
 			TakesFile: true,
 		},
-		&cli.StringFlag{
+		&cli.BoolFlag{
 			Name:    "seccomp-use-default-when-empty",
-			Usage:   fmt.Sprintf("Use the default seccomp profile when an empty one is specified (default: %t)", defConf.SeccompUseDefaultWhenEmpty),
+			Usage:   "Use the default seccomp profile when an empty one is specified",
 			EnvVars: []string{"CONTAINER_SECCOMP_USE_DEFAULT_WHEN_EMPTY"},
+			Value:   defConf.Seccomp().UseDefaultWhenEmpty(),
 		},
 		&cli.StringFlag{
 			Name:    "apparmor-profile",
