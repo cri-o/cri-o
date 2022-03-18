@@ -70,6 +70,10 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		return fmt.Errorf("failed to delete pod sandbox %s from index: %v", sb.ID(), err)
 	}
 
+	if err := s.Runtime().RemoveRuntimeForSandbox(sb.ID()); err != nil {
+		return fmt.Errorf("failed to delete pod sandbox %s runtime impl: %w", sb.ID(), err)
+	}
+
 	log.Infof(ctx, "Removed pod sandbox: %s", sb.ID())
 	return nil
 }

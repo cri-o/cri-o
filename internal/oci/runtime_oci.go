@@ -1254,3 +1254,7 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 func (c *Container) conmonPidFilePath() string {
 	return filepath.Join(c.bundlePath, "conmon-pidfile")
 }
+
+func (r *runtimeOCI) Shutdown() error {
+	return nil
+}

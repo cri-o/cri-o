@@ -71,6 +71,7 @@ type RuntimeImpl interface {
 	PortForwardContainer(context.Context, *Container, string,
 		int32, io.ReadWriteCloser) error
 	ReopenContainerLog(context.Context, *Container) error
+	Shutdown() error
 }
 
 // New creates a new Runtime with options provided
@@ -181,7 +182,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 // RuntimeImpl returns the runtime implementation for a given container
 func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 	r.runtimeImplMapMutex.RLock()
-	impl, ok := r.runtimeImplMap[c.ID()]
+	impl, ok := r.runtimeImplMap[c.Sandbox()]
 	r.runtimeImplMapMutex.RUnlock()
 	if ok {
 		return impl, nil
@@ -192,23 +193,31 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 		return nil, err
 	}
 	r.runtimeImplMapMutex.Lock()
-	r.runtimeImplMap[c.ID()] = impl
+	r.runtimeImplMap[c.Sandbox()] = impl
 	r.runtimeImplMapMutex.Unlock()
 	return impl, nil
 }
 
+func (r *Runtime) RemoveRuntimeForSandbox(sandboxID string) error {
+	r.runtimeImplMapMutex.Lock()
+	defer r.runtimeImplMapMutex.Unlock()
+	impl, ok := r.runtimeImplMap[sandboxID]
+	if !ok {
+		return nil
+	}
+	if err := impl.Shutdown(); err != nil {
+		return err
+	}
+	delete(r.runtimeImplMap, sandboxID)
+	return nil
+}
+
 // CreateContainer creates a container.
 func (r *Runtime) CreateContainer(ctx context.Context, c *Container, cgroupParent string) error {
-	// Instantiate a new runtime implementation for this new container
-	impl, err := r.newRuntimeImpl(c)
+	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
-
-	// Assign this runtime implementation to the current container
-	r.runtimeImplMapMutex.Lock()
-	r.runtimeImplMap[c.ID()] = impl
-	r.runtimeImplMapMutex.Unlock()
 
 	return impl.CreateContainer(ctx, c, cgroupParent)
 }
@@ -265,21 +274,9 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 
 // DeleteContainer deletes a container.
 func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error) {
-	r.runtimeImplMapMutex.RLock()
-	impl, ok := r.runtimeImplMap[c.ID()]
-	r.runtimeImplMapMutex.RUnlock()
-	if !ok {
-		if impl, err = r.newRuntimeImpl(c); err != nil {
-			return err
-		}
-	} else {
-		defer func() {
-			if err == nil {
-				r.runtimeImplMapMutex.Lock()
-				delete(r.runtimeImplMap, c.ID())
-				r.runtimeImplMapMutex.Unlock()
-			}
-		}()
+	impl, err := r.RuntimeImpl(c)
+	if err != nil {
+		return err
 	}
 
 	return impl.DeleteContainer(ctx, c)

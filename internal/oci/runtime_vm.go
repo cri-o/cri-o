@@ -1043,3 +1043,7 @@ func (r *runtimeVM) closeIO(ctrID, execID string) error {
 
 	return nil
 }
+
+func (r *runtimeVM) Shutdown() error {
+	return nil
+}
