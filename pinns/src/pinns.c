@@ -69,6 +69,8 @@ int main(int argc, char **argv) {
   };
 
   sysctls = calloc(argc/2, sizeof(char *));
+  if (UNLIKELY(sysctls == NULL))
+      pexit("Failed to calloc");
 
   while ((c = getopt_long(argc, argv, "mpchuUind:f:s:", long_options, NULL)) != -1) {
     switch (c) {
