@@ -564,7 +564,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
 			ExitCode: -1,
-			Err:      fmt.Errorf(ec.Message),
+			Err:      errors.New(ec.Message),
 		}
 	}
 

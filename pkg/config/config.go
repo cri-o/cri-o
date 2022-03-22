@@ -82,16 +82,6 @@ type Iface interface {
 	GetData() *Config
 }
 
-// GetStore returns the container storage for a given configuration
-func (c *RootConfig) GetStore() (storage.Store, error) {
-	return storage.GetStore(storage.StoreOptions{
-		RunRoot:            c.RunRoot,
-		GraphRoot:          c.Root,
-		GraphDriverName:    c.Storage,
-		GraphDriverOptions: c.StorageOptions,
-	})
-}
-
 // GetData returns the Config of a Iface
 func (c *Config) GetData() *Config {
 	return c
@@ -172,6 +162,16 @@ type RootConfig struct {
 	// If set to false, one must use the external command `crio wipe` to wipe the containers and images in these situations.
 	// The option InternalWipe is deprecated, and will be removed in a future release.
 	InternalWipe bool `toml:"internal_wipe"`
+}
+
+// GetStore returns the container storage for a given configuration
+func (c *RootConfig) GetStore() (storage.Store, error) {
+	return storage.GetStore(storage.StoreOptions{
+		RunRoot:            c.RunRoot,
+		GraphRoot:          c.Root,
+		GraphDriverName:    c.Storage,
+		GraphDriverOptions: c.StorageOptions,
+	})
 }
 
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML

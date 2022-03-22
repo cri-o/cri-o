@@ -51,7 +51,7 @@ func writeKeysAndValues(b *strings.Builder, keysAndValues ...interface{}) {
 			b.WriteString(" (")
 		}
 		if i > 0 {
-			b.WriteRune(' ')
+			b.WriteByte(' ')
 		}
 
 		switch v.(type) {
@@ -68,7 +68,7 @@ func writeKeysAndValues(b *strings.Builder, keysAndValues ...interface{}) {
 		}
 
 		if i == len(keysAndValues) {
-			b.WriteRune(')')
+			b.WriteByte(')')
 		}
 	}
 }

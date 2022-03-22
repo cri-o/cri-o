@@ -1,7 +1,7 @@
 package hostport
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -61,7 +61,7 @@ func (mh *metaHostportManager) Remove(id string, podPortMapping *PodPortMapping)
 		errstrings = append(errstrings, err.Error())
 	}
 	if len(errstrings) > 0 {
-		return fmt.Errorf(strings.Join(errstrings, "\n"))
+		return errors.New(strings.Join(errstrings, "\n"))
 	}
 	return nil
 }

@@ -144,7 +144,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			tryIncrementImagePullFailureMetric(img, err)
 			continue
 		}
-		defer tmpImg.Close()
+		defer tmpImg.Close() // nolint:gocritic
 
 		var storedImage *storage.ImageResult
 		storedImage, err = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
@@ -175,7 +175,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 
 		// Pull by collecting progress metrics
 		progress := make(chan imageTypes.ProgressProperties)
-		defer close(progress)
+		defer close(progress) // nolint:gocritic
 		go func() {
 			for p := range progress {
 				if p.Event == imageTypes.ProgressEventSkipped {

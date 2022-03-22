@@ -22,7 +22,7 @@ type ResourceStore struct {
 	timeout   time.Duration
 	closeChan chan struct{}
 	closed    bool
-	sync.Mutex
+	mutex     sync.Mutex
 }
 
 // Resource contains the actual resource itself (which must implement the IdentifiableCreatable interface),
@@ -69,8 +69,8 @@ func NewWithTimeout(timeout time.Duration) *ResourceStore {
 }
 
 func (rc *ResourceStore) Close() {
-	rc.Lock()
-	defer rc.Unlock()
+	rc.mutex.Lock()
+	defer rc.mutex.Unlock()
 	if rc.closed {
 		return
 	}
@@ -92,7 +92,7 @@ func (rc *ResourceStore) cleanupStaleResources() {
 		case <-time.After(rc.timeout):
 		}
 		resourcesToReap := []*Resource{}
-		rc.Lock()
+		rc.mutex.Lock()
 		for name, r := range rc.resources {
 			// this resource shouldn't be marked as stale if it
 			// hasn't yet been added to the store.
@@ -110,7 +110,7 @@ func (rc *ResourceStore) cleanupStaleResources() {
 			r.stale = true
 		}
 		// no need to hold the lock when running the cleanup functions
-		rc.Unlock()
+		rc.mutex.Unlock()
 
 		for _, r := range resourcesToReap {
 			logrus.Infof("Cleaning up stale resource %s", r.name)
@@ -126,8 +126,8 @@ func (rc *ResourceStore) cleanupStaleResources() {
 // Get returns an empty ID if the resource is not found,
 // and returns the value of the Resource's ID() method if it is.
 func (rc *ResourceStore) Get(name string) string {
-	rc.Lock()
-	defer rc.Unlock()
+	rc.mutex.Lock()
+	defer rc.mutex.Unlock()
 
 	r, ok := rc.resources[name]
 	if !ok {
@@ -148,8 +148,8 @@ func (rc *ResourceStore) Get(name string) string {
 // It adds the Resource to the ResourceStore. It expects name to be unique, and
 // returns an error if a duplicate name is detected.
 func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleaner *ResourceCleaner) error {
-	rc.Lock()
-	defer rc.Unlock()
+	rc.mutex.Lock()
+	defer rc.mutex.Unlock()
 
 	r, ok := rc.resources[name]
 	// if we don't already have a resource, create it
@@ -181,8 +181,8 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleane
 // they've taken too long. Adding a watcher allows the server to slow down the client, but still
 // return the resource in a timely manner once it's actually created.
 func (rc *ResourceStore) WatcherForResource(name string) chan struct{} {
-	rc.Lock()
-	defer rc.Unlock()
+	rc.mutex.Lock()
+	defer rc.mutex.Unlock()
 	watcher := make(chan struct{}, 1)
 	r, ok := rc.resources[name]
 	if !ok {

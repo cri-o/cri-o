@@ -1,8 +1,6 @@
 package process_test
 
 import (
-	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -41,16 +39,12 @@ var _ = t.Describe("Process", func() {
 		Context("Should fail", func() {
 			It("when given an invalid path name", func() {
 				defunctCount, err := process.DefunctProcessesForPath("./test/proc")
-				formattedErr := fmt.Sprintf("%v", err)
-
-				Expect(formattedErr).To(Equal("open ./test/proc: no such file or directory"))
+				Expect(err.Error()).To(Equal("open ./test/proc: no such file or directory"))
 				Expect(defunctCount).To(Equal(uint(0)))
 			})
 			It("when the given path name does not belong to a directory", func() {
 				defunctCount, err := process.DefunctProcessesForPath("./testing/proc_fail")
-				formattedErr := fmt.Sprintf("%v", err)
-
-				Expect(formattedErr).To(Equal("readdirent ./testing/proc_fail: not a directory"))
+				Expect(err.Error()).To(Equal("readdirent ./testing/proc_fail: not a directory"))
 				Expect(defunctCount).To(Equal(uint(0)))
 			})
 		})
