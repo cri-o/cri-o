@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# vim:set ft=bash :
 
 load helpers
 
