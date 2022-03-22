@@ -35,6 +35,33 @@ jobs:
           JOBS: '1'
           RUN_CRITEST: '1'
 
+  multi-storage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-integration-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-
+      - run: scripts/github-actions-packages
+      - run: scripts/github-actions-setup
+      - run: make all test-binaries
+      - run: scripts/setup_storage
+      - run: sudo -E test/test_runner.sh multi_storage.bats critest.bats
+        env:
+          LVM_DEVICE: '/dev/crio-test'
+          JOBS: '1'
+          RUN_CRITEST: '1'
+          CONTAINER_RUNTIMES: 'runctest:/usr/bin/runc:/run/runctest:oci:false'
+          CONTAINER_RUNTIME_STORAGE: 'runctest:devicemapper:dm.directlvm_device=/dev/crio-test:dm.fs=ext4:dm.directlvm_device_force=true'
+          RUNTIME_HANDLER: "runctest"
+
   critest-conmonrs:
     runs-on: ubuntu-latest
     steps:

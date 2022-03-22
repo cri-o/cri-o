@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# This script creates a loop device to be used for testing with devicemapper as storage driver
+set -euox pipefail
+
+IMAGE=/tmp/test.img
+fallocate -l 5G $IMAGE
+device=$(sudo losetup --show -f $IMAGE)
+sudo ln -s "$device" /dev/crio-test
