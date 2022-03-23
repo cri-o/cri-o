@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# vim:set ft=bash :
 
 load helpers
 
@@ -326,4 +327,36 @@ function check_conmon_fields() {
 
 	df=$(crictl exec --sync "$ctr_id" df | grep /dev/shm)
 	[[ "$df" == *'16384'* ]]
+}
+
+@test "test resource cleanup on bad annotation contents" {
+	shares="200"
+	set="0-2"
+	name=helloctr
+	create_workload "$shares" "0"
+
+	start_crio
+
+	jq --arg act "$activation" --arg set "{\"cpuset\": \"$set\"}" --arg setkey "$prefix/$name" \
+		'   .annotations[$act] = "true"
+		|   .annotations[$setkey] = $set' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+	pod_id=$(crictl runp "$sboxconfig")
+
+	# Forceibly fail 10 container creations via bad workload annotation:
+	for id in {1..10}; do
+		ctrconfig="$TESTDIR/ctr-$id.json"
+		jq --arg act "$activation" --arg name "$name-$id" --arg set "invalid & unparsable {\"cpuset\": \"$set\"}" --arg setkey "$prefix/POD" \
+			'   .annotations[$act] = "true"
+			|   .annotations[$setkey] = $set
+			|   .metadata.name = $name' \
+			"$TESTDATA"/container_sleep.json > "$ctrconfig"
+		ctr_id=$(crictl create "$pod_id" "$ctrconfig" "$sboxconfig" || true)
+		[[ $ctr_id == "" ]]
+	done
+	# Ensure there are no conmon zombies leftover
+	children=$(ps --ppid "$CRIO_PID" -o state= -o pid= -o cmd= || true)
+	zombies=$(grep -c '^Z ' <<< "$children" || true)
+	echo "Zombies: $zombies"
+	[[ $zombies == 0 ]]
 }
