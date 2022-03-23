@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"text/tabwriter"
 
@@ -25,15 +26,13 @@ const Version = "1.24.0"
 
 // Variables injected during build-time
 var (
-	gitCommit    string   // sha1 from git, output of $(git rev-parse HEAD)
-	gitTreeState string   // state of git tree, either "clean" or "dirty"
-	buildDate    string   // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
-	buildTags    []string // tags to be used during build time
+	buildDate string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 )
 
 type Info struct {
 	Version         string   `json:"version,omitempty"`
 	GitCommit       string   `json:"gitCommit,omitempty"`
+	GitCommitDate   string   `json:"gitCommitDate,omitempty"`
 	GitTreeState    string   `json:"gitTreeState,omitempty"`
 	BuildDate       string   `json:"buildDate,omitempty"`
 	GoVersion       string   `json:"goVersion,omitempty"`
@@ -41,8 +40,10 @@ type Info struct {
 	Platform        string   `json:"platform,omitempty"`
 	Linkmode        string   `json:"linkmode,omitempty"`
 	BuildTags       []string `json:"buildTags,omitempty"`
+	LDFlags         string   `json:"ldFlags,omitempty"`
 	SeccompEnabled  bool     `json:"seccompEnabled"`
 	AppArmorEnabled bool     `json:"appArmorEnabled"`
+	Dependencies    []string `json:"dependencies,omitempty"`
 }
 
 // ShouldCrioWipe opens the version file, and parses it and the version string
@@ -88,13 +89,13 @@ func shouldCrioWipe(versionFileName, versionString string) (bool, error) {
 // file is the location of the old version file
 // gitCommit is the current git commit version. It will be added to the file
 // to aid in debugging, but will not be used to compare versions
-func WriteVersionFile(file string) error {
-	return writeVersionFile(file, gitCommit, Version)
+func (i *Info) WriteVersionFile(file string) error {
+	return writeVersionFile(file, i.GitCommit, Version)
 }
 
 // LogVersion logs the version and git information of this build
-func LogVersion() {
-	logrus.Infof("Starting CRI-O, version: %s, git: %v(%s)", Version, gitCommit, gitTreeState)
+func (i *Info) LogVersion() {
+	logrus.Infof("Starting CRI-O, version: %s, git: %v(%s)", Version, i.GitCommit, i.GitTreeState)
 }
 
 // writeVersionFile is an internal function for testing purposes
@@ -139,10 +140,54 @@ func parseVersionConstant(versionString, gitCommit string) (*semver.Version, err
 	return &v, nil
 }
 
-func Get() *Info {
+func Get(verbose bool) (*Info, error) {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return nil, errors.New("unable to retrieve build info")
+	}
+
+	const unknown = "unknown"
+	gitCommit := unknown
+	gitTreeState := "clean"
+	gitCommitDate := unknown
+	buildTags := []string{}
+	ldFlags := unknown
+
+	for _, s := range info.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			gitCommit = s.Value
+
+		case "vcs.modified":
+			if s.Value == "true" {
+				gitTreeState = "dirty"
+			}
+
+		case "vcs.time":
+			gitCommitDate = s.Value
+
+		case "-tags":
+			buildTags = strings.Split(s.Value, ",")
+
+		case "-ldflags":
+			ldFlags = s.Value
+		}
+	}
+
+	dependencies := []string{}
+	if verbose {
+		for _, d := range info.Deps {
+			dependencies = append(
+				dependencies,
+				fmt.Sprintf("%s %s %s", d.Path, d.Version, d.Sum),
+			)
+		}
+	}
+
 	return &Info{
 		Version:         Version,
 		GitCommit:       gitCommit,
+		GitCommitDate:   gitCommitDate,
 		GitTreeState:    gitTreeState,
 		BuildDate:       buildDate,
 		GoVersion:       runtime.Version(),
@@ -150,9 +195,11 @@ func Get() *Info {
 		Platform:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		Linkmode:        linkmode,
 		BuildTags:       buildTags,
+		LDFlags:         ldFlags,
 		SeccompEnabled:  seccomp.IsEnabled(),
 		AppArmorEnabled: apparmor.IsEnabled(),
-	}
+		Dependencies:    dependencies,
+	}, nil
 }
 
 // String returns the string representation of the version info
@@ -174,7 +221,8 @@ func (i *Info) String() string {
 		case reflect.Slice:
 			// Only expecting []string here; ignore other slices.
 			if s, ok := value.Interface().([]string); ok {
-				valueString = strings.Join(s, ", ")
+				const sep = "\n  "
+				valueString = sep + strings.Join(s, sep)
 			}
 
 		case reflect.String:

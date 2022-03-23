@@ -5,10 +5,14 @@ import (
 
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
-const jsonFlag = "json"
+const (
+	jsonFlag    = "json"
+	verboseFlag = "verbose"
+)
 
 var versionCommand = &cli.Command{
 	Name:  "version",
@@ -19,9 +23,18 @@ var versionCommand = &cli.Command{
 			Aliases: []string{"j"},
 			Usage:   "print JSON instead of text",
 		},
+		&cli.BoolFlag{
+			Name:    verboseFlag,
+			Aliases: []string{"v"},
+			Usage:   "print verbose information (for example all golang dependencies)",
+		},
 	},
 	Action: func(c *cli.Context) error {
-		v := version.Get()
+		verbose := c.Bool(verboseFlag)
+		v, err := version.Get(verbose)
+		if err != nil {
+			logrus.Fatal(err)
+		}
 		res := v.String()
 		if c.Bool(jsonFlag) {
 			j, err := v.JSONString()

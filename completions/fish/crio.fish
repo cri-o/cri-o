@@ -177,6 +177,7 @@ complete -c crio -n '__fish_seen_subcommand_from config' -f -l migrate-defaults 
 complete -c crio -n '__fish_seen_subcommand_from version' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'version' -d 'display detailed version information'
 complete -c crio -n '__fish_seen_subcommand_from version' -f -l json -s j -d 'print JSON instead of text'
+complete -c crio -n '__fish_seen_subcommand_from version' -f -l verbose -s v -d 'print verbose information (for example all golang dependencies)'
 complete -c crio -n '__fish_seen_subcommand_from wipe' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'wipe' -d 'wipe CRI-O\'s container and image storage'
 complete -c crio -n '__fish_seen_subcommand_from wipe' -f -l force -s f -d 'force wipe by skipping the version check'
