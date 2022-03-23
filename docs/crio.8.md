@@ -416,6 +416,8 @@ display detailed version information
 
 **--json, -j**: print JSON instead of text
 
+**--verbose, -v**: print verbose information (for example all golang dependencies)
+
 ## wipe
 
 wipe CRI-O's container and image storage

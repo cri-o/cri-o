@@ -750,10 +750,14 @@ func DefaultConfig() (*Config, error) {
 	}
 	cgroupManager := cgmgr.New()
 	seccompConfig := seccomp.New()
+	ua, err := useragent.Get()
+	if err != nil {
+		return nil, errors.Wrap(err, "get user agent")
+	}
 	return &Config{
 		Comment: "# ",
 		SystemContext: &types.SystemContext{
-			DockerRegistryUserAgent: useragent.Get(),
+			DockerRegistryUserAgent: ua,
 		},
 		RootConfig: RootConfig{
 			Root:               storeOpts.GraphRoot,

@@ -12,9 +12,10 @@ var _ = t.Describe("Useragent", func() {
 		It("should succeed", func() {
 			// Given
 			// When
-			result := useragent.Get()
+			result, err := useragent.Get()
 
 			// Then
+			Expect(err).To(BeNil())
 			Expect(result).To(SatisfyAll(
 				ContainSubstring("cri-o"),
 				ContainSubstring("os"),
