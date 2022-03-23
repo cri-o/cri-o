@@ -419,6 +419,7 @@ function restart_crio() {
 
 function cleanup_lvm() {
     if [ -n "${LVM_DEVICE+x}" ]; then
+        dmsetup remove "$(sudo dmsetup ls | grep container | awk '{print $1}' | sort -r)"
         lvm lvremove -y storage/thinpool
         lvm vgremove -y storage
         lvm pvremove -y "$LVM_DEVICE"
