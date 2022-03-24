@@ -52,6 +52,7 @@ const (
 	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
 	OCIBufSize                 = 8192
 	RuntimeTypeVM              = "vm"
+	RuntimeTypePod             = "pod"
 	defaultCtrStopTimeout      = 30 // seconds
 	defaultNamespacesDir       = "/var/run"
 	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
@@ -1344,7 +1345,7 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 
 // ValidateRuntimeType checks if the `RuntimeType` is valid.
 func (r *RuntimeHandler) ValidateRuntimeType(name string) error {
-	if r.RuntimeType != "" && r.RuntimeType != DefaultRuntimeType && r.RuntimeType != RuntimeTypeVM {
+	if r.RuntimeType != "" && r.RuntimeType != DefaultRuntimeType && r.RuntimeType != RuntimeTypeVM && r.RuntimeType != RuntimeTypePod {
 		return errors.Errorf("invalid `runtime_type` %q for runtime %q",
 			r.RuntimeType, name)
 	}

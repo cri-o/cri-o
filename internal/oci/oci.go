@@ -173,7 +173,10 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 		return newRuntimeVM(rh.RuntimePath, rh.RuntimeRoot, rh.RuntimeConfigPath), nil
 	}
 
-<<<<<<< HEAD
+	if rh.RuntimeType == config.RuntimeTypePod {
+		return newRuntimePod(r, rh, c)
+	}
+
 	// If the runtime type is different from "vm", then let's fallback
 	// onto the OCI implementation by default.
 	return newRuntimeOCI(r, rh), nil
