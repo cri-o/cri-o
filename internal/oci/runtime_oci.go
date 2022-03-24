@@ -698,7 +698,9 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout int64) (retErr error) {
-	c.SetAsStopping(timeout)
+	if c.SetAsStopping(timeout) {
+		return nil
+	}
 	defer func() {
 		if retErr != nil {
 			// Failed to stop, set stopping to false.
