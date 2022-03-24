@@ -926,3 +926,16 @@ function check_oci_annotation() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	! crictl create "$pod_id" "$TESTDIR/config" "$TESTDATA"/sandbox_config.json
 }
+
+@test "ctr stop timeouts should decrease" {
+	start_crio
+	jq '	  .command'='["/bin/sh", "-c", "trap \"echo hi\" INT; /bin/sleep 6000"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+	for i in {150..1}; do
+		crictl stop --timeout "$i" "$ctr_id" &
+		sleep .1
+	done
+	crictl stop "$ctr_id"
+}

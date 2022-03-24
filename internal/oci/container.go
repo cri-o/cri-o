@@ -553,7 +553,10 @@ func (c *Container) Spoofed() bool {
 // If a stop is currently happening, it also sends the new timeout
 // along the stopTimeoutChan, allowing the in-progress stop
 // to stop faster, or ignore the new stop timeout.
-func (c *Container) SetAsStopping(timeout int64) {
+// In this case, it also returns true, signifying the caller doesn't have to
+// Do any stop related cleanup, as the original caller (alreadyStopping=false)
+// will do said cleanup.
+func (c *Container) SetAsStopping(timeout int64) (alreadyStopping bool) {
 	// First, need to check if the container is already stopping
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
@@ -567,12 +570,13 @@ func (c *Container) SetAsStopping(timeout int64) {
 		case <-c.stoppedChan: // This case is to avoid waiting forever once another routine has finished.
 		case <-c.stopStoppingChan: // This case is to avoid deadlocking with SetAsNotStopping.
 		}
-		return
+		return true
 	}
 	// Regardless, set the container as actively stopping.
 	c.stopping = true
 	// And reset the stopStoppingChan
 	c.stopStoppingChan = make(chan struct{}, 1)
+	return false
 }
 
 // SetAsNotStopping unsets the stopping field indicating to new callers that the container
