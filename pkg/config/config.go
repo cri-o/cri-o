@@ -591,7 +591,7 @@ func DefaultConfig() (*Config, error) {
 			LogLevel:                 "info",
 			HooksDir:                 []string{hooks.DefaultDir},
 			NamespacesDir:            "/var/run",
-			ManageNSLifecycle:        true,
+			ManageNSLifecycle:        false,
 			seccompConfig:            seccomp.New(),
 			apparmorConfig:           apparmor.New(),
 			ulimitsConfig:            ulimits.New(),
