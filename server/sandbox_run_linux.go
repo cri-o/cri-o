@@ -473,7 +473,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := sbox.InitInfraContainer(&s.config, &podContainer); err != nil {
 		return nil, err
 	}
-	g := sbox.Spec()
 	pathsToChown = append(pathsToChown, sbox.ResolvPath())
 
 	// add metadata
@@ -505,13 +504,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	// Add capabilities from crio.conf if default_capabilities is defined
-	capabilities := &types.Capability{}
-	g.ClearProcessCapabilities()
-	if err := setupCapabilities(g, capabilities, s.config.DefaultCapabilities); err != nil {
-		return nil, err
-	}
-
 	nsOptsJSON, err := json.Marshal(securityContext.NamespaceOptions)
 	if err != nil {
 		return nil, err
@@ -524,6 +516,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if hostPID || hostIPC {
 		processLabel, mountLabel = "", ""
 	}
+	g := sbox.Spec()
 	g.SetProcessSelinuxLabel(processLabel)
 	g.SetLinuxMountLabel(mountLabel)
 

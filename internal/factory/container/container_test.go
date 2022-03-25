@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/pkg/annotations"
+	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -18,6 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
@@ -517,6 +519,80 @@ var _ = t.Describe("Container", func() {
 			// Then
 			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
 			Expect(sut.WillRunSystemd()).To(BeFalse())
+		})
+	})
+	t.Describe("SpecSetupCapabilities", func() {
+		verifyCapValues := func(caps *rspec.LinuxCapabilities, expected int) {
+			Expect(len(caps.Bounding)).To(Equal(expected))
+			Expect(len(caps.Effective)).To(Equal(expected))
+			Expect(len(caps.Permitted)).To(Equal(expected))
+			Expect(len(caps.Inheritable)).To(Equal(expected))
+			Expect(len(caps.Ambient)).To(Equal(0))
+		}
+		It("Empty capabilities should use server capabilities", func() {
+			var caps *types.Capability
+			serverCaps := capabilities.Default()
+
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(serverCaps))
+		})
+		It("AddCapabilities should add capability", func() {
+			caps := &types.Capability{
+				AddCapabilities:  []string{"CHOWN"},
+				DropCapabilities: nil,
+			}
+			serverCaps := []string{}
+
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(serverCaps)+1)
+		})
+		It("DropCapabilities should drop capability", func() {
+			caps := &types.Capability{
+				AddCapabilities:  []string{"CHOWN"},
+				DropCapabilities: []string{"CHOWN"},
+			}
+			serverCaps := []string{"CHOWN"}
+
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(serverCaps)-1)
+		})
+		It("AddCapabilities ALL DropCapabilities one should drop that one", func() {
+			caps := &types.Capability{
+				AddCapabilities:  []string{"ALL"},
+				DropCapabilities: []string{"CHOWN"},
+			}
+			serverCaps := []string{}
+
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(capability.List())-1)
+		})
+		It("AddCapabilities one DropCapabilities ALL should add that one", func() {
+			caps := &types.Capability{
+				AddCapabilities:  []string{"CHOWN"},
+				DropCapabilities: []string{"ALL"},
+			}
+			serverCaps := []string{}
+
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			verifyCapValues(sut.Spec().Config.Process.Capabilities, 1)
+		})
+		It("AddCapabilities ALL DropCapabilities ALL should drop all", func() {
+			caps := &types.Capability{
+				AddCapabilities:  []string{"ALL"},
+				DropCapabilities: []string{"ALL"},
+			}
+			serverCaps := []string{}
+
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			verifyCapValues(sut.Spec().Config.Process.Capabilities, 0)
+		})
+		It("Invalid values should fail", func() {
+			caps := &types.Capability{
+				AddCapabilities: []string{"Not a capability"},
+			}
+			serverCaps := []string{}
+
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).NotTo(BeNil())
 		})
 	})
 })

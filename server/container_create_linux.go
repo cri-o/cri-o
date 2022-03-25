@@ -429,15 +429,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			specgen.SetupPrivileged(true)
 		} else {
 			capabilities := securityContext.Capabilities
-			// Ensure we don't get a nil pointer error if the config
-			// doesn't set any capabilities
-			if capabilities == nil {
-				capabilities = &types.Capability{}
-			}
-			// Clear default capabilities from spec
-			specgen.ClearProcessCapabilities()
-			err = setupCapabilities(specgen, capabilities, s.config.DefaultCapabilities)
-			if err != nil {
+			if err := ctr.SpecSetupCapabilities(capabilities, s.config.DefaultCapabilities); err != nil {
 				return nil, err
 			}
 		}
