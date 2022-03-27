@@ -111,10 +111,12 @@ const (
 	InspectConfigEndpoint     = "/config"
 	InspectContainersEndpoint = "/containers"
 	InspectInfoEndpoint       = "/info"
+	InspectPauseEndpoint      = "/pause"
+	InspectUnpauseEndpoint    = "/unpause"
 )
 
-// GetInfoMux returns the mux used to serve info requests
-func (s *Server) GetInfoMux(enableProfile bool) *bone.Mux {
+// GetExtendInterfaceMux returns the mux used to serve extend interface requests
+func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 	mux := bone.New()
 
 	mux.Get(InspectConfigEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -166,6 +168,42 @@ func (s *Server) GetInfoMux(enableProfile bool) *bone.Mux {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write(js); err != nil {
+			logrus.Errorf("Unable to write response JSON: %v", err)
+		}
+	}))
+
+	mux.Get(InspectPauseEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		containerID := bone.GetValue(req, "id")
+		ctr := s.GetContainer(containerID)
+
+		if ctr == nil {
+			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
+			return
+		}
+		if err := s.Runtime().PauseContainer(s.stream.ctx, ctr); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		if _, err := w.Write([]byte("200 OK")); err != nil {
+			logrus.Errorf("Unable to write response JSON: %v", err)
+		}
+	}))
+
+	mux.Get(InspectUnpauseEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		containerID := bone.GetValue(req, "id")
+		ctr := s.GetContainer(containerID)
+
+		if ctr == nil {
+			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
+			return
+		}
+		if err := s.Runtime().UnpauseContainer(s.stream.ctx, ctr); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		if _, err := w.Write([]byte("200 OK")); err != nil {
 			logrus.Errorf("Unable to write response JSON: %v", err)
 		}
 	}))

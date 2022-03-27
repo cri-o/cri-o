@@ -19,16 +19,17 @@ var _ = t.Describe("Inspect", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
+		mockRuncInLibConfig()
 		setupSUT()
 
 		recorder = httptest.NewRecorder()
-		mux = sut.GetInfoMux(false)
+		mux = sut.GetExtendInterfaceMux(false)
 		Expect(mux).NotTo(BeNil())
 		Expect(recorder).NotTo(BeNil())
 	})
 	AfterEach(afterEach)
 
-	t.Describe("GetInfoMux", func() {
+	t.Describe("GetExtendInterfaceMux", func() {
 		It("should succeed with /info route", func() {
 			// Given
 			// When
@@ -119,6 +120,82 @@ var _ = t.Describe("Inspect", func() {
 			Expect(err).To(BeNil())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
+		})
+
+		It("should fail with empty on /pause route", func() {
+			// Given
+			// When
+			request, err := http.NewRequest("GET", "/pause", http.NoBody)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
+		})
+
+		It("should fail with invalid container ID on /pause route", func() {
+			// Given
+			// When
+			request, err := http.NewRequest("GET", "/pause/123", http.NoBody)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
+		})
+
+		It("should succeed with valid container ID on /pause route", func() {
+			// Given
+			addContainerAndSandbox()
+
+			// When
+			request, err := http.NewRequest("GET", "/pause/" + testContainer.ID(), http.NoBody)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusOK))
+		})
+
+		It("should fail with empty on /unpause route", func() {
+			// Given
+			// When
+			request, err := http.NewRequest("GET", "/unpause", http.NoBody)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
+		})
+
+		It("should fail with invalid container ID on /unpause route", func() {
+			// Given
+			// When
+			request, err := http.NewRequest("GET", "/unpause/123", http.NoBody)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
+		})
+
+		It("should succeed with valid container ID on /unpause route", func() {
+			// Given
+			addContainerAndSandbox()
+
+			// When
+			request, err := http.NewRequest("GET", "/unpause/" + testContainer.ID(), http.NoBody)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusOK))
 		})
 	})
 })
