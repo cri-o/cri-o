@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.44.0
+          version: v1.45.0
 
           # Only show new issues for a pull request.
           only-new-issues: true

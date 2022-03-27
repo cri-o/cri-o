@@ -17,13 +17,16 @@ linters:
   disable-all: true
   enable:
     - asciicheck
+    - bidichk
     - bodyclose
     - deadcode
+    - decorder
     - depguard
     - dogsled
     - dupl
     - durationcheck
     - errcheck
+    - errchkjson
     - exportloopref
     - forcetypeassert
     - gochecknoinits
@@ -37,6 +40,7 @@ linters:
     - goprintffuncname
     - gosimple
     - govet
+    - grouper
     - importas
     - ineffassign
     - makezero
@@ -49,6 +53,7 @@ linters:
     - staticcheck
     - structcheck
     - stylecheck
+    - tenv
     - tparallel
     - typecheck
     - unconvert
@@ -56,7 +61,10 @@ linters:
     - unused
     - varcheck
     - whitespace
+    # - containedctx
+    # - contextcheck
     # - cyclop
+    # - errname
     # - errorlint
     # - exhaustive
     # - exhaustivestruct
@@ -73,9 +81,12 @@ linters:
     # - gomodguard
     # - gosec
     # - ifshort
+    # - ireturn
     # - lll
+    # - maintidx
     # - nestif
     # - nilerr
+    # - nilnil
     # - nlreturn
     # - noctx
     # - paralleltest
@@ -85,6 +96,7 @@ linters:
     # - tagliatelle
     # - testpackage
     # - thelper
+    # - varnamelen
     # - wastedassign
     # - wrapcheck
     # - wsl
@@ -97,31 +109,57 @@ linters-settings:
       # Diagnostic
       - appendAssign
       - argOrder
+      - badCall
       - badCond
+      - badLock
+      - badRegexp
+      - badSorting
+      - builtinShadowDecl
       - caseOrder
       - codegenComment
       - commentedOutCode
+      - deferInLoop
       - deprecatedComment
       - dupArg
       - dupBranchBody
       - dupCase
       - dupSubExpr
+      - dynamicFmtString
+      - emptyDecl
+      - evalOrder
       - exitAfterDefer
+      - externalErrorReassign
       - flagDeref
       - flagName
+      - mapKey
       - nilValReturn
       - offBy1
+      - regexpPattern
+      - returnAfterHttpError
       - sloppyReassign
+      - sloppyTypeAssert
+      - sortSlice
+      - sprintfQuotedString
+      - sqlQuery
+      - syncMapLoadAndDelete
+      - truncateCmp
+      - unnecessaryDefer
       - weakCond
-      # - octalLiteral
+      # - filepathJoin
 
       # Performance
       - appendCombine
       - equalFold
       - hugeParam
       - indexAlloc
+      - preferDecodeRune
+      - preferFprint
+      - preferStringWriter
+      - preferWriteByte
       - rangeExprCopy
       - rangeValCopy
+      - sliceClear
+      - stringXbytes
 
       # Style
       - assignOp
@@ -130,19 +168,32 @@ linters-settings:
       - commentFormatting
       - commentedOutImport
       - defaultCaseOrder
+      - deferUnlambda
       - docStub
+      - dupImport
       - elseif
       - emptyFallthrough
       - emptyStringTest
+      - exposedSyncMutex
       - hexLiteral
+      - httpNoBody
       - ifElseChain
       - methodExprCall
+      - newDeref
+      - octalLiteral
+      - preferFilepathJoin
+      - redundantSprint
       - regexpMust
+      - regexpSimplify
+      - ruleguard
       - singleCaseSwitch
       - sloppyLen
-      - stringXbytes
+      - stringConcatSimplify
       - switchTrue
+      - timeExprSimplify
+      - tooManyResultsChecker
       - typeAssertChain
+      - typeDefFirst
       - typeSwitchVar
       - underef
       - unlabelStmt
@@ -151,6 +202,8 @@ linters-settings:
       - valSwap
       - wrapperFunc
       - yodaStyleExpr
+      # - ioutilDeprecated
+      # - whyNoLint
 
       # Opinionated
       - builtinShadow

@@ -27,7 +27,7 @@ type StatsServer struct {
 	sboxStats        map[string]*types.PodSandboxStats
 	ctrStats         map[string]*types.ContainerStats
 	parentServerIface
-	sync.Mutex
+	mutex sync.Mutex
 }
 
 // parentServerIface is an interface for requesting information from the parent ContainerServer.
@@ -76,8 +76,8 @@ func (ss *StatsServer) updateLoop() {
 // It does so by updating the stats of every sandbox, which in turn
 // updates the stats for each container it has.
 func (ss *StatsServer) update() {
-	ss.Lock()
-	defer ss.Unlock()
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
 
 	for _, sb := range ss.ListSandboxes() {
 		ss.updateSandbox(sb)
@@ -249,15 +249,15 @@ func linkToInterface(link netlink.Link) (*types.NetworkInterfaceUsage, error) {
 
 // StatsForSandbox returns the stats for the given sandbox
 func (ss *StatsServer) StatsForSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats {
-	ss.Lock()
-	defer ss.Unlock()
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
 	return ss.statsForSandbox(sb)
 }
 
 // StatsForSandboxes returns the stats for the given list of sandboxes
 func (ss *StatsServer) StatsForSandboxes(sboxes []*sandbox.Sandbox) []*types.PodSandboxStats {
-	ss.Lock()
-	defer ss.Unlock()
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
 	stats := make([]*types.PodSandboxStats, 0, len(sboxes))
 	for _, sb := range sboxes {
 		if stat := ss.statsForSandbox(sb); stat != nil {
@@ -284,22 +284,22 @@ func (ss *StatsServer) statsForSandbox(sb *sandbox.Sandbox) *types.PodSandboxSta
 // RemoveStatsForSandbox removes the saved entry for the specified sandbox
 // to prevent the map from always growing.
 func (ss *StatsServer) RemoveStatsForSandbox(sb *sandbox.Sandbox) {
-	ss.Lock()
-	defer ss.Unlock()
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
 	delete(ss.sboxStats, sb.ID())
 }
 
 // StatsForContainer returns the stats for the given container
 func (ss *StatsServer) StatsForContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerStats {
-	ss.Lock()
-	defer ss.Unlock()
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
 	return ss.statsForContainer(c, sb)
 }
 
 // StatsForContainers returns the stats for the given list of containers
 func (ss *StatsServer) StatsForContainers(ctrs []*oci.Container) []*types.ContainerStats {
-	ss.Lock()
-	defer ss.Unlock()
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
 	stats := make([]*types.ContainerStats, 0, len(ctrs))
 	for _, c := range ctrs {
 		sb := ss.GetSandbox(c.Sandbox())
@@ -331,8 +331,8 @@ func (ss *StatsServer) statsForContainer(c *oci.Container, sb *sandbox.Sandbox) 
 // RemoveStatsForContainer removes the saved entry for the specified container
 // to prevent the map from always growing.
 func (ss *StatsServer) RemoveStatsForContainer(c *oci.Container) {
-	ss.Lock()
-	defer ss.Unlock()
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
 	delete(ss.ctrStats, c.ID())
 }
 

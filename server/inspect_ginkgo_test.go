@@ -32,7 +32,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should succeed with /info route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/info", nil)
+			request, err := http.NewRequest("GET", "/info", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -50,7 +50,7 @@ var _ = t.Describe("Inspect", func() {
 
 			// When
 			request, err := http.NewRequest("GET",
-				"/containers/"+testContainer.ID(), nil)
+				"/containers/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -69,7 +69,7 @@ var _ = t.Describe("Inspect", func() {
 
 			// When
 			request, err := http.NewRequest("GET",
-				"/containers/"+testContainer.ID(), nil)
+				"/containers/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -87,7 +87,7 @@ var _ = t.Describe("Inspect", func() {
 
 			// When
 			request, err := http.NewRequest("GET",
-				"/containers/"+testContainer.ID(), nil)
+				"/containers/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -100,7 +100,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail with empty with /containers route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/containers", nil)
+			request, err := http.NewRequest("GET", "/containers", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -112,7 +112,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail with invalid container ID on /containers route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/containers/123", nil)
+			request, err := http.NewRequest("GET", "/containers/123", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then

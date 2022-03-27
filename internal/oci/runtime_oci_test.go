@@ -149,7 +149,8 @@ func waitContainerStopAndFailAfterTimeout(ctx context.Context,
 	sut *oci.Container,
 	waitContainerStopTimeout int64,
 	failAfterTimeout int64,
-	ignoreKill bool) {
+	ignoreKill bool,
+) {
 	select {
 	case stoppedChan <- oci.WaitContainerStop(ctx, sut, inSeconds(waitContainerStopTimeout), ignoreKill):
 	case <-time.After(inSeconds(failAfterTimeout)):
