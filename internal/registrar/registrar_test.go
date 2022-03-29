@@ -3,9 +3,9 @@ package registrar_test
 import (
 	"testing"
 
-	. "github.com/containers/podman/v3/test/framework"
 	"github.com/cri-o/cri-o/internal/registrar"
-	. "github.com/onsi/ginkgo"
+	. "github.com/cri-o/cri-o/test/framework"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

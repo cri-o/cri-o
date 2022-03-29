@@ -6,7 +6,7 @@ import (
 
 	containers_seccomp "github.com/containers/common/pkg/seccomp"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-tools/generate"
 	k8sV1 "k8s.io/api/core/v1"

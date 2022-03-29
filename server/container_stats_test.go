@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"

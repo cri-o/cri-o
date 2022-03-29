@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

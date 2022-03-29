@@ -2,7 +2,7 @@ package device_test
 
 import (
 	"github.com/cri-o/cri-o/internal/config/device"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

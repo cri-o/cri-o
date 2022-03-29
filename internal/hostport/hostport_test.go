@@ -18,9 +18,9 @@ package hostport
 
 import (
 	"fmt"
-	"testing"
 
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 )
 
@@ -61,27 +61,29 @@ func (f *fakeSocketManager) openFakeSocket(hp *hostport) (closeable, error) {
 	return fs, nil
 }
 
-func TestEnsureKubeHostportChains(t *testing.T) {
-	interfaceName := "cbr0"
-	builtinChains := []string{"PREROUTING", "OUTPUT"}
-	jumpRule := "-m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS"
-	masqRule := "-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE"
+var _ = t.Describe("HostPort", func() {
+	It("should ensure kube hostport chains", func() {
+		interfaceName := "cbr0"
+		builtinChains := []string{"PREROUTING", "OUTPUT"}
+		jumpRule := "-m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS"
+		masqRule := "-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE"
 
-	fakeIPTables := newFakeIPTables()
-	assert.NoError(t, ensureKubeHostportChains(fakeIPTables, interfaceName))
+		fakeIPTables := newFakeIPTables()
+		Expect(ensureKubeHostportChains(fakeIPTables, interfaceName)).To(BeNil())
 
-	_, _, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain("KUBE-HOSTPORTS"))
-	assert.NoError(t, err)
+		_, _, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain("KUBE-HOSTPORTS"))
+		Expect(err).To(BeNil())
 
-	_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.ChainPostrouting)
-	assert.NoError(t, err)
-	assert.EqualValues(t, len(chain.rules), 1)
-	assert.Contains(t, chain.rules[0], masqRule)
+		_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.ChainPostrouting)
+		Expect(err).To(BeNil())
+		Expect(len(chain.rules)).To(BeEquivalentTo(1))
+		Expect(chain.rules).To(ContainElement(masqRule))
 
-	for _, chainName := range builtinChains {
-		_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain(chainName))
-		assert.NoError(t, err)
-		assert.EqualValues(t, len(chain.rules), 1)
-		assert.Contains(t, chain.rules[0], jumpRule)
-	}
-}
+		for _, chainName := range builtinChains {
+			_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain(chainName))
+			Expect(err).To(BeNil())
+			Expect(len(chain.rules)).To(BeEquivalentTo(1))
+			Expect(chain.rules).To(ContainElement(jumpRule))
+		}
+	})
+})
