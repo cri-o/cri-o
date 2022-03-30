@@ -32,7 +32,6 @@ CONTAINER_RUNTIME ?= podman
 BUILD_PATH := $(shell pwd)/build
 BUILD_BIN_PATH := ${BUILD_PATH}/bin
 COVERAGE_PATH := ${BUILD_PATH}/coverage
-JUNIT_PATH := ${BUILD_PATH}/junit
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
 
@@ -244,7 +243,7 @@ ${GO_MD2MAN}:
 	$(call go-build,./vendor/github.com/cpuguy83/go-md2man)
 
 ${GINKGO}:
-	$(call go-build,./vendor/github.com/onsi/ginkgo/ginkgo)
+	$(call go-build,./vendor/github.com/onsi/ginkgo/v2/ginkgo)
 
 ${MOCKGEN}:
 	$(call go-build,./vendor/github.com/golang/mock/mockgen)
@@ -286,25 +285,19 @@ check-vendor: vendor
 
 testunit: ${GINKGO}
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
-	rm -rf ${JUNIT_PATH} && mkdir -p ${JUNIT_PATH}
-	ACK_GINKGO_DEPRECATIONS=1.16.0 \
-	${BUILD_BIN_PATH}/ginkgo \
+	${BUILD_BIN_PATH}/ginkgo run \
 		${TESTFLAGS} \
 		-r \
 		--trace \
 		--cover \
 		--covermode atomic \
-		--outputdir ${COVERAGE_PATH} \
+		--output-dir ${COVERAGE_PATH} \
+		--junit-report junit.xml \
 		--coverprofile coverprofile \
 		--tags "test $(BUILDTAGS)" \
 		$(GO_MOD_VENDOR) \
 		--succinct
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
-	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
-	for f in $$(find . -name "*_junit.xml"); do \
-		mkdir -p $(JUNIT_PATH)/$$(dirname $$f) ;\
-		mv $$f $(JUNIT_PATH)/$$(dirname $$f) ;\
-	done
 
 testunit-bin:
 	mkdir -p ${TESTBIN_PATH}

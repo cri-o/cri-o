@@ -253,7 +253,6 @@ jobs:
           name: unit
           path: |
             build/coverage
-            build/junit
 
   coverage:
     needs: unit

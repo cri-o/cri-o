@@ -2,7 +2,7 @@ package useragent_test
 
 import (
 	"github.com/cri-o/cri-o/server/useragent"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

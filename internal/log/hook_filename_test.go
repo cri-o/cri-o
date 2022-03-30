@@ -2,7 +2,7 @@ package log_test
 
 import (
 	"github.com/cri-o/cri-o/internal/log"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )

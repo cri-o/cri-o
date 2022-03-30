@@ -5,7 +5,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	nsmgrtest "github.com/cri-o/cri-o/internal/config/nsmgr/test"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

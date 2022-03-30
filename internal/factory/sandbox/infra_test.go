@@ -6,7 +6,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/factory/sandbox"
 	"github.com/cri-o/cri-o/pkg/config"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )

@@ -4,7 +4,7 @@ import (
 	runnerMock "github.com/cri-o/cri-o/test/mocks/cmdrunner"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 )
@@ -21,10 +21,6 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should fail when path not absolute", func() {
 			// Given
-			gomock.InOrder(
-				runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte{}, nil),
-			)
-
 			// When
 			mgr, err := New("")
 

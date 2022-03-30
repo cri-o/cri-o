@@ -11,7 +11,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	digest "github.com/opencontainers/go-digest"
 )

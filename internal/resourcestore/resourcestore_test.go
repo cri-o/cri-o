@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/resourcestore"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 )

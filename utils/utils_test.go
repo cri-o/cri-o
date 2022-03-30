@@ -10,7 +10,7 @@ import (
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

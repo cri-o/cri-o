@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/cri-o/cri-o/server"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
