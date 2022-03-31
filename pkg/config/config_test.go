@@ -2,12 +2,14 @@ package config_test
 
 import (
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 
 	"github.com/containers/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -440,6 +442,17 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
+		It("should fail on invalid InfraCtrCPUSet", func() {
+			// Given
+			sut.RuntimeConfig.InfraCtrCPUSet = "unparsable"
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
 		It("should inherit from .Conmon even if bogus", func() {
 			// Given
 			sut.Conmon = invalidPath
@@ -486,6 +499,37 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(handler.MonitorCgroup).To(Equal(sut.ConmonCgroup))
+		})
+
+		It("should configure a taskset prefix for cmdrunner for a valid InfraCtrCPUSet", func() {
+			executable, err := exec.LookPath("taskset")
+			if err != nil {
+				Skip("this test relies on 'taskset' being present")
+			}
+
+			// Given
+			cmdrunner.ResetPrependedCmd()
+			sut.RuntimeConfig.InfraCtrCPUSet = "0"
+
+			// When
+			err = sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(cmdrunner.GetPrependedCmd()).To(Equal(executable))
+		})
+
+		It("should not configure a taskset prefix for cmdrunner for an empty InfraCtrCPUSet", func() {
+			// Given
+			cmdrunner.ResetPrependedCmd()
+			sut.RuntimeConfig.InfraCtrCPUSet = ""
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(cmdrunner.GetPrependedCmd()).To(Equal(""))
 		})
 	})
 
