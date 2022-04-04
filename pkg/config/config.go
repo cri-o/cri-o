@@ -98,7 +98,7 @@ const (
 	// ImageVolumesBind option is for using bind mounted volumes
 	ImageVolumesBind ImageVolumesType = "bind"
 	// DefaultPauseImage is default pause image
-	DefaultPauseImage string = "k8s.gcr.io/pause:3.6"
+	DefaultPauseImage string = "registry.k8s.io/pause:3.6"
 )
 
 const (
