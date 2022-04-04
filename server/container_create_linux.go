@@ -563,6 +563,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		Options:     []string{"rw", "bind"},
 	})
 
+	if inStringSlice(specgen.Config.Process.Capabilities.Effective, "CAP_CHECKPOINT_RESTORE") {
+		ctr.SpecAddMount(rspec.Mount{
+			Destination: "/proc/sys/kernel/ns_last_pid",
+			Type:        "bind",
+			Source:      "/proc/sys/kernel/ns_last_pid",
+			Options:     []string{"rw", "bind"},
+		})
+	}
+
 	options := []string{"rw"}
 	if readOnlyRootfs {
 		options = []string{"ro"}
