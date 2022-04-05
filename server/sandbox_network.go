@@ -27,7 +27,12 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	// This is to prevent the CNI plugin from taking an unbounded amount of time,
 	// but to still allow a long-running sandbox creation to be cached and reused,
 	// rather than failing and recreating it.
-	const startTimeout = 5 * time.Minute
+	// Adding on top of the specified deadline ensures this deadline will be respected, regardless of
+	// how Kubelet's runtime-request-timeout changes.
+	startTimeout := 5 * time.Minute
+	if initialDeadline, ok := ctx.Deadline(); ok {
+		startTimeout += time.Until(initialDeadline)
+	}
 	startCtx, startCancel := context.WithTimeout(context.Background(), startTimeout)
 	defer startCancel()
 
