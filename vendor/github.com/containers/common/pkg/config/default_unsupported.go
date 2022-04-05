@@ -1,11 +1,16 @@
-// +build !linux
+// +build !linux,!windows
 
 package config
 
-// getDefaultRootlessNetwork returns the default rootless network configuration.
-// It is "cni" for non-Linux OSes (to better support `podman-machine` usecases).
-func getDefaultRootlessNetwork() string {
-	return "cni"
+// getDefaultMachineImage returns the default machine image stream
+// On Linux/Mac, this returns the FCOS stream
+func getDefaultMachineImage() string {
+	return "testing"
+}
+
+// getDefaultMachineUser returns the user to use for rootless podman
+func getDefaultMachineUser() string {
+	return "core"
 }
 
 // isCgroup2UnifiedMode returns whether we are running in cgroup2 mode.

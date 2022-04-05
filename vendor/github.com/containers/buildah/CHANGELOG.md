@@ -2,10 +2,237 @@
 
 # Changelog
 
-## v1.23.1 (2021-09-27)
+## v1.25.0 (2022-03-25)
 
-    Vendor containers/common v0.44.2
-    post-1.23 branch fixups
+    install: drop RHEL/CentOS 7 doc
+    build(deps): bump github.com/containers/common from 0.47.4 to 0.47.5
+    Bump c/storage to v1.39.0 in main
+    Add a test for CVE-2022-27651
+    build(deps): bump github.com/docker/docker
+    Bump github.com/prometheus/client_golang to v1.11.1
+    [CI:DOCS] man pages: sort flags, and keep them that way
+    build(deps): bump github.com/containerd/containerd from 1.6.1 to 1.6.2
+    Don't pollute
+    network setup: increase timeout to 4 minutes
+    do not set the inheritable capabilities
+    build(deps): bump github.com/golangci/golangci-lint in /tests/tools
+    build(deps): bump github.com/containers/ocicrypt from 1.1.2 to 1.1.3
+    parse: convert exposed GetVolumes to internal only
+    buildkit: mount=type=cache support locking external cache store
+    .in support: improve error message when cpp is not installed
+    buildah image: install cpp
+    build(deps): bump github.com/stretchr/testify from 1.7.0 to 1.7.1
+    build(deps): bump github.com/spf13/cobra from 1.3.0 to 1.4.0
+    build(deps): bump github.com/docker/docker
+    Add --no-hosts flag to eliminate use of /etc/hosts within containers
+    test: remove skips for rootless users
+    test: unshare mount/umount if test is_rootless
+    tests/copy: read correct containers.conf
+    build(deps): bump github.com/docker/distribution
+    cirrus: add seperate task and matrix for rootless
+    tests: skip tests for rootless which need unshare
+    buildah: test rootless integration
+    vendor: bump c/storage to main/93ce26691863
+    build(deps): bump github.com/fsouza/go-dockerclient from 1.7.9 to 1.7.10
+    tests/copy: initialize the network, too
+    [CI:DOCS] remove references to Kubic for CentOS and Ubuntu
+    build(deps): bump github.com/containerd/containerd from 1.6.0 to 1.6.1
+    use c/image/pkg/blobcache
+    vendor c/image/v5@v5.20.0
+    add: ensure the context directory is an absolute path
+    executor: docker builds must inherit healthconfig from base if any
+    docs: Remove Containerfile and containeringore
+    build(deps): bump github.com/fsouza/go-dockerclient from 1.7.8 to 1.7.9
+    helpers.bash: Use correct syntax
+    speed up combination-namespaces test
+    build(deps): bump github.com/golangci/golangci-lint in /tests/tools
+    Bump back to 1.25.0-dev
+    build(deps): bump github.com/containerd/containerd from 1.5.9 to 1.6.0
+
+## v1.24.2 (2022-02-16)
+
+    Increase subuid/subgid to 65535
+    history: only add proxy vars to history if specified
+    run_linux: use --systemd-cgroup
+    buildah: new global option --cgroup-manager
+    Makefile: build with systemd when available
+    build(deps): bump github.com/fsouza/go-dockerclient from 1.7.7 to 1.7.8
+    Bump c/common to v0.47.4
+    Cirrus: Use updated VM images
+    conformance: add a few "replace-directory-with-symlink" tests
+    Bump back to v1.25.0-dev
+
+## v1.24.1 (2022-02-03)
+
+    executor: Add support for inline --platform within Dockerfile
+    caps: fix buildah run --cap-add=all
+    Update vendor of openshift/imagebuilder
+    Bump version of containers/image and containers/common
+    Update vendor of containers/common
+    System tests: fix accidental vandalism of source dir
+    build(deps): bump github.com/containers/storage from 1.38.1 to 1.38.2
+    imagebuildah.BuildDockerfiles(): create the jobs semaphore
+    build(deps): bump github.com/onsi/gomega from 1.18.0 to 1.18.1
+    overlay: always honor mountProgram
+    overlay: move mount program invocation to separate function
+    overlay: move mount program lookup to separate function
+    Bump to v1.25.0-dev [NO TESTS NEEDED]
+
+## v1.24.0 (2022-01-26)
+
+    Update vendor of containers/common
+    build(deps): bump github.com/golangci/golangci-lint in /tests/tools
+    Github-workflow: Report both failures and errors.
+    build(deps): bump github.com/containers/image/v5 from 5.18.0 to 5.19.0
+    Update docs/buildah-build.1.md
+    [CI:DOCS] Fix typos and improve language
+    buildah bud --network add support for custom networks
+    Make pull commands be consistent
+    docs/buildah-build.1.md: don't imply that -v isn't just a RUN thing
+    build(deps): bump github.com/onsi/gomega from 1.17.0 to 1.18.0
+    Vendor in latest containers/image
+    Run codespell on code
+    .github/dependabot.yml: add tests/tools go.mod
+    CI: rm git-validation, add GHA job to validate PRs
+    tests/tools: bump go-md2man to v2.0.1
+    tests/tools/Makefile: simplify
+    tests/tools: bump onsi/ginkgo to v1.16.5
+    vendor: bump c/common and others
+    mount: add support for custom upper and workdir with overlay mounts
+    linux: fix lookup for runtime
+    overlay: add MountWithOptions to API which extends support for advanced overlay
+    Allow processing of SystemContext from FlagSet
+    .golangci.yml: enable unparam linter
+    util/resolveName: rm bool return
+    tests/tools: bump golangci-lint
+    .gitignore: fixups
+    all: fix capabilities.NewPid deprecation warnings
+    bind/mount.go: fix linter comment
+    all: fix gosimple warning S1039
+    tests/e2e/buildah_suite_test.go: fix gosimple warnings
+    imagebuildah/executor.go: fix gosimple warning
+    util.go: fix gosimple warning
+    build(deps): bump github.com/opencontainers/runc from 1.0.3 to 1.1.0
+    Enable git-daemon tests
+    Allow processing of id options from FlagSet
+    Cirrus: Re-order tasks for more parallelism
+    Cirrus: Freshen VM images
+    Fix platform handling for empty os/arch values
+    Allow processing of network options from FlagSet
+    Fix permissions on  secrets directory
+    Update containers/image and containers/common
+    bud.bats: use a local git daemon for the git protocol test
+    Allow processing of common options from FlagSet
+    Cirrus: Run int. tests in parallel with unit
+    vendor c/common
+    Fix default CNI paths
+    build(deps): bump github.com/fsouza/go-dockerclient from 1.7.6 to 1.7.7
+    multi-stage: enable mounting stages across each other with selinux enabled
+    executor: Share selinux label of first stage with other stages in a build
+    buildkit: add from field to bind and cache mounts so images can be used as source
+    Use config.ProxyEnv from containers/common
+    use libnetwork from c/common for networking
+    setup the netns in the buildah parent process
+    build(deps): bump github.com/containerd/containerd from 1.5.8 to 1.5.9
+    build(deps): bump github.com/fsouza/go-dockerclient from 1.7.4 to 1.7.6
+    build: fix libsubid test
+    Allow callers to replace the ContainerSuffix
+    parse: allow parsing anomaly non-human value for memory control group
+    .cirrus: remove static_build from ci
+    stage_executor: re-use all possible layers from cache for squashed builds
+    build(deps): bump github.com/spf13/cobra from 1.2.1 to 1.3.0
+    Allow rootless buildah to set resource limits on cgroup V2
+    build(deps): bump github.com/docker/docker
+    tests: move buildkit mount tests files from TESTSDIR to TESTDIR before modification
+    build(deps): bump github.com/opencontainers/runc from 1.0.2 to 1.0.3
+    Wire logger through to config
+    copier.Put: check for is-not-a-directory using lstat, not stat
+    Turn on rootless cgroupv2 tests
+    Grab all of the containers.conf settings for namespaces.
+    image: set MediaType in OCI manifests
+    copier: RemoveAll possibly-directories
+    Simple README fix
+    images: accept multiple filter with logical AND
+    build(deps): bump github.com/containernetworking/cni from 0.8.1 to 1.0.1
+    UPdate vendor of container/storage
+    build(deps): bump github.com/onsi/gomega from 1.16.0 to 1.17.0
+    build(deps): bump github.com/containers/image/v5 from 5.16.1 to 5.17.0
+    Make LocalIP public function so Podman can use it
+    Fix UnsetEnv for buildah bud
+    Tests should rely only on static/unchanging images
+    run: ensure that stdio pipes are labeled correctly
+    build(deps): bump github.com/docker/docker
+    Cirrus: Bump up to Fedora 35 & Ubuntu 21.10
+    chroot: don't use the generate default seccomp filter for unit tests
+    build(deps): bump github.com/containerd/containerd from 1.5.7 to 1.5.8
+    ssh-agent: Increase timeout before we explicitly close connection
+    docs/tutorials: update
+    Clarify that manifest defaults to localhost as the registry name
+    "config": remove a stray bit of debug output
+    "commit": fix a flag typo
+    Fix an error message: unlocking vs locking
+    Expand the godoc for CommonBuildOptions.Secrets
+    chroot: accept an "rw" option
+    Add --unsetenv option to buildah commit and build
+    define.TempDirForURL(): show CombinedOutput when a command fails
+    config: support the variant field
+    rootless: do not bind mount /sys if not needed
+    Fix tutorial to specify command on buildah run line
+    build: history should not contain ARG values
+    docs: Use guaranteed path for go-md2man
+    run: honor --network=none from builder if nothing specified
+    networkpolicy: Should be enabled instead of default when explictly set
+    Add support for env var secret sources
+    build(deps): bump github.com/docker/docker
+    fix: another non-portable shebang
+    Rootless containers users should use additional groups
+    Support overlayfs path contains colon
+    Report ignorefile location when no content added
+    Add support for host.containers.internal in the /etc/hosts
+    build(deps): bump github.com/onsi/ginkgo from 1.16.4 to 1.16.5
+    imagebuildah: fix nil deref
+    buildkit: add support for mount=type=cache
+    Default secret mode to 400
+    [CI:DOCS] Include manifest example usage
+    docs: update buildah-from, buildah-pull 'platform' option compatibility notes
+    docs: update buildah-build 'platform' option compatibility notes
+    De-dockerize the man page as much as possible
+    [CI:DOCS] Touch up Containerfile man page to show ARG can be 1st
+    docs: Fix and Update Containerfile man page with supported mount types
+    mount: add tmpcopyup to tmpfs mount option
+    buildkit: Add support for --mount=type=tmpfs
+    build(deps): bump github.com/opencontainers/selinux from 1.8.5 to 1.9.1
+    Fix command doc links in README.md
+    build(deps): bump github.com/containers/image/v5 from 5.16.0 to 5.16.1
+    build: Add support for buildkit like --mount=type=bind
+    Bump containerd to v1.5.7
+    build(deps): bump github.com/docker/docker
+    tests: stop pulling php, composer
+    Fix .containerignore link file
+    Cirrus: Fix defunct package metadata breaking cache
+    build(deps): bump github.com/containers/storage from 1.36.0 to 1.37.0
+    buildah build: add --all-platforms
+    Add man page for Containerfile and .containerignore
+    Plumb the remote logger throughut Buildah
+    Replace fmt.Sprintf("%d", x) with strconv.Itoa(x)
+    Run: Cleanup run directory after every RUN step
+    build(deps): bump github.com/containers/common from 0.45.0 to 0.46.0
+    Makefile: adjust -ldflags/-gcflags/-gccgoflags depending on the go implementation
+    Makefile: check for `-race` using `-mod=vendor`
+    imagebuildah: fix an attempt to write to a nil map
+    push: support to specify the compression format
+    conformance: allow test cases to specify dockerUseBuildKit
+    build(deps): bump github.com/containers/common from 0.44.1 to 0.45.0
+    build(deps): bump github.com/containers/common from 0.44.0 to 0.44.1
+    unmarshalConvertedConfig(): handle zstd compression
+    tests/copy/copy: wire up compression options
+    Update to github.com/vbauerster/mpb v7.1.5
+    Add flouthoc to OWNERS
+    build: Add additional step nodes when labels are modified
+    Makefile: turn on race detection whenever it's available
+    conformance: add more tests for exclusion short-circuiting
+    Update VM Images + Drop prior-ubuntu testing
+    Bump to v1.24.0-dev
 
 ## v1.23.0 (2021-09-13)
 

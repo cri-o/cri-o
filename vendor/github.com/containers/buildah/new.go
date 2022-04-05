@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/image"
@@ -113,6 +112,17 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		options.FromImage = ""
 	}
 
+	if options.NetworkInterface == nil {
+		// create the network interface
+		// Note: It is important to do this before we pull any images/create containers.
+		// The default backend detection logic needs an empty store to correctly detect
+		// that we can use netavark, if the store was not empty it will use CNI to not break existing installs.
+		options.NetworkInterface, err = getNetworkInterface(store, options.CNIConfigDir, options.CNIPluginPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	systemContext := getSystemContext(store, options.SystemContext, options.SignaturePolicyPath)
 
 	if options.FromImage != "" && options.FromImage != "scratch" {
@@ -134,13 +144,10 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		pullOptions.OciDecryptConfig = options.OciDecryptConfig
 		pullOptions.SignaturePolicyPath = options.SignaturePolicyPath
 		pullOptions.Writer = options.ReportWriter
+		pullOptions.DestinationLookupReferenceFunc = cacheLookupReferenceFunc(options.BlobDirectory, types.PreserveOriginal)
 
 		maxRetries := uint(options.MaxPullRetries)
 		pullOptions.MaxRetries = &maxRetries
-
-		if options.BlobDirectory != "" {
-			pullOptions.DestinationLookupReferenceFunc = blobcache.CacheLookupReferenceFunc(options.BlobDirectory, types.PreserveOriginal)
-		}
 
 		pulledImages, err := imageRuntime.Pull(ctx, options.FromImage, pullPolicy, &pullOptions)
 		if err != nil {
@@ -197,6 +204,9 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	}
 
 	name := "working-container"
+	if options.ContainerSuffix != "" {
+		name = options.ContainerSuffix
+	}
 	if options.Container != "" {
 		name = options.Container
 	} else {
@@ -216,9 +226,20 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 
 	conflict := 100
 	for {
+
+		var flags map[string]interface{}
+		// check if we have predefined ProcessLabel and MountLabel
+		// this could be true if this is another stage in a build
+		if options.ProcessLabel != "" && options.MountLabel != "" {
+			flags = map[string]interface{}{
+				"ProcessLabel": options.ProcessLabel,
+				"MountLabel":   options.MountLabel,
+			}
+		}
 		coptions := storage.ContainerOptions{
 			LabelOpts:        options.CommonBuildOpts.LabelOpts,
 			IDMappingOptions: newContainerIDMappingOptions(options.IDMappingOptions),
+			Flags:            flags,
 			Volatile:         true,
 		}
 		container, err = store.CreateContainer("", []string{tmpName}, imageID, "", "", &coptions)
@@ -283,13 +304,15 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			UIDMap:         uidmap,
 			GIDMap:         gidmap,
 		},
-		Capabilities:    copyStringSlice(options.Capabilities),
-		CommonBuildOpts: options.CommonBuildOpts,
-		TopLayer:        topLayer,
-		Args:            options.Args,
-		Format:          options.Format,
-		TempVolumes:     map[string]bool{},
-		Devices:         options.Devices,
+		Capabilities:     copyStringSlice(options.Capabilities),
+		CommonBuildOpts:  options.CommonBuildOpts,
+		TopLayer:         topLayer,
+		Args:             options.Args,
+		Format:           options.Format,
+		TempVolumes:      map[string]bool{},
+		Devices:          options.Devices,
+		Logger:           options.Logger,
+		NetworkInterface: options.NetworkInterface,
 	}
 
 	if options.Mount {
