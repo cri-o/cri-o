@@ -100,9 +100,10 @@ install_runc() {
 }
 
 install_ginkgo() {
-    GOBIN="$(go env GOPATH)/bin"
+    GOPATH="$(go env GOPATH)"
+    sudo chown -R "$(id -u):$(id -g)" "$GOPATH"
     go install github.com/onsi/ginkgo/ginkgo@latest
-    sudo -E cp "$GOBIN/ginkgo" /usr/bin
+    sudo -E cp "$GOPATH/bin//ginkgo" /usr/bin
     ginkgo version
 }
 
