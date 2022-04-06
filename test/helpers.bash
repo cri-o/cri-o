@@ -86,7 +86,7 @@ POD_IPV6_CIDR_START="1100:2"
 POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
 IMAGES=(
-    k8s.gcr.io/pause:3.6
+    registry.k8s.io/pause:3.6
     quay.io/crio/busybox:latest
     quay.io/crio/fedora-ping:latest
     quay.io/crio/image-volume-test:latest

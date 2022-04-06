@@ -12,9 +12,9 @@ kubeadm expects a POD Network CIDR (`--pod-network-cidr`) to be defined when you
 | Bridge plugin (default) | 10.85.0.0/16  | The default bridge plugin is defined [here](/contrib/cni/10-crio-bridge.conf). This is only suitable when your cluster has a **single node**. |
 | Flannel                 | 10.224.0.0/16 | This is a good choice for clusters with multiple nodes.                                                                                       |
 
-For example, to use the script below with the **bridge** plugin, run `export CIDR=10.85.0.0/16`. 
+For example, to use the script below with the **bridge** plugin, run `export CIDR=10.85.0.0/16`.
 
-A list of CNI plugins can be found in the [Cluster Networking](https://kubernetes.io/docs/concepts/cluster-administration/networking/) kubernetes documentation. Each plugin will define it's own default CIDR. 
+A list of CNI plugins can be found in the [Cluster Networking](https://kubernetes.io/docs/concepts/cluster-administration/networking/) kubernetes documentation. Each plugin will define it's own default CIDR.
 
 ## Configuring Kubelet
 
@@ -88,10 +88,10 @@ $ cat /etc/containers/registries.conf
 unqualified-search-registries = ["user.private.repo"]
 
 [[registry]]
-prefix = "k8s.gcr.io"
+prefix = "registry.k8s.io"
 insecure = false
 blocked = false
-location = "k8s.gcr.io"
+location = "registry.k8s.io"
 
 [[registry.mirror]]
 location = "user.private.repo"
