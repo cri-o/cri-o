@@ -102,3 +102,14 @@ function teardown() {
 	crictl start "$ctr_id"
 	crictl exec --sync "$ctr_id" chmod 777 .
 }
+
+# 8. test running with ctr runtime/default don't allow unshare
+@test "ctr seccomp profiles runtime/default block unshare" {
+	unset CONTAINER_SECCOMP_PROFILE
+	restart_crio
+	jq '	.linux.security_context.seccomp_profile_path = ""' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
+
+	ctr_id=$(crictl run "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
+	! crictl exec --sync "$ctr_id" /bin/sh -c "unshare"
+}

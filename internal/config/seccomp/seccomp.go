@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/containers/common/pkg/seccomp"
 	"github.com/cri-o/cri-o/internal/log"
@@ -15,6 +16,51 @@ import (
 	k8sV1 "k8s.io/api/core/v1"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
+
+var (
+	defaultProfileOnce sync.Once
+	defaultProfile     *seccomp.Seccomp
+)
+
+// DefaultProfile is used to allow mutations from the DefaultProfile from the seccomp library.
+// Specifically, it is used to filter `unshare` from the default profile, as it is a risky syscall for unprivileged containers
+// to have access to.
+func DefaultProfile() *seccomp.Seccomp {
+	defaultProfileOnce.Do(func() {
+		const (
+			unshareName              = "unshare"
+			unshareParentStructIndex = 1
+			unshareIndex             = 347
+		)
+		prof := seccomp.DefaultProfile()
+		// We know the default profile at compile time
+		// though a vendor change may update it.
+		// Panic on error and have CI catch errors on vendor bumps,
+		// to avoid combing through.
+		if prof.Syscalls[unshareParentStructIndex].Names[unshareIndex] != unshareName {
+			panic("Default seccomp profile updated and unshare syscall moved. Found unexpected syscall: " + prof.Syscalls[unshareParentStructIndex].Names[unshareIndex])
+		}
+		removeStringFromSlice(prof.Syscalls[unshareParentStructIndex].Names, unshareIndex)
+
+		prof.Syscalls = append(prof.Syscalls, &seccomp.Syscall{
+			Names: []string{
+				unshareName,
+			},
+			Action: seccomp.ActAllow,
+			Includes: seccomp.Filter{
+				Caps: []string{"CAP_SYS_ADMIN"},
+			},
+		})
+		defaultProfile = prof
+	})
+
+	return defaultProfile
+}
+
+func removeStringFromSlice(s []string, i int) []string {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
+}
 
 // Config is the global seccomp configuration type
 type Config struct {
@@ -27,7 +73,7 @@ type Config struct {
 func New() *Config {
 	return &Config{
 		enabled:          seccomp.IsEnabled(),
-		profile:          seccomp.DefaultProfile(),
+		profile:          DefaultProfile(),
 		defaultWhenEmpty: true,
 	}
 }
@@ -54,7 +100,7 @@ func (c *Config) LoadProfile(profilePath string) error {
 	}
 
 	if profilePath == "" {
-		c.profile = seccomp.DefaultProfile()
+		c.profile = DefaultProfile()
 		logrus.Info("No seccomp profile specified, using the internal default")
 
 		if logrus.IsLevelEnabled(logrus.TraceLevel) {
