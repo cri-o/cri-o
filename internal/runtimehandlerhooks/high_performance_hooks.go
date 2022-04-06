@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -21,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
@@ -65,8 +67,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 
 	// disable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
-		log.Infof(ctx, "Disable cpu load balancing for container %q", c.ID())
-		if err := setCPUSLoadBalancing(c, false, schedDomainDir); err != nil {
+		if err := setCPUSLoadBalancingWithRetry(ctx, c, false); err != nil {
 			return errors.Wrap(err, "set CPU load balancing")
 		}
 	}
@@ -112,7 +113,7 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 
 	// enable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
-		if err := setCPUSLoadBalancing(c, true, schedDomainDir); err != nil {
+		if err := setCPUSLoadBalancingWithRetry(ctx, c, true); err != nil {
 			return errors.Wrap(err, "set CPU load balancing")
 		}
 	}
@@ -170,6 +171,25 @@ func isCgroupParentBestEffort(s *sandbox.Sandbox) bool {
 
 func isContainerRequestWholeCPU(c *oci.Container) bool {
 	return *(c.Spec().Linux.Resources.CPU.Shares)%1024 == 0
+}
+
+func setCPUSLoadBalancingWithRetry(ctx context.Context, c *oci.Container, enable bool) error {
+	log.Infof(ctx, "Disable cpu load balancing for container %q", c.ID())
+	// it is possible to have errors during reading or writing to sched_domain files because
+	// that kernel rebuilds it with updated values
+	// the retry will not fix it for 100% but should reduce the possibility for failures to minimum
+	// TODO: re-visit once we will have some more acceptable cgroups hierarchy to disable CPU load balancing
+	// correctly via cgroups, see -https://bugzilla.redhat.com/show_bug.cgi?id=1946801
+	return wait.PollImmediate(time.Second, 5*time.Second, func() (bool, error) {
+		if err := setCPUSLoadBalancing(c, enable, schedDomainDir); err != nil {
+			if os.IsNotExist(err) {
+				log.Errorf(ctx, "Failed to set CPU load balancing: %v", err)
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	})
 }
 
 func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) error {
