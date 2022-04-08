@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -11,12 +12,17 @@ import (
 
 func securityLabel(path, secLabel string, shared, maybeRelabel bool) error {
 	if maybeRelabel {
-		currentLabel, err := label.FileLabel(path)
-		if err == nil && currentLabel == secLabel {
-			logrus.Debugf(
-				"Skipping relabel for %s, as TrySkipVolumeSELinuxLabel is true and the label of the top level of the volume is already correct",
-				path)
-			return nil
+		canonicalSecLabel, err := selinux.CanonicalizeContext(secLabel)
+		if err != nil {
+			logrus.Errorf("Canonicalize label failed %s: %v", secLabel, err)
+		} else {
+			currentLabel, err := label.FileLabel(path)
+			if err == nil && currentLabel == canonicalSecLabel {
+				logrus.Debugf(
+					"Skipping relabel for %s, as TrySkipVolumeSELinuxLabel is true and the label of the top level of the volume is already correct",
+					path)
+				return nil
+			}
 		}
 	}
 	if err := label.Relabel(path, secLabel, shared); err != nil && !errors.Is(err, unix.ENOTSUP) {

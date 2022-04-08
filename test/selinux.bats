@@ -40,7 +40,7 @@ function teardown() {
 	create_runtime_with_allowed_annotation "selinux" "io.kubernetes.cri-o.TrySkipVolumeSELinuxLabel"
 	start_crio
 
-	jq '	  .linux.security_context.selinux_options = {"level": "s0:c100,c200"}
+	jq '	  .linux.security_context.selinux_options = {"level": "s0:c200,c100"}
 		|  .annotations["io.kubernetes.cri-o.TrySkipVolumeSELinuxLabel"] = "true"' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
