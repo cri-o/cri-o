@@ -1076,16 +1076,30 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 		}
 		g.AddMount(systemdMnt)
 	} else {
-		systemdMnt := rspec.Mount{
-			Destination: "/sys/fs/cgroup/systemd",
-			Type:        "bind",
-			Source:      "/sys/fs/cgroup/systemd",
-			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+		// If the /sys/fs/cgroup is bind mounted from the host,
+		// then systemd-mode cgroup should be disabled
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2064741
+		if doesntHaveSysFsCgroupFromHost(g.Mounts()) {
+			systemdMnt := rspec.Mount{
+				Destination: "/sys/fs/cgroup/systemd",
+				Type:        "bind",
+				Source:      "/sys/fs/cgroup/systemd",
+				Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+			}
+			g.AddMount(systemdMnt)
 		}
-		g.AddMount(systemdMnt)
 		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 	}
 	g.AddProcessEnv("container", "crio")
+}
+
+func doesntHaveSysFsCgroupFromHost(mounts []rspec.Mount) bool {
+	for _, m := range mounts {
+		if m.Destination == "/sys/fs/cgroup" {
+			return false
+		}
+	}
+	return true
 }
 
 func newLinuxContainerSecurityContext() *types.LinuxContainerSecurityContext {
