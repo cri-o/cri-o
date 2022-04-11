@@ -151,7 +151,7 @@ var _ = t.Describe("Inspect", func() {
 			addContainerAndSandbox()
 
 			// When
-			request, err := http.NewRequest("GET", "/pause/" + testContainer.ID(), http.NoBody)
+			request, err := http.NewRequest("GET", "/pause/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -189,7 +189,7 @@ var _ = t.Describe("Inspect", func() {
 			addContainerAndSandbox()
 
 			// When
-			request, err := http.NewRequest("GET", "/unpause/" + testContainer.ID(), http.NoBody)
+			request, err := http.NewRequest("GET", "/unpause/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then

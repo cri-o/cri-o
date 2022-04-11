@@ -12,7 +12,7 @@ function teardown() {
 }
 
 @test "pause ctr with right ctr id" {
-    start_crio
+	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -27,7 +27,7 @@ function teardown() {
 }
 
 @test "pause ctr with invalid ctr id" {
-    start_crio
+	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]

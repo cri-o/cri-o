@@ -12,7 +12,7 @@ function teardown() {
 }
 
 @test "unpause ctr with right ctr id with unpause ctr" {
-    start_crio
+	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -28,7 +28,7 @@ function teardown() {
 
 
 @test "unpause ctr with right ctr id with pause ctr" {
-    start_crio
+	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
@@ -38,13 +38,13 @@ function teardown() {
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
-    out=$(echo -e "GET /pause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
+	out=$(echo -e "GET /pause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	out=$(echo -e "GET /unpause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	[[ "$out" == *"200 OK"* ]]
 }
 
 @test "unpause ctr with invalid ctr id" {
-    start_crio
+	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
