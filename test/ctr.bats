@@ -171,6 +171,21 @@ function check_oci_annotation() {
 	grep -E "^[^\n]+ stderr F and some from stderr$" "$logpath"
 }
 
+@test "ctr log cleaned up if container create failed" {
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	# Create a new container.
+	jq '	  .command = ["invalid"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+	! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
+
+	# CRI-O should cleanup the log if the container failed to create
+	for file in "$DEFAULT_LOG_PATH/$pod_id"/*; do
+		[[ "$file" != "$pod_id" ]]
+	done
+}
+
 @test "ctr journald logging" {
 	if ! check_journald; then
 		skip "journald logging not supported"
