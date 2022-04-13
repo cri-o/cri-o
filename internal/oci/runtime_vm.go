@@ -169,6 +169,9 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 			if cleanupErr := r.deleteContainer(c, true); cleanupErr != nil {
 				log.Infof(ctx, "DeleteContainer failed for container %s: %v", c.ID(), cleanupErr)
 			}
+			if err := os.Remove(c.logPath); err != nil {
+				log.Warnf(ctx, "Failed to remove log path %s after failing to create container: %v", c.logPath, err)
+			}
 		}
 	}()
 
