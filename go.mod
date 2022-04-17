@@ -10,6 +10,7 @@ require (
 	github.com/containerd/cgroups v1.0.2
 	github.com/containerd/containerd v1.5.8
 	github.com/containerd/cri-containerd v1.19.0
+	github.com/containerd/fifo v1.0.0
 	github.com/containerd/ttrpc v1.1.0
 	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v1.0.1
@@ -96,7 +97,6 @@ require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/cilium/ebpf v0.6.2 // indirect
 	github.com/containerd/console v1.0.2 // indirect
-	github.com/containerd/fifo v1.0.0 // indirect
 	github.com/containerd/go-runc v1.0.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.9.0 // indirect
 	github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b // indirect
