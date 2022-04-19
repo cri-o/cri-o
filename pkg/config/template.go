@@ -1095,7 +1095,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   "io.kubernetes.cri.rdt-class" for setting the RDT class of a container
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
-[crio.runtime.runtimes.{{ $runtime_name }}]
+{{ $.Comment }}[crio.runtime.runtimes.{{ $runtime_name }}]
 {{ $.Comment }}runtime_path = "{{ $runtime_handler.RuntimePath }}"
 {{ $.Comment }}runtime_type = "{{ $runtime_handler.RuntimeType }}"
 {{ $.Comment }}runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
