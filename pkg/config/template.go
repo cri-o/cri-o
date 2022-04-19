@@ -775,17 +775,20 @@ const templateStringCrioRuntimeDecryptionKeysPath = `# decryption_keys_path is t
 
 const templateStringCrioRuntimeConmon = `# Path to the conmon binary, used for monitoring the OCI runtime.
 # Will be searched for using $PATH if empty.
+# This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorEnv.
 {{ $.Comment }}conmon = "{{ .Conmon }}"
 
 `
 
 const templateStringCrioRuntimeConmonCgroup = `# Cgroup setting for conmon
+# This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorCgroup.
 {{ $.Comment }}conmon_cgroup = "{{ .ConmonCgroup }}"
 
 `
 
 const templateStringCrioRuntimeConmonEnv = `# Environment variable list for the conmon process, used for passing necessary
 # environment variables to conmon or the runtime.
+# This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorEnv.
 {{ $.Comment }}conmon_env = [
 {{ range $env := .ConmonEnv }}{{ $.Comment }}{{ printf "\t%q,\n" $env }}{{ end }}{{ $.Comment }}]
 
@@ -1104,6 +1107,12 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 {{ $.Comment }}allowed_annotations = [
 {{ range $opt := $runtime_handler.AllowedAnnotations }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 {{ $.Comment }}{{ end }}
+{{ $.Comment }}monitor_path = "{{ $runtime_handler.MonitorPath }}"
+{{ $.Comment }}{{ if $runtime_handler.MonitorEnv }}
+{{ $.Comment }}monitor_env = [
+{{ range $opt := $runtime_handler.MonitorEnv }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
+{{ $.Comment }}{{ end }}
+{{ $.Comment }}monitor_cgroup = "{{ $runtime_handler.MonitorCgroup }}"
 {{ $.Comment }}{{ end }}
 
 # crun is a fast and lightweight fully featured OCI runtime and C library for

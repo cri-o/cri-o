@@ -33,9 +33,9 @@ complete -c crio -n '__fish_crio_no_subcommand' -l config-dir -s d -r -d 'Path t
     by \'--config-dir,-d\'.
     Besides that, provided command line parameters have a higher priority
     than any configuration file.'
-complete -c crio -n '__fish_crio_no_subcommand' -l conmon -r -d 'Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: "")'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-cgroup -r -d 'cgroup to be used for conmon process'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-env -r -d 'Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime'
+complete -c crio -n '__fish_crio_no_subcommand' -l conmon -r -d 'Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. This option is deprecated, and will be removed in the future. (default: "")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-cgroup -r -d 'cgroup to be used for conmon process. This option is deprecated and will be removed in the future.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l conmon-env -r -d 'Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime. This option is deprecated and will be removed in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -l container-attach-socket-dir -r -d 'Path to directory for container attach sockets'
 complete -c crio -n '__fish_crio_no_subcommand' -l container-exits-dir -r -d 'Path to directory in which container exit files are written to by conmon'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l ctr-stop-timeout -r -d 'The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container. The lowest possible value is 30s, whereas lower values are not considered by CRI-O'

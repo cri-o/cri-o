@@ -380,17 +380,6 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
-		It("should fail on invalid conmon cgroup", func() {
-			// Given
-			sut.ConmonCgroup = "wrong"
-
-			// When
-			err := sut.RuntimeConfig.Validate(nil, false)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
 		It("should succeed without defaultRuntime set", func() {
 			// Given
 			sut.DefaultRuntime = ""
@@ -426,16 +415,78 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
-
+	})
+	t.Describe("TranslateMonitorFields", func() {
 		It("should fail on invalid conmon cgroup", func() {
 			// Given
-			sut.ConmonCgroup = "invalid"
+			handler := &config.RuntimeHandler{}
+			sut.ConmonCgroup = "wrong"
 
 			// When
-			err := sut.RuntimeConfig.Validate(nil, false)
+			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+
+		It("should fail on invalid conmon cgroup", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+			sut.ConmonCgroup = "invalid"
+
+			// When
+			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should inherit from .Conmon even if bogus", func() {
+			// Given
+			sut.Conmon = invalidPath
+			handler := &config.RuntimeHandler{}
+
+			// When
+			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+		It("should inherit from .Conmon", func() {
+			// Given
+			sut.Conmon = validConmonPath()
+			handler := &config.RuntimeHandler{}
+
+			// When
+			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(handler.MonitorPath).To(Equal(sut.Conmon))
+		})
+		It("should inherit from .ConmonEnv", func() {
+			// Given
+			sut.ConmonEnv = []string{"PATH=/usr/bin"}
+			handler := &config.RuntimeHandler{}
+
+			// When
+			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(handler.MonitorEnv).To(Equal(sut.ConmonEnv))
+		})
+		It("should inherit from .ConmonCgroup", func() {
+			// Given
+			sut.ConmonCgroup = "system.slice"
+			handler := &config.RuntimeHandler{}
+
+			// When
+			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(handler.MonitorCgroup).To(Equal(sut.ConmonCgroup))
 		})
 	})
 
@@ -545,21 +596,22 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with valid file in $PATH", func() {
 			// Given
 			sut.RuntimeConfig.Conmon = ""
+			handler := &config.RuntimeHandler{MonitorPath: ""}
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath(validConmonPath())
+			err := sut.RuntimeConfig.ValidateConmonPath(validConmonPath(), handler)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(sut.RuntimeConfig.Conmon).To(Equal(validConmonPath()))
+			Expect(handler.MonitorPath).To(Equal(validConmonPath()))
 		})
 
 		It("should fail with invalid file in $PATH", func() {
 			// Given
-			sut.RuntimeConfig.Conmon = ""
+			handler := &config.RuntimeHandler{MonitorPath: ""}
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath(invalidPath)
+			err := sut.RuntimeConfig.ValidateConmonPath(invalidPath, handler)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -567,10 +619,10 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with valid file outside $PATH", func() {
 			// Given
-			sut.RuntimeConfig.Conmon = validConmonPath()
+			handler := &config.RuntimeHandler{MonitorPath: validConmonPath()}
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath("")
+			err := sut.RuntimeConfig.ValidateConmonPath("", handler)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -578,10 +630,10 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with invalid file outside $PATH", func() {
 			// Given
-			sut.RuntimeConfig.Conmon = invalidPath
+			handler := &config.RuntimeHandler{MonitorPath: invalidPath}
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath("")
+			err := sut.RuntimeConfig.ValidateConmonPath("", handler)
 
 			// Then
 			Expect(err).NotTo(BeNil())
