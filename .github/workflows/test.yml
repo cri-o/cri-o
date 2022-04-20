@@ -211,7 +211,6 @@ jobs:
             containernetworking-plugins \
             crun \
             moby-runc
-          sudo apt-get install -y conntrack
       - run: make bundle-test-e2e
 
   upload-artifacts:

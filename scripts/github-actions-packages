@@ -3,7 +3,6 @@ set -euo pipefail
 
 sudo apt update
 sudo apt install -y \
-    conntrack \
     libaio-dev \
     libapparmor-dev \
     libbtrfs-dev \
