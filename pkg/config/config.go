@@ -56,6 +56,7 @@ const (
 	defaultNamespacesDir       = "/var/run"
 	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
 	tasksetBinary              = "taskset"
+	defaultMonitorCgroup       = "system.slice"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -1090,7 +1091,7 @@ func defaultRuntimeHandler() *RuntimeHandler {
 		MonitorEnv: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
-		MonitorCgroup: "system.slice",
+		MonitorCgroup: defaultMonitorCgroup,
 	}
 }
 
@@ -1143,6 +1144,10 @@ func (c *RuntimeConfig) TranslateMonitorFields(handler *RuntimeHandler) error {
 			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
 		}
 		return nil
+	}
+	// If empty, assume default
+	if handler.MonitorCgroup == "" {
+		handler.MonitorCgroup = defaultMonitorCgroup
 	}
 	if !(handler.MonitorCgroup == utils.PodCgroupName || strings.HasSuffix(handler.MonitorCgroup, ".slice")) {
 		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
