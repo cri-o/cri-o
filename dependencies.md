@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 21 Apr 2022 00:50:53 UTC for commit [9f1f420][0]._
+_Generated on Thu, 21 Apr 2022 16:10:42 UTC for commit [75acffa][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9f1f420a7e18288d215abd479114b32350e3bbdd
+[0]: https://github.com/cri-o/cri-o/commit/75acffa1ea00208eef2185bf852a79ad15146072
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                 VERSION                  |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------------|------------------------------------|--------|------------------|
 | github.com/Microsoft/go-winio                                               | v0.5.1                                   | v0.5.2                             | true   | true             |
-| github.com/container-orchestrated-devices/container-device-interface        | v0.0.0-20220224133719-e5457123010b       | v0.3.2                             | true   | true             |
+| github.com/container-orchestrated-devices/container-device-interface        | v0.0.0-20220224133719-e5457123010b       | v0.4.0                             | true   | true             |
 | github.com/containerd/cgroups                                               | v1.0.2                                   | v1.0.3                             | true   | true             |
 | github.com/containerd/containerd                                            | v1.5.8                                   | v1.6.2                             | true   | true             |
 | github.com/containers/buildah                                               | v1.23.1                                  | v1.25.1                            | true   | true             |
@@ -20,6 +20,7 @@ _Generated on Thu, 21 Apr 2022 00:50:53 UTC for commit [9f1f420][0]._
 | github.com/containers/storage                                               | v1.37.0                                  | v1.39.0                            | true   | true             |
 | github.com/creack/pty                                                       | v1.1.17                                  | v1.1.18                            | true   | true             |
 | github.com/docker/distribution                                              | v2.7.1+incompatible                      | v2.8.1+incompatible                | true   | true             |
+| github.com/fsnotify/fsnotify                                                | v1.5.1                                   | v1.5.2                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.2.1                                   | v1.2.3                             | true   | true             |
 | github.com/godbus/dbus/v5                                                   | v5.0.6                                   | v5.1.0                             | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.0.2-0.20210819154149-5ad6f50d6283     | v1.0.2                             | true   | true             |
@@ -147,7 +148,7 @@ _Generated on Thu, 21 Apr 2022 00:50:53 UTC for commit [9f1f420][0]._
 | github.com/cockroachdb/datadriven                                           | v0.0.0-20200714090401-bf6692d28da5                | v1.0.1                             | false  | true             |
 | github.com/cockroachdb/errors                                               | v1.2.4                                            | v1.9.0                             | false  | true             |
 | github.com/cockroachdb/logtags                                              | v0.0.0-20190617123548-eb05cc24525f                | v0.0.0-20211118104740-dabe8e521a4f | false  | true             |
-| github.com/container-orchestrated-devices/container-device-interface        | v0.0.0-20220224133719-e5457123010b                | v0.3.2                             | true   | true             |
+| github.com/container-orchestrated-devices/container-device-interface        | v0.0.0-20220224133719-e5457123010b                | v0.4.0                             | true   | true             |
 | github.com/container-storage-interface/spec                                 | v1.5.0                                            | v1.6.0                             | false  | true             |
 | github.com/containerd/aufs                                                  | v1.0.0                                            |                                    | false  | true             |
 | github.com/containerd/btrfs                                                 | v1.0.0                                            |                                    | false  | true             |
@@ -239,7 +240,7 @@ _Generated on Thu, 21 Apr 2022 00:50:53 UTC for commit [9f1f420][0]._
 | github.com/fogleman/gg                                                      | v1.2.1-0.20190220221249-0403632d5b90              | v1.3.0                             | false  | true             |
 | github.com/form3tech-oss/jwt-go                                             | v3.2.3+incompatible                               | v3.2.5+incompatible                | false  | true             |
 | github.com/frankban/quicktest                                               | v1.13.1                                           | v1.14.3                            | false  | true             |
-| github.com/fsnotify/fsnotify                                                | v1.5.1                                            |                                    | true   | true             |
+| github.com/fsnotify/fsnotify                                                | v1.5.1                                            | v1.5.2                             | true   | true             |
 | github.com/fsouza/go-dockerclient                                           | v1.7.4                                            | v1.7.10                            | false  | true             |
 | github.com/fullsailor/pkcs7                                                 | v0.0.0-20190404230743-d7302db945fa                |                                    | false  | true             |
 | github.com/fvbommel/sortorder                                               | v1.0.1                                            | v1.0.2                             | false  | true             |
@@ -390,7 +391,7 @@ _Generated on Thu, 21 Apr 2022 00:50:53 UTC for commit [9f1f420][0]._
 | github.com/jmespath/go-jmespath/internal/testify                            | v1.5.1                                            |                                    | false  | true             |
 | github.com/jmoiron/sqlx                                                     | v1.2.1-0.20190826204134-d7d95172beb5              | v1.3.5                             | false  | true             |
 | github.com/joefitzgerald/rainbow-reporter                                   | v0.1.0                                            |                                    | false  | true             |
-| github.com/jonboulle/clockwork                                              | v0.2.2                                            | v0.2.3                             | false  | true             |
+| github.com/jonboulle/clockwork                                              | v0.2.2                                            | v0.3.0                             | false  | true             |
 | github.com/josharian/intern                                                 | v1.0.0                                            |                                    | false  | true             |
 | github.com/jpillora/backoff                                                 | v1.0.0                                            |                                    | false  | true             |
 | github.com/jsimonetti/rtnetlink                                             | v0.0.0-20201110080708-d2c240429e6c                | v1.2.0                             | false  | true             |
@@ -415,7 +416,7 @@ _Generated on Thu, 21 Apr 2022 00:50:53 UTC for commit [9f1f420][0]._
 | github.com/kr/pty                                                           | v1.1.8                                            |                                    | false  | true             |
 | github.com/kr/text                                                          | v0.2.0                                            |                                    | false  | true             |
 | github.com/lib/pq                                                           | v1.2.0                                            | v1.10.5                            | false  | true             |
-| github.com/libopenstorage/openstorage                                       | v1.0.0                                            | v9.4.7+incompatible                | false  | true             |
+| github.com/libopenstorage/openstorage                                       | v1.0.0                                            | v9.4.8+incompatible                | false  | true             |
 | github.com/liggitt/tabwriter                                                | v0.0.0-20181228230101-89fcab3d43de                |                                    | false  | true             |
 | github.com/lithammer/dedent                                                 | v1.1.0                                            |                                    | false  | true             |
 | github.com/logrusorgru/aurora                                               | v0.0.0-20181002194514-a7b3b318ed4e                | v2.0.3+incompatible                | false  | true             |
@@ -674,7 +675,7 @@ _Generated on Thu, 21 Apr 2022 00:50:53 UTC for commit [9f1f420][0]._
 | google.golang.org/api                                                       | v0.46.0                                           | v0.75.0                            | false  | true             |
 | google.golang.org/appengine                                                 | v1.6.7                                            |                                    | false  | true             |
 | google.golang.org/cloud                                                     | v0.0.0-20151119220103-975617b05ea8                | v0.101.0                           | false  | true             |
-| google.golang.org/genproto                                                  | v0.0.0-20200117163144-32f20d992d24                | v0.0.0-20220420195807-44278fea765b | false  | true             |
+| google.golang.org/genproto                                                  | v0.0.0-20200117163144-32f20d992d24                | v0.0.0-20220421151946-72621c1f0bd3 | false  | true             |
 | google.golang.org/grpc                                                      | v1.43.0                                           | v1.45.0                            | true   | true             |
 | google.golang.org/protobuf                                                  | v1.27.1                                           | v1.28.0                            | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                                                | v2.0.9                                            |                                    | false  | true             |
