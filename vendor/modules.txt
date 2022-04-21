@@ -126,7 +126,7 @@ github.com/cilium/ebpf/internal
 github.com/cilium/ebpf/internal/btf
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
-# github.com/container-orchestrated-devices/container-device-interface v0.0.0-20220224133719-e5457123010b
+# github.com/container-orchestrated-devices/container-device-interface v0.3.2
 ## explicit; go 1.17
 github.com/container-orchestrated-devices/container-device-interface/pkg
 github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
