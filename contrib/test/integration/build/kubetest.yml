@@ -1,10 +1,14 @@
 ---
 
+# Commit https://github.com/kubernetes/test-infra/commit/52e11cab1ea80f71e7af5f69573ffbb17b234cca updated
+# to use go 1.18, which we don't need to update to here. Specifically, after this point, the repo starts using generics
+# which are incompatible with 1.17. Pin at the parent commit
 - name: clone test-infra source repo
   git:
     repo: "https://github.com/kubernetes/test-infra.git"
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"
     force: "{{ force_clone | default(False) | bool}}"
+    version: 14f1a66a0f7debac1daa1f4eee2a681194f65685
 
 # per https://github.com/kubernetes/test-infra/issues/14070 we need to download
 # kubetest with go module 1.11 on and without -u. As of the time of writing this,
