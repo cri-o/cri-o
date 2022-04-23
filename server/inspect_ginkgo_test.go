@@ -8,6 +8,7 @@ import (
 	"github.com/go-zoo/bone"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var _ = t.Describe("Inspect", func() {
@@ -146,8 +147,14 @@ var _ = t.Describe("Inspect", func() {
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
 
-		It("should succeed with valid container ID on /pause route", func() {
+		It("should fail with valid container ID on /pause route because update status error", func() {
 			// Given
+			state := &oci.ContainerState{
+				State: specs.State{
+					Status: oci.ContainerStateRunning,
+				},
+			}
+			testContainer.SetState(state)
 			addContainerAndSandbox()
 
 			// When
@@ -157,7 +164,27 @@ var _ = t.Describe("Inspect", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(request).NotTo(BeNil())
-			Expect(recorder.Code).To(BeEquivalentTo(http.StatusOK))
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusInternalServerError))
+		})
+
+		It("should fail with valid container ID on /pause route with already paused container", func() {
+			// Given
+			state := &oci.ContainerState{
+				State: specs.State{
+					Status: oci.ContainerStatePaused,
+				},
+			}
+			testContainer.SetState(state)
+			addContainerAndSandbox()
+
+			// When
+			request, err := http.NewRequest("GET", "/pause/"+testContainer.ID(), http.NoBody)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusConflict))
 		})
 
 		It("should fail with empty on /unpause route", func() {
@@ -184,8 +211,14 @@ var _ = t.Describe("Inspect", func() {
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
 
-		It("should succeed with valid container ID on /unpause route", func() {
+		It("should fail with valid container ID on /unpause route because update status error", func() {
 			// Given
+			state := &oci.ContainerState{
+				State: specs.State{
+					Status: oci.ContainerStatePaused,
+				},
+			}
+			testContainer.SetState(state)
 			addContainerAndSandbox()
 
 			// When
@@ -195,7 +228,27 @@ var _ = t.Describe("Inspect", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(request).NotTo(BeNil())
-			Expect(recorder.Code).To(BeEquivalentTo(http.StatusOK))
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusInternalServerError))
+		})
+
+		It("should fail with valid container ID on /unpause route with running container", func() {
+			// Given
+			state := &oci.ContainerState{
+				State: specs.State{
+					Status: oci.ContainerStateRunning,
+				},
+			}
+			testContainer.SetState(state)
+			addContainerAndSandbox()
+
+			// When
+			request, err := http.NewRequest("GET", "/unpause/"+testContainer.ID(), http.NoBody)
+			mux.ServeHTTP(recorder, request)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(request).NotTo(BeNil())
+			Expect(recorder.Code).To(BeEquivalentTo(http.StatusConflict))
 		})
 	})
 })

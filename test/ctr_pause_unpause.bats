@@ -23,7 +23,10 @@ function teardown() {
 	ctr_id="$output"
 
 	out=$(echo -e "GET /pause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
-	[[ "$out" == *"200 OK"* ]]
+	if [[ ! "$out" == *"200 OK"* ]]; then
+		echo "$out"
+		exit 1
+	fi
 }
 
 @test "pause ctr with invalid ctr id" {
@@ -37,10 +40,37 @@ function teardown() {
 	[ "$status" -eq 0 ]
 
 	out=$(echo -e "GET /pause/123 HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
-	[[ "$out" == *"404 Not Found"* ]]
+	if [[ ! "$out" == *"404 Not Found"* ]]; then
+		echo "$out"
+		exit 1
+	fi
 }
 
-@test "unpause ctr with right ctr id with unpause ctr" {
+@test "pause ctr with already paused ctr" {
+	start_crio
+	run crictl runp "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	pod_id="$output"
+	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	out=$(echo -e "GET /pause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
+	if [[ ! "$out" == *"200 OK"* ]]; then
+		echo "$out"
+		exit 1
+	fi
+
+	out=$(echo -e "GET /pause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
+	if [[ ! "$out" == *"409 Conflict"* ]]; then
+		echo "$out"
+		exit 1
+	fi
+}
+
+@test "unpause ctr with right ctr id with running ctr" {
 	start_crio
 	run crictl runp "$TESTDATA"/sandbox_config.json
 	echo "$output"
@@ -52,7 +82,10 @@ function teardown() {
 	ctr_id="$output"
 
 	out=$(echo -e "GET /unpause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
-	[[ "$out" == *"500 Internal Server Error"* ]]
+	if [[ ! "$out" == *"409 Conflict"* ]]; then
+		echo "$out"
+		exit 1
+	fi
 }
 
 @test "unpause ctr with right ctr id with pause ctr" {
@@ -68,7 +101,10 @@ function teardown() {
 
 	out=$(echo -e "GET /pause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	out=$(echo -e "GET /unpause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
-	[[ "$out" == *"200 OK"* ]]
+	if [[ ! "$out" == *"200 OK"* ]]; then
+		echo "$out"
+		exit 1
+	fi
 }
 
 @test "unpause ctr with invalid ctr id" {
@@ -82,5 +118,8 @@ function teardown() {
 	[ "$status" -eq 0 ]
 
 	out=$(echo -e "GET /unpause/123 HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
-	[[ "$out" == *"404 Not Found"* ]]
+	if [[ ! "$out" == *"404 Not Found"* ]]; then
+		echo "$out"
+		exit 1
+	fi
 }
