@@ -180,8 +180,11 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
 			return
 		}
-		if ctr.State().Status == oci.ContainerStatePaused {
-			http.Error(w, "container is already in paused state", http.StatusConflict)
+		ctrStatus :=  ctr.State().Status
+		if ctrStatus != oci.ContainerStateRunning && ctrStatus != oci.ContainerStateCreated {
+			http.Error(w,
+				fmt.Sprintf("container is not in running or created state, now is %s", ctrStatus),
+				http.StatusConflict)
 			return
 		}
 		if err := s.Runtime().PauseContainer(s.stream.ctx, ctr); err != nil {
@@ -206,9 +209,11 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
 			return
 		}
-
-		if ctr.State().Status != oci.ContainerStatePaused {
-			http.Error(w, "container is not in paused state", http.StatusConflict)
+		ctrStatus :=  ctr.State().Status
+		if ctrStatus != oci.ContainerStatePaused {
+			http.Error(w,
+				fmt.Sprintf("container is not in paused state, now is %s", ctrStatus),
+				http.StatusConflict)
 			return
 		}
 		if err := s.Runtime().UnpauseContainer(s.stream.ctx, ctr); err != nil {

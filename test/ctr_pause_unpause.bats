@@ -13,11 +13,7 @@ function teardown() {
 
 @test "pause ctr with right ctr id" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -27,17 +23,21 @@ function teardown() {
 		echo "$out"
 		exit 1
 	fi
+
+	#in order to stop container when finish, it should not be in paused state
+	out=$(echo -e "GET /unpause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
+	if [[ ! "$out" == *"200 OK"* ]]; then
+		echo "$out"
+		exit 1
+	fi
 }
 
 @test "pause ctr with invalid ctr id" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id="$output"
 
 	out=$(echo -e "GET /pause/123 HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	if [[ ! "$out" == *"404 Not Found"* ]]; then
@@ -48,11 +48,7 @@ function teardown() {
 
 @test "pause ctr with already paused ctr" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -72,11 +68,7 @@ function teardown() {
 
 @test "unpause ctr with right ctr id with running ctr" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -90,16 +82,17 @@ function teardown() {
 
 @test "unpause ctr with right ctr id with pause ctr" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
 
 	out=$(echo -e "GET /pause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
+	if [[ ! "$out" == *"200 OK"* ]]; then
+		echo "$out"
+		exit 1
+	fi
+
 	out=$(echo -e "GET /unpause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	if [[ ! "$out" == *"200 OK"* ]]; then
 		echo "$out"
@@ -109,13 +102,10 @@ function teardown() {
 
 @test "unpause ctr with invalid ctr id" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
+	ctr_id="$output"
 
 	out=$(echo -e "GET /unpause/123 HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	if [[ ! "$out" == *"404 Not Found"* ]]; then
