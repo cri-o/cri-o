@@ -2,7 +2,6 @@ package statsserver
 
 import (
 	"context"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -189,8 +188,11 @@ func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*typ
 	if err != nil {
 		return writableLayer, errors.Wrapf(err, "Unable to get graph driver for disk usage for container %s", container.ID())
 	}
-	id := filepath.Base(filepath.Dir(container.MountPoint()))
-	usage, err := driver.ReadWriteDiskUsage(id)
+	storageContainer, err := ss.Store().Container(container.ID())
+	if err != nil {
+		return writableLayer, errors.Wrapf(err, "Unable to get storage container for disk usage for container %s", container.ID())
+	}
+	usage, err := driver.ReadWriteDiskUsage(storageContainer.LayerID)
 	if err != nil {
 		return writableLayer, errors.Wrapf(err, "Unable to get disk usage for container %s", container.ID())
 	}
