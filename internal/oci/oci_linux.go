@@ -32,7 +32,7 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 	// It should not be applied unless the conmon cgroup is "pod".
 	// Otherwise, the cpuset will be configured for whatever cgroup the conmons share
 	// (which by default is system.slice).
-	if r.config.InfraCtrCPUSet != "" && r.config.ConmonCgroup == utils.PodCgroupName {
+	if r.config.InfraCtrCPUSet != "" && r.handler.MonitorCgroup == utils.PodCgroupName {
 		logrus.Debugf("Set the conmon cpuset to %q", r.config.InfraCtrCPUSet)
 		g.SetLinuxResourcesCPUCpus(r.config.InfraCtrCPUSet)
 	}
@@ -43,7 +43,7 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 	}
 
 	// Move conmon to specified cgroup
-	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.ID(), cgroupParent, r.config.ConmonCgroup, pid, g.Config.Linux.Resources)
+	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.ID(), cgroupParent, r.handler.MonitorCgroup, pid, g.Config.Linux.Resources)
 	if err != nil {
 		return err
 	}
