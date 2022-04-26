@@ -310,3 +310,11 @@ function teardown() {
 	pod_pause_image=$(echo "$output" | jq -e .info.image)
 	[[ "$conf_pause_image" == "$pod_pause_image" ]]
 }
+
+@test "pod stop cleans up all namespaces" {
+	export CONTAINER_NAMESPACES_DIR="$TESTDIR"/namespaces
+	start_crio
+	id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	crictl stopp "$id"
+	[[ $(find "$CONTAINER_NAMESPACES_DIR" -type f) -eq 0 ]]
+}
