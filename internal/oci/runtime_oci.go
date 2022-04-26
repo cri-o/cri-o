@@ -199,6 +199,14 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	}(); err != nil {
 		return err
 	}
+
+	defer func() {
+		if retErr != nil {
+			if err := os.Remove(c.logPath); err != nil {
+				log.Warnf(ctx, "Failed to remove log path %s after failing to create container: %v", c.logPath, err)
+			}
+		}
+	}()
 	/* Wait for initial setup and fork, and reap child */
 	err = cmd.Wait()
 	if err != nil {
