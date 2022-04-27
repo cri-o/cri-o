@@ -64,6 +64,13 @@ function teardown() {
 		echo "$out"
 		exit 1
 	fi
+
+	#in order to stop container when finish, it should not be in paused state
+	out=$(echo -e "GET /unpause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
+	if [[ ! "$out" == *"200 OK"* ]]; then
+		echo "$out"
+		exit 1
+	fi
 }
 
 @test "unpause ctr with right ctr id with running ctr" {
