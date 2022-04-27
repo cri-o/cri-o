@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
-	"k8s.io/utils/exec"
 )
 
 func TestMetaHostportManager(t *testing.T) {
@@ -27,13 +26,11 @@ func TestMetaHostportManager(t *testing.T) {
 			hostPortMap: make(map[hostport]closeable),
 			iptables:    iptables,
 			portOpener:  portOpener.openFakeSocket,
-			execer:      exec.New(),
 		},
 		ipv6HostportManager: &hostportManager{
 			hostPortMap: make(map[hostport]closeable),
 			iptables:    ip6tables,
 			portOpener:  port6Opener.openFakeSocket,
-			execer:      exec.New(),
 		},
 	}
 

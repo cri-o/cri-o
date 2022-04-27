@@ -27,12 +27,12 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
 	v1 "k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	iptablesproxy "k8s.io/kubernetes/pkg/proxy/iptables"
-	"k8s.io/kubernetes/pkg/util/conntrack"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
-	"k8s.io/utils/exec"
 	utilnet "k8s.io/utils/net"
 )
 
@@ -50,26 +50,20 @@ type HostPortManager interface {
 }
 
 type hostportManager struct {
-	hostPortMap    map[hostport]closeable
-	execer         exec.Interface
-	conntrackFound bool
-	iptables       utiliptables.Interface
-	portOpener     hostportOpener
-	mu             sync.Mutex
+	hostPortMap map[hostport]closeable
+	iptables    utiliptables.Interface
+	portOpener  hostportOpener
+	mu          sync.Mutex
 }
 
 // NewHostportManager creates a new HostPortManager
 func NewHostportManager(iptables utiliptables.Interface) HostPortManager {
 	h := &hostportManager{
 		hostPortMap: make(map[hostport]closeable),
-		execer:      exec.New(),
 		iptables:    iptables,
 		portOpener:  openLocalPort,
 	}
-	h.conntrackFound = conntrack.Exists(h.execer)
-	if !h.conntrackFound {
-		logrus.Warn("The binary conntrack is not installed, this can cause failures in network connection cleanup")
-	}
+
 	return h
 }
 
@@ -187,13 +181,13 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 	// the IP tables rule, it can be the case that the packets received by the node after iptables rule removal will
 	// create a new conntrack entry without any DNAT. That will result in blackhole of the traffic even after correct
 	// iptables rules have been added back.
-	if hm.execer != nil && hm.conntrackFound {
-		logrus.Infof("Starting to delete udp conntrack entries: %v, isIPv6 - %v", conntrackPortsToRemove, isIPv6)
-		for _, port := range conntrackPortsToRemove {
-			err = conntrack.ClearEntriesForPort(hm.execer, port, isIPv6, v1.ProtocolUDP)
-			if err != nil {
-				logrus.Errorf("Failed to clear udp conntrack for port %d, error: %v", port, err)
-			}
+	logrus.Infof("Starting to delete udp conntrack entries: %v, isIPv6 - %v", conntrackPortsToRemove, isIPv6)
+	// https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+	const protocolUDPNumber = 17
+	for _, port := range conntrackPortsToRemove {
+		err = deleteConntrackEntriesForDstPort(uint16(port), protocolUDPNumber, getNetlinkFamily(isIPv6))
+		if err != nil {
+			logrus.Errorf("Failed to clear udp conntrack for port %d, error: %v", port, err)
 		}
 	}
 	return nil
@@ -442,4 +436,31 @@ func writeLine(buf *bytes.Buffer, words ...string) {
 
 func (hp *hostport) String() string {
 	return fmt.Sprintf("%s:%d", hp.protocol, hp.port)
+}
+
+// deleteConntrackEntriesForDstPort delete the conntrack entries for the connections specified
+// by the given destination port, protocol and IP family
+func deleteConntrackEntriesForDstPort(port uint16, protocol uint8, family netlink.InetFamily) error {
+	filter := &netlink.ConntrackFilter{}
+	err := filter.AddProtocol(protocol)
+	if err != nil {
+		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %v", protocol, port, err)
+	}
+	err = filter.AddPort(netlink.ConntrackOrigDstPort, port)
+	if err != nil {
+		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %v", protocol, port, err)
+	}
+
+	_, err = netlink.ConntrackDeleteFilter(netlink.ConntrackTable, family, filter)
+	if err != nil {
+		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %v", protocol, port, err)
+	}
+	return nil
+}
+
+func getNetlinkFamily(isIPv6 bool) netlink.InetFamily {
+	if isIPv6 {
+		return unix.AF_INET6
+	}
+	return unix.AF_INET
 }
