@@ -16,9 +16,12 @@ import (
 	tasktypes "github.com/containerd/containerd/api/types/task"
 	ctrio "github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
+	cio "github.com/containerd/containerd/pkg/cri/io"
+	cioutil "github.com/containerd/containerd/pkg/ioutil"
 	client "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/containerd/runtime/v2/task"
 	runtimeoptions "github.com/containerd/cri-containerd/pkg/api/runtimeoptions/v1"
+	"github.com/containerd/fifo"
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
 	conmonconfig "github.com/containers/conmon/runner/config"
@@ -27,9 +30,6 @@ import (
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
-	"github.com/cri-o/cri-o/utils/fifo"
-	cio "github.com/cri-o/cri-o/utils/io"
-	cioutil "github.com/cri-o/cri-o/utils/ioutil"
 	ptypes "github.com/gogo/protobuf/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -947,7 +947,8 @@ func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStre
 		},
 	}
 
-	return cInfo.cio.Attach(opts)
+	cInfo.cio.Attach(opts)
+	return nil
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.

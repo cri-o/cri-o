@@ -3,8 +3,8 @@
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
-
    You may obtain a copy of the License at
+
        http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
@@ -24,7 +24,6 @@ import (
 	"syscall"
 
 	"github.com/containerd/containerd/cio"
-	"github.com/cri-o/cri-o/utils/fifo"
 	"golang.org/x/net/context"
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -76,7 +75,7 @@ func (g *wgCloser) Cancel() {
 // newFifos creates fifos directory for a container.
 func newFifos(root, id string, tty, stdin bool) (*cio.FIFOSet, error) {
 	root = filepath.Join(root, "io")
-	if err := os.MkdirAll(root, 0o700); err != nil {
+	if err := os.MkdirAll(root, 0700); err != nil {
 		return nil, err
 	}
 	fifos, err := cio.NewFIFOSetInDir(root, id, tty)
@@ -96,7 +95,7 @@ type stdioPipes struct {
 }
 
 // newStdioPipes creates actual fifos for stdio.
-func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, retErr error) {
+func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, err error) {
 	var (
 		f           io.ReadWriteCloser
 		set         []io.Closer
@@ -104,7 +103,7 @@ func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, retErr error
 		p           = &stdioPipes{}
 	)
 	defer func() {
-		if retErr != nil {
+		if err != nil {
 			for _, f := range set {
 				f.Close()
 			}
@@ -113,27 +112,28 @@ func newStdioPipes(fifos *cio.FIFOSet) (_ *stdioPipes, _ *wgCloser, retErr error
 	}()
 
 	if fifos.Stdin != "" {
-		f, err := fifo.OpenFifo(ctx, fifos.Stdin, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0o700)
-		if err != nil {
+		if f, err = openPipe(ctx, fifos.Stdin, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700); err != nil {
 			return nil, nil, err
 		}
 		p.stdin = f
 		set = append(set, f)
 	}
 
-	f, err := fifo.OpenFifo(ctx, fifos.Stdout, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0o700)
-	if err != nil {
-		return nil, nil, err
+	if fifos.Stdout != "" {
+		if f, err = openPipe(ctx, fifos.Stdout, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700); err != nil {
+			return nil, nil, err
+		}
+		p.stdout = f
+		set = append(set, f)
 	}
-	p.stdout = f
-	set = append(set, f)
 
-	f, err = fifo.OpenFifo(ctx, fifos.Stderr, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0o700)
-	if err != nil {
-		return nil, nil, err
+	if fifos.Stderr != "" {
+		if f, err = openPipe(ctx, fifos.Stderr, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700); err != nil {
+			return nil, nil, err
+		}
+		p.stderr = f
+		set = append(set, f)
 	}
-	p.stderr = f
-	set = append(set, f)
 
 	return p, &wgCloser{
 		wg:     &sync.WaitGroup{},

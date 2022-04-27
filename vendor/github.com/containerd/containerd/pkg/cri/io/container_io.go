@@ -3,8 +3,8 @@
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
-
    You may obtain a copy of the License at
+
        http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
@@ -17,16 +17,16 @@
 package io
 
 import (
+	"errors"
 	"io"
 	"strings"
 	"sync"
 
 	"github.com/containerd/containerd/cio"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/cri-o/cri-o/utils"
-	cioutil "github.com/cri-o/cri-o/utils/ioutil"
+	"github.com/containerd/containerd/pkg/cri/util"
+	cioutil "github.com/containerd/containerd/pkg/ioutil"
 )
 
 // streamKey generates a key for the stream.
@@ -72,7 +72,7 @@ func WithNewFIFOs(root string, tty, stdin bool) ContainerIOOpts {
 }
 
 // NewContainerIO creates container io.
-func NewContainerIO(id string, opts ...ContainerIOOpts) (*ContainerIO, error) {
+func NewContainerIO(id string, opts ...ContainerIOOpts) (_ *ContainerIO, err error) {
 	c := &ContainerIO{
 		id:          id,
 		stdoutGroup: cioutil.NewWriterGroup(),
@@ -105,18 +105,20 @@ func (c *ContainerIO) Config() cio.Config {
 // to output stream.
 func (c *ContainerIO) Pipe() {
 	wg := c.closer.wg
-	wg.Add(1)
-	go func() {
-		if _, err := io.Copy(c.stdoutGroup, c.stdout); err != nil {
-			logrus.WithError(err).Errorf("Failed to pipe stdout of container %q", c.id)
-		}
-		c.stdout.Close()
-		c.stdoutGroup.Close()
-		wg.Done()
-		logrus.Infof("Finish piping stdout of container %q", c.id)
-	}()
+	if c.stdout != nil {
+		wg.Add(1)
+		go func() {
+			if _, err := io.Copy(c.stdoutGroup, c.stdout); err != nil {
+				logrus.WithError(err).Errorf("Failed to pipe stdout of container %q", c.id)
+			}
+			c.stdout.Close()
+			c.stdoutGroup.Close()
+			wg.Done()
+			logrus.Debugf("Finish piping stdout of container %q", c.id)
+		}()
+	}
 
-	if !c.fifos.Terminal {
+	if !c.fifos.Terminal && c.stderr != nil {
 		wg.Add(1)
 		go func() {
 			if _, err := io.Copy(c.stderrGroup, c.stderr); err != nil {
@@ -125,19 +127,16 @@ func (c *ContainerIO) Pipe() {
 			c.stderr.Close()
 			c.stderrGroup.Close()
 			wg.Done()
-			logrus.Infof("Finish piping stderr of container %q", c.id)
+			logrus.Debugf("Finish piping stderr of container %q", c.id)
 		}()
 	}
 }
 
 // Attach attaches container stdio.
 // TODO(random-liu): Use pools.Copy in docker to reduce memory usage?
-func (c *ContainerIO) Attach(opts AttachOptions) error {
+func (c *ContainerIO) Attach(opts AttachOptions) {
 	var wg sync.WaitGroup
-	key, err := utils.GenerateID()
-	if err != nil {
-		return errors.Wrap(err, "container attach")
-	}
+	key := util.GenerateID()
 	stdinKey := streamKey(c.id, "attach-"+key, Stdin)
 	stdoutKey := streamKey(c.id, "attach-"+key, Stdout)
 	stderrKey := streamKey(c.id, "attach-"+key, Stderr)
@@ -187,24 +186,23 @@ func (c *ContainerIO) Attach(opts AttachOptions) error {
 
 	if opts.Stdout != nil {
 		wg.Add(1)
-		wc, channel := cioutil.NewWriteCloseInformer(opts.Stdout)
+		wc, close := cioutil.NewWriteCloseInformer(opts.Stdout)
 		c.stdoutGroup.Add(stdoutKey, wc)
-		go attachStream(stdoutKey, channel)
+		go attachStream(stdoutKey, close)
 	}
 	if !opts.Tty && opts.Stderr != nil {
 		wg.Add(1)
-		wc, channel := cioutil.NewWriteCloseInformer(opts.Stderr)
+		wc, close := cioutil.NewWriteCloseInformer(opts.Stderr)
 		c.stderrGroup.Add(stderrKey, wc)
-		go attachStream(stderrKey, channel)
+		go attachStream(stderrKey, close)
 	}
 	wg.Wait()
-
-	return nil
 }
 
 // AddOutput adds new write closers to the container stream, and returns existing
 // write closers if there are any.
-func (c *ContainerIO) AddOutput(name string, stdout, stderr io.WriteCloser) (oldStdout, oldStderr io.WriteCloser) {
+func (c *ContainerIO) AddOutput(name string, stdout, stderr io.WriteCloser) (io.WriteCloser, io.WriteCloser) {
+	var oldStdout, oldStderr io.WriteCloser
 	if stdout != nil {
 		key := streamKey(c.id, name, Stdout)
 		oldStdout = c.stdoutGroup.Get(key)

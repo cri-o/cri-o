@@ -3,8 +3,8 @@
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
-
    You may obtain a copy of the License at
+
        http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
@@ -23,7 +23,7 @@ import (
 	"github.com/containerd/containerd/cio"
 	"github.com/sirupsen/logrus"
 
-	cioutil "github.com/cri-o/cri-o/utils/ioutil"
+	cioutil "github.com/containerd/containerd/pkg/ioutil"
 )
 
 // ExecIO holds the exec io.
@@ -99,7 +99,7 @@ func (e *ExecIO) Attach(opts AttachOptions) <-chan struct{} {
 		}
 		e.closer.wg.Done()
 		wg.Done()
-		logrus.Infof("Finish piping %q of container exec %q", t, e.id)
+		logrus.Debugf("Finish piping %q of container exec %q", t, e.id)
 	}
 
 	if opts.Stdout != nil {

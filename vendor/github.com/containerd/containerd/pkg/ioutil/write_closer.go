@@ -3,8 +3,8 @@
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
-
    You may obtain a copy of the License at
+
        http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
@@ -30,12 +30,12 @@ type writeCloseInformer struct {
 }
 
 // NewWriteCloseInformer creates the writeCloseInformer from a write closer.
-func NewWriteCloseInformer(wc io.WriteCloser) (informer io.WriteCloser, closeChan <-chan struct{}) {
-	channel := make(chan struct{})
+func NewWriteCloseInformer(wc io.WriteCloser) (io.WriteCloser, <-chan struct{}) {
+	close := make(chan struct{})
 	return &writeCloseInformer{
-		close: channel,
+		close: close,
 		wc:    wc,
-	}, channel
+	}, close
 }
 
 // Write passes through the data into the internal write closer.
