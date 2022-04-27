@@ -180,7 +180,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
 			return
 		}
-		ctrStatus :=  ctr.State().Status
+		ctrStatus := ctr.State().Status
 		if ctrStatus != oci.ContainerStateRunning && ctrStatus != oci.ContainerStateCreated {
 			http.Error(w,
 				fmt.Sprintf("container is not in running or created state, now is %s", ctrStatus),
@@ -209,7 +209,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
 			return
 		}
-		ctrStatus :=  ctr.State().Status
+		ctrStatus := ctr.State().Status
 		if ctrStatus != oci.ContainerStatePaused {
 			http.Error(w,
 				fmt.Sprintf("container is not in paused state, now is %s", ctrStatus),
