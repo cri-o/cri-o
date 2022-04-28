@@ -629,13 +629,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.Int64Flag{
 			Name:    "pids-limit",
 			Value:   libconfig.DefaultPidsLimit,
-			Usage:   "Maximum number of processes allowed in a container",
+			Usage:   "Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead.",
 			EnvVars: []string{"CONTAINER_PIDS_LIMIT"},
 		},
 		&cli.Int64Flag{
 			Name:    "log-size-max",
 			Value:   libconfig.DefaultLogSizeMax,
-			Usage:   "Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer",
+			Usage:   "Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer. This option is deprecated. The Kubelet flag '--container-log-max-size' should be used instead.",
 			EnvVars: []string{"CONTAINER_LOG_SIZE_MAX"},
 		},
 		&cli.BoolFlag{

@@ -104,7 +104,7 @@ const (
 const (
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container
-	DefaultPidsLimit = 1024
+	DefaultPidsLimit = 0
 
 	// DefaultLogSizeMax is the default value for the maximum log size
 	// allowed for a container. Negative values mean that no limit is imposed.
@@ -359,12 +359,14 @@ type RuntimeConfig struct {
 
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
+	// This option is deprecated. The Kubelet flag `--pod-pids-limit` should be used instead.
 	PidsLimit int64 `toml:"pids_limit"`
 
 	// LogSizeMax is the maximum number of bytes after which the log file
 	// will be truncated. It can be expressed as a human-friendly string
 	// that is parsed to bytes.
 	// Negative values indicate that the log file won't be truncated.
+	// This option is deprecated. The Kubelet flag `--container-log-max-size` should be used instead.
 	LogSizeMax int64 `toml:"log_size_max"`
 
 	// CtrStopTimeout specifies the time to wait before to generate an

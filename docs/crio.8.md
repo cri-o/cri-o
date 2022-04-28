@@ -280,7 +280,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--log-level, -l**="": Log messages above specified level: trace, debug, info, warn, error, fatal or panic (default: info)
 
-**--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer (default: -1)
+**--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer. This option is deprecated. The Kubelet flag '--container-log-max-size' should be used instead. (default: -1)
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint
 
@@ -306,7 +306,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
 
-**--pids-limit**="": Maximum number of processes allowed in a container (default: 1024)
+**--pids-limit**="": Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead. (default: 0)
 
 **--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: "")
 
