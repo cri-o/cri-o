@@ -85,6 +85,8 @@ popd
 ln -s vendor src
 export GOPATH=$(pwd)/_output:$(pwd)
 export BUILDTAGS="selinux seccomp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_ostree_stub"
+# Drop this when CRI-O isn't built solely on rhel 7
+export CGO_CFLAGS="-Dgpgme_off_t=off_t"
 make bin/crio bin/crio-status bin/pinns
 
 # build docs
