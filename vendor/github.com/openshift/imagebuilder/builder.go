@@ -44,6 +44,7 @@ type Run struct {
 type Executor interface {
 	Preserve(path string) error
 	EnsureContainerPath(path string) error
+	EnsureContainerPathAs(path, user string, mode *os.FileMode) error
 	Copy(excludes []string, copies ...Copy) error
 	Run(run Run, config docker.Config) error
 	UnrecognizedInstruction(step *Step) error
@@ -58,6 +59,15 @@ func (logExecutor) Preserve(path string) error {
 
 func (logExecutor) EnsureContainerPath(path string) error {
 	log.Printf("ENSURE %s", path)
+	return nil
+}
+
+func (logExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
+	if mode != nil {
+		log.Printf("ENSURE %s AS %q with MODE=%q", path, user, *mode)
+	} else {
+		log.Printf("ENSURE %s AS %q", path, user)
+	}
 	return nil
 }
 
@@ -85,6 +95,10 @@ func (noopExecutor) Preserve(path string) error {
 }
 
 func (noopExecutor) EnsureContainerPath(path string) error {
+	return nil
+}
+
+func (noopExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
 	return nil
 }
 
@@ -303,6 +317,9 @@ type Builder struct {
 	PendingCopies  []Copy
 
 	Warnings []string
+	// Raw platform string specified with `FROM --platform` of the stage
+	// It's up to the implementation or client to parse and use this field
+	Platform string
 }
 
 func NewBuilder(args map[string]string) *Builder {
@@ -375,7 +392,7 @@ func (b *Builder) Run(step *Step, exec Executor, noRunsRemaining bool) error {
 	}
 
 	if len(b.RunConfig.WorkingDir) > 0 {
-		if err := exec.EnsureContainerPath(b.RunConfig.WorkingDir); err != nil {
+		if err := exec.EnsureContainerPathAs(b.RunConfig.WorkingDir, b.RunConfig.User, nil); err != nil {
 			return err
 		}
 	}
@@ -470,7 +487,7 @@ func (b *Builder) FromImage(image *docker.Image, node *parser.Node) error {
 	b.RunConfig.Env = nil
 
 	// Check to see if we have a default PATH, note that windows won't
-	// have one as its set by HCS
+	// have one as it's set by HCS
 	if runtime.GOOS != "windows" && !hasEnvName(b.Env, "PATH") {
 		b.RunConfig.Env = append(b.RunConfig.Env, "PATH="+defaultPathEnv)
 	}

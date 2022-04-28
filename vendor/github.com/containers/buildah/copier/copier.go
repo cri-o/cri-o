@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"net"
 	"os"
@@ -1179,10 +1180,10 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 				// we don't expand any of the contents that are archives
 				options := req.GetOptions
 				options.ExpandArchives = false
-				walkfn := func(path string, info os.FileInfo, err error) error {
+				walkfn := func(path string, d fs.DirEntry, err error) error {
 					if err != nil {
 						if options.IgnoreUnreadable && errorIsPermission(err) {
-							if info != nil && info.IsDir() {
+							if info != nil && d.IsDir() {
 								return filepath.SkipDir
 							}
 							return nil
@@ -1192,8 +1193,8 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 						}
 						return errors.Wrapf(err, "copier: get: error reading %q", path)
 					}
-					if info.Mode()&os.ModeType == os.ModeSocket {
-						logrus.Warningf("copier: skipping socket %q", info.Name())
+					if d.Type() == os.ModeSocket {
+						logrus.Warningf("copier: skipping socket %q", d.Name())
 						return nil
 					}
 					// compute the path of this item
@@ -1216,7 +1217,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 						return err
 					}
 					if skip {
-						if info.IsDir() {
+						if d.IsDir() {
 							// if there are no "include
 							// this anyway" patterns at
 							// all, we don't need to
@@ -1254,17 +1255,21 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 					}
 					// if it's a symlink, read its target
 					symlinkTarget := ""
-					if info.Mode()&os.ModeType == os.ModeSymlink {
+					if d.Type() == os.ModeSymlink {
 						target, err := os.Readlink(path)
 						if err != nil {
 							return errors.Wrapf(err, "copier: get: readlink(%q(%q))", rel, path)
 						}
 						symlinkTarget = target
 					}
+					info, err := d.Info()
+					if err != nil {
+						return err
+					}
 					// if it's a directory and we're staying on one device, and it's on a
 					// different device than the one we started from, skip its contents
 					var ok error
-					if info.Mode().IsDir() && req.GetOptions.NoCrossDevice {
+					if d.IsDir() && req.GetOptions.NoCrossDevice {
 						if !sameDevice(topInfo, info) {
 							ok = filepath.SkipDir
 						}
@@ -1282,7 +1287,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 					return ok
 				}
 				// walk the directory tree, checking/adding items individually
-				if err := filepath.Walk(item, walkfn); err != nil {
+				if err := filepath.WalkDir(item, walkfn); err != nil {
 					return errors.Wrapf(err, "copier: get: %q(%q)", queue[i], item)
 				}
 				itemsCopied++
@@ -1459,6 +1464,13 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		f, err = os.Open(contentPath)
 		if err != nil {
 			return errors.Wrapf(err, "error opening file for adding its contents to archive")
+		}
+		defer f.Close()
+	} else if hdr.Typeflag == tar.TypeDir {
+		// open the directory file first to make sure we can access it.
+		f, err = os.Open(contentPath)
+		if err != nil {
+			return errors.Wrapf(err, "error opening directory for adding its contents to archive")
 		}
 		defer f.Close()
 	}
@@ -1660,7 +1672,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				// only check the length if there wasn't an error, which we'll
 				// check along with errors for other types of entries
 				if err == nil && written != hdr.Size {
-					return errors.Errorf("copier: put: error creating %q: incorrect length (%d != %d)", path, written, hdr.Size)
+					return errors.Errorf("copier: put: error creating regular file %q: incorrect length (%d != %d)", path, written, hdr.Size)
 				}
 			case tar.TypeLink:
 				var linkTarget string
@@ -1681,7 +1693,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = os.Link(linkTarget, path)
 					}
 				}
@@ -1696,7 +1708,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = os.Symlink(filepath.FromSlash(hdr.Linkname), filepath.FromSlash(path))
 					}
 				}
@@ -1711,7 +1723,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = mknod(path, chrMode(0600), int(mkdev(devMajor, devMinor)))
 					}
 				}
@@ -1726,14 +1738,14 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = mknod(path, blkMode(0600), int(mkdev(devMajor, devMinor)))
 					}
 				}
 			case tar.TypeDir:
 				if err = os.Mkdir(path, 0700); err != nil && os.IsExist(err) {
 					var st os.FileInfo
-					if st, err = os.Stat(path); err == nil && !st.IsDir() {
+					if st, err = os.Lstat(path); err == nil && !st.IsDir() {
 						// it's not a directory, so remove it and mkdir
 						if err = os.Remove(path); err == nil {
 							err = os.Mkdir(path, 0700)
@@ -1758,7 +1770,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = mkfifo(path, 0600)
 					}
 				}
