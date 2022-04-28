@@ -11,9 +11,9 @@ function teardown() {
 	cleanup_test
 }
 
-@test "pause ctr with right ctr id" {
+@test "pause/unpause ctr with right ctr id" {
 	start_crio
-	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -30,11 +30,13 @@ function teardown() {
 		echo "$out"
 		exit 1
 	fi
+
+	crictl rm -f "$ctr_id"
 }
 
 @test "pause ctr with invalid ctr id" {
 	start_crio
-	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -44,11 +46,13 @@ function teardown() {
 		echo "$out"
 		exit 1
 	fi
+
+	crictl rm -f "$ctr_id"
 }
 
 @test "pause ctr with already paused ctr" {
 	start_crio
-	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -71,11 +75,13 @@ function teardown() {
 		echo "$out"
 		exit 1
 	fi
+
+	crictl rm -f "$ctr_id"
 }
 
 @test "unpause ctr with right ctr id with running ctr" {
 	start_crio
-	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -85,31 +91,13 @@ function teardown() {
 		echo "$out"
 		exit 1
 	fi
-}
 
-@test "unpause ctr with right ctr id with pause ctr" {
-	start_crio
-	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
-
-	out=$(echo -e "GET /pause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
-	if [[ ! "$out" == *"200 OK"* ]]; then
-		echo "$out"
-		exit 1
-	fi
-
-	out=$(echo -e "GET /unpause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
-	if [[ ! "$out" == *"200 OK"* ]]; then
-		echo "$out"
-		exit 1
-	fi
+	crictl rm -f "$ctr_id"
 }
 
 @test "unpause ctr with invalid ctr id" {
 	start_crio
-	run crictl run "$TESTDATA"/container_config_ping.json "$TESTDATA"/sandbox_config.json
+	run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 	echo "$output"
 	[ "$status" -eq 0 ]
 	ctr_id="$output"
@@ -119,4 +107,6 @@ function teardown() {
 		echo "$out"
 		exit 1
 	fi
+
+	crictl rm -f "$ctr_id"
 }
