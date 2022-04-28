@@ -13,7 +13,7 @@ require (
 	github.com/containerd/fifo v1.0.0
 	github.com/containerd/ttrpc v1.1.0
 	github.com/containerd/typeurl v1.0.2
-	github.com/containernetworking/cni v1.0.1
+	github.com/containernetworking/cni v1.1.0
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.23.1
 	github.com/containers/common v0.46.1-0.20211001143714-161e078e4c7f
@@ -25,12 +25,12 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.17
-	github.com/cri-o/ocicni v0.3.0
+	github.com/cri-o/ocicni v0.3.1
 	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/emicklei/go-restful v2.15.0+incompatible
-	github.com/fsnotify/fsnotify v1.5.1
+	github.com/fsnotify/fsnotify v1.5.4
 	github.com/go-logr/logr v1.2.1
 	github.com/go-zoo/bone v1.3.0
 	github.com/godbus/dbus/v5 v5.0.6
@@ -41,7 +41,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/intel/goresctrl v0.2.0
 	github.com/json-iterator/go v1.1.12
-	github.com/onsi/ginkgo/v2 v2.1.3
+	github.com/onsi/ginkgo/v2 v2.1.4
 	github.com/onsi/gomega v1.19.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
@@ -64,7 +64,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.2.0
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
 	google.golang.org/grpc v1.43.0
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
@@ -206,13 +206,13 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.2.0 // indirect
 	go.opentelemetry.io/otel/trace v1.3.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.10.0 // indirect
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
-	golang.org/x/mod v0.5.1 // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
-	golang.org/x/tools v0.1.6-0.20210820212750-d4cc65f0b2ff // indirect
+	golang.org/x/tools v0.1.10 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20211005153810-c76a74d43a8e // indirect
