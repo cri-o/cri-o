@@ -27,6 +27,12 @@ import (
 
 const instancesData = "instances.json"
 
+// LookupReferenceFunc return an image reference based on the specified one.
+// The returned reference can return custom ImageSource or ImageDestination
+// objects which intercept or filter blobs, manifests, and signatures as
+// they are read and written.
+type LookupReferenceFunc func(ref types.ImageReference) (types.ImageReference, error)
+
 // ErrListImageUnknown is returned when we attempt to create an image reference
 // for a List that has not yet been saved to an image.
 var ErrListImageUnknown = stderrors.New("unable to determine which image holds the manifest list")
@@ -57,6 +63,7 @@ type PushOptions struct {
 	SignBy             string                // fingerprint of GPG key to use to sign images
 	RemoveSignatures   bool                  // true to discard signatures in images
 	ManifestType       string                // the format to use when saving the list - possible options are oci, v2s1, and v2s2
+	SourceFilter       LookupReferenceFunc   // filter the list source
 }
 
 // Create creates a new list containing information about the specified image,
@@ -221,6 +228,11 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 	if err != nil {
 		return nil, "", err
 	}
+	if options.SourceFilter != nil {
+		if src, err = options.SourceFilter(src); err != nil {
+			return nil, "", err
+		}
+	}
 	copyOptions := &cp.Options{
 		ImageListSelection:    options.ImageListSelection,
 		Instances:             options.Instances,
@@ -353,9 +365,12 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 			}
 			if instanceInfo.OS == "" {
 				instanceInfo.OS = config.OS
+				instanceInfo.OSVersion = config.OSVersion
+				instanceInfo.OSFeatures = config.OSFeatures
 			}
 			if instanceInfo.Architecture == "" {
 				instanceInfo.Architecture = config.Architecture
+				instanceInfo.Variant = config.Variant
 			}
 		}
 		manifestBytes, manifestType, err := src.GetManifest(ctx, instanceInfo.instanceDigest)

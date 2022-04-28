@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/signal"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
