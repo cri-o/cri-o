@@ -143,6 +143,7 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 	mkdir -p "$(GOPKGBASEDIR)"
 	ln -s "$(CURDIR)" "$(GOPKGDIR)"
 endif
+	if [ ! -d "$(GOPATH)" ]; then mkdir -p $(GOPATH); fi
 	touch "$(GOPATH)/.gopathok"
 
 # See also: .github/workflows/verify.yml.

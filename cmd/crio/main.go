@@ -335,7 +335,7 @@ func main() {
 		grpcL := m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
 		httpL := m.Match(cmux.HTTP1Fast())
 
-		infoMux := crioServer.GetInfoMux(c.Bool("enable-profile-unix-socket"))
+		infoMux := crioServer.GetExtendInterfaceMux(c.Bool("enable-profile-unix-socket"))
 		httpServer := &http.Server{
 			Handler:     infoMux,
 			ReadTimeout: 5 * time.Second,

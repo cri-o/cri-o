@@ -38,7 +38,7 @@ var _ = t.Describe("ContainerStop", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should afil with invalid container id", func() {
+		It("should fail with invalid container id", func() {
 			// Given
 			// When
 			err := sut.StopContainer(context.Background(),
