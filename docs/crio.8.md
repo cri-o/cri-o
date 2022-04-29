@@ -88,6 +88,7 @@ crio
 [--registry]=[value]
 [--root|-r]=[value]
 [--runroot]=[value]
+[--runtime-storage]=[value]
 [--runtimes]=[value]
 [--seccomp-profile]=[value]
 [--seccomp-use-default-when-empty]
@@ -330,6 +331,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--root, -r**="": The CRI-O root directory (default: /var/lib/containers/storage)
 
 **--runroot**="": The CRI-O state directory (default: /run/containers/storage)
+
+**--runtime-storage**="": Storage for the runtime, format is runtime_name:storage_driver:opt1:opt2...:optN. The runtime_name needs to be listed with the  runtimes, otherwise this option doesn't have any effect.
 
 **--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path
 
