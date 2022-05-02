@@ -111,8 +111,7 @@ func main() {
 	log.InitKlogShim()
 
 	if reexec.Init() {
-		fmt.Fprintf(os.Stderr, "unable to initialize container storage\n")
-		os.Exit(-1)
+		return
 	}
 	app := cli.NewApp()
 
