@@ -173,6 +173,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 		return newRuntimeVM(rh.RuntimePath, rh.RuntimeRoot, rh.RuntimeConfigPath), nil
 	}
 
+<<<<<<< HEAD
 	// If the runtime type is different from "vm", then let's fallback
 	// onto the OCI implementation by default.
 	return newRuntimeOCI(r, rh), nil
@@ -187,13 +188,13 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 		return impl, nil
 	}
 
+	r.runtimeImplMapMutex.Lock()
+	defer r.runtimeImplMapMutex.Unlock()
 	impl, err := r.newRuntimeImpl(c)
 	if err != nil {
 		return nil, err
 	}
-	r.runtimeImplMapMutex.Lock()
 	r.runtimeImplMap[c.ID()] = impl
-	r.runtimeImplMapMutex.Unlock()
 	return impl, nil
 }
 
