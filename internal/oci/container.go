@@ -609,3 +609,7 @@ func (c *Container) RemoveManagedPIDNamespace() error {
 	}
 	return errors.Wrapf(c.pidns.Remove(), "remove PID namespace for container %s", c.ID())
 }
+
+func (c *Container) IsInfra() bool {
+	return c.ID() == c.Sandbox()
+}
