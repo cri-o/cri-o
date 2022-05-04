@@ -64,19 +64,16 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 		cState = c.State()
 	}
 
-	created := c.CreatedAt().UnixNano()
+	resp.Status.CreatedAt = c.CreatedAt().UnixNano()
 	switch cState.Status {
 	case oci.ContainerStateCreated:
 		rStatus = types.ContainerState_CONTAINER_CREATED
-		resp.Status.CreatedAt = created
 	case oci.ContainerStateRunning:
 		rStatus = types.ContainerState_CONTAINER_RUNNING
-		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
 	case oci.ContainerStateStopped:
 		rStatus = types.ContainerState_CONTAINER_EXITED
-		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
 		finished := cState.Finished.UnixNano()
