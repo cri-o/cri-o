@@ -179,7 +179,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: bundle
-          path: build/bundle/*.tar.gz
+          path: build/bundle/*.tar.gz*
 
   bundle-test:
     runs-on: ubuntu-latest
