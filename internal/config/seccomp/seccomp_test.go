@@ -4,7 +4,6 @@ import (
 	"context"
 	"io/ioutil"
 
-	containers_seccomp "github.com/containers/common/pkg/seccomp"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -53,7 +52,7 @@ var _ = t.Describe("Config", func() {
 			res := sut.Profile()
 
 			// Then
-			Expect(res).To(Equal(containers_seccomp.DefaultProfile()))
+			Expect(res).To(Equal(seccomp.DefaultProfile()))
 		})
 	})
 
