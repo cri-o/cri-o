@@ -48,8 +48,8 @@ const (
 type runtimeOCI struct {
 	*Runtime
 
-	path string
-	root string
+	root    string
+	handler *config.RuntimeHandler
 }
 
 // newRuntimeOCI creates a new runtimeOCI instance
@@ -61,8 +61,8 @@ func newRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeImpl {
 
 	return &runtimeOCI{
 		Runtime: r,
-		path:    handler.RuntimePath,
 		root:    runRoot,
+		handler: handler,
 	}
 }
 
@@ -106,7 +106,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		"-P", c.conmonPidFilePath(),
 		"-p", filepath.Join(c.bundlePath, "pidfile"),
 		"--persist-dir", c.dir,
-		"-r", r.path,
+		"-r", r.handler.RuntimePath,
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root),
 		"--socket-dir-path", r.config.ContainerAttachSocketDir,
 		"--syslog",
@@ -135,9 +135,9 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	}
 	logrus.WithFields(logrus.Fields{
 		"args": args,
-	}).Debugf("running conmon: %s", r.config.Conmon)
+	}).Debugf("running conmon: %s", r.handler.MonitorPath)
 
-	cmd := cmdrunner.Command(r.config.Conmon, args...) // nolint: gosec
+	cmd := cmdrunner.Command(r.handler.MonitorPath, args...) // nolint: gosec
 	cmd.Dir = c.bundlePath
 	cmd.SysProcAttr = sysProcAttrPlatform()
 	cmd.Stdin = os.Stdin
@@ -148,7 +148,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	}
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = r.config.ConmonEnv
+	cmd.Env = r.handler.MonitorEnv
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("_OCI_SYNCPIPE=%d", 3),
 		fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
@@ -276,7 +276,7 @@ func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
 	}
 
 	if _, err := utils.ExecCmd(
-		r.path, rootFlag, r.root, "start", c.ID(),
+		r.handler.RuntimePath, rootFlag, r.root, "start", c.ID(),
 	); err != nil {
 		return err
 	}
@@ -361,7 +361,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 
 	args := []string{rootFlag, r.root, "exec"}
 	args = append(args, "--process", processFile, c.ID())
-	execCmd := cmdrunner.Command(r.path, args...) // nolint: gosec
+	execCmd := cmdrunner.Command(r.handler.RuntimePath, args...) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
@@ -464,7 +464,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	args := []string{
 		"-c", c.ID(),
 		"-n", c.name,
-		"-r", r.path,
+		"-r", r.handler.RuntimePath,
 		"-p", pidFile,
 		"-e",
 		"-l", logPath,
@@ -495,14 +495,14 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		"--exec-process-spec", processFile,
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 
-	cmd := cmdrunner.Command(r.config.Conmon, args...) // nolint: gosec
+	cmd := cmdrunner.Command(r.handler.MonitorPath, args...) // nolint: gosec
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = r.config.ConmonEnv
+	cmd.Env = r.handler.MonitorEnv
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
@@ -606,7 +606,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 		return nil
 	}
 
-	cmd := cmdrunner.Command(r.path, rootFlag, r.root, "update", "--resources", "-", c.ID()) // nolint: gosec
+	cmd := cmdrunner.Command(r.handler.RuntimePath, rootFlag, r.root, "update", "--resources", "-", c.ID()) // nolint: gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -743,7 +743,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 
 	if timeout > 0 {
 		if _, err := utils.ExecCmd(
-			r.path, rootFlag, r.root, "kill", c.ID(), c.GetStopSignal(),
+			r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), c.GetStopSignal(),
 		); err != nil {
 			checkProcessGone(c)
 		}
@@ -755,7 +755,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	}
 
 	if _, err := utils.ExecCmd(
-		r.path, rootFlag, r.root, "kill", c.ID(), "KILL",
+		r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), "KILL",
 	); err != nil {
 		checkProcessGone(c)
 	}
@@ -780,7 +780,7 @@ func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "delete", "--force", c.ID())
+	_, err := utils.ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "delete", "--force", c.ID())
 	return err
 }
 
@@ -821,7 +821,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 
 	stateCmd := func() (*ContainerState, bool, error) {
-		cmd := cmdrunner.Command(r.path, rootFlag, r.root, "state", c.ID()) // nolint: gosec
+		cmd := cmdrunner.Command(r.handler.RuntimePath, rootFlag, r.root, "state", c.ID()) // nolint: gosec
 		if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 		}
@@ -934,7 +934,7 @@ func (r *runtimeOCI) PauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "pause", c.ID())
+	_, err := utils.ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "pause", c.ID())
 	return err
 }
 
@@ -947,7 +947,7 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.path, rootFlag, r.root, "resume", c.ID())
+	_, err := utils.ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "resume", c.ID())
 	return err
 }
 
@@ -972,7 +972,7 @@ func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig sysc
 	}
 
 	_, err := utils.ExecCmd(
-		r.path, rootFlag, r.root, "kill", c.ID(), strconv.Itoa(int(sig)),
+		r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), strconv.Itoa(int(sig)),
 	)
 	return err
 }

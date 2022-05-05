@@ -417,13 +417,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:      "conmon",
-			Usage:     fmt.Sprintf("Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: %q)", defConf.Conmon),
+			Usage:     fmt.Sprintf("Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. This option is deprecated, and will be removed in the future. (default: %q)", defConf.Conmon),
 			EnvVars:   []string{"CONTAINER_CONMON"},
 			TakesFile: true,
 		},
 		&cli.StringFlag{
 			Name:    "conmon-cgroup",
-			Usage:   "cgroup to be used for conmon process",
+			Usage:   "cgroup to be used for conmon process. This option is deprecated and will be removed in the future.",
 			Value:   defConf.ConmonCgroup,
 			EnvVars: []string{"CONTAINER_CONMON_CGROUP"},
 		},
@@ -859,7 +859,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.StringSliceFlag{
 			Name:    "conmon-env",
 			Value:   cli.NewStringSlice(defConf.ConmonEnv...),
-			Usage:   "Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime",
+			Usage:   "Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime. This option is deprecated and will be removed in the future.",
 			EnvVars: []string{"CONTAINER_CONMON_ENV"},
 		},
 		&cli.StringSliceFlag{

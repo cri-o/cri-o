@@ -114,12 +114,15 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 
 **conmon**=""
   Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty.
+  This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorPath.
 
-**conmon_cgroup**="system.slice"
+**conmon_cgroup**=""
   Cgroup setting for conmon
+  This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorCgroup.
 
-**conmon_env**=["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
+**conmon_env**=[]
   Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime.
+  This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorEnv.
 
 **default_env**=[]
   Additional environment variables to set for all the containers. These are overridden if set in the container image spec or in

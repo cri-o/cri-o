@@ -56,6 +56,7 @@ const (
 	defaultNamespacesDir       = "/var/run"
 	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
 	tasksetBinary              = "taskset"
+	defaultMonitorCgroup       = "system.slice"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -196,6 +197,13 @@ type RuntimeHandler struct {
 
 	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this handler.
 	DisallowedAnnotations []string
+
+	// Fields prefixed by Monitor hold the configuration for the monitor for this runtime. At present, the following monitors are supported:
+	// oci supports conmon
+	// vm does not support any runtime monitor
+	MonitorPath   string   `toml:"monitor_path,omitempty"`
+	MonitorCgroup string   `toml:"monitor_cgroup,omitempty"`
+	MonitorEnv    []string `toml:"monitor_env,omitempty"`
 }
 
 // Multiple runtime Handlers in a map
@@ -227,6 +235,7 @@ type RuntimeConfig struct {
 	ReadOnly bool `toml:"read_only"`
 
 	// ConmonEnv is the environment variable list for conmon process.
+	// This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorEnv.
 	ConmonEnv []string `toml:"conmon_env"`
 
 	// HooksDir holds paths to the directories containing hooks
@@ -270,9 +279,11 @@ type RuntimeConfig struct {
 	DecryptionKeysPath string `toml:"decryption_keys_path"`
 
 	// Conmon is the path to conmon binary, used for managing the runtime.
+	// This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorConfig.Path.
 	Conmon string `toml:"conmon"`
 
 	// ConmonCgroup is the cgroup setting used for conmon.
+	// This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorConfig.Cgroup.
 	ConmonCgroup string `toml:"conmon_cgroup"`
 
 	// SeccompProfile is the seccomp.json profile path which is used as the
@@ -359,14 +370,12 @@ type RuntimeConfig struct {
 
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
-	// This option is deprecated. The Kubelet flag `--pod-pids-limit` should be used instead.
 	PidsLimit int64 `toml:"pids_limit"`
 
 	// LogSizeMax is the maximum number of bytes after which the log file
 	// will be truncated. It can be expressed as a human-friendly string
 	// that is parsed to bytes.
 	// Negative values indicate that the log file won't be truncated.
-	// This option is deprecated. The Kubelet flag `--container-log-max-size` should be used instead.
 	LogSizeMax int64 `toml:"log_size_max"`
 
 	// CtrStopTimeout specifies the time to wait before to generate an
@@ -763,18 +772,8 @@ func DefaultConfig() (*Config, error) {
 			DecryptionKeysPath: "/etc/crio/keys/",
 			DefaultRuntime:     defaultRuntime,
 			Runtimes: Runtimes{
-				defaultRuntime: {
-					RuntimeType: DefaultRuntimeType,
-					RuntimeRoot: DefaultRuntimeRoot,
-					AllowedAnnotations: []string{
-						annotations.OCISeccompBPFHookAnnotation,
-					},
-				},
+				defaultRuntime: defaultRuntimeHandler(),
 			},
-			ConmonEnv: []string{
-				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-			},
-			ConmonCgroup:               "system.slice",
 			SELinux:                    selinuxEnabled(),
 			ApparmorProfile:            apparmor.DefaultProfile,
 			BlockIOConfigFile:          DefaultBlockIOConfigFile,
@@ -962,22 +961,13 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			// The default config sets runc and its path in the runtimes map, so check for that
 			// first. If it does not exist then we add runc + its path to the runtimes map.
 			if _, ok := c.Runtimes[defaultRuntime]; !ok {
-				c.Runtimes[defaultRuntime] = &RuntimeHandler{
-					RuntimePath:       "",
-					RuntimeType:       DefaultRuntimeType,
-					RuntimeRoot:       DefaultRuntimeRoot,
-					RuntimeConfigPath: "",
-				}
+				c.Runtimes[defaultRuntime] = defaultRuntimeHandler()
 			}
 			// Set the DefaultRuntime to runc so we don't fail further along in the code
 			c.DefaultRuntime = defaultRuntime
 		} else {
 			return fmt.Errorf("default_runtime set to %q, but no runtime entry table [crio.runtime.runtimes.%s] was found", c.DefaultRuntime, c.DefaultRuntime)
 		}
-	}
-
-	if !(c.ConmonCgroup == utils.PodCgroupName || strings.HasSuffix(c.ConmonCgroup, ".slice")) {
-		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
@@ -1019,6 +1009,13 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	// check for validation on execution
 	if onExecution {
+		// First, configure cgroup manager so the values of the Runtime.MonitorCgroup can be validated
+		cgroupManager, err := cgmgr.SetCgroupManager(c.CgroupManagerName)
+		if err != nil {
+			return errors.Wrap(err, "unable to update cgroup manager")
+		}
+		c.cgroupManager = cgroupManager
+
 		if err := c.ValidateRuntimes(); err != nil {
 			return errors.Wrap(err, "runtime validation")
 		}
@@ -1052,11 +1049,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 		cdi.GetRegistry(cdi.WithSpecDirs(c.CDISpecDirs...))
 
-		// Validate the conmon path
-		if err := c.ValidateConmonPath("conmon"); err != nil {
-			return errors.Wrap(err, "conmon validation")
-		}
-
 		// Validate the pinns path
 		if err := c.ValidatePinnsPath("pinns"); err != nil {
 			return errors.Wrap(err, "pinns validation")
@@ -1084,19 +1076,23 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err := c.rdtConfig.Load(c.RdtConfigFile); err != nil {
 			return errors.Wrap(err, "rdt configuration")
 		}
-
-		cgroupManager, err := cgmgr.SetCgroupManager(c.CgroupManagerName)
-		if err != nil {
-			return errors.Wrap(err, "unable to update cgroup manager")
-		}
-		c.cgroupManager = cgroupManager
-
-		if !c.cgroupManager.IsSystemd() && c.ConmonCgroup != utils.PodCgroupName && c.ConmonCgroup != "" {
-			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
-		}
 	}
 
 	return nil
+}
+
+func defaultRuntimeHandler() *RuntimeHandler {
+	return &RuntimeHandler{
+		RuntimeType: DefaultRuntimeType,
+		RuntimeRoot: DefaultRuntimeRoot,
+		AllowedAnnotations: []string{
+			annotations.OCISeccompBPFHookAnnotation,
+		},
+		MonitorEnv: []string{
+			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+		},
+		MonitorCgroup: defaultMonitorCgroup,
+	}
 }
 
 // ValidateRuntimes checks every runtime if its members are valid
@@ -1113,6 +1109,11 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 			logrus.Warnf("'%s is being ignored due to: %q", name, err)
 			failedValidation = append(failedValidation, name)
 		}
+		if handler.RuntimeType == DefaultRuntimeType || handler.RuntimeType == "" {
+			if err := c.TranslateMonitorFields(handler); err != nil {
+				return fmt.Errorf("failed to translate monitor fields for runtime %s: %v", name, err)
+			}
+		}
 	}
 
 	for _, invalidHandlerName := range failedValidation {
@@ -1122,16 +1123,48 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 	return nil
 }
 
+// TranslateMonitorFields is a transitional function that takes the configuration fields
+// previously held by the RuntimeConfig that are being moved inside of the runtime handler structure.
+func (c *RuntimeConfig) TranslateMonitorFields(handler *RuntimeHandler) error {
+	if c.ConmonCgroup != "" {
+		handler.MonitorCgroup = c.ConmonCgroup
+	}
+	if c.Conmon != "" {
+		logrus.Warnf("'%s is becoming %s", c.Conmon, handler.MonitorPath)
+		handler.MonitorPath = c.Conmon
+	}
+	if len(c.ConmonEnv) != 0 {
+		handler.MonitorEnv = c.ConmonEnv
+	}
+	if err := c.ValidateConmonPath("conmon", handler); err != nil {
+		return err
+	}
+	if !c.cgroupManager.IsSystemd() {
+		if handler.MonitorCgroup != utils.PodCgroupName && handler.MonitorCgroup != "" {
+			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
+		}
+		return nil
+	}
+	// If empty, assume default
+	if handler.MonitorCgroup == "" {
+		handler.MonitorCgroup = defaultMonitorCgroup
+	}
+	if !(handler.MonitorCgroup == utils.PodCgroupName || strings.HasSuffix(handler.MonitorCgroup, ".slice")) {
+		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
+	}
+	return nil
+}
+
 // ValidateConmonPath checks if `Conmon` is set within the `RuntimeConfig`.
 // If this is not the case, it tries to find it within the $PATH variable.
 // In any other case, it simply checks if `Conmon` is a valid file.
-func (c *RuntimeConfig) ValidateConmonPath(executable string) error {
+func (c *RuntimeConfig) ValidateConmonPath(executable string, handler *RuntimeHandler) error {
 	var err error
-	c.Conmon, err = validateExecutablePath(executable, c.Conmon)
+	handler.MonitorPath, err = validateExecutablePath(executable, handler.MonitorPath)
 	if err != nil {
 		return err
 	}
-	c.conmonManager, err = conmonmgr.New(c.Conmon)
+	c.conmonManager, err = conmonmgr.New(handler.MonitorPath)
 
 	return err
 }

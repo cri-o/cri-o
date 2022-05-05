@@ -174,11 +174,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
     Besides that, provided command line parameters have a higher priority
     than any configuration file. (default: /etc/crio/crio.conf.d)
 
-**--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. (default: "")
+**--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. This option is deprecated, and will be removed in the future. (default: "")
 
-**--conmon-cgroup**="": cgroup to be used for conmon process (default: system.slice)
+**--conmon-cgroup**="": cgroup to be used for conmon process. This option is deprecated and will be removed in the future.
 
-**--conmon-env**="": Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime (default: [PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin])
+**--conmon-env**="": Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime. This option is deprecated and will be removed in the future. (default: [])
 
 **--container-attach-socket-dir**="": Path to directory for container attach sockets (default: /var/run/crio)
 
