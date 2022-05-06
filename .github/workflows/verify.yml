@@ -19,7 +19,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.45.0
+          version: v1.45.2
 
           # Only show new issues for a pull request.
           only-new-issues: true
