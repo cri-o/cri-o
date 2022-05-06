@@ -552,14 +552,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
-	if ctr.WillRunSystemd() {
-		processLabel, err = selinux.InitLabel(processLabel)
-		if err != nil {
-			return nil, err
-		}
-		setupSystemd(specgen.Mounts(), *specgen)
-	}
-
 	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
 	if !ctr.Privileged() && node.CgroupIsV2() {
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); err != nil {
@@ -745,6 +737,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			Source:      m.Source,
 		}
 		ctr.SpecAddMount(rspecMount)
+	}
+
+	if ctr.WillRunSystemd() {
+		processLabel, err = selinux.InitLabel(processLabel)
+		if err != nil {
+			return nil, err
+		}
+		setupSystemd(specgen.Mounts(), *specgen)
 	}
 
 	if s.ContainerServer.Hooks != nil {
@@ -1090,7 +1090,7 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 		// If the /sys/fs/cgroup is bind mounted from the host,
 		// then systemd-mode cgroup should be disabled
 		// https://bugzilla.redhat.com/show_bug.cgi?id=2064741
-		if NoCgroupMount(g.Mounts()) {
+		if !hasCgroupMount(g.Mounts()) {
 			systemdMnt := rspec.Mount{
 				Destination: cgroupSysFsSystemdPath,
 				Type:        "bind",
@@ -1104,13 +1104,13 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 	g.AddProcessEnv("container", "crio")
 }
 
-func NoCgroupMount(mounts []rspec.Mount) bool {
+func hasCgroupMount(mounts []rspec.Mount) bool {
 	for _, m := range mounts {
 		if (m.Destination == cgroupSysFsPath || m.Destination == "/sys/fs" || m.Destination == "/sys") && isBindMount(m.Options) {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func isBindMount(mountOptions []string) bool {
