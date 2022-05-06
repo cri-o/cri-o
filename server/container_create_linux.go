@@ -40,6 +40,11 @@ import (
 	"github.com/intel/goresctrl/pkg/blockio"
 )
 
+const (
+	cgroupSysFsPath        = "/sys/fs/cgroup"
+	cgroupSysFsSystemdPath = "/sys/fs/cgroup/systemd"
+)
+
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
 func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
 	if idMappings != nil && !container.Spoofed() {
@@ -488,7 +493,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
 			})
 			ctr.SpecAddMount(rspec.Mount{
-				Destination: "/sys/fs/cgroup",
+				Destination: cgroupSysFsPath,
 				Type:        "cgroup",
 				Source:      "cgroup",
 				Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
@@ -504,7 +509,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			Options:     []string{"nosuid", "noexec", "nodev", "rw", "rslave"},
 		})
 		ctr.SpecAddMount(rspec.Mount{
-			Destination: "/sys/fs/cgroup",
+			Destination: cgroupSysFsPath,
 			Type:        "cgroup",
 			Source:      "cgroup",
 			Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime", "rslave"},
@@ -519,14 +524,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 
 	if err := ctr.SpecSetProcessArgs(containerImageConfig); err != nil {
 		return nil, err
-	}
-
-	if ctr.WillRunSystemd() {
-		processLabel, err = selinux.InitLabel(processLabel)
-		if err != nil {
-			return nil, err
-		}
-		setupSystemd(specgen.Mounts(), *specgen)
 	}
 
 	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
@@ -702,6 +699,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			Source:      m.Source,
 		}
 		ctr.SpecAddMount(rspecMount)
+	}
+
+	if ctr.WillRunSystemd() {
+		processLabel, err = selinux.InitLabel(processLabel)
+		if err != nil {
+			return nil, err
+		}
+		setupSystemd(specgen.Mounts(), *specgen)
 	}
 
 	if s.ContainerServer.Hooks != nil {
@@ -975,7 +980,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrIface.Container, mountLabel, b
 
 	if _, mountSys := mountSet["/sys"]; !mountSys {
 		m := rspec.Mount{
-			Destination: "/sys/fs/cgroup",
+			Destination: cgroupSysFsPath,
 			Type:        "cgroup",
 			Source:      "cgroup",
 			Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
@@ -1026,24 +1031,47 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 	}
 
 	if node.CgroupIsV2() {
-		g.RemoveMount("/sys/fs/cgroup")
+		g.RemoveMount(cgroupSysFsPath)
 
 		systemdMnt := rspec.Mount{
-			Destination: "/sys/fs/cgroup",
+			Destination: cgroupSysFsPath,
 			Type:        "cgroup",
 			Source:      "cgroup",
 			Options:     []string{"private", "rw"},
 		}
 		g.AddMount(systemdMnt)
 	} else {
-		systemdMnt := rspec.Mount{
-			Destination: "/sys/fs/cgroup/systemd",
-			Type:        "bind",
-			Source:      "/sys/fs/cgroup/systemd",
-			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+		// If the /sys/fs/cgroup is bind mounted from the host,
+		// then systemd-mode cgroup should be disabled
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2064741
+		if !hasCgroupMount(g.Mounts()) {
+			systemdMnt := rspec.Mount{
+				Destination: cgroupSysFsSystemdPath,
+				Type:        "bind",
+				Source:      cgroupSysFsSystemdPath,
+				Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+			}
+			g.AddMount(systemdMnt)
 		}
-		g.AddMount(systemdMnt)
 		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 	}
 	g.AddProcessEnv("container", "crio")
+}
+
+func hasCgroupMount(mounts []rspec.Mount) bool {
+	for _, m := range mounts {
+		if (m.Destination == cgroupSysFsPath || m.Destination == "/sys/fs" || m.Destination == "/sys") && isBindMount(m.Options) {
+			return true
+		}
+	}
+	return false
+}
+
+func isBindMount(mountOptions []string) bool {
+	for _, option := range mountOptions {
+		if option == "bind" || option == "rbind" {
+			return true
+		}
+	}
+	return false
 }
