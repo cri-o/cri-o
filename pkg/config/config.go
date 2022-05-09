@@ -58,6 +58,8 @@ const (
 	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
 	tasksetBinary              = "taskset"
 	defaultMonitorCgroup       = "system.slice"
+	MonitorExecCgroupDefault   = ""
+	MonitorExecCgroupContainer = "container"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -205,6 +207,9 @@ type RuntimeHandler struct {
 	MonitorPath   string   `toml:"monitor_path,omitempty"`
 	MonitorCgroup string   `toml:"monitor_cgroup,omitempty"`
 	MonitorEnv    []string `toml:"monitor_env,omitempty"`
+
+	// MonitorExecCgroup indicates whether to move exec probes to the container's cgroup.
+	MonitorExecCgroup string `toml:"monitor_exec_cgroup,omitempty"`
 }
 
 // Multiple runtime Handlers in a map
