@@ -50,9 +50,14 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		runRoot = handler.RuntimeRoot
 	}
 
+	logLevel := logrus.GetLevel().String()
+	if logLevel == logrus.PanicLevel.String() || logLevel == logrus.FatalLevel.String() {
+		logLevel = "off"
+	}
+
 	client, err := conmonClient.New(&conmonClient.ConmonServerConfig{
 		ConmonServerPath: handler.MonitorPath,
-		LogLevel:         logrus.GetLevel().String(),
+		LogLevel:         logLevel,
 		Runtime:          handler.RuntimePath,
 		ServerRunDir:     c.dir,
 		RuntimeRoot:      runRoot,
@@ -80,6 +85,12 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		if err != nil {
 			return fmt.Errorf("failed to get version of client before moving server to cgroup: %w", err)
 		}
+
+		logrus.Debugf(
+			"Using conmonrs version: %s, tag: %s, commit: %s, build: %s, rustc: %s",
+			v.Version, v.Tag, v.Commit, v.BuildDate, v.RustVersion,
+		)
+
 		// Platform specific container setup
 		if err := r.oci.createContainerPlatform(c, cgroupParent, int(v.ProcessID)); err != nil {
 			return err
