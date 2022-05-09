@@ -13,7 +13,7 @@
 
 %if ! 0%{?centos} && 0%{?rhel}
 # Golang minor version
-%global gominver 17
+%global gominver 18
 %define gobuild(o:) scl enable go-toolset-1.%{gominver} -- go build -buildmode pie -compiler gc -tags="rpm_crashtraceback no_openssl ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
 %else
 %define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback no_openssl ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
@@ -84,7 +84,7 @@ popd
 
 ln -s vendor src
 export GOPATH=$(pwd)/_output:$(pwd)
-export BUILDTAGS="selinux seccomp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_ostree_stub"
+export BUILDTAGS="selinux seccomp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_ostree_stub skip_pod_runtime"
 make bin/crio bin/crio-status bin/pinns
 
 # build docs
