@@ -16,6 +16,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/storage/pkg/pools"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -440,7 +441,17 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			Err:      err,
 		}
 	}
+
+	childStartPipe, parentStartPipe, err := newPipe()
+	if err != nil {
+		return nil, &ExecSyncError{
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
+
 	defer parentPipe.Close()
+	defer parentStartPipe.Close()
 	defer func() {
 		if e := os.Remove(pidFile); e != nil {
 			log.Warnf(ctx, "Could not remove temporary PID file %s", pidFile)
@@ -495,15 +506,31 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		"--exec-process-spec", processFile,
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root))
 
-	cmd := cmdrunner.Command(r.handler.MonitorPath, args...) // nolint: gosec
+	var cmd *exec.Cmd
+
+	if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { // nolint: gocritic
+		cmd = cmdrunner.Command(r.handler.MonitorPath, args...) // nolint: gosec
+	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer {
+		cmd = exec.Command(r.handler.MonitorPath, args...) // nolint: gosec
+	} else {
+		msg := fmt.Sprintf("Unsupported monitor_exec_cgroup value: %s", r.handler.MonitorExecCgroup)
+		return &types.ExecSyncResponse{
+			Stderr:   []byte(msg),
+			ExitCode: -1,
+		}, nil
+	}
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
-	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe)
+
+	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
 	// 0, 1 and 2 are stdin, stdout and stderr
 	cmd.Env = r.handler.MonitorEnv
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("_OCI_SYNCPIPE=%d", 3),
+		fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
+
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
@@ -511,6 +538,8 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	err = cmd.Start()
 	if err != nil {
 		childPipe.Close()
+		childStartPipe.Close()
+
 		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
 			Stderr:   stderrBuf,
@@ -521,6 +550,57 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	// We don't need childPipe on the parent side
 	childPipe.Close()
+	childStartPipe.Close()
+
+	// Create new scope to reduce cleanup code.
+	if err := func() (retErr error) {
+		defer func() {
+			if retErr != nil {
+				// We need to always kill and wait on this process.
+				// Failing to do so will cause us to leak a zombie.
+				killErr := cmd.Process.Kill()
+				waitErr := cmd.Wait()
+				if killErr != nil {
+					retErr = errors.Wrapf(retErr, "failed to kill %+v after failing with", killErr)
+				}
+				// Per https://pkg.go.dev/os#ProcessState.ExitCode, the exit code is -1 when the process died because
+				// of a signal. We expect this in this case, as we've just killed it with a signal. Don't append the
+				// error in this case to reduce noise.
+				if exitErr, ok := waitErr.(*exec.ExitError); !ok || exitErr.ExitCode() != -1 {
+					retErr = errors.Wrapf(retErr, "failed to wait %+v after failing with", waitErr)
+				}
+			}
+		}()
+
+		if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer && r.config.InfraCtrCPUSet != "" {
+			// Update the exec's cgroup
+			containerPid, err := c.pid()
+			if err != nil {
+				return err
+			}
+
+			err = cgmgr.MoveProcessToContainerCgroup(containerPid, cmd.Process.Pid)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Unblock children
+		someData := []byte{0}
+		_, err = parentStartPipe.Write(someData)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}(); err != nil {
+		return nil, &ExecSyncError{
+			Stdout:   stdoutBuf,
+			Stderr:   stderrBuf,
+			ExitCode: -1,
+			Err:      err,
+		}
+	}
 
 	// first, wait till the command is done
 	waitErr := cmd.Wait()

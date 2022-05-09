@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
+	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -149,4 +150,26 @@ func createSandboxCgroup(sbParent, containerID string, mgr CgroupManager) error 
 	}
 	_, err = cgroups.New(path, &rspec.LinuxResources{})
 	return err
+}
+
+// MoveProcessToContainerCgroup moves process to the container cgroup
+func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
+	parentCgroupFile := fmt.Sprintf("/proc/%d/cgroup", containerPid)
+	cgmap, err := libctr.ParseCgroupFile(parentCgroupFile)
+	if err != nil {
+		return err
+	}
+
+	var dir string
+	for controller, path := range cgmap {
+		// For cgroups V2, controller will be an empty string
+		dir = filepath.Join("/sys/fs/cgroup", controller, path)
+
+		if libctr.PathExists(dir) {
+			if err := libctr.WriteCgroupProc(dir, commandPid); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
