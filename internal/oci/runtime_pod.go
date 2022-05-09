@@ -78,7 +78,7 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	if c.IsInfra() {
 		v, err := r.client.Version(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to get version of client before moving server to cgroup: %v", err)
+			return fmt.Errorf("failed to get version of client before moving server to cgroup: %w", err)
 		}
 		// Platform specific container setup
 		if err := r.oci.createContainerPlatform(c, cgroupParent, int(v.ProcessID)); err != nil {
@@ -166,7 +166,7 @@ func (r *runtimePod) DeleteContainer(ctx context.Context, c *Container) error {
 	// Shutdown the runtime if the infra container is being deleted
 	if c.IsInfra() {
 		if err := r.client.Shutdown(); err != nil {
-			return fmt.Errorf("failed to shutdown client: %v", err)
+			return fmt.Errorf("failed to shutdown client: %w", err)
 		}
 	}
 	return nil
