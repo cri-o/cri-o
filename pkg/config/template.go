@@ -1093,6 +1093,8 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 #   "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 #   "io.kubernetes.cri.rdt-class" for setting the RDT class of a container
+# - monitor_exec_cgroup (optional, string): if set to "container", indicates exec probes
+#   should be moved to the container's cgroup
 
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 {{ $.Comment }}[crio.runtime.runtimes.{{ $runtime_name }}]
@@ -1113,6 +1115,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 {{ range $opt := $runtime_handler.MonitorEnv }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 {{ $.Comment }}{{ end }}
 {{ $.Comment }}monitor_cgroup = "{{ $runtime_handler.MonitorCgroup }}"
+{{ $.Comment }}monitor_exec_cgroup = "{{ $runtime_handler.MonitorExecCgroup }}"
 {{ $.Comment }}{{ end }}
 
 # crun is a fast and lightweight fully featured OCI runtime and C library for
