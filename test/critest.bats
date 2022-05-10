@@ -17,10 +17,15 @@ function teardown() {
 }
 
 @test "run the critest suite" {
-	critest --parallel 8 \
+	critest \
 		--runtime-endpoint "unix://${CRIO_SOCKET}" \
 		--image-endpoint "unix://${CRIO_SOCKET}" \
 		--ginkgo.focus="${CRI_FOCUS}" \
 		--ginkgo.skip="${CRI_SKIP}" \
 		--ginkgo.flakeAttempts=3 >&3
+
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		# Validate that we actually used conmonrs
+		grep -q "Using conmonrs version:" "$CRIO_LOG"
+	fi
 }

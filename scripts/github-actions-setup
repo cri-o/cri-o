@@ -11,6 +11,7 @@ main() {
 
     install_bats
     install_conmon
+    install_conmonrs
     install_critools
     install_runc
     install_ginkgo
@@ -58,6 +59,11 @@ install_conmon() {
     sudo make PREFIX=/ all install
     popd
     sudo rm -rf conmon
+}
+
+install_conmonrs() {
+    curl https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
+        sudo bash -s -- -o /usr/bin/conmonrs
 }
 
 install_critools() {
