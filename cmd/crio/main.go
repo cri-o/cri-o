@@ -120,9 +120,14 @@ func main() {
 	app.Authors = []*cli.Author{{Name: "The CRI-O Maintainers"}}
 	app.UsageText = usage
 	app.Description = app.Usage
-	app.Version = version.Version + "\n" + version.Get().String()
 
-	var err error
+	info, err := version.Get(false)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	app.Version = version.Version + "\n" + info.String()
+
 	app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -150,7 +155,7 @@ func main() {
 			TimestampFormat: "2006-01-02 15:04:05.000000000Z07:00",
 			FullTimestamp:   true,
 		})
-		version.LogVersion()
+		info.LogVersion()
 
 		level, err := logrus.ParseLevel(config.LogLevel)
 		if err != nil {
@@ -278,12 +283,12 @@ func main() {
 		// Immediately upon start up, write our new version files
 		// we write one to a tmpfs, so we can detect when a node rebooted.
 		// in this sitaution, we want to wipe containers
-		if err := version.WriteVersionFile(config.VersionFile); err != nil {
+		if err := info.WriteVersionFile(config.VersionFile); err != nil {
 			logrus.Fatal(err)
 		}
 		// we then write to a persistent directory. This is to check if crio has upgraded
 		// if it has, we should wipe images
-		if err := version.WriteVersionFile(config.VersionFilePersist); err != nil {
+		if err := info.WriteVersionFile(config.VersionFilePersist); err != nil {
 			logrus.Fatal(err)
 		}
 

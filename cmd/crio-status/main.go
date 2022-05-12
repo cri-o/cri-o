@@ -8,6 +8,7 @@ import (
 	"github.com/cri-o/cri-o/internal/client"
 	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/version"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,7 +24,13 @@ func main() {
 	app.Authors = []*cli.Author{{Name: "The CRI-O Maintainers"}}
 	app.Usage = "A tool for CRI-O status retrieval"
 	app.Description = app.Usage
-	app.Version = version.Get().Version
+
+	i, err := version.Get(false)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	app.Version = i.Version
+
 	app.CommandNotFound = func(*cli.Context, string) { os.Exit(1) }
 	app.OnUsageError = func(c *cli.Context, e error, b bool) error { return e }
 	app.Action = func(c *cli.Context) error {

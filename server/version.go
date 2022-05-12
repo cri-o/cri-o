@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/version"
+	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -18,10 +19,14 @@ const (
 
 // Version returns the runtime name, runtime version and runtime API version
 func (s *Server) Version(_ context.Context, apiVersion string) (*types.VersionResponse, error) {
+	info, err := version.Get(false)
+	if err != nil {
+		return nil, errors.Wrap(err, "get server version")
+	}
 	return &types.VersionResponse{
 		Version:           kubeAPIVersion,
 		RuntimeName:       containerName,
-		RuntimeVersion:    version.Get().Version,
+		RuntimeVersion:    info.Version,
 		RuntimeApiVersion: apiVersion,
 	}, nil
 }
