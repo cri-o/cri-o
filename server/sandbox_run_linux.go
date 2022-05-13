@@ -122,7 +122,7 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 			return nil, errors.Errorf("cannot use both keep-id and map-to-root: %q", mode)
 		}
 		if v, ok := values["size"]; ok {
-			s, err := strconv.Atoi(v)
+			s, err := strconv.ParseUint(v, 10, 32)
 			if err != nil {
 				return nil, err
 			}
