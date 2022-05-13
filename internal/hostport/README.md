@@ -16,5 +16,5 @@ https://github.com/kubernetes/kubernetes/pull/94624, it is missing some fixes an
 The kubernetes/kubernetes repo has a fix where the host port manager always opens a socket in all addresses, instead of leveraging the HostIP field:
 https://github.com/kubernetes/kubernetes/pull/94382
 
-The current implementation only maps ports for the first IP of each IP family obtained from teh CNI results.
+The current implementation only maps ports for the first IP of each IP family obtained from the CNI results.
 
