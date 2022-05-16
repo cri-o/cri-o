@@ -2,7 +2,6 @@ package lib
 
 import (
 	"context"
-
 	"github.com/cri-o/cri-o/internal/log"
 
 	"github.com/cri-o/cri-o/internal/oci"
@@ -11,6 +10,14 @@ import (
 
 // ContainerStop stops a running container with a grace period (i.e., timeout).
 func (c *ContainerServer) StopContainer(ctx context.Context, ctr *oci.Container, timeout int64) error {
+	if ctr.State().Status == oci.ContainerStatePaused {
+		if err := c.Runtime().UnpauseContainer(ctx, ctr); err != nil {
+			return errors.Wrapf(err, "failed to stop container %s", ctr.ID())
+		}
+		if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
+			return errors.Wrapf(err, "failed to update container status %s", ctr.ID())
+		}
+	}
 	if err := c.runtime.StopContainer(ctx, ctr, timeout); err != nil {
 		// only fatally error if the error is not that the container was already stopped
 		// we still want to write container state to disk if the container has already
