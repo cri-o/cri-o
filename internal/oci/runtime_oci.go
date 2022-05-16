@@ -878,7 +878,7 @@ func updateContainerStatusFromExitFile(c *Container) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to read exit file")
 	}
-	statusCode, err := strconv.Atoi(string(statusCodeStr))
+	statusCode, err := strconv.ParseInt(string(statusCodeStr), 10, 32)
 	if err != nil {
 		return errors.Wrap(err, "status code conversion failed")
 	}
@@ -983,7 +983,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		if err != nil {
 			return errors.Wrap(err, "failed to read exit file: %v")
 		}
-		statusCode, err := strconv.Atoi(string(statusCodeStr))
+		statusCode, err := strconv.ParseInt(string(statusCodeStr), 10, 32)
 		if err != nil {
 			return fmt.Errorf("status code conversion failed: %v", err)
 		}
