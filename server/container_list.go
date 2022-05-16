@@ -84,7 +84,7 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 		switch cState.Status {
 		case oci.ContainerStateCreated:
 			rState = types.ContainerState_CONTAINER_CREATED
-		case oci.ContainerStateRunning:
+		case oci.ContainerStateRunning, oci.ContainerStatePaused:
 			rState = types.ContainerState_CONTAINER_RUNNING
 		case oci.ContainerStateStopped:
 			rState = types.ContainerState_CONTAINER_EXITED

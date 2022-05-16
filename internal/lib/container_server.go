@@ -685,6 +685,14 @@ func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
 
 // StopContainerAndWait is a wrapping function that stops a container and waits for the container state to be stopped
 func (c *ContainerServer) StopContainerAndWait(ctx context.Context, ctr *oci.Container, timeout int64) error {
+	if ctr.State().Status == oci.ContainerStatePaused {
+		if err := c.Runtime().UnpauseContainer(ctx, ctr); err != nil {
+			return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
+		}
+		if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
+			return fmt.Errorf("failed to update container status %s: %v", ctr.Name(), err)
+		}
+	}
 	if err := c.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
 		return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
 	}
