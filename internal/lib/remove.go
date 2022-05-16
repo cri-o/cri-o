@@ -20,12 +20,11 @@ func (c *ContainerServer) Remove(ctx context.Context, container string, force bo
 	cStatus := ctr.State()
 	switch cStatus.Status {
 	case oci.ContainerStatePaused:
-		if force {
-			if err = c.runtime.UnpauseContainer(ctx, ctr); err != nil {
-				return "", errors.Wrapf(err, "unable to unpause container %s", ctrID)
-			}
-		} else {
+		if !force {
 			return "", errors.Errorf("cannot remove paused container %s", ctrID)
+		}
+		if err = c.runtime.UnpauseContainer(ctx, ctr); err != nil {
+			return "", errors.Wrapf(err, "unable to unpause container %s", ctrID)
 		}
 	case oci.ContainerStateCreated, oci.ContainerStateRunning:
 		if !force {
