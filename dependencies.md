@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 17 May 2022 14:48:50 UTC for commit [679be5a][0]._
+_Generated on Tue, 17 May 2022 17:47:34 UTC for commit [355269e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/679be5a213ff0c4b960078ee1ae4e0310a4a0dde
+[0]: https://github.com/cri-o/cri-o/commit/355269e34a2f9e5f9d48e60e397b120c828fda2e
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Tue, 17 May 2022 14:48:50 UTC for commit [679be5a][0]._
 | github.com/containerd/containerd                                            | v1.5.8                                   | v1.6.4                             | true   | true             |
 | github.com/containers/buildah                                               | v1.23.1                                  | v1.26.1                            | true   | true             |
 | github.com/containers/common                                                | v0.46.1-0.20211001143714-161e078e4c7f    | v0.48.0                            | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.0.0-20220505150146-7d0ae00b625c       | v0.0.0-20220516152426-c98b7c07fabb | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.0.0-20220505150146-7d0ae00b625c       | v0.0.0-20220517162058-7f53b380ffe5 | true   | true             |
 | github.com/containers/image/v5                                              | v5.17.0                                  | v5.21.1                            | true   | true             |
 | github.com/containers/ocicrypt                                              | v1.1.2                                   | v1.1.4                             | true   | true             |
 | github.com/containers/podman/v3                                             | v3.2.0-rc1.0.20211005134800-8bcc086b1b9d | v3.4.7                             | true   | true             |
@@ -84,7 +84,7 @@ _Generated on Tue, 17 May 2022 14:48:50 UTC for commit [679be5a][0]._
 | github.com/MakeNowJust/heredoc                                              | v0.0.0-20170808103936-bb23615498cd                | v1.0.0                             | false  | true             |
 | github.com/Microsoft/go-winio                                               | v0.5.1                                            | v0.5.2                             | true   | true             |
 | github.com/Microsoft/hcsshim                                                | v0.8.23                                           | v0.9.2                             | false  | true             |
-| github.com/Microsoft/hcsshim/test                                           | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20220513214001-4a1216ae5deb | false  | true             |
+| github.com/Microsoft/hcsshim/test                                           | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20220517172300-c6aa049302f7 | false  | true             |
 | github.com/NYTimes/gziphandler                                              | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                  | v1.2.2                                            | v1.2.8                             | false  | true             |
 | github.com/OpenPeeDeeP/depguard                                             | v1.0.1                                            | v1.1.0                             | false  | true             |
@@ -174,7 +174,7 @@ _Generated on Tue, 17 May 2022 14:48:50 UTC for commit [679be5a][0]._
 | github.com/containers/buildah                                               | v1.23.1                                           | v1.26.1                            | true   | true             |
 | github.com/containers/common                                                | v0.46.1-0.20211001143714-161e078e4c7f             | v0.48.0                            | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                              |                                    | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.0.0-20220505150146-7d0ae00b625c                | v0.0.0-20220516152426-c98b7c07fabb | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.0.0-20220505150146-7d0ae00b625c                | v0.0.0-20220517162058-7f53b380ffe5 | true   | true             |
 | github.com/containers/image/v5                                              | v5.17.0                                           | v5.21.1                            | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20190913040956-14b96171aa3b                | v0.0.0-20200511145503-9c3a6c22cd9a | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.1.2                                            | v1.1.4                             | true   | true             |
@@ -679,7 +679,7 @@ _Generated on Tue, 17 May 2022 14:48:50 UTC for commit [679be5a][0]._
 | gonum.org/v1/gonum                                                          | v0.6.2                                            | v0.11.0                            | false  | true             |
 | gonum.org/v1/netlib                                                         | v0.0.0-20190331212654-76723241ea4e                | v0.0.0-20220323200511-14de99971b2d | false  | true             |
 | gonum.org/v1/plot                                                           | v0.0.0-20190515093506-e2840ee46a6b                | v0.11.0                            | false  | true             |
-| google.golang.org/api                                                       | v0.46.0                                           | v0.79.0                            | false  | true             |
+| google.golang.org/api                                                       | v0.46.0                                           | v0.80.0                            | false  | true             |
 | google.golang.org/appengine                                                 | v1.6.7                                            |                                    | false  | true             |
 | google.golang.org/cloud                                                     | v0.0.0-20151119220103-975617b05ea8                | v0.101.1                           | false  | true             |
 | google.golang.org/genproto                                                  | v0.0.0-20200117163144-32f20d992d24                | v0.0.0-20220505152158-f39f71e6c8f3 | false  | true             |
