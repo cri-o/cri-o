@@ -110,3 +110,20 @@ function teardown() {
 
 	crictl rm -f "$ctr_id"
 }
+
+@test "remove paused ctr" {
+	start_crio
+	run crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[ "$status" -eq 0 ]
+	ctr_id="$output"
+
+	out=$(echo -e "GET /pause/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
+	if [[ ! "$out" == *"200 OK"* ]]; then
+		echo "$out"
+		exit 1
+	fi
+
+	run crictl rm -f "$ctr_id"
+	[ "$status" -eq 0 ]
+}
