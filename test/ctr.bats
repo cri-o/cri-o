@@ -502,6 +502,14 @@ function check_oci_annotation() {
 	crictl exec --sync "$ctr_id" /bin/sh -c "[[ -t 1 ]]"
 }
 
+@test "ctr execsync should cap output" {
+	start_crio
+
+	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+
+	[[ $(crictl exec --sync "$ctr_id" /bin/sh -c "for i in $(seq 1 50000000); do echo -n 'a'; done" | wc -c) -le 16777216 ]]
+}
+
 @test "ctr device add" {
 	# In an user namespace we can only bind mount devices from the host, not mknod
 	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481
