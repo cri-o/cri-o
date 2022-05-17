@@ -179,7 +179,12 @@ func isContextError(err error) bool {
 func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType string) (string, error) {
 	// In 99% of cases, we shouldn't hit this timeout. Instead, the context should be cancelled.
 	// This is really to catch an unlikely case where the kubelet doesn't cancel the context.
-	const resourceCreationWaitTime = time.Minute * 6
+	// Adding on top of the specified deadline ensures this deadline will be respected, regardless of
+	// how Kubelet's runtime-request-timeout changes.
+	resourceCreationWaitTime := time.Minute * 4
+	if initialDeadline, ok := ctx.Deadline(); ok {
+		resourceCreationWaitTime += time.Until(initialDeadline)
+	}
 
 	if cachedID := s.resourceStore.Get(name); cachedID != "" {
 		log.Infof(ctx, "Found %s %s with ID %s in resource cache; using it", resourceType, name, cachedID)
