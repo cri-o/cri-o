@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: build
           path: bin
@@ -100,7 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: build
           path: bin
@@ -159,19 +159,19 @@ jobs:
       - build-static-arm64
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: build-static-amd64
           path: bin/static-amd64
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: build-static-arm64
           path: bin/static-arm64
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: docs
           path: docs
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: config
       - run: chmod -R +x bin
@@ -186,7 +186,7 @@ jobs:
     needs: bundles
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: bundle
           path: build/bundle
@@ -200,7 +200,7 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: bundle
           path: build/bundle
@@ -219,7 +219,7 @@ jobs:
     needs: bundle-test
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: bundle
           path: build/bundle
@@ -258,7 +258,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: unit
           path: build
