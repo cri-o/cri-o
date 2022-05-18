@@ -13,21 +13,31 @@ function teardown() {
 }
 
 function wait_until_exit() {
-    ctr_id=$1
-    # Wait for container to exit
-    attempt=0
-    while [ $attempt -le 100 ]; do
-        attempt=$((attempt + 1))
-        run crictl inspect -o table "$ctr_id"
-        echo "$output"
-        [ "$status" -eq 0 ]
-        if [[ "$output" == *"State: CONTAINER_EXITED"* ]]; then
-            [[ "$output" == *"Exit Code: ${EXPECTED_EXIT_STATUS:-0}"* ]]
-            return 0
-        fi
-        sleep 1
-    done
-    return 1
+	ctr_id=$1
+	# Wait for container to exit
+	attempt=0
+	while [ $attempt -le 100 ]; do
+		attempt=$((attempt + 1))
+		output=$(crictl inspect -o table "$ctr_id")
+		if [[ "$output" == *"State: CONTAINER_EXITED"* ]]; then
+			[[ "$output" == *"Exit Code: ${EXPECTED_EXIT_STATUS:-0}"* ]]
+			return 0
+		fi
+		sleep 1
+	done
+	return 1
+}
+
+# list_all_children lists children of a process recursively
+function list_all_children {
+	children=$(pgrep -P "$1")
+	for i in ${children}; do
+		if [ -z "$i" ]; then
+			exit
+		fi
+		echo -n "$i "
+		list_all_children "$i"
+	done
 }
 
 @test "ctr not found correct error message" {
@@ -1568,4 +1578,37 @@ function wait_until_exit() {
 	run crictl rmp "$pod_id"
 	echo "$output"
 	[ "$status" -eq 0 ]
+}
+
+@test "ctr with node level pid namespace should not leak children" {
+	if [[ "$RUNTIME_TYPE" == "vm" ]]; then
+		skip "not applicable to vm runtime type"
+	fi
+	newsandbox="$TESTDIR/sandbox.json"
+	start_crio
+
+	jq '	  .linux.security_context.namespace_options.pid = 2' \
+		"$TESTDATA"/sandbox_config.json > "$newsandbox"
+
+	jq '	  .image.image = "quay.io/crio/redis:alpine"
+		| .linux.security_context.namespace_options.pid = 2
+		| .command = ["/bin/sh", "-c", "sleep 1m& exec sleep 2m"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$newsandbox")
+	processes=$(list_all_children "$(pidof conmon)")
+
+	pid=$(runtime list -f json | jq .[].pid)
+	[[ "$pid" -gt 0 ]]
+	kill -9 "$pid"
+
+	EXPECTED_EXIT_STATUS=137 wait_until_exit "$ctr_id"
+
+	# make sure crio syncs state
+	for process in ${processes}; do
+		# Ignore Z state (zombies) as the process has just been killed and reparented. Systemd will get to it.
+		# `pgrep` doesn't have a good mechanism for ignoring Z state, but including all others, so:
+		# shellcheck disable=SC2009
+		! ps -p "$process" o pid=,stat= | grep -v 'Z'
+	done
 }
