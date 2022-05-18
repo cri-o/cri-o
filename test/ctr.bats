@@ -27,6 +27,18 @@ function wait_until_exit() {
 	return 1
 }
 
+# list_all_children lists children of a process recursively
+function list_all_children {
+	children=$(pgrep -P "$1")
+	for i in ${children}; do
+		if [ -z "$i" ]; then
+			exit
+		fi
+		echo -n "$i "
+		list_all_children "$i"
+	done
+}
+
 function check_oci_annotation() {
 	# check for OCI annotation in container's config.json
 	local ctr_id="$1"
@@ -961,4 +973,40 @@ function check_oci_annotation() {
 		sleep .1
 	done
 	crictl stop "$ctr_id"
+}
+
+@test "ctr with node level pid namespace should not leak children" {
+	if [[ "$RUNTIME_TYPE" == "vm" ]]; then
+		skip "not applicable to vm runtime type"
+	fi
+	if [[ -n "$TEST_USERNS" ]]; then
+		skip "test fails in a user namespace"
+	fi
+	newsandbox="$TESTDIR/sandbox.json"
+	start_crio
+
+	jq '	  .linux.security_context.namespace_options.pid = 2' \
+		"$TESTDATA"/sandbox_config.json > "$newsandbox"
+
+	jq '	  .image.image = "quay.io/crio/redis:alpine"
+		| .linux.security_context.namespace_options.pid = 2
+		| .command = ["/bin/sh", "-c", "sleep 1m& exec sleep 2m"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$newsandbox")
+	processes=$(list_all_children "$(pidof conmon)")
+
+	pid=$(runtime list -f json | jq .[].pid)
+	[[ "$pid" -gt 0 ]]
+	kill -9 "$pid"
+
+	EXPECTED_EXIT_STATUS=137 wait_until_exit "$ctr_id"
+
+	# make sure crio syncs state
+	for process in ${processes}; do
+		# Ignore Z state (zombies) as the process has just been killed and reparented. Systemd will get to it.
+		# `pgrep` doesn't have a good mechanism for ignoring Z state, but including all others, so:
+		# shellcheck disable=SC2009
+		! ps -p "$process" o pid=,stat= | grep -v 'Z'
+	done
 }
