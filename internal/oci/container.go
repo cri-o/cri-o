@@ -609,3 +609,16 @@ func (c *Container) RemoveManagedPIDNamespace() error {
 	}
 	return errors.Wrapf(c.pidns.Remove(), "remove PID namespace for container %s", c.ID())
 }
+
+// nodeLevelPIDNamespace searches through the container spec to see if there is
+// a PID namespace specified. If not, it returns `true` (because the runtime spec
+// defines a node level namespace as being absent from the Namespaces list)
+func (c *Container) nodeLevelPIDNamespace() bool {
+	for i := range c.spec.Linux.Namespaces {
+		// If it's specified in the namespace list, then it is something other than Node level
+		if c.spec.Linux.Namespaces[i].Type == specs.PIDNamespace {
+			return false
+		}
+	}
+	return true
+}
