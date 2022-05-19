@@ -946,7 +946,6 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	// release the lock before waiting
 	c.opLock.Unlock()
 	exitFilePath := c.exitFilePath()
-	var fi os.FileInfo
 	err = kwait.ExponentialBackoff(
 		kwait.Backoff{
 			Duration: 500 * time.Millisecond,
@@ -954,8 +953,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			Steps:    6,
 		},
 		func() (bool, error) {
-			var err error
-			fi, err = os.Stat(exitFilePath)
+			_, err := os.Stat(exitFilePath)
 			if err != nil {
 				// wait longer
 				return false, nil
@@ -975,20 +973,10 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	if err != nil {
 		log.Warnf(ctx, "Failed to find container exit file for %v: %v", c.ID(), err)
 	} else {
-		c.state.Finished, err = getFinishedTime(fi)
-		if err != nil {
-			return fmt.Errorf("failed to get finished time: %v", err)
+		if err := updateContainerStatusFromExitFile(c); err != nil {
+			return err
 		}
-		statusCodeStr, err := ioutil.ReadFile(exitFilePath)
-		if err != nil {
-			return errors.Wrap(err, "failed to read exit file: %v")
-		}
-		statusCode, err := strconv.ParseInt(string(statusCodeStr), 10, 32)
-		if err != nil {
-			return fmt.Errorf("status code conversion failed: %v", err)
-		}
-		c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
-		log.Debugf(ctx, "Found exit code for %s: %d", c.ID(), statusCode)
+		log.Debugf(ctx, "Found exit code for %s: %d", c.ID(), *c.state.ExitCode)
 	}
 
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
