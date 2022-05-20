@@ -32,10 +32,10 @@ Policy](https://kubernetes.io/releases/version-skew-policy/).
 | Version - Branch            | Kubernetes branch/version       | Maintenance status |
 | --------------------------- | ------------------------------- | ------------------ |
 | CRI-O HEAD - main           | Kubernetes master branch        | ✓                  |
+| CRI-O 1.24.x - release-1.24 | Kubernetes 1.24 branch, v1.24.x | =                  |
 | CRI-O 1.23.x - release-1.23 | Kubernetes 1.23 branch, v1.23.x | =                  |
 | CRI-O 1.22.x - release-1.22 | Kubernetes 1.22 branch, v1.22.x | =                  |
 | CRI-O 1.21.x - release-1.21 | Kubernetes 1.21 branch, v1.21.x | =                  |
-| CRI-O 1.20.x - release-1.20 | Kubernetes 1.20 branch, v1.20.x | =                  |
 
 Key:
 
