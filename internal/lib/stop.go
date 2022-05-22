@@ -10,11 +10,12 @@ import (
 
 // ContainerStop stops a running container with a grace period (i.e., timeout).
 func (c *ContainerServer) StopContainer(ctx context.Context, ctr *oci.Container, timeout int64) error {
-	if ctr.State().Status == oci.ContainerStatePaused {
-		if err := c.Runtime().UnpauseContainer(ctx, ctr); err != nil {
+	cStatus := ctr.StateNoLock()
+	if cStatus.Status == oci.ContainerStatePaused {
+		if err := c.runtime.UnpauseContainer(ctx, ctr); err != nil {
 			return errors.Wrapf(err, "failed to stop container %s", ctr.ID())
 		}
-		if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
+		if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
 			return errors.Wrapf(err, "failed to update container status %s", ctr.ID())
 		}
 	}
