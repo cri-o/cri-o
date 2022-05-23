@@ -469,6 +469,9 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	if r.config.ConmonSupportsSync() {
 		args = append(args, "--sync")
 	}
+	if r.config.ConmonSupportsLogGlobalSizeMax() {
+		args = append(args, "--log-global-size-max", strconv.Itoa(maxExecSyncSize))
+	}
 	if c.terminal {
 		args = append(args, "-t")
 	}

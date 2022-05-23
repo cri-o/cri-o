@@ -10,11 +10,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var versionSupportsSync = semver.MustParse("2.0.19")
+var (
+	versionSupportsSync             = semver.MustParse("2.0.19")
+	versionSupportsLogGlobalSizeMax = semver.MustParse("2.1.2")
+)
 
 type ConmonManager struct {
-	conmonVersion *semver.Version
-	supportsSync  bool
+	conmonVersion            *semver.Version
+	supportsSync             bool
+	supportsLogGlobalSizeMax bool
 }
 
 // this function is heavily based on github.com/containers/common#probeConmon
@@ -37,6 +41,7 @@ func New(conmonPath string) (*ConmonManager, error) {
 	}
 
 	c.initializeSupportsSync()
+	c.initializeSupportsLogGlobalSizeMax()
 	return c, nil
 }
 
@@ -47,6 +52,20 @@ func (c *ConmonManager) parseConmonVersion(versionString string) error {
 	}
 	c.conmonVersion = parsedVersion
 	return nil
+}
+
+func (c *ConmonManager) initializeSupportsLogGlobalSizeMax() {
+	c.supportsLogGlobalSizeMax = c.conmonVersion.GTE(versionSupportsLogGlobalSizeMax)
+	verb := "does not"
+	if c.supportsLogGlobalSizeMax {
+		verb = "does"
+	}
+
+	logrus.Infof("Conmon %s support the --log-global-size-max option", verb)
+}
+
+func (c *ConmonManager) SupportsLogGlobalSizeMax() bool {
+	return c.supportsLogGlobalSizeMax
 }
 
 func (c *ConmonManager) initializeSupportsSync() {
