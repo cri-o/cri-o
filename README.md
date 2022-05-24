@@ -203,6 +203,8 @@ The following API entry points are currently supported:
 | `/info`           | `application/json` | General information about the runtime, like `storage_driver` and `storage_root`.   |
 | `/containers/:id` | `application/json` | Dedicated container information, like `name`, `pid` and `image`.                   |
 | `/config`         | `application/toml` | The complete TOML configuration (defaults to `/etc/crio/crio.conf`) used by CRI-O. |
+| `/pause/:id`      | `application/json` | Pause a running container.                                                         |
+| `/unpause/:id`    | `application/json` | Unpause a paused container.                                                        |
 
 The tool `crio-status` can be used to access the API with a dedicated command
 line tool. It supports all API endpoints via the dedicated subcommands `config`,
