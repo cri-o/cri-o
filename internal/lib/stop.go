@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+
 	"github.com/cri-o/cri-o/internal/log"
 
 	"github.com/cri-o/cri-o/internal/oci"
