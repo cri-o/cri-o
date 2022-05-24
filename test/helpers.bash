@@ -194,7 +194,7 @@ function crio() {
 
 # Run crictl using the binary specified by $CRICTL_BINARY.
 function crictl() {
-    "$CRICTL_BINARY" --config "$CRICTL_CONFIG_FILE" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" "$@"
+    "$CRICTL_BINARY" -t 10m --config "$CRICTL_CONFIG_FILE" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" "$@"
 }
 
 # Run the runtime binary with the specified RUNTIME_ROOT

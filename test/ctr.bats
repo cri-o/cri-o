@@ -481,9 +481,9 @@ function check_oci_annotation() {
 	output=$(crictl exec --sync "$ctr_id" echo HELLO)
 	[ "$output" = "HELLO" ]
 
-	run crictl exec --sync --timeout 10 "$ctr_id" sleep 20
+	run crictl -D exec --sync --timeout 3 "$ctr_id" sleep 5
 	echo "$output"
-	[[ "$output" == *"command timed out"* ]]
+	[[ "$output" == *"command "*" timed out"* ]]
 	[ "$status" -ne 0 ]
 }
 
