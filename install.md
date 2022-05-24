@@ -113,6 +113,7 @@ To install on the following operating systems, set the environment variable $OS 
 | Debian Testing   | `Debian_Testing`  |
 | Debian 10        | `Debian_10`       |
 | Raspberry Pi OS  | `Raspbian_10`     |
+| Ubuntu 22.04     | `xUbuntu_22.04`   |
 | Ubuntu 20.04     | `xUbuntu_20.04`   |
 | Ubuntu 19.10     | `xUbuntu_19.10`   |
 | Ubuntu 19.04     | `xUbuntu_19.04`   |
