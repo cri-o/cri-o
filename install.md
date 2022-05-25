@@ -83,6 +83,13 @@ sudo dnf install cri-o
 
 For Fedora, we only support setting minor versions. i.e: `VERSION=1.18`, and do not support pinning patch versions: `VERSION=1.18.3`
 
+Note: as of 1.24.0, the `cri-o` package no longer depends on `containernetworking-plugins` package.
+Removing this dependency allows users to install their own CNI plugins without having to remove files first.
+If users want to use the previously provided CNI plugins, they should also run:
+```shell
+sudo dnf install containernetworking-plugins
+```
+
 #### Other yum based operating systems
 
 To install on the following operating systems, set the environment variable $OS as the appropriate field in the following table:
@@ -99,6 +106,13 @@ And then run the following as root:
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
 yum install cri-o
+```
+
+Note: as of 1.24.0, the `cri-o` package no longer depends on `containernetworking-plugins` package.
+Removing this dependency allows users to install their own CNI plugins without having to remove files first.
+If users want to use the previously provided CNI plugins, they should also run:
+```shell
+yum install containernetworking-plugins
 ```
 
 #### APT based operating systems
@@ -152,6 +166,13 @@ runtime_root = "/run/runc"
 ```
 
 to `/etc/crio/crio.conf.d/`
+
+Note: as of 1.24.0, the `cri-o` package no longer depends on `containernetworking-plugins` package.
+Removing this dependency allows users to install their own CNI plugins without having to remove files first.
+If users want to use the previously provided CNI plugins, they should also run:
+```shell
+apt-get install containernetworking-plugins
+```
 
 ## Build and install CRI-O from source
 
