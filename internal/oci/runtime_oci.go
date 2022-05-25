@@ -946,7 +946,6 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	// release the lock before waiting
 	c.opLock.Unlock()
 	exitFilePath := c.exitFilePath()
-	var fi os.FileInfo
 	err = kwait.ExponentialBackoff(
 		kwait.Backoff{
 			Duration: 500 * time.Millisecond,
@@ -954,8 +953,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			Steps:    6,
 		},
 		func() (bool, error) {
-			var err error
-			fi, err = os.Stat(exitFilePath)
+			_, err := os.Stat(exitFilePath)
 			if err != nil {
 				// wait longer
 				return false, nil
@@ -975,20 +973,10 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	if err != nil {
 		log.Warnf(ctx, "Failed to find container exit file for %v: %v", c.ID(), err)
 	} else {
-		c.state.Finished, err = getFinishedTime(fi)
-		if err != nil {
-			return fmt.Errorf("failed to get finished time: %v", err)
+		if err := updateContainerStatusFromExitFile(c); err != nil {
+			return err
 		}
-		statusCodeStr, err := ioutil.ReadFile(exitFilePath)
-		if err != nil {
-			return errors.Wrap(err, "failed to read exit file: %v")
-		}
-		statusCode, err := strconv.ParseInt(string(statusCodeStr), 10, 32)
-		if err != nil {
-			return fmt.Errorf("status code conversion failed: %v", err)
-		}
-		c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
-		log.Debugf(ctx, "Found exit code for %s: %d", c.ID(), statusCode)
+		log.Debugf(ctx, "Found exit code for %s: %d", c.ID(), *c.state.ExitCode)
 	}
 
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
@@ -1001,7 +989,12 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		// Collect metric by container name
 		metrics.Instance().MetricContainersOOMCountTotalInc(c.Name())
 	}
-
+	// If this container had a node level PID namespace, then any children processes will be leaked to init.
+	// Eventually, the processes will get cleaned up when the pod cgroup is cleaned by the kubelet,
+	// but this situation is atypical and should be avoided.
+	if c.nodeLevelPIDNamespace() {
+		return r.signalContainer(c, syscall.SIGKILL, true)
+	}
 	return nil
 }
 
@@ -1051,8 +1044,21 @@ func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig sysc
 		return errors.Errorf("unable to find signal %s", sig.String())
 	}
 
+	return r.signalContainer(c, sig, false)
+}
+
+func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool) error {
+	args := []string{
+		rootFlag,
+		r.root,
+		"kill",
+	}
+	if all {
+		args = append(args, "-a")
+	}
+	args = append(args, c.ID(), strconv.Itoa(int(sig)))
 	_, err := utils.ExecCmd(
-		r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), strconv.Itoa(int(sig)),
+		r.handler.RuntimePath, args...,
 	)
 	return err
 }
