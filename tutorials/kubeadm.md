@@ -16,53 +16,10 @@ For example, to use the script below with the **bridge** plugin, run `export CID
 
 A list of CNI plugins can be found in the [Cluster Networking](https://kubernetes.io/docs/concepts/cluster-administration/networking/) kubernetes documentation. Each plugin will define it's own default CIDR.
 
-## Configuring Kubelet
-
-To configure the Kubelet, you can use the [yq](https://github.com/mikefarah/yq) tool, as is shown below.
-You can also manually configure a kubeadm configuration.
-
-Run the following script, passing the location you'd like the kubeadm configuration to be as the first argument:
-
-```bash
-#!/bin/bash                                                                                                                                                                                                                                   
-                                                                                                                                                                                                                                              
-set -euo pipefail                                                                                                                                                                                                                             
-                                                                                                                                                                                                                                              
-KUBEADM_CONFIG="${1-/tmp/kubeadm.yaml}"                                                                                                                                                                                                              
-echo "Printing to $KUBEADM_CONFIG"                                                                                                                                                                                                                   
-                                                                                                                                                                                                                                              
-if [ -d "$KUBEADM_CONFIG" ]; then                                                                                                                                                                                                                    
-    echo "$KUBEADM_CONFIG is a directory!"                                                                                                                                                                                                           
-    exit 1                                                                                                                                                                                                                                    
-fi                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                              
-if [ ! -d $(dirname "$KUBEADM_CONFIG") ]; then                                                                                                                                                                                                       
-    echo "please create directory $(dirname $KUBEADM_CONFIG)"                                                                                                                                                                                        
-    exit 1                                                                                                                                                                                                                                    
-fi                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                              
-if [ ! $(which yq) ]; then                                                                                                                                                                                                                    
-    echo "please install yq"                                                                                                                                                                                                                  
-    exit 1                                                                                                                                                                                                                                    
-fi                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                              
-if [ ! $(which kubeadm) ]; then                                                                                                                                                                                                               
-    echo "please install kubeadm"                                                                                                                                                                                                             
-    exit 1                                                                                                                                                                                                                                    
-fi                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                              
-kubeadm config print init-defaults --component-configs=KubeletConfiguration > "$KUBEADM_CONFIG"                                                                                                                                                      
-yq -i eval 'select(.nodeRegistration.criSocket) |= .nodeRegistration.criSocket = "unix:///var/run/crio/crio.sock"' "$KUBEADM_CONFIG"
-```
-
-This will create a kubeadm configuration file that kubeadm will use to configure the Kubelet to be able to communicate with CRI-O.
-
-Note: This file assumes you've set the `cgroup_driver` in your CRI-O configuration as `systemd`, which is the default value.
-
 ## Running kubeadm
 
-Given you've set CIDR, and you've properly created your kubeadm configuration file, all you need to do is start crio (as defined [here](/install.md)), and run:
-`kubeadm init --pod-network-cidr=$CIDR --config=$KUBEADM_CONFIG`
+Given you've set CIDR, and assuming you've set the `cgroup_driver` in your CRI-O configuration as `systemd` (which is the default value), all you need to do is start crio (as defined [here](/install.md)), and run:
+`kubeadm init --pod-network-cidr=$CIDR --cri-socket=unix:///var/run/crio/crio.sock`
 
 ## Running kubeadm in an off line network
 
