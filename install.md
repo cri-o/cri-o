@@ -612,5 +612,4 @@ curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:sta
 
 apt update
 apt install cri-o cri-o-runc
-
 ```
