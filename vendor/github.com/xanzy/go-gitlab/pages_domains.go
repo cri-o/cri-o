@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -61,9 +62,9 @@ func (s *PagesDomainsService) ListPagesDomains(pid interface{}, opt *ListPagesDo
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pages/domains", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/pages/domains", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -82,7 +83,7 @@ func (s *PagesDomainsService) ListPagesDomains(pid interface{}, opt *ListPagesDo
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pages_domains.html#list-all-pages-domains
 func (s *PagesDomainsService) ListAllPagesDomains(options ...RequestOptionFunc) ([]*PagesDomain, *Response, error) {
-	req, err := s.client.NewRequest("GET", "pages/domains", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "pages/domains", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -105,9 +106,9 @@ func (s *PagesDomainsService) GetPagesDomain(pid interface{}, domain string, opt
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pages/domains/%s", pathEscape(project), domain)
+	u := fmt.Sprintf("projects/%s/pages/domains/%s", PathEscape(project), domain)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,7 +129,7 @@ func (s *PagesDomainsService) GetPagesDomain(pid interface{}, domain string, opt
 type CreatePagesDomainOptions struct {
 	Domain         *string `url:"domain,omitempty" json:"domain,omitempty"`
 	AutoSslEnabled *bool   `url:"auto_ssl_enabled,omitempty" json:"auto_ssl_enabled,omitempty"`
-	Certificate    *string `url:"certifiate,omitempty" json:"certifiate,omitempty"`
+	Certificate    *string `url:"certificate,omitempty" json:"certificate,omitempty"`
 	Key            *string `url:"key,omitempty" json:"key,omitempty"`
 }
 
@@ -141,9 +142,9 @@ func (s *PagesDomainsService) CreatePagesDomain(pid interface{}, opt *CreatePage
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pages/domains", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/pages/domains", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -163,7 +164,7 @@ func (s *PagesDomainsService) CreatePagesDomain(pid interface{}, opt *CreatePage
 // https://docs.gitlab.com/ce/api/pages_domains.html#update-pages-domain
 type UpdatePagesDomainOptions struct {
 	AutoSslEnabled *bool   `url:"auto_ssl_enabled,omitempty" json:"auto_ssl_enabled,omitempty"`
-	Certificate    *string `url:"certifiate,omitempty" json:"certifiate,omitempty"`
+	Certificate    *string `url:"certificate,omitempty" json:"certificate,omitempty"`
 	Key            *string `url:"key,omitempty" json:"key,omitempty"`
 }
 
@@ -176,9 +177,9 @@ func (s *PagesDomainsService) UpdatePagesDomain(pid interface{}, domain string, 
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pages/domains/%s", pathEscape(project), domain)
+	u := fmt.Sprintf("projects/%s/pages/domains/%s", PathEscape(project), domain)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -201,9 +202,9 @@ func (s *PagesDomainsService) DeletePagesDomain(pid interface{}, domain string, 
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pages/domains/%s", pathEscape(project), domain)
+	u := fmt.Sprintf("projects/%s/pages/domains/%s", PathEscape(project), domain)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

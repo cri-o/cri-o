@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -33,27 +34,31 @@ type RunnersService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/runners.html
 type Runner struct {
-	ID          int    `json:"id"`
-	Description string `json:"description"`
-	Active      bool   `json:"active"`
-	IsShared    bool   `json:"is_shared"`
-	IPAddress   string `json:"ip_address"`
-	Name        string `json:"name"`
-	Online      bool   `json:"online"`
-	Status      string `json:"status"`
-	Token       string `json:"token"`
+	ID             int        `json:"id"`
+	Description    string     `json:"description"`
+	Active         bool       `json:"active"`
+	Paused         bool       `json:"paused"`
+	IsShared       bool       `json:"is_shared"`
+	IPAddress      string     `json:"ip_address"`
+	RunnerType     string     `json:"runner_type"`
+	Name           string     `json:"name"`
+	Online         bool       `json:"online"`
+	Status         string     `json:"status"`
+	Token          string     `json:"token"`
+	TokenExpiresAt *time.Time `json:"token_expires_at"`
 }
 
 // RunnerDetails represents the GitLab CI runner details.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/runners.html
 type RunnerDetails struct {
-	Active       bool       `json:"active"`
+	Paused       bool       `json:"paused"`
 	Architecture string     `json:"architecture"`
 	Description  string     `json:"description"`
 	ID           int        `json:"id"`
 	IPAddress    string     `json:"ip_address"`
 	IsShared     bool       `json:"is_shared"`
+	RunnerType   string     `json:"runner_type"`
 	ContactedAt  *time.Time `json:"contacted_at"`
 	Name         string     `json:"name"`
 	Online       bool       `json:"online"`
@@ -79,6 +84,9 @@ type RunnerDetails struct {
 		Name   string `json:"name"`
 		WebURL string `json:"web_url"`
 	} `json:"groups"`
+
+	// Deprecated members
+	Active bool `json:"active"`
 }
 
 // ListRunnersOptions represents the available ListRunners() options.
@@ -87,10 +95,13 @@ type RunnerDetails struct {
 // https://docs.gitlab.com/ce/api/runners.html#list-owned-runners
 type ListRunnersOptions struct {
 	ListOptions
-	Scope   *string  `url:"scope,omitempty" json:"scope,omitempty"`
-	Type    *string  `url:"type,omitempty" json:"type,omitempty"`
-	Status  *string  `url:"status,omitempty" json:"status,omitempty"`
-	TagList []string `url:"tag_list,comma,omitempty" json:"tag_list,omitempty"`
+	Type    *string   `url:"type,omitempty" json:"type,omitempty"`
+	Status  *string   `url:"status,omitempty" json:"status,omitempty"`
+	Paused  *bool     `url:"paused,omitempty" json:"paused,omitempty"`
+	TagList *[]string `url:"tag_list,comma,omitempty" json:"tag_list,omitempty"`
+
+	// Deprecated members
+	Scope *string `url:"scope,omitempty" json:"scope,omitempty"`
 }
 
 // ListRunners gets a list of runners accessible by the authenticated user.
@@ -98,7 +109,7 @@ type ListRunnersOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/runners.html#list-owned-runners
 func (s *RunnersService) ListRunners(opt *ListRunnersOptions, options ...RequestOptionFunc) ([]*Runner, *Response, error) {
-	req, err := s.client.NewRequest("GET", "runners", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "runners", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -118,7 +129,7 @@ func (s *RunnersService) ListRunners(opt *ListRunnersOptions, options ...Request
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/runners.html#list-all-runners
 func (s *RunnersService) ListAllRunners(opt *ListRunnersOptions, options ...RequestOptionFunc) ([]*Runner, *Response, error) {
-	req, err := s.client.NewRequest("GET", "runners/all", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "runners/all", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -143,12 +154,12 @@ func (s *RunnersService) GetRunnerDetails(rid interface{}, options ...RequestOpt
 	}
 	u := fmt.Sprintf("runners/%s", runner)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var rs *RunnerDetails
+	rs := new(RunnerDetails)
 	resp, err := s.client.Do(req, &rs)
 	if err != nil {
 		return nil, resp, err
@@ -162,13 +173,16 @@ func (s *RunnersService) GetRunnerDetails(rid interface{}, options ...RequestOpt
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/runners.html#update-runner-39-s-details
 type UpdateRunnerDetailsOptions struct {
-	Description    *string  `url:"description,omitempty" json:"description,omitempty"`
-	Active         *bool    `url:"active,omitempty" json:"active,omitempty"`
-	TagList        []string `url:"tag_list[],omitempty" json:"tag_list,omitempty"`
-	RunUntagged    *bool    `url:"run_untagged,omitempty" json:"run_untagged,omitempty"`
-	Locked         *bool    `url:"locked,omitempty" json:"locked,omitempty"`
-	AccessLevel    *string  `url:"access_level,omitempty" json:"access_level,omitempty"`
-	MaximumTimeout *int     `url:"maximum_timeout,omitempty" json:"maximum_timeout,omitempty"`
+	Description    *string   `url:"description,omitempty" json:"description,omitempty"`
+	Paused         *bool     `url:"paused,omitempty" json:"paused,omitempty"`
+	TagList        *[]string `url:"tag_list[],omitempty" json:"tag_list,omitempty"`
+	RunUntagged    *bool     `url:"run_untagged,omitempty" json:"run_untagged,omitempty"`
+	Locked         *bool     `url:"locked,omitempty" json:"locked,omitempty"`
+	AccessLevel    *string   `url:"access_level,omitempty" json:"access_level,omitempty"`
+	MaximumTimeout *int      `url:"maximum_timeout,omitempty" json:"maximum_timeout,omitempty"`
+
+	// Deprecated members
+	Active *bool `url:"active,omitempty" json:"active,omitempty"`
 }
 
 // UpdateRunnerDetails updates details for a given runner.
@@ -182,12 +196,12 @@ func (s *RunnersService) UpdateRunnerDetails(rid interface{}, opt *UpdateRunnerD
 	}
 	u := fmt.Sprintf("runners/%s", runner)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var rs *RunnerDetails
+	rs := new(RunnerDetails)
 	resp, err := s.client.Do(req, &rs)
 	if err != nil {
 		return nil, resp, err
@@ -207,7 +221,7 @@ func (s *RunnersService) RemoveRunner(rid interface{}, options ...RequestOptionF
 	}
 	u := fmt.Sprintf("runners/%s", runner)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +252,7 @@ func (s *RunnersService) ListRunnerJobs(rid interface{}, opt *ListRunnerJobsOpti
 	}
 	u := fmt.Sprintf("runners/%s/jobs", runner)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -268,9 +282,9 @@ func (s *RunnersService) ListProjectRunners(pid interface{}, opt *ListProjectRun
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/runners", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/runners", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -302,14 +316,14 @@ func (s *RunnersService) EnableProjectRunner(pid interface{}, opt *EnableProject
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/runners", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/runners", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var r *Runner
+	r := new(Runner)
 	resp, err := s.client.Do(req, &r)
 	if err != nil {
 		return nil, resp, err
@@ -327,9 +341,9 @@ func (s *RunnersService) DisableProjectRunner(pid interface{}, runner int, optio
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/runners/%d", pathEscape(project), runner)
+	u := fmt.Sprintf("projects/%s/runners/%d", PathEscape(project), runner)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -343,9 +357,9 @@ func (s *RunnersService) DisableProjectRunner(pid interface{}, runner int, optio
 // https://docs.gitlab.com/ee/api/runners.html#list-groups-runners
 type ListGroupsRunnersOptions struct {
 	ListOptions
-	Type    *string  `url:"type,omitempty" json:"type,omitempty"`
-	Status  *string  `url:"status,omitempty" json:"status,omitempty"`
-	TagList []string `url:"tag_list,comma,omitempty" json:"tag_list,omitempty"`
+	Type    *string   `url:"type,omitempty" json:"type,omitempty"`
+	Status  *string   `url:"status,omitempty" json:"status,omitempty"`
+	TagList *[]string `url:"tag_list,comma,omitempty" json:"tag_list,omitempty"`
 }
 
 // ListGroupsRunners lists all runners (specific and shared) available in the
@@ -359,9 +373,9 @@ func (s *RunnersService) ListGroupsRunners(gid interface{}, opt *ListGroupsRunne
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/runners", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/runners", PathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -381,14 +395,17 @@ func (s *RunnersService) ListGroupsRunners(gid interface{}, opt *ListGroupsRunne
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/runners.html#register-a-new-runner
 type RegisterNewRunnerOptions struct {
-	Token          *string                       `url:"token" json:"token"`
-	Description    *string                       `url:"description,omitempty" json:"description,omitempty"`
-	Info           *RegisterNewRunnerInfoOptions `url:"info,omitempty" json:"info,omitempty"`
-	Active         *bool                         `url:"active,omitempty" json:"active,omitempty"`
-	Locked         *bool                         `url:"locked,omitempty" json:"locked,omitempty"`
-	RunUntagged    *bool                         `url:"run_untagged,omitempty" json:"run_untagged,omitempty"`
-	TagList        []string                      `url:"tag_list[],omitempty" json:"tag_list,omitempty"`
-	MaximumTimeout *int                          `url:"maximum_timeout,omitempty" json:"maximum_timeout,omitempty"`
+	Token           *string                       `url:"token" json:"token"`
+	Description     *string                       `url:"description,omitempty" json:"description,omitempty"`
+	Info            *RegisterNewRunnerInfoOptions `url:"info,omitempty" json:"info,omitempty"`
+	Active          *bool                         `url:"active,omitempty" json:"active,omitempty"`
+	Paused          *bool                         `url:"paused,omitempty" json:"paused,omitempty"`
+	Locked          *bool                         `url:"locked,omitempty" json:"locked,omitempty"`
+	RunUntagged     *bool                         `url:"run_untagged,omitempty" json:"run_untagged,omitempty"`
+	TagList         *[]string                     `url:"tag_list[],omitempty" json:"tag_list,omitempty"`
+	AccessLevel     *string                       `url:"access_level,omitempty" json:"access_level,omitempty"`
+	MaximumTimeout  *int                          `url:"maximum_timeout,omitempty" json:"maximum_timeout,omitempty"`
+	MaintenanceNote *string                       `url:"maintenance_note,omitempty" json:"maintenance_note,omitempty"`
 }
 
 // RegisterNewRunnerInfoOptions represents the info hashmap parameter in
@@ -409,12 +426,12 @@ type RegisterNewRunnerInfoOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/runners.html#register-a-new-runner
 func (s *RunnersService) RegisterNewRunner(opt *RegisterNewRunnerOptions, options ...RequestOptionFunc) (*Runner, *Response, error) {
-	req, err := s.client.NewRequest("POST", "runners", opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, "runners", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var r *Runner
+	r := new(Runner)
 	resp, err := s.client.Do(req, &r)
 	if err != nil {
 		return nil, resp, err
@@ -437,7 +454,7 @@ type DeleteRegisteredRunnerOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/runners.html#delete-a-runner-by-authentication-token
 func (s *RunnersService) DeleteRegisteredRunner(opt *DeleteRegisteredRunnerOptions, options ...RequestOptionFunc) (*Response, error) {
-	req, err := s.client.NewRequest("DELETE", "runners", opt, options)
+	req, err := s.client.NewRequest(http.MethodDelete, "runners", opt, options)
 	if err != nil {
 		return nil, err
 	}
@@ -445,12 +462,12 @@ func (s *RunnersService) DeleteRegisteredRunner(opt *DeleteRegisteredRunnerOptio
 	return s.client.Do(req, nil)
 }
 
-// DeleteRegisteredRunnerByID deletes a Runner by ID.
+// DeleteRegisteredRunnerByID deletes a runner by ID.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/runners.html#delete-a-runner-by-id
 func (s *RunnersService) DeleteRegisteredRunnerByID(rid int, options ...RequestOptionFunc) (*Response, error) {
-	req, err := s.client.NewRequest("DELETE", fmt.Sprintf("runners/%d", rid), nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, fmt.Sprintf("runners/%d", rid), nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -467,15 +484,114 @@ type VerifyRegisteredRunnerOptions struct {
 	Token *string `url:"token" json:"token"`
 }
 
-// VerifyRegisteredRunner registers a new Runner for the instance.
+// VerifyRegisteredRunner registers a new runner for the instance.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/runners.html#verify-authentication-for-a-registered-runner
 func (s *RunnersService) VerifyRegisteredRunner(opt *VerifyRegisteredRunnerOptions, options ...RequestOptionFunc) (*Response, error) {
-	req, err := s.client.NewRequest("POST", "runners/verify", opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, "runners/verify", opt, options)
 	if err != nil {
 		return nil, err
 	}
 
 	return s.client.Do(req, nil)
+}
+
+type RunnerRegistrationToken struct {
+	Token          *string    `url:"token" json:"token"`
+	TokenExpiresAt *time.Time `url:"token_expires_at" json:"token_expires_at"`
+}
+
+// ResetInstanceRunnerRegistrationToken resets the instance runner registration
+// token.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/runners.html#reset-instances-runner-registration-token
+func (s *RunnersService) ResetInstanceRunnerRegistrationToken(options ...RequestOptionFunc) (*RunnerRegistrationToken, *Response, error) {
+	req, err := s.client.NewRequest(http.MethodPost, "runners/reset_registration_token", nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r := new(RunnerRegistrationToken)
+	resp, err := s.client.Do(req, &r)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return r, resp, err
+}
+
+// ResetGroupRunnerRegistrationToken resets a group's runner registration token.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/runners.html#reset-groups-runner-registration-token
+func (s *RunnersService) ResetGroupRunnerRegistrationToken(gid interface{}, options ...RequestOptionFunc) (*RunnerRegistrationToken, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/runners/reset_registration_token", PathEscape(group))
+
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r := new(RunnerRegistrationToken)
+	resp, err := s.client.Do(req, &r)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return r, resp, err
+}
+
+// ResetGroupRunnerRegistrationToken resets a projects's runner registration token.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/runners.html#reset-projects-runner-registration-token
+func (s *RunnersService) ResetProjectRunnerRegistrationToken(pid interface{}, options ...RequestOptionFunc) (*RunnerRegistrationToken, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/runners/reset_registration_token", PathEscape(project))
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r := new(RunnerRegistrationToken)
+	resp, err := s.client.Do(req, &r)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return r, resp, err
+}
+
+type RunnerAuthenticationToken struct {
+	Token          *string    `url:"token" json:"token"`
+	TokenExpiresAt *time.Time `url:"token_expires_at" json:"token_expires_at"`
+}
+
+// ResetRunnerAuthenticationToken resets a runner's authentication token.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/runners.html#reset-runners-authentication-token
+func (s *RunnersService) ResetRunnerAuthenticationToken(rid int, options ...RequestOptionFunc) (*RunnerAuthenticationToken, *Response, error) {
+	u := fmt.Sprintf("runners/%d/reset_authentication_token", rid)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r := new(RunnerAuthenticationToken)
+	resp, err := s.client.Do(req, &r)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return r, resp, err
 }

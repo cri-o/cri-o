@@ -18,6 +18,7 @@ package command
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -26,7 +27,6 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -163,7 +163,7 @@ func (c *Command) AddOutputWriter(writer io.Writer) *Command {
 func (c *Command) Filter(regex, replaceAll string) (*Command, error) {
 	filterRegex, err := regexp.Compile(regex)
 	if err != nil {
-		return nil, errors.Wrap(err, "compile regular expression")
+		return nil, fmt.Errorf("compile regular expression: %w", err)
 	}
 	c.filter = &filter{
 		regex:      filterRegex,
@@ -187,7 +187,7 @@ func (c *Command) RunSuccessOutput() (output *Stream, err error) {
 		return nil, err
 	}
 	if !res.Success() {
-		return nil, errors.Errorf("command %v did not succeed: %v", c.String(), res.Error())
+		return nil, fmt.Errorf("command %v did not succeed: %v", c.String(), res.Error())
 	}
 	return res.Stream, nil
 }
@@ -233,7 +233,7 @@ func (c *Command) RunSilentSuccessOutput() (output *Stream, err error) {
 		return nil, err
 	}
 	if !res.Success() {
-		return nil, errors.Errorf("command %v did not succeed: %v", c.String(), res.Error())
+		return nil, fmt.Errorf("command %v did not succeed: %w", c.String(), res)
 	}
 	return res.Stream, nil
 }
@@ -348,10 +348,10 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 		if i+1 == len(c.cmds) {
 			err := <-doneChan
 			if err.stdout != nil && strings.Contains(err.stdout.Error(), os.ErrClosed.Error()) {
-				return nil, errors.Wrap(err.stdout, "unable to copy stdout")
+				return nil, fmt.Errorf("unable to copy stdout: %w", err.stdout)
 			}
 			if err.stderr != nil && strings.Contains(err.stderr.Error(), os.ErrClosed.Error()) {
-				return nil, errors.Wrap(err.stderr, "unable to copy stderr")
+				return nil, fmt.Errorf("unable to copy stderr: %w", err.stderr)
 			}
 
 			runErr = cmd.Wait()
@@ -402,10 +402,10 @@ func (s *Stream) Error() string {
 func Execute(cmd string, args ...string) error {
 	status, err := New(cmd, args...).Run()
 	if err != nil {
-		return errors.Wrapf(err, "command %q is not executable", cmd)
+		return fmt.Errorf("command %q is not executable: %w", cmd, err)
 	}
 	if !status.Success() {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"command %q did not exit successful (%d)",
 			cmd, status.ExitCode(),
 		)
@@ -442,7 +442,7 @@ func (c Commands) Run() (*Status, error) {
 	for _, cmd := range c {
 		output, err := cmd.RunSuccessOutput()
 		if err != nil {
-			return nil, errors.Wrapf(err, "running command %q", cmd.String())
+			return nil, fmt.Errorf("running command %q: %w", cmd.String(), err)
 		}
 		res.stdOut += "\n" + output.stdOut
 		res.stdErr += "\n" + output.stdErr

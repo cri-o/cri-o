@@ -19,13 +19,13 @@ package tar
 import (
 	"archive/tar"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,7 +34,7 @@ import (
 func Compress(tarFilePath, tarContentsPath string, excludes ...*regexp.Regexp) error {
 	tarFile, err := os.Create(tarFilePath)
 	if err != nil {
-		return errors.Wrapf(err, "create tar file %q", tarFilePath)
+		return fmt.Errorf("create tar file %q: %w", tarFilePath, err)
 	}
 	defer tarFile.Close()
 
@@ -54,13 +54,13 @@ func Compress(tarFilePath, tarContentsPath string, excludes ...*regexp.Regexp) e
 		if isLink {
 			link, err = os.Readlink(filePath)
 			if err != nil {
-				return errors.Wrapf(err, "read file link of %s", filePath)
+				return fmt.Errorf("read file link of %s: %w", filePath, err)
 			}
 		}
 
 		header, err := tar.FileInfoHeader(fileInfo, link)
 		if err != nil {
-			return errors.Wrapf(err, "create file info header for %q", filePath)
+			return fmt.Errorf("create file info header for %q: %w", filePath, err)
 		}
 
 		if fileInfo.IsDir() || filePath == tarFilePath {
@@ -84,17 +84,17 @@ func Compress(tarFilePath, tarContentsPath string, excludes ...*regexp.Regexp) e
 		header.Linkname = filepath.ToSlash(header.Linkname)
 
 		if err := tarWriter.WriteHeader(header); err != nil {
-			return errors.Wrap(err, "writing tar header")
+			return fmt.Errorf("writing tar header: %w", err)
 		}
 
 		if !isLink {
 			file, err := os.Open(filePath)
 			if err != nil {
-				return errors.Wrapf(err, "open file %q", filePath)
+				return fmt.Errorf("open file %q: %w", filePath, err)
 			}
 
 			if _, err := io.Copy(tarWriter, file); err != nil {
-				return errors.Wrap(err, "writing file to tar writer")
+				return fmt.Errorf("writing file to tar writer: %w", err)
 			}
 
 			file.Close()
@@ -102,7 +102,7 @@ func Compress(tarFilePath, tarContentsPath string, excludes ...*regexp.Regexp) e
 
 		return nil
 	}); err != nil {
-		return errors.Wrapf(err, "walking tree in %q", tarContentsPath)
+		return fmt.Errorf("walking tree in %q: %w", tarContentsPath, err)
 	}
 
 	return nil
@@ -119,7 +119,7 @@ func Extract(tarFilePath, destinationPath string) error {
 				targetDir := filepath.Join(destinationPath, header.Name)
 				logrus.Tracef("Creating directory %s", targetDir)
 				if err := os.Mkdir(targetDir, os.FileMode(0o755)); err != nil {
-					return false, errors.Wrapf(err, "create target directory")
+					return false, fmt.Errorf("create target directory: %w", err)
 				}
 			case tar.TypeSymlink:
 				targetFile := filepath.Join(destinationPath, header.Name)
@@ -129,10 +129,10 @@ func Extract(tarFilePath, destinationPath string) error {
 				if err := os.MkdirAll(
 					filepath.Dir(targetFile), os.FileMode(0o755),
 				); err != nil {
-					return false, errors.Wrapf(err, "create target directory")
+					return false, fmt.Errorf("create target directory: %w", err)
 				}
 				if err := os.Symlink(header.Linkname, targetFile); err != nil {
-					return false, errors.Wrap(err, "create symlink")
+					return false, fmt.Errorf("create symlink: %w", err)
 				}
 			case tar.TypeReg, tar.TypeRegA:
 				targetFile := filepath.Join(destinationPath, header.Name)
@@ -141,21 +141,19 @@ func Extract(tarFilePath, destinationPath string) error {
 				if err := os.MkdirAll(
 					filepath.Dir(targetFile), os.FileMode(0o755),
 				); err != nil {
-					return false, errors.Wrapf(err, "create target directory")
+					return false, fmt.Errorf("create target directory: %w", err)
 				}
 
 				outFile, err := os.Create(targetFile)
 				if err != nil {
-					return false, errors.Wrapf(err, "create target file")
+					return false, fmt.Errorf("create target file: %w", err)
 				}
 				if err := outFile.Chmod(os.FileMode(header.Mode)); err != nil {
-					return false, errors.Wrapf(err, "chmod target file")
+					return false, fmt.Errorf("chmod target file: %w", err)
 				}
 
 				if _, err := io.Copy(outFile, reader); err != nil {
-					return false, errors.Wrapf(
-						err, "copy file contents %s", targetFile,
-					)
+					return false, fmt.Errorf("copy file contents %s: %w", targetFile, err)
 				}
 				outFile.Close()
 
@@ -189,9 +187,7 @@ func ReadFileFromGzippedTar(
 	}
 
 	if res == nil {
-		return nil, errors.Errorf(
-			"unable to find file %q in tarball %q", tarPath, filePath,
-		)
+		return nil, fmt.Errorf("unable to find file %q in tarball %q: %w", tarPath, filePath, err)
 	}
 
 	return res, nil
@@ -205,12 +201,12 @@ func iterateTarball(
 ) error {
 	file, err := os.Open(tarPath)
 	if err != nil {
-		return errors.Wrapf(err, "opening tar file %q", tarPath)
+		return fmt.Errorf("opening tar file %q: %w", tarPath, err)
 	}
 
 	gzipReader, err := gzip.NewReader(file)
 	if err != nil {
-		return errors.Wrapf(err, "creating gzip reader for file %q", tarPath)
+		return fmt.Errorf("creating gzip reader for file %q: %w", tarPath, err)
 	}
 	tarReader := tar.NewReader(gzipReader)
 

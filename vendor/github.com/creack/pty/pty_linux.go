@@ -1,5 +1,5 @@
 //go:build linux
-//+build linux
+// +build linux
 
 package pty
 

@@ -17,6 +17,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
@@ -28,26 +29,15 @@ type WikisService struct {
 	client *Client
 }
 
-// WikiFormat represents the available wiki formats.
-//
-// GitLab API docs: https://docs.gitlab.com/ce/api/wikis.html
-type WikiFormat string
-
-// The available wiki formats.
-const (
-	WikiFormatMarkdown WikiFormat = "markdown"
-	WikiFormatRFoc     WikiFormat = "rdoc"
-	WikiFormatASCIIDoc WikiFormat = "asciidoc"
-)
-
 // Wiki represents a GitLab wiki.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/wikis.html
 type Wiki struct {
-	Content string     `json:"content"`
-	Format  WikiFormat `json:"format"`
-	Slug    string     `json:"slug"`
-	Title   string     `json:"title"`
+	Content  string          `json:"content"`
+	Encoding string          `json:"encoding"`
+	Format   WikiFormatValue `json:"format"`
+	Slug     string          `json:"slug"`
+	Title    string          `json:"title"`
 }
 
 func (w Wiki) String() string {
@@ -72,40 +62,49 @@ func (s *WikisService) ListWikis(pid interface{}, opt *ListWikisOptions, options
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/wikis", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var w []*Wiki
-	resp, err := s.client.Do(req, &w)
+	var ws []*Wiki
+	resp, err := s.client.Do(req, &ws)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return w, resp, err
+	return ws, resp, err
+}
+
+// GetWikiPageOptions represents options to GetWikiPage
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/wikis.html#get-a-wiki-page
+type GetWikiPageOptions struct {
+	RenderHTML *bool   `url:"render_html,omitempty" json:"render_html,omitempty"`
+	Version    *string `url:"version,omitempty" json:"version,omitempty"`
 }
 
 // GetWikiPage gets a wiki page for a given project.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/wikis.html#get-a-wiki-page
-func (s *WikisService) GetWikiPage(pid interface{}, slug string, options ...RequestOptionFunc) (*Wiki, *Response, error) {
+func (s *WikisService) GetWikiPage(pid interface{}, slug string, opt *GetWikiPageOptions, options ...RequestOptionFunc) (*Wiki, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis/%s", pathEscape(project), url.PathEscape(slug))
+	u := fmt.Sprintf("projects/%s/wikis/%s", PathEscape(project), url.PathEscape(slug))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var w *Wiki
-	resp, err := s.client.Do(req, &w)
+	w := new(Wiki)
+	resp, err := s.client.Do(req, w)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -118,9 +117,9 @@ func (s *WikisService) GetWikiPage(pid interface{}, slug string, options ...Requ
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/wikis.html#create-a-new-wiki-page
 type CreateWikiPageOptions struct {
-	Content *string `url:"content" json:"content"`
-	Title   *string `url:"title" json:"title"`
-	Format  *string `url:"format,omitempty" json:"format,omitempty"`
+	Content *string          `url:"content,omitempty" json:"content,omitempty"`
+	Title   *string          `url:"title,omitempty" json:"title,omitempty"`
+	Format  *WikiFormatValue `url:"format,omitempty" json:"format,omitempty"`
 }
 
 // CreateWikiPage creates a new wiki page for the given repository with
@@ -133,9 +132,9 @@ func (s *WikisService) CreateWikiPage(pid interface{}, opt *CreateWikiPageOption
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/wikis", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -154,9 +153,9 @@ func (s *WikisService) CreateWikiPage(pid interface{}, opt *CreateWikiPageOption
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/wikis.html#edit-an-existing-wiki-page
 type EditWikiPageOptions struct {
-	Content *string `url:"content" json:"content"`
-	Title   *string `url:"title" json:"title"`
-	Format  *string `url:"format,omitempty" json:"format,omitempty"`
+	Content *string          `url:"content,omitempty" json:"content,omitempty"`
+	Title   *string          `url:"title,omitempty" json:"title,omitempty"`
+	Format  *WikiFormatValue `url:"format,omitempty" json:"format,omitempty"`
 }
 
 // EditWikiPage Updates an existing wiki page. At least one parameter is
@@ -169,9 +168,9 @@ func (s *WikisService) EditWikiPage(pid interface{}, slug string, opt *EditWikiP
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis/%s", pathEscape(project), url.PathEscape(slug))
+	u := fmt.Sprintf("projects/%s/wikis/%s", PathEscape(project), url.PathEscape(slug))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -194,9 +193,9 @@ func (s *WikisService) DeleteWikiPage(pid interface{}, slug string, options ...R
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis/%s", pathEscape(project), url.PathEscape(slug))
+	u := fmt.Sprintf("projects/%s/wikis/%s", PathEscape(project), url.PathEscape(slug))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

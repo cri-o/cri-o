@@ -24,7 +24,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,6 +32,7 @@ const (
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//go:generate /usr/bin/env bash -c "cat ../scripts/boilerplate/boilerplate.generatego.txt httpfakes/fake_agent_implementation.go > httpfakes/_fake_agent_implementation.go && mv httpfakes/_fake_agent_implementation.go httpfakes/fake_agent_implementation.go"
 
 // Agent is an http agent
 type Agent struct {
@@ -116,7 +116,7 @@ func (a *Agent) Client() *http.Client {
 func (a *Agent) Get(url string) (content []byte, err error) {
 	request, err := a.GetRequest(url)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting GET request")
+		return nil, fmt.Errorf("getting GET request: %w", err)
 	}
 	defer request.Body.Close()
 
@@ -152,7 +152,7 @@ func (a *Agent) GetRequest(url string) (response *http.Response, err error) {
 func (a *Agent) Post(url string, postData []byte) (content []byte, err error) {
 	response, err := a.PostRequest(url, postData)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting post request")
+		return nil, fmt.Errorf("getting post request: %w", err)
 	}
 	defer response.Body.Close()
 
@@ -194,7 +194,7 @@ func (impl *defaultAgentImplementation) SendPostRequest(
 	}
 	response, err = client.Post(url, contentType, bytes.NewBuffer(postData))
 	if err != nil {
-		return response, errors.Wrapf(err, "posting data to %s", url)
+		return response, fmt.Errorf("posting data to %s: %w", url, err)
 	}
 	return response, nil
 }
@@ -205,7 +205,7 @@ func (impl *defaultAgentImplementation) SendGetRequest(client *http.Client, url 
 ) {
 	response, err = client.Get(url)
 	if err != nil {
-		return response, errors.Wrapf(err, "getting %s", url)
+		return response, fmt.Errorf("getting %s: %w", url, err)
 	}
 
 	return response, nil
@@ -217,16 +217,18 @@ func (a *Agent) readResponse(response *http.Response) (body []byte, err error) {
 	defer response.Body.Close()
 	body, err = io.ReadAll(response.Body)
 	if err != nil {
-		return nil, errors.Wrapf(
-			err, "reading the response body from %s", response.Request.URL)
+		return nil, fmt.Errorf(
+			"reading the response body from %s: %w",
+			response.Request.URL, err,
+		)
 	}
 
 	// Check the https response code
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		if a.options.FailOnHTTPError {
-			return nil, errors.New(fmt.Sprintf(
+			return nil, fmt.Errorf(
 				"HTTP error %s for %s", response.Status, response.Request.URL,
-			))
+			)
 		}
 		logrus.Warnf("Got HTTP error but FailOnHTTPError not set: %s", response.Status)
 	}

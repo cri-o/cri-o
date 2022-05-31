@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -92,12 +93,12 @@ func (s *AwardEmojiService) listAwardEmoji(pid interface{}, resource string, res
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/%s/%d/award_emoji",
-		pathEscape(project),
+		PathEscape(project),
 		resource,
 		resourceID,
 	)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -141,13 +142,13 @@ func (s *AwardEmojiService) getAwardEmoji(pid interface{}, resource string, reso
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/%s/%d/award_emoji/%d",
-		pathEscape(project),
+		PathEscape(project),
 		resource,
 		resourceID,
 		awardID,
 	)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -200,12 +201,12 @@ func (s *AwardEmojiService) createAwardEmoji(pid interface{}, resource string, r
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/%s/%d/award_emoji",
-		pathEscape(project),
+		PathEscape(project),
 		resource,
 		resourceID,
 	)
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -224,7 +225,7 @@ func (s *AwardEmojiService) createAwardEmoji(pid interface{}, resource string, r
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/award_emoji.html#award-a-new-emoji-on-a-note
 func (s *AwardEmojiService) DeleteIssueAwardEmoji(pid interface{}, issueIID, awardID int, options ...RequestOptionFunc) (*Response, error) {
-	return s.deleteAwardEmoji(pid, awardMergeRequest, issueIID, awardID, options...)
+	return s.deleteAwardEmoji(pid, awardIssue, issueIID, awardID, options...)
 }
 
 // DeleteMergeRequestAwardEmoji delete award emoji on a merge request.
@@ -240,7 +241,7 @@ func (s *AwardEmojiService) DeleteMergeRequestAwardEmoji(pid interface{}, mergeR
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/award_emoji.html#award-a-new-emoji-on-a-note
 func (s *AwardEmojiService) DeleteSnippetAwardEmoji(pid interface{}, snippetID, awardID int, options ...RequestOptionFunc) (*Response, error) {
-	return s.deleteAwardEmoji(pid, awardMergeRequest, snippetID, awardID, options...)
+	return s.deleteAwardEmoji(pid, awardSnippets, snippetID, awardID, options...)
 }
 
 // DeleteAwardEmoji Delete an award emoji on the specified resource.
@@ -252,10 +253,10 @@ func (s *AwardEmojiService) deleteAwardEmoji(pid interface{}, resource string, r
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/%s/%d/award_emoji/%d", pathEscape(project), resource,
+	u := fmt.Sprintf("projects/%s/%s/%d/award_emoji/%d", PathEscape(project), resource,
 		resourceID, awardID)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -294,10 +295,10 @@ func (s *AwardEmojiService) listAwardEmojiOnNote(pid interface{}, resources stri
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/%s/%d/notes/%d/award_emoji", pathEscape(project), resources,
+	u := fmt.Sprintf("projects/%s/%s/%d/notes/%d/award_emoji", PathEscape(project), resources,
 		ressourceID, noteID)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -343,14 +344,14 @@ func (s *AwardEmojiService) getSingleNoteAwardEmoji(pid interface{}, ressource s
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/%s/%d/notes/%d/award_emoji/%d",
-		pathEscape(project),
+		PathEscape(project),
 		ressource,
 		resourceID,
 		noteID,
 		awardID,
 	)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -399,13 +400,13 @@ func (s *AwardEmojiService) createAwardEmojiOnNote(pid interface{}, resource str
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/%s/%d/notes/%d/award_emoji",
-		pathEscape(project),
+		PathEscape(project),
 		resource,
 		resourceID,
 		noteID,
 	)
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -451,14 +452,14 @@ func (s *AwardEmojiService) deleteAwardEmojiOnNote(pid interface{}, resource str
 		return nil, err
 	}
 	u := fmt.Sprintf("projects/%s/%s/%d/notes/%d/award_emoji/%d",
-		pathEscape(project),
+		PathEscape(project),
 		resource,
 		resourceID,
 		noteID,
 		awardID,
 	)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

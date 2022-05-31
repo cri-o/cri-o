@@ -13,7 +13,7 @@ import (
 )
 
 // ParserOption is a function which can be passed to NewParser
-// to alter its behaviour. To apply option to existing Parser
+// to alter its behavior. To apply option to existing Parser
 // call it directly, for example KeepComments(true)(parser).
 type ParserOption func(*Parser)
 
@@ -24,7 +24,7 @@ func KeepComments(enabled bool) ParserOption {
 }
 
 // LangVariant describes a shell language variant to use when tokenizing and
-// parsing shell code. The zero value is Bash.
+// parsing shell code. The zero value is LangBash.
 type LangVariant int
 
 const (
@@ -58,6 +58,13 @@ const (
 	//
 	// Its string representation is "bats".
 	LangBats
+
+	// LangAuto corresponds to automatic language detection,
+	// commonly used by end-user applications like shfmt,
+	// which can guess a file's language variant given its filename or shebang.
+	//
+	// At this time, the Parser does not support LangAuto.
+	LangAuto
 )
 
 // Variant changes the shell language variant that the parser will
@@ -68,6 +75,8 @@ const (
 func Variant(l LangVariant) ParserOption {
 	switch l {
 	case LangBash, LangPOSIX, LangMirBSDKorn, LangBats:
+	case LangAuto:
+		panic("LangAuto is not supported by the parser at this time")
 	default:
 		panic(fmt.Sprintf("unknown shell language variant: %d", l))
 	}
@@ -84,6 +93,8 @@ func (l LangVariant) String() string {
 		return "mksh"
 	case LangBats:
 		return "bats"
+	case LangAuto:
+		return "auto"
 	}
 	return "unknown shell language variant"
 }
@@ -98,6 +109,8 @@ func (l *LangVariant) Set(s string) error {
 		*l = LangMirBSDKorn
 	case "bats":
 		*l = LangBats
+	case "auto":
+		*l = LangAuto
 	default:
 		return fmt.Errorf("unknown shell language variant: %q", s)
 	}
@@ -217,7 +230,7 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 // called with said statements.
 //
 // If a line ending in an incomplete statement is parsed, the function will be
-// called with any fully parsed statents, and Parser.Incomplete will return
+// called with any fully parsed statements, and Parser.Incomplete will return
 // true.
 //
 // One can imagine a simple interactive shell implementation as follows:
@@ -430,17 +443,15 @@ func (p *Parser) reset() {
 }
 
 func (p *Parser) nextPos() Pos {
-	var line, col uint32
+	// TODO: detect offset overflow while lexing as well.
+	var line, col uint
 	if !p.lineOverflow {
-		line = uint32(p.line)
+		line = uint(p.line)
 	}
 	if !p.colOverflow {
-		col = uint32(p.col)
+		col = uint(p.col)
 	}
-	return Pos{
-		offs:    uint32(p.offs + p.bsp - int(p.w)),
-		lineCol: (line << colBitSize) | col,
-	}
+	return NewPos(uint(p.offs+p.bsp-int(p.w)), line, col)
 }
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
@@ -938,7 +949,9 @@ func (p *Parser) stmtList(stops ...string) ([]*Stmt, []Comment) {
 			split = i
 		}
 	}
-	last = p.accComs[:split]
+	if split > 0 { // keep last nil if empty
+		last = p.accComs[:split]
+	}
 	p.accComs = p.accComs[split:]
 	return stmts, last
 }
@@ -1425,7 +1438,7 @@ func (p *Parser) stopToken() bool {
 }
 
 func (p *Parser) backquoteEnd() bool {
-	return p.quote == subCmdBckquo && p.lastBquoteEsc < p.openBquotes
+	return p.lastBquoteEsc < p.openBquotes
 }
 
 // ValidName returns whether val is a valid name as per the POSIX spec.

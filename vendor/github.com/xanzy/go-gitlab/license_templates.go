@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // LicenseTemplate represents a license template.
@@ -61,7 +62,7 @@ type ListLicenseTemplatesOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/templates/licenses.html#list-license-templates
 func (s *LicenseTemplatesService) ListLicenseTemplates(opt *ListLicenseTemplatesOptions, options ...RequestOptionFunc) ([]*LicenseTemplate, *Response, error) {
-	req, err := s.client.NewRequest("GET", "templates/licenses", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "templates/licenses", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -93,7 +94,7 @@ type GetLicenseTemplateOptions struct {
 func (s *LicenseTemplatesService) GetLicenseTemplate(template string, opt *GetLicenseTemplateOptions, options ...RequestOptionFunc) (*LicenseTemplate, *Response, error) {
 	u := fmt.Sprintf("templates/licenses/%s", template)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -80,21 +80,46 @@ const (
 	colBitMask = colMax
 )
 
+// TODO(v4): consider using uint32 for Offset/Line/Col to better represent bit sizes.
+// Or go with int64, which more closely resembles portable "sizes" elsewhere.
+// The latter is probably nicest, as then we can change the number of internal
+// bits later, and we can also do overflow checks for the user in NewPos.
+
+// NewPos creates a position with the given offset, line, and column.
+//
+// Note that Pos uses a limited number of bits to store these numbers.
+// If line or column overflow their allocated space, they are replaced with 0.
+func NewPos(offset, line, column uint) Pos {
+	if line > lineMax {
+		line = 0 // protect against overflows; rendered as "?"
+	}
+	if column > colMax {
+		column = 0 // protect against overflows; rendered as "?"
+	}
+	return Pos{
+		offs:    uint32(offset),
+		lineCol: (uint32(line) << colBitSize) | uint32(column),
+	}
+}
+
 // Offset returns the byte offset of the position in the original source file.
 // Byte offsets start at 0.
+//
+// Note that Offset is not protected against overflows;
+// if an input is larger than 4GiB, the offset will wrap around to 0.
 func (p Pos) Offset() uint { return uint(p.offs) }
 
 // Line returns the line number of the position, starting at 1.
 //
 // Line is protected against overflows; if an input has too many lines, extra
-// lines will have a line number of 0, rendered as "?".
+// lines will have a line number of 0, rendered as "?" by Pos.String.
 func (p Pos) Line() uint { return uint(p.lineCol >> colBitSize) }
 
 // Col returns the column number of the position, starting at 1. It counts in
 // bytes.
 //
 // Col is protected against overflows; if an input line has too many columns,
-// extra columns will have a column number of 0, rendered as "?".
+// extra columns will have a column number of 0, rendered as "?" by Pos.String.
 func (p Pos) Col() uint { return uint(p.lineCol & colBitMask) }
 
 func (p Pos) String() string {
@@ -397,7 +422,7 @@ func (w *WordIter) End() Pos {
 	return posMax(w.Name.End(), posAddCol(w.InPos, 2))
 }
 
-// CStyleLoop represents the behaviour of a for clause similar to the C
+// CStyleLoop represents the behavior of a for clause similar to the C
 // language.
 //
 // This node will only appear with LangBash.
@@ -433,7 +458,7 @@ func (f *FuncDecl) Pos() Pos { return f.Position }
 func (f *FuncDecl) End() Pos { return f.Body.End() }
 
 // Word represents a shell word, containing one or more word parts contiguous to
-// each other. The word is delimeted by word boundaries, such as spaces,
+// each other. The word is delimited by word boundaries, such as spaces,
 // newlines, semicolons, or parentheses.
 type Word struct {
 	Parts []WordPart
@@ -642,7 +667,7 @@ type BinaryArithm struct {
 func (b *BinaryArithm) Pos() Pos { return b.X.Pos() }
 func (b *BinaryArithm) End() Pos { return b.Y.End() }
 
-// UnaryArithm represents an unary arithmetic expression. The unary opearator
+// UnaryArithm represents an unary arithmetic expression. The unary operator
 // may come before or after the sub-expression.
 //
 // If Op is Inc or Dec, X will be a word with a single *Lit whose value is a
@@ -745,7 +770,7 @@ type BinaryTest struct {
 func (b *BinaryTest) Pos() Pos { return b.X.Pos() }
 func (b *BinaryTest) End() Pos { return b.Y.End() }
 
-// UnaryTest represents a unary test expression. The unary opearator may come
+// UnaryTest represents a unary test expression. The unary operator may come
 // before or after the sub-expression.
 type UnaryTest struct {
 	OpPos Pos

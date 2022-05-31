@@ -2,23 +2,21 @@
 
 A GitLab API client enabling Go programs to interact with GitLab in a simple and uniform way
 
-[![Build Status](https://travis-ci.org/xanzy/go-gitlab.svg?branch=master)](https://travis-ci.org/xanzy/go-gitlab)
-[![GitHub license](https://img.shields.io/github/license/xanzy/go-gitlab.svg)](https://github.com/xanzy/go-gitlab/blob/master/LICENSE)
+[![Build Status](https://github.com/xanzy/go-gitlab/workflows/Lint%20and%20Test/badge.svg)](https://github.com/xanzy/go-gitlab/actions?workflow=Lint%20and%20Test)
 [![Sourcegraph](https://sourcegraph.com/github.com/xanzy/go-gitlab/-/badge.svg)](https://sourcegraph.com/github.com/xanzy/go-gitlab?badge)
 [![GoDoc](https://godoc.org/github.com/xanzy/go-gitlab?status.svg)](https://godoc.org/github.com/xanzy/go-gitlab)
 [![Go Report Card](https://goreportcard.com/badge/github.com/xanzy/go-gitlab)](https://goreportcard.com/report/github.com/xanzy/go-gitlab)
-[![GitHub issues](https://img.shields.io/github/issues/xanzy/go-gitlab.svg)](https://github.com/xanzy/go-gitlab/issues)
 
 ## NOTE
 
-Release v0.6.0 (released on 25-08-2017) no longer supports the older V3 Gitlab API. If
+Release v0.6.0 (released on 25-08-2017) no longer supports the older V3 GitLab API. If
 you need V3 support, please use the `f-api-v3` branch. This release contains some backwards
-incompatible changes that were needed to fully support the V4 Gitlab API.
+incompatible changes that were needed to fully support the V4 GitLab API.
 
 ## Coverage
 
-This API client package covers most of the existing Gitlab API calls and is updated regularly
-to add new and/or missing endpoints. Currently the following services are supported:
+This API client package covers most of the existing GitLab API calls and is updated regularly
+to add new and/or missing endpoints. Currently, the following services are supported:
 
 - [x] Applications
 - [x] Award Emojis
@@ -29,19 +27,22 @@ to add new and/or missing endpoints. Currently the following services are suppor
 - [x] Custom Attributes
 - [x] Deploy Keys
 - [x] Deployments
-- [ ] Discussions (threaded comments)
+- [x] Discussions (threaded comments)
 - [x] Environments
-- [ ] Epic Issues
-- [ ] Epics
+- [x] Epic Issues
+- [x] Epics
+- [x] Error Tracking
 - [x] Events
 - [x] Feature Flags
-- [ ] Geo Nodes
+- [x] Geo Nodes
+- [x] Generic Packages
 - [x] GitLab CI Config Templates
 - [x] Gitignores Templates
 - [x] Group Access Requests
 - [x] Group Issue Boards
 - [x] Group Members
 - [x] Group Milestones
+- [x] Group Wikis
 - [x] Group-Level Variables
 - [x] Groups
 - [x] Instance Clusters
@@ -52,16 +53,21 @@ to add new and/or missing endpoints. Currently the following services are suppor
 - [x] Keys
 - [x] Labels
 - [x] License
+- [x] Markdown
 - [x] Merge Request Approvals
 - [x] Merge Requests
 - [x] Namespaces
 - [x] Notes (comments)
 - [x] Notification Settings
 - [x] Open Source License Templates
+- [x] Packages
+- [x] Pages
 - [x] Pages Domains
+- [x] Personal Access Tokens
 - [x] Pipeline Schedules
 - [x] Pipeline Triggers
 - [x] Pipelines
+- [x] Plan limits
 - [x] Project Access Requests
 - [x] Project Badges
 - [x] Project Clusters
@@ -72,9 +78,11 @@ to add new and/or missing endpoints. Currently the following services are suppor
 - [x] Project-Level Variables
 - [x] Projects (including setting Webhooks)
 - [x] Protected Branches
+- [x] Protected Environments
 - [x] Protected Tags
 - [x] Repositories
 - [x] Repository Files
+- [x] Repository Submodules
 - [x] Runners
 - [x] Search
 - [x] Services
@@ -83,6 +91,7 @@ to add new and/or missing endpoints. Currently the following services are suppor
 - [x] System Hooks
 - [x] Tags
 - [x] Todos
+- [x] Topics
 - [x] Users
 - [x] Validate CI Configuration
 - [x] Version

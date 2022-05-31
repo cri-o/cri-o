@@ -1,5 +1,5 @@
 //go:build darwin
-//+build darwin
+// +build darwin
 
 package pty
 

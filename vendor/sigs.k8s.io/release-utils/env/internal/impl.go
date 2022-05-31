@@ -19,6 +19,7 @@ package internal
 import "os"
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//go:generate /usr/bin/env bash -c "cat ../../scripts/boilerplate/boilerplate.generatego.txt internalfakes/fake_impl.go > internalfakes/_fake_impl.go && mv internalfakes/_fake_impl.go internalfakes/fake_impl.go"
 
 //counterfeiter:generate . impl
 type impl interface {

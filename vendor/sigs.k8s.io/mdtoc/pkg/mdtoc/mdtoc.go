@@ -36,6 +36,8 @@ const (
 	StartTOC = "<!-- toc -->"
 	// EndTOC is the tag that marks the end of the TOC
 	EndTOC = "<!-- /toc -->"
+	//
+	MaxHeaderDepth = 6
 )
 
 var (
@@ -47,6 +49,7 @@ var (
 type Options struct {
 	Dryrun     bool
 	SkipPrefix bool
+	MaxDepth   int
 }
 
 // parse parses a raw markdown document to an AST.
@@ -60,7 +63,7 @@ func parse(b []byte) ast.Node {
 }
 
 // GenerateTOC parses a document and returns its TOC
-func GenerateTOC(doc []byte) (string, error) {
+func GenerateTOC(doc []byte, opts Options) (string, error) {
 	anchors := make(anchorGen)
 
 	md := parse(doc)
@@ -69,19 +72,21 @@ func GenerateTOC(doc []byte) (string, error) {
 	toc := &bytes.Buffer{}
 	htmlRenderer := html.NewRenderer(html.RendererOptions{})
 	walkHeadings(md, func(heading *ast.Heading) {
+		if heading.Level > opts.MaxDepth {
+			return
+		}
 		anchor := anchors.mkAnchor(asText(heading))
 		content := headingBody(htmlRenderer, heading)
 		fmt.Fprintf(toc, "%s- [%s](#%s)\n", strings.Repeat("  ", heading.Level-baseLvl), content, anchor)
 	})
 
-	return string(toc.Bytes()), nil
+	return toc.String(), nil
 }
 
 type headingFn func(heading *ast.Heading)
 
 // walkHeadings runs the heading function on each heading in the parsed markdown document.
-func walkHeadings(doc ast.Node, headingFn headingFn) error {
-	var err error
+func walkHeadings(doc ast.Node, headingFn headingFn) {
 	ast.WalkFunc(doc, func(node ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
 			return ast.GoToNext // Don't care about closing the heading section.
@@ -100,7 +105,6 @@ func walkHeadings(doc ast.Node, headingFn headingFn) error {
 
 		return ast.GoToNext
 	})
-	return err
 }
 
 // anchorGen is used to generate heading anchor IDs, using the github-flavored markdown syntax.
@@ -133,18 +137,17 @@ func findTOCTags(raw []byte) (start, end int) {
 	return
 }
 
-func asText(node ast.Node) string {
-	var text string
+func asText(node ast.Node) (text string) {
 	ast.WalkFunc(node, func(node ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
 			return ast.GoToNext // Don't care about closing the heading section.
 		}
-		t, ok := node.(*ast.Text)
-		if !ok {
-			return ast.GoToNext // Ignore non-text nodes.
+
+		switch node.(type) {
+		case *ast.Text, *ast.Code:
+			text += string(node.AsLeaf().Literal)
 		}
 
-		text += string(t.AsLeaf().Literal)
 		return ast.GoToNext
 	})
 	return text
@@ -170,6 +173,7 @@ func headingBase(doc ast.Node) int {
 			baseLvl = heading.Level
 		}
 	})
+
 	return baseLvl
 }
 
@@ -196,12 +200,13 @@ func WriteTOC(file string, opts Options) error {
 		return fmt.Errorf("TOC closing tag before start tag")
 	}
 
-	var doc = raw
+	var doc []byte
+	doc = raw
 	// skipPrefix is only used when toc tags are present.
 	if opts.SkipPrefix && start != -1 && end != -1 {
 		doc = raw[end:]
 	}
-	toc, err := GenerateTOC(doc)
+	toc, err := GenerateTOC(doc, opts)
 	if err != nil {
 		return fmt.Errorf("failed to generate toc: %v", err)
 	}
@@ -217,7 +222,7 @@ func WriteTOC(file string, opts Options) error {
 
 	err = atomicWrite(file,
 		string(raw[:realStart])+"\n",
-		string(toc),
+		toc,
 		string(raw[end:]),
 	)
 	return err
@@ -238,7 +243,7 @@ func GetTOC(file string, opts Options) (string, error) {
 	if opts.SkipPrefix && start != -1 && end != -1 {
 		startPos = end
 	}
-	toc, err := GenerateTOC(doc[startPos:])
+	toc, err := GenerateTOC(doc[startPos:], opts)
 	if err != nil {
 		return toc, fmt.Errorf("failed to generate toc: %v", err)
 	}

@@ -1,5 +1,5 @@
 //go:build dragonfly
-//+build dragonfly
+// +build dragonfly
 
 package pty
 

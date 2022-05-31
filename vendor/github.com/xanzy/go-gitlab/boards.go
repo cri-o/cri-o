@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // IssueBoardsService handles communication with the issue board related
@@ -60,7 +61,7 @@ func (b BoardList) String() string {
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/boards.html#create-a-board-starter
 type CreateIssueBoardOptions struct {
-	Name *string `url:"name" json:"name"`
+	Name *string `url:"name,omitempty" json:"name,omitempty"`
 }
 
 // CreateIssueBoard creates a new issue board.
@@ -71,9 +72,9 @@ func (s *IssueBoardsService) CreateIssueBoard(pid interface{}, opt *CreateIssueB
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/boards", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/boards", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -94,7 +95,7 @@ type UpdateIssueBoardOptions struct {
 	Name        *string `url:"name,omitempty" json:"name,omitempty"`
 	AssigneeID  *int    `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	MilestoneID *int    `url:"milestone_id,omitempty" json:"milestone_id,omitempty"`
-	Labels      Labels  `url:"labels,omitempty" json:"labels,omitempty"`
+	Labels      *Labels `url:"labels,omitempty" json:"labels,omitempty"`
 	Weight      *int    `url:"weight,omitempty" json:"weight,omitempty"`
 }
 
@@ -106,9 +107,9 @@ func (s *IssueBoardsService) UpdateIssueBoard(pid interface{}, board int, opt *U
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/boards/%d", pathEscape(project), board)
+	u := fmt.Sprintf("projects/%s/boards/%d", PathEscape(project), board)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -130,9 +131,9 @@ func (s *IssueBoardsService) DeleteIssueBoard(pid interface{}, board int, option
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/boards/%d", pathEscape(project), board)
+	u := fmt.Sprintf("projects/%s/boards/%d", PathEscape(project), board)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -153,9 +154,9 @@ func (s *IssueBoardsService) ListIssueBoards(pid interface{}, opt *ListIssueBoar
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/boards", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/boards", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -177,9 +178,9 @@ func (s *IssueBoardsService) GetIssueBoard(pid interface{}, board int, options .
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/boards/%d", pathEscape(project), board)
+	u := fmt.Sprintf("projects/%s/boards/%d", PathEscape(project), board)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -207,9 +208,9 @@ func (s *IssueBoardsService) GetIssueBoardLists(pid interface{}, board int, opt 
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/boards/%d/lists", pathEscape(project), board)
+	u := fmt.Sprintf("projects/%s/boards/%d/lists", PathEscape(project), board)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -232,12 +233,12 @@ func (s *IssueBoardsService) GetIssueBoardList(pid interface{}, board, list int,
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/boards/%d/lists/%d",
-		pathEscape(project),
+		PathEscape(project),
 		board,
 		list,
 	)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -267,9 +268,9 @@ func (s *IssueBoardsService) CreateIssueBoardList(pid interface{}, board int, op
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/boards/%d/lists", pathEscape(project), board)
+	u := fmt.Sprintf("projects/%s/boards/%d/lists", PathEscape(project), board)
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -300,12 +301,12 @@ func (s *IssueBoardsService) UpdateIssueBoardList(pid interface{}, board, list i
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/boards/%d/lists/%d",
-		pathEscape(project),
+		PathEscape(project),
 		board,
 		list,
 	)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -330,12 +331,12 @@ func (s *IssueBoardsService) DeleteIssueBoardList(pid interface{}, board, list i
 		return nil, err
 	}
 	u := fmt.Sprintf("projects/%s/boards/%d/lists/%d",
-		pathEscape(project),
+		PathEscape(project),
 		board,
 		list,
 	)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

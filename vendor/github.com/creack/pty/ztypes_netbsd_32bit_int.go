@@ -1,6 +1,6 @@
 //go:build (386 || amd64 || arm || arm64) && netbsd
-//+build netbsd
-//+build 386 amd64 arm arm64
+// +build 386 amd64 arm arm64
+// +build netbsd
 
 package pty
 

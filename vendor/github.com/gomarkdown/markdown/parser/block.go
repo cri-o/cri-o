@@ -1074,9 +1074,13 @@ func isBackslashEscaped(data []byte, i int) bool {
 func (p *Parser) tableHeader(data []byte) (size int, columns []ast.CellAlignFlags, table ast.Node) {
 	i := 0
 	colCount := 1
+	headerIsUnderline := true
 	for i = 0; i < len(data) && data[i] != '\n'; i++ {
 		if data[i] == '|' && !isBackslashEscaped(data, i) {
 			colCount++
+		}
+		if data[i] != '-' && data[i] != ' ' && data[i] != ':' && data[i] != '|' {
+			headerIsUnderline = false
 		}
 	}
 
@@ -1097,10 +1101,18 @@ func (p *Parser) tableHeader(data []byte) (size int, columns []ast.CellAlignFlag
 		colCount--
 	}
 
+	// if the header looks like a underline, then we omit the header
+	// and parse the first line again as underline
+	if headerIsUnderline {
+		header = nil
+		i = 0
+	} else {
+		i++ // move past newline
+	}
+
 	columns = make([]ast.CellAlignFlags, colCount)
 
 	// move on to the header underline
-	i++
 	if i >= len(data) {
 		return
 	}
@@ -1175,8 +1187,10 @@ func (p *Parser) tableHeader(data []byte) (size int, columns []ast.CellAlignFlag
 
 	table = &ast.Table{}
 	p.addBlock(table)
-	p.addBlock(&ast.TableHeader{})
-	p.tableRow(header, columns, true)
+	if header != nil {
+		p.addBlock(&ast.TableHeader{})
+		p.tableRow(header, columns, true)
+	}
 	size = skipCharN(data, i, '\n', 1)
 	return
 }
@@ -1190,7 +1204,9 @@ func (p *Parser) tableRow(data []byte, columns []ast.CellAlignFlags, header bool
 	}
 
 	n := len(data)
+	colspans := 0 // keep track of total colspan in this row.
 	for col = 0; col < len(columns) && i < n; col++ {
+		colspan := 0
 		for i < n && data[i] == ' ' {
 			i++
 		}
@@ -1204,7 +1220,15 @@ func (p *Parser) tableRow(data []byte, columns []ast.CellAlignFlags, header bool
 		cellEnd := i
 
 		// skip the end-of-cell marker, possibly taking us past end of buffer
-		i++
+		// each _extra_ | means a colspan
+		for i < len(data) && data[i] == '|' && !isBackslashEscaped(data, i) {
+			i++
+			colspan++
+		}
+		// only colspan > 1 make sense.
+		if colspan < 2 {
+			colspan = 0
+		}
 
 		for cellEnd > cellStart && cellEnd-1 < n && data[cellEnd-1] == ' ' {
 			cellEnd--
@@ -1213,9 +1237,19 @@ func (p *Parser) tableRow(data []byte, columns []ast.CellAlignFlags, header bool
 		block := &ast.TableCell{
 			IsHeader: header,
 			Align:    columns[col],
+			ColSpan:  colspan,
 		}
 		block.Content = data[cellStart:cellEnd]
-		p.addBlock(block)
+		if cellStart == cellEnd && colspans > 0 {
+			// an empty cell that we should ignore, it exists because of colspan
+			colspans--
+		} else {
+			p.addBlock(block)
+		}
+
+		if colspan > 0 {
+			colspans += colspan - 1
+		}
 	}
 
 	// pad it out with empty columns to get the right number
@@ -1233,7 +1267,12 @@ func (p *Parser) tableRow(data []byte, columns []ast.CellAlignFlags, header bool
 // tableFooter parses the (optional) table footer.
 func (p *Parser) tableFooter(data []byte) bool {
 	colCount := 1
-	for i := 0; i < len(data) && data[i] != '\n'; i++ {
+	i := 0
+	n := len(data)
+	for i < 3 && i < n && data[i] == ' ' { // ignore up to 3 spaces
+		i++
+	}
+	for ; i < n && data[i] != '\n'; i++ {
 		if data[i] == '|' && !isBackslashEscaped(data, i) {
 			colCount++
 			continue

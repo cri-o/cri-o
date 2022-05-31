@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
@@ -30,18 +31,6 @@ type ProtectedBranchesService struct {
 	client *Client
 }
 
-// BranchAccessDescription represents the access description for a protected
-// branch.
-//
-// GitLab API docs:
-// https://docs.gitlab.com/ce/api/protected_branches.html#protected-branches-api
-type BranchAccessDescription struct {
-	AccessLevel            AccessLevelValue `json:"access_level"`
-	UserID                 int              `json:"user_id"`
-	GroupID                int              `json:"group_id"`
-	AccessLevelDescription string           `json:"access_level_description"`
-}
-
 // ProtectedBranch represents a protected branch.
 //
 // GitLab API docs:
@@ -52,7 +41,20 @@ type ProtectedBranch struct {
 	PushAccessLevels          []*BranchAccessDescription `json:"push_access_levels"`
 	MergeAccessLevels         []*BranchAccessDescription `json:"merge_access_levels"`
 	UnprotectAccessLevels     []*BranchAccessDescription `json:"unprotect_access_levels"`
+	AllowForcePush            bool                       `json:"allow_force_push"`
 	CodeOwnerApprovalRequired bool                       `json:"code_owner_approval_required"`
+}
+
+// BranchAccessDescription represents the access description for a protected
+// branch.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/protected_branches.html#protected-branches-api
+type BranchAccessDescription struct {
+	AccessLevel            AccessLevelValue `json:"access_level"`
+	AccessLevelDescription string           `json:"access_level_description"`
+	UserID                 int              `json:"user_id"`
+	GroupID                int              `json:"group_id"`
 }
 
 // ListProtectedBranchesOptions represents the available ListProtectedBranches()
@@ -71,9 +73,9 @@ func (s *ProtectedBranchesService) ListProtectedBranches(pid interface{}, opt *L
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/protected_branches", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/protected_branches", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -96,9 +98,9 @@ func (s *ProtectedBranchesService) GetProtectedBranch(pid interface{}, branch st
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/protected_branches/%s", pathEscape(project), url.PathEscape(branch))
+	u := fmt.Sprintf("projects/%s/protected_branches/%s", PathEscape(project), url.PathEscape(branch))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -118,23 +120,25 @@ func (s *ProtectedBranchesService) GetProtectedBranch(pid interface{}, branch st
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/protected_branches.html#protect-repository-branches
 type ProtectRepositoryBranchesOptions struct {
-	Name                      *string                           `url:"name,omitempty" json:"name,omitempty"`
-	PushAccessLevel           *AccessLevelValue                 `url:"push_access_level,omitempty" json:"push_access_level,omitempty"`
-	MergeAccessLevel          *AccessLevelValue                 `url:"merge_access_level,omitempty" json:"merge_access_level,omitempty"`
-	UnprotectAccessLevel      *AccessLevelValue                 `url:"unprotect_access_level,omitempty" json:"unprotect_access_level,omitempty"`
-	AllowedToPush             []*ProtectBranchPermissionOptions `url:"allowed_to_push,omitempty" json:"allowed_to_push,omitempty"`
-	AllowedToMerge            []*ProtectBranchPermissionOptions `url:"allowed_to_merge,omitempty" json:"allowed_to_merge,omitempty"`
-	AllowedToUnprotect        []*ProtectBranchPermissionOptions `url:"allowed_to_unprotect,omitempty" json:"allowed_to_unprotect,omitempty"`
-	CodeOwnerApprovalRequired *bool                             `url:"code_owner_approval_required,omitempty" json:"code_owner_approval_required,omitempty"`
+	Name                      *string                     `url:"name,omitempty" json:"name,omitempty"`
+	PushAccessLevel           *AccessLevelValue           `url:"push_access_level,omitempty" json:"push_access_level,omitempty"`
+	MergeAccessLevel          *AccessLevelValue           `url:"merge_access_level,omitempty" json:"merge_access_level,omitempty"`
+	UnprotectAccessLevel      *AccessLevelValue           `url:"unprotect_access_level,omitempty" json:"unprotect_access_level,omitempty"`
+	AllowForcePush            *bool                       `url:"allow_force_push,omitempty" json:"allow_force_push,omitempty"`
+	AllowedToPush             *[]*BranchPermissionOptions `url:"allowed_to_push,omitempty" json:"allowed_to_push,omitempty"`
+	AllowedToMerge            *[]*BranchPermissionOptions `url:"allowed_to_merge,omitempty" json:"allowed_to_merge,omitempty"`
+	AllowedToUnprotect        *[]*BranchPermissionOptions `url:"allowed_to_unprotect,omitempty" json:"allowed_to_unprotect,omitempty"`
+	CodeOwnerApprovalRequired *bool                       `url:"code_owner_approval_required,omitempty" json:"code_owner_approval_required,omitempty"`
 }
 
-// ProtectBranchPermissionOptions represents a branch permission option.
+// BranchPermissionOptions represents a branch permission option.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/protected_branches.html#protect-repository-branches
-type ProtectBranchPermissionOptions struct {
+type BranchPermissionOptions struct {
 	UserID      *int              `url:"user_id,omitempty" json:"user_id,omitempty"`
 	GroupID     *int              `url:"group_id,omitempty" json:"group_id,omitempty"`
+	DeployKeyID *int              `url:"deploy_key_id,omitempty" json:"deploy_key_id,omitempty"`
 	AccessLevel *AccessLevelValue `url:"access_level,omitempty" json:"access_level,omitempty"`
 }
 
@@ -148,9 +152,9 @@ func (s *ProtectedBranchesService) ProtectRepositoryBranches(pid interface{}, op
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/protected_branches", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/protected_branches", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -174,9 +178,9 @@ func (s *ProtectedBranchesService) UnprotectRepositoryBranches(pid interface{}, 
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/protected_branches/%s", pathEscape(project), url.PathEscape(branch))
+	u := fmt.Sprintf("projects/%s/protected_branches/%s", PathEscape(project), url.PathEscape(branch))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +197,7 @@ type RequireCodeOwnerApprovalsOptions struct {
 	CodeOwnerApprovalRequired *bool `url:"code_owner_approval_required,omitempty" json:"code_owner_approval_required,omitempty"`
 }
 
-// RequireCodeOwnerApprovals updates the code owner approval.
+// RequireCodeOwnerApprovals updates the code owner approval option.
 //
 // Gitlab API docs:
 // https://docs.gitlab.com/ee/api/protected_branches.html#require-code-owner-approvals-for-a-single-branch
@@ -202,9 +206,9 @@ func (s *ProtectedBranchesService) RequireCodeOwnerApprovals(pid interface{}, br
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/protected_branches/%s", pathEscape(project), url.PathEscape(branch))
+	u := fmt.Sprintf("projects/%s/protected_branches/%s", PathEscape(project), url.PathEscape(branch))
 
-	req, err := s.client.NewRequest("PATCH", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPatch, u, opt, options)
 	if err != nil {
 		return nil, err
 	}

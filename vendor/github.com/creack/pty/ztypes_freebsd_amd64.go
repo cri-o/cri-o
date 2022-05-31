@@ -1,5 +1,5 @@
 //go:build amd64 && freebsd
-//+build amd64,freebsd
+// +build amd64,freebsd
 
 // Created by cgo -godefs - DO NOT EDIT
 // cgo -godefs types_freebsd.go
