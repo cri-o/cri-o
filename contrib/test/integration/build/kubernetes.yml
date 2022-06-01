@@ -2,10 +2,10 @@
 
 - name: clone kubernetes source repo
   git:
-    repo: "https://github.com/{{ k8s_github_fork }}/kubernetes.git"
+    repo: "https://github.com/saschagrunert/kubernetes.git"
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
     # based on kube v1.9.0-alpha.2, update as needed
-    version: "{{ k8s_git_version }}"
+    version: debug
     force: "{{ force_clone | default(False) | bool}}"
 
 # replace hardcoded line not to use legacy stats provider
