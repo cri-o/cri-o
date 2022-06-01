@@ -27,7 +27,7 @@
       vars:
         k8s_git_version: "master"
         k8s_github_fork: "kubernetes"
-        crio_socket: "/var/run/crio/crio.sock"
+        crio_socket: "/run/crio/crio.sock"
       when: "(cgroupv2 is undefined) or (cgroupv2 == False) | bool"
 
     - name: clone build and install kubernetes for cgroup v2
@@ -35,7 +35,7 @@
       vars:
         k8s_git_version: "master"
         k8s_github_fork: "kubernetes"
-        crio_socket: "/var/run/crio/crio.sock"
+        crio_socket: "/run/crio/crio.sock"
       when: "cgroupv2 | bool"
 
     - name: clone build and install kubetest
@@ -155,7 +155,7 @@
         force_clone: true
         k8s_git_version: "master"
         k8s_github_fork: "kubernetes"
-        crio_socket: "/var/run/crio/crio.sock"
+        crio_socket: "/run/crio/crio.sock"
 
     - name: clone build and install kubetest
       include: "build/kubetest.yml"
@@ -178,7 +178,7 @@
         force_clone: true
         k8s_git_version: "master"
         k8s_github_fork: "kubernetes"
-        crio_socket: "/var/run/crio/crio.sock"
+        crio_socket: "/run/crio/crio.sock"
       when: "(cgroupv2 is undefined) or (cgroupv2 == False) | bool"
     - name: clone build and install kubernetes for cgroup v2
       include: "build/kubernetes.yml"
@@ -186,7 +186,7 @@
         force_clone: true
         k8s_git_version: "master"
         k8s_github_fork: "kubernetes"
-        crio_socket: "/var/run/crio/crio.sock"
+        crio_socket: "/run/crio/crio.sock"
       when: "cgroupv2 | bool"
 
     - name: clone build and install kubetest
