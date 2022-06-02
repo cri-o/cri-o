@@ -40,7 +40,7 @@ dependencies:
       match: conmon
 
   - name: cri-tools
-    version: v1.23.0
+    version: v1.24.2
     refPaths:
     - path: scripts/versions
       match: cri-tools
