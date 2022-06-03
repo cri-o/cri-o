@@ -1,6 +1,7 @@
 package conmonmgr
 
 import (
+	"bytes"
 	"path"
 	"strings"
 
@@ -10,8 +11,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var versionSupportsSync = semver.MustParse("2.0.19")
-var versionSupportsLogGlobalSizeMax = semver.MustParse("2.1.2")
+var (
+	versionSupportsSync             = semver.MustParse("2.0.19")
+	versionSupportsLogGlobalSizeMax = semver.MustParse("2.1.2")
+)
 
 type ConmonManager struct {
 	conmonVersion            *semver.Version
@@ -43,7 +46,7 @@ func newWithCommandRunner(conmonPath string, runner cmdrunner.CommandRunner) (*C
 	}
 
 	c.initializeSupportsSync()
-	c.initializeSupportsLogGlobalSizeMax()
+	c.initializeSupportsLogGlobalSizeMax(conmonPath, runner)
 	return c, nil
 }
 
@@ -56,8 +59,14 @@ func (c *ConmonManager) parseConmonVersion(versionString string) error {
 	return nil
 }
 
-func (c *ConmonManager) initializeSupportsLogGlobalSizeMax() {
+func (c *ConmonManager) initializeSupportsLogGlobalSizeMax(conmonPath string, runner cmdrunner.CommandRunner) {
 	c.supportsLogGlobalSizeMax = c.conmonVersion.GTE(versionSupportsLogGlobalSizeMax)
+	if !c.supportsLogGlobalSizeMax {
+		// Read help output as a fallback in case the feature was backported to conmon,
+		// but the version wasn't bumped.
+		helpOutput, err := runner.CombinedOutput(conmonPath, "--help")
+		c.supportsLogGlobalSizeMax = err == nil && bytes.Contains(helpOutput, []byte("--log-global-size-max"))
+	}
 	verb := "does not"
 	if c.supportsLogGlobalSizeMax {
 		verb = "does"
