@@ -35,6 +35,11 @@ const (
 	// killContainerTimeout is the timeout that we wait for the container to
 	// be SIGKILLed.
 	killContainerTimeout = 2 * time.Minute
+
+	// maxExecSyncSize is the maximum size of exec sync output CRI-O will process.
+	// It is set to the amount of logs allowed in the dockershim implementation:
+	// https://github.com/kubernetes/kubernetes/pull/82514
+	maxExecSyncSize = 16 * 1024 * 1024
 )
 
 // Runtime is the generic structure holding both global and specific
