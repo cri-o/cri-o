@@ -2,7 +2,7 @@ package cgmgr_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	. "github.com/onsi/ginkgo/v2"
@@ -41,7 +41,7 @@ var _ = t.Describe("Stats", func() {
 			data := fmt.Sprintf("%s%d\npgfault %d\npgmajfault %d\nrss %d", inactiveFileSearch,
 				inactiveFileVal, pgFaultVal, pgMajFaultVal, rssVal)
 
-			Expect(ioutil.WriteFile(file, []byte(data), 0o600)).To(BeNil())
+			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
 			Expect(cgmgr.UpdateWithMemoryStatsFromFile(file, inactiveFileSearch, memory, inactiveFileVal+expectedUsage)).To(BeNil())
 			Expect(memory.RssBytes.Value).To(Equal(rssVal))
@@ -58,7 +58,7 @@ var _ = t.Describe("Stats", func() {
 			)
 			data := fmt.Sprintf("%s%d", inactiveFileSearch, inactiveFileVal)
 
-			Expect(ioutil.WriteFile(file, []byte(data), 0o600)).To(BeNil())
+			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
 			Expect(cgmgr.UpdateWithMemoryStatsFromFile(file, inactiveFileSearch, memory, inactiveFileVal+expectedUsage)).To(BeNil())
 			Expect(memory.WorkingSetBytes.Value).To(Equal(expectedUsage))
@@ -70,7 +70,7 @@ var _ = t.Describe("Stats", func() {
 			)
 			data := fmt.Sprintf("%s%s", inactiveFileSearch, inactiveFileVal)
 
-			Expect(ioutil.WriteFile(file, []byte(data), 0o600)).To(BeNil())
+			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
 			Expect(cgmgr.UpdateWithMemoryStatsFromFile(file, inactiveFileSearch, memory, 0)).NotTo(BeNil())
 		})
@@ -82,7 +82,7 @@ var _ = t.Describe("Stats", func() {
 			)
 			data := fmt.Sprintf("%s%d", inactiveFileSearch, inactiveFileVal)
 
-			Expect(ioutil.WriteFile(file, []byte(data), 0o600)).To(BeNil())
+			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
 			Expect(cgmgr.UpdateWithMemoryStatsFromFile(file, inactiveFileSearch, memory, usage)).To(BeNil())
 			Expect(memory.WorkingSetBytes.Value).To(Equal(uint64(0)))

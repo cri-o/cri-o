@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -615,7 +615,7 @@ func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName
 			}
 		}
 	}()
-	errOutput, errReadAll := ioutil.ReadAll(stderr)
+	errOutput, errReadAll := io.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
 		if errReadAll == nil && len(errOutput) > 0 {
 			return fmt.Errorf("pull image: %s", string(errOutput))

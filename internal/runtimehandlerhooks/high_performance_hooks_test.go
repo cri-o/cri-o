@@ -2,7 +2,6 @@ package runtimehandlerhooks
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,7 +46,7 @@ var _ = Describe("high_performance_hooks", func() {
 			Expect(err).To(BeNil())
 
 			for _, cpu := range []string{"cpu0", "cpu1"} {
-				content, err := ioutil.ReadFile(filepath.Join(fixturesDir, cpu, "domain0", "flags"))
+				content, err := os.ReadFile(filepath.Join(fixturesDir, cpu, "domain0", "flags"))
 				Expect(err).To(BeNil())
 
 				Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
@@ -74,7 +73,7 @@ var _ = Describe("high_performance_hooks", func() {
 				err = os.MkdirAll(flagsDir, os.ModePerm)
 				Expect(err).To(BeNil())
 
-				err = ioutil.WriteFile(filepath.Join(flagsDir, "flags"), []byte(flags), 0o644)
+				err = os.WriteFile(filepath.Join(flagsDir, "flags"), []byte(flags), 0o644)
 				Expect(err).To(BeNil())
 			}
 		})
@@ -115,7 +114,7 @@ var _ = Describe("high_performance_hooks", func() {
 			err := setIRQLoadBalancing(container, enabled, irqSmpAffinityFile, irqBalanceConfigFile)
 			Expect(err).To(BeNil())
 
-			content, err := ioutil.ReadFile(irqSmpAffinityFile)
+			content, err := os.ReadFile(irqSmpAffinityFile)
 			Expect(err).To(BeNil())
 
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
@@ -136,7 +135,7 @@ var _ = Describe("high_performance_hooks", func() {
 			)
 
 			// create tests affinity file
-			err = ioutil.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
+			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
 			Expect(err).To(BeNil())
 		})
 
@@ -168,7 +167,7 @@ var _ = Describe("high_performance_hooks", func() {
 			err = setIRQLoadBalancing(container, enabled, irqSmpAffinityFile, irqBalanceConfigFile)
 			Expect(err).To(BeNil())
 
-			content, err := ioutil.ReadFile(irqSmpAffinityFile)
+			content, err := os.ReadFile(irqSmpAffinityFile)
 			Expect(err).To(BeNil())
 
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedSmp))
@@ -181,7 +180,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 		JustBeforeEach(func() {
 			// set irqbalanace config file with no banned cpus
-			err = ioutil.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
+			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).To(BeNil())
 			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUFlags)
 			Expect(err).To(BeNil())
@@ -202,7 +201,7 @@ var _ = Describe("high_performance_hooks", func() {
 			)
 
 			// create tests affinity file
-			err = ioutil.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
+			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
 			Expect(err).To(BeNil())
 		})
 
@@ -237,7 +236,7 @@ var _ = Describe("high_performance_hooks", func() {
 			err = RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityFile)
 			Expect(err).To(BeNil())
 
-			content, err := ioutil.ReadFile(irqBannedCPUConfigFile)
+			content, err := os.ReadFile(irqBannedCPUConfigFile)
 			Expect(err).To(BeNil())
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedOrigBannedCPUs))
 
@@ -248,10 +247,10 @@ var _ = Describe("high_performance_hooks", func() {
 
 		JustBeforeEach(func() {
 			// create tests affinity file
-			err = ioutil.WriteFile(irqSmpAffinityFile, []byte("ffffffff,ffffffff"), 0o644)
+			err = os.WriteFile(irqSmpAffinityFile, []byte("ffffffff,ffffffff"), 0o644)
 			Expect(err).To(BeNil())
 			// set irqbalanace config file with banned cpus mask
-			err = ioutil.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
+			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).To(BeNil())
 			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, "0000ffff,ffffcfcc")
 			Expect(err).To(BeNil())
@@ -275,7 +274,7 @@ var _ = Describe("high_performance_hooks", func() {
 			BeforeEach(func() {
 				// create banned cpu config file
 				os.Remove(irqBannedCPUConfigFile)
-				err = ioutil.WriteFile(irqBannedCPUConfigFile, []byte("00000000,00000000"), 0o644)
+				err = os.WriteFile(irqBannedCPUConfigFile, []byte("00000000,00000000"), 0o644)
 				Expect(err).To(BeNil())
 			})
 
@@ -298,11 +297,11 @@ var _ = Describe("high_performance_hooks", func() {
 			err := setCPUQuota(cpuMountPoint, parent, container, enabled)
 			Expect(err).To(BeNil())
 
-			content, err := ioutil.ReadFile(filepath.Join(childFolder, "cpu.cfs_quota_us"))
+			content, err := os.ReadFile(filepath.Join(childFolder, "cpu.cfs_quota_us"))
 			Expect(err).To(BeNil())
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
 
-			content, err = ioutil.ReadFile(filepath.Join(parentFolder, "cpu.cfs_quota_us"))
+			content, err = os.ReadFile(filepath.Join(parentFolder, "cpu.cfs_quota_us"))
 			Expect(err).To(BeNil())
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
 		}
@@ -311,10 +310,10 @@ var _ = Describe("high_performance_hooks", func() {
 			if err := os.MkdirAll(childFolder, os.ModePerm); err != nil {
 				log.Errorf(context.TODO(), "failed to create temporary cgroup folder: %v", err)
 			}
-			if err := ioutil.WriteFile(filepath.Join(parentFolder, "cpu.cfs_quota_us"), []byte("900\n"), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(parentFolder, "cpu.cfs_quota_us"), []byte("900\n"), 0o644); err != nil {
 				log.Errorf(context.TODO(), "failed to create cpu.cfs_quota_us cgroup file: %v", err)
 			}
-			if err := ioutil.WriteFile(filepath.Join(childFolder, "cpu.cfs_quota_us"), []byte("900\n"), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(childFolder, "cpu.cfs_quota_us"), []byte("900\n"), 0o644); err != nil {
 				log.Errorf(context.TODO(), "failed to create cpu.cfs_quota_us cgroup file: %v", err)
 			}
 			container.SetSpec(

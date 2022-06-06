@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -44,7 +43,7 @@ func TestMergeEnvs(t *testing.T) {
 }
 
 func TestGetDecryptionKeys(t *testing.T) {
-	keysDir, err := ioutil.TempDir("", "temp-keys-1")
+	keysDir, err := os.MkdirTemp("", "temp-keys-1")
 	if err != nil {
 		t.Fatalf("Unable to create a temporary directory %v", err)
 	}
@@ -57,7 +56,7 @@ func TestGetDecryptionKeys(t *testing.T) {
 	}
 	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
 
-	err = ioutil.WriteFile(keysDir+"/private.key", privateKeyBytes, 0o644)
+	err = os.WriteFile(keysDir+"/private.key", privateKeyBytes, 0o644)
 	if err != nil {
 		t.Fatalf("Unable to write a private key %v", err)
 	}

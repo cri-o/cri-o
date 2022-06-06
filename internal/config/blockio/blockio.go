@@ -1,7 +1,7 @@
 package blockio
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -38,7 +38,7 @@ func (c *Config) Load(path string) error {
 		return nil
 	}
 
-	data, err := ioutil.ReadFile(filepath.Clean(path))
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return errors.Wrap(err, "reading blockio config file failed")
 	}

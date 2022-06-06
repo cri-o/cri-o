@@ -1,7 +1,6 @@
 package version
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -49,13 +48,13 @@ var _ = t.Describe("Version", func() {
 			gitCommit := "fakeGitCommit"
 			tempFileName := tempFileName
 			tempFile := t.MustTempFile(tempFileName)
-			Expect(ioutil.WriteFile(tempFile, []byte(""), 0))
+			Expect(os.WriteFile(tempFile, []byte(""), 0))
 
 			err := writeVersionFile(tempFileName, gitCommit, version)
 			defer os.Remove(tempFileName)
 			Expect(err).To(BeNil())
 
-			versionBytes, err := ioutil.ReadFile(tempFileName)
+			versionBytes, err := os.ReadFile(tempFileName)
 			Expect(err).To(BeNil())
 
 			versionConstantVersion, err := parseVersionConstant(version, gitCommit)
@@ -71,7 +70,7 @@ var _ = t.Describe("Version", func() {
 			err := writeVersionFile(filename, "", tempVersion)
 			Expect(err).To(BeNil())
 
-			_, err = ioutil.ReadFile(filename)
+			_, err = os.ReadFile(filename)
 			Expect(err).To(BeNil())
 		})
 		It("should fail to upgrade with unspecified version", func() {
@@ -90,7 +89,7 @@ var _ = t.Describe("Version", func() {
 		It("should fail upgrade with faulty version", func() {
 			tempFileName := "tempVersionFile"
 			tempFile := t.MustTempFile(tempFileName)
-			Expect(ioutil.WriteFile(tempFile, []byte("bad version file"), 0o644))
+			Expect(os.WriteFile(tempFile, []byte("bad version file"), 0o644))
 
 			upgrade, err := shouldCrioWipe(tempFileName, tempVersion)
 			Expect(upgrade).To(BeTrue())

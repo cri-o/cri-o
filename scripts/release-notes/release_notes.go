@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -85,7 +84,7 @@ func run() error {
 	}
 	logrus.Infof("Using target branch %s", targetBranch)
 
-	templateFile, err := ioutil.TempFile("", "")
+	templateFile, err := os.CreateTemp("", "")
 	if err != nil {
 		return errors.Wrap(err, "writing template file")
 	}
@@ -167,7 +166,7 @@ Download one of our static release bundles via our Google Cloud Bucket:
 		return errors.Wrap(err, "generate release notes")
 	}
 
-	content, err := ioutil.ReadFile(outputFilePath)
+	content, err := os.ReadFile(outputFilePath)
 	if err != nil {
 		return errors.Wrap(err, "open generated release notes")
 	}
@@ -179,7 +178,7 @@ Download one of our static release bundles via our Google Cloud Bucket:
 	defer func() { err = repo.Checkout(currentBranch) }()
 
 	// Write the target file
-	if err := ioutil.WriteFile(outputFile, content, 0o644); err != nil {
+	if err := os.WriteFile(outputFile, content, 0o644); err != nil {
 		return errors.Wrap(err, "write content to file")
 	}
 
@@ -214,7 +213,7 @@ Download one of our static release bundles via our Google Cloud Bucket:
 	} else {
 		readmeSlice[alreadyExistingIndex] = link
 	}
-	if err := ioutil.WriteFile(
+	if err := os.WriteFile(
 		readmeFile, []byte(strings.Join(readmeSlice, "\n")), 0o644,
 	); err != nil {
 		return errors.Wrap(err, "write content to file")

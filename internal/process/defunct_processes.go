@@ -1,7 +1,6 @@
 package process
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -64,7 +63,7 @@ func DefunctProcessesForPath(path string) (defunctCount uint, retErr error) {
 
 // processStats returns status information of a process as defined in /proc/[pid]/stat
 func processStats(fsPath, pid string) (*Stat, error) {
-	bytes, err := ioutil.ReadFile(filepath.Join(fsPath, pid, "stat"))
+	bytes, err := os.ReadFile(filepath.Join(fsPath, pid, "stat"))
 	if err != nil {
 		return nil, err
 	}

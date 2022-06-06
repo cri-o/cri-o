@@ -3,7 +3,6 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -630,7 +629,7 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 	runRoot := c.RunRoot
 	storageDriver := c.Storage
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -723,7 +722,7 @@ func (c *Config) ToFile(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, b, 0o644)
+	return os.WriteFile(path, b, 0o644)
 }
 
 // ToBytes encodes the config into a byte slice. It errors if the encoding

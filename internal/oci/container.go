@@ -3,7 +3,6 @@ package oci
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -511,7 +510,7 @@ func getPidStartTime(pid int) (string, error) {
 // GetPidStartTime reads a file as if it were a /proc/$pid/stat file, looking for stime for PID.
 // It is abstracted out to allow for unit testing
 func GetPidStartTimeFromFile(file string) (string, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return "", errors.Wrapf(ErrNotFound, err.Error())
 	}

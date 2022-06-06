@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -292,7 +291,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		return "", nil
 	}
 
-	orig, err := ioutil.ReadFile(originPasswdFile)
+	orig, err := os.ReadFile(originPasswdFile)
 	if err != nil {
 		// If no /etc/passwd in container ignore and return
 		if os.IsNotExist(err) {
@@ -307,7 +306,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		homedir = "/tmp"
 	}
 	pwd := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", orig, username, uid, gid, username, homedir)
-	if err := ioutil.WriteFile(passwdFile, []byte(pwd), os.FileMode(st.Mode)&os.ModePerm); err != nil {
+	if err := os.WriteFile(passwdFile, []byte(pwd), os.FileMode(st.Mode)&os.ModePerm); err != nil {
 		return "", errors.Wrap(err, "failed to create temporary passwd file")
 	}
 	if err := os.Chown(passwdFile, int(st.Uid), int(st.Gid)); err != nil {

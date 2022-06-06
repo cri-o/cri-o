@@ -2,7 +2,6 @@ package node
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -18,7 +17,7 @@ var checkFsMayDetachMountsErr error
 func checkFsMayDetachMounts() bool {
 	// this sysctl is specific to RHEL7 kernel
 	const file = "/proc/sys/fs/may_detach_mounts"
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			logrus.WithError(err).Debug("checkFsMayDetachMounts")

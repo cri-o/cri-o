@@ -1,7 +1,6 @@
 package sandbox_test
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/cri-o/cri-o/internal/factory/sandbox"
@@ -50,8 +49,8 @@ var _ = Describe("Sandbox", func() {
 			defer os.Remove(c.Path)
 			Expect(err).To(BeNil())
 
-			expect, _ := ioutil.ReadFile(c.Want) // nolint: errcheck
-			result, _ := ioutil.ReadFile(c.Path) // nolint: errcheck
+			expect, _ := os.ReadFile(c.Want) // nolint: errcheck
+			result, _ := os.ReadFile(c.Path) // nolint: errcheck
 			Expect(result).To(Equal(expect))
 		}
 	})

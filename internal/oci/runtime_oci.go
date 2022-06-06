@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -292,7 +291,7 @@ func prepareExec() (pidFileName string, parentPipe, childPipe *os.File, _ error)
 		return "", nil, nil, err
 	}
 
-	pidFile, err := ioutil.TempFile("", "pidfile")
+	pidFile, err := os.CreateTemp("", "pidfile")
 	if err != nil {
 		parentPipe.Close()
 		childPipe.Close()
@@ -458,7 +457,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		}
 	}()
 
-	logFile, err := ioutil.TempFile("", "crio-log-"+c.ID())
+	logFile, err := os.CreateTemp("", "crio-log-"+c.ID())
 	if err != nil {
 		return nil, &ExecSyncError{
 			ExitCode: -1,
@@ -891,7 +890,7 @@ func updateContainerStatusFromExitFile(c *Container) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get finished time")
 	}
-	statusCodeStr, err := ioutil.ReadFile(exitFilePath)
+	statusCodeStr, err := os.ReadFile(exitFilePath)
 	if err != nil {
 		return errors.Wrap(err, "failed to read exit file")
 	}
@@ -1321,7 +1320,7 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 // prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible for removing the returned file, if prepareProcessExec succeeds
 func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile string, retErr error) {
-	f, err := ioutil.TempFile("", "exec-process-")
+	f, err := os.CreateTemp("", "exec-process-")
 	if err != nil {
 		return "", err
 	}
@@ -1348,7 +1347,7 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 		return "", err
 	}
 
-	if err := ioutil.WriteFile(processFile, processJSON, 0o644); err != nil {
+	if err := os.WriteFile(processFile, processJSON, 0o644); err != nil {
 		return "", err
 	}
 	return processFile, nil

@@ -2,7 +2,6 @@ package utils_test
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -486,13 +485,13 @@ ping:x:999:
 nogroup:x:65533:
 nobody:x:65534:`
 
-	dir, err := ioutil.TempDir("/tmp", "uid-test")
+	dir, err := os.MkdirTemp("/tmp", "uid-test")
 	Expect(err).To(BeNil())
 	err = os.Mkdir(filepath.Join(dir, "etc"), 0o755)
 	Expect(err).To(BeNil())
-	err = ioutil.WriteFile(filepath.Join(dir, "etc", "passwd"), []byte(alpinePasswdFile), 0o755)
+	err = os.WriteFile(filepath.Join(dir, "etc", "passwd"), []byte(alpinePasswdFile), 0o755)
 	Expect(err).To(BeNil())
-	err = ioutil.WriteFile(filepath.Join(dir, "etc", "group"), []byte(alpineGroupFile), 0o755)
+	err = os.WriteFile(filepath.Join(dir, "etc", "group"), []byte(alpineGroupFile), 0o755)
 	Expect(err).To(BeNil())
 	return dir
 }

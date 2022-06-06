@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/log"
@@ -32,7 +31,7 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 	defer func() {
 		if emptyStreamOnError && stream != nil {
 			go func() {
-				_, copyError := pools.Copy(ioutil.Discard, stream)
+				_, copyError := pools.Copy(io.Discard, stream)
 				log.Errorf(ctx, "Error closing port forward stream after other error: %v", copyError)
 			}()
 		}

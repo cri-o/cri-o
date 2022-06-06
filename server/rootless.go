@@ -1,7 +1,7 @@
 package server
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -98,7 +98,7 @@ func getAvailableV2Controllers() map[string]struct{} {
 		return nil
 	}
 	controllersPath := filepath.Join("/sys/fs/cgroup", v2Group, "cgroup.controllers")
-	controllersBytes, err := ioutil.ReadFile(controllersPath)
+	controllersBytes, err := os.ReadFile(controllersPath)
 	if err != nil {
 		logrus.Error(err)
 		return nil

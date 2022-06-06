@@ -1,7 +1,7 @@
 package log
 
 import (
-	"io/ioutil"
+	"io"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -43,7 +43,7 @@ func (f *FilterHook) Fire(entry *logrus.Entry) error {
 	if f.custom != nil && !f.custom.MatchString(entry.Message) {
 		*entry = logrus.Entry{
 			Logger: &logrus.Logger{
-				Out:       ioutil.Discard,
+				Out:       io.Discard,
 				Formatter: &logrus.JSONFormatter{},
 			},
 		}

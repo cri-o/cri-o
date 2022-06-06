@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -53,7 +52,7 @@ func run() error {
 	if err != nil {
 		return errors.Wrap(err, "listing go modules")
 	}
-	tmpFile, err := ioutil.TempFile("", "modules-")
+	tmpFile, err := os.CreateTemp("", "modules-")
 	if err != nil {
 		return errors.Wrap(err, "creating temp file")
 	}
@@ -111,7 +110,7 @@ _Generated on %s for commit [%s][0]._
 		all.OutputTrimNL(),
 	)
 
-	if err := ioutil.WriteFile(outputFile, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(outputFile, []byte(content), 0o644); err != nil {
 		return errors.Wrap(err, "writing report")
 	}
 
@@ -133,7 +132,7 @@ _Generated on %s for commit [%s][0]._
 	defer func() { err = repo.Checkout(currentBranch) }()
 
 	// Write the target file
-	if err := ioutil.WriteFile(file, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(file, []byte(content), 0o644); err != nil {
 		return errors.Wrap(err, "write content to file")
 	}
 
