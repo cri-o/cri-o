@@ -36,6 +36,7 @@ import (
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	kioutil "k8s.io/kubernetes/pkg/kubelet/util/ioutils"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -342,8 +343,8 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 	defer log.Debugf(ctx, "RuntimeVM.ExecSyncContainer() end")
 
 	var stdoutBuf, stderrBuf bytes.Buffer
-	stdout := cioutil.NewNopWriteCloser(&stdoutBuf)
-	stderr := cioutil.NewNopWriteCloser(&stderrBuf)
+	stdout := kioutil.WriteCloserWrapper(kioutil.LimitWriter(&stdoutBuf, maxExecSyncSize))
+	stderr := kioutil.WriteCloserWrapper(kioutil.LimitWriter(&stderrBuf, maxExecSyncSize))
 
 	exitCode, err := r.execContainerCommon(ctx, c, command, timeout, nil, stdout, stderr, c.terminal, nil)
 	if err != nil {
