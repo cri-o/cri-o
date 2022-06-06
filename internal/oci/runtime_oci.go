@@ -486,6 +486,9 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	if r.config.ConmonSupportsSync() {
 		args = append(args, "--sync")
 	}
+	if r.config.ConmonSupportsLogGlobalSizeMax() {
+		args = append(args, "--log-global-size-max", strconv.Itoa(maxExecSyncSize))
+	}
 	if c.terminal {
 		args = append(args, "-t")
 	}
@@ -661,7 +664,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	// ExecSyncResponse we have to read the logfile.
 	// XXX: Currently runC dups the same console over both stdout and stderr,
 	//      so we can't differentiate between the two.
-	logBytes, err := ioutil.ReadFile(logPath)
+	logBytes, err := TruncateAndReadFile(ctx, logPath, maxExecSyncSize)
 	if err != nil {
 		return nil, &ExecSyncError{
 			Stdout:   stdoutBuf,
@@ -678,6 +681,20 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		Stderr:   stderrBytes,
 		ExitCode: ec.ExitCode,
 	}, nil
+}
+
+func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if info.Size() > size {
+		log.Errorf(ctx, "Exec sync output in file %s has size %d which is longer than expected size of %d", path, info.Size(), size)
+		if err := os.Truncate(path, size); err != nil {
+			return nil, err
+		}
+	}
+	return os.ReadFile(path)
 }
 
 // UpdateContainer updates container resources
