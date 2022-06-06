@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 06 Jun 2022 19:12:08 UTC for commit [f032cf6][0]._
+_Generated on Mon, 06 Jun 2022 21:06:23 UTC for commit [ed29411][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f032cf649ecc7e0c46718bd9e7814bfb317cb544
+[0]: https://github.com/cri-o/cri-o/commit/ed29411b33342e1c91db6caf8a517f7ee84818b1
 
 ## Outdated Dependencies
 
@@ -466,7 +466,7 @@ _Generated on Mon, 06 Jun 2022 19:12:08 UTC for commit [f032cf6][0]._
 | github.com/moby/locker                                                      | v1.0.1                                            |                                    | false  | true             |
 | github.com/moby/spdystream                                                  | v0.2.0                                            |                                    | false  | true             |
 | github.com/moby/sys/mount                                                   | v0.2.0                                            | v0.3.2                             | false  | true             |
-| github.com/moby/sys/mountinfo                                               | v0.4.1                                            | v0.6.1                             | false  | true             |
+| github.com/moby/sys/mountinfo                                               | v0.4.1                                            | v0.6.2                             | false  | true             |
 | github.com/moby/sys/symlink                                                 | v0.1.0                                            | v0.2.0                             | false  | true             |
 | github.com/moby/term                                                        | v0.0.0-20210619224110-3f7ff695adc6                |                                    | false  | true             |
 | github.com/moby/vpnkit                                                      | v0.5.0                                            |                                    | false  | true             |
