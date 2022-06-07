@@ -61,7 +61,7 @@ var _ = t.Describe("ConmonManager", func() {
 		It("should succeed when output expected", func() {
 			// Given
 			gomock.InOrder(
-				runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte("conmon version 2.0.0"), nil),
+				runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte("conmon version 2.2.2"), nil),
 			)
 
 			// When
