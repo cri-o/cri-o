@@ -1,12 +1,17 @@
+//go:build freebsd
 // +build freebsd
 
 package disk
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/binary"
+	"fmt"
+	"os/exec"
 	"strconv"
+	"strings"
 
 	"golang.org/x/sys/unix"
 
@@ -162,7 +167,29 @@ func getFsType(stat unix.Statfs_t) string {
 }
 
 func SerialNumberWithContext(ctx context.Context, name string) (string, error) {
-	return "", common.ErrNotImplementedError
+	geom, err := exec.LookPath("geom")
+	if err != nil {
+		return "", fmt.Errorf("find geom: %w", err)
+	}
+	geomOut, err := invoke.CommandWithContext(ctx, geom, "disk", "list", name)
+	if err != nil {
+		return "", fmt.Errorf("exec geom: %w", err)
+	}
+	s := bufio.NewScanner(bytes.NewReader(geomOut))
+	serial := ""
+	for s.Scan() {
+		flds := strings.Fields(s.Text())
+		if len(flds) == 2 && flds[0] == "ident:" {
+			if flds[1] != "(null)" {
+				serial = flds[1]
+			}
+			break
+		}
+	}
+	if err = s.Err(); err != nil {
+		return "", err
+	}
+	return serial, nil
 }
 
 func LabelWithContext(ctx context.Context, name string) (string, error) {

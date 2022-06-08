@@ -21,11 +21,12 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"hash"
 	"io"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,7 +53,7 @@ func ForFile(filename string, hasher hash.Hash) (string, error) {
 
 	f, err := os.Open(filename)
 	if err != nil {
-		return "", errors.Wrapf(err, "open file %s", filename)
+		return "", fmt.Errorf("open file %s: %w", filename, err)
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
@@ -62,7 +63,7 @@ func ForFile(filename string, hasher hash.Hash) (string, error) {
 
 	hasher.Reset()
 	if _, err := io.Copy(hasher, f); err != nil {
-		return "", errors.Wrapf(err, "hash file %s", filename)
+		return "", fmt.Errorf("hash file %s: %w", filename, err)
 	}
 
 	return hex.EncodeToString(hasher.Sum(nil)), nil

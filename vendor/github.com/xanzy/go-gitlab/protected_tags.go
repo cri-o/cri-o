@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // ProtectedTagsService handles communication with the protected tag methods
@@ -63,9 +64,9 @@ func (s *ProtectedTagsService) ListProtectedTags(pid interface{}, opt *ListProte
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/protected_tags", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/protected_tags", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -88,9 +89,9 @@ func (s *ProtectedTagsService) GetProtectedTag(pid interface{}, tag string, opti
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/protected_tags/%s", pathEscape(project), pathEscape(tag))
+	u := fmt.Sprintf("projects/%s/protected_tags/%s", PathEscape(project), PathEscape(tag))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -124,9 +125,9 @@ func (s *ProtectedTagsService) ProtectRepositoryTags(pid interface{}, opt *Prote
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/protected_tags", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/protected_tags", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -150,9 +151,9 @@ func (s *ProtectedTagsService) UnprotectRepositoryTags(pid interface{}, tag stri
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/protected_tags/%s", pathEscape(project), pathEscape(tag))
+	u := fmt.Sprintf("projects/%s/protected_tags/%s", PathEscape(project), PathEscape(tag))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

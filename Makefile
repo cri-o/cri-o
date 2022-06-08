@@ -158,7 +158,7 @@ check-config-template:
 	./hack/validate-config.sh
 
 shellfiles: ${SHFMT}
-	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh))
+	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh | grep -v .bats))
 
 shfmt: shellfiles
 	${SHFMT} -ln bash -w -i 4 -d ${SHELLFILES}

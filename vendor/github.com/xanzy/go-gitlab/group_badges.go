@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // GroupBadgesService handles communication with the group badges
@@ -65,9 +66,9 @@ func (s *GroupBadgesService) ListGroupBadges(gid interface{}, opt *ListGroupBadg
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/badges", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/badges", PathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -90,9 +91,9 @@ func (s *GroupBadgesService) GetGroupBadge(gid interface{}, badge int, options .
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/badges/%d", pathEscape(group), badge)
+	u := fmt.Sprintf("groups/%s/badges/%d", PathEscape(group), badge)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -124,9 +125,9 @@ func (s *GroupBadgesService) AddGroupBadge(gid interface{}, opt *AddGroupBadgeOp
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/badges", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/badges", PathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,9 +159,9 @@ func (s *GroupBadgesService) EditGroupBadge(gid interface{}, badge int, opt *Edi
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/badges/%d", pathEscape(group), badge)
+	u := fmt.Sprintf("groups/%s/badges/%d", PathEscape(group), badge)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -183,9 +184,9 @@ func (s *GroupBadgesService) DeleteGroupBadge(gid interface{}, badge int, option
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("groups/%s/badges/%d", pathEscape(group), badge)
+	u := fmt.Sprintf("groups/%s/badges/%d", PathEscape(group), badge)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -212,9 +213,9 @@ func (s *GroupBadgesService) PreviewGroupBadge(gid interface{}, opt *GroupBadgeP
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/badges/render", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/badges/render", PathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

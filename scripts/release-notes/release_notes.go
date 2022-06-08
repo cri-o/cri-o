@@ -12,7 +12,7 @@ import (
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/release/pkg/git"
+	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/command"
 	"sigs.k8s.io/release-utils/util"
 )
@@ -228,7 +228,7 @@ Download one of our static release bundles via our Google Cloud Bucket:
 	}
 
 	// Other jobs could run in parallel, rebase before pushing
-	if err := repo.FetchRemote(git.DefaultRemote); err != nil {
+	if _, err := repo.FetchRemote(git.DefaultRemote); err != nil {
 		return errors.Wrap(err, "fetch remote")
 	}
 

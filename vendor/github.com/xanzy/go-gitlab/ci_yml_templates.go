@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // CIYMLTemplatesService handles communication with the gitlab
@@ -49,7 +50,7 @@ type ListCIYMLTemplatesOptions ListOptions
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/templates/gitlab_ci_ymls.html#list-gitlab-ci-yml-templates
 func (s *CIYMLTemplatesService) ListAllTemplates(opt *ListCIYMLTemplatesOptions, options ...RequestOptionFunc) ([]*CIYMLTemplate, *Response, error) {
-	req, err := s.client.NewRequest("GET", "templates/gitlab_ci_ymls", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "templates/gitlab_ci_ymls", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,9 +69,9 @@ func (s *CIYMLTemplatesService) ListAllTemplates(opt *ListCIYMLTemplatesOptions,
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/templates/gitlab_ci_ymls.html#single-gitlab-ci-yml-template
 func (s *CIYMLTemplatesService) GetTemplate(key string, options ...RequestOptionFunc) (*CIYMLTemplate, *Response, error) {
-	u := fmt.Sprintf("templates/gitlab_ci_ymls/%s", pathEscape(key))
+	u := fmt.Sprintf("templates/gitlab_ci_ymls/%s", PathEscape(key))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

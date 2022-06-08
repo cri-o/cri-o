@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // IssueLinksService handles communication with the issue relations related methods
@@ -49,9 +50,9 @@ func (s *IssueLinksService) ListIssueRelations(pid interface{}, issueIID int, op
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/issues/%d/links", pathEscape(project), issueIID)
+	u := fmt.Sprintf("projects/%s/issues/%d/links", PathEscape(project), issueIID)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,9 +85,9 @@ func (s *IssueLinksService) CreateIssueLink(pid interface{}, issueIID int, opt *
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/issues/%d/links", pathEscape(project), issueIID)
+	u := fmt.Sprintf("projects/%s/issues/%d/links", PathEscape(project), issueIID)
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -110,11 +111,11 @@ func (s *IssueLinksService) DeleteIssueLink(pid interface{}, issueIID, issueLink
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/links/%d",
-		pathEscape(project),
+		PathEscape(project),
 		issueIID,
 		issueLinkID)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -18,6 +18,8 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
+	"time"
 )
 
 // EnvironmentsService handles communication with the environment related methods
@@ -36,8 +38,11 @@ type Environment struct {
 	Name           string      `json:"name"`
 	Slug           string      `json:"slug"`
 	State          string      `json:"state"`
+	Tier           string      `json:"tier"`
 	ExternalURL    string      `json:"external_url"`
 	Project        *Project    `json:"project"`
+	CreatedAt      *time.Time  `json:"created_at"`
+	UpdatedAt      *time.Time  `json:"updated_at"`
 	LastDeployment *Deployment `json:"last_deployment"`
 }
 
@@ -49,7 +54,12 @@ func (env Environment) String() string {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/environments.html#list-environments
-type ListEnvironmentsOptions ListOptions
+type ListEnvironmentsOptions struct {
+	ListOptions
+	Name   *string `url:"name,omitempty" json:"name,omitempty"`
+	Search *string `url:"search,omitempty" json:"search,omitempty"`
+	States *string `url:"states,omitempty" json:"states,omitempty"`
+}
 
 // ListEnvironments gets a list of environments from a project, sorted by name
 // alphabetically.
@@ -61,9 +71,9 @@ func (s *EnvironmentsService) ListEnvironments(pid interface{}, opts *ListEnviro
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/environments", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/environments", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,9 +96,9 @@ func (s *EnvironmentsService) GetEnvironment(pid interface{}, environment int, o
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/environments/%d", pathEscape(project), environment)
+	u := fmt.Sprintf("projects/%s/environments/%d", PathEscape(project), environment)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,6 +119,7 @@ func (s *EnvironmentsService) GetEnvironment(pid interface{}, environment int, o
 type CreateEnvironmentOptions struct {
 	Name        *string `url:"name,omitempty" json:"name,omitempty"`
 	ExternalURL *string `url:"external_url,omitempty" json:"external_url,omitempty"`
+	Tier        *string `url:"tier,omitempty" json:"tier,omitempty"`
 }
 
 // CreateEnvironment adds an environment to a project. This is an idempotent
@@ -123,9 +134,9 @@ func (s *EnvironmentsService) CreateEnvironment(pid interface{}, opt *CreateEnvi
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/environments", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/environments", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -146,6 +157,7 @@ func (s *EnvironmentsService) CreateEnvironment(pid interface{}, opt *CreateEnvi
 type EditEnvironmentOptions struct {
 	Name        *string `url:"name,omitempty" json:"name,omitempty"`
 	ExternalURL *string `url:"external_url,omitempty" json:"external_url,omitempty"`
+	Tier        *string `url:"tier,omitempty" json:"tier,omitempty"`
 }
 
 // EditEnvironment updates a project team environment to a specified access level..
@@ -157,9 +169,9 @@ func (s *EnvironmentsService) EditEnvironment(pid interface{}, environment int, 
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/environments/%d", pathEscape(project), environment)
+	u := fmt.Sprintf("projects/%s/environments/%d", PathEscape(project), environment)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -182,9 +194,9 @@ func (s *EnvironmentsService) DeleteEnvironment(pid interface{}, environment int
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/environments/%d", pathEscape(project), environment)
+	u := fmt.Sprintf("projects/%s/environments/%d", PathEscape(project), environment)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -201,9 +213,9 @@ func (s *EnvironmentsService) StopEnvironment(pid interface{}, environmentID int
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/environments/%d/stop", pathEscape(project), environmentID)
+	u := fmt.Sprintf("projects/%s/environments/%d/stop", PathEscape(project), environmentID)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

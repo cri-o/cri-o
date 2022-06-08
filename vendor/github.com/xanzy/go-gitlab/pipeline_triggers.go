@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -59,9 +60,9 @@ func (s *PipelineTriggersService) ListPipelineTriggers(pid interface{}, opt *Lis
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/triggers", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,9 +85,9 @@ func (s *PipelineTriggersService) GetPipelineTrigger(pid interface{}, trigger in
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers/%d", pathEscape(project), trigger)
+	u := fmt.Sprintf("projects/%s/triggers/%d", PathEscape(project), trigger)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -117,9 +118,9 @@ func (s *PipelineTriggersService) AddPipelineTrigger(pid interface{}, opt *AddPi
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/triggers", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -150,9 +151,9 @@ func (s *PipelineTriggersService) EditPipelineTrigger(pid interface{}, trigger i
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers/%d", pathEscape(project), trigger)
+	u := fmt.Sprintf("projects/%s/triggers/%d", PathEscape(project), trigger)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -176,9 +177,9 @@ func (s *PipelineTriggersService) TakeOwnershipOfPipelineTrigger(pid interface{}
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers/%d/take_ownership", pathEscape(project), trigger)
+	u := fmt.Sprintf("projects/%s/triggers/%d/take_ownership", PathEscape(project), trigger)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -201,9 +202,9 @@ func (s *PipelineTriggersService) DeletePipelineTrigger(pid interface{}, trigger
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers/%d", pathEscape(project), trigger)
+	u := fmt.Sprintf("projects/%s/triggers/%d", PathEscape(project), trigger)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -230,9 +231,9 @@ func (s *PipelineTriggersService) RunPipelineTrigger(pid interface{}, opt *RunPi
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/trigger/pipeline", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/trigger/pipeline", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

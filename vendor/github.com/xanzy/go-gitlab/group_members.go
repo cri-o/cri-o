@@ -18,6 +18,8 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
+	"time"
 )
 
 // GroupMembersService handles communication with the group members
@@ -49,6 +51,7 @@ type GroupMember struct {
 	State             string                   `json:"state"`
 	AvatarURL         string                   `json:"avatar_url"`
 	WebURL            string                   `json:"web_url"`
+	CreatedAt         *time.Time               `json:"created_at"`
 	ExpiresAt         *ISOTime                 `json:"expires_at"`
 	AccessLevel       AccessLevelValue         `json:"access_level"`
 	GroupSAMLIdentity *GroupMemberSAMLIdentity `json:"group_saml_identity"`
@@ -74,9 +77,9 @@ func (s *GroupsService) ListGroupMembers(gid interface{}, opt *ListGroupMembersO
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/members", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/members", PathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -100,9 +103,9 @@ func (s *GroupsService) ListAllGroupMembers(gid interface{}, opt *ListGroupMembe
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/members/all", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/members/all", PathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -135,9 +138,9 @@ func (s *GroupMembersService) GetGroupMember(gid interface{}, user int, options 
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/members/%d", pathEscape(group), user)
+	u := fmt.Sprintf("groups/%s/members/%d", PathEscape(group), user)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -151,6 +154,75 @@ func (s *GroupMembersService) GetGroupMember(gid interface{}, user int, options 
 	return gm, resp, err
 }
 
+// BillableGroupMember represents a GitLab billable group member.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/members.html#list-all-billable-members-of-a-group
+type BillableGroupMember struct {
+	ID             int     `json:"id"`
+	Username       string  `json:"username"`
+	Name           string  `json:"name"`
+	State          string  `json:"state"`
+	AvatarURL      string  `json:"avatar_url"`
+	WebURL         string  `json:"web_url"`
+	Email          string  `json:"email"`
+	LastActivityOn ISOTime `json:"last_activity_on"`
+}
+
+// ListBillableGroupMembersOptions represents the available ListBillableGroupMembers() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/members.html#list-all-billable-members-of-a-group
+type ListBillableGroupMembersOptions struct {
+	ListOptions
+	Search *string `url:"search,omitempty" json:"search,omitempty"`
+	Sort   *string `url:"sort,omitempty" json:"sort,omitempty"`
+}
+
+// ListBillableGroupMembers Gets a list of group members that count as billable.
+// The list includes members in the subgroup or subproject.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/members.html#list-all-billable-members-of-a-group
+func (s *GroupsService) ListBillableGroupMembers(gid interface{}, opt *ListBillableGroupMembersOptions, options ...RequestOptionFunc) ([]*BillableGroupMember, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/billable_members", PathEscape(group))
+
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var bgm []*BillableGroupMember
+	resp, err := s.client.Do(req, &bgm)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return bgm, resp, err
+}
+
+// RemoveBillableGroupMember removes a given group members that count as billable.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/members.html#remove-a-billable-member-from-a-group
+func (s *GroupsService) RemoveBillableGroupMember(gid interface{}, user int, options ...RequestOptionFunc) (*Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("groups/%s/billable_members/%d", PathEscape(group), user)
+
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
 // AddGroupMember adds a user to the list of group members.
 //
 // GitLab API docs:
@@ -160,9 +232,9 @@ func (s *GroupMembersService) AddGroupMember(gid interface{}, opt *AddGroupMembe
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/members", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/members", PathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -185,9 +257,9 @@ func (s *GroupMembersService) ShareWithGroup(gid interface{}, opt *ShareWithGrou
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/share", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/share", PathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -210,9 +282,9 @@ func (s *GroupMembersService) DeleteShareWithGroup(gid interface{}, groupID int,
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("groups/%s/share/%d", pathEscape(group), groupID)
+	u := fmt.Sprintf("groups/%s/share/%d", PathEscape(group), groupID)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -239,9 +311,9 @@ func (s *GroupMembersService) EditGroupMember(gid interface{}, user int, opt *Ed
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/members/%d", pathEscape(group), user)
+	u := fmt.Sprintf("groups/%s/members/%d", PathEscape(group), user)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -264,9 +336,9 @@ func (s *GroupMembersService) RemoveGroupMember(gid interface{}, user int, optio
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("groups/%s/members/%d", pathEscape(group), user)
+	u := fmt.Sprintf("groups/%s/members/%d", PathEscape(group), user)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
