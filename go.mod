@@ -8,12 +8,12 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/container-orchestrated-devices/container-device-interface v0.4.0
 	github.com/containerd/cgroups v1.0.4
-	github.com/containerd/containerd v1.5.8
+	github.com/containerd/containerd v1.6.6
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/fifo v1.0.0
 	github.com/containerd/ttrpc v1.1.0
 	github.com/containerd/typeurl v1.0.2
-	github.com/containernetworking/cni v1.1.0
+	github.com/containernetworking/cni v1.1.1
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.23.1
 	github.com/containers/common v0.46.1-0.20211001143714-161e078e4c7f
@@ -85,7 +85,7 @@ require (
 require (
 	capnproto.org/go/capnp/v3 v3.0.0-20220504220541-7329fad9c27b // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
-	github.com/Microsoft/hcsshim v0.9.2 // indirect
+	github.com/Microsoft/hcsshim v0.9.3 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -114,6 +114,7 @@ require (
 	github.com/docker/docker v20.10.12+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
+	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/go-plugins-helpers v0.0.0-20200102110956-c9a8a2d92ccc // indirect
 	github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316 // indirect
