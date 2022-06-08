@@ -74,20 +74,6 @@ func getContainerDetails(nsm *nsManager, netnsPath, interfaceName, addrType stri
 	return ipNet, &mac, nil
 }
 
-func tearDownLoopback(netns string) error {
-	return ns.WithNetNSPath(netns, func(_ ns.NetNS) error {
-		link, err := netlink.LinkByName(loIfname)
-		if err != nil {
-			return err // not tested
-		}
-		err = netlink.LinkSetDown(link)
-		if err != nil {
-			return err // not tested
-		}
-		return nil
-	})
-}
-
 func bringUpLoopback(netns string) error {
 	if err := ns.WithNetNSPath(netns, func(_ ns.NetNS) error {
 		link, err := netlink.LinkByName(loIfname)

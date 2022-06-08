@@ -223,7 +223,7 @@ github.com/containerd/ttrpc
 # github.com/containerd/typeurl v1.0.2
 ## explicit; go 1.13
 github.com/containerd/typeurl
-# github.com/containernetworking/cni v1.1.0
+# github.com/containernetworking/cni v1.1.1
 ## explicit; go 1.14
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
@@ -487,7 +487,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/creack/pty v1.1.18
 ## explicit; go 1.13
 github.com/creack/pty
-# github.com/cri-o/ocicni v0.3.1
+# github.com/cri-o/ocicni v0.4.0
 ## explicit; go 1.17
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.3
