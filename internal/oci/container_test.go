@@ -2,7 +2,6 @@ package oci_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
@@ -201,7 +200,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should succeed to get the state from disk", func() {
 			// Given
-			Expect(ioutil.WriteFile(path.Join(sut.Dir(), "state.json"),
+			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"),
 				[]byte("{}"), 0o644)).To(BeNil())
 
 			// When
@@ -212,7 +211,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should succeed when pid set but initialPid not set", func() {
 			// Given
-			Expect(ioutil.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
+			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
 			{"pid":`+strconv.Itoa(alwaysRunningPid)+`}`),
 				0o644)).To(BeNil())
 
@@ -227,7 +226,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should succeed when pid set but initialPid not set", func() {
 			// Given
-			Expect(ioutil.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
+			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
 			{"pid":`+strconv.Itoa(alwaysRunningPid)+`}`),
 				0o644)).To(BeNil())
 
@@ -242,7 +241,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should fail when pid set and not running", func() {
 			// Given
-			Expect(ioutil.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
+			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
 			{"pid":`+strconv.Itoa(neverRunningPid)+`}`),
 				0o644)).To(BeNil())
 
@@ -258,7 +257,7 @@ var _ = t.Describe("Container", func() {
 
 		It("should fail to get the state from disk if invalid json", func() {
 			// Given
-			Expect(ioutil.WriteFile(path.Join(sut.Dir(), "state.json"),
+			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"),
 				[]byte("invalid"), 0o644)).To(BeNil())
 
 			// When
@@ -476,7 +475,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should fail when there are no parenthesis", func() {
 			contents := []byte("1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52")
-			Expect(ioutil.WriteFile(statFile, contents, 0o644)).To(BeNil())
+			Expect(os.WriteFile(statFile, contents, 0o644)).To(BeNil())
 
 			// When
 			stime, err := oci.GetPidStartTimeFromFile(statFile)
@@ -487,7 +486,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should fail with short file", func() {
 			contents := []byte("1 (2) 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21")
-			Expect(ioutil.WriteFile(statFile, contents, 0o644)).To(BeNil())
+			Expect(os.WriteFile(statFile, contents, 0o644)).To(BeNil())
 
 			// When
 			stime, err := oci.GetPidStartTimeFromFile(statFile)
@@ -498,7 +497,7 @@ var _ = t.Describe("Container", func() {
 		})
 		It("should succeed to get start time", func() {
 			contents := []byte("1 (2) 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52")
-			Expect(ioutil.WriteFile(statFile, contents, 0o644)).To(BeNil())
+			Expect(os.WriteFile(statFile, contents, 0o644)).To(BeNil())
 
 			// When
 			stime, err := oci.GetPidStartTimeFromFile(statFile)

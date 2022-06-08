@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -655,7 +654,7 @@ func newCertReloader(doneChan chan struct{}, certPath, keyPath string) (*certRel
 			if err := os.MkdirAll(filepath.Dir(path), os.FileMode(0o700)); err != nil {
 				return nil, errors.Wrap(err, "create path")
 			}
-			if err := ioutil.WriteFile(path, bytes, os.FileMode(0o600)); err != nil {
+			if err := os.WriteFile(path, bytes, os.FileMode(0o600)); err != nil {
 				return nil, errors.Wrap(err, "write file")
 			}
 		}

@@ -3,7 +3,6 @@ package oci
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -636,7 +635,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 	// And then connect to the existing gRPC server with this address.
 	if r.task == nil {
 		addressPath := filepath.Join(c.BundlePath(), "address")
-		data, err := ioutil.ReadFile(addressPath)
+		data, err := os.ReadFile(addressPath)
 		if err != nil {
 			log.Warnf(ctx, "Failed to read shim address: %v", err)
 			return errors.New("runtime not correctly setup")

@@ -5,7 +5,6 @@ package cgmgr
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -109,7 +108,7 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 
 func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilename string) error {
 	// read in the memory limit from memory max file
-	fileData, err := ioutil.ReadFile(filepath.Join(memorySubsystemPath, slicePath, memoryMaxFilename))
+	fileData, err := os.ReadFile(filepath.Join(memorySubsystemPath, slicePath, memoryMaxFilename))
 	if err != nil {
 		if os.IsNotExist(err) {
 			logrus.Warnf("Failed to find %s at path: %q", memoryMaxFilename, slicePath)

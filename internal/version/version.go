@@ -1,9 +1,7 @@
 package version
 
 import (
-	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -57,14 +55,9 @@ func ShouldCrioWipe(versionFileName string) (bool, error) {
 
 // shouldCrioWipe is an internal function for testing purposes
 func shouldCrioWipe(versionFileName, versionString string) (bool, error) {
-	f, err := os.Open(versionFileName)
+	versionBytes, err := os.ReadFile(versionFileName)
 	if err != nil {
-		return true, errors.Errorf("version file %s not found: %v", versionFileName, err)
-	}
-	r := bufio.NewReader(f)
-	versionBytes, err := ioutil.ReadAll(r)
-	if err != nil {
-		return true, errors.Errorf("reading version file %s failed: %v", versionFileName, err)
+		return true, err
 	}
 
 	// parse the version that was laid down by a previous invocation of crio

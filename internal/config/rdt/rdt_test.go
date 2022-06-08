@@ -1,7 +1,7 @@
 package rdt
 
 import (
-	"io/ioutil"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -9,7 +9,7 @@ import (
 
 func tempFileWithData(data string) string {
 	f := t.MustTempFile("")
-	Expect(ioutil.WriteFile(f, []byte(data), 0o644)).To(BeNil())
+	Expect(os.WriteFile(f, []byte(data), 0o644)).To(BeNil())
 	return f
 }
 

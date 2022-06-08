@@ -2,7 +2,6 @@ package lib_test
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -176,5 +175,5 @@ func addContainerAndSandbox() {
 }
 
 func createDummyState() {
-	Expect(ioutil.WriteFile("state.json", []byte("{}"), 0o644)).To(BeNil())
+	Expect(os.WriteFile("state.json", []byte("{}"), 0o644)).To(BeNil())
 }

@@ -2,7 +2,7 @@ package seccomp
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -113,7 +113,7 @@ func (c *Config) LoadProfile(profilePath string) error {
 		return nil
 	}
 
-	profile, err := ioutil.ReadFile(profilePath)
+	profile, err := os.ReadFile(profilePath)
 	if err != nil {
 		return errors.Wrap(err, "open seccomp profile")
 	}
@@ -221,7 +221,7 @@ func (c *Config) setupFromPath(
 	}
 
 	fname := strings.TrimPrefix(profilePath, k8sV1.SeccompLocalhostProfileNamePrefix)
-	file, err := ioutil.ReadFile(filepath.FromSlash(fname))
+	file, err := os.ReadFile(filepath.FromSlash(fname))
 	if err != nil {
 		return errors.Errorf("cannot load seccomp profile %q: %v", fname, err)
 	}
@@ -273,7 +273,7 @@ func (c *Config) setupFromField(
 	}
 
 	// Load local seccomp profiles including their availability validation
-	file, err := ioutil.ReadFile(filepath.FromSlash(profileField.LocalhostRef))
+	file, err := os.ReadFile(filepath.FromSlash(profileField.LocalhostRef))
 	if err != nil {
 		return errors.Wrapf(
 			err, "unable to load local profile %q", profileField.LocalhostRef,

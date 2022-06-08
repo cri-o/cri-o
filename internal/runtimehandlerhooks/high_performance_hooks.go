@@ -3,7 +3,6 @@ package runtimehandlerhooks
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -215,7 +214,7 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 			if !info.Mode().IsRegular() || info.Name() != "flags" {
 				return nil
 			}
-			content, err := ioutil.ReadFile(path)
+			content, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
@@ -237,7 +236,7 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 				newContent = strconv.Itoa(flags & 32766)
 			}
 
-			return ioutil.WriteFile(path, []byte(newContent), 0o644)
+			return os.WriteFile(path, []byte(newContent), 0o644)
 		})
 		if err != nil {
 			return err
@@ -256,7 +255,7 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 		return errors.Errorf("find container %s CPUs", c.ID())
 	}
 
-	content, err := ioutil.ReadFile(irqSmpAffinityFile)
+	content, err := os.ReadFile(irqSmpAffinityFile)
 	if err != nil {
 		return err
 	}
@@ -265,7 +264,7 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 	if err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(irqSmpAffinityFile, []byte(newIRQSMPSetting), 0o644); err != nil {
+	if err := os.WriteFile(irqSmpAffinityFile, []byte(newIRQSMPSetting), 0o644); err != nil {
 		return err
 	}
 
@@ -338,17 +337,17 @@ func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool)
 
 	if enable {
 		// there should have no use case to get here, as the pod cgroup will be deleted when the pod end
-		if err := ioutil.WriteFile(cfsQuotaPath, []byte("0"), 0o644); err != nil {
+		if err := os.WriteFile(cfsQuotaPath, []byte("0"), 0o644); err != nil {
 			return err
 		}
-		if err := ioutil.WriteFile(parentCfsQuotaPath, []byte("0"), 0o644); err != nil {
+		if err := os.WriteFile(parentCfsQuotaPath, []byte("0"), 0o644); err != nil {
 			return err
 		}
 	} else {
-		if err := ioutil.WriteFile(cfsQuotaPath, []byte("-1"), 0o644); err != nil {
+		if err := os.WriteFile(cfsQuotaPath, []byte("-1"), 0o644); err != nil {
 			return err
 		}
-		if err := ioutil.WriteFile(parentCfsQuotaPath, []byte("-1"), 0o644); err != nil {
+		if err := os.WriteFile(parentCfsQuotaPath, []byte("-1"), 0o644); err != nil {
 			return err
 		}
 	}
@@ -358,7 +357,7 @@ func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool)
 
 // RestoreIrqBalanceConfig restores irqbalance service with original banned cpu mask settings
 func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityProcFile string) error {
-	content, err := ioutil.ReadFile(irqSmpAffinityProcFile)
+	content, err := os.ReadFile(irqSmpAffinityProcFile)
 	if err != nil {
 		return err
 	}
@@ -392,7 +391,7 @@ func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSm
 		return nil
 	}
 
-	content, err = ioutil.ReadFile(irqBannedCPUConfigFile)
+	content, err = os.ReadFile(irqBannedCPUConfigFile)
 	if err != nil {
 		return err
 	}

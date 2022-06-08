@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -120,7 +119,7 @@ func (cc *certConfigCache) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.
 	}
 	config.Certificates = []tls.Certificate{cert}
 	if len(cc.tlsCA) > 0 {
-		caBytes, err := ioutil.ReadFile(cc.tlsCA)
+		caBytes, err := os.ReadFile(cc.tlsCA)
 		if err != nil {
 			return nil, errors.Wrap(err, "read TLS CA file")
 		}
@@ -337,7 +336,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 // configureMaxThreads sets the Go runtime max threads threshold
 // which is 90% of the kernel setting from /proc/sys/kernel/threads-max
 func configureMaxThreads() error {
-	mt, err := ioutil.ReadFile("/proc/sys/kernel/threads-max")
+	mt, err := os.ReadFile("/proc/sys/kernel/threads-max")
 	if err != nil {
 		return errors.Wrap(err, "read max threads file")
 	}

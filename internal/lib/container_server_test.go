@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -27,7 +26,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// Create temp lockfile
-			tmpfile, err := ioutil.TempFile("", "lockfile")
+			tmpfile, err := os.CreateTemp("", "lockfile")
 			Expect(err).To(BeNil())
 			defer os.Remove(tmpfile.Name())
 

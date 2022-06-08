@@ -3,7 +3,6 @@ package runtimehandlerhooks
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"unicode"
@@ -155,7 +154,7 @@ func isServiceEnabled(serviceName string) bool {
 }
 
 func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting string) error {
-	input, err := ioutil.ReadFile(irqBalanceConfigFile)
+	input, err := os.ReadFile(irqBalanceConfigFile)
 	if err != nil {
 		return err
 	}
@@ -171,14 +170,14 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting strin
 	if !found {
 		output = output + "\n" + irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\"" + "\n"
 	}
-	if err := ioutil.WriteFile(irqBalanceConfigFile, []byte(output), 0o644); err != nil {
+	if err := os.WriteFile(irqBalanceConfigFile, []byte(output), 0o644); err != nil {
 		return err
 	}
 	return nil
 }
 
 func retrieveIrqBannedCPUMasks(irqBalanceConfigFile string) (string, error) {
-	input, err := ioutil.ReadFile(irqBalanceConfigFile)
+	input, err := os.ReadFile(irqBalanceConfigFile)
 	if err != nil {
 		return "", err
 	}

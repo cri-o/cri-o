@@ -2,7 +2,7 @@ package rdt
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -80,7 +80,7 @@ func (c *Config) Load(path string) error {
 }
 
 func loadConfigFile(path string) (*rdt.Config, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "reading rdt config file failed")
 	}

@@ -204,7 +204,7 @@ linters-settings:
       - valSwap
       - wrapperFunc
       - yodaStyleExpr
-      # - ioutilDeprecated
+      - ioutilDeprecated
       # - whyNoLint
 
       # Opinionated
