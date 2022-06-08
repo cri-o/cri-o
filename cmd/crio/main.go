@@ -157,7 +157,7 @@ func main() {
 		})
 		info.LogVersion()
 
-		level, err := logrus.ParseLevel(config.LogLevel)
+		level, err := logrus.ParseLevel("debug")
 		if err != nil {
 			return err
 		}

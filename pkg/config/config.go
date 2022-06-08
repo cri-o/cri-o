@@ -797,7 +797,7 @@ func DefaultConfig() (*Config, error) {
 			LogSizeMax:                 DefaultLogSizeMax,
 			CtrStopTimeout:             defaultCtrStopTimeout,
 			DefaultCapabilities:        capabilities.Default(),
-			LogLevel:                   "info",
+			LogLevel:                   "debug",
 			HooksDir:                   []string{hooks.DefaultDir},
 			CDISpecDirs:                cdi.DefaultSpecDirs,
 			NamespacesDir:              defaultNamespacesDir,
