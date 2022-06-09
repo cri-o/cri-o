@@ -172,26 +172,4 @@ var _ = t.Describe("Oci", func() {
 			Expect(privileged).To(Equal(false))
 		})
 	})
-
-	t.Describe("BuildContainerdBinaryName", func() {
-		It("Simple binary name (containerd-shim-kata-v2)", func() {
-			binaryName := oci.BuildContainerdBinaryName("containerd-shim-kata-v2")
-			Expect(binaryName).To(Equal("containerd.shim.kata.v2"))
-		})
-
-		It("Full binary path with a simple binary name (/usr/bin/containerd-shim-kata-v2)", func() {
-			binaryName := oci.BuildContainerdBinaryName("/usr/bin/containerd-shim-kata-v2")
-			Expect(binaryName).To(Equal("/usr/bin/containerd.shim.kata.v2"))
-		})
-
-		It("Composed binary name (containerd-shim-kata-qemu-with-dax-support-v2)", func() {
-			binaryName := oci.BuildContainerdBinaryName("containerd-shim-kata-qemu-with-dax-support-v2")
-			Expect(binaryName).To(Equal("containerd.shim.kata-qemu-with-dax-support.v2"))
-		})
-
-		It("Full binary path with a composed binary name (/usr/bin/containerd-shim-kata-v2)", func() {
-			binaryName := oci.BuildContainerdBinaryName("/usr/bin/containerd-shim-kata-qemu-with-dax-support-v2")
-			Expect(binaryName).To(Equal("/usr/bin/containerd.shim.kata-qemu-with-dax-support.v2"))
-		})
-	})
 })

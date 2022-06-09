@@ -191,20 +191,16 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	}
 	args = append(args, "start")
 
-	// Modify the runtime path so that it complies with v2 shim API
-	newRuntimePath := BuildContainerdBinaryName(r.path)
-
 	r.ctx = namespaces.WithNamespace(r.ctx, namespaces.Default)
 
 	// Prepare the command to exec
 	cmd, err := client.Command(
 		r.ctx,
-		newRuntimePath,
-		"",
-		"",
-		c.BundlePath(),
-		nil,
-		args...,
+		&client.CommandConfig{
+			Runtime: r.path,
+			Path:    c.BundlePath(),
+			Args:    args,
+		},
 	)
 	if err != nil {
 		return err
