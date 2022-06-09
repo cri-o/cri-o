@@ -20,7 +20,7 @@ require (
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.0.0-20220505150146-7d0ae00b625c
 	github.com/containers/image/v5 v5.17.0
-	github.com/containers/ocicrypt v1.1.3
+	github.com/containers/ocicrypt v1.1.5
 	github.com/containers/podman/v3 v3.2.0-rc1.0.20211005134800-8bcc086b1b9d
 	github.com/containers/storage v1.37.0
 	github.com/coreos/go-systemd/v22 v22.3.2
