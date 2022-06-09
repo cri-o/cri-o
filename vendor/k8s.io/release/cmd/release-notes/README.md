@@ -90,6 +90,7 @@ level=debug timestamp=2019-07-30T04:02:44.3716249Z caller=notes.go:497 msg="Excl
 | **OUTPUT OPTIONS**      |
 | output                  | OUTPUT          |                     | No       | The path where the release notes will be written                                                                                  |
 | format                  | FORMAT          | markdown            | No       | The format for notes output (options: json, markdown)                                                                             |
+| markdown-links          | MARKDOWN_LINKS  | false               | No       | Add links for PRs and authors in the markdown format. This is useful when the release notes are outputted to a file. When using the GitHub release page to publish release notes, this option should be set to false to take advantage of Github's autolinked references (options: true, false)                                                                               |
 | go-template             | GO_TEMPLATE     | go-template:default | No       | The go template if `--format=markdown` (options: go-template:default, go-template:inline:<template-string> go-template:<file.template>) |
 | dependencies            |                 | true                | No       | Add dependency report                                                                                                             |
 | **LOG OPTIONS**         |

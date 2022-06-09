@@ -3,4 +3,5 @@
 approvers:
   - release-notes-approvers
 reviewers:
-  - release-notes-reviewers
+  - release-engineering-reviewers
+  - wilsonehusin

@@ -23,9 +23,9 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/release/pkg/gcp"
-	"k8s.io/release/pkg/git"
-	"k8s.io/release/pkg/github"
+	"sigs.k8s.io/release-sdk/gcli"
+	"sigs.k8s.io/release-sdk/git"
+	"sigs.k8s.io/release-sdk/github"
 	"sigs.k8s.io/release-utils/command"
 	"sigs.k8s.io/release-utils/env"
 )
@@ -34,11 +34,29 @@ import (
 // release.
 type PrerequisitesChecker struct {
 	impl prerequisitesCheckerImpl
+	opts *PrerequisitesCheckerOptions
+}
+
+// Type prerequisites checker
+type PrerequisitesCheckerOptions struct {
+	CheckGitHubToken bool
+}
+
+var DefaultPrerequisitesCheckerOptions = &PrerequisitesCheckerOptions{
+	CheckGitHubToken: true,
 }
 
 // NewPrerequisitesChecker creates a new PrerequisitesChecker instance.
 func NewPrerequisitesChecker() *PrerequisitesChecker {
-	return &PrerequisitesChecker{&defaultPrerequisitesChecker{}}
+	return &PrerequisitesChecker{
+		&defaultPrerequisitesChecker{},
+		DefaultPrerequisitesCheckerOptions,
+	}
+}
+
+// Options return the options from the prereq checker
+func (p *PrerequisitesChecker) Options() *PrerequisitesCheckerOptions {
+	return p.opts
 }
 
 // SetImpl can be used to set the internal PrerequisitesChecker implementation.
@@ -67,7 +85,7 @@ func (*defaultPrerequisitesChecker) CommandAvailable(
 func (*defaultPrerequisitesChecker) GCloudOutput(
 	args ...string,
 ) (string, error) {
-	return gcp.GCloudOutput(args...)
+	return gcli.GCloudOutput(args...)
 }
 
 func (*defaultPrerequisitesChecker) IsEnvSet(key string) bool {
@@ -129,11 +147,13 @@ func (p *PrerequisitesChecker) Run(workdir string) error {
 	}
 
 	// GitHub checks
-	logrus.Infof(
-		"Verifying that %s environemt variable is set", github.TokenEnvKey,
-	)
-	if !p.impl.IsEnvSet(github.TokenEnvKey) {
-		return errors.Errorf("no %s env variable set", github.TokenEnvKey)
+	if p.opts.CheckGitHubToken {
+		logrus.Infof(
+			"Verifying that %s environemt variable is set", github.TokenEnvKey,
+		)
+		if !p.impl.IsEnvSet(github.TokenEnvKey) {
+			return errors.Errorf("no %s env variable set", github.TokenEnvKey)
+		}
 	}
 
 	// Disk space check

@@ -28,12 +28,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"k8s.io/release/pkg/git"
 	"k8s.io/release/pkg/notes"
 	"k8s.io/release/pkg/notes/document"
 	"k8s.io/release/pkg/notes/options"
 	"k8s.io/release/pkg/release"
 	"sigs.k8s.io/mdtoc/pkg/mdtoc"
+	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/env"
 	"sigs.k8s.io/release-utils/log"
 )
@@ -178,6 +178,13 @@ func init() {
 				options.GoTemplatePrefix + "<file.template>",
 			}, ", "),
 		),
+	)
+
+	cmd.PersistentFlags().BoolVar(
+		&opts.AddMarkdownLinks,
+		"markdown-links",
+		env.IsSet("MARKDOWN_LINKS"),
+		"Add links for PRs and authors are added in the markdown format",
 	)
 
 	cmd.PersistentFlags().StringVar(
@@ -329,7 +336,7 @@ func WriteReleaseNotes(releaseNotes *notes.ReleaseNotes) (err error) {
 			return errors.Wrapf(err, "creating release note document")
 		}
 
-		markdown, err := doc.RenderMarkdownTemplate(opts.ReleaseBucket, opts.ReleaseTars, opts.GoTemplate)
+		markdown, err := doc.RenderMarkdownTemplate(opts.ReleaseBucket, opts.ReleaseTars, "", opts.GoTemplate)
 		if err != nil {
 			return errors.Wrapf(err, "rendering release note document with template")
 		}
@@ -351,7 +358,11 @@ func WriteReleaseNotes(releaseNotes *notes.ReleaseNotes) (err error) {
 		}
 
 		if releaseNotesOpts.tableOfContents {
-			toc, err := mdtoc.GenerateTOC([]byte(markdown))
+			toc, err := mdtoc.GenerateTOC([]byte(markdown), mdtoc.Options{
+				Dryrun:     false,
+				SkipPrefix: false,
+				MaxDepth:   mdtoc.MaxHeaderDepth,
+			})
 			if err != nil {
 				return errors.Wrap(err, "generating table of contents")
 			}

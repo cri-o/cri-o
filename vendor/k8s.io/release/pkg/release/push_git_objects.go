@@ -23,7 +23,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/release/pkg/git"
+	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/util"
 )
 
@@ -99,7 +99,17 @@ func (gp *GitObjectPusher) PushBranch(branchName string) error {
 		return errors.Wrap(err, "checking if branch already exists locally")
 	}
 	if !branchExists {
-		return errors.New(fmt.Sprintf("Unable to push branch %s, it does not exist in the local repo", branchName))
+		return errors.Errorf("unable to push branch %s, it does not exist in the local repo", branchName)
+	}
+
+	// Checkout the branch before merging
+	logrus.Infof("Checking out branch %s to merge upstream changes", branchName)
+	if err := gp.repo.Checkout(branchName); err != nil {
+		return errors.Wrapf(err, "checking out branch %s", git.Remotify(branchName))
+	}
+
+	if err := gp.mergeRemoteIfRequired(branchName); err != nil {
+		return errors.Wrap(err, "merge remote if required")
 	}
 
 	logrus.Infof("Pushing%s %s branch:", dryRunLabel[gp.opts.DryRun], branchName)
@@ -219,12 +229,11 @@ func (gp *GitObjectPusher) PushMain() error {
 
 	logrus.Info("Rebase master branch")
 
-	// logrun -v git fetch origin || return 1
-	if err := gp.repo.FetchRemote(git.DefaultRemote); err != nil {
+	_, err = gp.repo.FetchRemote(git.DefaultRemote)
+	if err != nil {
 		return errors.Wrap(err, "while fetching origin repository")
 	}
 
-	// logrun -s -v git rebase origin/master || return 1
 	if err := gp.repo.Rebase(fmt.Sprintf("%s/%s", git.DefaultRemote, git.DefaultBranch)); err != nil {
 		return errors.Wrap(err, "rebasing repository")
 	}
@@ -235,5 +244,39 @@ func (gp *GitObjectPusher) PushMain() error {
 	if err := gp.repo.Push(git.DefaultBranch); err != nil {
 		return errors.Wrapf(err, "pushing %s branch", git.DefaultBranch)
 	}
+	return nil
+}
+
+func (gp *GitObjectPusher) mergeRemoteIfRequired(branch string) error {
+	branch = git.Remotify(branch)
+	branchParts := strings.Split(branch, "/")
+	logrus.Infof("Merging %s branch if required", branch)
+
+	logrus.Infof("Fetching from %s", git.DefaultRemote)
+	if _, err := gp.repo.FetchRemote(git.DefaultRemote); err != nil {
+		return errors.Wrap(err, "fetch remote")
+	}
+
+	branchExists, err := gp.repo.HasRemoteBranch(branchParts[1])
+	if err != nil {
+		return errors.Wrapf(
+			err, "checking if branch %s exists in repo remote", branch,
+		)
+	}
+	if !branchExists {
+		logrus.Infof(
+			"Git repository does not have remote branch %s, not attempting merge", branch,
+		)
+		return nil
+	}
+
+	logrus.Infof("Merging %s branch", branch)
+	if err := gp.repo.Merge(branch); err != nil {
+		return errors.Wrapf(
+			err, "merging remote branch %s to local repo", branch,
+		)
+	}
+
+	logrus.Info("Local branch is now up to date")
 	return nil
 }

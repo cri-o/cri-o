@@ -99,7 +99,7 @@ func (g *Gatherer) ListReleaseNotesV2() (*ReleaseNotes, error) {
 			if err == nil {
 				if releaseNote != nil {
 					for _, noteMap := range noteMaps {
-						if err := releaseNote.ApplyMap(noteMap); err != nil {
+						if err := releaseNote.ApplyMap(noteMap, g.options.AddMarkdownLinks); err != nil {
 							logrus.WithFields(logrus.Fields{
 								"pr": pair.PrNum,
 							}).Errorf("ignore err: %v", err)
@@ -182,15 +182,19 @@ func (g *Gatherer) buildReleaseNote(pair *commitPrPair) (*ReleaseNote, error) {
 
 	// TODO(wilsonehusin): extract / follow original in ReleasenoteFromCommit
 	indented := strings.ReplaceAll(text, "\n", "\n  ")
-	markdown := fmt.Sprintf("%s ([#%d](%s), [@%s](%s))",
-		indented, pr.GetNumber(), prURL, author, authorURL)
+	markdown := fmt.Sprintf("%s (#%d, @%s)",
+		indented, pr.GetNumber(), author)
+	if g.options.AddMarkdownLinks {
+		markdown = fmt.Sprintf("%s ([#%d](%s), [@%s](%s))",
+			indented, pr.GetNumber(), prURL, author, authorURL)
+	}
 
 	if noteSuffix != "" {
 		markdown = fmt.Sprintf("%s [%s]", markdown, noteSuffix)
 	}
 
 	// Uppercase the first character of the markdown to make it look uniform
-	markdown = strings.ToUpper(string(markdown[0])) + markdown[1:]
+	markdown = capitalizeString(markdown)
 
 	return &ReleaseNote{
 		Commit:         pair.Commit.Hash.String(),

@@ -19,8 +19,11 @@ package notes
 import (
 	"bufio"
 	"context"
-	"crypto/sha1"
+	"crypto/rand"
+	"crypto/sha1" //nolint:gosec // used for file integrity checks, NOT security
 	"fmt"
+	"math/big"
+	"net/http"
 	"net/url"
 	"regexp"
 	"sort"
@@ -28,21 +31,22 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
-	gogithub "github.com/google/go-github/v33/github"
+	gogithub "github.com/google/go-github/v39/github"
 	"github.com/nozzle/throttler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	cvss "github.com/spiegel-im-spiegel/go-cvss/v3/metric"
 	"gopkg.in/yaml.v2"
 
-	"k8s.io/release/pkg/github"
 	"k8s.io/release/pkg/notes/options"
+	"sigs.k8s.io/release-sdk/github"
 )
 
 var (
-	errNoPRIDFoundInCommitMessage = errors.New("no PR IDs found in the commit message")
-	errNoPRFoundForCommitSHA      = errors.New("no PR found for this commit")
+	errNoPRIDFoundInCommitMessage       = errors.New("no PR IDs found in the commit message")
+	errNoPRFoundForCommitSHA            = errors.New("no PR found for this commit")
+	apiSleepTime                  int64 = 60
 )
 
 const (
@@ -52,28 +56,12 @@ const (
 	// maxParallelRequests is the maximum parallel requests we shall make to the
 	// GitHub API
 	maxParallelRequests = 10
-
-	// Regexp to check CVE IDs
-	cveIDRegExp = `^CVE-\d{4}-\d+$`
 )
 
 type (
 	Notes []string
 	Kind  string
 )
-
-// CVEData Information of a linked CVE vulnerability
-type CVEData struct {
-	ID            string  `json:"id"`          // CVE ID, eg CVE-2019-1010260
-	Title         string  `json:"title"`       // Title of the vulnerability
-	Description   string  `json:"description"` // Description text of the vulnerability
-	TrackingIssue string  `json:"issue"`       // Link to the vulnerability tracking issue (url, optional)
-	CVSSVector    string  `json:"vector"`      // Full CVSS vector string, CVSS:3.1/AV:N/AC:H/PR:H/UI:R/S:U/C:H/I:H/A:H
-	CVSSScore     float32 `json:"score"`       // Numeric CVSS score (eg 6.2)
-	CVSSRating    string  `json:"rating"`      // Severity bucket (eg Medium)
-	CalcLink      string  // Link to the CVE calculator (automatic)
-	LinkedPRs     []int   `json:"pullrequests"` // List of linked PRs (to remove them from the release notes doc)
-}
 
 const (
 	KindAPIChange     Kind = "api-change"
@@ -144,7 +132,7 @@ type ReleaseNote struct {
 	DoNotPublish bool `json:"do_not_publish,omitempty"`
 
 	// DataFields a key indexed map of data fields
-	DataFields map[string]ReleaseNotesDataField `json:"data_fields,omitempty"`
+	DataFields map[string]ReleaseNotesDataField `json:"-"`
 }
 
 type Documentation struct {
@@ -286,9 +274,43 @@ func (g *Gatherer) ListReleaseNotes() (*ReleaseNotes, error) {
 		return nil, errors.Wrap(err, "listing commits")
 	}
 
-	results, err := g.gatherNotes(commits)
+	// Get the PRs into a temporary results set
+	resultsTemp, err := g.gatherNotes(commits)
 	if err != nil {
 		return nil, errors.Wrap(err, "gathering notes")
+	}
+
+	// Cycle the results and add the complete notes, as well as those that
+	// have a map associated with it
+	results := []*Result{}
+	logrus.Info("Checking PRs for mapped data")
+	for _, res := range resultsTemp {
+		// If the PR has no release note, check if we have to add it
+		if MatchesExcludeFilter(*res.pullRequest.Body) {
+			for _, provider := range mapProviders {
+				noteMaps, err := provider.GetMapsForPR(res.pullRequest.GetNumber())
+				if err != nil {
+					return nil, errors.Wrapf(
+						err, "checking if a map exists for PR %d", res.pullRequest.GetNumber(),
+					)
+				}
+				if len(noteMaps) != 0 {
+					logrus.Infof(
+						"Artificially adding pr #%d because a map for it was found",
+						res.pullRequest.GetNumber(),
+					)
+					results = append(results, res)
+				} else {
+					logrus.Debugf(
+						"Skipping PR #%d because it contains no release note",
+						res.pullRequest.GetNumber(),
+					)
+				}
+			}
+		} else {
+			// Append the note as it is
+			results = append(results, res)
+		}
 	}
 
 	dedupeCache := map[string]struct{}{}
@@ -296,6 +318,10 @@ func (g *Gatherer) ListReleaseNotes() (*ReleaseNotes, error) {
 	for _, result := range results {
 		if g.options.RequiredAuthor != "" {
 			if result.commit.GetAuthor().GetLogin() != g.options.RequiredAuthor {
+				logrus.Infof(
+					"Skipping release note for PR #%d because required author %q does not match with %q",
+					result.pullRequest.GetNumber(), g.options.RequiredAuthor, result.commit.GetAuthor().GetLogin(),
+				)
 				continue
 			}
 		}
@@ -318,7 +344,7 @@ func (g *Gatherer) ListReleaseNotes() (*ReleaseNotes, error) {
 			}
 
 			for _, noteMap := range noteMaps {
-				if err := note.ApplyMap(noteMap); err != nil {
+				if err := note.ApplyMap(noteMap, g.options.AddMarkdownLinks); err != nil {
 					return nil, errors.Wrapf(err, "applying notemap for PR #%d", result.pullRequest.GetNumber())
 				}
 			}
@@ -328,7 +354,6 @@ func (g *Gatherer) ListReleaseNotes() (*ReleaseNotes, error) {
 			dedupeCache[note.Text] = struct{}{}
 		}
 	}
-
 	return notes, nil
 }
 
@@ -456,15 +481,19 @@ func (g *Gatherer) ReleaseNoteFromCommit(result *Result) (*ReleaseNote, error) {
 
 	// TODO: Spin this to sep function
 	indented := strings.ReplaceAll(text, "\n", "\n  ")
-	markdown := fmt.Sprintf("%s ([#%d](%s), [@%s](%s))",
-		indented, pr.GetNumber(), prURL, author, authorURL)
+	markdown := fmt.Sprintf("%s (#%d, @%s)",
+		indented, pr.GetNumber(), author)
+	if g.options.AddMarkdownLinks {
+		markdown = fmt.Sprintf("%s ([#%d](%s), [@%s](%s))",
+			indented, pr.GetNumber(), prURL, author, authorURL)
+	}
 
 	if noteSuffix != "" {
 		markdown = fmt.Sprintf("%s [%s]", markdown, noteSuffix)
 	}
 
 	// Uppercase the first character of the markdown to make it look uniform
-	markdown = strings.ToUpper(string(markdown[0])) + markdown[1:]
+	markdown = capitalizeString(markdown)
 
 	return &ReleaseNote{
 		Commit:         result.commit.GetSHA(),
@@ -501,10 +530,18 @@ func (g *Gatherer) listCommits(branch, start, end string) ([]*gogithub.Repositor
 
 	allCommits := &commitList{}
 
-	worker := func(clo *gogithub.CommitsListOptions) ([]*gogithub.RepositoryCommit, *gogithub.Response, error) {
-		commits, resp, err := g.client.ListCommits(g.context, g.options.GithubOrg, g.options.GithubRepo, clo)
-		if err != nil {
-			return nil, nil, err
+	worker := func(clo *gogithub.CommitsListOptions) (
+		commits []*gogithub.RepositoryCommit, resp *gogithub.Response, err error,
+	) {
+		for {
+			commits, resp, err = g.client.ListCommits(g.context, g.options.GithubOrg, g.options.GithubRepo, clo)
+			if err != nil {
+				if !canWaitAndRetry(resp, err) {
+					return nil, nil, err
+				}
+			} else {
+				break
+			}
 		}
 		return commits, resp, err
 	}
@@ -693,14 +730,6 @@ func (g *Gatherer) notesForCommit(commit *gogithub.RepositoryCommit) (*Result, e
 			"Got PR #%d for commit: %s", pr.GetNumber(), commit.GetSHA(),
 		)
 
-		if MatchesExcludeFilter(prBody) {
-			logrus.Debugf(
-				"Skipping PR #%d because it contains no release note",
-				pr.GetNumber(),
-			)
-			continue
-		}
-
 		if MatchesIncludeFilter(prBody) {
 			res := &Result{commit: commit, pullRequest: pr}
 			logrus.Infof("PR #%d seems to contain a release note", pr.GetNumber())
@@ -794,7 +823,8 @@ func stripDash(note string) string {
 const listPrefix = "- "
 
 func dashify(note string) string {
-	return strings.ReplaceAll(note, "* ", listPrefix)
+	re := regexp.MustCompile(`(?m)(^\s*)\*\s`)
+	return re.ReplaceAllString(note, "$1- ")
 }
 
 // unlist transforms a single markdown list entry to a flat note entry
@@ -843,6 +873,29 @@ func hasString(a []string, x string) bool {
 	return false
 }
 
+// canWaitAndRetry retruen true if the gatherer hit the GitHub API secondary rate limit
+func canWaitAndRetry(r *gogithub.Response, err error) bool {
+	// If we hit the secondary rate limit...
+	if r == nil {
+		return false
+	}
+	if r.StatusCode == http.StatusForbidden &&
+		strings.Contains(err.Error(), "secondary rate limit. Please wait") {
+		// ... sleep for a minute plus a random bit so that workers don't
+		// respawn all at the same time
+		rtime, err := rand.Int(rand.Reader, big.NewInt(30))
+		if err != nil {
+			logrus.Error(err)
+			return false
+		}
+		waitTime := rtime.Int64() + apiSleepTime
+		logrus.Warnf("Hit the GitHub secondary rate limit, sleeping for %d secs.", waitTime)
+		time.Sleep(time.Duration(waitTime) * time.Second)
+		return true
+	}
+	return false
+}
+
 // prsForCommitFromSHA retrieves the PR numbers for a commit given its sha
 func (g *Gatherer) prsForCommitFromSHA(sha string) (prs []*gogithub.PullRequest, err error) {
 	plo := &gogithub.PullRequestListOptions{
@@ -852,20 +905,32 @@ func (g *Gatherer) prsForCommitFromSHA(sha string) (prs []*gogithub.PullRequest,
 			PerPage: 100,
 		},
 	}
-	prs, resp, err := g.client.ListPullRequestsWithCommit(g.context, g.options.GithubOrg, g.options.GithubRepo, sha, plo)
-	if err != nil {
-		return nil, err
-	}
 
-	plo.ListOptions.Page++
-	for plo.ListOptions.Page <= resp.LastPage {
-		pResult, pResp, err := g.client.ListPullRequestsWithCommit(g.context, g.options.GithubOrg, g.options.GithubRepo, sha, plo)
-		if err != nil {
-			return nil, err
+	prs = []*gogithub.PullRequest{}
+	var pResult []*gogithub.PullRequest
+	var resp *gogithub.Response
+
+	for {
+		for {
+			pResult, resp, err = g.client.ListPullRequestsWithCommit(
+				g.context, g.options.GithubOrg, g.options.GithubRepo, sha, plo,
+			)
+			if err != nil {
+				if !canWaitAndRetry(resp, err) {
+					return nil, err
+				}
+			} else {
+				break
+			}
 		}
 		prs = append(prs, pResult...)
-		resp = pResp
+		if resp.NextPage == 0 {
+			break
+		}
 		plo.ListOptions.Page++
+		if plo.ListOptions.Page > resp.LastPage {
+			break
+		}
 	}
 
 	if len(prs) == 0 {
@@ -880,13 +945,21 @@ func (g *Gatherer) prsForCommitFromMessage(commitMessage string) (prs []*gogithu
 	if err != nil {
 		return nil, err
 	}
+	var res *gogithub.PullRequest
+	var resp *gogithub.Response
 
 	for _, pr := range prsNum {
 		// Given the PR number that we've now converted to an integer, get the PR from
 		// the API
-		res, _, err := g.client.GetPullRequest(g.context, g.options.GithubOrg, g.options.GithubRepo, pr)
-		if err != nil {
-			return nil, err
+		for {
+			res, resp, err = g.client.GetPullRequest(g.context, g.options.GithubOrg, g.options.GithubRepo, pr)
+			if err != nil {
+				if !canWaitAndRetry(resp, err) {
+					return nil, err
+				}
+			} else {
+				break
+			}
 		}
 		prs = append(prs, res)
 	}
@@ -987,7 +1060,7 @@ func prettifySIGList(sigs []string) string {
 
 // ApplyMap Modifies the content of the release using information from
 //  a ReleaseNotesMap
-func (rn *ReleaseNote) ApplyMap(noteMap *ReleaseNotesMap) error {
+func (rn *ReleaseNote) ApplyMap(noteMap *ReleaseNotesMap, markdownLinks bool) error {
 	logrus.WithFields(logrus.Fields{
 		"pr": rn.PrNumber,
 	}).Debugf("Applying map to note")
@@ -1043,10 +1116,14 @@ func (rn *ReleaseNote) ApplyMap(noteMap *ReleaseNotesMap) error {
 	// TODO: Spin this to sep function
 	if reRenderMarkdown {
 		indented := strings.ReplaceAll(rn.Text, "\n", "\n  ")
-		markdown := fmt.Sprintf("%s ([#%d](%s), [@%s](%s))",
-			indented, rn.PrNumber, rn.PrURL, rn.Author, rn.AuthorURL)
+		markdown := fmt.Sprintf("%s (#%d, @%s)",
+			indented, rn.PrNumber, rn.Author)
+		if markdownLinks {
+			markdown = fmt.Sprintf("%s ([#%d](%s), [@%s](%s))",
+				indented, rn.PrNumber, rn.PrURL, rn.Author, rn.AuthorURL)
+		}
 		// Uppercase the first character of the markdown to make it look uniform
-		rn.Markdown = strings.ToUpper(string(markdown[0])) + markdown[1:]
+		rn.Markdown = capitalizeString(markdown)
 	}
 	return nil
 }
@@ -1078,12 +1155,14 @@ func (rn *ReleaseNote) ToNoteMap() (string, error) {
 
 // ContentHash returns a sha1 hash derived from the note's content
 func (rn *ReleaseNote) ContentHash() (string, error) {
-	// Converto the note to a map
+	// Convert the note to a map
 	noteMap, err := rn.ToNoteMap()
 	if err != nil {
 		return "", errors.Wrap(err, "serializing note's content")
 	}
 
+	//nolint:gosec // used for file integrity checks, NOT security
+	// TODO(relnotes): Could we use SHA256 here instead?
 	h := sha1.New()
 	_, err = h.Write([]byte(noteMap))
 	if err != nil {
@@ -1092,60 +1171,10 @@ func (rn *ReleaseNote) ContentHash() (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
-// Validate checks the data defined in a CVE map is complete and valid
-func (cve *CVEData) Validate() error {
-	// Verify that rating is defined and a known string
-	if cve.CVSSRating == "" {
-		return errors.New("CVSS rating missing from CVE data")
-	}
+// capitalizeString returns a capitalized string of the input string
+func capitalizeString(s string) string {
+	r := []rune(s)
+	r[0] = unicode.ToUpper(r[0])
 
-	// Check rating is a valid string
-	if _, ok := map[string]bool{
-		"None": true, "Low": true, "Medium": true, "High": true, "Critical": true,
-	}[cve.CVSSRating]; !ok {
-		return errors.New("Invalid CVSS rating")
-	}
-
-	// Check vector string is not empty
-	if cve.CVSSVector == "" {
-		return errors.New("CVSS vector string missing from CVE data")
-	}
-
-	// Parse the vector string to make sure it is well formed
-	bm, err := cvss.NewBase().Decode(cve.CVSSVector)
-	if err != nil {
-		return errors.Wrap(err, "parsing CVSS vector string")
-	}
-	cve.CalcLink = fmt.Sprintf(
-		"https://www.first.org/cvss/calculator/%s#%s", bm.Ver.String(), cve.CVSSVector,
-	)
-
-	if cve.CVSSScore == 0 {
-		return errors.New("CVSS score missing from CVE data")
-	}
-	if cve.CVSSScore < 0 || cve.CVSSScore > 10 {
-		return errors.New("CVSS score pit of range, should be 0-10")
-	}
-
-	// Check that the CVE ID is not empty
-	if cve.ID == "" {
-		return errors.New("ID missing from CVE data")
-	}
-
-	// Verify that the CVE ID is well formed
-	cvsre := regexp.MustCompile(cveIDRegExp)
-	if !cvsre.MatchString(cve.ID) {
-		return errors.New("CVS ID is not well formed")
-	}
-
-	// Title and description must not be empty
-	if cve.Title == "" {
-		return errors.New("Title missing from CVE data")
-	}
-
-	if cve.Description == "" {
-		return errors.New("CVE description missing from CVE data")
-	}
-
-	return nil
+	return string(r)
 }
