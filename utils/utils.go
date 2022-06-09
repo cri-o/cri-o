@@ -69,16 +69,24 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 	if slice != "" {
 		properties = append(properties, systemdDbus.PropSlice(slice))
 	}
-	ch := make(chan string)
+	// Make a buffered channel so that the sender (go-systemd's jobComplete)
+	// won't be blocked on channel send while holding the jobListener lock
+	// (RHBZ#2082344).
+	ch := make(chan string, 1)
 	if err := mgr.RetryOnDisconnect(func(c *systemdDbus.Conn) error {
 		_, err = c.StartTransientUnitContext(ctx, unitName, "replace", properties, ch)
-		return errors.Wrap(err, "start transient unit")
-	}); err != nil {
 		return err
+	}); err != nil {
+		return fmt.Errorf("start transient unit %q: %w", unitName, err)
 	}
 
-	// Block until job is started
+	// Wait for the job status.
 	select {
+	case s := <-ch:
+		close(ch)
+		if s != "done" {
+			return fmt.Errorf("error moving conmon with pid %d to systemd unit %s: got %s", pid, unitName, s)
+		}
 	case <-ch:
 		close(ch)
 	case <-time.After(time.Minute * 6):
@@ -88,7 +96,7 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 		// We also don't use the native context cancelling behavior of the dbus library,
 		// because experience has shown that it does not help.
 		// TODO: Find cause of the request being dropped in the dbus library and fix it.
-		return errors.Errorf("timed out moving conmon with pid %d to cgroup", pid)
+		return errors.Errorf("timed out moving conmon with pid %d to systemd unit %s", pid, unitName)
 	}
 
 	return nil
