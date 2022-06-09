@@ -60,9 +60,9 @@ require (
 	github.com/urfave/cli/v2 v2.8.1
 	github.com/vishvananda/netlink v1.1.1-0.20211118161826-650dca95af54
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.28.0
-	go.opentelemetry.io/otel v1.3.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.3.0
-	go.opentelemetry.io/otel/sdk v1.3.0
+	go.opentelemetry.io/otel v1.7.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.7.0
+	go.opentelemetry.io/otel/sdk v1.7.0
 	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2
 	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
@@ -95,7 +95,7 @@ require (
 	github.com/aws/aws-sdk-go v1.43.30 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
+	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20210922093614-c31748bec9f2 // indirect
 	github.com/checkpoint-restore/go-criu/v5 v5.3.0 // indirect
@@ -144,7 +144,7 @@ require (
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -222,10 +222,10 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20200128120323-432b2356ecb1 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.3.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.3.0 // indirect
-	go.opentelemetry.io/otel/trace v1.3.0 // indirect
-	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.7.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.7.0 // indirect
+	go.opentelemetry.io/otel/trace v1.7.0 // indirect
+	go.opentelemetry.io/proto/otlp v0.16.0 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
