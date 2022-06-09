@@ -735,13 +735,13 @@ func (pk *PublicKey) VerifyRevocationSignature(sig *Signature) (err error) {
 }
 
 // VerifySubkeyRevocationSignature returns nil iff sig is a valid subkey revocation signature,
-// made by the passed in signingKey.
-func (pk *PublicKey) VerifySubkeyRevocationSignature(sig *Signature, signingKey *PublicKey) (err error) {
-	h, err := keyRevocationHash(pk, sig.Hash)
+// made by this public key, of signed.
+func (pk *PublicKey) VerifySubkeyRevocationSignature(sig *Signature, signed *PublicKey) (err error) {
+	h, err := keySignatureHash(pk, signed, sig.Hash)
 	if err != nil {
 		return err
 	}
-	return signingKey.VerifySignature(h, sig)
+	return pk.VerifySignature(h, sig)
 }
 
 // userIdSignatureHash returns a Hash of the message that needs to be signed
