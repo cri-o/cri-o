@@ -4,8 +4,10 @@ import (
 	"archive/tar"
 	"bytes"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"net"
 	"os"
@@ -343,6 +345,9 @@ type PutOptions struct {
 	ChmodDirs            *os.FileMode      // set permissions on newly-created directories
 	ChownFiles           *idtools.IDPair   // set ownership of newly-created files
 	ChmodFiles           *os.FileMode      // set permissions on newly-created files
+	StripSetuidBit       bool              // strip the setuid bit off of items being written
+	StripSetgidBit       bool              // strip the setgid bit off of items being written
+	StripStickyBit       bool              // strip the sticky bit off of items being written
 	StripXattrs          bool              // don't bother trying to set extended attributes of items being copied
 	IgnoreXattrErrors    bool              // ignore any errors encountered when attempting to set extended attributes
 	IgnoreDevices        bool              // ignore items which are character or block devices
@@ -1179,10 +1184,10 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 				// we don't expand any of the contents that are archives
 				options := req.GetOptions
 				options.ExpandArchives = false
-				walkfn := func(path string, info os.FileInfo, err error) error {
+				walkfn := func(path string, d fs.DirEntry, err error) error {
 					if err != nil {
 						if options.IgnoreUnreadable && errorIsPermission(err) {
-							if info != nil && info.IsDir() {
+							if info != nil && d.IsDir() {
 								return filepath.SkipDir
 							}
 							return nil
@@ -1192,8 +1197,8 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 						}
 						return errors.Wrapf(err, "copier: get: error reading %q", path)
 					}
-					if info.Mode()&os.ModeType == os.ModeSocket {
-						logrus.Warningf("copier: skipping socket %q", info.Name())
+					if d.Type() == os.ModeSocket {
+						logrus.Warningf("copier: skipping socket %q", d.Name())
 						return nil
 					}
 					// compute the path of this item
@@ -1216,7 +1221,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 						return err
 					}
 					if skip {
-						if info.IsDir() {
+						if d.IsDir() {
 							// if there are no "include
 							// this anyway" patterns at
 							// all, we don't need to
@@ -1254,17 +1259,21 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 					}
 					// if it's a symlink, read its target
 					symlinkTarget := ""
-					if info.Mode()&os.ModeType == os.ModeSymlink {
+					if d.Type() == os.ModeSymlink {
 						target, err := os.Readlink(path)
 						if err != nil {
 							return errors.Wrapf(err, "copier: get: readlink(%q(%q))", rel, path)
 						}
 						symlinkTarget = target
 					}
+					info, err := d.Info()
+					if err != nil {
+						return err
+					}
 					// if it's a directory and we're staying on one device, and it's on a
 					// different device than the one we started from, skip its contents
 					var ok error
-					if info.Mode().IsDir() && req.GetOptions.NoCrossDevice {
+					if d.IsDir() && req.GetOptions.NoCrossDevice {
 						if !sameDevice(topInfo, info) {
 							ok = filepath.SkipDir
 						}
@@ -1282,7 +1291,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 					return ok
 				}
 				// walk the directory tree, checking/adding items individually
-				if err := filepath.Walk(item, walkfn); err != nil {
+				if err := filepath.WalkDir(item, walkfn); err != nil {
 					return errors.Wrapf(err, "copier: get: %q(%q)", queue[i], item)
 				}
 				itemsCopied++
@@ -1461,6 +1470,13 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 			return errors.Wrapf(err, "error opening file for adding its contents to archive")
 		}
 		defer f.Close()
+	} else if hdr.Typeflag == tar.TypeDir {
+		// open the directory file first to make sure we can access it.
+		f, err = os.Open(contentPath)
+		if err != nil {
+			return errors.Wrapf(err, "error opening directory for adding its contents to archive")
+		}
+		defer f.Close()
 	}
 	// output the header
 	if err = tw.WriteHeader(hdr); err != nil {
@@ -1520,6 +1536,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			fileUID, fileGID = &hostFilePair.UID, &hostFilePair.GID
 		}
 	}
+	directoryModes := make(map[string]os.FileMode)
 	ensureDirectoryUnderRoot := func(directory string) error {
 		rel, err := convertToRelSubdirectory(req.Root, directory)
 		if err != nil {
@@ -1533,14 +1550,30 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				if err = lchown(path, defaultDirUID, defaultDirGID); err != nil {
 					return errors.Wrapf(err, "copier: put: error setting owner of %q to %d:%d", path, defaultDirUID, defaultDirGID)
 				}
-				if err = os.Chmod(path, defaultDirMode); err != nil {
-					return errors.Wrapf(err, "copier: put: error setting permissions on %q to 0%o", path, defaultDirMode)
+				// make a conditional note to set this directory's permissions
+				// later, but not if we already had an explictly-provided mode
+				if _, ok := directoryModes[path]; !ok {
+					directoryModes[path] = defaultDirMode
 				}
 			} else {
 				if !os.IsExist(err) {
 					return errors.Wrapf(err, "copier: put: error checking directory %q", path)
 				}
 			}
+		}
+		return nil
+	}
+	makeDirectoryWriteable := func(directory string) error {
+		st, err := os.Lstat(directory)
+		if err != nil {
+			return errors.Wrapf(err, "copier: put: error reading permissions of directory %q", directory)
+		}
+		mode := st.Mode() & os.ModePerm
+		if _, ok := directoryModes[directory]; !ok {
+			directoryModes[directory] = mode
+		}
+		if err = os.Chmod(directory, 0o700); err != nil {
+			return errors.Wrapf(err, "copier: put: error making directory %q writable", directory)
 		}
 		return nil
 	}
@@ -1553,7 +1586,21 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				}
 			}
 			if err = os.RemoveAll(path); err != nil {
-				return 0, errors.Wrapf(err, "copier: put: error removing item to be overwritten %q", path)
+				if os.IsPermission(err) {
+					if err := makeDirectoryWriteable(filepath.Dir(path)); err != nil {
+						return 0, err
+					}
+					err = os.RemoveAll(path)
+				}
+				if err != nil {
+					return 0, errors.Wrapf(err, "copier: put: error removing item to be overwritten %q", path)
+				}
+			}
+			f, err = os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC|os.O_EXCL, 0600)
+		}
+		if err != nil && os.IsPermission(err) {
+			if err = makeDirectoryWriteable(filepath.Dir(path)); err != nil {
+				return 0, err
 			}
 			f, err = os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC|os.O_EXCL, 0600)
 		}
@@ -1597,6 +1644,11 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					logrus.Debugf("error setting access and modify timestamps on %q to %s and %s: %v", directoryAndTimes.directory, directoryAndTimes.atime, directoryAndTimes.mtime, err)
 				}
 			}
+			for directory, mode := range directoryModes {
+				if err := os.Chmod(directory, mode); err != nil {
+					logrus.Debugf("error setting permissions of %q to 0%o: %v", directory, uint32(mode), err)
+				}
+			}
 		}()
 		ignoredItems := make(map[string]struct{})
 		tr := tar.NewReader(bulkReader)
@@ -1637,6 +1689,15 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				return err
 			}
 			// figure out what the permissions should be
+			if req.PutOptions.StripSetuidBit && hdr.Mode&cISUID == cISUID {
+				hdr.Mode &^= cISUID
+			}
+			if req.PutOptions.StripSetgidBit && hdr.Mode&cISGID == cISGID {
+				hdr.Mode &^= cISGID
+			}
+			if req.PutOptions.StripStickyBit && hdr.Mode&cISVTX == cISVTX {
+				hdr.Mode &^= cISVTX
+			}
 			if hdr.Typeflag == tar.TypeDir {
 				if req.PutOptions.ChmodDirs != nil {
 					hdr.Mode = int64(*req.PutOptions.ChmodDirs)
@@ -1660,7 +1721,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				// only check the length if there wasn't an error, which we'll
 				// check along with errors for other types of entries
 				if err == nil && written != hdr.Size {
-					return errors.Errorf("copier: put: error creating %q: incorrect length (%d != %d)", path, written, hdr.Size)
+					return errors.Errorf("copier: put: error creating regular file %q: incorrect length (%d != %d)", path, written, hdr.Size)
 				}
 			case tar.TypeLink:
 				var linkTarget string
@@ -1681,7 +1742,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = os.Link(linkTarget, path)
 					}
 				}
@@ -1696,7 +1757,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = os.Symlink(filepath.FromSlash(hdr.Linkname), filepath.FromSlash(path))
 					}
 				}
@@ -1711,7 +1772,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = mknod(path, chrMode(0600), int(mkdev(devMajor, devMinor)))
 					}
 				}
@@ -1726,14 +1787,14 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = mknod(path, blkMode(0600), int(mkdev(devMajor, devMinor)))
 					}
 				}
 			case tar.TypeDir:
 				if err = os.Mkdir(path, 0700); err != nil && os.IsExist(err) {
 					var st os.FileInfo
-					if st, err = os.Stat(path); err == nil && !st.IsDir() {
+					if st, err = os.Lstat(path); err == nil && !st.IsDir() {
 						// it's not a directory, so remove it and mkdir
 						if err = os.Remove(path); err == nil {
 							err = os.Mkdir(path, 0700)
@@ -1751,6 +1812,9 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					atime:     hdr.AccessTime,
 					mtime:     hdr.ModTime,
 				})
+				// set the mode here unconditionally, in case the directory is in
+				// the archive more than once for whatever reason
+				directoryModes[path] = mode
 			case tar.TypeFifo:
 				if err = mkfifo(path, 0600); err != nil && os.IsExist(err) {
 					if req.PutOptions.NoOverwriteDirNonDir {
@@ -1758,7 +1822,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 							break
 						}
 					}
-					if err = os.Remove(path); err == nil {
+					if err = os.RemoveAll(path); err == nil {
 						err = mkfifo(path, 0600)
 					}
 				}
@@ -1778,8 +1842,12 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			if err = lchown(path, hdr.Uid, hdr.Gid); err != nil {
 				return errors.Wrapf(err, "copier: put: error setting ownership of %q to %d:%d", path, hdr.Uid, hdr.Gid)
 			}
-			// set permissions, except for symlinks, since we don't have lchmod
-			if hdr.Typeflag != tar.TypeSymlink {
+			// set permissions, except for symlinks, since we don't
+			// have an lchmod, and directories, which we'll fix up
+			// on our way out so that we don't get tripped up by
+			// directories which we're not supposed to be able to
+			// write to, but which we'll need to create content in
+			if hdr.Typeflag != tar.TypeSymlink && hdr.Typeflag != tar.TypeDir {
 				if err = os.Chmod(path, mode); err != nil {
 					return errors.Wrapf(err, "copier: put: error setting permissions on %q to 0%o", path, mode)
 				}
@@ -1894,4 +1962,16 @@ func copierHandlerRemove(req request) *response {
 		return errorResponse("copier: remove %q: %v", req.Directory, err)
 	}
 	return &response{Error: "", Remove: removeResponse{}}
+}
+
+func unwrapError(err error) error {
+	e := errors.Cause(err)
+	for e != nil {
+		err = e
+		e = stderrors.Unwrap(err)
+		if e == err {
+			break
+		}
+	}
+	return err
 }

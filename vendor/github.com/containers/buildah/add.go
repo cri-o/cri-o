@@ -47,8 +47,10 @@ type AddAndCopyOptions struct {
 	// If the sources include directory trees, Hasher will be passed
 	// tar-format archives of the directory trees.
 	Hasher io.Writer
-	// Excludes is the contents of the .dockerignore file.
+	// Excludes is the contents of the .containerignore file.
 	Excludes []string
+	// IgnoreFile is the path to the .containerignore file.
+	IgnoreFile string
 	// ContextDir is the base directory for content being copied and
 	// Excludes patterns.
 	ContextDir string
@@ -198,6 +200,13 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		currentDir, err = os.Getwd()
 		if err != nil {
 			return errors.Wrapf(err, "error determining current working directory")
+		}
+	} else {
+		if !filepath.IsAbs(options.ContextDir) {
+			contextDir, err = filepath.Abs(options.ContextDir)
+			if err != nil {
+				return errors.Wrapf(err, "error converting context directory path %q to an absolute path", options.ContextDir)
+			}
 		}
 	}
 
@@ -564,7 +573,11 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			}
 		}
 		if itemsCopied == 0 {
-			return errors.Wrapf(syscall.ENOENT, "no items matching glob %q copied (%d filtered out)", localSourceStat.Glob, len(localSourceStat.Globbed))
+			excludesFile := ""
+			if options.IgnoreFile != "" {
+				excludesFile = " using " + options.IgnoreFile
+			}
+			return errors.Wrapf(syscall.ENOENT, "no items matching glob %q copied (%d filtered out%s)", localSourceStat.Glob, len(localSourceStat.Globbed), excludesFile)
 		}
 	}
 	return nil
@@ -641,4 +654,38 @@ func (b *Builder) userForCopy(mountPoint string, userspec string) (uint32, uint3
 		return 0xffffffff, 0xffffffff, err
 	}
 	return owner.UID, owner.GID, nil
+}
+
+// EnsureContainerPathAs creates the specified directory owned by USER
+// with the file mode set to MODE.
+func (b *Builder) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
+	mountPoint, err := b.Mount(b.MountLabel)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err2 := b.Unmount(); err2 != nil {
+			logrus.Errorf("error unmounting container: %v", err2)
+		}
+	}()
+
+	uid, gid := uint32(0), uint32(0)
+	if user != "" {
+		if uidForCopy, gidForCopy, err := b.userForCopy(mountPoint, user); err == nil {
+			uid = uidForCopy
+			gid = gidForCopy
+		}
+	}
+
+	destUIDMap, destGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
+
+	idPair := &idtools.IDPair{UID: int(uid), GID: int(gid)}
+	opts := copier.MkdirOptions{
+		ChmodNew: mode,
+		ChownNew: idPair,
+		UIDMap:   destUIDMap,
+		GIDMap:   destGIDMap,
+	}
+	return copier.Mkdir(mountPoint, filepath.Join(mountPoint, path), opts)
+
 }

@@ -21,7 +21,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"

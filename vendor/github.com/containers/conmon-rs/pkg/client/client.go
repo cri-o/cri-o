@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	binaryName  = "conmonrs"
-	socketName  = "conmon.sock"
-	pidFileName = "pidfile"
+	binaryName     = "conmonrs"
+	socketName     = "conmon.sock"
+	pidFileName    = "pidfile"
+	defaultTimeout = 10 * time.Second
 )
 
 var (
@@ -101,7 +102,9 @@ func New(config *ConmonServerConfig) (client *ConmonClient, retErr error) {
 		return nil, fmt.Errorf("convert config to client: %w", err)
 	}
 	// Check if the process has already started, and inherit that process instead.
-	if resp, err := cl.Version(context.Background()); err == nil {
+	ctx, cancel := defaultContext()
+	defer cancel()
+	if resp, err := cl.Version(ctx); err == nil {
 		cl.serverPID = resp.ProcessID
 
 		return cl, nil
@@ -182,7 +185,6 @@ func (c *ConmonClient) startServer(config *ConmonServerConfig) error {
 }
 
 func (c *ConmonClient) toArgs(config *ConmonServerConfig) (entrypoint string, args []string, err error) {
-	const maxUnixSocketPathSize = len(syscall.RawSockaddrUnix{}.Path)
 	if c == nil {
 		return "", args, nil
 	}
@@ -270,14 +272,24 @@ func pidGivenFile(file string) (uint32, error) {
 
 func (c *ConmonClient) waitUntilServerUp() (err error) {
 	for i := 0; i < 100; i++ {
-		_, err = c.Version(context.Background())
+		ctx, cancel := defaultContext()
+
+		_, err = c.Version(ctx)
 		if err == nil {
+			cancel()
+
 			break
 		}
+
+		cancel()
 		time.Sleep(1 * time.Millisecond)
 	}
 
 	return err
+}
+
+func defaultContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), defaultTimeout)
 }
 
 func (c *ConmonClient) newRPCConn() (*rpc.Conn, error) {
@@ -470,6 +482,9 @@ func (c *ConmonClient) CreateContainer(
 		}
 		if err := stringSliceToTextList(cfg.OOMExitPaths, req.NewOomExitPaths); err != nil {
 			return fmt.Errorf("convert oom exit paths string slice to text list: %w", err)
+		}
+		if err := stringSliceToTextList(cfg.OOMExitPaths, req.NewOomExitPaths); err != nil {
+			return err
 		}
 
 		if err := c.initLogDrivers(&req, cfg.LogDrivers); err != nil {

@@ -1,3 +1,4 @@
+//go:build solaris && cgo
 // +build solaris,cgo
 
 package sysinfo
@@ -45,7 +46,7 @@ func IsCPUSharesAvailable() bool {
 
 // New returns a new SysInfo, using the filesystem to detect which features
 // the kernel supports.
-//NOTE Solaris: If we change the below capabilities be sure
+// NOTE Solaris: If we change the below capabilities be sure
 // to update verifyPlatformContainerSettings() in daemon_solaris.go
 func New(quiet bool) *SysInfo {
 	sysInfo := &SysInfo{}
@@ -63,7 +64,6 @@ func New(quiet bool) *SysInfo {
 
 // setCgroupMem reads the memory information for Solaris.
 func setCgroupMem(quiet bool) cgroupMemInfo {
-
 	return cgroupMemInfo{
 		MemoryLimit:       true,
 		SwapLimit:         true,
@@ -76,7 +76,6 @@ func setCgroupMem(quiet bool) cgroupMemInfo {
 
 // setCgroupCPU reads the cpu information for Solaris.
 func setCgroupCPU(quiet bool) cgroupCPUInfo {
-
 	return cgroupCPUInfo{
 		CPUShares:          true,
 		CPUCfsPeriod:       false,
@@ -88,7 +87,6 @@ func setCgroupCPU(quiet bool) cgroupCPUInfo {
 
 // blkio switches are not supported in Solaris.
 func setCgroupBlkioInfo(quiet bool) cgroupBlkioInfo {
-
 	return cgroupBlkioInfo{
 		BlkioWeight:       false,
 		BlkioWeightDevice: false,
@@ -97,7 +95,6 @@ func setCgroupBlkioInfo(quiet bool) cgroupBlkioInfo {
 
 // setCgroupCPUsetInfo reads the cpuset information for Solaris.
 func setCgroupCPUsetInfo(quiet bool) cgroupCpusetInfo {
-
 	return cgroupCpusetInfo{
 		Cpuset: true,
 		Cpus:   getCPUCount(),

@@ -74,6 +74,15 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 		selfSignature.PreferredSymmetric = append(selfSignature.PreferredSymmetric, uint8(packet.CipherAES128))
 	}
 
+	// We set CompressionNone as the preferred compression algorithm because
+	// of compression side channel attacks, then append the configured
+	// DefaultCompressionAlgo if any is set (to signal support for cases
+	// where the application knows that using compression is safe).
+	selfSignature.PreferredCompression = []uint8{uint8(packet.CompressionNone)}
+	if config.Compression() != packet.CompressionNone {
+		selfSignature.PreferredCompression = append(selfSignature.PreferredCompression, uint8(config.Compression()))
+	}
+
 	// And for DefaultMode.
 	selfSignature.PreferredAEAD = []uint8{uint8(config.AEAD().Mode())}
 	if config.AEAD().Mode() != packet.AEADModeEAX {

@@ -11,7 +11,7 @@ import (
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
-	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
