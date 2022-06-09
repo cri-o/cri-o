@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -384,42 +383,4 @@ type ExecSyncError struct {
 
 func (e *ExecSyncError) Error() string {
 	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
-}
-
-// BuildContainerdBinaryName() is responsible for ensuring the binary passed will
-// be properly converted to the containerd binary naming pattern.
-//
-// This method should never ever be called from anywhere else but the runtimeVM,
-// and the only reason its exported here is in order to get some test coverage.
-func BuildContainerdBinaryName(path string) string {
-	// containerd expects the runtime name to be in the following pattern:
-	//        ($dir.)?$prefix.$name.$version
-	//        -------- ------ ----- ---------
-	//              |     |     |      |
-	//              v     |     |      |
-	//      "/usr/local/bin"    |      |
-	//        (optional)  |     |      |
-	//                    v     |      |
-	//             "containerd.shim."  |
-	//                          |      |
-	//                          v      |
-	//                     "kata-qemu" |
-	//                                 v
-	//                                "v2"
-	const expectedPrefix = "containerd-shim-"
-	const expectedVersion = "-v2"
-
-	const binaryPrefix = "containerd.shim"
-	const binaryVersion = "v2"
-
-	runtimeDir := filepath.Dir(path)
-	// This is only safe to do because the runtime_path, for the VM runtime_type, is validated in the config,
-	// allowing us to take the liberty to simply go ahead and check, without having to ensure we're receiving
-	// the binary in the expected form.
-	//
-	// For clarity, it could be ensured twice, but we count on the developer to never ever call this function
-	// in a different context from the one used in the runtime_vm.go file.
-	runtimeName := strings.SplitAfter(strings.Split(filepath.Base(path), expectedVersion)[0], expectedPrefix)[1]
-
-	return filepath.Join(runtimeDir, fmt.Sprintf("%s.%s.%s", binaryPrefix, runtimeName, binaryVersion))
 }
