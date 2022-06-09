@@ -101,6 +101,7 @@ static char *opt_exit_command = NULL;
 static gchar **opt_exit_args = NULL;
 static gboolean opt_replace_listen_pid = FALSE;
 static char *opt_log_level = NULL;
+static int64_t opt_log_global_size_max = -1;
 static GOptionEntry opt_entries[] = {
 	{"terminal", 't', 0, G_OPTION_ARG_NONE, &opt_terminal, "Terminal", NULL},
 	{"stdin", 'i', 0, G_OPTION_ARG_NONE, &opt_stdin, "Stdin", NULL},
@@ -127,6 +128,7 @@ static GOptionEntry opt_entries[] = {
 	{"log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL},
 	{"timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL},
 	{"log-size-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_size_max, "Maximum size of log file", NULL},
+	{"log-size-global-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_global_size_max, "Maximum size of all log files", NULL},
 	{"socket-dir-path", 0, 0, G_OPTION_ARG_STRING, &opt_socket_path, "Location of container attach sockets", NULL},
 	{"version", 0, 0, G_OPTION_ARG_NONE, &opt_version, "Print the version and exit", NULL},
 	{"syslog", 0, 0, G_OPTION_ARG_NONE, &opt_syslog, "Log to syslog (use with cgroupfs cgroup manager)", NULL},
@@ -435,6 +437,7 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 	writev_buffer_t bufv = {0};
 	static int64_t bytes_written = 0;
 	int64_t bytes_to_be_written = 0;
+	static int64_t total_bytes_written = 0;
 
 	/*
 	 * Use the same timestamp for every line of the log in this buffer.
@@ -465,6 +468,9 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		if (partial) {
 			bytes_to_be_written += 1;
 		}
+		/* If the caller specified a global max, enforce it before writing */
+		if (opt_log_global_size_max > 0 && total_bytes_written >= opt_log_global_size_max)
+			break;
 
 		/*
 		 * We re-open the log file if writing out the bytes will exceed the max
@@ -522,6 +528,7 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		}
 
 		bytes_written += bytes_to_be_written;
+		total_bytes_written += bytes_to_be_written;
 	next:
 		/* Update the head of the buffer remaining to output. */
 		buf += line_len;
