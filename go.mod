@@ -46,7 +46,7 @@ require (
 	github.com/onsi/gomega v1.19.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198
-	github.com/opencontainers/runc v1.1.2
+	github.com/opencontainers/runc v1.1.3
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210709190330-896175883324
 	github.com/opencontainers/runtime-tools v0.9.1-0.20210326182921-59cdde06764b
 	github.com/opencontainers/selinux v1.10.1
@@ -199,7 +199,7 @@ require (
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/saschagrunert/go-modiff v1.3.0 // indirect
-	github.com/seccomp/libseccomp-golang v0.9.2-0.20210429002308-3879420cc921 // indirect
+	github.com/seccomp/libseccomp-golang v0.9.2-0.20220502022130-f33da4d89646 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shirou/gopsutil/v3 v3.22.1 // indirect
 	github.com/spf13/cobra v1.4.0 // indirect
