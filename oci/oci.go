@@ -46,6 +46,11 @@ const (
 	// killContainerTimeout is the timeout that we wait for the container to
 	// be SIGKILLed.
 	killContainerTimeout = 2 * time.Minute
+
+	// maxExecSyncSize is the maximum size of exec sync output CRI-O will process.
+	// It is set to the amount of logs allowed in the dockershim implementation:
+	// https://github.com/kubernetes/kubernetes/pull/82514
+	maxExecSyncSize = 16 * 1024 * 1024
 )
 
 // New creates a new Runtime with options provided
@@ -504,7 +509,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 	// XXX: Currently runC dups the same console over both stdout and stderr,
 	//      so we can't differentiate between the two.
 
-	logBytes, err := ioutil.ReadFile(logPath)
+	logBytes, err := TruncateAndReadFile(logPath, maxExecSyncSize)
 	if err != nil {
 		return nil, ExecSyncError{
 			Stdout:   stdoutBuf,
@@ -521,6 +526,20 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		Stderr:   stderrBytes,
 		ExitCode: ec.ExitCode,
 	}, nil
+}
+
+func TruncateAndReadFile(path string, size int64) ([]byte, error) {
+       info, err := os.Stat(path)
+       if err != nil {
+               return nil, err
+       }
+       if info.Size() > size {
+               logrus.Errorf("Exec sync output in file %s has size %d which is longer than expected size of %d", path, info.Size(), size)
+               if err := os.Truncate(path, size); err != nil {
+                       return nil, err
+               }
+       }
+       return ioutil.ReadFile(path)
 }
 
 // UpdateContainer updates container resources
