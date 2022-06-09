@@ -11,7 +11,7 @@ import (
 // ErrNotTTY not a TeleTYpewriter error.
 var ErrNotTTY = errors.New("not a terminal")
 
-// http://ascii-table.com/ansi-escape-sequences.php
+// https://github.com/dylanaraps/pure-sh-bible#cursor-movement
 const (
 	escOpen  = "\x1b["
 	cuuAndEd = "A\x1b[J"
@@ -76,9 +76,9 @@ func (w *Writer) GetWidth() (int, error) {
 	return tw, err
 }
 
-func (w *Writer) ansiCuuAndEd() (err error) {
+func (w *Writer) ansiCuuAndEd() error {
 	buf := make([]byte, 8)
 	buf = strconv.AppendInt(buf[:copy(buf, escOpen)], int64(w.lines), 10)
-	_, err = w.out.Write(append(buf, cuuAndEd...))
-	return
+	_, err := w.out.Write(append(buf, cuuAndEd...))
+	return err
 }

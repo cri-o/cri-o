@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage/pkg/archive"
@@ -28,6 +29,8 @@ type CommonBuildOptions struct {
 	CPUSetMems string
 	// HTTPProxy determines whether *_proxy env vars from the build host are passed into the container.
 	HTTPProxy bool
+	// IdentityLabel if set ensures that default `io.buildah.version` label is not applied to build image.
+	IdentityLabel types.OptionalBool
 	// Memory is the upper limit (in bytes) on how much memory running containers can use.
 	Memory int64
 	// DNSSearch is the list of DNS search domains to add to the build container's /etc/resolv.conf
@@ -36,11 +39,14 @@ type CommonBuildOptions struct {
 	DNSServers []string
 	// DNSOptions is the list of DNS
 	DNSOptions []string
-	// MemorySwap limits the amount of memory and swap together.
-	MemorySwap int64
 	// LabelOpts is the a slice of fields of an SELinux context, given in "field:pair" format, or "disable".
 	// Recognized field names are "role", "type", and "level".
 	LabelOpts []string
+	// MemorySwap limits the amount of memory and swap together.
+	MemorySwap int64
+	// NoHosts tells the builder not to create /etc/hosts content when running
+	// containers.
+	NoHosts bool
 	// OmitTimestamp forces epoch 0 as created timestamp to allow for
 	// deterministic, content-addressable builds.
 	OmitTimestamp bool
@@ -70,7 +76,9 @@ type CommonBuildOptions struct {
 	Ulimit []string
 	// Volumes to bind mount into the container
 	Volumes []string
-	// Secrets are the available secrets to use in a build
+	// Secrets are the available secrets to use in a build.  Each item in the
+	// slice takes the form "id=foo,src=bar", where both "id" and "src" are
+	// required, in that order, and "bar" is the name of a file.
 	Secrets []string
 	// SSHSources is the available ssh agent connections to forward in the build
 	SSHSources []string
@@ -78,6 +86,8 @@ type CommonBuildOptions struct {
 
 // BuildOptions can be used to alter how an image is built.
 type BuildOptions struct {
+	// ContainerSuffix it the name to suffix containers with
+	ContainerSuffix string
 	// ContextDirectory is the default source location for COPY and ADD
 	// commands.
 	ContextDirectory string
@@ -113,6 +123,10 @@ type BuildOptions struct {
 	Args map[string]string
 	// Name of the image to write to.
 	Output string
+	// BuildOutput specifies if any custom build output is selected for following build.
+	// It allows end user to export recently built rootfs into a directory or tar.
+	// See the documentation of 'buildah build --output' for the details of the format.
+	BuildOutput string
 	// Additional tags to add to the image that we write, if we know of a
 	// way to add them.
 	AdditionalTags []string
@@ -157,6 +171,10 @@ type BuildOptions struct {
 	// CNIConfigDir is the location of CNI configuration files, if the files in
 	// the default configuration directory shouldn't be used.
 	CNIConfigDir string
+
+	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
+	NetworkInterface nettypes.ContainerNetwork `json:"-"`
+
 	// ID mapping options to use if we're setting up our own user namespace
 	// when handling RUN instructions.
 	IDMappingOptions *IDMappingOptions
@@ -227,6 +245,8 @@ type BuildOptions struct {
 	RusageLogFile string
 	// Excludes is a list of excludes to be used instead of the .dockerignore file.
 	Excludes []string
+	// IgnoreFile is a name of the .containerignore file
+	IgnoreFile string
 	// From is the image name to use to replace the value specified in the first
 	// FROM instruction in the Containerfile
 	From string
@@ -234,4 +254,20 @@ type BuildOptions struct {
 	// to build the image for.  If this slice has items in it, the OS and
 	// Architecture fields above are ignored.
 	Platforms []struct{ OS, Arch, Variant string }
+	// AllPlatforms tells the builder to set the list of target platforms
+	// to match the set of platforms for which all of the build's base
+	// images are available.  If this field is set, Platforms is ignored.
+	AllPlatforms bool
+	// UnsetEnvs is a list of environments to not add to final image.
+	UnsetEnvs []string
+	// Envs is a list of environment variables to set in the final image.
+	Envs []string
+	// OSFeatures specifies operating system features the image requires.
+	// It is typically only set when the OS is "windows".
+	OSFeatures []string
+	// OSVersion specifies the exact operating system version the image
+	// requires.  It is typically only set when the OS is "windows".  Any
+	// value set in a base image will be preserved, so this does not
+	// frequently need to be set.
+	OSVersion string
 }

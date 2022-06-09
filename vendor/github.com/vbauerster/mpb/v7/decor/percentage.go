@@ -2,7 +2,6 @@ package decor
 
 import (
 	"fmt"
-	"io"
 	"strconv"
 
 	"github.com/vbauerster/mpb/v7/internal"
@@ -24,12 +23,11 @@ func (s percentageType) Format(st fmt.State, verb rune) {
 		}
 	}
 
-	io.WriteString(st, strconv.FormatFloat(float64(s), 'f', prec, 64))
-
+	mustWriteString(st, strconv.FormatFloat(float64(s), 'f', prec, 64))
 	if st.Flag(' ') {
-		io.WriteString(st, " ")
+		mustWriteString(st, " ")
 	}
-	io.WriteString(st, "%")
+	mustWriteString(st, "%")
 }
 
 // Percentage returns percentage decorator. It's a wrapper of NewPercentage.

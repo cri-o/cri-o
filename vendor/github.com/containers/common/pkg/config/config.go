@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
@@ -48,6 +50,18 @@ const (
 	BoltDBStateStore RuntimeStateStore = iota
 )
 
+// ProxyEnv is a list of Proxy Environment variables
+var ProxyEnv = []string{
+	"http_proxy",
+	"https_proxy",
+	"ftp_proxy",
+	"no_proxy",
+	"HTTP_PROXY",
+	"HTTPS_PROXY",
+	"FTP_PROXY",
+	"NO_PROXY",
+}
+
 // Config contains configuration options for container tools
 type Config struct {
 	// Containers specify settings that configure how containers will run ont the system
@@ -60,6 +74,8 @@ type Config struct {
 	Network NetworkConfig `toml:"network"`
 	// Secret section defines configurations for the secret management
 	Secrets SecretConfig `toml:"secrets"`
+	// ConfigMap section defines configurations for the configmaps management
+	ConfigMaps ConfigMapConfig `toml:"configmaps"`
 }
 
 // ContainersConfig represents the "containers" TOML config table
@@ -78,6 +94,13 @@ type ContainersConfig struct {
 
 	// Annotation to add to all containers
 	Annotations []string `toml:"annotations,omitempty"`
+
+	// BaseHostsFile is the path to a hosts file, the entries from this file
+	// are added to the containers hosts file. As special value "image" is
+	// allowed which uses the /etc/hosts file from within the image and "none"
+	// which uses no base file at all. If it is empty we should default
+	// to /etc/hosts.
+	BaseHostsFile string `toml:"base_hosts_file,omitempty"`
 
 	// Default way to create a cgroup namespace for the container
 	CgroupNS string `toml:"cgroupns,omitempty"`
@@ -119,6 +142,9 @@ type ContainersConfig struct {
 
 	// EnvHost Pass all host environment variables into the container.
 	EnvHost bool `toml:"env_host,omitempty"`
+
+	// HostContainersInternalIP is used to set a specific host.containers.internal ip.
+	HostContainersInternalIP string `toml:"host_containers_internal_ip,omitempty"`
 
 	// HTTPProxy is the proxy environment variable list to apply to container process
 	HTTPProxy bool `toml:"http_proxy,omitempty"`
@@ -167,11 +193,6 @@ type ContainersConfig struct {
 	// performance implications.
 	PrepareVolumeOnCreate bool `toml:"prepare_volume_on_create,omitempty"`
 
-	// RootlessNetworking depicts the "kind" of networking for rootless
-	// containers.  Valid options are `slirp4netns` and `cni`. Default is
-	// `slirp4netns` on Linux, and `cni` on non-Linux OSes.
-	RootlessNetworking string `toml:"rootless_networking,omitempty"`
-
 	// SeccompProfile is the seccomp.json profile path which is used as the
 	// default for the runtime.
 	SeccompProfile string `toml:"seccomp_profile,omitempty"`
@@ -215,6 +236,12 @@ type EngineConfig struct {
 	// The first path pointing to a valid file will be used.
 	ConmonPath []string `toml:"conmon_path,omitempty"`
 
+	// CompatAPIEnforceDockerHub enforces using docker.io for completing
+	// short names in Podman's compatibility REST API.  Note that this will
+	// ignore unqualified-search-registries and short-name aliases defined
+	// in containers-registries.conf(5).
+	CompatAPIEnforceDockerHub bool `toml:"compat_api_enforce_docker_hub,omitempty"`
+
 	// DetachKeys is the sequence of keys used to detach a container.
 	DetachKeys string `toml:"detach_keys,omitempty"`
 
@@ -232,6 +259,10 @@ type EngineConfig struct {
 
 	// EventsLogFilePath is where the events log is stored.
 	EventsLogFilePath string `toml:"events_logfile_path,omitempty"`
+
+	// EventsLogFileMaxSize sets the maximum size for the events log. When the limit is exceeded,
+	// the logfile is rotated and the old one is deleted.
+	EventsLogFileMaxSize eventsLogMaxSize `toml:"events_logfile_max_size,omitzero"`
 
 	// EventsLogger determines where events should be logged.
 	EventsLogger string `toml:"events_logger,omitempty"`
@@ -281,6 +312,8 @@ type EngineConfig struct {
 	LockType string `toml:"lock_type,omitempty"`
 
 	// MachineEnabled indicates if Podman is running in a podman-machine VM
+	//
+	// This method is soft deprecated, use machine.IsPodmanMachine instead
 	MachineEnabled bool `toml:"machine_enabled,omitempty"`
 
 	// MultiImageArchive - if true, the container engine allows for storing
@@ -315,6 +348,9 @@ type EngineConfig struct {
 
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
 	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
+
+	// PodExitPolicy determines the behaviour when the last container of a pod exits.
+	PodExitPolicy PodExitPolicy `toml:"pod_exit_policy,omitempty"`
 
 	// PullPolicy determines whether to pull image before creating or running a container
 	// default is "missing"
@@ -390,6 +426,10 @@ type EngineConfig struct {
 	// before sending kill signal.
 	StopTimeout uint `toml:"stop_timeout,omitempty,omitzero"`
 
+	// ExitCommandDelay is the number of seconds to wait for the exit
+	// command to be send to the API process on the server.
+	ExitCommandDelay uint `toml:"exit_command_delay,omitempty,omitzero"`
+
 	// ImageCopyTmpDir is the default location for storing temporary
 	// container image content,  Can be overridden with the TMPDIR
 	// environment variable.  If you specify "storage", then the
@@ -414,6 +454,9 @@ type EngineConfig struct {
 	// ChownCopiedFiles tells the container engine whether to chown files copied
 	// into a container to the container's primary uid/gid.
 	ChownCopiedFiles bool `toml:"chown_copied_files,omitempty"`
+
+	// CompressionFormat is the compression format used to compress image layers.
+	CompressionFormat string `toml:"compression_format,omitempty"`
 }
 
 // SetOptions contains a subset of options in a Config. It's used to indicate if
@@ -461,26 +504,57 @@ type SetOptions struct {
 
 // NetworkConfig represents the "network" TOML config table
 type NetworkConfig struct {
+	// NetworkBackend determines what backend should be used for Podman's
+	// networking.
+	NetworkBackend string `toml:"network_backend,omitempty"`
+
 	// CNIPluginDirs is where CNI plugin binaries are stored.
 	CNIPluginDirs []string `toml:"cni_plugin_dirs,omitempty"`
 
-	// DefaultNetwork is the network name of the default CNI network
+	// DefaultNetwork is the network name of the default network
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
 
-	// DefaultSubnet is the subnet to be used for the default CNI network.
+	// DefaultSubnet is the subnet to be used for the default network.
 	// If a network with the name given in DefaultNetwork is not present
 	// then a new network using this subnet will be created.
 	// Must be a valid IPv4 CIDR block.
 	DefaultSubnet string `toml:"default_subnet,omitempty"`
 
-	// NetworkConfigDir is where CNI network configuration files are stored.
+	// DefaultSubnetPools is a list of subnets and size which are used to
+	// allocate subnets automatically for podman network create.
+	// It will iterate through the list and will pick the first free subnet
+	// with the given size. This is only used for ipv4 subnets, ipv6 subnets
+	// are always assigned randomly.
+	DefaultSubnetPools []SubnetPool `toml:"default_subnet_pools,omitempty"`
+
+	// NetworkConfigDir is where network configuration files are stored.
 	NetworkConfigDir string `toml:"network_config_dir,omitempty"`
+}
+
+type SubnetPool struct {
+	// Base is a bigger subnet which will be used to allocate a subnet with
+	// the given size.
+	Base *types.IPNet `toml:"base,omitempty"`
+	// Size is the CIDR for the new subnet. It must be equal or small
+	// than the CIDR from the base subnet.
+	Size int `toml:"size,omitempty"`
 }
 
 // SecretConfig represents the "secret" TOML config table
 type SecretConfig struct {
 	// Driver specifies the secret driver to use.
+	// Current valid value:
+	//  * file
+	//  * pass
+	Driver string `toml:"driver,omitempty"`
+	// Opts contains driver specific options
+	Opts map[string]string `toml:"opts,omitempty"`
+}
+
+// ConfigMapConfig represents the "configmap" TOML config table
+type ConfigMapConfig struct {
+	// Driver specifies the configmap driver to use.
 	// Current valid value:
 	//  * file
 	//  * pass
@@ -499,6 +573,10 @@ type MachineConfig struct {
 	Image string `toml:"image,omitempty"`
 	// Memory in MB a machine is created with.
 	Memory uint64 `toml:"memory,omitempty,omitzero"`
+	// User to use for rootless podman when init-ing a podman machine VM
+	User string `toml:"user,omitempty"`
+	// Volumes are host directories mounted into the VM by default.
+	Volumes []string `toml:"volumes"`
 }
 
 // Destination represents destination for remote service
@@ -518,7 +596,6 @@ type Destination struct {
 // with cgroupv2v2. Other OCI runtimes are not yet supporting cgroupv2v2. This
 // might change in the future.
 func NewConfig(userConfigPath string) (*Config, error) {
-
 	// Generate the default config for the system
 	config, err := DefaultConfig()
 	if err != nil {
@@ -559,6 +636,10 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		return nil, err
 	}
 
+	if err := config.setupEnv(); err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
@@ -574,7 +655,7 @@ func readConfigFromFile(path string, config *Config) error {
 	}
 	keys := meta.Undecoded()
 	if len(keys) > 0 {
-		logrus.Warningf("Failed to decode the keys %q from %q.", keys, path)
+		logrus.Debugf("Failed to decode the keys %q from %q.", keys, path)
 	}
 
 	return nil
@@ -585,17 +666,14 @@ func readConfigFromFile(path string, config *Config) error {
 func addConfigs(dirPath string, configs []string) ([]string, error) {
 	newConfigs := []string{}
 
-	err := filepath.Walk(dirPath,
+	err := filepath.WalkDir(dirPath,
 		// WalkFunc to read additional configs
-		func(path string, info os.FileInfo, err error) error {
+		func(path string, d fs.DirEntry, err error) error {
 			switch {
 			case err != nil:
 				// return error (could be a permission problem)
 				return err
-			case info == nil:
-				// this should only happen when err != nil but let's be sure
-				return nil
-			case info.IsDir():
+			case d.IsDir():
 				if path != dirPath {
 					// make sure to not recurse into sub-directories
 					return filepath.SkipDir
@@ -701,7 +779,6 @@ func (c *Config) addCAPPrefix() {
 
 // Validate is the main entry point for library configuration validation.
 func (c *Config) Validate() error {
-
 	if err := c.Containers.Validate(); err != nil {
 		return errors.Wrap(err, "validating containers config")
 	}
@@ -758,7 +835,6 @@ func (c *EngineConfig) Validate() error {
 // It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *ContainersConfig) Validate() error {
-
 	if err := c.validateUlimits(); err != nil {
 		return err
 	}
@@ -791,18 +867,18 @@ func (c *ContainersConfig) Validate() error {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *NetworkConfig) Validate() error {
-	expectedConfigDir := _cniConfigDir
-	if unshare.IsRootless() {
-		home, err := unshare.HomeDir()
-		if err != nil {
-			return err
-		}
-		expectedConfigDir = filepath.Join(home, _cniConfigDirRootless)
-	}
-	if c.NetworkConfigDir != expectedConfigDir {
-		err := isDirectory(c.NetworkConfigDir)
-		if err != nil && !os.IsNotExist(err) {
-			return errors.Wrapf(err, "invalid network_config_dir: %s", c.NetworkConfigDir)
+	if &c.DefaultSubnetPools != &DefaultSubnetPools {
+		for _, pool := range c.DefaultSubnetPools {
+			if pool.Base.IP.To4() == nil {
+				return errors.Errorf("invalid subnet pool ip %q", pool.Base.IP)
+			}
+			ones, _ := pool.Base.IPNet.Mask.Size()
+			if ones > pool.Size {
+				return errors.Errorf("invalid subnet pool, size is bigger than subnet %q", &pool.Base.IPNet)
+			}
+			if pool.Size > 32 {
+				return errors.New("invalid subnet pool size, must be between 0-32")
+			}
 		}
 	}
 
@@ -878,8 +954,7 @@ func (c *Config) GetDefaultEnvEx(envHost, httpProxy bool) []string {
 	if envHost {
 		env = append(env, os.Environ()...)
 	} else if httpProxy {
-		proxy := []string{"http_proxy", "https_proxy", "ftp_proxy", "no_proxy", "HTTP_PROXY", "HTTPS_PROXY", "FTP_PROXY", "NO_PROXY"}
-		for _, p := range proxy {
+		for _, p := range ProxyEnv {
 			if val, ok := os.LookupEnv(p); ok {
 				env = append(env, fmt.Sprintf("%s=%s", p, val))
 			}
@@ -891,7 +966,6 @@ func (c *Config) GetDefaultEnvEx(envHost, httpProxy bool) []string {
 // Capabilities returns the capabilities parses the Add and Drop capability
 // list from the default capabiltiies for the container
 func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []string) ([]string, error) {
-
 	userNotRoot := func(user string) bool {
 		if user == "" || user == "root" || user == "0" {
 			return false
@@ -951,7 +1025,7 @@ func Device(device string) (src, dst, permissions string, err error) {
 // IsValidDeviceMode checks if the mode for device is valid or not.
 // IsValid mode is a composition of r (read), w (write), and m (mknod).
 func IsValidDeviceMode(mode string) bool {
-	var legalDeviceMode = map[rune]bool{
+	legalDeviceMode := map[rune]bool{
 		'r': true,
 		'w': true,
 		'm': true,
@@ -1002,7 +1076,6 @@ func rootlessConfigPath() (string, error) {
 }
 
 func stringsEq(a, b []string) bool {
-
 	if len(a) != len(b) {
 		return false
 	}
@@ -1087,10 +1160,10 @@ func (c *Config) Write() error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
 	}
@@ -1142,7 +1215,14 @@ func (c *Config) ActiveDestination() (uri, identity string, err error) {
 // FindHelperBinary will search the given binary name in the configured directories.
 // If searchPATH is set to true it will also search in $PATH.
 func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) {
-	for _, path := range c.Engine.HelperBinariesDir {
+	dir_list := c.Engine.HelperBinariesDir
+
+	// If set, search this directory first. This is used in testing.
+	if dir, found := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); found {
+		dir_list = append([]string{dir}, dir_list...)
+	}
+
+	for _, path := range dir_list {
 		fullpath := filepath.Join(path, name)
 		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
 			return fullpath, nil
@@ -1151,13 +1231,14 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 	if searchPATH {
 		return exec.LookPath(name)
 	}
+	configHint := "To resolve this error, set the helper_binaries_dir key in the `[engine]` section of containers.conf to the directory containing your helper binaries."
 	if len(c.Engine.HelperBinariesDir) == 0 {
-		return "", errors.Errorf("could not find %q because there are no helper binary directories configured", name)
+		return "", errors.Errorf("could not find %q because there are no helper binary directories configured.  %s", name, configHint)
 	}
-	return "", errors.Errorf("could not find %q in one of %v", name, c.Engine.HelperBinariesDir)
+	return "", errors.Errorf("could not find %q in one of %v.  %s", name, c.Engine.HelperBinariesDir, configHint)
 }
 
-// ImageCopyTmpDir default directory to store tempory image files during copy
+// ImageCopyTmpDir default directory to store temporary image files during copy
 func (c *Config) ImageCopyTmpDir() (string, error) {
 	if path, found := os.LookupEnv("TMPDIR"); found {
 		return path, nil
@@ -1174,4 +1255,54 @@ func (c *Config) ImageCopyTmpDir() (string, error) {
 	}
 
 	return "", errors.Errorf("invalid image_copy_tmp_dir value %q (relative paths are not accepted)", c.Engine.ImageCopyTmpDir)
+}
+
+// setupEnv sets the environment variables for the engine
+func (c *Config) setupEnv() error {
+	for _, env := range c.Engine.Env {
+		splitEnv := strings.SplitN(env, "=", 2)
+		if len(splitEnv) != 2 {
+			logrus.Warnf("invalid environment variable for engine %s, valid configuration is KEY=value pair", env)
+			continue
+		}
+		// skip if the env is already defined
+		if _, ok := os.LookupEnv(splitEnv[0]); ok {
+			logrus.Debugf("environment variable %s is already defined, skip the settings from containers.conf", splitEnv[0])
+			continue
+		}
+		if err := os.Setenv(splitEnv[0], splitEnv[1]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// eventsLogMaxSize is the type used by EventsLogFileMaxSize
+type eventsLogMaxSize uint64
+
+// UnmarshalText parses the JSON encoding of eventsLogMaxSize and
+// stores it in a value.
+func (e *eventsLogMaxSize) UnmarshalText(text []byte) error {
+	// REMOVE once writing works
+	if string(text) == "" {
+		return nil
+	}
+	val, err := units.FromHumanSize((string(text)))
+	if err != nil {
+		return err
+	}
+	if val < 0 {
+		return fmt.Errorf("events log file max size cannot be negative: %s", string(text))
+	}
+	*e = eventsLogMaxSize(uint64(val))
+	return nil
+}
+
+// MarshalText returns the JSON encoding of eventsLogMaxSize.
+func (e eventsLogMaxSize) MarshalText() ([]byte, error) {
+	if uint64(e) == DefaultEventsLogSizeMax || e == 0 {
+		v := []byte{}
+		return v, nil
+	}
+	return []byte(fmt.Sprintf("%d", e)), nil
 }

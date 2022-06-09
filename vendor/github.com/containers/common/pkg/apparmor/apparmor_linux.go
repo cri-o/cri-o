@@ -1,3 +1,4 @@
+//go:build linux && apparmor
 // +build linux,apparmor
 
 package apparmor
@@ -232,7 +233,6 @@ func parseAAParserVersion(output string) (int, error) {
 	// major*10^5 + minor*10^3 + patch*10^0
 	numericVersion := majorVersion*1e5 + minorVersion*1e3 + patchLevel
 	return numericVersion, nil
-
 }
 
 // CheckProfileAndLoadDefault checks if the specified profile is loaded and

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/libimage/manifests"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/copy"
@@ -26,8 +27,10 @@ const (
 )
 
 // LookupReferenceFunc return an image reference based on the specified one.
-// This can be used to pass custom blob caches to the copy operation.
-type LookupReferenceFunc func(ref types.ImageReference) (types.ImageReference, error)
+// The returned reference can return custom ImageSource or ImageDestination
+// objects which intercept or filter blobs, manifests, and signatures as
+// they are read and written.
+type LookupReferenceFunc = manifests.LookupReferenceFunc
 
 // CopyOptions allow for customizing image-copy operations.
 type CopyOptions struct {
@@ -144,15 +147,13 @@ type copier struct {
 	destinationLookup LookupReferenceFunc
 }
 
-var (
-	// storageAllowedPolicyScopes overrides the policy for local storage
-	// to ensure that we can read images from it.
-	storageAllowedPolicyScopes = signature.PolicyTransportScopes{
-		"": []signature.PolicyRequirement{
-			signature.NewPRInsecureAcceptAnything(),
-		},
-	}
-)
+// storageAllowedPolicyScopes overrides the policy for local storage
+// to ensure that we can read images from it.
+var storageAllowedPolicyScopes = signature.PolicyTransportScopes{
+	"": []signature.PolicyRequirement{
+		signature.NewPRInsecureAcceptAnything(),
+	},
+}
 
 // getDockerAuthConfig extracts a docker auth config from the CopyOptions.  Returns
 // nil if no credentials are set.
@@ -218,15 +219,7 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 
 	c.systemContext.DockerArchiveAdditionalTags = options.dockerArchiveAdditionalTags
 
-	if options.Architecture != "" {
-		c.systemContext.ArchitectureChoice = options.Architecture
-	}
-	if options.OS != "" {
-		c.systemContext.OSChoice = options.OS
-	}
-	if options.Variant != "" {
-		c.systemContext.VariantChoice = options.Variant
-	}
+	c.systemContext.OSChoice, c.systemContext.ArchitectureChoice, c.systemContext.VariantChoice = NormalizePlatform(options.OS, options.Architecture, options.Variant)
 
 	if options.SignaturePolicyPath != "" {
 		c.systemContext.SignaturePolicyPath = options.SignaturePolicyPath
