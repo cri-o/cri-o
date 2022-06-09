@@ -1,4 +1,5 @@
-// +build linux solaris
+//go:build !go1.8 || windows || !amd64 || static_build || gccgo
+// +build !go1.8 windows !amd64 static_build gccgo
 
 /*
    Copyright The containerd Authors.
@@ -16,29 +17,9 @@
    limitations under the License.
 */
 
-package sys
+package plugin
 
-import (
-	"syscall"
-	"time"
-)
-
-// StatAtime returns the Atim
-func StatAtime(st *syscall.Stat_t) syscall.Timespec {
-	return st.Atim
-}
-
-// StatCtime returns the Ctim
-func StatCtime(st *syscall.Stat_t) syscall.Timespec {
-	return st.Ctim
-}
-
-// StatMtime returns the Mtim
-func StatMtime(st *syscall.Stat_t) syscall.Timespec {
-	return st.Mtim
-}
-
-// StatATimeAsTime returns st.Atim as a time.Time
-func StatATimeAsTime(st *syscall.Stat_t) time.Time {
-	return time.Unix(int64(st.Atim.Sec), int64(st.Atim.Nsec)) // nolint: unconvert
+func loadPlugins(path string) error {
+	// plugins not supported until 1.8
+	return nil
 }

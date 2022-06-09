@@ -8,7 +8,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/container-orchestrated-devices/container-device-interface v0.4.0
 	github.com/containerd/cgroups v1.0.4
-	github.com/containerd/containerd v1.5.8
+	github.com/containerd/containerd v1.6.4
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/fifo v1.0.0
 	github.com/containerd/ttrpc v1.1.0
@@ -114,6 +114,7 @@ require (
 	github.com/docker/docker v20.10.12+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
+	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/go-plugins-helpers v0.0.0-20200102110956-c9a8a2d92ccc // indirect
 	github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316 // indirect
