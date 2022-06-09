@@ -422,6 +422,7 @@ func (r *Runtime) ExecSync(c *Container, command []string, timeout int64) (resp 
 		args = append(args, "-T")
 		args = append(args, fmt.Sprintf("%d", timeout))
 	}
+	args = append(args, "--log-global-size-max", strconv.Itoa(maxExecSyncSize))
 	args = append(args, "-l", logPath)
 	args = append(args, "--socket-dir-path", ContainerAttachSocketDir)
 	args = append(args, "--log-level", logrus.GetLevel().String())
