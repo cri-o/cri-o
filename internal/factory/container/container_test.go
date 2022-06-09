@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v3/pkg/annotations"
+	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"

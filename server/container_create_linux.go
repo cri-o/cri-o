@@ -10,8 +10,8 @@ import (
 
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/subscriptions"
-	"github.com/containers/podman/v3/pkg/rootless"
-	selinux "github.com/containers/podman/v3/pkg/selinux"
+	"github.com/containers/podman/v4/pkg/rootless"
+	selinux "github.com/containers/podman/v4/pkg/selinux"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"

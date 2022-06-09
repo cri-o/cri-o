@@ -6,8 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"math"
 	"os"
 	"sync"
@@ -18,12 +16,10 @@ import (
 )
 
 const (
-	// default RefreshRate
-	prr = 150 * time.Millisecond
+	prr = 150 * time.Millisecond // default RefreshRate
 )
 
-// Progress represents a container that renders one or more progress
-// bars.
+// Progress represents a container that renders one or more progress bars.
 type Progress struct {
 	ctx          context.Context
 	uwg          *sync.WaitGroup
@@ -33,17 +29,14 @@ type Progress struct {
 	done         chan struct{}
 	refreshCh    chan time.Time
 	once         sync.Once
-	dlogger      *log.Logger
 }
 
-// pState holds bars in its priorityQueue. It gets passed to
-// *Progress.serve(...) monitor goroutine.
+// pState holds bars in its priorityQueue, it gets passed to (*Progress).serve monitor goroutine.
 type pState struct {
-	bHeap            priorityQueue
-	heapUpdated      bool
-	pMatrix          map[int][]chan int
-	aMatrix          map[int][]chan int
-	barShutdownQueue []*Bar
+	bHeap       priorityQueue
+	heapUpdated bool
+	pMatrix     map[int][]chan int
+	aMatrix     map[int][]chan int
 
 	// following are provided/overrided by user
 	idCount          int
@@ -55,27 +48,26 @@ type pState struct {
 	externalRefresh  <-chan interface{}
 	renderDelay      <-chan struct{}
 	shutdownNotifier chan struct{}
-	parkedBars       map[*Bar]*Bar
+	queueBars        map[*Bar]*Bar
 	output           io.Writer
 	debugOut         io.Writer
 }
 
 // New creates new Progress container instance. It's not possible to
-// reuse instance after *Progress.Wait() method has been called.
+// reuse instance after (*Progress).Wait method has been called.
 func New(options ...ContainerOption) *Progress {
 	return NewWithContext(context.Background(), options...)
 }
 
 // NewWithContext creates new Progress container instance with provided
-// context. It's not possible to reuse instance after *Progress.Wait()
+// context. It's not possible to reuse instance after (*Progress).Wait
 // method has been called.
 func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 	s := &pState{
-		bHeap:      priorityQueue{},
-		rr:         prr,
-		parkedBars: make(map[*Bar]*Bar),
-		output:     os.Stdout,
-		debugOut:   ioutil.Discard,
+		bHeap:     priorityQueue{},
+		rr:        prr,
+		queueBars: make(map[*Bar]*Bar),
+		output:    os.Stdout,
 	}
 
 	for _, opt := range options {
@@ -91,7 +83,6 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 		bwg:          new(sync.WaitGroup),
 		operateState: make(chan func(*pState)),
 		done:         make(chan struct{}),
-		dlogger:      log.New(s.debugOut, "[mpb] ", log.Lshortfile),
 	}
 
 	p.cwg.Add(1)
@@ -99,25 +90,27 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 	return p
 }
 
-// AddBar creates a bar with default bar filler. Different filler can
-// be chosen and applied via `*Progress.Add(...) *Bar` method.
+// AddBar creates a bar with default bar filler.
 func (p *Progress) AddBar(total int64, options ...BarOption) *Bar {
-	return p.Add(total, NewBarFiller(BarStyle()), options...)
+	return p.New(total, BarStyle(), options...)
 }
 
-// AddSpinner creates a bar with default spinner filler. Different
-// filler can be chosen and applied via `*Progress.Add(...) *Bar`
-// method.
+// AddSpinner creates a bar with default spinner filler.
 func (p *Progress) AddSpinner(total int64, options ...BarOption) *Bar {
-	return p.Add(total, NewBarFiller(SpinnerStyle()), options...)
+	return p.New(total, SpinnerStyle(), options...)
+}
+
+// New creates a bar with provided BarFillerBuilder.
+func (p *Progress) New(total int64, builder BarFillerBuilder, options ...BarOption) *Bar {
+	return p.Add(total, builder.Build(), options...)
 }
 
 // Add creates a bar which renders itself by provided filler.
-// If `total <= 0` trigger complete event is disabled until reset with *bar.SetTotal(int64, bool).
-// Panics if *Progress instance is done, i.e. called after *Progress.Wait().
+// If `total <= 0` triggering complete event by increment methods is disabled.
+// Panics if *Progress instance is done, i.e. called after (*Progress).Wait().
 func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) *Bar {
 	if filler == nil {
-		filler = BarFillerFunc(func(io.Writer, int, decor.Statistics) {})
+		filler = NopStyle().Build()
 	}
 	p.bwg.Add(1)
 	result := make(chan *Bar)
@@ -125,9 +118,8 @@ func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) *Bar
 	case p.operateState <- func(ps *pState) {
 		bs := ps.makeBarState(total, filler, options...)
 		bar := newBar(p, bs)
-		if bs.runningBar != nil {
-			bs.runningBar.noPop = true
-			ps.parkedBars[bs.runningBar] = bar
+		if bs.afterBar != nil {
+			ps.queueBars[bs.afterBar] = bar
 		} else {
 			heap.Push(&ps.bHeap, bar)
 			ps.heapUpdated = true
@@ -136,7 +128,6 @@ func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) *Bar
 		result <- bar
 	}:
 		bar := <-result
-		bar.subscribeDecorators()
 		return bar
 	case <-p.done:
 		p.bwg.Done()
@@ -144,21 +135,8 @@ func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) *Bar
 	}
 }
 
-func (p *Progress) dropBar(b *Bar) {
-	select {
-	case p.operateState <- func(s *pState) {
-		if b.index < 0 {
-			return
-		}
-		heap.Remove(&s.bHeap, b.index)
-		s.heapUpdated = true
-	}:
-	case <-p.done:
-	}
-}
-
 func (p *Progress) traverseBars(cb func(b *Bar) bool) {
-	done := make(chan struct{})
+	sync := make(chan struct{})
 	select {
 	case p.operateState <- func(s *pState) {
 		for i := 0; i < s.bHeap.Len(); i++ {
@@ -167,9 +145,9 @@ func (p *Progress) traverseBars(cb func(b *Bar) bool) {
 				break
 			}
 		}
-		close(done)
+		close(sync)
 	}:
-		<-done
+		<-sync
 	case <-p.done:
 	}
 }
@@ -203,8 +181,8 @@ func (p *Progress) BarCount() int {
 // After this method has been called, there is no way to reuse *Progress
 // instance.
 func (p *Progress) Wait() {
+	// wait for user wg, if any
 	if p.uwg != nil {
-		// wait for user wg
 		p.uwg.Wait()
 	}
 
@@ -232,17 +210,89 @@ func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
 			op(s)
 		case <-p.refreshCh:
 			if err := s.render(cw); err != nil {
-				p.dlogger.Println(err)
+				if s.debugOut != nil {
+					_, e := fmt.Fprintln(s.debugOut, err)
+					if e != nil {
+						panic(err)
+					}
+				} else {
+					panic(err)
+				}
 			}
 		case <-s.shutdownNotifier:
 			for s.heapUpdated {
 				if err := s.render(cw); err != nil {
-					p.dlogger.Println(err)
+					if s.debugOut != nil {
+						_, e := fmt.Fprintln(s.debugOut, err)
+						if e != nil {
+							panic(err)
+						}
+					} else {
+						panic(err)
+					}
 				}
 			}
 			return
 		}
 	}
+}
+
+func (s *pState) render(cw *cwriter.Writer) error {
+	if s.heapUpdated {
+		s.updateSyncMatrix()
+		s.heapUpdated = false
+	}
+	syncWidth(s.pMatrix)
+	syncWidth(s.aMatrix)
+
+	tw, err := cw.GetWidth()
+	if err != nil {
+		tw = s.reqWidth
+	}
+	for i := 0; i < s.bHeap.Len(); i++ {
+		bar := s.bHeap[i]
+		go bar.render(tw)
+	}
+
+	return s.flush(cw)
+}
+
+func (s *pState) flush(cw *cwriter.Writer) error {
+	var lines int
+	pool := make([]*Bar, 0, s.bHeap.Len())
+	for s.bHeap.Len() > 0 {
+		b := heap.Pop(&s.bHeap).(*Bar)
+		frame := <-b.frameCh
+		lines += frame.lines
+		_, err := cw.ReadFrom(frame.reader)
+		if err != nil {
+			return err
+		}
+		if frame.shutdown {
+			b.Wait() // waiting for b.done, so it's safe to read b.bs
+			var toDrop bool
+			if qb, ok := s.queueBars[b]; ok {
+				delete(s.queueBars, b)
+				qb.priority = b.priority
+				pool = append(pool, qb)
+				toDrop = true
+			} else if s.popCompleted && !b.bs.noPop {
+				lines -= frame.lines
+				toDrop = true
+			}
+			if toDrop || b.bs.dropOnComplete {
+				s.heapUpdated = true
+				continue
+			}
+		}
+		pool = append(pool, b)
+	}
+
+	for _, b := range pool {
+		heap.Push(&s.bHeap, b)
+	}
+
+	return cw.Flush(lines)
 }
 
 func (s *pState) newTicker(done <-chan struct{}) chan time.Time {
@@ -281,75 +331,6 @@ func (s *pState) newTicker(done <-chan struct{}) chan time.Time {
 		}
 	}()
 	return ch
-}
-
-func (s *pState) render(cw *cwriter.Writer) error {
-	if s.heapUpdated {
-		s.updateSyncMatrix()
-		s.heapUpdated = false
-	}
-	syncWidth(s.pMatrix)
-	syncWidth(s.aMatrix)
-
-	tw, err := cw.GetWidth()
-	if err != nil {
-		tw = s.reqWidth
-	}
-	for i := 0; i < s.bHeap.Len(); i++ {
-		bar := s.bHeap[i]
-		go bar.render(tw)
-	}
-
-	return s.flush(cw)
-}
-
-func (s *pState) flush(cw *cwriter.Writer) error {
-	var totalLines int
-	bm := make(map[*Bar]int, s.bHeap.Len())
-	for s.bHeap.Len() > 0 {
-		b := heap.Pop(&s.bHeap).(*Bar)
-		frame := <-b.frameCh
-		cw.ReadFrom(frame.reader)
-		if b.toShutdown {
-			if b.recoveredPanic != nil {
-				s.barShutdownQueue = append(s.barShutdownQueue, b)
-				b.toShutdown = false
-			} else {
-				// shutdown at next flush
-				// this ensures no bar ends up with less than 100% rendered
-				defer func() {
-					s.barShutdownQueue = append(s.barShutdownQueue, b)
-				}()
-			}
-		}
-		bm[b] = frame.lines
-		totalLines += frame.lines
-	}
-
-	for _, b := range s.barShutdownQueue {
-		if parkedBar := s.parkedBars[b]; parkedBar != nil {
-			parkedBar.priority = b.priority
-			heap.Push(&s.bHeap, parkedBar)
-			delete(s.parkedBars, b)
-			b.toDrop = true
-		}
-		if s.popCompleted && !b.noPop {
-			totalLines -= bm[b]
-			b.toDrop = true
-		}
-		if b.toDrop {
-			delete(bm, b)
-			s.heapUpdated = true
-		}
-		b.cancel()
-	}
-	s.barShutdownQueue = s.barShutdownQueue[0:0]
-
-	for b := range bm {
-		heap.Push(&s.bHeap, b)
-	}
-
-	return cw.Flush(totalLines)
 }
 
 func (s *pState) updateSyncMatrix() {
@@ -400,9 +381,11 @@ func (s *pState) makeBarState(total int64, filler BarFiller, options ...BarOptio
 		bs.priority = -(math.MaxInt32 - s.idCount)
 	}
 
-	bs.bufP = bytes.NewBuffer(make([]byte, 0, 128))
-	bs.bufB = bytes.NewBuffer(make([]byte, 0, 256))
-	bs.bufA = bytes.NewBuffer(make([]byte, 0, 128))
+	for i := 0; i < len(bs.buffers); i++ {
+		bs.buffers[i] = bytes.NewBuffer(make([]byte, 0, 512))
+	}
+
+	bs.subscribeDecorators()
 
 	return bs
 }
@@ -413,7 +396,7 @@ func syncWidth(matrix map[int][]chan int) {
 	}
 }
 
-var maxWidthDistributor = func(column []chan int) {
+func maxWidthDistributor(column []chan int) {
 	var maxWidth int
 	for _, ch := range column {
 		if w := <-ch; w > maxWidth {

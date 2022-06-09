@@ -40,6 +40,20 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
 }
 
+// AddNames mocks base method.
+func (m *MockStore) AddNames(arg0 string, arg1 []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddNames", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddNames indicates an expected call of AddNames.
+func (mr *MockStoreMockRecorder) AddNames(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNames", reflect.TypeOf((*MockStore)(nil).AddNames), arg0, arg1)
+}
+
 // ApplyDiff mocks base method.
 func (m *MockStore) ApplyDiff(arg0 string, arg1 io.Reader) (int64, error) {
 	m.ctrl.T.Helper()
@@ -943,6 +957,20 @@ func (m *MockStore) PutLayer(arg0, arg1 string, arg2 []string, arg3 string, arg4
 func (mr *MockStoreMockRecorder) PutLayer(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutLayer", reflect.TypeOf((*MockStore)(nil).PutLayer), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+}
+
+// RemoveNames mocks base method.
+func (m *MockStore) RemoveNames(arg0 string, arg1 []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveNames", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveNames indicates an expected call of RemoveNames.
+func (mr *MockStoreMockRecorder) RemoveNames(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveNames", reflect.TypeOf((*MockStore)(nil).RemoveNames), arg0, arg1)
 }
 
 // RunRoot mocks base method.

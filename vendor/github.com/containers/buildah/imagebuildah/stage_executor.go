@@ -15,8 +15,12 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	buildahdocker "github.com/containers/buildah/docker"
+	"github.com/containers/buildah/internal"
+	internalUtil "github.com/containers/buildah/internal/util"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/rusage"
 	"github.com/containers/buildah/util"
+	config "github.com/containers/common/pkg/config"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
@@ -25,6 +29,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/unshare"
 	docker "github.com/fsouza/go-dockerclient"
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -47,21 +52,22 @@ import (
 // If we're naming the result of the build, only the last stage will apply that
 // name to the image that it produces.
 type StageExecutor struct {
-	ctx             context.Context
-	executor        *Executor
-	log             func(format string, args ...interface{})
-	index           int
-	stages          imagebuilder.Stages
-	name            string
-	builder         *buildah.Builder
-	preserved       int
-	volumes         imagebuilder.VolumeSet
-	volumeCache     map[string]string
-	volumeCacheInfo map[string]os.FileInfo
-	mountPoint      string
-	output          string
-	containerIDs    []string
-	stage           *imagebuilder.Stage
+	ctx                   context.Context
+	executor              *Executor
+	log                   func(format string, args ...interface{})
+	index                 int
+	stages                imagebuilder.Stages
+	name                  string
+	builder               *buildah.Builder
+	preserved             int
+	volumes               imagebuilder.VolumeSet
+	volumeCache           map[string]string
+	volumeCacheInfo       map[string]os.FileInfo
+	mountPoint            string
+	output                string
+	containerIDs          []string
+	stage                 *imagebuilder.Stage
+	argsFromContainerfile []string
 }
 
 // Preserve informs the stage executor that from this point on, it needs to
@@ -401,6 +407,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 			PreserveOwnership: preserveOwnership,
 			ContextDir:        contextDir,
 			Excludes:          copyExcludes,
+			IgnoreFile:        s.executor.ignoreFile,
 			IDMappingOptions:  idMappingOptions,
 			StripSetuidBit:    stripSetuid,
 			StripSetgidBit:    stripSetgid,
@@ -412,10 +419,67 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 	return nil
 }
 
+// Returns a map of StageName/ImageName:internal.StageMountDetails for RunOpts if any --mount with from is provided
+// Stage can automatically cleanup this mounts when a stage is removed
+// check if RUN contains `--mount` with `from`. If yes pre-mount images or stages from executor for Run.
+// stages mounted here will we used be Run().
+func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]internal.StageMountDetails, error) {
+	stageMountPoints := make(map[string]internal.StageMountDetails)
+	for _, flag := range mountList {
+		if strings.Contains(flag, "from") {
+			arr := strings.SplitN(flag, ",", 2)
+			if len(arr) < 2 {
+				return nil, errors.Errorf("Invalid --mount command: %s", flag)
+			}
+			tokens := strings.Split(arr[1], ",")
+			for _, val := range tokens {
+				kv := strings.SplitN(val, "=", 2)
+				switch kv[0] {
+				case "from":
+					if len(kv) == 1 {
+						return nil, errors.Errorf("unable to resolve argument for `from=`: bad argument")
+					}
+					if kv[1] == "" {
+						return nil, errors.Errorf("unable to resolve argument for `from=`: from points to an empty value")
+					}
+					from, fromErr := imagebuilder.ProcessWord(kv[1], s.stage.Builder.Arguments())
+					if fromErr != nil {
+						return nil, errors.Wrapf(fromErr, "unable to resolve argument %q", kv[1])
+					}
+					// If the source's name corresponds to the
+					// result of an earlier stage, wait for that
+					// stage to finish being built.
+					if isStage, err := s.executor.waitForStage(s.ctx, from, s.stages[:s.index]); isStage && err != nil {
+						return nil, err
+					}
+					if otherStage, ok := s.executor.stages[from]; ok && otherStage.index < s.index {
+						stageMountPoints[from] = internal.StageMountDetails{IsStage: true, MountPoint: otherStage.mountPoint}
+						break
+					} else {
+						mountPoint, err := s.getImageRootfs(s.ctx, from)
+						if err != nil {
+							return nil, errors.Errorf("%s from=%s: no stage or image found with that name", flag, from)
+						}
+						stageMountPoints[from] = internal.StageMountDetails{IsStage: false, MountPoint: mountPoint}
+						break
+					}
+				default:
+					continue
+				}
+			}
+		}
+	}
+	return stageMountPoints, nil
+}
+
 // Run executes a RUN instruction using the stage's current working container
 // as a root directory.
 func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	logrus.Debugf("RUN %#v, %#v", run, config)
+	stageMountPoints, err := s.runStageMountPoints(run.Mounts)
+	if err != nil {
+		return err
+	}
 	if s.builder == nil {
 		return errors.Errorf("no build container available")
 	}
@@ -433,12 +497,14 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		Hostname:         config.Hostname,
 		Runtime:          s.executor.runtime,
 		Args:             s.executor.runtimeArgs,
+		NoHosts:          s.executor.noHosts,
 		NoPivot:          os.Getenv("BUILDAH_NOPIVOT") != "",
 		Mounts:           append([]Mount{}, s.executor.transientMounts...),
 		Env:              config.Env,
 		User:             config.User,
 		WorkingDir:       config.WorkingDir,
 		Entrypoint:       config.Entrypoint,
+		ContextDir:       s.executor.contextDir,
 		Cmd:              config.Cmd,
 		Stdin:            stdin,
 		Stdout:           s.executor.out,
@@ -449,6 +515,8 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		Secrets:          s.executor.secrets,
 		SSHSources:       s.executor.sshsources,
 		RunMounts:        run.Mounts,
+		StageMountPoints: stageMountPoints,
+		SystemContext:    s.executor.systemContext,
 	}
 	if config.NetworkDisabled {
 		options.ConfigureNetwork = buildah.NetworkDisabled
@@ -533,20 +601,38 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		}
 	}
 
+	builderSystemContext := s.executor.systemContext
+	// get platform string from stage
+	if stage.Builder.Platform != "" {
+		os, arch, variant, err := parse.Platform(stage.Builder.Platform)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to parse platform %q", stage.Builder.Platform)
+		}
+		if arch != "" || variant != "" {
+			builderSystemContext.ArchitectureChoice = arch
+			builderSystemContext.VariantChoice = variant
+		}
+		if os != "" {
+			builderSystemContext.OSChoice = os
+		}
+	}
+
 	builderOptions := buildah.BuilderOptions{
 		Args:                  ib.Args,
 		FromImage:             from,
 		PullPolicy:            pullPolicy,
+		ContainerSuffix:       s.executor.containerSuffix,
 		Registry:              s.executor.registry,
 		BlobDirectory:         s.executor.blobDirectory,
 		SignaturePolicyPath:   s.executor.signaturePolicyPath,
 		ReportWriter:          s.executor.reportWriter,
-		SystemContext:         s.executor.systemContext,
+		SystemContext:         builderSystemContext,
 		Isolation:             s.executor.isolation,
 		NamespaceOptions:      s.executor.namespaceOptions,
 		ConfigureNetwork:      s.executor.configureNetwork,
 		CNIPluginPath:         s.executor.cniPluginPath,
 		CNIConfigDir:          s.executor.cniConfigDir,
+		NetworkInterface:      s.executor.networkInterface,
 		IDMappingOptions:      s.executor.idmappingOptions,
 		CommonBuildOpts:       s.executor.commonBuildOptions,
 		DefaultMountsFilePath: s.executor.defaultMountsFilePath,
@@ -556,11 +642,24 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		MaxPullRetries:        s.executor.maxPullPushRetries,
 		PullRetryDelay:        s.executor.retryPullPushDelay,
 		OciDecryptConfig:      s.executor.ociDecryptConfig,
+		Logger:                s.executor.logger,
+		ProcessLabel:          s.executor.processLabel,
+		MountLabel:            s.executor.mountLabel,
 	}
 
 	builder, err = buildah.NewBuilder(ctx, s.executor.store, builderOptions)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating build container")
+	}
+
+	// If executor's ProcessLabel and MountLabel is empty means this is the first stage
+	// Make sure we share first stage's ProcessLabel and MountLabel with all other subsequent stages
+	// Doing this will ensure and one stage in same build can mount another stage even if `selinux`
+	// is enabled.
+
+	if s.executor.mountLabel == "" && s.executor.processLabel == "" {
+		s.executor.mountLabel = builder.MountLabel
+		s.executor.processLabel = builder.ProcessLabel
 	}
 
 	if initializeIBConfig {
@@ -582,6 +681,7 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 			Volumes:      volumes,
 			WorkingDir:   builder.WorkDir(),
 			Entrypoint:   builder.Entrypoint(),
+			Healthcheck:  (*docker.HealthConfig)(builder.Healthcheck()),
 			Labels:       builder.Labels(),
 			Shell:        builder.Shell(),
 			StopSignal:   builder.StopSignal(),
@@ -673,8 +773,8 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	checkForLayers := s.executor.layers && s.executor.useCache
 	moreStages := s.index < len(s.stages)-1
 	lastStage := !moreStages
-	imageIsUsedLater := moreStages && (s.executor.baseMap[stage.Name] || s.executor.baseMap[fmt.Sprintf("%d", stage.Position)])
-	rootfsIsUsedLater := moreStages && (s.executor.rootfsMap[stage.Name] || s.executor.rootfsMap[fmt.Sprintf("%d", stage.Position)])
+	imageIsUsedLater := moreStages && (s.executor.baseMap[stage.Name] || s.executor.baseMap[strconv.Itoa(stage.Position)])
+	rootfsIsUsedLater := moreStages && (s.executor.rootfsMap[stage.Name] || s.executor.rootfsMap[strconv.Itoa(stage.Position)])
 
 	// If the base image's name corresponds to the result of an earlier
 	// stage, make sure that stage has finished building an image, and
@@ -971,7 +1071,13 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			}
 		}
 
-		if cacheID != "" && !(s.executor.squash && lastInstruction) {
+		// We want to save history for other layers during a squashed build.
+		// Toggle flag allows executor to treat other instruction and layers
+		// as regular builds and only perform squashing at last
+		squashToggle := false
+		// Note: If the build has squash, we must try to re-use as many layers as possible if cache is found.
+		// So only perform commit if its the lastInstruction of lastStage.
+		if cacheID != "" {
 			logCacheHit(cacheID)
 			// A suitable cached image was found, so we can just
 			// reuse it.  If we need to add a name to the resulting
@@ -985,6 +1091,13 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				}
 			}
 		} else {
+			if s.executor.squash {
+				// We want to save history for other layers during a squashed build.
+				// squashToggle flag allows executor to treat other instruction and layers
+				// as regular builds and only perform squashing at last
+				s.executor.squash = false
+				squashToggle = true
+			}
 			// We're not going to find any more cache hits, so we
 			// can stop looking for them.
 			checkForLayers = false
@@ -996,6 +1109,17 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
 			}
 		}
+
+		// Perform final squash for this build as we are one the,
+		// last instruction of last stage
+		if (s.executor.squash || squashToggle) && lastInstruction && lastStage {
+			s.executor.squash = true
+			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName)
+			if err != nil {
+				return "", nil, errors.Wrapf(err, "error committing final squash step %+v", *step)
+			}
+		}
+
 		logImageID(imgID)
 
 		// Update our working container to be based off of the cached
@@ -1110,10 +1234,15 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 	}
 	switch strings.ToUpper(node.Value) {
 	case "ARG":
-		buildArgs := s.getBuildArgs()
+		for _, variable := range strings.Fields(node.Original) {
+			if variable != "ARG" {
+				s.argsFromContainerfile = append(s.argsFromContainerfile, variable)
+			}
+		}
+		buildArgs := s.getBuildArgsKey()
 		return "/bin/sh -c #(nop) ARG " + buildArgs
 	case "RUN":
-		buildArgs := s.getBuildArgs()
+		buildArgs := s.getBuildArgsResolvedForRun()
 		if buildArgs != "" {
 			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + node.Original[4:]
 		}
@@ -1131,10 +1260,71 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 
 // getBuildArgs returns a string of the build-args specified during the build process
 // it excludes any build-args that were not used in the build process
-func (s *StageExecutor) getBuildArgs() string {
-	buildArgs := s.stage.Builder.Arguments()
-	sort.Strings(buildArgs)
-	return strings.Join(buildArgs, " ")
+// values for args are overridden by the values specified using ENV.
+// Reason: Values from ENV will always override values specified arg.
+func (s *StageExecutor) getBuildArgsResolvedForRun() string {
+	var envs []string
+	configuredEnvs := make(map[string]string)
+	dockerConfig := s.stage.Builder.Config()
+
+	for _, env := range dockerConfig.Env {
+		splitv := strings.SplitN(env, "=", 2)
+		if len(splitv) == 2 {
+			configuredEnvs[splitv[0]] = splitv[1]
+		}
+	}
+
+	for key, value := range s.stage.Builder.Args {
+		if _, ok := s.stage.Builder.AllowedArgs[key]; ok {
+			// if value was in image it will be given higher priority
+			// so please embed that into build history
+			_, inImage := configuredEnvs[key]
+			if inImage {
+				envs = append(envs, fmt.Sprintf("%s=%s", key, configuredEnvs[key]))
+			} else {
+				// By default everything must be added to history.
+				// Following variable is configured to false only for special cases.
+				addToHistory := true
+
+				// Following value is being assigned from build-args,
+				// check if this key belongs to any of the predefined allowlist args e.g Proxy Variables
+				// and if that arg is not manually set in Containerfile/Dockerfile
+				// then don't write its value to history.
+				// Following behaviour ensures parity with docker/buildkit.
+				for _, variable := range config.ProxyEnv {
+					if key == variable {
+						// found in predefined args
+						// so don't add to history
+						// unless user did explicit `ARG <some-predefined-proxy-variable>`
+						addToHistory = false
+						for _, processedArg := range s.argsFromContainerfile {
+							if key == processedArg {
+								addToHistory = true
+							}
+						}
+					}
+				}
+				if addToHistory {
+					envs = append(envs, fmt.Sprintf("%s=%s", key, value))
+				}
+			}
+		}
+	}
+	sort.Strings(envs)
+	return strings.Join(envs, " ")
+}
+
+// getBuildArgs key returns set args are key which were specified during the build process
+// following function will be exclusively used by build history
+func (s *StageExecutor) getBuildArgsKey() string {
+	var envs []string
+	for key := range s.stage.Builder.Args {
+		if _, ok := s.stage.Builder.AllowedArgs[key]; ok {
+			envs = append(envs, key)
+		}
+	}
+	sort.Strings(envs)
+	return strings.Join(envs, " ")
 }
 
 // tagExistingImage adds names to an image already in the store
@@ -1259,8 +1449,18 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 
 // commit writes the container's contents to an image, using a passed-in tag as
 // the name if there is one, generating a unique ID-based one otherwise.
+// or commit via any custom exporter if specified.
 func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer bool, output string) (string, reference.Canonical, error) {
 	ib := s.stage.Builder
+	var buildOutputOption define.BuildOutputOption
+	if s.executor.buildOutput != "" {
+		var err error
+		logrus.Debugf("Generating custom build output with options %q", s.executor.buildOutput)
+		buildOutputOption, err = parse.GetBuildOutput(s.executor.buildOutput)
+		if err != nil {
+			return "", nil, errors.Wrapf(err, "failed to parse build output")
+		}
+	}
 	var imageRef types.ImageReference
 	if output != "" {
 		imageRef2, err := s.executor.resolveNameToImageRef(output)
@@ -1285,6 +1485,17 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	if s.executor.os != "" {
 		s.builder.SetOS(s.executor.os)
 	}
+	if s.executor.osVersion != "" {
+		s.builder.SetOSVersion(s.executor.osVersion)
+	}
+	for _, osFeatureSpec := range s.executor.osFeatures {
+		switch {
+		case strings.HasSuffix(osFeatureSpec, "-"):
+			s.builder.UnsetOSFeature(strings.TrimSuffix(osFeatureSpec, "-"))
+		default:
+			s.builder.SetOSFeature(osFeatureSpec)
+		}
+	}
 	s.builder.SetUser(config.User)
 	s.builder.ClearPorts()
 	for p := range config.ExposedPorts {
@@ -1293,6 +1504,28 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	for _, envSpec := range config.Env {
 		spec := strings.SplitN(envSpec, "=", 2)
 		s.builder.SetEnv(spec[0], spec[1])
+	}
+	for _, envSpec := range s.executor.envs {
+		env := strings.SplitN(envSpec, "=", 2)
+		if len(env) > 1 {
+			getenv := func(name string) string {
+				for _, envvar := range s.builder.Env() {
+					val := strings.SplitN(envvar, "=", 2)
+					if len(val) == 2 && val[0] == name {
+						return val[1]
+					}
+				}
+				logrus.Errorf("error expanding variable %q: no value set in image", name)
+				return name
+			}
+			env[1] = os.Expand(env[1], getenv)
+			s.builder.SetEnv(env[0], env[1])
+		} else {
+			s.builder.SetEnv(env[0], os.Getenv(env[0]))
+		}
+	}
+	for _, envSpec := range s.executor.unsetEnvs {
+		s.builder.UnsetEnv(envSpec)
 	}
 	s.builder.SetCmd(config.Cmd)
 	s.builder.ClearVolumes()
@@ -1323,6 +1556,9 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	for k, v := range config.Labels {
 		s.builder.SetLabel(k, v)
 	}
+	if s.executor.commonBuildOptions.IdentityLabel == types.OptionalBoolUndefined || s.executor.commonBuildOptions.IdentityLabel == types.OptionalBoolTrue {
+		s.builder.SetLabel(buildah.BuilderIdentityAnnotation, define.Version)
+	}
 	for _, labelSpec := range s.executor.labels {
 		label := strings.SplitN(labelSpec, "=", 2)
 		if len(label) > 1 {
@@ -1331,7 +1567,6 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 			s.builder.SetLabel(label[0], "")
 		}
 	}
-	s.builder.SetLabel(buildah.BuilderIdentityAnnotation, define.Version)
 	for _, annotationSpec := range s.executor.annotations {
 		annotation := strings.SplitN(annotationSpec, "=", 2)
 		if len(annotation) > 1 {
@@ -1365,6 +1600,39 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		HistoryTimestamp:      s.executor.timestamp,
 		Manifest:              s.executor.manifest,
 	}
+	// generate build output
+	if s.executor.buildOutput != "" {
+		extractRootfsOpts := buildah.ExtractRootfsOptions{}
+		if unshare.IsRootless() {
+			// In order to maintain as much parity as possible
+			// with buildkit's version of --output and to avoid
+			// unsafe invocation of exported executables it was
+			// decided to strip setuid,setgid and extended attributes.
+			// Since modes like setuid,setgid leaves room for executable
+			// to get invoked with different file-system permission its safer
+			// to strip them off for unpriviledged invocation.
+			// See: https://github.com/containers/buildah/pull/3823#discussion_r829376633
+			extractRootfsOpts.StripSetuidBit = true
+			extractRootfsOpts.StripSetgidBit = true
+			extractRootfsOpts.StripXattrs = true
+		}
+		rc, errChan, err := s.builder.ExtractRootfs(options, extractRootfsOpts)
+		if err != nil {
+			return "", nil, errors.Wrapf(err, "failed to extract rootfs from given container image")
+		}
+		defer rc.Close()
+		err = internalUtil.ExportFromReader(rc, buildOutputOption)
+		if err != nil {
+			return "", nil, errors.Wrapf(err, "failed to export build output")
+		}
+		if errChan != nil {
+			err = <-errChan
+			if err != nil {
+				return "", nil, err
+			}
+		}
+
+	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {
 		return "", nil, err
@@ -1381,5 +1649,9 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 }
 
 func (s *StageExecutor) EnsureContainerPath(path string) error {
-	return copier.Mkdir(s.mountPoint, filepath.Join(s.mountPoint, path), copier.MkdirOptions{})
+	return s.builder.EnsureContainerPathAs(path, "", nil)
+}
+
+func (s *StageExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
+	return s.builder.EnsureContainerPathAs(path, user, mode)
 }

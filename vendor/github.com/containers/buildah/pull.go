@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/types"
@@ -63,17 +62,23 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 	libimageOptions.OciDecryptConfig = options.OciDecryptConfig
 	libimageOptions.AllTags = options.AllTags
 	libimageOptions.RetryDelay = &options.RetryDelay
+	libimageOptions.DestinationLookupReferenceFunc = cacheLookupReferenceFunc(options.BlobDirectory, types.PreserveOriginal)
 
 	if options.MaxRetries > 0 {
 		retries := uint(options.MaxRetries)
 		libimageOptions.MaxRetries = &retries
 	}
 
-	if options.BlobDirectory != "" {
-		libimageOptions.DestinationLookupReferenceFunc = blobcache.CacheLookupReferenceFunc(options.BlobDirectory, types.PreserveOriginal)
-	}
 
 	pullPolicy, err := config.ParsePullPolicy(options.PullPolicy.String())
+	if err != nil {
+		return "", err
+	}
+
+	// Note: It is important to do this before we pull any images/create containers.
+	// The default backend detection logic needs an empty store to correctly detect
+	// that we can use netavark, if the store was not empty it will use CNI to not break existing installs.
+	_, err = getNetworkInterface(options.Store, "", "")
 	if err != nil {
 		return "", err
 	}

@@ -19,7 +19,7 @@ import (
 
 // A `FlowLimiter` is used to manage flow control for a stream of messages.
 type FlowLimiter interface {
-	// StartMessage informs the flow limiter than the caller wants to
+	// StartMessage informs the flow limiter that the caller wants to
 	// send a message of the specified size. It blocks until an appropriate
 	// time to do so, or until the context is canceled. If the returned
 	// error is nil, the caller should then proceed in sending the message

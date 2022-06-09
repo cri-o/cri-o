@@ -7,14 +7,21 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"strings"
 	"time"
 
 	"github.com/containers/storage/pkg/homedir"
-	"golang.org/x/crypto/openpgp"
+	// This is a fallback code; the primary recommendation is to use the gpgme mechanism
+	// implementation, which is out-of-process and more appropriate for handling long-term private key material
+	// than any Go implementation.
+	// For this verify-only fallback, we haven't reviewed any of the
+	// existing alternatives to choose; so, for now, continue to
+	// use this frozen deprecated implementation.
+	//lint:ignore SA1019 See above
+	"golang.org/x/crypto/openpgp" //nolint:staticcheck
 )
 
 // A GPG/OpenPGP signing mechanism, implemented using x/crypto/openpgp.
@@ -24,7 +31,7 @@ type openpgpSigningMechanism struct {
 
 // newGPGSigningMechanismInDirectory returns a new GPG/OpenPGP signing mechanism, using optionalDir if not empty.
 // The caller must call .Close() on the returned SigningMechanism.
-func newGPGSigningMechanismInDirectory(optionalDir string) (SigningMechanism, error) {
+func newGPGSigningMechanismInDirectory(optionalDir string) (signingMechanismWithPassphrase, error) {
 	m := &openpgpSigningMechanism{
 		keyring: openpgp.EntityList{},
 	}
@@ -37,7 +44,7 @@ func newGPGSigningMechanismInDirectory(optionalDir string) (SigningMechanism, er
 		}
 	}
 
-	pubring, err := ioutil.ReadFile(path.Join(gpgHome, "pubring.gpg"))
+	pubring, err := os.ReadFile(path.Join(gpgHome, "pubring.gpg"))
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
@@ -55,7 +62,7 @@ func newGPGSigningMechanismInDirectory(optionalDir string) (SigningMechanism, er
 // recognizes _only_ public keys from the supplied blob, and returns the identities
 // of these keys.
 // The caller must call .Close() on the returned SigningMechanism.
-func newEphemeralGPGSigningMechanism(blob []byte) (SigningMechanism, []string, error) {
+func newEphemeralGPGSigningMechanism(blob []byte) (signingMechanismWithPassphrase, []string, error) {
 	m := &openpgpSigningMechanism{
 		keyring: openpgp.EntityList{},
 	}
@@ -104,8 +111,14 @@ func (m *openpgpSigningMechanism) SupportsSigning() error {
 
 // Sign creates a (non-detached) signature of input using keyIdentity.
 // Fails with a SigningNotSupportedError if the mechanism does not support signing.
-func (m *openpgpSigningMechanism) Sign(input []byte, keyIdentity string) ([]byte, error) {
+func (m *openpgpSigningMechanism) SignWithPassphrase(input []byte, keyIdentity string, passphrase string) ([]byte, error) {
 	return nil, SigningNotSupportedError("signing is not supported in github.com/containers/image built with the containers_image_openpgp build tag")
+}
+
+// Sign creates a (non-detached) signature of input using keyIdentity.
+// Fails with a SigningNotSupportedError if the mechanism does not support signing.
+func (m *openpgpSigningMechanism) Sign(input []byte, keyIdentity string) ([]byte, error) {
+	return m.SignWithPassphrase(input, keyIdentity, "")
 }
 
 // Verify parses unverifiedSignature and returns the content and the signer's identity
@@ -117,7 +130,7 @@ func (m *openpgpSigningMechanism) Verify(unverifiedSignature []byte) (contents [
 	if !md.IsSigned {
 		return nil, "", errors.New("not signed")
 	}
-	content, err := ioutil.ReadAll(md.UnverifiedBody)
+	content, err := io.ReadAll(md.UnverifiedBody)
 	if err != nil {
 		// Coverage: md.UnverifiedBody.Read only fails if the body is encrypted
 		// (and possibly also signed, but it _must_ be encrypted) and the signing

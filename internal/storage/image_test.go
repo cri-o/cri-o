@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v3/pkg/rootless"
 	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/storage"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
@@ -104,19 +103,6 @@ var _ = t.Describe("Image", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(imageService).NotTo(BeNil())
-		})
-
-		It("should fail to retrieve an image service without storage", func() {
-			// Given
-			storeOptions, err := cs.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-			Expect(err).To(BeNil())
-			storeOptions.GraphRoot = ""
-
-			// When
-			_, err = cs.GetStore(storeOptions)
-
-			// Then
-			Expect(err).NotTo(BeNil())
 		})
 	})
 

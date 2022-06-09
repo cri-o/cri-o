@@ -80,6 +80,7 @@ func DefaultProfile() *Seccomp {
 				"vmsplice",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 		},
@@ -168,6 +169,7 @@ func DefaultProfile() *Seccomp {
 				"futex",
 				"futex_time64",
 				"futimesat",
+				"get_mempolicy",
 				"get_robust_list",
 				"get_thread_area",
 				"getcpu",
@@ -183,7 +185,6 @@ func DefaultProfile() *Seccomp {
 				"getgroups",
 				"getgroups32",
 				"getitimer",
-				"get_mempolicy",
 				"getpeername",
 				"getpgid",
 				"getpgrp",
@@ -235,6 +236,7 @@ func DefaultProfile() *Seccomp {
 				"lstat64",
 				"madvise",
 				"mbind",
+				"membarrier",
 				"memfd_create",
 				"memfd_secret",
 				"mincore",
@@ -248,6 +250,7 @@ func DefaultProfile() *Seccomp {
 				"mmap",
 				"mmap2",
 				"mount",
+				"mount_setattr",
 				"move_mount",
 				"mprotect",
 				"mq_getsetattr",
@@ -271,9 +274,9 @@ func DefaultProfile() *Seccomp {
 				"nanosleep",
 				"newfstatat",
 				"open",
+				"open_tree",
 				"openat",
 				"openat2",
-				"open_tree",
 				"pause",
 				"pidfd_getfd",
 				"pidfd_open",
@@ -292,8 +295,12 @@ func DefaultProfile() *Seccomp {
 				"preadv",
 				"preadv2",
 				"prlimit64",
+				"process_mrelease",
+				"process_vm_readv",
+				"process_vm_writev",
 				"pselect6",
 				"pselect6_time64",
+				"ptrace",
 				"pwrite64",
 				"pwritev",
 				"pwritev2",
@@ -352,7 +359,6 @@ func DefaultProfile() *Seccomp {
 				"sendmmsg",
 				"sendmsg",
 				"sendto",
-				"setns",
 				"set_mempolicy",
 				"set_robust_list",
 				"set_thread_area",
@@ -366,6 +372,7 @@ func DefaultProfile() *Seccomp {
 				"setgroups",
 				"setgroups32",
 				"setitimer",
+				"setns",
 				"setpgid",
 				"setpriority",
 				"setregid",
@@ -387,10 +394,15 @@ func DefaultProfile() *Seccomp {
 				"shmdt",
 				"shmget",
 				"shutdown",
+				"sigaction",
 				"sigaltstack",
+				"signal",
 				"signalfd",
 				"signalfd4",
+				"sigpending",
+				"sigprocmask",
 				"sigreturn",
+				"sigsuspend",
 				"socketcall",
 				"socketpair",
 				"splice",
@@ -404,6 +416,7 @@ func DefaultProfile() *Seccomp {
 				"sync",
 				"sync_file_range",
 				"syncfs",
+				"syscall",
 				"sysinfo",
 				"syslog",
 				"tee",
@@ -416,6 +429,7 @@ func DefaultProfile() *Seccomp {
 				"timer_gettime64",
 				"timer_settime",
 				"timer_settime64",
+				"timerfd",
 				"timerfd_create",
 				"timerfd_gettime",
 				"timerfd_gettime64",
@@ -516,10 +530,10 @@ func DefaultProfile() *Seccomp {
 			Names: []string{
 				"arm_fadvise64_64",
 				"arm_sync_file_range",
-				"sync_file_range2",
 				"breakpoint",
 				"cacheflush",
 				"set_tls",
+				"sync_file_range2",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
@@ -574,6 +588,7 @@ func DefaultProfile() *Seccomp {
 				"open_by_handle_at",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -609,6 +624,7 @@ func DefaultProfile() *Seccomp {
 				"setns",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -630,6 +646,7 @@ func DefaultProfile() *Seccomp {
 				"chroot",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -639,8 +656,8 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"delete_module",
-				"init_module",
 				"finit_module",
+				"init_module",
 				"query_module",
 			},
 			Action: ActAllow,
@@ -652,11 +669,12 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"delete_module",
-				"init_module",
 				"finit_module",
+				"init_module",
 				"query_module",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -678,6 +696,7 @@ func DefaultProfile() *Seccomp {
 				"acct",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -688,9 +707,6 @@ func DefaultProfile() *Seccomp {
 			Names: []string{
 				"kcmp",
 				"process_madvise",
-				"process_vm_readv",
-				"process_vm_writev",
-				"ptrace",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
@@ -702,11 +718,9 @@ func DefaultProfile() *Seccomp {
 			Names: []string{
 				"kcmp",
 				"process_madvise",
-				"process_vm_readv",
-				"process_vm_writev",
-				"ptrace",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -715,8 +729,8 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"iopl",
 				"ioperm",
+				"iopl",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
@@ -726,10 +740,11 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"iopl",
 				"ioperm",
+				"iopl",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -738,10 +753,10 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"settimeofday",
-				"stime",
 				"clock_settime",
 				"clock_settime64",
+				"settimeofday",
+				"stime",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
@@ -751,12 +766,13 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"settimeofday",
-				"stime",
 				"clock_settime",
 				"clock_settime64",
+				"settimeofday",
+				"stime",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -778,6 +794,7 @@ func DefaultProfile() *Seccomp {
 				"vhangup",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -789,6 +806,7 @@ func DefaultProfile() *Seccomp {
 				"socket",
 			},
 			Action:   ActErrno,
+			Errno:    "EINVAL",
 			ErrnoRet: &einval,
 			Args: []*Arg{
 				{
@@ -867,6 +885,7 @@ func DefaultProfile() *Seccomp {
 
 	return &Seccomp{
 		DefaultAction:   ActErrno,
+		DefaultErrno:    "ENOSYS",
 		DefaultErrnoRet: &enosys,
 		ArchMap:         arches(),
 		Syscalls:        syscalls,

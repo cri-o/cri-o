@@ -21,6 +21,16 @@ import (
 // Faster than the standard library, see https://github.com/json-iterator/go.
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
+// tmpdir returns a path to a temporary directory.
+func tmpdir() string {
+	tmpdir := os.Getenv("TMPDIR")
+	if tmpdir == "" {
+		tmpdir = "/var/tmp"
+	}
+
+	return tmpdir
+}
+
 // RuntimeOptions allow for creating a customized Runtime.
 type RuntimeOptions struct {
 	// The base system context of the runtime which will be used throughout
@@ -64,7 +74,7 @@ func (r *Runtime) SystemContext() *types.SystemContext {
 // Returns a copy of the runtime's system context.
 func (r *Runtime) systemContextCopy() *types.SystemContext {
 	var sys types.SystemContext
-	deepcopy.Copy(&sys, &r.systemContext)
+	_ = deepcopy.Copy(&sys, &r.systemContext)
 	return &sys
 }
 
@@ -180,6 +190,8 @@ type LookupImageOptions struct {
 	returnManifestIfNoInstance bool
 }
 
+var errNoHexValue = errors.New("invalid format: no 64-byte hexadecimal value")
+
 // Lookup Image looks up `name` in the local container storage.  Returns the
 // image and the name it has been found with.  Note that name may also use the
 // `containers-storage:` prefix used to refer to the containers-storage
@@ -223,12 +235,28 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		name = normalizedName
 	}
 
+	byDigest := false
 	originalName := name
-	idByDigest := false
 	if strings.HasPrefix(name, "sha256:") {
-		// Strip off the sha256 prefix so it can be parsed later on.
-		idByDigest = true
+		byDigest = true
 		name = strings.TrimPrefix(name, "sha256:")
+	}
+	byFullID := reference.IsFullIdentifier(name)
+
+	if byDigest && !byFullID {
+		return nil, "", fmt.Errorf("%s: %v", originalName, errNoHexValue)
+	}
+
+	// If the name clearly refers to a local image, try to look it up.
+	if byFullID || byDigest {
+		img, err := r.lookupImageInLocalStorage(originalName, name, options)
+		if err != nil {
+			return nil, "", err
+		}
+		if img != nil {
+			return img, originalName, nil
+		}
+		return nil, "", errors.Wrap(storage.ErrImageUnknown, originalName)
 	}
 
 	// Unless specified, set the platform specified in the system context
@@ -243,28 +271,14 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 	if options.Variant == "" {
 		options.Variant = r.systemContext.VariantChoice
 	}
-
-	// First, check if we have an exact match in the storage. Maybe an ID
-	// or a fully-qualified image name.
-	img, err := r.lookupImageInLocalStorage(name, name, options)
-	if err != nil {
-		return nil, "", err
-	}
-	if img != nil {
-		return img, originalName, nil
-	}
-
-	// If the name clearly referred to a local image, there's nothing we can
-	// do anymore.
-	if storageRef != nil || idByDigest {
-		return nil, "", errors.Wrap(storage.ErrImageUnknown, originalName)
-	}
+	// Normalize platform to be OCI compatible (e.g., "aarch64" -> "arm64").
+	options.OS, options.Architecture, options.Variant = NormalizePlatform(options.OS, options.Architecture, options.Variant)
 
 	// Second, try out the candidates as resolved by shortnames. This takes
 	// "localhost/" prefixed images into account as well.
 	candidates, err := shortnames.ResolveLocally(&r.systemContext, name)
 	if err != nil {
-		return nil, "", errors.Wrap(storage.ErrImageUnknown, originalName)
+		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
 	}
 	// Backwards compat: normalize to docker.io as some users may very well
 	// rely on that.
@@ -282,7 +296,17 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		}
 	}
 
-	return r.lookupImageInDigestsAndRepoTags(originalName, options)
+	// The specified name may refer to a short ID. Note that this *must*
+	// happen after the short-name expansion as done above.
+	img, err := r.lookupImageInLocalStorage(name, name, options)
+	if err != nil {
+		return nil, "", err
+	}
+	if img != nil {
+		return img, name, err
+	}
+
+	return r.lookupImageInDigestsAndRepoTags(name, options)
 }
 
 // lookupImageInLocalStorage looks up the specified candidate for name in the
@@ -379,41 +403,49 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, options *LookupIm
 		return nil, "", err
 	}
 
-	if !shortnames.IsShortName(name) {
-		named, err := reference.ParseNormalizedNamed(name)
-		if err != nil {
-			return nil, "", err
-		}
-		digested, hasDigest := named.(reference.Digested)
-		if !hasDigest {
-			return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
-		}
+	ref, err := reference.Parse(name) // Warning! This is not ParseNormalizedNamed
+	if err != nil {
+		return nil, "", err
+	}
+	named, isNamed := ref.(reference.Named)
+	if !isNamed {
+		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
+	}
 
+	digested, isDigested := named.(reference.Digested)
+	if isDigested {
 		logrus.Debug("Looking for image with matching recorded digests")
 		digest := digested.Digest()
 		for _, image := range allImages {
 			for _, d := range image.Digests() {
-				if d == digest {
-					return image, name, nil
+				if d != digest {
+					continue
 				}
+				// Also make sure that the matching image fits all criteria (e.g., manifest list).
+				if _, err := r.lookupImageInLocalStorage(name, image.ID(), options); err != nil {
+					return nil, "", err
+				}
+				return image, name, nil
+
 			}
 		}
-
 		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
 	}
 
-	// Podman compat: if we're looking for a short name but couldn't
-	// resolve it via the registries.conf dance, we need to look at *all*
-	// images and check if the name we're looking for matches a repo tag.
-	// Split the name into a repo/tag pair
-	split := strings.SplitN(name, ":", 2)
-	repo := split[0]
-	tag := ""
-	if len(split) == 2 {
-		tag = split[1]
+	if !shortnames.IsShortName(name) {
+		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
 	}
+
+	named = reference.TagNameOnly(named) // Make sure to add ":latest" if needed
+	namedTagged, isNammedTagged := named.(reference.NamedTagged)
+	if !isNammedTagged {
+		// NOTE: this should never happen since we already know it's
+		// not a digested reference.
+		return nil, "", fmt.Errorf("%s: %w (could not cast to tagged)", name, storage.ErrImageUnknown)
+	}
+
 	for _, image := range allImages {
-		named, err := image.inRepoTags(repo, tag)
+		named, err := image.inRepoTags(namedTagged)
 		if err != nil {
 			return nil, "", err
 		}
@@ -477,13 +509,16 @@ func (r *Runtime) imageReferenceMatchesContext(ref types.ImageReference, options
 	}
 
 	if options.Architecture != "" && options.Architecture != data.Architecture {
-		return false, err
+		logrus.Debugf("architecture %q does not match architecture %q of image %s", options.Architecture, data.Architecture, ref)
+		return false, nil
 	}
 	if options.OS != "" && options.OS != data.Os {
-		return false, err
+		logrus.Debugf("OS %q does not match OS %q of image %s", options.OS, data.Os, ref)
+		return false, nil
 	}
 	if options.Variant != "" && options.Variant != data.Variant {
-		return false, err
+		logrus.Debugf("variant %q does not match variant %q of image %s", options.Variant, data.Variant, ref)
+		return false, nil
 	}
 
 	return true, nil
@@ -539,16 +574,7 @@ func (r *Runtime) ListImages(ctx context.Context, names []string, options *ListI
 		}
 	}
 
-	var filters []filterFunc
-	if len(options.Filters) > 0 {
-		compiledFilters, err := r.compileImageFilters(ctx, options)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, compiledFilters...)
-	}
-
-	return filterImages(images, filters)
+	return r.filterImages(ctx, images, options)
 }
 
 // RemoveImagesOptions allow for customizing image removal.
@@ -566,6 +592,8 @@ type RemoveImagesOptions struct {
 	// containers using a specific image.  By default, all containers in
 	// the local containers storage will be removed (if Force is set).
 	RemoveContainerFunc RemoveContainerFunc
+	// Ignore if a specified image does not exist and do not throw an error.
+	Ignore bool
 	// IsExternalContainerFunc allows for checking whether the specified
 	// container is an external one (when containers=external filter is
 	// used).  The definition of an external container can be set by
@@ -651,6 +679,9 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 		for _, name := range names {
 			img, resolvedName, err := r.LookupImage(name, lookupOptions)
 			if err != nil {
+				if options.Ignore && errors.Is(err, storage.ErrImageUnknown) {
+					continue
+				}
 				appendError(err)
 				continue
 			}

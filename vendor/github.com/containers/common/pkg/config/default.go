@@ -3,14 +3,18 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
+	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/containers/storage/types"
@@ -45,7 +49,7 @@ var (
 	// DefaultInitPath is the default path to the container-init binary
 	DefaultInitPath = "/usr/libexec/podman/catatonit"
 	// DefaultInfraImage to use for infra container
-	DefaultInfraImage = "k8s.gcr.io/pause:3.5"
+	DefaultInfraImage = ""
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
 	DefaultRootlessSHMLockPath = "/libpod_rootless_lock"
 	// DefaultDetachKeys is the default keys sequence for detaching a
@@ -84,7 +88,28 @@ var (
 		"/usr/lib/cni",
 		"/opt/cni/bin",
 	}
+	DefaultSubnetPools = []SubnetPool{
+		// 10.89.0.0/24-10.255.255.0/24
+		parseSubnetPool("10.89.0.0/16", 24),
+		parseSubnetPool("10.90.0.0/15", 24),
+		parseSubnetPool("10.92.0.0/14", 24),
+		parseSubnetPool("10.96.0.0/11", 24),
+		parseSubnetPool("10.128.0.0/9", 24),
+	}
+	// additionalHelperBinariesDir is an extra helper binaries directory that
+	// should be set during link-time, if different packagers put their
+	// helper binary in a different location
+	additionalHelperBinariesDir string
 )
+
+// nolint:unparam
+func parseSubnetPool(subnet string, size int) SubnetPool {
+	_, n, _ := net.ParseCIDR(subnet)
+	return SubnetPool{
+		Base: &nettypes.IPNet{IPNet: *n},
+		Size: size,
+	}
+}
 
 const (
 	// _etcDir is the sysconfdir where podman should look for system config files.
@@ -93,19 +118,20 @@ const (
 	// InstallPrefix is the prefix where podman will be installed.
 	// It can be overridden at build time.
 	_installPrefix = "/usr"
-	// _cniConfigDir is the directory where cni configuration is found
-	_cniConfigDir = "/etc/cni/net.d/"
-	// _cniConfigDirRootless is the directory in XDG_CONFIG_HOME for cni plugins
-	_cniConfigDirRootless = "cni/net.d/"
 	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
 	DefaultApparmorProfile = apparmor.Profile
+	// DefaultHostsFile is the default path to the hosts file
+	DefaultHostsFile = "/etc/hosts"
 	// SystemdCgroupsManager represents systemd native cgroup manager
 	SystemdCgroupsManager = "systemd"
 	// DefaultLogSizeMax is the default value for the maximum log size
 	// allowed for a container. Negative values mean that no limit is imposed.
 	DefaultLogSizeMax = -1
+	// DefaultEventsLogSize is the default value for the maximum events log size
+	// before rotation.
+	DefaultEventsLogSizeMax = uint64(1000000)
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container
 	DefaultPidsLimit = 2048
@@ -114,7 +140,7 @@ const (
 	// DefaultSignaturePolicyPath is the default value for the
 	// policy.json file.
 	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
-	// DefaultSubnet is the subnet that will be used for the default CNI
+	// DefaultSubnet is the subnet that will be used for the default
 	// network.
 	DefaultSubnet = "10.88.0.0/16"
 	// DefaultRootlessSignaturePolicyPath is the location within
@@ -134,13 +160,10 @@ const (
 
 // DefaultConfig defines the default values from containers.conf
 func DefaultConfig() (*Config, error) {
-
 	defaultEngineConfig, err := defaultConfigFromMemory()
 	if err != nil {
 		return nil, err
 	}
-
-	cniConfig := _cniConfigDir
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 	if unshare.IsRootless() {
@@ -155,7 +178,6 @@ func DefaultConfig() (*Config, error) {
 				defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 			}
 		}
-		cniConfig = filepath.Join(configHome, _cniConfigDirRootless)
 	}
 
 	cgroupNS := "host"
@@ -169,6 +191,7 @@ func DefaultConfig() (*Config, error) {
 			Volumes:             []string{},
 			Annotations:         []string{},
 			ApparmorProfile:     DefaultApparmorProfile,
+			BaseHostsFile:       "",
 			CgroupNS:            cgroupNS,
 			Cgroups:             "enabled",
 			DefaultCapabilities: DefaultCapabilities,
@@ -183,28 +206,28 @@ func DefaultConfig() (*Config, error) {
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 				"TERM=xterm",
 			},
-			EnvHost:            false,
-			HTTPProxy:          true,
-			Init:               false,
-			InitPath:           "",
-			IPCNS:              "private",
-			LogDriver:          defaultLogDriver(),
-			LogSizeMax:         DefaultLogSizeMax,
-			NoHosts:            false,
-			PidsLimit:          DefaultPidsLimit,
-			PidNS:              "private",
-			RootlessNetworking: getDefaultRootlessNetwork(),
-			ShmSize:            DefaultShmSize,
-			TZ:                 "",
-			Umask:              "0022",
-			UTSNS:              "private",
-			UserNSSize:         DefaultUserNSSize,
+			EnvHost:    false,
+			HTTPProxy:  true,
+			Init:       false,
+			InitPath:   "",
+			IPCNS:      "shareable",
+			LogDriver:  defaultLogDriver(),
+			LogSizeMax: DefaultLogSizeMax,
+			NetNS:      "private",
+			NoHosts:    false,
+			PidsLimit:  DefaultPidsLimit,
+			PidNS:      "private",
+			ShmSize:    DefaultShmSize,
+			TZ:         "",
+			Umask:      "0022",
+			UTSNS:      "private",
+			UserNSSize: DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
-			DefaultNetwork:   "podman",
-			DefaultSubnet:    DefaultSubnet,
-			NetworkConfigDir: cniConfig,
-			CNIPluginDirs:    DefaultCNIPluginDirs,
+			DefaultNetwork:     "podman",
+			DefaultSubnet:      DefaultSubnet,
+			DefaultSubnetPools: DefaultSubnetPools,
+			CNIPluginDirs:      DefaultCNIPluginDirs,
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
@@ -224,9 +247,11 @@ func defaultSecretConfig() SecretConfig {
 func defaultMachineConfig() MachineConfig {
 	return MachineConfig{
 		CPUs:     1,
-		DiskSize: 10,
-		Image:    "testing",
+		DiskSize: 100,
+		Image:    getDefaultMachineImage(),
 		Memory:   2048,
+		User:     getDefaultMachineUser(),
+		Volumes:  []string{"$HOME:$HOME"},
 	}
 }
 
@@ -242,6 +267,10 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 
 	c.EventsLogFilePath = filepath.Join(c.TmpDir, "events", "events.log")
 
+	c.EventsLogFileMaxSize = eventsLogMaxSize(DefaultEventsLogSizeMax)
+
+	c.CompatAPIEnforceDockerHub = true
+
 	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
 		types.SetDefaultConfigFilePath(path)
 	}
@@ -255,11 +284,14 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		storeOpts.GraphRoot = _defaultGraphRoot
 	}
 	c.graphRoot = storeOpts.GraphRoot
-	c.ImageCopyTmpDir = "/var/tmp"
+	c.ImageCopyTmpDir = getDefaultTmpDir()
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
 
 	c.HelperBinariesDir = defaultHelperBinariesDir
+	if additionalHelperBinariesDir != "" {
+		c.HelperBinariesDir = append(c.HelperBinariesDir, additionalHelperBinariesDir)
+	}
 	c.HooksDir = DefaultHooksDirs
 	c.ImageDefaultTransport = _defaultTransport
 	c.StateType = BoltDBStateStore
@@ -269,9 +301,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.CgroupManager = defaultCgroupManager()
 	c.ServiceTimeout = uint(5)
 	c.StopTimeout = uint(10)
-	c.NetworkCmdOptions = []string{
-		"enable_ipv6=true",
-	}
+	c.ExitCommandDelay = uint(5 * 60)
 	c.Remote = isRemote()
 	c.OCIRuntimes = map[string][]string{
 		"crun": {
@@ -358,6 +388,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.MachineEnabled = false
 	c.ChownCopiedFiles = true
 
+	c.PodExitPolicy = defaultPodExitPolicy
+
 	return c, nil
 }
 
@@ -366,16 +398,16 @@ func defaultTmpDir() (string, error) {
 		return "/run/libpod", nil
 	}
 
-	runtimeDir, err := getRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
 	libpodRuntimeDir := filepath.Join(runtimeDir, "libpod")
 
-	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
+	if err := os.Mkdir(libpodRuntimeDir, 0o700|os.ModeSticky); err != nil {
 		if !os.IsExist(err) {
 			return "", err
-		} else if err := os.Chmod(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
+		} else if err := os.Chmod(libpodRuntimeDir, 0o700|os.ModeSticky); err != nil {
 			// The directory already exist, just set the sticky bit
 			return "", errors.Wrap(err, "set sticky bit on")
 		}
@@ -389,15 +421,14 @@ func probeConmon(conmonBinary string) error {
 	cmd := exec.Command(conmonBinary, "--version")
 	var out bytes.Buffer
 	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return err
 	}
 	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
 
 	matches := r.FindStringSubmatch(out.String())
 	if len(matches) != 4 {
-		return errors.Wrap(err, _conmonVersionFormatErr)
+		return errors.New(_conmonVersionFormatErr)
 	}
 	major, err := strconv.Atoi(matches[1])
 	if err != nil {
@@ -438,6 +469,10 @@ func probeConmon(conmonBinary string) error {
 // NetNS returns the default network namespace
 func (c *Config) NetNS() string {
 	return c.Containers.NetNS
+}
+
+func (c EngineConfig) EventsLogMaxSize() uint64 {
+	return uint64(c.EventsLogFileMaxSize)
 }
 
 // SecurityOptions returns the default security options
@@ -570,8 +605,23 @@ func (c *Config) MachineEnabled() bool {
 	return c.Engine.MachineEnabled
 }
 
-// RootlessNetworking returns the "kind" of networking
-// rootless containers should use
-func (c *Config) RootlessNetworking() string {
-	return c.Containers.RootlessNetworking
+// MachineVolumes returns volumes to mount into the VM
+func (c *Config) MachineVolumes() ([]string, error) {
+	return machineVolumes(c.Machine.Volumes)
+}
+
+func machineVolumes(volumes []string) ([]string, error) {
+	translatedVolumes := []string{}
+	for _, v := range volumes {
+		vol := os.ExpandEnv(v)
+		split := strings.Split(vol, ":")
+		if len(split) < 2 || len(split) > 3 {
+			return nil, errors.Errorf("invalid machine volume %s, 2 or 3 fields required", v)
+		}
+		if split[0] == "" || split[1] == "" {
+			return nil, errors.Errorf("invalid machine volume %s, fields must container data", v)
+		}
+		translatedVolumes = append(translatedVolumes, vol)
+	}
+	return translatedVolumes, nil
 }

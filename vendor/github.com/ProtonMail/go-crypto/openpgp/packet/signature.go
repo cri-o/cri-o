@@ -28,6 +28,10 @@ const (
 	KeyFlagSign
 	KeyFlagEncryptCommunications
 	KeyFlagEncryptStorage
+	KeyFlagSplitKey
+	KeyFlagAuthenticate
+	_
+	KeyFlagGroupKey
 )
 
 // Signature represents a signature. See RFC 4880, section 5.2.
@@ -68,14 +72,19 @@ type Signature struct {
 	IssuerFingerprint                                       []byte
 	IsPrimaryId                                             *bool
 
+	// PolicyURI can be set to the URI of a document that describes the
+	// policy under which the signature was issued. See RFC 4880, section
+	// 5.2.3.20 for details.
+	PolicyURI string
+
 	// FlagsValid is set if any flags were given. See RFC 4880, section
 	// 5.2.3.21 for details.
-	FlagsValid                                                           bool
-	FlagCertify, FlagSign, FlagEncryptCommunications, FlagEncryptStorage bool
+	FlagsValid                                                                                                         bool
+	FlagCertify, FlagSign, FlagEncryptCommunications, FlagEncryptStorage, FlagSplitKey, FlagAuthenticate, FlagGroupKey bool
 
 	// RevocationReason is set if this signature has been revoked.
 	// See RFC 4880, section 5.2.3.23 for details.
-	RevocationReason     *uint8
+	RevocationReason     *ReasonForRevocation
 	RevocationReasonText string
 
 	// In a self-signature, these flags are set there is a features subpacket
@@ -218,6 +227,7 @@ const (
 	prefHashAlgosSubpacket       signatureSubpacketType = 21
 	prefCompressionSubpacket     signatureSubpacketType = 22
 	primaryUserIdSubpacket       signatureSubpacketType = 25
+	policyUriSubpacket           signatureSubpacketType = 26
 	keyFlagsSubpacket            signatureSubpacketType = 27
 	reasonForRevocationSubpacket signatureSubpacketType = 29
 	featuresSubpacket            signatureSubpacketType = 30
@@ -368,6 +378,15 @@ func parseSignatureSubpacket(sig *Signature, subpacket []byte, isHashed bool) (r
 		if subpacket[0]&KeyFlagEncryptStorage != 0 {
 			sig.FlagEncryptStorage = true
 		}
+		if subpacket[0]&KeyFlagSplitKey != 0 {
+			sig.FlagSplitKey = true
+		}
+		if subpacket[0]&KeyFlagAuthenticate != 0 {
+			sig.FlagAuthenticate = true
+		}
+		if subpacket[0]&KeyFlagGroupKey != 0 {
+			sig.FlagGroupKey = true
+		}
 	case reasonForRevocationSubpacket:
 		// Reason For Revocation, section 5.2.3.23
 		if !isHashed {
@@ -377,8 +396,8 @@ func parseSignatureSubpacket(sig *Signature, subpacket []byte, isHashed bool) (r
 			err = errors.StructuralError("empty revocation reason subpacket")
 			return
 		}
-		sig.RevocationReason = new(uint8)
-		*sig.RevocationReason = subpacket[0]
+		sig.RevocationReason = new(ReasonForRevocation)
+		*sig.RevocationReason = ReasonForRevocation(subpacket[0])
 		sig.RevocationReasonText = string(subpacket[1:])
 	case featuresSubpacket:
 		// Features subpacket, section 5.2.3.24 specifies a very general
@@ -416,6 +435,12 @@ func parseSignatureSubpacket(sig *Signature, subpacket []byte, isHashed bool) (r
 		if sigType := sig.EmbeddedSignature.SigType; sigType != SigTypePrimaryKeyBinding {
 			return nil, errors.StructuralError("cross-signature has unexpected type " + strconv.Itoa(int(sigType)))
 		}
+	case policyUriSubpacket:
+		// Policy URI, section 5.2.3.20
+		if !isHashed {
+			return
+		}
+		sig.PolicyURI = string(subpacket)
 	case issuerFingerprintSubpacket:
 		v, l := subpacket[0], len(subpacket[1:])
 		if v == 5 && l != 32 || v != 5 && l != 20 {
@@ -507,6 +532,9 @@ func serializeSubpackets(to []byte, subpackets []outputSubpacket, hashed bool) {
 		if subpacket.hashed == hashed {
 			n := serializeSubpacketLength(to, len(subpacket.contents)+1)
 			to[n] = byte(subpacket.subpacketType)
+			if subpacket.isCritical {
+				to[n] |= 0x80
+			}
 			to = to[1+n:]
 			n = copy(to, subpacket.contents)
 			to = to[n:]
@@ -714,6 +742,14 @@ func (sig *Signature) RevokeKey(pub *PublicKey, priv *PrivateKey, config *Config
 	return sig.Sign(h, priv, config)
 }
 
+// RevokeSubkey computes a subkey revocation signature of pub using priv.
+// On success, the signature is stored in sig. Call Serialize to write it out.
+// If config is nil, sensible defaults will be used.
+func (sig *Signature) RevokeSubkey(pub *PublicKey, priv *PrivateKey, config *Config) error {
+	// Identical to a subkey binding signature
+	return sig.SignKey(pub, priv, config)
+}
+
 // Serialize marshals sig to w. Sign, SignUserId or SignKey must have been
 // called first.
 func (sig *Signature) Serialize(w io.Writer) (err error) {
@@ -826,7 +862,7 @@ func (sig *Signature) buildSubpackets(issuer PublicKey) (subpackets []outputSubp
 	}
 	if sig.IssuerFingerprint != nil {
 		contents := append([]uint8{uint8(issuer.Version)}, sig.IssuerFingerprint...)
-		subpackets = append(subpackets, outputSubpacket{true, issuerFingerprintSubpacket, true, contents})
+		subpackets = append(subpackets, outputSubpacket{true, issuerFingerprintSubpacket, sig.Version == 5, contents})
 	}
 	if sig.SigLifetimeSecs != nil && *sig.SigLifetimeSecs != 0 {
 		sigLifetime := make([]byte, 4)
@@ -849,6 +885,15 @@ func (sig *Signature) buildSubpackets(issuer PublicKey) (subpackets []outputSubp
 		}
 		if sig.FlagEncryptStorage {
 			flags |= KeyFlagEncryptStorage
+		}
+		if sig.FlagSplitKey {
+			flags |= KeyFlagSplitKey
+		}
+		if sig.FlagAuthenticate {
+			flags |= KeyFlagAuthenticate
+		}
+		if sig.FlagGroupKey {
+			flags |= KeyFlagGroupKey
 		}
 		subpackets = append(subpackets, outputSubpacket{true, keyFlagsSubpacket, false, []byte{flags}})
 	}
@@ -892,6 +937,10 @@ func (sig *Signature) buildSubpackets(issuer PublicKey) (subpackets []outputSubp
 		subpackets = append(subpackets, outputSubpacket{true, prefCompressionSubpacket, false, sig.PreferredCompression})
 	}
 
+	if len(sig.PolicyURI) > 0 {
+		subpackets = append(subpackets, outputSubpacket{true, policyUriSubpacket, false, []uint8(sig.PolicyURI)})
+	}
+
 	if len(sig.PreferredAEAD) > 0 {
 		subpackets = append(subpackets, outputSubpacket{true, prefAeadAlgosSubpacket, false, sig.PreferredAEAD})
 	}
@@ -899,7 +948,7 @@ func (sig *Signature) buildSubpackets(issuer PublicKey) (subpackets []outputSubp
 	// Revocation reason appears only in revocation signatures and is serialized as per section 5.2.3.23.
 	if sig.RevocationReason != nil {
 		subpackets = append(subpackets, outputSubpacket{true, reasonForRevocationSubpacket, true,
-			append([]uint8{*sig.RevocationReason}, []uint8(sig.RevocationReasonText)...)})
+			append([]uint8{uint8(*sig.RevocationReason)}, []uint8(sig.RevocationReasonText)...)})
 	}
 
 	// EmbeddedSignature appears only in subkeys capable of signing and is serialized as per section 5.2.3.26.

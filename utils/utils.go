@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v3/pkg/lookup"
+	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	securejoin "github.com/cyphar/filepath-securejoin"
