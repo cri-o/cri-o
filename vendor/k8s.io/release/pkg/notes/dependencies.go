@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/saschagrunert/go-modiff/pkg/modiff"
 
-	"k8s.io/release/pkg/git"
+	"sigs.k8s.io/release-sdk/git"
 )
 
 type Dependencies struct {

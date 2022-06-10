@@ -25,9 +25,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/release/pkg/gcp"
-	"k8s.io/release/pkg/object"
+	"sigs.k8s.io/release-sdk/gcli"
+	"sigs.k8s.io/release-sdk/object"
 	"sigs.k8s.io/release-utils/command"
+	"sigs.k8s.io/release-utils/tar"
 
 	"sigs.k8s.io/release-utils/util"
 )
@@ -205,7 +206,7 @@ func (a *defaultArchiverImpl) MakeFilesPrivate(archiveBucketPath string) error {
 		return errors.Wrap(err, "normalizing gcs path to modify ACL")
 	}
 	// logrun -s $GSUTIL acl ch -d AllUsers "$archive_bucket/$build_dir/${LOGFILE##*/}*" || true
-	if err := gcp.GSUtil("acl", "ch", "-d", "AllUsers", logsPath); err != nil {
+	if err := gcli.GSUtil("acl", "ch", "-d", "AllUsers", logsPath); err != nil {
 		return errors.Wrapf(err, "removing public access from files in %s", archiveBucketPath)
 	}
 	return nil
@@ -218,6 +219,17 @@ func (a *defaultArchiverImpl) DeleteStalePasswordFiles(releaseBuildDir string) e
 	).RunSuccess(); err != nil {
 		return errors.Wrap(err, "deleting temporary password files")
 	}
+
+	// Delete the git remote config to avoid it ending in the stage bucket
+	gitConf := filepath.Join(releaseBuildDir, "k8s.io/kubernetes/.git/config")
+	if util.Exists(gitConf) {
+		if err := os.Remove(gitConf); err != nil {
+			return errors.Wrap(err, "deleting git remote config")
+		}
+	} else {
+		logrus.Warn("git configuration file not found, nothing to remove")
+	}
+
 	return nil
 }
 
@@ -277,9 +289,19 @@ func (a *defaultArchiverImpl) CopyReleaseToBucket(releaseBuildDir, archiveBucket
 		return errors.Wrap(err, "normalizing destination path")
 	}
 
-	logrus.Infof("Copy %s to %s...", releaseBuildDir, remoteDest)
+	srcPath := filepath.Join(releaseBuildDir, "k8s.io")
+	tarball := srcPath + ".tar.gz"
+	logrus.Infof("Compressing %s to %s", srcPath, tarball)
+	if err := tar.Compress(tarball, srcPath); err != nil {
+		return errors.Wrap(err, "create source tarball")
+	}
 
-	// logrun $GSUTIL -mq cp $dash_args $WORKDIR/* $archive_bucket/$build_dir || true
+	logrus.Infof("Removing source path %s before syncing", srcPath)
+	if err := os.RemoveAll(srcPath); err != nil {
+		return errors.Wrap(err, "remove source path")
+	}
+
+	logrus.Infof("Rsync %s to %s", releaseBuildDir, remoteDest)
 	if err := gcs.RsyncRecursive(releaseBuildDir, remoteDest); err != nil {
 		return errors.Wrap(err, "copying release directory to bucket")
 	}
@@ -327,7 +349,7 @@ func (a *defaultArchiverImpl) CleanStagedBuilds(bucketPath, buildVersion string)
 	}
 
 	// Get all staged build that match the pattern
-	output, err := gcp.GSUtilOutput("ls", "-d", path)
+	output, err := gcli.GSUtilOutput("ls", "-d", path)
 	if err != nil {
 		return errors.Wrap(err, "listing bucket contents")
 	}
