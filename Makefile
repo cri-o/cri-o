@@ -8,7 +8,7 @@ GO_ARCH=$(shell $(GO) env GOARCH)
 GO_MAJOR_VERSION = $(shell $(GO) version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
 GO_MINOR_VERSION = $(shell $(GO) version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
 GO_GT_1_17 := $(shell [ $(GO_MAJOR_VERSION) -ge 1 -a $(GO_MINOR_VERSION) -ge 17 ] && echo true)
-GO_FLAGS ?=
+GO_FLAGS ?= -buildvcs=false
 ifeq ($(GO_GT_1_17),true)
 ifeq ($(GO_ARCH),386)
 GO_FLAGS += -buildvcs=false
