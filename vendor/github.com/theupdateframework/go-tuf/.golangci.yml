@@ -1,0 +1,11 @@
+linters:
+  disable-all: true
+  enable:
+    - staticcheck
+    - gofmt
+    - govet
+    - gosimple
+    - structcheck
+    - varcheck
+    - unused
+    - typecheck

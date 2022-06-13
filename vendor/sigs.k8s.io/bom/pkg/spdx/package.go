@@ -49,6 +49,12 @@ var packageTemplate = `##### Package: {{ .Name }}
 {{- end -}}
 PackageDownloadLocation: {{ if .DownloadLocation }}{{ .DownloadLocation }}{{ else }}NONE{{ end }}
 FilesAnalyzed: {{ .FilesAnalyzed }}
+{{ if .Supplier -}}
+{{- if .Supplier.Person }}PackageSupplier: Person: {{ .Supplier.Person }}
+{{ end -}}
+{{- if .Supplier.Organization }}PackageSupplier: Organization: {{ .Supplier.Organization }}
+{{ end -}}
+{{ end -}}
 {{ if .VerificationCode }}PackageVerificationCode: {{ .VerificationCode }}
 {{ end -}}
 PackageLicenseConcluded: {{ if .LicenseConcluded }}{{ .LicenseConcluded }}{{ else }}NOASSERTION{{ end }}
@@ -58,6 +64,14 @@ PackageLicenseConcluded: {{ if .LicenseConcluded }}{{ .LicenseConcluded }}{{ els
 {{ end -}}
 {{ end -}}
 {{ if .Version }}PackageVersion: {{ .Version }}
+{{ end -}}
+{{ if .HomePage }}PackageHomePage: {{ .HomePage }}
+{{ end -}}
+{{ if .ExternalRefs }}{{- range $key, $value := .ExternalRefs -}}ExternalRef: {{ $value.Category }} {{ $value.Type }} {{ $value.Locator }}
+{{ end -}}
+{{ end -}}
+{{ if .LicenseComments }}PackageLicenseComments: <text>{{ .LicenseComments }}
+</text>
 {{ end -}}
 PackageLicenseDeclared: {{ if .LicenseDeclared }}{{ .LicenseDeclared }}{{ else }}NOASSERTION{{ end }}
 PackageCopyrightText: {{ if .CopyrightText }}<text>{{ .CopyrightText }}
@@ -73,9 +87,9 @@ type Package struct {
 	VerificationCode     string   // 6486e016b01e9ec8a76998cefd0705144d869234
 	LicenseInfoFromFiles []string // GPL-3.0-or-later
 	LicenseDeclared      string   // GPL-3.0-or-later
-	LicenseComments      string   // record any relevant background information or analysis that went in to arriving at the Concluded License
 	Version              string   // Package version
 	Comment              string   // a place for the SPDX document creator to record any general comments
+	HomePage             string   // A web site that serves as the package home page
 
 	// Supplier: the actual distribution source for the package/directory
 	Supplier struct {
@@ -388,6 +402,8 @@ func (p *Package) Draw(builder *strings.Builder, o *DrawingOptions, depth int, s
 	}
 }
 
+// ReadSourceFile reads a file from the filesystem and assigns its properties
+// to the package metadata
 func (p *Package) ReadSourceFile(path string) error {
 	if err := p.Entity.ReadSourceFile(path); err != nil {
 		return err
@@ -396,4 +412,13 @@ func (p *Package) ReadSourceFile(path string) error {
 		p.BuildID()
 	}
 	return nil
+}
+
+// GetElementByID search the package and its peers looking for the specified SPDX
+// id. If found, the function returns a copy of the object
+func (p *Package) GetElementByID(id string) Object {
+	if p.SPDXID() == id {
+		return p
+	}
+	return recursiveSearch(id, p, &map[string]struct{}{})
 }

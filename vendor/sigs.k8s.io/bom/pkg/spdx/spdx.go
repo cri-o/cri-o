@@ -49,8 +49,11 @@ LyBfYCBcIFwvIC8KXF9fIFwgfF8pIHwgKF98IHw+ICA8IAp8X19fLyAuX18vIFxfXyxfL18vXF9c
 CiAgICB8X3wgICAgICAgICAgICAgICAK`
 )
 
-// https://spdx.github.io/spdx-spec/3-package-information/#32-package-spdx-identifier
-var validIDCharsRe = regexp.MustCompile(`[^a-zA-Z0-9-.]+`)
+var (
+	// https://spdx.github.io/spdx-spec/3-package-information/#32-package-spdx-identifier
+	validIDCharsRe          = regexp.MustCompile(`[^a-zA-Z0-9-.]+`)
+	SupportedHashAlgorithms = []string{"SHA1", "SHA256", "SHA25"}
+)
 
 type SPDX struct {
 	impl    spdxImplementation
@@ -75,6 +78,7 @@ type Options struct {
 	OnlyDirectDeps   bool     // Only include direct dependencies from go.mod
 	ScanLicenses     bool     // Scan licenses from everypossible place unless false
 	AddTarFiles      bool     // Scan and add files inside of tarfiles
+	ScanImages       bool     // When true, scan container images for OS information
 	LicenseCacheDir  string   // Directory to cache SPDX license downloads
 	LicenseData      string   // Directory to store the SPDX licenses
 	IgnorePatterns   []string // Patterns to ignore when scanning file
@@ -91,6 +95,7 @@ var defaultSPDXOptions = Options{
 	ProcessGoModules: true,
 	IgnorePatterns:   []string{},
 	ScanLicenses:     true,
+	ScanImages:       true,
 }
 
 type ArchiveManifest struct {
@@ -243,4 +248,31 @@ func Banner() string {
 		return ""
 	}
 	return string(d)
+}
+
+// recursiveSearch is a function that recursively searches an object's peers
+// to find the specified SPDX ID. If found, returns a copy of the object.
+// nolint:gocritic // seen is a pointer recursively populated
+func recursiveSearch(id string, o Object, seen *map[string]struct{}) Object {
+	if o.SPDXID() == id {
+		return o
+	}
+	for _, rel := range *o.GetRelationships() {
+		if rel.Peer == nil {
+			continue
+		}
+
+		if _, ok := (*seen)[o.SPDXID()]; ok {
+			continue
+		}
+
+		if rel.Peer.SPDXID() == id {
+			return rel.Peer
+		}
+
+		if peerObject := recursiveSearch(id, rel.Peer, seen); peerObject != nil {
+			return peerObject
+		}
+	}
+	return nil
 }

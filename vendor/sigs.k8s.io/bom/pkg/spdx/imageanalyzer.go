@@ -21,7 +21,6 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-
 	"github.com/sirupsen/logrus"
 )
 

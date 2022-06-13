@@ -18,6 +18,7 @@ package spdx
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -37,15 +38,37 @@ var (
 // spdx.Document object. This functions has the cyclomatic chec disabled as
 // it spans specific cases for each of the tags it recognizes.
 // nolint:gocyclo
-func OpenDoc(path string) (*Document, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, errors.Wrapf(err, "opening document from %s", path)
+func OpenDoc(path string) (doc *Document, err error) {
+	// support reading SBOMs from STDIN
+	var file *os.File
+	var isTemp bool
+	if path == "-" {
+		file, err = os.CreateTemp("", "temp-sbom")
+		if err != nil {
+			return nil, errors.Wrap(err, "creating temp file to buffer sbom")
+		}
+		if _, err := io.Copy(file, os.Stdin); err != nil {
+			return nil, errors.Wrap(err, "writing SBOM to temporary file")
+		}
+		isTemp = true
+		if _, err := file.Seek(0, 0); err != nil {
+			return doc, errors.Wrap(err, "rewinding temporary file")
+		}
+	} else {
+		file, err = os.Open(path)
+		if err != nil {
+			return nil, errors.Wrapf(err, "opening document from %s", path)
+		}
 	}
-	defer file.Close()
+	defer func() {
+		file.Close()
+		if isTemp {
+			os.Remove(file.Name())
+		}
+	}()
 
 	// Create a blank document
-	doc := &Document{
+	doc = &Document{
 		Packages:        map[string]*Package{},
 		Files:           map[string]*File{},
 		ExternalDocRefs: []ExternalDocumentRef{},
@@ -163,6 +186,8 @@ func OpenDoc(path string) (*Document, error) {
 			currentObject.(*Package).Comment = value
 		case "PackageFileName":
 			currentObject.(*Package).FileName = value
+		case "PackageHomePage":
+			currentObject.(*Package).HomePage = value
 		case "PackageLicenseInfoFromFiles":
 			have := false
 			// Check if we already have the license
@@ -172,8 +197,25 @@ func OpenDoc(path string) (*Document, error) {
 					break
 				}
 			}
-			if have {
+			if !have {
 				currentObject.(*Package).LicenseInfoFromFiles = append(currentObject.(*Package).LicenseInfoFromFiles, value)
+			}
+		case "PackageSupplier":
+			// Supplier has a tag/value format inside
+			match := tagRegExp.FindStringSubmatch(value)
+			if len(match) != 3 {
+				return nil, errors.Errorf("invalid creator tag syntax at line %d", i)
+			}
+			switch match[1] {
+			case "Person":
+				currentObject.(*Package).Supplier.Person = match[2]
+			case "Organization":
+				currentObject.(*Package).Supplier.Organization = match[2]
+			default:
+				return nil, errors.Errorf(
+					"invalid supplier tag '%s' syntax at line %d, valid values are 'Organization' or 'Person'",
+					match[1], i,
+				)
 			}
 		case "LicenseInfoInFile":
 			if value != NONE {
@@ -218,6 +260,10 @@ func OpenDoc(path string) (*Document, error) {
 		case "PackageDownloadLocation":
 			if value != NONE {
 				currentEntity.DownloadLocation = value
+			}
+		case "PackageLicenseComments", "LicenseComments":
+			if value != NONE {
+				currentEntity.LicenseComments = value
 			}
 			// Tags that apply top the doc
 		case "Created":
@@ -275,6 +321,9 @@ func OpenDoc(path string) (*Document, error) {
 		i++
 	}
 
+	if currentEntity == nil {
+		return nil, errors.Errorf("invalid file %s", path)
+	}
 	// Add the last object from the doc
 	currentObject.SetEntity(currentEntity)
 	if _, ok := objects[currentObject.SPDXID()]; ok {

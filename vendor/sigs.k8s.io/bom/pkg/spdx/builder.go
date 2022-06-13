@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+
 	"sigs.k8s.io/release-utils/util"
 )
 
@@ -91,6 +92,7 @@ type DocGenerateOptions struct {
 	ProcessGoModules    bool                  // Analyze go.mod to include data about packages
 	OnlyDirectDeps      bool                  // Only include direct dependencies from go.mod
 	ScanLicenses        bool                  // Try to look into files to determine their license
+	ScanImages          bool                  // When true, scan images for OS information
 	ConfigFile          string                // Path to SBOM configuration file
 	OutputFile          string                // Output location
 	Name                string                // Name to use in the resulting document
@@ -160,6 +162,7 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 	}
 	spdx.Options().AnalyzeLayers = genopts.AnalyseLayers
 	spdx.Options().ProcessGoModules = genopts.ProcessGoModules
+	spdx.Options().ScanImages = genopts.ScanImages
 
 	if !util.Exists(opts.WorkDir) {
 		if err := os.MkdirAll(opts.WorkDir, os.FileMode(0o755)); err != nil {
@@ -182,15 +185,29 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 	doc.Creator.Person = genopts.CreatorPerson
 	doc.ExternalDocRefs = genopts.ExternalDocumentRef
 
-	for _, i := range genopts.Directories {
-		logrus.Infof("Processing directory %s", i)
-		pkg, err := spdx.PackageFromDirectory(i)
+	for _, dirPattern := range genopts.Directories {
+		matches, err := filepath.Glob(dirPattern)
 		if err != nil {
-			return nil, errors.Wrap(err, "generating package from directory")
+			return nil, err
 		}
-
-		if err := doc.AddPackage(pkg); err != nil {
-			return nil, errors.Wrap(err, "adding directory package to document")
+		for _, dirMatch := range matches {
+			isFile, err := pathIsOfFile(dirMatch)
+			if err != nil {
+				return nil, errors.Wrap(err, "stat dir")
+			}
+			if isFile {
+				logrus.Debugf("Skipping %s because it's a file", dirMatch)
+				continue
+			}
+			logrus.Infof("Processing directory %s", dirMatch)
+			pkg, err := spdx.PackageFromDirectory(dirMatch)
+			if err != nil {
+				return nil, errors.Wrap(err, "generating package from directory")
+			}
+			doc.ensureUniqueElementID(pkg)
+			if err := doc.AddPackage(pkg); err != nil {
+				return nil, errors.Wrap(err, "adding directory package to document")
+			}
 		}
 	}
 
@@ -201,6 +218,8 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 		if err != nil {
 			return nil, errors.Wrapf(err, "generating SPDX package from image ref %s", i)
 		}
+		doc.ensureUniqueElementID(p)
+		doc.ensureUniquePeerIDs(p.GetRelationships())
 		if err := doc.AddPackage(p); err != nil {
 			return nil, errors.Wrap(err, "adding package to document")
 		}
@@ -208,11 +227,13 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 
 	// Process OCI image archives
 	for _, tb := range genopts.Tarballs {
-		logrus.Infof("Processing tarball %s", tb)
+		logrus.Infof("Processing image archive %s", tb)
 		p, err := spdx.PackageFromImageTarball(tb)
 		if err != nil {
 			return nil, errors.Wrap(err, "generating tarball package")
 		}
+		doc.ensureUniqueElementID(p)
+		doc.ensureUniquePeerIDs(p.GetRelationships())
 		if err := doc.AddPackage(p); err != nil {
 			return nil, errors.Wrap(err, "adding package to document")
 		}
@@ -225,23 +246,50 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 		if err != nil {
 			return nil, errors.Wrap(err, "creating spdx package from archive")
 		}
+		doc.ensureUniqueElementID(p)
+		doc.ensureUniquePeerIDs(p.GetRelationships())
 		if err := doc.AddPackage(p); err != nil {
 			return nil, errors.Wrap(err, "adding package to document")
 		}
 	}
 
 	// Process single files, not part of a package
-	for _, f := range genopts.Files {
-		logrus.Infof("Processing file %s", f)
-		f, err := spdx.FileFromPath(f)
+	for _, filePattern := range genopts.Files {
+		matches, err := filepath.Glob(filePattern)
 		if err != nil {
-			return nil, errors.Wrap(err, "adding file")
+			return nil, err
 		}
-		if err := doc.AddFile(f); err != nil {
-			return nil, errors.Wrap(err, "adding file to document")
+		if len(matches) == 0 {
+			logrus.Warnf("%s pattern didn't match any file", filePattern)
+		}
+		for _, filePath := range matches {
+			isFile, err := pathIsOfFile(filePath)
+			if err != nil {
+				return nil, errors.Wrap(err, "stat file")
+			}
+			if !isFile {
+				continue
+			}
+			f, err := spdx.FileFromPath(filePath)
+			if err != nil {
+				return nil, errors.Wrap(err, "adding file")
+			}
+			doc.ensureUniqueElementID(f)
+			if err := doc.AddFile(f); err != nil {
+				return nil, errors.Wrap(err, "adding file to document")
+			}
 		}
 	}
 	return doc, nil
+}
+
+// TODO: Move this to https://github.com/kubernetes-sigs/release-utils/blob/main/util/common.go#L485
+func pathIsOfFile(path string) (bool, error) {
+	fInfo, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	return !fInfo.IsDir(), nil
 }
 
 // WriteDoc renders the document to a file
@@ -301,6 +349,8 @@ func (builder *defaultDocBuilderImpl) ReadYamlConfiguration(
 			opts.Tarballs = append(opts.Tarballs, artifact.Source)
 		case "file":
 			opts.Files = append(opts.Files, artifact.Source)
+		case "archive":
+			opts.Archives = append(opts.Archives, artifact.Source)
 		}
 	}
 

@@ -46,6 +46,9 @@ var fileTemplate = `{{ if .Name }}FileName: {{ .Name }}
 {{- end -}}
 {{- end -}}
 LicenseConcluded: {{ if .LicenseConcluded }}{{ .LicenseConcluded }}{{ else }}NOASSERTION{{ end }}
+{{ if .LicenseComments }}LicenseComments: <text>{{ .LicenseComments }}
+</text>
+{{ end -}}
 LicenseInfoInFile: {{ if .LicenseInfoInFile }}{{ .LicenseInfoInFile }}{{ else }}NOASSERTION{{ end }}
 FileCopyrightText: {{ if .CopyrightText }}<text>{{ .CopyrightText }}
 </text>{{ else }}NOASSERTION{{ end }}
@@ -189,4 +192,14 @@ func getFileContentType(path string) (string, error) {
 
 	contentType := http.DetectContentType(buffer)
 	return contentType, nil
+}
+
+// GetElementByID search the file and its peers looking for the
+// specified SPDX id. If found, the function returns a copy of
+// the object identified by the SPDX-ID provided
+func (f *File) GetElementByID(id string) Object {
+	if f.SPDXID() == id {
+		return f
+	}
+	return recursiveSearch(id, f, &map[string]struct{}{})
 }

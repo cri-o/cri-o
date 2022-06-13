@@ -30,9 +30,10 @@ const defaultReleaseNotesTemplate = `
 {{- $CurrentRevision := .CurrentRevision -}}
 {{- $PreviousRevision := .PreviousRevision -}}
 
-{{if .FileDownloads}}
+{{if or .FileDownloads .ImageDownloads}}
 ## Downloads for {{$CurrentRevision}}
 
+{{- if .FileDownloads -}}
 {{- with .FileDownloads.Source }}
 
 ### Source Code
@@ -65,8 +66,18 @@ filename | sha512 hash
 -------- | -----------
 {{range .}}[{{.Name}}]({{.URL}}) | {{.Checksum}}{{println}}{{end}}
 {{end -}}
-{{- end -}}
 
+{{if .ImageDownloads}}
+{{- with .ImageDownloads -}}
+` + ContainerImagesDescription + `
+name | architectures
+---- | -------------
+{{range .}}{{.Name}} | {{ range $i, $a := .Architectures}}{{if $i}}, {{end}}{{$a}}{{end}}{{println}}{{end}}
+{{end -}}
+
+{{end -}}
+{{end -}}
+{{- end -}}
 {{with .CVEList -}}
 ## Important Security Information
 

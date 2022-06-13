@@ -18,9 +18,10 @@ const (
 //Error type is a implementation of error interface.
 //This type is for wrapping cause error instance.
 type Error struct {
-	Err     error
-	Cause   error
-	Context map[string]interface{}
+	wrapFlag bool
+	Err      error
+	Cause    error
+	Context  map[string]interface{}
 }
 
 var _ error = (*Error)(nil)          //Error type is compatible with error interface
@@ -37,7 +38,7 @@ func New(msg string, opts ...ErrorContextFunc) error {
 	if len(msg) == 0 {
 		return nil
 	}
-	return newError(errors.New(msg), 2, opts...)
+	return newError(errors.New(msg), false, 2, opts...)
 }
 
 //Wrap function returns a wrapping error instance with context informations.
@@ -45,12 +46,12 @@ func Wrap(err error, opts ...ErrorContextFunc) error {
 	if err == nil {
 		return nil
 	}
-	return newError(err, 2, opts...)
+	return newError(err, true, 2, opts...)
 }
 
 //newError returns error instance. (internal)
-func newError(err error, depth int, opts ...ErrorContextFunc) error {
-	we := &Error{Err: err}
+func newError(err error, wrapFlag bool, depth int, opts ...ErrorContextFunc) error {
+	we := &Error{Err: err, wrapFlag: wrapFlag}
 	//caller function name
 	if fname, _, _ := caller(depth); len(fname) > 0 {
 		we = we.SetContext("function", fname)
@@ -108,7 +109,10 @@ func (e *Error) Unwrap() error {
 		return nil
 	}
 	if e.Cause == nil {
-		return e.Err
+		if e.wrapFlag {
+			return e.Err
+		}
+		return errors.Unwrap(e.Err)
 	}
 	return e.Cause
 }
@@ -272,7 +276,7 @@ func As(err error, target interface{}) bool { return errors.As(err, target) }
 // Unwrap is conpatible with errors.Unwrap.
 func Unwrap(err error) error { return errors.Unwrap(err) }
 
-/* Copyright 2019,2020 Spiegel
+/* Copyright 2019-2021 Spiegel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
