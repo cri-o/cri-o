@@ -31,6 +31,7 @@ import (
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
 	"sigs.k8s.io/release-utils/hash"
 	"sigs.k8s.io/release-utils/util"
 )
@@ -39,6 +40,7 @@ import (
 // objects. Currently this includes files and packages.
 type Object interface {
 	SPDXID() string
+	SetSPDXID(string)
 	ReadSourceFile(string) error
 	Render() (string, error)
 	BuildID(seeds ...string)
@@ -47,6 +49,7 @@ type Object interface {
 	GetRelationships() *[]*Relationship
 	ToProvenanceSubject() *intoto.Subject
 	getProvenanceSubjects(opts *ProvenanceOptions, seen *map[string]struct{}) []intoto.Subject
+	GetElementByID(string) Object
 }
 
 type Entity struct {
@@ -57,6 +60,7 @@ type Entity struct {
 	CopyrightText    string            // NOASSERTION
 	FileName         string            // Name of the file
 	LicenseConcluded string            // LicenseID o NOASSERTION
+	LicenseComments  string            // record any relevant background information or analysis that went in to arriving at the Concluded License
 	Opts             *ObjectOptions    // Entity options
 	Relationships    []*Relationship   // List of objects that have a relationship woth this package
 	Checksum         map[string]string // Colection of source file checksums
@@ -74,6 +78,11 @@ func (e *Entity) Options() *ObjectOptions {
 // SPDXID returns the SPDX reference string for the object
 func (e *Entity) SPDXID() string {
 	return e.ID
+}
+
+// SPDXID returns the SPDX reference string for the object
+func (e *Entity) SetSPDXID(id string) {
+	e.ID = id
 }
 
 // BuildID sets the file ID, optionally from a series of strings
@@ -268,3 +277,6 @@ mloop:
 	}
 	return ret
 }
+
+// GetElementByID nil function to be overridden by package and file
+func (e *Entity) GetElementByID(string) Object { return nil }

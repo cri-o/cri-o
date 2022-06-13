@@ -18,6 +18,7 @@ package spdx
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/nozzle/throttler"
+	purl "github.com/package-url/packageurl-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
@@ -100,11 +102,47 @@ func (pkg *GoPackage) ToSPDXPackage() (*Package, error) {
 		spdxPackage.Name += "@" + strings.TrimSuffix(pkg.Revision, "+incompatible")
 	}
 	spdxPackage.BuildID()
-	spdxPackage.DownloadLocation = repo.Repo
+	if strings.Contains(pkg.Revision, "+incompatible") {
+		spdxPackage.DownloadLocation = repo.VCS.Scheme[0] + "+" + repo.Repo
+	} else {
+		spdxPackage.DownloadLocation = fmt.Sprintf(
+			"https://proxy.golang.org/%s/@v/%s.zip", pkg.ImportPath,
+			strings.TrimSuffix(pkg.Revision, "+incompatible"),
+		)
+	}
 	spdxPackage.LicenseConcluded = pkg.LicenseID
 	spdxPackage.Version = strings.TrimSuffix(pkg.Revision, "+incompatible")
 	spdxPackage.CopyrightText = pkg.CopyrightText
+	if packageurl := pkg.PackageURL(); packageurl != "" {
+		spdxPackage.ExternalRefs = append(spdxPackage.ExternalRefs, ExternalRef{
+			Category: "PACKAGE-MANAGER",
+			Type:     "purl",
+			Locator:  packageurl,
+		})
+	}
 	return spdxPackage, nil
+}
+
+// PackageURL returns a purl if the go package has enough data to generate
+// one. If data is missing, it will return an empty string
+func (pkg *GoPackage) PackageURL() string {
+	parts := strings.Split(pkg.ImportPath, "/")
+	if len(parts) < 2 {
+		return ""
+	}
+	pname := parts[len(parts)-1]
+	namespace := strings.TrimSuffix(parts[0], "/"+pname)
+
+	// We require type, package, namespace and version at the very
+	// least to generate a purl
+	if pname == "" || pkg.Revision == "" || namespace == "" {
+		return ""
+	}
+
+	return purl.NewPackageURL(
+		purl.TypeGolang, namespace, pname,
+		strings.TrimSuffix(pkg.Revision, "+incompatible"), nil, "",
+	).ToString()
 }
 
 type GoModImplementation interface {

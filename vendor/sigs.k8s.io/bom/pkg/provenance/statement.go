@@ -28,12 +28,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"sigs.k8s.io/release-utils/hash"
-
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
+	"sigs.k8s.io/release-utils/hash"
 )
 
 // Statement is the middle layer of the attestation, binding it to a particular subject and

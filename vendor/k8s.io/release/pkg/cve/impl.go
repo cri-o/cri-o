@@ -18,6 +18,7 @@ package cve
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,7 +26,6 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
@@ -56,15 +56,16 @@ func (impl *defaultClientImplementation) CheckBucketWriteAccess(opts *ClientOpti
 
 	client, err := storage.NewClient(context.Background())
 	if err != nil {
-		return errors.Wrap(err,
+		return fmt.Errorf(
 			"fetching gcloud credentials, try running "+
-				`"gcloud auth application-default login"`,
+				`"gcloud auth application-default login: %w"`,
+			err,
 		)
 	}
 
 	bucket := client.Bucket(opts.Bucket)
 	if bucket == nil {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"unable to open CVE bucket: %s", opts.Bucket,
 		)
 	}
@@ -75,10 +76,10 @@ func (impl *defaultClientImplementation) CheckBucketWriteAccess(opts *ClientOpti
 		context.Background(), requiredGCSPerms,
 	)
 	if err != nil {
-		return errors.Wrap(err, "getting bucket permissions")
+		return fmt.Errorf("getting bucket permissions: %w", err)
 	}
 	if len(perms) != 1 {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"GCP user must have at least %s permissions on bucket %s",
 			requiredGCSPerms, opts.Bucket,
 		)
@@ -92,22 +93,22 @@ func (impl *defaultClientImplementation) DeleteFile(
 	path string, opts *ClientOptions,
 ) error {
 	if err := impl.CheckBucketWriteAccess(opts); err != nil {
-		return errors.Wrap(err, "checking bucket permissions to delete data")
+		return fmt.Errorf("checking bucket permissions to delete data: %w", err)
 	}
 	gcs := object.NewGCS()
 	path, err := gcs.NormalizePath(path)
 	if err != nil {
-		return errors.Wrap(err, "normalizing bucket path")
+		return fmt.Errorf("normalizing bucket path: %w", err)
 	}
 	if err := impl.CheckBucketPath(path, opts); err != nil {
-		return errors.Wrap(err, "checking path to delete file")
+		return fmt.Errorf("checking path to delete file: %w", err)
 	}
 	if !strings.HasSuffix(path, ".yaml") {
 		return errors.New("only yaml files can be deleted")
 	}
 	exists, err := gcs.PathExists(path)
 	if err != nil {
-		return errors.Wrap(err, "checking if cve entry exists")
+		return fmt.Errorf("checking if cve entry exists: %w", err)
 	}
 	if !exists {
 		return errors.New("specified CVE entry not found")
@@ -121,7 +122,7 @@ func (impl *defaultClientImplementation) CopyToTemp(
 ) (*os.File, error) {
 	dir, err := os.MkdirTemp(os.TempDir(), "cve-maps-")
 	if err != nil {
-		return nil, errors.Wrap(err, "creating temp dir")
+		return nil, fmt.Errorf("creating temp dir: %w", err)
 	}
 	gcs := object.NewGCS()
 	if err := gcs.CopyToLocal(
@@ -129,7 +130,7 @@ func (impl *defaultClientImplementation) CopyToTemp(
 			opts.Bucket, opts.Directory, cve+mapExt,
 		), dir,
 	); err != nil {
-		return nil, errors.Wrapf(err, "copying CVE %s to tempfile", cve)
+		return nil, fmt.Errorf("copying CVE %s to tempfile: %w", cve, err)
 	}
 	return os.Open(filepath.Join(dir, cve+mapExt))
 }
@@ -139,7 +140,7 @@ func (impl *defaultClientImplementation) CopyFile(
 	src, dest string, opts *ClientOptions,
 ) error {
 	if err := impl.CheckBucketWriteAccess(opts); err != nil {
-		return errors.Wrap(err, "checking bucket permissions to copy data")
+		return fmt.Errorf("checking bucket permissions to copy data: %w", err)
 	}
 	gcs := object.NewGCS()
 	gcs.SetOptions(
@@ -147,14 +148,14 @@ func (impl *defaultClientImplementation) CopyFile(
 	)
 	path, err := gcs.NormalizePath(dest)
 	if err != nil {
-		return errors.Wrap(err, "normalizing bucket path")
+		return fmt.Errorf("normalizing bucket path: %w", err)
 	}
 	if err := impl.CheckBucketPath(path, opts); err != nil {
-		return errors.Wrap(err, "checking path to copy file")
+		return fmt.Errorf("checking path to copy file: %w", err)
 	}
 
 	if err := gcs.CopyToRemote(src, path); err != nil {
-		return errors.Wrapf(err, "copying %s to bucket", path)
+		return fmt.Errorf("copying %s to bucket: %w", path, err)
 	}
 
 	// Copy the file to the bucket
@@ -168,7 +169,7 @@ func (impl *defaultClientImplementation) CheckBucketPath(
 	g := object.NewGCS()
 	path, err := g.NormalizePath(path)
 	if err != nil {
-		return errors.Wrap(err, "normalizing CVE bucket path")
+		return fmt.Errorf("normalizing CVE bucket path: %w", err)
 	}
 	path = strings.TrimPrefix(path, object.GcsPrefix)
 
@@ -193,7 +194,7 @@ func (impl *defaultClientImplementation) ValidateCVEMap(
 	// Parse the data map
 	maps, err := notes.ParseReleaseNotesMap(path)
 	if err != nil {
-		return errors.Wrap(err, "parsing CVE data map")
+		return fmt.Errorf("parsing CVE data map: %w", err)
 	}
 
 	// Cycle all data maps in file
@@ -205,10 +206,10 @@ func (impl *defaultClientImplementation) ValidateCVEMap(
 		// Cast the datafield as CVE data
 		cvedata := CVE{}
 		if err := cvedata.ReadRawInterface(dataMap.DataFields["cve"]); err != nil {
-			return errors.Wrap(err, "reading CVE data from YAML file")
+			return fmt.Errorf("reading CVE data from YAML file: %w", err)
 		}
 		if err := cvedata.Validate(); err != nil {
-			return errors.Wrapf(err, "validating map #%d in file %s", i, path)
+			return fmt.Errorf("validating map #%d in file %s: %w", i, path, err)
 		}
 
 		if cvedata.ID != cveID {
@@ -228,7 +229,7 @@ func (impl *defaultClientImplementation) CreateEmptyFile(cve string, opts *Clien
 	file *os.File, err error,
 ) {
 	if err := impl.CheckID(cve); err != nil {
-		return nil, errors.Wrap(err, "checking new CVE ID")
+		return nil, fmt.Errorf("checking new CVE ID: %w", err)
 	}
 
 	// Add a relnote-compatible struct with only the CVE data
@@ -247,18 +248,18 @@ func (impl *defaultClientImplementation) CreateEmptyFile(cve string, opts *Clien
 	// Marshall the data struct into yaml
 	yamlCode, err := yaml.Marshal(noteMap)
 	if err != nil {
-		return nil, errors.Wrap(err, "marshalling CVE data map")
+		return nil, fmt.Errorf("marshalling CVE data map: %w", err)
 	}
 
 	file, err = os.CreateTemp(os.TempDir(), "cve-data-*.yaml")
 	if err != nil {
-		return nil, errors.Wrap(err, "creating new map file")
+		return nil, fmt.Errorf("creating new map file: %w", err)
 	}
-	if _, err := file.Write([]byte(newMapHeader)); err != nil {
-		return nil, errors.Wrap(err, "writing empty CVE header")
+	if _, err := file.WriteString(newMapHeader); err != nil {
+		return nil, fmt.Errorf("writing empty CVE header: %w", err)
 	}
 	if _, err := file.Write(yamlCode); err != nil {
-		return nil, errors.Wrap(err, "writing yaml code to file")
+		return nil, fmt.Errorf("writing yaml code to file: %w", err)
 	}
 
 	return file, nil
@@ -270,7 +271,7 @@ func (impl *defaultClientImplementation) EntryExists(
 ) (exists bool, err error) {
 	// Check the ID string to be valid
 	if err := ValidateID(cveID); err != nil {
-		return exists, errors.Wrap(err, "checking CVE ID string")
+		return exists, fmt.Errorf("checking CVE ID string: %w", err)
 	}
 
 	// Verify the expected file exists in the bucket
@@ -282,7 +283,7 @@ func (impl *defaultClientImplementation) EntryExists(
 		),
 	)
 	if err != nil {
-		return exists, errors.Wrap(err, "checking if CVE entry already exists")
+		return exists, fmt.Errorf("checking if CVE entry already exists: %w", err)
 	}
 	return gcs.PathExists(path)
 }

@@ -41,6 +41,7 @@ import (
 
 	"sigs.k8s.io/bom/pkg/provenance"
 	"sigs.k8s.io/release-utils/hash"
+	"sigs.k8s.io/release-utils/util"
 )
 
 var docTemplate = `{{ if .Version }}SPDXVersion: {{.Version}}
@@ -60,6 +61,8 @@ ExternalDocumentRef:{{ extDocFormat $value }}
 {{ if .Creator -}}
 {{- if .Creator.Person }}Creator: Person: {{ .Creator.Person }}
 {{ end -}}
+{{- if .Creator.Organization }}Creator: Organization: {{ .Creator.Organization }}
+{{ end -}}
 {{- if .Creator.Tool -}}
 {{- range $key, $value := .Creator.Tool }}Creator: Tool: {{ $value }}
 {{ end -}}
@@ -71,8 +74,9 @@ ExternalDocumentRef:{{ extDocFormat $value }}
 `
 
 const (
-	connectorL = "└"
-	connectorT = "├"
+	connectorL          = "└"
+	connectorT          = "├"
+	MessageHashMismatch = "Hash mismatch"
 )
 
 // Document abstracts the SPDX document
@@ -175,12 +179,13 @@ func (d *Document) AddPackage(pkg *Package) error {
 
 	if pkg.SPDXID() == "" {
 		pkg.BuildID(pkg.Name)
+		d.ensureUniqueElementID(pkg)
 	}
 	if pkg.SPDXID() == "" {
-		return errors.New("package id is needed to add a new package")
+		return errors.New("package ID is needed to add a new package")
 	}
 	if _, ok := d.Packages[pkg.SPDXID()]; ok {
-		return errors.New("a package named " + pkg.SPDXID() + " already exists in the document")
+		return errors.Errorf("a package with ID %s already exists in the document", pkg.SPDXID())
 	}
 
 	d.Packages[pkg.SPDXID()] = pkg
@@ -278,6 +283,7 @@ func (d *Document) AddFile(file *File) error {
 		}
 		file.ID = "SPDXRef-File-" + fmt.Sprintf("%x", h.Sum(nil))
 	}
+	d.ensureUniqueElementID(file)
 	d.Files[file.ID] = file
 	return nil
 }
@@ -397,4 +403,168 @@ func (d *Document) WriteProvenanceStatement(opts *ProvenanceOptions, path string
 		os.WriteFile(path, data, os.FileMode(0o644)),
 		"writing sbom as provenance statement",
 	)
+}
+
+// ensureUniquePackageID takes a string and checks if
+// there is another string with the same name in the document.
+// If there is one, it will append a digit until a unique name
+// is found.
+func (d *Document) ensureUniqueElementID(o Object) {
+	newID := o.SPDXID()
+	i := 0
+	for {
+		// Check if there us already an element with the same ID
+		if el := d.GetElementByID(newID); el == nil {
+			if o.SPDXID() != newID {
+				logrus.Infof(
+					"Element name changed from %s to %s to ensure it is unique",
+					o.SPDXID(), newID,
+				)
+			}
+			o.SetSPDXID(newID)
+			break
+		}
+		i++
+		newID = fmt.Sprintf("%s-%04d", o.SPDXID(), i)
+	}
+}
+
+// ensureUniquePeerIDs gets a relationship collection and ensures all peers
+// have unique IDs
+func (d *Document) ensureUniquePeerIDs(rels *[]*Relationship) {
+	// First, ensure peer names are unique among themselves
+	seen := map[string]struct{}{}
+	for _, rel := range *rels {
+		if rel.Peer == nil || rel.Peer.SPDXID() == "" {
+			continue
+		}
+		testName := rel.Peer.SPDXID()
+		i := 0
+		for {
+			if _, ok := seen[testName]; !ok {
+				rel.Peer.SetSPDXID(testName)
+				seen[testName] = struct{}{}
+				break
+			}
+			i++
+			testName = fmt.Sprintf("%s-%04d", rel.Peer.SPDXID(), i)
+		}
+	}
+
+	// And then check against the document
+	for _, rel := range *rels {
+		if rel.Peer == nil {
+			continue
+		}
+		d.ensureUniqueElementID(rel.Peer)
+	}
+}
+
+// GetPackageByID queries the packages to search for a specific entity by name
+// note that this method returns a copy of the entity if found.
+func (d *Document) GetElementByID(id string) Object {
+	seen := map[string]struct{}{}
+	for _, p := range d.Packages {
+		if sub := recursiveSearch(id, p, &seen); sub != nil {
+			return sub
+		}
+	}
+	for _, f := range d.Files {
+		if sub := recursiveSearch(id, f, &seen); sub != nil {
+			return sub
+		}
+	}
+	return nil
+}
+
+type ValidationResults struct {
+	Success          bool
+	Message          string
+	FileName         string
+	FailedAlgorithms []string
+}
+
+// ValidateFiles gets a list of paths and checks the files in the document
+// to make sure their integrity is known
+func (d *Document) ValidateFiles(filePaths []string) ([]ValidationResults, error) {
+	results := []ValidationResults{}
+	if len(filePaths) == 0 {
+		logrus.Warn("ValidateFiles called with 0 paths")
+	}
+	if len(d.Files) == 0 {
+		return results, errors.New("document has no files")
+	}
+	spdxObject := NewSPDX()
+	var e error
+	for _, path := range filePaths {
+		res := ValidationResults{
+			FailedAlgorithms: []string{},
+		}
+		if !util.Exists(path) {
+			res.FileName = path
+			res.Message = "File not found"
+			results = append(results, res)
+			e = errors.New("some files were not found")
+			continue
+		}
+
+		// Create a new SPDX file from the path
+		testFile, err := spdxObject.FileFromPath(path)
+		if err != nil {
+			e := errors.Wrap(err, "unable to create SPDX File from path")
+			res.Message = e.Error()
+			continue
+		}
+
+		// Look for the file in the document
+		valid := false
+		message := "file path not found in document"
+		res.FileName = path
+
+		for _, docFile := range d.Files {
+			if docFile.FileName != path {
+				continue
+			}
+
+			if len(docFile.Checksum) == 0 {
+				valid = false
+				message = "no hashes found for file in SBOM"
+				break
+			}
+
+			// File found, check it
+			checks := 0
+			for algo, documentHashValue := range docFile.Checksum {
+				if artifactHashValue, ok := testFile.Checksum[algo]; ok {
+					if artifactHashValue == documentHashValue {
+						checks++
+						valid = true
+					} else {
+						message = MessageHashMismatch
+						res.FailedAlgorithms = append(res.FailedAlgorithms, algo)
+					}
+				} else {
+					logrus.Warnf("document has hash in %s, which is not supported yet", algo)
+				}
+			}
+			if checks == 0 {
+				res.Message = "unable to find compatible algorithm in document"
+				break
+			}
+			if len(res.FailedAlgorithms) > 0 {
+				message = "some hash values don't match"
+				valid = false
+				break
+			}
+
+			res.Success = valid
+			if valid {
+				message = "File validated successfully"
+			}
+		}
+		res.Message = message
+		res.Success = valid
+		results = append(results, res)
+	}
+	return results, e
 }

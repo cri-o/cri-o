@@ -46,7 +46,6 @@ func LoadStatement(path string) (s *Statement, err error) {
 // NewSLSAStatement creates a new attestation
 func NewSLSAStatement() *Statement {
 	return &Statement{
-
 		StatementHeader: intoto.StatementHeader{
 			Type:          intoto.StatementInTotoV01,
 			PredicateType: slsa.PredicateSLSAProvenance,

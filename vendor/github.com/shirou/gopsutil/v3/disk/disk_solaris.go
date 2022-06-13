@@ -5,6 +5,7 @@ package disk
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"math"
@@ -114,7 +115,31 @@ func UsageWithContext(ctx context.Context, path string) (*UsageStat, error) {
 }
 
 func SerialNumberWithContext(ctx context.Context, name string) (string, error) {
-	return "", common.ErrNotImplementedError
+	out, err := invoke.CommandWithContext(ctx, "cfgadm", "-ls", "select=type(disk),cols=ap_id:info,cols2=,noheadings")
+	if err != nil {
+		return "", fmt.Errorf("exec cfgadm: %w", err)
+	}
+
+	suf := "::" + strings.TrimPrefix(name, "/dev/")
+	s := bufio.NewScanner(bytes.NewReader(out))
+	for s.Scan() {
+		flds := strings.Fields(s.Text())
+		if strings.HasSuffix(flds[0], suf) {
+			flen := len(flds)
+			if flen >= 3 {
+				for i, f := range flds {
+					if i > 0 && i < flen-1 && f == "SN:" {
+						return flds[i+1], nil
+					}
+				}
+			}
+			return "", nil
+		}
+	}
+	if err := s.Err(); err != nil {
+		return "", err
+	}
+	return "", nil
 }
 
 func LabelWithContext(ctx context.Context, name string) (string, error) {
