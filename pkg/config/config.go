@@ -1011,6 +1011,10 @@ func (c *RuntimeConfig) ConmonSupportsSync() bool {
 	return c.conmonManager.SupportsSync()
 }
 
+func (c *RuntimeConfig) ConmonSupportsLogGlobalSizeMax() bool {
+	return c.conmonManager.SupportsLogGlobalSizeMax()
+}
+
 func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
 	var err error
 	c.PinnsPath, err = validateExecutablePath(executable, c.PinnsPath)
