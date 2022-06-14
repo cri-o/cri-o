@@ -117,11 +117,12 @@ func (plugin *cniNetworkPlugin) podUnlock(podNetwork PodNetwork) {
 	}
 }
 
-func newWatcher(confDir string) (*fsnotify.Watcher, error) {
-	// Ensure plugin directory exists, because the following monitoring logic
-	// relies on that.
-	if err := os.MkdirAll(confDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create directory %q: %v", confDir, err)
+func newWatcher(dirs []string) (*fsnotify.Watcher, error) {
+	// Ensure directories exist because the fsnotify watch logic depends on it
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create directory %q: %w", dir, err)
+		}
 	}
 
 	watcher, err := fsnotify.NewWatcher()
@@ -135,8 +136,10 @@ func newWatcher(confDir string) (*fsnotify.Watcher, error) {
 		}
 	}()
 
-	if err = watcher.Add(confDir); err != nil {
-		return nil, fmt.Errorf("failed to add watch on %q: %v", confDir, err)
+	for _, dir := range dirs {
+		if err = watcher.Add(dir); err != nil {
+			return nil, fmt.Errorf("failed to add watch on %q: %w", dir, err)
+		}
 	}
 
 	return watcher, nil
@@ -152,8 +155,9 @@ func (plugin *cniNetworkPlugin) monitorConfDir(start *sync.WaitGroup) {
 			logrus.Infof("CNI monitoring event %v", event)
 
 			var defaultDeleted bool
-			createWrite := (event.Op&fsnotify.Create == fsnotify.Create ||
-				event.Op&fsnotify.Write == fsnotify.Write)
+			createWriteRename := (event.Op&fsnotify.Create == fsnotify.Create ||
+				event.Op&fsnotify.Write == fsnotify.Write ||
+				event.Op&fsnotify.Rename > 0)
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
 				// Care about the event if the default network
 				// was just deleted
@@ -163,7 +167,7 @@ func (plugin *cniNetworkPlugin) monitorConfDir(start *sync.WaitGroup) {
 				}
 
 			}
-			if !createWrite && !defaultDeleted {
+			if !createWriteRename && !defaultDeleted {
 				continue
 			}
 
@@ -251,7 +255,7 @@ func initCNI(exec cniinvoke.Exec, cacheDir, defaultNetName string, confDir strin
 	plugin.syncNetworkConfig()
 
 	if useInotify {
-		plugin.watcher, err = newWatcher(plugin.confDir)
+		plugin.watcher, err = newWatcher(append([]string{plugin.confDir}, binDirs...))
 		if err != nil {
 			return nil, err
 		}
@@ -658,11 +662,6 @@ func (plugin *cniNetworkPlugin) TearDownPodWithContext(ctx context.Context, podN
 	plugin.podLock(podNetwork).Lock()
 	defer plugin.podUnlock(podNetwork)
 
-	if err := tearDownLoopback(podNetwork.NetNS); err != nil {
-		// ignore error
-		logrus.Warningf("Ignoring error tearing down loopback interface: %v", err)
-	}
-
 	return plugin.forEachNetwork(&podNetwork, true, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
 		fullPodName := buildFullPodName(*podNetwork)
 		logrus.Infof("Deleting pod %s from CNI network %q (type=%v)", fullPodName, network.name, network.config.Plugins[0].Network.Type)
@@ -774,7 +773,7 @@ func (network *cniNetwork) checkNetwork(ctx context.Context, rt *libcni.RuntimeC
 	}
 
 	result = &cniv1.Result{
-		CNIVersion: network.config.CNIVersion,
+		CNIVersion: cniv1.ImplementedSpecVersion,
 		Interfaces: []*cniv1.Interface{cniInterface},
 		IPs:        ips,
 	}

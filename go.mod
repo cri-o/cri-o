@@ -11,8 +11,8 @@ require (
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/ttrpc v1.1.0
 	github.com/containerd/typeurl v1.0.2
-	github.com/containernetworking/cni v1.0.1
-	github.com/containernetworking/plugins v1.0.1
+	github.com/containernetworking/cni v1.1.1
+	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.23.1
 	github.com/containers/common v0.46.1-0.20211001143714-161e078e4c7f
 	github.com/containers/conmon v2.0.20+incompatible
@@ -23,7 +23,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.17
-	github.com/cri-o/ocicni v0.2.1-0.20211005135702-b38844812e64
+	github.com/cri-o/ocicni v0.4.0
 	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/go-units v0.4.0
