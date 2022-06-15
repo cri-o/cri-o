@@ -80,3 +80,64 @@ function teardown() {
 	# make sure namespace is cleaned up
 	[[ -z $(ls "$CONTAINER_NAMESPACES_DIR/pidns") ]]
 }
+
+@test "KUBENSMNT mount namespace" {
+	original_ns=$(readlink /proc/self/ns/mnt)
+
+	PIN_ROOT=$TESTDIR/kubens
+	mkdir -p "$PIN_ROOT"
+
+	# Set up a pinned mount namespace
+	$PINNS_BINARY_PATH -d "$PIN_ROOT" -f mnt -m
+	PINNED_MNT_NS=$PIN_ROOT/mntns/mnt
+	# Ensure it pinned a new unique mount namespace
+	pinned_ns=$(nsenter -m"$PINNED_MNT_NS" readlink /proc/self/ns/mnt)
+	[[ "$pinned_ns" != "$original_ns" ]]
+
+	# First test: No environment set; no namespace should be joined
+	start_crio
+	# Ensure CRI-O is running in the original namespace
+	[[ -n $CRIO_PID ]]
+	crio_ns=$(readlink /proc/"$CRIO_PID"/ns/mnt)
+	[[ "$crio_ns" == "$original_ns" ]]
+	stop_crio
+
+	# Positive test: Join the right namespace
+	export KUBENSMNT=$PINNED_MNT_NS
+	start_crio
+	# Ensure CRI-O is running in the specified pinned namespace
+	[[ -n $CRIO_PID ]]
+	crio_ns=$(readlink /proc/"$CRIO_PID"/ns/mnt)
+	[[ "$crio_ns" == "$pinned_ns" ]]
+	stop_crio
+
+	# Negative test: Set KUBENSMNT to a nonexistent file
+	export KUBENSMNT=$PIN_ROOT/nosuchfile
+	start_crio
+	# Ensure CRI-O is running in the original namespace
+	[[ -n $CRIO_PID ]]
+	crio_ns=$(readlink /proc/"$CRIO_PID"/ns/mnt)
+	[[ "$crio_ns" == "$original_ns" ]]
+	stop_crio
+
+	# Negative test: set KUBENSMNT to a valid file that is NOT a bindmount
+	export KUBENSMNT=$PIN_ROOT/not_a_bindmount
+	touch "$KUBENSMNT"
+	start_crio
+	# Ensure CRI-O is running in the original namespace
+	[[ -n $CRIO_PID ]]
+	crio_ns=$(readlink /proc/"$CRIO_PID"/ns/mnt)
+	[[ "$crio_ns" == "$original_ns" ]]
+	stop_crio
+
+	# Negative test: set KUBENSMNT to a valid bindmount that is NOT a mount namespace
+	$PINNS_BINARY_PATH -d "$PIN_ROOT" -f net -n
+	PINNED_NET_NS=$PIN_ROOT/netns/net
+	export KUBENSMNT=$PINNED_NET_NS
+	start_crio
+	# Ensure CRI-O is running in the original namespace
+	[[ -n $CRIO_PID ]]
+	crio_ns=$(readlink /proc/"$CRIO_PID"/ns/mnt)
+	[[ "$crio_ns" == "$original_ns" ]]
+	stop_crio
+}

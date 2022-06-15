@@ -60,6 +60,19 @@ const markdownDocTemplate = `
   Storage configuration file specifies all of the available container storage
   options for tools using shared container storage.
 
+{{ with .App.Metadata.Env -}}
+# ENVIRONMENT
+
+All command-line options may also be specified as environment variables.
+The options detailed in this section, however, can only be set via
+environment variables.
+
+{{ range $envname, $helptext := . -}}
+**{{ $envname }}**: {{ $helptext }}
+
+{{ end -}}
+{{ end -}}
+
 # SEE ALSO
 
 crio.conf(5), crio.conf.d(5), oci-hooks(5), policy.json(5), registries.conf(5),

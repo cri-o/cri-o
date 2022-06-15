@@ -643,3 +643,12 @@ function check_conmon_cpuset() {
         fi
     fi
 }
+
+function setup_kubensmnt() {
+    if [[ -z $PIN_ROOT ]]; then
+        PIN_ROOT=$TESTDIR/kubens
+    fi
+    PINNED_MNT_NS=$PIN_ROOT/mntns/mnt
+    $PINNS_BINARY_PATH -d "$PIN_ROOT" -f mnt -m
+    export KUBENSMNT=$PINNED_MNT_NS
+}
