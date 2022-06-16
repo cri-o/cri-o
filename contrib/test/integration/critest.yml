@@ -37,7 +37,7 @@
   command: critest --version
 
 - name: run critest validation
-  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint unix:///var/run/crio/crio.sock --image-endpoint unix:///var/run/crio/crio.sock --ginkgo.flakeAttempts=3"
+  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint unix:///var/run/crio/crio.sock --image-endpoint unix:///var/run/crio/crio.sock --ginkgo.flake-attempts=3"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
   async: 5400

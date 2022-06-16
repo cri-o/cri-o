@@ -53,4 +53,4 @@
   args:
     chdir: /
   with_items:
-    - onsi/ginkgo/ginkgo
+    - onsi/ginkgo/v2/ginkgo

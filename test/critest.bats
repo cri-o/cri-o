@@ -22,7 +22,7 @@ function teardown() {
 		--image-endpoint "unix://${CRIO_SOCKET}" \
 		--ginkgo.focus="${CRI_FOCUS}" \
 		--ginkgo.skip="${CRI_SKIP}" \
-		--ginkgo.flakeAttempts=3 >&3
+		--ginkgo.flake-attempts=3 >&3
 
 	if [[ $RUNTIME_TYPE == pod ]]; then
 		# Validate that we actually used conmonrs
