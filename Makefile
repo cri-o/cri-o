@@ -500,6 +500,9 @@ release-branch-forward:
 upload-artifacts:
 	./scripts/upload-artifacts
 
+sign-artifacts:
+	./scripts/sign-artifacts
+
 bin/metrics-exporter:
 	$(GO_BUILD) -o $@ \
 		-ldflags '-linkmode external -extldflags "-static -lm"' \
@@ -544,6 +547,7 @@ metrics-exporter: bin/metrics-exporter
 	bin/pinns \
 	dependencies \
 	upload-artifacts \
+	sign-artifacts \
 	bin/metrics-exporter \
 	metrics-exporter \
 	release \

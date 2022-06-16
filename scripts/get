@@ -65,6 +65,10 @@ verify_requirements() {
     done
 }
 
+curl_retry() {
+    curl -sSfL --retry 5 --retry-delay 3 "$@"
+}
+
 latest_version() {
     GH_API_URL="https://api.github.com/repos/cri-o/cri-o/actions/runs?per_page=100"
 
@@ -75,7 +79,7 @@ latest_version() {
 
     if [[ $VERSION == "" ]]; then
         echo Searching for latest version via marker file
-        COMMIT=$(curl -sSfL --retry 5 --retry-delay 3 "$GCB_URL/latest-main.txt")
+        COMMIT=$(curl_retry "$GCB_URL/latest-main.txt")
         if [[ "$COMMIT" != "" ]]; then
             VERSION=$COMMIT
             echo "Found latest version $VERSION"
@@ -90,7 +94,7 @@ latest_version() {
             echo Searching GitHub actions page $PAGE
 
             URL="${GH_API_URL}&page=$PAGE"
-            JSON=$(curl -sSfL --retry 5 --retry-delay 3 "${GH_HEADERS[@]}" "$URL")
+            JSON=$(curl_retry "${GH_HEADERS[@]}" "$URL")
 
             if echo "$JSON" | jq -e '.workflow_runs | length == 0' >/dev/null; then
                 echo No more GitHub action runs available to search
@@ -124,13 +128,35 @@ prepare() {
 
 prepare "$@"
 
-TARBALL_URL=$GCB_URL/artifacts/cri-o.$ARCH.$VERSION.tar.gz
+TARBALL=cri-o.$ARCH.$VERSION.tar.gz
+BASE_URL=$GCB_URL/artifacts
 
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf -- "$TMPDIR"' EXIT
 
-echo "Downloading $TARBALL_URL to $TMPDIR"
-curl -sSfL --retry 5 --retry-delay 3 "$TARBALL_URL" | tar xfz - --strip-components=1 -C "$TMPDIR"
+if command -v cosign >/dev/null; then
+    echo "Found cosign, verifying signatures"
+    TMPDIR=$(mktemp -d)
+    trap 'rm -rf $TMPDIR' EXIT
+    pushd "$TMPDIR" >/dev/null
+
+    FILES=("$TARBALL" "$TARBALL.sig" "$TARBALL.cert")
+    for FILE in "${FILES[@]}"; do
+        echo "Downloading $FILE"
+        curl_retry "$BASE_URL/$FILE" -o "$FILE"
+    done
+
+    COSIGN_EXPERIMENTAL=1 cosign verify-blob "$TARBALL" \
+        --signature "$TARBALL.sig" \
+        --certificate "$TARBALL.cert"
+
+    tar xfz "$TARBALL" --strip-components=1 -C "$TMPDIR"
+    popd >/dev/null
+else
+    TARBALL_URL=$BASE_URL/$TARBALL
+    echo "Downloading $TARBALL_URL to $TMPDIR"
+    curl_retry "$TARBALL_URL" | tar xfz - --strip-components=1 -C "$TMPDIR"
+fi
 
 echo Installing CRI-O
 pushd "$TMPDIR"

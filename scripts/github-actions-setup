@@ -63,7 +63,7 @@ install_conmon() {
 
 install_conmonrs() {
     curl https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
-        sudo bash -s -- -o /usr/bin/conmonrs
+        sudo -E PATH="$PATH" bash -s -- -o /usr/bin/conmonrs
 }
 
 install_critools() {

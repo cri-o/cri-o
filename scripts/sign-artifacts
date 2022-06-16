@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+for TARBALL in build/bundle/*.tar.gz; do
+    cosign sign-blob "$TARBALL" \
+        --output-signature "$TARBALL.sig" \
+        --output-certificate "$TARBALL.cert"
+done
