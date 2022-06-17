@@ -415,7 +415,10 @@ function cleanup_lvm() {
 
 function cleanup_testdir() {
     # shellcheck disable=SC2013
-    for mnt in $(awk '{print $2}' /proc/self/mounts | grep ^"$TESTDIR" | sort); do
+    # Note: By using 'sort -r' we're ensuring longer paths go first, which
+    # means that if there are nested mounts, the innermost mountpoints get
+    # unmounted first
+    for mnt in $(awk '{print $2}' /proc/self/mounts | grep ^"$TESTDIR" | sort -r); do
         umount "$mnt"
     done
     rm -rf "$TESTDIR" || true
