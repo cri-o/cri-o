@@ -352,9 +352,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
-	description := fmt.Sprintf("runSandbox: releasing pod sandbox name: %s", sbox.Name())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
+	resourceCleaner.Add(ctx, "runSandbox: releasing pod sandbox name: "+sbox.Name(), func() error {
 		s.ReleasePodName(sbox.Name())
 		return nil
 	})
@@ -400,9 +398,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
-	description = fmt.Sprintf("runSandbox: releasing container name: %s", containerName)
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
+	resourceCleaner.Add(ctx, "runSandbox: releasing container name: "+containerName, func() error {
 		s.ReleaseContainerName(containerName)
 		return nil
 	})
@@ -435,14 +431,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, fmt.Errorf("error creating pod sandbox with name %q: %v", sbox.Name(), err)
 	}
-	description = fmt.Sprintf("runSandbox: removing pod sandbox from storage: %s", sbox.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
-		err2 := s.StorageRuntimeServer().DeleteContainer(sbox.ID())
-		if err2 != nil {
-			log.Warnf(ctx, "Could not cleanup pod sandbox %q: %v", sbox.ID(), err2)
-		}
-		return err2
+	resourceCleaner.Add(ctx, "runSandbox: removing pod sandbox from storage: "+sbox.ID(), func() error {
+		return s.StorageRuntimeServer().DeleteContainer(sbox.ID())
 	})
 
 	mountLabel := podContainer.MountLabel
@@ -538,14 +528,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			return nil, err
 		}
 		pathsToChown = append(pathsToChown, shmPath)
-		description = fmt.Sprintf("runSandbox: unmounting shmPath for sandbox %s", sbox.ID())
-		resourceCleaner.Add(ctx, description, func() error {
-			log.Infof(ctx, description)
-			err2 := unix.Unmount(shmPath, unix.MNT_DETACH)
-			if err2 != nil {
-				log.Warnf(ctx, "Failed to unmount shm for sandbox: %v", err2)
+		resourceCleaner.Add(ctx, "runSandbox: unmounting shmPath for sandbox "+sbox.ID(), func() error {
+			if err := unix.Unmount(shmPath, unix.MNT_DETACH); err != nil {
+				return fmt.Errorf("failed to unmount shm for sandbox: %w", err)
 			}
-			return err2
+			return nil
 		})
 	}
 
@@ -566,18 +553,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := s.CtrIDIndex().Add(sbox.ID()); err != nil {
 		return nil, err
 	}
-	description = fmt.Sprintf("runSandbox: deleting container ID from idIndex for sandbox %s", sbox.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
-		err2 := s.CtrIDIndex().Delete(sbox.ID())
-		if err2 != nil {
-			// already deleted
-			if strings.Contains(err2.Error(), noSuchID) {
-				return nil
-			}
-			log.Warnf(ctx, "Could not delete ctr id %s from idIndex", sbox.ID())
+	resourceCleaner.Add(ctx, "runSandbox: deleting container ID from idIndex for sandbox "+sbox.ID(), func() error {
+		if err := s.CtrIDIndex().Delete(sbox.ID()); err != nil && !strings.Contains(err.Error(), noSuchID) {
+			return fmt.Errorf("could not delete ctr id %s from idIndex: %w", sbox.ID(), err)
 		}
-		return err2
+		return nil
 	})
 
 	// set log path inside log directory
@@ -662,31 +642,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := s.addSandbox(sb); err != nil {
 		return nil, err
 	}
-	description = fmt.Sprintf("runSandbox: removing pod sandbox %s", sbox.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
-		err := s.removeSandbox(sbox.ID())
-		if err != nil {
-			log.Warnf(ctx, "Could not remove pod sandbox: %v", err)
+	resourceCleaner.Add(ctx, "runSandbox: removing pod sandbox "+sbox.ID(), func() error {
+		if err := s.removeSandbox(sbox.ID()); err != nil {
+			return fmt.Errorf("could not remove pod sandbox: %w", err)
 		}
-		return err
+		return nil
 	})
 
 	if err := s.PodIDIndex().Add(sbox.ID()); err != nil {
 		return nil, err
 	}
-	description = fmt.Sprintf("runSandbox: deleting pod ID %s from idIndex", sbox.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
-		err := s.PodIDIndex().Delete(sbox.ID())
-		if err != nil {
-			// already deleted
-			if strings.Contains(err.Error(), noSuchID) {
-				return nil
-			}
-			log.Warnf(ctx, "Could not delete pod id %s from idIndex", sbox.ID())
+	resourceCleaner.Add(ctx, "runSandbox: deleting pod ID "+sbox.ID()+" from idIndex", func() error {
+		if err := s.PodIDIndex().Delete(sbox.ID()); err != nil && !strings.Contains(err.Error(), noSuchID) {
+			return fmt.Errorf("could not delete pod id %s from idIndex: %w", sbox.ID(), err)
 		}
-		return err
+		return nil
 	})
 
 	for k, v := range kubeAnnotations {
@@ -702,13 +672,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// set up namespaces
 	nsCleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(hostNetwork, hostIPC, hostPID, sandboxIDMappings, sysctls, sb, g)
 	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
+	// However, we don't immediately register this func with resourceCleaner because we need to pair the
+	// ns cleanup with networkStop. Otherwise, we could try to cleanup the namespace before the network stop runs,
+	// which could put us in a weird state.
 	nsCleanupDescription := fmt.Sprintf("runSandbox: cleaning up namespaces after failing to run sandbox %s", sbox.ID())
 	nsCleanupFunc := func() error {
-		log.Infof(ctx, description)
 		for idx := range nsCleanupFuncs {
-			if err2 := nsCleanupFuncs[idx](); err2 != nil {
-				log.Infof(ctx, "RunSandbox: failed to cleanup namespace: %s", err2.Error())
-				return err2
+			if err := nsCleanupFuncs[idx](); err != nil {
+				return fmt.Errorf("RunSandbox: failed to cleanup namespace %w", err)
 			}
 		}
 		return nil
@@ -727,13 +698,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
 		return nil, err
 	}
-	description = fmt.Sprintf("runSandbox: stopping network for sandbox %s", sb.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
+	resourceCleaner.Add(ctx, "runSandbox: stopping network for sandbox"+sb.ID(), func() error {
 		// use a new context to prevent an expired context from preventing a stop
 		if err := s.networkStop(context.Background(), sb); err != nil {
-			log.Errorf(ctx, "Error stopping network on cleanup: %v", err)
-			return err
+			return fmt.Errorf("error stopping network on cleanup: %w", err)
 		}
 
 		// Now that we've succeeded in stopping the network, cleanup namespaces
@@ -769,14 +737,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), sbox.ID(), err)
 	}
-	description = fmt.Sprintf("runSandbox: stopping storage container for sandbox %s", sbox.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
-		err2 := s.StorageRuntimeServer().StopContainer(sbox.ID())
-		if err2 != nil {
-			log.Warnf(ctx, "Could not stop storage container: %v: %v", sbox.ID(), err2)
+	resourceCleaner.Add(ctx, "runSandbox: stopping storage container for sandbox "+sbox.ID(), func() error {
+		if err := s.StorageRuntimeServer().StopContainer(sbox.ID()); err != nil {
+			return fmt.Errorf("could not stop storage container: %v: %w", sbox.ID(), err)
 		}
-		return err2
+		return nil
 	})
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 
@@ -913,9 +878,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	s.addInfraContainer(container)
-	description = fmt.Sprintf("runSandbox: removing infra container %s", container.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
+	resourceCleaner.Add(ctx, "runSandbox: removing infra container "+container.ID(), func() error {
 		s.removeInfraContainer(container)
 		return nil
 	})
@@ -939,23 +902,19 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := s.Runtime().StartContainer(ctx, container); err != nil {
 		return nil, err
 	}
-	description = fmt.Sprintf("runSandbox: stopping container %s", container.ID())
-	resourceCleaner.Add(ctx, description, func() error {
+	resourceCleaner.Add(ctx, "runSandbox: stopping container "+container.ID(), func() error {
 		// Clean-up steps from RemovePodSanbox
-		log.Infof(ctx, description)
 		if err := s.ContainerServer.StopContainer(ctx, container, int64(10)); err != nil {
-			return errors.Errorf("failed to stop container for removal")
+			return fmt.Errorf("failed to stop container for removal: %w", err)
 		}
 
 		log.Infof(ctx, "RunSandbox: deleting container %s", container.ID())
-		if err2 := s.Runtime().DeleteContainer(ctx, container); err2 != nil {
-			log.Warnf(ctx, "Failed to delete container %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
-			return err2
+		if err := s.Runtime().DeleteContainer(ctx, container); err != nil {
+			return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", container.Name(), sb.ID(), err)
 		}
 		log.Infof(ctx, "RunSandbox: writing container %s state to disk", container.ID())
-		if err2 := s.ContainerStateToDisk(ctx, container); err2 != nil {
-			log.Warnf(ctx, "Failed to write container state %s in pod sandbox %s: %v", container.Name(), sb.ID(), err2)
-			return err2
+		if err := s.ContainerStateToDisk(ctx, container); err != nil {
+			return fmt.Errorf("failed to write container state %s in pod sandbox %s: %w", container.Name(), sb.ID(), err)
 		}
 		return nil
 	})
