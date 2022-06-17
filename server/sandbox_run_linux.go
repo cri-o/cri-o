@@ -352,6 +352,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 		return nil, errors.Wrapf(err, resourceErr.Error())
 	}
+	description := fmt.Sprintf("runSandbox: releasing pod sandbox name: %s", sbox.Name())
+	resourceCleaner.Add(ctx, description, func() error {
+		log.Infof(ctx, description)
+		s.ReleasePodName(sbox.Name())
+		return nil
+	})
 
 	securityContext := sbox.Config().Linux.SecurityContext
 
@@ -370,13 +376,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 		log.Infof(ctx, "CNI plugin is now ready. Continuing to create %s", sbox.Name())
 	}
-
-	description := fmt.Sprintf("runSandbox: releasing pod sandbox name: %s", sbox.Name())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
-		s.ReleasePodName(sbox.Name())
-		return nil
-	})
 
 	// validate the runtime handler
 	runtimeHandler, err := s.runtimeHandler(req)
@@ -430,10 +429,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		labelOptions,
 		privileged,
 	)
-
-	mountLabel := podContainer.MountLabel
-	processLabel := podContainer.ProcessLabel
-
 	if errors.Is(err, storage.ErrDuplicateName) {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", sbox.Name())
 	}
@@ -449,6 +444,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 		return err2
 	})
+
+	mountLabel := podContainer.MountLabel
+	processLabel := podContainer.ProcessLabel
 
 	// set log directory
 	logDir := sbox.Config().LogDirectory
@@ -568,7 +566,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := s.CtrIDIndex().Add(sbox.ID()); err != nil {
 		return nil, err
 	}
-
 	description = fmt.Sprintf("runSandbox: deleting container ID from idIndex for sandbox %s", sbox.ID())
 	resourceCleaner.Add(ctx, description, func() error {
 		log.Infof(ctx, description)
@@ -678,7 +675,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := s.PodIDIndex().Add(sbox.ID()); err != nil {
 		return nil, err
 	}
-
 	description = fmt.Sprintf("runSandbox: deleting pod ID %s from idIndex", sbox.ID())
 	resourceCleaner.Add(ctx, description, func() error {
 		log.Infof(ctx, description)
@@ -943,7 +939,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := s.Runtime().StartContainer(ctx, container); err != nil {
 		return nil, err
 	}
-
 	description = fmt.Sprintf("runSandbox: stopping container %s", container.ID())
 	resourceCleaner.Add(ctx, description, func() error {
 		// Clean-up steps from RemovePodSanbox
