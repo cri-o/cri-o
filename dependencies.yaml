@@ -34,7 +34,7 @@ dependencies:
       match: version
 
   - name: conmon
-    version: v2.1.0
+    version: v2.1.2
     refPaths:
     - path: scripts/versions
       match: conmon
