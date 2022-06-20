@@ -1,16 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 20 Jun 2022 15:12:36 UTC for commit [397130d][0]._
+_Generated on Mon, 20 Jun 2022 17:28:04 UTC for commit [037d5f5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/397130d95f203a5427660be47c7eed395f15698f
+[0]: https://github.com/cri-o/cri-o/commit/037d5f5e2295e5dcee2f24da9794d6f2a6b5ade9
 
 ## Outdated Dependencies
 
 |             MODULE              |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |---------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220620135743-0cf575f6e2f8 | true   | true             |
-| github.com/stretchr/testify     | v1.7.2                             | v1.7.3                             | true   | true             |
-| github.com/urfave/cli/v2        | v2.8.1                             | v2.10.1                            | true   | true             |
+| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220620150832-1c4766f78d71 | true   | true             |
+| github.com/urfave/cli/v2        | v2.8.1                             | v2.10.2                            | true   | true             |
 | golang.org/x/net                | v0.0.0-20220607020251-c690dde0001d | v0.0.0-20220617184016-355a448f1bc9 | true   | true             |
 | golang.org/x/sys                | v0.0.0-20220608164250-635b8c9b7f68 | v0.0.0-20220615213510-4f61da869c0c | true   | true             |
 | k8s.io/api                      | v0.0.0-20220524121711-3ddd0f45aa91 | v0.0.0-20220619170603-609db7ed0b1f | true   | true             |
@@ -266,7 +265,7 @@ _Generated on Mon, 20 Jun 2022 15:12:36 UTC for commit [397130d][0]._
 | github.com/containers/buildah                                               | v1.26.1                                           |                                    | true   | true             |
 | github.com/containers/common                                                | v0.48.0                                           |                                    | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                              |                                    | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220620135743-0cf575f6e2f8 | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220620150832-1c4766f78d71 | true   | true             |
 | github.com/containers/image/v5                                              | v5.21.1                                           |                                    | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20200511145503-9c3a6c22cd9a                |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.1.5                                            |                                    | true   | true             |
@@ -899,8 +898,8 @@ _Generated on Mon, 20 Jun 2022 15:12:36 UTC for commit [397130d][0]._
 | github.com/storageos/go-api                                                 | v2.2.0+incompatible                               | v2.6.0+incompatible                | false  | true             |
 | github.com/streadway/amqp                                                   | v1.0.0                                            |                                    | false  | true             |
 | github.com/streadway/handy                                                  | v0.0.0-20190108123426-d5acb3125c2a                | v0.0.0-20200128134331-0f66f006fb2e | false  | true             |
-| github.com/stretchr/objx                                                    | v0.3.0                                            | v0.4.0                             | false  | true             |
-| github.com/stretchr/testify                                                 | v1.7.2                                            | v1.7.3                             | true   | true             |
+| github.com/stretchr/objx                                                    | v0.4.0                                            |                                    | false  | true             |
+| github.com/stretchr/testify                                                 | v1.7.3                                            |                                    | true   | true             |
 | github.com/subosito/gotenv                                                  | v1.3.0                                            | v1.4.0                             | false  | true             |
 | github.com/sylabs/sif/v2                                                    | v2.7.0                                            | v2.7.1                             | false  | true             |
 | github.com/sylvia7788/contextcheck                                          | v1.0.4                                            | v1.0.5                             | false  | true             |
@@ -941,7 +940,7 @@ _Generated on Mon, 20 Jun 2022 15:12:36 UTC for commit [397130d][0]._
 | github.com/ultraware/funlen                                                 | v0.0.3                                            |                                    | false  | true             |
 | github.com/ultraware/whitespace                                             | v0.0.4                                            | v0.0.5                             | false  | true             |
 | github.com/urfave/cli                                                       | v1.22.5                                           | v1.22.9                            | false  | true             |
-| github.com/urfave/cli/v2                                                    | v2.8.1                                            | v2.10.1                            | true   | true             |
+| github.com/urfave/cli/v2                                                    | v2.8.1                                            | v2.10.2                            | true   | true             |
 | github.com/urfave/negroni                                                   | v1.0.0                                            |                                    | false  | true             |
 | github.com/uudashr/gocognit                                                 | v1.0.5                                            |                                    | false  | true             |
 | github.com/valyala/bytebufferpool                                           | v1.0.0                                            |                                    | false  | true             |
