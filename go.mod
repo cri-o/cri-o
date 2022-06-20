@@ -21,7 +21,7 @@ require (
 	github.com/containers/conmon-rs v0.0.0-20220609131637-836ba11bf0aa
 	github.com/containers/image/v5 v5.21.1
 	github.com/containers/ocicrypt v1.1.5
-	github.com/containers/podman/v4 v4.1.0
+	github.com/containers/podman/v4 v4.1.1
 	github.com/containers/storage v1.41.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
