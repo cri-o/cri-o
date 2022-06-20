@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 20 Jun 2022 07:34:51 UTC for commit [b98080b][0]._
+_Generated on Mon, 20 Jun 2022 15:12:36 UTC for commit [397130d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b98080b5fdaf0d82713e05962e3a37b70cb251ac
+[0]: https://github.com/cri-o/cri-o/commit/397130d95f203a5427660be47c7eed395f15698f
 
 ## Outdated Dependencies
 
 |             MODULE              |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |---------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220617151135-4f2c78498eb0 | true   | true             |
-| github.com/containers/podman/v4 | v4.1.0                             | v4.1.1                             | true   | true             |
+| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220620135743-0cf575f6e2f8 | true   | true             |
+| github.com/stretchr/testify     | v1.7.2                             | v1.7.3                             | true   | true             |
 | github.com/urfave/cli/v2        | v2.8.1                             | v2.10.1                            | true   | true             |
 | golang.org/x/net                | v0.0.0-20220607020251-c690dde0001d | v0.0.0-20220617184016-355a448f1bc9 | true   | true             |
 | golang.org/x/sys                | v0.0.0-20220608164250-635b8c9b7f68 | v0.0.0-20220615213510-4f61da869c0c | true   | true             |
@@ -266,11 +266,11 @@ _Generated on Mon, 20 Jun 2022 07:34:51 UTC for commit [b98080b][0]._
 | github.com/containers/buildah                                               | v1.26.1                                           |                                    | true   | true             |
 | github.com/containers/common                                                | v0.48.0                                           |                                    | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                              |                                    | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220617151135-4f2c78498eb0 | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220620135743-0cf575f6e2f8 | true   | true             |
 | github.com/containers/image/v5                                              | v5.21.1                                           |                                    | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20200511145503-9c3a6c22cd9a                |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.1.5                                            |                                    | true   | true             |
-| github.com/containers/podman/v4                                             | v4.1.0                                            | v4.1.1                             | true   | true             |
+| github.com/containers/podman/v4                                             | v4.1.1                                            |                                    | true   | true             |
 | github.com/containers/psgo                                                  | v1.7.2                                            |                                    | false  | true             |
 | github.com/containers/storage                                               | v1.41.0                                           |                                    | true   | true             |
 | github.com/coredns/caddy                                                    | v1.1.0                                            | v1.1.1                             | false  | true             |
@@ -803,7 +803,7 @@ _Generated on Mon, 20 Jun 2022 07:34:51 UTC for commit [b98080b][0]._
 | github.com/proglottis/gpgme                                                 | v0.1.1                                            | v0.1.2                             | false  | true             |
 | github.com/prometheus/client_golang                                         | v1.12.2                                           |                                    | true   | true             |
 | github.com/prometheus/client_model                                          | v0.2.0                                            |                                    | false  | true             |
-| github.com/prometheus/common                                                | v0.32.1                                           | v0.34.0                            | false  | true             |
+| github.com/prometheus/common                                                | v0.32.1                                           | v0.35.0                            | false  | true             |
 | github.com/prometheus/procfs                                                | v0.7.3                                            |                                    | false  | true             |
 | github.com/prometheus/statsd_exporter                                       | v0.21.0                                           | v0.22.5                            | false  | true             |
 | github.com/prometheus/tsdb                                                  | v0.7.1                                            | v0.10.0                            | false  | true             |
@@ -900,7 +900,7 @@ _Generated on Mon, 20 Jun 2022 07:34:51 UTC for commit [b98080b][0]._
 | github.com/streadway/amqp                                                   | v1.0.0                                            |                                    | false  | true             |
 | github.com/streadway/handy                                                  | v0.0.0-20190108123426-d5acb3125c2a                | v0.0.0-20200128134331-0f66f006fb2e | false  | true             |
 | github.com/stretchr/objx                                                    | v0.3.0                                            | v0.4.0                             | false  | true             |
-| github.com/stretchr/testify                                                 | v1.7.2                                            |                                    | true   | true             |
+| github.com/stretchr/testify                                                 | v1.7.2                                            | v1.7.3                             | true   | true             |
 | github.com/subosito/gotenv                                                  | v1.3.0                                            | v1.4.0                             | false  | true             |
 | github.com/sylabs/sif/v2                                                    | v2.7.0                                            | v2.7.1                             | false  | true             |
 | github.com/sylvia7788/contextcheck                                          | v1.0.4                                            | v1.0.5                             | false  | true             |
@@ -980,7 +980,7 @@ _Generated on Mon, 20 Jun 2022 07:34:51 UTC for commit [b98080b][0]._
 | github.com/yeya24/promlinter                                                | v0.1.0                                            | v0.2.0                             | false  | true             |
 | github.com/youmark/pkcs8                                                    | v0.0.0-20181117223130-1be2e3e5546d                | v0.0.0-20201027041543-1326539a0a0a | false  | true             |
 | github.com/ysmood/goob                                                      | v0.4.0                                            |                                    | false  | true             |
-| github.com/ysmood/got                                                       | v0.15.1                                           | v0.30.0                            | false  | true             |
+| github.com/ysmood/got                                                       | v0.15.1                                           | v0.31.0                            | false  | true             |
 | github.com/ysmood/gotrace                                                   | v0.2.2                                            | v0.6.0                             | false  | true             |
 | github.com/ysmood/gson                                                      | v0.7.1                                            | v0.7.2                             | false  | true             |
 | github.com/ysmood/leakless                                                  | v0.7.0                                            |                                    | false  | true             |
