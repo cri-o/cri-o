@@ -1000,9 +1000,11 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 		}
 
 		volumes = append(volumes, oci.ContainerVolume{
-			ContainerPath: dest,
-			HostPath:      src,
-			Readonly:      m.Readonly,
+			ContainerPath:  dest,
+			HostPath:       src,
+			Readonly:       m.Readonly,
+			Propagation:    m.Propagation,
+			SelinuxRelabel: m.SelinuxRelabel,
 		})
 
 		ociMounts = append(ociMounts, rspec.Mount{
