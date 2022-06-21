@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 21 Jun 2022 01:03:22 UTC for commit [4eb5b93][0]._
+_Generated on Tue, 21 Jun 2022 12:32:21 UTC for commit [8306856][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4eb5b93f1ffdbea520847a64edb468c981fdcbcf
+[0]: https://github.com/cri-o/cri-o/commit/8306856d882337915d754de63eb813038604826d
 
 ## Outdated Dependencies
 
 |             MODULE              |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |---------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220620150832-1c4766f78d71 | true   | true             |
+| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220621114449-bfbbfa827b3e | true   | true             |
 | github.com/stretchr/testify     | v1.7.3                             | v1.7.4                             | true   | true             |
 | github.com/urfave/cli/v2        | v2.10.1                            | v2.10.2                            | true   | true             |
 | golang.org/x/net                | v0.0.0-20220607020251-c690dde0001d | v0.0.0-20220617184016-355a448f1bc9 | true   | true             |
@@ -266,7 +266,7 @@ _Generated on Tue, 21 Jun 2022 01:03:22 UTC for commit [4eb5b93][0]._
 | github.com/containers/buildah                                               | v1.26.1                                           |                                    | true   | true             |
 | github.com/containers/common                                                | v0.48.0                                           |                                    | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                              |                                    | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220620150832-1c4766f78d71 | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220621114449-bfbbfa827b3e | true   | true             |
 | github.com/containers/image/v5                                              | v5.21.1                                           |                                    | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20200511145503-9c3a6c22cd9a                |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.1.5                                            |                                    | true   | true             |
@@ -694,7 +694,7 @@ _Generated on Tue, 21 Jun 2022 01:03:22 UTC for commit [4eb5b93][0]._
 | github.com/mgechev/revive                                                   | v1.1.2                                            | v1.2.1                             | false  | true             |
 | github.com/mgutz/ansi                                                       | v0.0.0-20170206155736-9520e82c474b                | v0.0.0-20200706080929-d51e80ef957d | false  | true             |
 | github.com/mholt/archiver/v3                                                | v3.5.1                                            |                                    | false  | true             |
-| github.com/miekg/dns                                                        | v1.1.45                                           | v1.1.49                            | false  | true             |
+| github.com/miekg/dns                                                        | v1.1.45                                           | v1.1.50                            | false  | true             |
 | github.com/miekg/pkcs11                                                     | v1.1.1                                            |                                    | false  | true             |
 | github.com/mindprince/gonvml                                                | v0.0.0-20190828220739-9ebdce4bb989                | v0.0.0-20211002210717-ac0b66419a41 | false  | true             |
 | github.com/mistifyio/go-zfs                                                 | v2.1.2-0.20190413222219-f784269be439+incompatible |                                    | false  | true             |
@@ -885,7 +885,7 @@ _Generated on Tue, 21 Jun 2022 01:03:22 UTC for commit [4eb5b93][0]._
 | github.com/spaolacci/murmur3                                                | v1.1.0                                            |                                    | false  | true             |
 | github.com/spf13/afero                                                      | v1.8.2                                            |                                    | false  | true             |
 | github.com/spf13/cast                                                       | v1.5.0                                            |                                    | false  | true             |
-| github.com/spf13/cobra                                                      | v1.4.0                                            |                                    | false  | true             |
+| github.com/spf13/cobra                                                      | v1.4.0                                            | v1.5.0                             | false  | true             |
 | github.com/spf13/jwalterweatherman                                          | v1.1.0                                            |                                    | false  | true             |
 | github.com/spf13/pflag                                                      | v1.0.5                                            |                                    | false  | true             |
 | github.com/spf13/viper                                                      | v1.12.0                                           |                                    | false  | true             |
@@ -980,7 +980,7 @@ _Generated on Tue, 21 Jun 2022 01:03:22 UTC for commit [4eb5b93][0]._
 | github.com/yeya24/promlinter                                                | v0.1.0                                            | v0.2.0                             | false  | true             |
 | github.com/youmark/pkcs8                                                    | v0.0.0-20181117223130-1be2e3e5546d                | v0.0.0-20201027041543-1326539a0a0a | false  | true             |
 | github.com/ysmood/goob                                                      | v0.4.0                                            |                                    | false  | true             |
-| github.com/ysmood/got                                                       | v0.15.1                                           | v0.31.0                            | false  | true             |
+| github.com/ysmood/got                                                       | v0.15.1                                           | v0.31.1                            | false  | true             |
 | github.com/ysmood/gotrace                                                   | v0.2.2                                            | v0.6.0                             | false  | true             |
 | github.com/ysmood/gson                                                      | v0.7.1                                            | v0.7.2                             | false  | true             |
 | github.com/ysmood/leakless                                                  | v0.7.0                                            |                                    | false  | true             |
