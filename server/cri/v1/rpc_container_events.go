@@ -5,6 +5,11 @@ import (
 )
 
 func (s *service) GetContainerEvents(req *pb.GetEventsRequest, ces pb.RuntimeService_GetContainerEventsServer) error {
-	// Spoofing the GetContainerEvents method to return nil response until actual support code is added.
+
+	for containerEvent := range s.server.ContainerEventsChan {
+		if err := ces.Send(&containerEvent); err != nil {
+			return err
+		}
+	}
 	return nil
 }

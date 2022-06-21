@@ -11,6 +11,7 @@ import (
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
@@ -84,6 +85,10 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 
 	log.Infof(ctx, "Stopped pod sandbox: %s", sb.ID())
 	sb.SetStopped(true)
+
+	s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer())
+
+	s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, PodSandboxMetadata: sb.Metadata()}
 
 	return nil
 }

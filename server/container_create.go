@@ -446,6 +446,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 
 	newContainer.SetCreated()
 
+	// s.Runtime().UpdateContainerStatus(ctx, newContainer) // TODO - handle returned err
+
+	// s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: newContainer.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_CREATED_EVENT, PodSandboxMetadata: s.GetSandbox(newContainer.CRIContainer().PodSandboxId).Metadata()}
+
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	return &types.CreateContainerResponse{
 		ContainerId: ctr.ID(),

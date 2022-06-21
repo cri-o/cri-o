@@ -61,8 +61,9 @@ type Server struct {
 	hostportManager hostport.HostPortManager
 
 	*lib.ContainerServer
-	monitorsChan      chan struct{}
-	defaultIDMappings *idtools.IDMappings
+	monitorsChan        chan struct{}
+	defaultIDMappings   *idtools.IDMappings
+	ContainerEventsChan chan types.ContainerEventResponse
 
 	minimumMappableUID, minimumMappableGID int64
 
@@ -330,6 +331,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		}
 	}
 
+	close(s.ContainerEventsChan)
+
 	return nil
 }
 
@@ -423,6 +426,7 @@ func New(
 		minimumMappableGID:       config.MinimumMappableGID,
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
 		resourceStore:            resourcestore.New(),
+		ContainerEventsChan:      make(chan types.ContainerEventResponse, 1000),
 	}
 
 	if err := configureMaxThreads(); err != nil {

@@ -67,6 +67,10 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		return fmt.Errorf("failed to delete pod sandbox %s from index: %w", sb.ID(), err)
 	}
 
+	s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer())
+
+	s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, PodSandboxMetadata: sb.Metadata()}
+
 	log.Infof(ctx, "Removed pod sandbox: %s", sb.ID())
 	return nil
 }
