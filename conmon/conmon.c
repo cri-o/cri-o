@@ -128,7 +128,7 @@ static GOptionEntry opt_entries[] = {
 	{"log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL},
 	{"timeout", 'T', 0, G_OPTION_ARG_INT, &opt_timeout, "Timeout in seconds", NULL},
 	{"log-size-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_size_max, "Maximum size of log file", NULL},
-	{"log-size-global-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_global_size_max, "Maximum size of all log files", NULL},
+	{"log-global-size-max", 0, 0, G_OPTION_ARG_INT64, &opt_log_global_size_max, "Maximum size of all log files", NULL},
 	{"socket-dir-path", 0, 0, G_OPTION_ARG_STRING, &opt_socket_path, "Location of container attach sockets", NULL},
 	{"version", 0, 0, G_OPTION_ARG_NONE, &opt_version, "Print the version and exit", NULL},
 	{"syslog", 0, 0, G_OPTION_ARG_NONE, &opt_syslog, "Log to syslog (use with cgroupfs cgroup manager)", NULL},
