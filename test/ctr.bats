@@ -994,9 +994,8 @@ function check_oci_annotation() {
 		"$TESTDATA"/container_config.json > "$newconfig"
 
 	ctr_id=$(crictl run "$newconfig" "$newsandbox")
-	processes=$(list_all_children "$(pidof conmon)")
-
-	pid=$(runtime list -f json | jq .[].pid)
+	processes=$(list_all_children "$(pidof conmon | sort -n | xargs | awk '{ print $NF }')")
+	pid=$(runtime list -f json | jq .[].pid | sort -n | xargs | awk '{ print $NF }')
 	[[ "$pid" -gt 0 ]]
 	kill -9 "$pid"
 
@@ -1007,6 +1006,6 @@ function check_oci_annotation() {
 		# Ignore Z state (zombies) as the process has just been killed and reparented. Systemd will get to it.
 		# `pgrep` doesn't have a good mechanism for ignoring Z state, but including all others, so:
 		# shellcheck disable=SC2009
-		! ps -p "$process" o pid=,stat= | grep -v 'Z'
+		! ps -p "$process" o pid=,stat=,cmd= | grep -v 'Z' | grep -v 'pause'
 	done
 }
