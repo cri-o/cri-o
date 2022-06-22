@@ -96,6 +96,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      # TODO: enable cosign once we sign the artifacts on main
+      # - uses: sigstore/cosign-installer@v2
       - run: |
           make get-script
           hack/tree_status.sh
