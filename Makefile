@@ -62,6 +62,7 @@ GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
+BOM := ${BUILD_BIN_PATH}/bom
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
 BATS_FILES := $(wildcard test/*.bats)
@@ -270,6 +271,9 @@ ${GO_MOD_OUTDATED}:
 ${ZEITGEIST}:
 	$(call go-build,./vendor/sigs.k8s.io/zeitgeist)
 
+${BOM}:
+	$(call go-build, ./vendor/sigs.k8s.io/bom/cmd/bom)
+
 ${GOLANGCI_LINT}:
 	export VERSION=v1.45.2 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
@@ -405,7 +409,7 @@ docs-generation:
 	bin/crio -d "" --config="" md  > docs/crio.8.md
 	bin/crio -d "" --config="" man > docs/crio.8
 
-bundle:
+bundle: ${BOM}
 	contrib/bundle/build
 
 bundle-test:
@@ -414,7 +418,7 @@ bundle-test:
 bundle-test-e2e:
 	sudo contrib/bundle/test-e2e
 
-bundles:
+bundles: ${BOM}
 	contrib/bundle/build amd64
 	contrib/bundle/build arm64
 

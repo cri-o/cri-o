@@ -6,3 +6,9 @@ for TARBALL in build/bundle/*.tar.gz; do
         --output-signature "$TARBALL.sig" \
         --output-certificate "$TARBALL.cert"
 done
+
+for SBOM in build/bundle/*.tar.gz.spdx; do
+    cosign sign-blob "$SBOM" \
+        --output-signature "$SBOM.sig" \
+        --output-certificate "$SBOM.cert"
+done
