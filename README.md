@@ -130,6 +130,10 @@ This means that the latest commit can be installed via our convenience script:
 > curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash
 ```
 
+The script automatically verifies the uploaded sigstore signatures as well, if
+the local system has [`cosign`](https://github.com/sigstore/cosign) available in
+its `$PATH`.
+
 Beside `amd64` we also support the `arm64` bit architecture. This can be
 selected via the script, too:
 
