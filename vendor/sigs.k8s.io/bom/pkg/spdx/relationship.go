@@ -17,9 +17,8 @@ limitations under the License.
 package spdx
 
 import (
+	"errors"
 	"fmt"
-
-	"github.com/pkg/errors"
 )
 
 type RelationshipType string
@@ -102,14 +101,14 @@ func (ro *Relationship) Render(hostObject Object) (string, error) {
 
 	// The host object must have an ID defined in all cases
 	if hostObject.SPDXID() == "" {
-		return "", errors.New("Unable to rennder relationship, hostObject has no ID")
+		return "", errors.New("unable to rennder relationship, hostObject has no ID")
 	}
 
 	docFragment := ""
 	if ro.FullRender {
 		objDoc, err := ro.Peer.Render()
 		if err != nil {
-			return "", errors.Wrapf(err, "rendering related object %s", hostObject.SPDXID())
+			return "", fmt.Errorf("rendering related object %s: %w", hostObject.SPDXID(), err)
 		}
 		docFragment += objDoc
 	}

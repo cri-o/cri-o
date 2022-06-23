@@ -17,9 +17,9 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/bom/pkg/spdx"
@@ -35,9 +35,60 @@ func AddDocument(parent *cobra.Command) {
 	}
 
 	AddOutline(documentCmd)
+	AddQuery(documentCmd)
 	parent.AddCommand(documentCmd)
 }
 
+/*
+func AddQuery(parent *cobra.Command) {
+	queryCmd := &cobra.Command{
+		Short:             "bom document query → Query for data in an SPDX document",
+		Use:               "query SPDX_FILE",
+		SilenceUsage:      false,
+		SilenceErrors:     false,
+		PersistentPreRunE: initLogging,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 2 {
+				cmd.Help()
+				return nil
+			}
+			doc, err := spdx.OpenDoc(args[0])
+			if err != nil {
+				return fmt.Errorf("opening document: %w", err)
+			}
+
+			// Parse the purl
+			pquery, err := purl.FromString(args[1])
+			if err != nil {
+				return fmt.Errorf(err, "parsing purl")
+			}
+
+			// Create the purl we will use to query
+			var purlType, purlNamespace, purlName, purlVersion string
+			if pquery.Type != "*" {
+				purlType = pquery.Type
+			}
+			if pquery.Name != "*" {
+				purlName = pquery.Name
+			}
+			if pquery.Version != "*" {
+				purlVersion = pquery.Version
+			}
+			if pquery.Namespace != "*" {
+				purlNamespace = pquery.Namespace
+			}
+			pSpec := purl.NewPackageURL(purlType, purlNamespace, purlName, purlVersion, purl.Qualifiers{}, "")
+
+			pkgs := doc.GetPackagesByPurl(pSpec)
+			for _, pk := range pkgs {
+				fmt.Printf("%s (%s)\n", pk.Name, pk.Purl())
+			}
+			return nil
+		},
+	}
+	parent.AddCommand(queryCmd)
+}
+*/
 func AddOutline(parent *cobra.Command) {
 	outlineOpts := &spdx.DrawingOptions{}
 	outlineCmd := &cobra.Command{
@@ -63,15 +114,15 @@ set the --spdx-ids to only output the IDs of the entities.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				cmd.Help() // nolint:errcheck
-				return errors.New("You should only specify one file")
+				return errors.New("you should only specify one file")
 			}
 			doc, err := spdx.OpenDoc(args[0])
 			if err != nil {
-				return errors.Wrap(err, "opening doc")
+				return fmt.Errorf("opening doc: %w", err)
 			}
 			output, err := doc.Outline(outlineOpts)
 			if err != nil {
-				return errors.Wrap(err, "generating document outline")
+				return fmt.Errorf("generating document outline: %w", err)
 			}
 			fmt.Println(spdx.Banner())
 			fmt.Println(output)

@@ -19,12 +19,12 @@ package osinfo
 import (
 	"archive/tar"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,7 +50,7 @@ func (loss *LayerScanner) OSType(layerPath string) (ostype string, err error) {
 		if strings.Contains(err.Error(), "file not found") {
 			return "", nil
 		}
-		return "", errors.Wrap(err, "reading os release")
+		return "", fmt.Errorf("reading os release: %w", err)
 	}
 
 	if osrelease == "" {
@@ -93,21 +93,21 @@ func (loss *LayerScanner) OSType(layerPath string) (ostype string, err error) {
 func (loss *LayerScanner) OSReleaseData(layerPath string) (osrelease string, err error) {
 	f, err := os.CreateTemp("", "os-release-")
 	if err != nil {
-		return osrelease, errors.Wrap(err, "creating temp file")
+		return osrelease, fmt.Errorf("creating temp file: %w", err)
 	}
 	defer f.Close()
 	defer os.Remove(f.Name())
 
 	destPath := f.Name()
 	if err := loss.extractFileFromTar(layerPath, "etc/os-release", destPath); err != nil {
-		return "", errors.Wrap(err, "extracting os-release from tar")
+		return "", fmt.Errorf("extracting os-release from tar: %w", err)
 	}
 	if err != nil {
 		return osrelease, err
 	}
 	data, err := os.ReadFile(destPath)
 	if err != nil {
-		return osrelease, errors.Wrap(err, "reading osrelease")
+		return osrelease, fmt.Errorf("reading osrelease: %w", err)
 	}
 	return string(data), nil
 }
@@ -123,7 +123,7 @@ func (loss *LayerScanner) extractFileFromTar(tarPath, filePath, destPath string)
 	// Open the tar file
 	f, err := os.Open(tarPath)
 	if err != nil {
-		return errors.Wrap(err, "opening tarball")
+		return fmt.Errorf("opening tarball: %w", err)
 	}
 	defer f.Close()
 
@@ -131,10 +131,10 @@ func (loss *LayerScanner) extractFileFromTar(tarPath, filePath, destPath string)
 	var sample [3]byte
 	var gzipped bool
 	if _, err := io.ReadFull(f, sample[:]); err != nil {
-		return errors.Wrap(err, "sampling bytes from file header")
+		return fmt.Errorf("sampling bytes from file header: %w", err)
 	}
 	if _, err := f.Seek(0, 0); err != nil {
-		return errors.Wrap(err, "rewinding read pointer")
+		return fmt.Errorf("rewinding read pointer: %w", err)
 	}
 
 	// From: https://github.com/golang/go/blob/1fadc392ccaefd76ef7be5b685fb3889dbee27c6/src/compress/gzip/gunzip.go#L185
@@ -150,7 +150,7 @@ func (loss *LayerScanner) extractFileFromTar(tarPath, filePath, destPath string)
 	if gzipped {
 		gzf, err := gzip.NewReader(f)
 		if err != nil {
-			return errors.Wrap(err, "creating gzip reader")
+			return fmt.Errorf("creating gzip reader: %w", err)
 		}
 		tr = tar.NewReader(gzf)
 	}
@@ -162,7 +162,7 @@ func (loss *LayerScanner) extractFileFromTar(tarPath, filePath, destPath string)
 			return ErrFileNotFoundInTar{}
 		}
 		if err != nil {
-			return errors.Wrap(err, "reading tarfile")
+			return fmt.Errorf("reading tarfile: %w", err)
 		}
 
 		if hdr.FileInfo().IsDir() {
@@ -190,7 +190,7 @@ func (loss *LayerScanner) extractFileFromTar(tarPath, filePath, destPath string)
 			// Open the destination file
 			destPointer, err := os.Create(destPath)
 			if err != nil {
-				return errors.Wrap(err, "opening destination file")
+				return fmt.Errorf("opening destination file: %w", err)
 			}
 			defer destPointer.Close()
 			logrus.Infof("Writing %s to %s", filePath, destPath)
@@ -199,7 +199,7 @@ func (loss *LayerScanner) extractFileFromTar(tarPath, filePath, destPath string)
 					if err == io.EOF {
 						return nil
 					}
-					return errors.Wrapf(err, "writing data to %s", destPath)
+					return fmt.Errorf("writing data to %s: %w", destPath, err)
 				}
 			}
 		}

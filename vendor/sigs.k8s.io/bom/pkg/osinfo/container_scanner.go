@@ -18,11 +18,11 @@ package osinfo
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 
 	purl "github.com/package-url/packageurl-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,7 +42,7 @@ func (ct *ContainerScanner) ReadOSPackages(layers []string) (
 	for _, lp := range layers {
 		osKind, err = loss.OSType(lp)
 		if err != nil {
-			return 0, nil, errors.Wrap(err, "reading os type from layer")
+			return 0, nil, fmt.Errorf("reading os type from layer: %w", err)
 		}
 		if osKind != "" {
 			break
@@ -84,7 +84,7 @@ func (ct *ContainerScanner) ReadDebianPackages(layers []string) (layer int, pk *
 	for i, lp := range layers {
 		dpkgDB, err := os.CreateTemp("", "dpkg-")
 		if err != nil {
-			return 0, pk, errors.Wrap(err, "opening temp dpkg file")
+			return 0, pk, fmt.Errorf("opening temp dpkg file: %w", err)
 		}
 		dpkgPath := dpkgDB.Name()
 		defer os.Remove(dpkgDB.Name())
@@ -92,7 +92,7 @@ func (ct *ContainerScanner) ReadDebianPackages(layers []string) (layer int, pk *
 			if _, ok := err.(ErrFileNotFoundInTar); ok {
 				continue
 			}
-			return 0, pk, errors.Wrap(err, "extracting dpkg database")
+			return 0, pk, fmt.Errorf("extracting dpkg database: %w", err)
 		}
 		logrus.Infof("Layer %d has a newer version of dpkg database", i)
 		dpkgDatabase = dpkgPath
@@ -147,7 +147,7 @@ func (e *PackageDBEntry) PackageURL() string {
 func (ct *ContainerScanner) parseDpkgDB(dbPath string) (*[]PackageDBEntry, error) {
 	file, err := os.Open(dbPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "opening for reading")
+		return nil, fmt.Errorf("opening for reading: %w", err)
 	}
 	defer file.Close()
 	logrus.Infof("Scanning data from dpkg database in %s", dbPath)
@@ -195,7 +195,7 @@ func (ct *ContainerScanner) parseDpkgDB(dbPath string) (*[]PackageDBEntry, error
 	logrus.Infof("Found %d packages", len(db))
 
 	if err := scanner.Err(); err != nil {
-		return nil, errors.Wrap(err, "scanning database file")
+		return nil, fmt.Errorf("scanning database file: %w", err)
 	}
 
 	return &db, err

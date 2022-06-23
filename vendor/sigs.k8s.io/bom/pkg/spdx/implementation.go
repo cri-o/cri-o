@@ -23,6 +23,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -42,7 +43,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/nozzle/throttler"
 	purl "github.com/package-url/packageurl-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/bom/pkg/license"
@@ -80,13 +80,13 @@ type spdxDefaultImplementation struct{}
 func (di *spdxDefaultImplementation) ExtractTarballTmp(tarPath string) (tmpDir string, err error) {
 	tmpDir, err = os.MkdirTemp(os.TempDir(), "spdx-tar-extract-")
 	if err != nil {
-		return tmpDir, errors.Wrap(err, "creating temporary directory for tar extraction")
+		return tmpDir, fmt.Errorf("creating temporary directory for tar extraction: %w", err)
 	}
 
 	// Open the tar file
 	f, err := os.Open(tarPath)
 	if err != nil {
-		return tmpDir, errors.Wrap(err, "opening tarball")
+		return tmpDir, fmt.Errorf("opening tarball: %w", err)
 	}
 	defer f.Close()
 
@@ -94,10 +94,10 @@ func (di *spdxDefaultImplementation) ExtractTarballTmp(tarPath string) (tmpDir s
 	var sample [3]byte
 	var gzipped bool
 	if _, err := io.ReadFull(f, sample[:]); err != nil {
-		return "", errors.Wrap(err, "sampling bytes from file header")
+		return "", fmt.Errorf("sampling bytes from file header: %w", err)
 	}
 	if _, err := f.Seek(0, 0); err != nil {
-		return "", errors.Wrap(err, "rewinding read pointer")
+		return "", fmt.Errorf("rewinding read pointer: %w", err)
 	}
 
 	if sample[0] == 0x1f && sample[1] == 0x8b && sample[2] == 0x08 {
@@ -121,7 +121,7 @@ func (di *spdxDefaultImplementation) ExtractTarballTmp(tarPath string) (tmpDir s
 			break
 		}
 		if err != nil {
-			return tmpDir, errors.Wrapf(err, "reading tarfile %s", tarPath)
+			return tmpDir, fmt.Errorf("reading tarfile %s: %w", tarPath, err)
 		}
 
 		if hdr.FileInfo().IsDir() {
@@ -136,7 +136,7 @@ func (di *spdxDefaultImplementation) ExtractTarballTmp(tarPath string) (tmpDir s
 		if err := os.MkdirAll(
 			filepath.Join(tmpDir, filepath.Dir(hdr.Name)), os.FileMode(0o755),
 		); err != nil {
-			return tmpDir, errors.Wrap(err, "creating image directory structure")
+			return tmpDir, fmt.Errorf("creating image directory structure: %w", err)
 		}
 
 		targetFile, err := sanitizeExtractPath(tmpDir, hdr.Name)
@@ -145,7 +145,7 @@ func (di *spdxDefaultImplementation) ExtractTarballTmp(tarPath string) (tmpDir s
 		}
 		f, err := os.Create(targetFile)
 		if err != nil {
-			return tmpDir, errors.Wrap(err, "creating image layer file")
+			return tmpDir, fmt.Errorf("creating image layer file: %w", err)
 		}
 
 		if _, err := io.CopyN(f, tr, hdr.Size); err != nil {
@@ -154,7 +154,7 @@ func (di *spdxDefaultImplementation) ExtractTarballTmp(tarPath string) (tmpDir s
 				break
 			}
 
-			return tmpDir, errors.Wrap(err, "extracting image data")
+			return tmpDir, fmt.Errorf("extracting image data: %w", err)
 		}
 		f.Close()
 
@@ -188,11 +188,11 @@ func (di *spdxDefaultImplementation) ReadArchiveManifest(manifestPath string) (m
 	manifestData := []ArchiveManifest{}
 	manifestJSON, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return manifest, errors.Wrap(err, "unable to read from tarfile")
+		return manifest, fmt.Errorf("unable to read from tarfile: %w", err)
 	}
 	if err := json.Unmarshal(manifestJSON, &manifestData); err != nil {
 		fmt.Println(string(manifestJSON))
-		return manifest, errors.Wrap(err, "unmarshalling image manifest")
+		return manifest, fmt.Errorf("unmarshalling image manifest: %w", err)
 	}
 	return &manifestData[0], nil
 }
@@ -204,10 +204,11 @@ func getImageReferences(referenceString string) ([]struct {
 	Tag    string
 	Arch   string
 	OS     string
-}, error) {
+}, error,
+) {
 	ref, err := name.ParseReference(referenceString)
 	if err != nil {
-		return nil, errors.Wrapf(err, "parsing image reference %s", referenceString)
+		return nil, fmt.Errorf("parsing image reference %s: %w", referenceString, err)
 	}
 
 	images := []struct {
@@ -218,28 +219,31 @@ func getImageReferences(referenceString string) ([]struct {
 	}{}
 
 	img, err := daemon.Image(ref)
-	if err != nil {
-		return nil, errors.Errorf("could not get image reference %s", referenceString)
+	if err != nil && (!strings.Contains(err.Error(), "Error: No such image") &&
+		!strings.Contains(err.Error(), "Cannot connect to the Docker daemon at")) {
+		return nil, fmt.Errorf("could not get image reference %s: %s", referenceString, err)
 	}
 
-	if size, err := img.Size(); err == nil && size > 0 {
-		tag, ok := ref.(name.Tag)
-		if !ok {
-			return nil, errors.Errorf("could not cast tag from reference %s", referenceString)
-		}
+	if img != nil {
+		if size, err := img.Size(); err == nil && size > 0 {
+			tag, ok := ref.(name.Tag)
+			if !ok {
+				return nil, fmt.Errorf("could not cast tag from reference %s: %w", referenceString, err)
+			}
 
-		logrus.Infof("Adding image tag %s from reference", referenceString)
-		return append(images, struct {
-			Digest string
-			Tag    string
-			Arch   string
-			OS     string
-		}{Tag: tag.String()}), nil
+			logrus.Infof("Adding image tag %s from reference", referenceString)
+			return append(images, struct {
+				Digest string
+				Tag    string
+				Arch   string
+				OS     string
+			}{Tag: tag.String()}), nil
+		}
 	}
 
 	descr, err := remote.Get(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching remote descriptor")
+		return nil, fmt.Errorf("fetching remote descriptor: %w", err)
 	}
 
 	// If we got a digest, we reuse it as is
@@ -250,13 +254,14 @@ func getImageReferences(referenceString string) ([]struct {
 			Arch   string
 			OS     string
 		}{Digest: ref.(name.Digest).String()})
+		logrus.Infof("Adding image %s", ref)
 		return images, nil
 	}
 
 	// If the reference is not an image, it has to work as a tag
 	tag, ok := ref.(name.Tag)
 	if !ok {
-		return nil, errors.Errorf("could not cast tag from reference %s", referenceString)
+		return nil, fmt.Errorf("could not cast tag from reference %s: %w", referenceString, err)
 	}
 	// If the reference points to an image, return it
 	if descr.MediaType.IsImage() {
@@ -264,12 +269,12 @@ func getImageReferences(referenceString string) ([]struct {
 		// Check if we can get an image
 		im, err := descr.Image()
 		if err != nil {
-			return nil, errors.Wrap(err, "getting image from descriptor")
+			return nil, fmt.Errorf("getting image from descriptor: %w", err)
 		}
 
 		imageDigest, err := im.Digest()
 		if err != nil {
-			return nil, errors.Wrap(err, "while calculating image digest")
+			return nil, fmt.Errorf("while calculating image digest: %w", err)
 		}
 
 		dig, err := name.NewDigest(
@@ -280,7 +285,7 @@ func getImageReferences(referenceString string) ([]struct {
 			),
 		)
 		if err != nil {
-			return nil, errors.Wrap(err, "building single image digest")
+			return nil, fmt.Errorf("building single image digest: %w", err)
 		}
 
 		logrus.Infof("Adding image digest %s from reference", dig.String())
@@ -295,11 +300,11 @@ func getImageReferences(referenceString string) ([]struct {
 	// Get the image index
 	index, err := descr.ImageIndex()
 	if err != nil {
-		return nil, errors.Wrapf(err, "getting image index for %s", referenceString)
+		return nil, fmt.Errorf("getting image index for %s: %w", referenceString, err)
 	}
 	indexManifest, err := index.IndexManifest()
 	if err != nil {
-		return nil, errors.Wrapf(err, "getting index manifest from %s", referenceString)
+		return nil, fmt.Errorf("getting index manifest from %s: %w", referenceString, err)
 	}
 	logrus.Infof("Reference image index points to %d manifests", len(indexManifest.Manifests))
 
@@ -311,7 +316,7 @@ func getImageReferences(referenceString string) ([]struct {
 				manifest.Digest.Algorithm, manifest.Digest.Hex,
 			))
 		if err != nil {
-			return nil, errors.Wrap(err, "generating digest for image")
+			return nil, fmt.Errorf("generating digest for image: %w", err)
 		}
 
 		logrus.Infof(
@@ -342,16 +347,19 @@ func getImageReferences(referenceString string) ([]struct {
 func PullImageToArchive(referenceString, path string) error {
 	ref, err := name.ParseReference(referenceString)
 	if err != nil {
-		return errors.Wrapf(err, "parsing reference %s", referenceString)
+		return fmt.Errorf("parsing reference %s: %w", referenceString, err)
 	}
 
 	// Get the image from the reference:
 	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
 	if err != nil {
-		return errors.Wrap(err, "getting image")
+		return fmt.Errorf("getting image: %w", err)
 	}
 
-	return errors.Wrap(tarball.WriteToFile(path, ref, img), "writing image to disk")
+	if err := tarball.WriteToFile(path, ref, img); err != nil {
+		return fmt.Errorf("writing image to disk: %w", err)
+	}
+	return nil
 }
 
 // PullImagesToArchive takes an image reference (a tag or a digest)
@@ -363,7 +371,8 @@ func (di *spdxDefaultImplementation) PullImagesToArchive(
 	Archive   string
 	Arch      string
 	OS        string
-}, err error) {
+}, err error,
+) {
 	images = []struct {
 		Reference string
 		Archive   string
@@ -377,12 +386,12 @@ func (di *spdxDefaultImplementation) PullImagesToArchive(
 	}
 
 	if len(references) == 0 {
-		return nil, errors.Wrap(err, "the supplied reference did not return any image references")
+		return nil, fmt.Errorf("the supplied reference did not return any image references: %w", err)
 	}
 
 	if !util.Exists(path) {
 		if err := os.MkdirAll(path, os.FileMode(0o755)); err != nil {
-			return nil, errors.Wrap(err, "creating image directory")
+			return nil, fmt.Errorf("creating image directory: %w", err)
 		}
 	}
 
@@ -390,14 +399,14 @@ func (di *spdxDefaultImplementation) PullImagesToArchive(
 		if refData.Tag != "" {
 			tagRef, err := name.ParseReference(refData.Tag)
 			if err != nil {
-				return nil, errors.Wrapf(err, "parsing reference %s", referenceString)
+				return nil, fmt.Errorf("parsing reference %s: %w", referenceString, err)
 			}
 
 			logrus.Infof("Checking the local image cache for %s", refData.Tag)
 
 			img, err := daemon.Image(tagRef)
 			if err != nil {
-				return nil, errors.Wrapf(err, "getting image %s", referenceString)
+				return nil, fmt.Errorf("getting image %s: %w", referenceString, err)
 			}
 
 			if size, err := img.Size(); err == nil && size > 0 {
@@ -433,14 +442,14 @@ func (di *spdxDefaultImplementation) PullImagesToArchive(
 		logrus.Infof("%s was not found in the local image cache", refData.Digest)
 		ref, err := name.ParseReference(refData.Digest)
 		if err != nil {
-			return nil, errors.Wrapf(err, "parsing reference %s", referenceString)
+			return nil, fmt.Errorf("parsing reference %s: %w", referenceString, err)
 		}
 
 		logrus.Infof("Trying to downloat it %s from remote", refData.Digest)
 		// Get the reference image
 		img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
 		if err != nil {
-			return nil, errors.Wrap(err, "getting image")
+			return nil, fmt.Errorf("getting image: %w", err)
 		}
 
 		// This function is not for digests
@@ -478,12 +487,12 @@ func (di *spdxDefaultImplementation) PackageFromTarball(
 		// Estract the tarball
 		tmp, err := di.ExtractTarballTmp(tarFile)
 		if err != nil {
-			return nil, errors.Wrap(err, "extracting tarball to temporary archive")
+			return nil, fmt.Errorf("extracting tarball to temporary archive: %w", err)
 		}
 		defer os.RemoveAll(tmp)
 		pkg, err = di.PackageFromDirectory(opts, tmp)
 		if err != nil {
-			return nil, errors.Wrap(err, "generating package from tar contents")
+			return nil, fmt.Errorf("generating package from tar contents: %w", err)
 		}
 	} else {
 		pkg = NewPackage()
@@ -492,7 +501,7 @@ func (di *spdxDefaultImplementation) PackageFromTarball(
 	// the tempdir prefix from the document paths:
 	pkg.Options().WorkDir = tarOpts.ExtractDir
 	if err := pkg.ReadSourceFile(tarFile); err != nil {
-		return nil, errors.Wrapf(err, "reading source file %s", tarFile)
+		return nil, fmt.Errorf("reading source file %s: %w", tarFile, err)
 	}
 	// Build the ID and the filename from the tarball name
 	return pkg, nil
@@ -517,7 +526,7 @@ func (di *spdxDefaultImplementation) GetDirectoryTree(dirPath string) ([]string,
 		fileList = append(fileList, path)
 		return nil
 	}); err != nil {
-		return nil, errors.Wrap(err, "buiding directory tree")
+		return nil, fmt.Errorf("buiding directory tree: %w", err)
 	}
 	return fileList, nil
 }
@@ -539,7 +548,7 @@ func (di *spdxDefaultImplementation) IgnorePatterns(
 	if util.Exists(filepath.Join(dirPath, gitIgnoreFile)) {
 		f, err := os.Open(filepath.Join(dirPath, gitIgnoreFile))
 		if err != nil {
-			return nil, errors.Wrap(err, "opening gitignore file")
+			return nil, fmt.Errorf("opening gitignore file: %w", err)
 		}
 		defer f.Close()
 
@@ -596,17 +605,23 @@ func (di *spdxDefaultImplementation) GetGoDependencies(
 	// Open the directory as a go module:
 	mod, err := NewGoModuleFromPath(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating a mod from the specified path")
+		return nil, fmt.Errorf("creating a mod from the specified path: %w", err)
 	}
 	mod.Options().OnlyDirectDeps = opts.OnlyDirectDeps
 	mod.Options().ScanLicenses = opts.ScanLicenses
 
 	// Open the module
 	if err := mod.Open(); err != nil {
-		return nil, errors.Wrap(err, "opening new module path")
+		return nil, fmt.Errorf("opening new module path: %w", err)
 	}
 
-	defer func() { err = mod.RemoveDownloads() }()
+	defer func() {
+		preErr := err
+		err = mod.RemoveDownloads()
+		if preErr != nil {
+			err = preErr
+		}
+	}()
 	if opts.ScanLicenses {
 		if errScan := mod.ScanLicenses(); err != nil {
 			return nil, errScan
@@ -617,7 +632,9 @@ func (di *spdxDefaultImplementation) GetGoDependencies(
 	for _, goPkg := range mod.Packages {
 		spdxPkg, err := goPkg.ToSPDXPackage()
 		if err != nil {
-			return nil, errors.Wrap(err, "converting go module to spdx package")
+			// If a dependency cannot be converted, warn but do not die
+			logrus.Error(fmt.Errorf("converting go dependency to spdx package: %w", err))
+			continue
 		}
 		spdxPackages = append(spdxPackages, spdxPkg)
 	}
@@ -632,7 +649,7 @@ func (di *spdxDefaultImplementation) LicenseReader(spdxOpts *Options) (*license.
 	// Create the new reader
 	reader, err := license.NewReaderWithOptions(opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating reusable license reader")
+		return nil, fmt.Errorf("creating reusable license reader: %w", err)
 	}
 	return reader, nil
 }
@@ -644,7 +661,7 @@ func (di *spdxDefaultImplementation) GetDirectoryLicense(
 ) (*license.License, error) {
 	licenseResult, err := reader.ReadTopLicense(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting directory license")
+		return nil, fmt.Errorf("getting directory license: %w", err)
 	}
 	if licenseResult == nil {
 		logrus.Warnf("License classifier could not find a license for directory: %v", err)
@@ -656,7 +673,8 @@ func (di *spdxDefaultImplementation) GetDirectoryLicense(
 // purlFromImage builds a purl from an image reference
 func (*spdxDefaultImplementation) purlFromImage(img struct {
 	Reference, Archive, Arch, OS string
-}) string {
+},
+) string {
 	// OCI type urls don't have a namespace ref:
 	// https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#oci
 
@@ -710,17 +728,17 @@ func (*spdxDefaultImplementation) purlFromImage(img struct {
 func (di *spdxDefaultImplementation) ImageRefToPackage(ref string, opts *Options) (*Package, error) {
 	tmpdir, err := os.MkdirTemp("", "doc-build-")
 	if err != nil {
-		return nil, errors.Wrap(err, "creating temporary workdir in")
+		return nil, fmt.Errorf("creating temporary workdir in: %w", err)
 	}
 	defer os.RemoveAll(tmpdir)
 
 	imgs, err := di.PullImagesToArchive(ref, tmpdir)
 	if err != nil {
-		return nil, errors.Wrap(err, "while downloading images to archive")
+		return nil, fmt.Errorf("while downloading images to archive: %w", err)
 	}
 
 	if len(imgs) == 0 {
-		return nil, errors.Errorf("Could not get any images from reference %s", ref)
+		return nil, fmt.Errorf("could not get any images from reference %s", ref)
 	}
 
 	// If we just got one image and that image is exactly the same
@@ -728,7 +746,7 @@ func (di *spdxDefaultImplementation) ImageRefToPackage(ref string, opts *Options
 	if len(imgs) == 1 && imgs[0].Reference == ref {
 		p, err := di.PackageFromImageTarball(opts, imgs[0].Archive)
 		if err != nil {
-			return nil, errors.Wrap(err, "building package from single image")
+			return nil, fmt.Errorf("building package from single image: %w", err)
 		}
 		packageurl := di.purlFromImage(imgs[0])
 		if packageurl != "" {
@@ -748,7 +766,7 @@ func (di *spdxDefaultImplementation) ImageRefToPackage(ref string, opts *Options
 
 	imageReference, err := name.ParseReference(ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "parsing image reference %s", ref)
+		return nil, fmt.Errorf("parsing image reference %s: %w", ref, err)
 	}
 	if _, ok := imageReference.(name.Digest); ok {
 		pkg.DownloadLocation = imageReference.(name.Digest).String()
@@ -758,7 +776,7 @@ func (di *spdxDefaultImplementation) ImageRefToPackage(ref string, opts *Options
 	for _, img := range imgs {
 		subpkg, err := di.PackageFromImageTarball(opts, img.Archive)
 		if err != nil {
-			return nil, errors.Wrap(err, "adding image variant package")
+			return nil, fmt.Errorf("adding image variant package: %w", err)
 		}
 
 		if img.Arch != "" || img.OS != "" {
@@ -824,7 +842,7 @@ func (di *spdxDefaultImplementation) PackageFromImageTarball(
 	}
 	tarOpts.ExtractDir, err = di.ExtractTarballTmp(tarPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "extracting tarball to temp dir")
+		return nil, fmt.Errorf("extracting tarball to temp dir: %w", err)
 	}
 	defer os.RemoveAll(tarOpts.ExtractDir)
 
@@ -833,11 +851,11 @@ func (di *spdxDefaultImplementation) PackageFromImageTarball(
 		filepath.Join(tarOpts.ExtractDir, archiveManifestFilename),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "while reading docker archive manifest")
+		return nil, fmt.Errorf("while reading docker archive manifest: %w", err)
 	}
 
 	if len(manifest.RepoTags) == 0 {
-		return nil, errors.New("No RepoTags found in manifest")
+		return nil, errors.New("no RepoTags found in manifest")
 	}
 
 	if manifest.RepoTags[0] == "" {
@@ -869,7 +887,7 @@ func (di *spdxDefaultImplementation) PackageFromImageTarball(
 	if spdxOpts.ScanImages {
 		layerNum, osPackageData, err = ct.ReadOSPackages(layerPaths)
 		if err != nil {
-			return nil, errors.Wrap(err, "getting os data from container")
+			return nil, fmt.Errorf("getting os data from container: %w", err)
 		}
 	}
 
@@ -885,7 +903,7 @@ func (di *spdxDefaultImplementation) PackageFromImageTarball(
 		// Generate a package from a layer
 		pkg, err := di.PackageFromTarball(spdxOpts, tarOpts, filepath.Join(tarOpts.ExtractDir, layerFile))
 		if err != nil {
-			return nil, errors.Wrap(err, "building package from layer")
+			return nil, fmt.Errorf("building package from layer: %w", err)
 		}
 
 		// Regenerate the BuildID to avoid clashes when handling multiple
@@ -895,7 +913,7 @@ func (di *spdxDefaultImplementation) PackageFromImageTarball(
 		// If the option is enabled, scan the container layers
 		if spdxOpts.AnalyzeLayers {
 			if err := di.AnalyzeImageLayer(filepath.Join(tarOpts.ExtractDir, layerFile), pkg); err != nil {
-				return nil, errors.Wrap(err, "scanning layer "+pkg.ID)
+				return nil, fmt.Errorf("scanning layer "+pkg.ID+" :%w", err)
 			}
 		} else {
 			logrus.Info("Not performing deep image analysis (opts.AnalyzeLayers = false)")
@@ -923,14 +941,14 @@ func (di *spdxDefaultImplementation) PackageFromImageTarball(
 				}
 				ospk.BuildID(pkg.ID)
 				if err := pkg.AddPackage(ospk); err != nil {
-					return nil, errors.Wrap(err, "adding OS package to container layer")
+					return nil, fmt.Errorf("adding OS package to container layer: %w", err)
 				}
 			}
 		}
 
 		// Add the layer package to the image package
 		if err := imagePackage.AddPackage(pkg); err != nil {
-			return nil, errors.Wrap(err, "adding layer to image package")
+			return nil, fmt.Errorf("adding layer to image package: %w", err)
 		}
 	}
 
@@ -947,20 +965,20 @@ func (di *spdxDefaultImplementation) AnalyzeImageLayer(layerPath string, pkg *Pa
 func (di *spdxDefaultImplementation) PackageFromDirectory(opts *Options, dirPath string) (pkg *Package, err error) {
 	dirPath, err = filepath.Abs(dirPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting absolute directory path")
+		return nil, fmt.Errorf("getting absolute directory path: %w", err)
 	}
 	fileList, err := di.GetDirectoryTree(dirPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "building directory tree")
+		return nil, fmt.Errorf("building directory tree: %w", err)
 	}
 	reader, err := di.LicenseReader(opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating license reader")
+		return nil, fmt.Errorf("creating license reader: %w", err)
 	}
 	licenseTag := ""
 	lic, err := di.GetDirectoryLicense(reader, dirPath, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "scanning directory for licenses")
+		return nil, fmt.Errorf("scanning directory for licenses: %w", err)
 	}
 	if lic != nil {
 		licenseTag = lic.LicenseID
@@ -972,13 +990,13 @@ func (di *spdxDefaultImplementation) PackageFromDirectory(opts *Options, dirPath
 		dirPath, opts.IgnorePatterns, opts.NoGitignore,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "building ignore patterns list")
+		return nil, fmt.Errorf("building ignore patterns list: %w", err)
 	}
 
 	// Apply the ignore patterns to the list of files
 	fileList = di.ApplyIgnorePatterns(fileList, patterns)
 	if len(fileList) == 0 {
-		return nil, errors.Errorf("directory %s has no files to scan", dirPath)
+		return nil, fmt.Errorf("directory %s has no files to scan", dirPath)
 	}
 	logrus.Infof("Scanning %d files and adding them to the SPDX package", len(fileList))
 
@@ -1003,7 +1021,7 @@ func (di *spdxDefaultImplementation) PackageFromDirectory(opts *Options, dirPath
 
 		lic, err = reader.LicenseFromFile(filepath.Join(dirPath, path))
 		if err != nil {
-			err = errors.Wrap(err, "scanning file for license")
+			err = fmt.Errorf("scanning file for license: %w", err)
 			return
 		}
 		f.LicenseInfoInFile = NONE
@@ -1014,11 +1032,11 @@ func (di *spdxDefaultImplementation) PackageFromDirectory(opts *Options, dirPath
 		}
 
 		if err = f.ReadSourceFile(filepath.Join(dirPath, path)); err != nil {
-			err = errors.Wrap(err, "checksumming file")
+			err = fmt.Errorf("checksumming file: %w", err)
 			return
 		}
 		if err = pkg.AddFile(f); err != nil {
-			err = errors.Wrapf(err, "adding %s as file to the spdx package", path)
+			err = fmt.Errorf("adding %s as file to the spdx package: %w", path, err)
 			return
 		}
 	}

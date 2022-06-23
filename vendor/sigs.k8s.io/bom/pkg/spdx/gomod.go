@@ -18,6 +18,7 @@ package spdx
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -27,7 +28,6 @@ import (
 
 	"github.com/nozzle/throttler"
 	purl "github.com/package-url/packageurl-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/vcs"
@@ -94,14 +94,13 @@ type GoPackage struct {
 func (pkg *GoPackage) ToSPDXPackage() (*Package, error) {
 	repo, err := vcs.RepoRootForImportPath(pkg.ImportPath, true)
 	if err != nil {
-		return nil, errors.Wrap(err, "building repository from package import path")
+		return nil, fmt.Errorf("building repository from package import path: %w", err)
 	}
 	spdxPackage := NewPackage()
+	spdxPackage.Options().Prefix = "gomod"
 	spdxPackage.Name = pkg.ImportPath
-	if pkg.Revision != "" {
-		spdxPackage.Name += "@" + strings.TrimSuffix(pkg.Revision, "+incompatible")
-	}
-	spdxPackage.BuildID()
+
+	spdxPackage.BuildID(pkg.ImportPath, pkg.Revision)
 	if strings.Contains(pkg.Revision, "+incompatible") {
 		spdxPackage.DownloadLocation = repo.VCS.Scheme[0] + "+" + repo.Repo
 	} else {
@@ -158,7 +157,7 @@ type GoModImplementation interface {
 func (mod *GoModule) Open() error {
 	gomod, err := mod.impl.OpenModule(mod.opts)
 	if err != nil {
-		return errors.Wrap(err, "opening module")
+		return fmt.Errorf("opening module: %w", err)
 	}
 	mod.GoMod = gomod
 
@@ -170,7 +169,7 @@ func (mod *GoModule) Open() error {
 		pkgs, err = mod.BuildFullPackageList(mod.GoMod)
 	}
 	if err != nil {
-		return errors.Wrap(err, "building module package list")
+		return fmt.Errorf("building module package list: %w", err)
 	}
 	mod.Packages = pkgs
 	return nil
@@ -204,7 +203,7 @@ func (mod *GoModule) ScanLicenses() error {
 
 	reader, err := mod.impl.LicenseReader()
 	if err != nil {
-		return errors.Wrap(err, "creating license scanner")
+		return fmt.Errorf("creating license scanner: %w", err)
 	}
 
 	// Create a new Throttler that will get parallelDownloads urls at a time
@@ -267,7 +266,7 @@ func (mod *GoModule) BuildFullPackageList(g *modfile.File) (packageList []*GoPac
 	gorun := command.NewWithWorkDir(mod.opts.Path, gobin, "list", "-deps", "-e", "-json", "./...")
 	output, err := gorun.RunSilentSuccessOutput()
 	if err != nil {
-		return nil, errors.Wrap(err, "while calling go to get full list of deps")
+		return nil, fmt.Errorf("while calling go to get full list of deps: %w", err)
 	}
 
 	type ModEntry struct {
@@ -292,9 +291,14 @@ func (mod *GoModule) BuildFullPackageList(g *modfile.File) (packageList []*GoPac
 		m := &ModEntry{}
 		// Decode the json stream as we get "Module" blocks from go:
 		if err := dec.Decode(m); err != nil {
-			return nil, errors.Wrap(err, "decoding module list")
+			return nil, fmt.Errorf("decoding module list: %w", err)
 		}
 		if m.Module.Path != "" {
+			// If this is the main package (ie the module itself) skip
+			if m.Module.Main {
+				continue
+			}
+
 			if _, ok := list[m.Module.Path]; !ok {
 				list[m.Module.Path] = map[string]*ModEntry{}
 			}
@@ -361,11 +365,11 @@ type GoModDefaultImpl struct {
 func (di *GoModDefaultImpl) OpenModule(opts *GoModuleOptions) (*modfile.File, error) {
 	modData, err := os.ReadFile(filepath.Join(opts.Path, GoModFileName))
 	if err != nil {
-		return nil, errors.Wrap(err, "reading module's go.mod file")
+		return nil, fmt.Errorf("reading module's go.mod file: %w", err)
 	}
 	gomod, err := modfile.ParseLax("file", modData, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading go.mod")
+		return nil, fmt.Errorf("reading go.mod: %w", err)
 	}
 	logrus.Infof(
 		"Parsed go.mod file for %s, found %d direct dependencies",
@@ -401,21 +405,21 @@ func (di *GoModDefaultImpl) DownloadPackage(pkg *GoPackage, opts *GoModuleOption
 		if repo != nil {
 			repoName = repo.Repo
 		}
-		return errors.Wrapf(err, "Fetching package %s from %s", pkg.ImportPath, repoName)
+		return fmt.Errorf("fetching package %s from %s: %w", pkg.ImportPath, repoName, err)
 	}
 
 	if !util.Exists(filepath.Join(os.TempDir(), downloadDir)) {
 		if err := os.MkdirAll(
 			filepath.Join(os.TempDir(), downloadDir), os.FileMode(0o755),
 		); err != nil {
-			return errors.Wrap(err, "creating parent tmpdir")
+			return fmt.Errorf("creating parent tmpdir: %w", err)
 		}
 	}
 
 	// Create tempdir
 	tmpDir, err := os.MkdirTemp(filepath.Join(os.TempDir(), downloadDir), "package-download-")
 	if err != nil {
-		return errors.Wrap(err, "creating temporary dir")
+		return fmt.Errorf("creating temporary dir: %w", err)
 	}
 	// Create a clone of the module repo at the revision
 	rev := strings.TrimSuffix(pkg.Revision, "+incompatible")
@@ -431,11 +435,11 @@ func (di *GoModDefaultImpl) DownloadPackage(pkg *GoPackage, opts *GoModuleOption
 	}
 	if rev == "" {
 		if err := repo.VCS.Create(tmpDir, repo.Repo); err != nil {
-			return errors.Wrapf(err, "creating local clone of %s", repo.Repo)
+			return fmt.Errorf("creating local clone of %s: %w", repo.Repo, err)
 		}
 	} else {
 		if err := repo.VCS.CreateAtRev(tmpDir, repo.Repo, rev); err != nil {
-			return errors.Wrapf(err, "creating local clone of %s", repo.Repo)
+			return fmt.Errorf("creating local clone of %s: %w", repo.Repo, err)
 		}
 	}
 
@@ -450,7 +454,7 @@ func (di *GoModDefaultImpl) RemoveDownloads(packageList []*GoPackage) error {
 	for _, pkg := range packageList {
 		if pkg.ImportPath != "" && util.Exists(pkg.LocalDir) && pkg.TmpDir {
 			if err := os.RemoveAll(pkg.LocalDir); err != nil {
-				return errors.Wrap(err, "removing package data")
+				return fmt.Errorf("removing package data: %w", err)
 			}
 		}
 	}
@@ -465,12 +469,12 @@ func (di *GoModDefaultImpl) LicenseReader() (*license.Reader, error) {
 		opts.LicenseDir = filepath.Join(os.TempDir(), spdxLicenseData)
 		if !util.Exists(opts.CacheDir) {
 			if err := os.MkdirAll(opts.CacheDir, os.FileMode(0o755)); err != nil {
-				return nil, errors.Wrap(err, "creating dir")
+				return nil, fmt.Errorf("creating dir: %w", err)
 			}
 		}
 		reader, err := license.NewReaderWithOptions(opts)
 		if err != nil {
-			return nil, errors.Wrap(err, "creating reader")
+			return nil, fmt.Errorf("creating reader: %w", err)
 		}
 
 		di.licenseReader = reader
@@ -480,14 +484,15 @@ func (di *GoModDefaultImpl) LicenseReader() (*license.Reader, error) {
 
 // ScanPackageLicense scans a package for licensing info
 func (di *GoModDefaultImpl) ScanPackageLicense(
-	pkg *GoPackage, reader *license.Reader, opts *GoModuleOptions) error {
+	pkg *GoPackage, reader *license.Reader, opts *GoModuleOptions,
+) error {
 	dir := pkg.LocalDir
 	if dir == "" && pkg.LocalInstall != "" {
 		dir = pkg.LocalInstall
 	}
 	licenseResult, err := reader.ReadTopLicense(dir)
 	if err != nil {
-		return errors.Wrapf(err, "scanning package %s for licensing information", pkg.ImportPath)
+		return fmt.Errorf("scanning package %s for licensing information: %w", pkg.ImportPath, err)
 	}
 
 	if licenseResult != nil {

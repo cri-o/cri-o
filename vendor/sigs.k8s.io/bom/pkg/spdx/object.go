@@ -24,12 +24,14 @@ package spdx
 
 import (
 	"crypto/sha1"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/pkg/errors"
+	purl "github.com/package-url/packageurl-go"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/hash"
@@ -106,7 +108,7 @@ func (e *Entity) ReadChecksums(filePath string) error {
 	}
 	file, err := os.Open(filePath)
 	if err != nil {
-		return errors.Wrap(err, "opening file for reading: "+filePath)
+		return fmt.Errorf("opening file for reading: "+filePath+" :%w", err)
 	}
 	defer file.Close()
 	// TODO: Make this line like the others once this PR is
@@ -114,15 +116,15 @@ func (e *Entity) ReadChecksums(filePath string) error {
 	// https://github.com/kubernetes-sigs/release-utils/pull/16
 	s1, err := hash.ForFile(filePath, sha1.New())
 	if err != nil {
-		return errors.Wrap(err, "getting sha1 sum for file")
+		return fmt.Errorf("getting sha1 sum for file: %w", err)
 	}
 	s256, err := hash.SHA256ForFile(filePath)
 	if err != nil {
-		return errors.Wrap(err, "getting file checksums")
+		return fmt.Errorf("getting file checksums: %w", err)
 	}
 	s512, err := hash.SHA512ForFile(filePath)
 	if err != nil {
-		return errors.Wrap(err, "getting file checksums")
+		return fmt.Errorf("getting file checksums: %w", err)
 	}
 
 	e.Checksum = map[string]string{
@@ -141,7 +143,7 @@ func (e *Entity) ReadSourceFile(path string) error {
 	}
 
 	if err := e.ReadChecksums(path); err != nil {
-		return errors.Wrap(err, "reading file checksums")
+		return fmt.Errorf("reading file checksums: %w", err)
 	}
 
 	e.SourceFile = path
@@ -280,3 +282,10 @@ mloop:
 
 // GetElementByID nil function to be overridden by package and file
 func (e *Entity) GetElementByID(string) Object { return nil }
+
+// GetPackagesByPurl queries the package and returns all the nodes it is
+// connected to that match the specified purl bits
+func (p *Package) GetPackagesByPurl(purlSpec *purl.PackageURL, opts ...PurlSearchOption) []*Package {
+	seen := map[string]struct{}{}
+	return recursivePurlSearch(purlSpec, p, &seen, opts...)
+}

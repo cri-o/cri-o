@@ -18,6 +18,7 @@ package spdx
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,7 +27,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
+	purl "github.com/package-url/packageurl-go"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/util"
@@ -158,7 +159,7 @@ func buildIDString(seeds ...string) string {
 func (spdx *SPDX) PackageFromDirectory(dirPath string) (pkg *Package, err error) {
 	pkg, err = spdx.impl.PackageFromDirectory(spdx.options, dirPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "generating SPDX package from directory")
+		return nil, fmt.Errorf("generating SPDX package from directory: %w", err)
 	}
 
 	// Scan the directory contents and if it is a go module, process the
@@ -167,12 +168,12 @@ func (spdx *SPDX) PackageFromDirectory(dirPath string) (pkg *Package, err error)
 		logrus.Info("Directory contains a go module. Scanning go packages")
 		deps, err := spdx.impl.GetGoDependencies(dirPath, spdx.Options())
 		if err != nil {
-			return nil, errors.Wrap(err, "scanning go packages")
+			return nil, fmt.Errorf("scanning go packages: %w", err)
 		}
 		logrus.Infof("Go module built list of %d dependencies", len(deps))
 		for _, dep := range deps {
 			if err := pkg.AddDependency(dep); err != nil {
-				return nil, errors.Wrap(err, "adding go dependency")
+				return nil, fmt.Errorf("adding go dependency: %w", err)
 			}
 		}
 	}
@@ -194,7 +195,7 @@ func (spdx *SPDX) PackageFromArchive(archivePath string) (imagePackage *Package,
 			}, archivePath,
 		)
 	}
-	return nil, errors.Wrap(err, "unable to create spdx package from archive, only tar archives are supported")
+	return nil, fmt.Errorf("unable to create spdx package from archive, only tar archives are supported: %w", err)
 }
 
 // FileFromPath creates a File object from a path
@@ -204,7 +205,7 @@ func (spdx *SPDX) FileFromPath(filePath string) (*File, error) {
 	}
 	f := NewFile()
 	if err := f.ReadSourceFile(filePath); err != nil {
-		return nil, errors.Wrap(err, "creating file from path")
+		return nil, fmt.Errorf("creating file from path: %w", err)
 	}
 	return f, nil
 }
@@ -227,7 +228,8 @@ func (spdx *SPDX) PullImagesToArchive(reference, path string) ([]struct {
 	Archive   string
 	Arch      string
 	OS        string
-}, error) {
+}, error,
+) {
 	return spdx.impl.PullImagesToArchive(reference, path)
 }
 
@@ -250,10 +252,10 @@ func Banner() string {
 	return string(d)
 }
 
-// recursiveSearch is a function that recursively searches an object's peers
+// recursiveIDSearch is a function that recursively searches an object's peers
 // to find the specified SPDX ID. If found, returns a copy of the object.
 // nolint:gocritic // seen is a pointer recursively populated
-func recursiveSearch(id string, o Object, seen *map[string]struct{}) Object {
+func recursiveIDSearch(id string, o Object, seen *map[string]struct{}) Object {
 	if o.SPDXID() == id {
 		return o
 	}
@@ -270,9 +272,48 @@ func recursiveSearch(id string, o Object, seen *map[string]struct{}) Object {
 			return rel.Peer
 		}
 
-		if peerObject := recursiveSearch(id, rel.Peer, seen); peerObject != nil {
+		if peerObject := recursiveIDSearch(id, rel.Peer, seen); peerObject != nil {
 			return peerObject
 		}
 	}
 	return nil
+}
+
+// recursivePurlSearch is a function that recursively searches an object's peers
+// to find those that match the purl parts defined. If found, returns a copy of
+// the object.
+// nolint:gocritic // seen is a pointer recursively populated
+func recursivePurlSearch(purlSpec *purl.PackageURL, o Object, seen *map[string]struct{}, opts ...PurlSearchOption) []*Package {
+	foundPackages := []*Package{}
+	// Only packages can express purls
+	if p, ok := o.(*Package); ok {
+		if p.PurlMatches(purlSpec, opts...) {
+			foundPackages = append(foundPackages, o.(*Package))
+		}
+	}
+
+	(*seen)[o.SPDXID()] = struct{}{}
+
+	for _, rel := range *o.GetRelationships() {
+		if rel.Peer == nil {
+			continue
+		}
+
+		if _, ok := (*seen)[rel.Peer.SPDXID()]; ok {
+			continue
+		}
+
+		(*seen)[o.SPDXID()] = struct{}{}
+
+		more := recursivePurlSearch(purlSpec, rel.Peer, seen, opts...)
+		foundPackages = append(foundPackages, more...)
+
+		// If object is not a package. we're done
+		if p, ok := rel.Peer.(*Package); !ok {
+			if p.PurlMatches(purlSpec, opts...) {
+				foundPackages = append(foundPackages, p)
+			}
+		}
+	}
+	return foundPackages
 }

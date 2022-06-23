@@ -25,7 +25,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -74,7 +73,7 @@ func (f *File) Render() (docFragment string, err error) {
 	if f.Checksum == nil || len(f.Checksum) == 0 {
 		if f.SourceFile != "" {
 			if err := f.ReadSourceFile(f.SourceFile); err != nil {
-				return "", errors.Wrap(err, "checksumming file")
+				return "", fmt.Errorf("checksumming file: %w", err)
 			}
 		} else {
 			logrus.Warnf(
@@ -85,12 +84,12 @@ func (f *File) Render() (docFragment string, err error) {
 	var buf bytes.Buffer
 	tmpl, err := template.New("file").Parse(fileTemplate)
 	if err != nil {
-		return "", errors.Wrap(err, "parsing file template")
+		return "", fmt.Errorf("parsing file template: %w", err)
 	}
 
 	// Run the template to verify the output.
 	if err := tmpl.Execute(&buf, f); err != nil {
-		return "", errors.Wrap(err, "executing spdx file template")
+		return "", fmt.Errorf("executing spdx file template: %w", err)
 	}
 
 	docFragment = buf.String()
@@ -201,5 +200,5 @@ func (f *File) GetElementByID(id string) Object {
 	if f.SPDXID() == id {
 		return f
 	}
-	return recursiveSearch(id, f, &map[string]struct{}{})
+	return recursiveIDSearch(id, f, &map[string]struct{}{})
 }

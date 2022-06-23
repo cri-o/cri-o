@@ -26,16 +26,18 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/pkg/errors"
+	purl "github.com/package-url/packageurl-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 
@@ -146,7 +148,7 @@ func (ed *ExternalDocumentRef) ReadSourceFile(path string) error {
 	// ref https://github.com/spdx/tools-java/issues/21
 	val, err := hash.SHA1ForFile(path)
 	if err != nil {
-		return errors.Wrap(err, "while calculating the sha256 checksum of the external reference")
+		return fmt.Errorf("while calculating the sha256 checksum of the external reference: %w", err)
 	}
 	ed.Checksums["SHA1"] = val
 	return nil
@@ -185,7 +187,7 @@ func (d *Document) AddPackage(pkg *Package) error {
 		return errors.New("package ID is needed to add a new package")
 	}
 	if _, ok := d.Packages[pkg.SPDXID()]; ok {
-		return errors.Errorf("a package with ID %s already exists in the document", pkg.SPDXID())
+		return fmt.Errorf("a package with ID %s already exists in the document", pkg.SPDXID())
 	}
 
 	d.Packages[pkg.SPDXID()] = pkg
@@ -196,10 +198,10 @@ func (d *Document) AddPackage(pkg *Package) error {
 func (d *Document) Write(path string) error {
 	content, err := d.Render()
 	if err != nil {
-		return errors.Wrap(err, "rendering SPDX code")
+		return fmt.Errorf("rendering SPDX code: %w", err)
 	}
 	if err := os.WriteFile(path, []byte(content), os.FileMode(0o644)); err != nil {
-		return errors.Wrap(err, "writing SPDX code to file")
+		return fmt.Errorf("writing SPDX code to file: %w", err)
 	}
 	logrus.Infof("SPDX SBOM written to %s", path)
 	return nil
@@ -226,7 +228,7 @@ func (d *Document) Render() (doc string, err error) {
 
 	// Run the template to verify the output.
 	if err := tmpl.Execute(&buf, d); err != nil {
-		return "", errors.Wrap(err, "executing spdx document template")
+		return "", fmt.Errorf("executing spdx document template: %w", err)
 	}
 
 	doc = buf.String()
@@ -242,7 +244,7 @@ func (d *Document) Render() (doc string, err error) {
 	for _, file := range d.Files {
 		fileDoc, err := file.Render()
 		if err != nil {
-			return "", errors.Wrap(err, "rendering file "+file.Name)
+			return "", fmt.Errorf("rendering file "+file.Name+" :%w", err)
 		}
 		doc += fileDoc
 		filesDescribed += fmt.Sprintf("Relationship: %s DESCRIBES %s\n\n", d.ID, file.ID)
@@ -253,7 +255,7 @@ func (d *Document) Render() (doc string, err error) {
 	for _, pkg := range d.Packages {
 		pkgDoc, err := pkg.Render()
 		if err != nil {
-			return "", errors.Wrap(err, "rendering pkg "+pkg.Name)
+			return "", fmt.Errorf("rendering pkg "+pkg.Name+" :%w", err)
 		}
 
 		doc += pkgDoc
@@ -279,7 +281,7 @@ func (d *Document) AddFile(file *File) error {
 		}
 		h := sha1.New()
 		if _, err := h.Write([]byte(d.Name + ":" + file.Name)); err != nil {
-			return errors.Wrap(err, "getting sha1 of filename")
+			return fmt.Errorf("getting sha1 of filename: %w", err)
 		}
 		file.ID = "SPDXRef-File-" + fmt.Sprintf("%x", h.Sum(nil))
 	}
@@ -315,7 +317,7 @@ func (d *Document) Outline(o *DrawingOptions) (outline string, err error) {
 	if term.IsTerminal(0) {
 		width, height, err = term.GetSize(0)
 		if err != nil {
-			return "", errors.Wrap(err, "reading the terminal size")
+			return "", fmt.Errorf("reading the terminal size: %w", err)
 		}
 		logrus.Debugf("Terminal size is %dx%d", width, height)
 	}
@@ -397,12 +399,16 @@ func (d *Document) WriteProvenanceStatement(opts *ProvenanceOptions, path string
 	statement := d.ToProvenanceStatement(opts)
 	data, err := json.Marshal(statement)
 	if err != nil {
-		return errors.Wrap(err, "serializing statement to json")
+		return fmt.Errorf("serializing statement to json: %w", err)
 	}
-	return errors.Wrap(
-		os.WriteFile(path, data, os.FileMode(0o644)),
-		"writing sbom as provenance statement",
-	)
+
+	if err := os.WriteFile(path, data, os.FileMode(0o644)); err != nil {
+		return fmt.Errorf(
+			"writing sbom as provenance statement: %w",
+			err,
+		)
+	}
+	return nil
 }
 
 // ensureUniquePackageID takes a string and checks if
@@ -465,16 +471,47 @@ func (d *Document) ensureUniquePeerIDs(rels *[]*Relationship) {
 func (d *Document) GetElementByID(id string) Object {
 	seen := map[string]struct{}{}
 	for _, p := range d.Packages {
-		if sub := recursiveSearch(id, p, &seen); sub != nil {
+		if sub := recursiveIDSearch(id, p, &seen); sub != nil {
 			return sub
 		}
 	}
 	for _, f := range d.Files {
-		if sub := recursiveSearch(id, f, &seen); sub != nil {
+		if sub := recursiveIDSearch(id, f, &seen); sub != nil {
 			return sub
 		}
 	}
 	return nil
+}
+
+// GetPackagesByPurl queries the document packages and returns all that
+// match the specified purl bits
+func (d *Document) GetPackagesByPurl(purlSpec *purl.PackageURL, opts ...PurlSearchOption) []*Package {
+	seen := map[string]struct{}{}
+	foundPackages := []*Package{}
+
+	if purlSpec.Type == "" {
+		purlSpec.Type = "*"
+	}
+
+	if purlSpec.Name == "" {
+		purlSpec.Name = "*"
+	}
+
+	if purlSpec.Version == "" {
+		purlSpec.Version = "*"
+	}
+
+	if purlSpec.Namespace == "" {
+		purlSpec.Namespace = "*"
+	}
+
+	for _, p := range d.Packages {
+		foundPackages = append(foundPackages, recursivePurlSearch(purlSpec, p, &seen, opts...)...)
+	}
+	for _, f := range d.Files {
+		foundPackages = append(foundPackages, recursivePurlSearch(purlSpec, f, &seen, opts...)...)
+	}
+	return foundPackages
 }
 
 type ValidationResults struct {
@@ -491,7 +528,39 @@ func (d *Document) ValidateFiles(filePaths []string) ([]ValidationResults, error
 	if len(filePaths) == 0 {
 		logrus.Warn("ValidateFiles called with 0 paths")
 	}
-	if len(d.Files) == 0 {
+
+	// Assume that the current working dir is within the package
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get current working dir: %w", err)
+	}
+	baseDir := filepath.Base(cwd)
+
+	allFiles := make(map[string]*File)
+	var pkg *Package
+	// Search for the package describing the directory
+	for _, p := range d.Packages {
+		if p.Name == baseDir {
+			pkg = p
+			break
+		}
+	}
+	if pkg == nil {
+		if len(d.Packages) > 0 {
+			return results, errors.New("directory not found in SBOM packages")
+		}
+
+		// No packages specified, use the root files
+		for k, v := range d.Files {
+			allFiles[k] = v
+		}
+	} else {
+		for _, file := range pkg.Files() {
+			allFiles[file.ID] = file
+		}
+	}
+
+	if len(allFiles) == 0 {
 		return results, errors.New("document has no files")
 	}
 	spdxObject := NewSPDX()
@@ -511,7 +580,7 @@ func (d *Document) ValidateFiles(filePaths []string) ([]ValidationResults, error
 		// Create a new SPDX file from the path
 		testFile, err := spdxObject.FileFromPath(path)
 		if err != nil {
-			e := errors.Wrap(err, "unable to create SPDX File from path")
+			e := fmt.Errorf("unable to create SPDX File from path: %w", err)
 			res.Message = e.Error()
 			continue
 		}
@@ -521,7 +590,7 @@ func (d *Document) ValidateFiles(filePaths []string) ([]ValidationResults, error
 		message := "file path not found in document"
 		res.FileName = path
 
-		for _, docFile := range d.Files {
+		for _, docFile := range allFiles {
 			if docFile.FileName != path {
 				continue
 			}

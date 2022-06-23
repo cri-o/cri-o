@@ -21,12 +21,12 @@ package license
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/util"
@@ -72,10 +72,10 @@ type Reader struct {
 // SetImplementation sets the implementation that the license reader will use
 func (r *Reader) SetImplementation(i ReaderImplementation) error {
 	r.impl = i
-	return errors.Wrap(
-		r.impl.Initialize(r.Options),
-		"initializing the reader implementation",
-	)
+	if err := r.impl.Initialize(r.Options); err != nil {
+		return fmt.Errorf("initializing the reader implementation: %w", err)
+	}
+	return nil
 }
 
 // NewReader returns a license reader with the default options
@@ -86,14 +86,14 @@ func NewReader() (*Reader, error) {
 // NewReaderWithOptions returns a new license reader with the specified options
 func NewReaderWithOptions(opts *ReaderOptions) (r *Reader, err error) {
 	if err := opts.Validate(); err != nil {
-		return nil, errors.Wrap(err, "validating reader options")
+		return nil, fmt.Errorf("validating reader options: %w", err)
 	}
 	r = &Reader{
 		Options: opts,
 	}
 
 	if err := r.SetImplementation(&ReaderDefaultImpl{}); err != nil {
-		return nil, errors.Wrap(err, "setting the reader implementation")
+		return nil, fmt.Errorf("setting the reader implementation: %w", err)
 	}
 
 	return r, nil
@@ -113,12 +113,12 @@ func (ro *ReaderOptions) Validate() error {
 	if ro.WorkDir == "" {
 		dir, err := os.MkdirTemp("", "license-reader-")
 		if err != nil {
-			return errors.Wrap(err, "creating working dir")
+			return fmt.Errorf("creating working dir: %w", err)
 		}
 		ro.WorkDir = dir
 		// Otherwise, check it exists
 	} else if _, err := os.Stat(ro.WorkDir); err != nil {
-		return errors.Wrap(err, "checking working directory")
+		return fmt.Errorf("checking working directory: %w", err)
 	}
 
 	// TODO check dirs
@@ -157,7 +157,7 @@ func (r *Reader) LicenseFromLabel(label string) (license *License) {
 func (r *Reader) LicenseFromFile(filePath string) (license *License, err error) {
 	license, err = r.impl.LicenseFromFile(filePath)
 	if err != nil {
-		return nil, errors.Wrap(err, "classifying file to determine license")
+		return nil, fmt.Errorf("classifying file to determine license: %w", err)
 	}
 	return license, err
 }
@@ -177,7 +177,7 @@ func (r *Reader) ReadTopLicense(path string) (*ClassifyResult, error) {
 	if licenseFilePath != "" {
 		result, _, err := r.impl.ClassifyLicenseFiles([]string{licenseFilePath})
 		if err != nil {
-			return nil, errors.Wrap(err, "scanning topmost license file")
+			return nil, fmt.Errorf("scanning topmost license file: %w", err)
 		}
 		if len(result) != 0 {
 			logrus.Infof("Concluded license %s from %s", result[0].License.LicenseID, licenseFilePath)
@@ -191,7 +191,7 @@ func (r *Reader) ReadTopLicense(path string) (*ClassifyResult, error) {
 	bestPartsN := 0
 	licenseFiles, err := r.impl.FindLicenseFiles(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "finding license files in path")
+		return nil, fmt.Errorf("finding license files in path: %w", err)
 	}
 	for _, fileName := range licenseFiles {
 		try := false
@@ -213,7 +213,7 @@ func (r *Reader) ReadTopLicense(path string) (*ClassifyResult, error) {
 
 		result, _, err := r.impl.ClassifyLicenseFiles([]string{fileName})
 		if err != nil {
-			return nil, errors.Wrap(err, "scanning topmost license file")
+			return nil, fmt.Errorf("scanning topmost license file: %w", err)
 		}
 
 		// If the file is a license, use it
@@ -237,12 +237,12 @@ func (r *Reader) ReadLicenses(path string) (
 ) {
 	licenseFiles, err := r.impl.FindLicenseFiles(path)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "searching for license files")
+		return nil, nil, fmt.Errorf("searching for license files: %w", err)
 	}
 
 	licenseList, unknownPaths, err = r.impl.ClassifyLicenseFiles(licenseFiles)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "classifying found licenses")
+		return nil, nil, fmt.Errorf("classifying found licenses: %w", err)
 	}
 	return licenseList, unknownPaths, nil
 }
@@ -272,7 +272,7 @@ func HasKubernetesBoilerPlate(filePath string) (bool, error) {
 	// kubernetesBoilerPlate
 	sut, err := os.Open(filePath)
 	if err != nil {
-		return false, errors.Wrap(err, "opening file to check for k8s boilerplate")
+		return false, fmt.Errorf("opening file to check for k8s boilerplate: %w", err)
 	}
 	defer sut.Close()
 
@@ -332,11 +332,10 @@ type License struct {
 
 // WriteText writes the SPDX license text to a text file
 func (license *License) WriteText(filePath string) error {
-	return errors.Wrap(
-		os.WriteFile(
-			filePath, []byte(license.LicenseText), os.FileMode(0o644),
-		), "while writing license to text file",
-	)
+	if err := os.WriteFile(filePath, []byte(license.LicenseText), os.FileMode(0o644)); err != nil {
+		return fmt.Errorf("while writing license to text file: %w", err)
+	}
+	return nil
 }
 
 // ListEntry a license entry in the list
@@ -355,7 +354,7 @@ type ListEntry struct {
 func ParseLicense(licenseJSON []byte) (license *License, err error) {
 	license = &License{}
 	if err := json.Unmarshal(licenseJSON, license); err != nil {
-		return nil, errors.Wrap(err, "parsing SPDX licence")
+		return nil, fmt.Errorf("parsing SPDX licence: %w", err)
 	}
 	return license, nil
 }

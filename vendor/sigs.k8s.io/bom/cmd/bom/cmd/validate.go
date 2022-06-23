@@ -17,11 +17,13 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -55,15 +57,15 @@ for checking files.
 				if util.Exists(arg) {
 					file, err := os.Open(arg)
 					if err != nil {
-						return errors.Wrapf(err, "checking argument %d", i)
+						return fmt.Errorf("checking argument %d: %w", i, err)
 					}
 					defer file.Close()
 					fileInfo, err := file.Stat()
 					if err != nil {
-						return errors.Wrapf(err, "calling stat on argument %d", i)
+						return fmt.Errorf("calling stat on argument %d: %w", i, err)
 					}
 					if fileInfo.IsDir() {
-						return errors.Errorf(
+						return fmt.Errorf(
 							"the path %s is a directory, only files are supported at this time",
 							file.Name(),
 						)
@@ -74,7 +76,7 @@ for checking files.
 						valOpts.files = append(valOpts.files, file.Name())
 					}
 				} else {
-					return errors.Errorf("the path specified at %s does not exist", arg)
+					return fmt.Errorf("the path specified at %s does not exist", arg)
 				}
 			}
 			return validateArtifacts(valOpts)
@@ -87,6 +89,14 @@ for checking files.
 		"f",
 		[]string{},
 		"list of files to verify",
+	)
+
+	cmd.PersistentFlags().StringVarP(
+		&valOpts.dir,
+		"dir",
+		"d",
+		"",
+		"a whole directory to verify",
 	)
 
 	cmd.PersistentFlags().BoolVarP(
@@ -104,12 +114,13 @@ type validateOptions struct {
 	exitCode bool
 	sbomPath string
 	files    []string
+	dir      string
 }
 
 // Validate verify options consistency
 func (opts *validateOptions) Validate() error {
-	if len(opts.files) == 0 {
-		return errors.New("please provide at least one artifact to validate")
+	if len(opts.files) == 0 && opts.dir == "" {
+		return errors.New("please provide at least one artifact file or directory to validate")
 	}
 
 	return nil
@@ -117,7 +128,7 @@ func (opts *validateOptions) Validate() error {
 
 func validateArtifacts(opts validateOptions) error {
 	if err := opts.Validate(); err != nil {
-		return errors.Wrap(err, "validating command line options")
+		return fmt.Errorf("validating command line options: %w", err)
 	}
 
 	if !opts.exitCode {
@@ -125,20 +136,45 @@ func validateArtifacts(opts validateOptions) error {
 	}
 	doc, err := spdx.OpenDoc(opts.sbomPath)
 	if err != nil {
-		return errors.Wrap(err, "opening doc")
+		return fmt.Errorf("opening doc: %w", err)
 	}
 
-	res, err := doc.ValidateFiles(opts.files)
+	files := []string{}
+	if opts.dir != "" {
+		if err := os.Chdir(opts.dir); err != nil {
+			return fmt.Errorf("unable to change to dir %s: %w", opts.dir, err)
+		}
+
+		if err := filepath.Walk(".",
+			func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+
+				if info.IsDir() {
+					return nil
+				}
+
+				files = append(files, path)
+				return nil
+			},
+		); err != nil {
+			return fmt.Errorf("unable to walk current dir: %w", err)
+		}
+	}
+	files = append(files, opts.files...)
+
+	res, err := doc.ValidateFiles(files)
 	if err != nil {
-		return errors.Wrap(err, "validating files")
+		return fmt.Errorf("validating files: %w", err)
 	}
 
 	data := [][]string{}
+	errored := false
 	for _, res := range res {
 		// If we only want an exit code abort on the first failure
 		if !res.Success && opts.exitCode {
-			logrus.Errorf("Checking %s: %s", res.FileName, res.Message)
-			os.Exit(1)
+			errored = true
 		}
 		resRow := []string{
 			res.FileName,
@@ -155,12 +191,6 @@ func validateArtifacts(opts validateOptions) error {
 		data = append(data, resRow)
 	}
 
-	// Exit now if we only want the exit code
-	if opts.exitCode {
-		logrus.Info("All files valid")
-		os.Exit(0)
-	}
-
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"FileName", "Valid", "Message", "Invalid Hashes"})
 
@@ -168,5 +198,10 @@ func validateArtifacts(opts validateOptions) error {
 		table.Append(v)
 	}
 	table.Render()
+
+	if errored {
+		return errors.New("failed to validate all files")
+	}
+
 	return nil
 }

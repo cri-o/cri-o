@@ -274,6 +274,8 @@ ${ZEITGEIST}:
 ${BOM}:
 	$(call go-build, ./vendor/sigs.k8s.io/bom/cmd/bom)
 
+bom: ${BOM}
+
 ${GOLANGCI_LINT}:
 	export VERSION=v1.45.2 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
@@ -522,6 +524,7 @@ metrics-exporter: bin/metrics-exporter
 	.explicit_phony \
 	git-validation \
 	binaries \
+	bom \
 	bundle \
 	bundles \
 	bundle-test \

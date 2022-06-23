@@ -17,12 +17,13 @@ limitations under the License.
 package spdx
 
 import (
+	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
@@ -48,10 +49,32 @@ type YamlBOMConfiguration struct {
 	Artifacts       []*YamlBuildArtifact  `yaml:"artifacts"`
 }
 
-func NewDocBuilder() *DocBuilder {
+// NewDocBuilderOption is a function with operates on a newDocBuilderSettings object.
+type NewDocBuilderOption func(*newDocBuilderSettings)
+
+type newDocBuilderSettings struct {
+	format Format
+}
+
+// WithFormat returns an NewDocBuilderOption setting the format.
+func WithFormat(format Format) NewDocBuilderOption {
+	return func(settings *newDocBuilderSettings) {
+		settings.format = format
+	}
+}
+
+func NewDocBuilder(options ...NewDocBuilderOption) *DocBuilder {
+	settings := &newDocBuilderSettings{
+		format: FormatTagValue,
+	}
+	for _, option := range options {
+		option(settings)
+	}
 	db := &DocBuilder{
 		options: &defaultDocBuilderOpts,
-		impl:    &defaultDocBuilderImpl{},
+		impl: &defaultDocBuilderImpl{
+			format: settings.format,
+		},
 	}
 	return db
 }
@@ -66,13 +89,13 @@ type DocBuilder struct {
 func (db *DocBuilder) Generate(genopts *DocGenerateOptions) (*Document, error) {
 	if genopts.ConfigFile != "" {
 		if err := db.impl.ReadYamlConfiguration(genopts.ConfigFile, genopts); err != nil {
-			return nil, errors.Wrap(err, "parsing configuration file")
+			return nil, fmt.Errorf("parsing configuration file: %w", err)
 		}
 	}
 	// Create the SPDX document
 	doc, err := db.impl.GenerateDoc(db.options, genopts)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating SPDX document")
+		return nil, fmt.Errorf("creating SPDX document: %w", err)
 	}
 
 	// If we have a specified output file, write it
@@ -80,10 +103,13 @@ func (db *DocBuilder) Generate(genopts *DocGenerateOptions) (*Document, error) {
 		return doc, nil
 	}
 
-	return doc, errors.Wrapf(
-		db.impl.WriteDoc(doc, genopts.OutputFile),
-		"writing doc to %s", genopts.OutputFile,
-	)
+	if err := db.impl.WriteDoc(doc, genopts.OutputFile); err != nil {
+		return doc, fmt.Errorf(
+			"writing doc to %s: %w", genopts.OutputFile,
+			err,
+		)
+	}
+	return doc, nil
 }
 
 type DocGenerateOptions struct {
@@ -94,6 +120,7 @@ type DocGenerateOptions struct {
 	ScanLicenses        bool                  // Try to look into files to determine their license
 	ScanImages          bool                  // When true, scan images for OS information
 	ConfigFile          string                // Path to SBOM configuration file
+	Format              string                // Output format
 	OutputFile          string                // Output location
 	Name                string                // Name to use in the resulting document
 	Namespace           string                // Namespace for the document (a unique URI)
@@ -125,7 +152,7 @@ func (o *DocGenerateOptions) Validate() error {
 
 	// Check namespace is a valid URL
 	if _, err := url.Parse(o.Namespace); err != nil {
-		return errors.Wrap(err, "parsing the namespace URL")
+		return fmt.Errorf("parsing the namespace URL: %w", err)
 	}
 	return nil
 }
@@ -146,14 +173,16 @@ type DocBuilderImplementation interface {
 
 // defaultDocBuilderImpl is the default implementation for the
 // SPDX document builder
-type defaultDocBuilderImpl struct{}
+type defaultDocBuilderImpl struct {
+	format Format
+}
 
 // Generate generates a document
 func (builder *defaultDocBuilderImpl) GenerateDoc(
 	opts *DocBuilderOptions, genopts *DocGenerateOptions,
 ) (doc *Document, err error) {
 	if err := genopts.Validate(); err != nil {
-		return nil, errors.Wrap(err, "checking build options")
+		return nil, fmt.Errorf("checking build options: %w", err)
 	}
 
 	spdx := NewSPDX()
@@ -166,7 +195,7 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 
 	if !util.Exists(opts.WorkDir) {
 		if err := os.MkdirAll(opts.WorkDir, os.FileMode(0o755)); err != nil {
-			return nil, errors.Wrap(err, "creating builder worskpace dir")
+			return nil, fmt.Errorf("creating builder worskpace dir: %w", err)
 		}
 	}
 
@@ -193,7 +222,7 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 		for _, dirMatch := range matches {
 			isFile, err := pathIsOfFile(dirMatch)
 			if err != nil {
-				return nil, errors.Wrap(err, "stat dir")
+				return nil, fmt.Errorf("stat dir: %w", err)
 			}
 			if isFile {
 				logrus.Debugf("Skipping %s because it's a file", dirMatch)
@@ -202,11 +231,11 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 			logrus.Infof("Processing directory %s", dirMatch)
 			pkg, err := spdx.PackageFromDirectory(dirMatch)
 			if err != nil {
-				return nil, errors.Wrap(err, "generating package from directory")
+				return nil, fmt.Errorf("generating package from directory: %w", err)
 			}
 			doc.ensureUniqueElementID(pkg)
 			if err := doc.AddPackage(pkg); err != nil {
-				return nil, errors.Wrap(err, "adding directory package to document")
+				return nil, fmt.Errorf("adding directory package to document: %w", err)
 			}
 		}
 	}
@@ -216,12 +245,12 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 		logrus.Infof("Processing image reference: %s", i)
 		p, err := spdx.ImageRefToPackage(i)
 		if err != nil {
-			return nil, errors.Wrapf(err, "generating SPDX package from image ref %s", i)
+			return nil, fmt.Errorf("generating SPDX package from image ref %s: %w", i, err)
 		}
 		doc.ensureUniqueElementID(p)
 		doc.ensureUniquePeerIDs(p.GetRelationships())
 		if err := doc.AddPackage(p); err != nil {
-			return nil, errors.Wrap(err, "adding package to document")
+			return nil, fmt.Errorf("adding package to document: %w", err)
 		}
 	}
 
@@ -230,12 +259,12 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 		logrus.Infof("Processing image archive %s", tb)
 		p, err := spdx.PackageFromImageTarball(tb)
 		if err != nil {
-			return nil, errors.Wrap(err, "generating tarball package")
+			return nil, fmt.Errorf("generating tarball package: %w", err)
 		}
 		doc.ensureUniqueElementID(p)
 		doc.ensureUniquePeerIDs(p.GetRelationships())
 		if err := doc.AddPackage(p); err != nil {
-			return nil, errors.Wrap(err, "adding package to document")
+			return nil, fmt.Errorf("adding package to document: %w", err)
 		}
 	}
 
@@ -244,12 +273,12 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 		logrus.Infof("Adding archive file as package: %s", tf)
 		p, err := spdx.PackageFromArchive(tf)
 		if err != nil {
-			return nil, errors.Wrap(err, "creating spdx package from archive")
+			return nil, fmt.Errorf("creating spdx package from archive: %w", err)
 		}
 		doc.ensureUniqueElementID(p)
 		doc.ensureUniquePeerIDs(p.GetRelationships())
 		if err := doc.AddPackage(p); err != nil {
-			return nil, errors.Wrap(err, "adding package to document")
+			return nil, fmt.Errorf("adding package to document: %w", err)
 		}
 	}
 
@@ -265,18 +294,18 @@ func (builder *defaultDocBuilderImpl) GenerateDoc(
 		for _, filePath := range matches {
 			isFile, err := pathIsOfFile(filePath)
 			if err != nil {
-				return nil, errors.Wrap(err, "stat file")
+				return nil, fmt.Errorf("stat file: %w", err)
 			}
 			if !isFile {
 				continue
 			}
 			f, err := spdx.FileFromPath(filePath)
 			if err != nil {
-				return nil, errors.Wrap(err, "adding file")
+				return nil, fmt.Errorf("adding file: %w", err)
 			}
 			doc.ensureUniqueElementID(f)
 			if err := doc.AddFile(f); err != nil {
-				return nil, errors.Wrap(err, "adding file to document")
+				return nil, fmt.Errorf("adding file to document: %w", err)
 			}
 		}
 	}
@@ -296,27 +325,32 @@ func pathIsOfFile(path string) (bool, error) {
 func (builder *defaultDocBuilderImpl) WriteDoc(doc *Document, path string) error {
 	markup, err := doc.Render()
 	if err != nil {
-		return errors.Wrap(err, "generating document markup")
+		return fmt.Errorf("generating document markup: %w", err)
 	}
 	logrus.Infof("writing document to %s", path)
-	return errors.Wrap(
-		os.WriteFile(path, []byte(markup), os.FileMode(0o644)),
-		"writing document markup to file",
-	)
+
+	if err := os.WriteFile(path, []byte(markup), os.FileMode(0o644)); err != nil {
+		return fmt.Errorf(
+			"writing document markup to file: %w",
+			err,
+		)
+	}
+	return nil
 }
 
 // ReadYamlConfiguration reads a yaml configuration and
 // set the values in an options struct
 func (builder *defaultDocBuilderImpl) ReadYamlConfiguration(
-	path string, opts *DocGenerateOptions) (err error) {
+	path string, opts *DocGenerateOptions,
+) (err error) {
 	yamldata, err := os.ReadFile(path)
 	if err != nil {
-		return errors.Wrap(err, "reading yaml SBOM configuration")
+		return fmt.Errorf("reading yaml SBOM configuration: %w", err)
 	}
 
 	conf := &YamlBOMConfiguration{}
 	if err := yaml.Unmarshal(yamldata, conf); err != nil {
-		return errors.Wrap(err, "unmarshalling SBOM configuration YAML")
+		return fmt.Errorf("unmarshalling SBOM configuration YAML: %w", err)
 	}
 
 	if conf.Name != "" {

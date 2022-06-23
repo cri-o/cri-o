@@ -18,10 +18,10 @@ package provenance
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-	"github.com/pkg/errors"
 )
 
 type Predicate struct {
@@ -56,12 +56,14 @@ type defaultPredicateImplementation struct{}
 func (pi *defaultPredicateImplementation) Write(p *Predicate, path string) error {
 	jsonData, err := json.Marshal(p)
 	if err != nil {
-		return errors.Wrap(err, "marshalling predicate to json")
+		return fmt.Errorf("marshalling predicate to json: %w", err)
 	}
-	return errors.Wrap(
-		os.WriteFile(path, jsonData, os.FileMode(0o644)),
-		"writing predicate file",
-	)
+
+	if err := os.WriteFile(path, jsonData, os.FileMode(0o644)); err != nil {
+		return fmt.Errorf("writing predicate file: %w", err)
+	}
+
+	return nil
 }
 
 // AddMaterial adds a material to the entry
