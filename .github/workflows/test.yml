@@ -159,6 +159,14 @@ jobs:
       - build-static-arm64
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            /tmp/spdx # default bom cache directory
+          key: go-bundles-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-bundles-
       - uses: actions/download-artifact@v3
         with:
           name: build-static-amd64
@@ -174,6 +182,9 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: config
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
       - run: chmod -R +x bin
       - run: make bundles
       - uses: actions/upload-artifact@v3

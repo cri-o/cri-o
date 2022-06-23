@@ -155,8 +155,16 @@ https://storage.googleapis.com/cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz
 ```
 
 where `$ARCH` can be `amd64` or `arm64` and `$REV` can be any git SHA or tag.
-Please be aware that using the latest `master` SHA might cause a race, because
+Please be aware that using the latest `main` SHA might cause a race, because
 the CI has not finished publishing the artifacts yet or failed.
+
+We also provide a Software Bill of Materials (SBOM) in the [SPDX
+format](https://spdx.org) for each bundle. The SBOM is available at the same URL
+like the bundle itself, but suffixed with `.spdx`:
+
+```
+https://storage.googleapis.com/cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz.spdx
+```
 
 ### Running Kubernetes with CRI-O
 
