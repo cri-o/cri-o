@@ -3096,7 +3096,7 @@ mvdan.cc/editorconfig
 mvdan.cc/sh/v3/cmd/shfmt
 mvdan.cc/sh/v3/fileutil
 mvdan.cc/sh/v3/syntax
-# sigs.k8s.io/bom v0.3.0-rc1
+# sigs.k8s.io/bom v0.3.0-rc.2
 ## explicit; go 1.17
 sigs.k8s.io/bom/cmd/bom
 sigs.k8s.io/bom/cmd/bom/cmd
