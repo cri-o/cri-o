@@ -934,7 +934,12 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			counter.Inc()
 		}
 	}
-
+	// If this container had a node level PID namespace, then any children processes will be leaked to init.
+	// Eventually, the processes will get cleaned up when the pod cgroup is cleaned by the kubelet,
+	// but this situation is atypical and should be avoided.
+	if c.nodeLevelPIDNamespace() {
+		return r.signalContainer(c, syscall.SIGKILL, true)
+	}
 	return nil
 }
 
@@ -988,8 +993,21 @@ func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig sysc
 		return errors.Errorf("unable to find signal %s", sig.String())
 	}
 
+	return r.signalContainer(c, sig, false)
+}
+
+func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool) error {
+	args := []string{
+		rootFlag,
+		r.root,
+		"kill",
+	}
+	if all {
+		args = append(args, "-a")
+	}
+	args = append(args, c.ID(), strconv.Itoa(int(sig)))
 	_, err := utils.ExecCmd(
-		r.path, rootFlag, r.root, "kill", c.ID(), strconv.Itoa(int(sig)),
+		r.path, args...,
 	)
 	return err
 }
