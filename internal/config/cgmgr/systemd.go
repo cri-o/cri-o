@@ -156,12 +156,9 @@ func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgP
 	if !strings.HasSuffix(filepath.Base(sbParent), ".slice") {
 		return "", "", fmt.Errorf("cri-o configured with systemd cgroup manager, but did not receive slice as parent: %s", sbParent)
 	}
-	cgParent, slicePath, err := sandboxCgroupAbsolutePath(sbParent)
-	if err != nil {
-		return "", "", err
-	}
 
-	if err := verifyCgroupHasEnoughMemory(slicePath, m.memoryPath, m.memoryMaxFile); err != nil {
+	cgParent = convertCgroupFsNameToSystemd(sbParent)
+	if err := verifyCgroupHasEnoughMemory(sbParent, m.memoryPath, m.memoryMaxFile); err != nil {
 		return "", "", err
 	}
 
