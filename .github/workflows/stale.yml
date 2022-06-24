@@ -1,0 +1,33 @@
+name: stale
+
+# Please refer to https://github.com/actions/stale/blob/master/action.yml
+# to see all config knobs of the stale action.
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write  # for actions/stale to close stale issues
+      pull-requests: write  # for actions/stale to close stale PRs
+    steps:
+      - uses: actions/stale@v5
+        with:
+          repo-token: ${{ secrets.GH_TOKEN }}
+          stale-issue-message: 'A friendly reminder that this issue had no activity for 30 days.'
+          stale-pr-message: 'A friendly reminder that this PR had no activity for 30 days.'
+          stale-issue-label: 'lifecycle/stale'
+          stale-pr-label: 'lifecycle/stale'
+          close-issue-message: 'Closing this issue since it had no activity in the past 90 days.'
+          close-pr-message: 'Closing this PR since it had no activity in the past 90 days.'
+          close-issue-label: 'lifecycle/rotten'
+          close-pr-label: 'lifecycle/rotten'
+          days-before-stale: 30
+          days-before-close: 90
+          remove-stale-when-updated: false
