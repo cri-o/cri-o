@@ -2,9 +2,11 @@ package runtimehandlerhooks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -36,10 +38,13 @@ const (
 const (
 	annotationTrue       = "true"
 	annotationDisable    = "disable"
+	annotationEnable     = "enable"
 	schedDomainDir       = "/proc/sys/kernel/sched_domain"
 	cgroupMountPoint     = "/sys/fs/cgroup"
 	irqBalanceBannedCpus = "IRQBALANCE_BANNED_CPUS"
 	irqBalancedName      = "irqbalance"
+	sysCPUDir            = "/sys/devices/system/cpu"
+	sysCPUSaveDir        = "/var/run/crio/cpu"
 )
 
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads
@@ -90,6 +95,34 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 		}
 	}
 
+	// Configure c-states for the container CPUs.
+	if configure, value := shouldCStatesBeConfigured(s.Annotations()); configure {
+		log.Infof(ctx, "Configure c-states for container %q to %q", c.ID(), value)
+		switch value {
+		case annotationEnable:
+			// Enable all c-states.
+			if err := setCPUPMQOSResumeLatency(c, "0"); err != nil {
+				return fmt.Errorf("set CPU PM QOS resume latency: %w", err)
+			}
+		case annotationDisable:
+			// Lock the c-state to C0.
+			if err := setCPUPMQOSResumeLatency(c, "n/a"); err != nil {
+				return fmt.Errorf("set CPU PM QOS resume latency: %w", err)
+			}
+		default:
+			return fmt.Errorf("invalid annotation value %s", value)
+		}
+	}
+
+	// Configure cpu freq governor for the container CPUs.
+	if configure, value := shouldFreqGovernorBeConfigured(s.Annotations()); configure {
+		log.Infof(ctx, "Configure cpu freq governor for container %q to %q", c.ID(), value)
+		// Set the cpu freq governor to specified value.
+		if err := setCPUFreqGovernor(c, value); err != nil {
+			return fmt.Errorf("set CPU scaling governor: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -125,6 +158,24 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 
 	// no need to reverse the cgroup CPU CFS quota setting as the pod cgroup will be deleted anyway
 
+	// Restore the c-state configuration for the container CPUs (only do this when the annotation is
+	// present - without the annotation we do not modify the c-state).
+	if configure, _ := shouldCStatesBeConfigured(s.Annotations()); configure {
+		// Restore the original resume latency value.
+		if err := setCPUPMQOSResumeLatency(c, ""); err != nil {
+			return fmt.Errorf("set CPU PM QOS resume latency: %w", err)
+		}
+	}
+
+	// Restore the cpu freq governor for the container CPUs (only do this when the annotation is
+	// present - without the annotation we do not modify the governor).
+	if configure, _ := shouldFreqGovernorBeConfigured(s.Annotations()); configure {
+		// Restore the original scaling governor.
+		if err := setCPUFreqGovernor(c, ""); err != nil {
+			return fmt.Errorf("set CPU scaling governor: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -153,6 +204,16 @@ func shouldIRQLoadBalancingBeDisabled(annotations fields.Set) bool {
 
 	return annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue ||
 		annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationDisable
+}
+
+func shouldCStatesBeConfigured(annotations fields.Set) (present bool, value string) {
+	value, present = annotations[crioannotations.CPUCStatesAnnotation]
+	return
+}
+
+func shouldFreqGovernorBeConfigured(annotations fields.Set) (present bool, value string) {
+	value, present = annotations[crioannotations.CPUFreqGovernorAnnotation]
+	return
 }
 
 func annotationValueDeprecationWarning(annotation string) string {
@@ -347,6 +408,188 @@ func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool)
 			return err
 		}
 		if err := os.WriteFile(parentCfsQuotaPath, []byte("-1"), 0o644); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// setCPUPMQOSResumeLatency sets the pm_qos_resume_latency_us for a cpu and stores the original
+// value so it can be restored later. If the latency is an empty string, the original latency
+// value is restored.
+func setCPUPMQOSResumeLatency(c *oci.Container, latency string) error {
+	return doSetCPUPMQOSResumeLatency(c, latency, sysCPUDir, sysCPUSaveDir)
+}
+
+// doSetCPUPMQOSResumeLatency facilitates unit testing by allowing the directories to be specified as parameters.
+func doSetCPUPMQOSResumeLatency(c *oci.Container, latency, cpuDir, cpuSaveDir string) error {
+	lspec := c.Spec().Linux
+	if lspec == nil ||
+		lspec.Resources == nil ||
+		lspec.Resources.CPU == nil ||
+		lspec.Resources.CPU.Cpus == "" {
+		return fmt.Errorf("find container %s CPUs", c.ID())
+	}
+
+	cpus, err := cpuset.Parse(lspec.Resources.CPU.Cpus)
+	if err != nil {
+		return err
+	}
+
+	for _, cpu := range cpus.ToSlice() {
+		latencyFile := fmt.Sprintf("%s/cpu%d/power/pm_qos_resume_latency_us", cpuDir, cpu)
+		cpuPowerSaveDir := fmt.Sprintf("%s/cpu%d/power", cpuSaveDir, cpu)
+		latencyFileOrig := path.Join(cpuPowerSaveDir, "pm_qos_resume_latency_us")
+
+		if latency != "" {
+			// Retrieve the current latency.
+			latencyOrig, err := os.ReadFile(latencyFile)
+			if err != nil {
+				return err
+			}
+
+			// Save the current latency so we can restore it later.
+			err = os.MkdirAll(cpuPowerSaveDir, 0o750)
+			if err != nil {
+				return err
+			}
+			err = os.WriteFile(latencyFileOrig, latencyOrig, 0o644)
+			if err != nil {
+				return err
+			}
+
+			// Update the pm_qos_resume_latency_us.
+			err = os.WriteFile(latencyFile, []byte(latency), 0o644)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		// Retrieve the original latency.
+		latencyOrig, err := os.ReadFile(latencyFileOrig)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				// The latency may have already been restored by a previous invocation of the hook.
+				return nil
+			}
+			return err
+		}
+
+		// Restore the original latency.
+		err = os.WriteFile(latencyFile, latencyOrig, 0o644)
+		if err != nil {
+			return err
+		}
+
+		// Remove the saved latency.
+		err = os.Remove(latencyFileOrig)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// isCPUGovernorSupported checks whether the cpu governor is supported for the specified cpu.
+func isCPUGovernorSupported(governor, cpuDir string, cpu int) error {
+	// Get available cpu scaling governors.
+	availGovernorFile := fmt.Sprintf("%s/cpu%d/cpufreq/scaling_available_governors", cpuDir, cpu)
+	availGovernors, err := os.ReadFile(availGovernorFile)
+	if err != nil {
+		return err
+	}
+
+	// Is the scaling governor supported?
+	for _, availableGovernor := range strings.Fields(string(availGovernors)) {
+		if availableGovernor == governor {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("governor %s not available for cpu %d", governor, cpu)
+}
+
+// setCPUFreqGovernor sets the scaling_governor for a cpu and stores the original
+// value so it can be restored later. If the governor is an empty string, the original
+// scaling_governor value is restored.
+func setCPUFreqGovernor(c *oci.Container, governor string) error {
+	return doSetCPUFreqGovernor(c, governor, sysCPUDir, sysCPUSaveDir)
+}
+
+// doSetCPUFreqGovernor facilitates unit testing by allowing the directories to be specified as parameters.
+func doSetCPUFreqGovernor(c *oci.Container, governor, cpuDir, cpuSaveDir string) error {
+	lspec := c.Spec().Linux
+	if lspec == nil ||
+		lspec.Resources == nil ||
+		lspec.Resources.CPU == nil ||
+		lspec.Resources.CPU.Cpus == "" {
+		return fmt.Errorf("find container %s CPUs", c.ID())
+	}
+
+	cpus, err := cpuset.Parse(lspec.Resources.CPU.Cpus)
+	if err != nil {
+		return err
+	}
+
+	for _, cpu := range cpus.ToSlice() {
+		governorFile := fmt.Sprintf("%s/cpu%d/cpufreq/scaling_governor", cpuDir, cpu)
+		cpuFreqSaveDir := fmt.Sprintf("%s/cpu%d/cpufreq", cpuSaveDir, cpu)
+		governorFileOrig := path.Join(cpuFreqSaveDir, "scaling_governor")
+
+		if governor != "" {
+			// Retrieve the current scaling governor.
+			governorOrig, err := os.ReadFile(governorFile)
+			if err != nil {
+				return err
+			}
+
+			// Is the scaling governor supported?
+			if err := isCPUGovernorSupported(governor, cpuDir, cpu); err != nil {
+				return err
+			}
+
+			// Save the current governor so we can restore it later.
+			err = os.MkdirAll(cpuFreqSaveDir, 0o750)
+			if err != nil {
+				return err
+			}
+			err = os.WriteFile(governorFileOrig, governorOrig, 0o644)
+			if err != nil {
+				return err
+			}
+
+			// Update the governor.
+			err = os.WriteFile(governorFile, []byte(governor), 0o644)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		// Retrieve the original scaling governor.
+		governorOrig, err := os.ReadFile(governorFileOrig)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				// The governor may have already been restored by a previous invocation of the hook.
+				return nil
+			}
+			return err
+		}
+
+		// Restore the original governor.
+		err = os.WriteFile(governorFile, governorOrig, 0o644)
+		if err != nil {
+			return err
+		}
+
+		// Remove the saved governor.
+		err = os.Remove(governorFileOrig)
+		if err != nil {
 			return err
 		}
 	}
