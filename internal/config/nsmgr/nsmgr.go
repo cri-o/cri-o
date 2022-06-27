@@ -2,6 +2,7 @@ package nsmgr
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +13,6 @@ import (
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -35,7 +35,7 @@ func New(namespacesDir, pinnsPath string) *NamespaceManager {
 
 func (mgr *NamespaceManager) Initialize() error {
 	if err := os.MkdirAll(mgr.namespacesDir, 0o755); err != nil {
-		return errors.Wrap(err, "invalid namespaces_dir")
+		return fmt.Errorf("invalid namespaces_dir: %w", err)
 	}
 
 	for _, ns := range supportedNamespacesForPinning() {
@@ -45,17 +45,17 @@ func (mgr *NamespaceManager) Initialize() error {
 			// We should remove it.
 			if errors.Is(err, syscall.ENOTDIR) {
 				if err := os.Remove(nsDir); err != nil {
-					return errors.Wrapf(err, "remove file to create namespaces sub-dir")
+					return fmt.Errorf("remove file to create namespaces sub-dir: %w", err)
 				}
 				logrus.Infof("Removed file %s to create directory in that path.", nsDir)
 			} else if !os.IsNotExist(err) {
 				// if it's neither an error because the file exists
 				// nor an error because it does not exist, it is
 				// some other disk error.
-				return errors.Wrapf(err, "checking whether namespaces sub-dir exists")
+				return fmt.Errorf("checking whether namespaces sub-dir exists: %w", err)
 			}
 			if err := os.MkdirAll(nsDir, 0o755); err != nil {
-				return errors.Wrap(err, "invalid namespaces sub-dir")
+				return fmt.Errorf("invalid namespaces sub-dir: %w", err)
 			}
 		}
 	}
@@ -98,7 +98,7 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 	for _, ns := range cfg.Namespaces {
 		arg, ok := typeToArg[ns.Type]
 		if !ok {
-			return nil, errors.Errorf("Invalid namespace type: %s", ns.Type)
+			return nil, fmt.Errorf("invalid namespace type: %s", ns.Type)
 		}
 		if ns.Host {
 			arg += "=host"
@@ -129,7 +129,7 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 			}
 		}
 
-		return nil, fmt.Errorf("failed to pin namespaces %v: %s %v", cfg.Namespaces, output, err)
+		return nil, fmt.Errorf("failed to pin namespaces %v: %s %w", cfg.Namespaces, output, err)
 	}
 
 	returnedNamespaces := make([]Namespace, 0, len(cfg.Namespaces))
@@ -179,7 +179,7 @@ func (mgr *NamespaceManager) NamespaceFromProcEntry(pid int, nsType NSType) (_ N
 	// now create an empty file
 	f, err := os.CreateTemp(mgr.dirForType(PIDNS), string(PIDNS))
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating namespace path")
+		return nil, fmt.Errorf("creating namespace path: %w", err)
 	}
 	pinnedNamespace := f.Name()
 	f.Close()
@@ -195,12 +195,12 @@ func (mgr *NamespaceManager) NamespaceFromProcEntry(pid int, nsType NSType) (_ N
 	podPidnsProc := NamespacePathFromProc(nsType, pid)
 	// pid must have stopped or be incorrect, report error
 	if podPidnsProc == "" {
-		return nil, errors.Errorf("proc entry for pid %d is gone; pid not created or stopped", pid)
+		return nil, fmt.Errorf("proc entry for pid %d is gone; pid not created or stopped", pid)
 	}
 
 	// bind mount the new ns from the proc entry onto the mount point
 	if err := unix.Mount(podPidnsProc, pinnedNamespace, "none", unix.MS_BIND, ""); err != nil {
-		return nil, errors.Wrapf(err, "error mounting %s namespace path", string(nsType))
+		return nil, fmt.Errorf("error mounting %s namespace path: %w", string(nsType), err)
 	}
 	defer func() {
 		if retErr != nil {

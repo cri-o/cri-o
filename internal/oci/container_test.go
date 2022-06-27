@@ -1,6 +1,7 @@
 package oci_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -12,7 +13,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 

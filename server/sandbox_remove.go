@@ -7,7 +7,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -45,7 +44,7 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 	}
 
 	if err := sb.UnmountShm(); err != nil {
-		return errors.Wrap(err, "unable to unmount SHM")
+		return fmt.Errorf("unable to unmount SHM: %w", err)
 	}
 
 	s.removeInfraContainer(sb.InfraContainer())
@@ -55,11 +54,11 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 
 	// Cleanup network resources for this pod
 	if err := s.networkStop(ctx, sb); err != nil {
-		return errors.Wrap(err, "stop pod network")
+		return fmt.Errorf("stop pod network: %w", err)
 	}
 
 	if err := sb.RemoveManagedNamespaces(); err != nil {
-		return errors.Wrap(err, "unable to remove managed namespaces")
+		return fmt.Errorf("unable to remove managed namespaces: %w", err)
 	}
 
 	s.ReleasePodName(sb.Name())
@@ -67,7 +66,7 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		log.Warnf(ctx, "Failed to remove sandbox: %v", err)
 	}
 	if err := s.PodIDIndex().Delete(sb.ID()); err != nil {
-		return fmt.Errorf("failed to delete pod sandbox %s from index: %v", sb.ID(), err)
+		return fmt.Errorf("failed to delete pod sandbox %s from index: %w", sb.ID(), err)
 	}
 
 	log.Infof(ctx, "Removed pod sandbox: %s", sb.ID())
@@ -77,12 +76,12 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, c *oci.Container) error {
 	if !sb.Stopped() {
 		if err := s.ContainerServer.StopContainer(ctx, c, int64(10)); err != nil {
-			return errors.Errorf("failed to stop container for removal")
+			return fmt.Errorf("failed to stop container for removal")
 		}
 	}
 
 	if err := s.Runtime().DeleteContainer(ctx, c); err != nil {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
 	}
 
 	c.CleanupConmonCgroup()
@@ -92,13 +91,13 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 		log.Warnf(ctx, "Failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 	}
 	if err := s.StorageRuntimeServer().DeleteContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
 	}
 
 	s.ReleaseContainerName(c.Name())
 	s.removeContainer(c)
 	if err := s.CtrIDIndex().Delete(c.ID()); err != nil {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %v", c.Name(), sb.ID(), err)
+		return fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %w", c.Name(), sb.ID(), err)
 	}
 	sb.RemoveContainer(c)
 

@@ -27,7 +27,7 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 
 	if hooks != nil {
 		if err := hooks.PreStop(ctx, c, sandbox); err != nil {
-			return fmt.Errorf("failed to run pre-stop hook for container %q: %v", c.ID(), err)
+			return fmt.Errorf("failed to run pre-stop hook for container %q: %w", c.ID(), err)
 		}
 	}
 

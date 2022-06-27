@@ -1,11 +1,11 @@
 package cnimgr
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -24,7 +24,7 @@ func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, 
 		defaultNetwork, networkDir, pluginDirs...,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "initialize CNI plugin")
+		return nil, fmt.Errorf("initialize CNI plugin: %w", err)
 	}
 	mgr := &CNIManager{
 		plugin: plugin,

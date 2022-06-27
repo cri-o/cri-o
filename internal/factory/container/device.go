@@ -2,6 +2,8 @@ package container
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +16,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -99,10 +100,10 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 			// we expect this to not exist
 			_, err := os.Stat(device.ContainerPath)
 			if err == nil {
-				return errors.Errorf("privileged container was configured with a device container path that already exists on the host.")
+				return errors.New("privileged container was configured with a device container path that already exists on the host")
 			}
 			if !os.IsNotExist(err) {
-				return errors.Wrap(err, "error checking if container path exists on host")
+				return fmt.Errorf("error checking if container path exists on host: %w", err)
 			}
 		}
 
@@ -178,7 +179,7 @@ func (c *container) specInjectCDIDevices() error {
 	// TODO: Once CRI is extended with native CDI support this will need to be updated...
 	_, names, err := cdi.ParseAnnotations(c.Config().GetAnnotations())
 	if err != nil {
-		return errors.Wrap(err, "failed to parse CDI device annotations")
+		return fmt.Errorf("failed to parse CDI device annotations: %w", err)
 	}
 	if names == nil {
 		return nil
@@ -196,7 +197,7 @@ func (c *container) specInjectCDIDevices() error {
 	}
 
 	if _, err := registry.InjectDevices(c.Spec().Config, names...); err != nil {
-		return errors.Wrap(err, "CDI device injection failed")
+		return fmt.Errorf("CDI device injection failed: %w", err)
 	}
 
 	// One crucial thing to keep in mind is that CDI device injection

@@ -22,7 +22,6 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -294,7 +293,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "specified sandbox not found: %s", req.PodSandboxId)
+		return nil, fmt.Errorf("specified sandbox not found: %s: %w", req.PodSandboxId, err)
 	}
 
 	stopMutex := sb.StopMutex()
@@ -306,15 +305,15 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 
 	ctr, err := container.New()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create container")
+		return nil, fmt.Errorf("failed to create container: %w", err)
 	}
 
 	if err := ctr.SetConfig(req.Config, req.SandboxConfig); err != nil {
-		return nil, errors.Wrap(err, "setting container config")
+		return nil, fmt.Errorf("setting container config: %w", err)
 	}
 
 	if err := ctr.SetNameAndID(); err != nil {
-		return nil, errors.Wrap(err, "setting container name and ID")
+		return nil, fmt.Errorf("setting container name and ID: %w", err)
 	}
 
 	resourceCleaner := resourcestore.NewResourceCleaner()
@@ -331,7 +330,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
 		reservedID, getErr := s.ContainerIDForName(ctr.Name())
 		if getErr != nil {
-			return nil, errors.Wrapf(getErr, "Failed to get ID of container with reserved name (%s), after failing to reserve name with %v", ctr.Name(), getErr)
+			return nil, fmt.Errorf("failed to get ID of container with reserved name (%s), after failing to reserve name with %v: %w", ctr.Name(), getErr, getErr)
 		}
 		// if we're able to find the container, and it's created, this is actually a duplicate request
 		// from a client that does not behave like the kubelet (like crictl)
@@ -342,7 +341,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		if resourceErr == nil {
 			return &types.CreateContainerResponse{ContainerId: cachedID}, nil
 		}
-		return nil, errors.Wrapf(err, resourceErr.Error())
+		return nil, fmt.Errorf("%v: %w", resourceErr, err)
 	}
 
 	resourceCleaner.Add(ctx, "createCtr: releasing container name "+ctr.Name(), func() error {

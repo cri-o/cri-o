@@ -2,10 +2,10 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
@@ -60,7 +60,7 @@ func (w Workloads) Validate() error {
 
 func (w *WorkloadConfig) Validate(workloadName string) error {
 	if w.ActivationAnnotation == "" {
-		return errors.Errorf("annotation shouldn't be empty for workload %q", workloadName)
+		return fmt.Errorf("annotation shouldn't be empty for workload %q", workloadName)
 	}
 	if err := w.ValidateWorkloadAllowedAnnotations(); err != nil {
 		return err

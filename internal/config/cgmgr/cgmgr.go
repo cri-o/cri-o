@@ -14,7 +14,6 @@ import (
 	"github.com/cri-o/cri-o/internal/config/node"
 	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -102,7 +101,7 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 		}
 		return &cgroupfsMgr, nil
 	default:
-		return nil, errors.Errorf("invalid cgroup manager: %s", cgroupManager)
+		return nil, fmt.Errorf("invalid cgroup manager: %s", cgroupManager)
 	}
 }
 
@@ -114,7 +113,7 @@ func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilena
 			logrus.Warnf("Failed to find %s at path: %q", memoryMaxFilename, slicePath)
 			return nil
 		}
-		return errors.Wrapf(err, "unable to read memory file for cgroups at %s", slicePath)
+		return fmt.Errorf("unable to read memory file for cgroups at %s: %w", slicePath, err)
 	}
 
 	// strip off the newline character and convert it to an int
@@ -122,11 +121,11 @@ func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilena
 	if strMemory != "" && strMemory != "max" {
 		memoryLimit, err := strconv.ParseInt(strMemory, 10, 64)
 		if err != nil {
-			return errors.Wrapf(err, "error converting cgroup memory value from string to int %q", strMemory)
+			return fmt.Errorf("error converting cgroup memory value from string to int %q: %w", strMemory, err)
 		}
 		// Compare with the minimum allowed memory limit
 		if err := VerifyMemoryIsEnough(memoryLimit); err != nil {
-			return errors.Errorf("pod %v", err)
+			return fmt.Errorf("pod %w", err)
 		}
 	}
 	return nil

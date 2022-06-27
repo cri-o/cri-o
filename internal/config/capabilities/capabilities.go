@@ -1,10 +1,10 @@
 package capabilities
 
 import (
+	"fmt"
 	"strings"
 
 	common "github.com/containers/common/pkg/capabilities"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,7 +33,7 @@ func (c Capabilities) Validate() error {
 		caps = append(caps, "CAP_"+strings.ToUpper(cap))
 	}
 	if err := common.ValidateCapabilities(caps); err != nil {
-		return errors.Wrap(err, "validating capabilities")
+		return fmt.Errorf("validating capabilities: %w", err)
 	}
 	logrus.Infof("Using default capabilities: %s", strings.Join(caps, ", "))
 	return nil

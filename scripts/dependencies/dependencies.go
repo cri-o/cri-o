@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/command"
@@ -38,26 +37,26 @@ func run() error {
 	// Ensure output path
 	logrus.Infof("Ensuring output path %s", outputPath)
 	if err := os.MkdirAll(outputPath, 0o755); err != nil {
-		return errors.Wrap(err, "create output path")
+		return fmt.Errorf("create output path: %w", err)
 	}
 
 	// Generate the report
 	logrus.Infof("Getting go modules")
 	if err := os.Setenv("GOSUMDB", "off"); err != nil {
-		return errors.Wrap(err, "disabling GOSUMDB")
+		return fmt.Errorf("disabling GOSUMDB: %w", err)
 	}
 	modules, err := command.New(
 		"go", "list", "--mod=mod", "-u", "-m", "--json", "all",
 	).RunSilentSuccessOutput()
 	if err != nil {
-		return errors.Wrap(err, "listing go modules")
+		return fmt.Errorf("listing go modules: %w", err)
 	}
 	tmpFile, err := os.CreateTemp("", "modules-")
 	if err != nil {
-		return errors.Wrap(err, "creating temp file")
+		return fmt.Errorf("creating temp file: %w", err)
 	}
 	if _, err := tmpFile.WriteString(modules.OutputTrimNL()); err != nil {
-		return errors.Wrap(err, "writing to temp file")
+		return fmt.Errorf("writing to temp file: %w", err)
 	}
 
 	logrus.Infof("Retrieving outdated dependencies")
@@ -65,7 +64,7 @@ func run() error {
 		Pipe("./build/bin/go-mod-outdated", "--direct", "--update", "--style=markdown").
 		RunSuccessOutput()
 	if err != nil {
-		return errors.Wrap(err, "retrieving outdated dependencies")
+		return fmt.Errorf("retrieving outdated dependencies: %w", err)
 	}
 
 	logrus.Infof("Retrieving all dependencies")
@@ -73,7 +72,7 @@ func run() error {
 		Pipe("./build/bin/go-mod-outdated", "--style=markdown").
 		RunSuccessOutput()
 	if err != nil {
-		return errors.Wrap(err, "retrieving all dependencies")
+		return fmt.Errorf("retrieving all dependencies: %w", err)
 	}
 
 	// Write the output
@@ -82,12 +81,12 @@ func run() error {
 
 	repo, err := git.OpenRepo(".")
 	if err != nil {
-		return errors.Wrap(err, "open local repo")
+		return fmt.Errorf("open local repo: %w", err)
 	}
 
 	head, err := repo.Head()
 	if err != nil {
-		return errors.Wrap(err, "get repository HEAD")
+		return fmt.Errorf("get repository HEAD: %w", err)
 	}
 
 	content := fmt.Sprintf(`# CRI-O Dependency Report
@@ -111,7 +110,7 @@ _Generated on %s for commit [%s][0]._
 	)
 
 	if err := os.WriteFile(outputFile, []byte(content), 0o644); err != nil {
-		return errors.Wrap(err, "writing report")
+		return fmt.Errorf("writing report: %w", err)
 	}
 
 	token, tokenSet := os.LookupEnv(tokenKey)
@@ -122,31 +121,31 @@ _Generated on %s for commit [%s][0]._
 
 	currentBranch, err := repo.CurrentBranch()
 	if err != nil {
-		return errors.Wrap(err, "get current branch")
+		return fmt.Errorf("get current branch: %w", err)
 	}
 
 	logrus.Infof("Checking out branch %s", branch)
 	if err := repo.Checkout(branch); err != nil {
-		return errors.Wrapf(err, "checkout %s branch", branch)
+		return fmt.Errorf("checkout %s branch: %w", branch, err)
 	}
 	defer func() { err = repo.Checkout(currentBranch) }()
 
 	// Write the target file
 	if err := os.WriteFile(file, []byte(content), 0o644); err != nil {
-		return errors.Wrap(err, "write content to file")
+		return fmt.Errorf("write content to file: %w", err)
 	}
 
 	if err := repo.Add(file); err != nil {
-		return errors.Wrap(err, "add file to repo")
+		return fmt.Errorf("add file to repo: %w", err)
 	}
 
 	// Publish the changes
 	if err := repo.Commit("Update dependency report"); err != nil {
-		return errors.Wrap(err, "commit")
+		return fmt.Errorf("commit: %w", err)
 	}
 
 	if err := repo.Push(branch); err != nil {
-		return errors.Wrap(err, "push changes")
+		return fmt.Errorf("push changes: %w", err)
 	}
 
 	return nil

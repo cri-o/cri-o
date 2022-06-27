@@ -1,12 +1,12 @@
 package process
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -74,12 +74,12 @@ func processStats(fsPath, pid string) (*Stat, error) {
 	// can have parentheses, so look for the last ')'.
 	i := strings.LastIndexByte(data, ')')
 	if i <= 2 || i >= len(data)-1 {
-		return nil, errors.Errorf("invalid stat data (no comm): %q", data)
+		return nil, fmt.Errorf("invalid stat data (no comm): %q", data)
 	}
 
 	parts := strings.SplitN(data[:i], " (", 2)
 	if len(parts) != 2 {
-		return nil, errors.Errorf("invalid stat data (no comm): %q", data)
+		return nil, fmt.Errorf("invalid stat data (no comm): %q", data)
 	}
 
 	return &Stat{

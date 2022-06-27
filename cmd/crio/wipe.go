@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	cstorage "github.com/containers/storage"
@@ -9,7 +11,6 @@ import (
 	"github.com/cri-o/cri-o/internal/version"
 	crioconf "github.com/cri-o/cri-o/pkg/config"
 	json "github.com/json-iterator/go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -122,11 +123,11 @@ func handleCleanShutdown(config *crioconf.Config, store cstorage.Store) error {
 	}
 	// unmount storage or else we will fail with EBUSY
 	if _, err := store.Shutdown(false); err != nil {
-		return errors.Errorf("failed to shutdown storage before wiping: %v", err)
+		return fmt.Errorf("failed to shutdown storage before wiping: %w", err)
 	}
 	// totally remove storage, whatever is left (possibly orphaned layers)
 	if err := os.RemoveAll(store.GraphRoot()); err != nil {
-		return errors.Errorf("failed to remove storage directory: %v", err)
+		return fmt.Errorf("failed to remove storage directory: %w", err)
 	}
 	return nil
 }

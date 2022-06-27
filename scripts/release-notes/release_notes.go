@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/version"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/command"
@@ -51,7 +50,7 @@ func run() error {
 
 	logrus.Infof("Ensuring output path %s", outputPath)
 	if err := os.MkdirAll(outputPath, 0o755); err != nil {
-		return errors.Wrap(err, "create output path")
+		return fmt.Errorf("create output path: %w", err)
 	}
 
 	// Get latest release version
@@ -64,19 +63,19 @@ func run() error {
 	// Generate the notes
 	repo, err := git.OpenRepo(".")
 	if err != nil {
-		return errors.Wrap(err, "open local repo")
+		return fmt.Errorf("open local repo: %w", err)
 	}
 
 	head, err := repo.Head()
 	if err != nil {
-		return errors.Wrap(err, "get repository HEAD")
+		return fmt.Errorf("get repository HEAD: %w", err)
 	}
 	logrus.Infof("Using HEAD commit %s", head)
 
 	targetBranch := defaultBranch
 	currentBranch, err := repo.CurrentBranch()
 	if err != nil {
-		return errors.Wrap(err, "get current branch")
+		return fmt.Errorf("get current branch: %w", err)
 	}
 	logrus.Infof("Found current branch %s", currentBranch)
 	if git.IsReleaseBranch(currentBranch) && currentBranch != defaultBranch {
@@ -86,7 +85,7 @@ func run() error {
 
 	templateFile, err := os.CreateTemp("", "")
 	if err != nil {
-		return errors.Wrap(err, "writing template file")
+		return fmt.Errorf("writing template file: %w", err)
 	}
 	defer func() { err = os.RemoveAll(templateFile.Name()) }()
 
@@ -143,7 +142,7 @@ Download one of our static release bundles via our Google Cloud Bucket:
 		bundleVersion, bundleVersion,
 		startTag,
 	)); err != nil {
-		return errors.Wrap(err, "writing tmplate to file")
+		return fmt.Errorf("writing tmplate to file: %w", err)
 	}
 
 	logrus.Infof("Generating release notes")
@@ -163,27 +162,27 @@ Download one of our static release bundles via our Google Cloud Bucket:
 		"--toc",
 		"--go-template=go-template:"+templateFile.Name(),
 	); err != nil {
-		return errors.Wrap(err, "generate release notes")
+		return fmt.Errorf("generate release notes: %w", err)
 	}
 
 	content, err := os.ReadFile(outputFilePath)
 	if err != nil {
-		return errors.Wrap(err, "open generated release notes")
+		return fmt.Errorf("open generated release notes: %w", err)
 	}
 
 	logrus.Infof("Checking out branch %s", branch)
 	if err := repo.Checkout(branch); err != nil {
-		return errors.Wrapf(err, "checkout %s branch", branch)
+		return fmt.Errorf("checkout %s branch: %w", branch, err)
 	}
 	defer func() { err = repo.Checkout(currentBranch) }()
 
 	// Write the target file
 	if err := os.WriteFile(outputFile, content, 0o644); err != nil {
-		return errors.Wrap(err, "write content to file")
+		return fmt.Errorf("write content to file: %w", err)
 	}
 
 	if err := repo.Add(outputFile); err != nil {
-		return errors.Wrap(err, "add file to repo")
+		return fmt.Errorf("add file to repo: %w", err)
 	}
 
 	// Update the README
@@ -191,7 +190,7 @@ Download one of our static release bundles via our Google Cloud Bucket:
 	logrus.Infof("Updating %s", readmeFile)
 	readmeSlice, err := readLines(readmeFile)
 	if err != nil {
-		return errors.Wrapf(err, "open %s file", readmeFile)
+		return fmt.Errorf("open %s file: %w", readmeFile, err)
 	}
 	link := fmt.Sprintf("- [%s](%s)", endTag, outputFile)
 
@@ -216,28 +215,28 @@ Download one of our static release bundles via our Google Cloud Bucket:
 	if err := os.WriteFile(
 		readmeFile, []byte(strings.Join(readmeSlice, "\n")), 0o644,
 	); err != nil {
-		return errors.Wrap(err, "write content to file")
+		return fmt.Errorf("write content to file: %w", err)
 	}
 	if err := repo.Add(readmeFile); err != nil {
-		return errors.Wrap(err, "add file to repo")
+		return fmt.Errorf("add file to repo: %w", err)
 	}
 
 	// Publish the changes
 	if err := repo.Commit("Update release notes"); err != nil {
-		return errors.Wrap(err, "commit")
+		return fmt.Errorf("commit: %w", err)
 	}
 
 	// Other jobs could run in parallel, rebase before pushing
 	if _, err := repo.FetchRemote(git.DefaultRemote); err != nil {
-		return errors.Wrap(err, "fetch remote")
+		return fmt.Errorf("fetch remote: %w", err)
 	}
 
 	if err := repo.Rebase(branch); err != nil {
-		return errors.Wrapf(err, "rebase to branch %s", branch)
+		return fmt.Errorf("rebase to branch %s: %w", branch, err)
 	}
 
 	if err := repo.Push(branch); err != nil {
-		return errors.Wrap(err, "push changes")
+		return fmt.Errorf("push changes: %w", err)
 	}
 
 	return nil

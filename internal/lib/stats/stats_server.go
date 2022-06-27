@@ -2,6 +2,8 @@ package statsserver
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -10,7 +12,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -186,15 +187,15 @@ func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*typ
 	}
 	driver, err := ss.Store().GraphDriver()
 	if err != nil {
-		return writableLayer, errors.Wrapf(err, "Unable to get graph driver for disk usage for container %s", container.ID())
+		return writableLayer, fmt.Errorf("unable to get graph driver for disk usage for container %s: %w", container.ID(), err)
 	}
 	storageContainer, err := ss.Store().Container(container.ID())
 	if err != nil {
-		return writableLayer, errors.Wrapf(err, "Unable to get storage container for disk usage for container %s", container.ID())
+		return writableLayer, fmt.Errorf("unable to get storage container for disk usage for container %s: %w", container.ID(), err)
 	}
 	usage, err := driver.ReadWriteDiskUsage(storageContainer.LayerID)
 	if err != nil {
-		return writableLayer, errors.Wrapf(err, "Unable to get disk usage for container %s", container.ID())
+		return writableLayer, fmt.Errorf("unable to get disk usage for container %s: %w", container.ID(), err)
 	}
 	writableLayer.UsedBytes = &types.UInt64Value{Value: uint64(usage.Size)}
 	writableLayer.InodesUsed = &types.UInt64Value{Value: uint64(usage.InodeCount)}
@@ -238,7 +239,7 @@ func linkToInterface(link netlink.Link) (*types.NetworkInterfaceUsage, error) {
 		return nil, errors.New("get stats for iface")
 	}
 	if attrs.Statistics == nil {
-		return nil, errors.Errorf("get stats for iface %s", attrs.Name)
+		return nil, fmt.Errorf("get stats for iface %s", attrs.Name)
 	}
 	return &types.NetworkInterfaceUsage{
 		Name:     attrs.Name,

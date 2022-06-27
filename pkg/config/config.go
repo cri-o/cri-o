@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -37,7 +38,6 @@ import (
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	selinux "github.com/opencontainers/selinux/go-selinux"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
@@ -639,7 +639,7 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 
 	metadata, err := toml.Decode(string(data), t)
 	if err != nil {
-		return fmt.Errorf("unable to decode configuration %v: %v", path, err)
+		return fmt.Errorf("unable to decode configuration %v: %w", path, err)
 	}
 
 	runtimesKey := []string{"crio", "runtime", "default_runtime"}
@@ -751,7 +751,7 @@ func DefaultConfig() (*Config, error) {
 	seccompConfig := seccomp.New()
 	ua, err := useragent.Get()
 	if err != nil {
-		return nil, errors.Wrap(err, "get user agent")
+		return nil, fmt.Errorf("get user agent: %w", err)
 	}
 	return &Config{
 		Comment: "# ",
@@ -854,19 +854,19 @@ func (c *Config) Validate(onExecution bool) error {
 	}
 
 	if err := c.RootConfig.Validate(onExecution); err != nil {
-		return errors.Wrap(err, "validating root config")
+		return fmt.Errorf("validating root config: %w", err)
 	}
 
 	if err := c.RuntimeConfig.Validate(c.SystemContext, onExecution); err != nil {
-		return errors.Wrap(err, "validating runtime config")
+		return fmt.Errorf("validating runtime config: %w", err)
 	}
 
 	if err := c.NetworkConfig.Validate(onExecution); err != nil {
-		return errors.Wrap(err, "validating network config")
+		return fmt.Errorf("validating network config: %w", err)
 	}
 
 	if err := c.APIConfig.Validate(onExecution); err != nil {
-		return errors.Wrap(err, "validating api config")
+		return fmt.Errorf("validating api config: %w", err)
 	}
 
 	if !c.SELinux {
@@ -899,17 +899,17 @@ func (c *APIConfig) Validate(onExecution bool) error {
 // removes unused socket connections if available.
 func RemoveUnusedSocket(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return errors.Wrap(err, "creating socket directories")
+		return fmt.Errorf("creating socket directories: %w", err)
 	}
 
 	// Remove the socket if it already exists
 	if _, err := os.Stat(path); err == nil {
 		if _, err := net.DialTimeout("unix", path, 0); err == nil {
-			return errors.Errorf("already existing connection on %s", path)
+			return fmt.Errorf("already existing connection on %s", path)
 		}
 
 		if err := os.Remove(path); err != nil {
-			return errors.Wrapf(err, "removing %s", path)
+			return fmt.Errorf("removing %s: %w", path, err)
 		}
 	}
 
@@ -926,11 +926,11 @@ func (c *RootConfig) Validate(onExecution bool) error {
 			return errors.New("log_dir is not an absolute path")
 		}
 		if err := os.MkdirAll(c.LogDir, 0o700); err != nil {
-			return errors.Wrap(err, "invalid log_dir")
+			return fmt.Errorf("invalid log_dir: %w", err)
 		}
 		store, err := c.GetStore()
 		if err != nil {
-			return errors.Wrapf(err, "failed to get store to set defaults")
+			return fmt.Errorf("failed to get store to set defaults: %w", err)
 		}
 		// This step merges the /etc/container/storage.conf with the
 		// storage configuration in crio.conf
@@ -992,28 +992,28 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	}
 
 	if _, err := c.Sysctls(); err != nil {
-		return errors.Wrap(err, "invalid default_sysctls")
+		return fmt.Errorf("invalid default_sysctls: %w", err)
 	}
 
 	if err := c.DefaultCapabilities.Validate(); err != nil {
-		return errors.Wrapf(err, "invalid capabilities")
+		return fmt.Errorf("invalid capabilities: %w", err)
 	}
 
 	if c.InfraCtrCPUSet != "" {
 		set, err := cpuset.Parse(c.InfraCtrCPUSet)
 		if err != nil {
-			return errors.Wrap(err, "invalid infra_ctr_cpuset")
+			return fmt.Errorf("invalid infra_ctr_cpuset: %w", err)
 		}
 
 		executable, err := exec.LookPath(tasksetBinary)
 		if err != nil {
-			return errors.Wrapf(err, "%q not found in $PATH", tasksetBinary)
+			return fmt.Errorf("%q not found in $PATH: %w", tasksetBinary, err)
 		}
 		cmdrunner.PrependCommandsWith(executable, "--cpu-list", set.String())
 	}
 
 	if err := c.Workloads.Validate(); err != nil {
-		return errors.Wrap(err, "workloads validation")
+		return fmt.Errorf("workloads validation: %w", err)
 	}
 
 	// check for validation on execution
@@ -1021,17 +1021,17 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		// First, configure cgroup manager so the values of the Runtime.MonitorCgroup can be validated
 		cgroupManager, err := cgmgr.SetCgroupManager(c.CgroupManagerName)
 		if err != nil {
-			return errors.Wrap(err, "unable to update cgroup manager")
+			return fmt.Errorf("unable to update cgroup manager: %w", err)
 		}
 		c.cgroupManager = cgroupManager
 
 		if err := c.ValidateRuntimes(); err != nil {
-			return errors.Wrap(err, "runtime validation")
+			return fmt.Errorf("runtime validation: %w", err)
 		}
 
 		// Validate the system registries configuration
 		if _, err := sysregistriesv2.GetRegistries(systemContext); err != nil {
-			return errors.Wrap(err, "invalid registries")
+			return fmt.Errorf("invalid registries: %w", err)
 		}
 
 		// we should use a hooks directory if
@@ -1060,30 +1060,30 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 		// Validate the pinns path
 		if err := c.ValidatePinnsPath("pinns"); err != nil {
-			return errors.Wrap(err, "pinns validation")
+			return fmt.Errorf("pinns validation: %w", err)
 		}
 
 		c.namespaceManager = nsmgr.New(c.NamespacesDir, c.PinnsPath)
 		if err := c.namespaceManager.Initialize(); err != nil {
-			return errors.Wrapf(err, "initialize nsmgr")
+			return fmt.Errorf("initialize nsmgr: %w", err)
 		}
 
 		c.seccompConfig.SetUseDefaultWhenEmpty(c.SeccompUseDefaultWhenEmpty)
 
 		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
-			return errors.Wrap(err, "unable to load seccomp profile")
+			return fmt.Errorf("unable to load seccomp profile: %w", err)
 		}
 
 		if err := c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
-			return errors.Wrap(err, "unable to load AppArmor profile")
+			return fmt.Errorf("unable to load AppArmor profile: %w", err)
 		}
 
 		if err := c.blockioConfig.Load(c.BlockIOConfigFile); err != nil {
-			return errors.Wrap(err, "blockio configuration")
+			return fmt.Errorf("blockio configuration: %w", err)
 		}
 
 		if err := c.rdtConfig.Load(c.RdtConfigFile); err != nil {
-			return errors.Wrap(err, "rdt configuration")
+			return fmt.Errorf("rdt configuration: %w", err)
 		}
 	}
 
@@ -1120,7 +1120,7 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 		}
 		if handler.RuntimeType == DefaultRuntimeType || handler.RuntimeType == "" {
 			if err := c.TranslateMonitorFields(handler); err != nil {
-				return fmt.Errorf("failed to translate monitor fields for runtime %s: %v", name, err)
+				return fmt.Errorf("failed to translate monitor fields for runtime %s: %w", name, err)
 			}
 		}
 	}
@@ -1242,7 +1242,7 @@ func validateExecutablePath(executable, currentPath string) (string, error) {
 		return path, nil
 	}
 	if _, err := os.Stat(currentPath); err != nil {
-		return "", errors.Wrapf(err, "invalid %s path", executable)
+		return "", fmt.Errorf("invalid %s path: %w", executable, err)
 	}
 	logrus.Infof("Using %s executable: %s", executable, currentPath)
 	return currentPath, nil
@@ -1258,23 +1258,23 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 		if err != nil {
 			if os.IsNotExist(err) {
 				if err = os.MkdirAll(c.NetworkDir, 0o755); err != nil {
-					return errors.Wrapf(err, "Cannot create network_dir: %s", c.NetworkDir)
+					return fmt.Errorf("cannot create network_dir: %s: %w", c.NetworkDir, err)
 				}
 			} else {
-				return errors.Wrapf(err, "invalid network_dir: %s", c.NetworkDir)
+				return fmt.Errorf("invalid network_dir: %s: %w", c.NetworkDir, err)
 			}
 		}
 
 		for _, pluginDir := range c.PluginDirs {
 			if err := os.MkdirAll(pluginDir, 0o755); err != nil {
-				return errors.Wrap(err, "invalid plugin_dirs entry")
+				return fmt.Errorf("invalid plugin_dirs entry: %w", err)
 			}
 		}
 		// While the plugin_dir option is being deprecated, we need this check
 		if c.PluginDir != "" {
 			logrus.Warnf("The config field plugin_dir is being deprecated. Please use plugin_dirs instead")
 			if err := os.MkdirAll(c.PluginDir, 0o755); err != nil {
-				return errors.Wrap(err, "invalid plugin_dir entry")
+				return fmt.Errorf("invalid plugin_dir entry: %w", err)
 			}
 			// Append PluginDir to PluginDirs, so from now on we can operate in terms of PluginDirs and not worry
 			// about missing cases.
@@ -1290,7 +1290,7 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 			c.CNIDefaultNetwork, c.NetworkDir, c.PluginDirs...,
 		)
 		if err != nil {
-			return errors.Wrap(err, "initialize CNI plugin")
+			return fmt.Errorf("initialize CNI plugin: %w", err)
 		}
 		c.cniManager = cniManager
 	}
@@ -1334,7 +1334,7 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 	if r.RuntimePath == "" {
 		executable, err := exec.LookPath(name)
 		if err != nil {
-			return errors.Wrapf(err, "%q not found in $PATH", name)
+			return fmt.Errorf("%q not found in $PATH: %w", name, err)
 		}
 		r.RuntimePath = executable
 		logrus.Debugf("Using runtime executable from $PATH %q", executable)
@@ -1358,7 +1358,7 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 // ValidateRuntimeType checks if the `RuntimeType` is valid.
 func (r *RuntimeHandler) ValidateRuntimeType(name string) error {
 	if r.RuntimeType != "" && r.RuntimeType != DefaultRuntimeType && r.RuntimeType != RuntimeTypeVM && r.RuntimeType != RuntimeTypePod {
-		return errors.Errorf("invalid `runtime_type` %q for runtime %q",
+		return fmt.Errorf("invalid `runtime_type` %q for runtime %q",
 			r.RuntimeType, name)
 	}
 	return nil
@@ -1398,7 +1398,7 @@ func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallow
 	}
 	for _, ann := range allowed {
 		if _, ok := disallowedMap[ann]; !ok {
-			return nil, errors.Errorf("invalid allowed_annotation: %s", ann)
+			return nil, fmt.Errorf("invalid allowed_annotation: %s", ann)
 		}
 		delete(disallowedMap, ann)
 	}

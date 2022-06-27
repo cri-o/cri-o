@@ -9,7 +9,6 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/signals"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -161,10 +160,10 @@ func (c *Config) ReloadPauseImage(newConfig *Config) error {
 func (c *Config) ReloadRegistries() error {
 	registries, err := sysregistriesv2.TryUpdatingCache(c.SystemContext)
 	if err != nil {
-		return errors.Wrapf(
-			err,
-			"system registries reload failed: %s",
+		return fmt.Errorf(
+			"system registries reload failed: %s: %w",
 			sysregistriesv2.ConfigPath(c.SystemContext),
+			err,
 		)
 	}
 	logrus.Infof("Applied new registry configuration: %+v", registries)
@@ -186,7 +185,7 @@ func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 	// Reload the seccomp profile in any case because its content could have
 	// changed as well
 	if err := c.Seccomp().LoadProfile(newConfig.SeccompProfile); err != nil {
-		return errors.Wrap(err, "unable to reload seccomp_profile")
+		return fmt.Errorf("unable to reload seccomp_profile: %w", err)
 	}
 	c.SeccompProfile = newConfig.SeccompProfile
 	logConfig("seccomp_profile", c.SeccompProfile)
@@ -198,7 +197,7 @@ func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 func (c *Config) ReloadAppArmorProfile(newConfig *Config) error {
 	if c.ApparmorProfile != newConfig.ApparmorProfile {
 		if err := c.AppArmor().LoadProfile(newConfig.ApparmorProfile); err != nil {
-			return errors.Wrap(err, "unable to reload apparmor_profile")
+			return fmt.Errorf("unable to reload apparmor_profile: %w", err)
 		}
 		c.ApparmorProfile = newConfig.ApparmorProfile
 		logConfig("apparmor_profile", c.ApparmorProfile)
@@ -210,7 +209,7 @@ func (c *Config) ReloadAppArmorProfile(newConfig *Config) error {
 func (c *Config) ReloadBlockIOConfig(newConfig *Config) error {
 	if c.BlockIOConfigFile != newConfig.BlockIOConfigFile {
 		if err := c.BlockIO().Load(newConfig.BlockIOConfigFile); err != nil {
-			return errors.Wrap(err, "unable to reload blockio_config_file")
+			return fmt.Errorf("unable to reload blockio_config_file: %w", err)
 		}
 		c.BlockIOConfigFile = newConfig.BlockIOConfigFile
 		logConfig("blockio_config_file", c.BlockIOConfigFile)
@@ -222,7 +221,7 @@ func (c *Config) ReloadBlockIOConfig(newConfig *Config) error {
 func (c *Config) ReloadRdtConfig(newConfig *Config) error {
 	if c.RdtConfigFile != newConfig.RdtConfigFile {
 		if err := c.Rdt().Load(newConfig.RdtConfigFile); err != nil {
-			return errors.Wrap(err, "unable to reload rdt_config_file")
+			return fmt.Errorf("unable to reload rdt_config_file: %w", err)
 		}
 		c.RdtConfigFile = newConfig.RdtConfigFile
 		logConfig("rdt_config_file", c.RdtConfigFile)

@@ -17,7 +17,6 @@ import (
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -86,7 +85,7 @@ func (m *SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID strin
 	logrus.Debugf("Expanding systemd cgroup slice %v", parent)
 	cgroup, err := systemd.ExpandSlice(parent)
 	if err != nil {
-		return "", errors.Wrapf(err, "error expanding systemd slice to get container %s stats", containerID)
+		return "", fmt.Errorf("expanding systemd slice to get container %s stats: %w", containerID, err)
 	}
 
 	return filepath.Join(cgroup, crioPrefix+"-"+containerID+".scope"), nil
@@ -121,7 +120,7 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 			} else {
 				bits, err := systemd.RangeToBits(resources.CPU.Cpus)
 				if err != nil {
-					return "", errors.Wrapf(err, "cpuset conversion error")
+					return "", fmt.Errorf("cpuset conversion error: %w", err)
 				}
 				props = append(props, systemdDbus.Property{
 					Name:  "AllowedCPUs",
@@ -139,7 +138,7 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 
 	logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, conmonUnitName)
 	if err := utils.RunUnderSystemdScope(m.dbusMgr, pid, cgroupParent, conmonUnitName, props...); err != nil {
-		return "", errors.Wrapf(err, "failed to add conmon to systemd sandbox cgroup")
+		return "", fmt.Errorf("failed to add conmon to systemd sandbox cgroup: %w", err)
 	}
 	// return empty string as path because cgroup cleanup is done by systemd
 	return "", nil
@@ -181,7 +180,7 @@ func sandboxCgroupAbsolutePath(sbParent string) (cgParent, slicePath string, err
 	cgParent = convertCgroupFsNameToSystemd(sbParent)
 	slicePath, err = systemd.ExpandSlice(cgParent)
 	if err != nil {
-		return "", "", errors.Wrapf(err, "expanding systemd slice path for %q", cgParent)
+		return "", "", fmt.Errorf("expanding systemd slice path for %q: %w", cgParent, err)
 	}
 	return cgParent, slicePath, nil
 }

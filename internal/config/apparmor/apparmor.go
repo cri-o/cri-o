@@ -1,10 +1,11 @@
 package apparmor
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/containers/common/pkg/apparmor"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 )
@@ -45,7 +46,7 @@ func (c *Config) LoadProfile(profile string) error {
 		logrus.Infof("Installing default AppArmor profile: %v", DefaultProfile)
 
 		if err := apparmor.InstallDefault(DefaultProfile); err != nil {
-			return errors.Wrapf(err,
+			return fmt.Errorf(
 				"installing default AppArmor profile %q failed",
 				DefaultProfile,
 			)
@@ -54,7 +55,7 @@ func (c *Config) LoadProfile(profile string) error {
 		if logrus.IsLevelEnabled(logrus.TraceLevel) {
 			c, err := apparmor.DefaultContent(DefaultProfile)
 			if err != nil {
-				return errors.Wrapf(err,
+				return fmt.Errorf(
 					"retrieving default AppArmor profile %q content failed",
 					DefaultProfile,
 				)
@@ -70,13 +71,13 @@ func (c *Config) LoadProfile(profile string) error {
 	logrus.Infof("Assuming user-provided AppArmor profile: %v", profile)
 	isLoaded, err := apparmor.IsLoaded(profile)
 	if err != nil {
-		return errors.Wrapf(err,
-			"checking if AppArmor profile %s is loaded", profile,
+		return fmt.Errorf(
+			"checking if AppArmor profile %s is loaded: %w", profile, err,
 		)
 	}
 
 	if !isLoaded {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"config provided AppArmor profile %q not loaded", profile,
 		)
 	}
@@ -106,7 +107,7 @@ func (c *Config) Apply(profile string) (string, error) {
 	// reload the profile if default
 	if profile == DefaultProfile {
 		if err := reloadDefaultProfile(); err != nil {
-			return "", errors.Wrap(err, "reloading default profile")
+			return "", fmt.Errorf("reloading default profile: %w", err)
 		}
 	}
 
@@ -118,15 +119,15 @@ func (c *Config) Apply(profile string) (string, error) {
 func reloadDefaultProfile() error {
 	isLoaded, err := apparmor.IsLoaded(DefaultProfile)
 	if err != nil {
-		return errors.Wrapf(err,
-			"checking if default AppArmor profile %s is loaded", DefaultProfile,
+		return fmt.Errorf(
+			"checking if default AppArmor profile %s is loaded: %w", DefaultProfile, err,
 		)
 	}
 	if !isLoaded {
 		if err := apparmor.InstallDefault(DefaultProfile); err != nil {
-			return errors.Wrapf(err,
-				"installing default AppArmor profile %q failed",
-				DefaultProfile,
+			return fmt.Errorf(
+				"installing default AppArmor profile %q failed: %w",
+				DefaultProfile, err,
 			)
 		}
 	}

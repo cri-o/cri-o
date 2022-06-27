@@ -2,6 +2,8 @@ package server_test
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 
 	cstorage "github.com/containers/storage"
@@ -9,7 +11,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 )
 
 // The actual test suite
@@ -82,7 +83,7 @@ var _ = t.Describe("Server", func() {
 
 		It("should succeed with container restore", func() {
 			// Given
-			testError := errors.Wrap(errors.New("/dev/null"), "error")
+			testError := fmt.Errorf("error: %w", errors.New("/dev/null"))
 			gomock.InOrder(
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 				libMock.EXPECT().GetStore().Return(storeMock, nil),

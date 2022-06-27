@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/distribution/registry/api/errcode"
-	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 

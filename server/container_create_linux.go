@@ -28,7 +28,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -48,7 +47,7 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 		rootPair := idMappings.RootPair()
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
 			if err := makeAccessible(path, rootPair.UID, rootPair.GID, false); err != nil {
-				return errors.Wrapf(err, "cannot make %s accessible to %d:%d", path, rootPair.UID, rootPair.GID)
+				return fmt.Errorf("cannot make %s accessible to %d:%d: %w", path, rootPair.UID, rootPair.GID, err)
 			}
 		}
 		if err := makeMountsAccessible(rootPair.UID, rootPair.GID, container.Spec().Mounts); err != nil {
@@ -62,7 +61,7 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 func makeAccessible(path string, uid, gid int, doChown bool) error {
 	if doChown {
 		if err := os.Chown(path, uid, gid); err != nil {
-			return errors.Wrapf(err, "cannot chown %s to %d:%d", path, uid, gid)
+			return fmt.Errorf("cannot chown %s to %d:%d: %w", path, uid, gid, err)
 		}
 	}
 	for ; path != "/"; path = filepath.Dir(path) {
@@ -345,7 +344,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			securityContext.ApparmorProfile,
 		)
 		if err != nil {
-			return nil, errors.Wrapf(err, "applying apparmor profile to container %s", containerID)
+			return nil, fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
 		}
 
 		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, containerID)
@@ -390,7 +389,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
 				if resources.MemorySwapLimitInBytes != 0 {
 					if resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
-						return nil, errors.Errorf(
+						return nil, fmt.Errorf(
 							"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
 							ctr.ID(),
 							resources.MemorySwapLimitInBytes,
@@ -626,13 +625,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			securityContext.Seccomp,
 			containerConfig.Linux.SecurityContext.SeccompProfilePath,
 		); err != nil {
-			return nil, errors.Wrap(err, "setup seccomp")
+			return nil, fmt.Errorf("setup seccomp: %w", err)
 		}
 	}
 
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
+		return nil, fmt.Errorf("failed to mount container %s(%s): %w", containerName, containerID, err)
 	}
 
 	defer func() {
@@ -799,7 +798,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 		for _, path := range pathsToChown {
 			if err := makeAccessible(path, rootPair.UID, rootPair.GID, true); err != nil {
-				return nil, errors.Wrapf(err, "cannot chown %s to %d:%d", path, rootPair.UID, rootPair.GID)
+				return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", path, rootPair.UID, rootPair.GID, err)
 			}
 		}
 	} else if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
@@ -813,7 +812,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	// compatible with Docker
 	mtab := filepath.Join(mountPoint, "/etc/mtab")
 	if err := idtools.MkdirAllAs(filepath.Dir(mtab), 0o755, rootPair.UID, rootPair.GID); err != nil {
-		return nil, errors.Wrap(err, "error creating mtab directory")
+		return nil, fmt.Errorf("error creating mtab directory: %w", err)
 	}
 	if err := os.Symlink("/proc/mounts", mtab); err != nil && !os.IsExist(err) {
 		return nil, err
@@ -941,13 +940,13 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			src = resolvedSrc
 		} else {
 			if !os.IsNotExist(err) {
-				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %v", src, err)
+				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
 			}
 			for _, toReject := range absentMountSourcesToReject {
 				if filepath.Clean(src) == toReject {
 					// special-case /etc/hostname, as we don't want it to be created as a directory
 					// This can cause issues with node reboot.
-					return nil, nil, errors.Errorf("Cannot mount %s: path does not exist and will cause issues as a directory", toReject)
+					return nil, nil, fmt.Errorf("cannot mount %s: path does not exist and will cause issues as a directory", toReject)
 				}
 			}
 			if err = os.MkdirAll(src, 0o755); err != nil {

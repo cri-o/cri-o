@@ -2,6 +2,7 @@ package oci_test
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -10,7 +11,6 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -193,7 +193,7 @@ func waitContainerStopAndFailAfterTimeout(ctx context.Context,
 	select {
 	case stoppedChan <- oci.WaitContainerStop(ctx, sut, inSeconds(waitContainerStopTimeout), ignoreKill):
 	case <-time.After(inSeconds(failAfterTimeout)):
-		stoppedChan <- errors.Errorf("%d seconds passed, container kill should have been recognized", failAfterTimeout)
+		stoppedChan <- fmt.Errorf("%d seconds passed, container kill should have been recognized", failAfterTimeout)
 	}
 	close(stoppedChan)
 }

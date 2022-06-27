@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 
@@ -69,7 +68,7 @@ func (c *Config) Load(path string) error {
 	}
 
 	if err := rdt.SetConfig(tmpCfg, true); err != nil {
-		return errors.Wrap(err, "configuring RDT failed")
+		return fmt.Errorf("configuring RDT failed: %w", err)
 	}
 
 	logrus.Infof("RDT enabled, config successfully loaded from %q", path)
@@ -82,12 +81,12 @@ func (c *Config) Load(path string) error {
 func loadConfigFile(path string) (*rdt.Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading rdt config file failed")
+		return nil, fmt.Errorf("reading rdt config file failed: %w", err)
 	}
 
 	c := &rdt.Config{}
 	if err = yaml.Unmarshal(data, c); err != nil {
-		return nil, errors.Wrap(err, "parsing RDT config failed")
+		return nil, fmt.Errorf("parsing RDT config failed: %w", err)
 	}
 
 	return c, nil

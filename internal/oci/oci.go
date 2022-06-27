@@ -12,7 +12,6 @@ import (
 
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -81,7 +80,7 @@ type RuntimeImpl interface {
 func New(c *config.Config) (*Runtime, error) {
 	execNotifyDir := filepath.Join(c.ContainerAttachSocketDir, "exec-pid-dir")
 	if err := os.MkdirAll(execNotifyDir, 0o750); err != nil {
-		return nil, errors.Wrapf(err, "create oci runtime pid dir")
+		return nil, fmt.Errorf("create oci runtime pid dir: %w", err)
 	}
 
 	return &Runtime{

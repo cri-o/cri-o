@@ -4,13 +4,13 @@
 package node
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
 	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/pkg/errors"
 )
 
 var (
