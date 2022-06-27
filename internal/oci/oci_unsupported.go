@@ -4,14 +4,13 @@
 package oci
 
 import (
+	"errors"
 	"os"
 	"syscall"
-
-	"github.com/pkg/errors"
 )
 
 func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
-	return errors.Errorf("not implemented")
+	return errors.New("not implemented")
 }
 
 func sysProcAttrPlatform() *syscall.SysProcAttr {

@@ -1,8 +1,9 @@
 package migrate
 
 import (
+	"fmt"
+
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/pkg/errors"
 )
 
 // All possible migration scenarios
@@ -19,5 +20,5 @@ func Config(cfg *config.Config, from string) error {
 		return migrateFrom1_17(cfg)
 	}
 
-	return errors.Errorf("unsupported migration version %q", from)
+	return fmt.Errorf("unsupported migration version %q", from)
 }

@@ -16,7 +16,7 @@ import (
 func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecResponse, error) {
 	resp, err := s.getExec(req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to prepare exec endpoint: %v", err)
+		return nil, fmt.Errorf("unable to prepare exec endpoint: %w", err)
 	}
 
 	return resp, nil

@@ -2,6 +2,7 @@ package cgmgr
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -43,7 +43,7 @@ func populateContainerCgroupStatsFromPath(cgroupPath string, stats *types.Contai
 func cgroupStatsFromPath(cgroupPath string) (*cgroups.Metrics, error) {
 	cg, err := cgroups.Load(cgroupPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to load cgroup at %s", cgroupPath)
+		return nil, fmt.Errorf("unable to load cgroup at %s: %w", cgroupPath, err)
 	}
 
 	return cg.Stat()
@@ -71,7 +71,7 @@ func createMemoryStats(systemNano int64, cgroupStats *cgroups.Metrics, cgroupPat
 	}
 
 	if err := updateWithMemoryStats(cgroupPath, memory, memUsage); err != nil {
-		return memory, errors.Wrap(err, "unable to update with memory.stat info")
+		return memory, fmt.Errorf("unable to update with memory.stat info: %w", err)
 	}
 	return memory, nil
 }
@@ -140,7 +140,7 @@ func UpdateWithMemoryStatsFromFile(memoryStatPath, inactiveFileSearchString stri
 				strings.TrimPrefix(scanner.Text(), field.prefix), 10, 64,
 			)
 			if err != nil {
-				return errors.Wrapf(err, "unable to parse %s", field.prefix)
+				return fmt.Errorf("unable to parse %s: %w", field.prefix, err)
 			}
 			*field.field = val
 		}

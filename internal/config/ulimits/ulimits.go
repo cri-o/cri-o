@@ -30,7 +30,7 @@ func (c *Config) LoadUlimits(ulimits []string) error {
 	for _, u := range ulimits {
 		ul, err := units.ParseUlimit(u)
 		if err != nil {
-			return fmt.Errorf("unrecognized ulimit %s: %v", u, err)
+			return fmt.Errorf("unrecognized ulimit %s: %w", u, err)
 		}
 		rl, err := ul.GetRlimit()
 		if err != nil {

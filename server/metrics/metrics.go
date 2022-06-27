@@ -3,6 +3,7 @@ package metrics
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,7 +16,6 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/fsnotify/fsnotify"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -329,27 +329,27 @@ func (m *Metrics) Start(stop chan struct{}) error {
 
 	me, err := m.createEndpoint()
 	if err != nil {
-		return errors.Wrap(err, "create endpoint")
+		return fmt.Errorf("create endpoint: %w", err)
 	}
 
 	if err := m.startEndpoint(
 		stop, "tcp", fmt.Sprintf(":%v", m.config.MetricsPort), me,
 	); err != nil {
-		return errors.Wrapf(
-			err, "create metrics endpoint on port %d", m.config.MetricsPort,
+		return fmt.Errorf(
+			"create metrics endpoint on port %d: %w", m.config.MetricsPort, err,
 		)
 	}
 
 	metricsSocket := m.config.MetricsSocket
 	if metricsSocket != "" {
 		if err := libconfig.RemoveUnusedSocket(metricsSocket); err != nil {
-			return errors.Wrapf(err, "removing unused socket %s", metricsSocket)
+			return fmt.Errorf("removing unused socket %s: %w", metricsSocket, err)
 		}
 
-		return errors.Wrap(
-			m.startEndpoint(stop, "unix", m.config.MetricsSocket, me),
-			"creating metrics endpoint socket",
-		)
+		if err := m.startEndpoint(stop, "unix", m.config.MetricsSocket, me); err != nil {
+			return fmt.Errorf("creating metrics endpoint socket: %w", err)
+		}
+		return nil
 	}
 
 	return nil
@@ -563,7 +563,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())
 			if err := prometheus.Register(metric); err != nil {
-				return nil, errors.Wrap(err, "register metric")
+				return nil, fmt.Errorf("register metric: %w", err)
 			}
 		} else {
 			logrus.Debugf("Skipping metric: %s", collector.Stripped())
@@ -580,7 +580,7 @@ func (m *Metrics) startEndpoint(
 ) error {
 	l, err := net.Listen(network, address)
 	if err != nil {
-		return errors.Wrap(err, "creating listener")
+		return fmt.Errorf("creating listener: %w", err)
 	}
 
 	go func() {
@@ -639,12 +639,12 @@ func newCertReloader(doneChan chan struct{}, certPath, keyPath string) (*certRel
 
 		hostname, err := os.Hostname()
 		if err != nil {
-			return nil, errors.Wrap(err, "retrieve hostname")
+			return nil, fmt.Errorf("retrieve hostname: %w", err)
 		}
 
 		certBytes, keyBytes, err := cert.GenerateSelfSignedCertKey(hostname, nil, nil)
 		if err != nil {
-			return nil, errors.Wrap(err, "generate self-signed cert/key")
+			return nil, fmt.Errorf("generate self-signed cert/key: %w", err)
 		}
 
 		for path, bytes := range map[string][]byte{
@@ -652,21 +652,21 @@ func newCertReloader(doneChan chan struct{}, certPath, keyPath string) (*certRel
 			keyPath:  keyBytes,
 		} {
 			if err := os.MkdirAll(filepath.Dir(path), os.FileMode(0o700)); err != nil {
-				return nil, errors.Wrap(err, "create path")
+				return nil, fmt.Errorf("create path: %w", err)
 			}
 			if err := os.WriteFile(path, bytes, os.FileMode(0o600)); err != nil {
-				return nil, errors.Wrap(err, "write file")
+				return nil, fmt.Errorf("write file: %w", err)
 			}
 		}
 	}
 
 	if err := reloader.reload(); err != nil {
-		return nil, errors.Wrap(err, "load certificate")
+		return nil, fmt.Errorf("load certificate: %w", err)
 	}
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil, errors.Wrap(err, "create new watcher")
+		return nil, fmt.Errorf("create new watcher: %w", err)
 	}
 	go func() {
 		defer watcher.Close()
@@ -708,7 +708,7 @@ func newCertReloader(doneChan chan struct{}, certPath, keyPath string) (*certRel
 func (c *certReloader) reload() error {
 	certificate, err := tls.LoadX509KeyPair(c.certPath, c.keyPath)
 	if err != nil {
-		return errors.Wrap(err, "load x509 key pair")
+		return fmt.Errorf("load x509 key pair: %w", err)
 	}
 	if len(certificate.Certificate) == 0 {
 		return errors.New("certificates chain is empty")
@@ -716,7 +716,7 @@ func (c *certReloader) reload() error {
 
 	x509Cert, err := x509.ParseCertificate(certificate.Certificate[0])
 	if err != nil {
-		return errors.Wrap(err, "parse x509 certificate")
+		return fmt.Errorf("parse x509 certificate: %w", err)
 	}
 	logrus.Infof(
 		"Metrics certificate is valid between %v and %v",

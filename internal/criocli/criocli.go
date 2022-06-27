@@ -8,7 +8,6 @@ import (
 
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics/collectors"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -376,7 +375,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 func GetFlagsAndMetadata() ([]cli.Flag, map[string]interface{}, error) {
 	config, err := libconfig.DefaultConfig()
 	if err != nil {
-		return nil, nil, errors.Errorf("error loading server config: %v", err)
+		return nil, nil, fmt.Errorf("error loading server config: %w", err)
 	}
 
 	// TODO FIXME should be crio wipe flags

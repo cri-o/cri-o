@@ -28,7 +28,6 @@ import (
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/urfave/cli/v2"
@@ -200,13 +199,13 @@ func main() {
 			file, err := os.Create(cpuProfilePath)
 			if err != nil {
 				cancel()
-				return errors.Wrap(err, "could not create CPU profile")
+				return fmt.Errorf("could not create CPU profile: %w", err)
 			}
 			defer file.Close()
 
 			if err := pprof.StartCPUProfile(file); err != nil {
 				cancel()
-				return errors.Wrap(err, "could not start CPU profiling")
+				return fmt.Errorf("could not start CPU profiling: %w", err)
 			}
 			defer pprof.StopCPUProfile()
 		}
@@ -403,13 +402,13 @@ func main() {
 
 			file, err := os.Create(memProfilePath)
 			if err != nil {
-				return errors.Wrap(err, "could not create memory profile")
+				return fmt.Errorf("could not create memory profile: %w", err)
 			}
 			defer file.Close()
 			runtime.GC()
 
 			if err := pprof.WriteHeapProfile(file); err != nil {
-				return errors.Wrap(err, "could not write memory profile")
+				return fmt.Errorf("could not write memory profile: %w", err)
 			}
 		}
 

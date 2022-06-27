@@ -2,9 +2,9 @@ package resourcestore
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -75,7 +75,7 @@ func retry(ctx context.Context, description string, fn func() error) error {
 	})
 
 	if waitErr != nil {
-		return errors.Wrap(waitErr, "wait on retry")
+		return fmt.Errorf("wait on retry: %w", waitErr)
 	}
 
 	return nil

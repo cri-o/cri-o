@@ -18,7 +18,6 @@ import (
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -67,7 +66,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	// disable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
 		if err := setCPUSLoadBalancingWithRetry(ctx, c, false); err != nil {
-			return errors.Wrap(err, "set CPU load balancing")
+			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
 
@@ -75,7 +74,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
 		if err := setIRQLoadBalancing(c, false, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
-			return errors.Wrap(err, "set IRQ load balancing")
+			return fmt.Errorf("set IRQ load balancing: %w", err)
 		}
 	}
 
@@ -87,7 +86,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 			return err
 		}
 		if err := setCPUQuota(cpuMountPoint, s.CgroupParent(), c, false); err != nil {
-			return errors.Wrap(err, "set CPU CFS quota")
+			return fmt.Errorf("set CPU CFS quota: %w", err)
 		}
 	}
 
@@ -113,14 +112,14 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 	// enable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
 		if err := setCPUSLoadBalancingWithRetry(ctx, c, true); err != nil {
-			return errors.Wrap(err, "set CPU load balancing")
+			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
 
 	// enable the IRQ smp balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
 		if err := setIRQLoadBalancing(c, true, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
-			return errors.Wrap(err, "set IRQ load balancing")
+			return fmt.Errorf("set IRQ load balancing: %w", err)
 		}
 	}
 
@@ -197,7 +196,7 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 		lspec.Resources == nil ||
 		lspec.Resources.CPU == nil ||
 		lspec.Resources.CPU.Cpus == "" {
-		return errors.Errorf("find container %s CPUs", c.ID())
+		return fmt.Errorf("find container %s CPUs", c.ID())
 	}
 
 	cpus, err := cpuset.Parse(lspec.Resources.CPU.Cpus)
@@ -252,7 +251,7 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 		lspec.Resources == nil ||
 		lspec.Resources.CPU == nil ||
 		lspec.Resources.CPU.Cpus == "" {
-		return errors.Errorf("find container %s CPUs", c.ID())
+		return fmt.Errorf("find container %s CPUs", c.ID())
 	}
 
 	content, err := os.ReadFile(irqSmpAffinityFile)

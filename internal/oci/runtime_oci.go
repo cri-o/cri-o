@@ -2,6 +2,7 @@ package oci
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -24,7 +25,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -87,11 +87,11 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	var stderrBuf bytes.Buffer
 	parentPipe, childPipe, err := newPipe()
 	if err != nil {
-		return fmt.Errorf("error creating socket pair: %v", err)
+		return fmt.Errorf("error creating socket pair: %w", err)
 	}
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
-		return fmt.Errorf("error creating socket pair: %v", err)
+		return fmt.Errorf("error creating socket pair: %w", err)
 	}
 	defer parentPipe.Close()
 	defer parentStartPipe.Close()
@@ -176,13 +176,13 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 				killErr := cmd.Process.Kill()
 				waitErr := cmd.Wait()
 				if killErr != nil {
-					retErr = errors.Wrapf(retErr, "failed to kill %+v after failing with", killErr)
+					retErr = fmt.Errorf("failed to kill %+v after failing with: %w", killErr, retErr)
 				}
 				// Per https://pkg.go.dev/os#ProcessState.ExitCode, the exit code is -1 when the process died because
 				// of a signal. We expect this in this case, as we've just killed it with a signal. Don't append the
 				// error in this case to reduce noise.
 				if exitErr, ok := waitErr.(*exec.ExitError); !ok || exitErr.ExitCode() != -1 {
-					retErr = errors.Wrapf(retErr, "failed to wait %+v after failing with", waitErr)
+					retErr = fmt.Errorf("failed to wait %+v after failing with: %w", waitErr, retErr)
 				}
 			}
 		}()
@@ -241,7 +241,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
-			return fmt.Errorf("error reading container (probably exited) json message: %v", ss.err)
+			return fmt.Errorf("error reading container (probably exited) json message: %w", ss.err)
 		}
 		log.Debugf(ctx, "Received container pid: %d", ss.si.Pid)
 		pid = ss.si.Pid
@@ -409,7 +409,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		if r != nil {
 			if err := r.Close(); err != nil {
 				if waitErr := execCmd.Wait(); waitErr != nil {
-					return errors.Wrap(err, waitErr.Error())
+					return fmt.Errorf("%v: %w", waitErr, err)
 				}
 				return err
 			}
@@ -563,13 +563,13 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				killErr := cmd.Process.Kill()
 				waitErr := cmd.Wait()
 				if killErr != nil {
-					retErr = errors.Wrapf(retErr, "failed to kill %+v after failing with", killErr)
+					retErr = fmt.Errorf("failed to kill %+v after failing with: %w", killErr, retErr)
 				}
 				// Per https://pkg.go.dev/os#ProcessState.ExitCode, the exit code is -1 when the process died because
 				// of a signal. We expect this in this case, as we've just killed it with a signal. Don't append the
 				// error in this case to reduce noise.
 				if exitErr, ok := waitErr.(*exec.ExitError); !ok || exitErr.ExitCode() != -1 {
-					retErr = errors.Wrapf(retErr, "failed to wait %+v after failing with", waitErr)
+					retErr = fmt.Errorf("failed to wait %+v after failing with: %w", waitErr, retErr)
 				}
 			}
 		}()
@@ -717,7 +717,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 	cmd.Stdin = bytes.NewReader(jsonResources)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("updating resources for container %q failed: %v %v (%v)", c.ID(), stderr.String(), stdout.String(), err)
+		return fmt.Errorf("updating resources for container %q failed: %v %v: %w", c.ID(), stderr.String(), stdout.String(), err)
 	}
 	return nil
 }
@@ -774,7 +774,7 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 				return err
 			}
 			if err := Kill(pid); err != nil {
-				return fmt.Errorf("failed to kill process: %v", err)
+				return fmt.Errorf("failed to kill process: %w", err)
 			}
 			killed = true
 		case newTimeout := <-c.stopTimeoutChan:
@@ -884,19 +884,19 @@ func updateContainerStatusFromExitFile(c *Container) error {
 	exitFilePath := c.exitFilePath()
 	fi, err := os.Stat(exitFilePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to find container exit file for %s", c.ID())
+		return fmt.Errorf("failed to find container exit file for %s: %w", c.ID(), err)
 	}
 	c.state.Finished, err = getFinishedTime(fi)
 	if err != nil {
-		return errors.Wrap(err, "failed to get finished time")
+		return fmt.Errorf("failed to get finished time: %w", err)
 	}
 	statusCodeStr, err := os.ReadFile(exitFilePath)
 	if err != nil {
-		return errors.Wrap(err, "failed to read exit file")
+		return fmt.Errorf("failed to read exit file: %w", err)
 	}
 	statusCode, err := strconv.ParseInt(string(statusCodeStr), 10, 32)
 	if err != nil {
-		return errors.Wrap(err, "status code conversion failed")
+		return fmt.Errorf("status code conversion failed: %w", err)
 	}
 	c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
 	return nil
@@ -1057,7 +1057,7 @@ func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig sysc
 	}
 
 	if unix.SignalName(sig) == "" {
-		return errors.Errorf("unable to find signal %s", sig.String())
+		return fmt.Errorf("unable to find signal %s", sig.String())
 	}
 
 	return r.signalContainer(c, sig, false)
@@ -1088,7 +1088,7 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {
-		return fmt.Errorf("failed to open container ctl file: %v", err)
+		return fmt.Errorf("failed to open container ctl file: %w", err)
 	}
 	defer controlFile.Close()
 
@@ -1103,7 +1103,7 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 	attachSocketPath := filepath.Join(r.config.ContainerAttachSocketDir, c.ID(), "attach")
 	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"})
 	if err != nil {
-		return fmt.Errorf("failed to connect to container %s attach socket: %v", c.ID(), err)
+		return fmt.Errorf("failed to connect to container %s attach socket: %w", c.ID(), err)
 	}
 	defer conn.Close()
 
@@ -1182,7 +1182,7 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 		d.FallbackDelay = -1
 		conn, err := d.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
-			return errors.Wrapf(err, "failed to connect to localhost:%d inside namespace %s", port, c.ID())
+			return fmt.Errorf("failed to connect to localhost:%d inside namespace %s: %w", port, c.ID(), err)
 		}
 		defer conn.Close()
 
@@ -1239,8 +1239,8 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 
 		return errFwd
 	}); err != nil {
-		return errors.Wrapf(
-			err, "port forward into network namespace %q", netNsPath,
+		return fmt.Errorf(
+			"port forward into network namespace %q: %w", netNsPath, err,
 		)
 	}
 
@@ -1257,13 +1257,13 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {
-		return fmt.Errorf("failed to open container ctl file: %v", err)
+		return fmt.Errorf("failed to open container ctl file: %w", err)
 	}
 	defer controlFile.Close()
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return fmt.Errorf("failed to create new watch: %v", err)
+		return fmt.Errorf("failed to create new watch: %w", err)
 	}
 	defer watcher.Close()
 
@@ -1284,7 +1284,7 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 					}
 				}
 			case err := <-watcher.Errors:
-				errorCh <- fmt.Errorf("watch error for container log reopen %v: %v", c.ID(), err)
+				errorCh <- fmt.Errorf("watch error for container log reopen %v: %w", c.ID(), err)
 				close(errorCh)
 				return
 			}

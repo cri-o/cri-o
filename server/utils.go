@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	b64 "encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/log"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -101,12 +101,12 @@ func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
 
 		// Handle symlinks
 		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-			return errors.New("Symbolic links not supported in decryption keys paths")
+			return errors.New("symbolic links not supported in decryption keys paths")
 		}
 
 		privateKey, err := os.ReadFile(path)
 		if err != nil {
-			return errors.Wrap(err, "read private key file")
+			return fmt.Errorf("read private key file: %w", err)
 		}
 
 		sEnc := b64.StdEncoding.EncodeToString(privateKey)
@@ -166,7 +166,7 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 	}
 	watcher := s.resourceStore.WatcherForResource(name)
 	if watcher == nil {
-		return "", errors.Errorf("error attempting to watch for %s %s: no longer found", resourceType, name)
+		return "", fmt.Errorf("error attempting to watch for %s %s: no longer found", resourceType, name)
 	}
 	log.Infof(ctx, "Creation of %s %s not yet finished. Waiting up to %v for it to finish", resourceType, name, resourceCreationWaitTime)
 	var err error
@@ -178,7 +178,7 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 	// This is probably overly cautious, but it doesn't hurt to have a way to terminate
 	// independent of the kubelet's signal.
 	case <-time.After(resourceCreationWaitTime):
-		err = errors.Errorf("waited too long for request to timeout or %s %s to be created", resourceType, name)
+		err = fmt.Errorf("waited too long for request to timeout or %s %s to be created", resourceType, name)
 	// If the resource becomes available while we're watching for it, we still need to error on this request.
 	// When we pull the resource from the cache after waiting, we won't run the cleanup funcs.
 	// However, we don't know how long we've been making the kubelet wait for the request, and the request could time outt
@@ -193,10 +193,10 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 		case <-time.After(resourceCreationWaitTime):
 		case <-ctx.Done():
 		}
-		err = errors.Errorf("the requested %s %s is now ready and will be provided to the kubelet on next retry", resourceType, name)
+		err = fmt.Errorf("the requested %s %s is now ready and will be provided to the kubelet on next retry", resourceType, name)
 	}
 
-	return "", errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
+	return "", fmt.Errorf("kubelet may be retrying requests that are timing out in CRI-O due to system load: %w", err)
 }
 
 // FilterDisallowedAnnotations is a common place to have a map of annotations filtered for both runtimes and workloads.

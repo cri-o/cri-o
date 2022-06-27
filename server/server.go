@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -32,7 +33,6 @@ import (
 	"github.com/cri-o/cri-o/server/streaming"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -121,7 +121,7 @@ func (cc *certConfigCache) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.
 	if len(cc.tlsCA) > 0 {
 		caBytes, err := os.ReadFile(cc.tlsCA)
 		if err != nil {
-			return nil, errors.Wrap(err, "read TLS CA file")
+			return nil, fmt.Errorf("read TLS CA file: %w", err)
 		}
 		certPool := x509.NewCertPool()
 		certPool.AppendCertsFromPEM(caBytes)
@@ -305,7 +305,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// first, make sure we sync all the changes to the file system holding
 	// the graph root
 	if err := utils.Syncfs(s.Store().GraphRoot()); err != nil {
-		return errors.Wrapf(err, "failed to sync graph root after shutting down")
+		return fmt.Errorf("failed to sync graph root after shutting down: %w", err)
 	}
 
 	if s.config.CleanShutdownFile != "" {
@@ -316,7 +316,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		// is not so.
 		f, err := os.Create(s.config.CleanShutdownFile)
 		if err != nil {
-			return errors.Wrapf(err, "failed to write file to indicate a clean shutdown")
+			return fmt.Errorf("failed to write file to indicate a clean shutdown: %w", err)
 		}
 		f.Close()
 
@@ -326,7 +326,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		// However, that's much less likely than if we don't have a second Sync,
 		// and less risky than if we don't Sync after the Create
 		if err := utils.SyncParent(s.config.CleanShutdownFile); err != nil {
-			return errors.Wrapf(err, "failed to sync clean shutdown file")
+			return fmt.Errorf("failed to sync clean shutdown file: %w", err)
 		}
 	}
 
@@ -338,7 +338,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func configureMaxThreads() error {
 	mt, err := os.ReadFile("/proc/sys/kernel/threads-max")
 	if err != nil {
-		return errors.Wrap(err, "read max threads file")
+		return fmt.Errorf("read max threads file: %w", err)
 	}
 	mtint, err := strconv.Atoi(strings.TrimSpace(string(mt)))
 	if err != nil {
@@ -432,12 +432,12 @@ func New(
 	// Close stdin, so shortnames will not prompt
 	devNullFile, err := os.Open(os.DevNull)
 	if err != nil {
-		return nil, errors.Wrap(err, "open devnull file")
+		return nil, fmt.Errorf("open devnull file: %w", err)
 	}
 
 	defer devNullFile.Close()
 	if err := unix.Dup2(int(devNullFile.Fd()), int(os.Stdin.Fd())); err != nil {
-		return nil, errors.Wrap(err, "close stdin")
+		return nil, fmt.Errorf("close stdin: %w", err)
 	}
 
 	deletedImages := s.restore(ctx)
@@ -629,7 +629,7 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 
 	sandboxID, err := s.PodIDIndex().Get(podSandboxID)
 	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
+		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %w", podSandboxID, err)
 	}
 
 	sb := s.getSandbox(sandboxID)

@@ -5,7 +5,6 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,7 +49,7 @@ func (s *Sandbox) AddManagedNamespaces(namespaces []nsmgr.Namespace) {
 			s.userns = ns
 		default:
 			// this should never happen, as we control the NSTypes
-			panic(errors.Errorf("unknown namespace type %s", ns))
+			panic(fmt.Errorf("unknown namespace type %s", ns))
 		}
 	}
 }
@@ -113,7 +112,7 @@ func (s *Sandbox) runFunctionOnNamespaces(toRun func(nsmgr.Namespace) error) err
 
 	var err error
 	if len(errs) != 0 {
-		err = errors.Errorf("Removing namespaces encountered the following errors %v", errs)
+		err = fmt.Errorf("removing namespaces encountered the following errors %v", errs)
 	}
 	return err
 }

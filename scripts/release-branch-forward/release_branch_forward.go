@@ -5,9 +5,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	kgit "sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/command"
@@ -43,7 +43,7 @@ func main() {
 
 func run() error {
 	if !command.Available(git, grep, tail) {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"please ensure that %s are available in $PATH",
 			strings.Join([]string{git, grep, tail}, ", "),
 		)
@@ -65,7 +65,7 @@ func run() error {
 		Pipe(tail, "-1").
 		RunSilentSuccessOutput()
 	if err != nil {
-		return errors.Wrap(err, "unable to retrieve latest release branch")
+		return fmt.Errorf("unable to retrieve latest release branch: %w", err)
 	}
 	latestReleaseBranch := lsRemoteHeads.OutputTrimNL()
 	logrus.Infof("Latest release branch: %s", latestReleaseBranch)
@@ -88,7 +88,7 @@ func run() error {
 	// Checkout the release branch
 	repo, err := kgit.OpenRepo(".")
 	if err != nil {
-		return errors.Wrap(err, "unable to open this repository")
+		return fmt.Errorf("unable to open this repository: %w", err)
 	}
 	if dryRun {
 		logrus.Info("Setting repository to only do a dry-run")
@@ -96,12 +96,12 @@ func run() error {
 	}
 	currentBranch, err := repo.CurrentBranch()
 	if err != nil {
-		return errors.Wrap(err, "unable to get current branch")
+		return fmt.Errorf("unable to get current branch: %w", err)
 	}
 	logrus.Infof("Checking out branch: %s", latestReleaseBranch)
 	if err := repo.Checkout(latestReleaseBranch); err != nil {
-		return errors.Wrapf(err,
-			"unable to checkout release branch %s", latestReleaseBranch,
+		return fmt.Errorf(
+			"unable to checkout release branch %s: %w", latestReleaseBranch, err,
 		)
 	}
 	defer func() {
@@ -112,14 +112,14 @@ func run() error {
 	// Merge the latest main
 	mergeTarget := kgit.Remotify(defaultBranch)
 	if err := repo.Merge(mergeTarget); err != nil {
-		return errors.Wrapf(err,
-			"unable to merge %s into release branch", mergeTarget,
+		return fmt.Errorf(
+			"unable to merge %s into release branch: %w", mergeTarget, err,
 		)
 	}
 
 	// Push the changes
 	if err := repo.Push(latestReleaseBranch); err != nil {
-		return errors.Wrap(err, "unable to push to remote branch")
+		return fmt.Errorf("unable to push to remote branch: %w", err)
 	}
 
 	return nil

@@ -2,12 +2,12 @@ package conmonmgr
 
 import (
 	"bytes"
+	"fmt"
 	"path"
 	"strings"
 
 	"github.com/blang/semver"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,20 +25,20 @@ type ConmonManager struct {
 // this function is heavily based on github.com/containers/common#probeConmon
 func New(conmonPath string) (*ConmonManager, error) {
 	if !path.IsAbs(conmonPath) {
-		return nil, errors.Errorf("conmon path is not absolute: %s", conmonPath)
+		return nil, fmt.Errorf("conmon path is not absolute: %s", conmonPath)
 	}
 	out, err := cmdrunner.CombinedOutput(conmonPath, "--version")
 	if err != nil {
-		return nil, errors.Wrapf(err, "get conmon version")
+		return nil, fmt.Errorf("get conmon version: %w", err)
 	}
 	fields := strings.Fields(string(out))
 	if len(fields) < 3 {
-		return nil, errors.Errorf("conmon version output too short: expected three fields, got %d in %s", len(fields), out)
+		return nil, fmt.Errorf("conmon version output too short: expected three fields, got %d in %s", len(fields), out)
 	}
 
 	c := new(ConmonManager)
 	if err := c.parseConmonVersion(fields[2]); err != nil {
-		return nil, errors.Wrapf(err, "get conmon version")
+		return nil, fmt.Errorf("get conmon version: %w", err)
 	}
 
 	c.initializeSupportsSync()

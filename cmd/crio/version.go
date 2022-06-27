@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/version"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -39,7 +38,7 @@ var versionCommand = &cli.Command{
 		if c.Bool(jsonFlag) {
 			j, err := v.JSONString()
 			if err != nil {
-				return errors.Wrap(err, "unable to generate JSON from version info")
+				return fmt.Errorf("unable to generate JSON from version info: %w", err)
 			}
 			res = j
 

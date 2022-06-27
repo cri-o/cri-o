@@ -3,10 +3,8 @@
 
 package node
 
-import (
-	"github.com/pkg/errors"
-)
+import "fmt"
 
 func ValidateConfig() error {
-	return errors.Errorf("CRI-O is only supported on linux")
+	return fmt.Errorf("CRI-O is only supported on linux")
 }

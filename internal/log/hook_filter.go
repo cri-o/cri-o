@@ -1,10 +1,10 @@
 package log
 
 import (
+	"fmt"
 	"io"
 	"regexp"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,7 +23,7 @@ func NewFilterHook(filter string) (*FilterHook, error) {
 		custom, err = regexp.Compile(filter)
 		logrus.Debugf("Using log filter: %q", custom)
 		if err != nil {
-			return nil, errors.Wrap(err, "custom log level filter does not compile")
+			return nil, fmt.Errorf("custom log level filter does not compile: %w", err)
 		}
 	}
 

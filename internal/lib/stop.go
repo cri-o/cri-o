@@ -2,11 +2,11 @@ package lib
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cri-o/cri-o/internal/log"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/pkg/errors"
 )
 
 // ContainerStop stops a running container with a grace period (i.e., timeout).
@@ -14,10 +14,10 @@ func (c *ContainerServer) StopContainer(ctx context.Context, ctr *oci.Container,
 	cStatus := ctr.StateNoLock()
 	if cStatus.Status == oci.ContainerStatePaused {
 		if err := c.runtime.UnpauseContainer(ctx, ctr); err != nil {
-			return errors.Wrapf(err, "failed to stop container %s", ctr.ID())
+			return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
 		}
 		if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
-			return errors.Wrapf(err, "failed to update container status %s", ctr.ID())
+			return fmt.Errorf("failed to update container status %s: %w", ctr.ID(), err)
 		}
 	}
 	if err := c.runtime.StopContainer(ctx, ctr, timeout); err != nil {
@@ -25,16 +25,16 @@ func (c *ContainerServer) StopContainer(ctx context.Context, ctr *oci.Container,
 		// we still want to write container state to disk if the container has already
 		// been stopped
 		if err != oci.ErrContainerStopped {
-			return errors.Wrapf(err, "failed to stop container %s", ctr.ID())
+			return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
 		}
 	} else {
 		// we only do these operations if StopContainer didn't fail (even if the failure
 		// was the container already being stopped)
 		if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
-			return errors.Wrapf(err, "failed to update container status %s", ctr.ID())
+			return fmt.Errorf("failed to update container status %s: %w", ctr.ID(), err)
 		}
 		if err := c.storageRuntimeServer.StopContainer(ctr.ID()); err != nil {
-			return errors.Wrapf(err, "failed to unmount container %s", ctr.ID())
+			return fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 		}
 	}
 

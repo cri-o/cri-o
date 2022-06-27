@@ -2,6 +2,8 @@ package seccomp
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +13,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	k8sV1 "k8s.io/api/core/v1"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -106,7 +107,7 @@ func (c *Config) LoadProfile(profilePath string) error {
 		if logrus.IsLevelEnabled(logrus.TraceLevel) {
 			profileString, err := json.MarshalToString(c.profile)
 			if err != nil {
-				return errors.Wrap(err, "marshal default seccomp profile to string")
+				return fmt.Errorf("marshal default seccomp profile to string: %w", err)
 			}
 			logrus.Tracef("Current seccomp profile content: %s", profileString)
 		}
@@ -115,12 +116,12 @@ func (c *Config) LoadProfile(profilePath string) error {
 
 	profile, err := os.ReadFile(profilePath)
 	if err != nil {
-		return errors.Wrap(err, "open seccomp profile")
+		return fmt.Errorf("open seccomp profile: %w", err)
 	}
 
 	tmpProfile := &seccomp.Seccomp{}
 	if err := json.Unmarshal(profile, tmpProfile); err != nil {
-		return errors.Wrap(err, "decoding seccomp profile failed")
+		return fmt.Errorf("decoding seccomp profile failed: %w", err)
 	}
 
 	c.profile = tmpProfile
@@ -151,12 +152,12 @@ func (c *Config) Setup(
 		// Path based seccomp profiles will be used with a higher priority and are
 		// going to be removed in future Kubernetes versions.
 		if err := c.setupFromPath(ctx, specGenerator, profilePath); err != nil {
-			return errors.Wrap(err, "from profile path")
+			return fmt.Errorf("from profile path: %w", err)
 		}
 	} else if err := c.setupFromField(ctx, specGenerator, profileField); err != nil {
 		// Field based seccomp profiles are newer than the path based ones and will
 		// be the standard in future Kubernetes versions.
-		return errors.Wrap(err, "from field")
+		return fmt.Errorf("from field: %w", err)
 	}
 
 	return nil
@@ -208,7 +209,7 @@ func (c *Config) setupFromPath(
 			c.Profile(), specGenerator.Config,
 		)
 		if err != nil {
-			return errors.Wrap(err, "load default profile")
+			return fmt.Errorf("load default profile: %w", err)
 		}
 
 		specGenerator.Config.Linux.Seccomp = linuxSpecs
@@ -217,13 +218,13 @@ func (c *Config) setupFromPath(
 
 	// Load local seccomp profiles including their availability validation
 	if !strings.HasPrefix(profilePath, k8sV1.SeccompLocalhostProfileNamePrefix) {
-		return errors.Errorf("unknown seccomp profile path: %q", profilePath)
+		return fmt.Errorf("unknown seccomp profile path: %q", profilePath)
 	}
 
 	fname := strings.TrimPrefix(profilePath, k8sV1.SeccompLocalhostProfileNamePrefix)
 	file, err := os.ReadFile(filepath.FromSlash(fname))
 	if err != nil {
-		return errors.Errorf("cannot load seccomp profile %q: %v", fname, err)
+		return fmt.Errorf("cannot load seccomp profile %q: %w", fname, err)
 	}
 
 	linuxSpecs, err := seccomp.LoadProfileFromBytes(file, specGenerator.Config)
@@ -246,7 +247,7 @@ func (c *Config) setupFromField(
 			// Kubernetes sandboxes run per default with `SecurityProfileTypeRuntimeDefault`:
 			// https://github.com/kubernetes/kubernetes/blob/629d5ab/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L155-L162
 			profileField.ProfileType != types.SecurityProfile_RuntimeDefault {
-			return errors.Errorf(
+			return errors.New(
 				"seccomp is not enabled, cannot run with custom profile",
 			)
 		}
@@ -266,7 +267,7 @@ func (c *Config) setupFromField(
 			c.Profile(), specGenerator.Config,
 		)
 		if err != nil {
-			return errors.Wrap(err, "load default profile")
+			return fmt.Errorf("load default profile: %w", err)
 		}
 		specGenerator.Config.Linux.Seccomp = linuxSpecs
 		return nil
@@ -275,14 +276,14 @@ func (c *Config) setupFromField(
 	// Load local seccomp profiles including their availability validation
 	file, err := os.ReadFile(filepath.FromSlash(profileField.LocalhostRef))
 	if err != nil {
-		return errors.Wrapf(
-			err, "unable to load local profile %q", profileField.LocalhostRef,
+		return fmt.Errorf(
+			"unable to load local profile %q: %w", profileField.LocalhostRef, err,
 		)
 	}
 
 	linuxSpecs, err := seccomp.LoadProfileFromBytes(file, specGenerator.Config)
 	if err != nil {
-		return errors.Wrap(err, "load local profile")
+		return fmt.Errorf("load local profile: %w", err)
 	}
 	specGenerator.Config.Linux.Seccomp = linuxSpecs
 	return nil

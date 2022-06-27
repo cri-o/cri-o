@@ -15,7 +15,6 @@ import (
 	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -97,7 +96,7 @@ func (m *CgroupfsManager) PopulateSandboxCgroupStats(sbParent string, stats *typ
 // so that CRI-O can clean the cgroup path of the newly added conmon once the process terminates (systemd handles this for us)
 func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (cgroupPathToClean string, _ error) {
 	if conmonCgroup != utils.PodCgroupName && conmonCgroup != "" {
-		return "", errors.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
+		return "", fmt.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
 	}
 
 	if resources == nil {
@@ -126,7 +125,7 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 	// through e.g. runc. This should be handled by implementing a conmon monitoring
 	// routine that does the cgroup cleanup once conmon is terminated.
 	if err := control.AddPid(pid); err != nil {
-		return "", errors.Wrapf(err, "Failed to add conmon to cgroupfs sandbox cgroup")
+		return "", fmt.Errorf("failed to add conmon to cgroupfs sandbox cgroup: %w", err)
 	}
 	return cgroupPath, nil
 }

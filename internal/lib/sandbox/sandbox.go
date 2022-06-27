@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,7 +11,6 @@ import (
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
@@ -353,7 +353,7 @@ func (s *Sandbox) SetNetworkStopped(createFile bool) error {
 	s.networkStopped = true
 	if createFile {
 		if err := s.createFileInInfraDir(sbNetworkStoppedFilename); err != nil {
-			return fmt.Errorf("failed to create state file in container directory. Restores may fail: %v", err)
+			return fmt.Errorf("failed to create state file in container directory. Restores may fail: %w", err)
 		}
 	}
 	return nil
@@ -467,7 +467,7 @@ func (s *Sandbox) UnmountShm() error {
 	// try to unmount, ignoring "not mounted" (EINVAL) error and
 	// "already unmounted" (ENOENT) error
 	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL && err != unix.ENOENT {
-		return errors.Wrapf(err, "unable to unmount %s", fp)
+		return fmt.Errorf("unable to unmount %s: %w", fp, err)
 	}
 
 	return nil

@@ -19,7 +19,7 @@ import (
 func Kill(pid int) error {
 	err := unix.Kill(pid, unix.SIGKILL)
 	if err != nil && err != unix.ESRCH {
-		return fmt.Errorf("failed to kill process: %v", err)
+		return fmt.Errorf("failed to kill process: %w", err)
 	}
 	return nil
 }

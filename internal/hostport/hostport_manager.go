@@ -264,7 +264,7 @@ func (hm *hostportManager) syncIPTables(lines []byte) error {
 	logrus.Infof("Restoring iptables rules: %s", lines)
 	err := hm.iptables.RestoreAll(lines, utiliptables.NoFlushTables, utiliptables.RestoreCounters)
 	if err != nil {
-		return fmt.Errorf("failed to execute iptables-restore: %v", err)
+		return fmt.Errorf("failed to execute iptables-restore: %w", err)
 	}
 	return nil
 }
@@ -293,7 +293,7 @@ func (hm *hostportManager) openHostports(podPortMapping *PodPortMapping) (map[ho
 		hp := portMappingToHostport(pm, hm.getIPFamily())
 		socket, err := hm.portOpener(&hp)
 		if err != nil {
-			retErr = fmt.Errorf("cannot open hostport %d for pod %s: %v", pm.HostPort, getPodFullName(podPortMapping), err)
+			retErr = fmt.Errorf("cannot open hostport %d for pod %s: %w", pm.HostPort, getPodFullName(podPortMapping), err)
 			break
 		}
 		ports[hp] = socket
@@ -319,7 +319,7 @@ func (hm *hostportManager) closeHostports(hostportMappings []*PortMapping) error
 		if socket, ok := hm.hostPortMap[hp]; ok {
 			logrus.Infof("Closing host port %s", hp.String())
 			if err := socket.Close(); err != nil {
-				errList = append(errList, fmt.Errorf("failed to close host port %s: %v", hp.String(), err))
+				errList = append(errList, fmt.Errorf("failed to close host port %s: %w", hp.String(), err))
 				continue
 			}
 			delete(hm.hostPortMap, hp)
@@ -374,7 +374,7 @@ func getExistingHostportIPTablesRules(iptables utiliptables.Interface) (map[util
 	iptablesData := bytes.NewBuffer(nil)
 	err := iptables.SaveInto(utiliptables.TableNAT, iptablesData)
 	if err != nil { // if we failed to get any rules
-		return nil, nil, fmt.Errorf("failed to execute iptables-save: %v", err)
+		return nil, nil, fmt.Errorf("failed to execute iptables-save: %w", err)
 	}
 	existingNATChains := utiliptables.GetChainLines(utiliptables.TableNAT, iptablesData.Bytes())
 
@@ -444,16 +444,16 @@ func deleteConntrackEntriesForDstPort(port uint16, protocol uint8, family netlin
 	filter := &netlink.ConntrackFilter{}
 	err := filter.AddProtocol(protocol)
 	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %v", protocol, port, err)
+		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %w", protocol, port, err)
 	}
 	err = filter.AddPort(netlink.ConntrackOrigDstPort, port)
 	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %v", protocol, port, err)
+		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %w", protocol, port, err)
 	}
 
 	_, err = netlink.ConntrackDeleteFilter(netlink.ConntrackTable, family, filter)
 	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %v", protocol, port, err)
+		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %w", protocol, port, err)
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -18,7 +19,6 @@ import (
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -42,7 +42,7 @@ func ExecCmd(name string, args ...string) (string, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("`%v %v` failed: %v %v (%v)", name, strings.Join(args, " "), stderr.String(), stdout.String(), err)
+		return "", fmt.Errorf("`%v %v` failed: %v %v: %w", name, strings.Join(args, " "), stderr.String(), stdout.String(), err)
 	}
 
 	return stdout.String(), nil
@@ -96,7 +96,7 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 		// We also don't use the native context cancelling behavior of the dbus library,
 		// because experience has shown that it does not help.
 		// TODO: Find cause of the request being dropped in the dbus library and fix it.
-		return errors.Errorf("timed out moving conmon with pid %d to systemd unit %s", pid, unitName)
+		return fmt.Errorf("timed out moving conmon with pid %d to systemd unit %s", pid, unitName)
 	}
 
 	return nil
@@ -214,7 +214,7 @@ func WriteGoroutineStacksToFile(path string) error {
 func GenerateID() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
-		return "", errors.Wrap(err, "generate ID")
+		return "", fmt.Errorf("generate ID: %w", err)
 	}
 	return hex.EncodeToString(b), nil
 }
@@ -256,7 +256,7 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 
 	execUser, err := user.GetExecUser(userName, nil, passwdFile, groupFile)
 	if err != nil {
-		return 0, 0, nil, errors.Wrap(err, "get exec user")
+		return 0, 0, nil, fmt.Errorf("get exec user: %w", err)
 	}
 
 	uid = uint32(execUser.Uid)
@@ -280,7 +280,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	passwdFile := filepath.Join(rundir, "passwd")
 	originPasswdFile, err := securejoin.SecureJoin(rootfs, "/etc/passwd")
 	if err != nil {
-		return "", errors.Wrap(err, "unable to follow symlinks to passwd file")
+		return "", fmt.Errorf("unable to follow symlinks to passwd file: %w", err)
 	}
 	var st unix.Stat_t
 	err = unix.Stat(originPasswdFile, &st)
@@ -288,7 +288,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		if os.IsNotExist(err) {
 			return "", nil
 		}
-		return "", errors.Wrapf(err, "unable to stat passwd file %s", originPasswdFile)
+		return "", fmt.Errorf("unable to stat passwd file %s: %w", originPasswdFile, err)
 	}
 	// Check if passwd file is world writable.
 	if st.Mode&0o022 != 0 {
@@ -305,7 +305,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		if os.IsNotExist(err) {
 			return "", nil
 		}
-		return "", errors.Wrapf(err, "read passwd file")
+		return "", fmt.Errorf("read passwd file: %w", err)
 	}
 	if username == "" {
 		username = "default"
@@ -315,10 +315,10 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	}
 	pwd := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", orig, username, uid, gid, username, homedir)
 	if err := os.WriteFile(passwdFile, []byte(pwd), os.FileMode(st.Mode)&os.ModePerm); err != nil {
-		return "", errors.Wrap(err, "failed to create temporary passwd file")
+		return "", fmt.Errorf("failed to create temporary passwd file: %w", err)
 	}
 	if err := os.Chown(passwdFile, int(st.Uid), int(st.Gid)); err != nil {
-		return "", errors.Wrap(err, "failed to chown temporary passwd file")
+		return "", fmt.Errorf("failed to chown temporary passwd file: %w", err)
 	}
 
 	return passwdFile, nil
@@ -346,7 +346,7 @@ func EnsureSaneLogPath(logPath string) error {
 	if os.IsNotExist(err) {
 		err = os.RemoveAll(logPath)
 		if err != nil {
-			return fmt.Errorf("failed to remove bad log path %s: %v", logPath, err)
+			return fmt.Errorf("failed to remove bad log path %s: %w", logPath, err)
 		}
 	}
 	return nil
