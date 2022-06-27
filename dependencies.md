@@ -1,15 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 27 Jun 2022 11:23:28 UTC for commit [9d2584d][0]._
+_Generated on Mon, 27 Jun 2022 13:49:41 UTC for commit [a195e6a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9d2584daa83983b4782ec5cf2d98864fe7b12760
+[0]: https://github.com/cri-o/cri-o/commit/a195e6a3b325cc097be45c4c9a4e56f776f7c66b
 
 ## Outdated Dependencies
 
 |             MODULE              |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |---------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220624115617-57c2a0d0869f | true   | true             |
-| github.com/stretchr/testify     | v1.7.4                             | v1.7.5                             | true   | true             |
+| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220627130016-2e0c8c4dac76 | true   | true             |
 | golang.org/x/net                | v0.0.0-20220621193019-9d032be2e588 | v0.0.0-20220624214902-1bab6f366d9e | true   | true             |
 | golang.org/x/sys                | v0.0.0-20220615213510-4f61da869c0c | v0.0.0-20220624220833-87e55d714810 | true   | true             |
 | k8s.io/api                      | v0.0.0-20220524121711-3ddd0f45aa91 | v0.0.0-20220626121858-f4abde9e57cc | true   | true             |
@@ -266,7 +265,7 @@ _Generated on Mon, 27 Jun 2022 11:23:28 UTC for commit [9d2584d][0]._
 | github.com/containers/buildah                                               | v1.26.1                                           |                                    | true   | true             |
 | github.com/containers/common                                                | v0.48.0                                           |                                    | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                              |                                    | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220624115617-57c2a0d0869f | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220627130016-2e0c8c4dac76 | true   | true             |
 | github.com/containers/image/v5                                              | v5.21.1                                           |                                    | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20200511145503-9c3a6c22cd9a                |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.1.5                                            |                                    | true   | true             |
@@ -900,7 +899,7 @@ _Generated on Mon, 27 Jun 2022 11:23:28 UTC for commit [9d2584d][0]._
 | github.com/streadway/amqp                                                   | v1.0.0                                            |                                    | false  | true             |
 | github.com/streadway/handy                                                  | v0.0.0-20190108123426-d5acb3125c2a                | v0.0.0-20200128134331-0f66f006fb2e | false  | true             |
 | github.com/stretchr/objx                                                    | v0.4.0                                            |                                    | false  | true             |
-| github.com/stretchr/testify                                                 | v1.7.4                                            | v1.7.5                             | true   | true             |
+| github.com/stretchr/testify                                                 | v1.7.5                                            |                                    | true   | true             |
 | github.com/subosito/gotenv                                                  | v1.3.0                                            | v1.4.0                             | false  | true             |
 | github.com/sylabs/sif/v2                                                    | v2.7.0                                            | v2.7.1                             | false  | true             |
 | github.com/sylvia7788/contextcheck                                          | v1.0.4                                            | v1.0.5                             | false  | true             |
