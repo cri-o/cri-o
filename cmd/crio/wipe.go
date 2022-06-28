@@ -70,7 +70,7 @@ func crioWipe(c *cli.Context) error {
 			err := handleCleanShutdown(config, v)
 			if err != nil {
 				if lastError != nil {
-					lastError = errors.Wrap(lastError, err.Error())
+					lastError = fmt.Errorf("%w, %s", lastError, err.Error())
 				} else {
 					lastError = err
 				}

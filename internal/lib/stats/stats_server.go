@@ -187,11 +187,11 @@ func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*typ
 	}
 	store, err := ss.Store().GetStoreForContainer(container.ID())
 	if err != nil {
-		return writableLayer, errors.Wrapf(err, "unable to get store for container %s", container.ID())
+		return writableLayer, fmt.Errorf("unable to get store for container %s: %w", container.ID(), err)
 	}
 	driver, err := store.GraphDriver()
 	if err != nil {
-		return writableLayer, errors.Wrapf(err, "unable to get graph driver for disk usage for container %s", container.ID())
+		return writableLayer, fmt.Errorf("unable to get graph driver for disk usage for container %s: %w", container.ID(), err)
 	}
 	storageContainer, err := store.Container(container.ID())
 	if err != nil {
@@ -199,7 +199,7 @@ func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*typ
 	}
 	usage, err := driver.ReadWriteDiskUsage(storageContainer.LayerID)
 	if err != nil {
-		return writableLayer, errors.Wrapf(err, "unable to get disk usage for container %s", container.ID())
+		return writableLayer, fmt.Errorf("unable to get disk usage for container %s: %w", container.ID(), err)
 	}
 	writableLayer.UsedBytes = &types.UInt64Value{Value: uint64(usage.Size)}
 	writableLayer.InodesUsed = &types.UInt64Value{Value: uint64(usage.InodeCount)}
