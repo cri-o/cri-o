@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/storage"
 	crioStorage "github.com/cri-o/cri-o/utils"
+	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -32,13 +33,23 @@ func getStorageFsInfo(store storage.Store) (*types.FilesystemUsage, error) {
 
 // ImageFsInfo returns information of the filesystem that is used to store images.
 func (s *Server) ImageFsInfo(context.Context) (*types.ImageFsInfoResponse, error) {
-	store := s.StorageImageServer().GetStore()
-	fsUsage, err := getStorageFsInfo(store)
-	if err != nil {
-		return nil, err
+	var resp types.ImageFsInfoResponse
+	var lastError error
+	store := s.GetAllStores()
+	for _, s := range store {
+		fsUsage, err := getStorageFsInfo(s)
+		if err != nil {
+			if lastError == nil {
+				lastError = err
+			} else {
+				lastError = errors.Wrap(lastError, err.Error())
+			}
+			continue
+		}
+		resp.ImageFilesystems = append(resp.ImageFilesystems, fsUsage)
 	}
-
-	return &types.ImageFsInfoResponse{
-		ImageFilesystems: []*types.FilesystemUsage{fsUsage},
-	}, nil
+	if lastError != nil {
+		return nil, lastError
+	}
+	return &resp, nil
 }

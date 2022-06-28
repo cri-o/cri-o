@@ -28,7 +28,7 @@ type IDMappings struct {
 
 // CrioInfo stores information about the crio daemon
 type CrioInfo struct {
-	StorageDriver     string     `json:"storage_driver"`
+	StorageDriver     []string   `json:"storage_driver"`
 	StorageRoot       string     `json:"storage_root"`
 	CgroupDriver      string     `json:"cgroup_driver"`
 	DefaultIDMappings IDMappings `json:"default_id_mappings"`

@@ -81,6 +81,7 @@ type pullArguments struct {
 	image         string
 	sandboxCgroup string
 	credentials   imageTypes.DockerAuthConfig
+	storageDriver string
 }
 
 // pullOperation is used to synchronize parallel pull operations via the
@@ -412,7 +413,6 @@ func New(
 		os.Unsetenv("XDG_RUNTIME_DIR")
 		os.Unsetenv("DBUS_SESSION_BUS_ADDRESS")
 	}
-
 	s := &Server{
 		ContainerServer:          containerServer,
 		hostportManager:          hostportManager,
@@ -715,4 +715,12 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	if err := os.Remove(event.Name); err != nil {
 		log.Warnf(ctx, "Failed to remove exit file: %v", err)
 	}
+}
+
+func (s *Server) GetStorageDriverByRuntime(runtimeHandler string) string {
+	r, ok := s.config.Runtimes[runtimeHandler]
+	if !ok {
+		return s.config.RootConfig.Storage
+	}
+	return r.Storage
 }

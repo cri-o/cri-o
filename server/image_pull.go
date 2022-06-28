@@ -9,6 +9,7 @@ import (
 	"time"
 
 	imageTypes "github.com/containers/image/v5/types"
+	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -34,9 +35,12 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	if req.SandboxConfig != nil && req.SandboxConfig.Linux != nil {
 		sandboxCgroup = req.SandboxConfig.Linux.CgroupParent
 	}
+	storageDriver := s.findStorageDriver(ctx, req)
+
 	pullArgs := pullArguments{
 		image:         image,
 		sandboxCgroup: sandboxCgroup,
+		storageDriver: storageDriver,
 	}
 	if req.Auth != nil {
 		username := req.Auth.Username
@@ -100,6 +104,36 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	}, nil
 }
 
+func (s *Server) findStorageDriver(ctx context.Context, req *types.PullImageRequest) string {
+	defaultStorage := s.config.RootConfig.Storage
+	// Return the default storage driver if the pull image request doesn't contain sandbox configuration and valid metadata
+	if req.SandboxConfig == nil {
+		return defaultStorage
+	}
+	if req.SandboxConfig.Metadata == nil {
+		return defaultStorage
+	}
+	name := sboxfactory.ConstructSandboxNameFromConfig(req.SandboxConfig)
+	podID, err := s.PodIDForName(name)
+	if err != nil {
+		log.Warnf(ctx, "Failed getting sandbox %s", name)
+		return defaultStorage
+	}
+	sbox := s.GetSandbox(podID)
+	if sbox == nil {
+		return defaultStorage
+	}
+	if sbox.RuntimeHandler() != "" {
+		r, ok := s.config.Runtimes[sbox.RuntimeHandler()]
+		if !ok {
+			log.Warnf(ctx, "Failed getting runtime from the config %s", sbox.RuntimeHandler())
+			return defaultStorage
+		}
+		return r.Storage
+	}
+	return defaultStorage
+}
+
 // pullImage performs the actual pull operation of PullImage. Used to separate
 // the pull implementation from the pullCache logic in PullImage and improve
 // readability and maintainability.
@@ -110,6 +144,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	if pullArgs.credentials.Username != "" {
 		sourceCtx.DockerAuthConfig = &pullArgs.credentials
 	}
+	storageDriver := pullArgs.storageDriver
 
 	decryptConfig, err := getDecryptionKeys(s.config.DecryptionKeysPath)
 	if err != nil {
@@ -120,20 +155,24 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		images []string
 		pulled string
 	)
-	images, err = s.StorageImageServer().ResolveNames(s.config.SystemContext, pullArgs.image)
+	is, err := s.StorageImageServer(storageDriver)
+	if err != nil {
+		return "", err
+	}
+	images, err = is.ResolveNames(s.config.SystemContext, pullArgs.image)
 	if err != nil {
 		return "", err
 	}
 	for _, img := range images {
 		var tmpImg imageTypes.ImageCloser
-		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
+		tmpImg, err = is.PrepareImage(&sourceCtx, img)
 		if err != nil {
 			// We're not able to find the image remotely, check if it's
 			// available locally, but only for localhost/ prefixed ones.
 			// This allows pulling localhost/ prefixed images even if the
 			// `imagePullPolicy` is set to `Always`.
 			if strings.HasPrefix(img, localRegistryPrefix) {
-				if _, err := s.StorageImageServer().ImageStatus(
+				if _, err := is.ImageStatus(
 					s.config.SystemContext, img,
 				); err == nil {
 					pulled = img
@@ -147,7 +186,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		defer tmpImg.Close() // nolint:gocritic
 
 		var storedImage *storage.ImageResult
-		storedImage, err = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
+		storedImage, err = is.ImageStatus(s.config.SystemContext, img)
 		if err == nil {
 			tmpImgConfigDigest := tmpImg.ConfigInfo().Digest
 			if tmpImgConfigDigest.String() == "" {
@@ -236,7 +275,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			}
 		}
 
-		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &storage.ImageCopyOptions{
+		_, err = is.PullImage(s.config.SystemContext, img, &storage.ImageCopyOptions{
 			SourceCtx:        &sourceCtx,
 			DestinationCtx:   s.config.SystemContext,
 			OciDecryptConfig: decryptConfig,
@@ -263,7 +302,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	// Update metric for successful image pulls
 	metrics.Instance().MetricImagePullsSuccessesInc(pulled)
 
-	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
+	status, err := is.ImageStatus(s.config.SystemContext, pulled)
 	if err != nil {
 		return "", err
 	}

@@ -166,6 +166,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 	securityContext := containerConfig.Linux.SecurityContext
 
+	storageDriver := s.GetStorageDriverByRuntime(sb.RuntimeHandler())
 	// creates a spec Generator with the default spec.
 	specgen := ctr.Spec()
 	specgen.HostSpecific = true
@@ -204,7 +205,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
+	is, err := s.StorageImageServer(storageDriver)
+	if err != nil {
+		return nil, err
+	}
+	images, err := is.ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -219,7 +224,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		imgResultErr error
 	)
 	for _, img := range images {
-		imgResult, imgResultErr = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
+		imgResult, imgResultErr = is.ImageStatus(s.config.SystemContext, img)
 		if imgResultErr == nil {
 			break
 		}
@@ -260,6 +265,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		idMappingOptions,
 		labelOptions,
 		ctr.Privileged(),
+		storageDriver,
 	)
 	if err != nil {
 		return nil, err

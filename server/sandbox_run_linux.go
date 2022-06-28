@@ -414,6 +414,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	kubeAnnotations := sbox.Config().Annotations
 
 	usernsMode := kubeAnnotations[ann.UsernsModeAnnotation]
+	storageDriver := s.GetStorageDriverByRuntime(runtimeHandler)
 
 	idMappingsOptions, err := s.configureSandboxIDMappings(usernsMode, sbox.Config().Linux.SecurityContext)
 	if err != nil {
@@ -450,6 +451,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		idMappingsOptions,
 		labelOptions,
 		privileged,
+		storageDriver,
 	)
 	if errors.Is(err, storage.ErrDuplicateName) {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", sbox.Name())
