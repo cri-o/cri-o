@@ -19,7 +19,6 @@ jobs:
     steps:
       - uses: actions/stale@v5
         with:
-          repo-token: ${{ secrets.GH_TOKEN }}
           stale-issue-message: 'A friendly reminder that this issue had no activity for 30 days.'
           stale-pr-message: 'A friendly reminder that this PR had no activity for 30 days.'
           stale-issue-label: 'lifecycle/stale'
