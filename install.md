@@ -52,7 +52,8 @@ Debian Testing
 Debian 10
 Debian 11
 Rasbian 10
-xUbuntu 20.10
+xUbuntu 22.04
+xUbuntu 21.10
 xUbuntu 20.04
 xUbuntu 18.04
 ```
@@ -127,9 +128,9 @@ To install on the following operating systems, set the environment variable $OS 
 | Debian Testing   | `Debian_Testing`  |
 | Debian 10        | `Debian_10`       |
 | Raspberry Pi OS  | `Raspbian_10`     |
+| Ubuntu 22.04     | `xUbuntu_22.04`   |
+| Ubuntu 21.10     | `xUbuntu_21.10`   |
 | Ubuntu 20.04     | `xUbuntu_20.04`   |
-| Ubuntu 19.10     | `xUbuntu_19.10`   |
-| Ubuntu 19.04     | `xUbuntu_19.04`   |
 | Ubuntu 18.04     | `xUbuntu_18.04`   |
 
 If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1. **NOTE: This is not available in distros based on Debian 10(buster) or below, so buster backports will need to be enabled:**
