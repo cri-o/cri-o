@@ -25,15 +25,18 @@ package spdx
 import (
 	"bytes"
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"sync"
 	"text/template"
 
-	"github.com/pkg/errors"
+	purl "github.com/package-url/packageurl-go"
 	"github.com/sirupsen/logrus"
 )
+
+const OptionVersionPattern PurlSearchOption = "VERSION_PATTERN"
 
 var packageTemplate = `##### Package: {{ .Name }}
 
@@ -128,7 +131,7 @@ func (p *Package) AddFile(file *File) error {
 		}
 		h := sha1.New()
 		if _, err := h.Write([]byte(p.Name + ":" + file.Name)); err != nil {
-			return errors.Wrap(err, "getting sha1 of filename")
+			return fmt.Errorf("getting sha1 of filename: %w", err)
 		}
 		file.BuildID(fmt.Sprintf("%x", h.Sum(nil)))
 	}
@@ -176,81 +179,122 @@ func (p *Package) Files() []*File {
 	return ret
 }
 
+// ComputeVerificationCode calculates the package verification
+// code according to the SPDX spec
+func (p *Package) ComputeVerificationCode() error {
+	files := p.Files()
+	p.VerificationCode = ""
+
+	// If files where not analyzed, the code is not required
+	if !p.FilesAnalyzed {
+		return nil
+	}
+
+	// If there are no files, the code is not required
+	if len(files) == 0 {
+		return nil
+	}
+	shaList := []string{}
+	for _, f := range files {
+		if f.Checksum == nil {
+			return fmt.Errorf("unable to render package, file has no checksums")
+		}
+		if _, ok := f.Checksum["SHA1"]; !ok {
+			return fmt.Errorf(
+				"unable to render package, files were analyzed but some do not have sha1 checksums",
+			)
+		}
+		shaList = append(shaList, f.Checksum["SHA1"])
+	}
+
+	// Sort the strings:
+	sort.Strings(shaList)
+	h := sha1.New()
+	if _, err := h.Write([]byte(strings.Join(shaList, ""))); err != nil {
+		return fmt.Errorf("getting SHA1 verification of files: %w", err)
+	}
+	p.VerificationCode = fmt.Sprintf("%x", h.Sum(nil))
+	return nil
+}
+
+// ComputeLicenseListComputes the license list from the
+// files contained in the package
+func (p *Package) ComputeLicenseList() error {
+	p.LicenseInfoFromFiles = []string{}
+	if !p.FilesAnalyzed {
+		return nil
+	}
+
+	files := p.Files()
+	if len(files) == 0 {
+		return fmt.Errorf("unable to compute license list, package has no files")
+	}
+
+	filesTagList := []string{}
+	for _, f := range files {
+		// Collect the license tags
+		if f.LicenseInfoInFile != "" {
+			collected := false
+			for _, tag := range filesTagList {
+				if tag == f.LicenseInfoInFile {
+					collected = true
+					break
+				}
+			}
+			if !collected {
+				filesTagList = append(filesTagList, f.LicenseInfoInFile)
+			}
+		}
+	}
+
+	for _, tag := range filesTagList {
+		if tag != NONE && tag != NOASSERTION {
+			p.LicenseInfoFromFiles = append(p.LicenseInfoFromFiles, tag)
+		}
+	}
+
+	// If no license tags where collected from files, then the SBOM has
+	// to express "NONE" in the LicenseInfoFromFiles section to be compliant:
+	if len(filesTagList) == 0 {
+		p.LicenseInfoFromFiles = append(p.LicenseInfoFromFiles, NONE)
+	}
+
+	return nil
+}
+
 // Render renders the document fragment of the package
 func (p *Package) Render() (docFragment string, err error) {
 	// First thing, check all relationships
 	if len(p.Relationships) > 0 {
 		logrus.Infof("Package %s has %d relationships defined", p.SPDXID(), len(p.Relationships))
 		if err := p.CheckRelationships(); err != nil {
-			return "", errors.Wrap(err, "checking package relationships")
+			return "", fmt.Errorf("checking package relationships: %w", err)
 		}
 	}
 
 	var buf bytes.Buffer
 	tmpl, err := template.New("package").Parse(packageTemplate)
 	if err != nil {
-		return "", errors.Wrap(err, "parsing package template")
+		return "", fmt.Errorf("parsing package template: %w", err)
 	}
 
-	// If files were analyzed, calculate the verification which
-	// is a sha1sum from all sha1 checksumf from included friles.
-	//
-	// Since we are already doing it, we use the same loop to
-	// collect license tags to express them in the LicenseInfoFromFiles
-	// entry of the SPDX package:
-	filesTagList := []string{}
 	if p.FilesAnalyzed {
-		files := p.Files()
-		if len(files) == 0 {
-			return docFragment, errors.New("unable to get package verification code, package has no files")
-		}
-		shaList := []string{}
-		for _, f := range files {
-			if f.Checksum == nil {
-				return docFragment, errors.New("unable to render package, file has no checksums")
-			}
-			if _, ok := f.Checksum["SHA1"]; !ok {
-				return docFragment, errors.New("unable to render package, files were analyzed but some do not have sha1 checksum")
-			}
-			shaList = append(shaList, f.Checksum["SHA1"])
-
-			// Collect the license tags
-			if f.LicenseInfoInFile != "" {
-				collected := false
-				for _, tag := range filesTagList {
-					if tag == f.LicenseInfoInFile {
-						collected = true
-						break
-					}
-				}
-				if !collected {
-					filesTagList = append(filesTagList, f.LicenseInfoInFile)
-				}
-			}
-		}
-		sort.Strings(shaList)
-		h := sha1.New()
-		if _, err := h.Write([]byte(strings.Join(shaList, ""))); err != nil {
-			return docFragment, errors.Wrap(err, "getting sha1 verification of files")
-		}
-		p.VerificationCode = fmt.Sprintf("%x", h.Sum(nil))
-
-		for _, tag := range filesTagList {
-			if tag != NONE && tag != NOASSERTION {
-				p.LicenseInfoFromFiles = append(p.LicenseInfoFromFiles, tag)
-			}
+		// If files were analyzed, calculate the verification which
+		// is a sha1sum from all sha1 checksum from contained files.
+		if err := p.ComputeVerificationCode(); err != nil {
+			return "", fmt.Errorf("computing verification code: %w", err)
 		}
 
-		// If no license tags where collected from files, then the BOM has
-		// to express "NONE" in the LicenseInfoFromFiles section to be compliant:
-		if len(filesTagList) == 0 {
-			p.LicenseInfoFromFiles = append(p.LicenseInfoFromFiles, NONE)
+		// Extract the ltest license tags from the contained files
+		// these MUST be listed in the LicenseInfoFromFiles tag
+		if err := p.ComputeVerificationCode(); err != nil {
+			return "", fmt.Errorf("computing verification code: %w", err)
 		}
 	}
 
 	// Run the template to verify the output.
 	if err := tmpl.Execute(&buf, p); err != nil {
-		return "", errors.Wrap(err, "executing spdx package template")
+		return "", fmt.Errorf("executing spdx package template: %w", err)
 	}
 
 	docFragment = buf.String()
@@ -259,7 +303,7 @@ func (p *Package) Render() (docFragment string, err error) {
 	for _, rel := range p.Relationships {
 		fragment, err := rel.Render(p)
 		if err != nil {
-			return "", errors.Wrap(err, "rendering relationship")
+			return "", fmt.Errorf("rendering relationship: %w", err)
 		}
 		docFragment += fragment
 	}
@@ -420,5 +464,70 @@ func (p *Package) GetElementByID(id string) Object {
 	if p.SPDXID() == id {
 		return p
 	}
-	return recursiveSearch(id, p, &map[string]struct{}{})
+	return recursiveIDSearch(id, p, &map[string]struct{}{})
+}
+
+// Purl searches the external refs in the package and returns
+// a pursed purl if it finds a purl PACKAGE-MANAGER
+func (p *Package) Purl() *purl.PackageURL {
+	if p.ExternalRefs == nil {
+		return nil
+	}
+	purlString := ""
+	for _, er := range p.ExternalRefs {
+		if er.Category == "PACKAGE-MANAGER" && er.Type == "purl" {
+			purlString = er.Locator
+		}
+	}
+	if purlString == "" {
+		return nil
+	}
+	// Parse the purl
+	purlObject, err := purl.FromString(purlString)
+	if err != nil {
+		logrus.Warnf("Invalid Purl in package %s: %s", p.SPDXID(), purlString)
+		return nil
+	}
+	return &purlObject
+}
+
+type PurlSearchOption string
+
+// PurlMatches gets a spec url and returns true if its defined parts
+// match the analog parts in the package's purl
+func (p *Package) PurlMatches(spec *purl.PackageURL, opts ...PurlSearchOption) bool {
+	pkgPurl := p.Purl()
+	if pkgPurl == nil {
+		return false
+	}
+
+	if spec.Type != "*" && spec.Type != pkgPurl.Type {
+		return false
+	}
+	if spec.Namespace != "*" && spec.Namespace != pkgPurl.Namespace {
+		return false
+	}
+	if spec.Name != "*" && spec.Name != pkgPurl.Name {
+		return false
+	}
+	if spec.Version != "*" && spec.Version != pkgPurl.Version {
+		return false
+	}
+	if spec.Subpath != "*" && spec.Subpath != pkgPurl.Subpath {
+		return false
+	}
+
+	// Compare the qualifiers
+	specQs := spec.Qualifiers.Map()
+	pkgQs := pkgPurl.Qualifiers.Map()
+
+	for k := range specQs {
+		if _, ok := pkgQs[k]; !ok {
+			return false
+		}
+		if specQs[k] != pkgQs[k] {
+			return false
+		}
+	}
+	return true
 }

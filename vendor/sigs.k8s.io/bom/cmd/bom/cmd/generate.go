@@ -17,14 +17,15 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"sigs.k8s.io/bom/pkg/serialize"
 	"sigs.k8s.io/bom/pkg/spdx"
 	"sigs.k8s.io/release-utils/util"
 	"sigs.k8s.io/release-utils/version"
@@ -38,6 +39,7 @@ type generateOptions struct {
 	scanImages     bool
 	name           string // Name to use in the document
 	namespace      string
+	format         string
 	outputFile     string
 	configFile     string
 	license        string
@@ -62,6 +64,11 @@ func (opts *generateOptions) Validate() error {
 		return errors.New("to generate a SPDX BOM you have to provide at least one image or file")
 	}
 
+	if opts.format != spdx.FormatTagValue && opts.format != spdx.FormatJSON {
+		return fmt.Errorf("unknown format provided, must be one of [%s, %s]: %s",
+			spdx.FormatTagValue, spdx.FormatJSON, opts.format)
+	}
+
 	// Check if specified local files exist
 	for _, col := range []struct {
 		Items []string
@@ -75,7 +82,7 @@ func (opts *generateOptions) Validate() error {
 		// Check if image archives exist
 		for i, iPath := range col.Items {
 			if !isGlob(iPath) && !util.Exists(iPath) {
-				return errors.Errorf("%s #%d not found (%s)", col.Name, i+1, iPath)
+				return fmt.Errorf("%s #%d not found (%s)", col.Name, i+1, iPath)
 			}
 		}
 	}
@@ -120,11 +127,11 @@ completed by a later stage in your CI/CD pipeline. See the
 				}
 				file, err := os.Open(arg)
 				if err != nil {
-					return errors.Wrapf(err, "checking argument %d", i)
+					return fmt.Errorf("checking argument %d: %w", i, err)
 				}
 				fileInfo, err := file.Stat()
 				if err != nil {
-					return errors.Wrapf(err, "calling stat on argument %d", i)
+					return fmt.Errorf("calling stat on argument %d: %w", i, err)
 				}
 				if fileInfo.IsDir() {
 					genOpts.directories = append(genOpts.directories, arg)
@@ -133,7 +140,7 @@ completed by a later stage in your CI/CD pipeline. See the
 
 			if err := genOpts.Validate(); err != nil {
 				cmd.Help() // nolint:errcheck // We already errored
-				return errors.Wrap(err, "validating command line options")
+				return fmt.Errorf("validating command line options: %w", err)
 			}
 
 			return generateBOM(genOpts)
@@ -167,7 +174,7 @@ completed by a later stage in your CI/CD pipeline. See the
 	if err := generateCmd.PersistentFlags().MarkDeprecated(
 		"tarball", "tarball has been renamed to image-archive",
 	); err != nil {
-		logrus.Fatal(errors.Wrap(err, "marking flag as deprecated"))
+		logrus.Fatalf("marking flag as deprecated: %v", err)
 	}
 
 	generateCmd.PersistentFlags().StringSliceVar(
@@ -236,6 +243,14 @@ completed by a later stage in your CI/CD pipeline. See the
 		"an URI that servers as namespace for the SPDX doc",
 	)
 
+	generateCmd.PersistentFlags().StringVar(
+		&genOpts.format,
+		"format",
+		spdx.FormatTagValue,
+		fmt.Sprintf("format of the document (supports %s, %s)",
+			spdx.FormatTagValue, spdx.FormatJSON),
+	)
+
 	generateCmd.PersistentFlags().StringVarP(
 		&genOpts.outputFile,
 		"output",
@@ -299,13 +314,15 @@ func generateBOM(opts *generateOptions) error {
 		version.GetVersionInfo().GitVersion,
 	)
 
-	builder := spdx.NewDocBuilder()
+	newDocBuilderOpts := []spdx.NewDocBuilderOption{spdx.WithFormat(spdx.Format(opts.format))}
+	builder := spdx.NewDocBuilder(newDocBuilderOpts...)
 	builderOpts := &spdx.DocGenerateOptions{
 		Tarballs:         opts.imageArchives,
 		Archives:         opts.archives,
 		Files:            opts.files,
 		Images:           opts.images,
 		Directories:      opts.directories,
+		Format:           opts.format,
 		OutputFile:       opts.outputFile,
 		Namespace:        opts.namespace,
 		AnalyseLayers:    opts.analyze,
@@ -323,14 +340,22 @@ func generateBOM(opts *generateOptions) error {
 	}
 	doc, err := builder.Generate(builderOpts)
 	if err != nil {
-		return errors.Wrap(err, "generating doc")
+		return fmt.Errorf("generating doc: %w", err)
 	}
 
 	if opts.outputFile == "" {
-		markup, err := doc.Render()
-		if err != nil {
-			return errors.Wrap(err, "rendering document")
+		var renderer serialize.Serializer
+		if opts.format == "json" {
+			renderer = &serialize.JSON{}
+		} else {
+			renderer = &serialize.TagValue{}
 		}
+
+		markup, err := renderer.Serialize(doc)
+		if err != nil {
+			return fmt.Errorf("serializing document: %w", err)
+		}
+
 		fmt.Println(markup)
 	}
 
@@ -339,7 +364,7 @@ func generateBOM(opts *generateOptions) error {
 		if err := doc.WriteProvenanceStatement(
 			spdx.DefaultProvenanceOptions, opts.provenancePath,
 		); err != nil {
-			return errors.Wrap(err, "writing SBOM as provenance statement")
+			return fmt.Errorf("writing SBOM as provenance statement: %w", err)
 		}
 	}
 

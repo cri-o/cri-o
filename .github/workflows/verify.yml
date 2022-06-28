@@ -102,10 +102,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - run: sudo scripts/get
+      - run: crio version
+
+  get-script-with-verification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-get-script-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-get-script-
       - uses: sigstore/cosign-installer@v2
       - run: |
           make get-script
           hack/tree_status.sh
+      - run: |
+          make bom
+          sudo cp build/bin/bom /usr/bin
       - run: sudo -E PATH=$PATH scripts/get
       - run: crio version
 

@@ -129,6 +129,7 @@ prepare() {
 prepare "$@"
 
 TARBALL=cri-o.$ARCH.$VERSION.tar.gz
+SPDX=$TARBALL.spdx
 BASE_URL=$GCB_URL/artifacts
 
 TMPDIR="$(mktemp -d)"
@@ -136,30 +137,49 @@ trap 'rm -rf -- "$TMPDIR"' EXIT
 
 if command -v cosign >/dev/null; then
     echo "Found cosign, verifying signatures"
-    TMPDIR=$(mktemp -d)
-    trap 'rm -rf $TMPDIR' EXIT
     pushd "$TMPDIR" >/dev/null
 
-    FILES=("$TARBALL" "$TARBALL.sig" "$TARBALL.cert")
+    FILES=(
+        "$TARBALL"
+        "$TARBALL.sig"
+        "$TARBALL.cert"
+        "$SPDX"
+        "$SPDX.sig"
+        "$SPDX.cert"
+    )
     for FILE in "${FILES[@]}"; do
         echo "Downloading $FILE"
         curl_retry "$BASE_URL/$FILE" -o "$FILE"
     done
 
-    COSIGN_EXPERIMENTAL=1 cosign verify-blob "$TARBALL" \
-        --signature "$TARBALL.sig" \
-        --certificate "$TARBALL.cert"
+    BLOBS=(
+        "$TARBALL"
+        "$SPDX"
+    )
+    for BLOB in "${BLOBS[@]}"; do
+        echo "Verifying blob $BLOB"
+        COSIGN_EXPERIMENTAL=1 cosign verify-blob "$BLOB" \
+            --signature "$BLOB.sig" \
+            --certificate "$BLOB.cert"
+    done
 
-    tar xfz "$TARBALL" --strip-components=1 -C "$TMPDIR"
-    popd >/dev/null
+    tar xfz "$TARBALL"
+    TARBALL_DIR=cri-o
+
+    if command -v bom >/dev/null; then
+        echo "Found bom tool, verifying bill of materials"
+        bom validate -e "$SPDX" -d "$TARBALL_DIR"
+    fi
+
+    pushd "$TARBALL_DIR"
 else
     TARBALL_URL=$BASE_URL/$TARBALL
     echo "Downloading $TARBALL_URL to $TMPDIR"
     curl_retry "$TARBALL_URL" | tar xfz - --strip-components=1 -C "$TMPDIR"
+    pushd "$TMPDIR"
 fi
 
 echo Installing CRI-O
-pushd "$TMPDIR"
 
 # In this section we include the contents of
 # contrib/bundle/install-paths and contrib/bundle/install

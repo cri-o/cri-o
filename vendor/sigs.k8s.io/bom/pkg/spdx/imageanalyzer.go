@@ -17,10 +17,11 @@ limitations under the License.
 package spdx
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,13 +58,13 @@ func NewImageAnalyzer() *ImageAnalyzer {
 //  spdx package referenced by pkg
 func (ia *ImageAnalyzer) AnalyzeLayer(layerPath string, pkg *Package) error {
 	if pkg == nil {
-		return errors.New("Unable to analyze layer, package is null")
+		return errors.New("unable to analyze layer, package is null")
 	}
 	for label, handler := range ia.Analyzers {
 		logrus.Infof("Scanning layer with %s", label)
 		can, err := handler.CanHandle(layerPath)
 		if err != nil {
-			return errors.Wrapf(err, "checking if layer can be handled with %s", label)
+			return fmt.Errorf("checking if layer can be handled with %s: %w", label, err)
 		}
 
 		if can {

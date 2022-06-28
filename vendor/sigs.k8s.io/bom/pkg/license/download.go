@@ -25,13 +25,13 @@ package license
 import (
 	"crypto/sha1"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/nozzle/throttler"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/http"
@@ -52,7 +52,7 @@ func NewDownloader() (*Downloader, error) {
 // NewDownloaderWithOptions returns a downloader with specific options
 func NewDownloaderWithOptions(opts *DownloaderOptions) (*Downloader, error) {
 	if err := opts.Validate(); err != nil {
-		return nil, errors.Wrap(err, "validating downloader options")
+		return nil, fmt.Errorf("validating downloader options: %w", err)
 	}
 	impl := DefaultDownloaderImpl{}
 	impl.SetOptions(opts)
@@ -80,11 +80,11 @@ func (do *DownloaderOptions) Validate() error {
 			dir, err := os.MkdirTemp(os.TempDir(), "license-cache-")
 			do.CacheDir = dir
 			if err != nil {
-				return errors.Wrap(err, "creating temporary directory")
+				return fmt.Errorf("creating temporary directory: %w", err)
 			}
 		} else if !util.Exists(do.CacheDir) {
 			if err := os.MkdirAll(do.CacheDir, os.FileMode(0o755)); err != nil {
-				return errors.Wrap(err, "creating license downloader cache")
+				return fmt.Errorf("creating license downloader cache: %w", err)
 			}
 		}
 
@@ -145,12 +145,12 @@ func (ddi *DefaultDownloaderImpl) GetLicenses() (licenses *List, err error) {
 	// Get the list of licenses
 	licensesJSON, err := http.NewAgent().Get(LicenseDataURL + LicenseListFilename)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching licenses list")
+		return nil, fmt.Errorf("fetching licenses list: %w", err)
 	}
 
 	licenseList := &List{}
 	if err := json.Unmarshal(licensesJSON, licenseList); err != nil {
-		return nil, errors.Wrap(err, "parsing SPDX licence list")
+		return nil, fmt.Errorf("parsing SPDX licence list: %w", err)
 	}
 
 	logrus.Infof("Read data for %d licenses. Downloading.", len(licenseList.LicenseData))
@@ -200,10 +200,13 @@ func (ddi *DefaultDownloaderImpl) cacheData(url string, data []byte) error {
 	_, err := os.Stat(filepath.Dir(cacheFileName))
 	if err != nil && os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(cacheFileName), os.FileMode(0o755)); err != nil {
-			return errors.Wrap(err, "creating cache directory")
+			return fmt.Errorf("creating cache directory: %w", err)
 		}
 	}
-	return errors.Wrap(os.WriteFile(cacheFileName, data, os.FileMode(0o644)), "writing cache file")
+	if err = os.WriteFile(cacheFileName, data, os.FileMode(0o644)); err != nil {
+		return fmt.Errorf("writing cache file: %w", err)
+	}
+	return nil
 }
 
 // getCachedData returns cached data for an URL if we have it
@@ -211,7 +214,7 @@ func (ddi *DefaultDownloaderImpl) getCachedData(url string) ([]byte, error) {
 	cacheFileName := ddi.cacheFileName(url)
 	finfo, err := os.Stat(cacheFileName)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, errors.Wrap(err, "checking if cached data exists")
+		return nil, fmt.Errorf("checking if cached data exists: %w", err)
 	}
 
 	if err != nil {
@@ -221,11 +224,11 @@ func (ddi *DefaultDownloaderImpl) getCachedData(url string) ([]byte, error) {
 
 	if finfo.Size() == 0 {
 		logrus.Warn("Cached file is empty, removing")
-		return nil, errors.Wrap(os.Remove(cacheFileName), "removing corrupt cached file")
+		return nil, fmt.Errorf("removing corrupt cached file: %w", os.Remove(cacheFileName))
 	}
 	licensesJSON, err := os.ReadFile(cacheFileName)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading cached data file")
+		return nil, fmt.Errorf("reading cached data file: %w", err)
 	}
 	return licensesJSON, nil
 }
@@ -237,7 +240,7 @@ func (ddi *DefaultDownloaderImpl) getLicenseFromURL(url string) (license *Licens
 	if ddi.Options.EnableCache {
 		licenseJSON, err = ddi.getCachedData(url)
 		if err != nil {
-			return nil, errors.Wrap(err, "checking download cache")
+			return nil, fmt.Errorf("checking download cache: %w", err)
 		}
 		if len(licenseJSON) > 0 {
 			logrus.Debugf("Data for %s is already cached", url)
@@ -249,14 +252,14 @@ func (ddi *DefaultDownloaderImpl) getLicenseFromURL(url string) (license *Licens
 		logrus.Infof("Downloading license data from %s", url)
 		licenseJSON, err = http.NewAgent().Get(url)
 		if err != nil {
-			return nil, errors.Wrapf(err, "getting %s", url)
+			return nil, fmt.Errorf("getting %s: %w", url, err)
 		}
 
 		logrus.Infof("Downloaded %d bytes from %s", len(licenseJSON), url)
 
 		if ddi.Options.EnableCache {
 			if err := ddi.cacheData(url, licenseJSON); err != nil {
-				return nil, errors.Wrap(err, "caching url data")
+				return nil, fmt.Errorf("caching url data: %w", err)
 			}
 		}
 	}
@@ -264,7 +267,7 @@ func (ddi *DefaultDownloaderImpl) getLicenseFromURL(url string) (license *Licens
 	// Parse the SPDX license from the JSON data
 	l, err := ParseLicense(licenseJSON)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing license json data")
+		return nil, fmt.Errorf("parsing license json data: %w", err)
 	}
 	return l, err
 }

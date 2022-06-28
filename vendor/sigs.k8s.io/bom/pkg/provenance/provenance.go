@@ -20,11 +20,11 @@ package provenance
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-	"github.com/pkg/errors"
 )
 
 // LoadStatement loads a statement from a json file
@@ -33,11 +33,11 @@ func LoadStatement(path string) (s *Statement, err error) {
 
 	jsonData, err := os.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "opening stament JSON file")
+		return nil, fmt.Errorf("opening stament JSON file: %w", err)
 	}
 
 	if err := json.Unmarshal(jsonData, &statement); err != nil {
-		return nil, errors.Wrap(err, "decoding attestation JSON data")
+		return nil, fmt.Errorf("decoding attestation JSON data: %w", err)
 	}
 
 	return statement, nil

@@ -176,6 +176,7 @@ echo "Testing archive"
 tar xf "$ARCHIVE"
 SPDX_PATH="$ARCHIVE_PATH/$SPDX_FILE"
 $BOM document outline "$SPDX_PATH"
+$BOM validate -e "$SPDX_PATH" -d "$CRIODIR"
 pushd "$TMPDIR"
 export DESTDIR=test/
 ./install

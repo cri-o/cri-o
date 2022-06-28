@@ -24,13 +24,13 @@ package provenance
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/hash"
@@ -73,7 +73,7 @@ func (s *Statement) AddSubject(uri string, ds slsa.DigestSet) {
 func (s *Statement) AddSubjectFromFile(filePath string) error {
 	subject, err := s.impl.SubjectFromFile(filePath)
 	if err != nil {
-		return errors.Wrapf(err, "creating subject from file %s", filePath)
+		return fmt.Errorf("creating subject from file %s: %w", filePath, err)
 	}
 	s.impl.AddSubject(s, subject.Name, subject.Digest)
 	return nil
@@ -83,11 +83,11 @@ func (s *Statement) AddSubjectFromFile(filePath string) error {
 func (s *Statement) LoadPredicate(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return errors.Wrap(err, "opening predicate file")
+		return fmt.Errorf("opening predicate file: %w", err)
 	}
 	p := Predicate{}
 	if err := json.Unmarshal(data, &p); err != nil {
-		return errors.Wrap(err, "unmarshalling predicate json")
+		return fmt.Errorf("unmarshalling predicate json: %w", err)
 	}
 	s.Predicate = p
 	return nil
@@ -134,7 +134,8 @@ func (si *defaultStatementImplementation) AddSubject(
 // ReadSubjectsFromDir reads a directory and adds all files found as
 // subjects of the statement.
 func (si *defaultStatementImplementation) ReadSubjectsFromDir(
-	s *Statement, dirPath string) (err error) {
+	s *Statement, dirPath string,
+) (err error) {
 	// Traverse the directory
 	if err := fs.WalkDir(os.DirFS(dirPath), ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -149,12 +150,12 @@ func (si *defaultStatementImplementation) ReadSubjectsFromDir(
 		}
 		hashVal, err := hash.SHA256ForFile(filepath.Join(dirPath, path))
 		if err != nil {
-			return errors.Wrapf(err, "hashing file %s", path)
+			return fmt.Errorf("hashing file %s: %w", path, err)
 		}
 		s.AddSubject(path, slsa.DigestSet{"sha256": hashVal})
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "buiding directory tree")
+		return fmt.Errorf("buiding directory tree: %w", err)
 	}
 	return nil
 }
@@ -167,11 +168,11 @@ func (si *defaultStatementImplementation) SubjectFromFile(filePath string) (subj
 	}
 	h256, err := hash.SHA256ForFile(filePath)
 	if err != nil {
-		return subject, errors.Wrapf(err, "getting sha256 for file %s", filePath)
+		return subject, fmt.Errorf("getting sha256 for file %s: %w", filePath, err)
 	}
 	h512, err := hash.SHA512ForFile(filePath)
 	if err != nil {
-		return subject, errors.Wrapf(err, "getting sha512 for %s", filePath)
+		return subject, fmt.Errorf("getting sha512 for %s: %w", filePath, err)
 	}
 	subject.Digest = map[string]string{
 		"sha256": h256,
@@ -183,7 +184,7 @@ func (si *defaultStatementImplementation) SubjectFromFile(filePath string) (subj
 func (si *defaultStatementImplementation) ToJSON(s *Statement) ([]byte, error) {
 	jsonData, err := json.Marshal(s)
 	if err != nil {
-		return nil, errors.Wrap(err, "marshalling statement to json")
+		return nil, fmt.Errorf("marshalling statement to json: %w", err)
 	}
 	return jsonData, nil
 }
@@ -194,10 +195,12 @@ func (si *defaultStatementImplementation) Write(s *Statement, path string) error
 	if err != nil {
 		return err
 	}
-	return errors.Wrap(
-		os.WriteFile(path, jsonData, os.FileMode(0o644)),
-		"writing predicate file",
-	)
+
+	if err := os.WriteFile(path, jsonData, os.FileMode(0o644)); err != nil {
+		return fmt.Errorf("writing predicate file: %w", err)
+	}
+
+	return nil
 }
 
 // ClonePredicate clones the predicate from the file in manifestPath
@@ -205,7 +208,7 @@ func (si *defaultStatementImplementation) Write(s *Statement, path string) error
 func (si *defaultStatementImplementation) ClonePredicate(s *Statement, manifestPath string) error {
 	otherStatment, err := LoadStatement(manifestPath)
 	if err != nil {
-		return errors.Wrap(err, "loading other manifest to clone data")
+		return fmt.Errorf("loading other manifest to clone data: %w", err)
 	}
 
 	s.Predicate = otherStatment.Predicate
@@ -251,7 +254,7 @@ func (si *defaultStatementImplementation) VerifySubjects(path string, subjects *
 		}
 	}
 	if errs > 0 {
-		return errors.Errorf("%d errors validating subjects in provenance metadata", errs)
+		return fmt.Errorf("%d errors validating subjects in provenance metadata", errs)
 	}
 	return nil
 }

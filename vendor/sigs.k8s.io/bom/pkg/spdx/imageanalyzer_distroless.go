@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -28,7 +29,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/bom/pkg/license"
@@ -56,8 +56,9 @@ func (h *distrolessHandler) ReadPackageData(layerPath string, pkg *Package) erro
 	// Create a new license reader to scan license files
 	licenseReader, err := h.licenseReader(h.Options)
 	if err != nil {
-		return errors.Wrap(
-			err, "creating license reader to scan distroless image",
+		return fmt.Errorf(
+			"creating license reader to scan distroless image: %w",
+			err,
 		)
 	}
 
@@ -69,25 +70,25 @@ func (h *distrolessHandler) ReadPackageData(layerPath string, pkg *Package) erro
 	// Fetch the current distrolless package list
 	packageList, err := h.fetchDistrolessPackages()
 	if err != nil {
-		return errors.Wrap(err, "getting package lists")
+		return fmt.Errorf("getting package lists: %w", err)
 	}
 
 	// Open the distroless layer tar for reading
 	tarfile, err := os.Open(layerPath)
 	if err != nil {
-		return errors.Wrap(err, "opening distroless image layer ")
+		return fmt.Errorf("opening distroless image layer: %w", err)
 	}
 	defer tarfile.Close()
 	dir, err := os.MkdirTemp(os.TempDir(), "image-process-")
 	if err != nil {
-		return errors.Wrap(err, "creating temporary directory")
+		return fmt.Errorf("creating temporary directory: %w", err)
 	}
 	defer os.RemoveAll(dir)
 	var tr *tar.Reader
 	if filepath.Ext(layerPath) == gzExt {
 		gzf, err := gzip.NewReader(tarfile)
 		if err != nil {
-			return errors.Wrap(err, "creating gzip reader")
+			return fmt.Errorf("creating gzip reader: %w", err)
 		}
 		tr = tar.NewReader(gzf)
 	} else {
@@ -99,7 +100,7 @@ func (h *distrolessHandler) ReadPackageData(layerPath string, pkg *Package) erro
 			break
 		}
 		if err != nil {
-			return errors.Wrap(err, "reading the image tarfile")
+			return fmt.Errorf("reading the image tarfile: %w", err)
 		}
 
 		// Scan the license directories to to determine the installed packages
@@ -119,7 +120,7 @@ func (h *distrolessHandler) ReadPackageData(layerPath string, pkg *Package) erro
 			// Extract the package license to a file
 			f, err := os.Create(filepath.Join(dir, packageName+".license"))
 			if err != nil {
-				return errors.Wrap(err, "creating image layer file")
+				return fmt.Errorf("creating image layer file: %w", err)
 			}
 			defer f.Close()
 
@@ -128,14 +129,14 @@ func (h *distrolessHandler) ReadPackageData(layerPath string, pkg *Package) erro
 					break
 				}
 
-				return errors.Wrap(err, "extracting license data for "+subpkg.Name)
+				return fmt.Errorf("extracting license data for "+subpkg.Name+" :%w", err)
 			}
 
 			// Use our license classifier to try to determine
 			// the license we are dealing with
 			spdxlicense, err := licenseReader.LicenseFromFile(f.Name())
 			if err != nil {
-				return errors.Wrap(err, "reading license from file")
+				return fmt.Errorf("reading license from file: %w", err)
 			}
 
 			// If we still do not have a license, try to get it from the
@@ -144,7 +145,7 @@ func (h *distrolessHandler) ReadPackageData(layerPath string, pkg *Package) erro
 				// ...open the file
 				fileData, err := ioutil.ReadFile(filepath.Join(dir, packageName+".license"))
 				if err != nil {
-					return errors.Wrap(err, "reading license file")
+					return fmt.Errorf("reading license file: %w", err)
 				}
 
 				// We will try to look for the license in two ways:
@@ -176,7 +177,7 @@ func (h *distrolessHandler) ReadPackageData(layerPath string, pkg *Package) erro
 
 			// Add the debian package to the layer package
 			if err := pkg.AddPackage(subpkg); err != nil {
-				return errors.Wrapf(err, "adding %s subpackage", subpkg.Name)
+				return fmt.Errorf("adding %s subpackage: %w", subpkg.Name, err)
 			}
 		}
 	}
@@ -189,12 +190,12 @@ func (h *distrolessHandler) fetchDistrolessPackages() (pkgInfo map[string]string
 	logrus.Info("Fetching distroless image package list")
 	body, err := http.NewAgent().Get(distrolessBundleURL + distrolessBundle)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching distroless image package manifest")
+		return nil, fmt.Errorf("fetching distroless image package manifest: %w", err)
 	}
 
 	pkgInfo = map[string]string{}
 	if err := json.Unmarshal(body, &pkgInfo); err != nil {
-		return nil, errors.Wrap(err, "unmarshalling the distroless package list")
+		return nil, fmt.Errorf("unmarshalling the distroless package list: %w", err)
 	}
 	logrus.Infof(
 		"Distroless bundle for %s lists %d packages",
@@ -218,14 +219,14 @@ func (h *distrolessHandler) licenseReader(o *ContainerLayerAnalyzerOptions) (*li
 		// If the license cache does not exist, create it
 		if !util.Exists(ldir) {
 			if err := os.MkdirAll(ldir, os.FileMode(0o0755)); err != nil {
-				return nil, errors.Wrap(err, "creating license cache directory")
+				return nil, fmt.Errorf("creating license cache directory: %w", err)
 			}
 		}
 		opts.CacheDir = ldir
 		// Create the new reader
 		reader, err := license.NewReaderWithOptions(opts)
 		if err != nil {
-			return nil, errors.Wrap(err, "creating reusable license reader")
+			return nil, fmt.Errorf("creating reusable license reader: %w", err)
 		}
 		h.reader = reader
 	}
@@ -238,14 +239,14 @@ func (h *distrolessHandler) CanHandle(layerPath string) (can bool, err error) {
 	// Open the tar file
 	f, err := os.Open(layerPath)
 	if err != nil {
-		return can, errors.Wrap(err, "opening tarball")
+		return can, fmt.Errorf("opening tarball: %w", err)
 	}
 
 	var tr *tar.Reader
 	if filepath.Ext(layerPath) == gzExt {
 		gzf, err := gzip.NewReader(f)
 		if err != nil {
-			return can, errors.Wrap(err, "creating gzip reader")
+			return can, fmt.Errorf("creating gzip reader: %w", err)
 		}
 		tr = tar.NewReader(gzf)
 	} else {
@@ -259,7 +260,7 @@ func (h *distrolessHandler) CanHandle(layerPath string) (can bool, err error) {
 			break // End of archive
 		}
 		if err != nil {
-			return can, errors.Wrap(err, "reading the image tarfile")
+			return can, fmt.Errorf("reading the image tarfile: %w", err)
 		}
 
 		if hdr.FileInfo().IsDir() {
@@ -273,7 +274,7 @@ func (h *distrolessHandler) CanHandle(layerPath string) (can bool, err error) {
 					break
 				}
 
-				return can, errors.Wrap(err, "extracting os-release file")
+				return can, fmt.Errorf("extracting os-release file: %w", err)
 			}
 		}
 	}

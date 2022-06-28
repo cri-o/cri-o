@@ -132,7 +132,9 @@ This means that the latest commit can be installed via our convenience script:
 
 The script automatically verifies the uploaded sigstore signatures as well, if
 the local system has [`cosign`](https://github.com/sigstore/cosign) available in
-its `$PATH`.
+its `$PATH`. The same applies to the [SPDX](https://spdx.org) based bill of
+materials (SBOM), which gets automatically verified if the
+[bom](https://sigs.k8s.io/bom) tool is in `$PATH`.
 
 Beside `amd64` we also support the `arm64` bit architecture. This can be
 selected via the script, too:

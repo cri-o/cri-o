@@ -18,13 +18,14 @@ package spdx
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,19 +46,19 @@ func OpenDoc(path string) (doc *Document, err error) {
 	if path == "-" {
 		file, err = os.CreateTemp("", "temp-sbom")
 		if err != nil {
-			return nil, errors.Wrap(err, "creating temp file to buffer sbom")
+			return nil, fmt.Errorf("creating temp file to buffer sbom: %w", err)
 		}
 		if _, err := io.Copy(file, os.Stdin); err != nil {
-			return nil, errors.Wrap(err, "writing SBOM to temporary file")
+			return nil, fmt.Errorf("writing SBOM to temporary file: %w", err)
 		}
 		isTemp = true
 		if _, err := file.Seek(0, 0); err != nil {
-			return doc, errors.Wrap(err, "rewinding temporary file")
+			return doc, fmt.Errorf("rewinding temporary file: %w", err)
 		}
 	} else {
 		file, err = os.Open(path)
 		if err != nil {
-			return nil, errors.Wrapf(err, "opening document from %s", path)
+			return nil, fmt.Errorf("opening document from %s: %w", path, err)
 		}
 	}
 	defer func() {
@@ -139,7 +140,7 @@ func OpenDoc(path string) (doc *Document, err error) {
 				currentObject.SetEntity(currentEntity)
 
 				if _, ok := objects[currentObject.SPDXID()]; ok {
-					return nil, errors.Errorf("Duplicate SPDXID %s", currentObject.SPDXID())
+					return nil, fmt.Errorf("duplicate SPDXID %s", currentObject.SPDXID())
 				}
 
 				objects[currentObject.SPDXID()] = currentObject
@@ -204,7 +205,7 @@ func OpenDoc(path string) (doc *Document, err error) {
 			// Supplier has a tag/value format inside
 			match := tagRegExp.FindStringSubmatch(value)
 			if len(match) != 3 {
-				return nil, errors.Errorf("invalid creator tag syntax at line %d", i)
+				return nil, fmt.Errorf("invalid creator tag syntax at line %d", i)
 			}
 			switch match[1] {
 			case "Person":
@@ -212,7 +213,7 @@ func OpenDoc(path string) (doc *Document, err error) {
 			case "Organization":
 				currentObject.(*Package).Supplier.Organization = match[2]
 			default:
-				return nil, errors.Errorf(
+				return nil, fmt.Errorf(
 					"invalid supplier tag '%s' syntax at line %d, valid values are 'Organization' or 'Person'",
 					match[1], i,
 				)
@@ -225,7 +226,7 @@ func OpenDoc(path string) (doc *Document, err error) {
 			// Checksums are also tag/value -> algo/hash
 			match := tagRegExp.FindStringSubmatch(value)
 			if len(match) != 3 {
-				return nil, errors.Errorf("invalid checksum tag syntax at line %d", i)
+				return nil, fmt.Errorf("invalid checksum tag syntax at line %d", i)
 			}
 			if currentEntity.Checksum == nil {
 				currentEntity.Checksum = map[string]string{}
@@ -234,7 +235,7 @@ func OpenDoc(path string) (doc *Document, err error) {
 		case "Relationship":
 			matches := relationshioRegExp.FindStringSubmatch(value)
 			if len(matches) != 4 {
-				return nil, errors.Errorf("invalid SPDX relationship on line %d: %s", i, value)
+				return nil, fmt.Errorf("invalid SPDX relationship on line %d: %s", i, value)
 			}
 
 			// Check if the relationship is external
@@ -242,7 +243,7 @@ func OpenDoc(path string) (doc *Document, err error) {
 			if strings.HasPrefix(matches[3], "DocumentRef-") && strings.Contains(matches[3], ":") {
 				parts := strings.Split(matches[3], ":")
 				if len(parts) != 2 {
-					return nil, errors.Wrapf(err, "Unable to parse external document reference %s", matches[3])
+					return nil, fmt.Errorf("unable to parse external document reference %s: %w", matches[3], err)
 				}
 				matches[3] = parts[0]
 				ext = parts[1]
@@ -269,14 +270,14 @@ func OpenDoc(path string) (doc *Document, err error) {
 		case "Created":
 			t, err := time.Parse("2006-01-02T15:04:05Z", value)
 			if err != nil {
-				return nil, errors.Wrapf(err, "parsing time string in file: %s", value)
+				return nil, fmt.Errorf("parsing time string in file: %s: %w", value, err)
 			}
 			doc.Created = t
 		case "Creator":
 			// Creator has a tag/value format inside
 			match := tagRegExp.FindStringSubmatch(value)
 			if len(match) != 3 {
-				return nil, errors.Errorf("invalid creator tag syntax at line %d", i)
+				return nil, fmt.Errorf("invalid creator tag syntax at line %d", i)
 			}
 			switch match[1] {
 			case "Person":
@@ -286,7 +287,7 @@ func OpenDoc(path string) (doc *Document, err error) {
 			case "Organization":
 				doc.Creator.Organization = match[2]
 			default:
-				return nil, errors.Errorf(
+				return nil, fmt.Errorf(
 					"invalid creator tag '%s' syntax at line %d, valid values are 'Tool', 'Organization' or 'Person'",
 					match[1], i,
 				)
@@ -316,24 +317,24 @@ func OpenDoc(path string) (doc *Document, err error) {
 		case "LicenseListVersion":
 			doc.LicenseListVersion = value
 		default:
-			logrus.Warnf("Unknown tag: %s", tag)
+			logrus.Debugf("Unknown tag: %s", tag)
 		}
 		i++
 	}
 
 	if currentEntity == nil {
-		return nil, errors.Errorf("invalid file %s", path)
+		return nil, fmt.Errorf("invalid file %s", path)
 	}
 	// Add the last object from the doc
 	currentObject.SetEntity(currentEntity)
 	if _, ok := objects[currentObject.SPDXID()]; ok {
-		return nil, errors.Errorf("Duplicate SPDXID %s", currentObject.SPDXID())
+		return nil, fmt.Errorf("duplicate SPDXID %s", currentObject.SPDXID())
 	}
 	objects[currentObject.SPDXID()] = currentObject
 
 	// If somehow the scanner returned an error. Kill it.
 	if err := scanner.Err(); err != nil {
-		return nil, errors.Wrap(err, "scanned through spdx file, but got an error")
+		return nil, fmt.Errorf("scanned through spdx file, but got an error: %w", err)
 	}
 
 	// Now assign the relationships to the proper objects
@@ -356,14 +357,14 @@ func OpenDoc(path string) (doc *Document, err error) {
 
 		// Check if the source object is defined
 		if _, ok := objects[rdata.Source]; !ok {
-			return nil, errors.Errorf("Unable to find source object with SPDXID %s", rdata.Source)
+			return nil, fmt.Errorf("unable to find source object with SPDXID %s", rdata.Source)
 		}
 
 		// Check that the peer exists
 		if _, ok := objects[rdata.Peer]; !ok {
 			// ... but only if it is not an external document
 			if rdata.ExtDoc == "" {
-				return nil, errors.Errorf("Unable to find peer object with SPDXID %s", rdata.Peer)
+				return nil, fmt.Errorf("unable to find peer object with SPDXID %s", rdata.Peer)
 			}
 		}
 
