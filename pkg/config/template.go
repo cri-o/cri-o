@@ -1224,7 +1224,7 @@ const templateStringCrioNetwork = `# The crio.network table containers settings 
 
 const templateStringCrioNetworkCniDefaultNetwork = `# The default CNI network name to be selected. If not set or "", then
 # CRI-O will pick-up the first one found in network_dir.
-# cni_default_network = "{{ .CNIDefaultNetwork }}"
+cni_default_network = "{{ .CNIDefaultNetwork }}"
 
 `
 
