@@ -96,12 +96,15 @@ func run() error {
 	shortHead := head[:7]
 	endRev := head
 	if output, err := command.New(
-		"git", "describe", "--exact-match",
+		"git", "describe", "--tags", "--exact-match",
 	).RunSilentSuccessOutput(); err == nil {
 		foundTag := output.OutputTrimNL()
+		logrus.Infof("Using tag via `git describe`: %s", foundTag)
 		bundleVersion = foundTag
 		shortHead = foundTag
 		endRev = foundTag
+	} else {
+		logrus.Infof("Not using git tag because `git describe` failed: %v", err)
 	}
 
 	if _, err := templateFile.WriteString(fmt.Sprintf(`# CRI-O %s
