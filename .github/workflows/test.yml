@@ -288,18 +288,19 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: unit
-          path: |
-            build/coverage
+          path: build/coverage
 
   coverage:
     needs: unit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v3
         with:
           name: unit
-          path: build
+          path: build/coverage
       - run: make codecov
 
   release-notes:
