@@ -264,7 +264,35 @@ jobs:
       - run: make upload-artifacts
         env:
           GCS_CRIO_SA: ${{ secrets.GCS_CRIO_SA }}
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  create-release:
+    if: contains(github.ref, 'refs/tags')
+    runs-on: ubuntu-latest
+    needs:
+      - upload-artifacts
+      - release-notes
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: bundle
+          path: build/bundle
+      - uses: actions/download-artifact@v3
+        with:
+          name: signatures
+          path: build/bundle
+      - uses: actions/download-artifact@v3
+        with:
+          name: release-notes
+          path: build/release-notes
+      - name: Get release version
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: build/bundle/*.tar.gz*
+          bodyFile: build/release-notes/${{ env.RELEASE_VERSION }}.md
+          token: ${{ secrets.GH_TOKEN }}
 
   unit:
     runs-on: ubuntu-latest
