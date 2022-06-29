@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GITHUB_TOKEN=${GITHUB_TOKEN:-}
 GCS_CRIO_SA=${GCS_CRIO_SA:-}
 
 if [[ -z $GCS_CRIO_SA ]]; then
@@ -26,28 +25,4 @@ else
     fi
     echo "$VERSION" >"latest-$MARKER.txt"
     gsutil cp "latest-$MARKER.txt" $BUCKET
-fi
-
-if TAG=$(git describe --exact-match --tags 2>/dev/null); then
-    echo "Uploading artifact to GitHub tag $TAG"
-    if [[ -z $GITHUB_TOKEN ]]; then
-        echo GITHUB_TOKEN not set, skipping artifact upload to GitHub
-    else
-        UPLOAD_URL=$(curl -sSfL https://api.github.com/repos/cri-o/cri-o/releases |
-            jq -r ".[] | select(.tag_name == \"$TAG\") | .upload_url")
-        if [[ -z $UPLOAD_URL ]]; then
-            echo "Unable to find GitHub release for tag $TAG"
-            exit 1
-        fi
-        UPLOAD_URL=${UPLOAD_URL%"{?name,label}"}
-        for FILE in build/bundle/*.tar.gz*; do
-            curl -f \
-                -H "Authorization: token $GITHUB_TOKEN" \
-                -H "Content-Type: $(file -b --mime-type "$FILE")" \
-                --data-binary @"$FILE" \
-                "$UPLOAD_URL?name=$(basename "$FILE")"
-        done
-    fi
-else
-    echo "Skipping artifact upload to GitHub (not on a tag)"
 fi
