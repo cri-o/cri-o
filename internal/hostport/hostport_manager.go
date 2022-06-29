@@ -31,10 +31,11 @@ import (
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	iptablesproxy "k8s.io/kubernetes/pkg/proxy/iptables"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnet "k8s.io/utils/net"
 )
+
+const kubeMarkMasqChain = "KUBE-MARK-MASQ"
 
 // HostPortManager is an interface for adding and removing hostport for a given pod sandbox.
 // nolint:golint // no reason to change the type name now "type name will be used as hostport.HostPortManager by other packages"
@@ -141,7 +142,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 		writeLine(natRules, "-A", string(chain),
 			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
 			"-s", podIP,
-			"-j", string(iptablesproxy.KubeMarkMasqChain))
+			"-j", kubeMarkMasqChain)
 
 		// DNAT to the podIP:containerPort
 		hostPortBinding := net.JoinHostPort(podIP, strconv.Itoa(int(pm.ContainerPort)))
