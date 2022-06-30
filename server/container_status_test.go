@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"context"
+	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -54,22 +55,30 @@ var _ = t.Describe("ContainerStatus", func() {
 			Expect(response.Info["info"]).To(ContainSubstring(`"ociVersion":"1.0.0"`))
 		},
 			Entry("Created", &oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateCreated},
+				State:   specs.State{Status: oci.ContainerStateCreated},
+				Created: time.Now(),
 			}, types.ContainerState_CONTAINER_CREATED),
+			Entry("Created with zero created at should refresh", &oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateCreated},
+			}, types.ContainerState_CONTAINER_EXITED),
 			Entry("Running", &oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				State:   specs.State{Status: oci.ContainerStateRunning},
+				Created: time.Now(),
 			}, types.ContainerState_CONTAINER_RUNNING),
 			Entry("Stopped: ExitCode 0", &oci.ContainerState{
 				ExitCode: utils.Int32Ptr(0),
 				State:    specs.State{Status: oci.ContainerStateStopped},
+				Created:  time.Now(),
 			}, types.ContainerState_CONTAINER_EXITED),
 			Entry("Stopped: ExitCode -1", &oci.ContainerState{
 				ExitCode: utils.Int32Ptr(-1),
 				State:    specs.State{Status: oci.ContainerStateStopped},
+				Created:  time.Now(),
 			}, types.ContainerState_CONTAINER_EXITED),
 			Entry("Stopped: OOMKilled", &oci.ContainerState{
 				OOMKilled: true,
 				State:     specs.State{Status: oci.ContainerStateStopped},
+				Created:   time.Now(),
 			}, types.ContainerState_CONTAINER_EXITED),
 		)
 
