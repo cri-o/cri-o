@@ -259,17 +259,24 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		return fmt.Errorf("commit: %w", err)
 	}
 
-	// Other jobs could run in parallel, rebase before pushing
-	if _, err := repo.FetchRemote(git.DefaultRemote); err != nil {
-		return fmt.Errorf("fetch remote: %w", err)
-	}
+	// Other jobs could run in parallel, try rebase multiple times before
+	// pushing
+	for i := 0; i < 10; i++ {
+		if _, err := repo.FetchRemote(git.DefaultRemote); err != nil {
+			return fmt.Errorf("fetch remote: %w", err)
+		}
 
-	if err := repo.Rebase(branch); err != nil {
-		return fmt.Errorf("rebase to branch %s: %w", branch, err)
-	}
+		if err := repo.Rebase(branch); err != nil {
+			return fmt.Errorf("rebase to branch %s: %w", branch, err)
+		}
 
-	if err := repo.Push(branch); err != nil {
-		return fmt.Errorf("push changes: %w", err)
+		err := repo.Push(branch)
+		if err == nil {
+			break
+		}
+
+		logrus.Warnf("Failed to push changes, retrying (%d): %v", i, err)
+		time.Sleep(3 * time.Second)
 	}
 
 	return nil
