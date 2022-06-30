@@ -3,8 +3,9 @@ package storage
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -21,7 +22,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -32,7 +33,6 @@ import (
 	json "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -228,7 +228,7 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 
 	info, err := imageFull.Inspect(svc.ctx)
 	if err != nil {
-		return imageCacheItem{}, errors.Wrap(err, "inspecting image")
+		return imageCacheItem{}, fmt.Errorf("inspecting image: %w", err)
 	}
 
 	return imageCacheItem{
@@ -321,7 +321,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext, filter s
 			results, err = svc.appendCachedResult(systemContext, ref, image, results, newImageCache)
 			if err != nil {
 				// skip reporting errors if the images haven't finished pulling
-				if os.IsNotExist(errors.Cause(err)) {
+				if os.IsNotExist(err) {
 					donePulling := true
 					for _, name := range image.Names {
 						if _, ok := ImageBeingPulled.Load(name); ok {
@@ -547,19 +547,19 @@ func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName
 	cmd := reexec.CommandContext(svc.ctx, "crio-copy-image", dest)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return errors.Wrap(err, "error getting stdout pipe for image copy process")
+		return fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
 	}
 	defer stdout.Close()
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return errors.Wrap(err, "error getting stderr pipe for image copy process")
+		return fmt.Errorf("error getting stderr pipe for image copy process: %w", err)
 	}
 	defer stderr.Close()
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return errors.Wrap(err, "error getting stdin pipe for image copy process")
+		return fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
 	}
 
 	if _, err := alltransports.ParseImageName(imageName); err != nil {
@@ -593,9 +593,9 @@ func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName
 	if err := json.NewEncoder(stdin).Encode(&stdinArguments); err != nil {
 		stdin.Close()
 		if waitErr := cmd.Wait(); waitErr != nil {
-			return errors.Wrap(err, waitErr.Error())
+			return fmt.Errorf("%v: %w", waitErr, err)
 		}
-		return errors.Wrap(err, "json encode to pipe failed")
+		return fmt.Errorf("json encode to pipe failed: %w", err)
 	}
 	stdin.Close()
 
@@ -615,7 +615,7 @@ func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName
 			}
 		}
 	}()
-	errOutput, errReadAll := ioutil.ReadAll(stderr)
+	errOutput, errReadAll := io.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
 		if errReadAll == nil && len(errOutput) > 0 {
 			return fmt.Errorf("pull image: %s", string(errOutput))

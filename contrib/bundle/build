@@ -12,6 +12,8 @@ source "$(dirname "${BASH_SOURCE[0]}")"/vars "$ARCH"
 
 cd "$(dirname "$0")"
 
+BOM=$(realpath "$PWD/../../build/bin/bom")
+
 # Versions to be used
 # shellcheck source=../../scripts/versions
 source "$GIT_ROOT/scripts/versions"
@@ -40,7 +42,8 @@ FILES_CONTRIB=(
 )
 COMPLETIONS="$GIT_ROOT/completions"
 
-TMPDIR="$ARCHIVE_PATH/tmp"
+CRIODIR=cri-o
+TMPDIR="$ARCHIVE_PATH/$CRIODIR"
 rm -rf "$TMPDIR"
 mkdir -p "$TMPDIR"/{bin,contrib,etc,man}
 
@@ -101,6 +104,7 @@ chmod +x "$TMPDIR/install"
 
 cp "$GIT_ROOT/contrib/bundle/Makefile" "$TMPDIR"
 cp "$GIT_ROOT/contrib/bundle/README.md" "$TMPDIR"
+cp "$GIT_ROOT/LICENSE" "$TMPDIR"
 
 curl_to() {
     curl -sSfL -o "$1" "$2"
@@ -147,20 +151,33 @@ for FILE in "$TMP_BIN"/*; do
     fi
 done
 
-# Create the archive
+# Create the SBOM
 pushd "$ARCHIVE_PATH"
+SPDX_FILE="$ARCHIVE.spdx"
+$BOM version
+$BOM generate \
+    -l Apache-2.0 \
+    --name CRI-O \
+    --namespace "https://storage.googleapis.com/cri-o/artifacts/$SPDX_FILE" \
+    -d "$CRIODIR" \
+    -o "$SPDX_FILE"
+
+# Create the archive
 rm -f "$ARCHIVE"
-TAR_DIR=cri-o
-tar cfz "$ARCHIVE" tmp --transform s/tmp/$TAR_DIR/
+tar cfz "$ARCHIVE" "$CRIODIR"
 rm -rf "$TMPDIR"
 echo "Created $ARCHIVE_PATH/$ARCHIVE"
 sha256sum "$ARCHIVE" >"$ARCHIVE_SHA256SUM"
 echo "Created $ARCHIVE_PATH/$ARCHIVE_SHA256SUM"
+rm -rf "$TMPDIR"
 
 # Test the archive
 echo "Testing archive"
 tar xf "$ARCHIVE"
-pushd $TAR_DIR
+SPDX_PATH="$ARCHIVE_PATH/$SPDX_FILE"
+$BOM document outline "$SPDX_PATH"
+$BOM validate -e "$SPDX_PATH" -d "$CRIODIR"
+pushd "$TMPDIR"
 export DESTDIR=test/
 ./install
 EXP_CNT=64
@@ -173,4 +190,4 @@ if [[ "$EXP_CNT" != "$ACT_CNT" ]]; then
     exit 1
 fi
 popd
-rm -rf $TAR_DIR
+rm -rf "$TMPDIR"

@@ -1,5 +1,5 @@
 //go:build arm && freebsd
-//+build arm,freebsd
+// +build arm,freebsd
 
 // Created by cgo -godefs - DO NOT EDIT
 // cgo -godefs types_freebsd.go

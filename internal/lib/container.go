@@ -15,7 +15,7 @@ func (c *ContainerServer) GetContainerFromShortID(cid string) (*oci.Container, e
 
 	containerID, err := c.ctrIDIndex.Get(cid)
 	if err != nil {
-		return nil, fmt.Errorf("container with ID starting with %s not found: %v", cid, err)
+		return nil, fmt.Errorf("container with ID starting with %s not found: %w", cid, err)
 	}
 
 	ctr := c.GetContainer(containerID)

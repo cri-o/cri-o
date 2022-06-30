@@ -4,7 +4,8 @@
 package node
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -75,7 +76,7 @@ func ValidateConfig() error {
 	for _, i := range toInit {
 		i.init()
 		if *i.err != nil {
-			err := errors.Errorf("node configuration validation for %s failed: %v", i.name, *i.err)
+			err := fmt.Errorf("node configuration validation for %s failed: %w", i.name, *i.err)
 			if i.fatal {
 				return err
 			}

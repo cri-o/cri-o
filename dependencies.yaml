@@ -34,13 +34,13 @@ dependencies:
       match: version
 
   - name: conmon
-    version: v2.1.0
+    version: v2.1.2
     refPaths:
     - path: scripts/versions
       match: conmon
 
   - name: cri-tools
-    version: v1.23.0
+    version: v1.24.2
     refPaths:
     - path: scripts/versions
       match: cri-tools
@@ -48,7 +48,7 @@ dependencies:
       match: cri_tools_git_version
 
   - name: runc
-    version: v1.1.1
+    version: v1.1.3
     refPaths:
     - path: scripts/versions
       match: runc

@@ -50,12 +50,12 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 
 	if hooks != nil {
 		if err := hooks.PreStart(ctx, c, sandbox); err != nil {
-			return fmt.Errorf("failed to run pre-start hook for container %q: %v", c.ID(), err)
+			return fmt.Errorf("failed to run pre-start hook for container %q: %w", c.ID(), err)
 		}
 	}
 
 	if err := s.Runtime().StartContainer(ctx, c); err != nil {
-		return fmt.Errorf("failed to start container %s: %v", c.ID(), err)
+		return fmt.Errorf("failed to start container %s: %w", c.ID(), err)
 	}
 
 	log.WithFields(ctx, map[string]interface{}{

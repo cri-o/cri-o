@@ -4,13 +4,13 @@
 package node
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
 
-	podmancgroups "github.com/containers/podman/v3/pkg/cgroups"
+	"github.com/containers/common/pkg/cgroups"
 	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -28,7 +28,7 @@ var (
 
 func CgroupIsV2() bool {
 	var cgroupIsV2 bool
-	cgroupIsV2, cgroupIsV2Err = podmancgroups.IsCgroup2UnifiedMode()
+	cgroupIsV2, cgroupIsV2Err = cgroups.IsCgroup2UnifiedMode()
 	return cgroupIsV2
 }
 

@@ -17,7 +17,6 @@ limitations under the License.
 package release
 
 import (
-	"context"
 	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
@@ -26,21 +25,15 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
-
-	"github.com/containers/image/v5/docker/archive"
-	"github.com/containers/image/v5/docker/tarfile"
-	"github.com/containers/image/v5/manifest"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"gopkg.in/yaml.v2"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/release/pkg/git"
-	"k8s.io/release/pkg/github"
-	"k8s.io/release/pkg/object"
+	"sigs.k8s.io/promo-tools/v3/image"
+	"sigs.k8s.io/release-sdk/git"
+	"sigs.k8s.io/release-sdk/github"
+	"sigs.k8s.io/release-sdk/object"
 	"sigs.k8s.io/release-utils/command"
 	"sigs.k8s.io/release-utils/env"
 	rhash "sigs.k8s.io/release-utils/hash"
@@ -52,8 +45,14 @@ const (
 	DefaultToolRepo = "release"
 	DefaultToolRef  = git.DefaultBranch
 	DefaultToolOrg  = git.DefaultGithubOrg
+
+	DefaultK8sOrg  = git.DefaultGithubOrg
+	DefaultK8sRepo = git.DefaultGithubRepo
+	DefaultK8sRef  = git.DefaultRef
+
 	// TODO(vdf): Need to reference K8s Infra project here
 	DefaultKubernetesStagingProject = "kubernetes-release-test"
+	DefaultRelengStagingTestProject = "k8s-staging-releng-test"
 	DefaultRelengStagingProject     = "k8s-staging-releng"
 	DefaultDiskSize                 = "500"
 	BucketPrefix                    = "kubernetes-release-"
@@ -85,7 +84,7 @@ const (
 	// GCEPath is the directory where GCE scripts are created.
 	GCEPath = ReleaseStagePath + "/full/kubernetes/cluster/gce"
 
-	// GCIPath is the path for the container optimized OS for GCP.
+	// GCIPath is the path for the container optimized OS for gcli.
 	GCIPath = ReleaseStagePath + "/full/kubernetes/cluster/gce/gci"
 
 	// ReleaseTarsPath is the directory where release artifacts are created.
@@ -110,10 +109,13 @@ const (
 	ProductionBucketURL = "https://dl.k8s.io"
 
 	// Production registry root URL
-	GCRIOPathProd = "k8s.gcr.io"
+	GCRIOPathProd = image.ProdRegistry
+
+	// Staging registry root URL prefix
+	GCRIOPathStagingPrefix = image.StagingRepoPrefix
 
 	// Staging registry root URL
-	GCRIOPathStaging = "gcr.io/k8s-staging-kubernetes"
+	GCRIOPathStaging = GCRIOPathStagingPrefix + image.StagingRepoSuffix
 
 	// Mock staging registry root URL
 	GCRIOPathMock = GCRIOPathStaging + "/mock"
@@ -133,6 +135,8 @@ const (
 
 	DockerHubEnvKey   = "DOCKERHUB_TOKEN" // Env var containing the docker key
 	DockerHubUserName = "k8sreleng"       // Docker Hub username
+
+	ProvenanceFilename = "provenance.json" // Name of the SLSA provenance file (used in stage and release)
 )
 
 var (
@@ -157,34 +161,6 @@ var (
 	}
 )
 
-// ImagePromoterImages abtracts the manifest used by the image promoter
-type ImagePromoterImages []struct {
-	Name string              `json:"name"`
-	DMap map[string][]string `json:"dmap"` // eg "sha256:ef9493aff21f7e368fb3968b46ff2542b0f6863a5de2b9bc58d8d151d8b0232c": ["v1.17.12-rc.0"]
-}
-
-// GetDefaultToolRepoURL returns the default HTTPS repo URL for Release Engineering tools.
-// Expected: https://github.com/kubernetes/release
-func GetDefaultToolRepoURL() string {
-	return GetToolRepoURL(DefaultToolOrg, DefaultToolRepo, false)
-}
-
-// GetToolRepoURL takes a GitHub org and repo, and useSSH as a boolean and
-// returns a repo URL for Release Engineering tools.
-// Expected result is one of the following:
-// - https://github.com/<org>/release
-// - git@github.com:<org>/release
-func GetToolRepoURL(org, repo string, useSSH bool) string {
-	if org == "" {
-		org = GetToolOrg()
-	}
-	if repo == "" {
-		repo = GetToolRepo()
-	}
-
-	return git.GetRepoURL(org, repo, useSSH)
-}
-
 // GetToolOrg checks if the 'TOOL_ORG' environment variable is set.
 // If 'TOOL_ORG' is non-empty, it returns the value. Otherwise, it returns DefaultToolOrg.
 func GetToolOrg() string {
@@ -203,6 +179,32 @@ func GetToolRef() string {
 	return env.Default("TOOL_REF", DefaultToolRef)
 }
 
+// GetK8sOrg checks if the 'K8S_ORG' environment variable is set.
+// If 'K8S_ORG' is non-empty, it returns the value. Otherwise, it returns DefaultK8sOrg.
+func GetK8sOrg() string {
+	return env.Default("K8S_ORG", DefaultK8sOrg)
+}
+
+// GetK8sRepo checks if the 'K8S_REPO' environment variable is set.
+// If 'K8S_REPO' is non-empty, it returns the value. Otherwise, it returns DefaultK8sRepo.
+func GetK8sRepo() string {
+	return env.Default("K8S_REPO", DefaultK8sRepo)
+}
+
+// GetK8sRef checks if the 'K8S_REF' environment variable is set.
+// If 'K8S_REF' is non-empty, it returns the value. Otherwise, it returns DefaultK8sRef.
+func GetK8sRef() string {
+	return env.Default("K8S_REF", DefaultK8sRef)
+}
+
+// IsDefaultK8sUpstream returns true if GetK8sOrg(), GetK8sRepo() and
+// GetK8sRef() point to their default values.
+func IsDefaultK8sUpstream() bool {
+	return GetK8sOrg() == DefaultK8sOrg &&
+		GetK8sRepo() == DefaultK8sRepo &&
+		GetK8sRef() == DefaultK8sRef
+}
+
 // BuiltWithBazel determines whether the most recent Kubernetes release was built with Bazel.
 func BuiltWithBazel(workDir string) (bool, error) {
 	bazelBuild := filepath.Join(workDir, BazelBuildDir, ReleaseTarsPath, KubernetesTar)
@@ -217,7 +219,7 @@ func ReadBazelVersion(workDir string) (string, error) {
 		// The check for version in bazel-genfiles can be removed once everyone is
 		// off of versions before 0.25.0.
 		// https://github.com/bazelbuild/bazel/issues/8651
-		version, err = os.ReadFile(filepath.Join(workDir, "bazel-genfiles/version"))
+		version, err = os.ReadFile(filepath.Join(workDir, "bazel-genfiles", "version"))
 	}
 	return string(version), err
 }
@@ -237,6 +239,10 @@ func ReadDockerizedVersion(workDir string) (string, error) {
 
 // IsValidReleaseBuild checks if build version is valid for release.
 func IsValidReleaseBuild(build string) (bool, error) {
+	// If the tag has a plus sign, then we force the versionBuildRe to match
+	if strings.Contains(build, "+") {
+		return regexp.MatchString("("+versionReleaseRE+`(\.`+versionBuildRE+")"+versionDirtyRE+"?)", build)
+	}
 	return regexp.MatchString("("+versionReleaseRE+`(\.`+versionBuildRE+")?"+versionDirtyRE+"?)", build)
 }
 
@@ -253,21 +259,6 @@ func GetWorkspaceVersion() (string, error) {
 			"checking for workspace status script",
 		)
 	}
-
-	/*
-		version = ''
-		try:
-				match = re.search(
-						r'gitVersion ([^\n]+)',
-						check_output('hack/print-workspace-status.sh')
-				)
-				if match:
-						version = match.group(1)
-		except subprocess.CalledProcessError as exc:
-				# fallback with doing a real build
-				print >>sys.stderr, 'Failed to get k8s version, continue: %s' % exc
-				return False
-	*/
 
 	logrus.Info("Getting workspace status")
 	workspaceStatusStream, getWorkspaceStatusErr := command.New(workspaceStatusScript).RunSuccessOutput()
@@ -294,100 +285,6 @@ func URLPrefixForBucket(bucket string) string {
 		urlPrefix = ProductionBucketURL
 	}
 	return urlPrefix
-}
-
-// GetImageTags Takes a workdir and returns the release images from the manifests
-func GetImageTags(workDir string) (imagesList map[string][]string, err error) {
-	// Our image list will be lists of tags indexed by arch
-	imagesList = make(map[string][]string)
-
-	// Images are held inside a subdir of the workdir
-	imagesDir := filepath.Join(workDir, ImagesPath)
-	if !util.Exists(imagesDir) {
-		return nil, errors.Errorf("images directory %s does not exist", imagesDir)
-	}
-
-	archDirs, err := os.ReadDir(imagesDir)
-	if err != nil {
-		return nil, errors.Wrap(err, "reading images dir")
-	}
-
-	for _, archDir := range archDirs {
-		imagesList[archDir.Name()] = make([]string, 0)
-		tarFiles, err := os.ReadDir(filepath.Join(imagesDir, archDir.Name()))
-		if err != nil {
-			return nil, errors.Wrapf(err, "listing tar files for %s", archDir.Name())
-		}
-		for _, tarFile := range tarFiles {
-			tarmanifest, err := GetTarManifest(filepath.Join(imagesDir, archDir.Name(), tarFile.Name()))
-			if err != nil {
-				return nil, errors.Wrapf(
-					err, "while getting the manifest from %s/%s",
-					archDir.Name(), tarFile.Name(),
-				)
-			}
-			imagesList[archDir.Name()] = append(imagesList[archDir.Name()], tarmanifest.RepoTags...)
-		}
-	}
-	return imagesList, nil
-}
-
-// GetTarManifest return the image tar manifest
-func GetTarManifest(tarPath string) (*tarfile.ManifestItem, error) {
-	imageSource, err := tarfile.NewSourceFromFile(tarPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "creating image source from tar file")
-	}
-
-	defer func() {
-		if err := imageSource.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-
-	tarManifest, err := imageSource.LoadTarManifest()
-	if err != nil {
-		return nil, errors.Wrap(err, "reading the tar manifest")
-	}
-	if len(tarManifest) == 0 {
-		return nil, errors.New("could not find a tar manifest in the specified tar file")
-	}
-	return &tarManifest[0], nil
-}
-
-// GetOCIManifest Reads a tar file and returns a v1.Manifest structure with the image data
-func GetOCIManifest(tarPath string) (*ocispec.Manifest, error) {
-	ctx := context.Background()
-
-	// Since we know we're working with tar files,
-	// get the image reference directly from the tar transport
-	ref, err := archive.ParseReference(tarPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing reference")
-	}
-	logrus.Info(ref.StringWithinTransport())
-	// Get a docker image using the tar reference
-	// sys := &types.SystemContext{}
-
-	dockerImage, err := ref.NewImage(ctx, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "getting image")
-	}
-
-	// Get the manifest data from the dockerImage
-	dockerManifest, _, err := dockerImage.Manifest(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "while getting image manifest")
-	}
-
-	// Convert the manifest data to an OCI manifest
-	ociman, err := manifest.OCI1FromManifest(dockerManifest)
-	if err != nil {
-		return nil, errors.Wrap(err, "converting the docker manifest to OCI v1")
-	}
-
-	// Return the embedded v1 manifest wrapped in the container/image struct
-	return &ociman.Manifest, err
 }
 
 // CopyBinaries takes the provided `rootPath` and copies the binaries sorted by
@@ -565,89 +462,6 @@ func WriteChecksums(rootPath string) error {
 		},
 	); err != nil {
 		return errors.Wrapf(err, "traversing root path %s", rootPath)
-	}
-
-	return nil
-}
-
-// NewPromoterImageListFromFile parses an image promoter manifest file
-func NewPromoterImageListFromFile(manifestPath string) (imagesList *ImagePromoterImages, err error) {
-	if !util.Exists(manifestPath) {
-		return nil, errors.New("could not find image promoter manifest")
-	}
-	yamlCode, err := os.ReadFile(manifestPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "reading yaml code from file")
-	}
-
-	imagesList = &ImagePromoterImages{}
-	if err := imagesList.Parse(yamlCode); err != nil {
-		return nil, errors.Wrap(err, "parsing manifest yaml")
-	}
-
-	return imagesList, nil
-}
-
-// Parse reads yaml code into an ImagePromoterManifest object
-func (imagesList *ImagePromoterImages) Parse(yamlCode []byte) error {
-	if err := yaml.Unmarshal(yamlCode, imagesList); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ToYAML serializes an image list into an YAML file.
-// We serialize the data by hand to emulate the way it's done by the image promoter
-func (imagesList *ImagePromoterImages) ToYAML() ([]byte, error) {
-	// The image promoter code sorts images by:
-	//	  1. Name 2. Digest SHA (asc)  3. Tag
-
-	// First, sort by name (sort #1)
-	sort.Slice(*imagesList, func(i, j int) bool {
-		return (*imagesList)[i].Name < (*imagesList)[j].Name
-	})
-
-	// Let's build the YAML code
-	yamlCode := ""
-	for _, imgData := range *imagesList {
-		// Add the new name key (it is not sorted in the promoter code)
-		yamlCode += fmt.Sprintf("- name: %s\n", imgData.Name)
-		yamlCode += "  dmap:\n"
-
-		// Now, lets sort by the digest sha (sort #2)
-		keys := make([]string, 0, len(imgData.DMap))
-		for k := range imgData.DMap {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-
-		for _, digestSHA := range keys {
-			// Finally, sort bt tag (sort #3)
-			tags := imgData.DMap[digestSHA]
-			sort.Strings(tags)
-			yamlCode += fmt.Sprintf("    %q: [", digestSHA)
-			for i, tag := range tags {
-				if i > 0 {
-					yamlCode += ","
-				}
-				yamlCode += fmt.Sprintf("%q", tag)
-			}
-			yamlCode += "]\n"
-		}
-	}
-
-	return []byte(yamlCode), nil
-}
-
-// Write writes the promoter image list into an YAML file.
-func (imagesList *ImagePromoterImages) Write(filePath string) error {
-	yamlCode, err := imagesList.ToYAML()
-	if err != nil {
-		return errors.Wrap(err, "while marshalling image list")
-	}
-	// Write the yaml into the specified file
-	if err := os.WriteFile(filePath, yamlCode, os.FileMode(0o644)); err != nil {
-		return errors.Wrap(err, "writing yaml code into file")
 	}
 
 	return nil

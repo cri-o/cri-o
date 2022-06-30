@@ -200,7 +200,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is (default: docker://)
 
-**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: []) (default: [])
+**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: [])
 
 **--device-ownership-from-security-context**: Set devices' uid/gid ownership from runAsUser/runAsGroup
 
@@ -328,7 +328,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--runroot**="": The CRI-O state directory (default: /run/containers/storage)
 
-**--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path (default: [])
+**--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path
 
 **--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used. (default: "")
 

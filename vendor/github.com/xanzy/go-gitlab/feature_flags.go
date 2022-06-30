@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
@@ -55,7 +56,7 @@ func (f Feature) String() string {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/features.html#list-all-features
 func (s *FeaturesService) ListFeatures(options ...RequestOptionFunc) ([]*Feature, *Response, error) {
-	req, err := s.client.NewRequest("GET", "features", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "features", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -81,7 +82,7 @@ func (s *FeaturesService) SetFeatureFlag(name string, value interface{}, options
 		value,
 	}
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

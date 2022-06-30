@@ -1,7 +1,7 @@
 package blockio_test
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/cri-o/cri-o/internal/config/blockio"
 	. "github.com/onsi/ginkgo/v2"
@@ -10,7 +10,7 @@ import (
 
 func tempFileWithData(data string) string {
 	f := t.MustTempFile("")
-	Expect(ioutil.WriteFile(f, []byte(data), 0o644)).To(BeNil())
+	Expect(os.WriteFile(f, []byte(data), 0o644)).To(BeNil())
 	return f
 }
 

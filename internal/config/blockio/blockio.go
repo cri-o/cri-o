@@ -1,10 +1,10 @@
 package blockio
 
 import (
-	"io/ioutil"
+	"fmt"
+	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 
@@ -38,18 +38,18 @@ func (c *Config) Load(path string) error {
 		return nil
 	}
 
-	data, err := ioutil.ReadFile(filepath.Clean(path))
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
-		return errors.Wrap(err, "reading blockio config file failed")
+		return fmt.Errorf("reading blockio config file failed: %w", err)
 	}
 
 	tmpCfg := &blockio.Config{}
 	if err = yaml.Unmarshal(data, &tmpCfg); err != nil {
-		return errors.Wrap(err, "parsing blockio config failed")
+		return fmt.Errorf("parsing blockio config failed: %w", err)
 	}
 
 	if err := blockio.SetConfig(tmpCfg, true); err != nil {
-		return errors.Wrap(err, "configuring blockio failed")
+		return fmt.Errorf("configuring blockio failed: %w", err)
 	}
 
 	logrus.Infof("Blockio config successfully loaded from %q", path)

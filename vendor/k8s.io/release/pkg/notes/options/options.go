@@ -23,8 +23,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/release/pkg/git"
-	"k8s.io/release/pkg/github"
+	"sigs.k8s.io/release-sdk/git"
+	"sigs.k8s.io/release-sdk/github"
 )
 
 // Options is the global options structure which can be used to build release
@@ -121,6 +121,11 @@ type Options struct {
 
 	// MapProviders list of release notes map providers to query during generations
 	MapProviderStrings []string
+
+	// If true, links for PRs and authors are added in the markdown format.
+	// This is useful when the release notes are outputted to a file. When using the GitHub release page to publish release notes,
+	// this option should be set to false to take advantage of Github's autolinked references.
+	AddMarkdownLinks bool
 }
 
 type RevisionDiscoveryMode string
@@ -146,13 +151,15 @@ const (
 // New creates a new Options instance with the default values
 func New() *Options {
 	return &Options{
-		DiscoverMode: RevisionDiscoveryModeNONE,
-		GithubOrg:    git.DefaultGithubOrg,
-		GithubRepo:   git.DefaultGithubRepo,
-		Format:       FormatMarkdown,
-		GoTemplate:   GoTemplateDefault,
-		Pull:         true,
-		gitCloneFn:   git.CloneOrOpenGitHubRepo,
+		DiscoverMode:       RevisionDiscoveryModeNONE,
+		GithubOrg:          git.DefaultGithubOrg,
+		GithubRepo:         git.DefaultGithubRepo,
+		Format:             FormatMarkdown,
+		GoTemplate:         GoTemplateDefault,
+		Pull:               true,
+		gitCloneFn:         git.CloneOrOpenGitHubRepo,
+		MapProviderStrings: []string{},
+		AddMarkdownLinks:   false,
 	}
 }
 
@@ -230,7 +237,7 @@ func (o *Options) ValidateAndFinish() (err error) {
 	// Create the record dir
 	if o.RecordDir != "" {
 		logrus.Info("Using record mode")
-		if err := os.MkdirAll(o.RecordDir, os.FileMode(0755)); err != nil {
+		if err := os.MkdirAll(o.RecordDir, os.FileMode(0o755)); err != nil {
 			return err
 		}
 	}
@@ -283,15 +290,20 @@ func (o *Options) resolveDiscoverMode() error {
 	}
 
 	var result git.DiscoverResult
-	if o.DiscoverMode == RevisionDiscoveryModeMergeBaseToLatest {
+	switch o.DiscoverMode {
+	case RevisionDiscoveryModeMergeBaseToLatest:
 		result, err = repo.LatestReleaseBranchMergeBaseToLatest()
-	} else if o.DiscoverMode == RevisionDiscoveryModePatchToPatch {
+
+	case RevisionDiscoveryModePatchToPatch:
 		result, err = repo.LatestPatchToPatch(o.Branch)
-	} else if o.DiscoverMode == RevisionDiscoveryModePatchToLatest {
+
+	case RevisionDiscoveryModePatchToLatest:
 		result, err = repo.LatestPatchToLatest(o.Branch)
-	} else if o.DiscoverMode == RevisionDiscoveryModeMinorToMinor {
+
+	case RevisionDiscoveryModeMinorToMinor:
 		result, err = repo.LatestNonPatchFinalToMinor()
 	}
+
 	if err != nil {
 		return err
 	}

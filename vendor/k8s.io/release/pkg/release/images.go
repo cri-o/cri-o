@@ -23,41 +23,50 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"sigs.k8s.io/release-sdk/sign"
 	"sigs.k8s.io/release-utils/command"
 )
 
-// Images is a wrapper around container image related functionality
+// Images is a wrapper around container image related functionality.
 type Images struct {
-	client commandClient
+	imageImpl
+	signer *sign.Signer
 }
 
 // NewImages creates a new Images instance
 func NewImages() *Images {
-	return &Images{&defaultCommandClient{}}
+	return &Images{
+		imageImpl: &defaultImageImpl{},
+		signer:    sign.New(sign.Default()),
+	}
 }
 
-// SetClient can be used to set the internal command client
-func (i *Images) SetClient(client commandClient) {
-	i.client = client
+// SetImpl can be used to set the internal image implementation.
+func (i *Images) SetImpl(impl imageImpl) {
+	i.imageImpl = impl
 }
 
-// commandClient is a client for working with Docker
-//counterfeiter:generate . commandClient
-type commandClient interface {
+// imageImpl is a client for working with container images.
+//counterfeiter:generate . imageImpl
+type imageImpl interface {
 	Execute(cmd string, args ...string) error
 	ExecuteOutput(cmd string, args ...string) (string, error)
 	RepoTagFromTarball(path string) (string, error)
+	SignImage(*sign.Signer, string) error
+	VerifyImage(*sign.Signer, string) error
 }
 
-type defaultCommandClient struct{}
+type defaultImageImpl struct{}
 
-func (*defaultCommandClient) Execute(cmd string, args ...string) error {
+func (*defaultImageImpl) Execute(cmd string, args ...string) error {
 	return command.New(cmd, args...).RunSilentSuccess()
 }
 
-func (*defaultCommandClient) ExecuteOutput(cmd string, args ...string) (string, error) {
+func (*defaultImageImpl) ExecuteOutput(cmd string, args ...string) (string, error) {
 	res, err := command.New(cmd, args...).RunSilentSuccessOutput()
 	if err != nil {
 		return "", err
@@ -65,7 +74,7 @@ func (*defaultCommandClient) ExecuteOutput(cmd string, args ...string) (string, 
 	return res.OutputTrimNL(), nil
 }
 
-func (*defaultCommandClient) RepoTagFromTarball(path string) (string, error) {
+func (*defaultImageImpl) RepoTagFromTarball(path string) (string, error) {
 	tagOutput, err := command.
 		New("tar", "xf", path, "manifest.json", "-O").
 		Pipe("jq", "-r", ".[0].RepoTags[0]").
@@ -74,6 +83,16 @@ func (*defaultCommandClient) RepoTagFromTarball(path string) (string, error) {
 		return "", err
 	}
 	return tagOutput.OutputTrimNL(), nil
+}
+
+func (*defaultImageImpl) SignImage(signer *sign.Signer, reference string) error {
+	_, err := signer.SignImage(reference)
+	return err
+}
+
+func (*defaultImageImpl) VerifyImage(signer *sign.Signer, reference string) error {
+	_, err := signer.VerifyImage(reference)
+	return err
 }
 
 var tagRegex = regexp.MustCompile(`^.+/(.+):.+$`)
@@ -88,16 +107,16 @@ func (i *Images) Publish(registry, version, buildPath string) error {
 		releaseImagesPath, registry,
 	)
 
-	manifestImages, err := i.getManifestImages(
+	manifestImages, err := i.GetManifestImages(
 		registry, version, buildPath,
 		func(path, origTag, newTagWithArch string) error {
-			if err := i.client.Execute(
+			if err := i.Execute(
 				"docker", "load", "-qi", path,
 			); err != nil {
 				return errors.Wrap(err, "load container image")
 			}
 
-			if err := i.client.Execute(
+			if err := i.Execute(
 				"docker", "tag", origTag, newTagWithArch,
 			); err != nil {
 				return errors.Wrap(err, "tag container image")
@@ -105,13 +124,17 @@ func (i *Images) Publish(registry, version, buildPath string) error {
 
 			logrus.Infof("Pushing %s", newTagWithArch)
 
-			if err := i.client.Execute(
+			if err := i.Execute(
 				"gcloud", "docker", "--", "push", newTagWithArch,
 			); err != nil {
 				return errors.Wrap(err, "push container image")
 			}
 
-			if err := i.client.Execute(
+			if err := i.SignImage(i.signer, newTagWithArch); err != nil {
+				return errors.Wrap(err, "sign container image")
+			}
+
+			if err := i.Execute(
 				"docker", "rmi", origTag, newTagWithArch,
 			); err != nil {
 				return errors.Wrap(err, "remove local container image")
@@ -138,7 +161,7 @@ func (i *Images) Publish(registry, version, buildPath string) error {
 				fmt.Sprintf("%s-%s:%s", image, arch, version),
 			)
 		}
-		if err := i.client.Execute("docker", append(
+		if err := i.Execute("docker", append(
 			[]string{"manifest", "create", "--amend", imageVersion},
 			manifests...,
 		)...); err != nil {
@@ -150,7 +173,7 @@ func (i *Images) Publish(registry, version, buildPath string) error {
 				"Annotating %s-%s:%s with --arch %s",
 				image, arch, version, arch,
 			)
-			if err := i.client.Execute(
+			if err := i.Execute(
 				"docker", "manifest", "annotate", "--arch", arch,
 				imageVersion, fmt.Sprintf("%s-%s:%s", image, arch, version),
 			); err != nil {
@@ -159,10 +182,14 @@ func (i *Images) Publish(registry, version, buildPath string) error {
 		}
 
 		logrus.Infof("Pushing manifest image %s", imageVersion)
-		if err := i.client.Execute(
+		if err := i.Execute(
 			"docker", "manifest", "push", imageVersion, "--purge",
 		); err != nil {
 			return errors.Wrap(err, "push manifest")
+		}
+
+		if err := i.SignImage(i.signer, imageVersion); err != nil {
+			return errors.Wrap(err, "sign manifest list")
 		}
 	}
 
@@ -175,8 +202,15 @@ func (i *Images) Validate(registry, version, buildPath string) error {
 	logrus.Infof("Validating image manifests in %s", registry)
 	version = i.normalizeVersion(version)
 
-	manifestImages, err := i.getManifestImages(
-		registry, version, buildPath, nil,
+	manifestImages, err := i.GetManifestImages(
+		registry, version, buildPath,
+		func(_, _, image string) error {
+			logrus.Infof("Verifying that image is signed: %s", image)
+			return errors.Wrap(
+				i.VerifyImage(i.signer, image),
+				"verify signed image",
+			)
+		},
 	)
 	if err != nil {
 		return errors.Wrap(err, "get manifest images")
@@ -186,14 +220,19 @@ func (i *Images) Validate(registry, version, buildPath string) error {
 	for image, arches := range manifestImages {
 		imageVersion := fmt.Sprintf("%s:%s", image, version)
 
-		manifest, err := i.client.ExecuteOutput(
-			"skopeo", "inspect", fmt.Sprintf("docker://%s", imageVersion), "--raw",
-		)
+		manifestBytes, err := crane.Manifest(imageVersion)
 		if err != nil {
 			return errors.Wrapf(
 				err, "get remote manifest from %s", imageVersion,
 			)
 		}
+
+		logrus.Info("Verifying that image manifest list is signed")
+		if err := i.VerifyImage(i.signer, imageVersion); err != nil {
+			return errors.Wrap(err, "verify signed manifest list")
+		}
+
+		manifest := string(manifestBytes)
 		manifestFile, err := os.CreateTemp("", "manifest-")
 		if err != nil {
 			return errors.Wrap(err, "create temp file for manifest")
@@ -203,14 +242,13 @@ func (i *Images) Validate(registry, version, buildPath string) error {
 				err, "write manifest to %s", manifestFile.Name(),
 			)
 		}
-		defer os.RemoveAll(manifestFile.Name())
 
 		for _, arch := range arches {
 			logrus.Infof(
 				"Checking image digest for %s on %s architecture", image, arch,
 			)
 
-			digest, err := i.client.ExecuteOutput(
+			digest, err := i.ExecuteOutput(
 				"jq", "--arg", "a", arch, "-r",
 				".manifests[] | select(.platform.architecture == $a) | .digest",
 				manifestFile.Name(),
@@ -230,6 +268,10 @@ func (i *Images) Validate(registry, version, buildPath string) error {
 			}
 
 			logrus.Infof("Digest for %s on %s: %s", imageVersion, arch, digest)
+		}
+
+		if err := os.RemoveAll(manifestFile.Name()); err != nil {
+			return errors.Wrap(err, "remove manifest file")
 		}
 	}
 
@@ -254,14 +296,14 @@ func (i *Images) Exists(registry, version string, fast bool) (bool, error) {
 	for _, image := range manifestImages {
 		imageVersion := fmt.Sprintf("%s/%s:%s", registry, image, version)
 
-		manifest, err := i.client.ExecuteOutput(
-			"skopeo", "inspect", fmt.Sprintf("docker://%s", imageVersion), "--raw",
-		)
+		manifestBytes, err := crane.Manifest(imageVersion)
 		if err != nil {
 			return false, errors.Wrapf(
 				err, "get remote manifest from %s", imageVersion,
 			)
 		}
+
+		manifest := string(manifestBytes)
 		manifestFile, err := os.CreateTemp("", "manifest-")
 		if err != nil {
 			return false, errors.Wrap(err, "create temp file for manifest")
@@ -271,14 +313,13 @@ func (i *Images) Exists(registry, version string, fast bool) (bool, error) {
 				err, "write manifest to %s", manifestFile.Name(),
 			)
 		}
-		defer os.RemoveAll(manifestFile.Name())
 
 		for _, arch := range arches {
 			logrus.Infof(
 				"Checking image digest for %s on %s architecture", image, arch,
 			)
 
-			digest, err := i.client.ExecuteOutput(
+			digest, err := i.ExecuteOutput(
 				"jq", "--arg", "a", arch, "-r",
 				".manifests[] | select(.platform.architecture == $a) | .digest",
 				manifestFile.Name(),
@@ -299,12 +340,18 @@ func (i *Images) Exists(registry, version string, fast bool) (bool, error) {
 
 			logrus.Infof("Digest for %s on %s: %s", imageVersion, arch, digest)
 		}
+
+		if err := os.RemoveAll(manifestFile.Name()); err != nil {
+			return false, errors.Wrap(err, "remove manifest file")
+		}
 	}
 
 	return true, nil
 }
 
-func (i *Images) getManifestImages(
+// GetManifestImages can be used to retrieve the map of built images and
+// architectures.
+func (i *Images) GetManifestImages(
 	registry, version, buildPath string,
 	forTarballFn func(path, origTag, newTagWithArch string) error,
 ) (map[string][]string, error) {
@@ -341,7 +388,7 @@ func (i *Images) getManifestImages(
 					return nil
 				}
 
-				origTag, err := i.client.RepoTagFromTarball(path)
+				origTag, err := i.RepoTagFromTarball(path)
 				if err != nil {
 					return errors.Wrap(err, "getting repo tags for tarball")
 				}

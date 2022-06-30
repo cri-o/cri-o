@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
@@ -48,7 +49,7 @@ type ListTemplatesOptions ListOptions
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/templates/gitignores.html#list-gitignore-templates
 func (s *GitIgnoreTemplatesService) ListTemplates(opt *ListTemplatesOptions, options ...RequestOptionFunc) ([]*GitIgnoreTemplate, *Response, error) {
-	req, err := s.client.NewRequest("GET", "templates/gitignores", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "templates/gitignores", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -65,11 +66,11 @@ func (s *GitIgnoreTemplatesService) ListTemplates(opt *ListTemplatesOptions, opt
 // GetTemplate get a git ignore template
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/templates/gitignores.html#single-gitignore-template
+// https://docs.gitlab.com/ce/api/templates/gitignores.html#get-a-single-gitignore-template
 func (s *GitIgnoreTemplatesService) GetTemplate(key string, options ...RequestOptionFunc) (*GitIgnoreTemplate, *Response, error) {
 	u := fmt.Sprintf("templates/gitignores/%s", url.PathEscape(key))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

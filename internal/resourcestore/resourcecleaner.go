@@ -2,9 +2,9 @@ package resourcestore
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -28,14 +28,10 @@ func NewResourceCleaner() *ResourceCleaner {
 }
 
 // Add adds a new CleanupFunc to the ResourceCleaner
-func (r *ResourceCleaner) Add(
-	ctx context.Context,
-	description string,
-	fn func() error,
-) {
+func (r *ResourceCleaner) Add(ctx context.Context, description string, fn func() error) {
 	// Create a retry task on top of the provided function
 	task := func() error {
-		err := retry(ctx, fn)
+		err := retry(ctx, description, fn)
 		if err != nil {
 			log.Errorf(ctx,
 				"Retried cleanup function %q too often, giving up",
@@ -62,7 +58,7 @@ func (r *ResourceCleaner) Cleanup() error {
 
 // retry attempts to execute fn up to defaultRetryTimes if its failure meets
 // retryCondition.
-func retry(ctx context.Context, fn func() error) error {
+func retry(ctx context.Context, description string, fn func() error) error {
 	backoff := wait.Backoff{
 		Duration: 500 * time.Millisecond,
 		Factor:   1.5,
@@ -70,6 +66,7 @@ func retry(ctx context.Context, fn func() error) error {
 	}
 
 	waitErr := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		log.Infof(ctx, description)
 		if err := fn(); err != nil {
 			log.Errorf(ctx, "Failed to cleanup (probably retrying): %v", err)
 			return false, nil
@@ -78,7 +75,7 @@ func retry(ctx context.Context, fn func() error) error {
 	})
 
 	if waitErr != nil {
-		return errors.Wrap(waitErr, "wait on retry")
+		return fmt.Errorf("wait on retry: %w", waitErr)
 	}
 
 	return nil

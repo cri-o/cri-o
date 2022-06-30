@@ -22,7 +22,6 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -294,7 +293,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
 		}
-		return nil, errors.Wrapf(err, "specified sandbox not found: %s", req.PodSandboxId)
+		return nil, fmt.Errorf("specified sandbox not found: %s: %w", req.PodSandboxId, err)
 	}
 
 	stopMutex := sb.StopMutex()
@@ -306,15 +305,15 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 
 	ctr, err := container.New()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create container")
+		return nil, fmt.Errorf("failed to create container: %w", err)
 	}
 
 	if err := ctr.SetConfig(req.Config, req.SandboxConfig); err != nil {
-		return nil, errors.Wrap(err, "setting container config")
+		return nil, fmt.Errorf("setting container config: %w", err)
 	}
 
 	if err := ctr.SetNameAndID(); err != nil {
-		return nil, errors.Wrap(err, "setting container name and ID")
+		return nil, fmt.Errorf("setting container name and ID: %w", err)
 	}
 
 	resourceCleaner := resourcestore.NewResourceCleaner()
@@ -331,7 +330,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
 		reservedID, getErr := s.ContainerIDForName(ctr.Name())
 		if getErr != nil {
-			return nil, errors.Wrapf(getErr, "Failed to get ID of container with reserved name (%s), after failing to reserve name with %v", ctr.Name(), getErr)
+			return nil, fmt.Errorf("failed to get ID of container with reserved name (%s), after failing to reserve name with %v: %w", ctr.Name(), getErr, getErr)
 		}
 		// if we're able to find the container, and it's created, this is actually a duplicate request
 		// from a client that does not behave like the kubelet (like crictl)
@@ -342,12 +341,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		if resourceErr == nil {
 			return &types.CreateContainerResponse{ContainerId: cachedID}, nil
 		}
-		return nil, errors.Wrapf(err, resourceErr.Error())
+		return nil, fmt.Errorf("%v: %w", resourceErr, err)
 	}
 
-	description := fmt.Sprintf("createCtr: releasing container name %s", ctr.Name())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
+	resourceCleaner.Add(ctx, "createCtr: releasing container name "+ctr.Name(), func() error {
 		s.ReleaseContainerName(ctr.Name())
 		return nil
 	})
@@ -356,20 +353,15 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	if err != nil {
 		return nil, err
 	}
-	description = fmt.Sprintf("createCtr: deleting container %s from storage", ctr.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
-		err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
-		if err2 != nil {
-			log.Warnf(ctx, "Failed to cleanup container storage: %v", err2)
+	resourceCleaner.Add(ctx, "createCtr: deleting container "+ctr.ID()+" from storage", func() error {
+		if err := s.StorageRuntimeServer().DeleteContainer(ctr.ID()); err != nil {
+			return fmt.Errorf("failed to cleanup container storage: %w", err)
 		}
-		return err2
+		return nil
 	})
 
 	s.addContainer(newContainer)
-	description = fmt.Sprintf("createCtr: removing container %s", newContainer.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
+	resourceCleaner.Add(ctx, "createCtr: removing container "+newContainer.ID(), func() error {
 		s.removeContainer(newContainer)
 		return nil
 	})
@@ -377,18 +369,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return nil, err
 	}
-	description = fmt.Sprintf("createCtr: deleting container ID %s from idIndex", ctr.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
-		err := s.CtrIDIndex().Delete(ctr.ID())
-		if err != nil {
-			// already deleted
-			if strings.Contains(err.Error(), noSuchID) {
-				return nil
-			}
-			log.Warnf(ctx, "Couldn't delete ctr id %s from idIndex", ctr.ID())
+	resourceCleaner.Add(ctx, "createCtr: deleting container ID "+ctr.ID()+" from idIndex", func() error {
+		if err := s.CtrIDIndex().Delete(ctr.ID()); err != nil && !strings.Contains(err.Error(), noSuchID) {
+			return err
 		}
-		return err
+		return nil
 	})
 
 	mappings, err := s.getSandboxIDMappings(sb)
@@ -399,14 +384,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	if err := s.createContainerPlatform(ctx, newContainer, sb.CgroupParent(), mappings); err != nil {
 		return nil, err
 	}
-	description = fmt.Sprintf("createCtr: removing container ID %s from runtime", ctr.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		if retErr != nil {
-			log.Infof(ctx, description)
-			if err := s.Runtime().DeleteContainer(ctx, newContainer); err != nil {
-				log.Warnf(ctx, "Failed to delete container in runtime %s: %v", ctr.ID(), err)
-				return err
-			}
+	resourceCleaner.Add(ctx, "createCtr: removing container ID "+ctr.ID()+" from runtime", func() error {
+		if err := s.Runtime().DeleteContainer(ctx, newContainer); err != nil {
+			return fmt.Errorf("failed to delete container in runtime %s: %w", ctr.ID(), err)
 		}
 		return nil
 	})

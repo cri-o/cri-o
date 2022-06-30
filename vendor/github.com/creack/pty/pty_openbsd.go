@@ -1,5 +1,5 @@
 //go:build openbsd
-//+build openbsd
+// +build openbsd
 
 package pty
 

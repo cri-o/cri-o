@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -61,9 +62,9 @@ func (s *InvitesService) ListPendingGroupInvitations(gid interface{}, opt *ListP
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/invitations", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/invitations", PathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,9 +87,9 @@ func (s *InvitesService) ListPendingProjectInvitations(pid interface{}, opt *Lis
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/invitations", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/invitations", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -132,9 +133,9 @@ func (s *InvitesService) GroupInvites(gid interface{}, opt *InvitesOptions, opti
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/invitations", pathEscape(group))
+	u := fmt.Sprintf("groups/%s/invitations", PathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -157,9 +158,9 @@ func (s *InvitesService) ProjectInvites(pid interface{}, opt *InvitesOptions, op
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/invitations", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/invitations", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

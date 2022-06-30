@@ -4,13 +4,14 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v3/pkg/annotations"
+	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/device"
@@ -28,7 +29,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/runtime-tools/validate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -402,7 +402,7 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 	}
 
 	if sboxLogDir == "" {
-		return "", errors.Errorf("container %s has a sandbox with an empty log path", sboxLogDir)
+		return "", fmt.Errorf("container %s has a sandbox with an empty log path", sboxLogDir)
 	}
 
 	logPath := c.config.LogPath
@@ -669,13 +669,13 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		}
 		capPrefixed := toCAPPrefixed(cap)
 		if err := specgen.DropProcessCapabilityBounding(capPrefixed); err != nil {
-			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
+			return fmt.Errorf("failed to drop cap %s %w", capPrefixed, err)
 		}
 		if err := specgen.DropProcessCapabilityEffective(capPrefixed); err != nil {
-			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
+			return fmt.Errorf("failed to drop cap %s %w", capPrefixed, err)
 		}
 		if err := specgen.DropProcessCapabilityPermitted(capPrefixed); err != nil {
-			return fmt.Errorf("failed to drop cap %s %v", capPrefixed, err)
+			return fmt.Errorf("failed to drop cap %s %w", capPrefixed, err)
 		}
 	}
 

@@ -52,7 +52,8 @@ Debian Testing
 Debian 10
 Debian 11
 Rasbian 10
-xUbuntu 20.10
+xUbuntu 22.04
+xUbuntu 21.10
 xUbuntu 20.04
 xUbuntu 18.04
 ```
@@ -83,6 +84,13 @@ sudo dnf install cri-o
 
 For Fedora, we only support setting minor versions. i.e: `VERSION=1.18`, and do not support pinning patch versions: `VERSION=1.18.3`
 
+Note: as of 1.24.0, the `cri-o` package no longer depends on `containernetworking-plugins` package.
+Removing this dependency allows users to install their own CNI plugins without having to remove files first.
+If users want to use the previously provided CNI plugins, they should also run:
+```shell
+sudo dnf install containernetworking-plugins
+```
+
 #### Other yum based operating systems
 
 To install on the following operating systems, set the environment variable $OS as the appropriate field in the following table:
@@ -101,6 +109,13 @@ curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
 yum install cri-o
 ```
 
+Note: as of 1.24.0, the `cri-o` package no longer depends on `containernetworking-plugins` package.
+Removing this dependency allows users to install their own CNI plugins without having to remove files first.
+If users want to use the previously provided CNI plugins, they should also run:
+```shell
+yum install containernetworking-plugins
+```
+
 #### APT based operating systems
 
 Note: this tutorial assumes you have curl and gnupg installed
@@ -113,9 +128,9 @@ To install on the following operating systems, set the environment variable $OS 
 | Debian Testing   | `Debian_Testing`  |
 | Debian 10        | `Debian_10`       |
 | Raspberry Pi OS  | `Raspbian_10`     |
+| Ubuntu 22.04     | `xUbuntu_22.04`   |
+| Ubuntu 21.10     | `xUbuntu_21.10`   |
 | Ubuntu 20.04     | `xUbuntu_20.04`   |
-| Ubuntu 19.10     | `xUbuntu_19.10`   |
-| Ubuntu 19.04     | `xUbuntu_19.04`   |
 | Ubuntu 18.04     | `xUbuntu_18.04`   |
 
 If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1. **NOTE: This is not available in distros based on Debian 10(buster) or below, so buster backports will need to be enabled:**
@@ -152,6 +167,13 @@ runtime_root = "/run/runc"
 ```
 
 to `/etc/crio/crio.conf.d/`
+
+Note: as of 1.24.0, the `cri-o` package no longer depends on `containernetworking-plugins` package.
+Removing this dependency allows users to install their own CNI plugins without having to remove files first.
+If users want to use the previously provided CNI plugins, they should also run:
+```shell
+apt-get install containernetworking-plugins
+```
 
 ## Build and install CRI-O from source
 

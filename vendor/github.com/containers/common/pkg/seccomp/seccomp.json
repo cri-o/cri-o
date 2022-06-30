@@ -1,6 +1,7 @@
 {
 	"defaultAction": "SCMP_ACT_ERRNO",
 	"defaultErrnoRet": 38,
+	"defaultErrno": "ENOSYS",
 	"archMap": [
 		{
 			"architecture": "SCMP_ARCH_X86_64",
@@ -87,7 +88,8 @@
 			"comment": "",
 			"includes": {},
 			"excludes": {},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
@@ -174,6 +176,7 @@
 				"futex",
 				"futex_time64",
 				"futimesat",
+				"get_mempolicy",
 				"get_robust_list",
 				"get_thread_area",
 				"getcpu",
@@ -189,7 +192,6 @@
 				"getgroups",
 				"getgroups32",
 				"getitimer",
-				"get_mempolicy",
 				"getpeername",
 				"getpgid",
 				"getpgrp",
@@ -241,6 +243,7 @@
 				"lstat64",
 				"madvise",
 				"mbind",
+				"membarrier",
 				"memfd_create",
 				"memfd_secret",
 				"mincore",
@@ -254,6 +257,7 @@
 				"mmap",
 				"mmap2",
 				"mount",
+				"mount_setattr",
 				"move_mount",
 				"mprotect",
 				"mq_getsetattr",
@@ -277,9 +281,9 @@
 				"nanosleep",
 				"newfstatat",
 				"open",
+				"open_tree",
 				"openat",
 				"openat2",
-				"open_tree",
 				"pause",
 				"pidfd_getfd",
 				"pidfd_open",
@@ -298,8 +302,12 @@
 				"preadv",
 				"preadv2",
 				"prlimit64",
+				"process_mrelease",
+				"process_vm_readv",
+				"process_vm_writev",
 				"pselect6",
 				"pselect6_time64",
+				"ptrace",
 				"pwrite64",
 				"pwritev",
 				"pwritev2",
@@ -358,7 +366,6 @@
 				"sendmmsg",
 				"sendmsg",
 				"sendto",
-				"setns",
 				"set_mempolicy",
 				"set_robust_list",
 				"set_thread_area",
@@ -372,6 +379,7 @@
 				"setgroups",
 				"setgroups32",
 				"setitimer",
+				"setns",
 				"setpgid",
 				"setpriority",
 				"setregid",
@@ -393,10 +401,15 @@
 				"shmdt",
 				"shmget",
 				"shutdown",
+				"sigaction",
 				"sigaltstack",
+				"signal",
 				"signalfd",
 				"signalfd4",
+				"sigpending",
+				"sigprocmask",
 				"sigreturn",
+				"sigsuspend",
 				"socketcall",
 				"socketpair",
 				"splice",
@@ -410,6 +423,7 @@
 				"sync",
 				"sync_file_range",
 				"syncfs",
+				"syscall",
 				"sysinfo",
 				"syslog",
 				"tee",
@@ -422,6 +436,7 @@
 				"timer_gettime64",
 				"timer_settime",
 				"timer_settime64",
+				"timerfd",
 				"timerfd_create",
 				"timerfd_gettime",
 				"timerfd_gettime64",
@@ -559,10 +574,10 @@
 			"names": [
 				"arm_fadvise64_64",
 				"arm_sync_file_range",
-				"sync_file_range2",
 				"breakpoint",
 				"cacheflush",
-				"set_tls"
+				"set_tls",
+				"sync_file_range2"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"args": [],
@@ -650,7 +665,8 @@
 					"CAP_DAC_READ_SEARCH"
 				]
 			},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
@@ -693,7 +709,8 @@
 					"CAP_SYS_ADMIN"
 				]
 			},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
@@ -722,13 +739,14 @@
 					"CAP_SYS_CHROOT"
 				]
 			},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
 				"delete_module",
-				"init_module",
 				"finit_module",
+				"init_module",
 				"query_module"
 			],
 			"action": "SCMP_ACT_ALLOW",
@@ -744,8 +762,8 @@
 		{
 			"names": [
 				"delete_module",
-				"init_module",
 				"finit_module",
+				"init_module",
 				"query_module"
 			],
 			"action": "SCMP_ACT_ERRNO",
@@ -757,7 +775,8 @@
 					"CAP_SYS_MODULE"
 				]
 			},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
@@ -786,15 +805,13 @@
 					"CAP_SYS_PACCT"
 				]
 			},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
 				"kcmp",
-				"process_madvise",
-				"process_vm_readv",
-				"process_vm_writev",
-				"ptrace"
+				"process_madvise"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"args": [],
@@ -809,10 +826,7 @@
 		{
 			"names": [
 				"kcmp",
-				"process_madvise",
-				"process_vm_readv",
-				"process_vm_writev",
-				"ptrace"
+				"process_madvise"
 			],
 			"action": "SCMP_ACT_ERRNO",
 			"args": [],
@@ -823,12 +837,13 @@
 					"CAP_SYS_PTRACE"
 				]
 			},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
-				"iopl",
-				"ioperm"
+				"ioperm",
+				"iopl"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"args": [],
@@ -842,8 +857,8 @@
 		},
 		{
 			"names": [
-				"iopl",
-				"ioperm"
+				"ioperm",
+				"iopl"
 			],
 			"action": "SCMP_ACT_ERRNO",
 			"args": [],
@@ -854,14 +869,15 @@
 					"CAP_SYS_RAWIO"
 				]
 			},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
-				"settimeofday",
-				"stime",
 				"clock_settime",
-				"clock_settime64"
+				"clock_settime64",
+				"settimeofday",
+				"stime"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"args": [],
@@ -875,10 +891,10 @@
 		},
 		{
 			"names": [
-				"settimeofday",
-				"stime",
 				"clock_settime",
-				"clock_settime64"
+				"clock_settime64",
+				"settimeofday",
+				"stime"
 			],
 			"action": "SCMP_ACT_ERRNO",
 			"args": [],
@@ -889,7 +905,8 @@
 					"CAP_SYS_TIME"
 				]
 			},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
@@ -918,7 +935,8 @@
 					"CAP_SYS_TTY_CONFIG"
 				]
 			},
-			"errnoRet": 1
+			"errnoRet": 1,
+			"errno": "EPERM"
 		},
 		{
 			"names": [
@@ -946,7 +964,8 @@
 					"CAP_AUDIT_WRITE"
 				]
 			},
-			"errnoRet": 22
+			"errnoRet": 22,
+			"errno": "EINVAL"
 		},
 		{
 			"names": [

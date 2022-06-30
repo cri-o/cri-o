@@ -1,5 +1,5 @@
 //go:build netbsd
-//+build netbsd
+// +build netbsd
 
 package pty
 

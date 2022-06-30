@@ -1,10 +1,10 @@
 package resourcestore
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -159,7 +159,7 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleane
 	}
 	// make sure the resource hasn't already been added to the store
 	if ok && r.wasPut() {
-		return errors.Errorf("failed to add entry %s to ResourceStore; entry already exists", name)
+		return fmt.Errorf("failed to add entry %s to ResourceStore; entry already exists", name)
 	}
 
 	r.resource = resource

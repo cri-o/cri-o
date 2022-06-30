@@ -1,10 +1,10 @@
 package log
 
 import (
-	"io/ioutil"
+	"fmt"
+	"io"
 	"regexp"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,7 +23,7 @@ func NewFilterHook(filter string) (*FilterHook, error) {
 		custom, err = regexp.Compile(filter)
 		logrus.Debugf("Using log filter: %q", custom)
 		if err != nil {
-			return nil, errors.Wrap(err, "custom log level filter does not compile")
+			return nil, fmt.Errorf("custom log level filter does not compile: %w", err)
 		}
 	}
 
@@ -43,7 +43,7 @@ func (f *FilterHook) Fire(entry *logrus.Entry) error {
 	if f.custom != nil && !f.custom.MatchString(entry.Message) {
 		*entry = logrus.Entry{
 			Logger: &logrus.Logger{
-				Out:       ioutil.Discard,
+				Out:       io.Discard,
 				Formatter: &logrus.JSONFormatter{},
 			},
 		}

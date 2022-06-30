@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -45,23 +46,51 @@ type ProjectMirror struct {
 	URL                    string     `json:"url"`
 }
 
+// ListProjectMirrorOptions represents the available ListProjectMirror() options.
+type ListProjectMirrorOptions ListOptions
+
 // ListProjectMirror gets a list of mirrors configured on the project.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/remote_mirrors.html#list-a-projects-remote-mirrors
-func (s *ProjectMirrorService) ListProjectMirror(pid interface{}, options ...RequestOptionFunc) ([]*ProjectMirror, *Response, error) {
+func (s *ProjectMirrorService) ListProjectMirror(pid interface{}, opt *ListProjectMirrorOptions, options ...RequestOptionFunc) ([]*ProjectMirror, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/remote_mirrors", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/remote_mirrors", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var pm []*ProjectMirror
+	resp, err := s.client.Do(req, &pm)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return pm, resp, err
+}
+
+// GetProjectMirror gets a single mirror configured on the project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/remote_mirrors.html#get-a-single-projects-remote-mirror
+func (s *ProjectMirrorService) GetProjectMirror(pid interface{}, mirror int, options ...RequestOptionFunc) (*ProjectMirror, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/remote_mirrors/%d", PathEscape(project), mirror)
+
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pm := new(ProjectMirror)
 	resp, err := s.client.Do(req, &pm)
 	if err != nil {
 		return nil, resp, err
@@ -91,9 +120,9 @@ func (s *ProjectMirrorService) AddProjectMirror(pid interface{}, opt *AddProject
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/remote_mirrors", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/remote_mirrors", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -127,9 +156,9 @@ func (s *ProjectMirrorService) EditProjectMirror(pid interface{}, mirror int, op
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/remote_mirrors/%d", pathEscape(project), mirror)
+	u := fmt.Sprintf("projects/%s/remote_mirrors/%d", PathEscape(project), mirror)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -141,4 +170,23 @@ func (s *ProjectMirrorService) EditProjectMirror(pid interface{}, mirror int, op
 	}
 
 	return pm, resp, err
+}
+
+// DeleteProjectMirror deletes a project mirror.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/remote_mirrors.html#delete-a-remote-mirror
+func (s *ProjectMirrorService) DeleteProjectMirror(pid interface{}, mirror int, options ...RequestOptionFunc) (*Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("projects/%s/remote_mirrors/%d", PathEscape(project), mirror)
+
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
 }

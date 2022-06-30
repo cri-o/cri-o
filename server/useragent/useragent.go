@@ -1,6 +1,7 @@
 package useragent
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/cri-o/cri-o/internal/version"
@@ -11,7 +12,7 @@ import (
 func Get() (string, error) {
 	info, err := version.Get(false)
 	if err != nil {
-		return "", errors.Wrap(err, "get version")
+		return "", fmt.Errorf("get version: %w", err)
 	}
 	httpVersion := make([]VersionInfo, 0, 4)
 	httpVersion = append(httpVersion,

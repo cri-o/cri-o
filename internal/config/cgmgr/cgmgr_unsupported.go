@@ -4,7 +4,7 @@
 package cgmgr
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 )
 
 type CgroupManager interface {

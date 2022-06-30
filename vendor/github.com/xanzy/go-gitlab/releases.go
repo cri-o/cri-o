@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -36,9 +37,10 @@ type ReleasesService struct {
 type Release struct {
 	TagName         string     `json:"tag_name"`
 	Name            string     `json:"name"`
-	Description     string     `json:"description,omitempty"`
-	DescriptionHTML string     `json:"description_html,omitempty"`
-	CreatedAt       *time.Time `json:"created_at,omitempty"`
+	Description     string     `json:"description"`
+	DescriptionHTML string     `json:"description_html"`
+	CreatedAt       *time.Time `json:"created_at"`
+	ReleasedAt      *time.Time `json:"released_at"`
 	Author          struct {
 		ID        int    `json:"id"`
 		Name      string `json:"name"`
@@ -73,9 +75,9 @@ func (s *ReleasesService) ListReleases(pid interface{}, opt *ListReleasesOptions
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/releases", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/releases", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,9 +100,9 @@ func (s *ReleasesService) GetRelease(pid interface{}, tagName string, options ..
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/releases/%s", pathEscape(project), tagName)
+	u := fmt.Sprintf("projects/%s/releases/%s", PathEscape(project), PathEscape(tagName))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -114,35 +116,38 @@ func (s *ReleasesService) GetRelease(pid interface{}, tagName string, options ..
 	return r, resp, err
 }
 
-// ReleaseAssets represents release assets in CreateRelease() options
-//
-// GitLab API docs:
-// https://docs.gitlab.com/ce/api/releases/index.html#create-a-release
-type ReleaseAssets struct {
-	Links []*ReleaseAssetLink `url:"links" json:"links"`
-}
-
-// ReleaseAssetLink represents release asset link in CreateRelease() options
-//
-// GitLab API docs:
-// https://docs.gitlab.com/ce/api/releases/index.html#create-a-release
-type ReleaseAssetLink struct {
-	Name string `url:"name" json:"name"`
-	URL  string `url:"url" json:"url"`
-}
-
 // CreateReleaseOptions represents CreateRelease() options.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/releases/index.html#create-a-release
 type CreateReleaseOptions struct {
-	Name        *string        `url:"name" json:"name"`
-	TagName     *string        `url:"tag_name" json:"tag_name"`
-	Description *string        `url:"description" json:"description"`
-	Ref         *string        `url:"ref,omitempty" json:"ref,omitempty"`
-	Milestones  []string       `url:"milestones,omitempty" json:"milestones,omitempty"`
-	Assets      *ReleaseAssets `url:"assets,omitempty" json:"assets,omitempty"`
-	ReleasedAt  *time.Time     `url:"released_at,omitempty" json:"released_at,omitempty"`
+	Name        *string               `url:"name" json:"name"`
+	TagName     *string               `url:"tag_name" json:"tag_name"`
+	Description *string               `url:"description" json:"description"`
+	Ref         *string               `url:"ref,omitempty" json:"ref,omitempty"`
+	Milestones  *[]string             `url:"milestones,omitempty" json:"milestones,omitempty"`
+	Assets      *ReleaseAssetsOptions `url:"assets,omitempty" json:"assets,omitempty"`
+	ReleasedAt  *time.Time            `url:"released_at,omitempty" json:"released_at,omitempty"`
+}
+
+// ReleaseAssetsOptions represents release assets in CreateRelease() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/releases/index.html#create-a-release
+type ReleaseAssetsOptions struct {
+	Links []*ReleaseAssetLinkOptions `url:"links,omitempty" json:"links,omitempty"`
+}
+
+// ReleaseAssetLinkOptions represents release asset link in CreateRelease()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/releases/index.html#create-a-release
+type ReleaseAssetLinkOptions struct {
+	Name     *string        `url:"name,omitempty" json:"name,omitempty"`
+	URL      *string        `url:"url,omitempty" json:"url,omitempty"`
+	FilePath *string        `url:"filepath,omitempty" json:"filepath,omitempty"`
+	LinkType *LinkTypeValue `url:"link_type,omitempty" json:"link_type,omitempty"`
 }
 
 // CreateRelease creates a release.
@@ -154,9 +159,9 @@ func (s *ReleasesService) CreateRelease(pid interface{}, opts *CreateReleaseOpti
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/releases", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/releases", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -177,7 +182,7 @@ func (s *ReleasesService) CreateRelease(pid interface{}, opts *CreateReleaseOpti
 type UpdateReleaseOptions struct {
 	Name        *string    `url:"name" json:"name"`
 	Description *string    `url:"description" json:"description"`
-	Milestones  []string   `url:"milestones,omitempty" json:"milestones,omitempty"`
+	Milestones  *[]string  `url:"milestones,omitempty" json:"milestones,omitempty"`
 	ReleasedAt  *time.Time `url:"released_at,omitempty" json:"released_at,omitempty"`
 }
 
@@ -190,9 +195,9 @@ func (s *ReleasesService) UpdateRelease(pid interface{}, tagName string, opts *U
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/releases/%s", pathEscape(project), tagName)
+	u := fmt.Sprintf("projects/%s/releases/%s", PathEscape(project), PathEscape(tagName))
 
-	req, err := s.client.NewRequest("PUT", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -215,9 +220,9 @@ func (s *ReleasesService) DeleteRelease(pid interface{}, tagName string, options
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/releases/%s", pathEscape(project), tagName)
+	u := fmt.Sprintf("projects/%s/releases/%s", PathEscape(project), PathEscape(tagName))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

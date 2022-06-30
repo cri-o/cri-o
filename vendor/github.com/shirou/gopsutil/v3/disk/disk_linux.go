@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package disk
@@ -6,9 +7,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -20,6 +23,7 @@ import (
 const (
 	sectorSize = 512
 )
+
 const (
 	// man statfs
 	ADFS_SUPER_MAGIC      = 0xadf5
@@ -97,8 +101,12 @@ const (
 	AFS_SUPER_MAGIC             = 0x5346414F
 	AUFS_SUPER_MAGIC            = 0x61756673
 	ANON_INODE_FS_SUPER_MAGIC   = 0x09041934
+	BPF_FS_MAGIC                = 0xCAFE4A11
 	CEPH_SUPER_MAGIC            = 0x00C36400
+	CGROUP2_SUPER_MAGIC         = 0x63677270
+	CONFIGFS_MAGIC              = 0x62656570
 	ECRYPTFS_SUPER_MAGIC        = 0xF15F
+	F2FS_SUPER_MAGIC            = 0xF2F52010
 	FAT_SUPER_MAGIC             = 0x4006
 	FHGFS_SUPER_MAGIC           = 0x19830326
 	FUSEBLK_SUPER_MAGIC         = 0x65735546
@@ -113,9 +121,11 @@ const (
 	KAFS_SUPER_MAGIC            = 0x6B414653
 	LUSTRE_SUPER_MAGIC          = 0x0BD00BD0
 	NFSD_SUPER_MAGIC            = 0x6E667364
+	NSFS_MAGIC                  = 0x6E736673
 	PANFS_SUPER_MAGIC           = 0xAAD7AAEA
 	RPC_PIPEFS_SUPER_MAGIC      = 0x67596969
 	SECURITYFS_SUPER_MAGIC      = 0x73636673
+	TRACEFS_MAGIC               = 0x74726163
 	UFS_BYTESWAPPED_SUPER_MAGIC = 0x54190100
 	VMHGFS_SUPER_MAGIC          = 0xBACBACBC
 	VZFS_SUPER_MAGIC            = 0x565A4653
@@ -134,21 +144,26 @@ var fsTypeMap = map[int64]string{
 	BDEVFS_MAGIC:                "bdevfs",              /* 0x62646576 local */
 	BFS_MAGIC:                   "bfs",                 /* 0x1BADFACE local */
 	BINFMTFS_MAGIC:              "binfmt_misc",         /* 0x42494E4D local */
+	BPF_FS_MAGIC:                "bpf",                 /* 0xCAFE4A11 local */
 	BTRFS_SUPER_MAGIC:           "btrfs",               /* 0x9123683E local */
 	CEPH_SUPER_MAGIC:            "ceph",                /* 0x00C36400 remote */
 	CGROUP_SUPER_MAGIC:          "cgroupfs",            /* 0x0027E0EB local */
+	CGROUP2_SUPER_MAGIC:         "cgroup2fs",           /* 0x63677270 local */
 	CIFS_MAGIC_NUMBER:           "cifs",                /* 0xFF534D42 remote */
 	CODA_SUPER_MAGIC:            "coda",                /* 0x73757245 remote */
 	COH_SUPER_MAGIC:             "coh",                 /* 0x012FF7B7 local */
+	CONFIGFS_MAGIC:              "configfs",            /* 0x62656570 local */
 	CRAMFS_MAGIC:                "cramfs",              /* 0x28CD3D45 local */
 	DEBUGFS_MAGIC:               "debugfs",             /* 0x64626720 local */
 	DEVFS_SUPER_MAGIC:           "devfs",               /* 0x1373 local */
 	DEVPTS_SUPER_MAGIC:          "devpts",              /* 0x1CD1 local */
 	ECRYPTFS_SUPER_MAGIC:        "ecryptfs",            /* 0xF15F local */
+	EFIVARFS_MAGIC:              "efivarfs",            /* 0xDE5E81E4 local */
 	EFS_SUPER_MAGIC:             "efs",                 /* 0x00414A53 local */
 	EXT_SUPER_MAGIC:             "ext",                 /* 0x137D local */
 	EXT2_SUPER_MAGIC:            "ext2/ext3",           /* 0xEF53 local */
 	EXT2_OLD_SUPER_MAGIC:        "ext2",                /* 0xEF51 local */
+	F2FS_SUPER_MAGIC:            "f2fs",                /* 0xF2F52010 local */
 	FAT_SUPER_MAGIC:             "fat",                 /* 0x4006 local */
 	FHGFS_SUPER_MAGIC:           "fhgfs",               /* 0x19830326 remote */
 	FUSEBLK_SUPER_MAGIC:         "fuseblk",             /* 0x65735546 remote */
@@ -181,6 +196,7 @@ var fsTypeMap = map[int64]string{
 	NFS_SUPER_MAGIC:             "nfs",                 /* 0x6969 remote */
 	NFSD_SUPER_MAGIC:            "nfsd",                /* 0x6E667364 remote */
 	NILFS_SUPER_MAGIC:           "nilfs",               /* 0x3434 local */
+	NSFS_MAGIC:                  "nsfs",                /* 0x6E736673 local */
 	NTFS_SB_MAGIC:               "ntfs",                /* 0x5346544E local */
 	OPENPROM_SUPER_MAGIC:        "openprom",            /* 0x9FA1 local */
 	OCFS2_SUPER_MAGIC:           "ocfs2",               /* 0x7461636f remote */
@@ -203,6 +219,7 @@ var fsTypeMap = map[int64]string{
 	SYSV2_SUPER_MAGIC:           "sysv2",               /* 0x012FF7B6 local */
 	SYSV4_SUPER_MAGIC:           "sysv4",               /* 0x012FF7B5 local */
 	TMPFS_MAGIC:                 "tmpfs",               /* 0x01021994 local */
+	TRACEFS_MAGIC:               "tracefs",             /* 0x74726163 local */
 	UDF_SUPER_MAGIC:             "udf",                 /* 0x15013346 local */
 	UFS_MAGIC:                   "ufs",                 /* 0x00011954 local */
 	UFS_BYTESWAPPED_SUPER_MAGIC: "ufs",                 /* 0x54190100 local */
@@ -218,19 +235,45 @@ var fsTypeMap = map[int64]string{
 	ZFS_SUPER_MAGIC:             "zfs",                 /* 0x2FC12FC1 local */
 }
 
-func PartitionsWithContext(ctx context.Context, all bool) ([]PartitionStat, error) {
-	useMounts := false
-
-	filename := common.HostProc("self/mountinfo")
-	lines, err := common.ReadLines(filename)
+// readMountFile reads mountinfo or mounts file under the specified root path
+// (eg, /proc/1, /proc/self, etc)
+func readMountFile(root string) (lines []string, useMounts bool, filename string, err error) {
+	filename = path.Join(root, "mountinfo")
+	lines, err = common.ReadLines(filename)
 	if err != nil {
-		if err != err.(*os.PathError) {
+		var pathErr *os.PathError
+		if !errors.As(err, &pathErr) {
+			return
+		}
+		// if kernel does not support 1/mountinfo, fallback to 1/mounts (<2.6.26)
+		useMounts = true
+		filename = path.Join(root, "mounts")
+		lines, err = common.ReadLines(filename)
+		if err != nil {
+			return
+		}
+		return
+	}
+	return
+}
+
+func PartitionsWithContext(ctx context.Context, all bool) ([]PartitionStat, error) {
+	// by default, try "/proc/1/..." first
+	root := common.HostProc(path.Join("1"))
+
+	// force preference for dirname of HOST_PROC_MOUNTINFO, if set  #1271
+	hpmPath := os.Getenv("HOST_PROC_MOUNTINFO")
+	if hpmPath != "" {
+		root = filepath.Dir(hpmPath)
+	}
+
+	lines, useMounts, filename, err := readMountFile(root)
+	if err != nil {
+		if hpmPath != "" { // don't fallback with HOST_PROC_MOUNTINFO
 			return nil, err
 		}
-		// if kernel does not support self/mountinfo, fallback to self/mounts (<2.6.26)
-		useMounts = true
-		filename = common.HostProc("self/mounts")
-		lines, err = common.ReadLines(filename)
+		// fallback to "/proc/self/..."  #1159
+		lines, useMounts, filename, err = readMountFile(common.HostProc(path.Join("self")))
 		if err != nil {
 			return nil, err
 		}
@@ -261,7 +304,7 @@ func PartitionsWithContext(ctx context.Context, all bool) ([]PartitionStat, erro
 				}
 			}
 		} else {
-			// a line of self/mountinfo has the following structure:
+			// a line of 1/mountinfo has the following structure:
 			// 36  35  98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw,errors=continue
 			// (1) (2) (3)   (4)   (5)      (6)      (7)   (8) (9)   (10)         (11)
 
@@ -308,10 +351,9 @@ func PartitionsWithContext(ctx context.Context, all bool) ([]PartitionStat, erro
 			// so we get the real device name from its major/minor number
 			if d.Device == "/dev/root" {
 				devpath, err := os.Readlink(common.HostSys("/dev/block/" + blockDeviceID))
-				if err != nil {
-					return nil, err
+				if err == nil {
+					d.Device = strings.Replace(d.Device, "root", filepath.Base(devpath), 1)
 				}
-				d.Device = strings.Replace(d.Device, "root", filepath.Base(devpath), 1)
 			}
 		}
 		ret = append(ret, d)
@@ -349,7 +391,7 @@ func IOCountersWithContext(ctx context.Context, names ...string) (map[string]IOC
 	if err != nil {
 		return nil, err
 	}
-	ret := make(map[string]IOCountersStat, 0)
+	ret := make(map[string]IOCountersStat)
 	empty := IOCountersStat{}
 
 	// use only basename such as "/dev/sda1" to "sda1"
@@ -482,9 +524,8 @@ func LabelWithContext(ctx context.Context, name string) (string, error) {
 	dmname, err := ioutil.ReadFile(dmname_filename)
 	if err != nil {
 		return "", err
-	} else {
-		return strings.TrimSpace(string(dmname)), nil
 	}
+	return strings.TrimSpace(string(dmname)), nil
 }
 
 func getFsType(stat unix.Statfs_t) string {

@@ -1,7 +1,7 @@
 package config_test
 
 import (
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/containers/common/pkg/apparmor"
@@ -19,11 +19,11 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.ToFile(filePath)).To(BeNil())
 			Expect(sut.UpdateFromFile(filePath)).To(BeNil())
 
-			read, err := ioutil.ReadFile(filePath)
+			read, err := os.ReadFile(filePath)
 			Expect(err).To(BeNil())
 
 			newContents := strings.ReplaceAll(string(read), old, new)
-			err = ioutil.WriteFile(filePath, []byte(newContents), 0)
+			err = os.WriteFile(filePath, []byte(newContents), 0)
 			Expect(err).To(BeNil())
 		}
 
@@ -245,7 +245,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail if registries file is invalid", func() {
 			// Given
 			regConf := t.MustTempFile("reload-registries")
-			Expect(ioutil.WriteFile(regConf, []byte("invalid"), 0o755)).To(BeNil())
+			Expect(os.WriteFile(regConf, []byte("invalid"), 0o755)).To(BeNil())
 			sut.SystemContext.SystemRegistriesConfPath = regConf
 
 			// When
@@ -269,7 +269,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with config change", func() {
 			// Given
 			filePath := t.MustTempFile("seccomp")
-			Expect(ioutil.WriteFile(filePath, []byte(`{}`), 0o644)).To(BeNil())
+			Expect(os.WriteFile(filePath, []byte(`{}`), 0o644)).To(BeNil())
 
 			newConfig := defaultConfig()
 			newConfig.SeccompProfile = filePath

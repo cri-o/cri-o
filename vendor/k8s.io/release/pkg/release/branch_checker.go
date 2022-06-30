@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/release/pkg/git"
+	"sigs.k8s.io/release-sdk/git"
 )
 
 type BranchChecker struct {
@@ -61,7 +61,7 @@ func (r *BranchChecker) NeedsCreation(
 	logrus.Infof("Checking if branch %s exists on remote", branch)
 
 	output, err := r.impl.LSRemoteExec(
-		git.GetDefaultKubernetesRepoURL(),
+		git.GetRepoURL(GetK8sOrg(), GetK8sRepo(), false),
 		fmt.Sprintf("refs/heads/%s", branch),
 	)
 	if err != nil {

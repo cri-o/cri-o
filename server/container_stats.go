@@ -2,8 +2,8 @@ package server
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -16,7 +16,7 @@ func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRe
 	}
 	sb := s.GetSandbox(container.Sandbox())
 	if sb == nil {
-		return nil, errors.Errorf("unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
+		return nil, fmt.Errorf("unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
 	}
 
 	return &types.ContainerStatsResponse{

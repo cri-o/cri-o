@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/pkg/errors"
@@ -21,7 +22,7 @@ const (
 func (s *Server) Version(_ context.Context, apiVersion string) (*types.VersionResponse, error) {
 	info, err := version.Get(false)
 	if err != nil {
-		return nil, errors.Wrap(err, "get server version")
+		return nil, fmt.Errorf("get server version: %w", err)
 	}
 	return &types.VersionResponse{
 		Version:           kubeAPIVersion,

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -43,7 +43,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 	for _, image := range images {
 		status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
 		if err != nil {
-			if errors.Cause(err) == storage.ErrImageUnknown {
+			if errors.Is(err, storage.ErrImageUnknown) {
 				log.Debugf(ctx, "Can't find %s", image)
 				notfound = true
 				continue
@@ -72,7 +72,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		if req.Verbose {
 			info, err := createImageInfo(status)
 			if err != nil {
-				return nil, errors.Wrap(err, "creating image info")
+				return nil, fmt.Errorf("creating image info: %w", err)
 			}
 			resp.Info = info
 		}
@@ -124,7 +124,7 @@ func createImageInfo(result *pkgstorage.ImageResult) (map[string]string, error) 
 	}
 	bytes, err := json.Marshal(info)
 	if err != nil {
-		return nil, errors.Wrapf(err, "marshal data: %v", info)
+		return nil, fmt.Errorf("marshal data: %v: %w", info, err)
 	}
 	return map[string]string{"info": string(bytes)}, nil
 }

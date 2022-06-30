@@ -1,10 +1,11 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/cri-o/cri-o/internal/oci"
 	json "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -56,7 +57,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 	if req.Verbose {
 		info, err := createSandboxInfo(sb.InfraContainer())
 		if err != nil {
-			return nil, errors.Wrap(err, "creating sandbox info")
+			return nil, fmt.Errorf("creating sandbox info: %w", err)
 		}
 		resp.Info = info
 	}
@@ -92,7 +93,7 @@ func createSandboxInfo(c *oci.Container) (map[string]string, error) {
 	}
 	bytes, err := json.Marshal(info)
 	if err != nil {
-		return nil, errors.Wrapf(err, "marshal data: %v", info)
+		return nil, fmt.Errorf("marshal data: %v: %w", info, err)
 	}
 	return map[string]string{"info": string(bytes)}, nil
 }

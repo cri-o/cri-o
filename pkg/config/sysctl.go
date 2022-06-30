@@ -1,9 +1,8 @@
 package config
 
 import (
+	"fmt"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 func NewSysctl(key, value string) *Sysctl {
@@ -36,14 +35,14 @@ func (c *RuntimeConfig) Sysctls() ([]Sysctl, error) {
 		}
 		split := strings.SplitN(sysctl, "=", 2)
 		if len(split) != 2 {
-			return nil, errors.Errorf("%q is not in key=value format", sysctl)
+			return nil, fmt.Errorf("%q is not in key=value format", sysctl)
 		}
 
 		// pinns nor runc expect sysctls of the form 'key = value', but rather
 		// 'key=value'
 		trimmed := strings.TrimSpace(split[0]) + "=" + strings.TrimSpace(split[1])
 		if trimmed != sysctl {
-			return nil, errors.Errorf("'%s' is invalid, extra spaces found: format should be key=value", sysctl)
+			return nil, fmt.Errorf("'%s' is invalid, extra spaces found: format should be key=value", sysctl)
 		}
 		sysctls = append(sysctls, Sysctl{key: split[0], value: split[1]})
 	}
@@ -81,20 +80,20 @@ func (s *Sysctl) Validate(hostNet, hostIPC bool) error {
 	nsErrorFmt := "%q not allowed with host %s enabled"
 	if ns, found := namespaces[s.Key()]; found {
 		if ns == IpcNamespace && hostIPC {
-			return errors.Errorf(nsErrorFmt, s.Key(), ns)
+			return fmt.Errorf(nsErrorFmt, s.Key(), ns)
 		}
 		return nil
 	}
 	for p, ns := range prefixNamespaces {
 		if strings.HasPrefix(s.Key(), p) {
 			if ns == IpcNamespace && hostIPC {
-				return errors.Errorf(nsErrorFmt, s.Key(), ns)
+				return fmt.Errorf(nsErrorFmt, s.Key(), ns)
 			}
 			if ns == NetNamespace && hostNet {
-				return errors.Errorf(nsErrorFmt, s.Key(), ns)
+				return fmt.Errorf(nsErrorFmt, s.Key(), ns)
 			}
 			return nil
 		}
 	}
-	return errors.Errorf("%s not whitelisted", s.Key())
+	return fmt.Errorf("%s not whitelisted", s.Key())
 }

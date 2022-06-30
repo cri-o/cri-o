@@ -2,7 +2,6 @@ package framework
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -68,10 +67,10 @@ func (t *TestFramework) Describe(text string, body func()) bool {
 	return ginkgo.Describe("cri-o: "+text, body)
 }
 
-// MustTempDir uses ioutil.TempDir to create a temporary directory
+// MustTempDir uses os.MkdirTemp to create a temporary directory
 // with the given prefix.  It panics on any error.
 func (t *TestFramework) MustTempDir(prefix string) string {
-	path, err := ioutil.TempDir("", prefix)
+	path, err := os.MkdirTemp("", prefix)
 	if err != nil {
 		panic(err)
 	}
@@ -80,10 +79,10 @@ func (t *TestFramework) MustTempDir(prefix string) string {
 	return path
 }
 
-// MustTempFile uses ioutil.TempFile to create a temporary file
+// MustTempFile uses os.CreateTemp to create a temporary file
 // with the given pattern.  It panics on any error.
 func (t *TestFramework) MustTempFile(pattern string) string {
-	path, err := ioutil.TempFile("", pattern)
+	path, err := os.CreateTemp("", pattern)
 	if err != nil {
 		panic(err)
 	}

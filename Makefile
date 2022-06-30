@@ -62,6 +62,7 @@ GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
+BOM := ${BUILD_BIN_PATH}/bom
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
 BATS_FILES := $(wildcard test/*.bats)
@@ -158,7 +159,7 @@ check-config-template:
 	./hack/validate-config.sh
 
 shellfiles: ${SHFMT}
-	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh))
+	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh | grep -v .bats))
 
 shfmt: shellfiles
 	${SHFMT} -ln bash -w -i 4 -d ${SHELLFILES}
@@ -269,6 +270,11 @@ ${GO_MOD_OUTDATED}:
 
 ${ZEITGEIST}:
 	$(call go-build,./vendor/sigs.k8s.io/zeitgeist)
+
+${BOM}:
+	$(call go-build, ./vendor/sigs.k8s.io/bom/cmd/bom)
+
+bom: ${BOM}
 
 ${GOLANGCI_LINT}:
 	export VERSION=v1.45.2 \
@@ -405,7 +411,7 @@ docs-generation:
 	bin/crio -d "" --config="" md  > docs/crio.8.md
 	bin/crio -d "" --config="" man > docs/crio.8
 
-bundle:
+bundle: ${BOM}
 	contrib/bundle/build
 
 bundle-test:
@@ -414,7 +420,7 @@ bundle-test:
 bundle-test-e2e:
 	sudo contrib/bundle/test-e2e
 
-bundles:
+bundles: ${BOM}
 	contrib/bundle/build amd64
 	contrib/bundle/build arm64
 
@@ -500,6 +506,9 @@ release-branch-forward:
 upload-artifacts:
 	./scripts/upload-artifacts
 
+sign-artifacts:
+	./scripts/sign-artifacts
+
 bin/metrics-exporter:
 	$(GO_BUILD) -o $@ \
 		-ldflags '-linkmode external -extldflags "-static -lm"' \
@@ -515,6 +524,7 @@ metrics-exporter: bin/metrics-exporter
 	.explicit_phony \
 	git-validation \
 	binaries \
+	bom \
 	bundle \
 	bundles \
 	bundle-test \
@@ -544,6 +554,7 @@ metrics-exporter: bin/metrics-exporter
 	bin/pinns \
 	dependencies \
 	upload-artifacts \
+	sign-artifacts \
 	bin/metrics-exporter \
 	metrics-exporter \
 	release \

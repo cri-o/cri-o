@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -75,9 +76,9 @@ func (s *ResourceLabelEventsService) ListIssueLabelEvents(pid interface{}, issue
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/issues/%d/resource_label_events", pathEscape(project), issue)
+	u := fmt.Sprintf("projects/%s/issues/%d/resource_label_events", PathEscape(project), issue)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -100,9 +101,9 @@ func (s *ResourceLabelEventsService) GetIssueLabelEvent(pid interface{}, issue i
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/issues/%d/resource_label_events/%d", pathEscape(project), issue, event)
+	u := fmt.Sprintf("projects/%s/issues/%d/resource_label_events/%d", PathEscape(project), issue, event)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -126,9 +127,9 @@ func (s *ResourceLabelEventsService) ListGroupEpicLabelEvents(gid interface{}, e
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/epics/%d/resource_label_events", pathEscape(group), epic)
+	u := fmt.Sprintf("groups/%s/epics/%d/resource_label_events", PathEscape(group), epic)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -151,9 +152,9 @@ func (s *ResourceLabelEventsService) GetGroupEpicLabelEvent(gid interface{}, epi
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/epics/%d/resource_label_events/%d", pathEscape(group), epic, event)
+	u := fmt.Sprintf("groups/%s/epics/%d/resource_label_events/%d", PathEscape(group), epic, event)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -167,19 +168,19 @@ func (s *ResourceLabelEventsService) GetGroupEpicLabelEvent(gid interface{}, epi
 	return l, resp, err
 }
 
-// ListMergeLabelEvents retrieves resource label events for the specified
+// ListMergeRequestsLabelEvents retrieves resource label events for the specified
 // project and merge request.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/resource_label_events.html#list-project-merge-request-label-events
-func (s *ResourceLabelEventsService) ListMergeLabelEvents(pid interface{}, request int, opt *ListLabelEventsOptions, options ...RequestOptionFunc) ([]*LabelEvent, *Response, error) {
+func (s *ResourceLabelEventsService) ListMergeRequestsLabelEvents(pid interface{}, request int, opt *ListLabelEventsOptions, options ...RequestOptionFunc) ([]*LabelEvent, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/merge_requests/%d/resource_label_events", pathEscape(project), request)
+	u := fmt.Sprintf("projects/%s/merge_requests/%d/resource_label_events", PathEscape(project), request)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -202,9 +203,9 @@ func (s *ResourceLabelEventsService) GetMergeRequestLabelEvent(pid interface{}, 
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/merge_requests/%d/resource_label_events/%d", pathEscape(project), request, event)
+	u := fmt.Sprintf("projects/%s/merge_requests/%d/resource_label_events/%d", PathEscape(project), request, event)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

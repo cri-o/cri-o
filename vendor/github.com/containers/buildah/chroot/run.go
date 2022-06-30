@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -159,9 +160,23 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 
 	// Start the grandparent subprocess.
 	cmd := unshare.Command(runUsingChrootCommand)
+	setPdeathsig(cmd.Cmd)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	cmd.Dir = "/"
 	cmd.Env = []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())}
+
+	interrupted := make(chan os.Signal, 100)
+	cmd.Hook = func(int) error {
+		signal.Notify(interrupted, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+		go func() {
+			for receivedSignal := range interrupted {
+				if err := cmd.Process.Signal(receivedSignal); err != nil {
+					logrus.Infof("%v while attempting to forward %v to child process", err, receivedSignal)
+				}
+			}
+		}()
+		return nil
+	}
 
 	logrus.Debugf("Running %#v in %#v", cmd.Cmd, cmd)
 	confwg.Add(1)
@@ -173,6 +188,8 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 	cmd.ExtraFiles = append([]*os.File{preader}, cmd.ExtraFiles...)
 	err = cmd.Run()
 	confwg.Wait()
+	signal.Stop(interrupted)
+	close(interrupted)
 	if err == nil {
 		return conferr
 	}
@@ -238,7 +255,7 @@ func runUsingChrootMain() {
 		// Set the kernel's lock to "unlocked".
 		locked := 0
 		if result, _, err := unix.Syscall(unix.SYS_IOCTL, uintptr(ptyMasterFd), unix.TIOCSPTLCK, uintptr(unsafe.Pointer(&locked))); int(result) == -1 {
-			logrus.Errorf("error locking PTY descriptor: %v", err)
+			logrus.Errorf("error unlocking PTY descriptor: %v", err)
 			os.Exit(1)
 		}
 		// Get a handle for the other end.
@@ -571,6 +588,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 
 	// Start the parent subprocess.
 	cmd := unshare.Command(append([]string{runUsingChrootExecCommand}, spec.Process.Args...)...)
+	setPdeathsig(cmd.Cmd)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	cmd.Dir = "/"
 	cmd.Env = []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())}
@@ -593,10 +611,19 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	}
 	cmd.OOMScoreAdj = spec.Process.OOMScoreAdj
 	cmd.ExtraFiles = append([]*os.File{preader}, cmd.ExtraFiles...)
+	interrupted := make(chan os.Signal, 100)
 	cmd.Hook = func(int) error {
 		for _, f := range closeOnceRunning {
 			f.Close()
 		}
+		signal.Notify(interrupted, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+		go func() {
+			for receivedSignal := range interrupted {
+				if err := cmd.Process.Signal(receivedSignal); err != nil {
+					logrus.Infof("%v while attempting to forward %v to child process", err, receivedSignal)
+				}
+			}
+		}()
 		return nil
 	}
 
@@ -609,6 +636,8 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	}()
 	err = cmd.Run()
 	confwg.Wait()
+	signal.Stop(interrupted)
+	close(interrupted)
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			if waitStatus, ok := exitError.ProcessState.Sys().(syscall.WaitStatus); ok {
@@ -792,11 +821,27 @@ func runUsingChrootExecMain() {
 
 	// Actually run the specified command.
 	cmd := exec.Command(args[0], args[1:]...)
+	setPdeathsig(cmd)
 	cmd.Env = options.Spec.Process.Env
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	cmd.Dir = cwd
 	logrus.Debugf("Running %#v (PATH = %q)", cmd, os.Getenv("PATH"))
-	if err = cmd.Run(); err != nil {
+	interrupted := make(chan os.Signal, 100)
+	if err = cmd.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "process failed to start with error: %v", err)
+	}
+	go func() {
+		for range interrupted {
+			if err := cmd.Process.Signal(syscall.SIGKILL); err != nil {
+				logrus.Infof("%v while attempting to send SIGKILL to child process", err)
+			}
+		}
+	}()
+	signal.Notify(interrupted, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	err = cmd.Wait()
+	signal.Stop(interrupted)
+	close(interrupted)
+	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			if waitStatus, ok := exitError.ProcessState.Sys().(syscall.WaitStatus); ok {
 				if waitStatus.Exited() {
@@ -883,46 +928,49 @@ func setApparmorProfile(spec *specs.Spec) error {
 
 // setCapabilities sets capabilities for ourselves, to be more or less inherited by any processes that we'll start.
 func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
-	currentCaps, err := capability.NewPid(0)
+	currentCaps, err := capability.NewPid2(0)
 	if err != nil {
 		return errors.Wrapf(err, "error reading capabilities of current process")
 	}
-	caps, err := capability.NewPid(0)
+	if err := currentCaps.Load(); err != nil {
+		return errors.Wrapf(err, "error loading capabilities")
+	}
+	caps, err := capability.NewPid2(0)
 	if err != nil {
 		return errors.Wrapf(err, "error reading capabilities of current process")
 	}
 	capMap := map[capability.CapType][]string{
 		capability.BOUNDING:    spec.Process.Capabilities.Bounding,
 		capability.EFFECTIVE:   spec.Process.Capabilities.Effective,
-		capability.INHERITABLE: spec.Process.Capabilities.Inheritable,
+		capability.INHERITABLE: []string{},
 		capability.PERMITTED:   spec.Process.Capabilities.Permitted,
 		capability.AMBIENT:     spec.Process.Capabilities.Ambient,
 	}
 	knownCaps := capability.List()
-	caps.Clear(capability.CAPS | capability.BOUNDS | capability.AMBS)
+	noCap := capability.Cap(-1)
 	for capType, capList := range capMap {
 		for _, capToSet := range capList {
-			cap := capability.CAP_LAST_CAP
+			cap := noCap
 			for _, c := range knownCaps {
 				if strings.EqualFold("CAP_"+c.String(), capToSet) {
 					cap = c
 					break
 				}
 			}
-			if cap == capability.CAP_LAST_CAP {
+			if cap == noCap {
 				return errors.Errorf("error mapping capability %q to a number", capToSet)
 			}
 			caps.Set(capType, cap)
 		}
 		for _, capToSet := range keepCaps {
-			cap := capability.CAP_LAST_CAP
+			cap := noCap
 			for _, c := range knownCaps {
 				if strings.EqualFold("CAP_"+c.String(), capToSet) {
 					cap = c
 					break
 				}
 			}
-			if cap == capability.CAP_LAST_CAP {
+			if cap == noCap {
 				return errors.Errorf("error mapping capability %q to a number", capToSet)
 			}
 			if currentCaps.Get(capType, cap) {
@@ -1191,21 +1239,33 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		}
 		requestFlags := bindFlags
 		expectedFlags := uintptr(0)
-		if util.StringInSlice("nodev", m.Options) {
-			requestFlags |= unix.MS_NODEV
-			expectedFlags |= unix.ST_NODEV
-		}
-		if util.StringInSlice("noexec", m.Options) {
-			requestFlags |= unix.MS_NOEXEC
-			expectedFlags |= unix.ST_NOEXEC
-		}
-		if util.StringInSlice("nosuid", m.Options) {
-			requestFlags |= unix.MS_NOSUID
-			expectedFlags |= unix.ST_NOSUID
-		}
-		if util.StringInSlice("ro", m.Options) {
-			requestFlags |= unix.MS_RDONLY
-			expectedFlags |= unix.ST_RDONLY
+		for _, option := range m.Options {
+			switch option {
+			case "nodev":
+				requestFlags |= unix.MS_NODEV
+				expectedFlags |= unix.ST_NODEV
+			case "dev":
+				requestFlags &= ^uintptr(unix.MS_NODEV)
+				expectedFlags &= ^uintptr(unix.ST_NODEV)
+			case "noexec":
+				requestFlags |= unix.MS_NOEXEC
+				expectedFlags |= unix.ST_NOEXEC
+			case "exec":
+				requestFlags &= ^uintptr(unix.MS_NOEXEC)
+				expectedFlags &= ^uintptr(unix.ST_NOEXEC)
+			case "nosuid":
+				requestFlags |= unix.MS_NOSUID
+				expectedFlags |= unix.ST_NOSUID
+			case "suid":
+				requestFlags &= ^uintptr(unix.MS_NOSUID)
+				expectedFlags &= ^uintptr(unix.ST_NOSUID)
+			case "ro":
+				requestFlags |= unix.MS_RDONLY
+				expectedFlags |= unix.ST_RDONLY
+			case "rw":
+				requestFlags &= ^uintptr(unix.MS_RDONLY)
+				expectedFlags &= ^uintptr(unix.ST_RDONLY)
+			}
 		}
 		switch m.Type {
 		case "bind":
@@ -1403,4 +1463,12 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		}
 	}
 	return undoBinds, nil
+}
+
+// setPdeathsig sets a parent-death signal for the process
+func setPdeathsig(cmd *exec.Cmd) {
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
 }

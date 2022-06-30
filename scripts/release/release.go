@@ -6,10 +6,9 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/release/pkg/git"
-	"k8s.io/release/pkg/github"
+	"sigs.k8s.io/release-sdk/git"
+	"sigs.k8s.io/release-sdk/github"
 	"sigs.k8s.io/release-utils/command"
 	"sigs.k8s.io/release-utils/env"
 	"sigs.k8s.io/release-utils/util"
@@ -34,12 +33,12 @@ func main() {
 
 func run() error {
 	if !env.IsSet(githubTokenEnvKey) {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"run: $%s environment variable is not set", githubTokenEnvKey,
 		)
 	}
 	if !env.IsSet(orgEnvKey) {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"run: $%s environment variable is not set %s",
 			orgEnvKey,
 			"(should be set to your CRI-O fork organization, like 'gh-name')",
@@ -53,25 +52,25 @@ func run() error {
 
 	repo, err := git.OpenRepo(".")
 	if err != nil {
-		return errors.Wrap(err, "open local repo")
+		return fmt.Errorf("open local repo: %w", err)
 	}
 
 	currentBranch, err := repo.CurrentBranch()
 	if err != nil {
-		return errors.Wrap(err, "get current branch")
+		return fmt.Errorf("get current branch: %w", err)
 	}
 	logrus.Infof("Using current branch: %s", currentBranch)
 
 	newVersion, err := incVersion(version.Version, currentBranch)
 	if err != nil {
-		return errors.Wrap(err, "increment version")
+		return fmt.Errorf("increment version: %w", err)
 	}
 	logrus.Infof("Using new version: %s", util.SemverToTagString(newVersion))
 
 	if err := updateVersionAndCreatePR(
 		repo, newVersion, currentBranch, org, remote,
 	); err != nil {
-		return errors.Wrap(err, "update version in local repository")
+		return fmt.Errorf("update version in local repository: %w", err)
 	}
 
 	return nil
@@ -80,7 +79,7 @@ func run() error {
 func incVersion(tag, branch string) (res semver.Version, err error) {
 	sv, err := util.TagStringToSemver(strings.TrimSpace(tag))
 	if err != nil {
-		return res, errors.Wrapf(err, "convert tag string %s to semver", tag)
+		return res, fmt.Errorf("convert tag string %s to semver: %w", tag, err)
 	}
 
 	// clear any suffix like `-dev`
@@ -106,7 +105,7 @@ func updateVersionAndCreatePR(
 	newBranch := branchPrefix + newVersion.String()
 	logrus.Infof("Switching to branch: %s", newBranch)
 	if err := repo.Checkout("-B", newBranch); err != nil {
-		return errors.Wrapf(err, "checkout branch %s", newBranch)
+		return fmt.Errorf("checkout branch %s: %w", newBranch, err)
 	}
 
 	logrus.Infof("Updating new tag in file %s", versionFile)
@@ -116,22 +115,22 @@ func updateVersionAndCreatePR(
 			fmt.Sprintf("s/%s/%s/", version.Version, newVersion),
 			versionFile,
 		).RunSilentSuccess(); err != nil {
-		return errors.Wrap(err, "update version file")
+		return fmt.Errorf("update version file: %w", err)
 	}
 
 	logrus.Info("Committing changes")
 	if err := repo.Add(versionFile); err != nil {
-		return errors.Wrapf(err, "add file %s to repo", versionFile)
+		return fmt.Errorf("add file %s to repo: %w", versionFile, err)
 	}
 	if err := repo.UserCommit(
 		"Bump version to " + newVersion.String(),
 	); err != nil {
-		return errors.Wrap(err, "commit changes")
+		return fmt.Errorf("commit changes: %w", err)
 	}
 
 	logrus.Info("Pushing changes")
 	if err := repo.PushToRemote(remote, newBranch); err != nil {
-		return errors.Wrapf(err, "pushing to remote: %s", remote)
+		return fmt.Errorf("pushing to remote: %s: %w", remote, err)
 	}
 
 	logrus.Info("Creating PR")
@@ -146,7 +145,7 @@ func updateVersionAndCreatePR(
 		),
 	)
 	if err != nil {
-		return errors.Wrap(err, "create pull request")
+		return fmt.Errorf("create pull request: %w", err)
 	}
 	logrus.Infof("Created PR #%d", pr.GetNumber())
 

@@ -8,9 +8,9 @@ import (
 	"net"
 
 	"github.com/containers/conmon-rs/internal/proto"
-	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/kubeutils"
-	"github.com/containers/podman/v3/utils"
+	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/kubeutils"
+	"github.com/containers/podman/v4/utils"
 )
 
 const (

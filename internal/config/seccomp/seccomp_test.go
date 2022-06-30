@@ -2,7 +2,7 @@ package seccomp_test
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	. "github.com/onsi/ginkgo/v2"
@@ -23,7 +23,7 @@ var _ = t.Describe("Config", func() {
 
 	writeProfileFile := func() string {
 		file := t.MustTempFile("")
-		Expect(ioutil.WriteFile(file, []byte(`{
+		Expect(os.WriteFile(file, []byte(`{
 				"names": ["clone"],
 				"action": "SCMP_ACT_ALLOW",
 				"args": [

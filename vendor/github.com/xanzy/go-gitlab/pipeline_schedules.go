@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -68,9 +69,9 @@ func (s *PipelineSchedulesService) ListPipelineSchedules(pid interface{}, opt *L
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/pipeline_schedules", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -93,9 +94,9 @@ func (s *PipelineSchedulesService) GetPipelineSchedule(pid interface{}, schedule
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d", pathEscape(project), schedule)
+	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d", PathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -131,9 +132,9 @@ func (s *PipelineSchedulesService) CreatePipelineSchedule(pid interface{}, opt *
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/pipeline_schedules", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -169,9 +170,9 @@ func (s *PipelineSchedulesService) EditPipelineSchedule(pid interface{}, schedul
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d", pathEscape(project), schedule)
+	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d", PathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -195,9 +196,9 @@ func (s *PipelineSchedulesService) TakeOwnershipOfPipelineSchedule(pid interface
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/take_ownership", pathEscape(project), schedule)
+	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/take_ownership", PathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -220,9 +221,9 @@ func (s *PipelineSchedulesService) DeletePipelineSchedule(pid interface{}, sched
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d", pathEscape(project), schedule)
+	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d", PathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -239,9 +240,9 @@ func (s *PipelineSchedulesService) RunPipelineSchedule(pid interface{}, schedule
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/play", pathEscape(project), schedule)
+	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/play", PathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -269,9 +270,9 @@ func (s *PipelineSchedulesService) CreatePipelineScheduleVariable(pid interface{
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/variables", pathEscape(project), schedule)
+	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/variables", PathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -304,9 +305,9 @@ func (s *PipelineSchedulesService) EditPipelineScheduleVariable(pid interface{},
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/variables/%s", pathEscape(project), schedule, key)
+	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/variables/%s", PathEscape(project), schedule, key)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -329,9 +330,9 @@ func (s *PipelineSchedulesService) DeletePipelineScheduleVariable(pid interface{
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/variables/%s", pathEscape(project), schedule, key)
+	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/variables/%s", PathEscape(project), schedule, key)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

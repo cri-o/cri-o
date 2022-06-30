@@ -4,12 +4,12 @@
 package nsmgr
 
 import (
+	"fmt"
 	"os"
 	"sync"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -109,7 +109,7 @@ func (n *namespace) Remove() error {
 
 	// try to unmount, ignoring "not mounted" (EINVAL) error.
 	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
-		return errors.Wrapf(err, "unable to unmount %s", fp)
+		return fmt.Errorf("unable to unmount %s: %w", fp, err)
 	}
 	return os.Remove(fp)
 }

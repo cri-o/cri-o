@@ -7,7 +7,6 @@ import (
 	"github.com/cri-o/cri-o/internal/config/migrate"
 	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -64,7 +63,7 @@ it later with **--config**. Global options will modify the output.`,
 		if c.IsSet("migrate-defaults") {
 			logrus.Infof("Migrating config from %s", from)
 			if err := migrate.Config(conf, from); err != nil {
-				return errors.Wrap(err, "migrate config")
+				return fmt.Errorf("migrate config: %w", err)
 			}
 		}
 

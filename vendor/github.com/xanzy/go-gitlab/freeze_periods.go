@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -58,9 +59,9 @@ func (s *FreezePeriodsService) ListFreezePeriods(pid interface{}, opt *ListFreez
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/freeze_periods", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/freeze_periods", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -83,9 +84,9 @@ func (s *FreezePeriodsService) GetFreezePeriod(pid interface{}, freezePeriod int
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/freeze_periods/%d", pathEscape(project), freezePeriod)
+	u := fmt.Sprintf("projects/%s/freeze_periods/%d", PathEscape(project), freezePeriod)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -119,9 +120,9 @@ func (s *FreezePeriodsService) CreateFreezePeriodOptions(pid interface{}, opt *C
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/freeze_periods", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/freeze_periods", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -155,9 +156,9 @@ func (s *FreezePeriodsService) UpdateFreezePeriodOptions(pid interface{}, freeze
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/freeze_periods/%d", pathEscape(project), freezePeriod)
+	u := fmt.Sprintf("projects/%s/freeze_periods/%d", PathEscape(project), freezePeriod)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -182,9 +183,9 @@ func (s *FreezePeriodsService) DeleteFreezePeriod(pid interface{}, freezePeriod 
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/freeze_periods/%d", pathEscape(project), freezePeriod)
+	u := fmt.Sprintf("projects/%s/freeze_periods/%d", PathEscape(project), freezePeriod)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

@@ -3,11 +3,9 @@ package server
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -32,7 +30,7 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 	defer func() {
 		if emptyStreamOnError && stream != nil {
 			go func() {
-				_, copyError := pools.Copy(ioutil.Discard, stream)
+				_, copyError := pools.Copy(io.Discard, stream)
 				log.Errorf(ctx, "Error closing port forward stream after other error: %v", copyError)
 			}()
 		}
@@ -40,7 +38,7 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 
 	sandboxID, err := s.runtimeServer.PodIDIndex().Get(podSandboxID)
 	if err != nil {
-		return fmt.Errorf("PodSandbox with ID starting with %s not found: %v", podSandboxID, err)
+		return fmt.Errorf("PodSandbox with ID starting with %s not found: %w", podSandboxID, err)
 	}
 
 	sb := s.runtimeServer.GetSandbox(sandboxID)
@@ -54,7 +52,7 @@ func (s StreamService) PortForward(podSandboxID string, port int32, stream io.Re
 
 	netNsPath := sb.NetNsPath()
 	if netNsPath == "" {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"network namespace path of sandbox %s is empty", sb.ID(),
 		)
 	}

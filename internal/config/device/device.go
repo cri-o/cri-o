@@ -1,12 +1,12 @@
 package device
 
 import (
+	"fmt"
 	"strings"
 
-	createconfig "github.com/containers/podman/v3/pkg/specgen/generate"
+	createconfig "github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 // DeviceAnnotationDelim is the character
@@ -81,18 +81,18 @@ func devicesFromStrings(devsFromConfig []string, allowedDevices map[string]struc
 
 		if allowedDevices != nil {
 			if _, ok := allowedDevices[src]; !ok {
-				return nil, errors.Errorf("device %s is specified but is not in allowed_devices", src)
+				return nil, fmt.Errorf("device %s is specified but is not in allowed_devices", src)
 			}
 		}
 		// ParseDevice does not check the destination is in /dev,
 		// but it should be checked
 		if !strings.HasPrefix(dst, "/dev/") {
-			return nil, errors.Errorf("invalid device mode: %s", dst)
+			return nil, fmt.Errorf("invalid device mode: %s", dst)
 		}
 
 		dev, err := devices.DeviceFromPath(src, permissions)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s is not a valid device", src)
+			return nil, fmt.Errorf("%s is not a valid device: %w", src, err)
 		}
 
 		dev.Path = dst

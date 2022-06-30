@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -230,7 +229,7 @@ var mockDirs = func(manifest []byte) {
 }
 
 func createDummyState() {
-	Expect(ioutil.WriteFile("state.json", []byte(`{}`), 0o644)).To(BeNil())
+	Expect(os.WriteFile("state.json", []byte(`{}`), 0o644)).To(BeNil())
 }
 
 func mockRuncInLibConfig() {

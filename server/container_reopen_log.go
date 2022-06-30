@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -13,7 +12,7 @@ import (
 func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContainerLogRequest) error {
 	c, err := s.GetContainerFromShortID(req.ContainerId)
 	if err != nil {
-		return errors.Wrapf(err, "could not find container %s", req.ContainerId)
+		return fmt.Errorf("could not find container %s: %w", req.ContainerId, err)
 	}
 
 	if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, c); err != nil {

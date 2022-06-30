@@ -2,7 +2,7 @@ package container_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -198,7 +198,7 @@ var _ = t.Describe("Container", func() {
 			dir := t.MustTempDir("cdi")
 			for idx, data := range content {
 				file := filepath.Join(dir, fmt.Sprintf("spec-%d.yaml", idx))
-				err := ioutil.WriteFile(file, []byte(data), 0o644)
+				err := os.WriteFile(file, []byte(data), 0o644)
 				if err != nil {
 					return err
 				}

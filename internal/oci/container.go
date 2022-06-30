@@ -2,8 +2,8 @@ package oci
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,14 +12,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/signal"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
@@ -87,9 +86,11 @@ func (c *Container) CRIAttributes() *types.ContainerAttributes {
 
 // ContainerVolume is a bind mount for the container.
 type ContainerVolume struct {
-	ContainerPath string `json:"container_path"`
-	HostPath      string `json:"host_path"`
-	Readonly      bool   `json:"readonly"`
+	ContainerPath  string                 `json:"container_path"`
+	HostPath       string                 `json:"host_path"`
+	Readonly       bool                   `json:"readonly"`
+	Propagation    types.MountPropagation `json:"propagation"`
+	SelinuxRelabel bool                   `json:"selinux_relabel"`
 }
 
 // ContainerState represents the status of a container.
@@ -250,7 +251,7 @@ func (c *Container) FromDisk() error {
 // These values should be set once, and not changed again.
 func (cstate *ContainerState) SetInitPid(pid int) error {
 	if cstate.InitPid != 0 || cstate.InitStartTime != "" {
-		return errors.Errorf("pid and start time already initialized: %d %s", cstate.InitPid, cstate.InitStartTime)
+		return fmt.Errorf("pid and start time already initialized: %d %s", cstate.InitPid, cstate.InitStartTime)
 	}
 	cstate.InitPid = pid
 	startTime, err := getPidStartTime(pid)
@@ -445,8 +446,10 @@ func (c *Container) exitFilePath() string {
 // IsAlive is a function that checks if a container's init PID exists.
 // It is used to check a container state when we don't want a `$runtime state` call
 func (c *Container) IsAlive() error {
-	_, err := c.pid()
-	return errors.Wrapf(err, "checking if PID of %s is running failed", c.ID())
+	if _, err := c.pid(); err != nil {
+		return fmt.Errorf("checking if PID of %s is running failed: %w", c.ID(), err)
+	}
+	return nil
 }
 
 // Pid returns the container's init PID.
@@ -477,7 +480,7 @@ func (c *Container) pid() (int, error) {
 		return 0, err
 	}
 	if err := unix.Kill(c.state.InitPid, 0); err == unix.ESRCH {
-		return 0, errors.Wrapf(err, "check whether %d is running", c.state.InitPid)
+		return 0, fmt.Errorf("check whether %d is running: %w", c.state.InitPid, err)
 	}
 	return c.state.InitPid, nil
 }
@@ -493,7 +496,7 @@ func (c *Container) verifyPid() error {
 	}
 
 	if startTime != c.state.InitStartTime {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"PID %d is running but has start time of %s, whereas the saved start time is %s. PID wrap may have occurred",
 			c.state.InitPid, startTime, c.state.InitStartTime,
 		)
@@ -511,15 +514,15 @@ func getPidStartTime(pid int) (string, error) {
 // GetPidStartTime reads a file as if it were a /proc/$pid/stat file, looking for stime for PID.
 // It is abstracted out to allow for unit testing
 func GetPidStartTimeFromFile(file string) (string, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
-		return "", errors.Wrapf(ErrNotFound, err.Error())
+		return "", fmt.Errorf("%v: %w", err, ErrNotFound)
 	}
 	// The command (2nd field) can have spaces, but is wrapped in ()
 	// first, trim it
 	commEnd := bytes.LastIndexByte(data, ')')
 	if commEnd == -1 {
-		return "", errors.Wrapf(ErrNotFound, "unable to find ')' in stat file")
+		return "", fmt.Errorf("unable to find ')' in stat file: %w", ErrNotFound)
 	}
 
 	// start on the space after the command
@@ -531,7 +534,7 @@ func GetPidStartTimeFromFile(file string) (string, error) {
 		// find the next space
 		iter = bytes.IndexByte(data, ' ')
 		if iter == -1 {
-			return "", errors.Wrapf(ErrNotFound, "invalid number of entries found in stat file %s: %d", file, field-1)
+			return "", fmt.Errorf("invalid number of entries found in stat file %s: %d: %w", file, field-1, ErrNotFound)
 		}
 	}
 
@@ -607,9 +610,22 @@ func (c *Container) RemoveManagedPIDNamespace() error {
 	if c.pidns == nil {
 		return nil
 	}
-	return errors.Wrapf(c.pidns.Remove(), "remove PID namespace for container %s", c.ID())
+	return fmt.Errorf("remove PID namespace for container %s: %w", c.ID(), c.pidns.Remove())
 }
 
 func (c *Container) IsInfra() bool {
 	return c.ID() == c.Sandbox()
+}
+
+// nodeLevelPIDNamespace searches through the container spec to see if there is
+// a PID namespace specified. If not, it returns `true` (because the runtime spec
+// defines a node level namespace as being absent from the Namespaces list)
+func (c *Container) nodeLevelPIDNamespace() bool {
+	for i := range c.spec.Linux.Namespaces {
+		// If it's specified in the namespace list, then it is something other than Node level
+		if c.spec.Linux.Namespaces[i].Type == specs.PIDNamespace {
+			return false
+		}
+	}
+	return true
 }

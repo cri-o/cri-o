@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,7 +14,6 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -46,7 +46,7 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 	g.SetProcessArgs(pauseCommand)
 
 	if err := s.createResolvConf(podContainer); err != nil {
-		return errors.Wrapf(err, "create resolv conf")
+		return fmt.Errorf("create resolv conf: %w", err)
 	}
 
 	// Add capabilities from crio.conf if default_capabilities is defined
@@ -65,7 +65,7 @@ func (s *sandbox) Spec() *generate.Generator {
 // PauseCommand returns the pause command for the provided image configuration.
 func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	if cfg == nil {
-		return nil, errors.Errorf("provided configuration is nil")
+		return nil, errors.New("provided configuration is nil")
 	}
 
 	// This has been explicitly set by the user, since the configuration
@@ -100,7 +100,7 @@ func (s *sandbox) createResolvConf(podContainer *storage.ContainerInfo) (retErr 
 	defer func() {
 		if retErr != nil {
 			if err := os.Remove(s.resolvPath); err != nil {
-				retErr = errors.Wrapf(retErr, "failed to remove resolvPath after failing to create it")
+				retErr = fmt.Errorf("failed to remove resolvPath after failing to create it: %w", retErr)
 			}
 		}
 	}()

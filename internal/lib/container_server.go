@@ -2,13 +2,14 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/containers/podman/v3/pkg/annotations"
-	"github.com/containers/podman/v3/pkg/hooks"
+	"github.com/containers/podman/v4/pkg/annotations"
+	"github.com/containers/podman/v4/pkg/hooks"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/truncindex"
@@ -24,7 +25,6 @@ import (
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -150,11 +150,11 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 	var m rspec.Spec
 	if err := json.Unmarshal(config, &m); err != nil {
-		return nil, errors.Wrap(err, "error unmarshalling sandbox spec")
+		return nil, fmt.Errorf("error unmarshalling sandbox spec: %w", err)
 	}
 	labels := make(map[string]string)
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
-		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Labels)
+		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Labels, err)
 	}
 	name := m.Annotations[annotations.Name]
 	name, err = c.ReservePodName(id, name)
@@ -168,7 +168,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}()
 	var metadata types.PodSandboxMetadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
-		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Metadata)
+		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Metadata, err)
 	}
 
 	processLabel := m.Process.SelinuxLabel
@@ -178,24 +178,24 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 
 	kubeAnnotations := make(map[string]string)
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
-		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.Annotations)
+		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Annotations, err)
 	}
 
 	portMappings := []*hostport.PortMapping{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.PortMappings]), &portMappings); err != nil {
-		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.PortMappings)
+		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.PortMappings, err)
 	}
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
 	nsOpts := types.NamespaceOption{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
-		return nil, errors.Wrapf(err, "error unmarshalling %s annotation", annotations.NamespaceOptions)
+		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.NamespaceOptions, err)
 	}
 
 	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing created timestamp annotation")
+		return nil, fmt.Errorf("parsing created timestamp annotation: %w", err)
 	}
 
 	sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[crioann.UsernsModeAnnotation])
@@ -270,7 +270,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	if m.Annotations[annotations.Volumes] != "" {
 		containerVolumes := []oci.ContainerVolume{}
 		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
-			return sb, fmt.Errorf("failed to unmarshal container volumes: %v", err)
+			return sb, fmt.Errorf("failed to unmarshal container volumes: %w", err)
 		}
 		for _, cv := range containerVolumes {
 			scontainer.AddVolume(cv)
@@ -303,13 +303,13 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	if err := c.ContainerStateFromDisk(ctx, scontainer); err != nil {
-		return sb, fmt.Errorf("error reading sandbox state from disk %q: %v", scontainer.ID(), err)
+		return sb, fmt.Errorf("error reading sandbox state from disk %q: %w", scontainer.ID(), err)
 	}
 
 	// We write back the state because it is possible that crio did not have a chance to
 	// read the exit file and persist exit code into the state on reboot.
 	if err := c.ContainerStateToDisk(ctx, scontainer); err != nil {
-		return sb, fmt.Errorf("failed to write container %q state to disk: %v", scontainer.ID(), err)
+		return sb, fmt.Errorf("failed to write container %q state to disk: %w", scontainer.ID(), err)
 	}
 
 	sb.SetCreated()
@@ -441,13 +441,13 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	ctr.SetSeccompProfilePath(spp)
 
 	if err := c.ContainerStateFromDisk(ctx, ctr); err != nil {
-		return fmt.Errorf("error reading container state from disk %q: %v", ctr.ID(), err)
+		return fmt.Errorf("error reading container state from disk %q: %w", ctr.ID(), err)
 	}
 
 	// We write back the state because it is possible that crio did not have a chance to
 	// read the exit file and persist exit code into the state on reboot.
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
-		return fmt.Errorf("failed to write container state to disk %q: %v", ctr.ID(), err)
+		return fmt.Errorf("failed to write container state to disk %q: %w", ctr.ID(), err)
 	}
 	ctr.SetCreated()
 
@@ -492,7 +492,7 @@ func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Con
 // ReserveContainerName holds a name for a container that is being created
 func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) {
 	if err := c.ctrNameIndex.Reserve(name, id); err != nil {
-		err = fmt.Errorf("error reserving ctr name %s for id %s: %v", name, id, err)
+		err = fmt.Errorf("error reserving ctr name %s for id %s: %w", name, id, err)
 		logrus.Warn(err)
 		return "", err
 	}
@@ -513,7 +513,7 @@ func (c *ContainerServer) ReleaseContainerName(name string) {
 // ReservePodName holds a name for a pod that is being created
 func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
 	if err := c.podNameIndex.Reserve(name, id); err != nil {
-		err = fmt.Errorf("error reserving pod name %s for id %s: %v", name, id, err)
+		err = fmt.Errorf("error reserving pod name %s for id %s: %w", name, id, err)
 		logrus.Warn(err)
 		return "", err
 	}
@@ -685,11 +685,20 @@ func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
 
 // StopContainerAndWait is a wrapping function that stops a container and waits for the container state to be stopped
 func (c *ContainerServer) StopContainerAndWait(ctx context.Context, ctr *oci.Container, timeout int64) error {
+	cStatus := ctr.StateNoLock()
+	if cStatus.Status == oci.ContainerStatePaused {
+		if err := c.Runtime().UnpauseContainer(ctx, ctr); err != nil {
+			return fmt.Errorf("failed to stop container %s: %w", ctr.Name(), err)
+		}
+		if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
+			return fmt.Errorf("failed to update container status %s: %w", ctr.Name(), err)
+		}
+	}
 	if err := c.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
-		return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
+		return fmt.Errorf("failed to stop container %s: %w", ctr.Name(), err)
 	}
 	if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
-		return fmt.Errorf("failed to update container status %s: %v", ctr.Name(), err)
+		return fmt.Errorf("failed to update container status %s: %w", ctr.Name(), err)
 	}
 	return nil
 }

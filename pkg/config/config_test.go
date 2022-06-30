@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -846,16 +845,14 @@ var _ = t.Describe("Config", func() {
 	t.Describe("ToFile", func() {
 		It("should succeed with default config", func() {
 			// Given
-			tmpfile, err := ioutil.TempFile("", "config")
-			Expect(err).To(BeNil())
-			defer os.Remove(tmpfile.Name())
+			tmpfile := t.MustTempFile("config")
 
 			// When
-			err = sut.ToFile(tmpfile.Name())
+			err := sut.ToFile(tmpfile)
 
 			// Then
 			Expect(err).To(BeNil())
-			_, err = os.Stat(tmpfile.Name())
+			_, err = os.Stat(tmpfile)
 			Expect(err).To(BeNil())
 		})
 
@@ -873,7 +870,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with custom config", func() {
 			// Given
 			f := t.MustTempFile("config")
-			Expect(ioutil.WriteFile(f,
+			Expect(os.WriteFile(f,
 				[]byte(`
 					[crio]
 					storage_driver = "overlay2"
@@ -896,7 +893,7 @@ var _ = t.Describe("Config", func() {
 		It("should inherit storage_options from storage.conf and remove duplicates", func() {
 			f := t.MustTempFile("config")
 			// Given
-			Expect(ioutil.WriteFile(f,
+			Expect(os.WriteFile(f,
 				[]byte(`
 					[crio]
 					storage_option = [
@@ -942,7 +939,7 @@ var _ = t.Describe("Config", func() {
 				`,
 				), "/test/storage", "/test/crio/storage"},
 			} {
-				Expect(ioutil.WriteFile(f, tc.criocfg, 0)).To(BeNil())
+				Expect(os.WriteFile(f, tc.criocfg, 0)).To(BeNil())
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.Root = tc.graphRoot
@@ -972,7 +969,7 @@ var _ = t.Describe("Config", func() {
 				`,
 				), "/test/storage", "/test/crio/storage"},
 			} {
-				Expect(ioutil.WriteFile(f, tc.criocfg, 0)).To(BeNil())
+				Expect(os.WriteFile(f, tc.criocfg, 0)).To(BeNil())
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.RunRoot = tc.runRoot
@@ -1002,7 +999,7 @@ var _ = t.Describe("Config", func() {
 				`,
 				), "/test/storage", "/test/crio/storage"},
 			} {
-				Expect(ioutil.WriteFile(f, tc.criocfg, 0)).To(BeNil())
+				Expect(os.WriteFile(f, tc.criocfg, 0)).To(BeNil())
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.Storage = tc.storageDriver
@@ -1017,7 +1014,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with custom runtime", func() {
 			// Given
 			f := t.MustTempFile("config")
-			Expect(ioutil.WriteFile(f,
+			Expect(os.WriteFile(f,
 				[]byte("[crio.runtime.runtimes.crun]"), 0),
 			).To(BeNil())
 
@@ -1033,7 +1030,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with additional runtime", func() {
 			// Given
 			f := t.MustTempFile("config")
-			Expect(ioutil.WriteFile(f,
+			Expect(os.WriteFile(f,
 				[]byte(`
 					[crio.runtime.runtimes.runc]
 					[crio.runtime.runtimes.crun]
@@ -1122,12 +1119,12 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.LogLevel).To(Equal("info"))
 
 			configDir := t.MustTempDir("config-dir")
-			Expect(ioutil.WriteFile(
+			Expect(os.WriteFile(
 				filepath.Join(configDir, "00-default"),
 				[]byte("[crio.runtime]\nlog_level = \"debug\"\n"),
 				0o644,
 			)).To(BeNil())
-			Expect(ioutil.WriteFile(
+			Expect(os.WriteFile(
 				filepath.Join(configDir, "01-my-config"),
 				[]byte("[crio.runtime]\nlog_level = \"warning\"\n"),
 				0o644,
@@ -1144,7 +1141,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid config", func() {
 			// Given
 			configDir := t.MustTempDir("config-dir")
-			Expect(ioutil.WriteFile(
+			Expect(os.WriteFile(
 				filepath.Join(configDir, "00-default"),
 				[]byte("[crio.runtime]\nlog_level = true\n"),
 				0o644,

@@ -26,8 +26,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/release/pkg/gcp"
-	"k8s.io/release/pkg/object"
+	"sigs.k8s.io/release-sdk/gcli"
+	"sigs.k8s.io/release-sdk/object"
 	"sigs.k8s.io/release-utils/http"
 	"sigs.k8s.io/release-utils/util"
 )
@@ -77,15 +77,15 @@ type defaultPublisher struct {
 }
 
 func (*defaultPublisher) GSUtil(args ...string) error {
-	return gcp.GSUtil(args...)
+	return gcli.GSUtil(args...)
 }
 
 func (*defaultPublisher) GSUtilOutput(args ...string) (string, error) {
-	return gcp.GSUtilOutput(args...)
+	return gcli.GSUtilOutput(args...)
 }
 
 func (*defaultPublisher) GSUtilStatus(args ...string) (bool, error) {
-	status, err := gcp.GSUtilStatus(args...)
+	status, err := gcli.GSUtilStatus(args...)
 	if err != nil {
 		return false, err
 	}

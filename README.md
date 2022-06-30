@@ -32,14 +32,14 @@ Policy](https://kubernetes.io/releases/version-skew-policy/).
 | Version - Branch            | Kubernetes branch/version       | Maintenance status |
 | --------------------------- | ------------------------------- | ------------------ |
 | CRI-O HEAD - main           | Kubernetes master branch        | ✓                  |
+| CRI-O 1.24.x - release-1.24 | Kubernetes 1.24 branch, v1.24.x | =                  |
 | CRI-O 1.23.x - release-1.23 | Kubernetes 1.23 branch, v1.23.x | =                  |
 | CRI-O 1.22.x - release-1.22 | Kubernetes 1.22 branch, v1.22.x | =                  |
 | CRI-O 1.21.x - release-1.21 | Kubernetes 1.21 branch, v1.21.x | =                  |
-| CRI-O 1.20.x - release-1.20 | Kubernetes 1.20 branch, v1.20.x | =                  |
 
 Key:
 
-- `✓` Changes in main Kubernetes repo about CRI are actively implemented in CRI-O
+- `✓` Changes in the main Kubernetes repo about CRI are actively implemented in CRI-O
 - `=` Maintenance is manual, only bugs will be patched.
 
 The release notes for CRI-O are hand-crafted and can be continuously retrieved
@@ -47,7 +47,7 @@ from [our GitHub pages website](https://cri-o.github.io/cri-o).
 
 ## What is the scope of this project?
 
-CRI-O is meant to provide an integration path between OCI conformant runtimes and the kubelet.
+CRI-O is meant to provide an integration path between OCI conformant runtimes and the Kubelet.
 Specifically, it implements the Kubelet [Container Runtime Interface (CRI)](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-node/container-runtime-interface.md) using OCI conformant runtimes.
 The scope of CRI-O is tied to the scope of the CRI.
 
@@ -60,7 +60,7 @@ At a high level, we expect the scope of CRI-O to be restricted to the following 
 - Monitoring and logging required to satisfy the CRI
 - Resource isolation as required by the CRI
 
-## What is not in scope for this project?
+## What is not in the scope of this project?
 
 - Building, signing and pushing images to various image storages
 - A CLI utility for interacting with CRI-O. Any CLIs built as part of this project are only meant for testing this project and there will be no guarantees on the backward compatibility with it.
@@ -72,7 +72,7 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 - Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI runtime-spec implementation) and [oci runtime tools](https://github.com/opencontainers/runtime-tools)
 - Images: Image management using [containers/image](https://github.com/containers/image)
 - Storage: Storage and management of image layers using [containers/storage](https://github.com/containers/storage)
-- Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
+- Networking: Networking support through the use of [CNI](https://github.com/containernetworking/cni)
 
 It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788). Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
@@ -103,9 +103,9 @@ We provide [useful information for operations and development transfer](transfer
 
 ## Communication
 
-For async communication and long running discussions please use issues and pull requests on the github repo. This will be the best place to discuss design and implementation.
+For async communication and long running discussions please use issues and pull requests on the GitHub repo. This will be the best place to discuss design and implementation.
 
-For chat communication we have a [channel on the Kubernetes slack](https://kubernetes.slack.com/archives/crio) that everyone is welcome to join and chat about development.
+For chat communication, we have a [channel on the Kubernetes slack](https://kubernetes.slack.com/archives/crio) that everyone is welcome to join and chat about development.
 
 ## Awesome CRI-O
 
@@ -122,13 +122,19 @@ Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
 guide](install.md#build-and-install-cri-o-from-source).
 We also provide a way in building [static binaries of `CRI-O`](install.md#static-builds) via nix.
 Those binaries are available for every successfully built commit on our [Google Cloud Storage Bucket][bucket].
-This means that the latest commit can be installed via our convinience script:
+This means that the latest commit can be installed via our convenience script:
 
 [bucket]: https://console.cloud.google.com/storage/browser/cri-o/artifacts
 
 ```console
 > curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash
 ```
+
+The script automatically verifies the uploaded sigstore signatures as well, if
+the local system has [`cosign`](https://github.com/sigstore/cosign) available in
+its `$PATH`. The same applies to the [SPDX](https://spdx.org) based bill of
+materials (SBOM), which gets automatically verified if the
+[bom](https://sigs.k8s.io/bom) tool is in `$PATH`.
 
 Beside `amd64` we also support the `arm64` bit architecture. This can be
 selected via the script, too:
@@ -151,10 +157,18 @@ https://storage.googleapis.com/cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz
 ```
 
 where `$ARCH` can be `amd64` or `arm64` and `$REV` can be any git SHA or tag.
-Please be aware that using the latest `master` SHA might cause a race, because
+Please be aware that using the latest `main` SHA might cause a race, because
 the CI has not finished publishing the artifacts yet or failed.
 
-### Running kubernetes with CRI-O
+We also provide a Software Bill of Materials (SBOM) in the [SPDX
+format](https://spdx.org) for each bundle. The SBOM is available at the same URL
+like the bundle itself, but suffixed with `.spdx`:
+
+```
+https://storage.googleapis.com/cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz.spdx
+```
+
+### Running Kubernetes with CRI-O
 
 Before you begin, you'll need to [start CRI-O](install.md#starting-cri-o)
 
@@ -203,6 +217,8 @@ The following API entry points are currently supported:
 | `/info`           | `application/json` | General information about the runtime, like `storage_driver` and `storage_root`.   |
 | `/containers/:id` | `application/json` | Dedicated container information, like `name`, `pid` and `image`.                   |
 | `/config`         | `application/toml` | The complete TOML configuration (defaults to `/etc/crio/crio.conf`) used by CRI-O. |
+| `/pause/:id`      | `application/json` | Pause a running container.                                                         |
+| `/unpause/:id`    | `application/json` | Unpause a paused container.                                                        |
 
 The tool `crio-status` can be used to access the API with a dedicated command
 line tool. It supports all API endpoints via the dedicated subcommands `config`,

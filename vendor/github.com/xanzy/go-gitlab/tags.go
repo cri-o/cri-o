@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
@@ -33,10 +34,12 @@ type TagsService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/tags.html
 type Tag struct {
-	Commit  *Commit      `json:"commit"`
-	Release *ReleaseNote `json:"release"`
-	Name    string       `json:"name"`
-	Message string       `json:"message"`
+	Commit    *Commit      `json:"commit"`
+	Release   *ReleaseNote `json:"release"`
+	Name      string       `json:"name"`
+	Message   string       `json:"message"`
+	Protected bool         `json:"protected"`
+	Target    string       `json:"target"`
 }
 
 // ReleaseNote represents a GitLab version release.
@@ -72,9 +75,9 @@ func (s *TagsService) ListTags(pid interface{}, opt *ListTagsOptions, options ..
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/tags", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/repository/tags", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,9 +101,9 @@ func (s *TagsService) GetTag(pid interface{}, tag string, options ...RequestOpti
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/tags/%s", pathEscape(project), url.PathEscape(tag))
+	u := fmt.Sprintf("projects/%s/repository/tags/%s", PathEscape(project), url.PathEscape(tag))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -122,7 +125,8 @@ type CreateTagOptions struct {
 	TagName *string `url:"tag_name,omitempty" json:"tag_name,omitempty"`
 	Ref     *string `url:"ref,omitempty" json:"ref,omitempty"`
 	Message *string `url:"message,omitempty" json:"message,omitempty"`
-	// ReleaseDescription parameter was deprecated in GitLab 11.7
+
+	// Deprecated members
 	ReleaseDescription *string `url:"release_description:omitempty" json:"release_description,omitempty"`
 }
 
@@ -135,9 +139,9 @@ func (s *TagsService) CreateTag(pid interface{}, opt *CreateTagOptions, options 
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/tags", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/repository/tags", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -160,9 +164,9 @@ func (s *TagsService) DeleteTag(pid interface{}, tag string, options ...RequestO
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/tags/%s", pathEscape(project), url.PathEscape(tag))
+	u := fmt.Sprintf("projects/%s/repository/tags/%s", PathEscape(project), url.PathEscape(tag))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -192,9 +196,9 @@ func (s *TagsService) CreateReleaseNote(pid interface{}, tag string, opt *Create
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/tags/%s/release", pathEscape(project), url.PathEscape(tag))
+	u := fmt.Sprintf("projects/%s/repository/tags/%s/release", PathEscape(project), url.PathEscape(tag))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -227,9 +231,9 @@ func (s *TagsService) UpdateReleaseNote(pid interface{}, tag string, opt *Update
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/tags/%s/release", pathEscape(project), url.PathEscape(tag))
+	u := fmt.Sprintf("projects/%s/repository/tags/%s/release", PathEscape(project), url.PathEscape(tag))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

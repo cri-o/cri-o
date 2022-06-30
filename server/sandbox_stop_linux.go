@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/containers/storage"
@@ -8,7 +9,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 )
@@ -54,14 +54,14 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 				c := ctr
 				waitGroup.Go(func() error {
 					if err := s.StopContainerAndWait(ctx, c, int64(10)); err != nil {
-						return fmt.Errorf("failed to stop container for pod sandbox %s: %v", sb.ID(), err)
+						return fmt.Errorf("failed to stop container for pod sandbox %s: %w", sb.ID(), err)
 					}
 					if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
 						// assume container already umounted
 						log.Warnf(ctx, "Failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 					}
 					if err := s.ContainerStateToDisk(ctx, c); err != nil {
-						return errors.Wrapf(err, "write container %q state do disk", c.Name())
+						return fmt.Errorf("write container %q state do disk: %w", c.Name(), err)
 					}
 					return nil
 				})
@@ -81,13 +81,13 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		podInfraStatus := podInfraContainer.State()
 		if podInfraStatus.Status != oci.ContainerStateStopped {
 			if err := s.StopContainerAndWait(ctx, podInfraContainer, int64(10)); err != nil {
-				return fmt.Errorf("failed to stop infra container for pod sandbox %s: %v", sb.ID(), err)
+				return fmt.Errorf("failed to stop infra container for pod sandbox %s: %w", sb.ID(), err)
 			}
 		}
 	}
 
 	if err := sb.RemoveManagedNamespaces(); err != nil {
-		return errors.Wrap(err, "unable to remove managed namespaces")
+		return fmt.Errorf("unable to remove managed namespaces: %w", err)
 	}
 
 	if err := sb.UnmountShm(); err != nil {

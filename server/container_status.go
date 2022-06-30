@@ -1,11 +1,12 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	json "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,9 +43,11 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	mounts := []*types.Mount{}
 	for _, cv := range c.Volumes() {
 		mounts = append(mounts, &types.Mount{
-			ContainerPath: cv.ContainerPath,
-			HostPath:      cv.HostPath,
-			Readonly:      cv.Readonly,
+			ContainerPath:  cv.ContainerPath,
+			HostPath:       cv.HostPath,
+			Readonly:       cv.Readonly,
+			Propagation:    cv.Propagation,
+			SelinuxRelabel: cv.SelinuxRelabel,
 		})
 	}
 	resp.Status.Mounts = mounts
@@ -66,7 +69,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	switch cState.Status {
 	case oci.ContainerStateCreated:
 		rStatus = types.ContainerState_CONTAINER_CREATED
-	case oci.ContainerStateRunning:
+	case oci.ContainerStateRunning, oci.ContainerStatePaused:
 		rStatus = types.ContainerState_CONTAINER_RUNNING
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
@@ -98,7 +101,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	if req.Verbose {
 		info, err := s.createContainerInfo(c)
 		if err != nil {
-			return nil, errors.Wrap(err, "creating container info")
+			return nil, fmt.Errorf("creating container info: %w", err)
 		}
 		resp.Info = info
 	}
@@ -109,7 +112,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 func (s *Server) createContainerInfo(container *oci.Container) (map[string]string, error) {
 	metadata, err := s.StorageRuntimeServer().GetContainerMetadata(container.ID())
 	if err != nil {
-		return nil, errors.Wrap(err, "getting container metadata")
+		return nil, fmt.Errorf("getting container metadata: %w", err)
 	}
 
 	info := struct {
@@ -125,7 +128,7 @@ func (s *Server) createContainerInfo(container *oci.Container) (map[string]strin
 	}
 	bytes, err := json.Marshal(info)
 	if err != nil {
-		return nil, errors.Wrapf(err, "marshal data: %v", info)
+		return nil, fmt.Errorf("marshal data: %v: %w", info, err)
 	}
 	return map[string]string{"info": string(bytes)}, nil
 }

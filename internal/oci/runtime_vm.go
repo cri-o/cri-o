@@ -2,8 +2,9 @@ package oci
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -32,13 +33,13 @@ import (
 	"github.com/cri-o/cri-o/utils/errdefs"
 	ptypes "github.com/gogo/protobuf/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	kioutil "k8s.io/kubernetes/pkg/kubelet/util/ioutils"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -166,14 +167,14 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	select {
 	case err = <-createdCh:
 		if err != nil {
-			return errors.Errorf("CreateContainer failed: %v", err)
+			return fmt.Errorf("CreateContainer failed: %w", err)
 		}
 	case <-time.After(ContainerCreateTimeout):
 		if err := r.remove(c.ID(), ""); err != nil {
 			return err
 		}
 		<-createdCh
-		return errors.Errorf("CreateContainer timeout (%v)", ContainerCreateTimeout)
+		return fmt.Errorf("CreateContainer timeout (%v)", ContainerCreateTimeout)
 	}
 
 	return nil
@@ -191,20 +192,16 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	}
 	args = append(args, "start")
 
-	// Modify the runtime path so that it complies with v2 shim API
-	newRuntimePath := BuildContainerdBinaryName(r.path)
-
 	r.ctx = namespaces.WithNamespace(r.ctx, namespaces.Default)
 
 	// Prepare the command to exec
 	cmd, err := client.Command(
 		r.ctx,
-		newRuntimePath,
-		"",
-		"",
-		c.BundlePath(),
-		nil,
-		args...,
+		&client.CommandConfig{
+			Runtime: r.path,
+			Path:    c.BundlePath(),
+			Args:    args,
+		},
 	)
 	if err != nil {
 		return err
@@ -230,7 +227,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	// Start the server
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrap(err, string(out))
+		return fmt.Errorf("%s: %w", string(out), err)
 	}
 
 	// Retrieve the address from the output
@@ -293,7 +290,7 @@ func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []strin
 	}
 	if exitCode != 0 {
 		return &utilexec.CodeExitError{
-			Err:  errors.Errorf("error executing command %v, exit code %d", cmd, exitCode),
+			Err:  fmt.Errorf("executing command %v, exit code %d", cmd, exitCode),
 			Code: int(exitCode),
 		}
 	}
@@ -307,12 +304,12 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 	defer log.Debugf(ctx, "RuntimeVM.ExecSyncContainer() end")
 
 	var stdoutBuf, stderrBuf bytes.Buffer
-	stdout := cioutil.NewNopWriteCloser(&stdoutBuf)
-	stderr := cioutil.NewNopWriteCloser(&stderrBuf)
+	stdout := kioutil.WriteCloserWrapper(kioutil.LimitWriter(&stdoutBuf, maxExecSyncSize))
+	stderr := kioutil.WriteCloserWrapper(kioutil.LimitWriter(&stderrBuf, maxExecSyncSize))
 
 	exitCode, err := r.execContainerCommon(ctx, c, command, timeout, nil, stdout, stderr, c.terminal, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "ExecSyncContainer failed")
+		return nil, fmt.Errorf("ExecSyncContainer failed: %w", err)
 	}
 
 	// if the execution stopped because of the timeout, report it as such
@@ -341,7 +338,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	// Generate a unique execID
 	execID, err := utils.GenerateID()
 	if err != nil {
-		return execError, errors.Wrap(err, "exec container")
+		return execError, fmt.Errorf("exec container: %w", err)
 	}
 
 	// Create IO fifos
@@ -565,7 +562,7 @@ func (r *runtimeVM) waitCtrTerminate(sig syscall.Signal, stopCh chan error, time
 	case err := <-stopCh:
 		return err
 	case <-time.After(timeout):
-		return errors.Errorf("StopContainer with signal %v timed out after (%v)", sig, timeout)
+		return fmt.Errorf("StopContainer with signal %v timed out after (%v)", sig, timeout)
 	}
 }
 
@@ -589,7 +586,7 @@ func (r *runtimeVM) deleteContainer(c *Container, force bool) error {
 	cInfo, ok := r.ctrs[c.ID()]
 	r.Unlock()
 	if !ok && !force {
-		return errors.New("Could not retrieve container information")
+		return errors.New("could not retrieve container information")
 	}
 
 	if err := cInfo.cio.Close(); err != nil && !force {
@@ -635,7 +632,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 	// And then connect to the existing gRPC server with this address.
 	if r.task == nil {
 		addressPath := filepath.Join(c.BundlePath(), "address")
-		data, err := ioutil.ReadFile(addressPath)
+		data, err := os.ReadFile(addressPath)
 		if err != nil {
 			log.Warnf(ctx, "Failed to read shim address: %v", err)
 			return errors.New("runtime not correctly setup")
@@ -662,7 +659,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 	}
 
 	if err = r.restoreContainerIO(ctx, c, response); err != nil {
-		return errors.Wrapf(err, "failed to restore container io")
+		return fmt.Errorf("failed to restore container io: %w", err)
 	}
 
 	status := c.state.Status
@@ -840,17 +837,17 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 		return nil, errdefs.FromGRPC(err)
 	}
 	if resp == nil {
-		return nil, errors.New("Could not retrieve container stats")
+		return nil, errors.New("could not retrieve container stats")
 	}
 
 	stats, err := typeurl.UnmarshalAny(resp.Stats)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to extract container metrics")
+		return nil, fmt.Errorf("failed to extract container metrics: %w", err)
 	}
 
 	m, ok := stats.(*cgroups.Metrics)
 	if !ok {
-		return nil, errors.Errorf("Unknown stats type %T", stats)
+		return nil, fmt.Errorf("unknown stats type %T", stats)
 	}
 
 	return metricsToCtrStats(ctx, c, m), nil
@@ -933,7 +930,7 @@ func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStre
 	cInfo, ok := r.ctrs[c.ID()]
 	r.Unlock()
 	if !ok {
-		return errors.New("Could not retrieve container information")
+		return errors.New("could not retrieve container information")
 	}
 
 	opts := cio.AttachOptions{

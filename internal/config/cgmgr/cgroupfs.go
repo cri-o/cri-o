@@ -9,17 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v3/pkg/cgroups"
-	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/containers/common/pkg/cgroups"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/cri-o/cri-o/utils"
-	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
+	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -101,7 +96,7 @@ func (m *CgroupfsManager) PopulateSandboxCgroupStats(sbParent string, stats *typ
 // so that CRI-O can clean the cgroup path of the newly added conmon once the process terminates (systemd handles this for us)
 func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (cgroupPathToClean string, _ error) {
 	if conmonCgroup != utils.PodCgroupName && conmonCgroup != "" {
-		return "", errors.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
+		return "", fmt.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
 	}
 
 	if resources == nil {
@@ -130,53 +125,33 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 	// through e.g. runc. This should be handled by implementing a conmon monitoring
 	// routine that does the cgroup cleanup once conmon is terminated.
 	if err := control.AddPid(pid); err != nil {
-		return "", errors.Wrapf(err, "Failed to add conmon to cgroupfs sandbox cgroup")
+		return "", fmt.Errorf("failed to add conmon to cgroupfs sandbox cgroup: %w", err)
 	}
 	return cgroupPath, nil
 }
 
-func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) error {
-	var mgr libctr.Manager
+func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) (err error) {
 	if resources.CPU == nil {
 		return nil
 	}
 
-	paths := map[string]string{
-		"cpuset":  filepath.Join("/sys/fs/cgroup", "cpuset", cgPath),
-		"cpu":     filepath.Join("/sys/fs/cgroup", "cpu", cgPath),
-		"freezer": filepath.Join("/sys/fs/cgroup", "freezer", cgPath),
-		"devices": filepath.Join("/sys/fs/cgroup", "devices", cgPath),
-	}
-
 	cg := &cgcfgs.Cgroup{
-		Name:      cgPath,
-		Resources: &cgcfgs.Resources{},
-	}
-	if resources.CPU.Cpus != "" {
-		cg.Resources.CpusetCpus = resources.CPU.Cpus
+		Path: "/" + cgPath,
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+			CpusetCpus:  resources.CPU.Cpus,
+		},
+		Rootless: rootless.IsRootless(),
 	}
 	if resources.CPU.Shares != nil {
 		cg.Resources.CpuShares = *resources.CPU.Shares
 	}
 
-	// We need to white list all devices
-	// so containers created underneath won't fail
-	cg.Resources.Devices = []*devices.Rule{
-		{
-			Type:  devices.WildcardDevice,
-			Allow: true,
-		},
+	mgr, err := libctrCgMgr.New(cg)
+	if err != nil {
+		return err
 	}
 
-	if node.CgroupIsV2() {
-		var err error
-		mgr, err = fs2.NewManager(cg, cgPath, rootless.IsRootless())
-		if err != nil {
-			return err
-		}
-	} else {
-		mgr = fs.NewManager(cg, paths, rootless.IsRootless())
-	}
 	return mgr.Set(cg.Resources)
 }
 

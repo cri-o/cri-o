@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
-	"github.com/containers/podman/v3/pkg/annotations"
+	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
@@ -27,7 +26,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// Create temp lockfile
-			tmpfile, err := ioutil.TempFile("", "lockfile")
+			tmpfile, err := os.CreateTemp("", "lockfile")
 			Expect(err).To(BeNil())
 			defer os.Remove(tmpfile.Name())
 

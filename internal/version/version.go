@@ -1,9 +1,8 @@
 package version
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -17,7 +16,6 @@ import (
 	"github.com/containers/common/pkg/seccomp"
 	"github.com/google/renameio"
 	json "github.com/json-iterator/go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,26 +55,21 @@ func ShouldCrioWipe(versionFileName string) (bool, error) {
 
 // shouldCrioWipe is an internal function for testing purposes
 func shouldCrioWipe(versionFileName, versionString string) (bool, error) {
-	f, err := os.Open(versionFileName)
+	versionBytes, err := os.ReadFile(versionFileName)
 	if err != nil {
-		return true, errors.Errorf("version file %s not found: %v", versionFileName, err)
-	}
-	r := bufio.NewReader(f)
-	versionBytes, err := ioutil.ReadAll(r)
-	if err != nil {
-		return true, errors.Errorf("reading version file %s failed: %v", versionFileName, err)
+		return true, err
 	}
 
 	// parse the version that was laid down by a previous invocation of crio
 	var oldVersion semver.Version
 	if err := oldVersion.UnmarshalJSON(versionBytes); err != nil {
-		return true, errors.Errorf("version file %s malformatted: %v", versionFileName, err)
+		return true, fmt.Errorf("version file %s malformatted: %w", versionFileName, err)
 	}
 
 	// parse the version of the current binary
 	newVersion, err := parseVersionConstant(versionString, "")
 	if err != nil {
-		return true, errors.Errorf("version constant %s malformatted: %v", versionString, err)
+		return true, fmt.Errorf("version constant %s malformatted: %w", versionString, err)
 	}
 
 	// in every case that the minor and major version are out of sync,

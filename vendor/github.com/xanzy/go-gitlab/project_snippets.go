@@ -19,6 +19,7 @@ package gitlab
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 )
 
 // ProjectSnippetsService handles communication with the project snippets
@@ -42,9 +43,9 @@ func (s *ProjectSnippetsService) ListSnippets(pid interface{}, opt *ListProjectS
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/snippets", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/snippets", PathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -67,9 +68,9 @@ func (s *ProjectSnippetsService) GetSnippet(pid interface{}, snippet int, option
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/snippets/%d", pathEscape(project), snippet)
+	u := fmt.Sprintf("projects/%s/snippets/%d", PathEscape(project), snippet)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -93,6 +94,7 @@ type CreateProjectSnippetOptions struct {
 	Description *string          `url:"description,omitempty" json:"description,omitempty"`
 	Content     *string          `url:"content,omitempty" json:"content,omitempty"`
 	Visibility  *VisibilityValue `url:"visibility,omitempty" json:"visibility,omitempty"`
+	Files       *[]*SnippetFile  `url:"files,omitempty" json:"files,omitempty"`
 }
 
 // CreateSnippet creates a new project snippet. The user must have permission
@@ -105,9 +107,9 @@ func (s *ProjectSnippetsService) CreateSnippet(pid interface{}, opt *CreateProje
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/snippets", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/snippets", PathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -143,9 +145,9 @@ func (s *ProjectSnippetsService) UpdateSnippet(pid interface{}, snippet int, opt
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/snippets/%d", pathEscape(project), snippet)
+	u := fmt.Sprintf("projects/%s/snippets/%d", PathEscape(project), snippet)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -170,9 +172,9 @@ func (s *ProjectSnippetsService) DeleteSnippet(pid interface{}, snippet int, opt
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/snippets/%d", pathEscape(project), snippet)
+	u := fmt.Sprintf("projects/%s/snippets/%d", PathEscape(project), snippet)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -189,9 +191,9 @@ func (s *ProjectSnippetsService) SnippetContent(pid interface{}, snippet int, op
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/snippets/%d/raw", pathEscape(project), snippet)
+	u := fmt.Sprintf("projects/%s/snippets/%d/raw", PathEscape(project), snippet)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -16,19 +16,25 @@ limitations under the License.
 
 package document
 
+const ContainerImagesDescription = `### Container Images
+
+All container images are available as manifest lists and support the described
+architectures. It is also possible to pull a specific architecture directly by
+adding the "-$ARCH" suffix  to the container image name.
+`
+
 // defaultReleaseNotesTemplate is the text template for the default release notes.
 // k8s/release/cmd/release-notes uses text/template to render markdown
 // templates.
 const defaultReleaseNotesTemplate = `
 {{- $CurrentRevision := .CurrentRevision -}}
 {{- $PreviousRevision := .PreviousRevision -}}
-# Release notes for {{$CurrentRevision}}
 
-[Documentation](https://docs.k8s.io/docs/home)
-{{if .Downloads}}
+{{if or .FileDownloads .ImageDownloads}}
 ## Downloads for {{$CurrentRevision}}
 
-{{- with .Downloads.Source }}
+{{- if .FileDownloads -}}
+{{- with .FileDownloads.Source }}
 
 ### Source Code
 
@@ -37,32 +43,41 @@ filename | sha512 hash
 {{range .}}[{{.Name}}]({{.URL}}) | {{.Checksum}}{{println}}{{end}}
 {{end}}
 
-{{- with .Downloads.Client -}}
-### Client binaries
+{{- with .FileDownloads.Client -}}
+### Client Binaries
 
 filename | sha512 hash
 -------- | -----------
 {{range .}}[{{.Name}}]({{.URL}}) | {{.Checksum}}{{println}}{{end}}
 {{end}}
 
-{{- with .Downloads.Server -}}
-### Server binaries
+{{- with .FileDownloads.Server -}}
+### Server Binaries
 
 filename | sha512 hash
 -------- | -----------
 {{range .}}[{{.Name}}]({{.URL}}) | {{.Checksum}}{{println}}{{end}}
 {{end}}
 
-{{- with .Downloads.Node -}}
-### Node binaries
+{{- with .FileDownloads.Node -}}
+### Node Binaries
 
 filename | sha512 hash
 -------- | -----------
 {{range .}}[{{.Name}}]({{.URL}}) | {{.Checksum}}{{println}}{{end}}
 {{end -}}
-{{- end -}}
-# Changelog since {{$PreviousRevision}}
 
+{{if .ImageDownloads}}
+{{- with .ImageDownloads -}}
+` + ContainerImagesDescription + `
+name | architectures
+---- | -------------
+{{range .}}{{.Name}} | {{ range $i, $a := .Architectures}}{{if $i}}, {{end}}{{$a}}{{end}}{{println}}{{end}}
+{{end -}}
+
+{{end -}}
+{{end -}}
+{{- end -}}
 {{with .CVEList -}}
 ## Important Security Information
 
