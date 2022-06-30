@@ -54,29 +54,40 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	cState := c.StateNoLock()
 	rStatus := types.ContainerState_CONTAINER_UNKNOWN
 
-	// If we defaulted to exit code not set earlier then we attempt to
-	// get the exit code from the exit file again.
-	if cState.Status == oci.ContainerStateStopped && cState.ExitCode == nil {
+	updateState := func() *oci.ContainerState {
 		err := s.Runtime().UpdateContainerStatus(ctx, c)
 		if err != nil {
 			log.Warnf(ctx, "Failed to UpdateStatus of container %s: %v", c.ID(), err)
 		}
-		cState = c.State()
+		return c.State()
+	}
+	// If we defaulted to exit code not set earlier then we attempt to
+	// get the exit code from the exit file again.
+	if cState.Status == oci.ContainerStateStopped && cState.ExitCode == nil {
+		cState = updateState()
 	}
 
-	created := c.CreatedAt().UnixNano()
+	// We know Created.IsZero is bogus at this point because GetContainerFromShortID() errors
+	// if the container has yet to be created.
+	if cState.Created.IsZero() {
+		log.Warnf(ctx, "Container %s state has bogus information. Attempting to update.", c.ID())
+		cState = updateState()
+		if cState.Created.IsZero() {
+			// Updating didn't help, something deeper is wrong with runc
+			log.Errorf(ctx, "Failed to update container %s state after state had bogus information. Consider manually removing container.", c.ID())
+		}
+	}
+
+	resp.Status.CreatedAt = cState.Created.UnixNano()
 	switch cState.Status {
 	case oci.ContainerStateCreated:
 		rStatus = types.ContainerState_CONTAINER_CREATED
-		resp.Status.CreatedAt = created
 	case oci.ContainerStateRunning:
 		rStatus = types.ContainerState_CONTAINER_RUNNING
-		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
 	case oci.ContainerStateStopped:
 		rStatus = types.ContainerState_CONTAINER_EXITED
-		resp.Status.CreatedAt = created
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
 		finished := cState.Finished.UnixNano()
