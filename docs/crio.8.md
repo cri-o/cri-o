@@ -337,7 +337,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified
 
-**--selinux**: Enable selinux support (default: false)
+**--selinux**: Enable selinux support (default: true)
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup (default: "")
 
