@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 30 Jun 2022 06:52:32 UTC for commit [2858bf7][0]._
+_Generated on Thu, 30 Jun 2022 13:38:18 UTC for commit [ceaadc4][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2858bf76550f8c4b8195f19628ff91493e32c118
+[0]: https://github.com/cri-o/cri-o/commit/ceaadc4673a3357460873aff5f8f1ff1b7bdefd0
 
 ## Outdated Dependencies
 
 |             MODULE              |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |---------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220629114027-ece522a0bf7b | true   | true             |
+| github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa | v0.0.0-20220630124224-4454b49993de | true   | true             |
 | github.com/stretchr/testify     | v1.7.5                             | v1.8.0                             | true   | true             |
 | golang.org/x/net                | v0.0.0-20220621193019-9d032be2e588 | v0.0.0-20220624214902-1bab6f366d9e | true   | true             |
 | golang.org/x/sys                | v0.0.0-20220615213510-4f61da869c0c | v0.0.0-20220627191245-f75cf1eec38b | true   | true             |
@@ -217,7 +217,7 @@ _Generated on Thu, 30 Jun 2022 06:52:32 UTC for commit [2858bf7][0]._
 | github.com/cespare/xxhash/v2                                                | v2.1.2                                            |                                    | false  | true             |
 | github.com/chai2010/gettext-go                                              | v0.0.0-20160711120539-c6fed771bfd5                | v1.0.2                             | false  | true             |
 | github.com/charithe/durationcheck                                           | v0.0.9                                            |                                    | false  | true             |
-| github.com/chavacava/garif                                                  | v0.0.0-20210405164556-e8a0a408d6af                | v0.0.0-20220624065725-d6fd61e6a499 | false  | true             |
+| github.com/chavacava/garif                                                  | v0.0.0-20210405164556-e8a0a408d6af                | v0.0.0-20220630083739-93517212f375 | false  | true             |
 | github.com/checkpoint-restore/checkpointctl                                 | v0.0.0-20220321135231-33f4a66335f0                |                                    | false  | true             |
 | github.com/checkpoint-restore/go-criu/v4                                    | v4.1.0                                            |                                    | false  | true             |
 | github.com/checkpoint-restore/go-criu/v5                                    | v5.3.0                                            |                                    | false  | true             |
@@ -265,7 +265,7 @@ _Generated on Thu, 30 Jun 2022 06:52:32 UTC for commit [2858bf7][0]._
 | github.com/containers/buildah                                               | v1.26.1                                           |                                    | true   | true             |
 | github.com/containers/common                                                | v0.48.0                                           |                                    | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                              |                                    | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220629114027-ece522a0bf7b | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.0.0-20220609131637-836ba11bf0aa                | v0.0.0-20220630124224-4454b49993de | true   | true             |
 | github.com/containers/image/v5                                              | v5.21.1                                           |                                    | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20200511145503-9c3a6c22cd9a                |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.1.5                                            |                                    | true   | true             |
@@ -837,7 +837,7 @@ _Generated on Thu, 30 Jun 2022 06:52:32 UTC for commit [2858bf7][0]._
 | github.com/samuel/go-zookeeper                                              | v0.0.0-20190923202752-2cc03de413da                | v0.0.0-20201211165307-7117e9ea2414 | false  | true             |
 | github.com/sanposhiho/wastedassign/v2                                       | v2.0.6                                            | v2.0.7                             | false  | true             |
 | github.com/saschagrunert/ccli                                               | v1.0.2-0.20200423111659-b68f755cc0f5              |                                    | false  | true             |
-| github.com/saschagrunert/go-modiff                                          | v1.3.0                                            |                                    | false  | true             |
+| github.com/saschagrunert/go-modiff                                          | v1.3.0                                            | v1.3.1                             | false  | true             |
 | github.com/sassoftware/go-rpmutils                                          | v0.1.1                                            | v0.2.0                             | false  | true             |
 | github.com/sassoftware/relic                                                | v0.0.0-20210427151427-dfb082b79b74                |                                    | false  | true             |
 | github.com/satori/go.uuid                                                   | v1.2.0                                            |                                    | false  | true             |
@@ -866,7 +866,7 @@ _Generated on Thu, 30 Jun 2022 06:52:32 UTC for commit [2858bf7][0]._
 | github.com/shurcooL/sanitized_anchor_name                                   | v1.0.0                                            |                                    | false  | true             |
 | github.com/sigstore/cosign                                                  | v1.9.0                                            |                                    | false  | true             |
 | github.com/sigstore/fulcio                                                  | v0.1.2-0.20220114150912-86a2036f9bc7              | v0.5.0                             | false  | true             |
-| github.com/sigstore/rekor                                                   | v0.4.1-0.20220114213500-23f583409af3              | v0.8.2                             | false  | true             |
+| github.com/sigstore/rekor                                                   | v0.4.1-0.20220114213500-23f583409af3              | v0.9.0                             | false  | true             |
 | github.com/sigstore/sigstore                                                | v1.2.1-0.20220424143412-3d41663116d5              | v1.3.0                             | false  | true             |
 | github.com/sirupsen/logrus                                                  | v1.8.1                                            |                                    | true   | true             |
 | github.com/sivchari/tenv                                                    | v1.4.7                                            | v1.6.0                             | false  | true             |
@@ -1127,7 +1127,7 @@ _Generated on Thu, 30 Jun 2022 06:52:32 UTC for commit [2858bf7][0]._
 | k8s.io/utils                                                                | v0.0.0-20220210201930-3a6ce19ff2f9                |                                    | true   | true             |
 | knative.dev/hack                                                            | v0.0.0-20220224013837-e1785985d364                | v0.0.0-20220629134730-e7d63651ce8f | false  | true             |
 | knative.dev/hack/schema                                                     | v0.0.0-20220224013837-e1785985d364                | v0.0.0-20220629134730-e7d63651ce8f | false  | true             |
-| knative.dev/pkg                                                             | v0.0.0-20220325200448-1f7514acd0c2                | v0.0.0-20220629132331-f4ae0aff5b9c | false  | true             |
+| knative.dev/pkg                                                             | v0.0.0-20220325200448-1f7514acd0c2                | v0.0.0-20220630112730-85965e1e8eb1 | false  | true             |
 | modernc.org/cc                                                              | v1.0.0                                            | v1.0.1                             | false  | true             |
 | modernc.org/golex                                                           | v1.0.0                                            | v1.0.1                             | false  | true             |
 | modernc.org/mathutil                                                        | v1.0.0                                            | v1.4.1                             | false  | true             |
