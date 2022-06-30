@@ -278,7 +278,8 @@ The following dependencies:
 #### Debian - Raspbian - Ubuntu
 
 On Debian, Raspbian and Ubuntu distributions, [enable the Kubic project
-repositories](../README.md#installing-crio) and install the following packages:
+repositories](#apt-based-operating-systems) (for `containers-common`
+and `cri-o-runc` packages) and install the following packages:
 
 ##### Debian up to buster - Raspbian - Ubuntu up to 18.04
 
