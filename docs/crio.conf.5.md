@@ -49,7 +49,7 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
   It is used to check if crio wipe should wipe containers, which should
   always happen on a node reboot
 
-**version_file_persist**="/var/lib/crio/version"
+**version_file_persist**=""
   Location for CRI-O to lay down the persistent version file.
   It is used to check if crio wipe should wipe images, which should
   only happen when CRI-O has been upgraded
