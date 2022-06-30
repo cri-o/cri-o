@@ -73,10 +73,10 @@ var _ = t.Describe("Version", func() {
 			_, err = os.ReadFile(filename)
 			Expect(err).To(BeNil())
 		})
-		It("should fail to upgrade with unspecified version", func() {
+		It("should not wipe with empty version file", func() {
 			upgrade, err := shouldCrioWipe("", tempVersion)
-			Expect(upgrade).To(BeTrue())
-			Expect(err).ToNot(BeNil())
+			Expect(upgrade).To(BeFalse())
+			Expect(err).To(BeNil())
 		})
 		It("should fail to upgrade with empty version file", func() {
 			tempFileName := tempFileName

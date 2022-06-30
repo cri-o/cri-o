@@ -55,6 +55,9 @@ func ShouldCrioWipe(versionFileName string) (bool, error) {
 
 // shouldCrioWipe is an internal function for testing purposes
 func shouldCrioWipe(versionFileName, versionString string) (bool, error) {
+	if versionFileName == "" {
+		return false, nil
+	}
 	versionBytes, err := os.ReadFile(versionFileName)
 	if err != nil {
 		return true, err
@@ -93,6 +96,9 @@ func (i *Info) LogVersion() {
 
 // writeVersionFile is an internal function for testing purposes
 func writeVersionFile(file, gitCommit, version string) error {
+	if file == "" {
+		return nil
+	}
 	current, err := parseVersionConstant(version, gitCommit)
 	// Sanity check-this should never happen
 	if err != nil {
