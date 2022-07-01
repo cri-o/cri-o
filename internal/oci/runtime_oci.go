@@ -280,7 +280,7 @@ func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
 	); err != nil {
 		return err
 	}
-	c.state.Started = time.Now()
+	c.SetStarted()
 	return nil
 }
 
@@ -791,7 +791,6 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			timeout = newTimeout
 		}
 	}
-	c.state.Finished = time.Now()
 	// Successfully stopped! This is to prevent other routines from
 	// racing with this one and waiting forever.
 	// Close only the dedicated channel. If we close stopTimeoutChan,
@@ -826,14 +825,13 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	}
 
 	if c.Spoofed() {
-		c.state.Status = ContainerStateStopped
-		c.state.Finished = time.Now()
+		c.SetStopped(time.Now(), 0, false)
 		return nil
 	}
 
 	// The initial container process either doesn't exist, or isn't ours.
 	if err := c.verifyPid(); err != nil {
-		c.state.Finished = time.Now()
+		c.SetStopped(time.Now(), 0, false)
 		return nil
 	}
 
@@ -878,7 +876,7 @@ func updateContainerStatusFromExitFile(c *Container) error {
 	if err != nil {
 		return fmt.Errorf("failed to find container exit file for %s: %w", c.ID(), err)
 	}
-	c.state.Finished, err = getFinishedTime(fi)
+	finished, err := getFinishedTime(fi)
 	if err != nil {
 		return fmt.Errorf("failed to get finished time: %w", err)
 	}
@@ -890,10 +888,10 @@ func updateContainerStatusFromExitFile(c *Container) error {
 	if err != nil {
 		return fmt.Errorf("status code conversion failed: %w", err)
 	}
-	c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
 
+	oomKilled := false
 	if _, err = os.Stat(filepath.Join(c.bundlePath, "oom")); err == nil {
-		c.state.OOMKilled = true
+		oomKilled = true
 
 		// Collect total metric
 		metrics.Instance().MetricContainersOOMTotalInc()
@@ -902,6 +900,7 @@ func updateContainerStatusFromExitFile(c *Container) error {
 		metrics.Instance().MetricContainersOOMCountTotalInc(c.Name())
 	}
 
+	c.SetStopped(finished, int32(statusCode), oomKilled)
 	return nil
 }
 
@@ -937,10 +936,8 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			} else {
 				log.Errorf(ctx, "Failed to update container state for %s: %v", c.ID(), err)
 			}
-			c.state.Status = ContainerStateStopped
 			if err := updateContainerStatusFromExitFile(c); err != nil {
-				c.state.Finished = time.Now()
-				c.state.ExitCode = utils.Int32Ptr(255)
+				c.SetStopped(time.Now(), -1, false)
 			}
 			return nil, true, nil
 		}

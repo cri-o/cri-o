@@ -261,7 +261,7 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 	if err := r.start(c.ID(), ""); err != nil {
 		return err
 	}
-	c.state.Started = time.Now()
+	c.SetStarted()
 
 	// Spawn a goroutine waiting for the container to terminate. Once it
 	// happens, the container status is retrieved to be updated.
@@ -675,15 +675,14 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 	}
 
 	c.state.Status = status
-	c.state.Finished = response.ExitedAt
 	exitCode := int32(response.ExitStatus)
-	c.state.ExitCode = &exitCode
 	c.state.Pid = int(response.Pid)
 
+	oomKilled := false
 	if exitCode != 0 {
 		oomFilePath := filepath.Join(c.bundlePath, "oom")
 		if _, err = os.Stat(oomFilePath); err == nil {
-			c.state.OOMKilled = true
+			oomKilled = true
 
 			// Collect total metric
 			metrics.Instance().MetricContainersOOMTotalInc()
@@ -692,6 +691,11 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 			metrics.Instance().MetricContainersOOMCountTotalInc(c.Name())
 		}
 	}
+
+	if status == ContainerStateStopped {
+		c.SetStopped(response.ExitedAt, exitCode, oomKilled)
+	}
+
 	return nil
 }
 

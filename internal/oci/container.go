@@ -33,6 +33,10 @@ const (
 	statStartTimeLocation = 22
 	// The 2nd field is the command, wrapped by ()
 	statCommField = 2
+
+	oomKilledReason = "OOMKilled"
+	completedReason = "Completed"
+	errorReason     = "Error"
 )
 
 var (
@@ -186,28 +190,19 @@ func (c *Container) CRIContainer() *types.Container {
 	// If a protobuf message gets mutated mid-request, then the proto library panics.
 	// We would like to avoid deep copies when possible to avoid excessive garbage
 	// collection, but need to if the container changes state.
-	newState := types.ContainerState_CONTAINER_UNKNOWN
-	switch c.StateNoLock().Status {
-	case ContainerStateCreated:
-		newState = types.ContainerState_CONTAINER_CREATED
-	case ContainerStateRunning, ContainerStatePaused:
-		newState = types.ContainerState_CONTAINER_RUNNING
-	case ContainerStateStopped:
-		newState = types.ContainerState_CONTAINER_EXITED
-	}
+	return c.criContainer
+}
+
+func (c *Container) CRIStatus() *types.ContainerStatus {
+	return c.criStatus
+}
+
+func (c *Container) updateCRIContainerState(newState types.ContainerState) {
 	if newState != c.criContainer.State {
 		cpy := *c.criContainer
 		cpy.State = newState
 		c.criContainer = &cpy
 	}
-	return c.criContainer
-}
-
-func (c *Container) CRIStatus() *types.ContainerStatus {
-	// Return a deep copy so the State field doesn't get mutated mid-request,
-	// causing a proto panic.
-	cpy := *c.criStatus
-	return &cpy
 }
 
 // SetSpec loads the OCI spec in the container struct
@@ -452,14 +447,49 @@ func (c *Container) Created() bool {
 	return c.created
 }
 
+func (c *Container) SetStarted() {
+	started := time.Now()
+	c.updateCRIContainerState(types.ContainerState_CONTAINER_RUNNING)
+
+	cpy := *c.criStatus
+	cpy.State = types.ContainerState_CONTAINER_RUNNING
+	cpy.StartedAt = started.UnixNano()
+	c.criStatus = &cpy
+	c.state.Started = started
+}
+
+func (c *Container) SetStopped(finishedTime time.Time, exitCode int32, oomKilled bool) {
+	c.state.ExitCode = &exitCode
+	c.updateCRIContainerState(types.ContainerState_CONTAINER_EXITED)
+
+	cpy := *c.criStatus
+	if cpy.StartedAt == 0 {
+		cpy.StartedAt = finishedTime.UnixNano()
+	}
+
+	cpy.FinishedAt = finishedTime.UnixNano()
+	cpy.ExitCode = exitCode
+	switch {
+	case oomKilled:
+		cpy.Reason = oomKilledReason
+	case cpy.ExitCode == 0:
+		cpy.Reason = completedReason
+	default:
+		cpy.Reason = errorReason
+		cpy.Message = c.state.Error // TODO FIXME
+	}
+	c.criStatus = &cpy
+}
+
 // SetStartFailed sets the container state appropriately after a start failure
 func (c *Container) SetStartFailed(err error) {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 	// adjust finished and started times
 	c.state.Finished, c.state.Started = c.state.Created, c.state.Created
+	c.SetStopped(c.state.Created, 0, false)
 	if err != nil {
-		c.state.Error = err.Error()
+		c.state.Error = err.Error() // TODO FIXME
 	}
 }
 
