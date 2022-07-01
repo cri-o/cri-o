@@ -116,12 +116,10 @@ curl_to "$TMP_BIN/conmon" \
     "https://github.com/containers/conmon/releases/download/${VERSIONS["conmon"]}/conmon.$ARCH"
 chmod +x "$TMP_BIN/conmon"
 
-if [[ $ARCH == "$ARCH_AMD64" ]]; then
-    # runc
-    curl_to "$TMP_BIN/runc" \
-        "https://github.com/opencontainers/runc/releases/download/${VERSIONS["runc"]}/runc.amd64"
-    chmod +x "$TMP_BIN/runc"
-fi
+# runc
+curl_to "$TMP_BIN/runc" \
+    "https://github.com/opencontainers/runc/releases/download/${VERSIONS["runc"]}/runc.$ARCH"
+chmod +x "$TMP_BIN/runc"
 
 # crun
 curl_to "$TMP_BIN/crun" \
@@ -181,8 +179,8 @@ pushd "$TMPDIR"
 export DESTDIR=test/
 ./install
 EXP_CNT=64
-if [[ $ARCH == "$ARCH_AMD64" ]]; then
-    EXP_CNT=65
+if ! command -v runc; then
+    EXP_CNT=$((EXP_CNT + 1))
 fi
 ACT_CNT=$(find test | wc -l)
 if [[ "$EXP_CNT" != "$ACT_CNT" ]]; then
