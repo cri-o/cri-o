@@ -44,7 +44,7 @@ var (
 // Container represents a runtime container.
 type Container struct {
 	criContainer   *types.Container
-	volumes        []ContainerVolume
+	mounts         []*types.Mount
 	name           string
 	logPath        string
 	runtimeHandler string
@@ -392,14 +392,14 @@ func (c *Container) StateNoLock() *ContainerState {
 	return c.state
 }
 
-// AddVolume adds a volume to list of container volumes.
-func (c *Container) AddVolume(v ContainerVolume) {
-	c.volumes = append(c.volumes, v)
+// AddMount adds a mount to list of container mounts.
+func (c *Container) AddMount(m *types.Mount) {
+	c.mounts = append(c.mounts, m)
 }
 
-// Volumes returns the list of container volumes.
-func (c *Container) Volumes() []ContainerVolume {
-	return c.volumes
+// Mounts returns the list of container mounts.
+func (c *Container) Mounts() []*types.Mount {
+	return c.mounts
 }
 
 // SetMountPoint sets the container mount point

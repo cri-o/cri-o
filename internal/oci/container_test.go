@@ -89,16 +89,16 @@ var _ = t.Describe("Container", func() {
 		Expect(sut.IDMappings()).To(Equal(mappings))
 	})
 
-	It("should succeed to add a volume", func() {
+	It("should succeed to add a mount", func() {
 		// Given
-		volume := oci.ContainerVolume{ContainerPath: "/"}
+		mount := &types.Mount{ContainerPath: "/"}
 
 		// When
-		sut.AddVolume(volume)
+		sut.AddMount(mount)
 
 		// Then
-		Expect(len(sut.Volumes())).To(BeEquivalentTo(1))
-		Expect(sut.Volumes()[0]).To(Equal(volume))
+		Expect(len(sut.Mounts())).To(BeEquivalentTo(1))
+		Expect(sut.Mounts()[0]).To(Equal(mount))
 	})
 
 	It("should succeed to set the seccomp profile path", func() {

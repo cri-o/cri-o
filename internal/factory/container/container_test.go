@@ -12,7 +12,6 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	. "github.com/onsi/ginkgo/v2"
@@ -85,7 +84,7 @@ var _ = t.Describe("Container", func() {
 			err := sut.SetConfig(containerConfig, sandboxConfig)
 			Expect(err).To(BeNil())
 			currentTime := time.Now()
-			volumes := []oci.ContainerVolume{}
+			mounts := []*types.Mount{}
 			imageResult := storage.ImageResult{}
 			mountPoint := "test"
 			configStopSignal := "test"
@@ -108,7 +107,7 @@ var _ = t.Describe("Container", func() {
 			labelsJSON, err := json.Marshal(sut.Config().Labels)
 			Expect(err).To(BeNil())
 
-			volumesJSON, err := json.Marshal(volumes)
+			mountsJSON, err := json.Marshal(mounts)
 			Expect(err).To(BeNil())
 
 			kubeAnnotationsJSON, err := json.Marshal(sut.Config().Annotations)
@@ -117,7 +116,7 @@ var _ = t.Describe("Container", func() {
 			Expect(currentTime).ToNot(BeNil())
 			Expect(sb).ToNot(BeNil())
 
-			err = sut.SpecAddAnnotations(context.Background(), sb, volumes, mountPoint, configStopSignal, &imageResult, false, false)
+			err = sut.SpecAddAnnotations(context.Background(), sb, mounts, mountPoint, configStopSignal, &imageResult, false, false)
 			Expect(err).To(BeNil())
 
 			Expect(sut.Spec().Config.Annotations[annotations.Image]).To(Equal(image))
@@ -139,7 +138,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.Spec().Config.Annotations[annotations.Created]).ToNot(BeNil())
 			Expect(sut.Spec().Config.Annotations[annotations.Metadata]).To(Equal(string(metadataJSON)))
 			Expect(sut.Spec().Config.Annotations[annotations.Labels]).To(Equal(string(labelsJSON)))
-			Expect(sut.Spec().Config.Annotations[annotations.Volumes]).To(Equal(string(volumesJSON)))
+			Expect(sut.Spec().Config.Annotations[annotations.Volumes]).To(Equal(string(mountsJSON)))
 			Expect(sut.Spec().Config.Annotations[annotations.Annotations]).To(Equal(string(kubeAnnotationsJSON)))
 		})
 	})

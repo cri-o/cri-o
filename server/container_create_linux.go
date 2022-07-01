@@ -315,7 +315,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
 
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW)
+	criMounts, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW)
 	if err != nil {
 		return nil, err
 	}
@@ -658,7 +658,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		specgen.Config.Linux.IntelRdt = &rspec.LinuxIntelRdt{ClosID: rdt.ResctrlPrefix + rdtClass}
 	}
 
-	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode())
+	err = ctr.SpecAddAnnotations(ctx, sb, criMounts, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode())
 	if err != nil {
 		return nil, err
 	}
@@ -839,8 +839,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	ociContainer.SetMountPoint(mountPoint)
 	ociContainer.SetSeccompProfilePath(containerConfig.Linux.SecurityContext.SeccompProfilePath)
 
-	for _, cv := range containerVolumes {
-		ociContainer.AddVolume(cv)
+	for _, cv := range criMounts {
+		ociContainer.AddMount(cv)
 	}
 
 	return ociContainer, nil
@@ -885,9 +885,9 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
-	volumes := []oci.ContainerVolume{}
-	ociMounts := []rspec.Mount{}
+func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW bool) (criMounts []*types.Mount, ociMounts []rspec.Mount, _ error) {
+	criMounts = []*types.Mount{}
+	ociMounts = []rspec.Mount{}
 	containerConfig := ctr.Config()
 	specgen := ctr.Spec()
 	mounts := containerConfig.Mounts
@@ -1002,7 +1002,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			}
 		}
 
-		volumes = append(volumes, oci.ContainerVolume{
+		criMounts = append(criMounts, &types.Mount{
 			ContainerPath:  dest,
 			HostPath:       src,
 			Readonly:       m.Readonly,
@@ -1033,7 +1033,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 		specgen.AddMount(m)
 	}
 
-	return volumes, ociMounts, nil
+	return criMounts, ociMounts, nil
 }
 
 // mountExists returns true if dest exists in the list of mounts

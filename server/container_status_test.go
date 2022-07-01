@@ -30,7 +30,7 @@ var _ = t.Describe("ContainerStatus", func() {
 		) {
 			// Given
 			addContainerAndSandbox()
-			testContainer.AddVolume(oci.ContainerVolume{})
+			testContainer.AddMount(&types.Mount{})
 			testContainer.SetStateAndSpoofPid(givenState)
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
