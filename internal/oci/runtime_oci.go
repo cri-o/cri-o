@@ -841,7 +841,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		if _, err := utils.ExecCmd(
 			r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), c.GetStopSignal(),
 		); err != nil {
-			checkProcessGone(c)
+			log.Debugf(ctx, "Failed to kill container %s with stop signal %s: %v", c.ID(), c.GetStopSignal(), err)
 		}
 		err := WaitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
 		if err == nil {
@@ -853,18 +853,10 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	if _, err := utils.ExecCmd(
 		r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), "KILL",
 	); err != nil {
-		checkProcessGone(c)
+		log.Debugf(ctx, "Failed to kill container %s with stop signal %s: %v", c.ID(), c.GetStopSignal(), err)
 	}
 
 	return WaitContainerStop(ctx, c, killContainerTimeout, false)
-}
-
-func checkProcessGone(c *Container) {
-	if err := c.verifyPid(); err != nil {
-		// The initial container process either doesn't exist, or isn't ours.
-		// Set state accordingly.
-		c.state.Finished = time.Now()
-	}
 }
 
 // DeleteContainer deletes a container.
