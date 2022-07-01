@@ -440,39 +440,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
 
 		if !ctr.Privileged() {
-			for _, mp := range []string{
-				"/proc/acpi",
-				"/proc/kcore",
-				"/proc/keys",
-				"/proc/latency_stats",
-				"/proc/timer_list",
-				"/proc/timer_stats",
-				"/proc/sched_debug",
-				"/proc/scsi",
-				"/sys/firmware",
-				"/sys/dev",
-			} {
-				specgen.AddLinuxMaskedPaths(mp)
-			}
 			if securityContext.MaskedPaths != nil {
-				specgen.Config.Linux.MaskedPaths = nil
 				for _, path := range securityContext.MaskedPaths {
 					specgen.AddLinuxMaskedPaths(path)
 				}
 			}
 
-			for _, rp := range []string{
-				"/proc/asound",
-				"/proc/bus",
-				"/proc/fs",
-				"/proc/irq",
-				"/proc/sys",
-				"/proc/sysrq-trigger",
-			} {
-				specgen.AddLinuxReadonlyPaths(rp)
-			}
 			if securityContext.ReadonlyPaths != nil {
-				specgen.Config.Linux.ReadonlyPaths = nil
 				for _, path := range securityContext.ReadonlyPaths {
 					specgen.AddLinuxReadonlyPaths(path)
 				}
