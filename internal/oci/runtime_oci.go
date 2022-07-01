@@ -891,6 +891,17 @@ func updateContainerStatusFromExitFile(c *Container) error {
 		return fmt.Errorf("status code conversion failed: %w", err)
 	}
 	c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
+
+	if _, err = os.Stat(filepath.Join(c.bundlePath, "oom")); err == nil {
+		c.state.OOMKilled = true
+
+		// Collect total metric
+		metrics.Instance().MetricContainersOOMTotalInc()
+
+		// Collect metric by container name
+		metrics.Instance().MetricContainersOOMCountTotalInc(c.Name())
+	}
+
 	return nil
 }
 
@@ -987,16 +998,6 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		log.Debugf(ctx, "Found exit code for %s: %d", c.ID(), *c.state.ExitCode)
 	}
 
-	oomFilePath := filepath.Join(c.bundlePath, "oom")
-	if _, err = os.Stat(oomFilePath); err == nil {
-		c.state.OOMKilled = true
-
-		// Collect total metric
-		metrics.Instance().MetricContainersOOMTotalInc()
-
-		// Collect metric by container name
-		metrics.Instance().MetricContainersOOMCountTotalInc(c.Name())
-	}
 	// If this container had a node level PID namespace, then any children processes will be leaked to init.
 	// Eventually, the processes will get cleaned up when the pod cgroup is cleaned by the kubelet,
 	// but this situation is atypical and should be avoided.
