@@ -44,7 +44,7 @@ var (
 // Container represents a runtime container.
 type Container struct {
 	criContainer   *types.Container
-	mounts         []*types.Mount
+	criStatus      *types.ContainerStatus
 	name           string
 	logPath        string
 	runtimeHandler string
@@ -126,6 +126,19 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			},
 			ImageRef: imageRef,
 		},
+		criStatus: &types.ContainerStatus{
+			Id:          id,
+			CreatedAt:   created.UnixNano(),
+			Metadata:    metadata,
+			Labels:      labels,
+			Annotations: annotations,
+			ImageRef:    imageRef,
+			Image: &types.ImageSpec{
+				Image: imageName,
+			},
+			Mounts:  []*types.Mount{},
+			LogPath: logPath,
+		},
 		name:             name,
 		bundlePath:       bundlePath,
 		logPath:          logPath,
@@ -188,6 +201,13 @@ func (c *Container) CRIContainer() *types.Container {
 		c.criContainer = &cpy
 	}
 	return c.criContainer
+}
+
+func (c *Container) CRIStatus() *types.ContainerStatus {
+	// Return a deep copy so the State field doesn't get mutated mid-request,
+	// causing a proto panic.
+	cpy := *c.criStatus
+	return &cpy
 }
 
 // SetSpec loads the OCI spec in the container struct
@@ -394,12 +414,12 @@ func (c *Container) StateNoLock() *ContainerState {
 
 // AddMount adds a mount to list of container mounts.
 func (c *Container) AddMount(m *types.Mount) {
-	c.mounts = append(c.mounts, m)
+	c.criStatus.Mounts = append(c.criStatus.Mounts, m)
 }
 
 // Mounts returns the list of container mounts.
 func (c *Container) Mounts() []*types.Mount {
-	return c.mounts
+	return c.criStatus.Mounts
 }
 
 // SetMountPoint sets the container mount point
