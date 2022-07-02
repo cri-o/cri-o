@@ -170,10 +170,24 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 }
 
 func (c *Container) CRIContainer() *types.Container {
-	// Return a deep copy so the State field doesn't get mutated mid-request,
-	// causing a proto panic.
-	cpy := *c.criContainer
-	return &cpy
+	// If a protobuf message gets mutated mid-request, then the proto library panics.
+	// We would like to avoid deep copies when possible to avoid excessive garbage
+	// collection, but need to if the container changes state.
+	newState := types.ContainerState_CONTAINER_UNKNOWN
+	switch c.StateNoLock().Status {
+	case ContainerStateCreated:
+		newState = types.ContainerState_CONTAINER_CREATED
+	case ContainerStateRunning, ContainerStatePaused:
+		newState = types.ContainerState_CONTAINER_RUNNING
+	case ContainerStateStopped:
+		newState = types.ContainerState_CONTAINER_EXITED
+	}
+	if newState != c.criContainer.State {
+		cpy := *c.criContainer
+		cpy.State = newState
+		c.criContainer = &cpy
+	}
+	return c.criContainer
 }
 
 // SetSpec loads the OCI spec in the container struct

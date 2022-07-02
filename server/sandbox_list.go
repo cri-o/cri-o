@@ -20,8 +20,6 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 		}
 
 		pod := sb.CRISandbox()
-		pod.State = sb.State()
-
 		// Filter by other criteria such as state and labels.
 		if filterSandbox(pod, req.Filter) {
 			respList = append(respList, pod)

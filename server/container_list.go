@@ -78,19 +78,6 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 			continue
 		}
 		c := ctr.CRIContainer()
-		cState := ctr.StateNoLock()
-
-		rState := types.ContainerState_CONTAINER_UNKNOWN
-		switch cState.Status {
-		case oci.ContainerStateCreated:
-			rState = types.ContainerState_CONTAINER_CREATED
-		case oci.ContainerStateRunning, oci.ContainerStatePaused:
-			rState = types.ContainerState_CONTAINER_RUNNING
-		case oci.ContainerStateStopped:
-			rState = types.ContainerState_CONTAINER_EXITED
-		}
-		c.State = rState
-
 		// Filter by other criteria such as state and labels.
 		if filterContainer(c, req.Filter) {
 			ctrs = append(ctrs, c)

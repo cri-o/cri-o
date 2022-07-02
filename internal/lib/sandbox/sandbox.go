@@ -103,10 +103,16 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 }
 
 func (s *Sandbox) CRISandbox() *types.PodSandbox {
-	// Return a deep copy so the State field doesn't get mutated mid-request,
-	// causing a proto panic.
-	cpy := *s.criSandbox
-	return &cpy
+	// If a protobuf message gets mutated mid-request, then the proto library panics.
+	// We would like to avoid deep copies when possible to avoid excessive garbage
+	// collection, but need to if the sandbox changes state.
+	newState := s.State()
+	if newState != s.criSandbox.State {
+		cpy := *s.criSandbox
+		cpy.State = newState
+		s.criSandbox = &cpy
+	}
+	return s.criSandbox
 }
 
 func (s *Sandbox) CreatedAt() int64 {
