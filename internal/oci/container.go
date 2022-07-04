@@ -76,6 +76,7 @@ type Container struct {
 	pidns              nsmgr.Namespace
 	restore            bool
 	restoreArchive     string
+	restoreIsOCIImage  bool
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -680,4 +681,12 @@ func (c *Container) RestoreArchive() string {
 
 func (c *Container) SetRestoreArchive(restoreArchive string) {
 	c.restoreArchive = restoreArchive
+}
+
+func (c *Container) RestoreIsOCIImage() bool {
+	return c.restoreIsOCIImage
+}
+
+func (c *Container) SetRestoreIsOCIImage(restoreIsOCIImage bool) {
+	c.restoreIsOCIImage = restoreIsOCIImage
 }

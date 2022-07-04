@@ -2,7 +2,6 @@ package lib_test
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -131,14 +130,14 @@ var _ = t.Describe("ContainerRestore", func() {
 			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID`))
 		})
 	})
-	t.Describe("ContainerRestore", func() {
+	t.Describe("ContainerRestore from archive", func() {
 		It("should fail with failed to restore", func() {
 			// Given
 			var opts lib.ContainerCheckpointRestoreOptions
 
 			opts.Container = containerID
 
-			createDummyConfig()
+			Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{},"mounts":[{"type":"not-bind"},{"type":"bind","source":"/"}]}`), 0o644)).To(BeNil())
 			addContainerAndSandbox()
 
 			myContainer.SetStateAndSpoofPid(&oci.ContainerState{
@@ -174,7 +173,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			defer os.RemoveAll("rootfs-diff.tar")
 			rootfs.Close()
 
-			err = os.WriteFile("deleted.files", []byte(`{}`), 0o644)
+			err = os.WriteFile("deleted.files", []byte(`[]`), 0o644)
 			Expect(err).To(BeNil())
 			defer os.RemoveAll("deleted.files")
 
@@ -191,7 +190,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
 
-			opts.TargetFile = "archive.tar"
+			myContainer.SetRestoreArchive("archive.tar")
 			err = os.Mkdir("bundle", 0o700)
 			Expect(err).To(BeNil())
 			setupInfraContainerWithPid(42, "bundle")
@@ -203,7 +202,74 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(res).To(Equal(""))
-			fmt.Printf("%#v\n", config.Runtimes)
+			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID: failed to`))
+		})
+	})
+	t.Describe("ContainerRestore from OCI images", func() {
+		It("should fail with failed to restore", func() {
+			// Given
+			var opts lib.ContainerCheckpointRestoreOptions
+
+			opts.Container = containerID
+
+			createDummyConfig()
+			addContainerAndSandbox()
+
+			myContainer.SetStateAndSpoofPid(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateStopped},
+			})
+
+			myContainer.SetSpec(&specs.Spec{
+				Version: "1.0.0",
+				Process: &specs.Process{},
+				Linux:   &specs.Linux{},
+			})
+
+			myContainer.SetRestoreIsOCIImage(true)
+
+			gomock.InOrder(
+				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
+				storeMock.EXPECT().MountImage(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return("", nil),
+				storeMock.EXPECT().UnmountImage(gomock.Any(), true).
+					Return(false, nil),
+			)
+
+			err := os.WriteFile("spec.dump", []byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`), 0o644)
+			Expect(err).To(BeNil())
+			defer os.RemoveAll("spec.dump")
+			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
+			Expect(err).To(BeNil())
+			defer os.RemoveAll("config.dump")
+
+			err = os.Mkdir("checkpoint", 0o700)
+			Expect(err).To(BeNil())
+			defer os.RemoveAll("checkpoint")
+			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
+			Expect(err).To(BeNil())
+			inventory.Close()
+
+			rootfs, err := os.OpenFile("rootfs-diff.tar", os.O_RDONLY|os.O_CREATE, 0o644)
+			Expect(err).To(BeNil())
+			defer os.RemoveAll("rootfs-diff.tar")
+			rootfs.Close()
+
+			err = os.WriteFile("deleted.files", []byte(`[]`), 0o644)
+			Expect(err).To(BeNil())
+			defer os.RemoveAll("deleted.files")
+
+			myContainer.SetRestoreArchive("localhost/checkpoint-image:tag1")
+			err = os.Mkdir("bundle", 0o700)
+			Expect(err).To(BeNil())
+			setupInfraContainerWithPid(42, "bundle")
+			defer os.RemoveAll("bundle")
+
+			// When
+			res, err := sut.ContainerRestore(context.Background(), &opts)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(res).To(Equal(""))
 			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID: failed to`))
 		})
 	})

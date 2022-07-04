@@ -9,6 +9,7 @@ import (
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v5/stats"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
@@ -63,8 +64,43 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 	}
 
 	if ctr.RestoreArchive() != "" {
-		if err := crutils.CRImportCheckpointWithoutConfig(ctr.Dir(), ctr.RestoreArchive()); err != nil {
-			return "", err
+		if ctr.RestoreIsOCIImage() {
+			logrus.Debugf("Restoring from %v", ctr.RestoreArchive())
+			imageMountPoint, err := c.StorageImageServer().GetStore().MountImage(ctr.RestoreArchive(), nil, "")
+			if err != nil {
+				return "", err
+			}
+			logrus.Debugf("Checkpoint image mounted at %v", imageMountPoint)
+			defer func() {
+				_, err := c.StorageImageServer().GetStore().UnmountImage(ctr.RestoreArchive(), true)
+				if err != nil {
+					logrus.Errorf("Failed to unmount checkpoint image: %q", err)
+				}
+			}()
+
+			// Import all checkpoint files except ConfigDumpFile and SpecDumpFile. We
+			// generate new container config files to enable to specifying a new
+			// container name.
+			checkpoint := []string{
+				"artifacts",
+				metadata.CheckpointDirectory,
+				metadata.DevShmCheckpointTar,
+				metadata.RootFsDiffTar,
+				metadata.DeletedFilesFile,
+				metadata.PodOptionsFile,
+				metadata.PodDumpFile,
+			}
+			for _, name := range checkpoint {
+				src := filepath.Join(imageMountPoint, name)
+				dst := filepath.Join(ctr.Dir(), name)
+				if err := archive.NewDefaultArchiver().CopyWithTar(src, dst); err != nil {
+					logrus.Debugf("Can't import '%s' from checkpoint image", name)
+				}
+			}
+		} else {
+			if err := crutils.CRImportCheckpointWithoutConfig(ctr.Dir(), ctr.RestoreArchive()); err != nil {
+				return "", err
+			}
 		}
 		if err := c.restoreFileSystemChanges(ctr, mountPoint); err != nil {
 			return "", err

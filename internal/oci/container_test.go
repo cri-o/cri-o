@@ -55,6 +55,9 @@ var _ = t.Describe("Container", func() {
 		Expect(sut.CreatedAt().UnixNano()).
 			To(BeNumerically("<", time.Now().UnixNano()))
 		Expect(sut.Spoofed()).To(Equal(false))
+		Expect(sut.Restore()).To(Equal(false))
+		Expect(sut.RestoreArchive()).To(Equal(""))
+		Expect(sut.RestoreIsOCIImage()).To(Equal(false))
 	})
 
 	It("should succeed to set the spec", func() {
@@ -133,6 +136,39 @@ var _ = t.Describe("Container", func() {
 
 		// Then
 		Expect(sut.State().Error).To(Equal(err.Error()))
+	})
+
+	It("should succeed to set restore", func() {
+		// Given
+		restore := true
+
+		// When
+		sut.SetRestore(restore)
+
+		// Then
+		Expect(sut.Restore()).To(Equal(restore))
+	})
+
+	It("should succeed to set restore is oci image", func() {
+		// Given
+		restore := true
+
+		// When
+		sut.SetRestoreIsOCIImage(restore)
+
+		// Then
+		Expect(sut.RestoreIsOCIImage()).To(Equal(restore))
+	})
+
+	It("should succeed to set restore archive", func() {
+		// Given
+		restoreArchive := "image-name"
+
+		// When
+		sut.SetRestoreArchive(restoreArchive)
+
+		// Then
+		Expect(sut.RestoreArchive()).To(Equal(restoreArchive))
 	})
 
 	It("should succeed to set start failed with nil error", func() {

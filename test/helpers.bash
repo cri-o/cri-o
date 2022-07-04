@@ -688,3 +688,14 @@ function has_criu() {
         skip "CRIU too old. At least 3.16 needed."
     fi
 }
+
+function has_buildah() {
+    if [ ! -e "$(command -v buildah)" ]; then
+        skip "buildah binary not found"
+    fi
+}
+
+# Run buildah with the specified root directory (same as CRI-O)
+function run_buildah() {
+    buildah --log-level debug --root "$TESTDIR/crio" "$@"
+}

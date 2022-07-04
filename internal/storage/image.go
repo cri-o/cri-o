@@ -61,6 +61,7 @@ type ImageResult struct {
 	PreviousName string
 	Labels       map[string]string
 	OCIConfig    *specs.Image
+	Annotations  map[string]string
 }
 
 type indexInfo struct {
@@ -78,6 +79,7 @@ type imageCacheItem struct {
 	size         *uint64
 	configDigest digest.Digest
 	info         *types.ImageInspectInfo
+	annotations  map[string]string
 }
 
 type imageCache map[string]imageCacheItem
@@ -231,11 +233,29 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 		return imageCacheItem{}, fmt.Errorf("inspecting image: %w", err)
 	}
 
+	rawSource, err := ref.NewImageSource(svc.ctx, systemContext)
+	if err != nil {
+		return imageCacheItem{}, err
+	}
+	defer rawSource.Close()
+
+	topManifestBlob, manifestType, err := rawSource.GetManifest(svc.ctx, nil)
+	if err != nil {
+		return imageCacheItem{}, err
+	}
+	var ociManifest specs.Manifest
+	if manifestType == specs.MediaTypeImageManifest {
+		if err := json.Unmarshal(topManifestBlob, &ociManifest); err != nil {
+			return imageCacheItem{}, err
+		}
+	}
+
 	return imageCacheItem{
 		config:       imageConfig,
 		size:         size,
 		configDigest: configDigest,
 		info:         info,
+		annotations:  ociManifest.Annotations,
 	}, nil
 }
 
@@ -265,6 +285,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		PreviousName: previousName,
 		Labels:       cacheItem.info.Labels,
 		OCIConfig:    cacheItem.config,
+		Annotations:  cacheItem.annotations,
 	}
 }
 
