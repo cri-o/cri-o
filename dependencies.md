@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Sat, 02 Jul 2022 05:49:47 UTC for commit [c5dc614][0]._
+_Generated on Mon, 04 Jul 2022 11:56:56 UTC for commit [dde23c5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c5dc6143486fc97a8378628bd76030609a8de5af
+[0]: https://github.com/cri-o/cri-o/commit/dde23c5911f8dfb6060a7b5ceca64ab66c49fd82
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Sat, 02 Jul 2022 05:49:47 UTC for commit [c5dc614][0]._
 |---------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/conmon-rs | v0.0.0-20220609131637-836ba11bf0aa            | v0.0.0-20220701124516-82fa4b8e1bbe | true   | true             |
 | golang.org/x/net                | v0.0.0-20220621193019-9d032be2e588            | v0.0.0-20220630215102-69896b714898 | true   | true             |
-| golang.org/x/sys                | v0.0.0-20220615213510-4f61da869c0c            | v0.0.0-20220702020025-31831981b65f | true   | true             |
+| golang.org/x/sys                | v0.0.0-20220615213510-4f61da869c0c            | v0.0.0-20220704084225-05e143d24a9e | true   | true             |
 | k8s.io/api                      | v0.0.0-20220624161656-6219eed24f3c            | v0.0.0-20220702012322-89aaf7c02dd3 | true   | true             |
 | k8s.io/apimachinery             | v0.0.0-20220624161656-6219eed24f3c            | v0.0.0-20220702012322-89aaf7c02dd3 | true   | true             |
 | k8s.io/cri-api                  | v0.0.0-20220624161656-6219eed24f3c            | v0.0.0-20220702012322-89aaf7c02dd3 | true   | true             |
@@ -203,7 +203,7 @@ _Generated on Sat, 02 Jul 2022 05:49:47 UTC for commit [c5dc614][0]._
 | github.com/caarlos0/ctrlc                                                   | v1.0.0                                            | v1.1.0                             | false  | true             |
 | github.com/campoy/unique                                                    | v0.0.0-20180121183637-88950e537e7e                |                                    | false  | true             |
 | github.com/carolynvs/magex                                                  | v0.8.1                                            |                                    | false  | true             |
-| github.com/casbin/casbin/v2                                                 | v2.1.2                                            | v2.49.0                            | false  | true             |
+| github.com/casbin/casbin/v2                                                 | v2.1.2                                            | v2.50.0                            | false  | true             |
 | github.com/cavaliercoder/badio                                              | v0.0.0-20160213150051-ce5280129e9e                |                                    | false  | true             |
 | github.com/cavaliercoder/go-cpio                                            | v0.0.0-20180626203310-925f9528c45e                | v1.0.1                             | false  | true             |
 | github.com/cavaliercoder/go-rpm                                             | v0.0.0-20200122174316-8cb9fd9c31a8                | v1.2.0                             | false  | true             |
@@ -943,7 +943,7 @@ _Generated on Sat, 02 Jul 2022 05:49:47 UTC for commit [c5dc614][0]._
 | github.com/urfave/cli                                                       | v1.22.5                                           | v1.22.9                            | false  | true             |
 | github.com/urfave/cli/v2                                                    | v2.10.3                                           |                                    | true   | true             |
 | github.com/urfave/negroni                                                   | v1.0.0                                            |                                    | false  | true             |
-| github.com/uudashr/gocognit                                                 | v1.0.5                                            |                                    | false  | true             |
+| github.com/uudashr/gocognit                                                 | v1.0.5                                            | v1.0.6                             | false  | true             |
 | github.com/valyala/bytebufferpool                                           | v1.0.0                                            |                                    | false  | true             |
 | github.com/valyala/fasthttp                                                 | v1.30.0                                           | v1.38.0                            | false  | true             |
 | github.com/valyala/quicktemplate                                            | v1.7.0                                            |                                    | false  | true             |
@@ -1049,7 +1049,7 @@ _Generated on Sat, 02 Jul 2022 05:49:47 UTC for commit [c5dc614][0]._
 | golang.org/x/net                                                            | v0.0.0-20220621193019-9d032be2e588                | v0.0.0-20220630215102-69896b714898 | true   | true             |
 | golang.org/x/oauth2                                                         | v0.0.0-20220524215830-622c5d57e401                | v0.0.0-20220630143837-2104d58473e0 | false  | true             |
 | golang.org/x/sync                                                           | v0.0.0-20220601150217-0de741cfad7f                |                                    | true   | true             |
-| golang.org/x/sys                                                            | v0.0.0-20220615213510-4f61da869c0c                | v0.0.0-20220702020025-31831981b65f | true   | true             |
+| golang.org/x/sys                                                            | v0.0.0-20220615213510-4f61da869c0c                | v0.0.0-20220704084225-05e143d24a9e | true   | true             |
 | golang.org/x/term                                                           | v0.0.0-20220526004731-065cf7ba2467                |                                    | false  | true             |
 | golang.org/x/text                                                           | v0.3.7                                            |                                    | false  | true             |
 | golang.org/x/time                                                           | v0.0.0-20220411224347-583f2d630306                | v0.0.0-20220609170525-579cf78fd858 | false  | true             |
