@@ -956,7 +956,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 
 	if state.Status != ContainerStateStopped {
-		*c.state = *state
+		c.state.Status = state.Status
 		return nil
 	}
 	// release the lock before waiting
@@ -985,7 +985,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	if state == nil {
 		return fmt.Errorf("state command returned nil")
 	}
-	*c.state = *state
+	c.state.Status = state.Status
 	if err != nil {
 		log.Warnf(ctx, "Failed to find container exit file for %v: %v", c.ID(), err)
 	} else {
