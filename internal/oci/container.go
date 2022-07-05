@@ -49,6 +49,7 @@ var (
 type Container struct {
 	criContainer   *types.Container
 	criStatus      *types.ContainerStatus
+	criLock        sync.RWMutex
 	name           string
 	logPath        string
 	runtimeHandler string
@@ -194,6 +195,8 @@ func (c *Container) CRIContainer() *types.Container {
 }
 
 func (c *Container) CRIStatus() *types.ContainerStatus {
+	c.criLock.RLock()
+	defer c.criLock.RUnlock()
 	return c.criStatus
 }
 
@@ -294,11 +297,6 @@ func (cstate *ContainerState) SetInitPid(pid int) error {
 // StatePath returns the containers state.json path
 func (c *Container) StatePath() string {
 	return filepath.Join(c.dir, "state.json")
-}
-
-// CreatedAt returns the container creation time
-func (c *Container) CreatedAt() int64 {
-	return c.criStatus.CreatedAt
 }
 
 // Name returns the name of the container.
@@ -409,11 +407,15 @@ func (c *Container) StateNoLock() *ContainerState {
 
 // AddMount adds a mount to list of container mounts.
 func (c *Container) AddMount(m *types.Mount) {
+	c.criLock.Lock()
 	c.criStatus.Mounts = append(c.criStatus.Mounts, m)
+	c.criLock.Unlock()
 }
 
 // Mounts returns the list of container mounts.
 func (c *Container) Mounts() []*types.Mount {
+	c.criLock.RLock()
+	defer c.criLock.RUnlock()
 	return c.criStatus.Mounts
 }
 
@@ -449,17 +451,24 @@ func (c *Container) Created() bool {
 
 func (c *Container) SetStarted() {
 	started := time.Now()
+	c.state.Started = started
+
+	c.criLock.Lock()
+	defer c.criLock.Unlock()
 	c.updateCRIContainerState(types.ContainerState_CONTAINER_RUNNING)
 
 	cpy := *c.criStatus
 	cpy.State = types.ContainerState_CONTAINER_RUNNING
 	cpy.StartedAt = started.UnixNano()
 	c.criStatus = &cpy
-	c.state.Started = started
 }
 
 func (c *Container) SetStopped(finishedTime time.Time, exitCode int32, oomKilled bool) {
 	c.state.ExitCode = &exitCode
+
+	c.criLock.Lock()
+	defer c.criLock.Unlock()
+
 	c.updateCRIContainerState(types.ContainerState_CONTAINER_EXITED)
 
 	cpy := *c.criStatus
