@@ -297,8 +297,8 @@ func (c *Container) StatePath() string {
 }
 
 // CreatedAt returns the container creation time
-func (c *Container) CreatedAt() time.Time {
-	return c.state.Created
+func (c *Container) CreatedAt() int64 {
+	return c.criStatus.CreatedAt
 }
 
 // Name returns the name of the container.
