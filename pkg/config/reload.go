@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -184,9 +185,17 @@ func (c *Config) ReloadDecryptionKeyConfig(newConfig *Config) {
 func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 	// Reload the seccomp profile in any case because its content could have
 	// changed as well
-	if err := c.Seccomp().LoadProfile(newConfig.SeccompProfile); err != nil {
-		return fmt.Errorf("unable to reload seccomp_profile: %w", err)
+	if err := c.seccompConfig.LoadProfile(newConfig.SeccompProfile); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("unable to load seccomp profile: %w", err)
+		}
+
+		logrus.Info("Specified profile does not exist on disk")
+		if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
+			return fmt.Errorf("load default seccomp profile: %w", err)
+		}
 	}
+
 	c.SeccompProfile = newConfig.SeccompProfile
 	logConfig("seccomp_profile", c.SeccompProfile)
 	return nil

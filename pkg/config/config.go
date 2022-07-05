@@ -1070,7 +1070,14 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		c.seccompConfig.SetUseDefaultWhenEmpty(c.SeccompUseDefaultWhenEmpty)
 
 		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
-			return fmt.Errorf("unable to load seccomp profile: %w", err)
+			if !errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("unable to load seccomp profile: %w", err)
+			}
+
+			logrus.Info("Specified profile does not exist on disk")
+			if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
+				return fmt.Errorf("load default seccomp profile: %w", err)
+			}
 		}
 
 		if err := c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {

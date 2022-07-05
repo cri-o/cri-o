@@ -68,7 +68,7 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(BeNil())
 		})
 
-		It("should fail with invalid seccomp_profile", func() {
+		It("should not fail with invalid seccomp_profile path", func() {
 			// Given
 			modifyDefaultConfig(
 				`seccomp_profile = ""`,
@@ -79,7 +79,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Reload()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(BeNil())
 		})
 	})
 
@@ -282,7 +282,7 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.SeccompProfile).To(Equal(filePath))
 		})
 
-		It("should fail with invalid seccomp_profile", func() {
+		It("should not fail with invalid seccomp_profile path", func() {
 			// Given
 			newConfig := defaultConfig()
 			newConfig.SeccompProfile = invalidPath
@@ -291,7 +291,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadSeccompProfile(newConfig)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(BeNil())
 		})
 	})
 
