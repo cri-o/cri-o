@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 06 Jul 2022 09:51:07 UTC for commit [c6c0fdd][0]._
+_Generated on Wed, 06 Jul 2022 12:45:39 UTC for commit [a468bb2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c6c0fdd8b9092009d88aafd9e36bb8dcf67bd57e
+[0]: https://github.com/cri-o/cri-o/commit/a468bb2a6715771bf495819229f9eb1c74c9c19a
 
 ## Outdated Dependencies
 
@@ -56,7 +56,7 @@ _Generated on Wed, 06 Jul 2022 09:51:07 UTC for commit [c6c0fdd][0]._
 | dmitri.shuralyov.com/gpu/mtl                                                | v0.0.0-20201218220906-28db891af037                |                                    | false  | true             |
 | filippo.io/edwards25519                                                     | v1.0.0-rc.1                                       | v1.0.0                             | false  | true             |
 | github.com/14rcole/gopopulate                                               | v0.0.0-20180821133914-b175b219e774                |                                    | false  | true             |
-| github.com/AdaLogics/go-fuzz-headers                                        | v0.0.0-20211102141018-f7be0cbad29c                | v0.0.0-20220511133513-5ae53b7a8154 | false  | true             |
+| github.com/AdaLogics/go-fuzz-headers                                        | v0.0.0-20211102141018-f7be0cbad29c                | v0.0.0-20220706123152-fef3fe1bab07 | false  | true             |
 | github.com/Antonboom/errname                                                | v0.1.5                                            | v0.1.7                             | false  | true             |
 | github.com/Antonboom/nilnil                                                 | v0.1.0                                            | v0.1.1                             | false  | true             |
 | github.com/Azure/azure-amqp-common-go/v2                                    | v2.1.0                                            | v2.1.1                             | false  | true             |
