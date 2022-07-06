@@ -131,6 +131,7 @@ _Generated on %s for commit [%s][0]._
 	defer func() { err = repo.Checkout(currentBranch) }()
 
 	// Write the target file
+	logrus.Infof("Writing dependency report to %s", file)
 	if err := os.WriteFile(file, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("write content to file: %w", err)
 	}
@@ -140,12 +141,30 @@ _Generated on %s for commit [%s][0]._
 	}
 
 	// Publish the changes
+	logrus.Info("Committing changes")
 	if err := repo.Commit("Update dependency report"); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}
 
-	if err := repo.Push(branch); err != nil {
-		return fmt.Errorf("push changes: %w", err)
+	// Other jobs could run in parallel, try rebase multiple times before
+	// pushing
+	const maxRetries = 10
+	for i := 0; i <= maxRetries; i++ {
+		if err := command.New("git", "pull", "--rebase").RunSuccess(); err != nil {
+			return fmt.Errorf("pull and rebase from remote: %w", err)
+		}
+
+		err := repo.Push(branch)
+		if err == nil {
+			break
+		}
+
+		if i == maxRetries {
+			return fmt.Errorf("max retries reached for pushing changes: %w", err)
+		}
+
+		logrus.Warnf("Failed to push changes, retrying (%d): %v", i, err)
+		time.Sleep(3 * time.Second)
 	}
 
 	return nil
