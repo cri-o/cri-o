@@ -34,7 +34,9 @@ func highPerformanceAnnotationsSpecified(annotations map[string]string) bool {
 	for k := range annotations {
 		if strings.HasPrefix(k, crioann.CPULoadBalancingAnnotation) ||
 			strings.HasPrefix(k, crioann.CPUQuotaAnnotation) ||
-			strings.HasPrefix(k, crioann.IRQLoadBalancingAnnotation) {
+			strings.HasPrefix(k, crioann.IRQLoadBalancingAnnotation) ||
+			strings.HasPrefix(k, crioann.CPUCStatesAnnotation) ||
+			strings.HasPrefix(k, crioann.CPUFreqGovernorAnnotation) {
 			return true
 		}
 	}

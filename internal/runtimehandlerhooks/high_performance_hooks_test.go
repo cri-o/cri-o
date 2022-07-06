@@ -228,6 +228,284 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 	})
 
+	Describe("setCPUPMQOSResumeLatency", func() {
+		var pmQosResumeLatencyUs, pmQosResumeLatencyUsOriginal string
+		cpuDir := filepath.Join(fixturesDir, "cpu")
+		cpuSaveDir := filepath.Join(fixturesDir, "cpuSave")
+
+		//nolint:dupl
+		verifySetCPUPMQOSResumeLatency := func(latency string, expected string, expected_save string, expect_error bool) {
+			err := doSetCPUPMQOSResumeLatency(container, latency, cpuDir, cpuSaveDir)
+			if !expect_error {
+				Expect(err).ShouldNot(HaveOccurred())
+			} else {
+				Expect(err).Should(HaveOccurred())
+			}
+
+			if expected != "" {
+				for _, cpu := range []string{"cpu0", "cpu1"} {
+					content, err := os.ReadFile(filepath.Join(cpuDir, cpu, "power", "pm_qos_resume_latency_us"))
+					Expect(err).To(BeNil())
+
+					Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
+				}
+			}
+
+			if expected_save != "" {
+				for _, cpu := range []string{"cpu0", "cpu1"} {
+					content, err := os.ReadFile(filepath.Join(cpuSaveDir, cpu, "power", "pm_qos_resume_latency_us"))
+					Expect(err).To(BeNil())
+					Expect(strings.Trim(string(content), "\n")).To(Equal(expected_save))
+				}
+			}
+		}
+
+		JustBeforeEach(func() {
+			// set container CPUs
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus: "0,1",
+							},
+						},
+					},
+				},
+			)
+
+			// create tests power files
+			for _, cpu := range []string{"cpu0", "cpu1"} {
+				powerDir := filepath.Join(cpuDir, cpu, "power")
+				err = os.MkdirAll(powerDir, os.ModePerm)
+				Expect(err).To(BeNil())
+
+				if pmQosResumeLatencyUs != "" {
+					err = os.WriteFile(filepath.Join(powerDir, "pm_qos_resume_latency_us"), []byte(pmQosResumeLatencyUs), 0o644)
+					Expect(err).To(BeNil())
+				}
+				if pmQosResumeLatencyUsOriginal != "" {
+					powerSaveDir := filepath.Join(cpuSaveDir, cpu, "power")
+					err = os.MkdirAll(powerSaveDir, os.ModePerm)
+					err = os.WriteFile(filepath.Join(powerSaveDir, "pm_qos_resume_latency_us"), []byte(pmQosResumeLatencyUsOriginal), 0o644)
+					Expect(err).To(BeNil())
+				}
+			}
+		})
+
+		AfterEach(func() {
+			for _, cpu := range []string{"cpu0", "cpu1"} {
+				if err := os.RemoveAll(filepath.Join(fixturesDir, cpu)); err != nil {
+					log.Errorf(context.TODO(), "failed to remove temporary test files: %v", err)
+				}
+			}
+		})
+
+		Context("with n/a latency", func() {
+			BeforeEach(func() {
+				pmQosResumeLatencyUs = "0"
+				pmQosResumeLatencyUsOriginal = ""
+			})
+
+			It("should change the CPU PM QOS latency", func() {
+				verifySetCPUPMQOSResumeLatency("n/a", "n/a", "0", false)
+			})
+		})
+
+		Context("with 0 latency", func() {
+			BeforeEach(func() {
+				pmQosResumeLatencyUs = "n/a"
+				pmQosResumeLatencyUsOriginal = ""
+			})
+
+			It("should change the CPU PM QOS latency", func() {
+				verifySetCPUPMQOSResumeLatency("0", "0", "n/a", false)
+			})
+		})
+
+		Context("with missing latency file", func() {
+			BeforeEach(func() {
+				pmQosResumeLatencyUs = ""
+				pmQosResumeLatencyUsOriginal = ""
+			})
+
+			It("should fail", func() {
+				verifySetCPUPMQOSResumeLatency("n/a", "", "", true)
+			})
+		})
+
+		Context("with no latency", func() {
+			BeforeEach(func() {
+				pmQosResumeLatencyUs = "n/a"
+				pmQosResumeLatencyUsOriginal = "0"
+			})
+
+			It("should restore the original CPU PM QOS latency", func() {
+				verifySetCPUPMQOSResumeLatency("", "0", "", false)
+			})
+		})
+
+		Context("with no latency and no original latency", func() {
+			BeforeEach(func() {
+				pmQosResumeLatencyUs = "0"
+				pmQosResumeLatencyUsOriginal = ""
+			})
+
+			It("should not change the CPU PM QOS latency", func() {
+				verifySetCPUPMQOSResumeLatency("", "0", "", false)
+			})
+		})
+	})
+
+	Describe("setCPUScalingGovernor", func() {
+		var scalingGovernor, scalingAvailableGovernors, scalingGovernorOriginal string
+		cpuDir := filepath.Join(fixturesDir, "cpu")
+		cpuSaveDir := filepath.Join(fixturesDir, "cpuSave")
+
+		//nolint:dupl
+		verifySetCPUScalingGovernor := func(governor string, expected string, expected_save string, expect_error bool) {
+			err := doSetCPUFreqGovernor(container, governor, cpuDir, cpuSaveDir)
+			if !expect_error {
+				Expect(err).ShouldNot(HaveOccurred())
+			} else {
+				Expect(err).Should(HaveOccurred())
+			}
+
+			if expected != "" {
+				for _, cpu := range []string{"cpu0", "cpu1"} {
+					content, err := os.ReadFile(filepath.Join(cpuDir, cpu, "cpufreq", "scaling_governor"))
+					Expect(err).To(BeNil())
+					Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
+				}
+			}
+
+			if expected_save != "" {
+				for _, cpu := range []string{"cpu0", "cpu1"} {
+					content, err := os.ReadFile(filepath.Join(cpuSaveDir, cpu, "cpufreq", "scaling_governor"))
+					Expect(err).To(BeNil())
+					Expect(strings.Trim(string(content), "\n")).To(Equal(expected_save))
+				}
+			}
+		}
+
+		JustBeforeEach(func() {
+			// set container CPUs
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus: "0,1",
+							},
+						},
+					},
+				},
+			)
+
+			// create tests cpufreq files
+			for _, cpu := range []string{"cpu0", "cpu1"} {
+				cpufreqDir := filepath.Join(cpuDir, cpu, "cpufreq")
+				err = os.MkdirAll(cpufreqDir, os.ModePerm)
+				Expect(err).To(BeNil())
+
+				if scalingGovernor != "" {
+					err = os.WriteFile(filepath.Join(cpufreqDir, "scaling_governor"), []byte(scalingGovernor), 0o644)
+					Expect(err).To(BeNil())
+				}
+				if scalingAvailableGovernors != "" {
+					err = os.WriteFile(filepath.Join(cpufreqDir, "scaling_available_governors"), []byte(scalingAvailableGovernors), 0o644)
+					Expect(err).To(BeNil())
+				}
+				if scalingGovernorOriginal != "" {
+					cpufreqSaveDir := filepath.Join(cpuSaveDir, cpu, "cpufreq")
+					err = os.MkdirAll(cpufreqSaveDir, os.ModePerm)
+					err = os.WriteFile(filepath.Join(cpufreqSaveDir, "scaling_governor"), []byte(scalingGovernorOriginal), 0o644)
+					Expect(err).To(BeNil())
+				}
+			}
+		})
+
+		AfterEach(func() {
+			for _, cpu := range []string{"cpu0", "cpu1"} {
+				if err := os.RemoveAll(filepath.Join(cpuDir, cpu)); err != nil {
+					log.Errorf(context.TODO(), "failed to remove temporary test files: %v", err)
+				}
+			}
+		})
+
+		Context("with available governor", func() {
+			BeforeEach(func() {
+				scalingGovernor = "schedutil"
+				scalingAvailableGovernors = "conservative ondemand userspace powersave performance schedutil"
+				scalingGovernorOriginal = ""
+			})
+
+			It("should change the CPU scaling governor", func() {
+				verifySetCPUScalingGovernor("performance", "performance", "schedutil", false)
+			})
+		})
+
+		Context("with unknown governor", func() {
+			BeforeEach(func() {
+				scalingGovernor = "schedutil"
+				scalingAvailableGovernors = "conservative ondemand powersave performance schedutil"
+				scalingGovernorOriginal = ""
+			})
+
+			It("should fail and not change the CPU scaling governor", func() {
+				verifySetCPUScalingGovernor("userspace", "schedutil", "", true)
+			})
+		})
+
+		Context("with no scaling governor support", func() {
+			BeforeEach(func() {
+				scalingGovernor = ""
+				scalingAvailableGovernors = ""
+				scalingGovernorOriginal = ""
+			})
+
+			It("should fail", func() {
+				verifySetCPUScalingGovernor("performance", "", "", true)
+			})
+		})
+
+		Context("with no available scaling governors", func() {
+			BeforeEach(func() {
+				scalingGovernor = "conservative"
+				scalingAvailableGovernors = ""
+				scalingGovernorOriginal = ""
+			})
+
+			It("should fail", func() {
+				verifySetCPUScalingGovernor("performance", "", "", true)
+			})
+		})
+
+		Context("with no governor", func() {
+			BeforeEach(func() {
+				scalingGovernor = "userspace"
+				scalingAvailableGovernors = "conservative ondemand userspace powersave performance"
+				scalingGovernorOriginal = "ondemand"
+			})
+
+			It("should restore the original CPU scaling governor", func() {
+				verifySetCPUScalingGovernor("", "ondemand", "", false)
+			})
+		})
+
+		Context("with no governor and no original governor", func() {
+			BeforeEach(func() {
+				scalingGovernor = "powersave"
+				scalingAvailableGovernors = "conservative ondemand userspace powersave performance schedutil"
+				scalingGovernorOriginal = ""
+			})
+
+			It("should not change the CPU scaling governor", func() {
+				verifySetCPUScalingGovernor("", "powersave", "", false)
+			})
+		})
+	})
+
 	Describe("restoreIrqBalanceConfig", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")

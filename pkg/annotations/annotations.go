@@ -38,6 +38,12 @@ const (
 	// TrySkipVolumeSELinuxLabelAnnotation is the annotation used for optionally skipping relabeling a volume
 	// with the specified SELinux label.  The relabeling will be skipped if the top layer is already labeled correctly.
 	TrySkipVolumeSELinuxLabelAnnotation = "io.kubernetes.cri-o.TrySkipVolumeSELinuxLabel"
+
+	// CPUCStatesAnnotation indicates that c-states should be enabled or disabled for CPUs used by the container
+	CPUCStatesAnnotation = "cpu-c-states.crio.io"
+
+	// CPUFreqGovernorAnnotation sets the cpufreq governor for CPUs used by the container
+	CPUFreqGovernorAnnotation = "cpu-freq-governor.crio.io"
 )
 
 var AllAllowedAnnotations = []string{
@@ -52,4 +58,6 @@ var AllAllowedAnnotations = []string{
 	OCISeccompBPFHookAnnotation,
 	rdt.RdtContainerAnnotation,
 	TrySkipVolumeSELinuxLabelAnnotation,
+	CPUCStatesAnnotation,
+	CPUFreqGovernorAnnotation,
 }
