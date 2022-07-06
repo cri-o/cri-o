@@ -15,7 +15,7 @@ require (
 	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v1.1.1
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.26.1
+	github.com/containers/buildah v1.26.2
 	github.com/containers/common v0.48.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.0.0-20220609131637-836ba11bf0aa
