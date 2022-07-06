@@ -53,15 +53,8 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 				}
 				c := ctr
 				waitGroup.Go(func() error {
-					if err := s.StopContainerAndWait(ctx, c, int64(10)); err != nil {
-						return fmt.Errorf("failed to stop container for pod sandbox %s: %w", sb.ID(), err)
-					}
-					if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
-						// assume container already umounted
-						log.Warnf(ctx, "Failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-					}
-					if err := s.ContainerStateToDisk(ctx, c); err != nil {
-						return fmt.Errorf("write container %q state do disk: %w", c.Name(), err)
+					if err := s.stopContainer(ctx, c, int64(10)); err != nil {
+						return fmt.Errorf("failed to stop container for pod sandbox %s: %v", sb.ID(), err)
 					}
 					return nil
 				})
@@ -77,13 +70,8 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		}
 	}
 
-	if podInfraContainer != nil {
-		podInfraStatus := podInfraContainer.State()
-		if podInfraStatus.Status != oci.ContainerStateStopped {
-			if err := s.StopContainerAndWait(ctx, podInfraContainer, int64(10)); err != nil {
-				return fmt.Errorf("failed to stop infra container for pod sandbox %s: %w", sb.ID(), err)
-			}
-		}
+	if err := s.stopContainer(ctx, podInfraContainer, int64(10)); err != nil && !errors.Is(err, storage.ErrContainerUnknown) && !errors.Is(err, oci.ErrContainerStopped) {
+		return fmt.Errorf("failed to stop infra container for pod sandbox %s: %v", sb.ID(), err)
 	}
 
 	if err := sb.RemoveManagedNamespaces(); err != nil {
@@ -92,13 +80,6 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 
 	if err := sb.UnmountShm(); err != nil {
 		return err
-	}
-
-	if err := s.StorageRuntimeServer().StopContainer(sb.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
-		log.Warnf(ctx, "Failed to stop sandbox container in pod sandbox %s: %v", sb.ID(), err)
-	}
-	if err := s.ContainerStateToDisk(ctx, podInfraContainer); err != nil {
-		log.Warnf(ctx, "Error writing pod infra container %q state to disk: %v", podInfraContainer.ID(), err)
 	}
 
 	log.Infof(ctx, "Stopped pod sandbox: %s", sb.ID())
