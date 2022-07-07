@@ -22,16 +22,17 @@ const (
 )
 
 type Document struct {
-	ID                string         `json:"SPDXID"`
-	Name              string         `json:"name"`
-	Version           string         `json:"spdxVersion"`
-	CreationInfo      CreationInfo   `json:"creationInfo"`
-	DataLicense       string         `json:"dataLicense"`
-	Namespace         string         `json:"documentNamespace"`
-	DocumentDescribes []string       `json:"documentDescribes"`
-	Files             []File         `json:"files,omitempty"`
-	Packages          []Package      `json:"packages"`
-	Relationships     []Relationship `json:"relationships"`
+	ID                   string                `json:"SPDXID"`
+	Name                 string                `json:"name"`
+	Version              string                `json:"spdxVersion"`
+	CreationInfo         CreationInfo          `json:"creationInfo"`
+	DataLicense          string                `json:"dataLicense"`
+	Namespace            string                `json:"documentNamespace"`
+	DocumentDescribes    []string              `json:"documentDescribes"`
+	Files                []File                `json:"files,omitempty"`
+	Packages             []Package             `json:"packages"`
+	Relationships        []Relationship        `json:"relationships"`
+	ExternalDocumentRefs []ExternalDocumentRef `json:"externalDocumentRefs"`
 }
 
 type CreationInfo struct {
@@ -85,6 +86,12 @@ type ExternalRef struct {
 	Category string `json:"referenceCategory"`
 	Locator  string `json:"referenceLocator"`
 	Type     string `json:"referenceType"`
+}
+
+type ExternalDocumentRef struct {
+	Checksum           Checksum `json:"checksum"`
+	ExternalDocumentID string   `json:"externalDocumentId"`
+	SPDXDocument       string   `json:"spdxDocument"`
 }
 
 type Relationship struct {

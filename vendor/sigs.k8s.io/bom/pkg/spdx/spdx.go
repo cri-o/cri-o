@@ -42,8 +42,11 @@ const (
 	gitIgnoreFile           = ".gitignore"
 
 	// Consts of some SPDX expressions
-	NONE        = "NONE"
-	NOASSERTION = "NOASSERTION"
+	NONE            = "NONE"
+	NOASSERTION     = "NOASSERTION"
+	entPerson       = "Person"
+	entTool         = "Tool"
+	entOrganization = "Organization"
 
 	termBanner = `ICAgICAgICAgICAgICAgXyAgICAgIAogX19fIF8gX18gICBfX3wgfF8gIF9fCi8gX198ICdfIFwg
 LyBfYCBcIFwvIC8KXF9fIFwgfF8pIHwgKF98IHw+ICA8IAp8X19fLyAuX18vIFxfXyxfL18vXF9c
