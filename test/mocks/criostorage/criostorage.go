@@ -451,10 +451,10 @@ func (mr *MockMultiStoreServerMockRecorder) GetStoreForContainer(arg0 interface{
 }
 
 // GetStoreForImage mocks base method.
-func (m *MockMultiStoreServer) GetStoreForImage(arg0 string) (storage.Store, error) {
+func (m *MockMultiStoreServer) GetStoreForImage(arg0 string) ([]storage.Store, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStoreForImage", arg0)
-	ret0, _ := ret[0].(storage.Store)
+	ret0, _ := ret[0].([]storage.Store)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

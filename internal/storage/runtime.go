@@ -360,31 +360,37 @@ func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
 	if layerID == "" {
 		return
 	}
-	store, err := r.multiStoreServer.GetStoreForImage(imageID)
+	stores, err := r.multiStoreServer.GetStoreForImage(imageID)
 	if err != nil {
 		logrus.Debugf("Failed to storage for  image %q: %v", imageID, err)
 		return
 	}
-
-	image, err := store.Image(imageID)
-	if err != nil {
-		logrus.Debugf("Failed to retrieve image %q: %v", imageID, err)
-		return
-	}
-
-	// ignore if it is the top layer.  It was pulled already with the specified
-	// mapping.  In this case we don't delete it.
-	if image.TopLayer == layerID {
-		return
-	}
-	for _, ml := range image.MappedTopLayers {
-		if ml == layerID {
+	for _, store := range stores {
+		image, err := store.Image(imageID)
+		if err != nil {
+			logrus.Debugf("Failed to retrieve image %q: %v", imageID, err)
+			return
+		}
+		if isLayerMapped(image, layerID) {
 			// if the layer is used by other containers, DeleteLayer
 			// will fail.
 			store.DeleteLayer(layerID) // nolint: errcheck
-			return
 		}
 	}
+}
+
+func isLayerMapped(image *storage.Image, layerID string) bool {
+	// ignore if it is the top layer.  It was pulled already with the specified
+	// mapping.  In this case we don't delete it.
+	if image.TopLayer == layerID {
+		return true
+	}
+	for _, ml := range image.MappedTopLayers {
+		if ml == layerID {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *runtimeService) DeleteContainer(idOrName string) error {

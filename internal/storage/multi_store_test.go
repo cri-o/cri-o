@@ -550,7 +550,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(len(stores)).To(Equal(2))
 		})
 	})
-	// nolint: dupl
+
 	t.Describe("GetStoreForImage", func() {
 		It("should succeed getting store for an image from standard storage", func() {
 			gomock.InOrder(
@@ -559,7 +559,11 @@ var _ = Describe("MultiStoreServer", func() {
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(nil, nil),
 				imageServerMock.EXPECT().GetStore().
-					Return(storeMock),
+					Return(storeMock).Times(2),
+				storeMock.EXPECT().Image(gomock.Any()).
+					Return(nil, nil),
+				imageServerMock.EXPECT().GetStore().
+					Return(storeMock).Times(1),
 			)
 			// When
 			_, err := sut.GetStoreForImage("")
@@ -601,7 +605,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(err).NotTo(BeNil())
 		})
 	})
-	// nolint: dupl
+
 	t.Describe("GetStoreForContainer", func() {
 		It("should succeed getting the store for a container from standard storage", func() {
 			gomock.InOrder(

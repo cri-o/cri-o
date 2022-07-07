@@ -254,7 +254,7 @@ type MultiStoreServer interface {
 	GetAllStores() []cstorage.Store
 	GetImageServer(driver string) (ImageServer, error)
 	GetStoreForContainer(idOrName string) (cstorage.Store, error)
-	GetStoreForImage(imageID string) (cstorage.Store, error)
+	GetStoreForImage(imageID string) ([]cstorage.Store, error)
 	FromContainerDirectory(id, file string) ([]byte, error)
 	ContainerRunDirectory(id string) (string, error)
 	ContainerDirectory(id string) (string, error)
@@ -320,17 +320,21 @@ func (s *multiStoreServer) GetAllStores() (store []cstorage.Store) {
 	return
 }
 
-// GetStoreForImage retrives the store by image ID.
-func (s *multiStoreServer) GetStoreForImage(imageID string) (cstorage.Store, error) {
+// GetStoreForImage retrives all the stores where the image ID is present.
+func (s *multiStoreServer) GetStoreForImage(imageID string) (stores []cstorage.Store, err error) {
 	logrus.Debugf("GetStore for image %s", imageID)
 	s.iterator.initialize()
 	for store := s.iterator.next(); store != nil; store = s.iterator.next() {
-		if _, err := store.GetStore().Image(imageID); err != nil {
+		_, e := store.GetStore().Image(imageID)
+		if e != nil {
 			continue
 		}
-		return store.GetStore(), nil
+		stores = append(stores, store.GetStore())
 	}
-	return nil, fmt.Errorf("error locating image with ID %s", imageID)
+	if len(stores) < 1 {
+		err = cstorage.ErrImageUnknown
+	}
+	return
 }
 
 // GetStoreForContainer retrives the store by container id or name.
