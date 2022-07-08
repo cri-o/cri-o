@@ -15,7 +15,6 @@ type multiStore struct {
 	store          map[string]cstorage.Store
 	runRoot        string
 	graphRoot      string
-	iterator       iteratorMultiStore
 }
 
 // iteratorMultiStoreServer iterates over the multiStore starting by the default storage driver
@@ -26,9 +25,10 @@ type iteratorMultiStore struct {
 }
 
 func createMultiStoreIterator(s *multiStore) iteratorMultiStore {
-	keys := []string{s.GetDefaultStorageDriver()}
+	defaultStorage := s.GetDefaultStorageDriver()
+	keys := []string{defaultStorage}
 	for k := range s.store {
-		if k == s.GetDefaultStorageDriver() {
+		if k == defaultStorage {
 			continue
 		}
 		keys = append(keys, k)
@@ -36,11 +36,8 @@ func createMultiStoreIterator(s *multiStore) iteratorMultiStore {
 	return iteratorMultiStore{
 		multiStore: s,
 		keys:       keys,
+		counter:    0,
 	}
-}
-
-func (i *iteratorMultiStore) initialize() {
-	i.counter = 0
 }
 
 func (i *iteratorMultiStore) next() cstorage.Store {
@@ -62,7 +59,6 @@ func NewMultiStore(store map[string]cstorage.Store, defaultStorage, runRoot, gra
 		runRoot:        runRoot,
 		graphRoot:      graphRoot,
 	}
-	s.iterator = createMultiStoreIterator(s)
 	return s
 }
 
@@ -112,8 +108,8 @@ func (s *multiStore) GraphOptions() map[string][]string {
 
 // Containers returns a list of the currently known containers.
 func (s *multiStore) Containers() (containers []cstorage.Container, lastError error) {
-	s.iterator.initialize()
-	for store := s.iterator.next(); store != nil; store = s.iterator.next() {
+	iterator := createMultiStoreIterator(s)
+	for store := iterator.next(); store != nil; store = iterator.next() {
 		c, err := store.Containers()
 		if err != nil {
 			lastError = wrapMultipleErrors(lastError, err)
@@ -127,8 +123,8 @@ func (s *multiStore) Containers() (containers []cstorage.Container, lastError er
 // Unmount attempts to unmount a container, given an ID.
 // Returns whether or not the layer is still mounted.
 func (s *multiStore) Unmount(id string, force bool) (bool, error) {
-	s.iterator.initialize()
-	for store := s.iterator.next(); store != nil; store = s.iterator.next() {
+	iterator := createMultiStoreIterator(s)
+	for store := iterator.next(); store != nil; store = iterator.next() {
 		id, err := store.Lookup(id)
 		if err != nil || id == "" {
 			continue
@@ -141,8 +137,8 @@ func (s *multiStore) Unmount(id string, force bool) (bool, error) {
 // Metadata retrieves the metadata which is associated with a layer,
 // image, or container (whichever the passed-in ID refers to).
 func (s *multiStore) Metadata(id string) (string, error) {
-	s.iterator.initialize()
-	for store := s.iterator.next(); store != nil; store = s.iterator.next() {
+	iterator := createMultiStoreIterator(s)
+	for store := iterator.next(); store != nil; store = iterator.next() {
 		id, err := store.Lookup(id)
 		if err != nil || id == "" {
 			continue
@@ -154,8 +150,8 @@ func (s *multiStore) Metadata(id string) (string, error) {
 
 // DeleteContainer removes the specified container and its layer.
 func (s *multiStore) DeleteContainer(id string) error {
-	s.iterator.initialize()
-	for store := s.iterator.next(); store != nil; store = s.iterator.next() {
+	iterator := createMultiStoreIterator(s)
+	for store := iterator.next(); store != nil; store = iterator.next() {
 		id, err := store.Lookup(id)
 		if err != nil || id == "" {
 			continue
@@ -167,8 +163,8 @@ func (s *multiStore) DeleteContainer(id string) error {
 
 // DeleteImage removes the specified image if it is not referred to by any containers.
 func (s *multiStore) DeleteImage(id string, commit bool) (layers []string, err error) {
-	s.iterator.initialize()
-	for store := s.iterator.next(); store != nil; store = s.iterator.next() {
+	iterator := createMultiStoreIterator(s)
+	for store := iterator.next(); store != nil; store = iterator.next() {
 		id, err := store.Lookup(id)
 		if err != nil || id == "" {
 			continue
@@ -194,8 +190,8 @@ func (s *multiStore) GraphRoot() string {
 // GetStoreForContainer returns the store for the given id or name.
 func (s *multiStore) GetStoreForContainer(idOrName string) (cstorage.Store, error) {
 	logrus.Debugf("GetStore for container %s", idOrName)
-	s.iterator.initialize()
-	for store := s.iterator.next(); store != nil; store = s.iterator.next() {
+	iterator := createMultiStoreIterator(s)
+	for store := iterator.next(); store != nil; store = iterator.next() {
 		if _, err := store.Container(idOrName); err != nil {
 			continue
 		}
@@ -208,7 +204,6 @@ func (s *multiStore) GetStoreForContainer(idOrName string) (cstorage.Store, erro
 type multiStoreServer struct {
 	store      map[string]ImageServer
 	multiStore MultiStore
-	iterator   iteratorMultiStoreServer
 }
 
 // iteratorMultiStoreServer iterates over the multiStoreServer starting by the default storage driver.
@@ -231,10 +226,6 @@ func createMultiStoreServerIterator(s *multiStoreServer) iteratorMultiStoreServe
 		multiStoreServer: s,
 		keys:             keys,
 	}
-}
-
-func (i *iteratorMultiStoreServer) initialize() {
-	i.counter = 0
 }
 
 func (i *iteratorMultiStoreServer) next() ImageServer {
@@ -273,7 +264,6 @@ func NewMultiStoreServer(store map[string]ImageServer, istore MultiStore) MultiS
 		store:      store,
 		multiStore: istore,
 	}
-	s.iterator = createMultiStoreServerIterator(s)
 	return s
 }
 
@@ -301,8 +291,8 @@ func (s *multiStoreServer) GetStore() MultiStore {
 
 // ListAllImages lists all the images known by the MultiStoreServer.
 func (s *multiStoreServer) ListAllImages(ctx *ctypes.SystemContext, filter string) (imageResults []ImageResult, lastError error) {
-	s.iterator.initialize()
-	for is := s.iterator.next(); is != nil; is = s.iterator.next() {
+	iterator := createMultiStoreServerIterator(s)
+	for is := iterator.next(); is != nil; is = iterator.next() {
 		images, err := is.ListImages(ctx, filter)
 		if err != nil {
 			lastError = wrapMultipleErrors(lastError, err)
@@ -323,8 +313,8 @@ func (s *multiStoreServer) GetAllStores() (store []cstorage.Store) {
 // GetStoreForImage retrives all the stores where the image ID is present.
 func (s *multiStoreServer) GetStoreForImage(imageID string) (stores []cstorage.Store, err error) {
 	logrus.Debugf("GetStore for image %s", imageID)
-	s.iterator.initialize()
-	for store := s.iterator.next(); store != nil; store = s.iterator.next() {
+	iterator := createMultiStoreServerIterator(s)
+	for store := iterator.next(); store != nil; store = iterator.next() {
 		_, e := store.GetStore().Image(imageID)
 		if e != nil {
 			continue
@@ -340,8 +330,8 @@ func (s *multiStoreServer) GetStoreForImage(imageID string) (stores []cstorage.S
 // GetStoreForContainer retrives the store by container id or name.
 func (s *multiStoreServer) GetStoreForContainer(idOrName string) (cstorage.Store, error) {
 	logrus.Debugf("GetStore for container %s", idOrName)
-	s.iterator.initialize()
-	for store := s.iterator.next(); store != nil; store = s.iterator.next() {
+	iterator := createMultiStoreServerIterator(s)
+	for store := iterator.next(); store != nil; store = iterator.next() {
 		if _, err := store.GetStore().Container(idOrName); err != nil {
 			continue
 		}
@@ -353,8 +343,8 @@ func (s *multiStoreServer) GetStoreForContainer(idOrName string) (cstorage.Store
 // GetImageServerForImage retrives the ImageServer by image name. The same image could be present in multiple image server at the same time, therefore we return a list of all the image servers that contain the image.
 func (s *multiStoreServer) GetImageServerForImage(image string) (iservers []ImageServer, err error) {
 	logrus.Debugf("GetImageServerForImage for image %s", image)
-	s.iterator.initialize()
-	for is := s.iterator.next(); is != nil; is = s.iterator.next() {
+	iterator := createMultiStoreServerIterator(s)
+	for is := iterator.next(); is != nil; is = iterator.next() {
 		_, e := is.GetStore().Image(image)
 		if e != nil {
 			continue
@@ -414,8 +404,8 @@ func (s *multiStoreServer) GraphRoot() string {
 // ResolveNames resolves the name for the given image.
 func (s *multiStoreServer) ResolveNames(systemContext *ctypes.SystemContext, imageName string) ([]string, error) {
 	logrus.Debugf("ResolveNames for image %s", imageName)
-	s.iterator.initialize()
-	for is := s.iterator.next(); is != nil; is = s.iterator.next() {
+	iterator := createMultiStoreServerIterator(s)
+	for is := iterator.next(); is != nil; is = iterator.next() {
 		names, err := is.ResolveNames(systemContext, imageName)
 		if err != nil {
 			if err == ErrCannotParseImageID || err == ErrImageMultiplyTagged {
