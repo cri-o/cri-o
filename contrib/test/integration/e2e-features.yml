@@ -17,7 +17,6 @@
             --test
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
                         --ginkgo.noColor
-                        --ginkgo.succinct
                         --ginkgo.focus=\[NodeFeature:.*\]|\[Feature:(Seccomp|ScopeSelectors|PodPriority|Ingress|ComprehensiveNamespaceDraining|Networking-IPv4|TokenRequestProjection)\]
                         --ginkgo.skip={{ skip_tests | join('|') | replace(' ', '\\s') | regex_replace('([][)(])', '\\\\\1') }}
                         --report-dir={{ artifacts }}"
