@@ -4,6 +4,8 @@
 package libpod
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,12 +20,11 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
-func (c *Container) copyFromArchive(path string, chown bool, rename map[string]string, reader io.Reader) (func() error, error) {
+func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir bool, rename map[string]string, reader io.Reader) (func() error, error) {
 	var (
 		mountPoint   string
 		resolvedRoot string
@@ -89,11 +90,13 @@ func (c *Container) copyFromArchive(path string, chown bool, rename map[string]s
 		defer unmount()
 		defer decompressed.Close()
 		putOptions := buildahCopiah.PutOptions{
-			UIDMap:     c.config.IDMappings.UIDMap,
-			GIDMap:     c.config.IDMappings.GIDMap,
-			ChownDirs:  idPair,
-			ChownFiles: idPair,
-			Rename:     rename,
+			UIDMap:               c.config.IDMappings.UIDMap,
+			GIDMap:               c.config.IDMappings.GIDMap,
+			ChownDirs:            idPair,
+			ChownFiles:           idPair,
+			NoOverwriteDirNonDir: noOverwriteDirNonDir,
+			NoOverwriteNonDirDir: noOverwriteDirNonDir,
+			Rename:               rename,
 		}
 
 		return c.joinMountAndExec(
@@ -194,7 +197,7 @@ func getContainerUser(container *Container, mountPoint string) (specs.User, erro
 	if !strings.Contains(userspec, ":") {
 		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
 		if err2 != nil {
-			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
+			if !errors.Is(err2, chrootuser.ErrNoSuchUser) && err == nil {
 				err = err2
 			}
 		} else {
@@ -251,7 +254,7 @@ func (c *Container) joinMountAndExec(f func() error) error {
 
 		inHostPidNS, err := c.inHostPidNS()
 		if err != nil {
-			errChan <- errors.Wrap(err, "checking inHostPidNS")
+			errChan <- fmt.Errorf("checking inHostPidNS: %w", err)
 			return
 		}
 		var pidFD *os.File

@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/containers/podman/v4/libpod/events"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,6 +30,16 @@ func (c *Container) newContainerEvent(status events.Status) {
 	e.Details = events.Details{
 		ID:         e.ID,
 		Attributes: c.Labels(),
+	}
+
+	// if the current event is a HealthStatus event, we need to get the current
+	// status of the container to pass to the event
+	if status == events.HealthStatus {
+		containerHealthStatus, err := c.healthCheckStatus()
+		if err != nil {
+			e.HealthStatus = fmt.Sprintf("%v", err)
+		}
+		e.HealthStatus = containerHealthStatus
 	}
 
 	if err := c.runtime.eventer.Write(e); err != nil {
@@ -151,6 +160,9 @@ func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Ev
 // GetLastContainerEvent takes a container name or ID and an event status and returns
 // the last occurrence of the container event
 func (r *Runtime) GetLastContainerEvent(ctx context.Context, nameOrID string, containerEvent events.Status) (*events.Event, error) {
+	// FIXME: events should be read in reverse order!
+	// https://github.com/containers/podman/issues/14579
+
 	// check to make sure the event.Status is valid
 	if _, err := events.StringToStatus(containerEvent.String()); err != nil {
 		return nil, err
@@ -165,7 +177,7 @@ func (r *Runtime) GetLastContainerEvent(ctx context.Context, nameOrID string, co
 		return nil, err
 	}
 	if len(containerEvents) < 1 {
-		return nil, errors.Wrapf(events.ErrEventNotFound, "%s not found", containerEvent.String())
+		return nil, fmt.Errorf("%s not found: %w", containerEvent.String(), events.ErrEventNotFound)
 	}
 	// return the last element in the slice
 	return containerEvents[len(containerEvents)-1], nil
@@ -188,7 +200,7 @@ func (r *Runtime) GetExecDiedEvent(ctx context.Context, nameOrID, execSessionID 
 	// There *should* only be one event maximum.
 	// But... just in case... let's not blow up if there's more than one.
 	if len(containerEvents) < 1 {
-		return nil, errors.Wrapf(events.ErrEventNotFound, "exec died event for session %s (container %s) not found", execSessionID, nameOrID)
+		return nil, fmt.Errorf("exec died event for session %s (container %s) not found: %w", execSessionID, nameOrID, events.ErrEventNotFound)
 	}
 	return containerEvents[len(containerEvents)-1], nil
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
 	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
+	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -146,7 +147,7 @@ func createSandboxCgroup(sbParent, containerID string, mgr CgroupManager) error 
 	if err != nil {
 		return err
 	}
-	_, err = cgroups.New(path, &rspec.LinuxResources{})
+	_, err = cgroups.New(path, &cgcfgs.Resources{})
 	return err
 }
 

@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -27,7 +28,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,8 +43,8 @@ func GenerateForKube(ctx context.Context, ctrs []*Container) (*v1.Pod, error) {
 func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
 	var (
-		ports        []v1.ContainerPort //nolint
-		servicePorts []v1.ServicePort   //nolint
+		ports        []v1.ContainerPort
+		servicePorts []v1.ServicePort
 	)
 
 	allContainers, err := p.allContainers()
@@ -53,11 +53,11 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 	}
 	// If the pod has no containers, no sense to generate YAML
 	if len(allContainers) == 0 {
-		return nil, servicePorts, errors.Errorf("pod %s has no containers", p.ID())
+		return nil, servicePorts, fmt.Errorf("pod %s has no containers", p.ID())
 	}
 	// If only an infra container is present, makes no sense to generate YAML
 	if len(allContainers) == 1 && p.HasInfraContainer() {
-		return nil, servicePorts, errors.Errorf("pod %s only has an infra container", p.ID())
+		return nil, servicePorts, fmt.Errorf("pod %s only has an infra container", p.ID())
 	}
 
 	extraHost := make([]v1.HostAlias, 0)
@@ -353,6 +353,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	podInitCtrs := []v1.Container{}
 	podAnnotations := make(map[string]string)
 	dnsInfo := v1.PodDNSConfig{}
+	var hostname string
 
 	// Let's sort the containers in order of created time
 	// This will ensure that the init containers are defined in the correct order in the kube yaml
@@ -368,6 +369,14 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				podAnnotations[k] = TruncateKubeAnnotation(v)
 			}
 			isInit := ctr.IsInitCtr()
+			// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
+			if hostname == "" {
+				// Only set the hostname if it is not set to the truncated container ID, which we do by default if no
+				// hostname is specified for the container
+				if !strings.Contains(ctr.ID(), ctr.Hostname()) {
+					hostname = ctr.Hostname()
+				}
+			}
 
 			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr)
 			if err != nil {
@@ -377,17 +386,21 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				podAnnotations[define.BindMountPrefix+k] = TruncateKubeAnnotation(v)
 			}
 			// Since port bindings for the pod are handled by the
-			// infra container, wipe them here.
-			ctr.Ports = nil
+			// infra container, wipe them here only if we are sharing the net namespace
+			// If the network namespace is not being shared in the pod, then containers
+			// can have their own network configurations
+			if p.SharesNet() {
+				ctr.Ports = nil
 
-			// We add the original port declarations from the libpod infra container
-			// to the first kubernetes container description because otherwise we loose
-			// the original container/port bindings.
-			// Add the port configuration to the first regular container or the first
-			// init container if only init containers have been created in the pod.
-			if first && len(ports) > 0 && (!isInit || len(containers) == 2) {
-				ctr.Ports = ports
-				first = false
+				// We add the original port declarations from the libpod infra container
+				// to the first kubernetes container description because otherwise we loose
+				// the original container/port bindings.
+				// Add the port configuration to the first regular container or the first
+				// init container if only init containers have been created in the pod.
+				if first && len(ports) > 0 && (!isInit || len(containers) == 2) {
+					ctr.Ports = ports
+					first = false
+				}
 			}
 			if isInit {
 				podInitCtrs = append(podInitCtrs, ctr)
@@ -430,10 +443,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 		podContainers,
 		podVolumes,
 		&dnsInfo,
-		hostNetwork), nil
+		hostNetwork,
+		hostname), nil
 }
 
-func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork bool) *v1.Pod {
+func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork bool, hostname string) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -454,6 +468,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 	}
 	ps := v1.PodSpec{
 		Containers:     containers,
+		Hostname:       hostname,
 		HostNetwork:    hostNetwork,
 		InitContainers: initCtrs,
 		Volumes:        volumes,
@@ -479,6 +494,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	podDNS := v1.PodDNSConfig{}
 	kubeAnnotations := make(map[string]string)
 	ctrNames := make([]string, 0, len(ctrs))
+	var hostname string
 	for _, ctr := range ctrs {
 		ctrNames = append(ctrNames, removeUnderscores(ctr.Name()))
 		for k, v := range ctr.config.Spec.Annotations {
@@ -491,6 +507,14 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 		}
 
 		isInit := ctr.IsInitCtr()
+		// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
+		if hostname == "" {
+			// Only set the hostname if it is not set to the truncated container ID, which we do by default if no
+			// hostname is specified for the container
+			if !strings.Contains(ctr.ID(), ctr.Hostname()) {
+				hostname = ctr.Hostname()
+			}
+		}
 
 		if !ctr.HostNetwork() {
 			hostNetwork = false
@@ -555,7 +579,8 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 		kubeCtrs,
 		kubeVolumes,
 		&podDNS,
-		hostNetwork), nil
+		hostNetwork,
+		hostname), nil
 }
 
 // containerToV1Container converts information we know about a libpod container
@@ -573,7 +598,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	if !c.Privileged() && len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
 		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.config.Spec.Linux.Devices)
-		return kubeContainer, kubeVolumes, nil, annotations, errors.Wrapf(define.ErrNotImplemented, "linux devices")
+		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("linux devices: %w", define.ErrNotImplemented)
 	}
 
 	if len(c.config.UserVolumes) > 0 {
@@ -743,7 +768,7 @@ func portMappingToContainerPort(portMappings []types.PortMapping) ([]v1.Containe
 			case "SCTP":
 				protocol = v1.ProtocolSCTP
 			default:
-				return containerPorts, errors.Errorf("unknown network protocol %s", p.Protocol)
+				return containerPorts, fmt.Errorf("unknown network protocol %s", p.Protocol)
 			}
 			for i := uint16(0); i < p.Range; i++ {
 				cp := v1.ContainerPort{
@@ -772,7 +797,7 @@ func libpodEnvVarsToKubeEnvVars(envs []string, imageEnvs []string) ([]v1.EnvVar,
 	for _, e := range envs {
 		split := strings.SplitN(e, "=", 2)
 		if len(split) != 2 {
-			return envVars, errors.Errorf("environment variable %s is malformed; should be key=value", e)
+			return envVars, fmt.Errorf("environment variable %s is malformed; should be key=value", e)
 		}
 		if defaultEnv[split[0]] == split[1] {
 			continue
@@ -892,11 +917,11 @@ func isHostPathDirectory(hostPathSource string) (bool, error) {
 
 func convertVolumePathToName(hostSourcePath string) (string, error) {
 	if len(hostSourcePath) == 0 {
-		return "", errors.Errorf("hostSourcePath must be specified to generate volume name")
+		return "", errors.New("hostSourcePath must be specified to generate volume name")
 	}
 	if len(hostSourcePath) == 1 {
 		if hostSourcePath != "/" {
-			return "", errors.Errorf("hostSourcePath malformatted: %s", hostSourcePath)
+			return "", fmt.Errorf("hostSourcePath malformatted: %s", hostSourcePath)
 		}
 		// add special case name
 		return "root", nil
@@ -1025,7 +1050,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 			defer c.lock.Unlock()
 		}
 		if err := c.syncContainer(); err != nil {
-			return nil, errors.Wrapf(err, "unable to sync container during YAML generation")
+			return nil, fmt.Errorf("unable to sync container during YAML generation: %w", err)
 		}
 
 		mountpoint := c.state.Mountpoint
@@ -1033,7 +1058,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 			var err error
 			mountpoint, err = c.mount()
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to mount %s mountpoint", c.ID())
+				return nil, fmt.Errorf("failed to mount %s mountpoint: %w", c.ID(), err)
 			}
 			defer func() {
 				if err := c.unmount(false); err != nil {

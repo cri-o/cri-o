@@ -7,14 +7,14 @@ import (
 	"io"
 	"net"
 
+	"github.com/containers/common/pkg/resize"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/conmon-rs/internal/proto"
-	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/kubeutils"
-	"github.com/containers/podman/v4/utils"
 )
 
 const (
 	attachPacketBufSize = 8192
+	attachPipeDone      = 0
 	attachPipeStdin     = 1 // nolint:deadcode,varcheck // Not used right now
 	attachPipeStdout    = 2
 	attachPipeStderr    = 3
@@ -71,7 +71,7 @@ type AttachConfig struct {
 	Passthrough bool
 
 	// Channel of resize events.
-	Resize chan define.TerminalSize
+	Resize chan resize.TerminalSize
 
 	// The standard streams for this attach session.
 	Streams AttachStreams
@@ -141,7 +141,7 @@ func (c *ConmonClient) attach(ctx context.Context, cfg *AttachConfig) (err error
 	if !cfg.Passthrough {
 		c.logger.Debugf("Attaching to container %s", cfg.ID)
 
-		kubeutils.HandleResizing(cfg.Resize, func(size define.TerminalSize) {
+		resize.HandleResizing(cfg.Resize, func(size resize.TerminalSize) {
 			c.logger.Debugf("Got a resize event: %+v", size)
 			if err := c.SetWindowSizeContainer(ctx, &SetWindowSizeContainerConfig{
 				ID:   cfg.ID,
@@ -198,7 +198,7 @@ func (c *ConmonClient) setupStdioChannels(
 	go func() {
 		var err error
 		if cfg.Streams.Stdin != nil {
-			_, err = utils.CopyDetachable(conn, cfg.Streams.Stdin, cfg.DetachKeys)
+			_, err = util.CopyDetachable(conn, cfg.Streams.Stdin, cfg.DetachKeys)
 		}
 		stdinDone <- err
 	}()
@@ -209,26 +209,41 @@ func (c *ConmonClient) setupStdioChannels(
 func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn io.Reader) (err error) {
 	buf := make([]byte, attachPacketBufSize+1) /* Sync with conmonrs ATTACH_PACKET_BUF_SIZE */
 	for {
+		c.logger.Trace("Waiting to read from attach connection")
 		nr, er := conn.Read(buf)
+		c.logger.WithError(er).Tracef("Got %d bytes from attach connection", nr)
+
 		if nr > 0 {
 			var dst io.Writer
 			var doWrite bool
 			switch buf[0] {
+			case attachPipeDone:
+				c.logger.Trace("Received done packet")
+
+				return nil
 			case attachPipeStdout:
 				dst = cfg.Streams.Stdout
 				doWrite = cfg.Streams.Stdout != nil
+				c.logger.WithField("doWrite", doWrite).Trace("Received stdout packet")
+
 			case attachPipeStderr:
 				dst = cfg.Streams.Stderr
 				doWrite = cfg.Streams.Stderr != nil
+				c.logger.WithField("doWrite", doWrite).Trace("Received stderr packet")
+
 			default:
 				c.logger.Infof("Received unexpected attach type %+d", buf[0])
 			}
+
 			if dst == nil {
+				c.logger.Info("Output destination for packet is nil")
+
 				return errOutputDestNil
 			}
 
 			if doWrite {
 				nw, ew := dst.Write(buf[1:nr])
+				c.logger.WithError(ew).Tracef("Wrote %d bytes to destination", nw)
 				if ew != nil {
 					err = ew
 
@@ -241,6 +256,7 @@ func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn i
 				}
 			}
 		}
+		c.logger.WithError(er).Trace("Validating error")
 		if er == io.EOF {
 			break
 		}
@@ -260,10 +276,11 @@ func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn i
 
 func (c *ConmonClient) readStdio(
 	cfg *AttachConfig, conn *net.UnixConn, receiveStdoutError, stdinDone chan error,
-) error {
-	var err error
+) (err error) {
+	c.logger.Trace("Read stdio on attach")
 	select {
 	case err = <-receiveStdoutError:
+		c.logger.WithError(err).Trace("Received message on output channel")
 		if closeErr := conn.CloseWrite(); closeErr != nil {
 			return fmt.Errorf("%v: %w", closeErr, err)
 		}
@@ -275,6 +292,7 @@ func (c *ConmonClient) readStdio(
 		return nil
 
 	case err = <-stdinDone:
+		c.logger.WithError(err).Trace("Received possible error on input channel")
 		// This particular case is for when we get a non-tty attach
 		// with --leave-stdin-open=true. We want to return as soon
 		// as we receive EOF from the client. However, we should do
@@ -283,7 +301,7 @@ func (c *ConmonClient) readStdio(
 		if cfg.StopAfterStdinEOF {
 			return nil
 		}
-		if errors.Is(err, define.ErrDetach) {
+		if errors.Is(err, util.ErrDetach) {
 			if closeErr := conn.CloseWrite(); closeErr != nil {
 				return fmt.Errorf("%v: %w", closeErr, err)
 			}
@@ -310,7 +328,7 @@ type SetWindowSizeContainerConfig struct {
 	ID string
 
 	// Size is the new terminal size.
-	Size *define.TerminalSize
+	Size *resize.TerminalSize
 }
 
 // SetWindowSizeContainer can be used to change the window size of a running container.

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -31,7 +32,7 @@ func DefaultProfile() *seccomp.Seccomp {
 		const (
 			unshareName              = "unshare"
 			unshareParentStructIndex = 1
-			unshareIndex             = 360
+			unshareIndex             = 363
 		)
 		prof := seccomp.DefaultProfile()
 		// We know the default profile at compile time
@@ -39,7 +40,17 @@ func DefaultProfile() *seccomp.Seccomp {
 		// Panic on error and have CI catch errors on vendor bumps,
 		// to avoid combing through.
 		if prof.Syscalls[unshareParentStructIndex].Names[unshareIndex] != unshareName {
-			panic("Default seccomp profile updated and unshare syscall moved. Found unexpected syscall: " + prof.Syscalls[unshareParentStructIndex].Names[unshareIndex])
+			for i, name := range prof.Syscalls[unshareParentStructIndex].Names {
+				if name == unshareName {
+					_, file, _, _ := runtime.Caller(1)
+					logrus.Errorf("Change the `unshareIndex` variable in %s to %d", file, i)
+					break
+				}
+			}
+			logrus.Fatalf(
+				"Default seccomp profile updated and unshare syscall moved. Found unexpected syscall: %q",
+				prof.Syscalls[unshareParentStructIndex].Names[unshareIndex],
+			)
 		}
 		removeStringFromSlice(prof.Syscalls[unshareParentStructIndex].Names, unshareIndex)
 

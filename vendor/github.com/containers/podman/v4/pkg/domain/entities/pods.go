@@ -20,15 +20,15 @@ type PodKillOptions struct {
 
 type PodKillReport struct {
 	Errs []error
-	Id   string // nolint
+	Id   string //nolint:revive,stylecheck
 }
 
 type ListPodsReport struct {
 	Cgroup     string
 	Containers []*ListPodContainer
 	Created    time.Time
-	Id         string // nolint
-	InfraId    string // nolint
+	Id         string //nolint:revive,stylecheck
+	InfraId    string //nolint:revive,stylecheck
 	Name       string
 	Namespace  string
 	// Network names connected to infra container
@@ -38,7 +38,7 @@ type ListPodsReport struct {
 }
 
 type ListPodContainer struct {
-	Id     string // nolint
+	Id     string //nolint:revive,stylecheck
 	Names  string
 	Status string
 }
@@ -50,7 +50,7 @@ type PodPauseOptions struct {
 
 type PodPauseReport struct {
 	Errs []error
-	Id   string // nolint
+	Id   string //nolint:revive,stylecheck
 }
 
 type PodunpauseOptions struct {
@@ -60,7 +60,7 @@ type PodunpauseOptions struct {
 
 type PodUnpauseReport struct {
 	Errs []error
-	Id   string // nolint
+	Id   string //nolint:revive,stylecheck
 }
 
 type PodStopOptions struct {
@@ -72,7 +72,7 @@ type PodStopOptions struct {
 
 type PodStopReport struct {
 	Errs []error
-	Id   string // nolint
+	Id   string //nolint:revive,stylecheck
 }
 
 type PodRestartOptions struct {
@@ -82,7 +82,7 @@ type PodRestartOptions struct {
 
 type PodRestartReport struct {
 	Errs []error
-	Id   string // nolint
+	Id   string //nolint:revive,stylecheck
 }
 
 type PodStartOptions struct {
@@ -92,7 +92,7 @@ type PodStartOptions struct {
 
 type PodStartReport struct {
 	Errs []error
-	Id   string // nolint
+	Id   string //nolint:revive,stylecheck
 }
 
 type PodRmOptions struct {
@@ -105,7 +105,7 @@ type PodRmOptions struct {
 
 type PodRmReport struct {
 	Err error
-	Id  string // nolint
+	Id  string //nolint:revive,stylecheck
 }
 
 // PddSpec is an abstracted version of PodSpecGen designed to eventually accept options
@@ -122,6 +122,7 @@ type PodCreateOptions struct {
 	CreateCommand      []string          `json:"create_command,omitempty"`
 	Devices            []string          `json:"devices,omitempty"`
 	DeviceReadBPs      []string          `json:"device_read_bps,omitempty"`
+	ExitPolicy         string            `json:"exit_policy,omitempty"`
 	Hostname           string            `json:"hostname,omitempty"`
 	Infra              bool              `json:"infra,omitempty"`
 	InfraImage         string            `json:"infra_image,omitempty"`
@@ -151,6 +152,16 @@ type PodLogsOptions struct {
 	ContainerName string
 	// Show different colors in the logs.
 	Color bool
+}
+
+// PodCloneOptions contains options for cloning an existing pod
+type PodCloneOptions struct {
+	ID                  string
+	Destroy             bool
+	CreateOpts          PodCreateOptions
+	InfraOptions        ContainerCreateOptions
+	PerContainerOptions ContainerCreateOptions
+	Start               bool
 }
 
 type ContainerCreateOptions struct {
@@ -286,7 +297,11 @@ func NewInfraContainerCreateOptions() ContainerCreateOptions {
 }
 
 type PodCreateReport struct {
-	Id string // nolint
+	Id string //nolint:revive,stylecheck
+}
+
+type PodCloneReport struct {
+	Id string //nolint:revive,stylecheck
 }
 
 func (p *PodCreateOptions) CPULimits() *specs.LinuxCPU {
@@ -319,6 +334,7 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	}
 	s.Pid = out
 	s.Hostname = p.Hostname
+	s.ExitPolicy = p.ExitPolicy
 	s.Labels = p.Labels
 	s.Devices = p.Devices
 	s.SecurityOpt = p.SecurityOpt
@@ -387,7 +403,7 @@ type PodPruneOptions struct {
 
 type PodPruneReport struct {
 	Err error
-	Id  string // nolint
+	Id  string //nolint:revive,stylecheck
 }
 
 type PodTopOptions struct {

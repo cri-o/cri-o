@@ -17,37 +17,28 @@ import (
 )
 
 // Generates a private-public key-pair.
-// 'priv' is a private key; a scalar belonging to the set
+// 'priv' is a private key; a little-endian scalar belonging to the set
 // 2^{254} + 8 * [0, 2^{251}), in order to avoid the small subgroup of the
 // curve. 'pub' is simply 'priv' * G where G is the base point.
 // See https://cr.yp.to/ecdh.html and RFC7748, sec 5.
 func x25519GenerateKeyPairBytes(rand io.Reader) (priv [32]byte, pub [32]byte, err error) {
-	var n, helper = new(big.Int), new(big.Int)
-	n.SetUint64(1)
-	n.Lsh(n, 252)
-	helper.SetString("27742317777372353535851937790883648493", 10)
-	n.Add(n, helper)
-
-	for true {
-		_, err = io.ReadFull(rand, priv[:])
-		if err != nil {
-			return
-		}
-		// The following ensures that the private key is a number of the form
-		// 2^{254} + 8 * [0, 2^{251}), in order to avoid the small subgroup of
-		// of the curve.
-		priv[0] &= 248
-		priv[31] &= 127
-		priv[31] |= 64
-
-		// If the scalar is out of range, sample another random number.
-		if new(big.Int).SetBytes(priv[:]).Cmp(n) >= 0 {
-			continue
-		}
-
-		curve25519.ScalarBaseMult(&pub, &priv)
+	_, err = io.ReadFull(rand, priv[:])
+	if err != nil {
 		return
 	}
+
+	// The following ensures that the private key is a number of the form
+	// 2^{254} + 8 * [0, 2^{251}), in order to avoid the small subgroup of
+	// of the curve.
+	//
+	// This masking is done internally to ScalarBaseMult and so is unnecessary
+	// for security, but OpenPGP implementations require that private keys be
+	// pre-masked.
+	priv[0] &= 248
+	priv[31] &= 127
+	priv[31] |= 64
+
+	curve25519.ScalarBaseMult(&pub, &priv)
 	return
 }
 

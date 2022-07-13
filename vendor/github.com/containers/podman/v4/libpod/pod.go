@@ -1,15 +1,16 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/lock"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 // Pod represents a group of containers that are managed together.
@@ -63,12 +64,22 @@ type PodConfig struct {
 
 	HasInfra bool `json:"hasInfra,omitempty"`
 
+	// ServiceContainerID is the main container of a service.  A service
+	// consists of one or more pods.  The service container is started
+	// before all pods and is stopped when the last pod stops.
+	// The service container allows for tracking and managing the entire
+	// life cycle of service which may be started via `podman-play-kube`.
+	ServiceContainerID string `json:"serviceContainerID,omitempty"`
+
 	// Time pod was created
 	CreatedTime time.Time `json:"created"`
 
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string `json:"CreateCommand,omitempty"`
+
+	// The pod's exit policy.
+	ExitPolicy config.PodExitPolicy `json:"ExitPolicy,omitempty"`
 
 	// ID of the pod's lock
 	LockID uint32 `json:"lockID"`
@@ -154,6 +165,23 @@ func (p *Pod) CPUQuota() int64 {
 	conf := infra.config.Spec
 	if conf != nil && conf.Linux != nil && conf.Linux.Resources != nil && conf.Linux.Resources.CPU != nil && conf.Linux.Resources.CPU.Quota != nil {
 		return *conf.Linux.Resources.CPU.Quota
+	}
+	return 0
+}
+
+// MemoryLimit returns the pod Memory Limit
+func (p *Pod) MemoryLimit() uint64 {
+	if p.state.InfraContainerID == "" {
+		return 0
+	}
+	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
+	if err != nil {
+		return 0
+	}
+	conf := infra.config.Spec
+	if conf != nil && conf.Linux != nil && conf.Linux.Resources != nil && conf.Linux.Resources.Memory != nil && conf.Linux.Resources.Memory.Limit != nil {
+		val := *conf.Linux.Resources.Memory.Limit
+		return uint64(val)
 	}
 	return 0
 }
@@ -284,7 +312,7 @@ func (p *Pod) CgroupPath() (string, error) {
 		return "", err
 	}
 	if p.state.InfraContainerID == "" {
-		return "", errors.Wrap(define.ErrNoSuchCtr, "pod has no infra container")
+		return "", fmt.Errorf("pod has no infra container: %w", define.ErrNoSuchCtr)
 	}
 	return p.state.CgroupPath, nil
 }
@@ -358,7 +386,7 @@ func (p *Pod) infraContainer() (*Container, error) {
 		return nil, err
 	}
 	if id == "" {
-		return nil, errors.Wrap(define.ErrNoSuchCtr, "pod has no infra container")
+		return nil, fmt.Errorf("pod has no infra container: %w", define.ErrNoSuchCtr)
 	}
 
 	return p.runtime.state.Container(id)
@@ -398,7 +426,7 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*define.ContainerSta
 		newStats, err := c.GetContainerStats(previousContainerStats[c.ID()])
 		// If the container wasn't running, don't include it
 		// but also suppress the error
-		if err != nil && errors.Cause(err) != define.ErrCtrStateInvalid {
+		if err != nil && !errors.Is(err, define.ErrCtrStateInvalid) {
 			return nil, err
 		}
 		if err == nil {
@@ -438,4 +466,15 @@ func (p *Pod) initContainers() ([]*Container, error) {
 		}
 	}
 	return initCons, nil
+}
+
+func (p *Pod) Config() (*PodConfig, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	conf := &PodConfig{}
+
+	err := JSONDeepCopy(p.config, conf)
+
+	return conf, err
 }

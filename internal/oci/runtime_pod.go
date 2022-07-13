@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/containers/common/pkg/resize"
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -203,14 +203,14 @@ func (r *runtimePod) SignalContainer(ctx context.Context, c *Container, sig sysc
 	return r.oci.SignalContainer(ctx, c, sig)
 }
 
-func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	attachSocketPath := filepath.Join(r.serverDir, c.ID(), "attach")
-	libpodResize := make(chan define.TerminalSize, 1)
+	libpodResize := make(chan resize.TerminalSize, 1)
 	go func() {
 		var event remotecommand.TerminalSize
-		var libpodEvent define.TerminalSize
+		var libpodEvent resize.TerminalSize
 
-		for event = range resize {
+		for event = range resizeChan {
 			libpodEvent.Height = event.Height
 			libpodEvent.Width = event.Width
 			libpodResize <- libpodEvent

@@ -1,6 +1,7 @@
 package specgen
 
 import (
+	"errors"
 	"net"
 	"strings"
 	"syscall"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 //  LogConfig describes the logging characteristics for a container
@@ -103,6 +103,12 @@ type ContainerBasicConfig struct {
 	// RawImageName is the user-specified and unprocessed input referring
 	// to a local or a remote image.
 	RawImageName string `json:"raw_image_name,omitempty"`
+	// ImageOS is the user-specified image OS
+	ImageOS string `json:"image_os,omitempty"`
+	// ImageArch is the user-specified image architecture
+	ImageArch string `json:"image_arch,omitempty"`
+	// ImageVariant is the user-specified image variant
+	ImageVariant string `json:"image_variant,omitempty"`
 	// RestartPolicy is the container's restart policy - an action which
 	// will be taken when the container exits.
 	// If not given, the default policy, which does nothing, will be used.
@@ -565,10 +571,10 @@ type Secret struct {
 var (
 	// ErrNoStaticIPRootless is used when a rootless user requests to assign a static IP address
 	// to a pod or container
-	ErrNoStaticIPRootless error = errors.New("rootless containers and pods cannot be assigned static IP addresses")
+	ErrNoStaticIPRootless = errors.New("rootless containers and pods cannot be assigned static IP addresses")
 	// ErrNoStaticMACRootless is used when a rootless user requests to assign a static MAC address
 	// to a pod or container
-	ErrNoStaticMACRootless error = errors.New("rootless containers and pods cannot be assigned static MAC addresses")
+	ErrNoStaticMACRootless = errors.New("rootless containers and pods cannot be assigned static MAC addresses")
 )
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs

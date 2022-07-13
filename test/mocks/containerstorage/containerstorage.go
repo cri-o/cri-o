@@ -943,6 +943,20 @@ func (mr *MockStoreMockRecorder) Names(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Names", reflect.TypeOf((*MockStore)(nil).Names), arg0)
 }
 
+// PullOptions mocks base method.
+func (m *MockStore) PullOptions() map[string]string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PullOptions")
+	ret0, _ := ret[0].(map[string]string)
+	return ret0
+}
+
+// PullOptions indicates an expected call of PullOptions.
+func (mr *MockStoreMockRecorder) PullOptions() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PullOptions", reflect.TypeOf((*MockStore)(nil).PullOptions))
+}
+
 // PutLayer mocks base method.
 func (m *MockStore) PutLayer(arg0, arg1 string, arg2 []string, arg3 string, arg4 bool, arg5 *storage.LayerOptions, arg6 io.Reader) (*storage.Layer, int64, error) {
 	m.ctrl.T.Helper()

@@ -1,24 +1,26 @@
 package libpod
 
 import (
+	"fmt"
+
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/layers"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/pkg/errors"
 )
 
 var initInodes = map[string]bool{
-	"/dev":               true,
-	"/etc/hostname":      true,
-	"/etc/hosts":         true,
-	"/etc/resolv.conf":   true,
-	"/proc":              true,
-	"/run":               true,
-	"/run/notify":        true,
-	"/run/.containerenv": true,
-	"/run/secrets":       true,
-	"/sys":               true,
-	"/etc/mtab":          true,
+	"/dev":                   true,
+	"/etc/hostname":          true,
+	"/etc/hosts":             true,
+	"/etc/resolv.conf":       true,
+	"/proc":                  true,
+	"/run":                   true,
+	"/run/notify":            true,
+	"/run/.containerenv":     true,
+	"/run/secrets":           true,
+	define.ContainerInitPath: true,
+	"/sys":                   true,
+	"/etc/mtab":              true,
 }
 
 // GetDiff returns the differences between the two images, layers, or containers
@@ -75,5 +77,5 @@ func (r *Runtime) getLayerID(id string, diffType define.DiffType) (string, error
 		}
 		lastErr = err
 	}
-	return "", errors.Wrapf(lastErr, "%s not found", id)
+	return "", fmt.Errorf("%s not found: %w", id, lastErr)
 }

@@ -3,7 +3,6 @@ package generate
 import (
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,62 +10,12 @@ import (
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
-
-var (
-	errNotADevice = errors.New("not a device node")
-)
-
-func addPrivilegedDevices(g *generate.Generator) error {
-	hostDevices, err := getDevices("/dev")
-	if err != nil {
-		return err
-	}
-	g.ClearLinuxDevices()
-
-	if rootless.IsRootless() {
-		mounts := make(map[string]interface{})
-		for _, m := range g.Mounts() {
-			mounts[m.Destination] = true
-		}
-		newMounts := []spec.Mount{}
-		for _, d := range hostDevices {
-			devMnt := spec.Mount{
-				Destination: d.Path,
-				Type:        define.TypeBind,
-				Source:      d.Path,
-				Options:     []string{"slave", "nosuid", "noexec", "rw", "rbind"},
-			}
-			if d.Path == "/dev/ptmx" || strings.HasPrefix(d.Path, "/dev/tty") {
-				continue
-			}
-			if _, found := mounts[d.Path]; found {
-				continue
-			}
-			newMounts = append(newMounts, devMnt)
-		}
-		g.Config.Mounts = append(newMounts, g.Config.Mounts...)
-		if g.Config.Linux.Resources != nil {
-			g.Config.Linux.Resources.Devices = nil
-		}
-	} else {
-		for _, d := range hostDevices {
-			g.AddDevice(d)
-		}
-		// Add resources device - need to clear the existing one first.
-		if g.Config.Linux.Resources != nil {
-			g.Config.Linux.Resources.Devices = nil
-		}
-		g.AddLinuxResourcesDevice(true, "", nil, nil, "rwm")
-	}
-
-	return nil
-}
 
 // DevicesFromPath computes a list of devices
 func DevicesFromPath(g *generate.Generator, devicePath string) error {
@@ -96,7 +45,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 		}
 		if len(devs) > 2 {
 			if devmode != "" {
-				return errors.Wrapf(unix.EINVAL, "invalid device specification %s", devicePath)
+				return fmt.Errorf("invalid device specification %s: %w", devicePath, unix.EINVAL)
 			}
 			devmode = devs[2]
 		}
@@ -110,7 +59,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 					device = fmt.Sprintf("%s:%s", device, devmode)
 				}
 				if err := addDevice(g, device); err != nil {
-					return errors.Wrapf(err, "failed to add %s device", dpath)
+					return fmt.Errorf("failed to add %s device: %w", dpath, err)
 				}
 			}
 			return nil
@@ -118,7 +67,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 			return err
 		}
 		if !found {
-			return errors.Wrapf(unix.EINVAL, "no devices found in %s", devicePath)
+			return fmt.Errorf("no devices found in %s: %w", devicePath, unix.EINVAL)
 		}
 		return nil
 	}
@@ -174,62 +123,14 @@ func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, mask, unmask
 	}
 }
 
-// based on getDevices from runc (libcontainer/devices/devices.go)
-func getDevices(path string) ([]spec.LinuxDevice, error) {
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		if rootless.IsRootless() && os.IsPermission(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	out := []spec.LinuxDevice{}
-	for _, f := range files {
-		switch {
-		case f.IsDir():
-			switch f.Name() {
-			// ".lxc" & ".lxd-mounts" added to address https://github.com/lxc/lxd/issues/2825
-			case "pts", "shm", "fd", "mqueue", ".lxc", ".lxd-mounts":
-				continue
-			default:
-				sub, err := getDevices(filepath.Join(path, f.Name()))
-				if err != nil {
-					return nil, err
-				}
-				if sub != nil {
-					out = append(out, sub...)
-				}
-				continue
-			}
-		case f.Name() == "console":
-			continue
-		case f.Mode()&os.ModeSymlink != 0:
-			continue
-		}
-
-		device, err := deviceFromPath(filepath.Join(path, f.Name()))
-		if err != nil {
-			if err == errNotADevice {
-				continue
-			}
-			if os.IsNotExist(err) {
-				continue
-			}
-			return nil, err
-		}
-		out = append(out, *device)
-	}
-	return out, nil
-}
-
 func addDevice(g *generate.Generator, device string) error {
 	src, dst, permissions, err := ParseDevice(device)
 	if err != nil {
 		return err
 	}
-	dev, err := deviceFromPath(src)
+	dev, err := util.DeviceFromPath(src)
 	if err != nil {
-		return errors.Wrapf(err, "%s is not a valid device", src)
+		return fmt.Errorf("%s is not a valid device: %w", src, err)
 	}
 	if rootless.IsRootless() {
 		if _, err := os.Stat(src); err != nil {
@@ -262,7 +163,7 @@ func addDevice(g *generate.Generator, device string) error {
 }
 
 // ParseDevice parses device mapping string to a src, dest & permissions string
-func ParseDevice(device string) (string, string, string, error) { //nolint
+func ParseDevice(device string) (string, string, string, error) {
 	var src string
 	var dst string
 	permissions := "rwm"
@@ -314,43 +215,6 @@ func IsValidDeviceMode(mode string) bool {
 		legalDeviceMode[c] = false
 	}
 	return true
-}
-
-// Copied from github.com/opencontainers/runc/libcontainer/devices
-// Given the path to a device look up the information about a linux device
-func deviceFromPath(path string) (*spec.LinuxDevice, error) {
-	var stat unix.Stat_t
-	err := unix.Lstat(path, &stat)
-	if err != nil {
-		return nil, err
-	}
-	var (
-		devType   string
-		mode      = stat.Mode
-		devNumber = uint64(stat.Rdev) // nolint: unconvert
-		m         = os.FileMode(mode)
-	)
-
-	switch {
-	case mode&unix.S_IFBLK == unix.S_IFBLK:
-		devType = "b"
-	case mode&unix.S_IFCHR == unix.S_IFCHR:
-		devType = "c"
-	case mode&unix.S_IFIFO == unix.S_IFIFO:
-		devType = "p"
-	default:
-		return nil, errNotADevice
-	}
-
-	return &spec.LinuxDevice{
-		Type:     devType,
-		Path:     path,
-		FileMode: &m,
-		UID:      &stat.Uid,
-		GID:      &stat.Gid,
-		Major:    int64(unix.Major(devNumber)),
-		Minor:    int64(unix.Minor(devNumber)),
-	}, nil
 }
 
 func supportAmbientCapabilities() bool {

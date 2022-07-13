@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/timetype"
-	"github.com/pkg/errors"
 )
 
 // ComputeUntilTimestamp extracts until timestamp from filters
 func ComputeUntilTimestamp(filterValues []string) (time.Time, error) {
 	invalid := time.Time{}
 	if len(filterValues) != 1 {
-		return invalid, errors.Errorf("specify exactly one timestamp for until")
+		return invalid, fmt.Errorf("specify exactly one timestamp for until")
 	}
 	ts, err := timetype.GetTimestamp(filterValues[0], time.Now())
 	if err != nil {
@@ -36,11 +35,13 @@ func ComputeUntilTimestamp(filterValues []string) (time.Time, error) {
 //
 // Please refer to https://github.com/containers/podman/issues/6899 for some
 // background.
+//
+// revive does not like the name because the package is already called filters
+//nolint:revive
 func FiltersFromRequest(r *http.Request) ([]string, error) {
 	var (
 		compatFilters map[string]map[string]bool
 		filters       map[string][]string
-		libpodFilters []string
 		raw           []byte
 	)
 
@@ -54,6 +55,7 @@ func FiltersFromRequest(r *http.Request) ([]string, error) {
 
 	// Backwards compat with older versions of Docker.
 	if err := json.Unmarshal(raw, &compatFilters); err == nil {
+		libpodFilters := make([]string, 0, len(compatFilters))
 		for filterKey, filterMap := range compatFilters {
 			for filterValue, toAdd := range filterMap {
 				if toAdd {
@@ -68,6 +70,7 @@ func FiltersFromRequest(r *http.Request) ([]string, error) {
 		return nil, err
 	}
 
+	libpodFilters := make([]string, 0, len(filters))
 	for filterKey, filterSlice := range filters {
 		f := filterKey
 		for _, filterValue := range filterSlice {

@@ -11,8 +11,8 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -20,7 +20,7 @@ import (
 // systemdSliceFromPath makes a new systemd slice under the given parent with
 // the given name.
 // The parent must be a slice. The name must NOT include ".slice"
-func systemdSliceFromPath(parent, name string) (string, error) {
+func systemdSliceFromPath(parent, name string, resources *spec.LinuxResources) (string, error) {
 	cgroupPath, err := assembleSystemdCgroupName(parent, name)
 	if err != nil {
 		return "", err
@@ -28,8 +28,8 @@ func systemdSliceFromPath(parent, name string) (string, error) {
 
 	logrus.Debugf("Created cgroup path %s for parent %s and name %s", cgroupPath, parent, name)
 
-	if err := makeSystemdCgroup(cgroupPath); err != nil {
-		return "", errors.Wrapf(err, "error creating cgroup %s", cgroupPath)
+	if err := makeSystemdCgroup(cgroupPath, resources); err != nil {
+		return "", fmt.Errorf("error creating cgroup %s: %w", cgroupPath, err)
 	}
 
 	logrus.Debugf("Created cgroup %s", cgroupPath)
@@ -45,8 +45,12 @@ func getDefaultSystemdCgroup() string {
 }
 
 // makeSystemdCgroup creates a systemd Cgroup at the given location.
-func makeSystemdCgroup(path string) error {
-	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup())
+func makeSystemdCgroup(path string, resources *spec.LinuxResources) error {
+	res, err := GetLimits(resources)
+	if err != nil {
+		return err
+	}
+	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup(), &res)
 	if err != nil {
 		return err
 	}
@@ -54,12 +58,20 @@ func makeSystemdCgroup(path string) error {
 	if rootless.IsRootless() {
 		return controller.CreateSystemdUserUnit(path, rootless.GetRootlessUID())
 	}
-	return controller.CreateSystemdUnit(path)
+	err = controller.CreateSystemdUnit(path)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // deleteSystemdCgroup deletes the systemd cgroup at the given location
-func deleteSystemdCgroup(path string) error {
-	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup())
+func deleteSystemdCgroup(path string, resources *spec.LinuxResources) error {
+	res, err := GetLimits(resources)
+	if err != nil {
+		return err
+	}
+	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup(), &res)
 	if err != nil {
 		return err
 	}
@@ -82,7 +94,7 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 	const sliceSuffix = ".slice"
 
 	if !strings.HasSuffix(baseSlice, sliceSuffix) {
-		return "", errors.Wrapf(define.ErrInvalidArg, "cannot assemble cgroup path with base %q - must end in .slice", baseSlice)
+		return "", fmt.Errorf("cannot assemble cgroup path with base %q - must end in .slice: %w", baseSlice, define.ErrInvalidArg)
 	}
 
 	noSlice := strings.TrimSuffix(baseSlice, sliceSuffix)
@@ -100,17 +112,17 @@ var lvpReleaseLabel = label.ReleaseLabel
 func LabelVolumePath(path string) error {
 	_, mountLabel, err := lvpInitLabels([]string{})
 	if err != nil {
-		return errors.Wrapf(err, "error getting default mountlabels")
+		return fmt.Errorf("error getting default mountlabels: %w", err)
 	}
 	if err := lvpReleaseLabel(mountLabel); err != nil {
-		return errors.Wrapf(err, "error releasing label %q", mountLabel)
+		return fmt.Errorf("error releasing label %q: %w", mountLabel, err)
 	}
 
 	if err := lvpRelabel(path, mountLabel, true); err != nil {
 		if err == syscall.ENOTSUP {
 			logrus.Debugf("Labeling not supported on %q", path)
 		} else {
-			return errors.Wrapf(err, "error setting selinux label for %s to %q as shared", path, mountLabel)
+			return fmt.Errorf("error setting selinux label for %s to %q as shared: %w", path, mountLabel, err)
 		}
 	}
 	return nil

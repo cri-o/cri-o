@@ -3,6 +3,7 @@ package generate
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path"
 	"strings"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -117,7 +117,7 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData, rtc *c
 	finalCommand = append(finalCommand, command...)
 
 	if len(finalCommand) == 0 {
-		return nil, errors.Errorf("no command or entrypoint provided, and no CMD or ENTRYPOINT from image")
+		return nil, fmt.Errorf("no command or entrypoint provided, and no CMD or ENTRYPOINT from image")
 	}
 
 	if s.Init {
@@ -126,9 +126,9 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData, rtc *c
 			initPath = rtc.Engine.InitPath
 		}
 		if initPath == "" {
-			return nil, errors.Errorf("no path to init binary found but container requested an init")
+			return nil, fmt.Errorf("no path to init binary found but container requested an init")
 		}
-		finalCommand = append([]string{"/dev/init", "--"}, finalCommand...)
+		finalCommand = append([]string{define.ContainerInitPath, "--"}, finalCommand...)
 	}
 
 	return finalCommand, nil
@@ -298,8 +298,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.AddAnnotation(key, val)
 	}
 
-	switch {
-	case compatibleOptions.InfraResources == nil && s.ResourceLimits != nil:
+	if s.ResourceLimits != nil {
 		out, err := json.Marshal(s.ResourceLimits)
 		if err != nil {
 			return nil, err
@@ -308,43 +307,17 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		if err != nil {
 			return nil, err
 		}
-	case s.ResourceLimits != nil: // if we have predefined resource limits we need to make sure we keep the infra and container limits
-		originalResources, err := json.Marshal(s.ResourceLimits)
-		if err != nil {
-			return nil, err
-		}
-		infraResources, err := json.Marshal(compatibleOptions.InfraResources)
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(infraResources, s.ResourceLimits) // put infra's resource limits in the container
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(originalResources, s.ResourceLimits) // make sure we did not override anything
-		if err != nil {
-			return nil, err
-		}
 		g.Config.Linux.Resources = s.ResourceLimits
-	default:
-		g.Config.Linux.Resources = compatibleOptions.InfraResources
 	}
 	// Devices
-
 	// set the default rule at the beginning of device configuration
 	if !inUserNS && !s.Privileged {
 		g.AddLinuxResourcesDevice(false, "", nil, nil, "rwm")
 	}
 
 	var userDevices []spec.LinuxDevice
-	if s.Privileged {
-		// If privileged, we need to add all the host devices to the
-		// spec.  We do not add the user provided ones because we are
-		// already adding them all.
-		if err := addPrivilegedDevices(&g); err != nil {
-			return nil, err
-		}
-	} else {
+
+	if !s.Privileged {
 		// add default devices from containers.conf
 		for _, device := range rtc.Containers.Devices {
 			if err = DevicesFromPath(&g, device); err != nil {
@@ -375,9 +348,9 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	for k, v := range s.WeightDevice {
 		statT := unix.Stat_t{}
 		if err := unix.Stat(k, &statT); err != nil {
-			return nil, errors.Wrapf(err, "failed to inspect '%s' in --blkio-weight-device", k)
+			return nil, fmt.Errorf("failed to inspect '%s' in --blkio-weight-device: %w", k, err)
 		}
-		g.AddLinuxResourcesBlockIOWeightDevice((int64(unix.Major(uint64(statT.Rdev)))), (int64(unix.Minor(uint64(statT.Rdev)))), *v.Weight) // nolint: unconvert
+		g.AddLinuxResourcesBlockIOWeightDevice((int64(unix.Major(uint64(statT.Rdev)))), (int64(unix.Minor(uint64(statT.Rdev)))), *v.Weight) //nolint: unconvert
 	}
 
 	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), s.Mask, s.Unmask, &g)

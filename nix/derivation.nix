@@ -31,6 +31,7 @@ with pkgs; buildGo118Module {
     export EXTRA_LDFLAGS='-s -w -linkmode external -extldflags "-static -lm"'
     export BUILDTAGS='static netgo osusergo exclude_graphdriver_btrfs exclude_graphdriver_devicemapper seccomp apparmor selinux'
     export CGO_ENABLED=1
+    export CGO_LDFLAGS='-lgpgme -lassuan -lgpg-error'
   '';
   buildPhase = ''
     patchShebangs .

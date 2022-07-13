@@ -19,8 +19,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	soauth "github.com/sigstore/sigstore/pkg/oauth"
@@ -57,14 +55,12 @@ func ConnectorIDOpt(prov string) oauth2.AuthCodeOption {
 // DefaultIDTokenGetter is the default implementation.
 // The HTML page and message printed to the terminal can be customized.
 var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
-	MessagePrinter: func(url string) { fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", url) },
-	HTMLPage:       soauth.InteractiveSuccessHTML,
+	HTMLPage: soauth.InteractiveSuccessHTML,
 }
 
 // PublicInstanceGithubIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
 // Flow is based on `DefaultIDTokenGetter` fields
 var PublicInstanceGithubIDTokenGetter = &InteractiveIDTokenGetter{
-	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceGithubAuthSubURL)},
 }
@@ -72,7 +68,6 @@ var PublicInstanceGithubIDTokenGetter = &InteractiveIDTokenGetter{
 // PublicInstanceGoogleIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
 // Flow is based on `DefaultIDTokenGetter` fields
 var PublicInstanceGoogleIDTokenGetter = &InteractiveIDTokenGetter{
-	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceGoogleAuthSubURL)},
 }
@@ -80,7 +75,6 @@ var PublicInstanceGoogleIDTokenGetter = &InteractiveIDTokenGetter{
 // PublicInstanceMicrosoftIDTokenGetter is a `oauth2.sigstore.dev` flow selecting microsoft as an Idp
 // Flow is based on `DefaultIDTokenGetter` fields
 var PublicInstanceMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
-	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceMicrosoftAuthSubURL)},
 }

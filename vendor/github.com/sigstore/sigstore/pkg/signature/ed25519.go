@@ -152,7 +152,10 @@ func LoadED25519SignerVerifier(priv ed25519.PrivateKey) (*ED25519SignerVerifier,
 	if err != nil {
 		return nil, fmt.Errorf("initializing signer: %w", err)
 	}
-	pub := priv.Public().(ed25519.PublicKey)
+	pub, ok := priv.Public().(ed25519.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("given key is not ed25519.PublicKey: %w", err)
+	}
 	verifier, err := LoadED25519Verifier(pub)
 	if err != nil {
 		return nil, fmt.Errorf("initializing verifier: %w", err)

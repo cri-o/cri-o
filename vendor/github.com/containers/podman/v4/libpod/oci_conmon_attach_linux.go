@@ -4,6 +4,7 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -12,12 +13,11 @@ import (
 	"syscall"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/resize"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
-	"github.com/containers/podman/v4/pkg/kubeutils"
-	"github.com/containers/podman/v4/utils"
 	"github.com/moby/term"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -45,14 +45,14 @@ func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 	passthrough := c.LogDriver() == define.PassthroughLogging
 
 	if params == nil || params.Streams == nil {
-		return errors.Wrapf(define.ErrInternal, "must provide parameters to Attach")
+		return fmt.Errorf("must provide parameters to Attach: %w", define.ErrInternal)
 	}
 
 	if !params.Streams.AttachOutput && !params.Streams.AttachError && !params.Streams.AttachInput && !passthrough {
-		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
+		return fmt.Errorf("must provide at least one stream to attach to: %w", define.ErrInvalidArg)
 	}
 	if params.Start && params.Started == nil {
-		return errors.Wrapf(define.ErrInternal, "started chan not passed when startContainer set")
+		return fmt.Errorf("started chan not passed when startContainer set: %w", define.ErrInternal)
 	}
 
 	keys := config.DefaultDetachKeys
@@ -83,7 +83,7 @@ func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 
 		conn, err = openUnixSocket(attachSock)
 		if err != nil {
-			return errors.Wrapf(err, "failed to connect to container's attach socket: %v", attachSock)
+			return fmt.Errorf("failed to connect to container's attach socket: %v: %w", attachSock, err)
 		}
 		defer func() {
 			if err := conn.Close(); err != nil {
@@ -120,7 +120,7 @@ func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 //  conmon will then send the exit code of the exec process, or an error in the exec session
 // startFd must be the input side of the fd.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
-//   conmon will wait to start the exec session until the parent process has setup the console socket.
+//   conmon will wait to start the exec session until the parent process has set up the console socket.
 //   Once attachToExec successfully attaches to the console socket, the child conmon process responsible for calling runtime exec
 //     will read from the output side of start fd, thus learning to start the child process.
 // Thus, the order goes as follow:
@@ -130,12 +130,12 @@ func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 // 4. attachToExec sends on startFd, signalling it has attached to the socket and child is ready to go
 // 5. child receives on startFd, runs the runtime exec command
 // attachToExec is responsible for closing startFd and attachFd
-func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File, newSize *define.TerminalSize) error {
+func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File, newSize *resize.TerminalSize) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
-		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
+		return fmt.Errorf("must provide at least one stream to attach to: %w", define.ErrInvalidArg)
 	}
 	if startFd == nil || attachFd == nil {
-		return errors.Wrapf(define.ErrInvalidArg, "start sync pipe and attach sync pipe must be defined for exec attach")
+		return fmt.Errorf("start sync pipe and attach sync pipe must be defined for exec attach: %w", define.ErrInvalidArg)
 	}
 
 	defer errorhandling.CloseQuiet(startFd)
@@ -174,7 +174,7 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 	// 2: then attach
 	conn, err := openUnixSocket(sockPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", sockPath)
+		return fmt.Errorf("failed to connect to container's attach socket: %v: %w", sockPath, err)
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -200,13 +200,13 @@ func processDetachKeys(keys string) ([]byte, error) {
 	}
 	detachKeys, err := term.ToBytes(keys)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid detach keys")
+		return nil, fmt.Errorf("invalid detach keys: %w", err)
 	}
 	return detachKeys, nil
 }
 
-func registerResizeFunc(resize <-chan define.TerminalSize, bundlePath string) {
-	kubeutils.HandleResizing(resize, func(size define.TerminalSize) {
+func registerResizeFunc(r <-chan resize.TerminalSize, bundlePath string) {
+	resize.HandleResizing(r, func(size resize.TerminalSize) {
 		controlPath := filepath.Join(bundlePath, "ctl")
 		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
 		if err != nil {
@@ -232,7 +232,7 @@ func setupStdioChannels(streams *define.AttachStreams, conn *net.UnixConn, detac
 	go func() {
 		var err error
 		if streams.AttachInput {
-			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
+			_, err = util.CopyDetachable(conn, streams.InputStream, detachKeys)
 		}
 		stdinDone <- err
 	}()

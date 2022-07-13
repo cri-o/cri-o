@@ -3,6 +3,8 @@ package generate
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/podman/v4/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -37,9 +38,18 @@ func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGen
 	}
 
 	// Need to look up image.
-	image, resolvedName, err := r.LibimageRuntime().LookupImage(s.Image, nil)
+	lookupOptions := &libimage.LookupImageOptions{ManifestList: true}
+	image, resolvedName, err := r.LibimageRuntime().LookupImage(s.Image, lookupOptions)
 	if err != nil {
 		return nil, "", nil, err
+	}
+	manifestList, err := image.ToManifestList()
+	// only process if manifest list found otherwise expect it to be regular image
+	if err == nil {
+		image, err = manifestList.LookupInstance(ctx, s.ImageArch, s.ImageOS, s.ImageVariant)
+		if err != nil {
+			return nil, "", nil, err
+		}
 	}
 	s.SetImage(image, resolvedName)
 	inspectData, err := image.Inspect(ctx, nil)
@@ -105,7 +115,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	// Get Default Environment from containers.conf
 	defaultEnvs, err := envLib.ParseSlice(rtc.GetDefaultEnvEx(s.EnvHost, s.HTTPProxy))
 	if err != nil {
-		return nil, errors.Wrap(err, "error parsing fields in containers.conf")
+		return nil, fmt.Errorf("error parsing fields in containers.conf: %w", err)
 	}
 	var envs map[string]string
 
@@ -115,7 +125,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		// already, overriding the default environments
 		envs, err = envLib.ParseSlice(inspectData.Config.Env)
 		if err != nil {
-			return nil, errors.Wrap(err, "Env fields from image failed to parse")
+			return nil, fmt.Errorf("env fields from image failed to parse: %w", err)
 		}
 		defaultEnvs = envLib.Join(envLib.DefaultEnvVariables(), envLib.Join(defaultEnvs, envs))
 	}
@@ -131,7 +141,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	// any case.
 	osEnv, err := envLib.ParseSlice(os.Environ())
 	if err != nil {
-		return nil, errors.Wrap(err, "error parsing host environment variables")
+		return nil, fmt.Errorf("error parsing host environment variables: %w", err)
 	}
 	// Caller Specified defaults
 	if s.EnvHost {
@@ -302,8 +312,8 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) // nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) // nolint: unconvert
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
 			if s.ResourceLimits.BlockIO == nil {
 				s.ResourceLimits.BlockIO = new(spec.LinuxBlockIO)
 			}
@@ -316,8 +326,8 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) // nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) // nolint: unconvert
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
 			s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice, v)
 		}
 	}
@@ -327,8 +337,8 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) // nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) // nolint: unconvert
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
 			s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice, v)
 		}
 	}
@@ -338,8 +348,8 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) // nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) // nolint: unconvert
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
 			s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice, v)
 		}
 	}
@@ -352,7 +362,10 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 	if err != nil {
 		return nil, nil, err
 	}
-	conf := c.Config()
+	conf := c.ConfigWithNetworks()
+	if conf == nil {
+		return nil, nil, fmt.Errorf("failed to get config for container %s", c.ID())
+	}
 
 	tmpSystemd := conf.Systemd
 	tmpMounts := conf.Mounts
@@ -446,7 +459,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 					specg.IpcNS = specgen.Namespace{NSMode: specgen.Default} // default
 				}
 			case "uts":
-				specg.UtsNS = specgen.Namespace{NSMode: specgen.Default} // default
+				specg.UtsNS = specgen.Namespace{NSMode: specgen.Private} // default
 			case "user":
 				if conf.AddCurrentUserPasswdEntry {
 					specg.UserNS = specgen.Namespace{NSMode: specgen.KeepID}
@@ -502,6 +515,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 	specg.Mounts = mounts
 	specg.HostDeviceList = conf.DeviceHostSrc
 	specg.Networks = conf.Networks
+	specg.ShmSize = &conf.ShmSize
 
 	mapSecurityConfig(conf, specg)
 
