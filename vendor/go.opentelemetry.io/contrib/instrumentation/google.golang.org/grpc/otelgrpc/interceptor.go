@@ -459,7 +459,7 @@ func peerFromCtx(ctx context.Context) string {
 	return p.Addr.String()
 }
 
-// statusCodeAttr returns status code attribute based on given gRPC code
+// statusCodeAttr returns status code attribute based on given gRPC code.
 func statusCodeAttr(c grpc_codes.Code) attribute.KeyValue {
 	return GRPCStatusCodeKey.Int64(int64(c))
 }

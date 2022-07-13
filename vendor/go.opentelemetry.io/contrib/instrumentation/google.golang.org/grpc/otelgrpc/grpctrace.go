@@ -88,7 +88,7 @@ type metadataSupplier struct {
 	metadata *metadata.MD
 }
 
-// assert that metadataSupplier implements the TextMapCarrier interface
+// assert that metadataSupplier implements the TextMapCarrier interface.
 var _ propagation.TextMapCarrier = &metadataSupplier{}
 
 func (s *metadataSupplier) Get(key string) string {
@@ -114,20 +114,20 @@ func (s *metadataSupplier) Keys() []string {
 // Inject injects correlation context and span context into the gRPC
 // metadata object. This function is meant to be used on outgoing
 // requests.
-func Inject(ctx context.Context, metadata *metadata.MD, opts ...Option) {
+func Inject(ctx context.Context, md *metadata.MD, opts ...Option) {
 	c := newConfig(opts)
 	c.Propagators.Inject(ctx, &metadataSupplier{
-		metadata: metadata,
+		metadata: md,
 	})
 }
 
 // Extract returns the correlation context and span context that
 // another service encoded in the gRPC metadata object with Inject.
 // This function is meant to be used on incoming requests.
-func Extract(ctx context.Context, metadata *metadata.MD, opts ...Option) (baggage.Baggage, trace.SpanContext) {
+func Extract(ctx context.Context, md *metadata.MD, opts ...Option) (baggage.Baggage, trace.SpanContext) {
 	c := newConfig(opts)
 	ctx = c.Propagators.Extract(ctx, &metadataSupplier{
-		metadata: metadata,
+		metadata: md,
 	})
 
 	return baggage.FromContext(ctx), trace.SpanContextFromContext(ctx)
