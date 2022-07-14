@@ -77,7 +77,7 @@ require (
 	mvdan.cc/sh/v3 v3.5.1
 	sigs.k8s.io/bom v0.3.0-rc1.0.20220627190259-3850e8ff14fa
 	sigs.k8s.io/release-sdk v0.9.1
-	sigs.k8s.io/release-utils v0.7.1
+	sigs.k8s.io/release-utils v0.7.2
 	sigs.k8s.io/yaml v1.3.0
 	sigs.k8s.io/zeitgeist v0.3.0
 )

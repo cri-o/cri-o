@@ -28,7 +28,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/command"

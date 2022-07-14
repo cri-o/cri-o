@@ -3717,8 +3717,8 @@ sigs.k8s.io/promo-tools/v3 v3.4.2/go.mod h1:9yrwn1LjVpDpPmMUInBEOlAfwnS8cx9NpmsH
 sigs.k8s.io/release-sdk v0.9.1 h1:9ddFHCegTWWQhJaUHhk1iyf4ukeYLNI8hVMwz+WP+oM=
 sigs.k8s.io/release-sdk v0.9.1/go.mod h1:N6W7bDGRT9lvGHGQ5XlanMXGhyhWqLS3dZgOB2AzAPs=
 sigs.k8s.io/release-utils v0.2.0/go.mod h1:9O5livl2h3Q56jUkoZ7UnV22XVRB6MuD4l/51C2vAPg=
-sigs.k8s.io/release-utils v0.7.1 h1:dQuGqQi7XGW4PSLJ6JRlN2JUDkeXSepDL1nTdl9QTPY=
-sigs.k8s.io/release-utils v0.7.1/go.mod h1:SK+/kkc2i7ZO0CFXDCvXpzIZyt13cPlscaApaZD7VmU=
+sigs.k8s.io/release-utils v0.7.2 h1:eFv2dvohvD6Hl1GRxRZ0UkG9YxPNhbaHcGKp5jb2Jns=
+sigs.k8s.io/release-utils v0.7.2/go.mod h1:vus7H8iG14tllKDciKxAXgfLO50P32H7gtriCqpmHUE=
 sigs.k8s.io/structured-merge-diff/v4 v4.0.2/go.mod h1:bJZC9H9iH24zzfZ/41RGcq60oK1F7G282QMXDPYydCw=
 sigs.k8s.io/structured-merge-diff/v4 v4.1.2/go.mod h1:j/nl6xW8vLS49O8YvXW1ocPhZawJtm+Yrr7PPRQ0Vg4=
 sigs.k8s.io/structured-merge-diff/v4 v4.2.1 h1:bKCqE9GvQ5tiVHn5rfn1r+yao3aLQEaLzkkmAkf+A6Y=
