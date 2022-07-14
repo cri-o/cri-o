@@ -36,7 +36,6 @@
             --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
                         --ginkgo.skip={{ skip_tests | join('|') | replace(' ', '\\s') | regex_replace('([][)(])', '\\\\\1') }}
                         --ginkgo.noColor
-                        --ginkgo.succinct
                         --report-dir={{ artifacts }}"
             &> {{ artifacts }}/e2e.log
 
