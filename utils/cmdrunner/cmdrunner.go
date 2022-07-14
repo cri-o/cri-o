@@ -69,3 +69,16 @@ func (c *prependableCommandRunner) Command(cmd string, args ...string) *exec.Cmd
 	}
 	return exec.Command(realCmd, realArgs...)
 }
+
+// GetPrependendCmd returns the prepended command if one is configured, else the empty string
+func GetPrependedCmd() string {
+	if c, ok := commandRunner.(*prependableCommandRunner); ok {
+		return c.prependCmd
+	}
+	return ""
+}
+
+// ResetPrependedCmd resets the singleton for more reliable unit testing
+func ResetPrependedCmd() {
+	commandRunner = nil
+}

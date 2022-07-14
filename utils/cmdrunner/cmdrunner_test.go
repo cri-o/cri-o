@@ -9,8 +9,20 @@ import (
 )
 
 var _ = t.Describe("CommandRunner", func() {
+	It("command prepend should reset on request", func() {
+		// Given
+		cmdrunner.PrependCommandsWith("which")
+		Expect(cmdrunner.GetPrependedCmd()).To(Equal("which"))
+
+		// When
+		cmdrunner.ResetPrependedCmd()
+
+		// Then
+		Expect(cmdrunner.GetPrependedCmd()).To(Equal(""))
+	})
 	It("command should not prepend if not configured", func() {
 		// Given
+		cmdrunner.ResetPrependedCmd()
 		cmd := "ls"
 		baseline, err := exec.Command(cmd).CombinedOutput()
 		Expect(err).To(BeNil())
@@ -21,9 +33,11 @@ var _ = t.Describe("CommandRunner", func() {
 
 		// Then
 		Expect(output).To(Equal(baseline))
+		Expect(cmdrunner.GetPrependedCmd()).To(Equal(""))
 	})
 	It("command should prepend if configured", func() {
 		// Given
+		cmdrunner.ResetPrependedCmd()
 		cmd := "ls"
 		cmdrunner.PrependCommandsWith("which")
 		baseline, err := exec.Command(cmd).CombinedOutput()
@@ -35,9 +49,11 @@ var _ = t.Describe("CommandRunner", func() {
 
 		// Then
 		Expect(output).NotTo(Equal(baseline))
+		Expect(cmdrunner.GetPrependedCmd()).To(Equal("which"))
 	})
 	It("command should not prepend if only args are configured", func() {
 		// Given
+		cmdrunner.ResetPrependedCmd()
 		cmd := "ls"
 		cmdrunner.PrependCommandsWith("", "-l")
 		baseline, err := exec.Command(cmd).CombinedOutput()
@@ -49,5 +65,6 @@ var _ = t.Describe("CommandRunner", func() {
 
 		// Then
 		Expect(output).To(Equal(baseline))
+		Expect(cmdrunner.GetPrependedCmd()).To(Equal(""))
 	})
 })
