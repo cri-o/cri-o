@@ -1,0 +1,17 @@
+defaultBaseImage: gcr.io/distroless/base:nonroot
+
+builds:
+- id: zeitgeist
+  dir: .
+  main: .
+  env:
+  - CGO_ENABLED=0
+  flags:
+  - -trimpath
+  - -tags
+  - nostackdriver
+  ldflags:
+  - -s
+  - -w
+  - -extldflags "-static"
+  - "{{ .Env.LDFLAGS }}"

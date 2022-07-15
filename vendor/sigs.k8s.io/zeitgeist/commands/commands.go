@@ -22,20 +22,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/release-utils/log"
+	"sigs.k8s.io/release-utils/version"
 )
 
 const defaultConfigFile = "dependencies.yaml"
 
-var (
-	rootOpts = &options{}
-
-	// TODO: Implement these as a separate function or subcommand to avoid the
-	//       deadcode,unused,varcheck nolints
-	// Variables set by GoReleaser on release
-	version = "dev"     // nolint: deadcode,unused,varcheck
-	commit  = "none"    // nolint: deadcode,unused,varcheck
-	date    = "unknown" // nolint: deadcode,unused,varcheck
-)
+var rootOpts = &options{}
 
 func New() *cobra.Command {
 	cmd := &cobra.Command{
@@ -107,11 +99,13 @@ func New() *cobra.Command {
 	// END - Deprecated flags
 
 	AddCommands(cmd)
+	cmd.AddCommand(version.WithFont("shadow"))
 	return cmd
 }
 
 func AddCommands(topLevel *cobra.Command) {
 	addValidate(topLevel)
+	addExport(topLevel)
 }
 
 func initLogging(*cobra.Command, []string) error {
