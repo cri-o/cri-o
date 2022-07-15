@@ -499,15 +499,7 @@ func (c *Client) loadAndVerifyRootMeta(rootJSON []byte, ignoreExpiredCheck bool)
 	ndb := verify.NewDB()
 	for id, k := range root.Keys {
 		if err := ndb.AddKey(id, k); err != nil {
-			// TUF is considering in TAP-12 removing the
-			// requirement that the keyid hash algorithm be derived
-			// from the public key. So to be forwards compatible,
-			// we ignore `ErrWrongID` errors.
-			//
-			// TAP-12: https://github.com/theupdateframework/taps/blob/master/tap12.md
-			if _, ok := err.(verify.ErrWrongID); !ok {
-				return err
-			}
+			return err
 		}
 	}
 	for name, role := range root.Roles {
@@ -555,15 +547,7 @@ func (c *Client) verifyRoot(aJSON []byte, bJSON []byte) (*data.Root, error) {
 	ndb := verify.NewDB()
 	for id, k := range aRoot.Keys {
 		if err := ndb.AddKey(id, k); err != nil {
-			// TUF is considering in TAP-12 removing the
-			// requirement that the keyid hash algorithm be derived
-			// from the public key. So to be forwards compatible,
-			// we ignore `ErrWrongID` errors.
-			//
-			// TAP-12: https://github.com/theupdateframework/taps/blob/master/tap12.md
-			if _, ok := err.(verify.ErrWrongID); !ok {
-				return nil, err
-			}
+			return nil, err
 		}
 	}
 	for name, role := range aRoot.Roles {
@@ -690,14 +674,21 @@ func (c *Client) downloadMetaFromSnapshot(name string, m data.SnapshotFileMeta) 
 		return nil, err
 	}
 
+	// 5.6.2 – Check length and hashes of fetched bytes *before* parsing metadata
+	if err := util.BytesMatchLenAndHashes(b, m.Length, m.Hashes); err != nil {
+		return nil, ErrDownloadFailed{name, err}
+	}
+
 	meta, err := util.GenerateSnapshotFileMeta(bytes.NewReader(b), m.HashAlgorithms()...)
 	if err != nil {
 		return nil, err
 	}
-	// 5.6.2 and 5.6.4 - Check against snapshot role's targets hash and version
-	if err := util.SnapshotFileMetaEqual(meta, m); err != nil {
+
+	// 5.6.4 - Check against snapshot role's version
+	if err := util.VersionEqual(meta.Version, m.Version); err != nil {
 		return nil, ErrDownloadFailed{name, err}
 	}
+
 	return b, nil
 }
 
@@ -707,14 +698,21 @@ func (c *Client) downloadMetaFromTimestamp(name string, m data.TimestampFileMeta
 		return nil, err
 	}
 
+	// 5.2.2. – Check length and hashes of fetched bytes *before* parsing metadata
+	if err := util.BytesMatchLenAndHashes(b, m.Length, m.Hashes); err != nil {
+		return nil, ErrDownloadFailed{name, err}
+	}
+
 	meta, err := util.GenerateTimestampFileMeta(bytes.NewReader(b), m.HashAlgorithms()...)
 	if err != nil {
 		return nil, err
 	}
-	// 5.5.2 and 5.5.4 - Check against timestamp role's snapshot hash and version
-	if err := util.TimestampFileMetaEqual(meta, m); err != nil {
+
+	// 5.5.4 - Check against timestamp role's version
+	if err := util.VersionEqual(meta.Version, m.Version); err != nil {
 		return nil, ErrDownloadFailed{name, err}
 	}
+
 	return b, nil
 }
 

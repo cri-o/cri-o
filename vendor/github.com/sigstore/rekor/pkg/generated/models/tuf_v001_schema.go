@@ -194,37 +194,12 @@ func (m *TUFV001Schema) UnmarshalBinary(b []byte) error {
 // swagger:model TUFV001SchemaMetadata
 type TUFV001SchemaMetadata struct {
 
-	// Specifies the archive inline within the document
+	// Specifies the metadata inline within the document
 	Content interface{} `json:"content,omitempty"`
-
-	// Specifies the location of the archive
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
 }
 
 // Validate validates this TUF v001 schema metadata
 func (m *TUFV001SchemaMetadata) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateURL(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *TUFV001SchemaMetadata) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("metadata"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -256,19 +231,16 @@ func (m *TUFV001SchemaMetadata) UnmarshalBinary(b []byte) error {
 // swagger:model TUFV001SchemaRoot
 type TUFV001SchemaRoot struct {
 
-	// Specifies the archive inline within the document
-	Content interface{} `json:"content,omitempty"`
-
-	// Specifies the location of the archive
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
+	// Specifies the metadata inline within the document
+	// Required: true
+	Content interface{} `json:"content"`
 }
 
 // Validate validates this TUF v001 schema root
 func (m *TUFV001SchemaRoot) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateURL(formats); err != nil {
+	if err := m.validateContent(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -278,13 +250,10 @@ func (m *TUFV001SchemaRoot) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *TUFV001SchemaRoot) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
+func (m *TUFV001SchemaRoot) validateContent(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("root"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
-		return err
+	if m.Content == nil {
+		return errors.Required("root"+"."+"content", "body", nil)
 	}
 
 	return nil

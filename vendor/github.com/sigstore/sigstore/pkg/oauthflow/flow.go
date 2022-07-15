@@ -23,20 +23,12 @@ import (
 	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	soauth "github.com/sigstore/sigstore/pkg/oauth"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 )
 
 const (
-	htmlPage = `<html>
-<title>Sigstore Auth</title>
-<body>
-<h1>Sigstore Auth Successful</h1>
-<p>You may now close this page.</p>
-</body>
-</html>
-`
-
 	// PublicInstanceGithubAuthSubURL Default connector ids used by `oauth2.sigstore.dev` for Github
 	PublicInstanceGithubAuthSubURL = "https://github.com/login/oauth"
 	// PublicInstanceGoogleAuthSubURL Default connector ids used by `oauth2.sigstore.dev` for Google
@@ -66,7 +58,7 @@ func ConnectorIDOpt(prov string) oauth2.AuthCodeOption {
 // The HTML page and message printed to the terminal can be customized.
 var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter: func(url string) { fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", url) },
-	HTMLPage:       htmlPage,
+	HTMLPage:       soauth.InteractiveSuccessHTML,
 }
 
 // PublicInstanceGithubIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp

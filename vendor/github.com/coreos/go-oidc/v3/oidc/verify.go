@@ -55,15 +55,10 @@ type IDTokenVerifier struct {
 //		keySet := oidc.NewRemoteKeySet(ctx, "https://www.googleapis.com/oauth2/v3/certs")
 //		verifier := oidc.NewVerifier("https://accounts.google.com", keySet, config)
 //
-// Since KeySet is an interface, this constructor can also be used to supply custom
-// public key sources. For example, if a user wanted to supply public keys out-of-band
-// and hold them statically in-memory:
+// Or a static key set (e.g. for testing):
 //
-//		// Custom KeySet implementation.
-//		keySet := newStatisKeySet(publicKeys...)
-//
-//		// Verifier uses the custom KeySet implementation.
-//		verifier := oidc.NewVerifier("https://auth.example.com", keySet, config)
+//		keySet := &oidc.StaticKeySet{PublicKeys: []crypto.PublicKey{pub1, pub2}}
+//		verifier := oidc.NewVerifier("https://accounts.google.com", keySet, config)
 //
 func NewVerifier(issuerURL string, keySet KeySet, config *Config) *IDTokenVerifier {
 	return &IDTokenVerifier{keySet: keySet, config: config, issuer: issuerURL}
@@ -103,9 +98,6 @@ type Config struct {
 }
 
 // Verifier returns an IDTokenVerifier that uses the provider's key set to verify JWTs.
-//
-// The returned IDTokenVerifier is tied to the Provider's context and its behavior is
-// undefined once the Provider's context is canceled.
 func (p *Provider) Verifier(config *Config) *IDTokenVerifier {
 	if len(config.SupportedSigningAlgs) == 0 && len(p.algorithms) > 0 {
 		// Make a copy so we don't modify the config values.
@@ -274,7 +266,9 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, rawIDToken string) (*IDTok
 		// If nbf claim is provided in token, ensure that it is indeed in the past.
 		if token.NotBefore != nil {
 			nbfTime := time.Time(*token.NotBefore)
-			leeway := 1 * time.Minute
+			// Set to 5 minutes since this is what other OpenID Connect providers do to deal with clock skew.
+			// https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet/blob/6.12.2/src/Microsoft.IdentityModel.Tokens/TokenValidationParameters.cs#L149-L153
+			leeway := 5 * time.Minute
 
 			if nowTime.Add(leeway).Before(nbfTime) {
 				return nil, fmt.Errorf("oidc: current time %v before the nbf (not before) time: %v", nowTime, nbfTime)

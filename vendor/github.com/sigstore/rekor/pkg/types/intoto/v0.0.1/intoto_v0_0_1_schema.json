@@ -34,6 +34,26 @@
                         "value"
                     ],
                     "readOnly": true
+                },
+                "payloadHash": {
+                    "description": "Specifies the hash algorithm and value covering the payload within the DSSE envelope",
+                    "type": "object",
+                    "properties": {
+                        "algorithm": {
+                            "description": "The hashing function used to compute the hash value",
+                            "type": "string",
+                            "enum": [ "sha256" ]
+                        },
+                        "value": {
+                            "description": "The hash value for the envelope's payload",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "algorithm",
+                        "value"
+                    ],
+                    "readOnly": true
                 }
             }
         },

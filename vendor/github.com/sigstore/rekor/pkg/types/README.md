@@ -20,5 +20,7 @@ Rekor supports pluggable types (aka different schemas) for entries stored in the
   - Versions: 0.0.1
 - RPM Packages [schema](rpm/rpm_schema.json)
   - Versions: 0.0.1
+- COSE Envelopes [schema](cose/cose_schema.json)
+  - Versions: 0.0.1
 
-Refer to [Rekor docs](https://docs.sigstore.dev/rekor/plugable-types) for adding support for new types.
+Refer to [Rekor docs](https://docs.sigstore.dev/rekor/pluggable-types) for adding support for new types.

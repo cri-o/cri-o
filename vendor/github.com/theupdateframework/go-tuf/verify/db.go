@@ -53,13 +53,23 @@ func NewDBFromDelegations(d *data.Delegations) (*DB, error) {
 }
 
 func (db *DB) AddKey(id string, k *data.PublicKey) error {
-	if !k.ContainsID(id) {
-		return ErrWrongID{}
-	}
 	verifier, err := keys.GetVerifier(k)
 	if err != nil {
 		return ErrInvalidKey
 	}
+
+	// TUF is considering in TAP-12 removing the
+	// requirement that the keyid hash algorithm be derived
+	// from the public key. So to be forwards compatible,
+	// we allow any key ID, rather than checking k.ContainsID(id)
+	//
+	// AddKey should be idempotent, so we allow re-adding the same PublicKey.
+	//
+	// TAP-12: https://github.com/theupdateframework/taps/blob/master/tap12.md
+	if oldVerifier, exists := db.verifiers[id]; exists && oldVerifier.Public() != verifier.Public() {
+		return ErrRepeatID{id}
+	}
+
 	db.verifiers[id] = verifier
 	return nil
 }
@@ -74,9 +84,6 @@ func (db *DB) AddRole(name string, r *data.Role) error {
 		Threshold: r.Threshold,
 	}
 	for _, id := range r.KeyIDs {
-		if len(id) != data.KeyIDLength {
-			return ErrInvalidKeyID
-		}
 		role.KeyIDs[id] = struct{}{}
 	}
 

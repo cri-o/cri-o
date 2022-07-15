@@ -19,7 +19,6 @@ package gitlab
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 
@@ -27,7 +26,7 @@ import (
 )
 
 const (
-	// TokenEnvKey is the default GitLab token environemt variable key
+	// TokenEnvKey is the default GitLab token environment variable key
 	TokenEnvKey = "GITLAB_TOKEN"
 	// PrivateTokenEnvKey is the private GitLab token environment variable key
 	PrivateTokenEnvKey = "GITLAB_PRIVATE_TOKEN"
@@ -46,12 +45,18 @@ type gitlabClient struct {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 //counterfeiter:generate . Client
 type Client interface {
+	ListProjects(
+		opt *gitlab.ListProjectsOptions,
+	) ([]*gitlab.Project, *gitlab.Response, error)
 	ListReleases(
 		string, string, *gitlab.ListReleasesOptions,
 	) ([]*gitlab.Release, *gitlab.Response, error)
 	ListBranches(
 		string, string, *gitlab.ListBranchesOptions,
 	) ([]*gitlab.Branch, *gitlab.Response, error)
+	ListTags(
+		string, string, *gitlab.ListTagsOptions,
+	) ([]*gitlab.Tag, *gitlab.Response, error)
 }
 
 // New creates a new default GitLab client. Tokens set via the $GITLAB_TOKEN
@@ -70,7 +75,7 @@ func New() *GitLab {
 	var err error
 	git, err = gitlab.NewClient(token)
 	if err != nil {
-		logrus.Errorf("failed to create the GitLab client: %v", err.Error())
+		logrus.Errorf("failed to create the GitLab client: %#v", err.Error())
 		return nil
 	}
 
@@ -89,7 +94,7 @@ func NewPrivate(baseURL string) *GitLab {
 	var err error
 	git, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL+apiVersionPath))
 	if err != nil {
-		logrus.Errorf("failed to create the GitLab client: %v", err.Error())
+		logrus.Errorf("failed to create the GitLab client: %#v", err.Error())
 		return nil
 	}
 
@@ -113,6 +118,19 @@ func (g *gitlabClient) ListBranches(
 	return branches, resp, err
 }
 
+func (g *gitlabClient) ListProjects(opt *gitlab.ListProjectsOptions,
+) ([]*gitlab.Project, *gitlab.Response, error) {
+	projects, resp, err := g.Projects.ListProjects(opt)
+	return projects, resp, err
+}
+
+func (g *gitlabClient) ListTags(owner, repo string, opt *gitlab.ListTagsOptions,
+) ([]*gitlab.Tag, *gitlab.Response, error) {
+	project := fmt.Sprintf("%s/%s", owner, repo)
+	tags, resp, err := g.Tags.ListTags(project, opt)
+	return tags, resp, err
+}
+
 // SetClient can be used to manually set the internal GitLab client
 func (g *GitLab) SetClient(client Client) {
 	g.client = client
@@ -128,7 +146,7 @@ func (g *GitLab) Client() Client {
 func (g *GitLab) Releases(owner, repo string) ([]*gitlab.Release, error) {
 	allReleases, _, err := g.client.ListReleases(owner, repo, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to retrieve GitLab releases for %s/%s", owner, repo)
+		return nil, fmt.Errorf("unable to retrieve GitLab releases for %s/%s: %w", owner, repo, err)
 	}
 
 	return allReleases, nil
@@ -137,7 +155,45 @@ func (g *GitLab) Releases(owner, repo string) ([]*gitlab.Release, error) {
 func (g *GitLab) Branches(owner, repo string) ([]*gitlab.Branch, error) {
 	branches, _, err := g.client.ListBranches(owner, repo, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to retrieve Gitlab releases for %v/%v", owner, repo)
+		return nil, fmt.Errorf("unable to retrieve GitLab releases for %s/%s: %w", owner, repo, err)
 	}
+
 	return branches, nil
+}
+
+// GetRepository returns the Repository information for the provided `owner` and
+// `repo`.
+func (g *GitLab) GetRepository(owner, repo string) (*gitlab.Project, error) {
+	opt := &gitlab.ListProjectsOptions{
+		SearchNamespaces: gitlab.Bool(true),
+		Search:           gitlab.String(fmt.Sprintf("%s/%s", owner, repo)),
+	}
+
+	projects, _, err := g.client.ListProjects(opt)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve GitLab projects for %s/%s: %w", owner, repo, err)
+	}
+
+	if len(projects) > 1 {
+		return nil, fmt.Errorf("expected one project got %d", len(projects))
+	}
+
+	if len(projects) == 0 {
+		return nil, fmt.Errorf("no project found")
+	}
+
+	return projects[0], nil
+}
+
+// ListTags returns a list of GitLab tags for the provided `owner` and
+// `repo`.
+func (g *GitLab) ListTags(owner, repo string) ([]*gitlab.Tag, error) {
+	opt := &gitlab.ListTagsOptions{}
+
+	tags, _, err := g.client.ListTags(owner, repo, opt)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve GitLab tags for %s/%s: %w", owner, repo, err)
+	}
+
+	return tags, nil
 }

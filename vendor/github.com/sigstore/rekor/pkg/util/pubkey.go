@@ -18,8 +18,8 @@ package util
 import (
 	"context"
 	"crypto/ecdsa"
+	"errors"
 
-	"github.com/pkg/errors"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/generated/client/pubkey"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"

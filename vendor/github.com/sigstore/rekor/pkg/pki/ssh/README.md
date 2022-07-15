@@ -59,7 +59,7 @@ The data that is used in the signing function is also packed in another struct b
 ### Signature Format
 
 Signatures are formatted on disk in a PEM-encoded format.
-The header is `-----BEGIN SSH SIGNATURE-----`, and the end is `-----BEGIN SSH SIGNATURE-----`.
+The header is `-----BEGIN SSH SIGNATURE-----`, and the end is `-----END SSH SIGNATURE-----`.
 The signature contents are base64-encoded.
 
 The signature contents are wrapped with extra metadata, then encoded as a struct using the

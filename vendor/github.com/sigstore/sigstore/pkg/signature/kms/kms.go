@@ -33,28 +33,26 @@ func (e *ProviderNotFoundError) Error() string {
 	return fmt.Sprintf("no kms provider found for key reference: %s", e.ref)
 }
 
-type providerInit func(context.Context, string, crypto.Hash, ...signature.RPCOption) (SignerVerifier, error)
-
-type providers struct {
-	providers map[string]providerInit
-}
+// ProviderInit is a function that initializes provider-specific SignerVerifier.
+//
+// It takes a provider-specific resource ID and hash function, and returns a
+// SignerVerifier using that resource, or any error that was encountered.
+type ProviderInit func(context.Context, string, crypto.Hash, ...signature.RPCOption) (SignerVerifier, error)
 
 // AddProvider adds the provider implementation into the local cache
-func AddProvider(keyResourceID string, init providerInit) {
-	providersMux.providers[keyResourceID] = init
+func AddProvider(keyResourceID string, init ProviderInit) {
+	providersMap[keyResourceID] = init
 }
 
-var providersMux = &providers{
-	providers: map[string]providerInit{},
-}
+var providersMap = map[string]ProviderInit{}
 
 // Get returns a KMS SignerVerifier for the given resource string and hash function.
 // If no matching provider is found, Get returns a ProviderNotFoundError. It
 // also returns an error if initializing the SignerVerifier fails.
 func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
-	for ref, providerInit := range providersMux.providers {
+	for ref, pi := range providersMap {
 		if strings.HasPrefix(keyResourceID, ref) {
-			return providerInit(ctx, keyResourceID, hashFunc, opts...)
+			return pi(ctx, keyResourceID, hashFunc, opts...)
 		}
 	}
 	return nil, &ProviderNotFoundError{ref: keyResourceID}
@@ -62,8 +60,8 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 
 // SupportedProviders returns list of initialized providers
 func SupportedProviders() []string {
-	keys := make([]string, 0, len(providersMux.providers))
-	for key := range providersMux.providers {
+	keys := make([]string, 0, len(providersMap))
+	for key := range providersMap {
 		keys = append(keys, key)
 	}
 	return keys

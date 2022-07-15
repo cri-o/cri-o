@@ -29,8 +29,8 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioroots"
 	"github.com/sigstore/cosign/cmd/cosign/cli/options"
+	"github.com/sigstore/cosign/internal/pkg/cosign/fulcio/fulcioroots"
 	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/cosign/pkg/providers"
 	"github.com/sigstore/fulcio/pkg/api"
@@ -186,11 +186,11 @@ func (f *Signer) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey,
 
 var _ signature.Signer = &Signer{}
 
-func GetRoots() *x509.CertPool {
+func GetRoots() (*x509.CertPool, error) {
 	return fulcioroots.Get()
 }
 
-func GetIntermediates() *x509.CertPool {
+func GetIntermediates() (*x509.CertPool, error) {
 	return fulcioroots.GetIntermediates()
 }
 

@@ -1,5 +1,5 @@
 # gRPCurl
-[![Build Status](https://travis-ci.com/fullstorydev/grpcurl.svg?branch=master)](https://travis-ci.com/github/fullstorydev/grpcurl/branches)
+[![Build Status](https://circleci.com/gh/fullstorydev/grpcurl/tree/master.svg?style=svg)](https://circleci.com/gh/fullstorydev/grpcurl/tree/master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fullstorydev/grpcurl)](https://goreportcard.com/report/github.com/fullstorydev/grpcurl)
 
 `grpcurl` is a command-line tool that lets you interact with gRPC servers. It's
@@ -65,6 +65,10 @@ docker pull fullstorydev/grpcurl:latest
 # Run the tool
 docker run fullstorydev/grpcurl api.grpc.me:443 list
 ```
+Note that there are some pitfalls when using docker:
+- If you need to interact with a server listening on the host's loopback network, you must specify the host as `host.docker.internal` instead of `localhost` (for Mac or Windows) _OR_ have the container use the host network with `-network="host"` (Linux only).
+- If you need to provide proto source files or descriptor sets, you must mount the folder containing the files as a volume (`-v $(pwd):/protos`) and adjust the import paths to container paths accordingly.
+- If you want to provide the request message via stdin, using the `-d @` option, you need to use the `-i` flag on the docker command.
 
 ### Other Packages
 
@@ -79,8 +83,7 @@ https://repology.org/project/grpcurl/information
 If you already have the [Go SDK](https://golang.org/doc/install) installed, you can use the `go`
 tool to install `grpcurl`:
 ```shell
-go get github.com/fullstorydev/grpcurl/...
-go install github.com/fullstorydev/grpcurl/cmd/grpcurl
+go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
 ```
 
 This installs the command into the `bin` sub-folder of wherever your `$GOPATH`

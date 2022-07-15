@@ -19,10 +19,10 @@ import (
 	"fmt"
 
 	"github.com/google/trillian"
-	"github.com/google/trillian/merkle/hashers"
-	"github.com/google/trillian/merkle/logverifier"
-	"github.com/google/trillian/merkle/rfc6962"
 	"github.com/google/trillian/types"
+	"github.com/transparency-dev/merkle"
+	"github.com/transparency-dev/merkle/proof"
+	"github.com/transparency-dev/merkle/rfc6962"
 )
 
 // LogVerifier allows verification of output from Trillian Logs, both regular
@@ -30,16 +30,12 @@ import (
 // after construction).
 type LogVerifier struct {
 	// hasher is the hash strategy used to compute nodes in the Merkle tree.
-	hasher hashers.LogHasher
-	v      logverifier.LogVerifier
+	hasher merkle.LogHasher
 }
 
 // NewLogVerifier returns an object that can verify output from Trillian Logs.
-func NewLogVerifier(hasher hashers.LogHasher) *LogVerifier {
-	return &LogVerifier{
-		hasher: hasher,
-		v:      logverifier.New(hasher),
-	}
+func NewLogVerifier(hasher merkle.LogHasher) *LogVerifier {
+	return &LogVerifier{hasher: hasher}
 }
 
 // NewLogVerifierFromTree creates a new LogVerifier using the algorithms
@@ -74,7 +70,7 @@ func (c *LogVerifier) VerifyRoot(trusted *types.LogRootV1, newRoot *trillian.Sig
 	// Implicitly trust the first root we get.
 	if trusted.TreeSize != 0 {
 		// Verify consistency proof.
-		if err := c.v.VerifyConsistencyProof(int64(trusted.TreeSize), int64(r.TreeSize), trusted.RootHash, r.RootHash, consistency); err != nil {
+		if err := proof.VerifyConsistency(c.hasher, trusted.TreeSize, r.TreeSize, consistency, trusted.RootHash, r.RootHash); err != nil {
 			return nil, fmt.Errorf("failed to verify consistency proof from %d->%d %x->%x: %v", trusted.TreeSize, r.TreeSize, trusted.RootHash, r.RootHash, err)
 		}
 	}
@@ -83,25 +79,13 @@ func (c *LogVerifier) VerifyRoot(trusted *types.LogRootV1, newRoot *trillian.Sig
 
 // VerifyInclusionByHash verifies that the inclusion proof for the given Merkle leafHash
 // matches the given trusted root.
-func (c *LogVerifier) VerifyInclusionByHash(trusted *types.LogRootV1, leafHash []byte, proof *trillian.Proof) error {
+func (c *LogVerifier) VerifyInclusionByHash(trusted *types.LogRootV1, leafHash []byte, pf *trillian.Proof) error {
 	if trusted == nil {
 		return fmt.Errorf("VerifyInclusionByHash() error: trusted == nil")
 	}
-	if proof == nil {
+	if pf == nil {
 		return fmt.Errorf("VerifyInclusionByHash() error: proof == nil")
 	}
 
-	return c.v.VerifyInclusionProof(proof.LeafIndex, int64(trusted.TreeSize), proof.Hashes,
-		trusted.RootHash, leafHash)
-}
-
-// BuildLeaf runs the leaf hasher over data and builds a leaf.
-// TODO(pavelkalinnikov): This can be misleading as it creates a partially
-// filled LogLeaf. Consider returning a pair instead, or leafHash only.
-func (c *LogVerifier) BuildLeaf(data []byte) *trillian.LogLeaf {
-	leafHash := c.hasher.HashLeaf(data)
-	return &trillian.LogLeaf{
-		LeafValue:      data,
-		MerkleLeafHash: leafHash,
-	}
+	return proof.VerifyInclusion(c.hasher, uint64(pf.LeafIndex), trusted.TreeSize, leafHash, pf.Hashes, trusted.RootHash)
 }

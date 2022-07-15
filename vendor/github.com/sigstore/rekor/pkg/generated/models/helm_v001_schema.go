@@ -432,10 +432,6 @@ type HelmV001SchemaChartProvenance struct {
 
 	// signature
 	Signature *HelmV001SchemaChartProvenanceSignature `json:"signature,omitempty"`
-
-	// Specifies the location of the provenance file
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
 }
 
 // Validate validates this helm v001 schema chart provenance
@@ -443,10 +439,6 @@ func (m *HelmV001SchemaChartProvenance) Validate(formats strfmt.Registry) error 
 	var res []error
 
 	if err := m.validateSignature(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateURL(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -470,18 +462,6 @@ func (m *HelmV001SchemaChartProvenance) validateSignature(formats strfmt.Registr
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *HelmV001SchemaChartProvenance) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("chart"+"."+"provenance"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
-		return err
 	}
 
 	return nil
@@ -617,19 +597,16 @@ func (m *HelmV001SchemaChartProvenanceSignature) UnmarshalBinary(b []byte) error
 type HelmV001SchemaPublicKey struct {
 
 	// Specifies the content of the public key inline within the document
+	// Required: true
 	// Format: byte
-	Content strfmt.Base64 `json:"content,omitempty"`
-
-	// Specifies the location of the public key
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
+	Content *strfmt.Base64 `json:"content"`
 }
 
 // Validate validates this helm v001 schema public key
 func (m *HelmV001SchemaPublicKey) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateURL(formats); err != nil {
+	if err := m.validateContent(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -639,12 +616,9 @@ func (m *HelmV001SchemaPublicKey) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *HelmV001SchemaPublicKey) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
+func (m *HelmV001SchemaPublicKey) validateContent(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("publicKey"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
+	if err := validate.Required("publicKey"+"."+"content", "body", m.Content); err != nil {
 		return err
 	}
 

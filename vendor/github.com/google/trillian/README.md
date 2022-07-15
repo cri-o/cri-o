@@ -181,7 +181,7 @@ the original files; if you do, you'll need to install the prerequisites:
   - protocol buffer definitions for standard Google APIs:
 
     ```bash
-    git clone https://github.com/googleapis/googleapis.git $GOPATH/src/github.com/googleapis/googleapis
+    git clone https://github.com/googleapis/googleapis.git $(go env GOPATH)/src/github.com/googleapis/googleapis
     ```
 
 and run the following:

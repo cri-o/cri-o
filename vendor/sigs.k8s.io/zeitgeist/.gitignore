@@ -2,3 +2,6 @@ coverage.out
 .DS_Store
 dist/
 bin/
+.idea
+/zeitgeist
+/imagerefs

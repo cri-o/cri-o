@@ -26,6 +26,7 @@ import (
 	"github.com/google/trillian"
 	"github.com/google/trillian/client/backoff"
 	"github.com/google/trillian/types"
+	"github.com/transparency-dev/merkle"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -231,7 +232,7 @@ func (c *LogClient) UpdateRoot(ctx context.Context) (*types.LogRootV1, error) {
 // It is best to call this method with a context that will timeout to avoid
 // waiting forever.
 func (c *LogClient) WaitForInclusion(ctx context.Context, data []byte) error {
-	leaf := c.BuildLeaf(data)
+	leaf := prepareLeaf(c.hasher, data)
 
 	// If a minimum merge delay has been configured, wait at least that long before
 	// starting to poll
@@ -305,7 +306,7 @@ func (c *LogClient) AddSequencedLeaves(ctx context.Context, dataByIndex map[int6
 		if want := indexes[0] + int64(i); index != want {
 			return fmt.Errorf("missing index in contiugous index range. got: %v, want: %v", index, want)
 		}
-		leaf := c.BuildLeaf(dataByIndex[index])
+		leaf := prepareLeaf(c.hasher, dataByIndex[index])
 		leaf.LeafIndex = index
 		leaves = append(leaves, leaf)
 	}
@@ -319,10 +320,19 @@ func (c *LogClient) AddSequencedLeaves(ctx context.Context, dataByIndex map[int6
 // QueueLeaf adds a leaf to a Trillian log without blocking.
 // AlreadyExists is considered a success case by this function.
 func (c *LogClient) QueueLeaf(ctx context.Context, data []byte) error {
-	leaf := c.BuildLeaf(data)
+	leaf := prepareLeaf(c.hasher, data)
 	_, err := c.client.QueueLeaf(ctx, &trillian.QueueLeafRequest{
 		LogId: c.LogID,
 		Leaf:  leaf,
 	})
 	return err
+}
+
+// prepareLeaf returns a trillian.LogLeaf prepopulated with leaf data and hash.
+func prepareLeaf(hasher merkle.LogHasher, data []byte) *trillian.LogLeaf {
+	leafHash := hasher.HashLeaf(data)
+	return &trillian.LogLeaf{
+		LeafValue:      data,
+		MerkleLeafHash: leafHash,
+	}
 }

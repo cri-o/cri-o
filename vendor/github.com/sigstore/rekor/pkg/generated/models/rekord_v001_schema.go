@@ -184,10 +184,6 @@ type RekordV001SchemaData struct {
 
 	// hash
 	Hash *RekordV001SchemaDataHash `json:"hash,omitempty"`
-
-	// Specifies the location of the content
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
 }
 
 // Validate validates this rekord v001 schema data
@@ -195,10 +191,6 @@ func (m *RekordV001SchemaData) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateHash(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateURL(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -222,18 +214,6 @@ func (m *RekordV001SchemaData) validateHash(formats strfmt.Registry) error {
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *RekordV001SchemaData) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("data"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
-		return err
 	}
 
 	return nil
@@ -369,8 +349,13 @@ func (m *RekordV001SchemaDataHash) validateValue(formats strfmt.Registry) error 
 	return nil
 }
 
-// ContextValidate validates this rekord v001 schema data hash based on context it is used
+// ContextValidate validate this rekord v001 schema data hash based on the context it is used
 func (m *RekordV001SchemaDataHash) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
 	return nil
 }
 
@@ -398,24 +383,27 @@ func (m *RekordV001SchemaDataHash) UnmarshalBinary(b []byte) error {
 type RekordV001SchemaSignature struct {
 
 	// Specifies the content of the signature inline within the document
+	// Required: true
 	// Format: byte
-	Content strfmt.Base64 `json:"content,omitempty"`
+	Content *strfmt.Base64 `json:"content"`
 
 	// Specifies the format of the signature
+	// Required: true
 	// Enum: [pgp minisign x509 ssh]
-	Format string `json:"format,omitempty"`
+	Format *string `json:"format"`
 
 	// public key
-	PublicKey *RekordV001SchemaSignaturePublicKey `json:"publicKey,omitempty"`
-
-	// Specifies the location of the signature
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
+	// Required: true
+	PublicKey *RekordV001SchemaSignaturePublicKey `json:"publicKey"`
 }
 
 // Validate validates this rekord v001 schema signature
 func (m *RekordV001SchemaSignature) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateContent(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateFormat(formats); err != nil {
 		res = append(res, err)
@@ -425,13 +413,18 @@ func (m *RekordV001SchemaSignature) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateURL(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *RekordV001SchemaSignature) validateContent(formats strfmt.Registry) error {
+
+	if err := validate.Required("signature"+"."+"content", "body", m.Content); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -471,12 +464,13 @@ func (m *RekordV001SchemaSignature) validateFormatEnum(path, location string, va
 }
 
 func (m *RekordV001SchemaSignature) validateFormat(formats strfmt.Registry) error {
-	if swag.IsZero(m.Format) { // not required
-		return nil
+
+	if err := validate.Required("signature"+"."+"format", "body", m.Format); err != nil {
+		return err
 	}
 
 	// value enum
-	if err := m.validateFormatEnum("signature"+"."+"format", "body", m.Format); err != nil {
+	if err := m.validateFormatEnum("signature"+"."+"format", "body", *m.Format); err != nil {
 		return err
 	}
 
@@ -484,8 +478,9 @@ func (m *RekordV001SchemaSignature) validateFormat(formats strfmt.Registry) erro
 }
 
 func (m *RekordV001SchemaSignature) validatePublicKey(formats strfmt.Registry) error {
-	if swag.IsZero(m.PublicKey) { // not required
-		return nil
+
+	if err := validate.Required("signature"+"."+"publicKey", "body", m.PublicKey); err != nil {
+		return err
 	}
 
 	if m.PublicKey != nil {
@@ -497,18 +492,6 @@ func (m *RekordV001SchemaSignature) validatePublicKey(formats strfmt.Registry) e
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *RekordV001SchemaSignature) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("signature"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
-		return err
 	}
 
 	return nil
@@ -568,19 +551,16 @@ func (m *RekordV001SchemaSignature) UnmarshalBinary(b []byte) error {
 type RekordV001SchemaSignaturePublicKey struct {
 
 	// Specifies the content of the public key inline within the document
+	// Required: true
 	// Format: byte
-	Content strfmt.Base64 `json:"content,omitempty"`
-
-	// Specifies the location of the public key
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
+	Content *strfmt.Base64 `json:"content"`
 }
 
 // Validate validates this rekord v001 schema signature public key
 func (m *RekordV001SchemaSignaturePublicKey) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateURL(formats); err != nil {
+	if err := m.validateContent(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -590,12 +570,9 @@ func (m *RekordV001SchemaSignaturePublicKey) Validate(formats strfmt.Registry) e
 	return nil
 }
 
-func (m *RekordV001SchemaSignaturePublicKey) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
+func (m *RekordV001SchemaSignaturePublicKey) validateContent(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("signature"+"."+"publicKey"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
+	if err := validate.Required("signature"+"."+"publicKey"+"."+"content", "body", m.Content); err != nil {
 		return err
 	}
 

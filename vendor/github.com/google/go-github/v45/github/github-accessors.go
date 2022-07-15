@@ -3438,6 +3438,14 @@ func (c *CreateEvent) GetMasterBranch() string {
 	return *c.MasterBranch
 }
 
+// GetOrg returns the Org field.
+func (c *CreateEvent) GetOrg() *Organization {
+	if c == nil {
+		return nil
+	}
+	return c.Org
+}
+
 // GetPusherType returns the PusherType field if it's non-nil, zero value otherwise.
 func (c *CreateEvent) GetPusherType() string {
 	if c == nil || c.PusherType == nil {
@@ -7902,6 +7910,14 @@ func (l *LabelEvent) GetRepo() *Repository {
 	return l.Repo
 }
 
+// GetSender returns the Sender field.
+func (l *LabelEvent) GetSender() *User {
+	if l == nil {
+		return nil
+	}
+	return l.Sender
+}
+
 // GetColor returns the Color field if it's non-nil, zero value otherwise.
 func (l *LabelResult) GetColor() string {
 	if l == nil || l.Color == nil {
@@ -8742,6 +8758,30 @@ func (m *MetaEvent) GetInstallation() *Installation {
 	return m.Installation
 }
 
+// GetOrg returns the Org field.
+func (m *MetaEvent) GetOrg() *Organization {
+	if m == nil {
+		return nil
+	}
+	return m.Org
+}
+
+// GetRepo returns the Repo field.
+func (m *MetaEvent) GetRepo() *Repository {
+	if m == nil {
+		return nil
+	}
+	return m.Repo
+}
+
+// GetSender returns the Sender field.
+func (m *MetaEvent) GetSender() *User {
+	if m == nil {
+		return nil
+	}
+	return m.Sender
+}
+
 // GetHTMLURL returns the HTMLURL field if it's non-nil, zero value otherwise.
 func (m *Metric) GetHTMLURL() string {
 	if m == nil || m.HTMLURL == nil {
@@ -9580,6 +9620,14 @@ func (o *Organization) GetMembersCanCreateRepos() bool {
 		return false
 	}
 	return *o.MembersCanCreateRepos
+}
+
+// GetMembersCanForkPrivateRepos returns the MembersCanForkPrivateRepos field if it's non-nil, zero value otherwise.
+func (o *Organization) GetMembersCanForkPrivateRepos() bool {
+	if o == nil || o.MembersCanForkPrivateRepos == nil {
+		return false
+	}
+	return *o.MembersCanForkPrivateRepos
 }
 
 // GetMembersURL returns the MembersURL field if it's non-nil, zero value otherwise.
@@ -10764,6 +10812,30 @@ func (p *PingEvent) GetInstallation() *Installation {
 		return nil
 	}
 	return p.Installation
+}
+
+// GetOrg returns the Org field.
+func (p *PingEvent) GetOrg() *Organization {
+	if p == nil {
+		return nil
+	}
+	return p.Org
+}
+
+// GetRepo returns the Repo field.
+func (p *PingEvent) GetRepo() *Repository {
+	if p == nil {
+		return nil
+	}
+	return p.Repo
+}
+
+// GetSender returns the Sender field.
+func (p *PingEvent) GetSender() *User {
+	if p == nil {
+		return nil
+	}
+	return p.Sender
 }
 
 // GetZen returns the Zen field if it's non-nil, zero value otherwise.
@@ -14758,6 +14830,14 @@ func (r *Repository) GetURL() string {
 	return *r.URL
 }
 
+// GetUseSquashPRTitleAsDefault returns the UseSquashPRTitleAsDefault field if it's non-nil, zero value otherwise.
+func (r *Repository) GetUseSquashPRTitleAsDefault() bool {
+	if r == nil || r.UseSquashPRTitleAsDefault == nil {
+		return false
+	}
+	return *r.UseSquashPRTitleAsDefault
+}
+
 // GetVisibility returns the Visibility field if it's non-nil, zero value otherwise.
 func (r *Repository) GetVisibility() string {
 	if r == nil || r.Visibility == nil {
@@ -18710,6 +18790,14 @@ func (u *User) GetReposURL() string {
 	return *u.ReposURL
 }
 
+// GetRoleName returns the RoleName field if it's non-nil, zero value otherwise.
+func (u *User) GetRoleName() string {
+	if u == nil || u.RoleName == nil {
+		return ""
+	}
+	return *u.RoleName
+}
+
 // GetSiteAdmin returns the SiteAdmin field if it's non-nil, zero value otherwise.
 func (u *User) GetSiteAdmin() bool {
 	if u == nil || u.SiteAdmin == nil {
@@ -19652,6 +19740,14 @@ func (w *WorkflowJobEvent) GetWorkflowJob() *WorkflowJob {
 		return nil
 	}
 	return w.WorkflowJob
+}
+
+// GetActor returns the Actor field.
+func (w *WorkflowRun) GetActor() *User {
+	if w == nil {
+		return nil
+	}
+	return w.Actor
 }
 
 // GetArtifactsURL returns the ArtifactsURL field if it's non-nil, zero value otherwise.
