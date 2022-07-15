@@ -72,6 +72,17 @@ function teardown() {
 	# shellcheck disable=SC2010
 	newlabel=$(ls -Z "$FILE" | grep -o '[a-z,_]*_u:[a-z,_]*_r:[a-z,_]*_t:[c,s,0-9,:,\,]* ')
 	[[ "$label" == "$newlabel" ]]
+
+	crictl rm "$ctr_id"
+
+	# Recreate with same context but categories in different order.  Also should not relabel.
+	toplabel="system_u:object_r:container_file_t:s0:c100,c200"
+	chcon "$toplabel" "$VOLUME"
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
+	# shellcheck disable=SC2010
+	newlabel=$(ls -Z "$FILE" | grep -o '[a-z,_]*_u:[a-z,_]*_r:[a-z,_]*_t:[c,s,0-9,:,\,]* ')
+	[[ "$label" == "$newlabel" ]]
+
 }
 
 @test "selinux skips relabeling for super priviliged container" {
