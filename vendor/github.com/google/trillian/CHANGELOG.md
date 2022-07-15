@@ -2,6 +2,24 @@
 
 ## HEAD
 
+* `countFromInformationSchema` function to add support for MySQL 8.
+
+### Removals
+
+ * #2710: Unused `storage/tools/dumplib` was removed. The useful storage format
+  regression test moved to `integration/format`.
+ * #2711: Unused `storage/tools/hasher` removed.
+ * #2715: Packages under `merkle` are deprecated and to be removed. Use
+   https://github.com/transparency-dev/merkle instead.
+
+### Misc improvements
+
+ * #2712: Fix MySQL world-writable config warning.
+ * #2726: Check the tile height invariant stricter. No changes required.
+
+### Dependency updates
+ * #2731: Update `protoc` from `v3.12.4` to `v3.20.1`
+
 ## v1.4.0
 
 * Recommended go version for development: 1.17

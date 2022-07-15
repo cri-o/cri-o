@@ -296,3 +296,8 @@ func (k PublicKey) EmailAddresses() []string {
 	}
 	return names
 }
+
+// Subjects implements the pki.PublicKey interface
+func (k PublicKey) Subjects() []string {
+	return k.EmailAddresses()
+}

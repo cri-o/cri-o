@@ -188,10 +188,6 @@ type AlpineV001SchemaPackage struct {
 	// Values of the .PKGINFO key / value pairs
 	// Read Only: true
 	Pkginfo map[string]string `json:"pkginfo,omitempty"`
-
-	// Specifies the location of the package; if this is specified, a hash value must also be provided
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
 }
 
 // Validate validates this alpine v001 schema package
@@ -199,10 +195,6 @@ func (m *AlpineV001SchemaPackage) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateHash(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateURL(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -226,18 +218,6 @@ func (m *AlpineV001SchemaPackage) validateHash(formats strfmt.Registry) error {
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *AlpineV001SchemaPackage) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("package"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
-		return err
 	}
 
 	return nil
@@ -382,8 +362,13 @@ func (m *AlpineV001SchemaPackageHash) validateValue(formats strfmt.Registry) err
 	return nil
 }
 
-// ContextValidate validates this alpine v001 schema package hash based on context it is used
+// ContextValidate validate this alpine v001 schema package hash based on the context it is used
 func (m *AlpineV001SchemaPackageHash) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
 	return nil
 }
 
@@ -411,19 +396,16 @@ func (m *AlpineV001SchemaPackageHash) UnmarshalBinary(b []byte) error {
 type AlpineV001SchemaPublicKey struct {
 
 	// Specifies the content of the public key inline within the document
+	// Required: true
 	// Format: byte
-	Content strfmt.Base64 `json:"content,omitempty"`
-
-	// Specifies the location of the public key
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
+	Content *strfmt.Base64 `json:"content"`
 }
 
 // Validate validates this alpine v001 schema public key
 func (m *AlpineV001SchemaPublicKey) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateURL(formats); err != nil {
+	if err := m.validateContent(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -433,12 +415,9 @@ func (m *AlpineV001SchemaPublicKey) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *AlpineV001SchemaPublicKey) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
+func (m *AlpineV001SchemaPublicKey) validateContent(formats strfmt.Registry) error {
 
-	if err := validate.FormatOf("publicKey"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
+	if err := validate.Required("publicKey"+"."+"content", "body", m.Content); err != nil {
 		return err
 	}
 

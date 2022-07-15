@@ -2,9 +2,10 @@
 
 approvers:
   - sig-release-leads
+  - release-engineering-approvers
   - zeitgeist-approvers
 reviewers:
-  - zeitgeist-approvers
+  - release-engineering-reviewers
   - zeitgeist-reviewers
 labels:
   - sig/release

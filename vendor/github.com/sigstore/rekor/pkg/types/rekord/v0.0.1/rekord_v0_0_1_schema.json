@@ -14,12 +14,6 @@
                     "type": "string",
                     "enum": [ "pgp", "minisign", "x509", "ssh" ]
                 },
-                "url": {
-                    "description": "Specifies the location of the signature",
-                    "type": "string",
-                    "format": "uri",
-                    "writeOnly": true
-                },
                 "content": {
                     "description": "Specifies the content of the signature inline within the document",
                     "type": "string",
@@ -29,36 +23,16 @@
                     "description": "The public key that can verify the signature",
                     "type": "object",
                     "properties": {
-                        "url": {
-                            "description": "Specifies the location of the public key",
-                            "type": "string",
-                            "format": "uri",
-                            "writeOnly": true
-                        },
                         "content": {
                             "description": "Specifies the content of the public key inline within the document",
                             "type": "string",
                             "format": "byte"
                         }
                     },
-                    "oneOf": [
-                        {
-                            "required": [ "url" ]
-                        },
-                        {
-                            "required": [ "content" ]
-                        }
-                    ]
+                    "required": [ "content" ]
                 }
             },
-            "oneOf": [
-                {
-                    "required": [ "format", "publicKey", "url" ]
-                },
-                {
-                    "required": [ "format", "publicKey", "content" ]
-                }
-            ]
+            "required": [ "format", "publicKey", "content" ]
         },
         "data": {
             "description": "Information about the content associated with the entry",
@@ -78,13 +52,8 @@
                             "type": "string"
                         }
                     },
-                    "required": [ "algorithm", "value" ]
-                },
-                "url": {
-                    "description": "Specifies the location of the content",
-                    "type": "string",
-                    "format": "uri",
-                    "writeOnly": true
+                    "required": [ "algorithm", "value" ],
+                    "readOnly": true
                 },
                 "content": {
                     "description": "Specifies the content inline within the document",
@@ -95,7 +64,7 @@
             },
             "oneOf": [
                 {
-                    "required": [ "url" ]
+                    "required": [ "hash" ]
                 },
                 {
                     "required": [ "content" ]

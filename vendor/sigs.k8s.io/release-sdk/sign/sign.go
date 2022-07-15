@@ -28,6 +28,7 @@ import (
 	cliOpts "github.com/sigstore/cosign/cmd/cosign/cli/options"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/release-utils/hash"
 )
 
 // Signer is the main structure to be used by API consumers.
@@ -167,8 +168,29 @@ func (s *Signer) SignFile(path string) (*SignedObject, error) {
 	}
 	defer resetFn()
 
+	ctx, cancel := s.options.context()
+	defer cancel()
+
+	// If we don't have a key path, we must ensure we can get an OIDC
+	// token or there is no way to sign. Depending on the options set,
+	// we may get the ID token from the cosign providers
+	identityToken := ""
+	if s.options.PrivateKeyPath == "" {
+		tok, err := s.identityToken(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("getting identity token for keyless signing: %w", err)
+		}
+		identityToken = tok
+		if identityToken == "" {
+			return nil, errors.New(
+				"no private key or identity token are available, unable to sign",
+			)
+		}
+	}
+
 	ko := cliOpts.KeyOpts{
 		KeyRef:     s.options.PrivateKeyPath,
+		IDToken:    identityToken,
 		PassFunc:   s.options.PassFunc,
 		FulcioURL:  cliOpts.DefaultFulcioURL,
 		RekorURL:   cliOpts.DefaultRekorURL,
@@ -181,18 +203,41 @@ func (s *Signer) SignFile(path string) (*SignedObject, error) {
 		AllowInsecure: s.options.AllowInsecure,
 	}
 
+	if s.options.OutputCertificatePath == "" {
+		s.options.OutputCertificatePath = fmt.Sprintf("%s.cert", path)
+	}
+	if s.options.OutputSignaturePath == "" {
+		s.options.OutputSignaturePath = fmt.Sprintf("%s.sig", path)
+	}
+
+	fileSHA, err := hash.SHA256ForFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("file retrieve sha256: %s: %w", path, err)
+	}
+
 	if err := s.impl.SignFileInternal(
 		s.options.ToCosignRootOptions(), ko, regOpts, path, true,
 		s.options.OutputSignaturePath, s.options.OutputCertificatePath,
 	); err != nil {
-		return nil, fmt.Errorf("sign file path: %s: %w", path, err)
+		return nil, fmt.Errorf("sign file: %s: %w", path, err)
 	}
 
-	object, err := s.impl.VerifyFileInternal(s, path)
+	verifyKo := ko
+	verifyKo.KeyRef = s.options.PublicKeyPath
+
+	err = s.impl.VerifyFileInternal(ctx, verifyKo, s.options.OutputSignaturePath, s.options.OutputCertificatePath, path)
 	if err != nil {
-		return nil, fmt.Errorf("verify file path: %s: %w", path, err)
+		return nil, fmt.Errorf("verifying signed file: %s: %w", path, err)
 	}
-	return object, nil
+
+	return &SignedObject{
+		File: &SignedFile{
+			path:            path,
+			sha256:          fileSHA,
+			signaturePath:   s.options.OutputSignaturePath,
+			certificatePath: s.options.OutputCertificatePath,
+		},
+	}, nil
 }
 
 // VerifyImage can be used to validate any provided container image reference by
@@ -240,21 +285,70 @@ func (s *Signer) VerifyImage(reference string) (*SignedObject, error) {
 
 	sigParsed := strings.ReplaceAll(dig, "sha256:", "sha256-")
 	obj := &SignedObject{
-		digest:    dig,
-		reference: ref.String(),
-		signature: fmt.Sprintf("%s:%s.sig", ref.Context().Name(), sigParsed),
+		Image: &SignedImage{
+			digest:    dig,
+			reference: ref.String(),
+			signature: fmt.Sprintf("%s:%s.sig", ref.Context().Name(), sigParsed),
+		},
 	}
 
 	return obj, nil
 }
 
 // VerifyFile can be used to validate any provided file path.
+// If no signed entry is found we skip the file without errors.
 func (s *Signer) VerifyFile(path string) (*SignedObject, error) {
 	s.log().Infof("Verifying file path: %s", path)
 
-	// TODO: unimplemented
+	resetFn, err := s.enableExperimental()
+	if err != nil {
+		return nil, err
+	}
+	defer resetFn()
 
-	return &SignedObject{}, nil
+	ko := cliOpts.KeyOpts{
+		KeyRef:   s.options.PublicKeyPath,
+		RekorURL: cliOpts.DefaultRekorURL,
+	}
+
+	if s.options.OutputCertificatePath == "" {
+		s.options.OutputCertificatePath = fmt.Sprintf("%s.cert", path)
+	}
+	if s.options.OutputSignaturePath == "" {
+		s.options.OutputSignaturePath = fmt.Sprintf("%s.sig", path)
+	}
+
+	ctx, cancel := s.options.context()
+	defer cancel()
+
+	isSigned, err := s.IsFileSigned(ctx, path)
+	if err != nil {
+		return nil, fmt.Errorf("checking if file is signed. file: %s, error: %w", path, err)
+	}
+
+	fileSHA, err := hash.SHA256ForFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("file retrieve sha256 error: %s: %w", path, err)
+	}
+
+	if !isSigned {
+		s.log().Infof("Skipping unsigned file: %s", path)
+		return nil, nil
+	}
+
+	err = s.impl.VerifyFileInternal(ctx, ko, s.options.OutputSignaturePath, s.options.OutputCertificatePath, path)
+	if err != nil {
+		return nil, fmt.Errorf("verify file reference: %s: %w", path, err)
+	}
+
+	return &SignedObject{
+		File: &SignedFile{
+			path:            path,
+			sha256:          fileSHA,
+			signaturePath:   s.options.OutputSignaturePath,
+			certificatePath: s.options.OutputCertificatePath,
+		},
+	}, nil
 }
 
 // enableExperimental sets the cosign experimental mode to true. It also
@@ -297,6 +391,33 @@ func (s *Signer) IsImageSigned(imageRef string) (bool, error) {
 	}
 
 	return len(signatures) > 0, nil
+}
+
+// IsFileSigned takes an path reference and retrusn true if there is a signature
+// available for it. It makes no signature verification, only checks to see if
+// there is a TLog to be found on Rekor.
+func (s *Signer) IsFileSigned(ctx context.Context, path string) (bool, error) {
+	ko := cliOpts.KeyOpts{
+		KeyRef:   s.options.PublicKeyPath,
+		RekorURL: cliOpts.DefaultRekorURL,
+	}
+
+	rClient, err := s.impl.NewRekorClient(ko.RekorURL)
+	if err != nil {
+		return false, fmt.Errorf("creating rekor client: %w", err)
+	}
+
+	blobBytes, err := s.impl.PayloadBytes(path)
+	if err != nil {
+		return false, err
+	}
+
+	uuids, err := s.impl.FindTLogEntriesByPayload(ctx, rClient, blobBytes)
+	if err != nil {
+		return false, fmt.Errorf("find rekor tlog entries: %w", err)
+	}
+
+	return len(uuids) > 0, nil
 }
 
 // identityToken returns an identity token to perform keyless signing.

@@ -34,6 +34,9 @@ const (
 
 	// CosignVulnProvenanceV01 specifies the type of VulnerabilityScan Predicate
 	CosignVulnProvenanceV01 = "cosign.sigstore.dev/attestation/vuln/v1"
+
+	// PredicateCycloneDX represents a SBOM using the CycloneDX standard.
+	PredicateCycloneDX = "https://cyclonedx.org/schema"
 )
 
 // CosignPredicate specifies the format of the Custom Predicate.
@@ -56,6 +59,12 @@ type CosignVulnPredicate struct {
 type CosignVulnStatement struct {
 	in_toto.StatementHeader
 	Predicate CosignVulnPredicate `json:"predicate"`
+}
+
+// TODO: upstream to in-toto
+type CycloneDXStatement struct {
+	in_toto.StatementHeader
+	Predicate interface{} `json:"predicate"`
 }
 
 type Invocation struct {
@@ -99,7 +108,7 @@ type GenerateOpts struct {
 }
 
 // GenerateStatement returns an in-toto statement based on the provided
-// predicate type (custom|slsaprovenance|spdx|link).
+// predicate type (custom|slsaprovenance|spdx|spdxjson|cyclonedx|link).
 func GenerateStatement(opts GenerateOpts) (interface{}, error) {
 	predicate, err := io.ReadAll(opts.Predicate)
 	if err != nil {
@@ -110,7 +119,11 @@ func GenerateStatement(opts GenerateOpts) (interface{}, error) {
 	case "slsaprovenance":
 		return generateSLSAProvenanceStatement(predicate, opts.Digest, opts.Repo)
 	case "spdx":
-		return generateSPDXStatement(predicate, opts.Digest, opts.Repo)
+		return generateSPDXStatement(predicate, opts.Digest, opts.Repo, false)
+	case "spdxjson":
+		return generateSPDXStatement(predicate, opts.Digest, opts.Repo, true)
+	case "cyclonedx":
+		return generateCycloneDXStatement(predicate, opts.Digest, opts.Repo)
 	case "link":
 		return generateLinkStatement(predicate, opts.Digest, opts.Repo)
 	case "vuln":
@@ -226,11 +239,32 @@ func generateLinkStatement(rawPayload []byte, digest string, repo string) (inter
 	}, nil
 }
 
-func generateSPDXStatement(rawPayload []byte, digest string, repo string) (interface{}, error) {
+func generateSPDXStatement(rawPayload []byte, digest string, repo string, parseJSON bool) (interface{}, error) {
+	var data interface{}
+	if parseJSON {
+		if err := json.Unmarshal(rawPayload, &data); err != nil {
+			return nil, err
+		}
+	} else {
+		data = string(rawPayload)
+	}
 	return in_toto.SPDXStatement{
 		StatementHeader: generateStatementHeader(digest, repo, in_toto.PredicateSPDX),
 		Predicate: CosignPredicate{
-			Data: string(rawPayload),
+			Data: data,
+		},
+	}, nil
+}
+
+func generateCycloneDXStatement(rawPayload []byte, digest string, repo string) (interface{}, error) {
+	var data interface{}
+	if err := json.Unmarshal(rawPayload, &data); err != nil {
+		return nil, err
+	}
+	return in_toto.SPDXStatement{
+		StatementHeader: generateStatementHeader(digest, repo, PredicateCycloneDX),
+		Predicate: CosignPredicate{
+			Data: data,
 		},
 	}, nil
 }

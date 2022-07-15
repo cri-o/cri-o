@@ -20,13 +20,23 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
+// checked on LoadSigner, LoadVerifier and SignMessage
 var ecdsaSupportedHashFuncs = []crypto.Hash{
+	crypto.SHA256,
+	crypto.SHA512,
+	crypto.SHA384,
+	crypto.SHA224,
+}
+
+// checked on VerifySignature. Supports SHA1 verification.
+var ecdsaSupportedVerifyHashFuncs = []crypto.Hash{
 	crypto.SHA256,
 	crypto.SHA512,
 	crypto.SHA384,
@@ -128,6 +138,10 @@ func LoadECDSAVerifier(pub *ecdsa.PublicKey, hashFunc crypto.Hash) (*ECDSAVerifi
 		return nil, errors.New("invalid ECDSA public key specified")
 	}
 
+	if !isSupportedAlg(hashFunc, ecdsaSupportedHashFuncs) {
+		return nil, errors.New("invalid hash function specified")
+	}
+
 	return &ECDSAVerifier{
 		publicKey: pub,
 		hashFunc:  hashFunc,
@@ -153,7 +167,7 @@ func (e ECDSAVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error)
 //
 // All other options are ignored if specified.
 func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
-	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, ecdsaSupportedHashFuncs, opts...)
+	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, ecdsaSupportedVerifyHashFuncs, opts...)
 	if err != nil {
 		return err
 	}
@@ -164,12 +178,13 @@ func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...Ver
 
 	sigBytes, err := io.ReadAll(signature)
 	if err != nil {
-		return errors.Wrap(err, "reading signature")
+		return fmt.Errorf("reading signature: %w", err)
 	}
 
 	if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {
-		return errors.New("failed to verify signature")
+		return errors.New("invalid signature when validating ASN.1 encoded signature")
 	}
+
 	return nil
 }
 
@@ -184,11 +199,11 @@ type ECDSASignerVerifier struct {
 func LoadECDSASignerVerifier(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASignerVerifier, error) {
 	signer, err := LoadECDSASigner(priv, hf)
 	if err != nil {
-		return nil, errors.Wrap(err, "initializing signer")
+		return nil, fmt.Errorf("initializing signer: %w", err)
 	}
 	verifier, err := LoadECDSAVerifier(&priv.PublicKey, hf)
 	if err != nil {
-		return nil, errors.Wrap(err, "initializing verifier")
+		return nil, fmt.Errorf("initializing verifier: %w", err)
 	}
 
 	return &ECDSASignerVerifier{

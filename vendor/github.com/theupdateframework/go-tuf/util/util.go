@@ -86,6 +86,32 @@ func FileMetaEqual(actual data.FileMeta, expected data.FileMeta) error {
 	return nil
 }
 
+func BytesMatchLenAndHashes(fetched []byte, length int64, hashes data.Hashes) error {
+	flen := int64(len(fetched))
+	if length != 0 && flen != length {
+		return ErrWrongLength{length, flen}
+	}
+
+	for alg, expected := range hashes {
+		var h hash.Hash
+		switch alg {
+		case "sha256":
+			h = sha256.New()
+		case "sha512":
+			h = sha512.New()
+		default:
+			return ErrUnknownHashAlgorithm{alg}
+		}
+		h.Write(fetched)
+		hash := h.Sum(nil)
+		if !hmac.Equal(hash, expected) {
+			return ErrWrongHash{alg, expected, hash}
+		}
+	}
+
+	return nil
+}
+
 func hashEqual(actual data.Hashes, expected data.Hashes) error {
 	hashChecked := false
 	for typ, hash := range expected {
@@ -102,7 +128,7 @@ func hashEqual(actual data.Hashes, expected data.Hashes) error {
 	return nil
 }
 
-func versionEqual(actual int64, expected int64) error {
+func VersionEqual(actual int64, expected int64) error {
 	if actual != expected {
 		return ErrWrongVersion{expected, actual}
 	}
@@ -125,7 +151,7 @@ func SnapshotFileMetaEqual(actual data.SnapshotFileMeta, expected data.SnapshotF
 		}
 	}
 	// 5.6.4 - Check against snapshot role's snapshot version
-	if err := versionEqual(actual.Version, expected.Version); err != nil {
+	if err := VersionEqual(actual.Version, expected.Version); err != nil {
 		return err
 	}
 
@@ -149,7 +175,7 @@ func TimestampFileMetaEqual(actual data.TimestampFileMeta, expected data.Timesta
 		}
 	}
 	// 5.5.4 - Check against timestamp role's snapshot version
-	if err := versionEqual(actual.Version, expected.Version); err != nil {
+	if err := VersionEqual(actual.Version, expected.Version); err != nil {
 		return err
 	}
 

@@ -35,7 +35,7 @@ steps:
   - tag_mysql
 
 - id: build_db_server
-  name: gcr.io/kaniko-project/executor
+  name: gcr.io/kaniko-project/executor:v1.6.0
   args:
   - --dockerfile=examples/deployment/docker/db_server/Dockerfile
   - --destination=gcr.io/${PROJECT_ID}/db_server:${COMMIT_SHA}
@@ -45,7 +45,7 @@ steps:
   - push_mysql
 
 - id: build_log_server
-  name: gcr.io/kaniko-project/executor
+  name: gcr.io/kaniko-project/executor:v1.6.0
   args:
   - --dockerfile=examples/deployment/docker/log_server/Dockerfile
   - --destination=gcr.io/${PROJECT_ID}/log_server:${COMMIT_SHA}
@@ -53,7 +53,7 @@ steps:
   - --cache-dir= # Cache is in Google Container Registry
   waitFor: ['-']
 - id: build_log_signer
-  name: gcr.io/kaniko-project/executor
+  name: gcr.io/kaniko-project/executor:v1.6.0
   args:
   - --dockerfile=examples/deployment/docker/log_signer/Dockerfile
   - --destination=gcr.io/${PROJECT_ID}/log_signer:${COMMIT_SHA}
@@ -73,7 +73,7 @@ steps:
   name: gcr.io/cloud-builders/kubectl
   args:
   - apply
-  - --server-dry-run
+  - --dry-run=server
   - -f=examples/deployment/kubernetes/etcd-deployment.yaml
   env:
   - CLOUDSDK_COMPUTE_ZONE=${_MASTER_ZONE}
@@ -106,7 +106,7 @@ steps:
   name: gcr.io/cloud-builders/kubectl
   args:
   - apply
-  - --server-dry-run
+  - --dry-run=server
   - -f=envsubst-spanner/etcd-cluster.yaml
   - -f=envsubst-spanner/trillian-ci-spanner.yaml
   - -f=envsubst-spanner/trillian-log-deployment.yaml
@@ -153,7 +153,7 @@ steps:
   name: gcr.io/cloud-builders/kubectl
   args:
   - apply
-  - --server-dry-run
+  - --dry-run=server
   - --namespace=mysql
   - -f=envsubst-mysql/etcd-cluster.yaml
   - -f=envsubst-mysql/trillian-ci-mysql.yaml

@@ -159,7 +159,11 @@ func (cr *Client) FileByFilename(filename string) (*desc.FileDescriptor, error) 
 			FileByFilename: filename,
 		},
 	}
-	fd, err := cr.getAndCacheFileDescriptors(req, filename, "")
+	accept := func(fd *desc.FileDescriptor) bool {
+		return fd.GetName() == filename
+	}
+
+	fd, err := cr.getAndCacheFileDescriptors(req, filename, "", accept)
 	if isNotFound(err) {
 		// file not found? see if we can look up via alternate name
 		if alternate, ok := internal.StdFileAliases[filename]; ok {
@@ -168,7 +172,7 @@ func (cr *Client) FileByFilename(filename string) (*desc.FileDescriptor, error) 
 					FileByFilename: alternate,
 				},
 			}
-			fd, err = cr.getAndCacheFileDescriptors(req, alternate, filename)
+			fd, err = cr.getAndCacheFileDescriptors(req, alternate, filename, accept)
 			if isNotFound(err) {
 				err = fileNotFound(filename, nil)
 			}
@@ -197,7 +201,10 @@ func (cr *Client) FileContainingSymbol(symbol string) (*desc.FileDescriptor, err
 			FileContainingSymbol: symbol,
 		},
 	}
-	fd, err := cr.getAndCacheFileDescriptors(req, "", "")
+	accept := func(fd *desc.FileDescriptor) bool {
+		return fd.FindSymbol(symbol) != nil
+	}
+	fd, err := cr.getAndCacheFileDescriptors(req, "", "", accept)
 	if isNotFound(err) {
 		err = symbolNotFound(symbol, symbolTypeUnknown, nil)
 	} else if e, ok := err.(*elementNotFoundError); ok {
@@ -226,7 +233,10 @@ func (cr *Client) FileContainingExtension(extendedMessageName string, extensionN
 			},
 		},
 	}
-	fd, err := cr.getAndCacheFileDescriptors(req, "", "")
+	accept := func(fd *desc.FileDescriptor) bool {
+		return fd.FindExtension(extendedMessageName, extensionNumber) != nil
+	}
+	fd, err := cr.getAndCacheFileDescriptors(req, "", "", accept)
 	if isNotFound(err) {
 		err = extensionNotFound(extendedMessageName, extensionNumber, nil)
 	} else if e, ok := err.(*elementNotFoundError); ok {
@@ -235,7 +245,7 @@ func (cr *Client) FileContainingExtension(extendedMessageName string, extensionN
 	return fd, err
 }
 
-func (cr *Client) getAndCacheFileDescriptors(req *rpb.ServerReflectionRequest, expectedName, alias string) (*desc.FileDescriptor, error) {
+func (cr *Client) getAndCacheFileDescriptors(req *rpb.ServerReflectionRequest, expectedName, alias string, accept func(*desc.FileDescriptor) bool) (*desc.FileDescriptor, error) {
 	resp, err := cr.send(req)
 	if err != nil {
 		return nil, err
@@ -253,7 +263,7 @@ func (cr *Client) getAndCacheFileDescriptors(req *rpb.ServerReflectionRequest, e
 	// should be the answer). If we're looking for a file by name, we can be
 	// smarter and make sure to grab one by name instead of just grabbing the
 	// first one.
-	var firstFd *dpb.FileDescriptorProto
+	var fds []*dpb.FileDescriptorProto
 	for _, fdBytes := range fdResp.FileDescriptorProto {
 		fd := &dpb.FileDescriptorProto{}
 		if err = proto.Unmarshal(fdBytes, fd); err != nil {
@@ -266,13 +276,6 @@ func (cr *Client) getAndCacheFileDescriptors(req *rpb.ServerReflectionRequest, e
 		}
 
 		cr.cacheMu.Lock()
-		// see if this file was created and cached concurrently
-		if firstFd == nil {
-			if d, ok := cr.filesByName[fd.GetName()]; ok {
-				cr.cacheMu.Unlock()
-				return d, nil
-			}
-		}
 		// store in cache of raw descriptor protos, but don't overwrite existing protos
 		if existingFd, ok := cr.protosByName[fd.GetName()]; ok {
 			fd = existingFd
@@ -280,15 +283,22 @@ func (cr *Client) getAndCacheFileDescriptors(req *rpb.ServerReflectionRequest, e
 			cr.protosByName[fd.GetName()] = fd
 		}
 		cr.cacheMu.Unlock()
-		if firstFd == nil {
-			firstFd = fd
-		}
-	}
-	if firstFd == nil {
-		return nil, &ProtocolError{reflect.TypeOf(firstFd).Elem()}
+
+		fds = append(fds, fd)
 	}
 
-	return cr.descriptorFromProto(firstFd)
+	// find the right result from the files returned
+	for _, fd := range fds {
+		result, err := cr.descriptorFromProto(fd)
+		if err != nil {
+			return nil, err
+		}
+		if accept(result) {
+			return result, nil
+		}
+	}
+
+	return nil, status.Errorf(codes.NotFound, "response does not include expected file")
 }
 
 func (cr *Client) descriptorFromProto(fd *dpb.FileDescriptorProto) (*desc.FileDescriptor, error) {

@@ -1,2 +1,4 @@
 dist/
 Dockerfile
+zeitgeist
+.git

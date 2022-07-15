@@ -17,7 +17,7 @@ type ErrMissingMetadata struct {
 }
 
 func (e ErrMissingMetadata) Error() string {
-	return fmt.Sprintf("tuf: missing metadata %s", e.Name)
+	return fmt.Sprintf("tuf: missing metadata file %s", e.Name)
 }
 
 type ErrFileNotFound struct {
@@ -28,12 +28,12 @@ func (e ErrFileNotFound) Error() string {
 	return fmt.Sprintf("tuf: file not found %s", e.Path)
 }
 
-type ErrInsufficientKeys struct {
+type ErrNoKeys struct {
 	Name string
 }
 
-func (e ErrInsufficientKeys) Error() string {
-	return fmt.Sprintf("tuf: insufficient keys to sign %s", e.Name)
+func (e ErrNoKeys) Error() string {
+	return fmt.Sprintf("tuf: no keys available to sign %s", e.Name)
 }
 
 type ErrInsufficientSignatures struct {

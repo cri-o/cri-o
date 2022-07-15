@@ -17,9 +17,9 @@ package hashedrekord
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/rekor/pkg/types"
 )
@@ -52,7 +52,7 @@ func (rt BaseRekordType) UnmarshalEntry(pe models.ProposedEntry) (types.EntryImp
 
 	rekord, ok := pe.(*models.Hashedrekord)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("%s, %s", "cannot unmarshal non-hashed Rekord types", pe.Kind()))
+		return nil, fmt.Errorf("cannot unmarshal non-hashed Rekord types: %s", pe.Kind())
 	}
 
 	return rt.VersionedUnmarshal(rekord, *rekord.APIVersion)
@@ -64,7 +64,7 @@ func (rt *BaseRekordType) CreateProposedEntry(ctx context.Context, version strin
 	}
 	ei, err := rt.VersionedUnmarshal(nil, version)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching hashed Rekord version implementation")
+		return nil, fmt.Errorf("fetching hashed Rekord version implementation: %w", err)
 	}
 
 	return ei.CreateFromArtifactProperties(ctx, props)

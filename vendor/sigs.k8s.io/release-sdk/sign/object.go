@@ -19,22 +19,58 @@ package sign
 // SignedObject contains additional metadata from the signing and verification
 // process.
 type SignedObject struct {
+	Image *SignedImage
+	File  *SignedFile
+}
+
+// SignedFile contains additional metadata from the signing and verification
+// process.
+type SignedFile struct {
+	path            string
+	sha256          string
+	signaturePath   string
+	certificatePath string
+}
+
+// Path return the path hash of the signed file.
+func (f *SignedFile) Path() string {
+	return f.path
+}
+
+// SHA256 return the SHA256 hash of the signed file.
+func (f *SignedFile) SHA256() string {
+	return f.sha256
+}
+
+// SignaturePath return the path to the Signature output of the signed file.
+func (f *SignedFile) SignaturePath() string {
+	return f.signaturePath
+}
+
+// CertificatePath return the path to the Certificate output of the signed file.
+func (f *SignedFile) CertificatePath() string {
+	return f.certificatePath
+}
+
+// SignedImage contains additional metadata from the signing and verification
+// process.
+type SignedImage struct {
 	reference string
 	digest    string
 	signature string
 }
 
 // Reference returns the OCI registry reference of the object.
-func (m *SignedObject) Reference() string {
+func (m *SignedImage) Reference() string {
 	return m.reference
 }
 
 // Digest returns the digest of the signed object.
-func (m *SignedObject) Digest() string {
+func (m *SignedImage) Digest() string {
 	return m.digest
 }
 
 // Signature returns the signature of the signed object.
-func (m *SignedObject) Signature() string {
+func (m *SignedImage) Signature() string {
 	return m.signature
 }

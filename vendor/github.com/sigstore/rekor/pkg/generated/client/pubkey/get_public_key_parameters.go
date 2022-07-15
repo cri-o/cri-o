@@ -74,6 +74,13 @@ func NewGetPublicKeyParamsWithHTTPClient(client *http.Client) *GetPublicKeyParam
    Typically these are written to a http.Request.
 */
 type GetPublicKeyParams struct {
+
+	/* TreeID.
+
+	   The tree ID of the tree you wish to get a public key for
+	*/
+	TreeID *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -127,6 +134,17 @@ func (o *GetPublicKeyParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithTreeID adds the treeID to the get public key params
+func (o *GetPublicKeyParams) WithTreeID(treeID *string) *GetPublicKeyParams {
+	o.SetTreeID(treeID)
+	return o
+}
+
+// SetTreeID adds the treeId to the get public key params
+func (o *GetPublicKeyParams) SetTreeID(treeID *string) {
+	o.TreeID = treeID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetPublicKeyParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -134,6 +152,23 @@ func (o *GetPublicKeyParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
+
+	if o.TreeID != nil {
+
+		// query param treeID
+		var qrTreeID string
+
+		if o.TreeID != nil {
+			qrTreeID = *o.TreeID
+		}
+		qTreeID := qrTreeID
+		if qTreeID != "" {
+
+			if err := r.SetQueryParam("treeID", qTreeID); err != nil {
+				return err
+			}
+		}
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

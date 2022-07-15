@@ -35,8 +35,14 @@ type EntryImpl interface {
 	IndexKeys() ([]string, error)                     // the keys that should be added to the external index for this entry
 	Canonicalize(ctx context.Context) ([]byte, error) // marshal the canonical entry to be put into the tlog
 	Unmarshal(e models.ProposedEntry) error           // unmarshal the abstract entry into the specific struct for this versioned type
-	Attestation() []byte
 	CreateFromArtifactProperties(context.Context, ArtifactProperties) (models.ProposedEntry, error)
+}
+
+// EntryWithAttestationImpl specifies the behavior of a versioned type that also stores attestations
+type EntryWithAttestationImpl interface {
+	EntryImpl
+	AttestationKey() string                // returns the key used to look up the attestation from storage (should be sha256:digest)
+	AttestationKeyValue() (string, []byte) // returns the key to be used when storing the attestation as well as the attestation itself
 }
 
 // EntryFactory describes a factory function that can generate structs for a specific versioned type
@@ -120,12 +126,13 @@ func CanonicalizeEntry(ctx context.Context, entry EntryImpl) ([]byte, error) {
 // ArtifactProperties provide a consistent struct for passing values from
 // CLI flags to the type+version specific CreateProposeEntry() methods
 type ArtifactProperties struct {
-	ArtifactPath   *url.URL
-	ArtifactHash   string
-	ArtifactBytes  []byte
-	SignaturePath  *url.URL
-	SignatureBytes []byte
-	PublicKeyPath  *url.URL
-	PublicKeyBytes []byte
-	PKIFormat      string
+	AdditionalAuthenticatedData []byte
+	ArtifactPath                *url.URL
+	ArtifactHash                string
+	ArtifactBytes               []byte
+	SignaturePath               *url.URL
+	SignatureBytes              []byte
+	PublicKeyPath               *url.URL
+	PublicKeyBytes              []byte
+	PKIFormat                   string
 }

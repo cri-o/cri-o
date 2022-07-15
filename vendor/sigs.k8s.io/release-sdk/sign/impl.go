@@ -24,11 +24,15 @@ import (
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/sigstore/cosign/cmd/cosign/cli/options"
+	"github.com/sigstore/cosign/cmd/cosign/cli/rekor"
 	"github.com/sigstore/cosign/cmd/cosign/cli/sign"
 	"github.com/sigstore/cosign/cmd/cosign/cli/verify"
+	"github.com/sigstore/cosign/pkg/blob"
+	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/cosign/pkg/oci"
 	"github.com/sigstore/cosign/pkg/oci/remote"
 	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/env"
@@ -41,7 +45,7 @@ type defaultImpl struct{}
 //counterfeiter:generate . impl
 //go:generate /usr/bin/env bash -c "cat ../scripts/boilerplate/boilerplate.generatego.txt signfakes/fake_impl.go > signfakes/_fake_impl.go && mv signfakes/_fake_impl.go signfakes/fake_impl.go"
 type impl interface {
-	VerifyFileInternal(*Signer, string) (*SignedObject, error)
+	VerifyFileInternal(ctx context.Context, ko options.KeyOpts, outputSignature, outputCertificate, path string) error
 	VerifyImageInternal(ctx context.Context, keyPath string, images []string) (*SignedObject, error)
 	SignImageInternal(ro options.RootOptions, ko options.KeyOpts, regOpts options.RegistryOptions,
 		annotations map[string]interface{}, imgs []string, certPath string, upload bool,
@@ -54,14 +58,19 @@ type impl interface {
 	TokenFromProviders(context.Context, *logrus.Logger) (string, error)
 	FileExists(string) bool
 	ParseReference(string, ...name.Option) (name.Reference, error)
+	FindTLogEntriesByPayload(ctx context.Context, rClient *client.Rekor, blobBytes []byte) ([]string, error)
 	Digest(ref string, opt ...crane.Option) (string, error)
 	SignedEntity(name.Reference, ...remote.Option) (oci.SignedEntity, error)
 	Signatures(oci.SignedEntity) (oci.Signatures, error)
 	SignaturesList(oci.Signatures) ([]oci.Signature, error)
+	PayloadBytes(blobRef string) ([]byte, error)
+	NewRekorClient(string) (*client.Rekor, error)
 }
 
-func (*defaultImpl) VerifyFileInternal(signer *Signer, path string) (*SignedObject, error) {
-	return signer.VerifyFile(path)
+func (*defaultImpl) VerifyFileInternal(ctx context.Context, ko options.KeyOpts, outputSignature, // nolint: gocritic
+	outputCertificate, path string,
+) error {
+	return verify.VerifyBlobCmd(ctx, ko, outputCertificate, "", "", "", outputSignature, path, false)
 }
 
 func (*defaultImpl) VerifyImageInternal(ctx context.Context, publickeyPath string, images []string) (*SignedObject, error) {
@@ -130,6 +139,12 @@ func (*defaultImpl) ParseReference(
 	return name.ParseReference(s, opts...)
 }
 
+func (d *defaultImpl) FindTLogEntriesByPayload(
+	ctx context.Context, rClient *client.Rekor, blobBytes []byte,
+) ([]string, error) {
+	return cosign.FindTLogEntriesByPayload(ctx, rClient, blobBytes)
+}
+
 func (*defaultImpl) Digest(
 	ref string, opts ...crane.Option,
 ) (string, error) {
@@ -152,4 +167,16 @@ func (*defaultImpl) SignaturesList(
 	signatures oci.Signatures,
 ) ([]oci.Signature, error) {
 	return signatures.Get()
+}
+
+func (*defaultImpl) PayloadBytes(blobRef string) (blobBytes []byte, err error) {
+	blobBytes, err = blob.LoadFileOrURL(blobRef)
+	if err != nil {
+		return nil, fmt.Errorf("load file or url of sign payload: %w", err)
+	}
+	return blobBytes, nil
+}
+
+func (*defaultImpl) NewRekorClient(rekorURL string) (*client.Rekor, error) {
+	return rekor.NewClient(rekorURL)
 }

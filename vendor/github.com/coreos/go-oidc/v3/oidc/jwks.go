@@ -2,6 +2,9 @@ package oidc
 
 import (
 	"context"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +14,35 @@ import (
 
 	jose "gopkg.in/square/go-jose.v2"
 )
+
+// StaticKeySet is a verifier that validates JWT against a static set of public keys.
+type StaticKeySet struct {
+	// PublicKeys used to verify the JWT. Supported types are *rsa.PublicKey and
+	// *ecdsa.PublicKey.
+	PublicKeys []crypto.PublicKey
+}
+
+// VerifySignature compares the signature against a static set of public keys.
+func (s *StaticKeySet) VerifySignature(ctx context.Context, jwt string) ([]byte, error) {
+	jws, err := jose.ParseSigned(jwt)
+	if err != nil {
+		return nil, fmt.Errorf("parsing jwt: %v", err)
+	}
+	for _, pub := range s.PublicKeys {
+		switch pub.(type) {
+		case *rsa.PublicKey:
+		case *ecdsa.PublicKey:
+		default:
+			return nil, fmt.Errorf("invalid public key type provided: %T", pub)
+		}
+		payload, err := jws.Verify(pub)
+		if err != nil {
+			continue
+		}
+		return payload, nil
+	}
+	return nil, fmt.Errorf("no public keys able to verify jwt")
+}
 
 // NewRemoteKeySet returns a KeySet that can validate JSON web tokens by using HTTP
 // GETs to fetch JSON web token sets hosted at a remote URL. This is automatically
