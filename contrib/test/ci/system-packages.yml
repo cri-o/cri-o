@@ -5,11 +5,12 @@
 - name: Make sure we have all required packages
   yum:
     state: present
+    enablerepo: powertools
     name:
-      - atomic-registries
+      #- atomic-registries
       - container-selinux
       - curl
-      - device-mapper-devel
+      #- device-mapper-devel
       - expect
       - findutils
       - gcc
@@ -22,33 +23,32 @@
       - iproute
       - iptables
       - krb5-workstation
-      - libassuan-devel
+      #- libassuan-devel
       - libffi-devel
       - libgpg-error-devel
       - libguestfs-tools
       - libseccomp-devel
-      - libselinux-python
-      - libsemanage-python
       - libvirt-client
-      - libvirt-python
+      #- libvirt-python
       - libxml2-devel
       - libxslt-devel
+      - libcap-devel
       - make
       - mlocate
       - nfs-utils
       - nmap-ncat
-      - oci-register-machine
-      - oci-systemd-hook
-      - oci-umount
+      #- oci-register-machine
+      #- oci-systemd-hook
+      #- oci-umount
       - openssl
       - openssl-devel
       - pkgconfig
-      - python
-      - python2-crypto
-      - python-devel
+      - python3
+      #- python2-crypto
+      #- python-devel
       - python-rhsm-certificates
-      - python-virtualenv
-      - PyYAML
+      #- python-virtualenv
+      #- PyYAML
       - redhat-rpm-config
       - rpcbind
       - rsync

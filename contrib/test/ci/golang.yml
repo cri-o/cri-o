@@ -54,3 +54,4 @@
     chdir: /
   with_items:
     - onsi/ginkgo/ginkgo
+    - jteeuwen/go-bindata/go-bindata

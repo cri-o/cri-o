@@ -53,29 +53,25 @@
   when: "build_kata | bool"
 
 - block:
-
-    - name: Disable selinux during integration tests
-      command: 'setenforce 0'
-      when: not integration_selinux_enabled
-
     - name: run integration tests
-      shell: "make localintegration >& {{ crio_integration_filepath }}"
+      shell: "make localintegration 2>&1 | tee /tmp/artifacts/testout.txt"
       args:
         chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
+      vars: 
+        ansible_async_dir: '/tmp/artifacts/async'
       environment: '{{ int_test_env }}'  # from vars.yml and main.yml
       async: '{{ int_test_timeout | default(60 * 30) }}'  # seconds
       poll: 30
 
     - name: run integration tests with userNS enabled + alternate results file
-      shell: "make localintegration >& {{ crio_integration_userns_filepath }}"
+      shell: "make localintegration 2>&1 | tee /tmp/artifacts/testout.txt"
+      #shell: "make localintegration >& {{ crio_integration_userns_filepath }}"
       args:
         chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
+      vars: 
+        ansible_async_dir: '/tmp/artifacts/async'
       environment: '{{ int_test_env | combine(userns_int_test_env) }} '
       async: '{{ int_test_timeout | default(60 * 30) }}'  # seconds
-      poll: 30
+      poll: 30    
       when: userns_int_test_skip is not defined or not userns_int_test_skip
 
-  always:
-
-    - name: Re-enable SELinux after integration tests
-      command: 'setenforce 1'
