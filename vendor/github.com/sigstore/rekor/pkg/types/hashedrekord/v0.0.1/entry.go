@@ -18,9 +18,11 @@ package hashedrekord
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -29,7 +31,6 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/pkg/errors"
 
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/rekor/pkg/log"
@@ -73,7 +74,7 @@ func (v V001Entry) IndexKeys() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	result = append(result, pub.EmailAddresses()...)
+	result = append(result, pub.Subjects()...)
 
 	if v.HashedRekordObj.Data.Hash != nil {
 		hashKey := strings.ToLower(fmt.Sprintf("%s:%s", *v.HashedRekordObj.Data.Hash.Algorithm, *v.HashedRekordObj.Data.Hash.Value))
@@ -159,6 +160,11 @@ func (v *V001Entry) validate() (pki.Signature, pki.PublicKey, error) {
 		return nil, nil, types.ValidationError(err)
 	}
 
+	_, isEd25519 := keyObj.CryptoPubKey().(ed25519.PublicKey)
+	if isEd25519 {
+		return nil, nil, types.ValidationError(errors.New("ed25519 unsupported for hashedrekord"))
+	}
+
 	data := v.HashedRekordObj.Data
 	if data == nil {
 		return nil, nil, types.ValidationError(errors.New("missing data"))
@@ -177,14 +183,10 @@ func (v *V001Entry) validate() (pki.Signature, pki.PublicKey, error) {
 		return nil, nil, err
 	}
 	if err := sigObj.Verify(nil, keyObj, options.WithDigest(decoded)); err != nil {
-		return nil, nil, types.ValidationError(errors.Wrap(err, "verifying signature"))
+		return nil, nil, types.ValidationError(fmt.Errorf("verifying signature: %w", err))
 	}
 
 	return sigObj, keyObj, nil
-}
-
-func (v V001Entry) Attestation() []byte {
-	return nil
 }
 
 func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types.ArtifactProperties) (models.ProposedEntry, error) {
@@ -195,6 +197,10 @@ func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types
 	re.HashedRekordObj.Data = &models.HashedrekordV001SchemaData{}
 
 	var err error
+
+	if props.PKIFormat != string(pki.X509) {
+		return nil, errors.New("hashedrekord entries can only be created for artifacts signed with x509-based PKI")
+	}
 
 	re.HashedRekordObj.Signature = &models.HashedrekordV001SchemaSignature{}
 	sigBytes := props.SignatureBytes

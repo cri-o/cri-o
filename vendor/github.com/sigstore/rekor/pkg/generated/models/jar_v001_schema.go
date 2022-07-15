@@ -182,10 +182,6 @@ type JarV001SchemaArchive struct {
 
 	// hash
 	Hash *JarV001SchemaArchiveHash `json:"hash,omitempty"`
-
-	// Specifies the location of the archive; if this is specified, a hash value must also be provided
-	// Format: uri
-	URL strfmt.URI `json:"url,omitempty"`
 }
 
 // Validate validates this jar v001 schema archive
@@ -193,10 +189,6 @@ func (m *JarV001SchemaArchive) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateHash(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateURL(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -220,18 +212,6 @@ func (m *JarV001SchemaArchive) validateHash(formats strfmt.Registry) error {
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *JarV001SchemaArchive) validateURL(formats strfmt.Registry) error {
-	if swag.IsZero(m.URL) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("archive"+"."+"url", "body", "uri", m.URL.String(), formats); err != nil {
-		return err
 	}
 
 	return nil

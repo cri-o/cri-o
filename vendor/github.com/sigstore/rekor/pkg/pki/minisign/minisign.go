@@ -24,6 +24,7 @@ import (
 
 	minisign "github.com/jedisct1/go-minisign"
 	sigsig "github.com/sigstore/sigstore/pkg/signature"
+	"golang.org/x/crypto/blake2b"
 )
 
 // Signature Signature that follows the minisign standard; supports both minisign and signify generated signatures
@@ -102,6 +103,17 @@ func (s Signature) Verify(r io.Reader, k interface{}, opts ...sigsig.VerifyOptio
 	if err != nil {
 		return err
 	}
+
+	prehashed := s.signature.SignatureAlgorithm[1] == 0x44
+	if prehashed {
+		h, _ := blake2b.New512(nil)
+		_, err := io.Copy(h, r)
+		if err != nil {
+			return fmt.Errorf("reading minisign data")
+		}
+		r = bytes.NewReader(h.Sum(nil))
+	}
+
 	return verifier.VerifySignature(bytes.NewReader(s.signature.Signature[:]), r)
 }
 
@@ -163,5 +175,10 @@ func (k PublicKey) CanonicalValue() ([]byte, error) {
 
 // EmailAddresses implements the pki.PublicKey interface
 func (k PublicKey) EmailAddresses() []string {
+	return nil
+}
+
+// Subjects implements the pki.PublicKey interface
+func (k PublicKey) Subjects() []string {
 	return nil
 }

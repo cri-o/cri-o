@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -66,11 +67,11 @@ func NewEntry() types.EntryImpl {
 func (v V001Entry) IndexKeys() ([]string, error) {
 	var result []string
 
-	af, err := pki.NewArtifactFactory(pki.Format(v.RekordObj.Signature.Format))
+	af, err := pki.NewArtifactFactory(pki.Format(*v.RekordObj.Signature.Format))
 	if err != nil {
 		return nil, err
 	}
-	keyObj, err := af.NewPublicKey(bytes.NewReader(v.RekordObj.Signature.PublicKey.Content))
+	keyObj, err := af.NewPublicKey(bytes.NewReader(*v.RekordObj.Signature.PublicKey.Content))
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (v V001Entry) IndexKeys() ([]string, error) {
 		result = append(result, strings.ToLower(hex.EncodeToString(keyHash[:])))
 	}
 
-	result = append(result, keyObj.EmailAddresses()...)
+	result = append(result, keyObj.Subjects()...)
 
 	if v.RekordObj.Data.Hash != nil {
 		hashKey := strings.ToLower(fmt.Sprintf("%s:%s", *v.RekordObj.Data.Hash.Algorithm, *v.RekordObj.Data.Hash.Value))
@@ -113,23 +114,10 @@ func (v *V001Entry) Unmarshal(pe models.ProposedEntry) error {
 
 }
 
-func (v *V001Entry) hasExternalEntities() bool {
-	if v.RekordObj.Data != nil && v.RekordObj.Data.URL.String() != "" {
-		return true
-	}
-	if v.RekordObj.Signature != nil && v.RekordObj.Signature.URL.String() != "" {
-		return true
-	}
-	if v.RekordObj.Signature != nil && v.RekordObj.Signature.PublicKey != nil && v.RekordObj.Signature.PublicKey.URL.String() != "" {
-		return true
-	}
-	return false
-}
-
 func (v *V001Entry) fetchExternalEntities(ctx context.Context) (pki.PublicKey, pki.Signature, error) {
 	g, ctx := errgroup.WithContext(ctx)
 
-	af, err := pki.NewArtifactFactory(pki.Format(v.RekordObj.Signature.Format))
+	af, err := pki.NewArtifactFactory(pki.Format(*v.RekordObj.Signature.Format))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -150,11 +138,7 @@ func (v *V001Entry) fetchExternalEntities(ctx context.Context) (pki.PublicKey, p
 		defer hashW.Close()
 		defer sigW.Close()
 
-		dataReadCloser, err := util.FileOrURLReadCloser(ctx, v.RekordObj.Data.URL.String(), v.RekordObj.Data.Content)
-		if err != nil {
-			return closePipesOnError(err)
-		}
-		defer dataReadCloser.Close()
+		dataReadCloser := bytes.NewReader(v.RekordObj.Data.Content)
 
 		/* #nosec G110 */
 		if _, err := io.Copy(io.MultiWriter(hashW, sigW), dataReadCloser); err != nil {
@@ -191,12 +175,7 @@ func (v *V001Entry) fetchExternalEntities(ctx context.Context) (pki.PublicKey, p
 	g.Go(func() error {
 		defer close(sigResult)
 
-		sigReadCloser, err := util.FileOrURLReadCloser(ctx, v.RekordObj.Signature.URL.String(),
-			v.RekordObj.Signature.Content)
-		if err != nil {
-			return closePipesOnError(err)
-		}
-		defer sigReadCloser.Close()
+		sigReadCloser := bytes.NewReader(*v.RekordObj.Signature.Content)
 
 		signature, err := af.NewSignature(sigReadCloser)
 		if err != nil {
@@ -216,12 +195,7 @@ func (v *V001Entry) fetchExternalEntities(ctx context.Context) (pki.PublicKey, p
 	g.Go(func() error {
 		defer close(keyResult)
 
-		keyReadCloser, err := util.FileOrURLReadCloser(ctx, v.RekordObj.Signature.PublicKey.URL.String(),
-			v.RekordObj.Signature.PublicKey.Content)
-		if err != nil {
-			return closePipesOnError(err)
-		}
-		defer keyReadCloser.Close()
+		keyReadCloser := bytes.NewReader(*v.RekordObj.Signature.PublicKey.Content)
 
 		key, err := af.NewPublicKey(keyReadCloser)
 		if err != nil {
@@ -289,17 +263,20 @@ func (v *V001Entry) Canonicalize(ctx context.Context) ([]byte, error) {
 	// signature URL (if known) is not set deliberately
 	canonicalEntry.Signature.Format = v.RekordObj.Signature.Format
 
-	canonicalEntry.Signature.Content, err = sigObj.CanonicalValue()
+	var sigContent []byte
+	sigContent, err = sigObj.CanonicalValue()
 	if err != nil {
 		return nil, err
 	}
+	canonicalEntry.Signature.Content = (*strfmt.Base64)(&sigContent)
 
-	// key URL (if known) is not set deliberately
+	var pubKeyContent []byte
 	canonicalEntry.Signature.PublicKey = &models.RekordV001SchemaSignaturePublicKey{}
-	canonicalEntry.Signature.PublicKey.Content, err = keyObj.CanonicalValue()
+	pubKeyContent, err = keyObj.CanonicalValue()
 	if err != nil {
 		return nil, err
 	}
+	canonicalEntry.Signature.PublicKey.Content = (*strfmt.Base64)(&pubKeyContent)
 
 	canonicalEntry.Data = &models.RekordV001SchemaData{}
 	canonicalEntry.Data.Hash = v.RekordObj.Data.Hash
@@ -326,16 +303,16 @@ func (v V001Entry) validate() error {
 	if v.RekordObj.Signature == nil {
 		return errors.New("missing signature")
 	}
-	if len(sig.Content) == 0 && sig.URL.String() == "" {
-		return errors.New("one of 'content' or 'url' must be specified for signature")
+	if sig.Content == nil || len(*sig.Content) == 0 {
+		return errors.New("'content' must be specified for signature")
 	}
 
 	key := sig.PublicKey
 	if key == nil {
 		return errors.New("missing public key")
 	}
-	if len(key.Content) == 0 && key.URL.String() == "" {
-		return errors.New("one of 'content' or 'url' must be specified for publicKey")
+	if key.Content == nil || len(*key.Content) == 0 {
+		return errors.New("'content' must be specified for publicKey")
 	}
 
 	data := v.RekordObj.Data
@@ -348,14 +325,10 @@ func (v V001Entry) validate() error {
 		if !govalidator.IsHash(swag.StringValue(hash.Value), swag.StringValue(hash.Algorithm)) {
 			return errors.New("invalid value for hash")
 		}
-	} else if len(data.Content) == 0 && data.URL.String() == "" {
-		return errors.New("one of 'content' or 'url' must be specified for data")
+	} else if len(data.Content) == 0 {
+		return errors.New("'content' must be specified for data")
 	}
 
-	return nil
-}
-
-func (v V001Entry) Attestation() []byte {
 	return nil
 }
 
@@ -369,55 +342,48 @@ func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types
 	var err error
 	artifactBytes := props.ArtifactBytes
 	if artifactBytes == nil {
-		if props.ArtifactPath == nil {
-			return nil, errors.New("path to artifact (file or URL) must be specified")
-		}
+		var artifactReader io.ReadCloser
 		if props.ArtifactPath.IsAbs() {
-			re.RekordObj.Data.URL = strfmt.URI(props.ArtifactPath.String())
-			if props.ArtifactHash != "" {
-				re.RekordObj.Data.Hash = &models.RekordV001SchemaDataHash{
-					Algorithm: swag.String(models.RekordV001SchemaDataHashAlgorithmSha256),
-					Value:     swag.String(props.ArtifactHash),
-				}
-			}
-		} else {
-			artifactBytes, err := ioutil.ReadFile(filepath.Clean(props.ArtifactPath.Path))
+			artifactReader, err = util.FileOrURLReadCloser(ctx, props.ArtifactPath.String(), nil)
 			if err != nil {
 				return nil, fmt.Errorf("error reading artifact file: %w", err)
 			}
-			re.RekordObj.Data.Content = strfmt.Base64(artifactBytes)
+		} else {
+			artifactReader, err = os.Open(filepath.Clean(props.ArtifactPath.Path))
+			if err != nil {
+				return nil, fmt.Errorf("error opening artifact file: %w", err)
+			}
 		}
-	} else {
-		re.RekordObj.Data.Content = strfmt.Base64(artifactBytes)
+		artifactBytes, err = ioutil.ReadAll(artifactReader)
+		if err != nil {
+			return nil, fmt.Errorf("error reading artifact file: %w", err)
+		}
 	}
+	re.RekordObj.Data.Content = strfmt.Base64(artifactBytes)
 
 	re.RekordObj.Signature = &models.RekordV001SchemaSignature{}
 	switch props.PKIFormat {
 	case "pgp":
-		re.RekordObj.Signature.Format = models.RekordV001SchemaSignatureFormatPgp
+		re.RekordObj.Signature.Format = swag.String(models.RekordV001SchemaSignatureFormatPgp)
 	case "minisign":
-		re.RekordObj.Signature.Format = models.RekordV001SchemaSignatureFormatMinisign
+		re.RekordObj.Signature.Format = swag.String(models.RekordV001SchemaSignatureFormatMinisign)
 	case "x509":
-		re.RekordObj.Signature.Format = models.RekordV001SchemaSignatureFormatX509
+		re.RekordObj.Signature.Format = swag.String(models.RekordV001SchemaSignatureFormatX509)
 	case "ssh":
-		re.RekordObj.Signature.Format = models.RekordV001SchemaSignatureFormatSSH
+		re.RekordObj.Signature.Format = swag.String(models.RekordV001SchemaSignatureFormatSSH)
 	}
 	sigBytes := props.SignatureBytes
 	if sigBytes == nil {
 		if props.SignaturePath == nil {
 			return nil, errors.New("a detached signature must be provided")
 		}
-		if props.SignaturePath.IsAbs() {
-			re.RekordObj.Signature.URL = strfmt.URI(props.SignaturePath.String())
-		} else {
-			sigBytes, err = ioutil.ReadFile(filepath.Clean(props.SignaturePath.Path))
-			if err != nil {
-				return nil, fmt.Errorf("error reading signature file: %w", err)
-			}
-			re.RekordObj.Signature.Content = strfmt.Base64(sigBytes)
+		sigBytes, err = ioutil.ReadFile(filepath.Clean(props.SignaturePath.Path))
+		if err != nil {
+			return nil, fmt.Errorf("error reading signature file: %w", err)
 		}
+		re.RekordObj.Signature.Content = (*strfmt.Base64)(&sigBytes)
 	} else {
-		re.RekordObj.Signature.Content = strfmt.Base64(sigBytes)
+		re.RekordObj.Signature.Content = (*strfmt.Base64)(&sigBytes)
 	}
 
 	re.RekordObj.Signature.PublicKey = &models.RekordV001SchemaSignaturePublicKey{}
@@ -426,27 +392,21 @@ func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types
 		if props.PublicKeyPath == nil {
 			return nil, errors.New("public key must be provided to verify detached signature")
 		}
-		if props.PublicKeyPath.IsAbs() {
-			re.RekordObj.Signature.PublicKey.URL = strfmt.URI(props.PublicKeyPath.String())
-		} else {
-			publicKeyBytes, err = ioutil.ReadFile(filepath.Clean(props.PublicKeyPath.Path))
-			if err != nil {
-				return nil, fmt.Errorf("error reading public key file: %w", err)
-			}
-			re.RekordObj.Signature.PublicKey.Content = strfmt.Base64(publicKeyBytes)
+		publicKeyBytes, err = ioutil.ReadFile(filepath.Clean(props.PublicKeyPath.Path))
+		if err != nil {
+			return nil, fmt.Errorf("error reading public key file: %w", err)
 		}
+		re.RekordObj.Signature.PublicKey.Content = (*strfmt.Base64)(&publicKeyBytes)
 	} else {
-		re.RekordObj.Signature.PublicKey.Content = strfmt.Base64(publicKeyBytes)
+		re.RekordObj.Signature.PublicKey.Content = (*strfmt.Base64)(&publicKeyBytes)
 	}
 
 	if err := re.validate(); err != nil {
 		return nil, err
 	}
 
-	if re.hasExternalEntities() {
-		if _, _, err := re.fetchExternalEntities(ctx); err != nil {
-			return nil, fmt.Errorf("error retrieving external entities: %v", err)
-		}
+	if _, _, err := re.fetchExternalEntities(ctx); err != nil {
+		return nil, fmt.Errorf("error retrieving external entities: %v", err)
 	}
 
 	returnVal.APIVersion = swag.String(re.APIVersion())

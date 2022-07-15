@@ -91,6 +91,12 @@ type GetLogProofParams struct {
 	*/
 	LastSize int64
 
+	/* TreeID.
+
+	   The tree ID of the tree that you wish to prove consistency for
+	*/
+	TreeID *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -177,6 +183,17 @@ func (o *GetLogProofParams) SetLastSize(lastSize int64) {
 	o.LastSize = lastSize
 }
 
+// WithTreeID adds the treeID to the get log proof params
+func (o *GetLogProofParams) WithTreeID(treeID *string) *GetLogProofParams {
+	o.SetTreeID(treeID)
+	return o
+}
+
+// SetTreeID adds the treeId to the get log proof params
+func (o *GetLogProofParams) SetTreeID(treeID *string) {
+	o.TreeID = treeID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetLogProofParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -209,6 +226,23 @@ func (o *GetLogProofParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 
 		if err := r.SetQueryParam("lastSize", qLastSize); err != nil {
 			return err
+		}
+	}
+
+	if o.TreeID != nil {
+
+		// query param treeID
+		var qrTreeID string
+
+		if o.TreeID != nil {
+			qrTreeID = *o.TreeID
+		}
+		qTreeID := qrTreeID
+		if qTreeID != "" {
+
+			if err := r.SetQueryParam("treeID", qTreeID); err != nil {
+				return err
+			}
 		}
 	}
 

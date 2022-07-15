@@ -17,6 +17,7 @@ package oauthflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,7 +26,6 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/oauth2"
@@ -53,7 +53,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	// starts listener using the redirect_uri, otherwise starts on ephemeral port
 	redirectServer, redirectURL, err := startRedirectListener(stateToken, i.HTMLPage, cfg.RedirectURL, doneCh, errCh)
 	if err != nil {
-		return nil, errors.Wrap(err, "starting redirect listener")
+		return nil, fmt.Errorf("starting redirect listener: %w", err)
 	}
 	defer func() {
 		go func() {

@@ -69,7 +69,17 @@ func (s Signature) Verify(r io.Reader, k interface{}, opts ...sigsig.VerifyOptio
 
 	p := key.key
 	if p == nil {
-		p = key.cert.c.PublicKey
+		switch {
+		case key.cert != nil:
+			p = key.cert.c.PublicKey
+		case len(key.certs) > 0:
+			if err := verifyCertChain(key.certs); err != nil {
+				return err
+			}
+			p = key.certs[0].PublicKey
+		default:
+			return errors.New("no public key found")
+		}
 	}
 
 	verifier, err := sigsig.LoadVerifier(p, crypto.SHA256)
@@ -81,8 +91,9 @@ func (s Signature) Verify(r io.Reader, k interface{}, opts ...sigsig.VerifyOptio
 
 // PublicKey Public Key that follows the x509 standard
 type PublicKey struct {
-	key  interface{}
-	cert *cert
+	key   interface{}
+	cert  *cert
+	certs []*x509.Certificate
 }
 
 type cert struct {
@@ -97,9 +108,19 @@ func NewPublicKey(r io.Reader) (*PublicKey, error) {
 		return nil, err
 	}
 
-	block, _ := pem.Decode(rawPub)
+	block, rest := pem.Decode(rawPub)
 	if block == nil {
 		return nil, errors.New("invalid public key: failure decoding PEM")
+	}
+
+	// Handle certificate chain, concatenated PEM-encoded certificates
+	if len(rest) > 0 {
+		// Support up to 10 certificates in a chain, to avoid parsing extremely long chains
+		certs, err := cryptoutils.UnmarshalCertificatesFromPEMLimited(rawPub, 10)
+		if err != nil {
+			return nil, err
+		}
+		return &PublicKey{certs: certs}, nil
 	}
 
 	switch block.Type {
@@ -131,6 +152,8 @@ func (k PublicKey) CanonicalValue() (encoded []byte, err error) {
 		encoded, err = cryptoutils.MarshalPublicKeyToPEM(k.key)
 	case k.cert != nil:
 		encoded, err = cryptoutils.MarshalCertificateToPEM(k.cert.c)
+	case k.certs != nil:
+		encoded, err = cryptoutils.MarshalCertificatesToPEM(k.certs)
 	default:
 		err = fmt.Errorf("x509 public key has not been initialized")
 	}
@@ -142,15 +165,24 @@ func (k PublicKey) CryptoPubKey() crypto.PublicKey {
 	if k.cert != nil {
 		return k.cert.c.PublicKey
 	}
+	if len(k.certs) > 0 {
+		return k.certs[0].PublicKey
+	}
 	return k.key
 }
 
 // EmailAddresses implements the pki.PublicKey interface
 func (k PublicKey) EmailAddresses() []string {
 	var names []string
+	var cert *x509.Certificate
 	if k.cert != nil {
-		for _, name := range k.cert.c.EmailAddresses {
-			validate := validator.New()
+		cert = k.cert.c
+	} else if len(k.certs) > 0 {
+		cert = k.certs[0]
+	}
+	if cert != nil {
+		validate := validator.New()
+		for _, name := range cert.EmailAddresses {
 			errs := validate.Var(name, "required,email")
 			if errs == nil {
 				names = append(names, strings.ToLower(name))
@@ -160,47 +192,54 @@ func (k PublicKey) EmailAddresses() []string {
 	return names
 }
 
-func CertChainToPEM(certChain []*x509.Certificate) ([]byte, error) {
-	var pemBytes bytes.Buffer
-	for _, cert := range certChain {
-		if err := pem.Encode(&pemBytes, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}); err != nil {
-			return nil, err
+// Subjects implements the pki.PublicKey interface
+func (k PublicKey) Subjects() []string {
+	var names []string
+	var cert *x509.Certificate
+	if k.cert != nil {
+		cert = k.cert.c
+	} else if len(k.certs) > 0 {
+		cert = k.certs[0]
+	}
+	if cert != nil {
+		validate := validator.New()
+		for _, name := range cert.EmailAddresses {
+			if errs := validate.Var(name, "required,email"); errs == nil {
+				names = append(names, strings.ToLower(name))
+			}
+		}
+		for _, name := range cert.URIs {
+			if errs := validate.Var(name.String(), "required,uri"); errs == nil {
+				names = append(names, strings.ToLower(name.String()))
+			}
 		}
 	}
-	return pemBytes.Bytes(), nil
+	return names
 }
 
-func ParseTimestampCertChain(pemBytes []byte) ([]*x509.Certificate, error) {
-	certChain := []*x509.Certificate{}
-	var block *pem.Block
-	block, pemBytes = pem.Decode(pemBytes)
-	for ; block != nil; block, pemBytes = pem.Decode(pemBytes) {
-		if block.Type == "CERTIFICATE" {
-			cert, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				return nil, err
-			}
-			certChain = append(certChain, cert)
-		} else {
-			return nil, errors.New("invalid block type")
-		}
-	}
+func verifyCertChain(certChain []*x509.Certificate) error {
 	if len(certChain) == 0 {
-		return nil, errors.New("no valid certificates in chain")
+		return errors.New("no certificate chain provided")
 	}
-	// Verify cert chain for timestamping
-	roots := x509.NewCertPool()
-	intermediates := x509.NewCertPool()
-	for _, cert := range certChain[1:(len(certChain) - 1)] {
-		intermediates.AddCert(cert)
+	// No certificate chain to verify
+	if len(certChain) == 1 {
+		return nil
 	}
-	roots.AddCert(certChain[len(certChain)-1])
+	rootPool := x509.NewCertPool()
+	rootPool.AddCert(certChain[len(certChain)-1])
+	subPool := x509.NewCertPool()
+	for _, c := range certChain[1 : len(certChain)-1] {
+		subPool.AddCert(c)
+	}
 	if _, err := certChain[0].Verify(x509.VerifyOptions{
-		Roots:         roots,
-		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageTimeStamping},
-		Intermediates: intermediates,
+		Roots:         rootPool,
+		Intermediates: subPool,
+		// Allow any key usage
+		KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+		// Expired certificates can be uploaded and should be verifiable
+		CurrentTime: certChain[0].NotBefore,
 	}); err != nil {
-		return nil, err
+		return err
 	}
-	return certChain, nil
+	return nil
 }

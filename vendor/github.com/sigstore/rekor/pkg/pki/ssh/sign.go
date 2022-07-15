@@ -75,7 +75,7 @@ func sign(s ssh.AlgorithmSigner, m io.Reader) (*ssh.Signature, error) {
 	// We can use the default value of "" for other key types though.
 	algo := ""
 	if s.PublicKey().Type() == ssh.KeyAlgoRSA {
-		algo = ssh.SigAlgoRSASHA2512
+		algo = ssh.KeyAlgoRSASHA512
 	}
 	sig, err := s.SignWithAlgorithm(rand.Reader, dataMessageWrapper, algo)
 	if err != nil {

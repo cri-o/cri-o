@@ -18,11 +18,10 @@ package util
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // heavily borrowed from https://github.com/google/trillian-examples/blob/master/formats/log/checkpoint.go
@@ -131,11 +130,11 @@ func CheckpointValidator(strToValidate string) bool {
 func (r *SignedCheckpoint) UnmarshalText(data []byte) error {
 	s := SignedNote{}
 	if err := s.UnmarshalText([]byte(data)); err != nil {
-		return errors.Wrap(err, "unmarshalling signed note")
+		return fmt.Errorf("unmarshalling signed note: %w", err)
 	}
 	c := Checkpoint{}
 	if err := c.UnmarshalCheckpoint([]byte(s.Note)); err != nil {
-		return errors.Wrap(err, "unmarshalling checkpoint")
+		return fmt.Errorf("unmarshalling checkpoint: %w", err)
 	}
 	*r = SignedCheckpoint{Checkpoint: c, SignedNote: s}
 	return nil

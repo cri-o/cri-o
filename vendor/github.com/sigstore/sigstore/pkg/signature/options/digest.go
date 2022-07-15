@@ -27,6 +27,9 @@ func (r RequestDigest) ApplyDigest(digest *[]byte) {
 }
 
 // WithDigest specifies that the given digest can be used by underlying signature implementations
+// WARNING: When verifying a digest with ECDSA, it is trivial to craft a valid signature
+// over a random message given a public key. Do not use this unles you understand the
+// implications and do not need to protect against malleability.
 func WithDigest(digest []byte) RequestDigest {
 	return RequestDigest{digest: digest}
 }

@@ -23,6 +23,7 @@ package models
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -35,6 +36,9 @@ import (
 // swagger:model LogInfo
 type LogInfo struct {
 
+	// inactive shards
+	InactiveShards []*InactiveShardLogInfo `json:"inactiveShards"`
+
 	// The current hash value stored at the root of the merkle tree
 	// Required: true
 	// Pattern: ^[0-9a-fA-F]{64}$
@@ -43,6 +47,11 @@ type LogInfo struct {
 	// The current signed tree head
 	// Required: true
 	SignedTreeHead *string `json:"signedTreeHead"`
+
+	// The current treeID
+	// Required: true
+	// Pattern: ^[0-9]+$
+	TreeID *string `json:"treeID"`
 
 	// The current number of nodes in the merkle tree
 	// Required: true
@@ -54,11 +63,19 @@ type LogInfo struct {
 func (m *LogInfo) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateInactiveShards(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateRootHash(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateSignedTreeHead(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTreeID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -69,6 +86,32 @@ func (m *LogInfo) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *LogInfo) validateInactiveShards(formats strfmt.Registry) error {
+	if swag.IsZero(m.InactiveShards) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.InactiveShards); i++ {
+		if swag.IsZero(m.InactiveShards[i]) { // not required
+			continue
+		}
+
+		if m.InactiveShards[i] != nil {
+			if err := m.InactiveShards[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("inactiveShards" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("inactiveShards" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -94,6 +137,19 @@ func (m *LogInfo) validateSignedTreeHead(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *LogInfo) validateTreeID(formats strfmt.Registry) error {
+
+	if err := validate.Required("treeID", "body", m.TreeID); err != nil {
+		return err
+	}
+
+	if err := validate.Pattern("treeID", "body", *m.TreeID, `^[0-9]+$`); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *LogInfo) validateTreeSize(formats strfmt.Registry) error {
 
 	if err := validate.Required("treeSize", "body", m.TreeSize); err != nil {
@@ -107,8 +163,37 @@ func (m *LogInfo) validateTreeSize(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validates this log info based on context it is used
+// ContextValidate validate this log info based on the context it is used
 func (m *LogInfo) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateInactiveShards(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *LogInfo) contextValidateInactiveShards(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.InactiveShards); i++ {
+
+		if m.InactiveShards[i] != nil {
+			if err := m.InactiveShards[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("inactiveShards" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("inactiveShards" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

@@ -62,14 +62,6 @@ steps:
   waitFor:
     - prepare
 
-# Run Bazel check.
-- id: bazel
-  name: 'gcr.io/cloud-marketplace-containers/google/bazel:1.1.0'
-  entrypoint: bazel
-  args: ['build', '//:*']
-  waitFor:
-    - prepare
-
 # Presubmit
 - id: presubmit
   name: 'gcr.io/${PROJECT_ID}/trillian_testbase'

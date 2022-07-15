@@ -19,6 +19,8 @@ package types
 import (
 	"context"
 
+	"github.com/go-openapi/strfmt"
+
 	"github.com/sigstore/rekor/pkg/generated/models"
 )
 
@@ -48,10 +50,32 @@ func (u BaseUnmarshalTester) Validate() error {
 	return nil
 }
 
-func (u BaseUnmarshalTester) Attestation() []byte {
-	return nil
+func (u BaseUnmarshalTester) AttestationKey() string {
+	return ""
+}
+
+func (u BaseUnmarshalTester) AttestationKeyValue() (string, []byte) {
+	return "", nil
 }
 
 func (u BaseUnmarshalTester) CreateFromArtifactProperties(_ context.Context, _ ArtifactProperties) (models.ProposedEntry, error) {
 	return nil, nil
+}
+
+type BaseProposedEntryTester struct{}
+
+func (b BaseProposedEntryTester) Kind() string {
+	return "nil"
+}
+
+func (b BaseProposedEntryTester) SetKind(v string) {
+
+}
+
+func (b BaseProposedEntryTester) Validate(r strfmt.Registry) error {
+	return nil
+}
+
+func (b BaseProposedEntryTester) ContextValidate(ctx context.Context, r strfmt.Registry) error {
+	return nil
 }

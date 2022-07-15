@@ -34,7 +34,7 @@ import (
 
 	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioverifier/ctl"
 	cbundle "github.com/sigstore/cosign/pkg/cosign/bundle"
-	"github.com/sigstore/cosign/pkg/cosign/tuf"
+	"github.com/sigstore/sigstore/pkg/tuf"
 
 	"github.com/sigstore/cosign/pkg/blob"
 	"github.com/sigstore/cosign/pkg/oci/static"
@@ -58,10 +58,13 @@ import (
 )
 
 // Identity specifies an issuer/subject to verify a signature against.
-// Both Issuer/Subject support regexp.
+// Both IssuerRegExp/SubjectRegExp support regexp while Issuer/Subject are for
+// strict matching.
 type Identity struct {
-	Issuer  string
-	Subject string
+	Issuer        string
+	Subject       string
+	IssuerRegExp  string
+	SubjectRegExp string
 }
 
 // CheckOpts are the options for checking signatures.
@@ -223,25 +226,31 @@ func CheckCertificatePolicy(cert *x509.Certificate, co *CheckOpts) error {
 	if len(co.Identities) > 0 {
 		for _, identity := range co.Identities {
 			issuerMatches := false
+			switch {
 			// Check the issuer first
-			if identity.Issuer != "" {
+			case identity.IssuerRegExp != "":
 				issuer := getIssuer(cert)
-				if regex, err := regexp.Compile(identity.Issuer); err != nil {
-					return fmt.Errorf("malformed issuer in identity: %s : %w", identity.Issuer, err)
+				if regex, err := regexp.Compile(identity.IssuerRegExp); err != nil {
+					return fmt.Errorf("malformed issuer in identity: %s : %w", identity.IssuerRegExp, err)
 				} else if regex.MatchString(issuer) {
 					issuerMatches = true
 				}
-			} else {
+			case identity.Issuer != "":
+				if identity.Issuer == getIssuer(cert) {
+					issuerMatches = true
+				}
+			default:
 				// No issuer constraint on this identity, so checks out
 				issuerMatches = true
 			}
 
 			// Then the subject
 			subjectMatches := false
-			if identity.Subject != "" {
-				regex, err := regexp.Compile(identity.Subject)
+			switch {
+			case identity.SubjectRegExp != "":
+				regex, err := regexp.Compile(identity.SubjectRegExp)
 				if err != nil {
-					return fmt.Errorf("malformed subject in identity: %s : %w", identity.Subject, err)
+					return fmt.Errorf("malformed subject in identity: %s : %w", identity.SubjectRegExp, err)
 				}
 				for _, san := range getSubjectAlternateNames(cert) {
 					if regex.MatchString(san) {
@@ -249,7 +258,14 @@ func CheckCertificatePolicy(cert *x509.Certificate, co *CheckOpts) error {
 						break
 					}
 				}
-			} else {
+			case identity.Subject != "":
+				for _, san := range getSubjectAlternateNames(cert) {
+					if san == identity.Subject {
+						subjectMatches = true
+						break
+					}
+				}
+			default:
 				// No subject constraint on this identity, so checks out
 				subjectMatches = true
 			}
@@ -510,7 +526,7 @@ func VerifyImageSignature(ctx context.Context, sig oci.Signature, h v1.Hash, co 
 		}
 	}
 
-	bundleVerified, err = VerifyBundle(ctx, sig)
+	bundleVerified, err = VerifyBundle(ctx, sig, co.RekorClient)
 	if err != nil && co.RekorClient == nil {
 		return false, fmt.Errorf("unable to verify bundle: %w", err)
 	}
@@ -689,7 +705,7 @@ func verifyImageAttestations(ctx context.Context, atts oci.Signatures, h v1.Hash
 				}
 			}
 
-			verified, err := VerifyBundle(ctx, att)
+			verified, err := VerifyBundle(ctx, att, co.RekorClient)
 			if err != nil && co.RekorClient == nil {
 				return fmt.Errorf("unable to verify bundle: %w", err)
 			}
@@ -737,7 +753,7 @@ func CheckExpiry(cert *x509.Certificate, it time.Time) error {
 	return nil
 }
 
-func VerifyBundle(ctx context.Context, sig oci.Signature) (bool, error) {
+func VerifyBundle(ctx context.Context, sig oci.Signature, rekorClient *client.Rekor) (bool, error) {
 	bundle, err := sig.Bundle()
 	if err != nil {
 		return false, err
@@ -749,7 +765,7 @@ func VerifyBundle(ctx context.Context, sig oci.Signature) (bool, error) {
 		return false, err
 	}
 
-	publicKeys, err := GetRekorPubs(ctx)
+	publicKeys, err := GetRekorPubs(ctx, rekorClient)
 	if err != nil {
 		return false, fmt.Errorf("retrieving rekor public key: %w", err)
 	}

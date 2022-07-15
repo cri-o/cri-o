@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/secure-systems-lab/go-securesystemslib/cjson"
 	"github.com/theupdateframework/go-tuf/data"
 	"github.com/theupdateframework/go-tuf/internal/roles"
 	"github.com/theupdateframework/go-tuf/internal/sets"
@@ -101,15 +103,7 @@ func (r *Repo) topLevelKeysDB() (*verify.DB, error) {
 	}
 	for id, k := range root.Keys {
 		if err := db.AddKey(id, k); err != nil {
-			// TUF is considering in TAP-12 removing the
-			// requirement that the keyid hash algorithm be derived
-			// from the public key. So to be forwards compatible,
-			// we ignore `ErrWrongID` errors.
-			//
-			// TAP-12: https://github.com/theupdateframework/taps/blob/master/tap12.md
-			if _, ok := err.(verify.ErrWrongID); !ok {
-				return nil, err
-			}
+			return nil, err
 		}
 	}
 	for name, role := range root.Roles {
@@ -734,33 +728,48 @@ func (r *Repo) setMeta(roleFilename string, meta interface{}) error {
 	return r.local.SetMeta(roleFilename, b)
 }
 
-func (r *Repo) Sign(roleFilename string) error {
-	role := strings.TrimSuffix(roleFilename, ".json")
-
-	s, err := r.SignedMeta(roleFilename)
-	if err != nil {
-		return err
-	}
-
+// SignPayload signs the given payload using the key(s) associated with role.
+//
+// It returns the total number of keys used for signing, 0 (along with
+// ErrNoKeys) if no keys were found, or -1 (along with an error) in error cases.
+func (r *Repo) SignPayload(role string, payload *data.Signed) (int, error) {
 	keys, err := r.signersForRole(role)
 	if err != nil {
-		return err
+		return -1, err
 	}
 	if len(keys) == 0 {
-		return ErrInsufficientKeys{roleFilename}
+		return 0, ErrNoKeys{role}
 	}
 	for _, k := range keys {
-		sign.Sign(s, k)
+		if err = sign.Sign(payload, k); err != nil {
+			return -1, err
+		}
+	}
+	return len(keys), nil
+}
+
+func (r *Repo) Sign(roleFilename string) error {
+	signed, err := r.SignedMeta(roleFilename)
+	if err != nil {
+		return err
 	}
 
-	b, err := r.jsonMarshal(s)
+	role := strings.TrimSuffix(roleFilename, ".json")
+	numKeys, err := r.SignPayload(role, signed)
+	if errors.Is(err, ErrNoKeys{role}) {
+		return ErrNoKeys{roleFilename}
+	} else if err != nil {
+		return err
+	}
+
+	b, err := r.jsonMarshal(signed)
 	if err != nil {
 		return err
 	}
 	r.meta[roleFilename] = b
 	err = r.local.SetMeta(roleFilename, b)
 	if err == nil {
-		fmt.Println("Signed", roleFilename, "with", len(keys), "key(s)")
+		fmt.Println("Signed", roleFilename, "with", numKeys, "key(s)")
 	}
 	return err
 }
@@ -1263,6 +1272,11 @@ func (r *Repo) SnapshotWithExpires(expires time.Time) error {
 		return err
 	}
 
+	// Verify root metadata before verifying signatures on role metadata.
+	if err := r.verifySignatures("root.json"); err != nil {
+		return err
+	}
+
 	for _, metaName := range r.snapshotMetadata() {
 		if err := r.verifySignatures(metaName); err != nil {
 			return err
@@ -1526,4 +1540,18 @@ func (r *Repo) timestampFileMeta(roleFilename string) (data.TimestampFileMeta, e
 		return data.TimestampFileMeta{}, ErrMissingMetadata{roleFilename}
 	}
 	return util.GenerateTimestampFileMeta(bytes.NewReader(b), r.hashAlgorithms...)
+}
+
+func (r *Repo) Payload(roleFilename string) ([]byte, error) {
+	s, err := r.SignedMeta(roleFilename)
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := cjson.EncodeCanonical(s.Signed)
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }

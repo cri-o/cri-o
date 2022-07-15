@@ -20,11 +20,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
+	"errors"
 	"io"
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
@@ -45,6 +45,35 @@ func LoadVerifier(publicKey crypto.PublicKey, hashFunc crypto.Hash) (Verifier, e
 		return LoadRSAPKCS1v15Verifier(pk, hashFunc)
 	case *ecdsa.PublicKey:
 		return LoadECDSAVerifier(pk, hashFunc)
+	case ed25519.PublicKey:
+		return LoadED25519Verifier(pk)
+	}
+	return nil, errors.New("unsupported public key type")
+}
+
+// LoadUnsafeVerifier returns a signature.Verifier based on the algorithm of the public key
+// provided that will use SHA1 when computing digests for RSA and ECDSA signatures.
+//
+// If publicKey is an RSA key, a RSAPKCS1v15Verifier will be returned. If a
+// RSAPSSVerifier is desired instead, use the LoadRSAPSSVerifier() method directly.
+func LoadUnsafeVerifier(publicKey crypto.PublicKey) (Verifier, error) {
+	switch pk := publicKey.(type) {
+	case *rsa.PublicKey:
+		if pk == nil {
+			return nil, errors.New("invalid RSA public key specified")
+		}
+		return &RSAPKCS1v15Verifier{
+			publicKey: pk,
+			hashFunc:  crypto.SHA1,
+		}, nil
+	case *ecdsa.PublicKey:
+		if pk == nil {
+			return nil, errors.New("invalid ECDSA public key specified")
+		}
+		return &ECDSAVerifier{
+			publicKey: pk,
+			hashFunc:  crypto.SHA1,
+		}, nil
 	case ed25519.PublicKey:
 		return LoadED25519Verifier(pk)
 	}

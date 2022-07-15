@@ -20,9 +20,9 @@ import (
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"io"
-
-	"github.com/pkg/errors"
 )
 
 var ed25519SupportedHashFuncs = []crypto.Hash{
@@ -130,7 +130,7 @@ func (e *ED25519Verifier) VerifySignature(signature, message io.Reader, _ ...Ver
 
 	sigBytes, err := io.ReadAll(signature)
 	if err != nil {
-		return errors.Wrap(err, "reading signature")
+		return fmt.Errorf("reading signature: %w", err)
 	}
 
 	if !ed25519.Verify(e.publicKey, messageBytes, sigBytes) {
@@ -150,12 +150,12 @@ type ED25519SignerVerifier struct {
 func LoadED25519SignerVerifier(priv ed25519.PrivateKey) (*ED25519SignerVerifier, error) {
 	signer, err := LoadED25519Signer(priv)
 	if err != nil {
-		return nil, errors.Wrap(err, "initializing signer")
+		return nil, fmt.Errorf("initializing signer: %w", err)
 	}
 	pub := priv.Public().(ed25519.PublicKey)
 	verifier, err := LoadED25519Verifier(pub)
 	if err != nil {
-		return nil, errors.Wrap(err, "initializing verifier")
+		return nil, fmt.Errorf("initializing verifier: %w", err)
 	}
 
 	return &ED25519SignerVerifier{

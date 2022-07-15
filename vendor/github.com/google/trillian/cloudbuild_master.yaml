@@ -29,7 +29,7 @@ steps:
   waitFor:
   - tag_mysql
 - id: build_db_server
-  name: gcr.io/kaniko-project/executor
+  name: gcr.io/kaniko-project/executor:v1.6.0
   args:
   - --dockerfile=examples/deployment/docker/db_server/Dockerfile
   - --destination=gcr.io/${PROJECT_ID}/db_server:${COMMIT_SHA}
@@ -39,7 +39,7 @@ steps:
   waitFor:
   - push_mysql
 - id: build_log_server
-  name: gcr.io/kaniko-project/executor
+  name: gcr.io/kaniko-project/executor:v1.6.0
   args:
   - --dockerfile=examples/deployment/docker/log_server/Dockerfile
   - --destination=gcr.io/${PROJECT_ID}/log_server:${COMMIT_SHA}
@@ -48,7 +48,7 @@ steps:
   - --cache-dir= # Cache is in Google Container Registry
   waitFor: ["-"]
 - id: build_log_signer
-  name: gcr.io/kaniko-project/executor
+  name: gcr.io/kaniko-project/executor:v1.6.0
   args:
   - --dockerfile=examples/deployment/docker/log_signer/Dockerfile
   - --destination=gcr.io/${PROJECT_ID}/log_signer:${COMMIT_SHA}

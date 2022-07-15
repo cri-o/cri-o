@@ -122,10 +122,7 @@ func NewPublicKey(r io.Reader) (*PublicKey, error) {
 	db := verify.NewDB()
 	for id, k := range root.Keys {
 		if err := db.AddKey(id, k); err != nil {
-			// TAP-12: https://github.com/theupdateframework/taps/blob/master/tap12.md
-			if _, ok := err.(verify.ErrWrongID); !ok {
-				return nil, err
-			}
+			return nil, err
 		}
 	}
 	for name, role := range root.Roles {
@@ -167,5 +164,10 @@ func (k PublicKey) SpecVersion() (string, error) {
 
 // EmailAddresses implements the pki.PublicKey interface
 func (k PublicKey) EmailAddresses() []string {
+	return nil
+}
+
+// Subjects implements the pki.PublicKey interface
+func (k PublicKey) Subjects() []string {
 	return nil
 }
