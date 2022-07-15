@@ -19,6 +19,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	types "github.com/cri-o/cri-o/server/cri/types"
+	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/fsnotify/fsnotify"
@@ -921,6 +922,17 @@ func (r *runtimeOCI) UpdateContainerStatus(c *Container) error {
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
 	if _, err = os.Stat(oomFilePath); err == nil {
 		c.state.OOMKilled = true
+
+		// Collect total metric
+		metrics.CRIOContainersOOMTotal.Inc()
+
+		// Collect metric by container name
+		counter, err := metrics.CRIOContainersOOM.GetMetricWithLabelValues(c.Name())
+		if err != nil {
+			log.Warnf(context.Background(), "Unable to write OOM metric by container: %v", err)
+		} else {
+			counter.Inc()
+		}
 	}
 
 	return nil
