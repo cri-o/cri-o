@@ -169,7 +169,7 @@ function expect_log_failure() {
 	expect_log_success $OPTION "$NEW_SECCOMP_PROFILE"
 }
 
-@test "reload config should fail with invalid 'seccomp_profile'" {
+@test "reload config should not fail with invalid 'seccomp_profile'" {
 	# given
 	NEW_SECCOMP_PROFILE=")"
 	OPTION="seccomp_profile"
@@ -179,7 +179,7 @@ function expect_log_failure() {
 	reload_crio
 
 	# then
-	expect_log_failure "unable to reload seccomp_profile"
+	wait_for_log "Specified profile does not exist on disk"
 }
 
 @test "reload config should succeed with 'apparmor_profile'" {

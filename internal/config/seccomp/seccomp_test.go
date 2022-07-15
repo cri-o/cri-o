@@ -79,13 +79,13 @@ var _ = t.Describe("Config", func() {
 		})
 
 		if sut != nil && !sut.IsDisabled() {
-			It("should fail with non-existing profile", func() {
+			It("should not fail with non-existing profile", func() {
 				// Given
 				// When
 				err := sut.LoadProfile("/proc/not/existing/file")
 
 				// Then
-				Expect(err).NotTo(BeNil())
+				Expect(err).To(BeNil())
 			})
 		}
 	})
