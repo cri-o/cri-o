@@ -2206,8 +2206,8 @@ go.etcd.io/etcd/server/v3/verify
 ## explicit; go 1.17
 go.etcd.io/etcd/tests/v3/framework/integration
 go.etcd.io/etcd/tests/v3/integration
-# go.etcd.io/etcd/v3 v3.5.4 => github.com/hanyuancheung/etcd/v3 v3.6.0-alpha.0.0.20220329071255-af9bd287fe0e
-## explicit; go 1.17
+# go.etcd.io/etcd/v3 v3.5.5-0.20220715002707-3237289fffb8
+## explicit; go 1.16
 go.etcd.io/etcd/v3
 # go.mongodb.org/mongo-driver v1.8.3
 ## explicit; go 1.10
@@ -3314,7 +3314,6 @@ sigs.k8s.io/zeitgeist/pkg/container
 sigs.k8s.io/zeitgeist/pkg/gitlab
 sigs.k8s.io/zeitgeist/upstream
 # github.com/u-root/u-root => github.com/u-root/u-root v0.8.1-0.20220307150114-d511ded1d944
-# go.etcd.io/etcd/v3 => github.com/hanyuancheung/etcd/v3 v3.6.0-alpha.0.0.20220329071255-af9bd287fe0e
 # k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20220624161656-6219eed24f3c
 # k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20220624161656-6219eed24f3c
 # k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20220624161656-6219eed24f3c
