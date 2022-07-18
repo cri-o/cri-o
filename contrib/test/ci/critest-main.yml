@@ -1,0 +1,20 @@
+---
+- hosts: localhost, all
+  remote_user: root
+  environment:
+    GOPATH: /usr/go
+  connection: local
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tasks:
+    - name: set up the system
+      include: "setup.yml"
+
+    - name: setup critest
+      include: "build/cri-tools.yml"
+      vars:
+        force_clone: true
+        cri_tools_git_version: "v1.24.2"
+    
+    - name: run critest validation and benchmarks
+      include: "critest.yml"

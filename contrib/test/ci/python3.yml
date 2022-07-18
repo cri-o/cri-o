@@ -1,0 +1,8 @@
+---
+- name: set facts
+  set_fact:
+    supports_python3: true
+    cacheable: true
+  when: (ansible_distribution == 'RedHat' and ansible_distribution_major_version|int >= 8) or
+        (ansible_distribution == 'CentOS' and ansible_distribution_major_version|int >= 8) or
+        (ansible_distribution == 'Fedora' and ansible_distribution_major_version|int >= 30)
