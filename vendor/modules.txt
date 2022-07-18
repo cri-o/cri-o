@@ -3173,7 +3173,7 @@ oras.land/oras-go/pkg/registry/remote/auth
 oras.land/oras-go/pkg/registry/remote/internal/errutil
 oras.land/oras-go/pkg/registry/remote/internal/syncutil
 oras.land/oras-go/pkg/target
-# sigs.k8s.io/bom v0.3.0-rc1.0.20220627190259-3850e8ff14fa
+# sigs.k8s.io/bom v0.3.0
 ## explicit; go 1.18
 sigs.k8s.io/bom/cmd/bom
 sigs.k8s.io/bom/cmd/bom/cmd
