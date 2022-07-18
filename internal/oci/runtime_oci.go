@@ -1340,6 +1340,10 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 	if tty {
 		pspec.Terminal = true
 	}
+	// Allow the same capabilities to be used as those from the actual container process.
+	if pspec.Capabilities != nil {
+		pspec.Capabilities.Inheritable = pspec.Capabilities.Bounding
+	}
 	processJSON, err := json.Marshal(pspec)
 	if err != nil {
 		return "", err

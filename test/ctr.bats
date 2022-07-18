@@ -669,6 +669,18 @@ function check_oci_annotation() {
 	crictl create "$newconfig" "$TESTDATA"/sandbox_config.json
 }
 
+@test "ctr exec caps" {
+	start_crio
+
+	jq '.linux.security_context.capabilities = { "add_capabilities": ["net_admin"] }' \
+		"$TESTDATA"/container_redis.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	cap_inh=$(crictl exec --sync "$ctr_id" cat /proc/self/status | grep CapInh: | cut -f2)
+	[[ "$cap_inh" != "0000000000000000"* ]]
+}
+
 @test "ctr with default list of capabilities from crio.conf" {
 	start_crio
 
