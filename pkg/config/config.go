@@ -1097,22 +1097,26 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 // ValidateDefaultRuntime ensures that the default runtime is set and valid.
 func (c *RuntimeConfig) ValidateDefaultRuntime() error {
-	// check we do have at least a runtime
-	if _, ok := c.Runtimes[c.DefaultRuntime]; !ok {
-		// Set the default runtime to "runc" if default_runtime is not set
-		if c.DefaultRuntime == "" {
-			logrus.Debugf("Defaulting to %q as the runtime since default_runtime is not set", defaultRuntime)
-			// The default config sets runc and its path in the runtimes map, so check for that
-			// first. If it does not exist then we add runc + its path to the runtimes map.
-			if _, ok := c.Runtimes[defaultRuntime]; !ok {
-				c.Runtimes[defaultRuntime] = defaultRuntimeHandler()
-			}
-			// Set the DefaultRuntime to runc so we don't fail further along in the code
-			c.DefaultRuntime = defaultRuntime
-		} else {
-			return fmt.Errorf("default_runtime set to %q, but no runtime entry table [crio.runtime.runtimes.%s] was found", c.DefaultRuntime, c.DefaultRuntime)
-		}
+	// If the default runtime is defined in the runtime entry table, then it is valid
+	if _, ok := c.Runtimes[c.DefaultRuntime]; ok {
+		return nil
 	}
+
+	// If a non-empty runtime does not exist in the runtime entry table, this is an error.
+	if c.DefaultRuntime != "" {
+		return fmt.Errorf("default_runtime set to %q, but no runtime entry table [crio.runtime.runtimes.%s] was found", c.DefaultRuntime, c.DefaultRuntime)
+	}
+
+	// Set the default runtime to "runc" if default_runtime is not set
+	logrus.Debugf("Defaulting to %q as the runtime since default_runtime is not set", defaultRuntime)
+	// The default config sets runc and its path in the runtimes map, so check for that
+	// first. If it does not exist then we add runc + its path to the runtimes map.
+	if _, ok := c.Runtimes[defaultRuntime]; !ok {
+		c.Runtimes[defaultRuntime] = defaultRuntimeHandler()
+	}
+	// Set the DefaultRuntime to runc so we don't fail further along in the code
+	c.DefaultRuntime = defaultRuntime
+
 	return nil
 }
 
