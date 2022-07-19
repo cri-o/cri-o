@@ -104,7 +104,7 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 	}
 
 	cgroupPath := fmt.Sprintf("%s/crio-conmon-%s", cgroupParent, cid)
-	control, err := cgroups.New(cgroupPath, &rspec.LinuxResources{})
+	control, err := cgroups.New(cgroupPath, &cgcfgs.Resources{})
 	if err != nil {
 		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 	}

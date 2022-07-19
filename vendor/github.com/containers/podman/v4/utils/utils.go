@@ -13,10 +13,8 @@ import (
 	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/godbus/dbus/v5"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -53,57 +51,6 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []stri
 	return nil
 }
 
-// ErrDetach is an error indicating that the user manually detached from the
-// container.
-var ErrDetach = define.ErrDetach
-
-// CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
-func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
-	buf := make([]byte, 32*1024)
-	for {
-		nr, er := src.Read(buf)
-		if nr > 0 {
-			preservBuf := []byte{}
-			for i, key := range keys {
-				preservBuf = append(preservBuf, buf[0:nr]...)
-				if nr != 1 || buf[0] != key {
-					break
-				}
-				if i == len(keys)-1 {
-					return 0, ErrDetach
-				}
-				nr, er = src.Read(buf)
-			}
-			var nw int
-			var ew error
-			if len(preservBuf) > 0 {
-				nw, ew = dst.Write(preservBuf)
-				nr = len(preservBuf)
-			} else {
-				nw, ew = dst.Write(buf[0:nr])
-			}
-			if nw > 0 {
-				written += int64(nw)
-			}
-			if ew != nil {
-				err = ew
-				break
-			}
-			if nr != nw {
-				err = io.ErrShortWrite
-				break
-			}
-		}
-		if er != nil {
-			if er != io.EOF {
-				err = er
-			}
-			break
-		}
-	}
-	return written, err
-}
-
 // UntarToFileSystem untars an os.file of a tarball to a destination in the filesystem
 func UntarToFileSystem(dest string, tarball *os.File, options *archive.TarOptions) error {
 	logrus.Debugf("untarring %s", tarball.Name())
@@ -114,7 +61,7 @@ func UntarToFileSystem(dest string, tarball *os.File, options *archive.TarOption
 func CreateTarFromSrc(source string, dest string) error {
 	file, err := os.Create(dest)
 	if err != nil {
-		return errors.Wrapf(err, "Could not create tarball file '%s'", dest)
+		return fmt.Errorf("could not create tarball file '%s': %w", dest, err)
 	}
 	defer file.Close()
 	return TarToFilesystem(source, file)
@@ -154,7 +101,7 @@ func RemoveScientificNotationFromFloat(x float64) (float64, error) {
 	}
 	result, err := strconv.ParseFloat(bigNum, 64)
 	if err != nil {
-		return x, errors.Wrapf(err, "unable to remove scientific number from calculations")
+		return x, fmt.Errorf("unable to remove scientific number from calculations: %w", err)
 	}
 	return result, nil
 }
@@ -181,11 +128,11 @@ func moveProcessPIDFileToScope(pidPath, slice, scope string) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "cannot read pid file %s", pidPath)
+		return fmt.Errorf("cannot read pid file %s: %w", pidPath, err)
 	}
 	pid, err := strconv.ParseUint(string(data), 10, 0)
 	if err != nil {
-		return errors.Wrapf(err, "cannot parse pid file %s", pidPath)
+		return fmt.Errorf("cannot parse pid file %s: %w", pidPath, err)
 	}
 
 	return moveProcessToScope(int(pid), slice, scope)
@@ -242,28 +189,4 @@ func MovePauseProcessToScope(pausePidPath string) {
 			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)
 		}
 	}
-}
-
-// CreateSCPCommand takes an existing command, appends the given arguments and returns a configured podman command for image scp
-func CreateSCPCommand(cmd *exec.Cmd, command []string) *exec.Cmd {
-	cmd.Args = append(cmd.Args, command...)
-	cmd.Env = os.Environ()
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	return cmd
-}
-
-// LoginUser starts the user process on the host so that image scp can use systemd-run
-func LoginUser(user string) (*exec.Cmd, error) {
-	sleep, err := exec.LookPath("sleep")
-	if err != nil {
-		return nil, err
-	}
-	machinectl, err := exec.LookPath("machinectl")
-	if err != nil {
-		return nil, err
-	}
-	cmd := exec.Command(machinectl, "shell", "-q", user+"@.host", sleep, "inf")
-	err = cmd.Start()
-	return cmd, err
 }

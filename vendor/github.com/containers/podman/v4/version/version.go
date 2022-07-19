@@ -27,7 +27,7 @@ const (
 // NOTE: remember to bump the version at the top
 // of the top-level README.md file when this is
 // bumped.
-var Version = semver.MustParse("4.1.1")
+var Version = semver.MustParse("4.2.0-rc1")
 
 // See https://docs.docker.com/engine/api/v1.40/
 // libpod compat handlers are expected to honor docker API versions
@@ -41,7 +41,7 @@ var APIVersion = map[Tree]map[Level]semver.Version{
 		MinimalAPI: semver.MustParse("4.0.0"),
 	},
 	Compat: {
-		CurrentAPI: semver.MustParse("1.40.0"),
+		CurrentAPI: semver.MustParse("1.41.0"),
 		MinimalAPI: semver.MustParse("1.24.0"),
 	},
 }

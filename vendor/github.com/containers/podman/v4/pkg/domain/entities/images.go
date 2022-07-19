@@ -46,14 +46,14 @@ type Image struct {
 	HealthCheck   *manifest.Schema2HealthConfig `json:",omitempty"`
 }
 
-func (i *Image) Id() string { // nolint
+func (i *Image) Id() string { //nolint:revive,stylecheck
 	return i.ID
 }
 
 // swagger:model LibpodImageSummary
 type ImageSummary struct {
 	ID          string `json:"Id"`
-	ParentId    string // nolint
+	ParentId    string //nolint:revive,stylecheck
 	RepoTags    []string
 	RepoDigests []string
 	Created     int64
@@ -66,13 +66,12 @@ type ImageSummary struct {
 	Dangling    bool `json:",omitempty"`
 
 	// Podman extensions
-	Names        []string `json:",omitempty"`
-	Digest       string   `json:",omitempty"`
-	ConfigDigest string   `json:",omitempty"`
-	History      []string `json:",omitempty"`
+	Names   []string `json:",omitempty"`
+	Digest  string   `json:",omitempty"`
+	History []string `json:",omitempty"`
 }
 
-func (i *ImageSummary) Id() string { // nolint
+func (i *ImageSummary) Id() string { //nolint:revive,stylecheck
 	return i.ID
 }
 
@@ -291,7 +290,7 @@ type ImageImportOptions struct {
 }
 
 type ImageImportReport struct {
-	Id string // nolint
+	Id string //nolint:revive,stylecheck
 }
 
 // ImageSaveOptions provide options for saving images.
@@ -326,6 +325,8 @@ type ImageScpOptions struct {
 	Image string `json:"image,omitempty"`
 	// User is used in conjunction with Transfer to determine if a valid user was given to save from/load into
 	User string `json:"user,omitempty"`
+	// Tag is the name to be used for the image on the destination
+	Tag string `json:"tag,omitempty"`
 }
 
 // ImageScpConnections provides the ssh related information used in remote image transfer
@@ -398,8 +399,7 @@ type ImageUnmountOptions struct {
 
 // ImageMountReport describes the response from image mount
 type ImageMountReport struct {
-	Err          error
-	Id           string // nolint
+	Id           string //nolint:revive,stylecheck
 	Name         string
 	Repositories []string
 	Path         string
@@ -408,5 +408,5 @@ type ImageMountReport struct {
 // ImageUnmountReport describes the response from umounting an image
 type ImageUnmountReport struct {
 	Err error
-	Id  string // nolint
+	Id  string //nolint:revive,stylecheck
 }

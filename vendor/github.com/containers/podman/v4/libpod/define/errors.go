@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/pkg/util"
 )
 
 var (
@@ -23,6 +24,10 @@ var (
 	// ErrNoSuchExecSession indicates that the requested exec session does
 	// not exist.
 	ErrNoSuchExecSession = errors.New("no such exec session")
+
+	// ErrNoSuchExitCode indicates that the requested container exit code
+	// does not exist.
+	ErrNoSuchExitCode = errors.New("no such exit code")
 
 	// ErrDepExists indicates that the current object has dependencies and
 	// cannot be removed before them.
@@ -88,7 +93,7 @@ var (
 
 	// ErrDetach indicates that an attach session was manually detached by
 	// the user.
-	ErrDetach = errors.New("detached from container")
+	ErrDetach = util.ErrDetach
 
 	// ErrWillDeadlock indicates that the requested operation will cause a
 	// deadlock. This is usually caused by upgrade issues, and is resolved

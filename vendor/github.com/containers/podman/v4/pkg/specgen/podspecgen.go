@@ -20,6 +20,8 @@ type PodBasicConfig struct {
 	// all containers in the pod as long as the UTS namespace is shared.
 	// Optional.
 	Hostname string `json:"hostname,omitempty"`
+	// ExitPolicy determines the pod's exit and stop behaviour.
+	ExitPolicy string `json:"exit_policy,omitempty"`
 	// Labels are key-value pairs that are used to add metadata to pods.
 	// Optional.
 	Labels map[string]string `json:"labels,omitempty"`
@@ -75,6 +77,8 @@ type PodBasicConfig struct {
 	// Any containers created within the pod will inherit the pod's userns settings.
 	// Optional
 	Userns Namespace `json:"userns,omitempty"`
+	// UtsNs is used to indicate the UTS mode the pod is in
+	UtsNs Namespace `json:"utsns,omitempty"`
 	// Devices contains user specified Devices to be added to the Pod
 	Devices []string `json:"pod_devices,omitempty"`
 	// Sysctl sets kernel parameters for the pod
@@ -181,6 +185,10 @@ type PodStorageConfig struct {
 	// comma-separated options. Valid options are 'ro', 'rw', and 'z'.
 	// Options will be used for all volumes sourced from the container.
 	VolumesFrom []string `json:"volumes_from,omitempty"`
+	// ShmSize is the size of the tmpfs to mount in at /dev/shm, in bytes.
+	// Conflicts with ShmSize if IpcNS is not private.
+	// Optional.
+	ShmSize *int64 `json:"shm_size,omitempty"`
 }
 
 // PodCgroupConfig contains configuration options about a pod's cgroups.
@@ -203,6 +211,9 @@ type PodSpecGenerator struct {
 	PodStorageConfig
 	PodSecurityConfig
 	InfraContainerSpec *SpecGenerator `json:"-"`
+
+	// The ID of the pod's service container.
+	ServiceContainerID string `json:"serviceContainerID,omitempty"`
 }
 
 type PodResourceConfig struct {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
+	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -40,7 +41,7 @@ func populateContainerCgroupStatsFromPath(cgroupPath string, stats *types.Contai
 	return err
 }
 
-func cgroupStatsFromPath(cgroupPath string) (*cgroups.Metrics, error) {
+func cgroupStatsFromPath(cgroupPath string) (*libctrcgroups.Stats, error) {
 	cg, err := cgroups.Load(cgroupPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load cgroup at %s: %w", cgroupPath, err)
@@ -49,16 +50,16 @@ func cgroupStatsFromPath(cgroupPath string) (*cgroups.Metrics, error) {
 	return cg.Stat()
 }
 
-func createCPUStats(systemNano int64, cgroupStats *cgroups.Metrics) *types.CpuUsage {
+func createCPUStats(systemNano int64, cgroupStats *libctrcgroups.Stats) *types.CpuUsage {
 	return &types.CpuUsage{
 		Timestamp:            systemNano,
-		UsageCoreNanoSeconds: &types.UInt64Value{Value: cgroupStats.CPU.Usage.Total},
+		UsageCoreNanoSeconds: &types.UInt64Value{Value: cgroupStats.CpuStats.CpuUsage.TotalUsage},
 	}
 }
 
-func createMemoryStats(systemNano int64, cgroupStats *cgroups.Metrics, cgroupPath string) (*types.MemoryUsage, error) {
-	memUsage := cgroupStats.Memory.Usage.Usage
-	memLimit := MemLimitGivenSystem(cgroupStats.Memory.Usage.Limit)
+func createMemoryStats(systemNano int64, cgroupStats *libctrcgroups.Stats, cgroupPath string) (*types.MemoryUsage, error) {
+	memUsage := cgroupStats.MemoryStats.Usage.Usage
+	memLimit := MemLimitGivenSystem(cgroupStats.MemoryStats.Usage.Limit)
 
 	memory := &types.MemoryUsage{
 		Timestamp:       systemNano,
@@ -160,9 +161,9 @@ func UpdateWithMemoryStatsFromFile(memoryStatPath, inactiveFileSearchString stri
 	return nil
 }
 
-func createProcessUsage(systemNano int64, cgroupStats *cgroups.Metrics) *types.ProcessUsage {
+func createProcessUsage(systemNano int64, cgroupStats *libctrcgroups.Stats) *types.ProcessUsage {
 	return &types.ProcessUsage{
 		Timestamp:    systemNano,
-		ProcessCount: &types.UInt64Value{Value: cgroupStats.Pids.Current},
+		ProcessCount: &types.UInt64Value{Value: cgroupStats.PidsStats.Current},
 	}
 }

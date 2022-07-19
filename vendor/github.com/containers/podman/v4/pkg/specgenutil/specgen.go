@@ -2,6 +2,7 @@ package specgenutil
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -22,7 +23,6 @@ import (
 	"github.com/docker/docker/opts"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 func getCPULimits(c *entities.ContainerCreateOptions) *specs.LinuxCPU {
@@ -78,7 +78,7 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 	if b := c.BlkIOWeight; len(b) > 0 {
 		u, err := strconv.ParseUint(b, 10, 16)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid value for blkio-weight")
+			return nil, fmt.Errorf("invalid value for blkio-weight: %w", err)
 		}
 		nu := uint16(u)
 		io.Weight = &nu
@@ -143,7 +143,7 @@ func getMemoryLimits(c *entities.ContainerCreateOptions) (*specs.LinuxMemory, er
 	if m := c.Memory; len(m) > 0 {
 		ml, err := units.RAMInBytes(m)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid value for memory")
+			return nil, fmt.Errorf("invalid value for memory: %w", err)
 		}
 		LimitToSwap(memory, c.MemorySwap, ml)
 		hasLimits = true
@@ -151,7 +151,7 @@ func getMemoryLimits(c *entities.ContainerCreateOptions) (*specs.LinuxMemory, er
 	if m := c.MemoryReservation; len(m) > 0 {
 		mr, err := units.RAMInBytes(m)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid value for memory")
+			return nil, fmt.Errorf("invalid value for memory: %w", err)
 		}
 		memory.Reservation = &mr
 		hasLimits = true
@@ -164,7 +164,7 @@ func getMemoryLimits(c *entities.ContainerCreateOptions) (*specs.LinuxMemory, er
 			ms, err = units.RAMInBytes(m)
 			memory.Swap = &ms
 			if err != nil {
-				return nil, errors.Wrapf(err, "invalid value for memory")
+				return nil, fmt.Errorf("invalid value for memory: %w", err)
 			}
 			hasLimits = true
 		}
@@ -229,9 +229,11 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 }
 
 func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions, args []string) error {
-	var (
-		err error
-	)
+	rtc, err := config.Default()
+	if err != nil {
+		return err
+	}
+
 	// validate flags as needed
 	if err := validate(c); err != nil {
 		return err
@@ -246,7 +248,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	if len(c.HealthCmd) > 0 {
 		if c.NoHealthCheck {
-			return errors.New("Cannot specify both --no-healthcheck and --health-cmd")
+			return errors.New("cannot specify both --no-healthcheck and --health-cmd")
 		}
 		s.HealthConfig, err = makeHealthCheckFromCli(c.HealthCmd, c.HealthInterval, c.HealthRetries, c.HealthTimeout, c.HealthStartPeriod)
 		if err != nil {
@@ -310,13 +312,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.PublishExposedPorts = c.PublishAll
 	}
 
-	if len(s.Pod) == 0 {
+	if len(s.Pod) == 0 || len(c.Pod) > 0 {
 		s.Pod = c.Pod
 	}
 
 	if len(c.PodIDFile) > 0 {
 		if len(s.Pod) > 0 {
-			return errors.New("Cannot specify both --pod and --pod-id-file")
+			return errors.New("cannot specify both --pod and --pod-id-file")
 		}
 		podID, err := ReadPodIDFile(c.PodIDFile)
 		if err != nil {
@@ -355,7 +357,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	// any case.
 	osEnv, err := envLib.ParseSlice(os.Environ())
 	if err != nil {
-		return errors.Wrap(err, "error parsing host environment variables")
+		return fmt.Errorf("error parsing host environment variables: %w", err)
 	}
 
 	if !s.EnvHost {
@@ -388,7 +390,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	// LABEL VARIABLES
 	labels, err := parse.GetAllLabels(c.LabelFile, c.Label)
 	if err != nil {
-		return errors.Wrapf(err, "unable to process labels")
+		return fmt.Errorf("unable to process labels: %w", err)
 	}
 
 	if systemdUnit, exists := osEnv[systemdDefine.EnvVariable]; exists {
@@ -412,7 +414,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	for _, annotation := range c.Annotation {
 		splitAnnotation := strings.SplitN(annotation, "=", 2)
 		if len(splitAnnotation) < 2 {
-			return errors.Errorf("Annotations must be formatted KEY=VALUE")
+			return errors.New("annotations must be formatted KEY=VALUE")
 		}
 		annotations[splitAnnotation[0]] = splitAnnotation[1]
 	}
@@ -425,7 +427,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		for _, opt := range c.StorageOpts {
 			split := strings.SplitN(opt, "=", 2)
 			if len(split) != 2 {
-				return errors.Errorf("storage-opt must be formatted KEY=VALUE")
+				return errors.New("storage-opt must be formatted KEY=VALUE")
 			}
 			opts[split[0]] = split[1]
 		}
@@ -457,7 +459,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if c.ShmSize != "" {
 		var m opts.MemBytes
 		if err := m.Set(c.ShmSize); err != nil {
-			return errors.Wrapf(err, "unable to translate --shm-size")
+			return fmt.Errorf("unable to translate --shm-size: %w", err)
 		}
 		val := m.Value()
 		s.ShmSize = &val
@@ -479,8 +481,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.HostUsers) == 0 || len(c.HostUsers) != 0 {
 		s.HostUsers = c.HostUsers
 	}
-	if len(s.ImageVolumeMode) == 0 || len(c.ImageVolume) != 0 {
-		s.ImageVolumeMode = c.ImageVolume
+	if len(c.ImageVolume) != 0 {
+		if len(s.ImageVolumeMode) == 0 {
+			s.ImageVolumeMode = c.ImageVolume
+		}
+	}
+	if len(s.ImageVolumeMode) == 0 {
+		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode
 	}
 	if s.ImageVolumeMode == "bind" {
 		s.ImageVolumeMode = "anonymous"
@@ -524,7 +531,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	for _, unified := range c.CgroupConf {
 		splitUnified := strings.SplitN(unified, "=", 2)
 		if len(splitUnified) < 2 {
-			return errors.Errorf("--cgroup-conf must be formatted KEY=VALUE")
+			return errors.New("--cgroup-conf must be formatted KEY=VALUE")
 		}
 		unifieds[splitUnified[0]] = splitUnified[1]
 	}
@@ -550,11 +557,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.CgroupsMode = c.CgroupsMode
 	}
 	if s.CgroupsMode == "" {
-		rtc, err := config.Default()
-		if err != nil {
-			return err
-		}
-
 		s.CgroupsMode = rtc.Cgroups()
 	}
 
@@ -606,7 +608,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	for _, ctl := range c.Sysctl {
 		splitCtl := strings.SplitN(ctl, "=", 2)
 		if len(splitCtl) < 2 {
-			return errors.Errorf("invalid sysctl value %q", ctl)
+			return fmt.Errorf("invalid sysctl value %q", ctl)
 		}
 		sysmap[splitCtl[0]] = splitCtl[1]
 	}
@@ -729,7 +731,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		}
 		ul, err := units.ParseUlimit(u)
 		if err != nil {
-			return errors.Wrapf(err, "ulimit option %q requires name=SOFT:HARD, failed to be parsed", u)
+			return fmt.Errorf("ulimit option %q requires name=SOFT:HARD, failed to be parsed: %w", u, err)
 		}
 		rl := specs.POSIXRlimit{
 			Type: ul.Name,
@@ -743,7 +745,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	for _, o := range c.LogOptions {
 		split := strings.SplitN(o, "=", 2)
 		if len(split) < 2 {
-			return errors.Errorf("invalid log option %q", o)
+			return fmt.Errorf("invalid log option %q", o)
 		}
 		switch strings.ToLower(split[0]) {
 		case "driver":
@@ -780,19 +782,19 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 			// No retries specified
 		case 2:
 			if strings.ToLower(splitRestart[0]) != "on-failure" {
-				return errors.Errorf("restart policy retries can only be specified with on-failure restart policy")
+				return errors.New("restart policy retries can only be specified with on-failure restart policy")
 			}
 			retries, err := strconv.Atoi(splitRestart[1])
 			if err != nil {
-				return errors.Wrapf(err, "error parsing restart policy retry count")
+				return fmt.Errorf("error parsing restart policy retry count: %w", err)
 			}
 			if retries < 0 {
-				return errors.Errorf("must specify restart policy retry count as a number greater than 0")
+				return errors.New("must specify restart policy retry count as a number greater than 0")
 			}
 			var retriesUint = uint(retries)
 			s.RestartRetries = &retriesUint
 		default:
-			return errors.Errorf("invalid restart policy: may specify retries at most once")
+			return errors.New("invalid restart policy: may specify retries at most once")
 		}
 		s.RestartPolicy = splitRestart[0]
 	}
@@ -867,27 +869,27 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	}
 	// Every healthcheck requires a command
 	if len(cmdArr) == 0 {
-		return nil, errors.New("Must define a healthcheck command for all healthchecks")
+		return nil, errors.New("must define a healthcheck command for all healthchecks")
 	}
 
 	var concat string
-	if cmdArr[0] == "CMD" || cmdArr[0] == "none" { // this is for compat, we are already split properly for most compat cases
+	if strings.ToUpper(cmdArr[0]) == define.HealthConfigTestCmd || strings.ToUpper(cmdArr[0]) == define.HealthConfigTestNone { // this is for compat, we are already split properly for most compat cases
 		cmdArr = strings.Fields(inCmd)
-	} else if cmdArr[0] != "CMD-SHELL" { // this is for podman side of things, won't contain the keywords
+	} else if strings.ToUpper(cmdArr[0]) != define.HealthConfigTestCmdShell { // this is for podman side of things, won't contain the keywords
 		if isArr && len(cmdArr) > 1 { // an array of consecutive commands
-			cmdArr = append([]string{"CMD"}, cmdArr...)
+			cmdArr = append([]string{define.HealthConfigTestCmd}, cmdArr...)
 		} else { // one singular command
 			if len(cmdArr) == 1 {
 				concat = cmdArr[0]
 			} else {
 				concat = strings.Join(cmdArr[0:], " ")
 			}
-			cmdArr = append([]string{"CMD-SHELL"}, concat)
+			cmdArr = append([]string{define.HealthConfigTestCmdShell}, concat)
 		}
 	}
 
-	if cmdArr[0] == "none" { // if specified to remove healtcheck
-		cmdArr = []string{"NONE"}
+	if strings.ToUpper(cmdArr[0]) == define.HealthConfigTestNone { // if specified to remove healtcheck
+		cmdArr = []string{define.HealthConfigTestNone}
 	}
 
 	// healthcheck is by default an array, so we simply pass the user input
@@ -900,7 +902,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	}
 	intervalDuration, err := time.ParseDuration(interval)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid healthcheck-interval")
+		return nil, fmt.Errorf("invalid healthcheck-interval: %w", err)
 	}
 
 	hc.Interval = intervalDuration
@@ -911,7 +913,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	hc.Retries = int(retries)
 	timeoutDuration, err := time.ParseDuration(timeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid healthcheck-timeout")
+		return nil, fmt.Errorf("invalid healthcheck-timeout: %w", err)
 	}
 	if timeoutDuration < time.Duration(1) {
 		return nil, errors.New("healthcheck-timeout must be at least 1 second")
@@ -920,7 +922,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 
 	startPeriodDuration, err := time.ParseDuration(startPeriod)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid healthcheck-start-period")
+		return nil, fmt.Errorf("invalid healthcheck-start-period: %w", err)
 	}
 	if startPeriodDuration < time.Duration(0) {
 		return nil, errors.New("healthcheck-start-period must be 0 seconds or greater")
@@ -1033,17 +1035,17 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 		for _, val := range split {
 			kv := strings.SplitN(val, "=", 2)
 			if len(kv) < 2 {
-				return nil, nil, errors.Wrapf(secretParseError, "option %s must be in form option=value", val)
+				return nil, nil, fmt.Errorf("option %s must be in form option=value: %w", val, secretParseError)
 			}
 			switch kv[0] {
 			case "source":
 				source = kv[1]
 			case "type":
 				if secretType != "" {
-					return nil, nil, errors.Wrap(secretParseError, "cannot set more than one secret type")
+					return nil, nil, fmt.Errorf("cannot set more than one secret type: %w", secretParseError)
 				}
 				if kv[1] != "mount" && kv[1] != "env" {
-					return nil, nil, errors.Wrapf(secretParseError, "type %s is invalid", kv[1])
+					return nil, nil, fmt.Errorf("type %s is invalid: %w", kv[1], secretParseError)
 				}
 				secretType = kv[1]
 			case "target":
@@ -1052,26 +1054,26 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 				mountOnly = true
 				mode64, err := strconv.ParseUint(kv[1], 8, 32)
 				if err != nil {
-					return nil, nil, errors.Wrapf(secretParseError, "mode %s invalid", kv[1])
+					return nil, nil, fmt.Errorf("mode %s invalid: %w", kv[1], secretParseError)
 				}
 				mode = uint32(mode64)
 			case "uid", "UID":
 				mountOnly = true
 				uid64, err := strconv.ParseUint(kv[1], 10, 32)
 				if err != nil {
-					return nil, nil, errors.Wrapf(secretParseError, "UID %s invalid", kv[1])
+					return nil, nil, fmt.Errorf("UID %s invalid: %w", kv[1], secretParseError)
 				}
 				uid = uint32(uid64)
 			case "gid", "GID":
 				mountOnly = true
 				gid64, err := strconv.ParseUint(kv[1], 10, 32)
 				if err != nil {
-					return nil, nil, errors.Wrapf(secretParseError, "GID %s invalid", kv[1])
+					return nil, nil, fmt.Errorf("GID %s invalid: %w", kv[1], secretParseError)
 				}
 				gid = uint32(gid64)
 
 			default:
-				return nil, nil, errors.Wrapf(secretParseError, "option %s invalid", val)
+				return nil, nil, fmt.Errorf("option %s invalid: %w", val, secretParseError)
 			}
 		}
 
@@ -1079,7 +1081,7 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 			secretType = "mount"
 		}
 		if source == "" {
-			return nil, nil, errors.Wrapf(secretParseError, "no source found %s", val)
+			return nil, nil, fmt.Errorf("no source found %s: %w", val, secretParseError)
 		}
 		if secretType == "mount" {
 			mountSecret := specgen.Secret{
@@ -1093,7 +1095,7 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 		}
 		if secretType == "env" {
 			if mountOnly {
-				return nil, nil, errors.Wrap(secretParseError, "UID, GID, Mode options cannot be set with secret type env")
+				return nil, nil, fmt.Errorf("UID, GID, Mode options cannot be set with secret type env: %w", secretParseError)
 			}
 			if target == "" {
 				target = source
@@ -1132,17 +1134,21 @@ func parseLinuxResourcesDeviceAccess(device string) (specs.LinuxDeviceCgroup, er
 	}
 
 	number := strings.SplitN(value[1], ":", 2)
-	i, err := strconv.ParseInt(number[0], 10, 64)
-	if err != nil {
-		return specs.LinuxDeviceCgroup{}, err
-	}
-	major = &i
-	if len(number) == 2 && number[1] != "*" {
-		i, err := strconv.ParseInt(number[1], 10, 64)
+	if number[0] != "*" {
+		i, err := strconv.ParseUint(number[0], 10, 64)
 		if err != nil {
 			return specs.LinuxDeviceCgroup{}, err
 		}
-		minor = &i
+		m := int64(i)
+		major = &m
+	}
+	if len(number) == 2 && number[1] != "*" {
+		i, err := strconv.ParseUint(number[1], 10, 64)
+		if err != nil {
+			return specs.LinuxDeviceCgroup{}, err
+		}
+		m := int64(i)
+		minor = &m
 	}
 	access = value[2]
 	for _, c := range strings.Split(access, "") {

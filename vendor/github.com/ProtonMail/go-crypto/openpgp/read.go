@@ -119,14 +119,16 @@ ParsePackets:
 			default:
 				continue
 			}
-			var keys []Key
-			if p.KeyId == 0 {
-				keys = keyring.DecryptionKeys()
-			} else {
-				keys = keyring.KeysById(p.KeyId)
-			}
-			for _, k := range keys {
-				pubKeys = append(pubKeys, keyEnvelopePair{k, p})
+			if keyring != nil {
+				var keys []Key
+				if p.KeyId == 0 {
+					keys = keyring.DecryptionKeys()
+				} else {
+					keys = keyring.KeysById(p.KeyId)
+				}
+				for _, k := range keys {
+					pubKeys = append(pubKeys, keyEnvelopePair{k, p})
+				}
 			}
 		case *packet.SymmetricallyEncrypted, *packet.AEADEncrypted:
 			edp = p.(packet.EncryptedDataPacket)
@@ -268,9 +270,11 @@ FindLiteralData:
 
 			md.IsSigned = true
 			md.SignedByKeyId = p.KeyId
-			keys := keyring.KeysByIdUsage(p.KeyId, packet.KeyFlagSign)
-			if len(keys) > 0 {
-				md.SignedBy = &keys[0]
+			if keyring != nil {
+				keys := keyring.KeysByIdUsage(p.KeyId, packet.KeyFlagSign)
+				if len(keys) > 0 {
+					md.SignedBy = &keys[0]
+				}
 			}
 		case *packet.LiteralData:
 			md.LiteralData = p

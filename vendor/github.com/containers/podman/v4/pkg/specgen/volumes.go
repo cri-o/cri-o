@@ -1,11 +1,13 @@
 package specgen
 
 import (
+	"errors"
+	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/common/pkg/parse"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,7 +38,7 @@ type OverlayVolume struct {
 
 // ImageVolume is a volume based on a container image.  The container image is
 // first mounted on the host and is then bind-mounted into the container.  An
-// ImageVolume is always mounted read only.
+// ImageVolume is always mounted read-only.
 type ImageVolume struct {
 	// Source is the source of the image volume.  The image can be referred
 	// to by name and by ID.
@@ -49,14 +51,13 @@ type ImageVolume struct {
 
 // GenVolumeMounts parses user input into mounts, volumes and overlay volumes
 func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*NamedVolume, map[string]*OverlayVolume, error) {
-	errDuplicateDest := errors.Errorf("duplicate mount destination")
+	errDuplicateDest := errors.New("duplicate mount destination")
 
 	mounts := make(map[string]spec.Mount)
 	volumes := make(map[string]*NamedVolume)
 	overlayVolumes := make(map[string]*OverlayVolume)
 
-	volumeFormatErr := errors.Errorf("incorrect volume format, should be [host-dir:]ctr-dir[:option]")
-
+	volumeFormatErr := errors.New("incorrect volume format, should be [host-dir:]ctr-dir[:option]")
 	for _, vol := range volumeFlag {
 		var (
 			options []string
@@ -67,10 +68,24 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 
 		splitVol := SplitVolumeString(vol)
 		if len(splitVol) > 3 {
-			return nil, nil, nil, errors.Wrapf(volumeFormatErr, vol)
+			return nil, nil, nil, fmt.Errorf("%v: %w", vol, volumeFormatErr)
 		}
 
 		src = splitVol[0]
+
+		// Support relative paths beginning with ./
+		if strings.HasPrefix(src, "./") {
+			path, err := filepath.EvalSymlinks(src)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			src, err = filepath.Abs(path)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			splitVol[0] = src
+		}
+
 		if len(splitVol) == 1 {
 			// This is an anonymous named volume. Only thing given
 			// is destination.
@@ -97,6 +112,8 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			// This is not a named volume
 			overlayFlag := false
 			chownFlag := false
+			upperDirFlag := false
+			workDirFlag := false
 			for _, o := range options {
 				if o == "O" {
 					overlayFlag = true
@@ -105,8 +122,16 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 					if strings.Contains(joinedOpts, "U") {
 						chownFlag = true
 					}
-
-					if len(options) > 2 || (len(options) == 2 && !chownFlag) {
+					if strings.Contains(joinedOpts, "upperdir") {
+						upperDirFlag = true
+					}
+					if strings.Contains(joinedOpts, "workdir") {
+						workDirFlag = true
+					}
+					if (workDirFlag && !upperDirFlag) || (!workDirFlag && upperDirFlag) {
+						return nil, nil, nil, errors.New("must set both `upperdir` and `workdir`")
+					}
+					if len(options) > 2 && !(len(options) == 3 && upperDirFlag && workDirFlag) || (len(options) == 2 && !chownFlag) {
 						return nil, nil, nil, errors.New("can't use 'O' with other options")
 					}
 				}
@@ -115,11 +140,17 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 				// This is a overlay volume
 				newOverlayVol := new(OverlayVolume)
 				newOverlayVol.Destination = dest
-				newOverlayVol.Source = src
+				// convert src to absolute path so we don't end up passing
+				// relative values as lowerdir for overlay mounts
+				source, err := filepath.Abs(src)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("failed while resolving absolute path for source %v for overlay mount: %w", src, err)
+				}
+				newOverlayVol.Source = source
 				newOverlayVol.Options = options
 
 				if _, ok := overlayVolumes[newOverlayVol.Destination]; ok {
-					return nil, nil, nil, errors.Wrapf(errDuplicateDest, newOverlayVol.Destination)
+					return nil, nil, nil, fmt.Errorf("%v: %w", newOverlayVol.Destination, errDuplicateDest)
 				}
 				overlayVolumes[newOverlayVol.Destination] = newOverlayVol
 			} else {
@@ -130,7 +161,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 					Options:     options,
 				}
 				if _, ok := mounts[newMount.Destination]; ok {
-					return nil, nil, nil, errors.Wrapf(errDuplicateDest, newMount.Destination)
+					return nil, nil, nil, fmt.Errorf("%v: %w", newMount.Destination, errDuplicateDest)
 				}
 				mounts[newMount.Destination] = newMount
 			}
@@ -142,7 +173,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			newNamedVol.Options = options
 
 			if _, ok := volumes[newNamedVol.Dest]; ok {
-				return nil, nil, nil, errors.Wrapf(errDuplicateDest, newNamedVol.Dest)
+				return nil, nil, nil, fmt.Errorf("%v: %w", newNamedVol.Dest, errDuplicateDest)
 			}
 			volumes[newNamedVol.Dest] = newNamedVol
 		}

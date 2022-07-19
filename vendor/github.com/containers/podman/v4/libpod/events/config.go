@@ -2,9 +2,8 @@ package events
 
 import (
 	"context"
+	"errors"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // EventerType ...
@@ -40,6 +39,8 @@ type Event struct {
 	Time time.Time
 	// Type of event that occurred
 	Type Type
+	// Health status of the current container
+	HealthStatus string `json:"health_status,omitempty"`
 
 	Details
 }
@@ -98,6 +99,8 @@ type Type string
 // Status describes the actual event action (stop, start, create, kill)
 type Status string
 
+// When updating this list below please also update the shell completion list in
+// cmd/podman/common/completion.go and the StringToXXX function in events.go.
 const (
 	// Container - event is related to containers
 	Container Type = "container"
@@ -139,6 +142,8 @@ const (
 	Exited Status = "died"
 	// Export ...
 	Export Status = "export"
+	// HealthStatus ...
+	HealthStatus Status = "health_status"
 	// History ...
 	History Status = "history"
 	// Import ...

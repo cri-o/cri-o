@@ -259,9 +259,7 @@ type HealthCheckLog struct {
 // as possible from the spec and container config.
 // Some things cannot be inferred. These will be populated by spec annotations
 // (if available).
-// Field names are fixed for compatibility and cannot be changed.
-// As such, silence lint warnings about them.
-//nolint
+//nolint:revive,stylecheck // Field names are fixed for compatibility and cannot be changed.
 type InspectContainerHostConfig struct {
 	// Binds contains an array of user-added mounts.
 	// Both volume mounts and named volumes are included.
@@ -683,6 +681,7 @@ type InspectContainerData struct {
 	NetworkSettings *InspectNetworkSettings     `json:"NetworkSettings"`
 	Namespace       string                      `json:"Namespace"`
 	IsInfra         bool                        `json:"IsInfra"`
+	IsService       bool                        `json:"IsService"`
 	Config          *InspectContainerConfig     `json:"Config"`
 	HostConfig      *InspectContainerHostConfig `json:"HostConfig"`
 }

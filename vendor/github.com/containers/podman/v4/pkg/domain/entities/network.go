@@ -22,7 +22,7 @@ type NetworkReloadOptions struct {
 
 // NetworkReloadReport describes the results of reloading a container network.
 type NetworkReloadReport struct {
-	// nolint:stylecheck,revive
+	//nolint:stylecheck,revive
 	Id  string
 	Err error
 }
@@ -81,8 +81,7 @@ type NetworkPruneReport struct {
 	Error error
 }
 
-// NetworkPruneOptions describes options for pruning
-// unused cni networks
+// NetworkPruneOptions describes options for pruning unused networks
 type NetworkPruneOptions struct {
 	Filters map[string][]string
 }

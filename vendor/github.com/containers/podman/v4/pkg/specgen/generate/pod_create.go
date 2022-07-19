@@ -3,118 +3,31 @@ package generate
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 
-	buildahDefine "github.com/containers/buildah/define"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgen"
-	"github.com/pkg/errors"
+	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/sirupsen/logrus"
 )
-
-func buildPauseImage(rt *libpod.Runtime, rtConfig *config.Config) (string, error) {
-	version, err := define.GetVersion()
-	if err != nil {
-		return "", err
-	}
-	imageName := fmt.Sprintf("localhost/podman-pause:%s-%d", version.Version, version.Built)
-
-	// First check if the image has already been built.
-	if _, _, err := rt.LibimageRuntime().LookupImage(imageName, nil); err == nil {
-		return imageName, nil
-	}
-
-	// Also look into the path as some distributions install catatonit in
-	// /usr/bin.
-	catatonitPath, err := rtConfig.FindHelperBinary("catatonit", true)
-	if err != nil {
-		return "", fmt.Errorf("finding pause binary: %w", err)
-	}
-
-	buildContent := fmt.Sprintf(`FROM scratch
-COPY %s /catatonit
-ENTRYPOINT ["/catatonit", "-P"]`, catatonitPath)
-
-	tmpF, err := ioutil.TempFile("", "pause.containerfile")
-	if err != nil {
-		return "", err
-	}
-	if _, err := tmpF.WriteString(buildContent); err != nil {
-		return "", err
-	}
-	if err := tmpF.Close(); err != nil {
-		return "", err
-	}
-	defer os.Remove(tmpF.Name())
-
-	buildOptions := buildahDefine.BuildOptions{
-		CommonBuildOpts: &buildahDefine.CommonBuildOptions{},
-		Output:          imageName,
-		Quiet:           true,
-		IgnoreFile:      "/dev/null", // makes sure to not read a local .ignorefile (see #13529)
-		IIDFile:         "/dev/null", // prevents Buildah from writing the ID on stdout
-		IDMappingOptions: &buildahDefine.IDMappingOptions{
-			// Use the host UID/GID mappings for the build to avoid issues when
-			// running with a custom mapping (BZ #2083997).
-			HostUIDMapping: true,
-			HostGIDMapping: true,
-		},
-	}
-	if _, _, err := rt.Build(context.Background(), buildOptions, tmpF.Name()); err != nil {
-		return "", err
-	}
-
-	return imageName, nil
-}
-
-func pullOrBuildInfraImage(p *entities.PodSpec, rt *libpod.Runtime) error {
-	if p.PodSpecGen.NoInfra {
-		return nil
-	}
-
-	rtConfig, err := rt.GetConfigNoCopy()
-	if err != nil {
-		return err
-	}
-
-	// NOTE: we need pull down the infra image if it was explicitly set by
-	// the user (or containers.conf) to the non-default one.
-	imageName := p.PodSpecGen.InfraImage
-	if imageName == "" {
-		imageName = rtConfig.Engine.InfraImage
-	}
-
-	if imageName != "" {
-		_, err := rt.LibimageRuntime().Pull(context.Background(), imageName, config.PullPolicyMissing, nil)
-		if err != nil {
-			return err
-		}
-	} else {
-		name, err := buildPauseImage(rt, rtConfig)
-		if err != nil {
-			return fmt.Errorf("building local pause image: %w", err)
-		}
-		imageName = name
-	}
-
-	p.PodSpecGen.InfraImage = imageName
-	p.PodSpecGen.InfraContainerSpec.RawImageName = imageName
-
-	return nil
-}
 
 func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 	if err := p.PodSpecGen.Validate(); err != nil {
 		return nil, err
 	}
 
-	if err := pullOrBuildInfraImage(p, rt); err != nil {
-		return nil, err
+	if !p.PodSpecGen.NoInfra {
+		imageName, err := PullOrBuildInfraImage(rt, p.PodSpecGen.InfraImage)
+		if err != nil {
+			return nil, err
+		}
+		p.PodSpecGen.InfraImage = imageName
+		p.PodSpecGen.InfraContainerSpec.RawImageName = imageName
 	}
 
 	if !p.PodSpecGen.NoInfra && p.PodSpecGen.InfraContainerSpec != nil {
@@ -146,6 +59,7 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		spec.Pod = pod.ID()
 		opts = append(opts, rt.WithPod(pod))
 		spec.CgroupParent = pod.CgroupParent()
@@ -186,6 +100,11 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 			options = append(options, libpod.WithPodUser())
 		}
 	}
+
+	if len(p.ServiceContainerID) > 0 {
+		options = append(options, libpod.WithServiceContainer(p.ServiceContainerID))
+	}
+
 	if len(p.CgroupParent) > 0 {
 		options = append(options, libpod.WithPodCgroupParent(p.CgroupParent))
 	}
@@ -202,6 +121,8 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 	if len(p.Hostname) > 0 {
 		options = append(options, libpod.WithPodHostname(p.Hostname))
 	}
+
+	options = append(options, libpod.WithPodExitPolicy(p.ExitPolicy))
 
 	return options, nil
 }
@@ -233,7 +154,7 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||
 			len(p.InfraContainerSpec.Networks) > 0 ||
 			p.InfraContainerSpec.NetNS.NSMode == specgen.NoNetwork {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set host network if network-related configuration is specified")
+			return nil, fmt.Errorf("cannot set host network if network-related configuration is specified: %w", define.ErrInvalidArg)
 		}
 		p.InfraContainerSpec.NetNS.NSMode = specgen.Host
 	case specgen.Slirp:
@@ -247,11 +168,11 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||
 			len(p.InfraContainerSpec.Networks) > 0 ||
 			p.InfraContainerSpec.NetNS.NSMode == specgen.Host {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot disable pod network if network-related configuration is specified")
+			return nil, fmt.Errorf("cannot disable pod network if network-related configuration is specified: %w", define.ErrInvalidArg)
 		}
 		p.InfraContainerSpec.NetNS.NSMode = specgen.NoNetwork
 	default:
-		return nil, errors.Errorf("pods presently do not support network mode %s", p.NetNS.NSMode)
+		return nil, fmt.Errorf("pods presently do not support network mode %s", p.NetNS.NSMode)
 	}
 
 	if len(p.InfraCommand) > 0 {
@@ -293,4 +214,89 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 
 	p.InfraContainerSpec.Image = p.InfraImage
 	return p.InfraContainerSpec, nil
+}
+
+func PodConfigToSpec(rt *libpod.Runtime, spec *specgen.PodSpecGenerator, infraOptions *entities.ContainerCreateOptions, id string) (p *libpod.Pod, err error) {
+	pod, err := rt.LookupPod(id)
+	if err != nil {
+		return nil, err
+	}
+
+	infraSpec := &specgen.SpecGenerator{}
+	if pod.HasInfraContainer() {
+		infraID, err := pod.InfraContainerID()
+		if err != nil {
+			return nil, err
+		}
+		_, _, err = ConfigToSpec(rt, infraSpec, infraID)
+		if err != nil {
+			return nil, err
+		}
+
+		infraSpec.Hostname = ""
+		infraSpec.CgroupParent = ""
+		infraSpec.Pod = "" // remove old pod...
+		infraOptions.IsClone = true
+		infraOptions.IsInfra = true
+
+		n := infraSpec.Name
+		_, err = rt.LookupContainer(n + "-clone")
+		if err == nil { // if we found a ctr with this name, set it so the below switch can tell
+			n += "-clone"
+		}
+
+		switch {
+		case strings.Contains(n, "-clone"):
+			ind := strings.Index(n, "-clone") + 6
+			num, err := strconv.Atoi(n[ind:])
+			if num == 0 && err != nil { // clone1 is hard to get with this logic, just check for it here.
+				_, err = rt.LookupContainer(n + "1")
+				if err != nil {
+					infraSpec.Name = n + "1"
+					break
+				}
+			} else {
+				n = n[0:ind]
+			}
+			err = nil
+			count := num
+			for err == nil {
+				count++
+				tempN := n + strconv.Itoa(count)
+				_, err = rt.LookupContainer(tempN)
+			}
+			n += strconv.Itoa(count)
+			infraSpec.Name = n
+		default:
+			infraSpec.Name = n + "-clone"
+		}
+
+		err = specgenutil.FillOutSpecGen(infraSpec, infraOptions, []string{})
+		if err != nil {
+			return nil, err
+		}
+
+		out, err := CompleteSpec(context.Background(), rt, infraSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		// Print warnings
+		if len(out) > 0 {
+			for _, w := range out {
+				fmt.Println("Could not properly complete the spec as expected:")
+				fmt.Fprintf(os.Stderr, "%s\n", w)
+			}
+		}
+
+		spec.InfraContainerSpec = infraSpec
+	}
+
+	// need to reset hostname, name etc of both pod and infra
+	spec.Hostname = ""
+
+	if len(spec.InfraContainerSpec.Image) > 0 {
+		spec.InfraImage = spec.InfraContainerSpec.Image
+	}
+	return pod, nil
 }

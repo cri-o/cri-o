@@ -19,6 +19,8 @@ type InspectPodData struct {
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string `json:"CreateCommand,omitempty"`
+	// ExitPolicy of the pod.
+	ExitPolicy string `json:"ExitPolicy,omitempty"`
 	// State represents the current state of the pod.
 	State string `json:"State"`
 	// Hostname is the hostname that the pod will set.
@@ -67,6 +69,8 @@ type InspectPodData struct {
 	VolumesFrom []string `json:"volumes_from,omitempty"`
 	// SecurityOpt contains the specified security labels and related SELinux information
 	SecurityOpts []string `json:"security_opt,omitempty"`
+	// MemoryLimit contains the specified cgroup memory limit for the pod
+	MemoryLimit uint64 `json:"memory_limit,omitempty"`
 }
 
 // InspectPodInfraConfig contains the configuration of the pod's infra
@@ -118,6 +122,8 @@ type InspectPodInfraConfig struct {
 	PidNS string `json:"pid_ns,omitempty"`
 	// UserNS is the usernamespace that all the containers in the pod will join.
 	UserNS string `json:"userns,omitempty"`
+	// UtsNS is the uts namespace that all containers in the pod will join
+	UtsNS string `json:"uts_ns,omitempty"`
 }
 
 // InspectPodContainerInfo contains information on a container in a pod.
