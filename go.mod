@@ -361,7 +361,7 @@ require (
 	go.etcd.io/etcd/raft/v3 v3.6.0-alpha.0 // indirect
 	go.etcd.io/etcd/server/v3 v3.6.0-alpha.0 // indirect
 	go.etcd.io/etcd/tests/v3 v3.6.0-alpha.0 // indirect
-	go.etcd.io/etcd/v3 v3.5.4 // indirect
+	go.etcd.io/etcd/v3 v3.5.5-0.20220715002707-3237289fffb8 // indirect
 	go.mongodb.org/mongo-driver v1.8.3 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20200128120323-432b2356ecb1 // indirect
 	go.opencensus.io v0.23.0 // indirect
@@ -418,8 +418,6 @@ replace (
 	// https://github.com/containers/podman/blob/74aa681e59352257eb5f25f089dffa66d6345a3a/go.mod#L78
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
 	github.com/u-root/u-root => github.com/u-root/u-root v0.8.1-0.20220307150114-d511ded1d944
-	// TODO: Remove me when https://github.com/etcd-io/etcd/pull/13808 got merged and released.
-	go.etcd.io/etcd/v3 => github.com/hanyuancheung/etcd/v3 v3.6.0-alpha.0.0.20220329071255-af9bd287fe0e
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20220624161656-6219eed24f3c
 	k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20220624161656-6219eed24f3c
 	k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20220624161656-6219eed24f3c
