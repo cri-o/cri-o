@@ -42,7 +42,6 @@
     - "{{ ansible_env.GOPATH }}/src/github.com/containernetworking"
     - "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator"
     - "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs"
-    - "{{ ansible_env.GOPATH }}/src/github.com/cri-o"
     - "{{ ansible_env.GOPATH }}/src/github.com/k8s.io"
     - "{{ ansible_env.GOPATH }}/src/github.com/bats-core"
     - "{{ ansible_env.GOPATH }}/src/github.com/opencontainers"
