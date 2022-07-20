@@ -84,9 +84,11 @@ var _ = t.Describe("Server", func() {
 		It("should succeed with container restore", func() {
 			// Given
 			testError := fmt.Errorf("error: %w", errors.New("/dev/null"))
-			mockNewMultiStoreServer()
 			gomock.InOrder(
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
+			)
+			mockNewMultiStoreServer()
+			gomock.InOrder(
 				libMock.EXPECT().GetStore().Return(multiStoreMock, nil),
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 				multiStoreMock.EXPECT().Containers().
@@ -95,19 +97,24 @@ var _ = t.Describe("Server", func() {
 						{},
 						{},
 					}, testError),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Times(1).Return(nil, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return(`{"Pod": false, "pod-name": "name", "pod-id": "id" }`, nil),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return(`{"Pod": true, "pod-name": "name", "pod-id": "id" }`, nil),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return("", t.TestError),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return([]byte{}, nil),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).

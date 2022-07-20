@@ -151,7 +151,6 @@ func beforeEach() {
 		libMock.EXPECT().GetStore().Return(multiStoreMock, nil),
 		libMock.EXPECT().GetData().Return(config),
 		multiStoreMock.EXPECT().GetStore().Return(store),
-		multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 		libMock.EXPECT().GetData().Return(config),
 	)
 
@@ -177,13 +176,16 @@ func beforeEach() {
 
 func mockDirs(manifest []byte) {
 	gomock.InOrder(
+		multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 		storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 		storeMock.EXPECT().
 			FromContainerDirectory(gomock.Any(), gomock.Any()).
 			Return(manifest, nil),
+		multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 		storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 		storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 			Return("", nil),
+		multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 		storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 		storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 			Return("", nil),

@@ -435,18 +435,21 @@ var _ = Describe("MultiStoreServer", func() {
 		storeServerMap := make(map[string]storage.ImageServer)
 		storeServerMap[defaultStorage] = imageServerMock
 		storeServerMap[additionalStorage] = imageServerMock
-		gomock.InOrder(
-			multiStoreMock.EXPECT().GetDefaultStorageDriver().
-				Return(defaultStorage),
-		)
 		sut = storage.NewMultiStoreServer(storeServerMap, multiStoreMock)
 	})
 	AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
+	mockCreateMultiStoreServerIterator := func() mockSequence {
+		return inOrder(
+			multiStoreMock.EXPECT().GetDefaultStorageDriver().Return(defaultStorage),
+		)
+	}
+
 	mockGetStoreForContainer := func() mockSequence {
 		return inOrder(
+			multiStoreMock.EXPECT().GetDefaultStorageDriver().Return(defaultStorage),
 			imageServerMock.EXPECT().GetStore().
 				Return(storeMock),
 			storeMock.EXPECT().Container(gomock.Any()).
@@ -484,6 +487,7 @@ var _ = Describe("MultiStoreServer", func() {
 	})
 	t.Describe("ListAllImages", func() {
 		It("should succeed listing all the images", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().ListImages(gomock.Any(), gomock.Any()).
 					Return([]storage.ImageResult{{}}, nil),
@@ -497,6 +501,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(len(images)).To(Equal(2))
 		})
 		It("should fail listing the images for the default storage", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().ListImages(gomock.Any(), gomock.Any()).
 					Return([]storage.ImageResult{}, t.TestError),
@@ -510,6 +515,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(len(images)).To(Equal(1))
 		})
 		It("should fail listing the images for the additional storage", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().ListImages(gomock.Any(), gomock.Any()).
 					Return([]storage.ImageResult{{}}, nil),
@@ -523,6 +529,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(len(images)).To(Equal(1))
 		})
 		It("should fail listing all images", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().ListImages(gomock.Any(), gomock.Any()).
 					Return([]storage.ImageResult{}, t.TestError),
@@ -553,6 +560,7 @@ var _ = Describe("MultiStoreServer", func() {
 
 	t.Describe("GetStoreForImage", func() {
 		It("should succeed getting store for an image from standard storage", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().
 					Return(storeMock),
@@ -571,6 +579,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(err).To(BeNil())
 		})
 		It("should succeed getting store for an image from additional storage", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().
 					Return(storeMock),
@@ -589,6 +598,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(err).To(BeNil())
 		})
 		It("should fail to get the store for an image", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().
 					Return(storeMock),
@@ -608,6 +618,7 @@ var _ = Describe("MultiStoreServer", func() {
 
 	t.Describe("GetStoreForContainer", func() {
 		It("should succeed getting the store for a container from standard storage", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().
 					Return(storeMock),
@@ -622,6 +633,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(err).To(BeNil())
 		})
 		It("should succeed getting the store for a container from additional storage", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().
 					Return(storeMock),
@@ -640,6 +652,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(err).To(BeNil())
 		})
 		It("should fail to get the store for a container", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().
 					Return(storeMock),
@@ -658,6 +671,7 @@ var _ = Describe("MultiStoreServer", func() {
 	})
 	t.Describe("GetImageServerForImage", func() {
 		It("should succeed getting image server for an image from standard storage", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().
 					Return(storeMock),
@@ -674,6 +688,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(err).To(BeNil())
 		})
 		It("should succeed getting image server for an image from additional storage", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().
 					Return(storeMock),
@@ -690,6 +705,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(err).To(BeNil())
 		})
 		It("should fail to get the image server for an image", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().
 					Return(storeMock),
@@ -814,6 +830,7 @@ var _ = Describe("MultiStoreServer", func() {
 	})
 	t.Describe("ResolveNames", func() {
 		It("should succeed resolving names for the default storage driver", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().ResolveNames(gomock.Any(), gomock.Any()).
 					Return([]string{}, nil),
@@ -824,6 +841,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(err).To(BeNil())
 		})
 		It("should succeed resolving names for the additional storage driver", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().ResolveNames(gomock.Any(), gomock.Any()).
 					Return([]string{}, t.TestError),
@@ -836,6 +854,7 @@ var _ = Describe("MultiStoreServer", func() {
 			Expect(err).To(BeNil())
 		})
 		It("should fail to resolve names", func() {
+			mockCreateMultiStoreServerIterator()
 			gomock.InOrder(
 				imageServerMock.EXPECT().ResolveNames(gomock.Any(), gomock.Any()).
 					Return([]string{}, t.TestError).Times(2),

@@ -205,7 +205,6 @@ var setupSUT = func() {
 func mockNewMultiStoreServer() {
 	gomock.InOrder(
 		multiStoreMock.EXPECT().GetStore().Return(store),
-		multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 	)
 }
 

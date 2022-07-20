@@ -45,7 +45,6 @@ var _ = t.Describe("ContainerServer", func() {
 				libMock.EXPECT().GetStore().Return(multiStoreMock, nil),
 				libMock.EXPECT().GetData().Return(config),
 				multiStoreMock.EXPECT().GetStore().Return(store),
-				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				libMock.EXPECT().GetData().Return(config),
 			)
 
@@ -249,13 +248,16 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with failing container directory", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 					Return("", nil),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 					Return("", t.TestError),
@@ -272,10 +274,12 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with failing container run directory", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 					Return("", t.TestError),
@@ -296,6 +300,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.NamespaceOptions": "",`), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -317,6 +322,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.PortMappings": "{}",`), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -338,6 +344,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Annotations": "",`), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -359,6 +366,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Metadata": "",`), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -380,6 +388,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Labels": "",`), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -401,6 +410,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"selinuxLabel": "wrong"`), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -418,6 +428,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with container directory", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -450,6 +461,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with failing FromContainerDirectory", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -467,10 +479,12 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 					Return("", t.TestError),
@@ -487,13 +501,16 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 					Return("", nil),
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 					Return("", t.TestError),
@@ -509,6 +526,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with invalid manifest", func() {
 			// Given
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -529,6 +547,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Labels": "",`), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -549,6 +568,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Metadata": "",`), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -569,6 +589,7 @@ var _ = t.Describe("ContainerServer", func() {
 				[]byte(`"io.kubernetes.cri-o.Annotations": "",`), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -590,6 +611,7 @@ var _ = t.Describe("ContainerServer", func() {
 					annotations.ContainerManagerLibpod)), 1,
 			)
 			gomock.InOrder(
+				multiStoreMock.EXPECT().GetDefaultStorageDriver().Return("defaultStorage"),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, nil),
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
