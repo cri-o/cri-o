@@ -54,7 +54,7 @@ dependencies:
       match: runc
 
   - name: crun
-    version: 1.4.5
+    version: 1.5
     refPaths:
     - path: scripts/versions
       match: crun
