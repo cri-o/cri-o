@@ -20,3 +20,4 @@ Below is a non-exhaustive list of CRI-O adopters in production environments:
   privileged pods in many scenarios). CRI-O was chosen as it's the only
   container manager that supports creating pods that are strongly isolated using
   the Linux user-namespace (as of Jan 2022).
+* [Lyft](https://www.lyft.com/) has used CRI-O since 2017, alongside our [CNI IPvlan networking](https://github.com/lyft/cni-ipvlan-vpc-k8s) in AWS. All of Lyft runs on top of our Kubernetes stack.
