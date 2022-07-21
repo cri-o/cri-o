@@ -3,7 +3,7 @@ go 1.18
 module github.com/cri-o/cri-o
 
 require (
-	github.com/BurntSushi/toml v1.1.0
+	github.com/BurntSushi/toml v1.2.0
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/blang/semver/v4 v4.0.0
 	github.com/container-orchestrated-devices/container-device-interface v0.4.0
