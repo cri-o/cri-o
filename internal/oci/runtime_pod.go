@@ -99,6 +99,10 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	if c.Spoofed() {
 		return nil
 	}
+	var maxSize uint64
+	if r.oci.config.LogSizeMax >= 0 {
+		maxSize = uint64(r.oci.config.LogSizeMax)
+	}
 	createConfig := &conmonClient.CreateContainerConfig{
 		ID:           c.ID(),
 		BundlePath:   c.bundlePath,
@@ -107,8 +111,9 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		OOMExitPaths: []string{filepath.Join(c.bundlePath, "oom")}, // Keep in sync with location in oci.UpdateContainerStatus()
 		LogDrivers: []conmonClient.LogDriver{
 			{
-				Type: conmonClient.LogDriverTypeContainerRuntimeInterface,
-				Path: c.logPath,
+				Type:    conmonClient.LogDriverTypeContainerRuntimeInterface,
+				Path:    c.logPath,
+				MaxSize: maxSize,
 			},
 		},
 	}

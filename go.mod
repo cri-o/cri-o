@@ -16,13 +16,13 @@ require (
 	github.com/containernetworking/cni v1.1.1
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.26.1-0.20220713185015-60cecb3e4c68
-	github.com/containers/common v0.48.1-0.20220712112137-79796831707b
+	github.com/containers/common v0.48.1-0.20220720100622-5e4fc04c2e94
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.0.0-20220713152459-5f3451efdbbd
-	github.com/containers/image/v5 v5.21.2-0.20220712113758-29aec5f7bbbf
+	github.com/containers/conmon-rs v0.0.0-20220721132401-db9c3b244679
+	github.com/containers/image/v5 v5.21.2-0.20220714132403-2bb3f3e44c5c
 	github.com/containers/ocicrypt v1.1.5
 	github.com/containers/podman/v4 v4.2.0-rc1
-	github.com/containers/storage v1.41.1-0.20220714115232-fc9b0ff5272a
+	github.com/containers/storage v1.41.1-0.20220718173332-b10c469fda0a
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.18
@@ -43,12 +43,12 @@ require (
 	github.com/intel/goresctrl v0.2.0
 	github.com/json-iterator/go v1.1.12
 	github.com/onsi/ginkgo/v2 v2.1.4
-	github.com/onsi/gomega v1.19.0
+	github.com/onsi/gomega v1.20.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198
 	github.com/opencontainers/runc v1.1.3
 	github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
-	github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f
+	github.com/opencontainers/runtime-tools v0.9.1-0.20220714195903-17b3287fafb7
 	github.com/opencontainers/selinux v1.10.1
 	github.com/prometheus/client_golang v1.12.2
 	github.com/psampaz/go-mod-outdated v0.8.0
@@ -84,7 +84,7 @@ require (
 
 require (
 	bitbucket.org/creachadair/shell v0.0.7 // indirect
-	capnproto.org/go/capnp/v3 v3.0.0-alpha.3 // indirect
+	capnproto.org/go/capnp/v3 v3.0.0-alpha.4 // indirect
 	cloud.google.com/go v0.102.0 // indirect
 	cloud.google.com/go/compute v1.7.0 // indirect
 	cloud.google.com/go/iam v0.3.0 // indirect

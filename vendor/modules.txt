@@ -1,7 +1,7 @@
 # bitbucket.org/creachadair/shell v0.0.7
 ## explicit; go 1.16
 bitbucket.org/creachadair/shell
-# capnproto.org/go/capnp/v3 v3.0.0-alpha.3
+# capnproto.org/go/capnp/v3 v3.0.0-alpha.4
 ## explicit; go 1.18
 capnproto.org/go/capnp/v3
 capnproto.org/go/capnp/v3/encoding/text
@@ -10,11 +10,12 @@ capnproto.org/go/capnp/v3/flowcontrol
 capnproto.org/go/capnp/v3/internal/chanmutex
 capnproto.org/go/capnp/v3/internal/mpsc
 capnproto.org/go/capnp/v3/internal/nodemap
-capnproto.org/go/capnp/v3/internal/packed
 capnproto.org/go/capnp/v3/internal/schema
 capnproto.org/go/capnp/v3/internal/strquote
 capnproto.org/go/capnp/v3/internal/syncutil
+capnproto.org/go/capnp/v3/packed
 capnproto.org/go/capnp/v3/rpc
+capnproto.org/go/capnp/v3/rpc/transport
 capnproto.org/go/capnp/v3/schemas
 capnproto.org/go/capnp/v3/server
 capnproto.org/go/capnp/v3/std/capnp/rpc
@@ -538,7 +539,7 @@ github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/util
-# github.com/containers/common v0.48.1-0.20220712112137-79796831707b
+# github.com/containers/common v0.48.1-0.20220720100622-5e4fc04c2e94
 ## explicit; go 1.17
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -587,11 +588,11 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.0.0-20220713152459-5f3451efdbbd
+# github.com/containers/conmon-rs v0.0.0-20220721132401-db9c3b244679
 ## explicit; go 1.18
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
-# github.com/containers/image/v5 v5.21.2-0.20220712113758-29aec5f7bbbf
+# github.com/containers/image/v5 v5.21.2-0.20220714132403-2bb3f3e44c5c
 ## explicit; go 1.17
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -738,7 +739,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.41.1-0.20220714115232-fc9b0ff5272a
+# github.com/containers/storage v1.41.1-0.20220718173332-b10c469fda0a
 ## explicit; go 1.16
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1572,7 +1573,7 @@ github.com/onsi/ginkgo/v2/internal/parallel_support
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.19.0
+# github.com/onsi/gomega v1.20.0
 ## explicit; go 1.18
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -1668,7 +1669,7 @@ github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f
+# github.com/opencontainers/runtime-tools v0.9.1-0.20220714195903-17b3287fafb7
 ## explicit; go 1.16
 github.com/opencontainers/runtime-tools/error
 github.com/opencontainers/runtime-tools/filepath
