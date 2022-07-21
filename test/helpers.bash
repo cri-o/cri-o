@@ -433,6 +433,12 @@ function cleanup_test() {
         cat "$CRIO_LOG"
         echo "# --- --- ---"
     fi
+    if [[ $RUNTIME_TYPE == pod ]]; then
+        echo "# --- conmonrs logs :: ---"
+        CONMONRS_PID=$(sed -nr 's/.*Running conmonrs with PID: ([0-9]+).*/\1/p' "$CRIO_LOG")
+        journalctl _COMM=conmonrs _PID="$CONMONRS_PID" --no-pager
+        echo "# --- --- ---"
+    fi
 
     # Leave the test artifacts intact for failing tests if requested.
     #

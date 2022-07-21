@@ -18,7 +18,7 @@ require (
 	github.com/containers/buildah v1.26.1-0.20220713185015-60cecb3e4c68
 	github.com/containers/common v0.48.1-0.20220720100622-5e4fc04c2e94
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.0.0-20220721132401-db9c3b244679
+	github.com/containers/conmon-rs v0.0.0-20220727163913-8698d2df0588
 	github.com/containers/image/v5 v5.21.2-0.20220714132403-2bb3f3e44c5c
 	github.com/containers/kubensmnt v1.1.2
 	github.com/containers/ocicrypt v1.1.5

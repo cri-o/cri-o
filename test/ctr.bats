@@ -199,6 +199,9 @@ function check_oci_annotation() {
 }
 
 @test "ctr journald logging" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
 	if ! check_journald; then
 		skip "journald logging not supported"
 	fi

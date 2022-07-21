@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"syscall"
 
 	"github.com/containers/common/pkg/resize"
 	"github.com/containers/common/pkg/util"
@@ -259,6 +260,11 @@ func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn i
 		c.logger.WithError(er).Trace("Validating error")
 		if er == io.EOF {
 			break
+		}
+		if errors.Is(er, syscall.ECONNRESET) {
+			c.logger.WithError(er).Trace("Connection reset, retrying to read")
+
+			continue
 		}
 		if er != nil {
 			err = er

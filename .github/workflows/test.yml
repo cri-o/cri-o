@@ -215,14 +215,21 @@ jobs:
         with:
           name: bundle
           path: build/bundle
-      - name: Setup system
-        run: |
-          sudo apt-get remove \
-            conmon \
-            containernetworking-plugins \
-            crun \
-            moby-runc
       - run: make bundle-test-e2e
+
+  bundle-test-e2e-conmonrs:
+    runs-on: ubuntu-latest
+    needs: bundles
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: bundle
+          path: build/bundle
+      - run: make bundle-test-e2e-conmonrs
 
   sign-artifacts:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
