@@ -1,11 +1,14 @@
 ---
-- name: clone cri-o 
-  git: 
-    repo: https://github.com/cri-o/cri-o/
-    dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o" 
-    clone: yes 
-    update: yes
+- name: create crio dir
+  file: 
+    path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o" 
+    state: directory 
 
+- name: extract cri-o 
+  unarchive: 
+    src: /root/cri-o.tar.gz
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
+    
 - name: stat the expected cri-o directory
   stat:
     path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
