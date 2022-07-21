@@ -163,7 +163,7 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting strin
 	found := false
 	for i, line := range lines {
 		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
-			lines[i] = irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\"" + "\n"
+			lines[i] = irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\""
 			found = true
 		}
 	}
