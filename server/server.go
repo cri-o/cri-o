@@ -710,7 +710,7 @@ func (s *Server) StartExitMonitor(ctx context.Context) {
 	}()
 	if err := watcher.Add(s.config.ContainerExitsDir); err != nil {
 		log.Errorf(ctx, "Watcher.Add(%q) failed: %s", s.config.ContainerExitsDir, err)
-		close(done)
+		clos(done)
 	}
 	<-done
 }
