@@ -5,8 +5,10 @@
 - name: Make sure we have all required packages
   yum:
     state: present
-    enablerepo: powertools
+    enablerepo: 
+      - powertools
     name:
+      - dnf-plugins-core
       #- atomic-registries
       - container-selinux
       - curl
