@@ -4,15 +4,54 @@
     path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o" 
     state: directory 
 
+## extract source
+
+- name: check if cri-o.tar.gz exists
+  stat:
+    path: /root/cri-o.tar.gz
+  register: source_tar
+
 - name: extract cri-o 
   unarchive: 
     src: /root/cri-o.tar.gz
     dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
-    
+  when: source_tar.stat.exists
+
+- name: check if vargrant source exists
+  stat:
+    path: /vagrant
+  register: vagrant_dir
+
+- name: copy vagrant source
+  synchronize:
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
+    src: /vagrant/
+  when: (vagrant_dir.stat.isdir is defined) and (vagrant_dir.stat.isdir)
+
+- name: extract cri-o 
+  unarchive: 
+    src: /root/cri-o.tar.gz
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
+  when: source_tar.stat.exists
+
 - name: stat the expected cri-o directory
   stat:
     path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
   register: dir_stat
+
+## Check for python executable
+
+- name: see if the python executable or symlink is available
+  stat:
+    path: /usr/bin/python
+  register: python_exists
+
+- name: symlink python3 to python
+  file:
+    src: /usr/bin/python3
+    dest: /usr/bin/python
+    state: link
+  when: not python_exists.stat.exists
 
 - name: Set cri-o repo to be a safe directory to be accessed by root
   command:
@@ -100,7 +139,3 @@
       [crio.image]
       registries = [ "quay.io", "docker.io" ]
 
-- name: remove storage.conf to avoid configuration conflicts
-  file:
-    path: /etc/containers/storage.conf
-    state: absent

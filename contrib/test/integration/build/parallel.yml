@@ -18,7 +18,7 @@
     dest: "{{ ansible_env.HOME }}"
     remote_src: yes
     validate_certs: False
-  when: ansible_distribution in ['RedHat', 'CentOS']
+  when: ansible_distribution in ['RedHat', 'CentOS', 'Rocky']
 
 - name: install parallel from sources
   shell: |
@@ -28,4 +28,4 @@
     ln -sf /usr/bin/parallel /usr/bin/sem
   args:
     chdir: "{{ ansible_env.HOME }}/parallel-20190322"
-  when: ansible_distribution in ['RedHat', 'CentOS']
+  when: ansible_distribution in ['RedHat', 'CentOS', 'Rocky']
