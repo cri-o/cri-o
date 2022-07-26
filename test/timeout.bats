@@ -3,7 +3,7 @@
 load helpers
 
 function setup() {
-	if ! crictl runp -h | grep -q "cancel-timeout"; then
+	if ! "$CRICTL_BINARY" runp -h | grep -q "cancel-timeout"; then
 		skip "must have a crictl with the -T option to test CRI-O's timeout handling"
 	fi
 	setup_test
