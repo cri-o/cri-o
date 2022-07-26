@@ -324,3 +324,92 @@ function teardown() {
 	output=$(crictl inspect -o table "$ctr_id" | grep ^State)
 	[[ "${output}" == "${ctr_status_info}" ]]
 }
+
+@test "crio restore upon entering KUBENSMNT" {
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	pod_list_info=$(crictl pods --quiet --id "$pod_id")
+
+	output=$(crictl inspectp -o json "$pod_id")
+	[[ -n "$output" ]]
+	pod_status_info=$(jq ".status.state" <<< "$output")
+	pod_ip=$(jq ".status.ip" <<< "$output")
+	pod_created_at=$(jq ".status.createdAt" <<< "$output")
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	ctr_list_info=$(crictl ps --quiet --id "$ctr_id" --all)
+	output=$(crictl inspect -o table "$ctr_id")
+	ctr_status_info=$(grep ^State <<< "$output")
+
+	stop_crio
+
+	setup_kubensmnt
+	start_crio
+	output=$(crictl pods --quiet)
+	[[ "${output}" == "${pod_id}" ]]
+
+	output=$(crictl pods --quiet --id "$pod_id")
+	[[ "${output}" == "${pod_list_info}" ]]
+
+	output=$(crictl inspectp -o json "$pod_id")
+	status_output=$(jq ".status.state" <<< "$output")
+	ip_output=$(jq ".status.ip" <<< "$output")
+	created_at_output=$(jq ".status.createdAt" <<< "$output")
+	[[ "${status_output}" == "${pod_status_info}" ]]
+	[[ "${ip_output}" == "${pod_ip}" ]]
+	[[ "${created_at_output}" == "${pod_created_at}" ]]
+
+	output=$(crictl ps --quiet --all)
+	[[ "${output}" == "${ctr_id}" ]]
+
+	output=$(crictl ps --quiet --id "$ctr_id" --all)
+	[[ "${output}" == "${ctr_list_info}" ]]
+
+	output=$(crictl inspect -o table "$ctr_id" | grep ^State)
+	[[ "${output}" == "${ctr_status_info}" ]]
+}
+
+@test "crio restore upon exiting KUBENSMNT" {
+	setup_kubensmnt
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	pod_list_info=$(crictl pods --quiet --id "$pod_id")
+
+	output=$(crictl inspectp -o json "$pod_id")
+	[[ -n "$output" ]]
+	pod_status_info=$(jq ".status.state" <<< "$output")
+	pod_ip=$(jq ".status.ip" <<< "$output")
+	pod_created_at=$(jq ".status.createdAt" <<< "$output")
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	ctr_list_info=$(crictl ps --quiet --id "$ctr_id" --all)
+	output=$(crictl inspect -o table "$ctr_id")
+	ctr_status_info=$(grep ^State <<< "$output")
+
+	stop_crio
+
+	unset KUBENSMNT
+	start_crio
+	output=$(crictl pods --quiet)
+	[[ "${output}" == "${pod_id}" ]]
+
+	output=$(crictl pods --quiet --id "$pod_id")
+	[[ "${output}" == "${pod_list_info}" ]]
+
+	output=$(crictl inspectp -o json "$pod_id")
+	status_output=$(jq ".status.state" <<< "$output")
+	ip_output=$(jq ".status.ip" <<< "$output")
+	created_at_output=$(jq ".status.createdAt" <<< "$output")
+	[[ "${status_output}" == "${pod_status_info}" ]]
+	[[ "${ip_output}" == "${pod_ip}" ]]
+	[[ "${created_at_output}" == "${pod_created_at}" ]]
+
+	output=$(crictl ps --quiet --all)
+	[[ "${output}" == "${ctr_id}" ]]
+
+	output=$(crictl ps --quiet --id "$ctr_id" --all)
+	[[ "${output}" == "${ctr_list_info}" ]]
+
+	output=$(crictl inspect -o table "$ctr_id" | grep ^State)
+	[[ "${output}" == "${ctr_status_info}" ]]
+}

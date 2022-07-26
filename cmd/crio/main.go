@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/kubensmnt"
 	_ "github.com/containers/podman/v4/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/internal/criocli"
@@ -106,6 +107,12 @@ scope of the CRI.
 5. Monitoring and logging required to satisfy the CRI.
 6. Resource isolation as required by the CRI.`
 
+const kubensmntHelp = `Path to a bind-mounted mount namespace that CRI-O
+should join before launching any containers. If the path does not exist,
+or does not point to a mount namespace bindmount, CRI-O will run in its
+parent's mount namespace and log a warning that the requested namespace
+was not joined.`
+
 func main() {
 	log.InitKlogShim()
 
@@ -135,6 +142,10 @@ func main() {
 
 	sort.Sort(cli.FlagsByName(app.Flags))
 	sort.Sort(cli.FlagsByName(configCommand.Flags))
+
+	app.Metadata["Env"] = map[string]string{
+		kubensmnt.EnvName: kubensmntHelp,
+	}
 
 	app.Commands = criocli.DefaultCommands
 	app.Commands = append(app.Commands, []*cli.Command{
@@ -224,6 +235,16 @@ func main() {
 		if c.Args().Len() > 0 {
 			cancel()
 			return fmt.Errorf("command %q not supported", c.Args().Get(0))
+		}
+
+		// Check if we joined a mount namespace
+		nsname, err := kubensmnt.Status()
+		if nsname != "" {
+			if err != nil {
+				logrus.Warn(err)
+			} else {
+				logrus.Infof("Joined mount namespace %q", nsname)
+			}
 		}
 
 		config, ok := c.App.Metadata["config"].(*libconfig.Config)

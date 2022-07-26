@@ -448,6 +448,18 @@ Shows a list of commands or help for one command
   Storage configuration file specifies all of the available container storage
   options for tools using shared container storage.
 
+# ENVIRONMENT
+
+All command-line options may also be specified as environment variables.
+The options detailed in this section, however, can only be set via
+environment variables.
+
+**KUBENSMNT**: Path to a bind-mounted mount namespace that CRI-O
+should join before launching any containers. If the path does not exist,
+or does not point to a mount namespace bindmount, CRI-O will run in its
+parent's mount namespace and log a warning that the requested namespace
+was not joined.
+
 # SEE ALSO
 
 crio.conf(5), crio.conf.d(5), oci-hooks(5), policy.json(5), registries.conf(5),
