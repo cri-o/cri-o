@@ -3290,7 +3290,7 @@ sigs.k8s.io/release-sdk/github/internal
 sigs.k8s.io/release-sdk/object
 sigs.k8s.io/release-sdk/regex
 sigs.k8s.io/release-sdk/sign
-# sigs.k8s.io/release-utils v0.7.2
+# sigs.k8s.io/release-utils v0.7.3
 ## explicit; go 1.18
 sigs.k8s.io/release-utils/command
 sigs.k8s.io/release-utils/env
