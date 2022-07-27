@@ -10,6 +10,18 @@
     - /opt/cni/bin
     - /etc/cni/net.d
 
+- name: Increase inotify user watches
+  sysctl:
+    name: fs.inotify.max_user_watches
+    state: present
+    value: 1048576
+
+- name: Increase inotify user instances
+  sysctl:
+    name: fs.inotify.max_user_instances
+    state: present
+    value: 1048576
+
 - name: set sysctl vm.overcommit_memory=1 for CentOS
   sysctl:
     name: vm.overcommit_memory
@@ -51,3 +63,13 @@
 
 - name: Containers using cgroups and/or systemd after 7.5 are permitted
   seboolean: name=container_manage_cgroup persistent=yes state=yes
+
+- name: remove storage.conf to avoid configuration conflicts
+  file:
+    path: /etc/containers/storage.conf
+    state: absent
+
+- name: create /var/lib/crio directory
+  file:
+    path: /var/lib/crio
+    state: directory

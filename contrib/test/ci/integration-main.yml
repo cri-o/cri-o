@@ -9,6 +9,9 @@
   tasks:
     - name: set up the system
       include: "setup.yml"
+
+    - name: install parallel 
+      include: "build/parallel.yml"
     
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"

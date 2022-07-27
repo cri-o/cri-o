@@ -51,3 +51,29 @@
 
 - name: Containers using cgroups and/or systemd after 7.5 are permitted
   seboolean: name=container_manage_cgroup persistent=yes state=yes
+
+- name: remove storage.conf to avoid configuration conflicts
+  file:
+    path: /etc/containers/registries.conf
+    state: absent
+
+- name: remove 000-shortnames.conf to avoid configuration conflicts
+  file:
+    path: /etc/containers/registries.conf.d
+    state: absent
+
+- name: recreate dir
+  file:
+    path: /etc/containers/registries.conf.d
+    state: directory
+
+- name: unqualified registries
+  copy:
+    dest : /etc/containers/registries.conf.d/000-crio-search-registries.conf
+    content: |
+      unqualified-search-registries = ["quay.io"]
+
+- name: create /var/lib/crio 
+  file:
+    path: /var/lib/crio
+    state: directory

@@ -498,7 +498,7 @@ function pod_ip() {
 function get_host_ip() {
     gateway_dev=$(ip -o route show default $POD_IPV4_DEF_ROUTE | sed 's/.*dev \([^[:space:]]*\).*/\1/')
     [ "$gateway_dev" ]
-    ip -o -4 addr show dev "$gateway_dev" scope global | sed 's/.*inet \([0-9.]*\).*/\1/'
+    ip -o -4 addr show dev "$gateway_dev" scope global | sed 's/.*inet \([0-9.]*\).*/\1/' | head -1
 }
 
 function ping_pod() {
