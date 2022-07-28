@@ -11,6 +11,8 @@ build_crun: False
 build_kata: False
 cgroupv2: False
 
+critest_mirror_repo: quay.io/crio
+
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts"  # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"
