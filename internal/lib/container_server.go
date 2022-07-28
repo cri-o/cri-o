@@ -21,6 +21,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/jellydator/ttlcache/v3"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -47,9 +48,10 @@ type ContainerServer struct {
 	Hooks                *hooks.Manager
 	*statsserver.StatsServer
 
-	stateLock sync.Locker
-	state     *containerServerState
-	config    *libconfig.Config
+	stateLock              sync.Locker
+	state                  *containerServerState
+	config                 *libconfig.Config
+	nameReservedErrorCache *ttlcache.Cache[string, uint16]
 }
 
 // Runtime returns the oci runtime for the ContainerServer
@@ -80,6 +82,11 @@ func (c *ContainerServer) PodIDIndex() *truncindex.TruncIndex {
 // Config gets the configuration for the ContainerServer
 func (c *ContainerServer) Config() *libconfig.Config {
 	return c.config
+}
+
+// NameReservedErrorCache retrieves the cache for error message counting.
+func (c *ContainerServer) NameReservedErrorCache() *ttlcache.Cache[string, uint16] {
+	return c.nameReservedErrorCache
 }
 
 // StorageRuntimeServer gets the runtime server for the ContainerServer
@@ -119,6 +126,20 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		return nil, err
 	}
 
+	// Setup the nameReservedErrorCache
+	loader := ttlcache.LoaderFunc[string, uint16](
+		func(c *ttlcache.Cache[string, uint16], key string) *ttlcache.Item[string, uint16] {
+			item := c.Set(key, 0, ttlcache.DefaultTTL)
+			return item
+		},
+	)
+	nameReservedErrorCache := ttlcache.New(
+		ttlcache.WithLoader[string, uint16](loader),      // get a default value of 0
+		ttlcache.WithTTL[string, uint16](10*time.Minute), // expire after 10min
+		ttlcache.WithCapacity[string, uint16](5000),      // maps to max containers per node
+	)
+	go nameReservedErrorCache.Start()
+
 	c := &ContainerServer{
 		runtime:              runtime,
 		store:                store,
@@ -136,7 +157,8 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 			sandboxes:       sandbox.NewMemoryStore(),
 			processLevels:   make(map[string]int),
 		},
-		config: config,
+		config:                 config,
+		nameReservedErrorCache: nameReservedErrorCache,
 	}
 	c.StatsServer = statsserver.New(c)
 	return c, nil
@@ -541,6 +563,7 @@ func recoverLogError() {
 
 // Shutdown attempts to shut down the server's storage cleanly
 func (c *ContainerServer) Shutdown() error {
+	c.NameReservedErrorCache().Stop()
 	defer recoverLogError()
 	_, err := c.store.Shutdown(false)
 	if err != nil && !errors.Is(err, cstorage.ErrLayerUsedByContainer) {

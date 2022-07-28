@@ -33,7 +33,7 @@ linters:
     - forcetypeassert
     - gochecknoinits
     - goconst
-    - gocritic
+    # - gocritic # TODO: enable when it supports go 1.18 and generics
     - gocyclo
     - gofmt
     - gofumpt

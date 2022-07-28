@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,11 +15,13 @@ import (
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/registrar"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/jellydator/ttlcache/v3"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -336,6 +339,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		// if we're able to find the container, and it's created, this is actually a duplicate request
 		// from a client that does not behave like the kubelet (like crictl)
 		if reservedCtr := s.GetContainer(reservedID); reservedCtr != nil && reservedCtr.Created() {
+			if err := s.handleReserveContainerNameError(ctx, err, ctr.Name(), reservedID); err != nil {
+				return nil, fmt.Errorf("handle container name reservation error: %w", err)
+			}
 			return nil, err
 		}
 		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
@@ -429,6 +435,41 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	return &types.CreateContainerResponse{
 		ContainerId: ctr.ID(),
 	}, nil
+}
+
+func (s *Server) handleReserveContainerNameError(ctx context.Context, err error, ctrName, ctrID string) error {
+	if !errors.Is(err, registrar.ErrNameReserved) {
+		log.Debugf(ctx, "Provided error is not a name reserved error (skipping)")
+		return nil
+	}
+
+	cache := s.ContainerServer.NameReservedErrorCache()
+
+	// Cannot be nil because of the loader func
+	count := cache.Get(ctrName).Value() + 1
+
+	log.Debugf(ctx, "Got name reserved error for container %s because ID %s is already using it (error count = %d)", ctrName, ctrID, count)
+
+	// Got 10 errors in 10minutes (TTL of the cache)
+	const maxErrorCount = 10
+	if count >= maxErrorCount {
+		log.Debugf(ctx, "Maximum error count (%d) reached, removing existing container ID: %s", maxErrorCount, ctrID)
+
+		if err := s.StopContainer(ctx, &types.StopContainerRequest{ContainerId: ctrID}); err != nil {
+			return fmt.Errorf("stopping container %s: %w", ctrID, err)
+		}
+
+		if err := s.RemoveContainer(ctx, &types.RemoveContainerRequest{ContainerId: ctrID}); err != nil {
+			return fmt.Errorf("stopping container %s: %w", ctrID, err)
+		}
+
+		cache.Delete(ctrName)
+	} else {
+		log.Debugf(ctx, "Increasing error counter for container: %s", ctrName)
+		cache.Set(ctrName, count, ttlcache.DefaultTTL)
+	}
+
+	return nil
 }
 
 func isInCRIMounts(dst string, mounts []*types.Mount) bool {

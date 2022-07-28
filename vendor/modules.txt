@@ -762,6 +762,9 @@ github.com/ishidawataru/sctp
 # github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 ## explicit
 github.com/jbenet/go-context/io
+# github.com/jellydator/ttlcache/v3 v3.0.0
+## explicit; go 1.18
+github.com/jellydator/ttlcache/v3
 # github.com/jinzhu/copier v0.3.2
 ## explicit; go 1.15
 github.com/jinzhu/copier
@@ -1197,6 +1200,7 @@ golang.org/x/oauth2/internal
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
+golang.org/x/sync/singleflight
 # golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
 ## explicit; go 1.17
 golang.org/x/sys/cpu
