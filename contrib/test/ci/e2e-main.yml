@@ -1,6 +1,6 @@
 ---
 - hosts: localhost, all
-  remote_user: root
+  become: yes
   environment:
     GOPATH: /usr/go
   connection: local
@@ -13,6 +13,7 @@
       include: "setup.yml"
 
 - hosts: localhost, all
+  become: yes 
   remote_user: root
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
@@ -39,6 +40,7 @@
 
 
 - hosts: localhost, all
+  become: yes 
   remote_user: root
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
