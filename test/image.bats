@@ -130,9 +130,10 @@ function teardown() {
 
 @test "image pull and list by digest and ID" {
 	start_crio
-	crictl pull quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3
+	NGINX_IMAGE=quay.io/crio/nginx@sha256:960355a671fb88ef18a85f92ccf2ccf8e12186216c86337ad808c204d69d512d
+	crictl pull "$NGINX_IMAGE"
 
-	imageid=$(crictl images --quiet quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3)
+	imageid=$(crictl images --quiet "$NGINX_IMAGE")
 	[ "$imageid" != "" ]
 	output=$(crictl images --quiet @"$imageid")
 	[ "$output" != "" ]
