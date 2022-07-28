@@ -1,0 +1,13 @@
+# skopeo sync configuration
+
+docker.io:
+  images:
+    busybox:
+      - 1.26.2-glibc
+      - 1-uclibc
+      - 1
+      - 1-glibc
+      - 1-musl
+      - 1.28
+    nginx:
+      - 1.18
