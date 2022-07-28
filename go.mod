@@ -13,7 +13,7 @@ require (
 	github.com/containerd/fifo v1.0.0
 	github.com/containerd/ttrpc v1.1.0
 	github.com/containerd/typeurl v1.0.2
-	github.com/containernetworking/cni v1.1.1
+	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.26.1-0.20220713185015-60cecb3e4c68
 	github.com/containers/common v0.48.1-0.20220720100622-5e4fc04c2e94
