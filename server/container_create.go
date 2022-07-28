@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,11 +15,13 @@ import (
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/registrar"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/jellydator/ttlcache/v3"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -335,13 +338,20 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		// if we're able to find the container, and it's created, this is actually a duplicate request
 		// from a client that does not behave like the kubelet (like crictl)
 		if reservedCtr := s.GetContainer(reservedID); reservedCtr != nil && reservedCtr.Created() {
-			return nil, err
+			retryReservedOk, handleErr := s.handleReserveContainerNameError(ctx, err, ctr.ID(), ctr.Name(), reservedID)
+			if handleErr != nil {
+				return nil, fmt.Errorf("handle container name reservation error: %w", handleErr)
+			}
+			if !retryReservedOk {
+				return nil, err
+			}
+		} else {
+			cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
+			if resourceErr == nil {
+				return &types.CreateContainerResponse{ContainerId: cachedID}, nil
+			}
+			return nil, fmt.Errorf("%v: %w", resourceErr, err)
 		}
-		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
-		if resourceErr == nil {
-			return &types.CreateContainerResponse{ContainerId: cachedID}, nil
-		}
-		return nil, fmt.Errorf("%v: %w", resourceErr, err)
 	}
 
 	resourceCleaner.Add(ctx, "createCtr: releasing container name "+ctr.Name(), func() error {
@@ -409,6 +419,49 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	return &types.CreateContainerResponse{
 		ContainerId: ctr.ID(),
 	}, nil
+}
+
+func (s *Server) handleReserveContainerNameError(ctx context.Context, err error, ctrID, ctrName, reservedCtrID string) (bool, error) {
+	if !errors.Is(err, registrar.ErrNameReserved) {
+		log.Debugf(ctx, "Provided error is not a name reserved error (skipping)")
+		return false, err
+	}
+
+	cache := s.ContainerServer.NameReservedErrorCache()
+
+	// Cannot be nil because of the loader func
+	count := cache.Get(ctrName).Value() + 1
+
+	log.Debugf(ctx, "Got name reserved error for container %s because ID %s is already using it (error count = %d)", ctrName, reservedCtrID, count)
+
+	// Got 10 errors in 10minutes (TTL of the cache)
+	const maxErrorCount = 10
+	if count >= maxErrorCount {
+		log.Debugf(ctx, "Maximum error count (%d) reached, removing existing container ID: %s", maxErrorCount, reservedCtrID)
+
+		if err := s.StopContainer(ctx, &types.StopContainerRequest{ContainerId: reservedCtrID}); err != nil {
+			return false, fmt.Errorf("stopping container %s because of error count: %w", reservedCtrID, err)
+		}
+		log.Debugf(ctx, "Stopped container because of error count: %s", reservedCtrID)
+
+		if err := s.RemoveContainer(ctx, &types.RemoveContainerRequest{ContainerId: reservedCtrID}); err != nil {
+			return false, fmt.Errorf("removing container %s because of error count: %w", reservedCtrID, err)
+		}
+		log.Debugf(ctx, "Removed container because of error count: %s", reservedCtrID)
+
+		if _, err = s.ReserveContainerName(ctrID, ctrName); err != nil {
+			return false, fmt.Errorf("retry to reserve container ID %s because of error count: %w", ctrID, err)
+		}
+		log.Debugf(ctx, "Reserved container name for ID: %s (removed existing %s)", ctrID, reservedCtrID)
+
+		cache.Delete(ctrName)
+		return true, nil
+	}
+
+	log.Debugf(ctx, "Increasing error counter for container: %s", ctrName)
+	cache.Set(ctrName, count, ttlcache.DefaultTTL)
+
+	return false, nil
 }
 
 func isInCRIMounts(dst string, mounts []*types.Mount) bool {

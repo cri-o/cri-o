@@ -1013,3 +1013,18 @@ function check_oci_annotation() {
 		! ps -p "$process" o pid=,stat= | grep -v 'Z'
 	done
 }
+
+@test "ctr name reservation error" {
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	# Triggering the container removal
+	for ((i = 0; i < 9; i++)); do
+		! crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	done
+
+	# Container should be removed now and re-creation possible
+	crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+}
