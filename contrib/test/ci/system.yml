@@ -1,7 +1,4 @@
 ---
-- name:
-  include: system-packages.yml
-
 - name: ensure directories exist as needed
   become: yes 
   file:
@@ -64,6 +61,7 @@
 
 - name: Containers using cgroups and/or systemd after 7.5 are permitted
   seboolean: name=container_manage_cgroup persistent=yes state=yes
+  ignore_errors: true
 
 - name: remove storage.conf to avoid configuration conflicts
   file:

@@ -1,6 +1,11 @@
 ---
 - name: include variable to check if python2-dnf can be installed
-  include: python3.yml
+  set_fact:
+    supports_python3: true
+    cacheable: true
+  when: (ansible_distribution == 'RedHat' and ansible_distribution_major_version|int >= 8) or
+        (ansible_distribution == 'CentOS' and ansible_distribution_major_version|int >= 8) or
+        (ansible_distribution == 'Fedora' and ansible_distribution_major_version|int >= 30)
 
 - name: Install optional packages For RedHat
   become: yes
@@ -12,6 +17,12 @@
       - gpgme-devel
       - yajl-devel
   when: ansible_distribution == 'RedHat'
+
+- name: Install libselinux-python
+  package:
+    name: python3-libselinux
+    state: present
+  become: yes
 
 - name: Make sure we have all required packages
   become: yes

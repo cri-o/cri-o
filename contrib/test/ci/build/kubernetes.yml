@@ -8,19 +8,22 @@
     version: "{{ k8s_git_version }}"
     force: "{{ force_clone | default(False) | bool}}"
 
-#TODO this replaces all github downloads for etcd and replaces them with the same version
 - name: set etcd url
-  ansible.builtin.replace: 
-    path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/hack/lib/etcd.sh"
-    regexp: "^.*https://github.com.*$"
-    replace: "url=\"https://storage.googleapis.com/crio-ci/etcd-v${ETCD_VERSION}.tar.gz\""
+  include: "build/etcd.yml"
 
 - name: install etcd
   command: "hack/install-etcd.sh"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
 
-- name: build kubernetes
+- name: clear cache
+  become: yes
+  file: 
+    state: absent 
+    path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/local/go/cache"
+
+- name: clean kubernetes
+  become: yes
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
     target: clean
@@ -28,6 +31,7 @@
   poll: 60
 
 - name: build kubernetes
+  become: yes 
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
   async: '{{ 60 * 60 * 4 }}'

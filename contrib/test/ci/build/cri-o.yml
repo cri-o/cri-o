@@ -67,14 +67,6 @@
     target: install
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
-- name: set manage network ns lifecycle and drop infra
-  copy:
-    dest: /etc/crio/crio.conf.d/01-ns-lifecycle.conf
-    content: |
-      [crio.runtime]
-      manage_ns_lifecycle = true
-      drop_infra_ctr = true
-
 - name: use crun
   copy:
     dest: /etc/crio/crio.conf.d/01-crun.conf
@@ -123,16 +115,10 @@
     - src: test/redhat_sigstore.yaml
       dest: /etc/containers/registries.d/registry.access.redhat.com.yaml
 
-- name: run with overlay
-  copy:
-    dest: /etc/crio/crio.conf.d/01-overlay.conf
-    content: |
-      [crio]
-      storage_driver = "overlay"
-
-- name: add quay.io and docker.io as default registries
-  copy:
-    dest: /etc/crio/crio.conf.d/01-registries.conf
-    content: |
-      [crio.image]
-      registries = [ "quay.io", "docker.io" ]
+- name: enable and start the custom cluster
+  become: yes
+  systemd:
+    name: customcluster
+    state: started
+    enabled: yes
+    daemon_reload: yes

@@ -23,14 +23,6 @@
     state: present
     key: "{{ lookup('file', ssh_location + '.pub') }} "
 
-- name: enable and start CRI-O
-  become: yes
-  systemd:
-    name: crio
-    state: started
-    enabled: yes
-    daemon_reload: yes
-
 - name: update the server address for the custom cluster
   become: yes
   lineinfile:
@@ -44,14 +36,6 @@
     - DNS_SERVER_IP
     - API_HOST
     - API_HOST_IP
-
-- name: enable and start the custom cluster
-  become: yes
-  systemd:
-    name: customcluster.service
-    state: started
-    enabled: yes
-    daemon_reload: yes
 
 - name: wait for the cluster to be running
   # ref: https://kubernetes.io/docs/reference/kubectl/cheatsheet/

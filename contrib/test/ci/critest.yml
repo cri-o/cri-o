@@ -9,7 +9,11 @@
       conmon_cgroup = "pod"
       seccomp_use_default_when_empty = false
 
+- name: clone and start crio 
+  include: build/cri-o.yml
+
 - name: enable and start CRI-O
+  become: yes
   systemd:
     name: crio
     state: started

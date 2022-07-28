@@ -3,50 +3,56 @@
   become: yes
   environment:
     GOPATH: /usr/go
-  connection: local
-  vars_files:
-    - "{{ playbook_dir }}/vars.yml"
-  tags:
-    - setup
-  tasks:
-    - name: set up the system
-      include: "setup.yml"
-
-- hosts: localhost, all
-  become: yes 
-  remote_user: root
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   tags:
     - e2e
   tasks:
-    - name: clone build and install kubernetes
-      include: "build/kubernetes.yml"
-      vars:
-        force_clone: true
-        k8s_git_version: "master"
-        k8s_github_fork: "kubernetes"
-        crio_socket: "/run/crio/crio.sock"
+    - name: setup
+      include: "setup.yml"
 
-    - name: clone build and install kubetest
-      include: "build/kubetest.yml"
-      vars:
-        force_clone: true
+    - name: build and run crio 
+      include: "build/cri-o.yml"
+
+    - name: enable and start CRI-O
+      become: yes
+      systemd:
+        name: crio
+        state: started
+        enabled: yes
+        daemon_reload: yes
 
     - name: run k8s e2e tests
       include: "e2e.yml"
       environment:
         KUBECONFIG: /var/run/kubernetes/admin.kubeconfig
 
+    - name: changing permission of temp file
+      become: yes
+      file: dest=/tmp/artifacts owner=deadbeef group=deadbeef mode=0777 recurse=yes
 
 - hosts: localhost, all
-  become: yes 
-  remote_user: root
+  become: yes
+  environment:
+    GOPATH: /usr/go
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   tags:
     - e2e-features
   tasks:
+    - name: setup
+      include: "setup.yml" 
+
+    - name: build and run crio 
+      include: "build/cri-o.yml"
+
+    - name: enable and start CRI-O
+      become: yes
+      systemd:
+        name: crio
+        state: started
+        enabled: yes
+        daemon_reload: yes
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
       vars:
@@ -65,12 +71,11 @@
         crio_socket: "/run/crio/crio.sock"
       when: "cgroupv2 | bool"
 
-    - name: clone build and install kubetest
-      include: "build/kubetest.yml"
-      vars:
-        force_clone: true
-
     - name: run k8s e2e features tests
       include: "e2e-features.yml"
       environment:
         KUBECONFIG: /var/run/kubernetes/admin.kubeconfig
+
+    - name: changing permission of temp file
+      become: yes
+      file: dest=/tmp/artifacts owner=deadbeef group=deadbeef mode=0777 recurse=yes
