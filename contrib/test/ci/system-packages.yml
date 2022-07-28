@@ -1,8 +1,20 @@
 ---
+
 - name: include variable to check if python2-dnf can be installed
   include: python3.yml
 
+- name: Install optional packages For RedHat
+  become: yes
+  yum:
+    state: present
+    enablerepo: codeready-builder-for-rhel-9-x86_64-rpms
+    name:
+      - glibc-static
+      - gpgme-devel
+  when: ansible_distribution == 'RedHat'
+
 - name: Make sure we have all required packages
+  become: yes
   yum:
     state: present
     enablerepo: powertools
@@ -17,8 +29,6 @@
       - git
       - glib2-devel
       - glibc-devel
-      - glibc-static
-      - gpgme-devel
       - hostname
       - iproute
       - iptables
@@ -58,7 +68,18 @@
       - tar
       - wget
 
+- name: Install optional packages For Fedora/CentOS
+  become: yes
+  yum:
+    state: present
+    enablerepo: powertools
+    name:
+      - glibc-static
+      - gpgme-devel
+  when: ansible_distribution != 'RedHat'
+
 - name: Add Fedora <=29 specific packages
+  become: yes
   package:
     name: "{{ item }}"
     state: present
@@ -68,6 +89,7 @@
   when: (supports_python3 is not defined or not supports_python3) and ansible_distribution in ['Fedora']
 
 - name: Add python-boto for RHEL and CentOS
+  become: yes
   package:
     name: "{{ item }}"
     state: present
@@ -76,6 +98,7 @@
   when: (supports_python3 is not defined or not supports_python3) and ansible_distribution in ['RedHat', 'CentOS']
 
 - name: Update all packages
+  become: yes
   package:
     name: '*'
     state: latest
@@ -85,4 +108,4 @@
 
 - name: Update all packages RHEL 8, CentOS 8 and Fedora >= 30
   shell: sudo yum update -y
-  when: supports_python3 is defined and supports_python3
+  when: supports_python3 is defined and supports_python3 and (ansible_distribution != 'RedHat' and ansible_distribution_major_version|int != 9))

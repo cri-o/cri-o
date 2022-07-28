@@ -1,6 +1,7 @@
 ---
 # only fixup paths for e2e tests which expect to be able to pass 'test-handler' as the runtime handler
 - name: add test-handler runtime handler for Runtimes test
+  become: yes
   blockinfile:
     path: /etc/crio/crio.conf
     insertbefore: .*crio.runtime.runtimes.runc.*
@@ -23,6 +24,7 @@
     key: "{{ lookup('file', ssh_location + '.pub') }} "
 
 - name: enable and start CRI-O
+  become: yes
   systemd:
     name: crio
     state: started
@@ -30,6 +32,7 @@
     daemon_reload: yes
 
 - name: update the server address for the custom cluster
+  become: yes
   lineinfile:
     dest: /usr/local/bin/createcluster.sh
     line: |
@@ -43,6 +46,7 @@
     - API_HOST_IP
 
 - name: enable and start the custom cluster
+  become: yes
   systemd:
     name: customcluster.service
     state: started
@@ -51,6 +55,7 @@
 
 - name: wait for the cluster to be running
   # ref: https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+  become: yes
   ansible.builtin.shell:
     cmd: /usr/bin/kubectl get nodes -o jsonpath='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}' | grep 'Ready=True'
   environment:
@@ -72,9 +77,11 @@
   when: ansible_distribution in ['RedHat']
 
 - name: load br_netfilter module
+  become: yes
   command: modprobe br_netfilter
 
 - name: Enable iptables NAT for the bridge
+  become: yes
   sysctl:
     name: net.bridge.bridge-nf-call-iptables
     value: 1

@@ -11,6 +11,7 @@
 # neither are happening in hack/e2e.go. instead, add this, and set --get=false when
 # running e2e
 - name: build kubetest
+  become: yes
   shell: GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org GO111MODULE=on go install ./kubetest
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/test-infra"

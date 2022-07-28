@@ -3,12 +3,16 @@
   include: system-packages.yml
 
 - name: ensure directories exist as needed
+  become: yes 
   file:
     path: "{{ item }}"
     state: directory
   with_items:
     - /opt/cni/bin
     - /etc/cni/net.d
+
+- name: Disable SELinux
+  selinux: state=disabled
 
 - name: Increase inotify user watches
   sysctl:
