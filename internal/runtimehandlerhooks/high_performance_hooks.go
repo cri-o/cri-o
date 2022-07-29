@@ -613,15 +613,19 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	}
 	if !isAllBitSet(currentMaskArray) {
 		// not system reboot scenario, just return it.
+		log.Infof(ctx, "Restore irqbalance config: not system reboot, ignoring")
 		return nil
 	}
 
 	bannedCPUMasks, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
 	if err != nil {
 		// Ignore returning err as given irqBalanceConfigFile may not exist.
+		log.Infof(ctx, "Restore irqbalance config: failed to get current CPU ban list, ignoring")
 		return nil
 	}
+
 	if !fileExists(irqBannedCPUConfigFile) {
+		log.Infof(ctx, "Creating banned CPU list file %q", irqBannedCPUConfigFile)
 		irqBannedCPUsConfig, err := os.Create(irqBannedCPUConfigFile)
 		if err != nil {
 			return err
@@ -631,6 +635,7 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 		if err != nil {
 			return err
 		}
+		log.Infof(ctx, "Restore irqbalance config: created backup file")
 		return nil
 	}
 
@@ -641,8 +646,11 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	origBannedCPUMasks := strings.TrimSpace(string(content))
 
 	if bannedCPUMasks == origBannedCPUMasks {
+		log.Infof(ctx, "Restore irqbalance config: nothing to do")
 		return nil
 	}
+
+	log.Infof(ctx, "Restore irqbalance banned CPU list in %q to %q", irqBalanceConfigFile, origBannedCPUMasks)
 	if err := updateIrqBalanceConfigFile(irqBalanceConfigFile, origBannedCPUMasks); err != nil {
 		return err
 	}
