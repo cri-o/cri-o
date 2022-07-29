@@ -512,15 +512,15 @@ var _ = Describe("high_performance_hooks", func() {
 		irqBannedCPUConfigFile := filepath.Join(fixturesDir, "orig_irq_banned_cpus")
 		verifyRestoreIrqBalanceConfig := func(expectedOrigBannedCPUs, expectedBannedCPUs string) {
 			err = RestoreIrqBalanceConfig(context.TODO(), irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityFile)
-			Expect(err).To(BeNil())
+			ExpectWithOffset(1, err).To(BeNil())
 
 			content, err := os.ReadFile(irqBannedCPUConfigFile)
-			Expect(err).To(BeNil())
-			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedOrigBannedCPUs))
+			ExpectWithOffset(1, err).To(BeNil())
+			ExpectWithOffset(1, strings.Trim(string(content), "\n")).To(Equal(expectedOrigBannedCPUs))
 
 			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
-			Expect(err).To(BeNil())
-			Expect(bannedCPUs).To(Equal(expectedBannedCPUs))
+			ExpectWithOffset(1, err).To(BeNil())
+			ExpectWithOffset(1, bannedCPUs).To(Equal(expectedBannedCPUs))
 		}
 
 		JustBeforeEach(func() {
