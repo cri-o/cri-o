@@ -20,7 +20,6 @@ import (
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
-	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
@@ -78,7 +77,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	// disable the IRQ smp load balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
-		if err := setIRQLoadBalancing(c, false, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
+		if err := setIRQLoadBalancing(ctx, c, false, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return fmt.Errorf("set IRQ load balancing: %w", err)
 		}
 	}
@@ -151,7 +150,7 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 
 	// enable the IRQ smp balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
-		if err := setIRQLoadBalancing(c, true, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
+		if err := setIRQLoadBalancing(ctx, c, true, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return fmt.Errorf("set IRQ load balancing: %w", err)
 		}
 	}
@@ -306,7 +305,7 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 	return nil
 }
 
-func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqBalanceConfigFile string) error {
+func setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool, irqSmpAffinityFile, irqBalanceConfigFile string) error {
 	lspec := c.Spec().Linux
 	if lspec == nil ||
 		lspec.Resources == nil ||
@@ -339,7 +338,7 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 	if !isServiceEnabled(irqBalancedName) || !isIrqConfigExists {
 		if _, err := exec.LookPath(irqBalancedName); err != nil {
 			// irqbalance is not installed, skip the rest; pod should still start, so return nil instead
-			logrus.Warnf("Irqbalance binary not found: %v", err)
+			log.Warnf(ctx, "Irqbalance binary not found: %v", err)
 			return nil
 		}
 		// run irqbalance in daemon mode, so this won't cause delay
@@ -350,7 +349,7 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 	}
 
 	if err := restartIrqBalanceService(); err != nil {
-		logrus.Warnf("Irqbalance service restart failed: %v", err)
+		log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
 	}
 	return nil
 }
@@ -598,7 +597,7 @@ func doSetCPUFreqGovernor(c *oci.Container, governor, cpuDir, cpuSaveDir string)
 }
 
 // RestoreIrqBalanceConfig restores irqbalance service with original banned cpu mask settings
-func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityProcFile string) error {
+func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityProcFile string) error {
 	content, err := os.ReadFile(irqSmpAffinityProcFile)
 	if err != nil {
 		return err
@@ -647,7 +646,7 @@ func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSm
 	}
 	if isServiceEnabled(irqBalancedName) {
 		if err := restartIrqBalanceService(); err != nil {
-			logrus.Warnf("Irqbalance service restart failed: %v", err)
+			log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
 		}
 	}
 	return nil
