@@ -12,6 +12,7 @@ function error() {
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 skopeo sync \
+    -a \
     --src yaml \
     --dest docker \
     "${SCRIPT_DIR}"/critest_images.yml \
