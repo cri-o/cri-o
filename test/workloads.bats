@@ -169,6 +169,10 @@ function check_conmon_fields() {
 }
 
 @test "test workload pod gets configured to defaults" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
+
 	shares="200"
 	set="0-1"
 	create_workload "$shares" "$set"
@@ -187,6 +191,10 @@ function check_conmon_fields() {
 }
 
 @test "test workload can override pod defaults" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
+
 	shares="200"
 	set="0-1"
 	name=POD
@@ -209,6 +217,10 @@ function check_conmon_fields() {
 }
 
 @test "test workload pod should not be set if not defaulted or specified" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
+
 	shares="200"
 	set=""
 	name=POD
@@ -252,6 +264,10 @@ function check_conmon_fields() {
 }
 
 @test "test workload pod should override infra_ctr_cpuset option" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
+
 	shares="200"
 	set="0-1"
 	name=POD
@@ -330,6 +346,10 @@ function check_conmon_fields() {
 }
 
 @test "test resource cleanup on bad annotation contents" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
+
 	shares="200"
 	set="0-2"
 	name=helloctr

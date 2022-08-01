@@ -13,6 +13,10 @@ function teardown() {
 }
 
 @test "test infra ctr cpuset" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
+
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl inspectp -o yaml "$pod_id")

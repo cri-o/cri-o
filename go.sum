@@ -634,8 +634,8 @@ github.com/containers/common v0.48.1-0.20220720100622-5e4fc04c2e94 h1:8awTsy8IWb
 github.com/containers/common v0.48.1-0.20220720100622-5e4fc04c2e94/go.mod h1:w9q2iCLu6pIB9qu0S9oZWM2Qo4lOWrIdDB+2SjLljqA=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/conmon-rs v0.0.0-20220721132401-db9c3b244679 h1:phe5JtRRdxJeHHOxUd8VLkwP1v5tRCdEaUiUqZ7vMME=
-github.com/containers/conmon-rs v0.0.0-20220721132401-db9c3b244679/go.mod h1:r7YrP1A0WEXtCN/fc/hDADyzYrTpfF8/PneGZoV5Rac=
+github.com/containers/conmon-rs v0.0.0-20220727163913-8698d2df0588 h1:5NI/QgGc286+88yRaOzOtHKdah6GvGYUXzSDcoPIiEA=
+github.com/containers/conmon-rs v0.0.0-20220727163913-8698d2df0588/go.mod h1:r7YrP1A0WEXtCN/fc/hDADyzYrTpfF8/PneGZoV5Rac=
 github.com/containers/image/v5 v5.21.2-0.20220511203756-fe4fd4ed8be4/go.mod h1:OsX9sFexyGF0FCNAjfcVFv3IwMqDyLyV/WQY/roLPcE=
 github.com/containers/image/v5 v5.21.2-0.20220520105616-e594853d6471/go.mod h1:KntCBNQn3qOuZmQuJ38ORyTozmWXiuo05Vef2S0Sm5M=
 github.com/containers/image/v5 v5.21.2-0.20220615100411-a78a00792916/go.mod h1:hEf8L08Hrh/3fK4vLf5l7988MJmij2swfCBUzqgnhF4=

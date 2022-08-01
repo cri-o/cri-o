@@ -50,21 +50,23 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		runRoot = handler.RuntimeRoot
 	}
 
-	logLevel := logrus.GetLevel().String()
-	if logLevel == logrus.PanicLevel.String() || logLevel == logrus.FatalLevel.String() {
-		logLevel = "off"
+	cgroupManager := conmonClient.CgroupManagerSystemd
+	if !r.config.CgroupManager().IsSystemd() {
+		cgroupManager = conmonClient.CgroupManagerCgroupfs
 	}
 
 	client, err := conmonClient.New(&conmonClient.ConmonServerConfig{
 		ConmonServerPath: handler.MonitorPath,
-		LogLevel:         logLevel,
+		LogLevel:         conmonClient.FromLogrusLevel(logrus.GetLevel()),
 		Runtime:          handler.RuntimePath,
 		ServerRunDir:     c.dir,
 		RuntimeRoot:      runRoot,
+		CgroupManager:    cgroupManager,
 	})
 	if err != nil {
 		return nil, err
 	}
+	logrus.Debugf("Running conmonrs with PID: %d", client.PID())
 
 	// TODO FIXME we need to move conmon-rs to the new cgroup
 	return &runtimePod{
@@ -93,7 +95,7 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 		// Platform specific container setup
 		if err := r.oci.createContainerPlatform(c, cgroupParent, int(v.ProcessID)); err != nil {
-			return err
+			return fmt.Errorf("create container for platform: %w", err)
 		}
 	}
 	if c.Spoofed() {
@@ -120,11 +122,11 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	resp, err := r.client.CreateContainer(ctx, createConfig)
 	// TODO FIXME do we need to cleanup the container?
 	if err != nil {
-		return err
+		return fmt.Errorf("create container: %w", err)
 	}
 	// Now we know the container has started, save the pid to verify against future calls.
 	if err := c.state.SetInitPid(int(resp.PID)); err != nil {
-		return err
+		return fmt.Errorf("set init PID: %w", err)
 	}
 	return nil
 }
@@ -177,7 +179,7 @@ func (r *runtimePod) StopContainer(ctx context.Context, c *Container, timeout in
 
 func (r *runtimePod) DeleteContainer(ctx context.Context, c *Container) error {
 	if err := r.oci.DeleteContainer(ctx, c); err != nil {
-		return err
+		return fmt.Errorf("delete container: %w", err)
 	}
 	// Shutdown the runtime if the infra container is being deleted
 	if c.IsInfra() {

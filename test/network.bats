@@ -116,6 +116,10 @@ function check_networking() {
 }
 
 @test "Clean up network if pod sandbox fails" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
+
 	# TODO FIXME find a way for sandbox setup to fail if manage ns is true
 	CONMON_BINARY="$TESTDIR"/conmon
 	cp "$(command -v conmon)" "$CONMON_BINARY"

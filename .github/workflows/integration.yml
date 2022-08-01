@@ -125,3 +125,26 @@ jobs:
         env:
           JOBS: '2'
           TEST_USERNS: '1'
+
+  test-conmonrs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-integration-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-
+      - uses: sigstore/cosign-installer@v2
+      - run: scripts/github-actions-packages
+      - run: scripts/github-actions-setup
+      - run: make all test-binaries
+      - run: sudo -E test/test_runner.sh
+        env:
+          JOBS: '2'
+          RUNTIME_TYPE: pod

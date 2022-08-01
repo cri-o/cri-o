@@ -39,6 +39,9 @@ prepare_system() {
     if ! grep -q containers /etc/subgid; then
         echo "containers:100000:65536" | sudo tee -a /etc/subgid
     fi
+
+    printf "RateLimitInterval=0\nRateLimitBurst=0\n" | sudo tee /etc/systemd/journald.conf
+    sudo systemctl restart systemd-journald
 }
 
 install_bats() {
@@ -62,7 +65,7 @@ install_conmon() {
 }
 
 install_conmonrs() {
-    curl https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
+    curl -sSfL --retry 5 --retry-delay 3 https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
         sudo -E PATH="$PATH" bash -s -- -o /usr/bin/conmonrs
 }
 

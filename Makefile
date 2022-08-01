@@ -420,6 +420,9 @@ bundle-test:
 bundle-test-e2e:
 	sudo contrib/bundle/test-e2e
 
+bundle-test-e2e-conmonrs:
+	sudo contrib/bundle/test-e2e --use-conmonrs
+
 bundles: ${BOM}
 	contrib/bundle/build amd64
 	contrib/bundle/build arm64
@@ -528,6 +531,8 @@ metrics-exporter: bin/metrics-exporter
 	bundle \
 	bundles \
 	bundle-test \
+	bundle-test-e2e \
+	bundle-test-e2e-conmonrs \
 	build-static \
 	clean \
 	completions \

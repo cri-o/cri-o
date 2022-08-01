@@ -27,6 +27,10 @@ function teardown() {
 }
 
 @test "conmon custom cgroup" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
+
 	CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_DROP_INFRA_CTR=false CONTAINER_MANAGE_NS_LIFECYCLE=false CONTAINER_CONMON_CGROUP="customcrioconmon.slice" start_crio
 
 	jq '	  .linux.cgroup_parent = "Burstablecriotest123.slice"' \
