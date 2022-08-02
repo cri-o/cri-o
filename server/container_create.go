@@ -328,15 +328,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	}()
 
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		reservedID, getErr := s.ContainerIDForName(ctr.Name())
-		if getErr != nil {
-			return nil, fmt.Errorf("failed to get ID of container with reserved name (%s), after failing to reserve name with %v: %w", ctr.Name(), getErr, getErr)
-		}
-		// if we're able to find the container, and it's created, this is actually a duplicate request
-		// from a client that does not behave like the kubelet (like crictl)
-		if reservedCtr := s.GetContainer(reservedID); reservedCtr != nil && reservedCtr.Created() {
-			return nil, err
-		}
 		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
 		if resourceErr == nil {
 			return &types.CreateContainerResponse{ContainerId: cachedID}, nil
