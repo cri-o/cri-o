@@ -283,6 +283,9 @@ the container runtime configuration.
 **device_ownership_from_security_context**=false
   Changes the default behavior of setting container devices uid/gid from CRI's SecurityContext (RunAsUser/RunAsGroup) instead of taking host's uid/gid.
 
+**irqbalance_config_restore_file**="/etc/sysconfig/orig_irq_banned_cpus"
+  Used to set the irqbalance banned cpu mask to restore at CRI-O startup. If empty, no restoration attempt will be done.
+
 ### CRIO.RUNTIME.RUNTIMES TABLE
 The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime handler provided by the CRI.  If no runtime handler is provided, the runtime will be picked based on the level of trust of the workload.
 

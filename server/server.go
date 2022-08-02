@@ -395,9 +395,12 @@ func New(
 		return nil, err
 	}
 
-	err = runtimehandlerhooks.RestoreIrqBalanceConfig(context.TODO(), config.IrqBalanceConfigFile, runtimehandlerhooks.IrqBannedCPUConfigFile, runtimehandlerhooks.IrqSmpAffinityProcFile)
-	if err != nil {
-		return nil, err
+	if config.IrqBalanceConfigRestoreFile != "" {
+		log.Infof(ctx, "Attempting to restore irqbalance config from %s", config.IrqBalanceConfigRestoreFile)
+		err = runtimehandlerhooks.RestoreIrqBalanceConfig(context.TODO(), config.IrqBalanceConfigFile, config.IrqBalanceConfigRestoreFile, runtimehandlerhooks.IrqSmpAffinityProcFile)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	hostportManager := hostport.NewMetaHostportManager()

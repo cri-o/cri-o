@@ -122,6 +122,8 @@ const (
 const (
 	// DefaultIrqBalanceConfigFile default irqbalance service configuration file path
 	DefaultIrqBalanceConfigFile = "/etc/sysconfig/irqbalance"
+	// DefaultIrqBalanceConfigRestoreFile contains the banned cpu mask configuration to restore. Name due to backward compatibility.
+	DefaultIrqBalanceConfigRestoreFile = "/etc/sysconfig/orig_irq_banned_cpus"
 )
 
 // This structure is necessary to fake the TOML tables when parsing,
@@ -396,6 +398,10 @@ type RuntimeConfig struct {
 	// AbsentMountSourcesToReject is a list of paths that, when absent from the host,
 	// will cause a container creation to fail (as opposed to the current behavior of creating a directory).
 	AbsentMountSourcesToReject []string `toml:"absent_mount_sources_to_reject"`
+
+	// IrqBalanceConfigRestoreFile is the irqbalance service banned CPU list to restore.
+	// If empty, no restoration attempt will be done.
+	IrqBalanceConfigRestoreFile string `toml:"irqbalance_config_restore_file"`
 
 	// seccompConfig is the internal seccomp configuration
 	seccompConfig *seccomp.Config
@@ -782,34 +788,35 @@ func DefaultConfig() (*Config, error) {
 			Runtimes: Runtimes{
 				defaultRuntime: defaultRuntimeHandler(),
 			},
-			SELinux:                    selinuxEnabled(),
-			ApparmorProfile:            apparmor.DefaultProfile,
-			BlockIOConfigFile:          DefaultBlockIOConfigFile,
-			IrqBalanceConfigFile:       DefaultIrqBalanceConfigFile,
-			RdtConfigFile:              rdt.DefaultRdtConfigFile,
-			CgroupManagerName:          cgroupManager.Name(),
-			PidsLimit:                  DefaultPidsLimit,
-			ContainerExitsDir:          containerExitsDir,
-			ContainerAttachSocketDir:   conmonconfig.ContainerAttachSocketDir,
-			MinimumMappableUID:         -1,
-			MinimumMappableGID:         -1,
-			LogSizeMax:                 DefaultLogSizeMax,
-			CtrStopTimeout:             defaultCtrStopTimeout,
-			DefaultCapabilities:        capabilities.Default(),
-			LogLevel:                   "info",
-			HooksDir:                   []string{hooks.DefaultDir},
-			CDISpecDirs:                cdi.DefaultSpecDirs,
-			NamespacesDir:              defaultNamespacesDir,
-			DropInfraCtr:               true,
-			SeccompUseDefaultWhenEmpty: seccompConfig.UseDefaultWhenEmpty(),
-			seccompConfig:              seccomp.New(),
-			apparmorConfig:             apparmor.New(),
-			blockioConfig:              blockio.New(),
-			cgroupManager:              cgroupManager,
-			deviceConfig:               device.New(),
-			namespaceManager:           nsmgr.New(defaultNamespacesDir, ""),
-			rdtConfig:                  rdt.New(),
-			ulimitsConfig:              ulimits.New(),
+			SELinux:                     selinuxEnabled(),
+			ApparmorProfile:             apparmor.DefaultProfile,
+			BlockIOConfigFile:           DefaultBlockIOConfigFile,
+			IrqBalanceConfigFile:        DefaultIrqBalanceConfigFile,
+			RdtConfigFile:               rdt.DefaultRdtConfigFile,
+			CgroupManagerName:           cgroupManager.Name(),
+			PidsLimit:                   DefaultPidsLimit,
+			ContainerExitsDir:           containerExitsDir,
+			ContainerAttachSocketDir:    conmonconfig.ContainerAttachSocketDir,
+			MinimumMappableUID:          -1,
+			MinimumMappableGID:          -1,
+			LogSizeMax:                  DefaultLogSizeMax,
+			CtrStopTimeout:              defaultCtrStopTimeout,
+			DefaultCapabilities:         capabilities.Default(),
+			LogLevel:                    "info",
+			HooksDir:                    []string{hooks.DefaultDir},
+			CDISpecDirs:                 cdi.DefaultSpecDirs,
+			NamespacesDir:               defaultNamespacesDir,
+			DropInfraCtr:                true,
+			SeccompUseDefaultWhenEmpty:  seccompConfig.UseDefaultWhenEmpty(),
+			IrqBalanceConfigRestoreFile: DefaultIrqBalanceConfigRestoreFile,
+			seccompConfig:               seccomp.New(),
+			apparmorConfig:              apparmor.New(),
+			blockioConfig:               blockio.New(),
+			cgroupManager:               cgroupManager,
+			deviceConfig:                device.New(),
+			namespaceManager:            nsmgr.New(defaultNamespacesDir, ""),
+			rdtConfig:                   rdt.New(),
+			ulimitsConfig:               ulimits.New(),
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",
