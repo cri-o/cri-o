@@ -13,10 +13,10 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	"github.com/containers/common/pkg/hooks"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v4/pkg/hooks"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/apparmor"

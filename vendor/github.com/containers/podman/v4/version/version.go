@@ -1,7 +1,7 @@
 package version
 
 import (
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 type (
@@ -27,7 +27,7 @@ const (
 // NOTE: remember to bump the version at the top
 // of the top-level README.md file when this is
 // bumped.
-var Version = semver.MustParse("4.2.0-rc1")
+var Version = semver.MustParse("4.2.0-rc2")
 
 // See https://docs.docker.com/engine/api/v1.40/
 // libpod compat handlers are expected to honor docker API versions
