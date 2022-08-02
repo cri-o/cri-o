@@ -60,6 +60,7 @@ crio
 [--insecure-registry]=[value]
 [--internal-wipe]
 [--irqbalance-config-file]=[value]
+[--irqbalance-config-restore-file]=[value]
 [--listen]=[value]
 [--log-dir]=[value]
 [--log-filter]=[value]
@@ -280,6 +281,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--internal-wipe**: Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts. If set to false, one must run `crio wipe` to wipe the containers and images in these situations. This option is deprecated, and will be removed in the future.
 
 **--irqbalance-config-file**="": The irqbalance service config file which is used by CRI-O. (default: /etc/sysconfig/irqbalance)
+
+**--irqbalance-config-restore-file**="": Determines if CRI-O should attempt to restore the irqbalance config at startup with the mask in this file. Use the 'disable' value to disable the restore flow entirely. (default: /etc/sysconfig/orig_irq_banned_cpus)
 
 **--listen**="": Path to the CRI-O socket. (default: /var/run/crio/crio.sock)
 

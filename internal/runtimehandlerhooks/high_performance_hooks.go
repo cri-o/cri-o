@@ -28,8 +28,6 @@ import (
 const (
 	// HighPerformance contains the high-performance runtime handler name
 	HighPerformance = "high-performance"
-	// IrqBannedCPUConfigFile contains the original banned cpu mask configuration
-	IrqBannedCPUConfigFile = "/etc/sysconfig/orig_irq_banned_cpus"
 	// IrqSmpAffinityProcFile contains the default smp affinity mask configuration
 	IrqSmpAffinityProcFile = "/proc/irq/default_smp_affinity"
 )

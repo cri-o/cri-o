@@ -332,6 +332,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("absent-mount-sources-to-reject") {
 		config.AbsentMountSourcesToReject = StringSliceTrySplit(ctx, "absent-mount-sources-to-reject")
 	}
+	if ctx.IsSet("irqbalance-config-restore-file") {
+		config.IrqBalanceConfigRestoreFile = ctx.String("irqbalance-config-restore-file")
+	}
 	if ctx.IsSet("internal-wipe") {
 		config.InternalWipe = ctx.Bool("internal-wipe")
 	}
@@ -1082,6 +1085,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "enable-pod-events",
 			Usage:   "If true, CRI-O starts sending the container events to the kubelet",
 			EnvVars: []string{"ENABLE_POD_EVENTS"},
+		},
+		&cli.StringFlag{
+			Name:  "irqbalance-config-restore-file",
+			Value: defConf.IrqBalanceConfigRestoreFile,
+			Usage: "Determines if CRI-O should attempt to restore the irqbalance config at startup with the mask in this file. Use the 'disable' value to disable the restore flow entirely.",
 		},
 	}
 }

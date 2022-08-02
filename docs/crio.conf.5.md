@@ -159,6 +159,9 @@ the container runtime configuration.
   Used to change irqbalance service config file which is used by CRI-O.
   For CentOS/SUSE, this file is located at /etc/sysconfig/irqbalance. For Ubuntu, this file is located at /etc/default/irqbalance.
 
+**irqbalance_config_restore_file**="/etc/sysconfig/orig_irq_banned_cpus"
+  Used to set the irqbalance banned cpu mask to restore at CRI-O startup. If set to 'disable', no restoration attempt will be done.
+
 **rdt_config_file**=""
   Path to the RDT configuration file for configuring the resctrl pseudo-filesystem.
 
