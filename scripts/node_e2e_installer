@@ -30,20 +30,17 @@ install_crio() {
     # Setup log level
     echo "CONTAINER_LOG_LEVEL=debug" >>/etc/sysconfig/crio
 
-    # Setup secondary runtime
+    cat <<EOF >/etc/crio/crio.conf.d/10-crun.conf
+[crio.runtime]
+[crio.runtime.runtimes]
+[crio.runtime.runtimes.test-handler]
+EOF
+
     cat <<EOF >/etc/crio/crio.conf.d/20-runc.conf
 [crio.runtime]
 default_runtime = "runc"
 [crio.runtime.runtimes]
 [crio.runtime.runtimes.runc]
-    runtime_path="/usr/local/bin/runc"
-EOF
-
-    cat <<EOF >/etc/crio/crio.conf.d/10-crun.conf
-[crio.runtime]
-[crio.runtime.runtimes]
-[crio.runtime.runtimes.test-handler]
-    runtime_path="/usr/local/bin/crun"
 EOF
 
     cat <<EOF >/etc/crio/crio.conf.d/30-infra-container.conf
