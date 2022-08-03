@@ -862,6 +862,10 @@ func (c *Config) Validate(onExecution bool) error {
 		return fmt.Errorf("validating runtime config: %w", err)
 	}
 
+	c.RuntimeConfig.seccompConfig.SetNotifierPath(
+		filepath.Join(filepath.Dir(c.Listen), "seccomp"),
+	)
+
 	if err := c.NetworkConfig.Validate(onExecution); err != nil {
 		return fmt.Errorf("validating network config: %w", err)
 	}

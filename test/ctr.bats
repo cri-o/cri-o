@@ -11,22 +11,6 @@ function teardown() {
 	cleanup_test
 }
 
-function wait_until_exit() {
-	ctr_id=$1
-	# Wait for container to exit
-	attempt=0
-	while [ $attempt -le 100 ]; do
-		attempt=$((attempt + 1))
-		output=$(crictl inspect -o table "$ctr_id")
-		if [[ "$output" == *"State: CONTAINER_EXITED"* ]]; then
-			[[ "$output" == *"Exit Code: ${EXPECTED_EXIT_STATUS:-0}"* ]]
-			return 0
-		fi
-		sleep 1
-	done
-	return 1
-}
-
 # list_all_children lists children of a process recursively
 function list_all_children {
 	children=$(pgrep -P "$1")

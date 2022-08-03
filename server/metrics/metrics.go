@@ -62,31 +62,32 @@ func GetSizeBucket(size float64) string {
 
 // Metrics is the main structure for starting the metrics endpoints.
 type Metrics struct {
-	config                              *libconfig.MetricsConfig
-	metricOperations                    *prometheus.CounterVec // Deprecated: in favour of metricOperationsTotal
-	metricOperationsLatency             *prometheus.GaugeVec   // Deprecated: in favour of metricOperationsLatencySeconds
-	metricOperationsLatencyTotal        *prometheus.SummaryVec // Deprecated: in favour of metricOperationsLatencySecondsTotal
-	metricOperationsErrors              *prometheus.CounterVec // Deprecated: in favour of metricOperationsErrorsTotal
-	metricImagePullsByDigest            *prometheus.CounterVec // Deprecated: in favour of metricImagePullsBytesTotal
-	metricImagePullsByName              *prometheus.CounterVec // Deprecated: in favour of metricImagePullsBytesTotal
-	metricImagePullsByNameSkipped       *prometheus.CounterVec // Deprecated: in favour of metricImagePullsSkippedBytesTotal
-	metricImagePullsFailures            *prometheus.CounterVec // Deprecated: in favour of metricImagePullsFailureTotal
-	metricImagePullsSuccesses           *prometheus.CounterVec // Deprecated: in favour of metricImagePullsSuccessTotal
-	metricImagePullsLayerSize           prometheus.Histogram
-	metricImageLayerReuse               *prometheus.CounterVec // Deprecated: in favour of metricImageLayerReuseTotal
-	metricContainersOOMTotal            prometheus.Counter
-	metricContainersOOM                 *prometheus.CounterVec // Deprecated: in favour of metricContainersOOMCountTotal
-	metricProcessesDefunct              prometheus.GaugeFunc
-	metricOperationsTotal               *prometheus.CounterVec
-	metricOperationsLatencySeconds      *prometheus.GaugeVec
-	metricOperationsLatencySecondsTotal *prometheus.SummaryVec
-	metricOperationsErrorsTotal         *prometheus.CounterVec
-	metricImagePullsBytesTotal          *prometheus.CounterVec
-	metricImagePullsSkippedBytesTotal   *prometheus.CounterVec
-	metricImagePullsFailureTotal        *prometheus.CounterVec
-	metricImagePullsSuccessTotal        prometheus.Counter
-	metricImageLayerReuseTotal          *prometheus.CounterVec
-	metricContainersOOMCountTotal       *prometheus.CounterVec
+	config                                    *libconfig.MetricsConfig
+	metricOperations                          *prometheus.CounterVec // Deprecated: in favour of metricOperationsTotal
+	metricOperationsLatency                   *prometheus.GaugeVec   // Deprecated: in favour of metricOperationsLatencySeconds
+	metricOperationsLatencyTotal              *prometheus.SummaryVec // Deprecated: in favour of metricOperationsLatencySecondsTotal
+	metricOperationsErrors                    *prometheus.CounterVec // Deprecated: in favour of metricOperationsErrorsTotal
+	metricImagePullsByDigest                  *prometheus.CounterVec // Deprecated: in favour of metricImagePullsBytesTotal
+	metricImagePullsByName                    *prometheus.CounterVec // Deprecated: in favour of metricImagePullsBytesTotal
+	metricImagePullsByNameSkipped             *prometheus.CounterVec // Deprecated: in favour of metricImagePullsSkippedBytesTotal
+	metricImagePullsFailures                  *prometheus.CounterVec // Deprecated: in favour of metricImagePullsFailureTotal
+	metricImagePullsSuccesses                 *prometheus.CounterVec // Deprecated: in favour of metricImagePullsSuccessTotal
+	metricImagePullsLayerSize                 prometheus.Histogram
+	metricImageLayerReuse                     *prometheus.CounterVec // Deprecated: in favour of metricImageLayerReuseTotal
+	metricContainersOOMTotal                  prometheus.Counter
+	metricContainersOOM                       *prometheus.CounterVec // Deprecated: in favour of metricContainersOOMCountTotal
+	metricProcessesDefunct                    prometheus.GaugeFunc
+	metricOperationsTotal                     *prometheus.CounterVec
+	metricOperationsLatencySeconds            *prometheus.GaugeVec
+	metricOperationsLatencySecondsTotal       *prometheus.SummaryVec
+	metricOperationsErrorsTotal               *prometheus.CounterVec
+	metricImagePullsBytesTotal                *prometheus.CounterVec
+	metricImagePullsSkippedBytesTotal         *prometheus.CounterVec
+	metricImagePullsFailureTotal              *prometheus.CounterVec
+	metricImagePullsSuccessTotal              prometheus.Counter
+	metricImageLayerReuseTotal                *prometheus.CounterVec
+	metricContainersOOMCountTotal             *prometheus.CounterVec
+	metricContainersSeccompNotifierCountTotal *prometheus.CounterVec
 }
 
 var instance *Metrics
@@ -309,6 +310,14 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			// keeping the label cardinality of `name` reasonably low.
 			[]string{"name"},
 		),
+		metricContainersSeccompNotifierCountTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ContainersSeccompNotifierCountTotal.String(),
+				Help:      "Amount of containers stopped because they used a forbidden syscalls by their name",
+			},
+			[]string{"name", "syscalls"},
+		),
 	}
 	return Instance()
 }
@@ -439,6 +448,15 @@ func (m *Metrics) MetricContainersOOMTotalInc() {
 	m.metricContainersOOMTotal.Inc()
 }
 
+func (m *Metrics) MetricContainersSeccompNotifierCountTotalInc(name, syscalls string) {
+	c, err := m.metricContainersSeccompNotifierCountTotal.GetMetricWithLabelValues(name, syscalls)
+	if err != nil {
+		logrus.Warnf("Unable to write container seccomp notifier metric: %v", err)
+		return
+	}
+	c.Inc()
+}
+
 func (m *Metrics) MetricImagePullsLayerSizeObserve(size int64) {
 	m.metricImagePullsLayerSize.Observe(float64(size))
 }
@@ -549,16 +567,17 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ContainersOOM:           m.metricContainersOOM,
 		collectors.ProcessesDefunct:        m.metricProcessesDefunct,
 
-		collectors.OperationsTotal:               m.metricOperationsTotal,
-		collectors.OperationsLatencySeconds:      m.metricOperationsLatencySeconds,
-		collectors.OperationsLatencySecondsTotal: m.metricOperationsLatencySecondsTotal,
-		collectors.OperationsErrorsTotal:         m.metricOperationsErrorsTotal,
-		collectors.ImagePullsBytesTotal:          m.metricImagePullsBytesTotal,
-		collectors.ImagePullsSkippedBytesTotal:   m.metricImagePullsSkippedBytesTotal,
-		collectors.ImagePullsFailureTotal:        m.metricImagePullsFailureTotal,
-		collectors.ImagePullsSuccessTotal:        m.metricImagePullsSuccessTotal,
-		collectors.ImageLayerReuseTotal:          m.metricImageLayerReuseTotal,
-		collectors.ContainersOOMCountTotal:       m.metricContainersOOMCountTotal,
+		collectors.OperationsTotal:                     m.metricOperationsTotal,
+		collectors.OperationsLatencySeconds:            m.metricOperationsLatencySeconds,
+		collectors.OperationsLatencySecondsTotal:       m.metricOperationsLatencySecondsTotal,
+		collectors.OperationsErrorsTotal:               m.metricOperationsErrorsTotal,
+		collectors.ImagePullsBytesTotal:                m.metricImagePullsBytesTotal,
+		collectors.ImagePullsSkippedBytesTotal:         m.metricImagePullsSkippedBytesTotal,
+		collectors.ImagePullsFailureTotal:              m.metricImagePullsFailureTotal,
+		collectors.ImagePullsSuccessTotal:              m.metricImagePullsSuccessTotal,
+		collectors.ImageLayerReuseTotal:                m.metricImageLayerReuseTotal,
+		collectors.ContainersOOMCountTotal:             m.metricContainersOOMCountTotal,
+		collectors.ContainersSeccompNotifierCountTotal: m.metricContainersSeccompNotifierCountTotal,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())

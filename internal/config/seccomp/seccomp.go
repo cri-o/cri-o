@@ -79,6 +79,7 @@ type Config struct {
 	enabled          bool
 	defaultWhenEmpty bool
 	profile          *seccomp.Seccomp
+	notifierPath     string
 }
 
 // New creates a new default seccomp configuration instance
@@ -87,6 +88,7 @@ func New() *Config {
 		enabled:          seccomp.IsEnabled(),
 		profile:          DefaultProfile(),
 		defaultWhenEmpty: true,
+		notifierPath:     "/var/run/crio/seccomp",
 	}
 }
 
@@ -101,6 +103,16 @@ func (c *Config) SetUseDefaultWhenEmpty(to bool) {
 // use default profile when the profile is empty
 func (c *Config) UseDefaultWhenEmpty() bool {
 	return c.defaultWhenEmpty
+}
+
+// SetNotifierPath sets the default path for creating seccomp notifier sockets.
+func (c *Config) SetNotifierPath(path string) {
+	c.notifierPath = path
+}
+
+// NotifierPath returns the currently used seccomp notifier base path.
+func (c *Config) NotifierPath() string {
+	return c.notifierPath
 }
 
 // LoadProfile can be used to load a seccomp profile from the provided path.
@@ -164,35 +176,47 @@ func (c *Config) Profile() *seccomp.Seccomp {
 // Setup can be used to setup the seccomp profile.
 func (c *Config) Setup(
 	ctx context.Context,
+	msgChan chan Notification,
+	containerID string,
+	annotations map[string]string,
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
 	profilePath string,
-) error {
+) (notifier *Notifier, err error) {
 	if profileField == nil {
 		// Path based seccomp profiles will be used with a higher priority and are
 		// going to be removed in future Kubernetes versions.
-		if err := c.setupFromPath(ctx, specGenerator, profilePath); err != nil {
-			return fmt.Errorf("from profile path: %w", err)
+		notifier, err = c.setupFromPath(ctx, msgChan, containerID, annotations, specGenerator, profilePath)
+		if err != nil {
+			return nil, fmt.Errorf("from profile path: %w", err)
 		}
-	} else if err := c.setupFromField(ctx, specGenerator, profileField); err != nil {
-		// Field based seccomp profiles are newer than the path based ones and will
-		// be the standard in future Kubernetes versions.
-		return fmt.Errorf("from field: %w", err)
+	} else {
+		notifier, err = c.setupFromField(ctx, msgChan, containerID, annotations, specGenerator, profileField)
+		if err != nil {
+			// Field based seccomp profiles are newer than the path based ones and will
+			// be the standard in future Kubernetes versions.
+			return nil, fmt.Errorf("from field: %w", err)
+		}
 	}
 
-	return nil
+	return notifier, nil
 }
 
 func (c *Config) setupFromPath(
-	ctx context.Context, specGenerator *generate.Generator, profilePath string,
-) error {
+	ctx context.Context,
+	msgChan chan Notification,
+	containerID string,
+	annotations map[string]string,
+	specGenerator *generate.Generator,
+	profilePath string,
+) (*Notifier, error) {
 	log.Debugf(ctx, "Setup seccomp from profile path: %s", profilePath)
 
 	if profilePath == "" {
 		if !c.UseDefaultWhenEmpty() {
 			// running w/o seccomp, aka unconfined
 			specGenerator.Config.Linux.Seccomp = nil
-			return nil
+			return nil, nil
 		}
 		// default to SeccompProfileRuntimeDefault if user sets UseDefaultWhenEmpty
 		profilePath = k8sV1.SeccompProfileRuntimeDefault
@@ -205,10 +229,10 @@ func (c *Config) setupFromPath(
 		if profilePath == k8sV1.SeccompProfileRuntimeDefault {
 			// running w/o seccomp, aka unconfined
 			specGenerator.Config.Linux.Seccomp = nil
-			return nil
+			return nil, nil
 		}
 		if profilePath != k8sV1.SeccompProfileNameUnconfined {
-			return errors.New(
+			return nil, errors.New(
 				"seccomp is not enabled, cannot run with a profile",
 			)
 		}
@@ -219,7 +243,7 @@ func (c *Config) setupFromPath(
 	if profilePath == k8sV1.SeccompProfileNameUnconfined {
 		// running w/o seccomp, aka unconfined
 		specGenerator.Config.Linux.Seccomp = nil
-		return nil
+		return nil, nil
 	}
 
 	// Load the default seccomp profile from the server if the profilePath is a
@@ -229,37 +253,50 @@ func (c *Config) setupFromPath(
 			c.Profile(), specGenerator.Config,
 		)
 		if err != nil {
-			return fmt.Errorf("load default profile: %w", err)
+			return nil, fmt.Errorf("load default profile: %w", err)
 		}
 
+		notifier, err := c.injectNotifier(ctx, msgChan, containerID, annotations, linuxSpecs)
+		if err != nil {
+			return nil, fmt.Errorf("inject notifier: %w", err)
+		}
 		specGenerator.Config.Linux.Seccomp = linuxSpecs
-		return nil
+		return notifier, nil
 	}
 
 	// Load local seccomp profiles including their availability validation
 	if !strings.HasPrefix(profilePath, k8sV1.SeccompLocalhostProfileNamePrefix) {
-		return fmt.Errorf("unknown seccomp profile path: %q", profilePath)
+		return nil, fmt.Errorf("unknown seccomp profile path: %q", profilePath)
 	}
 
 	fname := strings.TrimPrefix(profilePath, k8sV1.SeccompLocalhostProfileNamePrefix)
 	file, err := os.ReadFile(filepath.FromSlash(fname))
 	if err != nil {
-		return fmt.Errorf("cannot load seccomp profile %q: %w", fname, err)
+		return nil, fmt.Errorf("cannot load seccomp profile %q: %w", fname, err)
 	}
 
 	linuxSpecs, err := seccomp.LoadProfileFromBytes(file, specGenerator.Config)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	notifier, err := c.injectNotifier(ctx, msgChan, containerID, annotations, linuxSpecs)
+	if err != nil {
+		return nil, fmt.Errorf("inject notifier: %w", err)
 	}
 	specGenerator.Config.Linux.Seccomp = linuxSpecs
-	return nil
+
+	return notifier, nil
 }
 
 func (c *Config) setupFromField(
 	ctx context.Context,
+	msgChan chan Notification,
+	containerID string,
+	annotations map[string]string,
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
-) error {
+) (*Notifier, error) {
 	log.Debugf(ctx, "Setup seccomp from profile field: %+v", profileField)
 
 	if c.IsDisabled() {
@@ -267,19 +304,19 @@ func (c *Config) setupFromField(
 			// Kubernetes sandboxes run per default with `SecurityProfileTypeRuntimeDefault`:
 			// https://github.com/kubernetes/kubernetes/blob/629d5ab/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L155-L162
 			profileField.ProfileType != types.SecurityProfile_RuntimeDefault {
-			return errors.New(
+			return nil, errors.New(
 				"seccomp is not enabled, cannot run with custom profile",
 			)
 		}
 		log.Warnf(ctx, "Seccomp is not enabled, running without profile")
 		specGenerator.Config.Linux.Seccomp = nil
-		return nil
+		return nil, nil
 	}
 
 	if profileField.ProfileType == types.SecurityProfile_Unconfined {
 		// running w/o seccomp, aka unconfined
 		specGenerator.Config.Linux.Seccomp = nil
-		return nil
+		return nil, nil
 	}
 
 	if profileField.ProfileType == types.SecurityProfile_RuntimeDefault {
@@ -287,24 +324,32 @@ func (c *Config) setupFromField(
 			c.Profile(), specGenerator.Config,
 		)
 		if err != nil {
-			return fmt.Errorf("load default profile: %w", err)
+			return nil, fmt.Errorf("load default profile: %w", err)
+		}
+		notifier, err := c.injectNotifier(ctx, msgChan, containerID, annotations, linuxSpecs)
+		if err != nil {
+			return nil, fmt.Errorf("inject notifier: %w", err)
 		}
 		specGenerator.Config.Linux.Seccomp = linuxSpecs
-		return nil
+		return notifier, nil
 	}
 
 	// Load local seccomp profiles including their availability validation
 	file, err := os.ReadFile(filepath.FromSlash(profileField.LocalhostRef))
 	if err != nil {
-		return fmt.Errorf(
+		return nil, fmt.Errorf(
 			"unable to load local profile %q: %w", profileField.LocalhostRef, err,
 		)
 	}
 
 	linuxSpecs, err := seccomp.LoadProfileFromBytes(file, specGenerator.Config)
 	if err != nil {
-		return fmt.Errorf("load local profile: %w", err)
+		return nil, fmt.Errorf("load local profile: %w", err)
+	}
+	notifier, err := c.injectNotifier(ctx, msgChan, containerID, annotations, linuxSpecs)
+	if err != nil {
+		return nil, fmt.Errorf("inject notifier: %w", err)
 	}
 	specGenerator.Config.Linux.Seccomp = linuxSpecs
-	return nil
+	return notifier, nil
 }

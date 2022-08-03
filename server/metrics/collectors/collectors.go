@@ -98,6 +98,9 @@ const (
 
 	// ContainersOOMCountTotal is the key for the CRI-O container out of memory metrics per container name.
 	ContainersOOMCountTotal Collector = crioPrefix + "containers_oom_count_total"
+
+	// ContainersSeccompNotifierCountTotal is the key for the CRI-O container seccomp notifier metrics per container name and syscalls.
+	ContainersSeccompNotifierCountTotal Collector = crioPrefix + "containers_seccomp_notifier_count_total"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -144,6 +147,7 @@ func All() Collectors {
 		ImagePullsSuccessTotal.Stripped(),
 		ImageLayerReuseTotal.Stripped(),
 		ContainersOOMCountTotal.Stripped(),
+		ContainersSeccompNotifierCountTotal.Stripped(),
 	}
 }
 

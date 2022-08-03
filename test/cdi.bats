@@ -23,22 +23,6 @@ function teardown() {
 	cleanup_test
 }
 
-function wait_until_exit() {
-	ctr_id=$1
-	# Wait for container to exit
-	attempt=0
-	while [ $attempt -le 100 ]; do
-		attempt=$((attempt + 1))
-		output=$(crictl inspect -o table "$ctr_id")
-		if [[ "$output" == *"State: CONTAINER_EXITED"* ]]; then
-			[[ "$output" == *"Exit Code: ${EXPECTED_EXIT_STATUS:-0}"* ]]
-			return 0
-		fi
-		sleep 1
-	done
-	return 1
-}
-
 function run_cmd() {
 	while [[ $1 == -* || $1 == '!' ]]; do
 		case "$1" in

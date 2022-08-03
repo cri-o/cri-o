@@ -44,6 +44,12 @@ const (
 
 	// CPUFreqGovernorAnnotation sets the cpufreq governor for CPUs used by the container
 	CPUFreqGovernorAnnotation = "cpu-freq-governor.crio.io"
+
+	// SeccompNotifierActionAnnotation indicates a container is allowed to use the seccomp notifier feature.
+	SeccompNotifierActionAnnotation = "io.kubernetes.cri-o.seccompNotifierAction"
+
+	// SeccompNotifierActionStop indicates that a container should be stopped if used via the SeccompNotifierActionAnnotation key.
+	SeccompNotifierActionStop = "stop"
 )
 
 var AllAllowedAnnotations = []string{
@@ -60,4 +66,5 @@ var AllAllowedAnnotations = []string{
 	TrySkipVolumeSELinuxLabelAnnotation,
 	CPUCStatesAnnotation,
 	CPUFreqGovernorAnnotation,
+	SeccompNotifierActionAnnotation,
 }
