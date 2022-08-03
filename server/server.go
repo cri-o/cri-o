@@ -675,7 +675,7 @@ func (s *Server) monitorExits(ctx context.Context, watcher *fsnotify.Watcher, do
 	for {
 		select {
 		case event := <-watcher.Events:
-			s.handleExit(ctx, event)
+			go s.handleExit(ctx, event)
 		case err := <-watcher.Errors:
 			log.Debugf(ctx, "Watch error: %v", err)
 			close(done)
