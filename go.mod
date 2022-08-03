@@ -15,15 +15,15 @@ require (
 	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.26.1-0.20220713185015-60cecb3e4c68
-	github.com/containers/common v0.48.1-0.20220720100622-5e4fc04c2e94
+	github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab
+	github.com/containers/common v0.49.1
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.0.0-20220727163913-8698d2df0588
-	github.com/containers/image/v5 v5.21.2-0.20220714132403-2bb3f3e44c5c
+	github.com/containers/image/v5 v5.22.0
 	github.com/containers/kubensmnt v1.1.2
 	github.com/containers/ocicrypt v1.1.5
-	github.com/containers/podman/v4 v4.2.0-rc1
-	github.com/containers/storage v1.41.1-0.20220718173332-b10c469fda0a
+	github.com/containers/podman/v4 v4.2.0-rc2
+	github.com/containers/storage v1.42.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.18
@@ -152,7 +152,7 @@ require (
 	github.com/containers/psgo v1.7.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.2.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a // indirect
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20210823021906-dc406ceaf94b // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -248,7 +248,7 @@ require (
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
-	github.com/klauspost/compress v1.15.8 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20220331220046-b23ab962616e // indirect
