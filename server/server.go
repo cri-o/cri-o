@@ -331,7 +331,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		}
 	}
 
-	close(s.ContainerEventsChan)
+	if s.config.EventedPLEG {
+		close(s.ContainerEventsChan)
+	}
 
 	return nil
 }
@@ -426,9 +428,10 @@ func New(
 		minimumMappableGID:       config.MinimumMappableGID,
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
 		resourceStore:            resourcestore.New(),
-		ContainerEventsChan:      make(chan types.ContainerEventResponse, 1000),
 	}
-
+	if s.config.EventedPLEG {
+		s.ContainerEventsChan = make(chan types.ContainerEventResponse, 1000)
+	}
 	if err := configureMaxThreads(); err != nil {
 		return nil, err
 	}
@@ -681,6 +684,9 @@ func (s *Server) monitorExits(ctx context.Context, watcher *fsnotify.Watcher, do
 			go s.handleExit(ctx, event)
 		case err := <-watcher.Errors:
 			log.Debugf(ctx, "Watch error: %v", err)
+			if s.config.EventedPLEG {
+				close(s.ContainerEventsChan)
+			}
 			close(done)
 			return
 		case <-s.monitorsChan:
@@ -715,6 +721,9 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	}
 	if err := s.ContainerStateToDisk(ctx, c); err != nil {
 		log.Warnf(ctx, "Unable to write %s %s state to disk: %v", resource, c.ID(), err)
+	}
+	if s.config.EventedPLEG {
+		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: containerID, ContainerEventType: types.ContainerEventType_CONTAINER_STOPPED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}
 	}
 	if err := os.Remove(event.Name); err != nil {
 		log.Warnf(ctx, "Failed to remove exit file: %v", err)

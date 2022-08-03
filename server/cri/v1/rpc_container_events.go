@@ -6,9 +6,11 @@ import (
 
 func (s *service) GetContainerEvents(req *pb.GetEventsRequest, ces pb.RuntimeService_GetContainerEventsServer) error {
 
-	for containerEvent := range s.server.ContainerEventsChan {
-		if err := ces.Send(&containerEvent); err != nil {
-			return err
+	if s.server.Config().EventedPLEG {
+		for containerEvent := range s.server.ContainerEventsChan {
+			if err := ces.Send(&containerEvent); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

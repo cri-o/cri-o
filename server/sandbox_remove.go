@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -67,9 +68,12 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		return fmt.Errorf("failed to delete pod sandbox %s from index: %w", sb.ID(), err)
 	}
 
-	s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer())
-
-	s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, PodSandboxMetadata: sb.Metadata()}
+	if s.config.EventedPLEG {
+		if err := s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer()); err != nil {
+			return fmt.Errorf("failed to update the container %s status in the pod sandbox %s: %w", sb.InfraContainer().ID(), sb.ID(), err)
+		}
+		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}
+	}
 
 	log.Infof(ctx, "Removed pod sandbox: %s", sb.ID())
 	return nil

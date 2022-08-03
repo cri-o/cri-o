@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/cri-o/cri-o/internal/lib"
@@ -94,11 +95,12 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	if err := s.Runtime().StartContainer(ctx, c); err != nil {
 		return fmt.Errorf("failed to start container %s: %w", c.ID(), err)
 	}
-
-	s.Runtime().UpdateContainerStatus(ctx, c) // TODO - handle returned error
-	// time.Sleep(3 * time.Second)               // TODO - remove this sleep
-
-	s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_STARTED_EVENT, PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}
+	if s.config.EventedPLEG {
+		if err := s.Runtime().UpdateContainerStatus(ctx, c); err != nil {
+			return fmt.Errorf("failed to update the container status %s: %w", c.ID(), err)
+		}
+		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_STARTED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}
+	}
 
 	log.WithFields(ctx, map[string]interface{}{
 		"description": c.Description(),

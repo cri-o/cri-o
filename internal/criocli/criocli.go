@@ -371,7 +371,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("stats-collection-period") {
 		config.StatsCollectionPeriod = ctx.Int("stats-collection-period")
 	}
-
+	if ctx.IsSet("evented-pleg") {
+		config.EventedPLEG = ctx.Bool("evented-pleg")
+	}
 	return nil
 }
 
@@ -1020,6 +1022,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Enable CRIU integration, requires that the criu binary is available in $PATH. (default: '')",
 			EnvVars: []string{"CONTAINER_ENABLE_CRIU_SUPPORT"},
 			Value:   false,
+		},
+		&cli.BoolFlag{
+			Name:    "evented-pleg",
+			Usage:   fmt.Sprintf("If true, the crio starts sending the container events to the Kubelet (default: %v)", defConf.EventedPLEG),
+			EnvVars: []string{"EVENTED_PLEG"},
 		},
 	}
 }

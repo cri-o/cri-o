@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -85,10 +86,12 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 
 	log.Infof(ctx, "Stopped pod sandbox: %s", sb.ID())
 	sb.SetStopped(true)
-
-	s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer())
-
-	s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, PodSandboxMetadata: sb.Metadata()}
+	if s.config.EventedPLEG {
+		if err := s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer()); err != nil {
+			return fmt.Errorf("failed to update the container %s status in the pod sandbox %s: %w", sb.InfraContainer().ID(), sb.ID(), err)
+		}
+		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}
+	}
 
 	return nil
 }

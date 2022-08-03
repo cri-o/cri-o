@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -36,10 +37,12 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 		return err
 	}
 
-	s.Runtime().UpdateContainerStatus(ctx, c)
-
-	s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}
-
+	if s.config.EventedPLEG {
+		if err := s.Runtime().UpdateContainerStatus(ctx, c); err != nil {
+			return fmt.Errorf("failed to update the container status %s: %w", c.ID(), err)
+		}
+		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}
+	}
 	log.Infof(ctx, "Stopped container %s: %s", c.ID(), c.Description())
 	return nil
 }

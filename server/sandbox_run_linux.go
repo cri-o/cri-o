@@ -929,6 +929,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
+	if s.config.EventedPLEG {
+		if err := s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer()); err != nil {
+			return nil, fmt.Errorf("failed to update the container %s status in the pod sandbox %s: %w", sb.InfraContainer().ID(), sb.ID(), err)
+		}
+		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_CREATED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}
+
+	}
 	if err := s.Runtime().StartContainer(ctx, container); err != nil {
 		return nil, err
 	}
@@ -966,10 +973,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, ctx.Err()
 	}
 	sb.SetCreated()
-
-	s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer()) // TODO - handle returned error
-	// time.Sleep(3 * time.Second)                                 // TODO - remove this sleep
-	s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_STARTED_EVENT, PodSandboxMetadata: sb.Metadata()}
+	if s.config.EventedPLEG {
+		if err := s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer()); err != nil {
+			return nil, fmt.Errorf("failed to update the container %s status in the pod sandbox %s: %w", sb.InfraContainer().ID(), sb.ID(), err)
+		}
+		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_STARTED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}
+	}
 
 	log.Infof(ctx, "Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
 	resp = &types.RunPodSandboxResponse{PodSandboxId: sbox.ID()}

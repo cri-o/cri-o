@@ -48,6 +48,7 @@ h
 --enable-metrics
 --enable-profile-unix-socket
 --enable-tracing
+--evented-pleg
 --gid-mappings
 --global-auth-file
 --grpc-max-recv-msg-size

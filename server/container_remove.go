@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -31,10 +32,12 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 		return err
 	}
 
-	s.Runtime().UpdateContainerStatus(ctx, c)
-
-	s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}
-
+	if s.config.EventedPLEG {
+		if err := s.Runtime().UpdateContainerStatus(ctx, c); err != nil {
+			return fmt.Errorf("failed to update the container status %s: %w", req.ContainerId, err)
+		}
+		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}
+	}
 	log.Infof(ctx, "Removed container %s: %s", c.ID(), c.Description())
 	return nil
 }
