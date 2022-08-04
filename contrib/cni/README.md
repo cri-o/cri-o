@@ -64,7 +64,7 @@ Build the `CNI` plugins:
 Output:
 
 ```
-Building plugins 
+Building plugins
   bandwidth
   firewall
   portmap
