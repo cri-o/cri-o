@@ -224,6 +224,21 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 		}
 	}()
 
+	var (
+		stdin          *conmonClient.In
+		stdout, stderr *conmonClient.Out
+	)
+
+	if inputStream != nil {
+		stdin = &conmonClient.In{Reader: inputStream}
+	}
+	if outputStream != nil {
+		stdout = &conmonClient.Out{WriteCloser: outputStream}
+	}
+	if errorStream != nil {
+		stderr = &conmonClient.Out{WriteCloser: errorStream}
+	}
+
 	return r.client.AttachContainer(ctx, &conmonClient.AttachConfig{
 		ID:                c.ID(),
 		SocketPath:        attachSocketPath,
@@ -231,9 +246,9 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 		StopAfterStdinEOF: c.stdin && !c.StdinOnce() && !tty,
 		Resize:            libpodResize,
 		Streams: conmonClient.AttachStreams{
-			Stdin:  &conmonClient.In{Reader: inputStream},
-			Stdout: &conmonClient.Out{WriteCloser: outputStream},
-			Stderr: &conmonClient.Out{WriteCloser: errorStream},
+			Stdin:  stdin,
+			Stdout: stdout,
+			Stderr: stderr,
 		},
 	})
 }

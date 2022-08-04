@@ -87,8 +87,6 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 		if s != "done" {
 			return fmt.Errorf("error moving conmon with pid %d to systemd unit %s: got %s", pid, unitName, s)
 		}
-	case <-ch:
-		close(ch)
 	case <-time.After(time.Minute * 6):
 		// This case is a work around to catch situations where the dbus library sends the
 		// request but it unexpectedly disappears. We set the timeout very high to make sure

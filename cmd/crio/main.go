@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/containers/kubensmnt"
-	_ "github.com/containers/podman/v4/pkg/hooks/0.1.0"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/log"
