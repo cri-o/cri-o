@@ -100,7 +100,7 @@ func writeTempFile(content string) (string, error) {
 		return "", err
 	}
 
-	if _, err := f.WriteString(confTemplate); err != nil {
+	if _, err := f.WriteString(content); err != nil {
 		return "", err
 	}
 	if err := f.Close(); err != nil {
