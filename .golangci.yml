@@ -48,7 +48,6 @@ linters:
     - makezero
     - misspell
     - nakedret
-    - nolintlint
     - prealloc
     - rowserrcheck
     - sqlclosecheck
