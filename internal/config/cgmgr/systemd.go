@@ -176,6 +176,7 @@ func (m *SystemdManager) PopulateSandboxCgroupStats(sbParent string, stats *type
 	return populateSandboxCgroupStatsFromPath(cgPath, stats)
 }
 
+// nolint: unparam // golangci-lint claims cgParent is unused, though it's being used to include documentation inline.
 func sandboxCgroupAbsolutePath(sbParent string) (cgParent, slicePath string, err error) {
 	cgParent = convertCgroupFsNameToSystemd(sbParent)
 	slicePath, err = systemd.ExpandSlice(cgParent)
