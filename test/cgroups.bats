@@ -89,6 +89,25 @@ function teardown() {
 	jq -e .linux.resources.memory.swap "$(runtime list | grep "$ctr_id" | awk '{ print $4 }')/config.json"
 }
 
+@test "ctr with swap should succeed when swap is unlimited" {
+	if ! grep -v Filename < /proc/swaps; then
+		skip "swap not enabled"
+	fi
+	start_crio
+	# memsw should be greater than or equal to memory limit
+	# 210763776 = 1024*1024*200
+	jq '	  .linux.resources.memory_swap_limit_in_bytes = -1
+	    |     .linux.resources.memory_limit_in_bytes = 210763776' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	if test -r "$CGROUP_MEM_SWAP_FILE"; then
+		output=$(crictl exec --sync "$ctr_id" sh -c "cat $CGROUP_MEM_SWAP_FILE")
+		[[ $output -gt 210763776 ]]
+	fi
+}
+
 @test "cgroupv2 unified support" {
 	if ! is_cgroup_v2; then
 		skip "node must be configured with cgroupv2 for this test"
