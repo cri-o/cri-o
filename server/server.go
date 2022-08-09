@@ -710,4 +710,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	if err := s.ContainerStateToDisk(ctx, c); err != nil {
 		log.Warnf(ctx, "Unable to write %s %s state to disk: %v", resource, c.ID(), err)
 	}
+	if err := os.Remove(event.Name); err != nil {
+		log.Warnf(ctx, "Failed to remove exit file: %v", err)
+	}
 }
