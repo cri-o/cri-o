@@ -1,0 +1,31 @@
+# See the documentation for more information:
+# https://packit.dev/docs/configuration/
+
+specfile_path: cri-o.spec
+
+# name in upstream package repository or registry (e.g. in PyPI)
+upstream_package_name: cri-o
+upstream_tag_template: v{version}
+# downstream (Fedora) RPM package name
+downstream_package_name: cri-o
+actions:
+  post-upstream-clone: "wget https://src.fedoraproject.org/rpms/cri-o/raw/rawhide/f/cri-o.spec -O cri-o.spec"
+jobs:
+- job: copr_build
+  trigger: commit
+  owner: "@OKD"
+  project: okd
+  targets:
+    - centos-stream-9-aarch64
+    - centos-stream-9-x86_64
+    - fedora-all-aarch64
+    - fedora-all-x86_64
+- job: copr_build
+  trigger: release
+  owner: "@OKD"
+  project: okd
+  targets:
+    - centos-stream-9-aarch64
+    - centos-stream-9-x86_64
+    - fedora-all-aarch64
+    - fedora-all-x86_64
