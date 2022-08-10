@@ -620,6 +620,9 @@ func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, 
 
 // UpdateContainer updates container resources
 func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
 	if c.Spoofed() {
 		return nil
 	}
