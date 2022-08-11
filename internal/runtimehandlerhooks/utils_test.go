@@ -56,6 +56,19 @@ var _ = Describe("Utils", func() {
 				input:    Input{cpus: "2-3", mask: "ffffff", set: false},
 				expected: Expected{mask: "00fffff3", invMask: "0000000c"},
 			}),
+			Entry("handle cpus non multiple of 8", TestData{
+				input:    Input{cpus: "1,3", mask: "ff,ffffffff,ffffffff,ffffffff", set: false},
+				expected: Expected{mask: "000000ff,ffffffff,ffffffff,fffffff5", invMask: "00000000,00000000,00000000,0000000a"},
+			}),
+			Entry("handle minimal affinity mask - set", TestData{
+				input:    Input{cpus: "1,3", mask: "fff", set: false},
+				expected: Expected{mask: "00000000,00000ff5", invMask: "00000000,0000000a"},
+			}),
+			// acctually happened with CI machines
+			Entry("handle minimal affinity mask - set", TestData{
+				input:    Input{cpus: "1,3", mask: "f", set: false},
+				expected: Expected{mask: "00000000,00000005", invMask: "00000000,0000000a"},
+			}),
 		)
 
 		Context("UpdateIRQBalanceConfigFile", func() {
