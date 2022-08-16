@@ -2356,7 +2356,7 @@ golang.org/x/mod/modfile
 golang.org/x/mod/module
 golang.org/x/mod/semver
 golang.org/x/mod/sumdb/note
-# golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e
+# golang.org/x/net v0.0.0-20220722155237-a158d28d115b
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -2385,7 +2385,7 @@ golang.org/x/oauth2/jwt
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
+# golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -3067,8 +3067,8 @@ k8s.io/component-base/version
 # k8s.io/component-helpers v0.0.0 => k8s.io/kubernetes/staging/src/k8s.io/component-helpers v0.0.0-20220624161656-6219eed24f3c
 ## explicit; go 1.18
 k8s.io/component-helpers/node/util/sysctl
-# k8s.io/cri-api v0.24.1 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20220624161656-6219eed24f3c
-## explicit; go 1.18
+# k8s.io/cri-api v0.24.1 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20220809181954-48091db0bf61
+## explicit; go 1.19
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
 # k8s.io/klog/v2 v2.70.1
@@ -3331,7 +3331,7 @@ sigs.k8s.io/zeitgeist/upstream
 # k8s.io/component-base => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20220624161656-6219eed24f3c
 # k8s.io/component-helpers => k8s.io/kubernetes/staging/src/k8s.io/component-helpers v0.0.0-20220624161656-6219eed24f3c
 # k8s.io/controller-manager => k8s.io/kubernetes/staging/src/k8s.io/controller-manager v0.0.0-20220624161656-6219eed24f3c
-# k8s.io/cri-api => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20220624161656-6219eed24f3c
+# k8s.io/cri-api => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20220809181954-48091db0bf61
 # k8s.io/csi-translation-lib => k8s.io/kubernetes/staging/src/k8s.io/csi-translation-lib v0.0.0-20220624161656-6219eed24f3c
 # k8s.io/kube-aggregator => k8s.io/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20220624161656-6219eed24f3c
 # k8s.io/kube-controller-manager => k8s.io/kubernetes/staging/src/k8s.io/kube-controller-manager v0.0.0-20220624161656-6219eed24f3c
