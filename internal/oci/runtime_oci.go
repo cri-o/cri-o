@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -275,7 +276,7 @@ func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	if _, err := utils.ExecCmd(
+	if _, err := ExecCmd(
 		r.handler.RuntimePath, rootFlag, r.root, "start", c.ID(),
 	); err != nil {
 		return err
@@ -839,7 +840,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	}
 
 	if timeout > 0 {
-		if _, err := utils.ExecCmd(
+		if _, err := ExecCmd(
 			r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), c.GetStopSignal(),
 		); err != nil {
 			checkProcessGone(c)
@@ -851,7 +852,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		log.Warnf(ctx, "Stopping container %v with stop signal timed out: %v", c.ID(), err)
 	}
 
-	if _, err := utils.ExecCmd(
+	if _, err := ExecCmd(
 		r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), "KILL",
 	); err != nil {
 		checkProcessGone(c)
@@ -877,7 +878,7 @@ func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "delete", "--force", c.ID())
+	_, err := ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "delete", "--force", c.ID())
 	return err
 }
 
@@ -1024,7 +1025,7 @@ func (r *runtimeOCI) PauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "pause", c.ID())
+	_, err := ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "pause", c.ID())
 	return err
 }
 
@@ -1037,7 +1038,7 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "resume", c.ID())
+	_, err := ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "resume", c.ID())
 	return err
 }
 
@@ -1074,7 +1075,7 @@ func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool)
 		args = append(args, "-a")
 	}
 	args = append(args, c.ID(), strconv.Itoa(int(sig)))
-	_, err := utils.ExecCmd(
+	_, err := ExecCmd(
 		r.handler.RuntimePath, args...,
 	)
 	return err
@@ -1356,4 +1357,24 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 
 func (c *Container) conmonPidFilePath() string {
 	return filepath.Join(c.bundlePath, "conmon-pidfile")
+}
+
+// ExecCmd executes a command with args and returns its output as a string along
+// with an error, if any
+func ExecCmd(name string, args ...string) (string, error) {
+	cmd := cmdrunner.Command(name, args...)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
+
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("`%v %v` failed: %v %v: %w", name, strings.Join(args, " "), stderr.String(), stdout.String(), err)
+	}
+
+	return stdout.String(), nil
 }
