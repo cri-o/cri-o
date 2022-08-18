@@ -493,6 +493,9 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	if timeout > 0 {
 		args = append(args, "-T", fmt.Sprintf("%d", timeout))
 	}
+	if r.config.CgroupManager().IsSystemd() {
+		args = append(args, "-s")
+	}
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
 	if err != nil {
@@ -1367,5 +1370,9 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 }
 
 func (r *runtimeOCI) defaultRuntimeArgs() []string {
-	return []string{rootFlag, r.root}
+	args := []string{rootFlag, r.root}
+	if r.config.CgroupManager().IsSystemd() {
+		args = append(args, "--systemd-cgroup")
+	}
+	return args
 }
