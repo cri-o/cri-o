@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -182,28 +181,6 @@ var _ = t.Describe("Oci", func() {
 			})
 		}
 	})
-	t.Describe("ExecCmd", func() {
-		It("should succeed", func() {
-			// Given
-			// When
-			res, err := utils.ExecCmd("ls")
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(res).NotTo(BeEmpty())
-		})
-
-		It("should fail on wrong command", func() {
-			// Given
-			// When
-			res, err := utils.ExecCmd("not-existing")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeEmpty())
-		})
-	})
-
 })
 
 func waitContainerStopAndFailAfterTimeout(ctx context.Context,
