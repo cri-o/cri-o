@@ -99,7 +99,12 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		if err := s.Runtime().UpdateContainerStatus(ctx, c); err != nil {
 			return fmt.Errorf("failed to update the container status %s: %w", c.ID(), err)
 		}
-		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_STARTED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}
+		select {
+		case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_STARTED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}:
+			log.Debugf(ctx, "Container started event generated for %s", c.ID())
+		default:
+			log.Errorf(ctx, "StartCtr: failed to send container started event %s", c.ID())
+		}
 	}
 
 	log.WithFields(ctx, map[string]interface{}{

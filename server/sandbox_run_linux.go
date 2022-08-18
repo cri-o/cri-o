@@ -933,7 +933,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if err := s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer()); err != nil {
 			return nil, fmt.Errorf("failed to update the container %s status in the pod sandbox %s: %w", sb.InfraContainer().ID(), sb.ID(), err)
 		}
-		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_CREATED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}
+		select {
+		case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_CREATED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}:
+			log.Debugf(ctx, "Container created event generated for sandbox %s", sb.ID())
+		default:
+			log.Errorf(ctx, "CreateSb: failed to send container created event for sandbox %s", sb.ID())
+		}
 
 	}
 	if err := s.Runtime().StartContainer(ctx, container); err != nil {
@@ -977,7 +982,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if err := s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer()); err != nil {
 			return nil, fmt.Errorf("failed to update the container %s status in the pod sandbox %s: %w", sb.InfraContainer().ID(), sb.ID(), err)
 		}
-		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_STARTED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}
+		select {
+		case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_STARTED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}:
+			log.Debugf(ctx, "Container started event generated for sandbox %s", sb.ID())
+		default:
+			log.Errorf(ctx, "StartSb: failed to send container started event for sandbox %s", sb.ID())
+		}
 	}
 
 	log.Infof(ctx, "Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())

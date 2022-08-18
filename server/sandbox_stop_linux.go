@@ -90,7 +90,12 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		if err := s.Runtime().UpdateContainerStatus(ctx, sb.InfraContainer()); err != nil {
 			return fmt.Errorf("failed to update the container %s status in the pod sandbox %s: %w", sb.InfraContainer().ID(), sb.ID(), err)
 		}
-		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}
+		select {
+		case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: sb.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: sb.Metadata()}:
+			log.Debugf(ctx, "Container deleted event generated for sandbox %s", sb.ID())
+		default:
+			log.Errorf(ctx, "StopSb: failed to send container deleted event for sandbox %s", sb.ID())
+		}
 	}
 
 	return nil

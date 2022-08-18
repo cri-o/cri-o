@@ -41,7 +41,12 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 		if err := s.Runtime().UpdateContainerStatus(ctx, c); err != nil {
 			return fmt.Errorf("failed to update the container status %s: %w", c.ID(), err)
 		}
-		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}
+		select {
+		case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: c.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_DELETED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(c.CRIContainer().PodSandboxId).Metadata()}:
+			log.Debugf(ctx, "Container deleted event generated for %s", c.ID())
+		default:
+			log.Errorf(ctx, "StopCtr: failed to send container deleted event %s", c.ID())
+		}
 	}
 	log.Infof(ctx, "Stopped container %s: %s", c.ID(), c.Description())
 	return nil

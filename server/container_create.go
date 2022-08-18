@@ -451,7 +451,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		if err := s.Runtime().UpdateContainerStatus(ctx, newContainer); err != nil {
 			return nil, fmt.Errorf("failed to update the container status %s: %w", newContainer.ID(), err)
 		}
-		s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: newContainer.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_CREATED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(newContainer.CRIContainer().PodSandboxId).Metadata()}
+		select {
+		case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: newContainer.ID(), ContainerEventType: types.ContainerEventType_CONTAINER_CREATED_EVENT, CreatedAt: time.Now().UnixNano(), PodSandboxMetadata: s.GetSandbox(newContainer.CRIContainer().PodSandboxId).Metadata()}:
+			log.Debugf(ctx, "Container created event generated for %s", newContainer.ID())
+		default:
+			log.Errorf(ctx, "CreateCtr: failed to send container created event %s", newContainer.ID())
+		}
 	}
 
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
