@@ -252,10 +252,11 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 	}
 
 	specgen.SetProcessUID(uid)
-	specgen.SetProcessGID(gid)
 	if sc.RunAsGroup != nil {
-		specgen.SetProcessGID(uint32(sc.RunAsGroup.Value))
+		gid = uint32(sc.RunAsGroup.Value)
 	}
+	specgen.SetProcessGID(gid)
+	specgen.AddProcessAdditionalGid(gid)
 
 	for _, group := range addGroups {
 		specgen.AddProcessAdditionalGid(group)
