@@ -377,14 +377,15 @@ func getExistingHostportIPTablesRules(iptables utiliptables.Interface) (map[util
 	if err != nil { // if we failed to get any rules
 		return nil, nil, fmt.Errorf("failed to execute iptables-save: %w", err)
 	}
-	existingNATChains := utiliptables.GetChainLines(utiliptables.TableNAT, iptablesData.Bytes())
+	existingNATChains := utiliptables.GetChainsFromTable(iptablesData.Bytes())
 
 	existingHostportChains := make(map[utiliptables.Chain]string)
 	existingHostportRules := []string{}
 
 	for chain := range existingNATChains {
-		if strings.HasPrefix(string(chain), string(kubeHostportsChain)) || strings.HasPrefix(string(chain), kubeHostportChainPrefix) {
-			existingHostportChains[chain] = string(existingNATChains[chain])
+		chainString := string(chain)
+		if strings.HasPrefix(chainString, string(kubeHostportsChain)) || strings.HasPrefix(chainString, kubeHostportChainPrefix) {
+			existingHostportChains[chain] = chainString
 		}
 	}
 
