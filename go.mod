@@ -15,14 +15,14 @@ require (
 	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab
+	github.com/containers/buildah v1.27.0
 	github.com/containers/common v0.49.1
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.0.0-20220727163913-8698d2df0588
 	github.com/containers/image/v5 v5.22.0
 	github.com/containers/kubensmnt v1.1.2
 	github.com/containers/ocicrypt v1.1.5
-	github.com/containers/podman/v4 v4.2.0-rc2
+	github.com/containers/podman/v4 v4.2.0
 	github.com/containers/storage v1.42.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/cpuguy83/go-md2man v1.0.10
