@@ -1,27 +1,26 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 23 Aug 2022 07:22:32 UTC for commit [bd85045][0]._
+_Generated on Tue, 23 Aug 2022 10:27:54 UTC for commit [5f0ec82][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bd85045724021eaa3b1594c4045848df79fb558d
+[0]: https://github.com/cri-o/cri-o/commit/5f0ec821b274309651a26104097f541fb2dd6bcb
 
 ## Outdated Dependencies
 
-|               MODULE                |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
-|-------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/buildah       | v1.26.1-0.20220716095526-d31d27c357ab         | v1.27.0                            | true   | true             |
-| github.com/containers/conmon-rs     | v0.0.0-20220727163913-8698d2df0588            | v0.0.0-20220822134810-ff3d53f3dfcd | true   | true             |
-| github.com/containers/kubensmnt     | v1.1.2                                        | v1.1.3                             | true   | true             |
-| github.com/containers/podman/v4     | v4.2.0-rc2                                    | v4.2.0                             | true   | true             |
-| github.com/prometheus/client_golang | v1.12.2                                       | v1.13.0                            | true   | true             |
-| github.com/urfave/cli/v2            | v2.11.1                                       | v2.11.2                            | true   | true             |
-| golang.org/x/net                    | v0.0.0-20220722155237-a158d28d115b            | v0.0.0-20220822230855-b0a4917ee28c | true   | true             |
-| golang.org/x/sync                   | v0.0.0-20220601150217-0de741cfad7f            | v0.0.0-20220819030929-7fc1605a5dde | true   | true             |
-| golang.org/x/sys                    | v0.0.0-20220722155257-8c9f86f7a55f            | v0.0.0-20220818161305-2296e01440c6 | true   | true             |
-| k8s.io/api                          | v0.0.0-20220624161656-6219eed24f3c            | v0.0.0-20220822023338-a1128e380c2c | true   | true             |
-| k8s.io/apimachinery                 | v0.0.0-20220624161656-6219eed24f3c            | v0.0.0-20220822023338-a1128e380c2c | true   | true             |
-| k8s.io/cri-api                      | v0.0.0-20220809181954-48091db0bf61            | v0.0.0-20220822023338-a1128e380c2c | true   | true             |
-| k8s.io/kubernetes                   | v1.25.0-alpha.1.0.20220624161656-6219eed24f3c | v1.26.0-alpha.0                    | true   | true             |
-| k8s.io/utils                        | v0.0.0-20220210201930-3a6ce19ff2f9            | v0.0.0-20220812165043-ad590609e2e5 | true   | true             |
+|             MODULE              |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
+|---------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
+| github.com/containers/buildah   | v1.26.1-0.20220716095526-d31d27c357ab         | v1.27.0                            | true   | true             |
+| github.com/containers/conmon-rs | v0.0.0-20220727163913-8698d2df0588            | v0.0.0-20220822134810-ff3d53f3dfcd | true   | true             |
+| github.com/containers/kubensmnt | v1.1.2                                        | v1.1.3                             | true   | true             |
+| github.com/containers/podman/v4 | v4.2.0-rc2                                    | v4.2.0                             | true   | true             |
+| github.com/urfave/cli/v2        | v2.11.1                                       | v2.11.2                            | true   | true             |
+| golang.org/x/net                | v0.0.0-20220722155237-a158d28d115b            | v0.0.0-20220822230855-b0a4917ee28c | true   | true             |
+| golang.org/x/sync               | v0.0.0-20220601150217-0de741cfad7f            | v0.0.0-20220819030929-7fc1605a5dde | true   | true             |
+| golang.org/x/sys                | v0.0.0-20220722155257-8c9f86f7a55f            | v0.0.0-20220818161305-2296e01440c6 | true   | true             |
+| k8s.io/api                      | v0.0.0-20220624161656-6219eed24f3c            | v0.0.0-20220822023338-a1128e380c2c | true   | true             |
+| k8s.io/apimachinery             | v0.0.0-20220624161656-6219eed24f3c            | v0.0.0-20220822023338-a1128e380c2c | true   | true             |
+| k8s.io/cri-api                  | v0.0.0-20220809181954-48091db0bf61            | v0.0.0-20220822023338-a1128e380c2c | true   | true             |
+| k8s.io/kubernetes               | v1.25.0-alpha.1.0.20220624161656-6219eed24f3c | v1.26.0-alpha.0                    | true   | true             |
+| k8s.io/utils                    | v0.0.0-20220210201930-3a6ce19ff2f9            | v0.0.0-20220812165043-ad590609e2e5 | true   | true             |
 
 ## All Dependencies
 
@@ -832,10 +831,10 @@ _Generated on Tue, 23 Aug 2022 07:22:32 UTC for commit [bd85045][0]._
 | github.com/poy/onpar                                                        | v0.0.0-20190519213022-ee068f8ea4d1                | v1.1.2                             | false  | true             |
 | github.com/pquerna/cachecontrol                                             | v0.1.0                                            |                                    | false  | true             |
 | github.com/proglottis/gpgme                                                 | v0.1.3                                            |                                    | false  | true             |
-| github.com/prometheus/client_golang                                         | v1.12.2                                           | v1.13.0                            | true   | true             |
+| github.com/prometheus/client_golang                                         | v1.13.0                                           |                                    | true   | true             |
 | github.com/prometheus/client_model                                          | v0.2.0                                            |                                    | false  | true             |
-| github.com/prometheus/common                                                | v0.34.0                                           | v0.37.0                            | false  | true             |
-| github.com/prometheus/procfs                                                | v0.7.3                                            | v0.8.0                             | false  | true             |
+| github.com/prometheus/common                                                | v0.37.0                                           |                                    | false  | true             |
+| github.com/prometheus/procfs                                                | v0.8.0                                            |                                    | false  | true             |
 | github.com/prometheus/prometheus                                            | v2.5.0+incompatible                               |                                    | false  | true             |
 | github.com/prometheus/statsd_exporter                                       | v0.21.0                                           | v0.22.7                            | false  | true             |
 | github.com/prometheus/tsdb                                                  | v0.7.1                                            | v0.10.0                            | false  | true             |
@@ -938,7 +937,7 @@ _Generated on Tue, 23 Aug 2022 07:22:32 UTC for commit [bd85045][0]._
 | github.com/streadway/handy                                                  | v0.0.0-20190108123426-d5acb3125c2a                | v0.0.0-20200128134331-0f66f006fb2e | false  | true             |
 | github.com/stretchr/objx                                                    | v0.4.0                                            |                                    | false  | true             |
 | github.com/stretchr/testify                                                 | v1.8.0                                            |                                    | true   | true             |
-| github.com/subosito/gotenv                                                  | v1.3.0                                            | v1.4.0                             | false  | true             |
+| github.com/subosito/gotenv                                                  | v1.3.0                                            | v1.4.1                             | false  | true             |
 | github.com/sylabs/sif/v2                                                    | v2.7.1                                            |                                    | false  | true             |
 | github.com/sylvia7788/contextcheck                                          | v1.0.4                                            | v1.0.6                             | false  | true             |
 | github.com/syndtr/gocapability                                              | v0.0.0-20200815063812-42c35b437635                |                                    | true   | true             |
@@ -999,7 +998,7 @@ _Generated on Tue, 23 Aug 2022 07:22:32 UTC for commit [bd85045][0]._
 | github.com/willf/bitset                                                     | v1.1.11                                           | v1.3.0                             | false  | true             |
 | github.com/withfig/autocomplete-tools/packages/cobra                        | v0.0.0-20220122124547-31d3821a6898                | v1.2.0                             | false  | true             |
 | github.com/x448/float16                                                     | v0.8.4                                            |                                    | false  | true             |
-| github.com/xanzy/go-gitlab                                                  | v0.68.2                                           | v0.73.0                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                  | v0.68.2                                           | v0.73.1                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                  | v0.3.0                                            | v0.3.1                             | false  | true             |
 | github.com/xdg-go/pbkdf2                                                    | v1.0.0                                            |                                    | false  | true             |
 | github.com/xdg-go/scram                                                     | v1.0.2                                            | v1.1.1                             | false  | true             |
@@ -1108,7 +1107,7 @@ _Generated on Tue, 23 Aug 2022 07:22:32 UTC for commit [bd85045][0]._
 | google.golang.org/grpc                                                      | v1.48.0                                           |                                    | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                               | v1.2.0                                            |                                    | false  | true             |
 | google.golang.org/grpc/examples                                             | v0.0.0-20201130180447-c456688b1860                | v0.0.0-20220822195320-02fbca0f406b | false  | true             |
-| google.golang.org/protobuf                                                  | v1.28.0                                           | v1.28.1                            | false  | true             |
+| google.golang.org/protobuf                                                  | v1.28.1                                           |                                    | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                                                | v2.0.9                                            |                                    | false  | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                                            |                                    | false  | true             |
 | gopkg.in/alexcesaro/statsd.v2                                               | v2.0.0                                            |                                    | false  | true             |
