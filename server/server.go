@@ -395,6 +395,8 @@ func New(
 	}
 	config := configIface.GetData()
 
+	useDefaultUmask()
+
 	config.SystemContext.AuthFilePath = config.GlobalAuthFile
 	config.SystemContext.SignaturePolicyPath = config.SignaturePolicyPath
 
@@ -524,6 +526,17 @@ func New(
 	}
 
 	return s, nil
+}
+
+func useDefaultUmask() {
+	const defaultUmask = 0o022
+	oldUmask := unix.Umask(defaultUmask)
+	if oldUmask != defaultUmask {
+		logrus.Infof(
+			"Using default umask 0o%#o instead of 0o%#o",
+			defaultUmask, oldUmask,
+		)
+	}
 }
 
 // wipeIfAppropriate takes a list of images. If the config's VersionFilePersist
