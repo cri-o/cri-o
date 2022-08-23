@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.0
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/blang/semver/v4 v4.0.0
-	github.com/container-orchestrated-devices/container-device-interface v0.4.0
+	github.com/container-orchestrated-devices/container-device-interface v0.5.0
 	github.com/containerd/cgroups v1.0.4
 	github.com/containerd/containerd v1.6.8
 	github.com/containerd/cri-containerd v1.19.0
