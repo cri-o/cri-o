@@ -654,7 +654,7 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
-# github.com/containers/kubensmnt v1.1.3
+# github.com/containers/kubensmnt v1.2.0
 ## explicit; go 1.18
 github.com/containers/kubensmnt
 # github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a
