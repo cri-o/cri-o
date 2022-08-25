@@ -11,9 +11,6 @@
     - /opt/cni/bin
     - /etc/cni/net.d
 
-- name: Disable SELinux
-  selinux: state=disabled
-
 - name: Increase inotify user watches
   sysctl:
     name: fs.inotify.max_user_watches
