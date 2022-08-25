@@ -221,11 +221,12 @@ yum install -y \
 
 #### RHEL 8
 
-RHEL 8 distributions:\
-Make sure you are subscribed to the following repositories: \
-BaseOS/x86_64 \
-Appstream/x86_64
-CodeReady Linux Builder for x86_64
+For RHEL 8 distributions (tested on RHEL 8.5).
+
+Make sure you are subscribed to the following repositories:
+- BaseOS/x86_64
+- Appstream/x86_64
+- CodeReady Linux Builder for x86_64
 
 ```
 subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rpms
@@ -236,11 +237,10 @@ subscription-manager repos --enable=codeready-builder-for-rhel-8-x86_64-rpms
 Follow the guide below to subscribe to the repositories if not already subscribed:\
 https://access.redhat.com/solutions/265523
 
-This requires go version 1.12 or greater:
-```
-yum module -y install go-toolset
-```
+This requires Go version 1.18 or greater. Follow these instructions to install Go: \
+https://go.dev/doc/install
 
+Install dependencies:
 ```bash
 yum install -y \
   containers-common \
@@ -250,29 +250,24 @@ yum install -y \
   glib2-devel \
   glibc-devel \
   glibc-static \
-  runc \
+  runc
 ```
 
-Here is a link on how to install a source rpm on RHEL: \
-https://www.itechlounge.net/2012/12/linux-how-to-install-source-rpm-on-rhelcentos/
-
-Dependency: gpgme-devel \
-Link: http://download.eng.bos.redhat.com/brewroot/packages/gpgme/1.10.0/6.el8/x86_64/
-
-Dependency: go-md2man \
-Command:
+Install go-md2man:
 ```
 go get github.com/cpuguy83/go-md2man
 ```
 
-The following dependencies:
+Install dependencies:
 ```bash
+yum install -y \
   libassuan \
   libassuan-devel \
   libgpg-error \
   libseccomp \
   libselinux \
   pkgconf-pkg-config \
+  gpgme-devel
 ```
 
 #### Debian - Raspbian - Ubuntu
