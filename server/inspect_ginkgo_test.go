@@ -34,7 +34,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should succeed with /info route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/info", http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/info", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -51,7 +51,7 @@ var _ = t.Describe("Inspect", func() {
 			sut.AddContainer(testContainer)
 
 			// When
-			request, err := http.NewRequest("GET",
+			request, err := http.NewRequest(http.MethodGet,
 				"/containers/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
@@ -70,7 +70,7 @@ var _ = t.Describe("Inspect", func() {
 			Expect(sut.RemoveSandbox(testSandbox.ID())).To(BeNil())
 
 			// When
-			request, err := http.NewRequest("GET",
+			request, err := http.NewRequest(http.MethodGet,
 				"/containers/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
@@ -88,7 +88,7 @@ var _ = t.Describe("Inspect", func() {
 			sut.AddContainer(testContainer)
 
 			// When
-			request, err := http.NewRequest("GET",
+			request, err := http.NewRequest(http.MethodGet,
 				"/containers/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
@@ -102,7 +102,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail with empty with /containers route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/containers", http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/containers", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -114,7 +114,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail with invalid container ID on /containers route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/containers/123", http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/containers/123", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -126,7 +126,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail with empty on /pause route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/pause", http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/pause", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -138,7 +138,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail with invalid container ID on /pause route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/pause/123", http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/pause/123", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -158,7 +158,7 @@ var _ = t.Describe("Inspect", func() {
 			addContainerAndSandbox()
 
 			// When
-			request, err := http.NewRequest("GET", "/pause/"+testContainer.ID(), http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/pause/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -178,7 +178,7 @@ var _ = t.Describe("Inspect", func() {
 			addContainerAndSandbox()
 
 			// When
-			request, err := http.NewRequest("GET", "/pause/"+testContainer.ID(), http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/pause/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -190,7 +190,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail with empty on /unpause route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/unpause", http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/unpause", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -202,7 +202,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail with invalid container ID on /unpause route", func() {
 			// Given
 			// When
-			request, err := http.NewRequest("GET", "/unpause/123", http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/unpause/123", http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -222,7 +222,7 @@ var _ = t.Describe("Inspect", func() {
 			addContainerAndSandbox()
 
 			// When
-			request, err := http.NewRequest("GET", "/unpause/"+testContainer.ID(), http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/unpause/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
@@ -242,7 +242,7 @@ var _ = t.Describe("Inspect", func() {
 			addContainerAndSandbox()
 
 			// When
-			request, err := http.NewRequest("GET", "/unpause/"+testContainer.ID(), http.NoBody)
+			request, err := http.NewRequest(http.MethodGet, "/unpause/"+testContainer.ID(), http.NoBody)
 			mux.ServeHTTP(recorder, request)
 
 			// Then
