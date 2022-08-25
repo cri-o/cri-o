@@ -58,7 +58,7 @@ func New(crioSocketPath string) (CrioClient, error) {
 }
 
 func (c *crioClientImpl) getRequest(path string) (*http.Request, error) {
-	req, err := http.NewRequest("GET", path, http.NoBody)
+	req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 	if err != nil {
 		return nil, err
 	}

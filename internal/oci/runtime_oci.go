@@ -786,7 +786,7 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 			newTargetTime := time.Now().Add(newTimeout)
 
 			// but only if it's earlier
-			if !newTargetTime.Before(targetTime) {
+			if newTargetTime.After(targetTime) {
 				continue
 			}
 

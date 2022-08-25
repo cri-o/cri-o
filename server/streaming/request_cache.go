@@ -137,7 +137,7 @@ func (c *requestCache) gc() {
 	for c.ll.Len() > 0 {
 		oldest := c.ll.Back()
 		entry := oldest.Value.(*cacheEntry) // nolint
-		if !now.After(entry.expireTime) {
+		if now.Before(entry.expireTime) {
 			return
 		}
 

@@ -14,14 +14,14 @@ run:
     # remove this tag when golangci lint supports go 1.18 and generics                                                                                                   │noctx: noctx finds sending http request without context.Context [fast: false, auto-fix: false]
     - skip_pod_runtime
   concurrency: 6
-  deadline: 5m
+  deadline: 10m
 linters:
   disable-all: true
   enable:
+    - asasalint
     - asciicheck
     - bidichk
     - bodyclose
-    - deadcode
     - decorder
     - depguard
     - dogsled
@@ -29,6 +29,7 @@ linters:
     - durationcheck
     - errcheck
     - errchkjson
+    - execinquery
     - exportloopref
     - forcetypeassert
     - gochecknoinits
@@ -45,14 +46,16 @@ linters:
     - grouper
     - importas
     - ineffassign
+    - logrlint
     - makezero
     - misspell
     - nakedret
+    - nosprintfhostport
     - prealloc
+    - reassign
     - rowserrcheck
     - sqlclosecheck
     - staticcheck
-    - structcheck
     - stylecheck
     - tenv
     - tparallel
@@ -60,7 +63,7 @@ linters:
     - unconvert
     - unparam
     - unused
-    - varcheck
+    - usestdlibvars
     - whitespace
     # - containedctx
     # - contextcheck
@@ -68,7 +71,7 @@ linters:
     # - errname
     # - errorlint
     # - exhaustive
-    # - exhaustivestruct
+    # - exhaustruct
     # - forbidigo
     # - funlen
     # - gci
@@ -81,7 +84,7 @@ linters:
     # - gomoddirectives
     # - gomodguard
     # - gosec
-    # - ifshort
+    # - interfacebloat
     # - ireturn
     # - lll
     # - maintidx
@@ -90,6 +93,8 @@ linters:
     # - nilnil
     # - nlreturn
     # - noctx
+    # - nolintlint
+    # - nonamedreturns
     # - paralleltest
     # - predeclared
     # - promlinter
@@ -179,6 +184,7 @@ linters-settings:
       - hexLiteral
       - httpNoBody
       - ifElseChain
+      - ioutilDeprecated
       - methodExprCall
       - newDeref
       - octalLiteral
@@ -190,8 +196,11 @@ linters-settings:
       - singleCaseSwitch
       - sloppyLen
       - stringConcatSimplify
+      - stringsCompare
       - switchTrue
+      - timeCmpSimplify
       - timeExprSimplify
+      - todoCommentWithoutDetail
       - tooManyResultsChecker
       - typeAssertChain
       - typeDefFirst
@@ -203,7 +212,6 @@ linters-settings:
       - valSwap
       - wrapperFunc
       - yodaStyleExpr
-      - ioutilDeprecated
       # - whyNoLint
 
       # Opinionated
