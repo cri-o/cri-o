@@ -11,6 +11,8 @@
     name:
       - glibc-static
       - gpgme-devel
+      - yajl-devel
+      - go-md2man
   when: ansible_distribution == 'RedHat'
 
 - name: Make sure we have all required packages
