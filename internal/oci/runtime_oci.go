@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -275,9 +276,7 @@ func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	if _, err := utils.ExecCmd(
-		r.handler.RuntimePath, rootFlag, r.root, "start", c.ID(),
-	); err != nil {
+	if _, err := r.runtimeCmd("start", c.ID()); err != nil {
 		return err
 	}
 	c.state.Started = time.Now()
@@ -359,8 +358,8 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	}
 	defer os.RemoveAll(processFile)
 
-	args := []string{rootFlag, r.root, "exec"}
-	args = append(args, "--process", processFile, c.ID())
+	args := r.defaultRuntimeArgs()
+	args = append(args, "exec", "--process", processFile, c.ID())
 	execCmd := cmdrunner.Command(r.handler.RuntimePath, args...) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
@@ -493,6 +492,9 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	}
 	if timeout > 0 {
 		args = append(args, "-T", fmt.Sprintf("%d", timeout))
+	}
+	if r.config.CgroupManager().IsSystemd() {
+		args = append(args, "-s")
 	}
 
 	processFile, err := prepareProcessExec(c, command, c.terminal)
@@ -839,9 +841,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	}
 
 	if timeout > 0 {
-		if _, err := utils.ExecCmd(
-			r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), c.GetStopSignal(),
-		); err != nil {
+		if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
 			checkProcessGone(c)
 		}
 		err := WaitContainerStop(ctx, c, time.Duration(timeout)*time.Second, true)
@@ -851,9 +851,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		log.Warnf(ctx, "Stopping container %v with stop signal timed out: %v", c.ID(), err)
 	}
 
-	if _, err := utils.ExecCmd(
-		r.handler.RuntimePath, rootFlag, r.root, "kill", c.ID(), "KILL",
-	); err != nil {
+	if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
 		checkProcessGone(c)
 	}
 
@@ -877,7 +875,7 @@ func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "delete", "--force", c.ID())
+	_, err := r.runtimeCmd("delete", "--force", c.ID())
 	return err
 }
 
@@ -918,11 +916,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 
 	stateCmd := func() (*ContainerState, bool, error) {
-		cmd := cmdrunner.Command(r.handler.RuntimePath, rootFlag, r.root, "state", c.ID()) // nolint: gosec
-		if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
-		}
-		out, err := cmd.Output()
+		out, err := r.runtimeCmd("state", c.ID())
 		if err != nil {
 			// there are many code paths that could lead to have a bad state in the
 			// underlying runtime.
@@ -943,7 +937,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			return nil, true, nil
 		}
 		state := *c.state
-		if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(&state); err != nil {
+		if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
 			return &state, false, fmt.Errorf("failed to decode container status for %s: %s", c.ID(), err)
 		}
 		return &state, false, nil
@@ -1024,7 +1018,7 @@ func (r *runtimeOCI) PauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "pause", c.ID())
+	_, err := r.runtimeCmd("pause", c.ID())
 	return err
 }
 
@@ -1037,7 +1031,7 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := utils.ExecCmd(r.handler.RuntimePath, rootFlag, r.root, "resume", c.ID())
+	_, err := r.runtimeCmd("resume", c.ID())
 	return err
 }
 
@@ -1066,17 +1060,13 @@ func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig sysc
 
 func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool) error {
 	args := []string{
-		rootFlag,
-		r.root,
 		"kill",
 	}
 	if all {
 		args = append(args, "-a")
 	}
 	args = append(args, c.ID(), strconv.Itoa(int(sig)))
-	_, err := utils.ExecCmd(
-		r.handler.RuntimePath, args...,
-	)
+	_, err := r.runtimeCmd(args...)
 	return err
 }
 
@@ -1356,4 +1346,33 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 
 func (c *Container) conmonPidFilePath() string {
 	return filepath.Join(c.bundlePath, "conmon-pidfile")
+}
+
+// runtimeCmd executes a command with args and returns its output as a string along
+// with an error, if any
+func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
+	runtimeArgs := append(r.defaultRuntimeArgs(), args...)
+	cmd := cmdrunner.Command(r.handler.RuntimePath, runtimeArgs...)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+	}
+
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("`%v %v` failed: %v %v: %w", r.handler.RuntimePath, strings.Join(runtimeArgs, " "), stderr.String(), stdout.String(), err)
+	}
+
+	return stdout.String(), nil
+}
+
+func (r *runtimeOCI) defaultRuntimeArgs() []string {
+	args := []string{rootFlag, r.root}
+	if r.config.CgroupManager().IsSystemd() {
+		args = append(args, "--systemd-cgroup")
+	}
+	return args
 }

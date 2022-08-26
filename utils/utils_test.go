@@ -25,28 +25,6 @@ func (m *errorReaderWriter) Read(p []byte) (int, error) {
 
 // The actual test suite
 var _ = t.Describe("Utils", func() {
-	t.Describe("ExecCmd", func() {
-		It("should succeed", func() {
-			// Given
-			// When
-			res, err := utils.ExecCmd("ls")
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(res).NotTo(BeEmpty())
-		})
-
-		It("should fail on wrong command", func() {
-			// Given
-			// When
-			res, err := utils.ExecCmd("not-existing")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeEmpty())
-		})
-	})
-
 	t.Describe("StatusToExitCode", func() {
 		It("should succeed", func() {
 			// Given

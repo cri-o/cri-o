@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -11,12 +10,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/sirupsen/logrus"
@@ -27,26 +24,6 @@ import (
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
 )
-
-// ExecCmd executes a command with args and returns its output as a string along
-// with an error, if any
-func ExecCmd(name string, args ...string) (string, error) {
-	cmd := cmdrunner.Command(name, args...)
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
-	}
-
-	err := cmd.Run()
-	if err != nil {
-		return "", fmt.Errorf("`%v %v` failed: %v %v: %w", name, strings.Join(args, " "), stderr.String(), stdout.String(), err)
-	}
-
-	return stdout.String(), nil
-}
 
 // StatusToExitCode converts wait status code to an exit code
 func StatusToExitCode(status int) int {
