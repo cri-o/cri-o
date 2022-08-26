@@ -1,7 +1,7 @@
 # Cap'n Proto bindings for Go
 
 ![License](https://img.shields.io/badge/license-MIT-brightgreen?style=flat-square)
-![CodeQuality](https://goreportcard.com/badge/capnproto.org/go/capnp)
+[![CodeQuality](https://goreportcard.com/badge/capnproto.org/go/capnp)](https://goreportcard.com/report/capnproto.org/go/capnp/v3)
 [![Go](https://github.com/capnproto/go-capnproto2/actions/workflows/go.yml/badge.svg)](https://github.com/capnproto/go-capnproto2/actions/workflows/go.yml)
 [![GoDoc](https://godoc.org/capnproto.org/go/capnp/v3?status.svg)][godoc]
 [![Matrix](https://img.shields.io/matrix/go-capnp:matrix.org?color=lightpink&label=Get%20Help&logo=matrix&style=flat-square)](https://matrix.to/#/#go-capnp:matrix.org)

@@ -110,7 +110,7 @@ func NewSingleSegmentMessage(b []byte) (msg *Message, first *Segment) {
 	return msg, first
 }
 
-// Analagous to NewSingleSegmentMessage, but using MutliSegment.
+// Analogous to NewSingleSegmentMessage, but using MutliSegment.
 func NewMultiSegmentMessage(b [][]byte) (msg *Message, first *Segment) {
 	msg, first, err := NewMessage(MultiSegment(b))
 	if err != nil {

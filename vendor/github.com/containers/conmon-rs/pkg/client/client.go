@@ -413,7 +413,7 @@ func (c *ConmonClient) Version(ctx context.Context) (*VersionResponse, error) {
 		return nil, fmt.Errorf("create RPC connection: %w", err)
 	}
 	defer conn.Close()
-	client := proto.Conmon{Client: conn.Bootstrap(ctx)}
+	client := proto.Conmon(conn.Bootstrap(ctx))
 
 	future, free := client.Version(ctx, nil)
 	defer free()
@@ -483,6 +483,17 @@ type CreateContainerConfig struct {
 
 	// LogDrivers is a slice of selected log drivers.
 	LogDrivers []LogDriver
+
+	// CleanupCmd is the command that will be executed once the container exits
+	CleanupCmd []string
+
+	// GlobalArgs are the additional arguments passed to the create runtime call
+	// before the command. e.g: crun --runtime-arg create
+	GlobalArgs []string
+
+	// CommandArgs are the additional arguments passed to the create runtime call
+	// after the command. e.g: crun create --runtime-opt
+	CommandArgs []string
 }
 
 // LogDriver specifies a selected logging mechanism.
@@ -522,7 +533,7 @@ func (c *ConmonClient) CreateContainer(
 		return nil, fmt.Errorf("create RPC connection: %w", err)
 	}
 	defer conn.Close()
-	client := proto.Conmon{Client: conn.Bootstrap(ctx)}
+	client := proto.Conmon(conn.Bootstrap(ctx))
 
 	future, free := client.CreateContainer(ctx, func(p proto.Conmon_createContainer_Params) error {
 		req, err := p.NewRequest()
@@ -548,6 +559,18 @@ func (c *ConmonClient) CreateContainer(
 
 		if err := c.initLogDrivers(&req, cfg.LogDrivers); err != nil {
 			return fmt.Errorf("init log drivers: %w", err)
+		}
+
+		if err := stringSliceToTextList(cfg.CleanupCmd, req.NewCleanupCmd); err != nil {
+			return fmt.Errorf("convert cleanup command string slice to text list: %w", err)
+		}
+
+		if err := stringSliceToTextList(cfg.GlobalArgs, req.NewGlobalArgs); err != nil {
+			return fmt.Errorf("convert cleanup command string slice to text list: %w", err)
+		}
+
+		if err := stringSliceToTextList(cfg.CommandArgs, req.NewCommandArgs); err != nil {
+			return fmt.Errorf("convert cleanup command string slice to text list: %w", err)
 		}
 
 		if err := p.SetRequest(req); err != nil {
@@ -613,7 +636,7 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 	}
 	defer conn.Close()
 
-	client := proto.Conmon{Client: conn.Bootstrap(ctx)}
+	client := proto.Conmon(conn.Bootstrap(ctx))
 	future, free := client.ExecSyncContainer(ctx, func(p proto.Conmon_execSyncContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
@@ -753,7 +776,7 @@ func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogCon
 		return fmt.Errorf("create RPC connection: %w", err)
 	}
 	defer conn.Close()
-	client := proto.Conmon{Client: conn.Bootstrap(ctx)}
+	client := proto.Conmon(conn.Bootstrap(ctx))
 
 	future, free := client.ReopenLogContainer(ctx, func(p proto.Conmon_reopenLogContainer_Params) error {
 		req, err := p.NewRequest()

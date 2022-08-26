@@ -18,7 +18,7 @@ require (
 	github.com/containers/buildah v1.27.0
 	github.com/containers/common v0.49.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.0.0-20220727163913-8698d2df0588
+	github.com/containers/conmon-rs v0.0.0-20220826070941-eaec2cd9172f
 	github.com/containers/image/v5 v5.22.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.5
@@ -85,7 +85,7 @@ require (
 
 require (
 	bitbucket.org/creachadair/shell v0.0.7 // indirect
-	capnproto.org/go/capnp/v3 v3.0.0-alpha.4 // indirect
+	capnproto.org/go/capnp/v3 v3.0.0-alpha.5 // indirect
 	cloud.google.com/go v0.102.0 // indirect
 	cloud.google.com/go/compute v1.7.0 // indirect
 	cloud.google.com/go/iam v0.3.0 // indirect

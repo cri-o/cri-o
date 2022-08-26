@@ -49,6 +49,7 @@ func (c *Conn) newQuestion(method capnp.Method) *question {
 	q := &question{
 		c:             c,
 		id:            questionID(c.questionID.next()),
+		release:       func() {},
 		finishMsgSend: make(chan struct{}),
 	}
 	q.p = capnp.NewPromise(method, q) // TODO(someday): customize error message for bootstrap
