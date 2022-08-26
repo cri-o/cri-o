@@ -947,7 +947,6 @@ func (c *Conn) handleReturn(ctx context.Context, ret rpccp.Return, release capnp
 	go func() {
 		switch {
 		case q.bootstrapPromise != nil && pr.err == nil:
-			q.release = func() {}
 			syncutil.Without(&c.mu, func() {
 				q.p.Fulfill(pr.result)
 				q.bootstrapPromise.Fulfill(q.p.Answer().Client())
@@ -958,7 +957,6 @@ func (c *Conn) handleReturn(ctx context.Context, ret rpccp.Return, release capnp
 		case q.bootstrapPromise != nil && pr.err != nil:
 			// TODO(someday): send unimplemented message back to remote if
 			// pr.unimplemented == true.
-			q.release = func() {}
 			syncutil.Without(&c.mu, func() {
 				q.p.Reject(pr.err)
 				q.bootstrapPromise.Fulfill(q.p.Answer().Client())
@@ -968,7 +966,6 @@ func (c *Conn) handleReturn(ctx context.Context, ret rpccp.Return, release capnp
 		case q.bootstrapPromise == nil && pr.err != nil:
 			// TODO(someday): send unimplemented message back to remote if
 			// pr.unimplemented == true.
-			q.release = func() {}
 			syncutil.Without(&c.mu, func() {
 				q.p.Reject(pr.err)
 				release()
@@ -1157,11 +1154,11 @@ func (c *Conn) recvCap(d rpccp.CapDescriptor) (capnp.Client, error) {
 	case rpccp.CapDescriptor_Which_receiverAnswer:
 		promisedAnswer, err := d.ReceiverAnswer()
 		if err != nil {
-			return capnp.Client{}, rpcerr.Failedf("receive capabiltiy: reading promised answer: %v", err)
+			return capnp.Client{}, rpcerr.Failedf("receive capability: reading promised answer: %v", err)
 		}
 		rawTransform, err := promisedAnswer.Transform()
 		if err != nil {
-			return capnp.Client{}, rpcerr.Failedf("receive capabiltiy: reading promised answer transform: %v", err)
+			return capnp.Client{}, rpcerr.Failedf("receive capability: reading promised answer transform: %v", err)
 		}
 		transform, err := parseTransform(rawTransform)
 		if err != nil {
@@ -1208,7 +1205,7 @@ func (c *Conn) recvCapReceiverAnswer(ans *answer, transform []capnp.PipelineOp) 
 		return capnp.ErrorClient(rpcerr.Failedf("Result is not a capability"))
 	}
 
-	// We can't just call Client(), becasue the CapTable has been cleared; instead,
+	// We can't just call Client(), because the CapTable has been cleared; instead,
 	// look it up in resultCapTable ourselves:
 	capId := int(iface.Capability())
 	if capId < 0 || capId >= len(ans.resultCapTable) {
@@ -1219,7 +1216,7 @@ func (c *Conn) recvCapReceiverAnswer(ans *answer, transform []capnp.PipelineOp) 
 }
 
 // Returns whether the client should be treated as local, for the purpose of
-// embargos.
+// embargoes.
 func (c *Conn) isLocalClient(client capnp.Client) bool {
 	if (client == capnp.Client{}) {
 		return false
@@ -1367,8 +1364,8 @@ func (c *Conn) handleDisembargo(ctx context.Context, d rpccp.Disembargo, release
 				return
 			}
 
-			ptr, err := capnp.Transform(content, tgt.transform)
-			if err != nil {
+			var ptr capnp.Ptr
+			if ptr, err = capnp.Transform(content, tgt.transform); err != nil {
 				err = rpcerr.Failedf("incoming disembargo: read answer ID %d: %v", tgt.promisedAnswer, err)
 				return
 			}

@@ -101,25 +101,12 @@ type Server struct {
 	callQueue *mpsc.Queue[*Call]
 }
 
-// Policy is a set of behavioral parameters for a Server.
-// They're not specific to a particular server and are generally set at
-// an application level.  Library functions are encouraged to accept a
-// Policy from a caller instead of creating their own.
-type Policy struct {
-	// MaxConcurrentCalls is the maximum number of methods allowed to be
-	// executing on a single Server simultaneously.  Attempts to make more
-	// calls than this limit will result in immediate error answers.
-	//
-	// If this is zero, then a reasonably small default is used.
-	MaxConcurrentCalls int
-}
-
 // New returns a client hook that makes calls to a set of methods.
 // If shutdown is nil then the server's shutdown is a no-op.  The server
 // guarantees message delivery order by blocking each call on the
 // return or acknowledgment of the previous call.  See Call.Ack for more
 // details.
-func New(methods []Method, brand interface{}, shutdown Shutdowner, policy *Policy) *Server {
+func New(methods []Method, brand interface{}, shutdown Shutdowner) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Server{

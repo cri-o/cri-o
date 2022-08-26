@@ -53,7 +53,7 @@ type Promise struct {
 	// After decrementing ongoingCalls, callsStopped should be closed if
 	// ongoingCalls is zero to wake up the goroutine.
 	//
-	// Only Fulfill, Reject, or Join will set callsStopped.
+	// Only Fulfill or Reject will set callsStopped.
 	callsStopped chan struct{}
 
 	// clients is a table of promised clients created to proxy the eventual
@@ -129,7 +129,7 @@ func (p *Promise) Fulfill(result Ptr) {
 	defer p.mu.Unlock()
 	p.mu.Lock()
 	if !p.isUnresolved() {
-		panic("Promise.Fulfill called after Fulfill, Reject, or Join")
+		panic("Promise.Fulfill called after Fulfill or Reject")
 	}
 	p.resolve(result, nil)
 }
@@ -146,7 +146,7 @@ func (p *Promise) Reject(e error) {
 	defer p.mu.Unlock()
 	p.mu.Lock()
 	if !p.isUnresolved() {
-		panic("Promise.Reject called after Fulfill, Reject, or Join")
+		panic("Promise.Reject called after Fulfill or Reject")
 	}
 	p.resolve(Ptr{}, e)
 }

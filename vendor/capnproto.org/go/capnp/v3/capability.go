@@ -21,6 +21,15 @@ type Interface struct {
 	cap CapabilityID
 }
 
+// i.EncodeAsPtr is equivalent to i.ToPtr(); for implementing TypeParam.
+// The segment argument is ignored.
+func (i Interface) EncodeAsPtr(*Segment) Ptr { return i.ToPtr() }
+
+// DecodeFromPtr(p) is equivalent to p.Interface(); for implementing TypeParam.
+func (Interface) DecodeFromPtr(p Ptr) Interface { return p.Interface() }
+
+var _ TypeParam[Interface] = Interface{}
+
 // NewInterface creates a new interface pointer.
 //
 // No allocation is performed in the given segment: it is used purely
@@ -95,7 +104,12 @@ func (id CapabilityID) GoString() string {
 // A Client is a reference to a Cap'n Proto capability.
 // The zero value is a null capability reference.
 // It is safe to use from multiple goroutines.
-type Client struct {
+type Client ClientKind
+
+// The underlying type of Client. We expose this so that
+// we can use ~ClientKind as a constraint in generics to
+// capture any capability type.
+type ClientKind = struct {
 	*client
 }
 
@@ -571,6 +585,17 @@ func (c Client) Release() {
 	<-h.done
 	h.Shutdown()
 }
+
+func (c Client) EncodeAsPtr(seg *Segment) Ptr {
+	capId := seg.Message().AddCap(c)
+	return NewInterface(seg, capId).ToPtr()
+}
+
+func (Client) DecodeFromPtr(p Ptr) Client {
+	return p.Interface().Client()
+}
+
+var _ TypeParam[Client] = Client{}
 
 // isResolve reports whether ch has been resolved.
 // The caller must be holding onto ch.mu.

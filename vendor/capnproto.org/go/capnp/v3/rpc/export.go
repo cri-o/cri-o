@@ -188,7 +188,7 @@ func (c *Conn) fillPayloadCapTable(payload rpccp.Payload, clients []capnp.Client
 	for i, client := range clients {
 		id, isExport, err := c.sendCap(list.At(i), client)
 		if err != nil {
-			return nil, rpcerr.Failedf("Serializing capabiltiy: %w", err)
+			return nil, rpcerr.Failedf("Serializing capability: %w", err)
 		}
 		if !isExport {
 			continue
