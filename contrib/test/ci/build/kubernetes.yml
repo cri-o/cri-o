@@ -8,6 +8,13 @@
     version: "{{ k8s_git_version }}"
     force: "{{ force_clone | default(False) | bool}}"
 
+#TODO this replaces all github downloads for etcd and replaces them with the same version
+- name: set etcd url
+  ansible.builtin.replace: 
+    path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/hack/lib/etcd.sh"
+    regexp: "^.*https://github.com.*$"
+    replace: "url=\"https://storage.googleapis.com/crio-ci/etcd-v${ETCD_VERSION}.tar.gz\""
+
 - name: install etcd
   command: "hack/install-etcd.sh"
   args:
@@ -17,12 +24,17 @@
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
     target: clean
+  async: '{{ 60 * 60 * 4 }}'
+  poll: 60
 
 - name: build kubernetes
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+  async: '{{ 60 * 60 * 4 }}'
+  poll: 60
 
 - name: Add custom cluster service file for the e2e testing
+  become: yes
   copy:
     dest: /etc/systemd/system/customcluster.service
     content: |
@@ -38,6 +50,7 @@
       WantedBy=multi-user.target
 
 - name: Add create cluster background script for e2e testing
+  become: yes
   copy:
     dest: /usr/local/bin/createcluster.sh
     content: |
@@ -69,6 +82,7 @@
     mode: "u=rwx,g=rwx,o=x"
 
 - name: Set kubernetes_provider to be local
+  become: yes
   lineinfile:
     dest: /etc/environment
     line: |
@@ -78,12 +92,14 @@
     state: present
 
 - name: install kubectl (for kubetest)
+  become: yes
   copy:
     src: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/bin/kubectl"
     dest: "{{ ansible_env.GOPATH }}/bin/kubectl"
     mode: "preserve"
 
 - name: copy kubectl (for e2e tests)
+  become: yes
   copy:
     src: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/bin/kubectl"
     dest: "/usr/bin/kubectl"

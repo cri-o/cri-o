@@ -54,6 +54,7 @@
 
 - block:
     - name: run integration tests
+      become: yes
       shell: make localintegration 2>&1 > /tmp/artifacts/testout.txt
       args:
         executable: /bin/bash
@@ -65,6 +66,7 @@
       poll: 30
 
     - name: run integration tests with userNS enabled + alternate results file
+      become: yes
       shell: make localintegration 2>&1 > /tmp/artifacts/testout_with_userns.txt
       args:
         executable: /bin/bash
