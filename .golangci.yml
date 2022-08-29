@@ -11,8 +11,6 @@ run:
     - exclude_graphdriver_btrfs
     # needs devmapper headers installed
     - exclude_graphdriver_devicemapper
-    # remove this tag when golangci lint supports go 1.18 and generics                                                                                                   │noctx: noctx finds sending http request without context.Context [fast: false, auto-fix: false]
-    - skip_pod_runtime
   concurrency: 6
   deadline: 10m
 linters:
