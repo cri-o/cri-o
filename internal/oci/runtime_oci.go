@@ -965,7 +965,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			// We always populate the fields below so kube can restart/reschedule
 			// containers failing.
 			if exitErr, isExitError := err.(*exec.ExitError); isExitError {
-				log.Errorf(ctx, "Failed to update container state for %s: stdout: %s, stderr: %s", c.ID(), string(out), string(exitErr.Stderr))
+				log.Errorf(ctx, "Failed to update container state for %s: stdout: %s, stderr: %s", c.ID(), out, string(exitErr.Stderr))
 			} else {
 				log.Errorf(ctx, "Failed to update container state for %s: %v", c.ID(), err)
 			}
