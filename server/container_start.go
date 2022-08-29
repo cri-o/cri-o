@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 
+	"github.com/containers/podman/v4/libpod"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
@@ -19,6 +21,41 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
+
+	if c.Restore() {
+		// If the create command found a checkpoint image, the container
+		// has the restore flag set to true. At this point we need to jump
+		// into the restore code.
+		log.Debugf(ctx, "Restoring container %q", req.ContainerId)
+
+		ctr, err := s.ContainerServer.ContainerRestore(
+			ctx,
+			&lib.ContainerCheckpointRestoreOptions{
+				Container: c.ID(),
+				Pod:       s.getSandbox(c.Sandbox()).ID(),
+				ContainerCheckpointOptions: libpod.ContainerCheckpointOptions{
+					TargetFile: c.ImageName(),
+				},
+			},
+		)
+		if err != nil {
+			ociContainer, err1 := s.GetContainerFromShortID(c.ID())
+			if err1 != nil {
+				return fmt.Errorf("failed to find container %s: %v", c.ID(), err1)
+			}
+			s.ReleaseContainerName(ociContainer.Name())
+			err2 := s.StorageRuntimeServer().DeleteContainer(c.ID())
+			if err2 != nil {
+				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
+			}
+			s.removeContainer(ociContainer)
+			return err
+		}
+
+		log.Infof(ctx, "Restored container: %s", ctr)
+		return nil
+	}
+
 	state := c.State()
 	if state.Status != oci.ContainerStateCreated {
 		return fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)

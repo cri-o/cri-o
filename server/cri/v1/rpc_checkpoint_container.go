@@ -7,6 +7,7 @@ import (
 )
 
 func (s *service) CheckpointContainer(ctx context.Context, req *pb.CheckpointContainerRequest) (*pb.CheckpointContainerResponse, error) {
-	// Spoofing the CheckpointContainer method to return nil response until actual support code is added.
-	return nil, nil
+	result := s.server.CheckpointContainer(ctx, req)
+
+	return &pb.CheckpointContainerResponse{}, result
 }

@@ -11,6 +11,7 @@
 /bin/
 /test/bin2img/bin2img
 /test/checkseccomp/checkseccomp
+/test/checkcriu/checkcriu
 /test/copyimg/copyimg
 /build
 coverprofile

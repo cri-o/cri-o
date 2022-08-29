@@ -42,6 +42,7 @@ crio
 [--default-ulimits]=[value]
 [--device-ownership-from-security-context]
 [--drop-infra-ctr]
+[--enable-criu-support]
 [--enable-metrics]
 [--enable-profile-unix-socket]
 [--enable-tracing]
@@ -205,6 +206,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--device-ownership-from-security-context**: Set devices' uid/gid ownership from runAsUser/runAsGroup
 
 **--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace (default: true)
+
+**--enable-criu-support**: Enable CRIU integration, requires that the criu binary is available in $PATH. (default: '')
 
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
 

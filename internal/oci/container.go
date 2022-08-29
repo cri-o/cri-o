@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/signal"
 	"github.com/containers/storage/pkg/idtools"
@@ -73,6 +74,8 @@ type Container struct {
 	stopStoppingChan   chan struct{}
 	stopLock           sync.Mutex
 	pidns              nsmgr.Namespace
+	restore            bool
+	restoreArchive     string
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -110,7 +113,7 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, metadata *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	c := &Container{
@@ -119,7 +122,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			PodSandboxId: sandbox,
 			CreatedAt:    created.UnixNano(),
 			Labels:       labels,
-			Metadata:     metadata,
+			Metadata:     md,
 			Annotations:  annotations,
 			Image: &types.ImageSpec{
 				Image: image,
@@ -370,9 +373,25 @@ func (c *Container) Sandbox() string {
 	return c.criContainer.PodSandboxId
 }
 
+// SetSandbox sets the ID of the Sandbox.
+func (c *Container) SetSandbox(podSandboxID string) {
+	c.criContainer.PodSandboxId = podSandboxID
+}
+
 // Dir returns the dir of the container
 func (c *Container) Dir() string {
 	return c.dir
+}
+
+// CheckpointPath returns the path to the directory containing the checkpoint
+func (c *Container) CheckpointPath() string {
+	// Podman uses 'bundlePath' as base directory for the checkpoint
+	// CRI-O uses 'dir' instead of bundlePath as bundlePath seems to be
+	// normally based on a tmpfs which does not survive a reboot. Also, as
+	// the checkpoint contains all memory pages, it can be as large as the
+	// available memory and writing that again to a tmpfs might lead to
+	// problems. 'dir' seems to be based on /var
+	return filepath.Join(c.dir, metadata.CheckpointDirectory)
 }
 
 // Metadata returns the metadata of the container.
@@ -642,4 +661,23 @@ func (c *Container) nodeLevelPIDNamespace() bool {
 		}
 	}
 	return true
+}
+
+// Restore returns if the container is marked as being
+// restored from a checkpoint
+func (c *Container) Restore() bool {
+	return c.restore
+}
+
+// SetRestore marks the container as being restored from a checkpoint
+func (c *Container) SetRestore(restore bool) {
+	c.restore = restore
+}
+
+func (c *Container) RestoreArchive() string {
+	return c.restoreArchive
+}
+
+func (c *Container) SetRestoreArchive(restoreArchive string) {
+	c.restoreArchive = restoreArchive
 }

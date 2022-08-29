@@ -20,7 +20,7 @@
     - name: clone build and install cri-tools
       include: "build/cri-tools.yml"
       vars:
-        cri_tools_git_version: "v1.24.2"
+        cri_tools_git_version: "v1.25.0"
 
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"

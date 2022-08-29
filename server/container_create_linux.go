@@ -54,7 +54,7 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 			return err
 		}
 	}
-	return s.Runtime().CreateContainer(ctx, container, cgroupParent)
+	return s.Runtime().CreateContainer(ctx, container, cgroupParent, false)
 }
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
@@ -927,8 +927,17 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 					return nil, nil, fmt.Errorf("cannot mount %s: path does not exist and will cause issues as a directory", toReject)
 				}
 			}
-			if err = os.MkdirAll(src, 0o755); err != nil {
-				return nil, nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
+			if !ctr.Restore() {
+				// Although this would also be really helpful for restoring containers
+				// it is problematic as during restore external bind mounts need to be
+				// a file if the destination is a file. Unfortunately it is not easy
+				// to tell if the destination is a file or a directory. Especially if
+				// the destination is a nested bind mount. For now we will just not
+				// create the missing bind mount source for restore and return an
+				// error to the user.
+				if err = os.MkdirAll(src, 0o755); err != nil {
+					return nil, nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
+				}
 			}
 		}
 

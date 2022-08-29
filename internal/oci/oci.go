@@ -56,7 +56,7 @@ type Runtime struct {
 // runtimes. Assumptions based on the fact that a container process runs
 // on the host will be limited to the RuntimeOCI implementation.
 type RuntimeImpl interface {
-	CreateContainer(context.Context, *Container, string) error
+	CreateContainer(context.Context, *Container, string, bool) error
 	StartContainer(context.Context, *Container) error
 	ExecContainer(context.Context, *Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
@@ -74,6 +74,8 @@ type RuntimeImpl interface {
 	PortForwardContainer(context.Context, *Container, string,
 		int32, io.ReadWriteCloser) error
 	ReopenContainerLog(context.Context, *Container) error
+	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
+	RestoreContainer(context.Context, *Container, *rspec.Spec, int, string) error
 }
 
 // New creates a new Runtime with options provided
@@ -205,7 +207,7 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 }
 
 // CreateContainer creates a container.
-func (r *Runtime) CreateContainer(ctx context.Context, c *Container, cgroupParent string) error {
+func (r *Runtime) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) error {
 	// Instantiate a new runtime implementation for this new container
 	impl, err := r.newRuntimeImpl(c)
 	if err != nil {
@@ -217,7 +219,7 @@ func (r *Runtime) CreateContainer(ctx context.Context, c *Container, cgroupParen
 	r.runtimeImplMap[c.ID()] = impl
 	r.runtimeImplMapMutex.Unlock()
 
-	return impl.CreateContainer(ctx, c, cgroupParent)
+	return impl.CreateContainer(ctx, c, cgroupParent, restore)
 }
 
 // StartContainer starts a container.
@@ -382,4 +384,24 @@ type ExecSyncError struct {
 
 func (e *ExecSyncError) Error() string {
 	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
+}
+
+// CheckpointContainer checkpoints a container.
+func (r *Runtime) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool) error {
+	impl, err := r.RuntimeImpl(c)
+	if err != nil {
+		return err
+	}
+
+	return impl.CheckpointContainer(ctx, c, specgen, leaveRunning)
+}
+
+// RestoreContainer restores a container.
+func (r *Runtime) RestoreContainer(ctx context.Context, c *Container, sbSpec *rspec.Spec, infraPid int, cgroupParent string) error {
+	impl, err := r.RuntimeImpl(c)
+	if err != nil {
+		return err
+	}
+
+	return impl.RestoreContainer(ctx, c, sbSpec, infraPid, cgroupParent)
 }

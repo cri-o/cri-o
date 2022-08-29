@@ -283,6 +283,9 @@ the container runtime configuration.
 **device_ownership_from_security_context**=false
   Changes the default behavior of setting container devices uid/gid from CRI's SecurityContext (RunAsUser/RunAsGroup) instead of taking host's uid/gid.
 
+**enable_criu_support**=false
+  Enable CRIU integration, requires that the criu binary is available in $PATH. (default: false)
+
 ### CRIO.RUNTIME.RUNTIMES TABLE
 The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime handler provided by the CRI.  If no runtime handler is provided, the runtime will be picked based on the level of trust of the workload.
 

@@ -49,6 +49,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l default-transport -r -d 'A
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-ulimits -r -d 'Ulimits to apply to containers by default (name=soft:hard) (default: [])'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l device-ownership-from-security-context -d 'Set devices\' uid/gid ownership from runAsUser/runAsGroup'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l drop-infra-ctr -d 'Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace (default: true)'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-criu-support -d 'Enable CRIU integration, requires that the criu binary is available in $PATH. (default: \'\')'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-metrics -d 'Enable metrics endpoint for the server on localhost:9090'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-profile-unix-socket -d 'Enable pprof profiler on crio unix domain socket'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-tracing -d 'Enable OpenTelemetry trace data exporting'
