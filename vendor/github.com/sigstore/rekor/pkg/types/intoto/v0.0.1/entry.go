@@ -43,7 +43,7 @@ import (
 	"github.com/sigstore/rekor/pkg/types"
 	"github.com/sigstore/rekor/pkg/types/intoto"
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/options"
+	dsse_verifier "github.com/sigstore/sigstore/pkg/signature/dsse"
 )
 
 const (
@@ -98,12 +98,11 @@ func (v V001Entry) IndexKeys() ([]string, error) {
 	}
 
 	// add digest base64-decoded payload inside of DSSE envelope
-	payloadBytes, err := base64.StdEncoding.DecodeString(v.env.Payload)
-	if err == nil {
-		payloadHash := sha256.Sum256(payloadBytes)
-		result = append(result, fmt.Sprintf("sha256:%s", strings.ToLower(hex.EncodeToString(payloadHash[:]))))
+	if v.IntotoObj.Content != nil && v.IntotoObj.Content.PayloadHash != nil {
+		payloadHash := strings.ToLower(fmt.Sprintf("%s:%s", swag.StringValue(v.IntotoObj.Content.PayloadHash.Algorithm), swag.StringValue(v.IntotoObj.Content.PayloadHash.Value)))
+		result = append(result, payloadHash)
 	} else {
-		log.Logger.Errorf("error decoding intoto payload to compute digest: %w", err)
+		log.Logger.Error("could not find payload digest to include in index keys")
 	}
 
 	switch v.env.PayloadType {
@@ -194,22 +193,18 @@ func (v *V001Entry) Canonicalize(ctx context.Context) ([]byte, error) {
 	}
 	pkb := strfmt.Base64(pk)
 
-	h := sha256.Sum256([]byte(v.IntotoObj.Content.Envelope))
-
 	canonicalEntry := models.IntotoV001Schema{
 		PublicKey: &pkb,
 		Content: &models.IntotoV001SchemaContent{
 			Hash: &models.IntotoV001SchemaContentHash{
-				Algorithm: swag.String(models.IntotoV001SchemaContentHashAlgorithmSha256),
-				Value:     swag.String(hex.EncodeToString(h[:])),
+				Algorithm: v.IntotoObj.Content.Hash.Algorithm,
+				Value:     v.IntotoObj.Content.Hash.Value,
+			},
+			PayloadHash: &models.IntotoV001SchemaContentPayloadHash{
+				Algorithm: v.IntotoObj.Content.PayloadHash.Algorithm,
+				Value:     v.IntotoObj.Content.PayloadHash.Value,
 			},
 		},
-	}
-	if attKey, attValue := v.AttestationKeyValue(); attValue != nil {
-		canonicalEntry.Content.PayloadHash = &models.IntotoV001SchemaContentPayloadHash{
-			Algorithm: swag.String(models.IntotoV001SchemaContentHashAlgorithmSha256),
-			Value:     swag.String(strings.Replace(attKey, fmt.Sprintf("%s:", models.IntotoV001SchemaContentHashAlgorithmSha256), "", 1)),
-		}
 	}
 
 	itObj := models.Intoto{}
@@ -232,24 +227,30 @@ func (v *V001Entry) validate() error {
 	if err != nil {
 		return err
 	}
-	dsseVerifier, err := dsse.NewEnvelopeSigner(&verifier{
-		v:   vfr,
-		pub: pk,
-	})
-	if err != nil {
+	dsseVerifier := dsse_verifier.WrapVerifier(vfr)
+
+	if err := dsseVerifier.VerifySignature(strings.NewReader(v.IntotoObj.Content.Envelope), nil); err != nil {
 		return err
 	}
-
-	if v.IntotoObj.Content.Envelope == "" {
-		return nil
-	}
-
 	if err := json.Unmarshal([]byte(v.IntotoObj.Content.Envelope), &v.env); err != nil {
 		return err
 	}
 
-	if _, err := dsseVerifier.Verify(&v.env); err != nil {
+	attBytes, err := base64.StdEncoding.DecodeString(v.env.Payload)
+	if err != nil {
 		return err
+	}
+	// validation logic complete without errors, hydrate local object
+	attHash := sha256.Sum256(attBytes)
+	v.IntotoObj.Content.PayloadHash = &models.IntotoV001SchemaContentPayloadHash{
+		Algorithm: swag.String(models.IntotoV001SchemaContentPayloadHashAlgorithmSha256),
+		Value:     swag.String(hex.EncodeToString(attHash[:])),
+	}
+
+	h := sha256.Sum256([]byte(v.IntotoObj.Content.Envelope))
+	v.IntotoObj.Content.Hash = &models.IntotoV001SchemaContentHash{
+		Algorithm: swag.String(models.IntotoV001SchemaContentHashAlgorithmSha256),
+		Value:     swag.String(hex.EncodeToString(h[:])),
 	}
 	return nil
 }
@@ -270,41 +271,7 @@ func (v *V001Entry) AttestationKeyValue() (string, []byte) {
 		return "", nil
 	}
 	attBytes, _ := base64.StdEncoding.DecodeString(v.env.Payload)
-	attHash := sha256.Sum256(attBytes)
-	attKey := fmt.Sprintf("%s:%s", models.IntotoV001SchemaContentHashAlgorithmSha256, hex.EncodeToString(attHash[:]))
-	return attKey, attBytes
-}
-
-type verifier struct {
-	s   signature.Signer
-	v   signature.Verifier
-	pub crypto.PublicKey
-}
-
-func (v *verifier) KeyID() (string, error) {
-	return "", nil
-}
-
-func (v *verifier) Public() crypto.PublicKey {
-	return v.pub
-}
-
-func (v *verifier) Sign(data []byte) (sig []byte, err error) {
-	if v.s == nil {
-		return nil, errors.New("nil signer")
-	}
-	sig, err = v.s.SignMessage(bytes.NewReader(data), options.WithCryptoSignerOpts(crypto.SHA256))
-	if err != nil {
-		return nil, err
-	}
-	return sig, nil
-}
-
-func (v *verifier) Verify(data, sig []byte) error {
-	if v.v == nil {
-		return errors.New("nil verifier")
-	}
-	return v.v.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	return v.AttestationKey(), attBytes
 }
 
 func (v V001Entry) CreateFromArtifactProperties(_ context.Context, props types.ArtifactProperties) (models.ProposedEntry, error) {

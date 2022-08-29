@@ -199,10 +199,6 @@ func (a *Attestation) addExt(e pkix.Extension) error {
 	return nil
 }
 
-func verifySignature(parent, c *x509.Certificate) error {
-	return parent.CheckSignature(c.SignatureAlgorithm, c.RawTBSCertificate, c.Signature)
-}
-
 // Verify proves that a key was generated on a YubiKey. It ensures the slot and
 // YubiKey certificate chains up to the Yubico CA, parsing additional information
 // out of the slot certificate, such as the touch and PIN policies of a key.
@@ -232,7 +228,7 @@ func (v *verifier) Verify(attestationCert, slotCert *x509.Certificate) (*Attesta
 	// This isn't valid as per https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.9
 	// (fourth paragraph) and thus makes x509.go validation fail.
 	// Work around this by setting this constraint here.
-	if attestationCert.BasicConstraintsValid == false {
+	if !attestationCert.BasicConstraintsValid {
 		attestationCert.BasicConstraintsValid = true
 		attestationCert.IsCA = true
 	}
@@ -745,14 +741,6 @@ type KeyAuth struct {
 	// This field is required on older (<4.3.0) YubiKeys when using PINPrompt,
 	// as well as for keys imported to the card.
 	PINPolicy PINPolicy
-}
-
-func isAuthErr(err error) bool {
-	var e *apduErr
-	if !errors.As(err, &e) {
-		return false
-	}
-	return e.sw1 == 0x69 && e.sw2 == 0x82 // "security status not satisfied"
 }
 
 func (k KeyAuth) authTx(yk *YubiKey, pp PINPolicy) error {

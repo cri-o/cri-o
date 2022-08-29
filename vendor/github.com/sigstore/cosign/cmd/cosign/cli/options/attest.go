@@ -21,13 +21,15 @@ import (
 
 // AttestOptions is the top level wrapper for the attest command.
 type AttestOptions struct {
-	Key       string
-	Cert      string
-	CertChain string
-	NoUpload  bool
-	Force     bool
-	Recursive bool
-	Replace   bool
+	Key              string
+	Cert             string
+	CertChain        string
+	NoUpload         bool
+	Force            bool
+	Recursive        bool
+	Replace          bool
+	SkipConfirmation bool
+	NoTlogUpload     bool
 
 	Rekor       RekorOptions
 	Fulcio      FulcioOptions
@@ -71,4 +73,10 @@ func (o *AttestOptions) AddFlags(cmd *cobra.Command) {
 
 	cmd.Flags().BoolVarP(&o.Replace, "replace", "", false,
 		"")
+
+	cmd.Flags().BoolVarP(&o.SkipConfirmation, "yes", "y", false,
+		"skip confirmation prompts for non-destructive operations")
+
+	cmd.Flags().BoolVar(&o.NoTlogUpload, "no-tlog-upload", false,
+		"whether to not upload the transparency log")
 }

@@ -194,6 +194,9 @@ func startRedirectListener(state, htmlPage, redirectURL string, doneCh chan stri
 	s := &http.Server{
 		Addr:    urlListener.Host,
 		Handler: m,
+
+		// an arbitrary reasonable value to fix gosec lint error
+		ReadHeaderTimeout: 2 * time.Second,
 	}
 
 	m.HandleFunc(urlListener.Path, func(w http.ResponseWriter, r *http.Request) {

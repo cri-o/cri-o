@@ -2,6 +2,28 @@
 
 ## HEAD
 
+### Integration
+
+ * Breaking change to API for `integration.HammerCTLog`:
+    * Added `ctx` as first argument, and terminate loop if it becomes cancelled
+
+### JSONClient
+
+ * PostAndParseWithRetry now does backoff-and-retry upon receiving HTTP 429.
+
+### Cleanup
+
+ * `WithBalancerName` is deprecated and removed, using the recommended way
+ * `ctfe.PEMCertPool` type has been moved to `x509util.PEMCertPool` to reduce
+   dependencies (#903).
+
+### Misc
+
+ * update `google.golang.org/grpc` to v1.46.0
+ * `ctclient` tool now uses Cobra for better CLI experience (#901).
+ * #800: Remove dependency from `ratelimit`.
+ * #927: Add read-only mode to CTFE config.
+
 ## v1.1.2
 
 ### CTFE
@@ -12,7 +34,6 @@
 
  * Trillian from v1.3.11 to v1.4.0
  * protobuf to v2
-
 
 ## v1.1.1
 [Published 2020-10-06](https://github.com/google/certificate-transparency-go/releases/tag/v1.1.1)

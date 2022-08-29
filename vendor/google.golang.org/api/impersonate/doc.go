@@ -4,7 +4,7 @@
 
 // Package impersonate is used to impersonate Google Credentials.
 //
-// Required IAM roles
+// # Required IAM roles
 //
 // In order to impersonate a service account the base service account must have
 // the Service Account Token Creator role, roles/iam.serviceAccountTokenCreator,
@@ -20,10 +20,10 @@
 // service account SA2 while using delegate service accounts DSA1 and DSA2,
 // the following must be true:
 //
-//   1. Base service account SA1 has roles/iam.serviceAccountTokenCreator on
-//      DSA1.
-//   2. DSA1 has roles/iam.serviceAccountTokenCreator on DSA2.
-//   3. DSA2 has roles/iam.serviceAccountTokenCreator on target SA2.
+//  1. Base service account SA1 has roles/iam.serviceAccountTokenCreator on
+//     DSA1.
+//  2. DSA1 has roles/iam.serviceAccountTokenCreator on DSA2.
+//  3. DSA2 has roles/iam.serviceAccountTokenCreator on target SA2.
 //
 // If the base credential is an authorized user and not a service account, or if
 // the option WithQuotaProject is set, the target service account must have a

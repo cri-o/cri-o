@@ -21,7 +21,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/generate"
 	"github.com/sigstore/cosign/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sirupsen/logrus"
@@ -61,7 +60,7 @@ type Options struct {
 	// PassFunc is a function that returns a slice of bytes that will be used
 	// as a password for decrypting the cosign key. It is used only if PrivateKeyPath
 	// is provided (i.e. it's not used for keyless signing).
-	// Defaults to a function that reads from stdin and asks for confirmation
+	// Defaults to nil, which acts as having no password provided at all.
 	PassFunc cosign.PassFunc
 
 	// MaxRetries indicates the number of times to retry operations
@@ -74,7 +73,6 @@ func Default() *Options {
 	return &Options{
 		Logger:               logrus.StandardLogger(),
 		Timeout:              3 * time.Minute,
-		PassFunc:             generate.GetPass,
 		EnableTokenProviders: true,
 		AttachSignature:      true,
 		MaxRetries:           3,
