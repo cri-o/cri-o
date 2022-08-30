@@ -101,8 +101,6 @@
   package:
     name: '*'
     state: latest
-  async: 600
-  poll: 10
   when: supports_python3 is not defined or not supports_python3
 
 - name: Update all packages RHEL 8, CentOS 8 and Fedora >= 30
