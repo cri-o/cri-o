@@ -1172,9 +1172,9 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 {{ $.Comment }}[crio.runtime.workloads.{{ $workload_type }}]
 {{ $.Comment }}activation_annotation = "{{ $workload_config.ActivationAnnotation }}"
 {{ $.Comment }}annotation_prefix = "{{ $workload_config.AnnotationPrefix }}"
-{{ $.Comment }}[crio.runtime.workloads.{{ $workload_type }}.resources]
+{{ if $workload_config.Resources }}{{ $.Comment }}[crio.runtime.workloads.{{ $workload_type }}.resources]
 {{ $.Comment }}cpuset = "{{ $workload_config.Resources.CPUSet }}"
-{{ $.Comment }}cpushares = {{ $workload_config.Resources.CPUShares }}
+{{ $.Comment }}cpushares = {{ $workload_config.Resources.CPUShares }}{{ end }}
 {{ end }}
 `
 

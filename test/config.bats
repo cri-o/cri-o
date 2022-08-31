@@ -96,3 +96,16 @@ EOF
 	[[ "$RES" == *"monitor_cgroup = \"pod\""* ]]
 	[[ "$RES" == *"monitor_path = \"/bin/true\""* ]]
 }
+
+@test "handle nil workloads" {
+	# when
+	unset CONTAINER_DEFAULT_RUNTIME
+	cat << EOF >> "$TESTDIR"/workload.conf
+[crio.runtime.workloads.userns]
+activation_annotation = "io.kubernetes.cri-o.userns-mode"
+allowed_annotations = ["io.kubernetes.cri-o.userns-mode"]
+EOF
+
+	# then
+	"$CRIO_BINARY_PATH" -c "$TESTDIR"/workload.conf -d "" config
+}
