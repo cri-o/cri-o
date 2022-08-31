@@ -147,7 +147,11 @@ func createSandboxCgroup(sbParent, containerID string, mgr CgroupManager) error 
 	if err != nil {
 		return err
 	}
-	_, err = cgroups.New(path, &cgcfgs.Resources{})
+	if mgr.IsSystemd() {
+		_, err = cgroups.NewSystemd(path, &cgcfgs.Resources{})
+	} else {
+		_, err = cgroups.New(path, &cgcfgs.Resources{})
+	}
 	return err
 }
 
