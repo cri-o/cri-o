@@ -602,9 +602,17 @@ func (m *Metrics) startEndpoint(
 					MinVersion:     tls.VersionTLS12,
 				},
 			}
+			go func() {
+				<-stop
+				l.Close()
+			}()
 			err = srv.ServeTLS(l, m.config.MetricsCert, m.config.MetricsKey)
 		} else {
 			logrus.Infof("Serving metrics on %s via HTTP", address)
+			go func() {
+				<-stop
+				l.Close()
+			}()
 			err = http.Serve(l, me)
 		}
 
