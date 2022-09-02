@@ -159,4 +159,49 @@ var _ = t.Describe("ResourceStore", func() {
 			Expect(didStoreWaitForPut).To(Equal(true))
 		})
 	})
+	Context("Stages", func() {
+		BeforeEach(func() {
+			sut = resourcestore.New()
+			cleaner = resourcestore.NewResourceCleaner()
+			e = &entry{
+				id: testID,
+			}
+		})
+		AfterEach(func() {
+			sut.Close()
+		})
+		It("should have stage unknown if watcher requested", func() {
+			// Given
+			_, stage := sut.WatcherForResource(testName)
+
+			// Then
+			Expect(stage).To(Equal(resourcestore.StageUnknown))
+		})
+		It("should add resource if not present", func() {
+			// Given
+			testStage := "test stage"
+			sut.SetStageForResource(testName, testStage)
+
+			// when
+			_, stage := sut.WatcherForResource(testName)
+
+			// Then
+			Expect(stage).To(Equal(testStage))
+		})
+		It("should update stage", func() {
+			// Given
+			stage1 := "test stage"
+			stage2 := "test stage2"
+			sut.SetStageForResource(testName, stage1)
+			_, stage := sut.WatcherForResource(testName)
+			Expect(stage).To(Equal(stage1))
+
+			// when
+			sut.SetStageForResource(testName, stage2)
+			_, stage = sut.WatcherForResource(testName)
+
+			// Then
+			Expect(stage).To(Equal(stage2))
+		})
+	})
 })
