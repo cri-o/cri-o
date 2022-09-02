@@ -127,9 +127,13 @@ func (c *scContext) Connect(reader string) (*scHandle, error) {
 		handle         syscall.Handle
 		activeProtocol uint16
 	)
+	readerPtr, err := syscall.UTF16PtrFromString(reader)
+	if err != nil {
+		return nil, fmt.Errorf("invalid reader string: %v", err)
+	}
 	r0, _, _ := procSCardConnectW.Call(
 		uintptr(c.ctx),
-		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(reader))),
+		uintptr(unsafe.Pointer(readerPtr)),
 		scardShareExclusive,
 		scardProtocolT1,
 		uintptr(unsafe.Pointer(&handle)),

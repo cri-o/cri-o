@@ -128,7 +128,7 @@ func (wL *wrappedMultiVerifier) PublicKey(opts ...signature.PublicKeyOption) (cr
 }
 
 // VerifySignature verifies the signature specified in an DSSE envelope
-func (wL *wrappedMultiVerifier) VerifySignature(s io.Reader, _ io.Reader, opts ...signature.VerifyOption) error {
+func (wL *wrappedMultiVerifier) VerifySignature(s, _ io.Reader, opts ...signature.VerifyOption) error {
 	sig, err := ioutil.ReadAll(s)
 	if err != nil {
 		return err
@@ -177,7 +177,7 @@ func (w *wrappedMultiSignerVerifier) PublicKey(opts ...signature.PublicKeyOption
 }
 
 // VerifySignature verifies the signature specified in an DSSE envelope
-func (w *wrappedMultiSignerVerifier) VerifySignature(s io.Reader, r io.Reader, opts ...signature.VerifyOption) error {
+func (w *wrappedMultiSignerVerifier) VerifySignature(s, r io.Reader, opts ...signature.VerifyOption) error {
 	return w.verifier.VerifySignature(s, r, opts...)
 }
 

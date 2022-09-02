@@ -50,7 +50,7 @@ type impl interface {
 	SignImageInternal(ro options.RootOptions, ko options.KeyOpts, regOpts options.RegistryOptions,
 		annotations map[string]interface{}, imgs []string, certPath string, upload bool,
 		outputSignature string, outputCertificate string, payloadPath string, force bool,
-		recursive bool, attachment string) error
+		recursive bool, attachment string, noTlogUpload bool) error
 	SignFileInternal(ro options.RootOptions, ko options.KeyOpts, regOpts options.RegistryOptions,
 		payloadPath string, b64 bool, outputSignature string, outputCertificate string) error
 	Setenv(string, string) error
@@ -70,7 +70,7 @@ type impl interface {
 func (*defaultImpl) VerifyFileInternal(ctx context.Context, ko options.KeyOpts, outputSignature, // nolint: gocritic
 	outputCertificate, path string,
 ) error {
-	return verify.VerifyBlobCmd(ctx, ko, outputCertificate, "", "", "", outputSignature, path, false)
+	return verify.VerifyBlobCmd(ctx, ko, outputCertificate, "", "", "", outputSignature, path, "", "", "", "", "", false)
 }
 
 func (*defaultImpl) VerifyImageInternal(ctx context.Context, publickeyPath string, images []string) (*SignedObject, error) {
@@ -81,11 +81,11 @@ func (*defaultImpl) VerifyImageInternal(ctx context.Context, publickeyPath strin
 func (*defaultImpl) SignImageInternal(ro options.RootOptions, ko options.KeyOpts, regOpts options.RegistryOptions, // nolint: gocritic
 	annotations map[string]interface{}, imgs []string, certPath string, upload bool,
 	outputSignature string, outputCertificate string, payloadPath string, force bool,
-	recursive bool, attachment string,
+	recursive bool, attachment string, noTlogUpload bool,
 ) error {
 	return sign.SignCmd(
 		&ro, ko, regOpts, annotations, imgs, certPath, "", upload, outputSignature,
-		outputCertificate, payloadPath, force, recursive, attachment,
+		outputCertificate, payloadPath, force, recursive, attachment, noTlogUpload,
 	)
 }
 

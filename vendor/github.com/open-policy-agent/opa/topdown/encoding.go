@@ -55,12 +55,10 @@ func builtinJSONIsValid(a ast.Value) (ast.Value, error) {
 
 	str, err := builtins.StringOperand(a, 1)
 	if err != nil {
-		return nil, err
+		return ast.Boolean(false), nil
 	}
 
-	var x interface{}
-	err = util.UnmarshalJSON([]byte(str), &x)
-	return ast.Boolean(err == nil), nil
+	return ast.Boolean(json.Valid([]byte(str))), nil
 }
 
 func builtinBase64Encode(a ast.Value) (ast.Value, error) {
@@ -85,7 +83,7 @@ func builtinBase64Decode(a ast.Value) (ast.Value, error) {
 func builtinBase64IsValid(a ast.Value) (ast.Value, error) {
 	str, err := builtins.StringOperand(a, 1)
 	if err != nil {
-		return nil, err
+		return ast.Boolean(false), nil
 	}
 
 	_, err = base64.StdEncoding.DecodeString(string(str))
@@ -259,7 +257,7 @@ func builtinYAMLUnmarshal(a ast.Value) (ast.Value, error) {
 func builtinYAMLIsValid(a ast.Value) (ast.Value, error) {
 	str, err := builtins.StringOperand(a, 1)
 	if err != nil {
-		return nil, err
+		return ast.Boolean(false), nil
 	}
 
 	var x interface{}

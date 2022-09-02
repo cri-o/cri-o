@@ -48,22 +48,27 @@ import (
 // nolint
 type VerifyCommand struct {
 	options.RegistryOptions
-	CheckClaims    bool
-	KeyRef         string
-	CertRef        string
-	CertEmail      string
-	CertOidcIssuer string
-	CertChain      string
-	EnforceSCT     bool
-	Sk             bool
-	Slot           string
-	Output         string
-	RekorURL       string
-	Attachment     string
-	Annotations    sigs.AnnotationsMap
-	SignatureRef   string
-	HashAlgorithm  crypto.Hash
-	LocalImage     bool
+	CheckClaims                  bool
+	KeyRef                       string
+	CertRef                      string
+	CertEmail                    string
+	CertOidcIssuer               string
+	CertGithubWorkflowTrigger    string
+	CertGithubWorkflowSha        string
+	CertGithubWorkflowName       string
+	CertGithubWorkflowRepository string
+	CertGithubWorkflowRef        string
+	CertChain                    string
+	EnforceSCT                   bool
+	Sk                           bool
+	Slot                         string
+	Output                       string
+	RekorURL                     string
+	Attachment                   string
+	Annotations                  sigs.AnnotationsMap
+	SignatureRef                 string
+	HashAlgorithm                crypto.Hash
+	LocalImage                   bool
 }
 
 // Exec runs the verification command
@@ -92,12 +97,17 @@ func (c *VerifyCommand) Exec(ctx context.Context, images []string) (err error) {
 		return fmt.Errorf("constructing client options: %w", err)
 	}
 	co := &cosign.CheckOpts{
-		Annotations:        c.Annotations.Annotations,
-		RegistryClientOpts: ociremoteOpts,
-		CertEmail:          c.CertEmail,
-		CertOidcIssuer:     c.CertOidcIssuer,
-		EnforceSCT:         c.EnforceSCT,
-		SignatureRef:       c.SignatureRef,
+		Annotations:                  c.Annotations.Annotations,
+		RegistryClientOpts:           ociremoteOpts,
+		CertEmail:                    c.CertEmail,
+		CertOidcIssuer:               c.CertOidcIssuer,
+		CertGithubWorkflowTrigger:    c.CertGithubWorkflowTrigger,
+		CertGithubWorkflowSha:        c.CertGithubWorkflowSha,
+		CertGithubWorkflowName:       c.CertGithubWorkflowName,
+		CertGithubWorkflowRepository: c.CertGithubWorkflowRepository,
+		CertGithubWorkflowRef:        c.CertGithubWorkflowRef,
+		EnforceSCT:                   c.EnforceSCT,
+		SignatureRef:                 c.SignatureRef,
 	}
 	if c.CheckClaims {
 		co.ClaimVerifier = cosign.SimpleClaimVerifier
@@ -150,11 +160,16 @@ func (c *VerifyCommand) Exec(ctx context.Context, images []string) (err error) {
 			return err
 		}
 		if c.CertChain == "" {
-			err = cosign.CheckCertificatePolicy(cert, co)
+			// If no certChain is passed, the Fulcio root certificate will be used
+			co.RootCerts, err = fulcio.GetRoots()
 			if err != nil {
-				return err
+				return fmt.Errorf("getting Fulcio roots: %w", err)
 			}
-			pubKey, err = signature.LoadVerifier(cert.PublicKey, crypto.SHA256)
+			co.IntermediateCerts, err = fulcio.GetIntermediates()
+			if err != nil {
+				return fmt.Errorf("getting Fulcio intermediates: %w", err)
+			}
+			pubKey, err = cosign.ValidateAndUnpackCert(cert, co)
 			if err != nil {
 				return err
 			}
@@ -239,9 +254,29 @@ func PrintVerification(imgRef string, verified []oci.Signature, output string) {
 	case "text":
 		for _, sig := range verified {
 			if cert, err := sig.Cert(); err == nil && cert != nil {
+				ce := cosign.CertExtensions{Cert: cert}
 				fmt.Fprintln(os.Stderr, "Certificate subject: ", sigs.CertSubject(cert))
-				if issuerURL := sigs.CertIssuerExtension(cert); issuerURL != "" {
+				if issuerURL := ce.GetIssuer(); issuerURL != "" {
 					fmt.Fprintln(os.Stderr, "Certificate issuer URL: ", issuerURL)
+				}
+
+				if githubWorkflowTrigger := ce.GetCertExtensionGithubWorkflowTrigger(); githubWorkflowTrigger != "" {
+					fmt.Fprintln(os.Stderr, "Certificate extension GitHub Workflow Trigger:", githubWorkflowTrigger)
+				}
+
+				if githubWorkflowSha := ce.GetExtensionGithubWorkflowSha(); githubWorkflowSha != "" {
+					fmt.Fprintln(os.Stderr, "Certificate extension GitHub Workflow SHA:", githubWorkflowSha)
+				}
+				if githubWorkflowName := ce.GetCertExtensionGithubWorkflowName(); githubWorkflowName != "" {
+					fmt.Fprintln(os.Stderr, "Certificate extension GitHub Workflow Name:", githubWorkflowName)
+				}
+
+				if githubWorkflowRepository := ce.GetCertExtensionGithubWorkflowRepository(); githubWorkflowRepository != "" {
+					fmt.Fprintln(os.Stderr, "Certificate extension GitHub Workflow Trigger", githubWorkflowRepository)
+				}
+
+				if githubWorkflowRef := ce.GetCertExtensionGithubWorkflowRef(); githubWorkflowRef != "" {
+					fmt.Fprintln(os.Stderr, "Certificate extension GitHub Workflow Ref:", githubWorkflowRef)
 				}
 			}
 
@@ -269,12 +304,31 @@ func PrintVerification(imgRef string, verified []oci.Signature, output string) {
 			}
 
 			if cert, err := sig.Cert(); err == nil && cert != nil {
+				ce := cosign.CertExtensions{Cert: cert}
 				if ss.Optional == nil {
 					ss.Optional = make(map[string]interface{})
 				}
 				ss.Optional["Subject"] = sigs.CertSubject(cert)
-				if issuerURL := sigs.CertIssuerExtension(cert); issuerURL != "" {
+				if issuerURL := ce.GetIssuer(); issuerURL != "" {
 					ss.Optional["Issuer"] = issuerURL
+				}
+				if githubWorkflowTrigger := ce.GetCertExtensionGithubWorkflowTrigger(); githubWorkflowTrigger != "" {
+					ss.Optional[cosign.CertExtensionGithubWorkflowTrigger] = githubWorkflowTrigger
+				}
+
+				if githubWorkflowSha := ce.GetExtensionGithubWorkflowSha(); githubWorkflowSha != "" {
+					ss.Optional[cosign.CertExtensionGithubWorkflowSha] = githubWorkflowSha
+				}
+				if githubWorkflowName := ce.GetCertExtensionGithubWorkflowName(); githubWorkflowName != "" {
+					ss.Optional[cosign.CertExtensionGithubWorkflowName] = githubWorkflowName
+				}
+
+				if githubWorkflowRepository := ce.GetCertExtensionGithubWorkflowRepository(); githubWorkflowRepository != "" {
+					ss.Optional[cosign.CertExtensionGithubWorkflowRepository] = githubWorkflowRepository
+				}
+
+				if githubWorkflowRef := ce.GetCertExtensionGithubWorkflowRef(); githubWorkflowRef != "" {
+					ss.Optional[cosign.CertExtensionGithubWorkflowRef] = githubWorkflowRef
 				}
 			}
 			if bundle, err := sig.Bundle(); err == nil && bundle != nil {

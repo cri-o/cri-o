@@ -230,15 +230,15 @@ func GetRootStatus(ctx context.Context) (*RootStatus, error) {
 }
 
 // initializeTUF creates a TUF client using the following params:
-//   * embed: indicates using the embedded metadata and in-memory file updates.
-//       When this is false, this uses a filesystem cache.
-//   * mirror: provides a reference to a remote GCS or HTTP mirror.
-//   * root: provides an external initial root.json. When this is not provided, this
-//       defaults to the embedded root.json.
-//   * embedded: An embedded filesystem that provides a trusted root and pre-downloaded
-//       targets in a targets/ subfolder.
-//   * forceUpdate: indicates checking the remote for an update, even when the local
-//       timestamp.json is up to date.
+// * embed: indicates using the embedded metadata and in-memory file updates.
+// When this is false, this uses a filesystem cache.
+// * mirror: provides a reference to a remote GCS or HTTP mirror.
+// * root: provides an external initial root.json. When this is not provided, this
+// defaults to the embedded root.json.
+// * embedded: An embedded filesystem that provides a trusted root and pre-downloaded
+// targets in a targets/ subfolder.
+// * forceUpdate: indicates checking the remote for an update, even when the local
+// timestamp.json is up to date.
 func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool) (*TUF, error) {
 	singletonTUFOnce.Do(func() {
 		t := &TUF{
@@ -329,7 +329,7 @@ func Initialize(ctx context.Context, mirror string, root []byte) error {
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(cachedRemote(rootCacheDir()), b, 0600); err != nil {
+		if err := os.WriteFile(cachedRemote(rootCacheDir()), b, 0o600); err != nil {
 			return fmt.Errorf("storing remote: %w", err)
 		}
 	}
@@ -570,7 +570,7 @@ func cachedTargetsDir(cacheRoot string) string {
 	return filepath.FromSlash(filepath.Join(cacheRoot, "targets"))
 }
 
-func syncLocalMeta(from client.LocalStore, to client.LocalStore) error {
+func syncLocalMeta(from, to client.LocalStore) error {
 	// Copy trusted metadata in the from LocalStore into the to LocalStore.
 	tufLocalStoreMeta, err := from.GetMeta()
 	if err != nil {
@@ -677,11 +677,11 @@ func (d *diskCache) Set(p string, b []byte) error {
 	if err := d.memory.Set(p, b); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(d.base, 0700); err != nil {
+	if err := os.MkdirAll(d.base, 0o700); err != nil {
 		return fmt.Errorf("creating targets dir: %w", err)
 	}
 	fp := filepath.FromSlash(filepath.Join(d.base, p))
-	return os.WriteFile(fp, b, 0600)
+	return os.WriteFile(fp, b, 0o600)
 }
 
 func noCache() bool {

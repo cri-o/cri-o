@@ -19,7 +19,6 @@ package upstream
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"strconv"
@@ -91,7 +90,7 @@ func latestChartVersion(upstream Helm) (string, error) {
 
 	// First, get the repo index
 	// Helm expects a cache directory, so we create a temporary one
-	cacheDir, err := ioutil.TempDir("", "zeitgeist-helm-cache")
+	cacheDir, err := os.MkdirTemp("", "zeitgeist-helm-cache")
 	if err != nil {
 		log.Errorf("failed to create temporary directory for Helm cache")
 		return "", err
@@ -144,7 +143,7 @@ func latestChartVersion(upstream Helm) (string, error) {
 		}
 
 		version, err := semver.Parse(chartVersionStr)
-		if err != nil {
+		if err != nil { //nolint:gocritic
 			log.Debugf("Error parsing version %s (%#v) as semver, cannot validate semver constraints", chartVersionStr, err)
 		} else if len(version.Pre) > 0 {
 			log.Debugf("Skipping semver prerelease: %s\n", chartVersionStr)

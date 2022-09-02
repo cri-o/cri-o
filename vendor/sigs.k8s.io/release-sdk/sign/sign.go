@@ -39,6 +39,10 @@ type Signer struct {
 
 // New returns a new Signer instance.
 func New(options *Options) *Signer {
+	if options == nil {
+		options = Default()
+	}
+
 	if options.Logger == nil {
 		options.Logger = logrus.New()
 	}
@@ -129,7 +133,7 @@ func (s *Signer) SignImage(reference string) (object *SignedObject, err error) {
 	if err := s.impl.SignImageInternal(
 		s.options.ToCosignRootOptions(), ko, regOpts, s.options.Annotations,
 		images, "", s.options.AttachSignature, s.options.OutputSignaturePath,
-		s.options.OutputCertificatePath, "", true, false, "",
+		s.options.OutputCertificatePath, "", true, false, "", false,
 	); err != nil {
 		return nil, fmt.Errorf("sign reference: %s: %w", reference, err)
 	}
@@ -231,7 +235,7 @@ func (s *Signer) SignFile(path string) (*SignedObject, error) {
 	}
 
 	return &SignedObject{
-		File: &SignedFile{
+		file: &SignedFile{
 			path:            path,
 			sha256:          fileSHA,
 			signaturePath:   s.options.OutputSignaturePath,
@@ -285,7 +289,7 @@ func (s *Signer) VerifyImage(reference string) (*SignedObject, error) {
 
 	sigParsed := strings.ReplaceAll(dig, "sha256:", "sha256-")
 	obj := &SignedObject{
-		Image: &SignedImage{
+		image: &SignedImage{
 			digest:    dig,
 			reference: ref.String(),
 			signature: fmt.Sprintf("%s:%s.sig", ref.Context().Name(), sigParsed),
@@ -342,7 +346,7 @@ func (s *Signer) VerifyFile(path string) (*SignedObject, error) {
 	}
 
 	return &SignedObject{
-		File: &SignedFile{
+		file: &SignedFile{
 			path:            path,
 			sha256:          fileSHA,
 			signaturePath:   s.options.OutputSignaturePath,

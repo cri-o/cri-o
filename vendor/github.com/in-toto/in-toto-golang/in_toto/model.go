@@ -79,6 +79,8 @@ const (
 	// The SPDX mandates 'spdxVersion' field, so predicate type can omit
 	// version.
 	PredicateSPDX = "https://spdx.dev/Document"
+	// PredicateCycloneDX represents a CycloneDX SBOM
+	PredicateCycloneDX = "https://cyclonedx.org/schema"
 	// PredicateLinkV1 represents an in-toto 0.9 link.
 	PredicateLinkV1 = "https://in-toto.io/Link/v1"
 )
@@ -1004,6 +1006,16 @@ This struct is the same as the generic Statement struct but is added for
 completeness
 */
 type SPDXStatement struct {
+	StatementHeader
+	Predicate interface{} `json:"predicate"`
+}
+
+/*
+CycloneDXStatement defines a cyclonedx sbom in the predicate. It is not
+currently serialized just as its SPDX counterpart. It is an empty
+interface, like the generic Statement.
+*/
+type CycloneDXStatement struct {
 	StatementHeader
 	Predicate interface{} `json:"predicate"`
 }

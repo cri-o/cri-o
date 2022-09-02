@@ -21,7 +21,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -114,7 +113,7 @@ func (decoded *Dependency) UnmarshalYAML(unmarshal func(interface{}) error) erro
 }
 
 func fromFile(dependencyFilePath string) (*Dependencies, error) {
-	depFile, err := ioutil.ReadFile(dependencyFilePath)
+	depFile, err := os.ReadFile(dependencyFilePath)
 	if err != nil {
 		return nil, err
 	}

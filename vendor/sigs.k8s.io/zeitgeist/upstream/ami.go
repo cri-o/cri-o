@@ -44,7 +44,6 @@ type AMI struct {
 	ServiceClient ec2iface.EC2API
 }
 
-//
 // NewAWSClient return a new aws service client for ec2
 //
 // Authentication is provided by the standard AWS credentials use the standard

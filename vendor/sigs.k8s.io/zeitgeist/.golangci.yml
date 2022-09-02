@@ -13,13 +13,23 @@ issues:
 linters:
   disable-all: true
   enable:
+    - asasalint
     - asciicheck
+    - bidichk
     - bodyclose
-    - deadcode
+    - containedctx
+    - contextcheck
+    - decorder
     - depguard
     - dogsled
     - dupl
+    - durationcheck
     - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - forcetypeassert
     - goconst
     - gocritic
     - gocyclo
@@ -28,30 +38,48 @@ linters:
     - gofumpt
     - goheader
     - goimports
-    - golint
+    - gomoddirectives
     - gomodguard
     - goprintffuncname
     - gosimple
     - govet
+    - grouper
+    - importas
     - ineffassign
-    - interfacer
-    - maligned
+    - interfacebloat
+    - logrlint
+    - maintidx
+    - makezero
     - misspell
     - nakedret
+    - nilerr
+    - nilnil
+    - nonamedreturns
+    - nosprintfhostport
     - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
     - rowserrcheck
     - sqlclosecheck
     - staticcheck
-    - structcheck
     - stylecheck
+    - tenv
+    - thelper
+    - tparallel
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
+    - usestdlibvars
+    - wastedassign
     - whitespace
+    # - cyclop
     # - exhaustive
+    # - exhaustruct
     # - exportloopref
+    # - forbidigo
     # - funlen
     # - gci
     # - gochecknoglobals
@@ -61,13 +89,17 @@ linters:
     # - goerr113
     # - gomnd
     # - gosec
+    # - ireturn
     # - lll
     # - nestif
     # - nlreturn
     # - noctx
     # - nolintlint
-    # - scopelint
+    # - paralleltest
+    # - tagliatelle
     # - testpackage
+    # - varnamelen
+    # - wrapcheck
     # - wsl
 linters-settings:
   godox:
@@ -83,31 +115,57 @@ linters-settings:
       # Diagnostic
       - appendAssign
       - argOrder
+      - badCall
       - badCond
+      - badLock
+      - badRegexp
+      - badSorting
+      - builtinShadowDecl
       - caseOrder
       - codegenComment
       - commentedOutCode
+      - deferInLoop
       - deprecatedComment
       - dupArg
       - dupBranchBody
       - dupCase
       - dupSubExpr
+      - dynamicFmtString
+      - emptyDecl
+      - evalOrder
       - exitAfterDefer
+      - externalErrorReassign
+      - filepathJoin
       - flagDeref
       - flagName
+      - mapKey
       - nilValReturn
       - offBy1
+      - regexpPattern
+      - returnAfterHttpError
       - sloppyReassign
+      - sloppyTypeAssert
+      - sortSlice
+      - sprintfQuotedString
+      - sqlQuery
+      - syncMapLoadAndDelete
+      - truncateCmp
+      - unnecessaryDefer
       - weakCond
-      - octalLiteral
 
       # Performance
       - appendCombine
       - equalFold
       - hugeParam
       - indexAlloc
+      - preferDecodeRune
+      - preferFprint
+      - preferStringWriter
+      - preferWriteByte
       - rangeExprCopy
       - rangeValCopy
+      - sliceClear
+      - stringXbytes
 
       # Style
       - assignOp
@@ -116,18 +174,36 @@ linters-settings:
       - commentFormatting
       - commentedOutImport
       - defaultCaseOrder
+      - deferUnlambda
       - docStub
+      - dupImport
       - elseif
       - emptyFallthrough
       - emptyStringTest
+      - exposedSyncMutex
       - hexLiteral
+      - httpNoBody
+      - ifElseChain
+      - ioutilDeprecated
       - methodExprCall
+      - newDeref
+      - octalLiteral
+      - preferFilepathJoin
+      - redundantSprint
       - regexpMust
+      - regexpSimplify
+      - ruleguard
       - singleCaseSwitch
       - sloppyLen
-      - stringXbytes
+      - stringConcatSimplify
+      - stringsCompare
       - switchTrue
+      - timeCmpSimplify
+      - timeExprSimplify
+      - todoCommentWithoutDetail
+      - tooManyResultsChecker
       - typeAssertChain
+      - typeDefFirst
       - typeSwitchVar
       - underef
       - unlabelStmt
@@ -136,7 +212,7 @@ linters-settings:
       - valSwap
       - wrapperFunc
       - yodaStyleExpr
-      # - ifElseChain
+      # - whyNoLint
 
       # Opinionated
       - builtinShadow

@@ -19,8 +19,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/open-policy-agent/opa/internal/merge"
 
 	"github.com/open-policy-agent/opa/storage"
 	"github.com/open-policy-agent/opa/util"
@@ -76,7 +80,7 @@ type handle struct {
 	db *store
 }
 
-func (db *store) NewTransaction(ctx context.Context, params ...storage.TransactionParams) (storage.Transaction, error) {
+func (db *store) NewTransaction(_ context.Context, params ...storage.TransactionParams) (storage.Transaction, error) {
 	var write bool
 	var context *storage.Context
 	if len(params) > 0 {
@@ -90,6 +94,88 @@ func (db *store) NewTransaction(ctx context.Context, params ...storage.Transacti
 		db.rmu.RLock()
 	}
 	return newTransaction(xid, write, context, db), nil
+}
+
+// Truncate implements the storage.Store interface. This method must be called within a transaction.
+func (db *store) Truncate(ctx context.Context, txn storage.Transaction, params storage.TransactionParams, it storage.Iterator) error {
+	var update *storage.Update
+	var err error
+	mergedData := map[string]interface{}{}
+
+	underlying, err := db.underlying(txn)
+	if err != nil {
+		return err
+	}
+
+	for {
+		update, err = it.Next()
+		if err != nil {
+			break
+		}
+
+		if update.IsPolicy {
+			err = underlying.UpsertPolicy(update.Path.String(), update.Value)
+			if err != nil {
+				return err
+			}
+		} else {
+			var value interface{}
+			err = util.Unmarshal(update.Value, &value)
+			if err != nil {
+				return err
+			}
+
+			var key []string
+			dirpath := strings.TrimLeft(update.Path.String(), "/")
+			if len(dirpath) > 0 {
+				key = strings.Split(dirpath, "/")
+			}
+
+			if value != nil {
+				obj, err := mktree(key, value)
+				if err != nil {
+					return err
+				}
+
+				merged, ok := merge.InterfaceMaps(mergedData, obj)
+				if !ok {
+					return fmt.Errorf("failed to insert data file from path %s", filepath.Join(key...))
+				}
+				mergedData = merged
+			}
+		}
+	}
+
+	if err != nil && err != io.EOF {
+		return err
+	}
+
+	if params.RootOverwrite {
+		newPath, ok := storage.ParsePathEscaped("/")
+		if !ok {
+			return fmt.Errorf("storage path invalid: %v", newPath)
+		}
+		return underlying.Write(storage.AddOp, newPath, mergedData)
+	}
+
+	for k := range mergedData {
+		newPath, ok := storage.ParsePathEscaped("/" + k)
+		if !ok {
+			return fmt.Errorf("storage path invalid: %v", newPath)
+		}
+
+		if len(newPath) > 0 {
+			if err := storage.MakeDir(ctx, db, txn, newPath[:len(newPath)-1]); err != nil {
+				return err
+			}
+		}
+
+		if err := underlying.Write(storage.AddOp, newPath, mergedData[k]); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (db *store) Commit(ctx context.Context, txn storage.Transaction) error {
@@ -112,7 +198,7 @@ func (db *store) Commit(ctx context.Context, txn storage.Transaction) error {
 	return nil
 }
 
-func (db *store) Abort(ctx context.Context, txn storage.Transaction) {
+func (db *store) Abort(_ context.Context, txn storage.Transaction) {
 	underlying, err := db.underlying(txn)
 	if err != nil {
 		panic(err)
@@ -160,7 +246,7 @@ func (db *store) DeletePolicy(_ context.Context, txn storage.Transaction, id str
 	return underlying.DeletePolicy(id)
 }
 
-func (db *store) Register(ctx context.Context, txn storage.Transaction, config storage.TriggerConfig) (storage.TriggerHandle, error) {
+func (db *store) Register(_ context.Context, txn storage.Transaction, config storage.TriggerConfig) (storage.TriggerHandle, error) {
 	underlying, err := db.underlying(txn)
 	if err != nil {
 		return nil, err
@@ -176,7 +262,7 @@ func (db *store) Register(ctx context.Context, txn storage.Transaction, config s
 	return h, nil
 }
 
-func (db *store) Read(ctx context.Context, txn storage.Transaction, path storage.Path) (interface{}, error) {
+func (db *store) Read(_ context.Context, txn storage.Transaction, path storage.Path) (interface{}, error) {
 	underlying, err := db.underlying(txn)
 	if err != nil {
 		return nil, err
@@ -184,7 +270,7 @@ func (db *store) Read(ctx context.Context, txn storage.Transaction, path storage
 	return underlying.Read(path)
 }
 
-func (db *store) Write(ctx context.Context, txn storage.Transaction, op storage.PatchOp, path storage.Path, value interface{}) error {
+func (db *store) Write(_ context.Context, txn storage.Transaction, op storage.PatchOp, path storage.Path, value interface{}) error {
 	underlying, err := db.underlying(txn)
 	if err != nil {
 		return err
@@ -196,7 +282,7 @@ func (db *store) Write(ctx context.Context, txn storage.Transaction, op storage.
 	return underlying.Write(op, path, *val)
 }
 
-func (h *handle) Unregister(ctx context.Context, txn storage.Transaction) {
+func (h *handle) Unregister(_ context.Context, txn storage.Transaction) {
 	underlying, err := h.db.underlying(txn)
 	if err != nil {
 		panic(err)
@@ -239,12 +325,33 @@ func (db *store) underlying(txn storage.Transaction) (*transaction, error) {
 	return underlying, nil
 }
 
-var rootMustBeObjectMsg = "root must be object"
-var rootCannotBeRemovedMsg = "root cannot be removed"
+const rootMustBeObjectMsg = "root must be object"
+const rootCannotBeRemovedMsg = "root cannot be removed"
 
 func invalidPatchError(f string, a ...interface{}) *storage.Error {
 	return &storage.Error{
 		Code:    storage.InvalidPatchErr,
 		Message: fmt.Sprintf(f, a...),
 	}
+}
+
+func mktree(path []string, value interface{}) (map[string]interface{}, error) {
+	if len(path) == 0 {
+		// For 0 length path the value is the full tree.
+		obj, ok := value.(map[string]interface{})
+		if !ok {
+			return nil, invalidPatchError(rootMustBeObjectMsg)
+		}
+		return obj, nil
+	}
+
+	dir := map[string]interface{}{}
+	for i := len(path) - 1; i > 0; i-- {
+		dir[path[i]] = value
+		value = dir
+		dir = map[string]interface{}{}
+	}
+	dir[path[0]] = value
+
+	return dir, nil
 }
