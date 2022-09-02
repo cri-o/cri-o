@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 02 Sep 2022 14:56:45 UTC for commit [b52eb44][0]._
+_Generated on Fri, 02 Sep 2022 16:03:59 UTC for commit [ef66548][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b52eb44d8fce1e3ae8faa52d61915fc577ecf2d1
+[0]: https://github.com/cri-o/cri-o/commit/ef66548db61cbc525b05370ce359efb114a88c40
 
 ## Outdated Dependencies
 
@@ -676,7 +676,7 @@ _Generated on Fri, 02 Sep 2022 14:56:45 UTC for commit [b52eb44][0]._
 | github.com/ldez/gomoddirectives                                                        | v0.2.2                                            | v0.2.3                             | false  | true             |
 | github.com/ldez/tagliatelle                                                            | v0.2.0                                            | v0.3.1                             | false  | true             |
 | github.com/leodido/go-urn                                                              | v1.2.1                                            |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                                         | v0.0.0-20220331220046-b23ab962616e                | v0.0.0-20220902002916-97a862555e3e | false  | true             |
+| github.com/letsencrypt/boulder                                                         | v0.0.0-20220331220046-b23ab962616e                | v0.0.0-20220902153052-b7b662e75544 | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                    | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                    | v4.0.0                                            |                                    | false  | true             |
 | github.com/lib/pq                                                                      | v1.10.6                                           |                                    | false  | true             |
