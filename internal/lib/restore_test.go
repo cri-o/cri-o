@@ -2,6 +2,7 @@ package lib_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -257,6 +258,30 @@ var _ = t.Describe("ContainerRestore", func() {
 			err = os.WriteFile("deleted.files", []byte(`[]`), 0o644)
 			Expect(err).To(BeNil())
 			defer os.RemoveAll("deleted.files")
+
+			tmpFile, err := os.CreateTemp("", "restore-test-file")
+			Expect(err).To(BeNil())
+			tmpDir, err := os.MkdirTemp("", "restore-test-directory")
+			Expect(err).To(BeNil())
+			// Remove it now and later as during restore it should be recreated
+			os.RemoveAll(tmpFile.Name())
+			defer os.RemoveAll(tmpFile.Name())
+			os.RemoveAll(tmpDir)
+			defer os.RemoveAll(tmpDir)
+
+			bindMounts := fmt.Sprintf( //nolint:gocritic
+				`[{"source": "%s","destination": "/data","file_type": "directory","permissions": 493},`,
+				tmpDir,
+			)
+			bindMounts = fmt.Sprintf( //nolint:gocritic
+				`%s{"source": "%s","destination": "/file","file_type": "file","permissions": 384}]`,
+				bindMounts,
+				tmpFile.Name(),
+			)
+
+			err = os.WriteFile("bind.mounts", []byte(bindMounts), 0o644)
+			Expect(err).To(BeNil())
+			defer os.RemoveAll("bind.mounts")
 
 			myContainer.SetRestoreArchive("localhost/checkpoint-image:tag1")
 			err = os.Mkdir("bundle", 0o700)

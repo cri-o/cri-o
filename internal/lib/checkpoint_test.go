@@ -2,6 +2,7 @@ package lib_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/containers/podman/v4/pkg/criu"
@@ -101,6 +102,40 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 		It("should fail with export", func() {
 			// Given
 			var opts lib.ContainerCheckpointRestoreOptions
+
+			// Overwrite container config to add external bind mounts
+			tmpFile, err := os.CreateTemp("", "restore-test-file")
+			Expect(err).To(BeNil())
+			tmpDir, err := os.MkdirTemp("", "restore-test-directory")
+			Expect(err).To(BeNil())
+			defer os.RemoveAll(tmpFile.Name())
+			defer os.RemoveAll(tmpDir)
+
+			containerConfig := fmt.Sprintf( //nolint:gocritic
+				`{"linux":{},"process":{},"mounts":[{"source":"%s","destination":"/dir","type":"bind"},`,
+				tmpDir,
+			)
+			containerConfig = fmt.Sprintf( //nolint:gocritic
+				`%s{"source":"%s","destination":"/file","type":"bind"},`,
+				containerConfig,
+				tmpFile.Name(),
+			)
+			containerConfig = fmt.Sprintf(
+				`%s{"source":"/tmp","destination":"/tmp","type":"no-bind"},`,
+				containerConfig,
+			)
+			containerConfig = fmt.Sprintf(
+				`%s{"source":"/proc","destination":"/proc","type":"bind"}]}`,
+				containerConfig,
+			)
+			containerConfig = fmt.Sprintf(
+				`%s]}`,
+				containerConfig,
+			)
+
+			fmt.Printf("json:%s\n", containerConfig)
+
+			Expect(os.WriteFile("config.json", []byte(containerConfig), 0o644)).To(BeNil())
 
 			addContainerAndSandbox()
 			opts.Container = containerID
