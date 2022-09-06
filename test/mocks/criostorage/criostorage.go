@@ -406,6 +406,21 @@ func (mr *MockMultiStoreServerMockRecorder) GetImageServer(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageServer", reflect.TypeOf((*MockMultiStoreServer)(nil).GetImageServer), arg0)
 }
 
+// GetImageServerForContainer mocks base method.
+func (m *MockMultiStoreServer) GetImageServerForContainer(arg0 string) (storage0.ImageServer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetImageServerForContainer", arg0)
+	ret0, _ := ret[0].(storage0.ImageServer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetImageServerForContainer indicates an expected call of GetImageServerForContainer.
+func (mr *MockMultiStoreServerMockRecorder) GetImageServerForContainer(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageServerForContainer", reflect.TypeOf((*MockMultiStoreServer)(nil).GetImageServerForContainer), arg0)
+}
+
 // GetImageServerForImage mocks base method.
 func (m *MockMultiStoreServer) GetImageServerForImage(arg0 string) ([]storage0.ImageServer, error) {
 	m.ctrl.T.Helper()
