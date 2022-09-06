@@ -18,6 +18,20 @@ import (
 )
 
 var _ = t.Describe("ContainerCheckpoint", func() {
+	mockCheckpointContainer := func() {
+		gomock.InOrder(
+			multiStoreServerMock.EXPECT().GetStore().Return(multiStoreMock),
+			multiStoreMock.EXPECT().GetStoreForContainer(gomock.Any()).Return(storeMock, nil),
+			storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
+			multiStoreServerMock.EXPECT().GetStore().Return(multiStoreMock),
+			multiStoreMock.EXPECT().GetStoreForContainer(gomock.Any()).Return(storeMock, nil),
+			storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return([]archive.Change{}, nil),
+			multiStoreServerMock.EXPECT().GetImageServerForContainer(gomock.Any()).Return(imageServerMock, nil),
+			imageServerMock.EXPECT().GetStore().Return(storeMock),
+			storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
+			runtimeServerMock.EXPECT().StopContainer(gomock.Any()).Return(nil),
+		)
+	}
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
@@ -94,14 +108,8 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+			mockCheckpointContainer()
 
-			gomock.InOrder(
-				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
-				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return([]archive.Change{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
-				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).Return(nil),
-			)
 			// When
 			err := sut.CheckpointContainer(context.Background(),
 				&types.CheckpointContainerRequest{
@@ -144,13 +152,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				},
 			})
 
-			gomock.InOrder(
-				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
-				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return([]archive.Change{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
-				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).Return(nil),
-			)
+			mockCheckpointContainer()
 			// When
 			err := sut.CheckpointContainer(context.Background(),
 				&types.CheckpointContainerRequest{
@@ -171,6 +173,8 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
 			gomock.InOrder(
+				multiStoreServerMock.EXPECT().GetStore().Return(multiStoreMock),
+				multiStoreMock.EXPECT().GetStoreForContainer(gomock.Any()).Return(storeMock, nil),
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, t.TestError),
 			)
 			// When

@@ -154,7 +154,7 @@ var _ = t.Describe("ContainerServer", func() {
 	})
 
 	t.Describe("LoadSandbox", func() {
-		It("should succeed", func() {
+		FIt("should succeed", func() {
 			// Given
 			createDummyState()
 			mockDirs(testManifest)

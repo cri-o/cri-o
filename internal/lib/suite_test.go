@@ -37,7 +37,7 @@ var (
 	libMock              *libmock.MockIface
 	storeMock            *containerstoragemock.MockStore
 	multiStoreServerMock *criostoragemock.MockMultiStoreServer
-	ociRuntimeMock       *ocimock.MockRuntimeImpl
+	multiStoreMock       *criostoragemock.MockMultiStore
 	ociRuntimeMock       *ocimock.MockRuntimeImpl
 	testManifest         []byte
 	sut                  *lib.ContainerServer
