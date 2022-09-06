@@ -25,8 +25,8 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-integration-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-
+          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-v1-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
       - run: make all test-binaries
@@ -47,8 +47,8 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-integration-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-
+          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-v1-
       - uses: sigstore/cosign-installer@v2
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
@@ -71,8 +71,8 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-integration-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-
+          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-v1-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
       - run: make all test-binaries
@@ -92,8 +92,8 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-integration-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-
+          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-v1-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
       - run: make all test-binaries
@@ -116,8 +116,8 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-integration-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-
+          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-v1-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
       - run: make all test-binaries
@@ -138,8 +138,8 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-integration-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-
+          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-integration-v1-
       - uses: sigstore/cosign-installer@v2
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
