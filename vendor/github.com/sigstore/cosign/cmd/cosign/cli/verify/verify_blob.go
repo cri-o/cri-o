@@ -61,7 +61,10 @@ func isb64(data []byte) bool {
 
 // nolint
 func VerifyBlobCmd(ctx context.Context, ko options.KeyOpts, certRef, certEmail,
-	certOidcIssuer, certChain, sigRef, blobRef string, enforceSCT bool) error {
+	certOidcIssuer, certChain, sigRef, blobRef, certGithubWorkflowTrigger, certGithubWorkflowSha,
+	certGithubWorkflowName,
+	certGithubWorkflowRepository,
+	certGithubWorkflowRef string, enforceSCT bool) error {
 	var verifier signature.Verifier
 	var cert *x509.Certificate
 
@@ -106,16 +109,26 @@ func VerifyBlobCmd(ctx context.Context, ko options.KeyOpts, certRef, certEmail,
 			return err
 		}
 		co := &cosign.CheckOpts{
-			CertEmail:      certEmail,
-			CertOidcIssuer: certOidcIssuer,
-			EnforceSCT:     enforceSCT,
+			CertEmail:                    certEmail,
+			CertOidcIssuer:               certOidcIssuer,
+			CertGithubWorkflowTrigger:    certGithubWorkflowTrigger,
+			CertGithubWorkflowSha:        certGithubWorkflowSha,
+			CertGithubWorkflowName:       certGithubWorkflowName,
+			CertGithubWorkflowRepository: certGithubWorkflowRepository,
+			CertGithubWorkflowRef:        certGithubWorkflowRef,
+			EnforceSCT:                   enforceSCT,
 		}
 		if certChain == "" {
-			err = cosign.CheckCertificatePolicy(cert, co)
+			// If no certChain is passed, the Fulcio root certificate will be used
+			co.RootCerts, err = fulcio.GetRoots()
 			if err != nil {
-				return err
+				return fmt.Errorf("getting Fulcio roots: %w", err)
 			}
-			verifier, err = signature.LoadVerifier(cert.PublicKey, crypto.SHA256)
+			co.IntermediateCerts, err = fulcio.GetIntermediates()
+			if err != nil {
+				return fmt.Errorf("getting Fulcio intermediates: %w", err)
+			}
+			verifier, err = cosign.ValidateAndUnpackCert(cert, co)
 			if err != nil {
 				return err
 			}
@@ -349,7 +362,7 @@ func verifyRekorEntry(ctx context.Context, ko options.KeyOpts, e *models.LogEntr
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "tlog entry verified with uuid: %s index: %d\n", hex.EncodeToString(uuid), *e.Verification.InclusionProof.LogIndex)
+	fmt.Fprintf(os.Stderr, "tlog entry verified with uuid: %s index: %d\n", hex.EncodeToString(uuid), *e.LogIndex)
 	if cert == nil {
 		return nil
 	}

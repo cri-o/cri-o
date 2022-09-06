@@ -24,16 +24,14 @@ const (
 	KeySchemeFulcio = "https://fulcio.sigstore.dev"
 )
 
-var (
-	KeyAlgorithms = []string{"sha256", "sha512"}
-)
+var KeyAlgorithms = []string{"sha256", "sha512"}
 
 type FulcioKeyVal struct {
 	Identity string `json:"identity"`
 	Issuer   string `json:"issuer,omitempty"`
 }
 
-func FulcioVerificationKey(email string, issuer string) *Key {
+func FulcioVerificationKey(email, issuer string) *Key {
 	keyValBytes, _ := json.Marshal(FulcioKeyVal{Identity: email, Issuer: issuer})
 	return &Key{
 		Type:       KeyTypeFulcio,

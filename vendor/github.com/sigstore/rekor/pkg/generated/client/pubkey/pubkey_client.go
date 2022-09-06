@@ -64,7 +64,7 @@ func (a *Client) GetPublicKey(params *GetPublicKeyParams, opts ...ClientOption) 
 		Method:             "GET",
 		PathPattern:        "/api/v1/log/publicKey",
 		ProducesMediaTypes: []string{"application/x-pem-file"},
-		ConsumesMediaTypes: []string{"application/json", "application/yaml"},
+		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetPublicKeyReader{formats: a.formats},

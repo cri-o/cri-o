@@ -4,13 +4,19 @@ import (
 	"fmt"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/jhump/protoreflect/desc"
 )
 
+// GRPCServer is the interface provided by a gRPC server. In addition to being a
+// service registrar (for registering services and handlers), it also has an
+// accessor for retrieving metadata about all registered services.
+type GRPCServer = reflection.GRPCServer
+
 // LoadServiceDescriptors loads the service descriptors for all services exposed by the
 // given GRPC server.
-func LoadServiceDescriptors(s *grpc.Server) (map[string]*desc.ServiceDescriptor, error) {
+func LoadServiceDescriptors(s GRPCServer) (map[string]*desc.ServiceDescriptor, error) {
 	descs := map[string]*desc.ServiceDescriptor{}
 	for name, info := range s.GetServiceInfo() {
 		file, ok := info.Metadata.(string)

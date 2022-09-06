@@ -20,11 +20,16 @@ import (
 
 // CertVerifyOptions is the wrapper for certificate verification.
 type CertVerifyOptions struct {
-	Cert           string
-	CertEmail      string
-	CertOidcIssuer string
-	CertChain      string
-	EnforceSCT     bool
+	Cert                         string
+	CertEmail                    string
+	CertOidcIssuer               string
+	CertGithubWorkflowTrigger    string
+	CertGithubWorkflowSha        string
+	CertGithubWorkflowName       string
+	CertGithubWorkflowRepository string
+	CertGithubWorkflowRef        string
+	CertChain                    string
+	EnforceSCT                   bool
 }
 
 var _ Interface = (*RekorOptions)(nil)
@@ -32,7 +37,7 @@ var _ Interface = (*RekorOptions)(nil)
 // AddFlags implements Interface
 func (o *CertVerifyOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.Cert, "certificate", "",
-		"path to the public certificate")
+		"path to the public certificate. The certificate will be verified against the Fulcio roots if the --certificate-chain option is not passed.")
 
 	cmd.Flags().StringVar(&o.CertEmail, "certificate-email", "",
 		"the email expected in a valid Fulcio certificate")
@@ -40,6 +45,23 @@ func (o *CertVerifyOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.CertOidcIssuer, "certificate-oidc-issuer", "",
 		"the OIDC issuer expected in a valid Fulcio certificate, e.g. https://token.actions.githubusercontent.com or https://oauth2.sigstore.dev/auth")
 
+	// -- Cert extensions begin --
+	// Source: https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md
+	cmd.Flags().StringVar(&o.CertGithubWorkflowTrigger, "certificate-github-workflow-trigger", "",
+		"contains the event_name claim from the GitHub OIDC Identity token that contains the name of the event that triggered the workflow run")
+
+	cmd.Flags().StringVar(&o.CertGithubWorkflowSha, "certificate-github-workflow-sha", "",
+		"contains the sha claim from the GitHub OIDC Identity token that contains the commit SHA that the workflow run was based upon.")
+
+	cmd.Flags().StringVar(&o.CertGithubWorkflowName, "certificate-github-workflow-name", "",
+		"contains the workflow claim from the GitHub OIDC Identity token that contains the name of the executed workflow.")
+
+	cmd.Flags().StringVar(&o.CertGithubWorkflowRepository, "certificate-github-workflow-repository", "",
+		"contains the repository claim from the GitHub OIDC Identity token that contains the repository that the workflow run was based upon")
+
+	cmd.Flags().StringVar(&o.CertGithubWorkflowRef, "certificate-github-workflow-ref", "",
+		"contains the ref claim from the GitHub OIDC Identity token that contains the git ref that the workflow run was based upon.")
+	// -- Cert extensions end --
 	cmd.Flags().StringVar(&o.CertChain, "certificate-chain", "",
 		"path to a list of CA certificates in PEM format which will be needed "+
 			"when building the certificate chain for the signing certificate. "+

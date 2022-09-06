@@ -343,6 +343,9 @@ func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types
 	artifactBytes := props.ArtifactBytes
 	if artifactBytes == nil {
 		var artifactReader io.ReadCloser
+		if props.ArtifactPath == nil {
+			return nil, errors.New("path to artifact file must be specified")
+		}
 		if props.ArtifactPath.IsAbs() {
 			artifactReader, err = util.FileOrURLReadCloser(ctx, props.ArtifactPath.String(), nil)
 			if err != nil {
