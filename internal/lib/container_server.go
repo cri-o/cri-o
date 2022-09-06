@@ -77,6 +77,11 @@ func (c *ContainerServer) StorageImageServerPerImage(image string) ([]storage.Im
 	return c.multiStoreServer.GetImageServerForImage(image)
 }
 
+// StorageImageServerPerContainer returns the ImageServer for the given container
+func (c *ContainerServer) StorageImageServerPerContainer(name string) (storage.ImageServer, error) {
+	return c.multiStoreServer.GetImageServerForContainer(name)
+}
+
 // MultiStorageImageServer returns the MultiStoreServer
 func (c *ContainerServer) MultiStorageImageServer() storage.MultiStoreServer {
 	return c.multiStoreServer

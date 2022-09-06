@@ -103,7 +103,11 @@ func (c *ContainerServer) getDiff(id string) (rchanges []archive.Change, err err
 	if err != nil {
 		return nil, err
 	}
-	changes, err := c.store.Changes("", layerID)
+	store, err := c.Store().GetStoreForContainer(id)
+	if err != nil {
+		return nil, err
+	}
+	changes, err := store.Changes("", layerID)
 	if err == nil {
 		for _, c := range changes {
 			if containerMounts[c.Path] {
@@ -166,7 +170,11 @@ func (c *ContainerServer) exportCheckpoint(ctr *oci.Container, specgen *rspec.Sp
 	if err != nil {
 		return fmt.Errorf("error exporting root file-system diff for %q: %w", id, err)
 	}
-	mountPoint, err := c.StorageImageServer().GetStore().Mount(id, specgen.Linux.MountLabel)
+	is, err := c.StorageImageServerPerContainer(id)
+	if err != nil {
+		return err
+	}
+	mountPoint, err := is.GetStore().Mount(id, specgen.Linux.MountLabel)
 	if err != nil {
 		return fmt.Errorf("not able to get mountpoint for container %q: %w", id, err)
 	}

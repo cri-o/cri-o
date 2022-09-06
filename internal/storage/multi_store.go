@@ -252,6 +252,7 @@ type MultiStoreServer interface {
 	Shutdown(force bool) (layers []string, err error)
 	GraphRoot() string
 	GetImageServerForImage(image string) ([]ImageServer, error)
+	GetImageServerForContainer(name string) (ImageServer, error)
 	GetStore() MultiStore
 	ListAllImages(ctx *ctypes.SystemContext, filter string) ([]ImageResult, error)
 	ResolveNames(systemContext *ctypes.SystemContext, imageName string) ([]string, error)
@@ -355,6 +356,21 @@ func (s *multiStoreServer) GetImageServerForImage(image string) (iservers []Imag
 		err = cstorage.ErrImageUnknown
 	}
 	return
+}
+
+// GetImageServerForContainer retrives the ImageServer by container name. The container can be present in only a single storage driver
+func (s *multiStoreServer) GetImageServerForContainer(name string) (ImageServer, error) {
+	logrus.Debugf("GetImageServerForContainer for container %s", name)
+	iterator := createMultiStoreServerIterator(s)
+	for is := iterator.next(); is != nil; is = iterator.next() {
+		_, e := is.GetStore().Container(name)
+		if e != nil {
+			continue
+		}
+		return is, nil
+	}
+
+	return nil, cstorage.ErrContainerUnknown
 }
 
 // FromContainerDirectory calls the FromContainerDirectory function for the store of the give container id.

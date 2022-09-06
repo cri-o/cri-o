@@ -15,7 +15,12 @@ func (c *ContainerServer) GetStorageContainer(container string) (*cstorage.Conta
 	if err != nil {
 		return nil, err
 	}
-	return c.store.Container(ociCtr.ID())
+	store, err := c.Store().GetStoreForContainer(ociCtr.ID())
+	if err != nil {
+		return nil, err
+	}
+
+	return store.Container(ociCtr.ID())
 }
 
 // GetContainerTopLayerID gets the ID of the top layer of the given container

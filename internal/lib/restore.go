@@ -35,7 +35,11 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 		return "", err
 	}
 	// During checkpointing the container is unmounted. This mounts the container again.
-	mountPoint, err := c.StorageImageServer().GetStore().Mount(ctr.ID(), ctrSpec.Config.Linux.MountLabel)
+	is, err := c.StorageImageServerPerContainer(ctr.ID())
+	if err != nil {
+		return "", err
+	}
+	mountPoint, err := is.GetStore().Mount(ctr.ID(), ctrSpec.Config.Linux.MountLabel)
 	if err != nil {
 		logrus.Debugf("Failed to mount container %q: %v", ctr.ID(), err)
 		return "", err
