@@ -896,7 +896,7 @@ github.com/docker/go-metrics
 ## explicit
 github.com/docker/go-plugins-helpers/sdk
 github.com/docker/go-plugins-helpers/volume
-# github.com/docker/go-units v0.4.0
+# github.com/docker/go-units v0.5.0
 ## explicit
 github.com/docker/go-units
 # github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
