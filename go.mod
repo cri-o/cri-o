@@ -78,6 +78,8 @@ require (
 	sigs.k8s.io/zeitgeist v0.3.0
 )
 
+replace github.com/containers/storage v1.37.0 => github.com/saschagrunert/storage v1.33.3-0.20220909071545-9536829562a4
+
 replace (
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20211207180839-ab69524f795c
