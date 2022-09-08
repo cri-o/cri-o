@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/factory/container"
-	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
@@ -135,7 +134,7 @@ func (s *Server) CRImportCheckpoint(
 	}
 
 	// Load config.dump from temporary directory
-	config := new(lib.ContainerConfig)
+	config := new(metadata.ContainerConfig)
 	if _, err := metadata.ReadJSONFile(config, mountPoint, metadata.ConfigDumpFile); err != nil {
 		return "", fmt.Errorf("failed to read %q: %w", metadata.ConfigDumpFile, err)
 	}

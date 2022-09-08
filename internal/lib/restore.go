@@ -89,6 +89,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 				metadata.DeletedFilesFile,
 				metadata.PodOptionsFile,
 				metadata.PodDumpFile,
+				stats.StatsDump,
 				"bind.mounts",
 			}
 			for _, name := range checkpoint {

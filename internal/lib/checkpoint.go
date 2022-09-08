@@ -131,13 +131,6 @@ func (c *ContainerServer) getDiff(id string, specgen *rspec.Spec) (rchanges []ar
 	return rchanges, err
 }
 
-// To make the checkpoint/restore code use the same fields as Podman:
-type ContainerConfig struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	RootfsImageName string `json:"rootfsImageName,omitempty"`
-}
-
 type ExternalBindMount struct {
 	Source      string `json:"source"`
 	Destination string `json:"destination"`
@@ -149,16 +142,6 @@ type ExternalBindMount struct {
 // JSON files for later export
 // Podman: libpod/container_internal.go
 func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
-	config := &ContainerConfig{
-		ID:              ctr.ID(),
-		Name:            ctr.Name(),
-		RootfsImageName: ctr.ImageName(),
-	}
-
-	if _, err := metadata.WriteJSONFile(config, ctr.Dir(), metadata.ConfigDumpFile); err != nil {
-		return err
-	}
-
 	// save spec
 	jsonPath := filepath.Join(ctr.BundlePath(), "config.json")
 	g, err := generate.NewFromFile(jsonPath)
@@ -167,6 +150,24 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	}
 	if _, err := metadata.WriteJSONFile(g.Config, ctr.Dir(), metadata.SpecDumpFile); err != nil {
 		return fmt.Errorf("generating spec for container %q failed: %w", ctr.ID(), err)
+	}
+
+	config := &metadata.ContainerConfig{
+		ID:              ctr.ID(),
+		Name:            ctr.Name(),
+		RootfsImageName: ctr.ImageName(),
+		CreatedTime:     ctr.CreatedAt(),
+		OCIRuntime: func() string {
+			runtimeHandler := c.GetSandbox(ctr.Sandbox()).RuntimeHandler()
+			if runtimeHandler != "" {
+				return runtimeHandler
+			}
+			return c.config.DefaultRuntime
+		}(),
+	}
+
+	if _, err := metadata.WriteJSONFile(config, ctr.Dir(), metadata.ConfigDumpFile); err != nil {
+		return err
 	}
 
 	// During container creation CRI-O creates all missing bind mount sources as
@@ -222,6 +223,7 @@ func (c *ContainerServer) exportCheckpoint(ctr *oci.Container, specgen *rspec.Sp
 	logrus.Debugf("Exporting checkpoint image of container %q to %q", id, dest)
 
 	includeFiles := []string{
+		stats.StatsDump,
 		metadata.DumpLogFile,
 		metadata.CheckpointDirectory,
 		metadata.ConfigDumpFile,
