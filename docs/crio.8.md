@@ -138,29 +138,29 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--absent-mount-sources-to-reject**="": A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory). (default: [])
 
-**--additional-devices**="": Devices to add to the containers  (default: [])
+**--additional-devices**="": Devices to add to the containers. (default: [])
 
-**--allowed-devices**="": Devices a user is allowed to specify with the "io.kubernetes.cri-o.Devices" allowed annotation (default: [/dev/fuse])
+**--allowed-devices**="": Devices a user is allowed to specify with the "io.kubernetes.cri-o.Devices" allowed annotation. (default: [/dev/fuse])
 
 **--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation. (default: crio-default)
 
 **--big-files-temporary-dir**="": Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.
 
-**--bind-mount-prefix**="": A prefix to use for the source of the bind mounts. This option would be useful if you were running CRI-O in a container. And had `/` mounted on `/host` in your container. Then if you ran CRI-O with the `--bind-mount-prefix=/host` option, CRI-O would add /host to any bind mounts it is handed over CRI. If Kubernetes asked to have `/var/lib/foobar` bind mounted into the container, then CRI-O would bind mount `/host/var/lib/foobar`. Since CRI-O itself is running in a container with `/` or the host mounted on `/host`, the container would end up with `/var/lib/foobar` from the host mounted in the container rather then `/var/lib/foobar` from the CRI-O container. (default: "")
+**--bind-mount-prefix**="": A prefix to use for the source of the bind mounts. This option would be useful if you were running CRI-O in a container. And had `/` mounted on `/host` in your container. Then if you ran CRI-O with the `--bind-mount-prefix=/host` option, CRI-O would add /host to any bind mounts it is handed over CRI. If Kubernetes asked to have `/var/lib/foobar` bind mounted into the container, then CRI-O would bind mount `/host/var/lib/foobar`. Since CRI-O itself is running in a container with `/` or the host mounted on `/host`, the container would end up with `/var/lib/foobar` from the host mounted in the container rather then `/var/lib/foobar` from the CRI-O container.
 
 **--blockio-config-file**="": Path to the blockio class configuration file for configuring the cgroup blockio controller.
 
-**--cdi-spec-dirs**="": Directories to scan for CDI Spec files (default: [/etc/cdi /var/run/cdi])
+**--cdi-spec-dirs**="": Directories to scan for CDI Spec files. (default: [/etc/cdi /var/run/cdi])
 
-**--cgroup-manager**="": cgroup manager (cgroupfs or systemd) (default: systemd)
+**--cgroup-manager**="": cgroup manager (cgroupfs or systemd). (default: systemd)
 
-**--clean-shutdown-file**="": Location for CRI-O to lay down the clean shutdown file. It indicates whether we've had time to sync changes to disk before shutting down. If not found, crio wipe will clear the storage directory (default: /var/lib/crio/clean.shutdown)
+**--clean-shutdown-file**="": Location for CRI-O to lay down the clean shutdown file. It indicates whether we've had time to sync changes to disk before shutting down. If not found, crio wipe will clear the storage directory. (default: /var/lib/crio/clean.shutdown)
 
-**--cni-config-dir**="": CNI configuration files directory (default: /etc/cni/net.d/)
+**--cni-config-dir**="": CNI configuration files directory. (default: /etc/cni/net.d/)
 
 **--cni-default-network**="": Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.
 
-**--cni-plugin-dir**="": CNI plugin binaries directory (default: [])
+**--cni-plugin-dir**="": CNI plugin binaries directory. (default: [])
 
 **--config, -c**="": Path to configuration file (default: /etc/crio/crio.conf)
 
@@ -175,53 +175,53 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
     Besides that, provided command line parameters have a higher priority
     than any configuration file. (default: /etc/crio/crio.conf.d)
 
-**--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. This option is deprecated, and will be removed in the future. (default: "")
+**--conmon**="": Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty. This option is deprecated, and will be removed in the future.
 
 **--conmon-cgroup**="": cgroup to be used for conmon process. This option is deprecated and will be removed in the future.
 
 **--conmon-env**="": Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime. This option is deprecated and will be removed in the future. (default: [])
 
-**--container-attach-socket-dir**="": Path to directory for container attach sockets (default: /var/run/crio)
+**--container-attach-socket-dir**="": Path to directory for container attach sockets. (default: /var/run/crio)
 
-**--container-exits-dir**="": Path to directory in which container exit files are written to by conmon (default: /var/run/crio/exits)
+**--container-exits-dir**="": Path to directory in which container exit files are written to by conmon. (default: /var/run/crio/exits)
 
-**--ctr-stop-timeout**="": The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container. The lowest possible value is 30s, whereas lower values are not considered by CRI-O (default: 30)
+**--ctr-stop-timeout**="": The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container. The lowest possible value is 30s, whereas lower values are not considered by CRI-O. (default: 30)
 
 **--decryption-keys-path**="": Path to load keys for image decryption. (default: /etc/crio/keys/)
 
-**--default-capabilities**="": Capabilities to add to the containers (default: [CHOWN DAC_OVERRIDE FSETID FOWNER SETGID SETUID SETPCAP NET_BIND_SERVICE KILL])
+**--default-capabilities**="": Capabilities to add to the containers. (default: [CHOWN DAC_OVERRIDE FSETID FOWNER SETGID SETUID SETPCAP NET_BIND_SERVICE KILL])
 
-**--default-env**="": Additional environment variables to set for all containers (default: [])
+**--default-env**="": Additional environment variables to set for all containers. (default: [])
 
-**--default-mounts-file**="": Path to default mounts file (default: "")
+**--default-mounts-file**="": Path to default mounts file.
 
-**--default-runtime**="": Default OCI runtime from the runtimes config (default: runc)
+**--default-runtime**="": Default OCI runtime from the runtimes config. (default: runc)
 
-**--default-sysctls**="": Sysctls to add to the containers (default: [])
+**--default-sysctls**="": Sysctls to add to the containers. (default: [])
 
-**--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is (default: docker://)
+**--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is. (default: docker://)
 
-**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard) (default: [])
+**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard). (default: [])
 
-**--device-ownership-from-security-context**: Set devices' uid/gid ownership from runAsUser/runAsGroup
+**--device-ownership-from-security-context**: Set devices' uid/gid ownership from runAsUser/runAsGroup.
 
-**--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace (default: true)
+**--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace.
 
-**--enable-criu-support**: Enable CRIU integration, requires that the criu binary is available in $PATH. (default: '')
+**--enable-criu-support**: Enable CRIU integration, requires that the criu binary is available in $PATH.
 
-**--enable-metrics**: Enable metrics endpoint for the server on localhost:9090
+**--enable-metrics**: Enable metrics endpoint for the server on localhost:9090.
 
-**--enable-profile-unix-socket**: Enable pprof profiler on crio unix domain socket
+**--enable-profile-unix-socket**: Enable pprof profiler on crio unix domain socket.
 
-**--enable-tracing**: Enable OpenTelemetry trace data exporting
+**--enable-tracing**: Enable OpenTelemetry trace data exporting.
 
-**--gid-mappings**="": Specify the GID mappings to use for the user namespace (default: "")
+**--gid-mappings**="": Specify the GID mappings to use for the user namespace.
 
-**--global-auth-file**="": Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries (default: "")
+**--global-auth-file**="": Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
 
-**--grpc-max-recv-msg-size**="": Maximum grpc receive message size in bytes (default: 83886080)
+**--grpc-max-recv-msg-size**="": Maximum grpc receive message size in bytes. (default: 83886080)
 
-**--grpc-max-send-msg-size**="": Maximum grpc receive message size (default: 83886080)
+**--grpc-max-send-msg-size**="": Maximum grpc receive message size. (default: 83886080)
 
 **--help, -h**: show help
 
@@ -252,7 +252,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        mounted into the container for the volumes.
 	3. ignore: All volumes are just ignored and no action is taken. (default: mkdir)
 
-**--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers (default: '').
+**--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.
 
 **--insecure-registry**="": Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
     1. List of insecure registries can contain an element with CIDR notation to
@@ -269,111 +269,111 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--irqbalance-config-file**="": The irqbalance service config file which is used by CRI-O. (default: /etc/sysconfig/irqbalance)
 
-**--listen**="": Path to the CRI-O socket (default: /var/run/crio/crio.sock)
+**--listen**="": Path to the CRI-O socket. (default: /var/run/crio/crio.sock)
 
-**--log**="": Set the log file path where internal debug information is written
+**--log**="": Set the log file path where internal debug information is written.
 
-**--log-dir**="": Default log directory where all logs will go unless directly specified by the kubelet (default: /var/log/crio/pods)
+**--log-dir**="": Default log directory where all logs will go unless directly specified by the kubelet. (default: /var/log/crio/pods)
 
 **--log-filter**="": Filter the log messages by the provided regular expression. For example 'request.\*' filters all gRPC requests.
 
-**--log-format**="": Set the format used by logs: 'text' or 'json' (default: text)
+**--log-format**="": Set the format used by logs: 'text' or 'json'. (default: text)
 
-**--log-journald**: Log to systemd journal (journald) in addition to kubernetes log file (default: false)
+**--log-journald**: Log to systemd journal (journald) in addition to kubernetes log file.
 
-**--log-level, -l**="": Log messages above specified level: trace, debug, info, warn, error, fatal or panic (default: info)
+**--log-level, -l**="": Log messages above specified level: trace, debug, info, warn, error, fatal or panic. (default: info)
 
 **--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer. This option is deprecated. The Kubelet flag '--container-log-max-size' should be used instead. (default: -1)
 
-**--metrics-cert**="": Certificate for the secure metrics endpoint
+**--metrics-cert**="": Certificate for the secure metrics endpoint.
 
-**--metrics-collectors**="": Enabled metrics collectors (default: [operations operations_latency_microseconds_total operations_latency_microseconds operations_errors image_pulls_by_digest image_pulls_by_name image_pulls_by_name_skipped image_pulls_failures image_pulls_successes image_pulls_layer_size image_layer_reuse containers_oom_total containers_oom processes_defunct operations_total operations_latency_seconds operations_latency_seconds_total operations_errors_total image_pulls_bytes_total image_pulls_skipped_bytes_total image_pulls_failure_total image_pulls_success_total image_layer_reuse_total containers_oom_count_total])
+**--metrics-collectors**="": Enabled metrics collectors. (default: [operations operations_latency_microseconds_total operations_latency_microseconds operations_errors image_pulls_by_digest image_pulls_by_name image_pulls_by_name_skipped image_pulls_failures image_pulls_successes image_pulls_layer_size image_layer_reuse containers_oom_total containers_oom processes_defunct operations_total operations_latency_seconds operations_latency_seconds_total operations_errors_total image_pulls_bytes_total image_pulls_skipped_bytes_total image_pulls_failure_total image_pulls_success_total image_layer_reuse_total containers_oom_count_total])
 
-**--metrics-key**="": Certificate key for the secure metrics endpoint
+**--metrics-key**="": Certificate key for the secure metrics endpoint.
 
-**--metrics-port**="": Port for the metrics endpoint (default: 9090)
+**--metrics-port**="": Port for the metrics endpoint. (default: 9090)
 
-**--metrics-socket**="": Socket for the metrics endpoint
+**--metrics-socket**="": Socket for the metrics endpoint.
 
-**--minimum-mappable-gid**="": Specify the lowest host GID which can be specified in mappings for a pod that will be run as a UID other than 0 (default: -1)
+**--minimum-mappable-gid**="": Specify the lowest host GID which can be specified in mappings for a pod that will be run as a UID other than 0. (default: -1)
 
-**--minimum-mappable-uid**="": Specify the lowest host UID which can be specified in mappings for a pod that will be run as a UID other than 0 (default: -1)
+**--minimum-mappable-uid**="": Specify the lowest host UID which can be specified in mappings for a pod that will be run as a UID other than 0. (default: -1)
 
-**--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true (default: /var/run)
+**--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true. (default: /var/run)
 
-**--no-pivot**: If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE` (default: false)
+**--no-pivot**: If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 
-**--pause-command**="": Path to the pause executable in the pause image (default: /pause)
+**--pause-command**="": Path to the pause executable in the pause image. (default: /pause)
 
-**--pause-image**="": Image which contains the pause executable (default: registry.k8s.io/pause:3.6)
+**--pause-image**="": Image which contains the pause executable. (default: registry.k8s.io/pause:3.6)
 
-**--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image (default: "")
+**--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image.
 
 **--pids-limit**="": Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead. (default: 0)
 
-**--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty (default: "")
+**--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty.
 
-**--profile**: Enable pprof remote profiler on localhost:6060
+**--profile**: Enable pprof remote profiler on localhost:6060.
 
-**--profile-cpu**="": Write a pprof CPU profile to the provided path
+**--profile-cpu**="": Write a pprof CPU profile to the provided path.
 
-**--profile-mem**="": Write a pprof memory profile to the provided path
+**--profile-mem**="": Write a pprof memory profile to the provided path.
 
-**--profile-port**="": Port for the pprof profiler (default: 6060)
+**--profile-port**="": Port for the pprof profiler. (default: 6060)
 
-**--rdt-config-file**="": Path to the RDT configuration file for configuring the resctrl pseudo-filesystem
+**--rdt-config-file**="": Path to the RDT configuration file for configuring the resctrl pseudo-filesystem.
 
-**--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts tmpfs on `/run`, `/tmp` and `/var/tmp`. (default: false)
+**--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts the containers' tmpfs on `/run`, `/tmp` and `/var/tmp`.
 
-**--registry**="": Registry to be prepended when pulling unqualified images, can be specified multiple times (default: [])
+**--registry**="": Registry to be prepended when pulling unqualified images. Can be specified multiple times. (default: [])
 
-**--root, -r**="": The CRI-O root directory (default: /var/lib/containers/storage)
+**--root, -r**="": The CRI-O root directory. (default: /var/lib/containers/storage)
 
-**--runroot**="": The CRI-O state directory (default: /run/containers/storage)
+**--runroot**="": The CRI-O state directory. (default: /run/containers/storage)
 
-**--runtimes**="": OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path
+**--runtimes**="": OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path'.
 
-**--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used. (default: "")
+**--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used.
 
-**--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified
+**--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified.
 
-**--selinux**: Enable selinux support (default: false)
+**--selinux**: Enable selinux support.
 
-**--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup (default: "")
+**--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup.
 
-**--signature-policy**="": Path to signature policy JSON file. (default: "", to use the system-wide default)
+**--signature-policy**="": Path to signature policy JSON file.
 
 **--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. (default: 0)
 
-**--storage-driver, -s**="": OCI storage driver (default: "")
+**--storage-driver, -s**="": OCI storage driver.
 
-**--storage-opt**="": OCI storage driver option (default: [])
+**--storage-opt**="": OCI storage driver option. (default: [])
 
-**--stream-address**="": Bind address for streaming socket (default: 127.0.0.1)
+**--stream-address**="": Bind address for streaming socket. (default: 127.0.0.1)
 
-**--stream-enable-tls**: Enable encrypted TLS transport of the stream server (default: false)
+**--stream-enable-tls**: Enable encrypted TLS transport of the stream server.
 
-**--stream-idle-timeout**="": Length of time until open streams terminate due to lack of activity
+**--stream-idle-timeout**="": Length of time until open streams terminate due to lack of activity.
 
 **--stream-port**="": Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number. (default: 0)
 
-**--stream-tls-ca**="": Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")
+**--stream-tls-ca**="": Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
-**--stream-tls-cert**="": Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")
+**--stream-tls-cert**="": Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
-**--stream-tls-key**="": Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes (default: "")
+**--stream-tls-key**="": Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
-**--tracing-endpoint**="": Address on which the gRPC tracing collector will listen (default: 0.0.0.0:4317)
+**--tracing-endpoint**="": Address on which the gRPC tracing collector will listen. (default: 0.0.0.0:4317)
 
-**--tracing-sampling-rate-per-million**="": Number of samples to collect per million OpenTelemetry spans (default: 0)
+**--tracing-sampling-rate-per-million**="": Number of samples to collect per million OpenTelemetry spans. (default: 0)
 
-**--uid-mappings**="": Specify the UID mappings to use for the user namespace (default: "")
+**--uid-mappings**="": Specify the UID mappings to use for the user namespace.
 
 **--version, -v**: print the version
 
-**--version-file**="": Location for CRI-O to lay down the temporary version file. It is used to check if crio wipe should wipe containers, which should always happen on a node reboot (default: /var/run/crio/version)
+**--version-file**="": Location for CRI-O to lay down the temporary version file. It is used to check if crio wipe should wipe containers, which should always happen on a node reboot. (default: /var/run/crio/version)
 
-**--version-file-persist**="": Location for CRI-O to lay down the persistent version file. It is used to check if crio wipe should wipe images, which should only happen when CRI-O has been upgraded (default: /var/run/crio/version)
+**--version-file-persist**="": Location for CRI-O to lay down the persistent version file. It is used to check if crio wipe should wipe images, which should only happen when CRI-O has been upgraded. (default: /var/run/crio/version)
 
 
 # COMMANDS
