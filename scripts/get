@@ -9,17 +9,18 @@ GITHUB_TOKEN=${GITHUB_TOKEN:-}
 GCB_URL=https://storage.googleapis.com/cri-o
 
 usage() {
-    printf "Usage: %s [-a ARCH] [ -t TAG|SHA ] [ -h ]\n\n" "$(basename "$0")"
+    printf "Usage: %s [-a ARCH] [ -t TAG|SHA ] [ -b BUCKET ] [ -h ]\n\n" "$(basename "$0")"
     echo "Possible arguments:"
     printf "  -a\tArchitecture to retrieve (defaults to the local system)\n"
     printf "  -t\tVersion tag or full length SHA to be used (defaults to the latest available main)\n"
+    printf "  -b\tName of the GCS bucket for downloading artifacts (defaults to 'cri-o')\n"
     printf "  -h\tShow this help message\n"
 }
 
 parse_args() {
     echo "Welcome to the CRI-O install script!"
 
-    while getopts 'a:t:h' OPTION; do
+    while getopts 'a:b:t:h' OPTION; do
         case "$OPTION" in
         a)
             ARCH="$OPTARG"
@@ -28,6 +29,10 @@ parse_args() {
         t)
             VERSION="$OPTARG"
             echo "Using version: $VERSION"
+            ;;
+        b)
+            GCB_URL="https://storage.googleapis.com/$OPTARG"
+            echo "Using GCS bucket: gs://$OPTARG"
             ;;
         h)
             usage
