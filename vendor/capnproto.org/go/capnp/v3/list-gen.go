@@ -2,6 +2,10 @@
 
 package capnp
 
+func (l VoidList) IsValid() bool {
+	return List(l).IsValid()
+}
+
 func (l VoidList) Len() int {
 	return List(l).Len()
 }
@@ -28,6 +32,10 @@ func (l VoidList) ToPtr() Ptr {
 
 func (l VoidList) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 	return List(l).primitiveElem(i, expectedSize)
+}
+
+func (l BitList) IsValid() bool {
+	return List(l).IsValid()
 }
 
 func (l BitList) Len() int {
@@ -58,6 +66,10 @@ func (l BitList) primitiveElem(i int, expectedSize ObjectSize) (address, error) 
 	return List(l).primitiveElem(i, expectedSize)
 }
 
+func (l Float32List) IsValid() bool {
+	return List(l).IsValid()
+}
+
 func (l Float32List) Len() int {
 	return List(l).Len()
 }
@@ -84,6 +96,10 @@ func (l Float32List) ToPtr() Ptr {
 
 func (l Float32List) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 	return List(l).primitiveElem(i, expectedSize)
+}
+
+func (l Float64List) IsValid() bool {
+	return List(l).IsValid()
 }
 
 func (l Float64List) Len() int {
@@ -114,6 +130,10 @@ func (l Float64List) primitiveElem(i int, expectedSize ObjectSize) (address, err
 	return List(l).primitiveElem(i, expectedSize)
 }
 
+func (l TextList) IsValid() bool {
+	return List(l).IsValid()
+}
+
 func (l TextList) Len() int {
 	return List(l).Len()
 }
@@ -140,6 +160,10 @@ func (l TextList) ToPtr() Ptr {
 
 func (l TextList) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 	return List(l).primitiveElem(i, expectedSize)
+}
+
+func (l DataList) IsValid() bool {
+	return List(l).IsValid()
 }
 
 func (l DataList) Len() int {
@@ -170,6 +194,10 @@ func (l DataList) primitiveElem(i int, expectedSize ObjectSize) (address, error)
 	return List(l).primitiveElem(i, expectedSize)
 }
 
+func (l PointerList) IsValid() bool {
+	return List(l).IsValid()
+}
+
 func (l PointerList) Len() int {
 	return List(l).Len()
 }
@@ -196,6 +224,10 @@ func (l PointerList) ToPtr() Ptr {
 
 func (l PointerList) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 	return List(l).primitiveElem(i, expectedSize)
+}
+
+func (l EnumList[T]) IsValid() bool {
+	return List(l).IsValid()
 }
 
 func (l EnumList[T]) Len() int {
@@ -226,6 +258,10 @@ func (l EnumList[T]) primitiveElem(i int, expectedSize ObjectSize) (address, err
 	return List(l).primitiveElem(i, expectedSize)
 }
 
+func (l StructList[T]) IsValid() bool {
+	return List(l).IsValid()
+}
+
 func (l StructList[T]) Len() int {
 	return List(l).Len()
 }
@@ -252,6 +288,10 @@ func (l StructList[T]) ToPtr() Ptr {
 
 func (l StructList[T]) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 	return List(l).primitiveElem(i, expectedSize)
+}
+
+func (l CapList[T]) IsValid() bool {
+	return List(l).IsValid()
 }
 
 func (l CapList[T]) Len() int {
@@ -282,6 +322,10 @@ func (l CapList[T]) primitiveElem(i int, expectedSize ObjectSize) (address, erro
 	return List(l).primitiveElem(i, expectedSize)
 }
 
+func (l Int8List) IsValid() bool {
+	return List(l).IsValid()
+}
+
 func (l Int8List) Len() int {
 	return List(l).Len()
 }
@@ -308,6 +352,10 @@ func (l Int8List) ToPtr() Ptr {
 
 func (l Int8List) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 	return List(l).primitiveElem(i, expectedSize)
+}
+
+func (l UInt8List) IsValid() bool {
+	return List(l).IsValid()
 }
 
 func (l UInt8List) Len() int {
@@ -338,6 +386,10 @@ func (l UInt8List) primitiveElem(i int, expectedSize ObjectSize) (address, error
 	return List(l).primitiveElem(i, expectedSize)
 }
 
+func (l Int16List) IsValid() bool {
+	return List(l).IsValid()
+}
+
 func (l Int16List) Len() int {
 	return List(l).Len()
 }
@@ -364,6 +416,10 @@ func (l Int16List) ToPtr() Ptr {
 
 func (l Int16List) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 	return List(l).primitiveElem(i, expectedSize)
+}
+
+func (l UInt16List) IsValid() bool {
+	return List(l).IsValid()
 }
 
 func (l UInt16List) Len() int {
@@ -394,6 +450,10 @@ func (l UInt16List) primitiveElem(i int, expectedSize ObjectSize) (address, erro
 	return List(l).primitiveElem(i, expectedSize)
 }
 
+func (l Int32List) IsValid() bool {
+	return List(l).IsValid()
+}
+
 func (l Int32List) Len() int {
 	return List(l).Len()
 }
@@ -420,6 +480,10 @@ func (l Int32List) ToPtr() Ptr {
 
 func (l Int32List) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 	return List(l).primitiveElem(i, expectedSize)
+}
+
+func (l UInt32List) IsValid() bool {
+	return List(l).IsValid()
 }
 
 func (l UInt32List) Len() int {
@@ -450,6 +514,10 @@ func (l UInt32List) primitiveElem(i int, expectedSize ObjectSize) (address, erro
 	return List(l).primitiveElem(i, expectedSize)
 }
 
+func (l Int64List) IsValid() bool {
+	return List(l).IsValid()
+}
+
 func (l Int64List) Len() int {
 	return List(l).Len()
 }
@@ -476,6 +544,10 @@ func (l Int64List) ToPtr() Ptr {
 
 func (l Int64List) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 	return List(l).primitiveElem(i, expectedSize)
+}
+
+func (l UInt64List) IsValid() bool {
+	return List(l).IsValid()
 }
 
 func (l UInt64List) Len() int {

@@ -286,6 +286,9 @@ func (c Client) GetFlowLimiter() flowcontrol.FlowLimiter {
 // this client. This affects all future calls, but not calls already
 // waiting to send. Passing nil sets the value to flowcontrol.NopLimiter,
 // which is also the default.
+//
+// When .Release() is called on the client, it will call .Release() on
+// the FlowLimiter in turn.
 func (c Client) SetFlowLimiter(lim flowcontrol.FlowLimiter) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -584,6 +587,7 @@ func (c Client) Release() {
 	c.mu.Unlock()
 	<-h.done
 	h.Shutdown()
+	c.GetFlowLimiter().Release()
 }
 
 func (c Client) EncodeAsPtr(seg *Segment) Ptr {

@@ -10,7 +10,7 @@ import (
 
 	"capnproto.org/go/capnp/v3"
 	"capnproto.org/go/capnp/v3/exc"
-	"capnproto.org/go/capnp/v3/internal/mpsc"
+	"capnproto.org/go/capnp/v3/exp/mpsc"
 	"capnproto.org/go/capnp/v3/internal/syncutil"
 	rpccp "capnproto.org/go/capnp/v3/std/capnp/rpc"
 	"golang.org/x/sync/errgroup"

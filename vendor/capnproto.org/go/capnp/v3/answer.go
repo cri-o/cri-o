@@ -2,6 +2,7 @@ package capnp
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -128,9 +129,7 @@ func (p *Promise) resolution() resolution {
 func (p *Promise) Fulfill(result Ptr) {
 	defer p.mu.Unlock()
 	p.mu.Lock()
-	if !p.isUnresolved() {
-		panic("Promise.Fulfill called after Fulfill or Reject")
-	}
+	p.requireUnresolved("Fulfill")
 	p.resolve(result, nil)
 }
 
@@ -145,9 +144,7 @@ func (p *Promise) Reject(e error) {
 	}
 	defer p.mu.Unlock()
 	p.mu.Lock()
-	if !p.isUnresolved() {
-		panic("Promise.Reject called after Fulfill or Reject")
-	}
+	p.requireUnresolved("Reject")
 	p.resolve(Ptr{}, e)
 }
 
@@ -160,6 +157,28 @@ func (p *Promise) Resolve(r Ptr, e error) {
 		p.Reject(e)
 	} else {
 		p.Fulfill(r)
+	}
+}
+
+// requireUnresolved is a helper method for checking for duplicate
+// calls to Fulfill() or Reject(); panics if the promise is not in
+// the unresolved state.
+//
+// The callerMethod argument should be the name of the method which
+// is invoking requireUnresolved. The panic message will report this
+// value as well as the method that originally resolved the promise,
+// and which method (Fulfill or Reject) was used to resolve it.
+func (p *Promise) requireUnresolved(callerMethod string) {
+	if !p.isUnresolved() {
+		var prevMethod string
+		if p.err == nil {
+			prevMethod = "Fulfill"
+		} else {
+			prevMethod = fmt.Sprintf("Reject (error = %q)", p.err)
+		}
+
+		panic("Promise." + callerMethod +
+			" called after previous call to " + prevMethod)
 	}
 }
 
