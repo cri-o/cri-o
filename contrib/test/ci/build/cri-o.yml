@@ -1,8 +1,8 @@
 ---
 - name: create crio dir
-  file: 
-    path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o" 
-    state: directory 
+  file:
+    path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
+    state: directory
 
 ## extract source
 
@@ -11,8 +11,8 @@
     path: "/home/deadbeef/cri-o.tar.gz"
   register: source_tar
 
-- name: extract cri-o 
-  unarchive: 
+- name: extract cri-o
+  unarchive:
     src: "/home/deadbeef/cri-o.tar.gz"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
   when: source_tar.stat.exists
@@ -85,6 +85,19 @@
       runtime_root = "/run/crun"
   when: "build_crun | default(False) | bool"
 
+- name: use conmon-rs
+  copy:
+    dest: /etc/crio/crio.conf.d/99-conmonrs.conf
+    content: |
+      [crio.runtime.runtimes.runc]
+      runtime_type = "pod"
+
+      [crio.runtime.runtimes.crun]
+      runtime_type = "pod"
+      runtime_root = "/run/crun"
+
+  when: "use_conmonrs | default(False) | bool"
+
 - name: use kata
   copy:
     dest: /etc/crio/crio.conf.d/50-kata.conf
@@ -123,4 +136,3 @@
     content: |
       [crio.image]
       registries = [ "quay.io", "docker.io" ]
-
