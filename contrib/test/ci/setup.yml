@@ -9,7 +9,7 @@
 
 - name: clone build and install cri-o
   include: "build/cri-o.yml"
-  
+
 - name: clone build and install bats
   include: "build/bats.yml"
 
@@ -40,6 +40,9 @@
 
 - name: install conmon
   include: "build/conmon.yml"
+
+- name: install conmon-rs
+  include: "build/conmon-rs.yml"
 
 - name: install jq
   include: "build/jq.yml"
