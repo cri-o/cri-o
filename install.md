@@ -101,7 +101,7 @@ To install on the following operating systems, set the environment variable $OS 
 | Centos 8 Stream  | `CentOS_8_Stream` |
 | Centos 7         | `CentOS_7`        |
 
-And then run the following as root:
+And then run the following as root(for instance, $VERSION=`1.25`):
 
 ```shell
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
