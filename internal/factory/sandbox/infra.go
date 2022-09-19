@@ -50,7 +50,7 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 	}
 
 	// Add capabilities from crio.conf if default_capabilities is defined
-	if err := s.infra.SpecSetupCapabilities(&types.Capability{}, serverConfig.DefaultCapabilities); err != nil {
+	if err := s.infra.SpecSetupCapabilities(&types.Capability{}, serverConfig.DefaultCapabilities, serverConfig.AddInheritableCapabilities); err != nil {
 		return err
 	}
 
