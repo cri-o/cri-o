@@ -533,7 +533,7 @@ var _ = t.Describe("Container", func() {
 			var caps *types.Capability
 			serverCaps := capabilities.Default()
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(serverCaps))
 		})
 		It("AddCapabilities should add capability", func() {
@@ -543,7 +543,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(serverCaps)+1)
 		})
 		It("DropCapabilities should drop capability", func() {
@@ -553,7 +553,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{"CHOWN"}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(serverCaps)-1)
 		})
 		It("AddCapabilities ALL DropCapabilities one should drop that one", func() {
@@ -563,7 +563,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(capability.List())-1)
 		})
 		It("AddCapabilities one DropCapabilities ALL should add that one", func() {
@@ -573,7 +573,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, 1)
 		})
 		It("AddCapabilities ALL DropCapabilities ALL should drop all", func() {
@@ -583,7 +583,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, 0)
 		})
 		It("Invalid values should fail", func() {
@@ -592,7 +592,17 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps)).NotTo(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).NotTo(BeNil())
+		})
+		It("Should add inheritable capabilities if set", func() {
+			caps := &types.Capability{
+				AddCapabilities:  []string{"CHOWN"},
+				DropCapabilities: []string{"ALL"},
+			}
+			serverCaps := []string{}
+
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, true)).To(BeNil())
+			Expect(len(sut.Spec().Config.Process.Capabilities.Inheritable)).To(Equal(1))
 		})
 	})
 })
