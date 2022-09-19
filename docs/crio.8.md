@@ -12,6 +12,7 @@ crio
 
 ```
 [--absent-mount-sources-to-reject]=[value]
+[--add-inheritable-capabilities]
 [--additional-devices]=[value]
 [--allowed-devices]=[value]
 [--apparmor-profile]=[value]
@@ -137,6 +138,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 # GLOBAL OPTIONS
 
 **--absent-mount-sources-to-reject**="": A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory). (default: [])
+
+**--add-inheritable-capabilities**: Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.
 
 **--additional-devices**="": Devices to add to the containers. (default: [])
 
