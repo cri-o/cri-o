@@ -11,16 +11,12 @@
 
     - name: install Golang tools
       include: golang.yml
-      vars:
-        version: "1.19"
 
     - name: clone build and install bats
       include: "build/bats.yml"
 
     - name: clone build and install cri-tools
       include: "build/cri-tools.yml"
-      vars:
-        cri_tools_git_version: "v1.25.0"
 
     - name: clone build and install kubernetes
       include: "build/kubernetes.yml"
@@ -74,8 +70,7 @@
   tasks:
     - name: install Golang tools
       include: golang.yml
-      vars:
-        version: "1.19"
+
     - name: clone build and install cri-o
       include: "build/cri-o.yml"
 
@@ -117,7 +112,6 @@
       include: "build/cri-tools.yml"
       vars:
         force_clone: true
-        cri_tools_git_version: "v1.24.2"
     - name: run cri-o integration tests
       include: test.yml
 
@@ -132,7 +126,6 @@
       include: "build/cri-tools.yml"
       vars:
         force_clone: true
-        cri_tools_git_version: "v1.24.2"
     - name: run critest validation and benchmarks
       include: critest.yml
 
