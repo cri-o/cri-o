@@ -437,7 +437,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			specgen.SetupPrivileged(true)
 		} else {
 			capabilities := securityContext.Capabilities
-			if err := ctr.SpecSetupCapabilities(capabilities, s.config.DefaultCapabilities); err != nil {
+			if err := ctr.SpecSetupCapabilities(capabilities, s.config.DefaultCapabilities, s.config.AddInheritableCapabilities); err != nil {
 				return nil, err
 			}
 		}
