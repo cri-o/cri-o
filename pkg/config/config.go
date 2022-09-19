@@ -252,6 +252,10 @@ type RuntimeConfig struct {
 	// Capabilities to add to all containers.
 	DefaultCapabilities capabilities.Capabilities `toml:"default_capabilities"`
 
+	// AddInheritableCapabilities can be set to add inheritable capabilities. They were pre-1.23 by default, and were dropped in 1.24.
+	// This can cause a regression with non-root users not getting capabilities as they previously did.
+	AddInheritableCapabilities bool `toml:"add_inheritable_capabilities"`
+
 	// Additional environment variables to set for all the
 	// containers. These are overridden if set in the
 	// container image spec or in the container runtime configuration.

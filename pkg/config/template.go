@@ -283,6 +283,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: stringSliceEqual(dc.DefaultCapabilities, c.DefaultCapabilities),
 		},
 		{
+			templateString: templateStringCrioRuntimeAddInheritableCapabilities,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.AddInheritableCapabilities, c.AddInheritableCapabilities),
+		},
+		{
 			templateString: templateStringCrioRuntimeDefaultSysctls,
 			group:          crioRuntimeConfig,
 			isDefaultValue: stringSliceEqual(dc.DefaultSysctls, c.DefaultSysctls),
@@ -869,6 +874,12 @@ const templateStringCrioRuntimeDefaultCapabilities = `# List of default capabili
 # will be added.
 {{ $.Comment }}default_capabilities = [
 {{ range $capability := .DefaultCapabilities}}{{ $.Comment }}{{ printf "\t%q,\n" $capability}}{{ end }}{{ $.Comment }}]
+
+`
+
+const templateStringCrioRuntimeAddInheritableCapabilities = `# Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.
+# If capabilities are expected to work for non-root users, this option should be set.
+{{ $.Comment }}add_inheritable_capabilities = {{ .AddInheritableCapabilities }}
 
 `
 
