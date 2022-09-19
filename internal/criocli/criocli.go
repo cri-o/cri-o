@@ -201,6 +201,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("default-capabilities") {
 		config.DefaultCapabilities = StringSliceTrySplit(ctx, "default-capabilities")
 	}
+	if ctx.IsSet("add-inheritable-capabilities") {
+		config.AddInheritableCapabilities = ctx.Bool("add-inheritable-capabilities")
+	}
 	if ctx.IsSet("default-sysctls") {
 		config.DefaultSysctls = StringSliceTrySplit(ctx, "default-sysctls")
 	}
@@ -708,6 +711,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Capabilities to add to the containers",
 			EnvVars: []string{"CONTAINER_DEFAULT_CAPABILITIES"},
 			Value:   cli.NewStringSlice(defConf.DefaultCapabilities...),
+		},
+		&cli.BoolFlag{
+			Name:    "add-inheritable-capabilities",
+			Usage:   "Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.",
+			EnvVars: []string{"CONTAINER_ADD_INHERITABLE_CAPABILITIES"},
+			Value:   defConf.AddInheritableCapabilities,
 		},
 		&cli.StringSliceFlag{
 			Name:    "default-sysctls",

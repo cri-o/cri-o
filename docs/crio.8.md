@@ -12,6 +12,7 @@ crio
 
 ```
 [--absent-mount-sources-to-reject]=[value]
+[--add-inheritable-capabilities]
 [--additional-devices]=[value]
 [--allowed-devices]=[value]
 [--apparmor-profile]=[value]
@@ -136,6 +137,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 # GLOBAL OPTIONS
 
 **--absent-mount-sources-to-reject**="": A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory). (default: [])
+
+**--add-inheritable-capabilities**: Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.
 
 **--additional-devices**="": Devices to add to the containers  (default: [])
 
@@ -334,7 +337,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified
 
-**--selinux**: Enable selinux support (default: false)
+**--selinux**: Enable selinux support (default: true)
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup (default: "")
 
@@ -342,7 +345,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. (default: 0)
 
-**--storage-driver, -s**="": OCI storage driver (default: "")
+**--storage-driver, -s**="": OCI storage driver (default: "overlay")
 
 **--storage-opt**="": OCI storage driver option (default: [])
 

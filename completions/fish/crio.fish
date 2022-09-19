@@ -10,6 +10,7 @@ function __fish_crio_no_subcommand --description 'Test if there has been any sub
 end
 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l absent-mount-sources-to-reject -r -d 'A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory).'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l add-inheritable-capabilities -d 'Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l additional-devices -r -d 'Devices to add to the containers '
 complete -c crio -n '__fish_crio_no_subcommand' -f -l allowed-devices -r -d 'Devices a user is allowed to specify with the "io.kubernetes.cri-o.Devices" allowed annotation'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l apparmor-profile -r -d 'Name of the apparmor profile to be used as the runtime\'s default. This only takes effect if the user does not specify a profile via the Kubernetes Pod\'s metadata annotation.'
@@ -128,11 +129,11 @@ complete -c crio -n '__fish_crio_no_subcommand' -l runroot -r -d 'The CRI-O stat
 complete -c crio -n '__fish_crio_no_subcommand' -f -l runtimes -r -d 'OCI runtimes, format is runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path'
 complete -c crio -n '__fish_crio_no_subcommand' -l seccomp-profile -r -d 'Path to the seccomp.json profile to be used as the runtime\'s default. If not specified, then the internal default seccomp profile will be used. (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l seccomp-use-default-when-empty -d 'Use the default seccomp profile when an empty one is specified'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l selinux -d 'Enable selinux support (default: false)'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l selinux -d 'Enable selinux support (default: true)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l separate-pull-cgroup -r -d '[EXPERIMENTAL] Pull in new cgroup (default: "")'
 complete -c crio -n '__fish_crio_no_subcommand' -l signature-policy -r -d 'Path to signature policy JSON file. (default: "", to use the system-wide default)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stats-collection-period -r -d 'The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead.'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-driver -s s -r -d 'OCI storage driver (default: "")'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-driver -s s -r -d 'OCI storage driver (default: "overlay")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-opt -r -d 'OCI storage driver option'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-address -r -d 'Bind address for streaming socket'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-enable-tls -d 'Enable encrypted TLS transport of the stream server (default: false)'
