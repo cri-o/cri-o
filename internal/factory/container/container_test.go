@@ -526,7 +526,7 @@ var _ = t.Describe("Container", func() {
 			Expect(len(caps.Bounding)).To(Equal(expected))
 			Expect(len(caps.Effective)).To(Equal(expected))
 			Expect(len(caps.Permitted)).To(Equal(expected))
-			Expect(len(caps.Inheritable)).To(Equal(0))
+			Expect(len(caps.Inheritable)).To(Equal(expected))
 			Expect(len(caps.Ambient)).To(Equal(0))
 		}
 		It("Empty capabilities should use server capabilities", func() {
