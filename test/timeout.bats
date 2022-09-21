@@ -159,10 +159,11 @@ function wait_clean() {
 
 @test "should not wait for actual duplicate pod request" {
 	start_crio
-	crictl runp "$TESTDATA"/sandbox_config.json
+	pod_1=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	SECONDS=0
-	! crictl runp "$TESTDATA"/sandbox_config.json
+	pod_2=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	[[ "$SECONDS" -lt 240 ]]
+	[[ "$pod_1" == "$pod_2" ]]
 }
 
 @test "should clean up container after timeout if not re-requested" {
