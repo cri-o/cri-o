@@ -33,8 +33,14 @@ const (
 	GRPCStatusCodeKey = attribute.Key("rpc.grpc.status_code")
 )
 
+// Filter is a predicate used to determine whether a given request in
+// interceptor info should be traced. A Filter must return true if
+// the request should be traced.
+type Filter func(*InterceptorInfo) bool
+
 // config is a group of options for this instrumentation.
 type config struct {
+	Filter         Filter
 	Propagators    propagation.TextMapPropagator
 	TracerProvider trace.TracerProvider
 }
@@ -78,6 +84,21 @@ func (o tracerProviderOption) apply(c *config) {
 	}
 }
 
+// WithInterceptorFilter returns an Option to use the request filter.
+func WithInterceptorFilter(f Filter) Option {
+	return interceptorFilterOption{f: f}
+}
+
+type interceptorFilterOption struct {
+	f Filter
+}
+
+func (o interceptorFilterOption) apply(c *config) {
+	if o.f != nil {
+		c.Filter = o.f
+	}
+}
+
 // WithTracerProvider returns an Option to use the TracerProvider when
 // creating a Tracer.
 func WithTracerProvider(tp trace.TracerProvider) Option {
@@ -116,7 +137,11 @@ func (s *metadataSupplier) Keys() []string {
 // requests.
 func Inject(ctx context.Context, md *metadata.MD, opts ...Option) {
 	c := newConfig(opts)
-	c.Propagators.Inject(ctx, &metadataSupplier{
+	inject(ctx, md, c.Propagators)
+}
+
+func inject(ctx context.Context, md *metadata.MD, propagators propagation.TextMapPropagator) {
+	propagators.Inject(ctx, &metadataSupplier{
 		metadata: md,
 	})
 }
@@ -126,7 +151,11 @@ func Inject(ctx context.Context, md *metadata.MD, opts ...Option) {
 // This function is meant to be used on incoming requests.
 func Extract(ctx context.Context, md *metadata.MD, opts ...Option) (baggage.Baggage, trace.SpanContext) {
 	c := newConfig(opts)
-	ctx = c.Propagators.Extract(ctx, &metadataSupplier{
+	return extract(ctx, md, c.Propagators)
+}
+
+func extract(ctx context.Context, md *metadata.MD, propagators propagation.TextMapPropagator) (baggage.Baggage, trace.SpanContext) {
+	ctx = propagators.Extract(ctx, &metadataSupplier{
 		metadata: md,
 	})
 
