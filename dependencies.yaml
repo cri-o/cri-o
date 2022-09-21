@@ -8,10 +8,10 @@ dependencies:
       match: GO_VERSION
     - path: .github/workflows/test.yml
       match: GO_VERSION
-    - path: contrib/test/integration/main.yml
-      match: version
-    - path: contrib/test/ci/setup.yml
-      match: version
+    - path: contrib/test/integration/vars.yml
+      match: golang_version
+    - path: contrib/test/ci/vars.yml
+      match: golang_version
 
   - name: golangci-lint
     version: v1.49.0
@@ -46,7 +46,9 @@ dependencies:
     refPaths:
     - path: scripts/versions
       match: cri-tools
-    - path: contrib/test/integration/main.yml
+    - path: contrib/test/integration/vars.yml
+      match: cri_tools_git_version
+    - path: contrib/test/ci/vars.yml
       match: cri_tools_git_version
 
   - name: runc
