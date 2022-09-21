@@ -88,6 +88,9 @@ func (c *Config) Reload() error {
 	if err := c.ReloadRdtConfig(newConfig); err != nil {
 		return err
 	}
+	if err := c.ReloadRuntimes(newConfig); err != nil {
+		return err
+	}
 	cdi.GetRegistry(cdi.WithSpecDirs(newConfig.CDISpecDirs...))
 
 	return nil
@@ -235,5 +238,38 @@ func (c *Config) ReloadRdtConfig(newConfig *Config) error {
 		c.RdtConfigFile = newConfig.RdtConfigFile
 		logConfig("rdt_config_file", c.RdtConfigFile)
 	}
+	return nil
+}
+
+// ReloadRuntimes reloads the runtimes configuration if changed
+func (c *Config) ReloadRuntimes(newConfig *Config) error {
+	var updated bool
+	for runtime := range newConfig.Runtimes {
+		if _, ok := c.Runtimes[runtime]; ok {
+			logrus.Warnf("Skipping existing runtime %q", runtime)
+			continue
+		}
+		c.Runtimes[runtime] = newConfig.Runtimes[runtime]
+		logrus.Infof("Registered new runtime %q", runtime)
+		updated = true
+	}
+
+	if c.DefaultRuntime != newConfig.DefaultRuntime {
+		c.DefaultRuntime = newConfig.DefaultRuntime
+		if err := c.ValidateDefaultRuntime(); err != nil {
+			return fmt.Errorf("unable to reload runtimes: %w", err)
+		}
+		logConfig("default_runtime", c.DefaultRuntime)
+		updated = true
+	}
+
+	if !updated {
+		return nil
+	}
+
+	if err := c.ValidateRuntimes(); err != nil {
+		return fmt.Errorf("unabled to reload runtimes: %w", err)
+	}
+
 	return nil
 }
