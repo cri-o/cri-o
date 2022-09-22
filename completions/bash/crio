@@ -13,6 +13,7 @@ wipe
 help
 h
 --absent-mount-sources-to-reject
+--add-inheritable-capabilities
 --additional-devices
 --address
 --allowed-devices
