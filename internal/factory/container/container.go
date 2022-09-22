@@ -120,7 +120,7 @@ type Container interface {
 	SpecAddNamespaces(*sandbox.Sandbox, *oci.Container, *config.Config) error
 
 	// SpecSetupCapabilities sets up the container's capabilities
-	SpecSetupCapabilities(*types.Capability, capabilities.Capabilities) error
+	SpecSetupCapabilities(*types.Capability, capabilities.Capabilities, bool) error
 
 	// PidNamespace returns the pid namespace created by SpecAddNamespaces.
 	PidNamespace() nsmgr.Namespace
@@ -600,7 +600,7 @@ func (c *container) WillRunSystemd() bool {
 	return strings.Contains(entrypoint, "/sbin/init") || (filepath.Base(entrypoint) == "systemd")
 }
 
-func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps capabilities.Capabilities) error {
+func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps capabilities.Capabilities, addInheritableCapabilities bool) error {
 	// Make sure to remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
 	// and pods expect that switching to a non-root user results in the capabilities being
 	// dropped. This should be revisited in the future.
@@ -653,6 +653,11 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 			if err := specgen.AddProcessCapabilityPermitted(c); err != nil {
 				return err
 			}
+			if addInheritableCapabilities {
+				if err := specgen.AddProcessCapabilityInheritable(c); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	if dropAll {
@@ -665,6 +670,11 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 			}
 			if err := specgen.DropProcessCapabilityPermitted(c); err != nil {
 				return err
+			}
+			if addInheritableCapabilities {
+				if err := specgen.DropProcessCapabilityInheritable(c); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -687,6 +697,11 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		if err := specgen.AddProcessCapabilityPermitted(capPrefixed); err != nil {
 			return err
 		}
+		if addInheritableCapabilities {
+			if err := specgen.AddProcessCapabilityInheritable(capPrefixed); err != nil {
+				return err
+			}
+		}
 	}
 
 	for _, cap := range caps.DropCapabilities {
@@ -702,6 +717,11 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		}
 		if err := specgen.DropProcessCapabilityPermitted(capPrefixed); err != nil {
 			return fmt.Errorf("failed to drop cap %s %w", capPrefixed, err)
+		}
+		if addInheritableCapabilities {
+			if err := specgen.DropProcessCapabilityInheritable(capPrefixed); err != nil {
+				return err
+			}
 		}
 	}
 
