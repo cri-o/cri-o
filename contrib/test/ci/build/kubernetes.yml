@@ -63,7 +63,8 @@
       export CGROUP_DRIVER=systemd
       export CONTAINER_RUNTIME_ENDPOINT='{{ crio_socket }}'
       export KUBECONFIG="/var/run/kubernetes/admin.kubeconfig" 
-      export kUBERNETES_PROVIDER="local" 
+      export KUBERNETES_PROVIDER="local"
+      export LOG_DIR=/tmp/artifacts
       export ALLOW_SECURITY_CONTEXT=","
       export ALLOW_PRIVILEGED=1
       export DNS_SERVER_IP={{ ansible_default_ipv4.address }}
