@@ -38,7 +38,7 @@ Two additional steps are needed to compile `.capnp` files to Go:
   GO111MODULE=off go get -u capnproto.org/go/capnp/v3/  # install go-capnproto to $GOPATH
   ```
 
-To learn how to compile a simple schema, [click here](https://github.com/capnproto/go-capnproto2/wiki/Getting-Started#compiling-schema-files).
+To learn how to compile a simple schema, [click here](docs/Getting-Started.md#compiling-schema-files).
 
 This package has been tested with version `0.8.0` of the `capnp` tool.
 
@@ -46,8 +46,9 @@ This package has been tested with version `0.8.0` of the `capnp` tool.
 
 ### Getting Started
 
-Read the ["Getting Started" guide][getting-started] for a high-level introduction to the package API and workflow.  
-A minimal working RPC example can be found [here](https://github.com/capnproto/go-capnproto2/wiki/Getting-Started#remote-calls-using-interfaces).
+Read the ["Getting Started" guide][getting-started] for a high-level introduction to the package API and workflow.
+A minimal working RPC example can be found
+[here](docs/Getting-Started.md#remote-calls-using-interfaces).
 
 Browse rest of the [Wiki](https://github.com/capnproto/go-capnproto2/wiki) for in depth explanations of concepts, migration guides, and tutorials.
 
@@ -80,4 +81,4 @@ MIT - see [LICENSE][] file
 
 [LICENSE]: https://github.com/capnproto/go-capnproto2/blob/master/LICENSE
 
-[getting-started]: https://github.com/capnproto/go-capnproto2/wiki/Getting-Started
+[getting-started]: docs/Getting-Started.md

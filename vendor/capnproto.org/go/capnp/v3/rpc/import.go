@@ -98,8 +98,9 @@ func (ic *importClient) Send(ctx context.Context, s capnp.Send) (*capnp.Answer, 
 	q := ic.c.newQuestion(s.Method)
 
 	// Send call message.
+	var err error
 	syncutil.Without(&ic.c.mu, func() {
-		ic.c.sendMessage(ctx, func(m rpccp.Message) error {
+		err = ic.c.sendMessage(ctx, func(m rpccp.Message) error {
 			return ic.c.newImportCallMessage(m, ic.id, q.id, s)
 		}, func(err error) {
 			ic.c.mu.Lock()
@@ -119,6 +120,10 @@ func (ic *importClient) Send(ctx context.Context, s capnp.Send) (*capnp.Answer, 
 			}()
 		})
 	})
+
+	if err != nil {
+		return capnp.ErrorAnswer(s.Method, err), func() {}
+	}
 
 	ans := q.p.Answer()
 	return ans, func() {

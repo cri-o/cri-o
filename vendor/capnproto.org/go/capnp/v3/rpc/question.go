@@ -151,15 +151,18 @@ func (q *question) PipelineSend(ctx context.Context, transform []capnp.PipelineO
 	q.mark(transform)
 	q2 := q.c.newQuestion(s.Method)
 
+	var err error
 	syncutil.Without(&q.c.mu, func() {
 		// Send call message.
-		q.c.sendMessage(ctx, func(m rpccp.Message) error {
+		err = q.c.sendMessage(ctx, func(m rpccp.Message) error {
 			return q.c.newPipelineCallMessage(m, q.id, transform, q2.id, s)
 		}, func(err error) {
 			if err != nil {
-				q.c.questions[q2.id] = nil
-				q.c.questionID.remove(uint32(q2.id))
-				q.p.Reject(rpcerr.Failedf("send message: %w", err))
+				syncutil.With(&q.c.mu, func() {
+					q.c.questions[q2.id] = nil
+					q.c.questionID.remove(uint32(q2.id))
+				})
+				q2.p.Reject(rpcerr.Failedf("send message: %w", err))
 				return
 			}
 
@@ -169,8 +172,11 @@ func (q *question) PipelineSend(ctx context.Context, transform []capnp.PipelineO
 				q2.handleCancel(ctx)
 			}()
 		})
-
 	})
+
+	if err != nil {
+		return capnp.ErrorAnswer(s.Method, err), func() {}
+	}
 
 	ans := q2.p.Answer()
 	return ans, func() {

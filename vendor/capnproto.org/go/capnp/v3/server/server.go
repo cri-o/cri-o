@@ -10,7 +10,7 @@ import (
 
 	"capnproto.org/go/capnp/v3"
 	"capnproto.org/go/capnp/v3/exc"
-	"capnproto.org/go/capnp/v3/internal/mpsc"
+	"capnproto.org/go/capnp/v3/exp/mpsc"
 )
 
 // A Method describes a single capability method on a server object.
