@@ -228,5 +228,5 @@ EOF
 	reload_crio
 
 	#then
-	wait_for_log '"registered new runtime \\"new\\""'
+	wait_for_log '"updating runtime configuration"'
 }
