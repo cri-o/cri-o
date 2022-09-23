@@ -20,7 +20,7 @@ require (
 	github.com/containers/buildah v1.27.0
 	github.com/containers/common v0.49.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.3.1-0.20220922155805-488bb96aef42
+	github.com/containers/conmon-rs v0.3.1-0.20220923125458-3f0360651fee
 	github.com/containers/image/v5 v5.22.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.5

@@ -581,7 +581,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.3.1-0.20220922155805-488bb96aef42
+# github.com/containers/conmon-rs v0.3.1-0.20220923125458-3f0360651fee
 ## explicit; go 1.18
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
