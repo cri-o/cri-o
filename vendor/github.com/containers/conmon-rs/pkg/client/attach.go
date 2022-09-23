@@ -66,6 +66,9 @@ type AttachConfig struct {
 	// Whether stdout/stderr should continue to be processed after stdin is closed.
 	StopAfterStdinEOF bool
 
+	// Whether the container supports stdin or not.
+	ContainerStdin bool
+
 	// Whether the output is passed through the caller's std streams, rather than
 	// ones created for the attach session.
 	Passthrough bool
@@ -120,6 +123,8 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 		if err := req.SetSocketPath(cfg.SocketPath); err != nil {
 			return fmt.Errorf("set socket path: %w", err)
 		}
+
+		req.SetStopAfterStdinEof(cfg.StopAfterStdinEOF)
 
 		// TODO: add exec session
 		return nil
@@ -244,7 +249,7 @@ func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn i
 				return nil
 			}
 		}
-		if er == io.EOF {
+		if er == io.EOF || (cfg.ContainerStdin && !cfg.StopAfterStdinEOF) {
 			return nil
 		}
 		if errors.Is(er, syscall.ECONNRESET) {

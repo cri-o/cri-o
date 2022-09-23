@@ -267,7 +267,8 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 		ID:                c.ID(),
 		SocketPath:        attachSocketPath,
 		Tty:               tty,
-		StopAfterStdinEOF: c.stdin && !c.StdinOnce() && !tty,
+		StopAfterStdinEOF: c.stdin && c.StdinOnce() && !tty,
+		ContainerStdin:    c.stdin,
 		Resize:            libpodResize,
 		Streams: conmonClient.AttachStreams{
 			Stdin:  stdin,
