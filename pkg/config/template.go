@@ -1169,15 +1169,14 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 # annotation_prefix is used to customize the different resources.
 # To configure the cpu shares a container gets in the example above, the pod would have to have the following annotation:
 # "io.crio.workload-type/$container_name = {"cpushares": "value"}"
-{{ $.Comment }}{{ range $workload_type, $workload_config := .Workloads  }}
-[crio.runtime.workloads.{{ $workload_type }}]
+{{ range $workload_type, $workload_config := .Workloads  }}
+{{ $.Comment }}[crio.runtime.workloads.{{ $workload_type }}]
 {{ $.Comment }}activation_annotation = "{{ $workload_config.ActivationAnnotation }}"
 {{ $.Comment }}annotation_prefix = "{{ $workload_config.AnnotationPrefix }}"
-[crio.runtime.workloads.{{ $workload_type }}.resources]
+{{ $.Comment }}[crio.runtime.workloads.{{ $workload_type }}.resources]
 {{ $.Comment }}cpuset = "{{ $workload_config.Resources.CPUSet }}"
 {{ $.Comment }}cpushares = {{ $workload_config.Resources.CPUShares }}
-{{ $.Comment }}{{ end }}
-
+{{ end }}
 `
 
 const templateStringCrioImage = `# The crio.image table contains settings pertaining to the management of OCI images.
