@@ -1083,24 +1083,28 @@ const templateStringCrioRuntimeAbsentMountSourcesToReject = `# A list of paths t
 
 const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.
 # The runtime to use is picked based on the runtime handler provided by the CRI.
-# If no runtime handler is provided, the runtime will be picked based on the level
-# of trust of the workload. Each entry in the table should follow the format:
+# If no runtime handler is provided, the "default_runtime" will be used.
+# Each entry in the table should follow the format:
 #
-#[crio.runtime.runtimes.runtime-handler]
-#  runtime_path = "/path/to/the/executable"
-#  runtime_type = "oci"
-#  runtime_root = "/path/to/the/root"
-#  privileged_without_host_devices = false
-#  allowed_annotations = []
+# [crio.runtime.runtimes.runtime-handler]
+# runtime_path = "/path/to/the/executable"
+# runtime_type = "oci"
+# runtime_root = "/path/to/the/root"
+# monitor_path = "/path/to/container/monitor"
+# monitor_cgroup = "/cgroup/path"
+# monitor_exec_cgroup = "/cgroup/path"
+# monitor_env = []
+# privileged_without_host_devices = false
+# allowed_annotations = []
 # Where:
-# - runtime-handler: name used to identify the runtime
-# - runtime_path (optional, string): absolute path to the runtime executable in
+# - runtime-handler: Name used to identify the runtime.
+# - runtime_path (optional, string): Absolute path to the runtime executable in
 #   the host filesystem. If omitted, the runtime-handler identifier should match
 #   the runtime executable name, and the runtime executable should be placed
 #   in $PATH.
-# - runtime_type (optional, string): type of runtime, one of: "oci", "vm". If
+# - runtime_type (optional, string): Type of runtime, one of: "oci", "vm". If
 #   omitted, an "oci" runtime is assumed.
-# - runtime_root (optional, string): root directory for storage of containers
+# - runtime_root (optional, string): Root directory for storage of containers
 #   state.
 # - runtime_config_path (optional, string): the path for the runtime configuration
 #   file. This can only be used with when using the VM runtime_type.
@@ -1116,48 +1120,29 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 #   "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 #   "io.kubernetes.cri.rdt-class" for setting the RDT class of a container
-# - monitor_exec_cgroup (optional, string): if set to "container", indicates exec probes
+# - monitor_path (optional, string): The path of the monitor binary. Replaces
+#   deprecated option "conmon".
+# - monitor_cgroup (optional, string): The cgroup the container monitor process will be put in.
+#   Replaces deprecated option "conmon_cgroup".
+# - monitor_exec_cgroup (optional, string): If set to "container", indicates exec probes
 #   should be moved to the container's cgroup
-
+# - monitor_env (optional, array of strings): Environment variables to pass to the montior.
+#   Replaces deprecated option "conmon_env".
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 {{ $.Comment }}[crio.runtime.runtimes.{{ $runtime_name }}]
 {{ $.Comment }}runtime_path = "{{ $runtime_handler.RuntimePath }}"
 {{ $.Comment }}runtime_type = "{{ $runtime_handler.RuntimeType }}"
 {{ $.Comment }}runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
 {{ $.Comment }}runtime_config_path = "{{ $runtime_handler.RuntimeConfigPath }}"
-{{ if $runtime_handler.PrivilegedWithoutHostDevices }}
-{{ $.Comment }}privileged_without_host_devices = {{ $runtime_handler.PrivilegedWithoutHostDevices }}
-{{ $.Comment }}{{ end }}
-{{ $.Comment }}{{ if $runtime_handler.AllowedAnnotations }}
-{{ $.Comment }}allowed_annotations = [
-{{ range $opt := $runtime_handler.AllowedAnnotations }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
-{{ $.Comment }}{{ end }}
 {{ $.Comment }}monitor_path = "{{ $runtime_handler.MonitorPath }}"
-{{ $.Comment }}{{ if $runtime_handler.MonitorEnv }}
-{{ $.Comment }}monitor_env = [
-{{ range $opt := $runtime_handler.MonitorEnv }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
-{{ $.Comment }}{{ end }}
 {{ $.Comment }}monitor_cgroup = "{{ $runtime_handler.MonitorCgroup }}"
 {{ $.Comment }}monitor_exec_cgroup = "{{ $runtime_handler.MonitorExecCgroup }}"
-{{ $.Comment }}{{ end }}
-
-# crun is a fast and lightweight fully featured OCI runtime and C library for
-# running containers
-#[crio.runtime.runtimes.crun]
-
-# Kata Containers is an OCI runtime, where containers are run inside lightweight
-# VMs. Kata provides additional isolation towards the host, minimizing the host attack
-# surface and mitigating the consequences of containers breakout.
-
-# Kata Containers with the default configured VMM
-#[crio.runtime.runtimes.kata-runtime]
-
-# Kata Containers with the QEMU VMM
-#[crio.runtime.runtimes.kata-qemu]
-
-# Kata Containers with the Firecracker VMM
-#[crio.runtime.runtimes.kata-fc]
-
+{{ $.Comment }}{{ if $runtime_handler.MonitorEnv }}monitor_env = [
+{{ range $opt := $runtime_handler.MonitorEnv }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]{{ end }}
+{{ if $runtime_handler.AllowedAnnotations }}{{ $.Comment }}allowed_annotations = [
+{{ range $opt := $runtime_handler.AllowedAnnotations }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]{{ end }}
+{{ $.Comment }}privileged_without_host_devices = {{ $runtime_handler.PrivilegedWithoutHostDevices }}
+{{ end }}
 `
 
 const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways to customize containers with different resources
