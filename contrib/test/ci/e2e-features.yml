@@ -31,3 +31,10 @@
       async: '{{ 60 * 60 * 4 }}'  # seconds
       poll: 60
 
+- name: stop customcluster
+  systemd:
+    state: stopped
+    name: customcluster
+
+- name: chmod artifacts directory
+  command: find {{ artifacts }} -type f ! -exec chmod 0644 {} \;
