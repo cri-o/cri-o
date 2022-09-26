@@ -1105,6 +1105,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		}
 	}
 
+	if err := c.TranslateMonitorFields(onExecution); err != nil {
+		return fmt.Errorf("monitor fields translation: %w", err)
+	}
+
 	return nil
 }
 
@@ -1136,11 +1140,6 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 			logrus.Warnf("'%s is being ignored due to: %q", name, err)
 			failedValidation = append(failedValidation, name)
 		}
-		if handler.RuntimeType == DefaultRuntimeType || handler.RuntimeType == "" {
-			if err := c.TranslateMonitorFields(handler); err != nil {
-				return fmt.Errorf("failed to translate monitor fields for runtime %s: %w", name, err)
-			}
-		}
 	}
 
 	for _, invalidHandlerName := range failedValidation {
@@ -1150,34 +1149,48 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 	return nil
 }
 
+func (c *RuntimeConfig) TranslateMonitorFields(onExecution bool) error {
+	for name, handler := range c.Runtimes {
+		if handler.RuntimeType == DefaultRuntimeType || handler.RuntimeType == "" {
+			if err := c.TranslateMonitorFieldsForHandler(handler, onExecution); err != nil {
+				return fmt.Errorf("failed to translate monitor fields for runtime %s: %w", name, err)
+			}
+		}
+	}
+	return nil
+}
+
 // TranslateMonitorFields is a transitional function that takes the configuration fields
 // previously held by the RuntimeConfig that are being moved inside of the runtime handler structure.
-func (c *RuntimeConfig) TranslateMonitorFields(handler *RuntimeHandler) error {
+func (c *RuntimeConfig) TranslateMonitorFieldsForHandler(handler *RuntimeHandler, onExecution bool) error {
 	if c.ConmonCgroup != "" {
+		logrus.Debugf("Monitor cgroup %s is becoming %s", handler.MonitorCgroup, c.ConmonCgroup)
 		handler.MonitorCgroup = c.ConmonCgroup
 	}
 	if c.Conmon != "" {
-		logrus.Warnf("'%s is becoming %s", c.Conmon, handler.MonitorPath)
+		logrus.Debugf("Monitor path %s is becoming %s", handler.MonitorPath, c.Conmon)
 		handler.MonitorPath = c.Conmon
 	}
 	if len(c.ConmonEnv) != 0 {
 		handler.MonitorEnv = c.ConmonEnv
 	}
-	if err := c.ValidateConmonPath("conmon", handler); err != nil {
-		return err
-	}
-	if !c.cgroupManager.IsSystemd() {
-		if handler.MonitorCgroup != utils.PodCgroupName && handler.MonitorCgroup != "" {
-			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
-		}
-		return nil
-	}
 	// If empty, assume default
 	if handler.MonitorCgroup == "" {
 		handler.MonitorCgroup = defaultMonitorCgroup
 	}
-	if !(handler.MonitorCgroup == utils.PodCgroupName || strings.HasSuffix(handler.MonitorCgroup, ".slice")) {
-		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
+	if onExecution {
+		if err := c.ValidateConmonPath("conmon", handler); err != nil {
+			return err
+		}
+		if !c.cgroupManager.IsSystemd() {
+			if handler.MonitorCgroup != utils.PodCgroupName && handler.MonitorCgroup != "" {
+				return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
+			}
+			return nil
+		}
+		if !(handler.MonitorCgroup == utils.PodCgroupName || strings.HasSuffix(handler.MonitorCgroup, ".slice")) {
+			return errors.New("conmon cgroup should be 'pod' or a systemd slice")
+		}
 	}
 	return nil
 }
