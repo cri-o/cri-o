@@ -1064,8 +1064,7 @@ const templateStringCrioRuntimeEnableCriuSupport = `# Globally enable/disable CR
 
 const templateStringCrioRuntimeDefaultRuntime = `# default_runtime is the _name_ of the OCI runtime to be used as the default.
 # default_runtime is the _name_ of the OCI runtime to be used as the default.
-# The name is matched against the runtimes map below. If this value is changed,
-# the corresponding existing entry from the runtimes map below will be ignored.
+# The name is matched against the runtimes map below.
 {{ $.Comment }}default_runtime = "{{ .DefaultRuntime }}"
 
 `
