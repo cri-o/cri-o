@@ -82,6 +82,15 @@
       ./hack/local-up-cluster.sh
     mode: "u=rwx,g=rwx,o=x"
 
+- name: Set CGROUP_CONFIG for fedora
+  become: yes
+  lineinfile:
+    dest: /usr/local/bin/createcluster.sh
+    line: export CGROUP_CONFIG=systemd
+    insertafter: 'export CGROUP_DRIVER='
+    state: present
+  when: ansible_distribution == 'Fedora'
+
 - name: Set kubernetes_provider to be local
   become: yes
   lineinfile:
