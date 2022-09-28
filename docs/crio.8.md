@@ -337,7 +337,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified
 
-**--selinux**: Enable selinux support (default: true)
+**--selinux**: Enable selinux support (default: false)
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup (default: "")
 
@@ -345,7 +345,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. (default: 0)
 
-**--storage-driver, -s**="": OCI storage driver (default: "overlay")
+**--storage-driver, -s**="": OCI storage driver (default: "")
 
 **--storage-opt**="": OCI storage driver option (default: [])
 

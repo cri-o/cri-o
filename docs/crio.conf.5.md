@@ -183,7 +183,7 @@ the container runtime configuration.
   ]
 ```
 
-**add_inheritable_capabilities**=false
+**add_inheritable_capabilities**=true
  Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.
  If capabilities are expected to work for non-root users, this option should be set.
 
