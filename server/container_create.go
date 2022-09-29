@@ -385,6 +385,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, fmt.Errorf("%v: %w", resourceErr, err)
 	}
 
+	s.resourceStore.SetStageForResource(ctr.Name(), "container creating")
+
 	resourceCleaner.Add(ctx, "createCtr: releasing container name "+ctr.Name(), func() error {
 		s.ReleaseContainerName(ctr.Name())
 		return nil
@@ -422,6 +424,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, err
 	}
 
+	s.resourceStore.SetStageForResource(ctr.Name(), "container runtime creation")
 	if err := s.createContainerPlatform(ctx, newContainer, sb.CgroupParent(), mappings); err != nil {
 		return nil, err
 	}
