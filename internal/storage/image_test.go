@@ -384,7 +384,7 @@ var _ = t.Describe("Image", func() {
 						Names: []string{testNormalizedImageName, "localhost/b:latest", "localhost/c:latest"},
 					}, nil),
 
-				storeMock.EXPECT().SetNames(testSHA256, []string{"localhost/b:latest", "localhost/c:latest"}).
+				storeMock.EXPECT().RemoveNames(testSHA256, []string{"docker.io/library/image:latest", "image"}).
 					Return(t.TestError),
 			)
 

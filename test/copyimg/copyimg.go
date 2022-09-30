@@ -186,8 +186,7 @@ func main() {
 					log.Errorf(ctx, "Error finding image: %v", err1)
 					os.Exit(1)
 				}
-				names := append([]string{imageName, addName}, destImage.Names...)
-				err = store.SetNames(destImage.ID, names)
+				err = store.AddNames(destImage.ID, []string{imageName, addName})
 				if err != nil {
 					log.Errorf(ctx, "Error adding name to %s: %v", imageName, err)
 					os.Exit(1)
