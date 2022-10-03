@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/theupdateframework/go-tuf/data"
 	"github.com/theupdateframework/go-tuf/encrypted"
+	"github.com/theupdateframework/go-tuf/internal/fsutil"
 	"github.com/theupdateframework/go-tuf/internal/sets"
 	"github.com/theupdateframework/go-tuf/pkg/keys"
 	"github.com/theupdateframework/go-tuf/util"
@@ -197,18 +198,44 @@ type persistedKeys struct {
 	Data      json.RawMessage `json:"data"`
 }
 
+type StoreOpts struct {
+	Logger   *log.Logger
+	PassFunc util.PassphraseFunc
+}
+
 func FileSystemStore(dir string, p util.PassphraseFunc) LocalStore {
 	return &fileSystemStore{
 		dir:            dir,
 		passphraseFunc: p,
+		logger:         log.New(io.Discard, "", 0),
 		signerForKeyID: make(map[string]keys.Signer),
 		keyIDsForRole:  make(map[string][]string),
 	}
 }
 
+func FileSystemStoreWithOpts(dir string, opts ...StoreOpts) LocalStore {
+	store := &fileSystemStore{
+		dir:            dir,
+		passphraseFunc: nil,
+		logger:         log.New(io.Discard, "", 0),
+		signerForKeyID: make(map[string]keys.Signer),
+		keyIDsForRole:  make(map[string][]string),
+	}
+	for _, opt := range opts {
+		if opt.Logger != nil {
+			store.logger = opt.Logger
+		}
+		if opt.PassFunc != nil {
+			store.passphraseFunc = opt.PassFunc
+		}
+	}
+	return store
+}
+
 type fileSystemStore struct {
 	dir            string
 	passphraseFunc util.PassphraseFunc
+	logger         *log.Logger
 
 	signerForKeyID map[string]keys.Signer
 	keyIDsForRole  map[string][]string
@@ -220,19 +247,6 @@ func (f *fileSystemStore) repoDir() string {
 
 func (f *fileSystemStore) stagedDir() string {
 	return filepath.Join(f.dir, "staged")
-}
-
-func isMetaFile(e os.DirEntry) (bool, error) {
-	if e.IsDir() || filepath.Ext(e.Name()) != ".json" {
-		return false, nil
-	}
-
-	info, err := e.Info()
-	if err != nil {
-		return false, err
-	}
-
-	return info.Mode().IsRegular(), nil
 }
 
 func (f *fileSystemStore) GetMeta() (map[string]json.RawMessage, error) {
@@ -247,7 +261,7 @@ func (f *fileSystemStore) GetMeta() (map[string]json.RawMessage, error) {
 	}
 
 	for _, e := range committed {
-		imf, err := isMetaFile(e)
+		imf, err := fsutil.IsMetaFile(e)
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +278,7 @@ func (f *fileSystemStore) GetMeta() (map[string]json.RawMessage, error) {
 	}
 
 	for _, e := range staged {
-		imf, err := isMetaFile(e)
+		imf, err := fsutil.IsMetaFile(e)
 		if err != nil {
 			return nil, err
 		}
@@ -276,7 +290,7 @@ func (f *fileSystemStore) GetMeta() (map[string]json.RawMessage, error) {
 
 	meta := make(map[string]json.RawMessage)
 	for name, path := range metaPaths {
-		f, err := ioutil.ReadFile(path)
+		f, err := os.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}
@@ -311,44 +325,44 @@ func (f *fileSystemStore) createDirs() error {
 
 func (f *fileSystemStore) WalkStagedTargets(paths []string, targetsFn TargetsWalkFunc) error {
 	if len(paths) == 0 {
-		walkFunc := func(path string, info os.FileInfo, err error) error {
+		walkFunc := func(fpath string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
 			if info.IsDir() || !info.Mode().IsRegular() {
 				return nil
 			}
-			rel, err := filepath.Rel(filepath.Join(f.stagedDir(), "targets"), path)
+			rel, err := filepath.Rel(filepath.Join(f.stagedDir(), "targets"), fpath)
 			if err != nil {
 				return err
 			}
-			file, err := os.Open(path)
+			file, err := os.Open(fpath)
 			if err != nil {
 				return err
 			}
 			defer file.Close()
-			return targetsFn(rel, file)
+			return targetsFn(filepath.ToSlash(rel), file)
 		}
 		return filepath.Walk(filepath.Join(f.stagedDir(), "targets"), walkFunc)
 	}
 
 	// check all the files exist before processing any files
 	for _, path := range paths {
-		realPath := filepath.Join(f.stagedDir(), "targets", path)
-		if _, err := os.Stat(realPath); err != nil {
+		realFilepath := filepath.Join(f.stagedDir(), "targets", path)
+		if _, err := os.Stat(realFilepath); err != nil {
 			if os.IsNotExist(err) {
-				return ErrFileNotFound{realPath}
+				return ErrFileNotFound{realFilepath}
 			}
 			return err
 		}
 	}
 
 	for _, path := range paths {
-		realPath := filepath.Join(f.stagedDir(), "targets", path)
-		file, err := os.Open(realPath)
+		realFilepath := filepath.Join(f.stagedDir(), "targets", path)
+		file, err := os.Open(realFilepath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				return ErrFileNotFound{realPath}
+				return ErrFileNotFound{realFilepath}
 			}
 			return err
 		}
@@ -373,23 +387,24 @@ func (f *fileSystemStore) Commit(consistentSnapshot bool, versions map[string]in
 	isTarget := func(path string) bool {
 		return strings.HasPrefix(path, "targets/")
 	}
-	copyToRepo := func(path string, info os.FileInfo, err error) error {
+	copyToRepo := func(fpath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if info.IsDir() || !info.Mode().IsRegular() {
 			return nil
 		}
-		rel, err := filepath.Rel(f.stagedDir(), path)
+		rel, err := filepath.Rel(f.stagedDir(), fpath)
 		if err != nil {
 			return err
 		}
+		relpath := filepath.ToSlash(rel)
 
 		var paths []string
-		if isTarget(rel) {
-			paths = computeTargetPaths(consistentSnapshot, rel, hashes)
+		if isTarget(relpath) {
+			paths = computeTargetPaths(consistentSnapshot, relpath, hashes)
 		} else {
-			paths = computeMetadataPaths(consistentSnapshot, rel, versions)
+			paths = computeMetadataPaths(consistentSnapshot, relpath, versions)
 		}
 		var files []io.Writer
 		for _, path := range paths {
@@ -400,7 +415,7 @@ func (f *fileSystemStore) Commit(consistentSnapshot bool, versions map[string]in
 			defer file.Close()
 			files = append(files, file)
 		}
-		staged, err := os.Open(path)
+		staged, err := os.Open(fpath)
 		if err != nil {
 			return err
 		}
@@ -411,21 +426,21 @@ func (f *fileSystemStore) Commit(consistentSnapshot bool, versions map[string]in
 		return nil
 	}
 	// Checks if target file should be deleted
-	needsRemoval := func(path string) bool {
+	needsRemoval := func(fpath string) bool {
 		if consistentSnapshot {
 			// strip out the hash
-			name := strings.SplitN(filepath.Base(path), ".", 2)
+			name := strings.SplitN(filepath.Base(fpath), ".", 2)
 			if len(name) != 2 || name[1] == "" {
 				return false
 			}
-			path = filepath.Join(filepath.Dir(path), name[1])
+			fpath = filepath.Join(filepath.Dir(fpath), name[1])
 		}
-		_, ok := hashes[path]
+		_, ok := hashes[filepath.ToSlash(fpath)]
 		return !ok
 	}
 	// Checks if folder is empty
-	folderNeedsRemoval := func(path string) bool {
-		f, err := os.Open(path)
+	folderNeedsRemoval := func(fpath string) bool {
+		f, err := os.Open(fpath)
 		if err != nil {
 			return false
 		}
@@ -433,21 +448,22 @@ func (f *fileSystemStore) Commit(consistentSnapshot bool, versions map[string]in
 		_, err = f.Readdirnames(1)
 		return err == io.EOF
 	}
-	removeFile := func(path string, info os.FileInfo, err error) error {
+	removeFile := func(fpath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		rel, err := filepath.Rel(f.repoDir(), path)
+		rel, err := filepath.Rel(f.repoDir(), fpath)
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && isTarget(rel) && needsRemoval(rel) {
+		relpath := filepath.ToSlash(rel)
+		if !info.IsDir() && isTarget(relpath) && needsRemoval(rel) {
 			// Delete the target file
-			if err := os.Remove(path); err != nil {
+			if err := os.Remove(fpath); err != nil {
 				return err
 			}
 			// Delete the target folder too if it's empty
-			targetFolder := filepath.Dir(path)
+			targetFolder := filepath.Dir(fpath)
 			if folderNeedsRemoval(targetFolder) {
 				if err := os.Remove(targetFolder); err != nil {
 					return err
@@ -537,7 +553,7 @@ func (f *fileSystemStore) ChangePassphrase(role string) error {
 	keys, _, err := f.loadPrivateKeys(role)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Printf("Failed to change passphrase. Missing keys file for %s role. \n", role)
+			f.logger.Printf("Failed to change passphrase. Missing keys file for %s role. \n", role)
 		}
 		return err
 	}
@@ -559,7 +575,7 @@ func (f *fileSystemStore) ChangePassphrase(role string) error {
 	if err := util.AtomicallyWriteFile(f.keysPath(role), append(data, '\n'), 0600); err != nil {
 		return err
 	}
-	fmt.Printf("Successfully changed passphrase for %s keys file\n", role)
+	f.logger.Printf("Successfully changed passphrase for %s keys file\n", role)
 	return nil
 }
 

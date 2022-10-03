@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"path"
 	"sort"
 	"strings"
@@ -48,24 +49,64 @@ type Repo struct {
 	meta           map[string]json.RawMessage
 	prefix         string
 	indent         string
+	logger         *log.Logger
+}
+
+type RepoOpts func(r *Repo)
+
+func WithLogger(logger *log.Logger) RepoOpts {
+	return func(r *Repo) {
+		r.logger = logger
+	}
+}
+
+func WithHashAlgorithms(hashAlgorithms ...string) RepoOpts {
+	return func(r *Repo) {
+		r.hashAlgorithms = hashAlgorithms
+	}
+}
+
+func WithPrefix(prefix string) RepoOpts {
+	return func(r *Repo) {
+		r.prefix = prefix
+	}
+}
+
+func WithIndex(indent string) RepoOpts {
+	return func(r *Repo) {
+		r.indent = indent
+	}
 }
 
 func NewRepo(local LocalStore, hashAlgorithms ...string) (*Repo, error) {
 	return NewRepoIndent(local, "", "", hashAlgorithms...)
 }
 
-func NewRepoIndent(local LocalStore, prefix string, indent string, hashAlgorithms ...string) (*Repo, error) {
+func NewRepoIndent(local LocalStore, prefix string, indent string,
+	hashAlgorithms ...string) (*Repo, error) {
 	r := &Repo{
 		local:          local,
 		hashAlgorithms: hashAlgorithms,
 		prefix:         prefix,
 		indent:         indent,
+		logger:         log.New(io.Discard, "", 0),
 	}
 
 	var err error
 	r.meta, err = local.GetMeta()
 	if err != nil {
 		return nil, err
+	}
+	return r, nil
+}
+
+func NewRepoWithOpts(local LocalStore, opts ...RepoOpts) (*Repo, error) {
+	r, err := NewRepo(local)
+	if err != nil {
+		return nil, err
+	}
+	for _, opt := range opts {
+		opt(r)
 	}
 	return r, nil
 }
@@ -91,7 +132,7 @@ func (r *Repo) Init(consistentSnapshot bool) error {
 		return err
 	}
 
-	fmt.Println("Repository initialized")
+	r.logger.Println("Repository initialized")
 	return nil
 }
 
@@ -309,19 +350,33 @@ func (r *Repo) GenKey(role string) ([]string, error) {
 }
 
 func (r *Repo) GenKeyWithExpires(keyRole string, expires time.Time) (keyids []string, err error) {
+	return r.GenKeyWithSchemeAndExpires(keyRole, expires, data.KeySchemeEd25519)
+}
+
+func (r *Repo) GenKeyWithSchemeAndExpires(role string, expires time.Time, keyScheme data.KeyScheme) ([]string, error) {
+	var signer keys.Signer
+	var err error
+	switch keyScheme {
+	case data.KeySchemeEd25519:
+		signer, err = keys.GenerateEd25519Key()
+	case data.KeySchemeECDSA_SHA2_P256:
+		signer, err = keys.GenerateEcdsaKey()
+	case data.KeySchemeRSASSA_PSS_SHA256:
+		signer, err = keys.GenerateRsaKey()
+	default:
+		return nil, errors.New("unknown key type")
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	// Not compatible with delegated targets roles, since delegated targets keys
 	// are associated with a delegation (edge), not a role (node).
 
-	signer, err := keys.GenerateEd25519Key()
-	if err != nil {
-		return []string{}, err
+	if err = r.AddPrivateKeyWithExpires(role, signer, expires); err != nil {
+		return nil, err
 	}
-
-	if err = r.AddPrivateKeyWithExpires(keyRole, signer, expires); err != nil {
-		return []string{}, err
-	}
-	keyids = signer.PublicData().IDs()
-	return
+	return signer.PublicData().IDs(), nil
 }
 
 func (r *Repo) AddPrivateKey(role string, signer keys.Signer) error {
@@ -519,7 +574,7 @@ func (r *Repo) RevokeKeyWithExpires(keyRole, id string, expires time.Time) error
 
 	err = r.setMeta("root.json", root)
 	if err == nil {
-		fmt.Println("Revoked", keyRole, "key with ID", id, "in root metadata")
+		r.logger.Println("Revoked", keyRole, "key with ID", id, "in root metadata")
 	}
 	return err
 }
@@ -769,7 +824,7 @@ func (r *Repo) Sign(roleFilename string) error {
 	r.meta[roleFilename] = b
 	err = r.local.SetMeta(roleFilename, b)
 	if err == nil {
-		fmt.Println("Signed", roleFilename, "with", numKeys, "key(s)")
+		r.logger.Println("Signed", roleFilename, "with", numKeys, "key(s)")
 	}
 	return err
 }
@@ -1027,7 +1082,7 @@ func (r *Repo) AddTargetsWithDigest(digest string, digestAlg string, length int6
 	// This is the targets role that needs to sign the target file.
 	targetsRoleName := delegation.Delegatee.Name
 
-	meta := data.FileMeta{Length: length, Hashes: make(data.Hashes, 1)}
+	meta := data.TargetFileMeta{FileMeta: data.FileMeta{Length: length, Hashes: make(data.Hashes, 1)}}
 	meta.Hashes[digestAlg], err = hex.DecodeString(digest)
 	if err != nil {
 		return err
@@ -1044,7 +1099,7 @@ func (r *Repo) AddTargetsWithDigest(digest string, digestAlg string, length int6
 	// What does G2 mean? Copying and pasting this comment from elsewhere in this file.
 	// G2 -> we no longer desire any readers to ever observe non-prefix targets.
 	delete(targetsMeta.Targets, "/"+path)
-	targetsMeta.Targets[path] = data.TargetFileMeta{FileMeta: meta}
+	targetsMeta.Targets[path] = meta
 
 	targetsMeta.Expires = expires.Round(time.Second)
 
@@ -1209,7 +1264,7 @@ func (r *Repo) removeTargetsWithExpiresFromMeta(metaName string, paths []string,
 		for _, path := range paths {
 			path = util.NormalizeTarget(path)
 			if _, ok := t.Targets[path]; !ok {
-				fmt.Printf("[%v] The following target is not present: %v\n", metaName, path)
+				r.logger.Printf("[%v] The following target is not present: %v\n", metaName, path)
 				continue
 			}
 			removed = true
@@ -1229,17 +1284,17 @@ func (r *Repo) removeTargetsWithExpiresFromMeta(metaName string, paths []string,
 
 	err = r.setMeta(metaName, t)
 	if err == nil {
-		fmt.Printf("[%v] Removed targets:\n", metaName)
+		r.logger.Printf("[%v] Removed targets:\n", metaName)
 		for _, v := range removed_targets {
-			fmt.Println("*", v)
+			r.logger.Println("*", v)
 		}
 		if len(t.Targets) != 0 {
-			fmt.Printf("[%v] Added/staged targets:\n", metaName)
+			r.logger.Printf("[%v] Added/staged targets:\n", metaName)
 			for k := range t.Targets {
-				fmt.Println("*", k)
+				r.logger.Println("*", k)
 			}
 		} else {
-			fmt.Printf("[%v] There are no added/staged targets\n", metaName)
+			r.logger.Printf("[%v] There are no added/staged targets\n", metaName)
 		}
 	}
 	return err
@@ -1293,7 +1348,7 @@ func (r *Repo) SnapshotWithExpires(expires time.Time) error {
 	}
 	err = r.setMeta("snapshot.json", snapshot)
 	if err == nil {
-		fmt.Println("Staged snapshot.json metadata with expiration date:", snapshot.Expires)
+		r.logger.Println("Staged snapshot.json metadata with expiration date:", snapshot.Expires)
 	}
 	return err
 }
@@ -1325,7 +1380,7 @@ func (r *Repo) TimestampWithExpires(expires time.Time) error {
 
 	err = r.setMeta("timestamp.json", timestamp)
 	if err == nil {
-		fmt.Println("Staged timestamp.json metadata with expiration date:", timestamp.Expires)
+		r.logger.Println("Staged timestamp.json metadata with expiration date:", timestamp.Expires)
 	}
 	return err
 }
@@ -1491,7 +1546,7 @@ func (r *Repo) Commit() error {
 
 	err = r.local.Commit(root.ConsistentSnapshot, versions, hashes)
 	if err == nil {
-		fmt.Println("Committed successfully")
+		r.logger.Println("Committed successfully")
 	}
 	return err
 }
@@ -1499,7 +1554,7 @@ func (r *Repo) Commit() error {
 func (r *Repo) Clean() error {
 	err := r.local.Clean()
 	if err == nil {
-		fmt.Println("Removed all staged metadata and target files")
+		r.logger.Println("Removed all staged metadata and target files")
 	}
 	return err
 }
@@ -1554,4 +1609,45 @@ func (r *Repo) Payload(roleFilename string) ([]byte, error) {
 	}
 
 	return p, nil
+}
+
+func (r *Repo) CheckRoleUnexpired(role string, validAt time.Time) error {
+	var expires time.Time
+	switch role {
+	case "root":
+		root, err := r.root()
+		if err != nil {
+			return err
+		}
+		expires = root.Expires
+	case "snapshot":
+		snapshot, err := r.snapshot()
+		if err != nil {
+			return err
+		}
+		expires = snapshot.Expires
+	case "timestamp":
+		timestamp, err := r.timestamp()
+		if err != nil {
+			return err
+		}
+		expires = timestamp.Expires
+	case "targets":
+		targets, err := r.topLevelTargets()
+		if err != nil {
+			return err
+		}
+		expires = targets.Expires
+	default:
+		return fmt.Errorf("invalid role: %s", role)
+	}
+	if expires.Before(validAt) || expires.Equal(validAt) {
+		return fmt.Errorf("role expired on: %s", expires)
+	}
+	return nil
+}
+
+// GetMeta returns the underlying meta file map from the store.
+func (r *Repo) GetMeta() (map[string]json.RawMessage, error) {
+	return r.local.GetMeta()
 }

@@ -113,15 +113,23 @@ func (i *inflight) result() ([]jose.JSONWebKey, error) {
 	return i.keys, i.err
 }
 
+// paresdJWTKey is a context key that allows common setups to avoid parsing the
+// JWT twice. It holds a *jose.JSONWebSignature value.
+var parsedJWTKey contextKey
+
 // VerifySignature validates a payload against a signature from the jwks_uri.
 //
 // Users MUST NOT call this method directly and should use an IDTokenVerifier
 // instead. This method skips critical validations such as 'alg' values and is
 // only exported to implement the KeySet interface.
 func (r *RemoteKeySet) VerifySignature(ctx context.Context, jwt string) ([]byte, error) {
-	jws, err := jose.ParseSigned(jwt)
-	if err != nil {
-		return nil, fmt.Errorf("oidc: malformed jwt: %v", err)
+	jws, ok := ctx.Value(parsedJWTKey).(*jose.JSONWebSignature)
+	if !ok {
+		var err error
+		jws, err = jose.ParseSigned(jwt)
+		if err != nil {
+			return nil, fmt.Errorf("oidc: malformed jwt: %v", err)
+		}
 	}
 	return r.verify(ctx, jws)
 }

@@ -19,7 +19,6 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -72,7 +71,7 @@ func NewSigstoreTufRepo(t *testing.T, root TestSigstoreRoot) (tuf.LocalStore, *t
 	}
 	rekorPath := "rekor.pub"
 	rekorData := cryptoutils.PEMEncode(cryptoutils.PublicKeyPEMType, b)
-	if err := ioutil.WriteFile(filepath.Join(targetsPath, rekorPath), rekorData, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(targetsPath, rekorPath), rekorData, 0o600); err != nil {
 		t.Error(err)
 	}
 	scmRekor, err := json.Marshal(&sigstoreCustomMetadata{Sigstore: customMetadata{Usage: Rekor, Status: Active}})
@@ -85,7 +84,7 @@ func NewSigstoreTufRepo(t *testing.T, root TestSigstoreRoot) (tuf.LocalStore, *t
 	// Add Fulcio Certificate information.
 	fulcioPath := "fulcio.crt.pem"
 	fulcioData := cryptoutils.PEMEncode(cryptoutils.CertificatePEMType, root.FulcioCertificate.Raw)
-	if err := ioutil.WriteFile(filepath.Join(targetsPath, fulcioPath), fulcioData, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(targetsPath, fulcioPath), fulcioData, 0o600); err != nil {
 		t.Error(err)
 	}
 	scmFulcio, err := json.Marshal(&sigstoreCustomMetadata{Sigstore: customMetadata{Usage: Fulcio, Status: Active}})

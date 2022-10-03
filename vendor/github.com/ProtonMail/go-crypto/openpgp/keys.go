@@ -87,15 +87,15 @@ func (e *Entity) PrimaryIdentity() *Identity {
 }
 
 func shouldPreferIdentity(existingId, potentialNewId *Identity) bool {
-	if (existingId == nil) {
+	if existingId == nil {
 		return true
 	}
 
-	if (len(existingId.Revocations) > len(potentialNewId.Revocations)) {
+	if len(existingId.Revocations) > len(potentialNewId.Revocations) {
 		return true
 	}
 
-	if (len(existingId.Revocations) < len(potentialNewId.Revocations)) {
+	if len(existingId.Revocations) < len(potentialNewId.Revocations) {
 		return false
 	}
 
@@ -103,13 +103,13 @@ func shouldPreferIdentity(existingId, potentialNewId *Identity) bool {
 		return true
 	}
 
-	if (existingId.SelfSignature.IsPrimaryId != nil && *existingId.SelfSignature.IsPrimaryId &&
-		!(potentialNewId.SelfSignature.IsPrimaryId != nil && *potentialNewId.SelfSignature.IsPrimaryId)) {
+	if existingId.SelfSignature.IsPrimaryId != nil && *existingId.SelfSignature.IsPrimaryId &&
+		!(potentialNewId.SelfSignature.IsPrimaryId != nil && *potentialNewId.SelfSignature.IsPrimaryId) {
 		return false
 	}
 
-	if (!(existingId.SelfSignature.IsPrimaryId != nil && *existingId.SelfSignature.IsPrimaryId) &&
-		potentialNewId.SelfSignature.IsPrimaryId != nil && *potentialNewId.SelfSignature.IsPrimaryId) {
+	if !(existingId.SelfSignature.IsPrimaryId != nil && *existingId.SelfSignature.IsPrimaryId) &&
+		potentialNewId.SelfSignature.IsPrimaryId != nil && *potentialNewId.SelfSignature.IsPrimaryId {
 		return true
 	}
 
@@ -162,6 +162,19 @@ func (e *Entity) EncryptionKey(now time.Time) (Key, bool) {
 	return Key{}, false
 }
 
+
+// CertificationKey return the best candidate Key for certifying a key with this
+// Entity.
+func (e *Entity) CertificationKey(now time.Time) (Key, bool) {
+	return e.CertificationKeyById(now, 0)
+}
+
+// CertificationKeyById return the Key for key certification with this
+// Entity and keyID.
+func (e *Entity) CertificationKeyById(now time.Time, id uint64) (Key, bool) {
+	return e.signingKeyByIdUsage(now, id, packet.KeyFlagCertify)
+}
+
 // SigningKey return the best candidate Key for signing a message with this
 // Entity.
 func (e *Entity) SigningKey(now time.Time) (Key, bool) {
@@ -171,6 +184,10 @@ func (e *Entity) SigningKey(now time.Time) (Key, bool) {
 // SigningKeyById return the Key for signing a message with this
 // Entity and keyID.
 func (e *Entity) SigningKeyById(now time.Time, id uint64) (Key, bool) {
+	return e.signingKeyByIdUsage(now, id, packet.KeyFlagSign)
+}
+
+func (e *Entity) signingKeyByIdUsage(now time.Time, id uint64, flags int) (Key, bool) {
 	// Fail to find any signing key if the...
 	i := e.PrimaryIdentity()
 	if e.PrimaryKey.KeyExpired(i.SelfSignature, now) || // primary key has expired
@@ -186,7 +203,8 @@ func (e *Entity) SigningKeyById(now time.Time, id uint64) (Key, bool) {
 	var maxTime time.Time
 	for idx, subkey := range e.Subkeys {
 		if subkey.Sig.FlagsValid &&
-			subkey.Sig.FlagSign &&
+			(flags & packet.KeyFlagCertify == 0 || subkey.Sig.FlagCertify) &&
+			(flags & packet.KeyFlagSign == 0 || subkey.Sig.FlagSign) &&
 			subkey.PublicKey.PubKeyAlgo.CanSign() &&
 			!subkey.PublicKey.KeyExpired(subkey.Sig, now) &&
 			!subkey.Sig.SigExpired(now) &&
@@ -206,7 +224,9 @@ func (e *Entity) SigningKeyById(now time.Time, id uint64) (Key, bool) {
 	// If we have no candidate subkey then we assume that it's ok to sign
 	// with the primary key.  Or, if the primary key is marked as ok to
 	// sign with, then we can use it.
-	if !i.SelfSignature.FlagsValid || i.SelfSignature.FlagSign &&
+	if !i.SelfSignature.FlagsValid || (
+			(flags & packet.KeyFlagCertify == 0 || i.SelfSignature.FlagCertify) &&
+			(flags & packet.KeyFlagSign == 0 || i.SelfSignature.FlagSign)) &&
 		e.PrimaryKey.PubKeyAlgo.CanSign() &&
 		(id == 0 || e.PrimaryKey.KeyId == id) {
 		return Key{e, e.PrimaryKey, e.PrivateKey, i.SelfSignature, e.Revocations}, true
@@ -515,7 +535,6 @@ func addUserID(e *Entity, packets *packet.Reader, pkt *packet.UserId) error {
 			return errors.StructuralError("user ID signature with wrong type")
 		}
 
-
 		if sig.CheckKeyIdOrFingerprint(e.PrimaryKey) {
 			if err = e.PrimaryKey.VerifyUserIdSignature(pkt.Id, e.PrimaryKey, sig); err != nil {
 				return errors.StructuralError("user ID self-signature invalid: " + err.Error())
@@ -629,16 +648,10 @@ func (e *Entity) serializePrivate(w io.Writer, config *packet.Config, reSign boo
 				return
 			}
 		}
-		for _, revocation := range ident.Revocations {
-			err := revocation.Serialize(w)
+		for _, sig := range ident.Signatures {
+			err = sig.Serialize(w)
 			if err != nil {
 				return err
-			}
-		}
-		if ident.SelfSignature != nil {
-			err = ident.SelfSignature.Serialize(w)
-			if err != nil {
-				return
 			}
 		}
 	}
@@ -724,26 +737,42 @@ func (e *Entity) Serialize(w io.Writer) error {
 // necessary.
 // If config is nil, sensible defaults will be used.
 func (e *Entity) SignIdentity(identity string, signer *Entity, config *packet.Config) error {
-	if signer.PrivateKey == nil {
-		return errors.InvalidArgumentError("signing Entity must have a private key")
+	certificationKey, ok := signer.CertificationKey(config.Now())
+	if !ok {
+		return errors.InvalidArgumentError("no valid certification key found")
 	}
-	if signer.PrivateKey.Encrypted {
+
+	if certificationKey.PrivateKey.Encrypted {
 		return errors.InvalidArgumentError("signing Entity's private key must be decrypted")
 	}
+
 	ident, ok := e.Identities[identity]
 	if !ok {
 		return errors.InvalidArgumentError("given identity string not found in Entity")
 	}
 
 	sig := &packet.Signature{
-		Version:      signer.PrivateKey.Version,
+		Version:      certificationKey.PrivateKey.Version,
 		SigType:      packet.SigTypeGenericCert,
-		PubKeyAlgo:   signer.PrivateKey.PubKeyAlgo,
+		PubKeyAlgo:   certificationKey.PrivateKey.PubKeyAlgo,
 		Hash:         config.Hash(),
 		CreationTime: config.Now(),
-		IssuerKeyId:  &signer.PrivateKey.KeyId,
+		IssuerKeyId:  &certificationKey.PrivateKey.KeyId,
 	}
-	if err := sig.SignUserId(identity, e.PrimaryKey, signer.PrivateKey, config); err != nil {
+
+	if config.SigLifetime() != 0 {
+		sig.SigLifetimeSecs = &config.SigLifetimeSecs
+	}
+
+	signingUserID := config.SigningUserId()
+	if signingUserID != "" {
+		if _, ok := signer.Identities[signingUserID]; !ok {
+			return errors.InvalidArgumentError("signer identity string not found in signer Entity")
+		}
+		sig.SignerUserId = &signingUserID
+	}
+
+	if err := sig.SignUserId(identity, e.PrimaryKey, certificationKey.PrivateKey, config); err != nil {
 		return err
 	}
 	ident.Signatures = append(ident.Signatures, sig)

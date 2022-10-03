@@ -8,15 +8,14 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/dsa"
-	"crypto/ecdsa"
-	"encoding/asn1"
 	"encoding/binary"
 	"hash"
 	"io"
-	"math/big"
 	"strconv"
 	"time"
 
+	"github.com/ProtonMail/go-crypto/openpgp/ecdsa"
+	"github.com/ProtonMail/go-crypto/openpgp/eddsa"
 	"github.com/ProtonMail/go-crypto/openpgp/errors"
 	"github.com/ProtonMail/go-crypto/openpgp/internal/encoding"
 	"github.com/ProtonMail/go-crypto/openpgp/s2k"
@@ -70,6 +69,7 @@ type Signature struct {
 	PreferredAEAD                                           []uint8
 	IssuerKeyId                                             *uint64
 	IssuerFingerprint                                       []byte
+	SignerUserId                                            *string
 	IsPrimaryId                                             *bool
 
 	// PolicyURI can be set to the URI of a document that describes the
@@ -229,6 +229,7 @@ const (
 	primaryUserIdSubpacket       signatureSubpacketType = 25
 	policyUriSubpacket           signatureSubpacketType = 26
 	keyFlagsSubpacket            signatureSubpacketType = 27
+	signerUserIdSubpacket        signatureSubpacketType = 28
 	reasonForRevocationSubpacket signatureSubpacketType = 29
 	featuresSubpacket            signatureSubpacketType = 30
 	embeddedSignatureSubpacket   signatureSubpacketType = 32
@@ -387,6 +388,9 @@ func parseSignatureSubpacket(sig *Signature, subpacket []byte, isHashed bool) (r
 		if subpacket[0]&KeyFlagGroupKey != 0 {
 			sig.FlagGroupKey = true
 		}
+	case signerUserIdSubpacket:
+		userId := string(subpacket)
+		sig.SignerUserId = &userId
 	case reasonForRevocationSubpacket:
 		// Reason For Revocation, section 5.2.3.23
 		if !isHashed {
@@ -649,45 +653,25 @@ func (sig *Signature) Sign(h hash.Hash, priv *PrivateKey, config *Config) (err e
 			sig.DSASigS = new(encoding.MPI).SetBig(s)
 		}
 	case PubKeyAlgoECDSA:
-		var r, s *big.Int
-		if pk, ok := priv.PrivateKey.(*ecdsa.PrivateKey); ok {
-			// direct support, avoid asn1 wrapping/unwrapping
-			r, s, err = ecdsa.Sign(config.Random(), pk, digest)
-		} else {
-			var b []byte
-			b, err = priv.PrivateKey.(crypto.Signer).Sign(config.Random(), digest, sig.Hash)
-			if err == nil {
-				r, s, err = unwrapECDSASig(b)
-			}
-		}
+		sk := priv.PrivateKey.(*ecdsa.PrivateKey)
+		r, s, err := ecdsa.Sign(config.Random(), sk, digest)
+
 		if err == nil {
 			sig.ECDSASigR = new(encoding.MPI).SetBig(r)
 			sig.ECDSASigS = new(encoding.MPI).SetBig(s)
 		}
 	case PubKeyAlgoEdDSA:
-		sigdata, err := priv.PrivateKey.(crypto.Signer).Sign(config.Random(), digest, crypto.Hash(0))
+		sk := priv.PrivateKey.(*eddsa.PrivateKey)
+		r, s, err := eddsa.Sign(sk, digest)
 		if err == nil {
-			sig.EdDSASigR = encoding.NewMPI(sigdata[:32])
-			sig.EdDSASigS = encoding.NewMPI(sigdata[32:])
+			sig.EdDSASigR = encoding.NewMPI(r)
+			sig.EdDSASigS = encoding.NewMPI(s)
 		}
 	default:
 		err = errors.UnsupportedError("public key algorithm: " + strconv.Itoa(int(sig.PubKeyAlgo)))
 	}
 
 	return
-}
-
-// unwrapECDSASig parses the two integer components of an ASN.1-encoded ECDSA
-// signature.
-func unwrapECDSASig(b []byte) (r, s *big.Int, err error) {
-	var ecsdaSig struct {
-		R, S *big.Int
-	}
-	_, err = asn1.Unmarshal(b, &ecsdaSig)
-	if err != nil {
-		return
-	}
-	return ecsdaSig.R, ecsdaSig.S, nil
 }
 
 // SignUserId computes a signature from priv, asserting that pub is a valid
@@ -864,6 +848,9 @@ func (sig *Signature) buildSubpackets(issuer PublicKey) (subpackets []outputSubp
 		contents := append([]uint8{uint8(issuer.Version)}, sig.IssuerFingerprint...)
 		subpackets = append(subpackets, outputSubpacket{true, issuerFingerprintSubpacket, sig.Version == 5, contents})
 	}
+	if sig.SignerUserId != nil {
+		subpackets = append(subpackets, outputSubpacket{true, signerUserIdSubpacket, false, []byte(*sig.SignerUserId)})
+	}
 	if sig.SigLifetimeSecs != nil && *sig.SigLifetimeSecs != 0 {
 		sigLifetime := make([]byte, 4)
 		binary.BigEndian.PutUint32(sigLifetime, *sig.SigLifetimeSecs)
@@ -984,7 +971,7 @@ func (sig *Signature) AddMetadataToHashSuffix() {
 	n := sig.HashSuffix[len(sig.HashSuffix)-8:]
 	l := uint64(
 		uint64(n[0])<<56 | uint64(n[1])<<48 | uint64(n[2])<<40 | uint64(n[3])<<32 |
-		uint64(n[4])<<24 | uint64(n[5])<<16 | uint64(n[6])<<8  | uint64(n[7]))
+		uint64(n[4])<<24 | uint64(n[5])<<16 | uint64(n[6])<<8 | uint64(n[7]))
 
 	suffix := bytes.NewBuffer(nil)
 	suffix.Write(sig.HashSuffix[:l])
