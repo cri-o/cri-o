@@ -291,7 +291,7 @@ the container runtime configuration.
   Enable CRIU integration, requires that the criu binary is available in $PATH. (default: false)
 
 ### CRIO.RUNTIME.RUNTIMES TABLE
-The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime handler provided by the CRI.  If no runtime handler is provided, the runtime will be picked based on the level of trust of the workload. This option supports live configuration reload. Note that on reload runtimes can only be added to this table but not modified or removed.
+The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime handler provided by the CRI.  If no runtime handler is provided, the runtime will be picked based on the level of trust of the workload. This option supports live configuration reload. This option supports live configuration reload.
 
 **runtime_path**=""
   Path to the OCI compatible runtime used for this runtime handler.

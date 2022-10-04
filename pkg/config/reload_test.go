@@ -373,6 +373,7 @@ var _ = t.Describe("Config", func() {
 				RuntimePath: "/usr/bin/runc",
 			}
 			newConfig := &config.Config{}
+			newConfig.Runtimes = sut.Runtimes
 			newConfig.DefaultRuntime = "existing"
 
 			// When
@@ -383,26 +384,28 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.DefaultRuntime).To(Equal("existing"))
 		})
 
-		It("should not add existing runtime", func() {
+		It("should overwrite existing runtime", func() {
 			// Given
 			existingRuntime := &config.RuntimeHandler{
 				RuntimePath: "/usr/bin/runc",
 			}
 			sut.Runtimes["existing"] = existingRuntime
-			newConfig := &config.Config{}
-			newConfig.Runtimes = make(config.Runtimes)
-			newConfig.Runtimes["existing"] = &config.RuntimeHandler{
+
+			newRuntime := &config.RuntimeHandler{
 				RuntimePath:                  "/usr/bin/runc",
 				PrivilegedWithoutHostDevices: true,
 			}
+			newConfig := &config.Config{}
+			newConfig.Runtimes = make(config.Runtimes)
+			newConfig.Runtimes["existing"] = newRuntime
 
 			// When
 			err := sut.ReloadRuntimes(newConfig)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(sut.Runtimes).To(HaveKeyWithValue("existing", existingRuntime))
-			Expect(sut.Runtimes["existing"].PrivilegedWithoutHostDevices).To(BeFalse())
+			Expect(sut.Runtimes).To(HaveKeyWithValue("existing", newRuntime))
+			Expect(sut.Runtimes["existing"].PrivilegedWithoutHostDevices).To(BeTrue())
 		})
 	})
 })

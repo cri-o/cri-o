@@ -244,13 +244,9 @@ func (c *Config) ReloadRdtConfig(newConfig *Config) error {
 // ReloadRuntimes reloads the runtimes configuration if changed
 func (c *Config) ReloadRuntimes(newConfig *Config) error {
 	var updated bool
-	for runtime := range newConfig.Runtimes {
-		if _, ok := c.Runtimes[runtime]; ok {
-			logrus.Warnf("Skipping existing runtime %q", runtime)
-			continue
-		}
-		c.Runtimes[runtime] = newConfig.Runtimes[runtime]
-		logrus.Infof("Registered new runtime %q", runtime)
+	if !RuntimesEqual(c.Runtimes, newConfig.Runtimes) {
+		logrus.Infof("Updating runtime configuration")
+		c.Runtimes = newConfig.Runtimes
 		updated = true
 	}
 
