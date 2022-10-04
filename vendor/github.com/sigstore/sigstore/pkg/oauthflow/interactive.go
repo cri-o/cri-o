@@ -128,14 +128,15 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 }
 
 func (i *InteractiveIDTokenGetter) doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOption) string {
-	if cfg.RedirectURL == "" {
-		cfg.RedirectURL = oobRedirectURI
-	}
+	cfg.RedirectURL = oobRedirectURI
+
 	authURL := cfg.AuthCodeURL(stateToken, opts...)
 	fmt.Fprintln(i.GetOutput(), "Go to the following link in a browser:\n\n\t", authURL)
 	fmt.Fprintf(i.GetOutput(), "Enter verification code: ")
 	var code string
-	fmt.Fscanln(i.GetInput(), &code)
+	fmt.Fscanf(i.GetInput(), "%s", &code)
+	// New line in case read input doesn't move cursor to next line.
+	fmt.Fprintln(i.GetOutput())
 	return code
 }
 

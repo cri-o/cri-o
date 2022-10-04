@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package dsse includes wrappers to support DSSE
 package dsse
 
 import (

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 
 	tuf_client "github.com/theupdateframework/go-tuf/client"
@@ -16,6 +17,10 @@ func FileLocalStore(path string) (tuf_client.LocalStore, error) {
 	}
 
 	db, err := leveldb.Open(fd, nil)
+	if err != nil && errors.IsCorrupted(err) {
+		db, err = leveldb.Recover(fd, nil)
+	}
+
 	return &fileLocalStore{fd: fd, db: db}, err
 }
 

@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/containerd/containerd/platforms"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,9 +21,18 @@ const (
 )
 
 // NormalizePlatform normalizes (according to the OCI spec) the specified os,
-// arch and variant.  If left empty, the individual item will not be normalized.
+// arch and variant.  If left empty, the individual item will be normalized.
 func NormalizePlatform(rawOS, rawArch, rawVariant string) (os, arch, variant string) {
-	rawPlatform := toPlatformString(rawOS, rawArch, rawVariant)
+	platformSpec := v1.Platform{
+		OS:           rawOS,
+		Architecture: rawArch,
+		Variant:      rawVariant,
+	}
+	normalizedSpec := platforms.Normalize(platformSpec)
+	if normalizedSpec.Variant == "" && rawVariant != "" {
+		normalizedSpec.Variant = rawVariant
+	}
+	rawPlatform := toPlatformString(normalizedSpec.OS, normalizedSpec.Architecture, normalizedSpec.Variant)
 	normalizedPlatform, err := platforms.Parse(rawPlatform)
 	if err != nil {
 		logrus.Debugf("Error normalizing platform: %v", err)
@@ -38,7 +48,7 @@ func NormalizePlatform(rawOS, rawArch, rawVariant string) (os, arch, variant str
 		arch = normalizedPlatform.Architecture
 	}
 	variant = rawVariant
-	if rawVariant != "" {
+	if rawVariant != "" || (rawVariant == "" && normalizedPlatform.Variant != "") {
 		variant = normalizedPlatform.Variant
 	}
 	return os, arch, variant
@@ -63,6 +73,9 @@ func toPlatformString(os, arch, variant string) string {
 //  * 2) a bool indicating whether architecture, os or variant were set (some callers need that to decide whether they need to throw an error)
 //  * 3) a fatal error that occurred prior to check for matches (e.g., storage errors etc.)
 func (i *Image) matchesPlatform(ctx context.Context, os, arch, variant string) (error, bool, error) {
+	if err := i.isCorrupted(""); err != nil {
+		return err, false, nil
+	}
 	inspectInfo, err := i.inspectInfo(ctx)
 	if err != nil {
 		return nil, false, fmt.Errorf("inspecting image: %w", err)

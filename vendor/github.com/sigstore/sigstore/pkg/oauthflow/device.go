@@ -13,13 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package oauthflow implements OAuth/OIDC support for device and token flows
 package oauthflow
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -111,7 +112,7 @@ func (d *DeviceFlowTokenGetter) deviceFlow(p *oidc.Provider, clientID, redirectU
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -146,7 +147,7 @@ func (d *DeviceFlowTokenGetter) deviceFlow(p *oidc.Provider, clientID, redirectU
 		}
 		defer resp.Body.Close()
 
-		b, err := ioutil.ReadAll(resp.Body)
+		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return "", err
 		}
@@ -213,7 +214,7 @@ func (d *DeviceFlowTokenGetter) CodeURL() (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("unable to read response body: %w", err)
 	}

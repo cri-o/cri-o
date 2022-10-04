@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -67,7 +66,7 @@ func (wL *wrappedMultiSigner) PublicKey(opts ...signature.PublicKeyOption) (cryp
 
 // SignMessage signs the provided stream in the reader using the DSSE encoding format
 func (wL *wrappedMultiSigner) SignMessage(r io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	p, err := ioutil.ReadAll(r)
+	p, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +128,7 @@ func (wL *wrappedMultiVerifier) PublicKey(opts ...signature.PublicKeyOption) (cr
 
 // VerifySignature verifies the signature specified in an DSSE envelope
 func (wL *wrappedMultiVerifier) VerifySignature(s, _ io.Reader, opts ...signature.VerifyOption) error {
-	sig, err := ioutil.ReadAll(s)
+	sig, err := io.ReadAll(s)
 	if err != nil {
 		return err
 	}

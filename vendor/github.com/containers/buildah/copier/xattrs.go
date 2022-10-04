@@ -4,12 +4,12 @@
 package copier
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"syscall"
 
-	"github.com/containers/buildah/util"
 	"golang.org/x/sys/unix"
 )
 
@@ -45,16 +45,16 @@ func Lgetxattrs(path string) (map[string]string, error) {
 		list = make([]byte, listSize)
 		size, err := unix.Llistxattr(path, list)
 		if err != nil {
-			if util.Cause(err) == syscall.ERANGE {
+			if errors.Is(err, syscall.ERANGE) {
 				listSize *= 2
 				continue
 			}
-			if (util.Cause(err) == syscall.ENOTSUP) || (util.Cause(err) == syscall.ENOSYS) {
+			if errors.Is(err, syscall.ENOTSUP) || errors.Is(err, syscall.ENOSYS) {
 				// treat these errors listing xattrs as equivalent to "no xattrs"
 				list = list[:0]
 				break
 			}
-			return nil, fmt.Errorf("error listing extended attributes of %q: %w", path, err)
+			return nil, fmt.Errorf("listing extended attributes of %q: %w", path, err)
 		}
 		list = list[:size]
 		break
@@ -71,11 +71,11 @@ func Lgetxattrs(path string) (map[string]string, error) {
 				attributeValue = make([]byte, attributeSize)
 				size, err := unix.Lgetxattr(path, attribute, attributeValue)
 				if err != nil {
-					if util.Cause(err) == syscall.ERANGE {
+					if errors.Is(err, syscall.ERANGE) {
 						attributeSize *= 2
 						continue
 					}
-					return nil, fmt.Errorf("error getting value of extended attribute %q on %q: %w", attribute, path, err)
+					return nil, fmt.Errorf("getting value of extended attribute %q on %q: %w", attribute, path, err)
 				}
 				m[attribute] = string(attributeValue[:size])
 				break
@@ -93,7 +93,7 @@ func Lsetxattrs(path string, xattrs map[string]string) error {
 	for attribute, value := range xattrs {
 		if isRelevantXattr(attribute) {
 			if err := unix.Lsetxattr(path, attribute, []byte(value), 0); err != nil {
-				return fmt.Errorf("error setting value of extended attribute %q on %q: %w", attribute, path, err)
+				return fmt.Errorf("setting value of extended attribute %q on %q: %w", attribute, path, err)
 			}
 		}
 	}

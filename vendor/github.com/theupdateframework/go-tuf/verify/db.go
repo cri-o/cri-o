@@ -55,7 +55,7 @@ func NewDBFromDelegations(d *data.Delegations) (*DB, error) {
 func (db *DB) AddKey(id string, k *data.PublicKey) error {
 	verifier, err := keys.GetVerifier(k)
 	if err != nil {
-		return ErrInvalidKey
+		return err // ErrInvalidKey
 	}
 
 	// TUF is considering in TAP-12 removing the
