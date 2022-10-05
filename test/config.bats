@@ -84,3 +84,15 @@ EOF
 	[[ "$RES" == *"crio.runtime.runtimes.runc"* ]]
 	[[ "$RES" == *"crio.runtime.runtimes.crun"* ]]
 }
+
+@test "monitor fields should be translated" {
+	if [[ "$RUNTIME_TYPE" == "vm" ]]; then
+		skip "not applicable to vm runtime type"
+	fi
+	# when
+	RES=$("$CRIO_BINARY_PATH" --conmon-cgroup="pod" --conmon="/bin/true" -c "" -d "" config 2>&1)
+
+	# then
+	[[ "$RES" == *"monitor_cgroup = \"pod\""* ]]
+	[[ "$RES" == *"monitor_path = \"/bin/true\""* ]]
+}

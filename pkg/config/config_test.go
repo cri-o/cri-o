@@ -424,7 +424,7 @@ var _ = t.Describe("Config", func() {
 			sut.ConmonCgroup = "wrong"
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -436,7 +436,7 @@ var _ = t.Describe("Config", func() {
 			sut.ConmonCgroup = "invalid"
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -459,7 +459,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -470,7 +470,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -482,7 +482,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -494,7 +494,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
+			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).To(BeNil())
