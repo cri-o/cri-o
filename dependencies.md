@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 05 Oct 2022 11:20:15 UTC for commit [d8cce85][0]._
+_Generated on Wed, 05 Oct 2022 12:03:06 UTC for commit [9dad1e5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d8cce85f68c75dc4f178b9eb4e365a06565de3f0
+[0]: https://github.com/cri-o/cri-o/commit/9dad1e521b473a6beee37eeb21f0aa29218569b6
 
 ## Outdated Dependencies
 
@@ -11,7 +11,6 @@ _Generated on Wed, 05 Oct 2022 11:20:15 UTC for commit [d8cce85][0]._
 | github.com/checkpoint-restore/checkpointctl                                 | v0.0.0-20220321135231-33f4a66335f0 | v0.0.0-20220920085233-2c4dd81bfcb4 | true   | true             |
 | github.com/container-orchestrated-devices/container-device-interface        | v0.5.0                             | v0.5.2                             | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.1.0-rc1                         | v1.1.0-rc2                         | true   | true             |
-| github.com/urfave/cli/v2                                                    | v2.15.0                            | v2.17.1                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.34.0                            | v0.36.1                            | true   | true             |
 | golang.org/x/net                                                            | v0.0.0-20220909164309-bea034e7d591 | v0.0.0-20221004154528-8021a29435af | true   | true             |
 | golang.org/x/sync                                                           | v0.0.0-20220722155255-886fb9371eb4 | v0.0.0-20220929204114-8fcdb60fdcc0 | true   | true             |
@@ -977,7 +976,7 @@ _Generated on Wed, 05 Oct 2022 11:20:15 UTC for commit [d8cce85][0]._
 | github.com/ultraware/funlen                                                            | v0.0.3                                            |                                    | false  | true             |
 | github.com/ultraware/whitespace                                                        | v0.0.4                                            | v0.0.5                             | false  | true             |
 | github.com/urfave/cli                                                                  | v1.22.9                                           | v1.22.10                           | false  | true             |
-| github.com/urfave/cli/v2                                                               | v2.15.0                                           | v2.17.1                            | true   | true             |
+| github.com/urfave/cli/v2                                                               | v2.17.1                                           |                                    | true   | true             |
 | github.com/urfave/negroni                                                              | v1.0.0                                            |                                    | false  | true             |
 | github.com/uudashr/gocognit                                                            | v1.0.5                                            | v1.0.6                             | false  | true             |
 | github.com/valyala/bytebufferpool                                                      | v1.0.0                                            |                                    | false  | true             |
