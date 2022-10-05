@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 05 Oct 2022 09:22:38 UTC for commit [567bc73][0]._
+_Generated on Wed, 05 Oct 2022 09:28:59 UTC for commit [986d98b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/567bc73163a78cdc69df13a42872b0364092b053
+[0]: https://github.com/cri-o/cri-o/commit/986d98b42625039c943b4a42f24c5e2804ede359
 
 ## Outdated Dependencies
 
@@ -15,9 +15,6 @@ _Generated on Wed, 05 Oct 2022 09:22:38 UTC for commit [567bc73][0]._
 | github.com/opencontainers/image-spec                                        | v1.1.0-rc1                         | v1.1.0-rc2                         | true   | true             |
 | github.com/urfave/cli/v2                                                    | v2.15.0                            | v2.17.1                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.34.0                            | v0.36.1                            | true   | true             |
-| go.opentelemetry.io/otel                                                    | v1.9.0                             | v1.10.0                            | true   | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.9.0                             | v1.10.0                            | true   | true             |
-| go.opentelemetry.io/otel/sdk                                                | v1.9.0                             | v1.10.0                            | true   | true             |
 | golang.org/x/net                                                            | v0.0.0-20220909164309-bea034e7d591 | v0.0.0-20221004154528-8021a29435af | true   | true             |
 | golang.org/x/sync                                                           | v0.0.0-20220722155255-886fb9371eb4 | v0.0.0-20220929204114-8fcdb60fdcc0 | true   | true             |
 | golang.org/x/sys                                                            | v0.0.0-20220919091848-fb04ddd9f9c8 | v0.0.0-20220928140112-f11e5e49a4ec | true   | true             |
@@ -1066,19 +1063,19 @@ _Generated on Wed, 05 Oct 2022 09:22:38 UTC for commit [567bc73][0]._
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc            | v0.34.0                                           | v0.36.1                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp                          | v0.32.0                                           | v0.36.1                            | false  | true             |
 | go.opentelemetry.io/contrib/propagators                                                | v0.20.0                                           | v0.22.0                            | false  | true             |
-| go.opentelemetry.io/otel                                                               | v1.9.0                                            | v1.10.0                            | true   | true             |
+| go.opentelemetry.io/otel                                                               | v1.10.0                                           |                                    | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp                                                | v0.20.0                                           |                                    | false  | true             |
-| go.opentelemetry.io/otel/exporters/otlp/internal/retry                                 | v1.9.0                                            | v1.10.0                            | false  | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace                                      | v1.9.0                                            | v1.10.0                            | false  | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc                        | v1.9.0                                            | v1.10.0                            | true   | true             |
+| go.opentelemetry.io/otel/exporters/otlp/internal/retry                                 | v1.10.0                                           |                                    | false  | true             |
+| go.opentelemetry.io/otel/exporters/otlp/otlptrace                                      | v1.10.0                                           |                                    | false  | true             |
+| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc                        | v1.10.0                                           |                                    | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp                        | v1.3.0                                            | v1.10.0                            | false  | true             |
 | go.opentelemetry.io/otel/metric                                                        | v0.30.0                                           | v0.32.1                            | false  | true             |
 | go.opentelemetry.io/otel/oteltest                                                      | v0.20.0                                           |                                    | false  | true             |
-| go.opentelemetry.io/otel/sdk                                                           | v1.9.0                                            | v1.10.0                            | true   | true             |
+| go.opentelemetry.io/otel/sdk                                                           | v1.10.0                                           |                                    | true   | true             |
 | go.opentelemetry.io/otel/sdk/export/metric                                             | v0.20.0                                           | v0.28.0                            | false  | true             |
 | go.opentelemetry.io/otel/sdk/metric                                                    | v0.20.0                                           | v0.32.1                            | false  | true             |
-| go.opentelemetry.io/otel/trace                                                         | v1.9.0                                            | v1.10.0                            | false  | true             |
-| go.opentelemetry.io/proto/otlp                                                         | v0.18.0                                           | v0.19.0                            | false  | true             |
+| go.opentelemetry.io/otel/trace                                                         | v1.10.0                                           |                                    | false  | true             |
+| go.opentelemetry.io/proto/otlp                                                         | v0.19.0                                           |                                    | false  | true             |
 | go.starlark.net                                                                        | v0.0.0-20200306205701-8dd3e2ee1dd5                | v0.0.0-20220928063852-5fccb4daaf6d | false  | true             |
 | go.step.sm/crypto                                                                      | v0.17.2                                           | v0.19.0                            | false  | true             |
 | go.uber.org/atomic                                                                     | v1.10.0                                           |                                    | false  | true             |
