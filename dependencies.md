@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 05 Oct 2022 12:03:06 UTC for commit [9dad1e5][0]._
+_Generated on Wed, 05 Oct 2022 13:44:38 UTC for commit [8769be5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9dad1e521b473a6beee37eeb21f0aa29218569b6
+[0]: https://github.com/cri-o/cri-o/commit/8769be5d16004180c2bf710b8035a3a581d1fb76
 
 ## Outdated Dependencies
 
@@ -10,7 +10,6 @@ _Generated on Wed, 05 Oct 2022 12:03:06 UTC for commit [9dad1e5][0]._
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/checkpoint-restore/checkpointctl                                 | v0.0.0-20220321135231-33f4a66335f0 | v0.0.0-20220920085233-2c4dd81bfcb4 | true   | true             |
 | github.com/container-orchestrated-devices/container-device-interface        | v0.5.0                             | v0.5.2                             | true   | true             |
-| github.com/opencontainers/image-spec                                        | v1.1.0-rc1                         | v1.1.0-rc2                         | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.34.0                            | v0.36.1                            | true   | true             |
 | golang.org/x/net                                                            | v0.0.0-20220909164309-bea034e7d591 | v0.0.0-20221004154528-8021a29435af | true   | true             |
 | golang.org/x/sync                                                           | v0.0.0-20220722155255-886fb9371eb4 | v0.0.0-20220929204114-8fcdb60fdcc0 | true   | true             |
@@ -792,7 +791,7 @@ _Generated on Wed, 05 Oct 2022 12:03:06 UTC for commit [9dad1e5][0]._
 | github.com/op/go-logging                                                               | v0.0.0-20160315200505-970db520ece7                |                                    | false  | true             |
 | github.com/open-policy-agent/opa                                                       | v0.43.0                                           | v0.44.0                            | false  | true             |
 | github.com/opencontainers/go-digest                                                    | v1.0.0                                            |                                    | true   | true             |
-| github.com/opencontainers/image-spec                                                   | v1.1.0-rc1                                        | v1.1.0-rc2                         | true   | true             |
+| github.com/opencontainers/image-spec                                                   | v1.1.0-rc2                                        |                                    | true   | true             |
 | github.com/opencontainers/runc                                                         | v1.1.1-0.20220617142545-8b9452f75cbc              | v1.1.4                             | true   | true             |
 | github.com/opencontainers/runtime-spec                                                 | v1.0.3-0.20211214071223-8958f93039ab              |                                    | true   | true             |
 | github.com/opencontainers/runtime-tools                                                | v0.9.1-0.20220714195903-17b3287fafb7              |                                    | true   | true             |
