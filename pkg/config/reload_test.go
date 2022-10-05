@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/apparmor"
+	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -323,6 +324,88 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(sut.ApparmorProfile).To(Equal(profile))
+		})
+	})
+
+	t.Describe("ReloadRuntimes", func() {
+		It("should succeed without any config change", func() {
+			// Given
+			// When
+			err := sut.ReloadRuntimes(sut)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail for invalid default_runtime", func() {
+			// Given
+			newConfig := &config.Config{}
+			newConfig.DefaultRuntime = "invalid"
+
+			// When
+			err := sut.ReloadRuntimes(newConfig)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should add a new runtime", func() {
+			// Given
+			newRuntimeHandler := &config.RuntimeHandler{
+				RuntimePath:                  "/usr/bin/runc",
+				PrivilegedWithoutHostDevices: true,
+			}
+			newConfig := &config.Config{}
+			newConfig.Runtimes = make(config.Runtimes)
+			newConfig.Runtimes["new"] = newRuntimeHandler
+
+			// When
+			err := sut.ReloadRuntimes(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.Runtimes).To(HaveKeyWithValue("new", newRuntimeHandler))
+		})
+
+		It("should change the default runtime", func() {
+			// Given
+			sut.Runtimes["existing"] = &config.RuntimeHandler{
+				RuntimePath: "/usr/bin/runc",
+			}
+			newConfig := &config.Config{}
+			newConfig.Runtimes = sut.Runtimes
+			newConfig.DefaultRuntime = "existing"
+
+			// When
+			err := sut.ReloadRuntimes(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.DefaultRuntime).To(Equal("existing"))
+		})
+
+		It("should overwrite existing runtime", func() {
+			// Given
+			existingRuntime := &config.RuntimeHandler{
+				RuntimePath: "/usr/bin/runc",
+			}
+			sut.Runtimes["existing"] = existingRuntime
+
+			newRuntime := &config.RuntimeHandler{
+				RuntimePath:                  "/usr/bin/runc",
+				PrivilegedWithoutHostDevices: true,
+			}
+			newConfig := &config.Config{}
+			newConfig.Runtimes = make(config.Runtimes)
+			newConfig.Runtimes["existing"] = newRuntime
+
+			// When
+			err := sut.ReloadRuntimes(newConfig)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.Runtimes).To(HaveKeyWithValue("existing", newRuntime))
+			Expect(sut.Runtimes["existing"].PrivilegedWithoutHostDevices).To(BeTrue())
 		})
 	})
 })

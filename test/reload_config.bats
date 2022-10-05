@@ -13,6 +13,7 @@ function setup() {
 }
 
 function teardown() {
+	rm -f "$CRIO_CONFIG_DIR/00-new*Runtime.conf"
 	cleanup_test
 }
 
@@ -214,4 +215,18 @@ function expect_log_failure() {
 
 	# then
 	expect_log_failure "unable to reload apparmor_profile"
+}
+
+@test "reload config should add new runtime" {
+	# given
+	cat << EOF > "$CRIO_CONFIG_DIR/00-newRuntime.conf"
+[crio.runtime.runtimes.new]
+runtime_path = "$RUNTIME_BINARY_PATH"
+EOF
+
+	# when
+	reload_crio
+
+	#then
+	wait_for_log '"updating runtime configuration"'
 }
