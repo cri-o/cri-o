@@ -82,12 +82,10 @@ DESCRIPTION:
 
 OPTIONS:{{range .VisibleFlagCategories}}
    {{if .Name}}{{.Name}}
-   {{end}}{{range .Flags}}{{.}}
-   {{end}}{{end}}{{else}}{{if .VisibleFlags}}
+   {{end}}{{range .Flags}}{{.}}{{end}}{{end}}{{else}}{{if .VisibleFlags}}
 
 OPTIONS:
-   {{range .VisibleFlags}}{{.}}
-   {{end}}{{end}}{{end}}
+   {{range .VisibleFlags}}{{.}}{{end}}{{end}}{{end}}
 `
     CommandHelpTemplate is the text template for the command help topic. cli.go
     uses text/template to render templates. You can render custom help text by
@@ -161,8 +159,7 @@ COMMANDS:{{range .VisibleCategories}}{{if .Name}}
      {{$s := join .Names ", "}}{{$s}}{{ $sp := subtract $cv (offset $s 3) }}{{ indent $sp ""}}{{wrap .Usage $cv}}{{end}}{{end}}{{end}}{{if .VisibleFlags}}
 
 OPTIONS:
-   {{range .VisibleFlags}}{{.}}
-   {{end}}{{end}}
+   {{range .VisibleFlags}}{{.}}{{end}}{{end}}
 `
     SubcommandHelpTemplate is the text template for the subcommand help topic.
     cli.go uses text/template to render templates. You can render custom help
@@ -249,6 +246,13 @@ TYPES
 
 type ActionFunc func(*Context) error
     ActionFunc is the action to execute when no subcommands are specified
+
+type ActionableFlag interface {
+	Flag
+	RunAction(*Context) error
+}
+    ActionableFlag is an interface that wraps Flag interface and RunAction
+    operation.
 
 type AfterFunc func(*Context) error
     AfterFunc is an action to execute after any subcommands are run, but after
@@ -491,6 +495,9 @@ func (f *BoolFlag) IsVisible() bool
 func (f *BoolFlag) Names() []string
     Names returns the names of the flag
 
+func (f *BoolFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
+
 func (f *BoolFlag) String() string
     String returns a readable representation of this value (for usage defaults)
 
@@ -558,6 +565,7 @@ type Command struct {
 	// cli.go uses text/template to render templates. You can
 	// render custom help text by setting this variable.
 	CustomHelpTemplate string
+
 	// Has unexported fields.
 }
     Command is a subcommand for a cli.App.
@@ -575,6 +583,13 @@ func (c *Command) Names() []string
 func (c *Command) Run(ctx *Context) (err error)
     Run invokes the command given the context, parses ctx.Args() to generate
     command-specific flags
+
+func (c *Command) VisibleCategories() []CommandCategory
+    VisibleCategories returns a slice of categories and commands that are
+    Hidden=false
+
+func (c *Command) VisibleCommands() []*Command
+    VisibleCommands returns a slice of the Commands with Hidden=false
 
 func (c *Command) VisibleFlagCategories() []VisibleFlagCategory
     VisibleFlagCategories returns a slice containing all the visible flag
@@ -705,6 +720,14 @@ func (cCtx *Context) Uint(name string) uint
 func (cCtx *Context) Uint64(name string) uint64
     Uint64 looks up the value of a local Uint64Flag, returns 0 if not found
 
+func (cCtx *Context) Uint64Slice(name string) []uint64
+    Uint64Slice looks up the value of a local Uint64SliceFlag, returns nil if
+    not found
+
+func (cCtx *Context) UintSlice(name string) []uint
+    UintSlice looks up the value of a local UintSliceFlag, returns nil if not
+    found
+
 func (cCtx *Context) Value(name string) interface{}
     Value returns the value of the flag corresponding to `name`
 
@@ -789,6 +812,9 @@ func (f *DurationFlag) IsVisible() bool
 
 func (f *DurationFlag) Names() []string
     Names returns the names of the flag
+
+func (f *DurationFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
 
 func (f *DurationFlag) String() string
     String returns a readable representation of this value (for usage defaults)
@@ -963,6 +989,9 @@ func (f *Float64Flag) IsVisible() bool
 func (f *Float64Flag) Names() []string
     Names returns the names of the flag
 
+func (f *Float64Flag) RunAction(c *Context) error
+    RunAction executes flag action if set
+
 func (f *Float64Flag) String() string
     String returns a readable representation of this value (for usage defaults)
 
@@ -1048,6 +1077,9 @@ func (f *Float64SliceFlag) IsVisible() bool
 func (f *Float64SliceFlag) Names() []string
     Names returns the names of the flag
 
+func (f *Float64SliceFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
+
 func (f *Float64SliceFlag) SetDestination(slice []float64)
 
 func (f *Float64SliceFlag) SetValue(slice []float64)
@@ -1077,7 +1109,7 @@ type GenericFlag struct {
 	HasBeenSet bool
 
 	Value       Generic
-	Destination *Generic
+	Destination Generic
 
 	Aliases []string
 	EnvVars []string
@@ -1120,6 +1152,9 @@ func (f *GenericFlag) IsVisible() bool
 
 func (f *GenericFlag) Names() []string
     Names returns the names of the flag
+
+func (f *GenericFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
 
 func (f *GenericFlag) String() string
     String returns a readable representation of this value (for usage defaults)
@@ -1182,6 +1217,9 @@ func (f *Int64Flag) IsVisible() bool
 
 func (f *Int64Flag) Names() []string
     Names returns the names of the flag
+
+func (f *Int64Flag) RunAction(c *Context) error
+    RunAction executes flag action if set
 
 func (f *Int64Flag) String() string
     String returns a readable representation of this value (for usage defaults)
@@ -1268,6 +1306,9 @@ func (f *Int64SliceFlag) IsVisible() bool
 func (f *Int64SliceFlag) Names() []string
     Names returns the names of the flag
 
+func (f *Int64SliceFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
+
 func (f *Int64SliceFlag) SetDestination(slice []int64)
 
 func (f *Int64SliceFlag) SetValue(slice []int64)
@@ -1333,6 +1374,9 @@ func (f *IntFlag) IsVisible() bool
 
 func (f *IntFlag) Names() []string
     Names returns the names of the flag
+
+func (f *IntFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
 
 func (f *IntFlag) String() string
     String returns a readable representation of this value (for usage defaults)
@@ -1422,6 +1466,9 @@ func (f *IntSliceFlag) IsVisible() bool
 
 func (f *IntSliceFlag) Names() []string
     Names returns the names of the flag
+
+func (f *IntSliceFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
 
 func (f *IntSliceFlag) SetDestination(slice []int)
 
@@ -1522,6 +1569,9 @@ func (f *PathFlag) IsVisible() bool
 
 func (f *PathFlag) Names() []string
     Names returns the names of the flag
+
+func (f *PathFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
 
 func (f *PathFlag) String() string
     String returns a readable representation of this value (for usage defaults)
@@ -1660,6 +1710,9 @@ func (f *StringFlag) IsVisible() bool
 func (f *StringFlag) Names() []string
     Names returns the names of the flag
 
+func (f *StringFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
+
 func (f *StringFlag) String() string
     String returns a readable representation of this value (for usage defaults)
 
@@ -1746,6 +1799,9 @@ func (f *StringSliceFlag) IsVisible() bool
 
 func (f *StringSliceFlag) Names() []string
     Names returns the names of the flag
+
+func (f *StringSliceFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
 
 func (f *StringSliceFlag) SetDestination(slice []string)
 
@@ -1848,6 +1904,9 @@ func (f *TimestampFlag) IsVisible() bool
 func (f *TimestampFlag) Names() []string
     Names returns the names of the flag
 
+func (f *TimestampFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
+
 func (f *TimestampFlag) String() string
     String returns a readable representation of this value (for usage defaults)
 
@@ -1910,10 +1969,96 @@ func (f *Uint64Flag) IsVisible() bool
 func (f *Uint64Flag) Names() []string
     Names returns the names of the flag
 
+func (f *Uint64Flag) RunAction(c *Context) error
+    RunAction executes flag action if set
+
 func (f *Uint64Flag) String() string
     String returns a readable representation of this value (for usage defaults)
 
 func (f *Uint64Flag) TakesValue() bool
+    TakesValue returns true of the flag takes a value, otherwise false
+
+type Uint64Slice struct {
+	// Has unexported fields.
+}
+    Uint64Slice wraps []int64 to satisfy flag.Value
+
+func NewUint64Slice(defaults ...uint64) *Uint64Slice
+    NewUint64Slice makes an *Uint64Slice with default values
+
+func (i *Uint64Slice) Get() interface{}
+    Get returns the slice of ints set by this flag
+
+func (i *Uint64Slice) Serialize() string
+    Serialize allows Uint64Slice to fulfill Serializer
+
+func (i *Uint64Slice) Set(value string) error
+    Set parses the value into an integer and appends it to the list of values
+
+func (i *Uint64Slice) String() string
+    String returns a readable representation of this value (for usage defaults)
+
+func (i *Uint64Slice) Value() []uint64
+    Value returns the slice of ints set by this flag
+
+type Uint64SliceFlag struct {
+	Name string
+
+	Category    string
+	DefaultText string
+	FilePath    string
+	Usage       string
+
+	Required   bool
+	Hidden     bool
+	HasBeenSet bool
+
+	Value       *Uint64Slice
+	Destination *Uint64Slice
+
+	Aliases []string
+	EnvVars []string
+}
+    Uint64SliceFlag is a flag with type *Uint64Slice
+
+func (f *Uint64SliceFlag) Apply(set *flag.FlagSet) error
+    Apply populates the flag given the flag set and environment
+
+func (f *Uint64SliceFlag) Get(ctx *Context) []uint64
+    Get returns the flag’s value in the given Context.
+
+func (f *Uint64SliceFlag) GetCategory() string
+    GetCategory returns the category for the flag
+
+func (f *Uint64SliceFlag) GetDefaultText() string
+    GetDefaultText returns the default text for this flag
+
+func (f *Uint64SliceFlag) GetEnvVars() []string
+    GetEnvVars returns the env vars for this flag
+
+func (f *Uint64SliceFlag) GetUsage() string
+    GetUsage returns the usage string for the flag
+
+func (f *Uint64SliceFlag) GetValue() string
+    GetValue returns the flags value as string representation and an empty
+    string if the flag takes no value at all.
+
+func (f *Uint64SliceFlag) IsRequired() bool
+    IsRequired returns whether or not the flag is required
+
+func (f *Uint64SliceFlag) IsSet() bool
+    IsSet returns whether or not the flag has been set through env or file
+
+func (f *Uint64SliceFlag) IsVisible() bool
+    IsVisible returns true if the flag is not hidden, otherwise false
+
+func (f *Uint64SliceFlag) Names() []string
+    Names returns the names of the flag
+
+func (f *Uint64SliceFlag) String() string
+    String returns a readable representation of this value (for usage defaults)
+
+func (f *Uint64SliceFlag) TakesValue() bool
     TakesValue returns true of the flag takes a value, otherwise false
 
 type UintFlag struct {
@@ -1972,10 +2117,100 @@ func (f *UintFlag) IsVisible() bool
 func (f *UintFlag) Names() []string
     Names returns the names of the flag
 
+func (f *UintFlag) RunAction(c *Context) error
+    RunAction executes flag action if set
+
 func (f *UintFlag) String() string
     String returns a readable representation of this value (for usage defaults)
 
 func (f *UintFlag) TakesValue() bool
+    TakesValue returns true of the flag takes a value, otherwise false
+
+type UintSlice struct {
+	// Has unexported fields.
+}
+    UintSlice wraps []int to satisfy flag.Value
+
+func NewUintSlice(defaults ...uint) *UintSlice
+    NewUintSlice makes an *UintSlice with default values
+
+func (i *UintSlice) Get() interface{}
+    Get returns the slice of ints set by this flag
+
+func (i *UintSlice) Serialize() string
+    Serialize allows UintSlice to fulfill Serializer
+
+func (i *UintSlice) Set(value string) error
+    Set parses the value into an integer and appends it to the list of values
+
+func (i *UintSlice) SetUint(value uint)
+    TODO: Consistently have specific Set function for Int64 and Float64 ? SetInt
+    directly adds an integer to the list of values
+
+func (i *UintSlice) String() string
+    String returns a readable representation of this value (for usage defaults)
+
+func (i *UintSlice) Value() []uint
+    Value returns the slice of ints set by this flag
+
+type UintSliceFlag struct {
+	Name string
+
+	Category    string
+	DefaultText string
+	FilePath    string
+	Usage       string
+
+	Required   bool
+	Hidden     bool
+	HasBeenSet bool
+
+	Value       *UintSlice
+	Destination *UintSlice
+
+	Aliases []string
+	EnvVars []string
+}
+    UintSliceFlag is a flag with type *UintSlice
+
+func (f *UintSliceFlag) Apply(set *flag.FlagSet) error
+    Apply populates the flag given the flag set and environment
+
+func (f *UintSliceFlag) Get(ctx *Context) []uint
+    Get returns the flag’s value in the given Context.
+
+func (f *UintSliceFlag) GetCategory() string
+    GetCategory returns the category for the flag
+
+func (f *UintSliceFlag) GetDefaultText() string
+    GetDefaultText returns the default text for this flag
+
+func (f *UintSliceFlag) GetEnvVars() []string
+    GetEnvVars returns the env vars for this flag
+
+func (f *UintSliceFlag) GetUsage() string
+    GetUsage returns the usage string for the flag
+
+func (f *UintSliceFlag) GetValue() string
+    GetValue returns the flags value as string representation and an empty
+    string if the flag takes no value at all.
+
+func (f *UintSliceFlag) IsRequired() bool
+    IsRequired returns whether or not the flag is required
+
+func (f *UintSliceFlag) IsSet() bool
+    IsSet returns whether or not the flag has been set through env or file
+
+func (f *UintSliceFlag) IsVisible() bool
+    IsVisible returns true if the flag is not hidden, otherwise false
+
+func (f *UintSliceFlag) Names() []string
+    Names returns the names of the flag
+
+func (f *UintSliceFlag) String() string
+    String returns a readable representation of this value (for usage defaults)
+
+func (f *UintSliceFlag) TakesValue() bool
     TakesValue returns true of the flag takes a value, otherwise false
 
 type VisibleFlag interface {
