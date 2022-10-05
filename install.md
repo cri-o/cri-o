@@ -126,10 +126,13 @@ To install on the following operating systems, set the environment variable $OS 
 | ---------------- | ----------------- |
 | Debian Unstable  | `Debian_Unstable` |
 | Debian Testing   | `Debian_Testing`  |
+| Debian 11        | `Debian_11`       |
 | Debian 10        | `Debian_10`       |
 | Raspberry Pi OS  | `Raspbian_10`     |
 | Ubuntu 22.04     | `xUbuntu_22.04`   |
 | Ubuntu 21.10     | `xUbuntu_21.10`   |
+| Ubuntu 21.04     | `xUbuntu_21.04`   |
+| Ubuntu 20.10     | `xUbuntu_20.10`   |
 | Ubuntu 20.04     | `xUbuntu_20.04`   |
 | Ubuntu 18.04     | `xUbuntu_18.04`   |
 
@@ -613,9 +616,13 @@ To install on the following operating systems, set the environment variable $OS 
 | ---------------- | ----------------- |
 | Debian Unstable  | `Debian_Unstable` |
 | Debian Testing   | `Debian_Testing`  |
+| Debian 11        | `Debian_11`       |
+| Debian 10        | `Debian_10`       |
+| Ubuntu 22.04     | `xUbuntu_22.04`   |
+| Ubuntu 21.10     | `xUbuntu_21.10`   |
+| Ubuntu 21.04     | `xUbuntu_21.04`   |
+| Ubuntu 20.10     | `xUbuntu_20.10`   |
 | Ubuntu 20.04     | `xUbuntu_20.04`   |
-| Ubuntu 19.10     | `xUbuntu_19.10`   |
-| Ubuntu 19.04     | `xUbuntu_19.04`   |
 | Ubuntu 18.04     | `xUbuntu_18.04`   |
 
 To upgrade, choose a supported version for your operating system, and export it as a variable, like so:
