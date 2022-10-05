@@ -1,17 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 05 Oct 2022 09:28:59 UTC for commit [986d98b][0]._
+_Generated on Wed, 05 Oct 2022 11:20:15 UTC for commit [d8cce85][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/986d98b42625039c943b4a42f24c5e2804ede359
+[0]: https://github.com/cri-o/cri-o/commit/d8cce85f68c75dc4f178b9eb4e365a06565de3f0
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/Microsoft/go-winio                                               | v0.5.2                             | v0.6.0                             | true   | true             |
 | github.com/checkpoint-restore/checkpointctl                                 | v0.0.0-20220321135231-33f4a66335f0 | v0.0.0-20220920085233-2c4dd81bfcb4 | true   | true             |
 | github.com/container-orchestrated-devices/container-device-interface        | v0.5.0                             | v0.5.2                             | true   | true             |
-| github.com/containers/podman/v4                                             | v4.2.0                             | v4.2.1                             | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.1.0-rc1                         | v1.1.0-rc2                         | true   | true             |
 | github.com/urfave/cli/v2                                                    | v2.15.0                            | v2.17.1                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.34.0                            | v0.36.1                            | true   | true             |
@@ -23,7 +21,7 @@ _Generated on Wed, 05 Oct 2022 09:28:59 UTC for commit [986d98b][0]._
 | k8s.io/cri-api                                                              | v0.0.0-20220823173643-a866cbe2e5bb | v0.0.0-20221005070003-5556d3336b98 | true   | true             |
 | k8s.io/kubernetes                                                           | v1.25.0                            | v1.25.2                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20220728103510-ee6ede2d64ed | v0.0.0-20220922133306-665eaaec4324 | true   | true             |
-| sigs.k8s.io/zeitgeist                                                       | v0.3.2                             | v0.3.4                             | true   | true             |
+| sigs.k8s.io/zeitgeist                                                       | v0.3.2                             | v0.3.5                             | true   | true             |
 
 ## All Dependencies
 
@@ -100,7 +98,7 @@ _Generated on Wed, 05 Oct 2022 09:28:59 UTC for commit [986d98b][0]._
 | github.com/Masterminds/sprig/v3                                                        | v3.2.2                                            |                                    | false  | true             |
 | github.com/Masterminds/squirrel                                                        | v1.5.3                                            |                                    | false  | true             |
 | github.com/Masterminds/vcs                                                             | v1.13.3                                           |                                    | false  | true             |
-| github.com/Microsoft/go-winio                                                          | v0.5.2                                            | v0.6.0                             | true   | true             |
+| github.com/Microsoft/go-winio                                                          | v0.6.0                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                           | v0.9.4                                            |                                    | false  | true             |
 | github.com/Microsoft/hcsshim/test                                                      | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20220930204700-ad0d5a7b6315 | false  | true             |
 | github.com/NYTimes/gziphandler                                                         | v1.1.1                                            |                                    | false  | true             |
@@ -268,8 +266,8 @@ _Generated on Wed, 05 Oct 2022 09:28:59 UTC for commit [986d98b][0]._
 | github.com/containers/kubensmnt                                                        | v1.2.0                                            |                                    | true   | true             |
 | github.com/containers/libtrust                                                         | v0.0.0-20200511145503-9c3a6c22cd9a                |                                    | false  | true             |
 | github.com/containers/ocicrypt                                                         | v1.1.5                                            |                                    | true   | true             |
-| github.com/containers/podman/v4                                                        | v4.2.0                                            | v4.2.1                             | true   | true             |
-| github.com/containers/psgo                                                             | v1.7.2                                            | v1.7.3                             | false  | true             |
+| github.com/containers/podman/v4                                                        | v4.2.1                                            |                                    | true   | true             |
+| github.com/containers/psgo                                                             | v1.7.3                                            |                                    | false  | true             |
 | github.com/containers/storage                                                          | v1.43.0                                           |                                    | true   | true             |
 | github.com/coredns/caddy                                                               | v1.1.0                                            | v1.1.1                             | false  | true             |
 | github.com/coredns/corefile-migration                                                  | v1.0.17                                           |                                    | false  | true             |
@@ -1205,6 +1203,6 @@ _Generated on Wed, 05 Oct 2022 09:28:59 UTC for commit [986d98b][0]._
 | sigs.k8s.io/release-utils                                                              | v0.7.3                                            |                                    | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                   | v4.2.3                                            |                                    | false  | true             |
 | sigs.k8s.io/yaml                                                                       | v1.3.0                                            |                                    | true   | true             |
-| sigs.k8s.io/zeitgeist                                                                  | v0.3.2                                            | v0.3.4                             | true   | true             |
+| sigs.k8s.io/zeitgeist                                                                  | v0.3.2                                            | v0.3.5                             | true   | true             |
 | sourcegraph.com/sourcegraph/appdash                                                    | v0.0.0-20190731080439-ebfcffb1b5c0                | v0.0.0-20211028080628-e2786a622600 | false  | true             |
 | sourcegraph.com/sqs/pbtypes                                                            | v0.0.0-20180604144634-d3ebe8f20ae4                | v1.0.0                             | false  | true             |
