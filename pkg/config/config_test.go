@@ -15,7 +15,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const alwaysPresentPath = "/tmp"
+const (
+	alwaysPresentPath = "/tmp"
+	invalid           = "invalid"
+)
 
 // The actual test suite
 var _ = t.Describe("Config", func() {
@@ -408,7 +411,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on invalid default_sysctls", func() {
 			// Given
-			sut.DefaultSysctls = []string{"invalid"}
+			sut.DefaultSysctls = []string{invalid}
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, false)
@@ -433,7 +436,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail on invalid conmon cgroup", func() {
 			// Given
 			handler := &config.RuntimeHandler{}
-			sut.ConmonCgroup = "invalid"
+			sut.ConmonCgroup = invalid
 
 			// When
 			err := sut.RuntimeConfig.TranslateMonitorFields(handler)
