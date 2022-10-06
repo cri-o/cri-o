@@ -54,7 +54,6 @@
         state: present
       loop: "{{ ['cgroups.bats'] | product(kata_skip_cgroups_tests) \
         + ['command.bats'] | product(kata_skip_command_tests) \
-        + ['config.bats'] | product(kata_skip_config_tests) \
         + ['reload_config.bats'] | product(kata_skip_reload_config) \
         + ['crio-wipe.bats'] | product(kata_skip_crio_wipe_tests) \
         + ['ctr.bats'] | product(kata_skip_ctr_tests) \
