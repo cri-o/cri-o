@@ -111,7 +111,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid log_level", func() {
 			// Given
 			newConfig := defaultConfig()
-			newConfig.LogLevel = "invalid"
+			newConfig.LogLevel = invalid
 
 			// When
 			err := sut.ReloadLogLevel(newConfig)
