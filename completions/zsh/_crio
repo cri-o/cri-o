@@ -20,6 +20,7 @@ it later with **--config**. Global options will modify the output.'
   local -a opts
   opts=(
         '--absent-mount-sources-to-reject'
+        '--add-inheritable-capabilities'
         '--additional-devices'
         '--address'
         '--allowed-devices'

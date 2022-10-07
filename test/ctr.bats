@@ -695,6 +695,18 @@ function check_oci_annotation() {
 	[[ "$output" =~ 00000000002020db ]]
 }
 
+@test "ctr with add_inheritable_capabilities has inheritable capabilities" {
+	CONTAINER_ADD_INHERITABLE_CAPABILITIES=true start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	jq '	  .linux.security_context.run_as_username = "redis"' \
+		"$TESTDATA"/container_redis.json > "$newconfig"
+	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	crictl exec --sync "$ctr_id" grep "CapEff:\s0000000000000000" /proc/1/status
+}
+
 @test "ctr oom" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)

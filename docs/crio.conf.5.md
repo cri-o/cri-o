@@ -183,6 +183,10 @@ the container runtime configuration.
   ]
 ```
 
+**add_inheritable_capabilities**=true
+ Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.
+ If capabilities are expected to work for non-root users, this option should be set.
+
 **default_sysctls**=[]
  List of default sysctls. If it is empty or commented out, only the sysctls defined in the container json file by the user/kube will be added.
 
