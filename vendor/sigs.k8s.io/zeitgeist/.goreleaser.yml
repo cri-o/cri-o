@@ -42,12 +42,16 @@ builds:
   ldflags:
   - "{{ .Env.LDFLAGS }}"
 
+archives:
+- format: binary
+  allow_different_binary_count: true
+
 signs:
 # Keyless
 - id: cosign-keyless
   signature: "${artifact}.sig"
   certificate: "${artifact}.pem"
-  cmd: ./dist/cosign-linux-amd64
+  cmd: cosign
   args: ["sign-blob", "--output-signature", "${artifact}.sig", "--output-certificate", "${artifact}.pem", "${artifact}"]
   artifacts: all
 
