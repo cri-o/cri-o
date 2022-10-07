@@ -8,7 +8,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0
 	github.com/checkpoint-restore/go-criu/v5 v5.3.0
-	github.com/container-orchestrated-devices/container-device-interface v0.5.0
+	github.com/container-orchestrated-devices/container-device-interface v0.5.2
 	github.com/containerd/cgroups v1.0.4
 	github.com/containerd/containerd v1.6.8
 	github.com/containerd/cri-containerd v1.19.0
