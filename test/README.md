@@ -77,7 +77,7 @@ make CONTAINER_DEFAULT_RUNTIME=crun localintegration
 
 If you'd like to run the tests with a runtime of a different type, you need to also specify `$RUNTIME_TYPE`
 
-For example, to use [kata](https://github.com/kata-containers/runtime) with shim v2:
+For example, to use [kata](https://github.com/kata-containers/kata-containers) with shim v2:
 ```
 make CONTAINER_DEFAULT_RUNTIME=containerd-shim-kata-v2 RUNTIME_TYPE=vm localintegration
 ```
