@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 07 Oct 2022 08:12:06 UTC for commit [3aab4a2][0]._
+_Generated on Fri, 07 Oct 2022 14:10:21 UTC for commit [e2fc6aa][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3aab4a2fe508fe84e33fc66c21fd0d58c89e8ae1
+[0]: https://github.com/cri-o/cri-o/commit/e2fc6aae2d3b845731c34bb1ce8a07f6b43553b3
 
 ## Outdated Dependencies
 
@@ -58,7 +58,7 @@ _Generated on Fri, 07 Oct 2022 08:12:06 UTC for commit [3aab4a2][0]._
 | dmitri.shuralyov.com/gpu/mtl                                                           | v0.0.0-20201218220906-28db891af037                |                                    | false  | true             |
 | filippo.io/edwards25519                                                                | v1.0.0-rc.1                                       | v1.0.0                             | false  | true             |
 | github.com/14rcole/gopopulate                                                          | v0.0.0-20180821133914-b175b219e774                |                                    | false  | true             |
-| github.com/AdaLogics/go-fuzz-headers                                                   | v0.0.0-20210715213245-6c3934b029d8                | v0.0.0-20221004151927-b24d207f4b23 | false  | true             |
+| github.com/AdaLogics/go-fuzz-headers                                                   | v0.0.0-20210715213245-6c3934b029d8                | v0.0.0-20221007124625-37f5449ff7df | false  | true             |
 | github.com/Antonboom/errname                                                           | v0.1.5                                            | v0.1.7                             | false  | true             |
 | github.com/Antonboom/nilnil                                                            | v0.1.0                                            | v0.1.1                             | false  | true             |
 | github.com/Azure/azure-amqp-common-go/v2                                               | v2.1.0                                            | v2.1.1                             | false  | true             |
