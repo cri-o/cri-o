@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 07 Oct 2022 14:10:21 UTC for commit [e2fc6aa][0]._
+_Generated on Fri, 07 Oct 2022 16:55:01 UTC for commit [72f06b6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e2fc6aae2d3b845731c34bb1ce8a07f6b43553b3
+[0]: https://github.com/cri-o/cri-o/commit/72f06b6e833decb81db5a88829503d5c2bfdd8ef
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/checkpoint-restore/checkpointctl                                 | v0.0.0-20220321135231-33f4a66335f0 | v0.0.0-20220920085233-2c4dd81bfcb4 | true   | true             |
+| github.com/containers/ocicrypt                                              | v1.1.5                             | v1.1.6                             | true   | true             |
 | github.com/onsi/gomega                                                      | v1.20.2                            | v1.21.1                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.34.0                            | v0.36.1                            | true   | true             |
 | golang.org/x/net                                                            | v0.0.0-20220909164309-bea034e7d591 | v0.0.0-20221004154528-8021a29435af | true   | true             |
@@ -264,7 +265,7 @@ _Generated on Fri, 07 Oct 2022 14:10:21 UTC for commit [e2fc6aa][0]._
 | github.com/containers/image/v5                                                         | v5.23.0                                           |                                    | true   | true             |
 | github.com/containers/kubensmnt                                                        | v1.2.0                                            |                                    | true   | true             |
 | github.com/containers/libtrust                                                         | v0.0.0-20200511145503-9c3a6c22cd9a                |                                    | false  | true             |
-| github.com/containers/ocicrypt                                                         | v1.1.5                                            |                                    | true   | true             |
+| github.com/containers/ocicrypt                                                         | v1.1.5                                            | v1.1.6                             | true   | true             |
 | github.com/containers/podman/v4                                                        | v4.2.1                                            |                                    | true   | true             |
 | github.com/containers/psgo                                                             | v1.7.3                                            |                                    | false  | true             |
 | github.com/containers/storage                                                          | v1.43.0                                           |                                    | true   | true             |
@@ -374,7 +375,7 @@ _Generated on Fri, 07 Oct 2022 14:10:21 UTC for commit [e2fc6aa][0]._
 | github.com/fxamacker/cbor/v2                                                           | v2.4.0                                            |                                    | false  | true             |
 | github.com/fzipp/gocyclo                                                               | v0.3.1                                            | v0.6.0                             | false  | true             |
 | github.com/garyburd/redigo                                                             | v0.0.0-20150301180006-535138d7bcd7                | v1.6.4                             | false  | true             |
-| github.com/getkin/kin-openapi                                                          | v0.76.0                                           | v0.103.0                           | false  | true             |
+| github.com/getkin/kin-openapi                                                          | v0.76.0                                           | v0.104.0                           | false  | true             |
 | github.com/getsentry/raven-go                                                          | v0.2.0                                            |                                    | false  | true             |
 | github.com/ghodss/yaml                                                                 | v1.0.0                                            |                                    | false  | true             |
 | github.com/gin-contrib/sse                                                             | v0.1.0                                            |                                    | false  | true             |
@@ -901,10 +902,10 @@ _Generated on Fri, 07 Oct 2022 14:10:21 UTC for commit [e2fc6aa][0]._
 | github.com/shurcooL/go-goon                                                            | v0.0.0-20170922171312-37c2f522c041                | v1.0.0                             | false  | true             |
 | github.com/shurcooL/graphql                                                            | v0.0.0-20200928012149-18c5c3165e3a                | v0.0.0-20220606043923-3cf50f8a0a29 | false  | true             |
 | github.com/shurcooL/sanitized_anchor_name                                              | v1.0.0                                            |                                    | false  | true             |
-| github.com/sigstore/cosign                                                             | v1.11.1                                           | v1.12.1                            | false  | true             |
+| github.com/sigstore/cosign                                                             | v1.11.1                                           | v1.13.0                            | false  | true             |
 | github.com/sigstore/fulcio                                                             | v0.5.3                                            | v0.6.0                             | false  | true             |
 | github.com/sigstore/rekor                                                              | v0.11.0                                           | v0.12.2                            | false  | true             |
-| github.com/sigstore/sigstore                                                           | v1.4.2                                            |                                    | false  | true             |
+| github.com/sigstore/sigstore                                                           | v1.4.2                                            | v1.4.3                             | false  | true             |
 | github.com/sirupsen/logrus                                                             | v1.9.0                                            |                                    | true   | true             |
 | github.com/sivchari/tenv                                                               | v1.4.7                                            | v1.7.0                             | false  | true             |
 | github.com/skratchdot/open-golang                                                      | v0.0.0-20200116055534-eef842397966                |                                    | false  | true             |
@@ -1135,7 +1136,7 @@ _Generated on Fri, 07 Oct 2022 14:10:21 UTC for commit [e2fc6aa][0]._
 | gopkg.in/yaml.v2                                                                       | v2.4.0                                            |                                    | false  | true             |
 | gopkg.in/yaml.v3                                                                       | v3.0.1                                            |                                    | false  | true             |
 | gotest.tools                                                                           | v2.2.0+incompatible                               |                                    | false  | true             |
-| gotest.tools/v3                                                                        | v3.1.0                                            | v3.3.0                             | false  | true             |
+| gotest.tools/v3                                                                        | v3.1.0                                            | v3.4.0                             | false  | true             |
 | helm.sh/helm/v3                                                                        | v3.9.4                                            | v3.10.0                            | false  | true             |
 | honnef.co/go/tools                                                                     | v0.2.1                                            | v0.3.3                             | false  | true             |
 | k8s.io/api                                                                             | v0.0.0-20220823173643-a866cbe2e5bb                | v0.0.0-20221007013352-e11e226b23c0 | true   | true             |
