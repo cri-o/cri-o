@@ -36,7 +36,7 @@ FILES_ETC=(
     "$GIT_ROOT/contrib/bundle/10-crun.conf"
 )
 FILES_CONTRIB=(
-    "$GIT_ROOT/contrib/cni/10-crio-bridge.conf"
+    "$GIT_ROOT/contrib/cni/10-crio-bridge.conflist"
     "$GIT_ROOT/contrib/policy.json"
     "$GIT_ROOT/contrib/systemd/crio.service"
 )
