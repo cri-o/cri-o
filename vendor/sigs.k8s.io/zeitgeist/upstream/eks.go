@@ -55,7 +55,7 @@ func (upstream EKS) LatestVersion() (string, error) {
 		return "", fmt.Errorf("invalid semver constraints range: %v: %w", upstream.Constraints, err)
 	}
 
-	const docsURL = "https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html"
+	const docsURL = "https://docs.aws.amazon.com/eks/latest/userguide/platform-versions.html"
 	log.Debugf("Retrieving EKS releases from  %s...", docsURL)
 
 	resp, err := http.Get(docsURL)

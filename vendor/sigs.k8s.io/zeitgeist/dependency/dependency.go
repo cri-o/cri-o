@@ -19,6 +19,7 @@ package dependency
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -52,9 +53,9 @@ type Dependency struct {
 	// Scheme for versioning this dependency
 	Scheme VersionScheme `yaml:"scheme"`
 	// Optional: sensitivity, to alert e.g. on new major versions
-	Sensitivity VersionSensitivity `yaml:"sensitivity"`
+	Sensitivity VersionSensitivity `yaml:"sensitivity,omitempty"`
 	// Optional: upstream
-	Upstream map[string]string `yaml:"upstream"`
+	Upstream map[string]string `yaml:"upstream,omitempty"`
 	// List of references to this dependency in local files
 	RefPaths []*RefPath `yaml:"refPaths"`
 }
@@ -126,6 +127,24 @@ func fromFile(dependencyFilePath string) (*Dependencies, error) {
 	}
 
 	return dependencies, nil
+}
+
+func toFile(dependencyFilePath string, dependencies *Dependencies) error {
+	var output bytes.Buffer
+	yamlEncoder := yaml.NewEncoder(&output)
+	yamlEncoder.SetIndent(2)
+
+	err := yamlEncoder.Encode(dependencies)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(dependencyFilePath, output.Bytes(), 0o644)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LocalCheck checks whether dependencies are in-sync locally
@@ -245,6 +264,142 @@ func (c *Client) RemoteCheck(dependencyFilePath string) ([]string, error) {
 	}
 
 	return updates, nil
+}
+
+// Upgrade retrieves the most up-to-date version of the dependency and replaces
+// the local version with the most up-to-date version.
+//
+// Will return an error if checking the versions upstream fails, or if updating
+// files fails.
+func (c *Client) Upgrade(dependencyFilePath string) ([]string, error) {
+	externalDeps, err := fromFile(dependencyFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	upgrades := make([]string, 0)
+	upgradedDependencies := make([]*Dependency, 0)
+
+	versionUpdateInfos, err := c.checkUpstreamVersions(externalDeps.Dependencies)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, vu := range versionUpdateInfos {
+		dependency, err := findDependencyByName(externalDeps.Dependencies, vu.name)
+		if err != nil {
+			return nil, err
+		}
+
+		if vu.updateAvailable {
+			err = upgradeDependency(dependency, &vu)
+			if err != nil {
+				return nil, err
+			}
+
+			dependency.Version = vu.latest.Version
+			upgradedDependencies = append(
+				upgradedDependencies,
+				dependency,
+			)
+
+			upgrades = append(
+				upgrades,
+				fmt.Sprintf(
+					"Upgraded dependency %s from version %s to version %s",
+					vu.name,
+					vu.current.Version,
+					vu.latest.Version,
+				),
+			)
+		} else {
+			upgradedDependencies = append(
+				upgradedDependencies,
+				dependency,
+			)
+
+			log.Debugf(
+				"No update available for dependency %s: %s (latest: %s)\n",
+				vu.name,
+				vu.current.Version,
+				vu.latest.Version,
+			)
+		}
+	}
+
+	// Update the dependencies file to reflect the upgrades
+	err = toFile(dependencyFilePath, &Dependencies{
+		Dependencies: upgradedDependencies,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return upgrades, nil
+}
+
+func findDependencyByName(dependencies []*Dependency, name string) (*Dependency, error) {
+	for _, dep := range dependencies {
+		if dep.Name == name {
+			return dep, nil
+		}
+	}
+	return nil, fmt.Errorf("cannot find dependency by name: %s", name)
+}
+
+func upgradeDependency(dependency *Dependency, versionUpdate *versionUpdateInfo) error {
+	log.Debugf("running upgradeDependency, versionUpdate %#v", versionUpdate)
+	for _, refPath := range dependency.RefPaths {
+		err := replaceInFile(refPath, versionUpdate)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func replaceInFile(refPath *RefPath, versionUpdate *versionUpdateInfo) error {
+	log.Debugf("running replaceInFile, refpath is %#v, versionUpdate %#v", refPath, versionUpdate)
+
+	matcher, err := regexp.Compile(refPath.Match)
+	if err != nil {
+		return fmt.Errorf("compiling regex: %w", err)
+	}
+
+	inputFile, err := os.ReadFile(refPath.Path)
+	if err != nil {
+		return fmt.Errorf("reading file: %w", err)
+	}
+
+	lines := strings.Split(string(inputFile), "\n")
+
+	for i, line := range lines {
+		if matcher.MatchString(line) {
+			if strings.Contains(line, versionUpdate.current.Version) {
+				log.Debugf(
+					"Line %d matches expected regexp %q and version %q: %s",
+					i,
+					refPath.Match,
+					versionUpdate.current.Version,
+					line,
+				)
+
+				// The actual upgrade:
+				lines[i] = strings.ReplaceAll(line, versionUpdate.current.Version, versionUpdate.latest.Version)
+			}
+		}
+	}
+
+	upgradedFile := strings.Join(lines, "\n")
+
+	// Finally, write the file out
+	err = os.WriteFile(refPath.Path, []byte(upgradedFile), 0o644)
+
+	if err != nil {
+		return fmt.Errorf("writing file: %w", err)
+	}
+	return nil
 }
 
 func (c *Client) RemoteExport(dependencyFilePath string) ([]VersionUpdate, error) {
