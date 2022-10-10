@@ -688,3 +688,10 @@ function has_criu() {
         skip "CRIU too old. At least 3.16 needed."
     fi
 }
+
+function goroutine_count() {
+    raw=$(curl --silent --fail --show-error 'http://localhost:6060/debug/pprof/goroutine?debug=1')
+    header=$(head -n 1 <<<"$raw")
+    count=${header#goroutine profile: total }
+    echo "$count"
+}
