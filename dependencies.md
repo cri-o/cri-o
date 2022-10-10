@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 10 Oct 2022 07:23:07 UTC for commit [72b3265][0]._
+_Generated on Mon, 10 Oct 2022 15:02:50 UTC for commit [3b3dd62][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/72b32655d19be4997fbe7a5ab20d343823cca04f
+[0]: https://github.com/cri-o/cri-o/commit/3b3dd6250f436c87ac21ec74579c4c9726756823
 
 ## Outdated Dependencies
 
@@ -16,7 +16,6 @@ _Generated on Mon, 10 Oct 2022 07:23:07 UTC for commit [72b3265][0]._
 | golang.org/x/net                                                            | v0.0.0-20220909164309-bea034e7d591 | v0.0.0-20221004154528-8021a29435af | true   | true             |
 | golang.org/x/sync                                                           | v0.0.0-20220722155255-886fb9371eb4 | v0.0.0-20220929204114-8fcdb60fdcc0 | true   | true             |
 | golang.org/x/sys                                                            | v0.0.0-20220919091848-fb04ddd9f9c8 | v0.0.0-20221006211917-84dc82d7e875 | true   | true             |
-| google.golang.org/grpc                                                      | v1.49.0                            | v1.50.0                            | true   | true             |
 | k8s.io/api                                                                  | v0.0.0-20220823173643-a866cbe2e5bb | v0.0.0-20221010065520-99360e5dbc26 | true   | true             |
 | k8s.io/apimachinery                                                         | v0.0.0-20220823173643-a866cbe2e5bb | v0.0.0-20221010065520-99360e5dbc26 | true   | true             |
 | k8s.io/cri-api                                                              | v0.0.0-20220823173643-a866cbe2e5bb | v0.0.0-20221010065520-99360e5dbc26 | true   | true             |
@@ -516,7 +515,7 @@ _Generated on Mon, 10 Oct 2022 07:23:07 UTC for commit [72b3265][0]._
 | github.com/google/licenseclassifier/v2                                                 | v2.0.0-alpha.1                                    | v2.0.0                             | false  | true             |
 | github.com/google/martian                                                              | v2.1.1-0.20190517191504-25dcb96d9e51+incompatible |                                    | false  | true             |
 | github.com/google/martian/v3                                                           | v3.2.1                                            | v3.3.2                             | false  | true             |
-| github.com/google/pprof                                                                | v0.0.0-20210720184732-4bb14d4b1be1                | v0.0.0-20220829040838-70bd9ae97f40 | false  | true             |
+| github.com/google/pprof                                                                | v0.0.0-20210720184732-4bb14d4b1be1                | v0.0.0-20221010093106-cbe725748ca4 | false  | true             |
 | github.com/google/renameio                                                             | v1.0.1                                            |                                    | true   | true             |
 | github.com/google/rpmpack                                                              | v0.0.0-20210518075352-dc539ef4f2ea                | v0.0.0-20220411070212-51a1004ef6cb | false  | true             |
 | github.com/google/shlex                                                                | v0.0.0-20191202100458-e7afc7fbc510                |                                    | false  | true             |
@@ -849,7 +848,7 @@ _Generated on Mon, 10 Oct 2022 07:23:07 UTC for commit [72b3265][0]._
 | github.com/quasilyte/go-consistent                                                     | v0.0.0-20190521200055-c6f3937de18c                | v0.0.0-20220429160651-4e46040fbc82 | false  | true             |
 | github.com/quasilyte/go-ruleguard                                                      | v0.3.13                                           | v0.3.18                            | false  | true             |
 | github.com/quasilyte/go-ruleguard/dsl                                                  | v0.3.10                                           | v0.3.21                            | false  | true             |
-| github.com/quasilyte/go-ruleguard/rules                                                | v0.0.0-20210428214800-545e0d2e0bf7                | v0.0.0-20221002181649-1204f1287707 | false  | true             |
+| github.com/quasilyte/go-ruleguard/rules                                                | v0.0.0-20210428214800-545e0d2e0bf7                | v0.0.0-20221010073910-ce1bf37a2cf8 | false  | true             |
 | github.com/quasilyte/regex/syntax                                                      | v0.0.0-20200407221936-30656e2c4a95                | v0.0.0-20210819130434-b3f0c404a727 | false  | true             |
 | github.com/qur/ar                                                                      | v0.0.0-20130629153254-282534b91770                |                                    | false  | true             |
 | github.com/rcrowley/go-metrics                                                         | v0.0.0-20201227073835-cf1acfcdf475                |                                    | false  | true             |
@@ -1074,7 +1073,7 @@ _Generated on Mon, 10 Oct 2022 07:23:07 UTC for commit [72b3265][0]._
 | go.opentelemetry.io/otel/sdk/metric                                                    | v0.20.0                                           | v0.32.1                            | false  | true             |
 | go.opentelemetry.io/otel/trace                                                         | v1.10.0                                           |                                    | false  | true             |
 | go.opentelemetry.io/proto/otlp                                                         | v0.19.0                                           |                                    | false  | true             |
-| go.starlark.net                                                                        | v0.0.0-20200306205701-8dd3e2ee1dd5                | v0.0.0-20220928063852-5fccb4daaf6d | false  | true             |
+| go.starlark.net                                                                        | v0.0.0-20200306205701-8dd3e2ee1dd5                | v0.0.0-20221010140840-6bf6f0955179 | false  | true             |
 | go.step.sm/crypto                                                                      | v0.17.2                                           | v0.21.0                            | false  | true             |
 | go.uber.org/atomic                                                                     | v1.10.0                                           |                                    | false  | true             |
 | go.uber.org/automaxprocs                                                               | v1.5.1                                            |                                    | false  | true             |
@@ -1108,7 +1107,7 @@ _Generated on Mon, 10 Oct 2022 07:23:07 UTC for commit [72b3265][0]._
 | google.golang.org/appengine                                                            | v1.6.7                                            |                                    | false  | true             |
 | google.golang.org/cloud                                                                | v0.0.0-20151119220103-975617b05ea8                | v0.104.0                           | false  | true             |
 | google.golang.org/genproto                                                             | v0.0.0-20220805133916-01dd62135a58                | v0.0.0-20220930163606-c98284e70a91 | false  | true             |
-| google.golang.org/grpc                                                                 | v1.49.0                                           | v1.50.0                            | true   | true             |
+| google.golang.org/grpc                                                                 | v1.50.0                                           |                                    | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                          | v1.2.0                                            |                                    | false  | true             |
 | google.golang.org/grpc/examples                                                        | v0.0.0-20201130180447-c456688b1860                | v0.0.0-20221006202345-c03925db8d3c | false  | true             |
 | google.golang.org/protobuf                                                             | v1.28.1                                           |                                    | false  | true             |
@@ -1172,7 +1171,7 @@ _Generated on Mon, 10 Oct 2022 07:23:07 UTC for commit [72b3265][0]._
 | k8s.io/sample-apiserver                                                                | v0.0.0-20220823173643-a866cbe2e5bb                | v0.0.0-20221010065520-99360e5dbc26 | false  | true             |
 | k8s.io/system-validators                                                               | v1.7.0                                            | v1.8.0                             | false  | true             |
 | k8s.io/utils                                                                           | v0.0.0-20220728103510-ee6ede2d64ed                | v0.0.0-20220922133306-665eaaec4324 | true   | true             |
-| knative.dev/pkg                                                                        | v0.0.0-20220325200448-1f7514acd0c2                | v0.0.0-20221007211032-8178c3871785 | false  | true             |
+| knative.dev/pkg                                                                        | v0.0.0-20220325200448-1f7514acd0c2                | v0.0.0-20221010143036-21d3b47e2efe | false  | true             |
 | modernc.org/cc                                                                         | v1.0.0                                            | v1.0.1                             | false  | true             |
 | modernc.org/golex                                                                      | v1.0.0                                            | v1.0.2                             | false  | true             |
 | modernc.org/mathutil                                                                   | v1.0.0                                            | v1.5.0                             | false  | true             |
