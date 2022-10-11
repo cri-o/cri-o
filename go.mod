@@ -20,7 +20,7 @@ require (
 	github.com/containers/buildah v1.28.0
 	github.com/containers/common v0.50.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.3.1-0.20220923125458-3f0360651fee
+	github.com/containers/conmon-rs v0.3.1-0.20221010162345-43f66976bf45
 	github.com/containers/image/v5 v5.23.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.5
@@ -46,7 +46,7 @@ require (
 	github.com/intel/goresctrl v0.3.0
 	github.com/json-iterator/go v1.1.12
 	github.com/onsi/ginkgo/v2 v2.2.0
-	github.com/onsi/gomega v1.20.2
+	github.com/onsi/gomega v1.21.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/opencontainers/runc v1.1.4

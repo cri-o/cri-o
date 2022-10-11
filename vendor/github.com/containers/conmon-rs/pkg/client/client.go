@@ -55,11 +55,11 @@ type ConmonServerConfig struct {
 
 	// LogLevel of the server to be used.
 	// Can be "trace", "debug", "info", "warn", "error" or "off".
-	LogLevel string
+	LogLevel LogLevel
 
 	// LogDriver is the possible server logging driver.
 	// Can be "stdout" or "systemd".
-	LogDriver string
+	LogDriver LogDriver
 
 	// Runtime is the binary path of the OCI runtime to use to operate on the
 	// containers.
@@ -83,20 +83,20 @@ type ConmonServerConfig struct {
 
 	// CgroupManager can be use to select the cgroup manager.
 	CgroupManager CgroupManager
+
+	// Tracing can be used to enable OpenTelemetry tracing.
+	Tracing *Tracing
 }
 
-// CgroupManager is the enum for all available cgroup managers.
-type CgroupManager int
+// Tracing is the structure for managing server-side OpenTelemetry tracing.
+type Tracing struct {
+	// Enabled tells the server to run with OpenTelemetry tracing.
+	Enabled bool
 
-const (
-	// CgroupManagerSystemd specifies to use systemd to create and manage
-	// cgroups.
-	CgroupManagerSystemd CgroupManager = iota
-
-	// CgroupManagerCgroupfs specifies to use the cgroup filesystem to create
-	// and manage cgroups.
-	CgroupManagerCgroupfs
-)
+	// Endpoint is the GRPC tracing endpoint for OLTP.
+	// Defaults to "http://localhost:4317"
+	Endpoint string
+}
 
 // NewConmonServerConfig creates a new ConmonServerConfig instance for the
 // required arguments. Optional arguments are pointing to their corresponding
@@ -106,7 +106,7 @@ func NewConmonServerConfig(
 ) *ConmonServerConfig {
 	return &ConmonServerConfig{
 		LogLevel:     LogLevelDebug,
-		LogDriver:    LogDriverStdout,
+		LogDriver:    LogDriverSystemd,
 		Runtime:      runtime,
 		RuntimeRoot:  runtimeRoot,
 		ServerRunDir: serverRunDir,
@@ -116,7 +116,7 @@ func NewConmonServerConfig(
 }
 
 // FromLogrusLevel converts the logrus.Level to a conmon-rs server log level.
-func FromLogrusLevel(level logrus.Level) string {
+func FromLogrusLevel(level logrus.Level) LogLevel {
 	switch level {
 	case logrus.PanicLevel, logrus.FatalLevel:
 		return LogLevelOff
@@ -260,14 +260,14 @@ func (c *ConmonClient) toArgs(config *ConmonServerConfig) (entrypoint string, ar
 		if err := validateLogLevel(config.LogLevel); err != nil {
 			return "", args, fmt.Errorf("validate log level: %w", err)
 		}
-		args = append(args, "--log-level", config.LogLevel)
+		args = append(args, "--log-level", string(config.LogLevel))
 	}
 
 	if config.LogDriver != "" {
 		if err := validateLogDriver(config.LogDriver); err != nil {
 			return "", args, fmt.Errorf("validate log driver: %w", err)
 		}
-		args = append(args, "--log-driver", config.LogDriver)
+		args = append(args, "--log-driver", string(config.LogDriver))
 	}
 
 	const cgroupManagerFlag = "--cgroup-manager"
@@ -282,22 +282,36 @@ func (c *ConmonClient) toArgs(config *ConmonServerConfig) (entrypoint string, ar
 		return "", args, errUndefinedCgroupManager
 	}
 
+	if config.Tracing != nil && config.Tracing.Enabled {
+		args = append(args, "--enable-tracing")
+
+		if config.Tracing.Endpoint != "" {
+			args = append(args, "--tracing-endpoint", config.Tracing.Endpoint)
+		}
+	}
+
 	return entrypoint, args, nil
 }
 
-func validateLogLevel(level string) error {
+func validateLogLevel(level LogLevel) error {
 	return validateStringSlice(
 		"log level",
-		level,
-		LogLevelTrace, LogLevelDebug, LogLevelInfo, LogLevelWarn, LogLevelError, LogLevelOff,
+		string(level),
+		string(LogLevelTrace),
+		string(LogLevelDebug),
+		string(LogLevelInfo),
+		string(LogLevelWarn),
+		string(LogLevelError),
+		string(LogLevelOff),
 	)
 }
 
-func validateLogDriver(driver string) error {
+func validateLogDriver(driver LogDriver) error {
 	return validateStringSlice(
 		"log driver",
-		driver,
-		LogDriverStdout, LogDriverSystemd,
+		string(driver),
+		string(LogDriverStdout),
+		string(LogDriverSystemd),
 	)
 }
 
@@ -537,7 +551,7 @@ type CreateContainerConfig struct {
 	OOMExitPaths []string
 
 	// LogDrivers is a slice of selected log drivers.
-	LogDrivers []LogDriver
+	LogDrivers []ContainerLogDriver
 
 	// CleanupCmd is the command that will be executed once the container exits
 	CleanupCmd []string
@@ -551,8 +565,8 @@ type CreateContainerConfig struct {
 	CommandArgs []string
 }
 
-// LogDriver specifies a selected logging mechanism.
-type LogDriver struct {
+// ContainerLogDriver specifies a selected logging mechanism.
+type ContainerLogDriver struct {
 	// Type defines the log driver variant.
 	Type LogDriverType
 
@@ -762,7 +776,7 @@ func stringSliceToTextList(src []string, newFunc func(int32) (capnp.TextList, er
 	return nil
 }
 
-func (c *ConmonClient) initLogDrivers(req *proto.Conmon_CreateContainerRequest, logDrivers []LogDriver) error {
+func (c *ConmonClient) initLogDrivers(req *proto.Conmon_CreateContainerRequest, logDrivers []ContainerLogDriver) error {
 	newLogDrivers, err := req.NewLogDrivers(int32(len(logDrivers)))
 	if err != nil {
 		return fmt.Errorf("create log drivers: %w", err)
