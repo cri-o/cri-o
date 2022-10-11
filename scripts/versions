@@ -9,5 +9,6 @@ declare -A VERSIONS=(
     ["runc"]=v1.1.4
     ["crun"]=1.5
     ["bats"]=v1.6.0
+    ["buildah"]=v1.28.0
 )
 export VERSIONS

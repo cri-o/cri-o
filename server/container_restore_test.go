@@ -6,8 +6,12 @@ import (
 	"os"
 
 	"github.com/containers/podman/v4/pkg/criu"
+	cs "github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
+	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -37,6 +41,18 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore from archive into new pod", func() {
 		It("should fail because archive does not exist", func() {
 			// Given
+			size := uint64(100)
+			gomock.InOrder(
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
+					Return([]string{"image"}, nil),
+				imageServerMock.EXPECT().ImageStatus(
+					gomock.Any(), gomock.Any()).
+					Return(&storage.ImageResult{
+						ID:   "image",
+						User: "10", Size: &size,
+					}, nil),
+			)
 			// When
 			_, err := sut.CRImportCheckpoint(
 				context.Background(),
@@ -80,14 +96,14 @@ var _ = t.Describe("ContainerRestore", func() {
 			// When
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
-				"empty.tar",
+				"no.tar",
 				"",
 				"",
 				nil,
 				nil,
 			)
 			// Then
-			Expect(err.Error()).To(Equal(`failed to open checkpoint archive empty.tar for import: open empty.tar: no such file or directory`))
+			Expect(err.Error()).To(ContainSubstring(`unpacking of checkpoint archive`))
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
@@ -277,6 +293,57 @@ var _ = t.Describe("ContainerRestore", func() {
 
 			// Then
 			Expect(err.Error()).To(Equal(`failed to read "io.kubernetes.cri-o.Annotations": unexpected end of JSON input`))
+		})
+	})
+	t.Describe("ContainerRestore from OCI archive", func() {
+		It("should fail because archive does not exist", func() {
+			// Given
+			size := uint64(100)
+			gomock.InOrder(
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), gomock.Any()).
+					Return([]string{"image"}, nil),
+				imageServerMock.EXPECT().ImageStatus(
+					gomock.Any(), gomock.Any()).
+					Return(&storage.ImageResult{
+						ID:   "image",
+						User: "10", Size: &size,
+						Annotations: map[string]string{
+							crioann.CheckpointAnnotationName: "foo",
+						},
+					}, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().GraphOptions().Return([]string{}),
+				storeMock.EXPECT().GraphDriverName().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().RunRoot().Return(""),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Image(gomock.Any()).
+					Return(&cs.Image{
+						ID: "abcdef",
+						Names: []string{
+							"localhost/checkpoint-image:tag1",
+						},
+					}, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().MountImage(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return("", nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().UnmountImage(gomock.Any(), true).
+					Return(false, nil),
+			)
+			// When
+			_, err := sut.CRImportCheckpoint(
+				context.Background(),
+				"localhost/checkpoint-image:tag1",
+				"",
+				"",
+				nil,
+				nil,
+			)
+
+			// Then
+			Expect(err.Error()).To(ContainSubstring(`failed to read spec.dump: open spec.dump: no such file or directory`))
 		})
 	})
 })

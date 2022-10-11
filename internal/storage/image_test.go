@@ -414,6 +414,18 @@ var _ = t.Describe("Image", func() {
 					}, nil),
 				// buildImageCacheItem
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
+				storeMock.EXPECT().Image(testNormalizedImageName).
+					Return(&cs.Image{
+						ID: testSHA256,
+						Names: []string{
+							testNormalizedImageName,
+							"localhost/a@sha256:" + testSHA256,
+							"localhost/b@sha256:" + testSHA256,
+							"localhost/c:latest",
+						},
+					}, nil),
+				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
+					Return(nil, nil),
 				// makeRepoDigests
 				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
 					Return(digest.Digest("a:"+testSHA256), nil),
@@ -493,6 +505,15 @@ var _ = t.Describe("Image", func() {
 				return inOrder(
 					// buildImageCacheItem:
 					mockNewImage(storeMock, testSHA256, testSHA256),
+					storeMock.EXPECT().Image(gomock.Any()).
+						Return(&cs.Image{
+							ID: testSHA256,
+							Names: []string{
+								"localhost/c:latest",
+							},
+						}, nil),
+					storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
+						Return(nil, nil),
 					// makeRepoDigests:
 					storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
 						Return(digest.Digest(""), nil),
@@ -526,6 +547,17 @@ var _ = t.Describe("Image", func() {
 				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
 				// buildImageCacheItem:
 				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
+
+				storeMock.EXPECT().Image(gomock.Any()).
+					Return(&cs.Image{
+						ID: testSHA256,
+						Names: []string{
+							testNormalizedImageName,
+						},
+					}, nil),
+				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
+					Return(nil, nil),
+
 				// makeRepoDigests:
 				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
 					Return(digest.Digest(""), nil),

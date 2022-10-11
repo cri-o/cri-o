@@ -17,6 +17,7 @@ main() {
     install_ginkgo
     install_cni_plugins
     install_files
+    install_buildah
 }
 
 prepare_system() {
@@ -127,6 +128,19 @@ install_files() {
     sudo cp "$REPO_ROOT"/test/registries.conf /etc/containers/registries.conf
     sudo rm -rf /usr/share/containers/containers.conf
     sudo rm -rf /etc/containers/storage.conf
+}
+
+install_buildah() {
+    URL=https://github.com/containers/buildah.git
+
+    git clone $URL
+    pushd buildah
+    git checkout "${VERSIONS["buildah"]}"
+    make
+    sudo -E PATH="$PATH" make BINDIR=/usr/bin install
+    popd
+    sudo rm -rf buildah
+    sudo buildah --version
 }
 
 main "$@"

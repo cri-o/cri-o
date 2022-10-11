@@ -291,12 +291,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
-	checkpointImage := func() bool {
+	checkpointImage, err := func() (bool, error) {
 		if req.Config == nil ||
 			req.Config.Image == nil ||
 			req.SandboxConfig == nil ||
 			req.SandboxConfig.Metadata == nil {
-			return false
+			return false, nil
 		}
 		if _, err := os.Stat(req.Config.Image.Image); err == nil {
 			log.Debugf(
@@ -304,10 +304,20 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 				"%q is a file. Assuming it is a checkpoint archive",
 				req.Config.Image.Image,
 			)
-			return true
+			return true, nil
 		}
-		return false
+		// Check if this is an OCI checkpoint image
+		ok, err := s.checkIfCheckpointOCIImage(ctx, req.Config.Image.Image)
+		if err != nil {
+			return false, fmt.Errorf("failed to check if this is a checkpoint image: %w", err)
+		}
+
+		return ok, nil
 	}()
+	if err != nil {
+		return nil, err
+	}
+
 	if checkpointImage {
 		// This might be a checkpoint image. Let's pass
 		// it to the checkpoint code.

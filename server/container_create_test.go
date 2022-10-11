@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"context"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -134,6 +135,36 @@ var _ = t.Describe("ContainerCreate", func() {
 					Config:        newContainerConfig(),
 					SandboxConfig: newPodSandboxConfig(),
 				})
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(response).To(BeNil())
+		})
+
+		It("should fail when container checkpoint archive is empty", func() {
+			// Given
+			addContainerAndSandbox()
+			testSandbox.SetStopped(false)
+
+			request := &types.CreateContainerRequest{
+				PodSandboxId:  testSandbox.ID(),
+				Config:        newContainerConfig(),
+				SandboxConfig: newPodSandboxConfig(),
+			}
+
+			emptyTar := "empty.tar"
+			archive, err := os.OpenFile(emptyTar, os.O_RDONLY|os.O_CREATE, 0o644)
+			Expect(err).To(BeNil())
+			archive.Close()
+			defer os.RemoveAll(emptyTar)
+
+			request.Config.Image.Image = emptyTar
+
+			// When
+			response, err := sut.CreateContainer(
+				context.Background(),
+				request,
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())

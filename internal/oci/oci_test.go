@@ -330,7 +330,7 @@ var _ = t.Describe("Oci", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(ContainSubstring("failed to wait"))
+			Expect(err.Error()).To(ContainSubstring("failed"))
 		})
 		It("RestoreContainer should fail with missing inventory", func() {
 			if !criu.CheckForCriu(criu.PodCriuVersion) {
