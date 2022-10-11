@@ -11,9 +11,16 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const tracingServiceName = "crio"
+
+var tracer = otel.Tracer(tracingServiceName)
+
+func Tracer() trace.Tracer {
+	return tracer
+}
 
 // InitTracing configures opentelemetry exporter and tracer provider
 func InitTracing(ctx context.Context, collectorAddress string, samplingRate int) (*sdktrace.TracerProvider, []otelgrpc.Option, error) {
