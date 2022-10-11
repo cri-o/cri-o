@@ -86,9 +86,7 @@ func (c *ContainerServer) ContainerCheckpoint(ctx context.Context, opts *Contain
 // Copied from libpod/diff.go
 var containerMounts = map[string]bool{
 	"/dev":               true,
-	"/etc/hostname":      true,
-	"/etc/hosts":         true,
-	"/etc/resolv.conf":   true,
+	"/dev/shm":           true,
 	"/proc":              true,
 	"/run":               true,
 	"/run/.containerenv": true,
@@ -96,9 +94,24 @@ var containerMounts = map[string]bool{
 	"/sys":               true,
 }
 
+const bindMount = "bind"
+
+func skipBindMount(mountPath string, specgen *rspec.Spec) bool {
+	for _, m := range specgen.Mounts {
+		if m.Type != bindMount {
+			continue
+		}
+		if m.Destination == mountPath {
+			return true
+		}
+	}
+
+	return false
+}
+
 // getDiff returns the file system differences
 // Copied from libpod/diff.go and simplified for the checkpoint use case
-func (c *ContainerServer) getDiff(id string) (rchanges []archive.Change, err error) {
+func (c *ContainerServer) getDiff(id string, specgen *rspec.Spec) (rchanges []archive.Change, err error) {
 	layerID, err := c.GetContainerTopLayerID(id)
 	if err != nil {
 		return nil, err
@@ -106,6 +119,9 @@ func (c *ContainerServer) getDiff(id string) (rchanges []archive.Change, err err
 	changes, err := c.store.Changes("", layerID)
 	if err == nil {
 		for _, c := range changes {
+			if skipBindMount(c.Path, specgen) {
+				continue
+			}
 			if containerMounts[c.Path] {
 				continue
 			}
@@ -115,27 +131,17 @@ func (c *ContainerServer) getDiff(id string) (rchanges []archive.Change, err err
 	return rchanges, err
 }
 
-// To make the checkpoint/restore code use the same fields as Podman:
-type ContainerConfig struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	RootfsImageName string `json:"rootfsImageName,omitempty"`
+type ExternalBindMount struct {
+	Source      string `json:"source"`
+	Destination string `json:"destination"`
+	FileType    string `json:"file_type"`
+	Permissions uint32 `json:"permissions"`
 }
 
 // prepareCheckpointExport writes the config and spec to
 // JSON files for later export
 // Podman: libpod/container_internal.go
 func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
-	config := &ContainerConfig{
-		ID:              ctr.ID(),
-		Name:            ctr.Name(),
-		RootfsImageName: ctr.ImageName(),
-	}
-
-	if _, err := metadata.WriteJSONFile(config, ctr.Dir(), metadata.ConfigDumpFile); err != nil {
-		return err
-	}
-
 	// save spec
 	jsonPath := filepath.Join(ctr.BundlePath(), "config.json")
 	g, err := generate.NewFromFile(jsonPath)
@@ -144,6 +150,68 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	}
 	if _, err := metadata.WriteJSONFile(g.Config, ctr.Dir(), metadata.SpecDumpFile); err != nil {
 		return fmt.Errorf("generating spec for container %q failed: %w", ctr.ID(), err)
+	}
+
+	config := &metadata.ContainerConfig{
+		ID:              ctr.ID(),
+		Name:            ctr.Name(),
+		RootfsImageName: ctr.ImageName(),
+		CreatedTime:     ctr.CreatedAt(),
+		OCIRuntime: func() string {
+			runtimeHandler := c.GetSandbox(ctr.Sandbox()).RuntimeHandler()
+			if runtimeHandler != "" {
+				return runtimeHandler
+			}
+			return c.config.DefaultRuntime
+		}(),
+	}
+
+	if _, err := metadata.WriteJSONFile(config, ctr.Dir(), metadata.ConfigDumpFile); err != nil {
+		return err
+	}
+
+	// During container creation CRI-O creates all missing bind mount sources as
+	// directories. This is disabled during restore as CRIU requires the bind mount
+	// source to be of the same type. Directories need to be directories and regular
+	// files need to be regular files. CRIU will fail to bind mount a directory on
+	// a file. Especiallay when restoring a Kubernetes container outside of Kubernetes
+	// a couple of bind mounts are files (e.g. /etc/resolv.conf). To solve this
+	// CRI-O is now tracking all bind mount types in the checkpoint archive. This
+	// way it is possible to know if a missing bind mount needs to be a file or a
+	// directory.
+	var externalBindMounts []ExternalBindMount //nolint:prealloc
+	for _, m := range g.Config.Mounts {
+		if containerMounts[m.Destination] {
+			continue
+		}
+		if m.Type != bindMount {
+			continue
+		}
+		fileInfo, err := os.Stat(m.Source)
+		if err != nil {
+			return fmt.Errorf("unable to stat() %q: %w", m.Source, err)
+		}
+
+		externalBindMounts = append(
+			externalBindMounts,
+			ExternalBindMount{
+				Source:      m.Source,
+				Destination: m.Destination,
+				FileType: func() string {
+					if fileInfo.Mode().IsDir() {
+						return "directory"
+					}
+					return "file"
+				}(),
+				Permissions: uint32(fileInfo.Mode().Perm()),
+			},
+		)
+	}
+
+	if len(externalBindMounts) > 0 {
+		if _, err := metadata.WriteJSONFile(externalBindMounts, ctr.Dir(), "bind.mounts"); err != nil {
+			return fmt.Errorf("error writing 'bind.mounts' for %q: %w", ctr.ID(), err)
+		}
 	}
 
 	return nil
@@ -155,14 +223,16 @@ func (c *ContainerServer) exportCheckpoint(ctr *oci.Container, specgen *rspec.Sp
 	logrus.Debugf("Exporting checkpoint image of container %q to %q", id, dest)
 
 	includeFiles := []string{
+		stats.StatsDump,
 		metadata.DumpLogFile,
 		metadata.CheckpointDirectory,
 		metadata.ConfigDumpFile,
 		metadata.SpecDumpFile,
+		"bind.mounts",
 	}
 
 	// To correctly track deleted files, let's go through the output of 'podman diff'
-	rootFsChanges, err := c.getDiff(id)
+	rootFsChanges, err := c.getDiff(id, specgen)
 	if err != nil {
 		return fmt.Errorf("error exporting root file-system diff for %q: %w", id, err)
 	}
