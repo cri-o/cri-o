@@ -303,6 +303,23 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 		return nil, err
 	}
 
+	s.resourceStore.SetStageForResource(ctr.Name(), "container storage start")
+	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
+	}
+
+	defer func() {
+		if retErr != nil {
+			log.Infof(ctx, "createCtrLinux: stopping storage container %s", containerID)
+			if err := s.StorageRuntimeServer().StopContainer(containerID); err != nil {
+				log.Warnf(ctx, "couldn't stop storage container: %v: %v", containerID, err)
+			}
+		}
+	}()
+
+	s.resourceStore.SetStageForResource(ctr.Name(), "container spec configuration")
+
 	annotationDevices, err := device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation])
 	if err != nil {
 		return nil, err
@@ -586,20 +603,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			return nil, errors.Wrap(err, "setup seccomp")
 		}
 	}
-
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s(%s): %v", containerName, containerID, err)
-	}
-
-	defer func() {
-		if retErr != nil {
-			log.Infof(ctx, "createCtrLinux: stopping storage container %s", containerID)
-			if err := s.StorageRuntimeServer().StopContainer(containerID); err != nil {
-				log.Warnf(ctx, "couldn't stop storage container: %v: %v", containerID, err)
-			}
-		}
-	}()
 
 	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode())
 	if err != nil {

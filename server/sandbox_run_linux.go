@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -754,7 +755,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 		g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
 	}
-	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox network created")
+	s.resourceStore.SetStageForResource(sbox.Name(), "sandbox storage start")
+
+	mountPoint, err := s.StorageRuntimeServer().StartContainer(sbox.ID())
+	if err != nil {
+		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), sbox.ID(), err)
+	}
+	description = fmt.Sprintf("runSandbox: stopping storage container for sandbox %s", sbox.ID())
+	resourceCleaner.Add(ctx, description, func() error {
+		log.Infof(ctx, description)
+		err2 := s.StorageRuntimeServer().StopContainer(sbox.ID())
+		if err2 != nil {
+			log.Warnf(ctx, "could not stop storage container: %v: %v", sbox.ID(), err2)
+		}
+		return err2
+	})
 
 	// Set OOM score adjust of the infra container to be very low
 	// so it doesn't get killed.
@@ -769,19 +784,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	saveOptions := generate.ExportOptions{}
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(sbox.ID())
-	if err != nil {
-		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %v", containerName, sb.Name(), sbox.ID(), err)
-	}
-	description = fmt.Sprintf("runSandbox: stopping storage container for sandbox %s", sbox.ID())
-	resourceCleaner.Add(ctx, description, func() error {
-		log.Infof(ctx, description)
-		err2 := s.StorageRuntimeServer().StopContainer(sbox.ID())
-		if err2 != nil {
-			log.Warnf(ctx, "could not stop storage container: %v: %v", sbox.ID(), err2)
-		}
-		return err2
-	})
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 
 	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
