@@ -58,10 +58,15 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 	client, err := conmonClient.New(&conmonClient.ConmonServerConfig{
 		ConmonServerPath: handler.MonitorPath,
 		LogLevel:         conmonClient.FromLogrusLevel(logrus.GetLevel()),
+		LogDriver:        conmonClient.LogDriverSystemd,
 		Runtime:          handler.RuntimePath,
 		ServerRunDir:     c.dir,
 		RuntimeRoot:      runRoot,
 		CgroupManager:    cgroupManager,
+		Tracing: &conmonClient.Tracing{
+			Enabled:  r.config.EnableTracing,
+			Endpoint: fmt.Sprintf("http://%s", r.config.TracingEndpoint),
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -116,7 +121,7 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		Stdin:        c.stdin,
 		ExitPaths:    []string{filepath.Join(r.oci.config.ContainerExitsDir, c.ID()), c.exitFilePath()},
 		OOMExitPaths: []string{filepath.Join(c.bundlePath, "oom")}, // Keep in sync with location in oci.UpdateContainerStatus()
-		LogDrivers: []conmonClient.LogDriver{
+		LogDrivers: []conmonClient.ContainerLogDriver{
 			{
 				Type:    conmonClient.LogDriverTypeContainerRuntimeInterface,
 				Path:    c.logPath,
