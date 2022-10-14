@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 
+	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 )
@@ -50,7 +51,7 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-		newCtx := AddRequestNameAndID(ctx, info.FullMethod)
+		newCtx, span := opentelemetry.Tracer().Start(AddRequestNameAndID(ctx, info.FullMethod), info.FullMethod)
 		Debugf(newCtx, "Request: %+v", req)
 
 		resp, err := handler(newCtx, req)
@@ -61,6 +62,7 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 			Debugf(newCtx, "Response: %+v", resp)
 		}
 
+		span.End()
 		return resp, err
 	}
 }
