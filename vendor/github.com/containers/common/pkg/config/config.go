@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -28,8 +27,6 @@ const (
 	_configPath = "containers/containers.conf"
 	// UserOverrideContainersConfig holds the containers config path overridden by the rootless user
 	UserOverrideContainersConfig = ".config/" + _configPath
-	// Token prefix for looking for helper binary under $BINDIR
-	bindirPrefix = "$BINDIR"
 )
 
 // RuntimeStateStore is a constant indicating which state store implementation
@@ -237,10 +234,6 @@ type EngineConfig struct {
 	// The first path pointing to a valid file will be used.
 	ConmonPath []string `toml:"conmon_path,omitempty"`
 
-	// ConmonRsPath is the path to the Conmon-rs binary used for managing containers.
-	// The first path pointing to a valid file will be used.
-	ConmonRsPath []string `toml:"conmonrs_path,omitempty"`
-
 	// CompatAPIEnforceDockerHub enforces using docker.io for completing
 	// short names in Podman's compatibility REST API.  Note that this will
 	// ignore unqualified-search-registries and short-name aliases defined
@@ -381,9 +374,6 @@ type EngineConfig struct {
 
 	// ServiceDestinations mapped by service Names
 	ServiceDestinations map[string]Destination `toml:"service_destinations,omitempty"`
-
-	// SSHConfig contains the ssh config file path if not the default
-	SSHConfig string `toml:"ssh_config,omitempty"`
 
 	// RuntimePath is the path to OCI runtime binary for launching containers.
 	// The first path pointing to a valid file will be used This is used only
@@ -613,9 +603,6 @@ type Destination struct {
 
 	// Identity file with ssh key, optional
 	Identity string `toml:"identity,omitempty"`
-
-	// isMachine describes if the remote destination is a machine.
-	IsMachine bool `toml:"is_machine,omitempty"`
 }
 
 // NewConfig creates a new Config. It starts with an empty config and, if
@@ -828,18 +815,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// URI returns the URI Path to the machine image
-func (m *MachineConfig) URI() string {
-	uri := m.Image
-	for _, val := range []string{"$ARCH", "$arch"} {
-		uri = strings.Replace(uri, val, runtime.GOARCH, 1)
-	}
-	for _, val := range []string{"$OS", "$os"} {
-		uri = strings.Replace(uri, val, runtime.GOOS, 1)
-	}
-	return uri
-}
-
 func (c *EngineConfig) findRuntime() string {
 	// Search for crun first followed by runc, kata, runsc
 	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc"} {
@@ -944,12 +919,8 @@ func (c *NetworkConfig) Validate() error {
 // to first (version) matching conmon binary. If non is found, we try
 // to do a path lookup of "conmon".
 func (c *Config) FindConmon() (string, error) {
-	return findConmonPath(c.Engine.ConmonPath, "conmon", _conmonMinMajorVersion, _conmonMinMinorVersion, _conmonMinPatchVersion)
-}
-
-func findConmonPath(paths []string, binaryName string, major int, minor int, patch int) (string, error) {
 	foundOutdatedConmon := false
-	for _, path := range paths {
+	for _, path := range c.Engine.ConmonPath {
 		stat, err := os.Stat(path)
 		if err != nil {
 			continue
@@ -967,7 +938,7 @@ func findConmonPath(paths []string, binaryName string, major int, minor int, pat
 	}
 
 	// Search the $PATH as last fallback
-	if path, err := exec.LookPath(binaryName); err == nil {
+	if path, err := exec.LookPath("conmon"); err == nil {
 		if err := probeConmon(path); err != nil {
 			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
 			foundOutdatedConmon = true
@@ -979,18 +950,11 @@ func findConmonPath(paths []string, binaryName string, major int, minor int, pat
 
 	if foundOutdatedConmon {
 		return "", fmt.Errorf("please update to v%d.%d.%d or later: %w",
-			major, minor, patch, ErrConmonOutdated)
+			_conmonMinMajorVersion, _conmonMinMinorVersion, _conmonMinPatchVersion, ErrConmonOutdated)
 	}
 
 	return "", fmt.Errorf("could not find a working conmon binary (configured options: %v: %w)",
-		paths, ErrInvalidArg)
-}
-
-// FindConmonRs iterates over (*Config).ConmonRsPath and returns the path
-// to first (version) matching conmonrs binary. If non is found, we try
-// to do a path lookup of "conmonrs".
-func (c *Config) FindConmonRs() (string, error) {
-	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs", _conmonrsMinMajorVersion, _conmonrsMinMinorVersion, _conmonrsMinPatchVersion)
+		c.Engine.ConmonPath, ErrInvalidArg)
 }
 
 // GetDefaultEnv returns the environment variables for the container.
@@ -1238,65 +1202,38 @@ func Reload() (*Config, error) {
 	return defConfig()
 }
 
-func (c *Config) ActiveDestination() (uri, identity string, machine bool, err error) {
+func (c *Config) ActiveDestination() (uri, identity string, err error) {
 	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
 		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
 			identity = v
 		}
-		return uri, identity, false, nil
+		return uri, identity, nil
 	}
 	connEnv := os.Getenv("CONTAINER_CONNECTION")
 	switch {
 	case connEnv != "":
 		d, found := c.Engine.ServiceDestinations[connEnv]
 		if !found {
-			return "", "", false, fmt.Errorf("environment variable CONTAINER_CONNECTION=%q service destination not found", connEnv)
+			return "", "", fmt.Errorf("environment variable CONTAINER_CONNECTION=%q service destination not found", connEnv)
 		}
-		return d.URI, d.Identity, d.IsMachine, nil
+		return d.URI, d.Identity, nil
 
 	case c.Engine.ActiveService != "":
 		d, found := c.Engine.ServiceDestinations[c.Engine.ActiveService]
 		if !found {
-			return "", "", false, fmt.Errorf("%q service destination not found", c.Engine.ActiveService)
+			return "", "", fmt.Errorf("%q service destination not found", c.Engine.ActiveService)
 		}
-		return d.URI, d.Identity, d.IsMachine, nil
+		return d.URI, d.Identity, nil
 	case c.Engine.RemoteURI != "":
-		return c.Engine.RemoteURI, c.Engine.RemoteIdentity, false, nil
+		return c.Engine.RemoteURI, c.Engine.RemoteIdentity, nil
 	}
-	return "", "", false, errors.New("no service destination configured")
-}
-
-var (
-	bindirFailed = false
-	bindirCached = ""
-)
-
-func findBindir() string {
-	if bindirCached != "" || bindirFailed {
-		return bindirCached
-	}
-	execPath, err := os.Executable()
-	if err == nil {
-		// Resolve symbolic links to find the actual binary file path.
-		execPath, err = filepath.EvalSymlinks(execPath)
-	}
-	if err != nil {
-		// If failed to find executable (unlikely to happen), warn about it.
-		// The bindirFailed flag will track this, so we only warn once.
-		logrus.Warnf("Failed to find $BINDIR: %v", err)
-		bindirFailed = true
-		return ""
-	}
-	bindirCached = filepath.Dir(execPath)
-	return bindirCached
+	return "", "", errors.New("no service destination configured")
 }
 
 // FindHelperBinary will search the given binary name in the configured directories.
 // If searchPATH is set to true it will also search in $PATH.
 func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) {
 	dirList := c.Engine.HelperBinariesDir
-	bindirPath := ""
-	bindirSearched := false
 
 	// If set, search this directory first. This is used in testing.
 	if dir, found := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); found {
@@ -1304,24 +1241,6 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 	}
 
 	for _, path := range dirList {
-		if path == bindirPrefix || strings.HasPrefix(path, bindirPrefix+string(filepath.Separator)) {
-			// Calculate the path to the executable first time we encounter a $BINDIR prefix.
-			if !bindirSearched {
-				bindirSearched = true
-				bindirPath = findBindir()
-			}
-			// If there's an error, don't stop the search for the helper binary.
-			// findBindir() will have warned once during the first failure.
-			if bindirPath == "" {
-				continue
-			}
-			// Replace the $BINDIR prefix with the path to the directory of the current binary.
-			if path == bindirPrefix {
-				path = bindirPath
-			} else {
-				path = filepath.Join(bindirPath, strings.TrimPrefix(path, bindirPrefix+string(filepath.Separator)))
-			}
-		}
 		fullpath := filepath.Join(path, name)
 		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
 			return fullpath, nil

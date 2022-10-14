@@ -18,7 +18,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	selinux "github.com/opencontainers/selinux/go-selinux"
 )
 
 const (
@@ -59,9 +58,6 @@ func GetBindMount(ctx *types.SystemContext, args []string, contextDir string, st
 	for _, val := range args {
 		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
-		case "type":
-			// This is already processed
-			continue
 		case "bind-nonrecursive":
 			newMount.Options = append(newMount.Options, "bind")
 			bindNonRecursive = true
@@ -189,10 +185,9 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 	var mode uint64
 	lockedTargets := make([]string, 0)
 	var (
-		setDest           bool
-		setShared         bool
-		setReadOnly       bool
-		foundSElinuxLabel bool
+		setDest     bool
+		setShared   bool
+		setReadOnly bool
 	)
 	fromStage := ""
 	newMount := specs.Mount{
@@ -212,9 +207,6 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 	for _, val := range args {
 		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
-		case "type":
-			// This is already processed
-			continue
 		case "nosuid", "nodev", "noexec":
 			// TODO: detect duplication of these options.
 			// (Is this necessary?)
@@ -225,10 +217,7 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 			// Alias for "ro"
 			newMount.Options = append(newMount.Options, "ro")
 			setReadOnly = true
-		case "Z", "z":
-			newMount.Options = append(newMount.Options, kv[0])
-			foundSElinuxLabel = true
-		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "U":
+		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z", "U":
 			newMount.Options = append(newMount.Options, kv[0])
 			setShared = true
 		case "sharing":
@@ -289,12 +278,6 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 		default:
 			return newMount, lockedTargets, fmt.Errorf("%v: %w", kv[0], errBadMntOption)
 		}
-	}
-
-	// If selinux is enabled and no selinux option was configured
-	// default to `z` i.e shared content label.
-	if !foundSElinuxLabel && (selinux.EnforceMode() != selinux.Disabled) && fromStage == "" {
-		newMount.Options = append(newMount.Options, "z")
 	}
 
 	if !setDest {
@@ -503,8 +486,6 @@ func GetVolumes(ctx *types.SystemContext, store storage.Store, volumes []string,
 // buildah run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // buildah run --mount type=tmpfs,target=/dev/shm ...
 func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, contextDir string) (map[string]specs.Mount, []string, []string, error) {
-	// If `type` is not set default to "bind"
-	mountType := TypeBind
 	finalMounts := make(map[string]specs.Mount)
 	mountedImages := make([]string, 0)
 	lockedTargets := make([]string, 0)
@@ -515,20 +496,19 @@ func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, c
 	//                  to allow a more robust parsing of the mount format and to give
 	//                  precise errors regarding supported format versus supported options.
 	for _, mount := range mounts {
-		tokens := strings.Split(mount, ",")
-		if len(tokens) < 2 {
+		arr := strings.SplitN(mount, ",", 2)
+		if len(arr) < 2 {
 			return nil, mountedImages, lockedTargets, fmt.Errorf("%q: %w", mount, errInvalidSyntax)
 		}
-		for _, field := range tokens {
-			if strings.HasPrefix(field, "type=") {
-				kv := strings.Split(field, "=")
-				if len(kv) != 2 {
-					return nil, mountedImages, lockedTargets, fmt.Errorf("%q: %w", mount, errInvalidSyntax)
-				}
-				mountType = kv[1]
-			}
+		kv := strings.Split(arr[0], "=")
+		// TODO: type is not explicitly required in Docker.
+		// If not specified, it defaults to "volume".
+		if len(kv) != 2 || kv[0] != "type" {
+			return nil, mountedImages, lockedTargets, fmt.Errorf("%q: %w", mount, errInvalidSyntax)
 		}
-		switch mountType {
+
+		tokens := strings.Split(arr[1], ",")
+		switch kv[1] {
 		case TypeBind:
 			mount, image, err := GetBindMount(ctx, tokens, contextDir, store, "", nil)
 			if err != nil {
@@ -559,7 +539,7 @@ func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, c
 			}
 			finalMounts[mount.Destination] = mount
 		default:
-			return nil, mountedImages, lockedTargets, fmt.Errorf("invalid filesystem type %q", mountType)
+			return nil, mountedImages, lockedTargets, fmt.Errorf("invalid filesystem type %q", kv[1])
 		}
 	}
 
@@ -578,9 +558,6 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 	for _, val := range args {
 		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
-		case "type":
-			// This is already processed
-			continue
 		case "ro", "nosuid", "nodev", "noexec":
 			newMount.Options = append(newMount.Options, kv[0])
 		case "readonly":

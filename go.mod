@@ -17,10 +17,10 @@ require (
 	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.28.0
-	github.com/containers/common v0.50.1
+	github.com/containers/buildah v1.27.2
+	github.com/containers/common v0.49.2
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.3.1-0.20221010162345-43f66976bf45
+	github.com/containers/conmon-rs v0.3.0
 	github.com/containers/image/v5 v5.23.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.5
@@ -46,7 +46,7 @@ require (
 	github.com/intel/goresctrl v0.3.0
 	github.com/json-iterator/go v1.1.12
 	github.com/onsi/ginkgo/v2 v2.2.0
-	github.com/onsi/gomega v1.21.1
+	github.com/onsi/gomega v1.20.2
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/opencontainers/runc v1.1.4
@@ -62,10 +62,10 @@ require (
 	github.com/urfave/cli/v2 v2.17.1
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.34.0
-	go.opentelemetry.io/otel v1.10.0
+	go.opentelemetry.io/otel v1.11.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.10.0
 	go.opentelemetry.io/otel/sdk v1.10.0
-	go.opentelemetry.io/otel/trace v1.10.0
+	go.opentelemetry.io/otel/trace v1.11.0
 	golang.org/x/net v0.0.0-20220909164309-bea034e7d591
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8
@@ -338,7 +338,6 @@ require (
 	github.com/vbauerster/mpb/v7 v7.5.3 // indirect
 	github.com/vektah/gqlparser/v2 v2.4.6 // indirect
 	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
-	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/xanzy/go-gitlab v0.73.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect

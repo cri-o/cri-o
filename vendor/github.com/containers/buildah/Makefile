@@ -14,8 +14,10 @@ BUILDAH := buildah
 GO := go
 GO_LDFLAGS := $(shell if $(GO) version|grep -q gccgo; then echo "-gccgoflags"; else echo "-ldflags"; fi)
 GO_GCFLAGS := $(shell if $(GO) version|grep -q gccgo; then echo "-gccgoflags"; else echo "-gcflags"; fi)
+GO110 := 1.10
+GOVERSION := $(findstring $(GO110),$(shell go version))
 # test for go module support
-ifeq ($(shell $(GO) help mod >/dev/null 2>&1 && echo true), true)
+ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
 export GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
 export GO_TEST=GO111MODULE=on $(GO) test -mod=vendor
 else
@@ -29,12 +31,9 @@ GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),${COMMIT
 SOURCE_DATE_EPOCH ?= $(if $(shell date +%s),$(shell date +%s),$(error "date failed"))
 STATIC_STORAGETAGS = "containers_image_openpgp exclude_graphdriver_devicemapper $(STORAGE_TAGS)"
 
-# we get GNU make 3.x in MacOS build envs, which wants # to be escaped in
-# strings, while the 4.x we have on Linux doesn't. this is the documented
-# workaround
-COMMENT := \#
-CNI_COMMIT := $(shell sed -n 's;^$(COMMENT) github.com/containernetworking/cni \([^ \n]*\).*$$;\1;p' vendor/modules.txt)
-RUNC_COMMIT := $(shell sed -n 's;^$(COMMENT) github.com/opencontainers/runc \([^ \n]*\).*$$;\1;p' vendor/modules.txt)
+CNI_COMMIT := $(shell sed -n 's;\tgithub.com/containernetworking/cni \([^ \n]*\).*$\;\1;p' go.mod)
+#RUNC_COMMIT := $(shell sed -n 's;\tgithub.com/opencontainers/runc \([^ \n]*\).*$\;\1;p' go.mod)
+RUNC_COMMIT := v1.0.0-rc8
 LIBSECCOMP_COMMIT := release-2.3
 
 EXTRA_LDFLAGS ?=
@@ -113,7 +112,7 @@ gopath:
 	test $(shell pwd) = $(shell cd ../../../../src/github.com/containers/buildah ; pwd)
 
 codespell:
-	codespell -S Makefile,buildah.spec.rpkg,AUTHORS,bin,vendor,.git,go.mod,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L uint,iff,od,erro -w
+	codespell -S Makefile,buildah.spec.rpkg,AUTHORS,bin,vendor,.git,go.mod,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L uint,iff,od,ERRO -w
 
 .PHONY: validate
 validate: install.tools
@@ -187,7 +186,7 @@ vendor-in-container:
 
 .PHONY: vendor
 vendor:
-	GO111MODULE=on $(GO) mod tidy -compat=1.17
+	GO111MODULE=on $(GO) mod tidy
 	GO111MODULE=on $(GO) mod vendor
 	GO111MODULE=on $(GO) mod verify
 

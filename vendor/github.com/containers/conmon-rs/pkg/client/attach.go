@@ -66,9 +66,6 @@ type AttachConfig struct {
 	// Whether stdout/stderr should continue to be processed after stdin is closed.
 	StopAfterStdinEOF bool
 
-	// Whether the container supports stdin or not.
-	ContainerStdin bool
-
 	// Whether the output is passed through the caller's std streams, rather than
 	// ones created for the attach session.
 	Passthrough bool
@@ -123,8 +120,6 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 		if err := req.SetSocketPath(cfg.SocketPath); err != nil {
 			return fmt.Errorf("set socket path: %w", err)
 		}
-
-		req.SetStopAfterStdinEof(cfg.StopAfterStdinEOF)
 
 		// TODO: add exec session
 		return nil
@@ -249,7 +244,7 @@ func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn i
 				return nil
 			}
 		}
-		if er == io.EOF || (cfg.ContainerStdin && !cfg.StopAfterStdinEOF) {
+		if er == io.EOF {
 			return nil
 		}
 		if errors.Is(er, syscall.ECONNRESET) {
@@ -381,6 +376,7 @@ func (c *ConmonClient) readStdio(
 
 	case err = <-stdinDone:
 		c.logger.WithError(err).Trace("Received message on input channel")
+		c.tryCloseAttachReaderForID(id)
 
 		// This particular case is for when we get a non-tty attach
 		// with --leave-stdin-open=true. We want to return as soon
@@ -390,9 +386,6 @@ func (c *ConmonClient) readStdio(
 		if cfg.StopAfterStdinEOF {
 			return nil
 		}
-
-		c.tryCloseAttachReaderForID(id)
-
 		if errors.Is(err, util.ErrDetach) {
 			if closeErr := conn.CloseWrite(); closeErr != nil {
 				return fmt.Errorf("%v: %w", closeErr, err)

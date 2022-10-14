@@ -33,15 +33,6 @@ const (
 	// _conmonMinPatchVersion is the sub-minor version required for conmon.
 	_conmonMinPatchVersion = 1
 
-	// _conmonrsMinMajorVersion is the major version required for conmonrs.
-	_conmonrsMinMajorVersion = 0
-
-	// _conmonrsMinMinorVersion is the minor version required for conmonrs.
-	_conmonrsMinMinorVersion = 1
-
-	// _conmonrsMinPatchVersion is the sub-minor version required for conmonrs.
-	_conmonrsMinPatchVersion = 0
-
 	// _conmonVersionFormatErr is used when the expected versio-format of conmon
 	// has changed.
 	_conmonVersionFormatErr = "conmon version changed format: %w"
@@ -180,7 +171,7 @@ func DefaultConfig() (*Config, error) {
 	}
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-	if useUserConfigLocations() {
+	if unshare.IsRootless() {
 		configHome, err := homedir.GetConfigHome()
 		if err != nil {
 			return nil, err
@@ -266,7 +257,7 @@ func defaultMachineConfig() MachineConfig {
 		Image:    getDefaultMachineImage(),
 		Memory:   2048,
 		User:     getDefaultMachineUser(),
-		Volumes:  getDefaultMachineVolumes(),
+		Volumes:  []string{"$HOME:$HOME"},
 	}
 }
 
@@ -280,16 +271,16 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	}
 	c.TmpDir = tmp
 
+	c.EventsLogFilePath = filepath.Join(c.TmpDir, "events", "events.log")
+
 	c.EventsLogFileMaxSize = eventsLogMaxSize(DefaultEventsLogSizeMax)
 
 	c.CompatAPIEnforceDockerHub = true
 
 	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
-		if err := types.SetDefaultConfigFilePath(path); err != nil {
-			return nil, err
-		}
+		types.SetDefaultConfigFilePath(path)
 	}
-	storeOpts, err := types.DefaultStoreOptions(useUserConfigLocations(), unshare.GetRootlessUID())
+	storeOpts, err := types.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +289,6 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		logrus.Warnf("Storage configuration is unset - using hardcoded default graph root %q", _defaultGraphRoot)
 		storeOpts.GraphRoot = _defaultGraphRoot
 	}
-
 	c.graphRoot = storeOpts.GraphRoot
 	c.ImageCopyTmpDir = getDefaultTmpDir()
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
@@ -385,16 +375,6 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"/usr/local/sbin/conmon",
 		"/run/current-system/sw/bin/conmon",
 	}
-	c.ConmonRsPath = []string{
-		"/usr/libexec/podman/conmonrs",
-		"/usr/local/libexec/podman/conmonrs",
-		"/usr/local/lib/podman/conmonrs",
-		"/usr/bin/conmonrs",
-		"/usr/sbin/conmonrs",
-		"/usr/local/bin/conmonrs",
-		"/usr/local/sbin/conmonrs",
-		"/run/current-system/sw/bin/conmonrs",
-	}
 	c.PullPolicy = DefaultPullPolicy
 	c.RuntimeSupportsJSON = []string{
 		"crun",
@@ -421,13 +401,12 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.ChownCopiedFiles = true
 
 	c.PodExitPolicy = defaultPodExitPolicy
-	c.SSHConfig = getDefaultSSHConfig()
 
 	return c, nil
 }
 
 func defaultTmpDir() (string, error) {
-	if !useUserConfigLocations() {
+	if !unshare.IsRootless() {
 		return getLibpodTmpDir(), nil
 	}
 
@@ -457,55 +436,42 @@ func probeConmon(conmonBinary string) error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	r := regexp.MustCompile(`^(version:|conmon version)? (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
+	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
 
 	matches := r.FindStringSubmatch(out.String())
-	if len(matches) != 5 {
-		return fmt.Errorf(_conmonVersionFormatErr, errors.New("invalid version format"))
+	if len(matches) != 4 {
+		return errors.New(_conmonVersionFormatErr)
 	}
-	major, err := strconv.Atoi(matches[2])
-
-	var minMajor, minMinor, minPatch int
-	// conmon-rs returns "^version:"
-	if matches[1] == "version:" {
-		minMajor = _conmonrsMinMajorVersion
-		minMinor = _conmonrsMinMinorVersion
-		minPatch = _conmonrsMinPatchVersion
-	} else {
-		minMajor = _conmonMinMajorVersion
-		minMinor = _conmonMinMinorVersion
-		minPatch = _conmonMinPatchVersion
-	}
-
+	major, err := strconv.Atoi(matches[1])
 	if err != nil {
 		return fmt.Errorf(_conmonVersionFormatErr, err)
 	}
-	if major < minMajor {
+	if major < _conmonMinMajorVersion {
 		return ErrConmonOutdated
 	}
-	if major > minMajor {
+	if major > _conmonMinMajorVersion {
 		return nil
 	}
 
-	minor, err := strconv.Atoi(matches[3])
+	minor, err := strconv.Atoi(matches[2])
 	if err != nil {
 		return fmt.Errorf(_conmonVersionFormatErr, err)
 	}
-	if minor < minMinor {
+	if minor < _conmonMinMinorVersion {
 		return ErrConmonOutdated
 	}
-	if minor > minMinor {
+	if minor > _conmonMinMinorVersion {
 		return nil
 	}
 
-	patch, err := strconv.Atoi(matches[4])
+	patch, err := strconv.Atoi(matches[3])
 	if err != nil {
 		return fmt.Errorf(_conmonVersionFormatErr, err)
 	}
-	if patch < minPatch {
+	if patch < _conmonMinPatchVersion {
 		return ErrConmonOutdated
 	}
-	if patch > minPatch {
+	if patch > _conmonMinPatchVersion {
 		return nil
 	}
 
@@ -671,18 +637,3 @@ func machineVolumes(volumes []string) ([]string, error) {
 	}
 	return translatedVolumes, nil
 }
-
-func getDefaultSSHConfig() string {
-	if path, ok := os.LookupEnv("CONTAINERS_SSH_CONF"); ok {
-		return path
-	}
-	dirname := homedir.Get()
-	return filepath.Join(dirname, ".ssh", "config")
-}
-
-func useUserConfigLocations() bool {
-	// NOTE: For now we want Windows to use system locations.
-	// GetRootlessUID == -1 on Windows, so exclude negative range
-	return unshare.GetRootlessUID() > 0
-}
-

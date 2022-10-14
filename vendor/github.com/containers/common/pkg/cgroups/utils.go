@@ -26,7 +26,7 @@ func readAcctList(ctr *CgroupControl, name string) ([]uint64, error) {
 	p := filepath.Join(ctr.getCgroupv1Path(CPUAcct), name)
 	data, err := ioutil.ReadFile(p)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading %s: %w", p, err)
 	}
 	r := []uint64{}
 	for _, s := range strings.Split(string(data), " ") {
@@ -92,12 +92,7 @@ func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 	}
 	data, err := ioutil.ReadFile(parentPath)
 	if err != nil {
-		// if the file doesn't exist, it is likely that the cpuset controller
-		// is not enabled in the kernel.
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
+		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
 	if strings.Trim(string(data), "\n") != "" {
 		return data, nil
@@ -174,7 +169,7 @@ func (c *CgroupControl) createCgroupDirectory(controller string) (bool, error) {
 	}
 
 	if err := os.MkdirAll(cPath, 0o755); err != nil {
-		return false, fmt.Errorf("creating cgroup for %s: %w", controller, err)
+		return false, fmt.Errorf("error creating cgroup for %s: %w", controller, err)
 	}
 	return true, nil
 }
