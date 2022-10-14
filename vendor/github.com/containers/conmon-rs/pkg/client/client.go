@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,9 @@ import (
 	"capnproto.org/go/capnp/v3/rpc"
 	"github.com/containers/conmon-rs/internal/proto"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -38,10 +42,11 @@ var (
 
 // ConmonClient is the main client structure of this package.
 type ConmonClient struct {
-	serverPID     uint32
-	runDir        string
-	logger        *logrus.Logger
-	attachReaders *sync.Map // K: UUID string, V: *attachReaderValue
+	serverPID      uint32
+	runDir         string
+	logger         *logrus.Logger
+	attachReaders  *sync.Map // K: UUID string, V: *attachReaderValue
+	tracingEnabled bool
 }
 
 // ConmonServerConfig is the configuration for the conmon server instance.
@@ -283,6 +288,7 @@ func (c *ConmonClient) toArgs(config *ConmonServerConfig) (entrypoint string, ar
 	}
 
 	if config.Tracing != nil && config.Tracing.Enabled {
+		c.tracingEnabled = true
 		args = append(args, "--enable-tracing")
 
 		if config.Tracing.Endpoint != "" {
@@ -456,6 +462,14 @@ func (c *ConmonClient) Version(
 			return fmt.Errorf("create request: %w", err)
 		}
 
+		metadata, err := c.metadataBytes(ctx)
+		if err != nil {
+			return fmt.Errorf("get metadata: %w", err)
+		}
+		if err := req.SetMetadata(metadata); err != nil {
+			return fmt.Errorf("set metadata: %w", err)
+		}
+
 		verbose := false
 		if cfg != nil {
 			verbose = cfg.Verbose
@@ -609,6 +623,13 @@ func (c *ConmonClient) CreateContainer(
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
 		}
+		metadata, err := c.metadataBytes(ctx)
+		if err != nil {
+			return fmt.Errorf("get metadata: %w", err)
+		}
+		if err := req.SetMetadata(metadata); err != nil {
+			return fmt.Errorf("set metadata: %w", err)
+		}
 		if err := req.SetId(cfg.ID); err != nil {
 			return fmt.Errorf("set ID: %w", err)
 		}
@@ -711,6 +732,13 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
+		}
+		metadata, err := c.metadataBytes(ctx)
+		if err != nil {
+			return fmt.Errorf("get metadata: %w", err)
+		}
+		if err := req.SetMetadata(metadata); err != nil {
+			return fmt.Errorf("set metadata: %w", err)
 		}
 		if err := req.SetId(cfg.ID); err != nil {
 			return fmt.Errorf("set ID: %w", err)
@@ -865,6 +893,14 @@ func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogCon
 			return fmt.Errorf("create request: %w", err)
 		}
 
+		metadata, err := c.metadataBytes(ctx)
+		if err != nil {
+			return fmt.Errorf("get metadata: %w", err)
+		}
+		if err := req.SetMetadata(metadata); err != nil {
+			return fmt.Errorf("set metadata: %w", err)
+		}
+
 		if err := req.SetId(cfg.ID); err != nil {
 			return fmt.Errorf("set ID: %w", err)
 		}
@@ -887,4 +923,23 @@ func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogCon
 	}
 
 	return nil
+}
+
+func (c *ConmonClient) metadataBytes(ctx context.Context) ([]byte, error) {
+	if !c.tracingEnabled {
+		return nil, nil
+	}
+
+	span := trace.SpanFromContext(ctx)
+	m := make(map[string]string)
+	if span.SpanContext().HasSpanID() {
+		c.logger.Tracef("Injecting tracing span ID %v", span.SpanContext().SpanID())
+		otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(m))
+	}
+	metadata, err := json.Marshal(m)
+	if err != nil {
+		return nil, fmt.Errorf("marshal metadata: %w", err)
+	}
+
+	return metadata, nil
 }

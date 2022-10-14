@@ -137,13 +137,13 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 # GLOBAL OPTIONS
 
-**--absent-mount-sources-to-reject**="": A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory). (default: [])
+**--absent-mount-sources-to-reject**="": A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory).
 
 **--add-inheritable-capabilities**: Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.
 
-**--additional-devices**="": Devices to add to the containers. (default: [])
+**--additional-devices**="": Devices to add to the containers.
 
-**--allowed-devices**="": Devices a user is allowed to specify with the "io.kubernetes.cri-o.Devices" allowed annotation. (default: [/dev/fuse])
+**--allowed-devices**="": Devices a user is allowed to specify with the "io.kubernetes.cri-o.Devices" allowed annotation. (default: "/dev/fuse")
 
 **--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation. (default: crio-default)
 
@@ -153,7 +153,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--blockio-config-file**="": Path to the blockio class configuration file for configuring the cgroup blockio controller.
 
-**--cdi-spec-dirs**="": Directories to scan for CDI Spec files. (default: [/etc/cdi /var/run/cdi])
+**--cdi-spec-dirs**="": Directories to scan for CDI Spec files. (default: "/etc/cdi", "/var/run/cdi")
 
 **--cgroup-manager**="": cgroup manager (cgroupfs or systemd). (default: systemd)
 
@@ -163,7 +163,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--cni-default-network**="": Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.
 
-**--cni-plugin-dir**="": CNI plugin binaries directory. (default: [])
+**--cni-plugin-dir**="": CNI plugin binaries directory.
 
 **--config, -c**="": Path to configuration file (default: /etc/crio/crio.conf)
 
@@ -182,7 +182,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--conmon-cgroup**="": cgroup to be used for conmon process. This option is deprecated and will be removed in the future.
 
-**--conmon-env**="": Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime. This option is deprecated and will be removed in the future. (default: [])
+**--conmon-env**="": Environment variable list for the conmon process, used for passing necessary environment variables to conmon or the runtime. This option is deprecated and will be removed in the future.
 
 **--container-attach-socket-dir**="": Path to directory for container attach sockets. (default: /var/run/crio)
 
@@ -192,19 +192,19 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--decryption-keys-path**="": Path to load keys for image decryption. (default: /etc/crio/keys/)
 
-**--default-capabilities**="": Capabilities to add to the containers. (default: [CHOWN DAC_OVERRIDE FSETID FOWNER SETGID SETUID SETPCAP NET_BIND_SERVICE KILL])
+**--default-capabilities**="": Capabilities to add to the containers. (default: "CHOWN", "DAC_OVERRIDE", "FSETID", "FOWNER", "SETGID", "SETUID", "SETPCAP", "NET_BIND_SERVICE", "KILL")
 
-**--default-env**="": Additional environment variables to set for all containers. (default: [])
+**--default-env**="": Additional environment variables to set for all containers.
 
 **--default-mounts-file**="": Path to default mounts file.
 
 **--default-runtime**="": Default OCI runtime from the runtimes config. (default: runc)
 
-**--default-sysctls**="": Sysctls to add to the containers. (default: [])
+**--default-sysctls**="": Sysctls to add to the containers.
 
 **--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is. (default: docker://)
 
-**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard). (default: [])
+**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard).
 
 **--device-ownership-from-security-context**: Set devices' uid/gid ownership from runAsUser/runAsGroup.
 
@@ -246,7 +246,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
     the Kubernetes annotations being matched for hooks.
     For the bind-mount conditions, only mounts explicitly requested by
     Kubernetes configuration are considered. Bind mounts that CRI-O
-    inserts by default (e.g. '/dev/shm') are not considered. (default: [/usr/share/containers/oci/hooks.d])
+    inserts by default (e.g. '/dev/shm') are not considered. (default: "/usr/share/containers/oci/hooks.d")
 
 **--image-volumes**="": Image volume handling ('mkdir', 'bind', or 'ignore')
     1. mkdir: A directory is created inside the container root filesystem for
@@ -266,7 +266,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        However, because its use creates security vulnerabilities, **it should ONLY
        be enabled for testing purposes**. For increased security, users should add
        their CA to their system's list of trusted CAs instead of using
-       '--insecure-registry'. (default: [])
+       '--insecure-registry'.
 
 **--internal-wipe**: Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts. If set to false, one must run `crio wipe` to wipe the containers and images in these situations. This option is deprecated, and will be removed in the future.
 
@@ -290,7 +290,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint.
 
-**--metrics-collectors**="": Enabled metrics collectors. (default: [operations operations_latency_microseconds_total operations_latency_microseconds operations_errors image_pulls_by_digest image_pulls_by_name image_pulls_by_name_skipped image_pulls_failures image_pulls_successes image_pulls_layer_size image_layer_reuse containers_oom_total containers_oom processes_defunct operations_total operations_latency_seconds operations_latency_seconds_total operations_errors_total image_pulls_bytes_total image_pulls_skipped_bytes_total image_pulls_failure_total image_pulls_success_total image_layer_reuse_total containers_oom_count_total])
+**--metrics-collectors**="": Enabled metrics collectors. (default: "operations", "operations_latency_microseconds_total", "operations_latency_microseconds", "operations_errors", "image_pulls_by_digest", "image_pulls_by_name", "image_pulls_by_name_skipped", "image_pulls_failures", "image_pulls_successes", "image_pulls_layer_size", "image_layer_reuse", "containers_oom_total", "containers_oom", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total")
 
 **--metrics-key**="": Certificate key for the secure metrics endpoint.
 
@@ -328,7 +328,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts the containers' tmpfs on `/run`, `/tmp` and `/var/tmp`.
 
-**--registry**="": Registry to be prepended when pulling unqualified images. Can be specified multiple times. (default: [])
+**--registry**="": Registry to be prepended when pulling unqualified images. Can be specified multiple times.
 
 **--root, -r**="": The CRI-O root directory. (default: /var/lib/containers/storage)
 
@@ -350,7 +350,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--storage-driver, -s**="": OCI storage driver.
 
-**--storage-opt**="": OCI storage driver option. (default: [])
+**--storage-opt**="": OCI storage driver option.
 
 **--stream-address**="": Bind address for streaming socket. (default: 127.0.0.1)
 

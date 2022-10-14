@@ -116,6 +116,14 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 			return fmt.Errorf("create request: %w", err)
 		}
 
+		metadata, err := c.metadataBytes(ctx)
+		if err != nil {
+			return fmt.Errorf("get metadata: %w", err)
+		}
+		if err := req.SetMetadata(metadata); err != nil {
+			return fmt.Errorf("set metadata: %w", err)
+		}
+
 		if err := req.SetId(cfg.ID); err != nil {
 			return fmt.Errorf("set ID: %w", err)
 		}
@@ -440,6 +448,14 @@ func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindo
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
+		}
+
+		metadata, err := c.metadataBytes(ctx)
+		if err != nil {
+			return fmt.Errorf("get metadata: %w", err)
+		}
+		if err := req.SetMetadata(metadata); err != nil {
+			return fmt.Errorf("set metadata: %w", err)
 		}
 
 		if err := req.SetId(cfg.ID); err != nil {
