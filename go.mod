@@ -20,10 +20,10 @@ require (
 	github.com/containers/buildah v1.28.0
 	github.com/containers/common v0.50.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.3.1-0.20221010162345-43f66976bf45
+	github.com/containers/conmon-rs v0.3.1-0.20221013153004-a0b146d934d3
 	github.com/containers/image/v5 v5.23.0
 	github.com/containers/kubensmnt v1.2.0
-	github.com/containers/ocicrypt v1.1.5
+	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/podman/v4 v4.2.1
 	github.com/containers/storage v1.43.0
 	github.com/coreos/go-systemd/v22 v22.4.0
@@ -34,7 +34,7 @@ require (
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-units v0.5.0
 	github.com/emicklei/go-restful v2.16.0+incompatible
-	github.com/fsnotify/fsnotify v1.5.4
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-logr/logr v1.2.3
 	github.com/go-zoo/bone v1.3.0
 	github.com/godbus/dbus/v5 v5.1.0
@@ -45,8 +45,8 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/intel/goresctrl v0.3.0
 	github.com/json-iterator/go v1.1.12
-	github.com/onsi/ginkgo/v2 v2.2.0
-	github.com/onsi/gomega v1.21.1
+	github.com/onsi/ginkgo/v2 v2.3.1
+	github.com/onsi/gomega v1.22.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/opencontainers/runc v1.1.4
@@ -59,16 +59,16 @@ require (
 	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.8.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
-	github.com/urfave/cli/v2 v2.17.1
+	github.com/urfave/cli/v2 v2.19.2
 	github.com/vishvananda/netlink v1.2.1-beta.2
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.34.0
-	go.opentelemetry.io/otel v1.10.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.10.0
-	go.opentelemetry.io/otel/sdk v1.10.0
-	go.opentelemetry.io/otel/trace v1.10.0
-	golang.org/x/net v0.0.0-20220909164309-bea034e7d591
-	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
-	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.36.3
+	go.opentelemetry.io/otel v1.11.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.11.0
+	go.opentelemetry.io/otel/sdk v1.11.0
+	go.opentelemetry.io/otel/trace v1.11.0
+	golang.org/x/net v0.0.0-20221012135044-0b7e1fb9d458
+	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
+	golang.org/x/sys v0.0.0-20221013171732-95e765b1cc43
 	google.golang.org/grpc v1.50.0
 	k8s.io/api v0.25.0
 	k8s.io/apimachinery v0.25.0
@@ -77,7 +77,7 @@ require (
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kubernetes v1.24.1
 	k8s.io/release v0.14.0
-	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
+	k8s.io/utils v0.0.0-20221012122500-cfd413dd9e85
 	mvdan.cc/sh/v3 v3.5.1
 	sigs.k8s.io/bom v0.3.0
 	sigs.k8s.io/release-sdk v0.9.3
@@ -365,8 +365,8 @@ require (
 	go.mongodb.org/mongo-driver v1.10.0 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.10.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.10.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.11.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
