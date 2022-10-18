@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 18 Oct 2022 07:55:43 UTC for commit [1c63139][0]._
+_Generated on Tue, 18 Oct 2022 09:51:44 UTC for commit [ba55897][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/1c63139d3ad82f459ddd31988286589b1ef1c0b1
+[0]: https://github.com/cri-o/cri-o/commit/ba55897e6e694d7c83fb5eb6eb93d82e0d6e34d7
 
 ## Outdated Dependencies
 
@@ -13,7 +13,6 @@ _Generated on Tue, 18 Oct 2022 07:55:43 UTC for commit [1c63139][0]._
 | golang.org/x/net                            | v0.0.0-20221012135044-0b7e1fb9d458 | v0.0.0-20221017152216-f25eb7ecb193 | true   | true             |
 | golang.org/x/sync                           | v0.0.0-20220929204114-8fcdb60fdcc0 | v0.1.0                             | true   | true             |
 | golang.org/x/sys                            | v0.0.0-20221013171732-95e765b1cc43 | v0.1.0                             | true   | true             |
-| google.golang.org/grpc                      | v1.50.0                            | v1.50.1                            | true   | true             |
 | k8s.io/api                                  | v0.0.0-20220823173643-a866cbe2e5bb | v0.0.0-20221018025340-83415e5c9e6e | true   | true             |
 | k8s.io/apimachinery                         | v0.0.0-20220823173643-a866cbe2e5bb | v0.0.0-20221018025340-83415e5c9e6e | true   | true             |
 | k8s.io/cri-api                              | v0.0.0-20220823173643-a866cbe2e5bb | v0.0.0-20221018025340-83415e5c9e6e | true   | true             |
@@ -1104,7 +1103,7 @@ _Generated on Tue, 18 Oct 2022 07:55:43 UTC for commit [1c63139][0]._
 | google.golang.org/appengine                                                            | v1.6.7                                            |                                    | false  | true             |
 | google.golang.org/cloud                                                                | v0.0.0-20151119220103-975617b05ea8                | v0.104.0                           | false  | true             |
 | google.golang.org/genproto                                                             | v0.0.0-20220805133916-01dd62135a58                | v0.0.0-20221014213838-99cd37c6964a | false  | true             |
-| google.golang.org/grpc                                                                 | v1.50.0                                           | v1.50.1                            | true   | true             |
+| google.golang.org/grpc                                                                 | v1.50.1                                           |                                    | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                          | v1.2.0                                            |                                    | false  | true             |
 | google.golang.org/grpc/examples                                                        | v0.0.0-20201130180447-c456688b1860                | v0.0.0-20221017220434-778860e606e3 | false  | true             |
 | google.golang.org/protobuf                                                             | v1.28.1                                           |                                    | false  | true             |
