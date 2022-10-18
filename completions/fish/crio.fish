@@ -2,7 +2,7 @@
 
 function __fish_crio_no_subcommand --description 'Test if there has been any subcommand yet'
     for i in (commandline -opc)
-        if contains -- $i complete completion man markdown md config version wipe help h
+        if contains -- $i complete completion help h man markdown md config version wipe help h
             return 1
         end
     end
@@ -155,6 +155,8 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l version -s v -d 'print the
 complete -c crio -n '__fish_seen_subcommand_from complete completion' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'complete completion' -d 'Generate bash, fish or zsh completions.'
 complete -c crio -n '__fish_seen_subcommand_from complete completion' -f -l help -s h -d 'show help'
+complete -c crio -n '__fish_seen_subcommand_from help h' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_seen_subcommand_from complete completion' -a 'help h' -d 'Shows a list of commands or help for one command'
 complete -c crio -n '__fish_seen_subcommand_from man' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'man' -d 'Generate the man page documentation.'
 complete -c crio -n '__fish_seen_subcommand_from markdown md' -f -l help -s h -d 'show help'

@@ -47,6 +47,10 @@ Generate the markdown documentation.
 
 **--help, -h**: show help
 
+### help, h
+
+Shows a list of commands or help for one command
+
 ## config, c
 
 Show the configuration of CRI-O as TOML string.
