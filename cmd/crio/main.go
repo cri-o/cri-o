@@ -276,6 +276,7 @@ func main() {
 				ctx,
 				config.TracingEndpoint,
 				config.TracingSamplingRatePerMillion,
+				config.TracingSampleAlways,
 			)
 			if err != nil {
 				logrus.Fatalf("Failed to initialize tracer provider: %v", err)

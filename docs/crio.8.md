@@ -106,6 +106,7 @@ crio
 [--stream-tls-cert]=[value]
 [--stream-tls-key]=[value]
 [--tracing-endpoint]=[value]
+[--tracing-sample-always]
 [--tracing-sampling-rate-per-million]=[value]
 [--uid-mappings]=[value]
 [--version-file-persist]=[value]
@@ -367,6 +368,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--stream-tls-key**="": Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
 **--tracing-endpoint**="": Address on which the gRPC tracing collector will listen. (default: 0.0.0.0:4317)
+
+**--tracing-sample-always**: Always enable sampling while ignoring --tracing-sampling-rate-per-million.
 
 **--tracing-sampling-rate-per-million**="": Number of samples to collect per million OpenTelemetry spans. (default: 0)
 

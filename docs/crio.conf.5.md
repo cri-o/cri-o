@@ -431,6 +431,9 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
 **tracing_sampling_rate_per_million**=""
   Number of samples to collect per million OpenTelemetry spans.
 
+**tracing_sample_always**=false
+  Always enable sampling while ignoring `tracing_sampling_rate_per_million`.
+
 ## CRIO.STATS TABLE
 The `crio.stats` table specifies all necessary configuration for reporting container and pod stats.
 

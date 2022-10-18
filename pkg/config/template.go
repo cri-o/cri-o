@@ -543,6 +543,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.TracingSamplingRatePerMillion, c.TracingSamplingRatePerMillion),
 		},
 		{
+			templateString: templateStringCrioTracingTracingSampleAlways,
+			group:          crioTracingConfig,
+			isDefaultValue: simpleEqual(dc.TracingSampleAlways, c.TracingSampleAlways),
+		},
+		{
 			templateString: templateStringCrioStatsStatsCollectionPeriod,
 			group:          crioStatsConfig,
 			isDefaultValue: simpleEqual(dc.StatsCollectionPeriod, c.StatsCollectionPeriod),
@@ -1332,6 +1337,11 @@ const templateStringCrioTracingTracingEndpoint = `# Address on which the gRPC tr
 
 const templateStringCrioTracingTracingSamplingRatePerMillion = `# Number of samples to collect per million spans.
 {{ $.Comment }}tracing_sampling_rate_per_million = {{ .TracingSamplingRatePerMillion }}
+
+`
+
+const templateStringCrioTracingTracingSampleAlways = `# Always enable sampling while ignoring tracing_sampling_rate_per_million.
+{{ $.Comment }}tracing_sample_always = {{ .TracingSampleAlways }}
 
 `
 

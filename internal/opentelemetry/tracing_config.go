@@ -23,7 +23,7 @@ func Tracer() trace.Tracer {
 }
 
 // InitTracing configures opentelemetry exporter and tracer provider
-func InitTracing(ctx context.Context, collectorAddress string, samplingRate int) (*sdktrace.TracerProvider, []otelgrpc.Option, error) {
+func InitTracing(ctx context.Context, collectorAddress string, samplingRate int, sampleAlways bool) (*sdktrace.TracerProvider, []otelgrpc.Option, error) {
 	var tp *sdktrace.TracerProvider
 	tracingServiceIDKey, err := os.Hostname()
 	if err != nil {
@@ -44,8 +44,12 @@ func InitTracing(ctx context.Context, collectorAddress string, samplingRate int)
 
 	// Only emit spans when the kubelet sends a request with a sampled trace
 	sampler := sdktrace.NeverSample()
-	// Or, emit spans for a fraction of transactions
-	if samplingRate > 0 {
+
+	if sampleAlways {
+		// Or, always if set
+		sampler = sdktrace.AlwaysSample()
+	} else if samplingRate > 0 {
+		// Or, emit spans for a fraction of transactions
 		sampler = sdktrace.TraceIDRatioBased(float64(samplingRate) / float64(1000000))
 	}
 	// batch span processor to aggregate spans before export.

@@ -556,6 +556,10 @@ type TracingConfig struct {
 	// TracingSamplingRatePerMillion is the number of samples to collect per million spans.
 	// Defaults to 0.
 	TracingSamplingRatePerMillion int `toml:"tracing_sampling_rate_per_million"`
+
+	// TracingSampleAlways is the option to always enable sampling without
+	// considering TracingSamplingRatePerMillion.
+	TracingSampleAlways bool `toml:"tracing_sample_always"`
 }
 
 // StatsConfig specifies all necessary configuration for reporting container and pod stats

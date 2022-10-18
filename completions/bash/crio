@@ -109,6 +109,7 @@ h
 --stream-tls-cert
 --stream-tls-key
 --tracing-endpoint
+--tracing-sample-always
 --tracing-sampling-rate-per-million
 --uid-mappings
 --version-file

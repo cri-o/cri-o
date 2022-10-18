@@ -359,6 +359,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("tracing-endpoint") {
 		config.TracingEndpoint = ctx.String("tracing-endpoint")
 	}
+	if ctx.IsSet("tracing-sample-always") {
+		config.TracingSampleAlways = ctx.Bool("tracing-sample-always")
+	}
 	if ctx.IsSet("tracing-sampling-rate-per-million") {
 		config.TracingSamplingRatePerMillion = ctx.Int("tracing-sampling-rate-per-million")
 	}
@@ -813,6 +816,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   defConf.TracingEndpoint,
 			Usage:   "Address on which the gRPC tracing collector will listen.",
 			EnvVars: []string{"CONTAINER_TRACING_ENDPOINT"},
+		},
+		&cli.BoolFlag{
+			Name:    "tracing-sample-always",
+			Value:   defConf.TracingSampleAlways,
+			Usage:   "Always enable sampling while ignoring --tracing-sampling-rate-per-million.",
+			EnvVars: []string{"CONTAINER_TRACING_SAMPLE_ALWAYS"},
 		},
 		&cli.StringFlag{
 			Name:    "big-files-temporary-dir",
