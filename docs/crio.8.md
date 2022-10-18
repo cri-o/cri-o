@@ -395,6 +395,10 @@ Generate the markdown documentation.
 
 **--help, -h**: show help
 
+### help, h
+
+Shows a list of commands or help for one command
+
 ## config
 
 Outputs a commented version of the configuration file that could be used
