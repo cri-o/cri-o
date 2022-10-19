@@ -241,10 +241,6 @@ jobs:
           path: build/bundle
       - uses: actions/download-artifact@v3
         with:
-          name: signatures
-          path: build/bundle
-      - uses: actions/download-artifact@v3
-        with:
           name: release-notes
           path: build/release-notes
       - name: Get release version
