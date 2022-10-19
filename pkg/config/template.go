@@ -1330,7 +1330,7 @@ const templateStringCrioTracingTracingEndpoint = `# Address on which the gRPC tr
 
 `
 
-const templateStringCrioTracingTracingSamplingRatePerMillion = `# Number of samples to collect per million spans.
+const templateStringCrioTracingTracingSamplingRatePerMillion = `# Number of samples to collect per million spans. Set to 1000000 to always sample.
 {{ $.Comment }}tracing_sampling_rate_per_million = {{ .TracingSamplingRatePerMillion }}
 
 `

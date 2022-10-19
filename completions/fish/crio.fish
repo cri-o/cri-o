@@ -144,7 +144,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-ca -r -d 'Path to 
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-cert -r -d 'Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.'
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-key -r -d 'Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l tracing-endpoint -r -d 'Address on which the gRPC tracing collector will listen.'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l tracing-sampling-rate-per-million -r -d 'Number of samples to collect per million OpenTelemetry spans.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l tracing-sampling-rate-per-million -r -d 'Number of samples to collect per million OpenTelemetry spans. Set to 1000000 to always sample.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l uid-mappings -r -d 'Specify the UID mappings to use for the user namespace.'
 complete -c crio -n '__fish_crio_no_subcommand' -l version-file -r -d 'Location for CRI-O to lay down the temporary version file. It is used to check if crio wipe should wipe containers, which should always happen on a node reboot.'
 complete -c crio -n '__fish_crio_no_subcommand' -l version-file-persist -r -d 'Location for CRI-O to lay down the persistent version file. It is used to check if crio wipe should wipe images, which should only happen when CRI-O has been upgraded.'
