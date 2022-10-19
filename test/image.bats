@@ -5,12 +5,12 @@ load helpers
 IMAGE=quay.io/crio/pause
 SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
 
-IMAGE_LIST_TAG=docker.io/library/alpine:3.9
-IMAGE_LIST_DIGEST_FOR_TAG=docker.io/library/alpine@sha256:414e0518bb9228d35e4cd5165567fb91d26c6a214e9c95899e1e056fcd349011
-IMAGE_LIST_DIGEST_FOR_TAG_AMD64=docker.io/library/alpine@sha256:65b3a80ebe7471beecbc090c5b2cdd0aafeaefa0715f8f12e40dc918a3a70e32
+IMAGE_LIST_TAG=quay.io/crio/alpine:3.9
+IMAGE_LIST_DIGEST_FOR_TAG=quay.io/crio/alpine@sha256:414e0518bb9228d35e4cd5165567fb91d26c6a214e9c95899e1e056fcd349011
+IMAGE_LIST_DIGEST_FOR_TAG_AMD64=quay.io/crio/alpine@sha256:65b3a80ebe7471beecbc090c5b2cdd0aafeaefa0715f8f12e40dc918a3a70e32
 
-IMAGE_LIST_DIGEST_AMD64=docker.io/library/alpine@sha256:ab3fe83c0696e3f565c9b4a734ec309ae9bd0d74c192de4590fd6dc2ef717815
-IMAGE_LIST_DIGEST=docker.io/library/alpine@sha256:ab3fe83c0696e3f565c9b4a734ec309ae9bd0d74c192de4590fd6dc2ef717815
+IMAGE_LIST_DIGEST_AMD64=quay.io/crio/alpine@sha256:65b3a80ebe7471beecbc090c5b2cdd0aafeaefa0715f8f12e40dc918a3a70e32
+IMAGE_LIST_DIGEST=quay.io/crio/alpine@sha256:414e0518bb9228d35e4cd5165567fb91d26c6a214e9c95899e1e056fcd349011
 
 function setup() {
 	setup_test
@@ -130,9 +130,10 @@ function teardown() {
 
 @test "image pull and list by digest and ID" {
 	start_crio
-	crictl pull quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3
+	NGINX_IMAGE=quay.io/crio/nginx@sha256:960355a671fb88ef18a85f92ccf2ccf8e12186216c86337ad808c204d69d512d
+	crictl pull "$NGINX_IMAGE"
 
-	imageid=$(crictl images --quiet quay.io/crio/nginx@sha256:1ad874092a55efe2be0507a01d8a300e286f8137510854606ab1dd28861507a3)
+	imageid=$(crictl images --quiet "$NGINX_IMAGE")
 	[ "$imageid" != "" ]
 	output=$(crictl images --quiet @"$imageid")
 	[ "$output" != "" ]
