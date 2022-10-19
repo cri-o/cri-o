@@ -553,7 +553,7 @@ type TracingConfig struct {
 	// TracingEndpoint is the address on which the grpc tracing collector server will listen.
 	TracingEndpoint string `toml:"tracing_endpoint"`
 
-	// TracingSamplingRatePerMillion is the number of samples to collect per million spans.
+	// TracingSamplingRatePerMillion is the number of samples to collect per million spans. Set to 1000000 to always sample.
 	// Defaults to 0.
 	TracingSamplingRatePerMillion int `toml:"tracing_sampling_rate_per_million"`
 }

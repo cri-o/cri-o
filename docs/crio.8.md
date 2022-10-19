@@ -368,7 +368,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--tracing-endpoint**="": Address on which the gRPC tracing collector will listen. (default: 0.0.0.0:4317)
 
-**--tracing-sampling-rate-per-million**="": Number of samples to collect per million OpenTelemetry spans. (default: 0)
+**--tracing-sampling-rate-per-million**="": Number of samples to collect per million OpenTelemetry spans. Set to 1000000 to always sample. (default: 0)
 
 **--uid-mappings**="": Specify the UID mappings to use for the user namespace.
 

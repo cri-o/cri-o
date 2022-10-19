@@ -429,7 +429,7 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
   Address on which the gRPC trace collector will listen.
 
 **tracing_sampling_rate_per_million**=""
-  Number of samples to collect per million OpenTelemetry spans.
+  Number of samples to collect per million OpenTelemetry spans. Set to 1000000 to always sample.
 
 ## CRIO.STATS TABLE
 The `crio.stats` table specifies all necessary configuration for reporting container and pod stats.

@@ -805,7 +805,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.IntFlag{
 			Name:    "tracing-sampling-rate-per-million",
 			Value:   defConf.TracingSamplingRatePerMillion,
-			Usage:   "Number of samples to collect per million OpenTelemetry spans.",
+			Usage:   "Number of samples to collect per million OpenTelemetry spans. Set to 1000000 to always sample.",
 			EnvVars: []string{"CONTAINER_TRACING_SAMPLING_RATE_PER_MILLION"},
 		},
 		&cli.StringFlag{
