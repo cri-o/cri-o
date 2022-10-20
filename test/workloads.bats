@@ -84,7 +84,7 @@ function check_conmon_fields() {
 
 @test "test workload gets configured to defaults" {
 	shares="200"
-	set="0-1"
+	set="0"
 	create_workload "$shares" "$set"
 
 	start_crio
@@ -102,7 +102,7 @@ function check_conmon_fields() {
 
 @test "test workload can override defaults" {
 	shares="200"
-	set="0-1"
+	set="0"
 	name=helloctr
 	create_workload "$shares" "0"
 
@@ -150,7 +150,7 @@ function check_conmon_fields() {
 	shares=""
 	set=""
 	name=helloctr
-	create_workload "200" "0-1"
+	create_workload "200" "0"
 
 	start_crio
 
@@ -174,7 +174,7 @@ function check_conmon_fields() {
 	fi
 
 	shares="200"
-	set="0-1"
+	set="0"
 	create_workload "$shares" "$set"
 
 	start_crio
@@ -196,7 +196,7 @@ function check_conmon_fields() {
 	fi
 
 	shares="200"
-	set="0-1"
+	set="0"
 	name=POD
 	create_workload "$shares" "0"
 
@@ -246,7 +246,7 @@ function check_conmon_fields() {
 	shares=""
 	set=""
 	name=POD
-	create_workload "200" "0-1"
+	create_workload "200" "0"
 
 	start_crio
 
@@ -269,7 +269,7 @@ function check_conmon_fields() {
 	fi
 
 	shares="200"
-	set="0-1"
+	set="0"
 	name=POD
 	create_workload "$shares" "0"
 
