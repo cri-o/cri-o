@@ -261,6 +261,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.BlockIOConfigFile, c.BlockIOConfigFile),
 		},
 		{
+			templateString: templateStringCrioRuntimeBlockIOReload,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.BlockIOReload, c.BlockIOReload),
+		},
+		{
 			templateString: templateStringCrioRuntimeIrqBalanceConfigFile,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.IrqBalanceConfigFile, c.IrqBalanceConfigFile),
@@ -892,6 +897,12 @@ const templateStringCrioRuntimeApparmorProfile = `# Used to change the name of t
 const templateStringCrioRuntimeBlockIOConfigFile = `# Path to the blockio class configuration file for configuring
 # the cgroup blockio controller.
 {{ $.Comment }}blockio_config_file = "{{ .BlockIOConfigFile }}"
+
+`
+
+const templateStringCrioRuntimeBlockIOReload = `# Reload blockio-config-file and rescan blockio devices in the system before applying
+# blockio parameters.
+{{ $.Comment }}blockio_reload = {{ .BlockIOReload }}
 
 `
 
