@@ -18,17 +18,22 @@ package spdx
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	spdxJSON "sigs.k8s.io/bom/pkg/spdx/json/v2.2.2"
+	"sigs.k8s.io/bom/pkg/spdx/json/document"
+	spdx22JSON "sigs.k8s.io/bom/pkg/spdx/json/v2.2"
+	spdx23JSON "sigs.k8s.io/bom/pkg/spdx/json/v2.3"
+	"sigs.k8s.io/release-utils/http"
 )
 
 // Regexp to match the tag-value spdx expressions
@@ -50,6 +55,12 @@ func OpenDoc(path string) (doc *Document, err error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading STDIN: %w", err)
 		}
+	} else if isURL(path) {
+		file, err = tempFileFromURL(path)
+		if err != nil {
+			return nil, fmt.Errorf("get temp file from url: %w", err)
+		}
+		isTemp = true
 	} else {
 		file, err = os.Open(path)
 		if err != nil {
@@ -78,19 +89,34 @@ func OpenDoc(path string) (doc *Document, err error) {
 	return nil, errors.New("unknown SBOM encoding")
 }
 
-// parseJSON parses an SPDX document encoded in json
-// nolint:gocyclo
-func parseJSON(file *os.File) (doc *Document, err error) {
-	jsonDoc := &spdxJSON.Document{
-		CreationInfo: spdxJSON.CreationInfo{
-			Creators: []string{},
-		},
-		DocumentDescribes:    []string{},
-		Files:                []spdxJSON.File{},
-		Packages:             []spdxJSON.Package{},
-		Relationships:        []spdxJSON.Relationship{},
-		ExternalDocumentRefs: []spdxJSON.ExternalDocumentRef{},
+func tempFileFromURL(query string) (*os.File, error) {
+	response, err := http.GetURLResponse(query, false)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving URL resposne from %s: %w", query, err)
 	}
+	file, err := os.CreateTemp("", "sbom-")
+	if err != nil {
+		return nil, fmt.Errorf("create temp file for URL response: %w", err)
+	}
+	if _, err := file.WriteString(response); err != nil {
+		return nil, fmt.Errorf("write response to file: %w", err)
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("seek file start: %w", err)
+	}
+	return file, nil
+}
+
+func isURL(str string) bool {
+	u, err := url.Parse(str)
+	return err == nil && u.Scheme != "" && u.Host != ""
+}
+
+// parseJSON parses an SPDX document encoded in json
+//
+//nolint:gocyclo
+func parseJSON(file *os.File) (doc *Document, err error) {
+	var jsonDoc document.Document
 
 	// Read the SPDX doc into the json struct
 	var data []byte
@@ -98,15 +124,48 @@ func parseJSON(file *os.File) (doc *Document, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading SBOM file: %w", err)
 	}
-	if err := json.Unmarshal(data, jsonDoc); err != nil {
-		return nil, fmt.Errorf("parsing SBOM json: %w", err)
+
+	var spdxVersion string
+
+	if bytes.Contains(data, []byte("SPDX-2.3")) {
+		doc := spdx23JSON.Document{
+			CreationInfo: spdx23JSON.CreationInfo{
+				Creators: []string{},
+			},
+			DocumentDescribes:    []string{},
+			Files:                []spdx23JSON.File{},
+			Packages:             []spdx23JSON.Package{},
+			Relationships:        []spdx23JSON.Relationship{},
+			ExternalDocumentRefs: []spdx23JSON.ExternalDocumentRef{},
+		}
+		if err := json.Unmarshal(data, &doc); err != nil {
+			return nil, fmt.Errorf("parsing SBOM json: %w", err)
+		}
+		spdxVersion = "2.3"
+		jsonDoc = &doc
+	} else {
+		doc := spdx22JSON.Document{
+			CreationInfo: spdx22JSON.CreationInfo{
+				Creators: []string{},
+			},
+			DocumentDescribes:    []string{},
+			Files:                []spdx22JSON.File{},
+			Packages:             []spdx22JSON.Package{},
+			Relationships:        []spdx22JSON.Relationship{},
+			ExternalDocumentRefs: []spdx22JSON.ExternalDocumentRef{},
+		}
+		if err := json.Unmarshal(data, &doc); err != nil {
+			return nil, fmt.Errorf("parsing SBOM json: %w", err)
+		}
+		spdxVersion = "2.2"
+		jsonDoc = &doc
 	}
 
 	doc = &Document{
-		Version:     jsonDoc.Version,
-		DataLicense: jsonDoc.DataLicense,
-		ID:          jsonDoc.ID,
-		Name:        jsonDoc.Name,
+		Version:     jsonDoc.GetVersion(),
+		DataLicense: jsonDoc.GetDataLicense(),
+		ID:          jsonDoc.GetID(),
+		Name:        jsonDoc.GetName(),
 		Creator: struct {
 			Person       string
 			Organization string
@@ -114,13 +173,14 @@ func parseJSON(file *os.File) (doc *Document, err error) {
 		}{
 			Tool: []string{},
 		},
-		Namespace:       jsonDoc.Namespace,
+		Namespace:       jsonDoc.GetNamespace(),
 		Packages:        map[string]*Package{},
 		Files:           map[string]*File{},
 		ExternalDocRefs: []ExternalDocumentRef{},
 	}
 
-	for _, c := range jsonDoc.CreationInfo.Creators {
+	creationInfo := jsonDoc.GetCreationInfo()
+	for _, c := range creationInfo.GetCreators() {
 		// Technical limitation in bom: We only have one person and one org
 		ps := strings.SplitN(c, ":", 2)
 		if len(ps) != 2 {
@@ -149,35 +209,36 @@ func parseJSON(file *os.File) (doc *Document, err error) {
 		}
 	}
 
-	doc.LicenseListVersion = jsonDoc.CreationInfo.LicenseListVersion
-	if jsonDoc.CreationInfo.Created != "" {
-		t, err := time.Parse("2006-01-02T15:04:05Z", jsonDoc.CreationInfo.Created)
+	doc.LicenseListVersion = creationInfo.GetLicenseListVersion()
+	createdDate := creationInfo.GetCreated()
+	if createdDate != "" {
+		t, err := time.Parse("2006-01-02T15:04:05Z", createdDate)
 		if err != nil {
-			logrus.Errorf("unable to parse creation time: %s: %s", jsonDoc.CreationInfo.Created, err)
+			logrus.Errorf("unable to parse creation time: %s: %s", createdDate, err)
 		} else {
 			doc.Created = t
 		}
 	}
 
 	allPackages := map[string]*Package{}
-	for i := range jsonDoc.Packages {
-		pData := &jsonDoc.Packages[i]
-		allPackages[pData.ID] = &Package{
+	for _, pData := range jsonDoc.GetPackages() {
+		packageID := pData.GetID()
+		allPackages[packageID] = &Package{
 			Entity: Entity{
-				ID:               pData.ID,
-				Name:             pData.Name,
-				DownloadLocation: pData.DownloadLocation,
-				CopyrightText:    pData.CopyrightText,
-				LicenseConcluded: pData.LicenseConcluded,
+				ID:               pData.GetID(),
+				Name:             pData.GetName(),
+				DownloadLocation: pData.GetDownloadLocation(),
+				CopyrightText:    pData.GetCopyrightText(),
+				LicenseConcluded: pData.GetLicenseDeclared(),
 				// LicenseComments:  pData.LicenseComments,
 				Relationships: []*Relationship{},
 				Checksum:      map[string]string{},
 			},
-			FilesAnalyzed:        pData.FilesAnalyzed,
+			FilesAnalyzed:        pData.GetFilesAnalyzed(),
 			LicenseInfoFromFiles: []string{},
-			LicenseDeclared:      pData.LicenseDeclared,
-			Version:              pData.Version,
-			VerificationCode:     pData.VerificationCode.Value,
+			LicenseDeclared:      pData.GetLicenseDeclared(),
+			Version:              pData.GetVersion(),
+			VerificationCode:     pData.GetVerificationCode().GetValue(),
 			// Comment:              pData.Comment,
 			// HomePage:             pData.HomePage,
 			Supplier: struct {
@@ -191,44 +252,46 @@ func parseJSON(file *os.File) (doc *Document, err error) {
 			ExternalRefs: []ExternalRef{},
 		}
 
-		if pData.Checksums != nil {
-			for _, cs := range pData.Checksums {
-				allPackages[pData.ID].Checksum[cs.Algorithm] = cs.Value
-			}
+		if spdxVersion == "2.3" {
+			allPackages[packageID].PrimaryPurpose = pData.GetPrimaryPurpose()
 		}
 
-		if pData.ExternalRefs != nil {
-			for _, eref := range pData.ExternalRefs {
-				allPackages[pData.ID].ExternalRefs = append(allPackages[pData.ID].ExternalRefs, ExternalRef{
-					Category: eref.Category,
-					Type:     eref.Type,
-					Locator:  eref.Locator,
-				})
-			}
+		for _, cs := range pData.GetChecksums() {
+			allPackages[packageID].Checksum[cs.GetAlgorithm()] = cs.GetValue()
+		}
+
+		for _, eref := range pData.GetExternalRefs() {
+			allPackages[packageID].ExternalRefs = append(
+				allPackages[packageID].ExternalRefs, ExternalRef{
+					Category: eref.GetCategory(),
+					Type:     eref.GetType(),
+					Locator:  eref.GetLocator(),
+				},
+			)
 		}
 	}
 
 	allFiles := map[string]*File{}
-	for i := range jsonDoc.Files {
-		fData := &jsonDoc.Files[i]
-		allFiles[fData.ID] = &File{
+	for _, fData := range jsonDoc.GetFiles() {
+		fileID := fData.GetID()
+		allFiles[fileID] = &File{
 			Entity: Entity{
-				ID:               fData.ID,
-				Name:             fData.Name,
-				CopyrightText:    fData.CopyrightText,
-				LicenseConcluded: fData.LicenseConcluded,
+				ID:               fileID,
+				Name:             fData.GetName(),
+				CopyrightText:    fData.GetCopyrightText(),
+				LicenseConcluded: fData.GetLicenseConcluded(),
 				// LicenseComments:  pData.LicenseComments,
 				Relationships: []*Relationship{},
 				Checksum:      map[string]string{},
 			},
-			FileType:          []string{},
-			LicenseInfoInFile: strings.Join(fData.LicenseInfoInFile, " AND "),
+			FileType: []string{},
+			LicenseInfoInFile: strings.Join(
+				fData.GetLicenseInfoInFile(), " AND ",
+			),
 		}
 
-		if fData.Checksums != nil {
-			for _, cs := range fData.Checksums {
-				allFiles[fData.ID].Checksum[cs.Algorithm] = cs.Value
-			}
+		for _, cs := range fData.GetChecksums() {
+			allFiles[fileID].Checksum[cs.GetAlgorithm()] = cs.GetValue()
 		}
 	}
 
@@ -236,41 +299,45 @@ func parseJSON(file *os.File) (doc *Document, err error) {
 
 	// Populate the package and file relationships before adding
 	// the root level elements
-	for _, r := range jsonDoc.Relationships {
+	for _, r := range jsonDoc.GetRelationships() {
 		var source Object
 		var peer Object
 		var relatedID string
 		var externalID string
 
+		elementID := r.GetElement()
+		relatedID = r.GetRelated()
+		typeID := r.GetType()
+
 		// Look for the source element
-		if _, ok := allPackages[r.Element]; ok {
-			source = allPackages[r.Element]
-		} else if _, ok := allFiles[r.Element]; ok {
-			source = allFiles[r.Element]
+		if _, ok := allPackages[elementID]; ok {
+			source = allPackages[elementID]
+		} else if _, ok := allFiles[elementID]; ok {
+			source = allFiles[elementID]
 		}
 		if source == nil {
-			logrus.Warnf("unable to find SPDX source element %s", r.Element)
+			logrus.Warnf("unable to find SPDX source element %s", elementID)
 			continue
 		}
 
 		// Look for the peer element, exception: peer may be
 		// an external reference
-		if strings.HasPrefix(r.Related, "DocumentRef-") {
-			externalID = r.Related
-			parts := strings.SplitN(r.Related, ":", 2)
+		if strings.HasPrefix(relatedID, "DocumentRef-") {
+			externalID = relatedID
+			parts := strings.SplitN(relatedID, ":", 2)
 			if len(parts) != 2 {
-				logrus.Errorf("Unable to parse external reference %s", r.Related)
+				logrus.Errorf("Unable to parse external reference %s", relatedID)
 				continue
 			}
 			relatedID = parts[1]
 		} else {
-			if _, ok := allPackages[r.Related]; ok {
-				peer = allPackages[r.Related]
-			} else if _, ok := allFiles[r.Related]; ok {
-				peer = allFiles[r.Related]
+			if _, ok := allPackages[relatedID]; ok {
+				peer = allPackages[relatedID]
+			} else if _, ok := allFiles[relatedID]; ok {
+				peer = allFiles[relatedID]
 			}
 			if peer == nil {
-				logrus.Warnf("unable to find SPDX related element %s", r.Related)
+				logrus.Warnf("unable to find SPDX related element %s", relatedID)
 				continue
 			}
 			relatedID = peer.SPDXID()
@@ -280,7 +347,7 @@ func parseJSON(file *os.File) (doc *Document, err error) {
 			PeerReference:    relatedID,
 			PeerExtReference: externalID,
 			Comment:          "",
-			Type:             RelationshipType(r.Type),
+			Type:             RelationshipType(typeID),
 			Peer:             peer,
 		}
 		source.AddRelationship(&rel)
@@ -292,7 +359,7 @@ func parseJSON(file *os.File) (doc *Document, err error) {
 	}
 
 	// Add the top level packages
-	for _, el := range jsonDoc.DocumentDescribes {
+	for _, el := range jsonDoc.GetDocumentDescribes() {
 		var p *Package
 		var f *File
 		var ok bool
@@ -326,22 +393,25 @@ func parseJSON(file *os.File) (doc *Document, err error) {
 	}
 
 	// Assign external references
-	for _, ref := range jsonDoc.ExternalDocumentRefs {
+	for _, ref := range jsonDoc.GetExternalDocumentRefs() {
+		cs := ref.GetChecksum()
 		extRef := ExternalDocumentRef{
-			ID:  ref.ExternalDocumentID,
-			URI: ref.SPDXDocument,
+			ID:  ref.GetExternalDocumentID(),
+			URI: ref.GetSPDXDocument(),
 			Checksums: map[string]string{
-				ref.Checksum.Algorithm: ref.Checksum.Value,
+				cs.GetAlgorithm(): cs.GetValue(),
 			},
 		}
 		doc.ExternalDocRefs = append(doc.ExternalDocRefs, extRef)
 	}
-
+	fmt.Printf("%+v\n", doc)
+	fmt.Printf("PACKAGE:  %+v\n", doc.Packages["SPDXRef-Package-sha256-a78c2d6208eff9b672de43f880093100050983047b7b0afe0217d3656e1b0d5f"])
 	return doc, nil
 }
 
 // parseTagValue parses an SPDX SBOM in tag-value format
-// nolint:gocyclo
+//
+//nolint:gocyclo
 func parseTagValue(file *os.File) (doc *Document, err error) {
 	// Create a blank document
 	doc = &Document{
@@ -463,6 +533,19 @@ func parseTagValue(file *os.File) (doc *Document, err error) {
 			currentObject.(*Package).FileName = value
 		case "PackageHomePage":
 			currentObject.(*Package).HomePage = value
+		case "PrimaryPackagePurpose":
+			purpose := ""
+			for _, pp := range PackagePurposes {
+				if pp == value {
+					purpose = value
+				}
+			}
+			if purpose == "" {
+				// TODO: Be less strict when parsing
+				// TODO: Check if the doc is SPDX 2.3 or higher
+				return nil, fmt.Errorf("invalid package purpose found %s", value)
+			}
+			currentObject.(*Package).PrimaryPurpose = purpose
 		case "PackageLicenseInfoFromFiles":
 			have := false
 			// Check if we already have the license
@@ -580,6 +663,24 @@ func parseTagValue(file *os.File) (doc *Document, err error) {
 				if len(parts) != 3 {
 					return nil, errors.New("malformed external reference")
 				}
+
+				// Check the external ref category
+				if _, ok := ExternalRefCategories[parts[0]]; !ok {
+					return nil, fmt.Errorf("invalid external reference category: %s", parts[0])
+				}
+
+				// And the type
+				validType := false
+				for _, t := range ExternalRefCategories[parts[0]] {
+					if parts[1] == t {
+						validType = true
+						break
+					}
+				}
+				if !validType && parts[0] != "OTHER" {
+					return nil, fmt.Errorf("invalid external reference type: %s", parts[1])
+				}
+
 				currentObject.(*Package).ExternalRefs = append(currentObject.(*Package).ExternalRefs, ExternalRef{
 					Category: parts[0],
 					Type:     parts[1],

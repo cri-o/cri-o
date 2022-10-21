@@ -254,13 +254,15 @@ func (mod *GoModule) ScanLicenses() error {
 // go list and works from there
 func (mod *GoModule) BuildFullPackageList(g *modfile.File) (packageList []*GoPackage, err error) {
 	packageList = []*GoPackage{}
+
+	// If no go.sum is found, then there are no deps
+	if !util.Exists(filepath.Join(mod.opts.Path, GoSumFileName)) {
+		return packageList, nil
+	}
+
 	gobin, err := exec.LookPath("go")
 	if err != nil {
 		return nil, errors.New("unable to get full list of packages, go executbale not found ")
-	}
-
-	if !util.Exists(filepath.Join(mod.opts.Path, GoSumFileName)) {
-		return nil, errors.New("unable to generate package list, go.sum file not found")
 	}
 
 	gorun := command.NewWithWorkDir(mod.opts.Path, gobin, "list", "-deps", "-e", "-json", "./...")
@@ -391,7 +393,8 @@ func (di *GoModDefaultImpl) BuildPackageList(gomod *modfile.File) ([]*GoPackage,
 }
 
 // DownloadPackage takes a pkg, downloads it from its src and sets
-//  the download dir in the LocalDir field
+//
+//	the download dir in the LocalDir field
 func (di *GoModDefaultImpl) DownloadPackage(pkg *GoPackage, opts *GoModuleOptions, force bool) error {
 	if pkg.LocalDir != "" && util.Exists(pkg.LocalDir) && !force {
 		logrus.WithField("package", pkg.ImportPath).Infof("Not downloading %s as it already has local data", pkg.ImportPath)

@@ -97,18 +97,6 @@ func (db *DocBuilder) Generate(genopts *DocGenerateOptions) (*Document, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating SPDX document: %w", err)
 	}
-
-	// If we have a specified output file, write it
-	if genopts.OutputFile == "" {
-		return doc, nil
-	}
-
-	if err := db.impl.WriteDoc(doc, genopts.OutputFile); err != nil {
-		return doc, fmt.Errorf(
-			"writing doc to %s: %w", genopts.OutputFile,
-			err,
-		)
-	}
 	return doc, nil
 }
 

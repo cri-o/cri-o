@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:gosec
 // SHA1 is the currently accepted hash algorithm for SPDX documents, used for
 // file integrity checks, NOT security.
 // Instances of G401 and G505 can be safely ignored in this file.
 //
 // ref: https://github.com/spdx/spdx-spec/issues/11
+//
+//nolint:gosec
 package spdx
 
 import (
@@ -70,6 +71,8 @@ PackageLicenseConcluded: {{ if .LicenseConcluded }}{{ .LicenseConcluded }}{{ els
 {{ end -}}
 {{ if .HomePage }}PackageHomePage: {{ .HomePage }}
 {{ end -}}
+{{ if .PrimaryPurpose }}PrimaryPackagePurpose: {{ .PrimaryPurpose }}
+{{ end -}}
 {{ if .ExternalRefs }}{{- range $key, $value := .ExternalRefs -}}ExternalRef: {{ $value.Category }} {{ $value.Type }} {{ $value.Locator }}
 {{ end -}}
 {{ end -}}
@@ -93,6 +96,7 @@ type Package struct {
 	Version              string   // Package version
 	Comment              string   // a place for the SPDX document creator to record any general comments
 	HomePage             string   // A web site that serves as the package home page
+	PrimaryPurpose       string   // Estimate of the most likely package usage
 
 	// Supplier: the actual distribution source for the package/directory
 	Supplier struct {
@@ -107,6 +111,20 @@ type Package struct {
 	}
 
 	ExternalRefs []ExternalRef // List of external references
+}
+
+// PackagePurposes lists the valid package purposes
+// https://spdx.github.io/spdx-spec/v2.3/package-information/#724-primary-package-purpose-field
+var PackagePurposes = []string{
+	"APPLICATION", "FRAMEWORK", "LIBRARY", "CONTAINER", "OPERATING-SYSTEM",
+	"DEVICE", "FIRMWARE", "SOURCE", "ARCHIVE", "FILE", "INSTALL", "OTHER",
+}
+
+var ExternalRefCategories = map[string][]string{
+	"SECURITY":        {"cpe22Type", "cpe23Type", "advisory", "fix", "url", "swid"},
+	"PACKAGE-MANAGER": {"maven-central", "npm", "nuget", "bower", "purl"},
+	"PERSISTENT-ID":   {"swh", "gitoid"},
+	"OTHER":           {},
 }
 
 func NewPackage() (p *Package) {
@@ -340,7 +358,8 @@ func (p *Package) SetEntity(e *Entity) {
 }
 
 // Draw renders the package data as a tree-like structure
-// nolint:gocritic
+//
+//nolint:gocritic
 func (p *Package) Draw(builder *strings.Builder, o *DrawingOptions, depth int, seen *map[string]struct{}) {
 	title := p.SPDXID()
 	(*seen)[p.SPDXID()] = struct{}{}
