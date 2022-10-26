@@ -189,7 +189,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	if restore {
 		// The CRIU binary is usually in /usr/sbin/criu
 		if v, found := os.LookupEnv("PATH"); found {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=/usr/sbin/%s", v))
+			cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", v))
 		}
 	}
 
