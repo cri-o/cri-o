@@ -97,7 +97,7 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 			v.Tag = "none"
 		}
 
-		logrus.Debugf(
+		logrus.WithContext(ctx).Debugf(
 			"Using conmonrs version: %s, tag: %s, commit: %s, build: %s, target: %s, %s, %s",
 			v.Version, v.Tag, v.Commit, v.BuildDate, v.Target, v.RustVersion, v.CargoVersion,
 		)

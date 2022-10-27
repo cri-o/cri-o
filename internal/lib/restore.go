@@ -38,12 +38,12 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 	// During checkpointing the container is unmounted. This mounts the container again.
 	mountPoint, err := c.StorageImageServer().GetStore().Mount(ctr.ID(), ctrSpec.Config.Linux.MountLabel)
 	if err != nil {
-		logrus.Debugf("Failed to mount container %q: %v", ctr.ID(), err)
+		logrus.WithContext(ctx).Debugf("Failed to mount container %q: %v", ctr.ID(), err)
 		return "", err
 	}
-	logrus.Debugf("Container mountpoint %v", mountPoint)
-	logrus.Debugf("Sandbox %v", ctr.Sandbox())
-	logrus.Debugf("Specgen.Config.Annotations[io.kubernetes.cri-o.SandboxID] %v", ctrSpec.Config.Annotations["io.kubernetes.cri-o.SandboxID"])
+	logrus.WithContext(ctx).Debugf("Container mountpoint %v", mountPoint)
+	logrus.WithContext(ctx).Debugf("Sandbox %v", ctr.Sandbox())
+	logrus.WithContext(ctx).Debugf("Specgen.Config.Annotations[io.kubernetes.cri-o.SandboxID] %v", ctrSpec.Config.Annotations["io.kubernetes.cri-o.SandboxID"])
 	// If there was no podID specified this will restore the container
 	// in its original sandbox
 	if opts.Pod == "" {
@@ -212,7 +212,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 		return "", fmt.Errorf("failed to restore container %s: %w", ctr.ID(), err)
 	}
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
-		logrus.Warnf("Unable to write containers %s state to disk: %v", ctr.ID(), err)
+		logrus.WithContext(ctx).Warnf("Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 
 	if !opts.Keep {
@@ -222,7 +222,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 		// failed. Starting with the checkpoint directory
 		err = os.RemoveAll(ctr.CheckpointPath())
 		if err != nil {
-			logrus.Debugf("Non-fatal: removal of checkpoint directory (%s) failed: %v", ctr.CheckpointPath(), err)
+			logrus.WithContext(ctx).Debugf("Non-fatal: removal of checkpoint directory (%s) failed: %v", ctr.CheckpointPath(), err)
 		}
 		cleanup := [...]string{
 			metadata.RestoreLogFile,
@@ -247,7 +247,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 			}
 			err = os.Remove(file)
 			if err != nil {
-				logrus.Debugf("Non-fatal: removal of checkpoint file (%s) failed: %v", file, err)
+				logrus.WithContext(ctx).Debugf("Non-fatal: removal of checkpoint file (%s) failed: %v", file, err)
 			}
 		}
 	}

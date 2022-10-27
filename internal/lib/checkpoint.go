@@ -75,7 +75,7 @@ func (c *ContainerServer) ContainerCheckpoint(ctx context.Context, opts *Contain
 		for _, del := range cleanup {
 			file := filepath.Join(ctr.Dir(), del)
 			if err := os.Remove(file); err != nil {
-				logrus.Debugf("Unable to remove file %s", file)
+				logrus.WithContext(ctx).Debugf("Unable to remove file %s", file)
 			}
 		}
 	}

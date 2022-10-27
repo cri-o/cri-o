@@ -69,7 +69,7 @@ func (s *Server) CRImportCheckpoint(
 	}
 
 	if checkpointIsOCIImage {
-		logrus.Debugf("Restoring from oci image %s\n", input)
+		logrus.WithContext(ctx).Debugf("Restoring from oci image %s\n", input)
 
 		imageRef, err := istorage.Transport.ParseStoreReference(s.ContainerServer.StorageImageServer().GetStore(), input)
 		if err != nil {
@@ -124,7 +124,7 @@ func (s *Server) CRImportCheckpoint(
 		if err != nil {
 			return "", fmt.Errorf("unpacking of checkpoint archive %s failed: %w", mountPoint, err)
 		}
-		logrus.Debugf("Unpacked checkpoint in %s", mountPoint)
+		logrus.WithContext(ctx).Debugf("Unpacked checkpoint in %s", mountPoint)
 	}
 
 	// Load spec.dump from temporary directory
@@ -266,7 +266,7 @@ func (s *Server) CRImportCheckpoint(
 			}
 		}
 
-		logrus.Debugf("Adding mounts %#v", mount)
+		logrus.WithContext(ctx).Debugf("Adding mounts %#v", mount)
 		containerConfig.Mounts = append(containerConfig.Mounts, mount)
 	}
 	sandboxConfig := &types.PodSandboxConfig{

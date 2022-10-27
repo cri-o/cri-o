@@ -88,7 +88,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 		}
 		defer func() {
 			if err := os.RemoveAll(podCheckpointDirectory); err != nil {
-				logrus.Errorf("Could not recursively remove %s: %q", podCheckpointDirectory, err)
+				logrus.WithContext(ctx).Errorf("Could not recursively remove %s: %q", podCheckpointDirectory, err)
 			}
 		}()
 

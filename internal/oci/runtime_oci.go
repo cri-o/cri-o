@@ -140,7 +140,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		args = append(args, "-i")
 	}
 	if restore {
-		logrus.Debugf("Restore is true %v", restore)
+		logrus.WithContext(ctx).Debugf("Restore is true %v", restore)
 		args = append(args, "--restore", c.CheckpointPath())
 		if c.Spec().Process.SelinuxLabel != "" {
 			args = append(
@@ -164,7 +164,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		}
 	}
 
-	logrus.WithFields(logrus.Fields{
+	logrus.WithContext(ctx).WithFields(logrus.Fields{
 		"args": args,
 	}).Debugf("running conmon: %s", r.handler.MonitorPath)
 
@@ -1459,8 +1459,8 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := c.CheckpointPath()
 
-	logrus.Debugf("Writing checkpoint to %s", imagePath)
-	logrus.Debugf("Writing checkpoint logs to %s", workPath)
+	logrus.WithContext(ctx).Debugf("Writing checkpoint to %s", imagePath)
+	logrus.WithContext(ctx).Debugf("Writing checkpoint logs to %s", workPath)
 	args := []string{}
 	args = append(
 		args,

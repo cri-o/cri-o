@@ -992,7 +992,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 
 		if m.SelinuxRelabel {
 			if skipRelabel {
-				logrus.Debugf("Skipping relabel for %s because of super privileged container (type: spc_t)", src)
+				logrus.WithContext(ctx).Debugf("Skipping relabel for %s because of super privileged container (type: spc_t)", src)
 			} else if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
 				return nil, nil, err
 			}
