@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -11,7 +12,9 @@ import (
 
 // ExecSync runs a command in a container synchronously.
 func (s *Server) ExecSync(ctx context.Context, req *types.ExecSyncRequest) (*types.ExecSyncResponse, error) {
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}

@@ -12,9 +12,11 @@ import (
 // StopPodSandbox stops the sandbox. If there are any running containers in the
 // sandbox, they should be force terminated.
 func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRequest) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	// platform dependent call
 	log.Infof(ctx, "Stopping pod sandbox: %s", req.PodSandboxId)
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return err

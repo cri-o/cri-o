@@ -312,7 +312,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 // StartContainer starts a container.
 func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
-	ctx, span := log.StartSpan(ctx)
+	_, span := log.StartSpan(ctx)
 	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
@@ -395,7 +395,7 @@ func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
 func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	ctx, span := log.StartSpan(ctx)
+	_, span := log.StartSpan(ctx)
 	defer span.End()
 
 	if c.Spoofed() {
@@ -755,7 +755,7 @@ func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, 
 
 // UpdateContainer updates container resources
 func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
-	ctx, span := log.StartSpan(ctx)
+	_, span := log.StartSpan(ctx)
 	defer span.End()
 
 	c.opLock.Lock()
@@ -931,7 +931,7 @@ func checkProcessGone(c *Container) {
 
 // DeleteContainer deletes a container.
 func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
-	ctx, span := log.StartSpan(ctx)
+	_, span := log.StartSpan(ctx)
 	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
@@ -1104,7 +1104,7 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 
 // ContainerStats provides statistics of a container.
 func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*types.ContainerStats, error) {
-	ctx, span := log.StartSpan(ctx)
+	_, span := log.StartSpan(ctx)
 	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
@@ -1113,7 +1113,7 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 
 // SignalContainer sends a signal to a container process.
 func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
-	ctx, span := log.StartSpan(ctx)
+	_, span := log.StartSpan(ctx)
 	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()

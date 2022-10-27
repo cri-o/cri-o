@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	json "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -14,7 +15,9 @@ import (
 
 // PodSandboxStatus returns the Status of the PodSandbox.
 func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStatusRequest) (*types.PodSandboxStatusResponse, error) {
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.PodSandboxId, err)
 	}

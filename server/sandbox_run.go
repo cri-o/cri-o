@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/cri-o/cri-o/internal/hostport"
+	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -101,7 +102,9 @@ func getHostname(id, hostname string, hostNetwork bool) (string, error) {
 	return hostname, nil
 }
 
-func (s *Server) setPodSandboxMountLabel(id, mountLabel string) error {
+func (s *Server) setPodSandboxMountLabel(ctx context.Context, id, mountLabel string) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	storageMetadata, err := s.StorageRuntimeServer().GetContainerMetadata(id)
 	if err != nil {
 		return err

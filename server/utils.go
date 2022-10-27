@@ -155,6 +155,9 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 	// This is really to catch an unlikely case where the kubelet doesn't cancel the context.
 	// Adding on top of the specified deadline ensures this deadline will be respected, regardless of
 	// how Kubelet's runtime-request-timeout changes.
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	resourceCreationWaitTime := time.Minute * 4
 	if initialDeadline, ok := ctx.Deadline(); ok {
 		resourceCreationWaitTime += time.Until(initialDeadline)

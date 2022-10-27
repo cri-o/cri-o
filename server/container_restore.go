@@ -187,7 +187,7 @@ func (s *Server) CRImportCheckpoint(
 		}
 	}
 
-	sb, err := s.getPodSandboxFromRequest(sbID)
+	sb, err := s.getPodSandboxFromRequest(ctx, sbID)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return "", err
@@ -294,7 +294,7 @@ func (s *Server) CRImportCheckpoint(
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: releasing container name %s", ctr.Name())
-			s.ReleaseContainerName(ctr.Name())
+			s.ReleaseContainerName(ctx, ctr.Name())
 		}
 	}()
 	ctr.SetRestore(true)
@@ -306,19 +306,19 @@ func (s *Server) CRImportCheckpoint(
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: deleting container %s from storage", ctr.ID())
-			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
+			err2 := s.StorageRuntimeServer().DeleteContainer(ctx, ctr.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
 		}
 	}()
 
-	s.addContainer(newContainer)
+	s.addContainer(ctx, newContainer)
 
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: removing container %s", newContainer.ID())
-			s.removeContainer(newContainer)
+			s.removeContainer(ctx, newContainer)
 		}
 	}()
 

@@ -30,9 +30,9 @@ var _ = t.Describe("ContainerRemove", func() {
 				State: specs.State{Status: oci.ContainerStateStopped},
 			})
 			gomock.InOrder(
-				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).
+				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).
 					Return(nil),
-				runtimeServerMock.EXPECT().DeleteContainer(gomock.Any()).
+				runtimeServerMock.EXPECT().DeleteContainer(gomock.Any(), gomock.Any()).
 					Return(nil),
 			)
 

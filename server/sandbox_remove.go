@@ -12,8 +12,10 @@ import (
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
 func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandboxRequest) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	log.Infof(ctx, "Removing pod sandbox: %s", req.PodSandboxId)
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return err
@@ -32,6 +34,8 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandb
 }
 
 func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	containers := sb.Containers().List()
 
 	// Delete all the containers in the sandbox
@@ -41,11 +45,11 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		}
 	}
 
-	if err := sb.UnmountShm(); err != nil {
+	if err := sb.UnmountShm(ctx); err != nil {
 		return fmt.Errorf("unable to unmount SHM: %w", err)
 	}
 
-	s.removeInfraContainer(sb.InfraContainer())
+	s.removeInfraContainer(ctx, sb.InfraContainer())
 	if err := s.removeContainerInPod(ctx, sb, sb.InfraContainer()); err != nil {
 		return err
 	}
@@ -60,7 +64,7 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 	}
 
 	s.ReleasePodName(sb.Name())
-	if err := s.removeSandbox(sb.ID()); err != nil {
+	if err := s.removeSandbox(ctx, sb.ID()); err != nil {
 		log.Warnf(ctx, "Failed to remove sandbox: %v", err)
 	}
 	if err := s.PodIDIndex().Delete(sb.ID()); err != nil {

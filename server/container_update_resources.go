@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -14,7 +15,9 @@ import (
 
 // UpdateContainerResources updates ContainerConfig of the container.
 func (s *Server) UpdateContainerResources(ctx context.Context, req *types.UpdateContainerResourcesRequest) error {
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return err
 	}

@@ -28,7 +28,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 	var podCheckpointDirectory string
 	var checkpointedPodOptions metadata.CheckpointedPodOptions
 
-	_, err := s.GetContainerFromShortID(req.ContainerId)
+	_, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		// Maybe the user specified a Pod
 		sb, err := s.LookupSandbox(req.ContainerId)

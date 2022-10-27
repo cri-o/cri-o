@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 
@@ -44,11 +45,12 @@ var _ = t.Describe("Inspect", func() {
 		})
 
 		It("should succeed with valid /containers route", func() {
+			ctx := context.TODO()
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, testSandbox)).To(BeNil())
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{})
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
-			sut.AddContainer(testContainer)
+			sut.AddContainer(ctx, testContainer)
 
 			// When
 			request, err := http.NewRequest(http.MethodGet,
@@ -62,12 +64,13 @@ var _ = t.Describe("Inspect", func() {
 		})
 
 		It("should fail if sandbox not found on /containers route", func() {
+			ctx := context.TODO()
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, testSandbox)).To(BeNil())
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{})
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
-			sut.AddContainer(testContainer)
-			Expect(sut.RemoveSandbox(testSandbox.ID())).To(BeNil())
+			sut.AddContainer(ctx, testContainer)
+			Expect(sut.RemoveSandbox(ctx, testSandbox.ID())).To(BeNil())
 
 			// When
 			request, err := http.NewRequest(http.MethodGet,
@@ -81,11 +84,12 @@ var _ = t.Describe("Inspect", func() {
 		})
 
 		It("should fail if container state is nil on /containers route", func() {
+			ctx := context.TODO()
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, testSandbox)).To(BeNil())
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
 			testContainer.SetState(nil)
-			sut.AddContainer(testContainer)
+			sut.AddContainer(ctx, testContainer)
 
 			// When
 			request, err := http.NewRequest(http.MethodGet,

@@ -215,13 +215,13 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 			}
 		}
 	}()
-	if err := c.AddSandbox(sb); err != nil {
+	if err := c.AddSandbox(ctx, sb); err != nil {
 		return sb, err
 	}
 
 	defer func() {
 		if retErr != nil {
-			if err := c.RemoveSandbox(sb.ID()); err != nil {
+			if err := c.RemoveSandbox(ctx, sb.ID()); err != nil {
 				log.Warnf(ctx, "Could not remove sandbox ID %s: %v", sb.ID(), err)
 			}
 		}
@@ -245,7 +245,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 	defer func() {
 		if retErr != nil {
-			c.ReleaseContainerName(cname)
+			c.ReleaseContainerName(ctx, cname)
 		}
 	}()
 
@@ -383,7 +383,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 
 	defer func() {
 		if retErr != nil {
-			c.ReleaseContainerName(name)
+			c.ReleaseContainerName(ctx, name)
 		}
 	}()
 
@@ -455,7 +455,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	}
 	ctr.SetCreated()
 
-	c.AddContainer(ctr)
+	c.AddContainer(ctx, ctr)
 
 	return c.ctrIDIndex.Add(id)
 }
@@ -482,6 +482,8 @@ func (c *ContainerServer) ContainerStateFromDisk(ctx context.Context, ctr *oci.C
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk
 func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Error updating the container status %q: %v", ctr.ID(), err)
 	}
@@ -512,7 +514,9 @@ func (c *ContainerServer) ContainerIDForName(name string) (string, error) {
 
 // ReleaseContainerName releases a container name from the index so that it can
 // be used by other containers
-func (c *ContainerServer) ReleaseContainerName(name string) {
+func (c *ContainerServer) ReleaseContainerName(ctx context.Context, name string) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	c.ctrNameIndex.Release(name)
 }
 
@@ -565,27 +569,31 @@ type containerServerState struct {
 }
 
 // AddContainer adds a container to the container state store
-func (c *ContainerServer) AddContainer(ctr *oci.Container) {
+func (c *ContainerServer) AddContainer(ctx context.Context, ctr *oci.Container) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	newSandbox := c.state.sandboxes.Get(ctr.Sandbox())
 	if newSandbox == nil {
 		return
 	}
-	newSandbox.AddContainer(ctr)
+	newSandbox.AddContainer(ctx, ctr)
 	c.state.containers.Add(ctr.ID(), ctr)
 }
 
 // AddInfraContainer adds a container to the container state store
-func (c *ContainerServer) AddInfraContainer(ctr *oci.Container) {
+func (c *ContainerServer) AddInfraContainer(ctx context.Context, ctr *oci.Container) {
 	c.state.infraContainers.Add(ctr.ID(), ctr)
 }
 
 // GetContainer returns a container by its ID
-func (c *ContainerServer) GetContainer(id string) *oci.Container {
+func (c *ContainerServer) GetContainer(ctx context.Context, id string) *oci.Container {
 	return c.state.containers.Get(id)
 }
 
 // GetInfraContainer returns a container by its ID
-func (c *ContainerServer) GetInfraContainer(id string) *oci.Container {
+func (c *ContainerServer) GetInfraContainer(ctx context.Context, id string) *oci.Container {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	return c.state.infraContainers.Get(id)
 }
 
@@ -595,22 +603,26 @@ func (c *ContainerServer) HasContainer(id string) bool {
 }
 
 // RemoveContainer removes a container from the container state store
-func (c *ContainerServer) RemoveContainer(ctr *oci.Container) {
+func (c *ContainerServer) RemoveContainer(ctx context.Context, ctr *oci.Container) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	sbID := ctr.Sandbox()
 	sb := c.state.sandboxes.Get(sbID)
 	if sb == nil {
 		return
 	}
-	sb.RemoveContainer(ctr)
+	sb.RemoveContainer(ctx, ctr)
 	c.RemoveStatsForContainer(ctr)
 	if err := ctr.RemoveManagedPIDNamespace(); err != nil {
-		logrus.Errorf("Failed to remove container %s PID namespace: %v", ctr.ID(), err)
+		logrus.WithContext(ctx).Errorf("Failed to remove container %s PID namespace: %v", ctr.ID(), err)
 	}
 	c.state.containers.Delete(ctr.ID())
 }
 
 // RemoveInfraContainer removes a container from the container state store
-func (c *ContainerServer) RemoveInfraContainer(ctr *oci.Container) {
+func (c *ContainerServer) RemoveInfraContainer(ctx context.Context, ctr *oci.Container) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	c.state.infraContainers.Delete(ctr.ID())
 }
 
@@ -639,7 +651,9 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 }
 
 // AddSandbox adds a sandbox to the sandbox state store
-func (c *ContainerServer) AddSandbox(sb *sandbox.Sandbox) error {
+func (c *ContainerServer) AddSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	c.state.sandboxes.Add(sb.ID(), sb)
 
 	c.stateLock.Lock()
@@ -667,7 +681,9 @@ func (c *ContainerServer) HasSandbox(id string) bool {
 }
 
 // RemoveSandbox removes a sandbox from the state store
-func (c *ContainerServer) RemoveSandbox(id string) error {
+func (c *ContainerServer) RemoveSandbox(ctx context.Context, id string) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	sb := c.state.sandboxes.Get(id)
 	if sb == nil {
 		return nil

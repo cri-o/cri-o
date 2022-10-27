@@ -28,7 +28,7 @@ type ContainerCheckpointRestoreOptions struct {
 
 // ContainerCheckpoint checkpoints a running container.
 func (c *ContainerServer) ContainerCheckpoint(ctx context.Context, opts *ContainerCheckpointRestoreOptions) (string, error) {
-	ctr, err := c.LookupContainer(opts.Container)
+	ctr, err := c.LookupContainer(ctx, opts.Container)
 	if err != nil {
 		return "", fmt.Errorf("failed to find container %s: %w", opts.Container, err)
 	}
@@ -54,15 +54,15 @@ func (c *ContainerServer) ContainerCheckpoint(ctx context.Context, opts *Contain
 		return "", fmt.Errorf("failed to checkpoint container %s: %w", ctr.ID(), err)
 	}
 	if opts.TargetFile != "" {
-		if err := c.exportCheckpoint(ctr, specgen.Config, opts.TargetFile); err != nil {
+		if err := c.exportCheckpoint(ctx, ctr, specgen.Config, opts.TargetFile); err != nil {
 			return "", fmt.Errorf("failed to write file system changes of container %s: %w", ctr.ID(), err)
 		}
 	}
-	if err := c.storageRuntimeServer.StopContainer(ctr.ID()); err != nil {
+	if err := c.storageRuntimeServer.StopContainer(ctx, ctr.ID()); err != nil {
 		return "", fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 	}
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
-		logrus.Warnf("Unable to write containers %s state to disk: %v", ctr.ID(), err)
+		logrus.WithContext(ctx).Warnf("Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 
 	if !opts.Keep {
@@ -111,8 +111,8 @@ func skipBindMount(mountPath string, specgen *rspec.Spec) bool {
 
 // getDiff returns the file system differences
 // Copied from libpod/diff.go and simplified for the checkpoint use case
-func (c *ContainerServer) getDiff(id string, specgen *rspec.Spec) (rchanges []archive.Change, err error) {
-	layerID, err := c.GetContainerTopLayerID(id)
+func (c *ContainerServer) getDiff(ctx context.Context, id string, specgen *rspec.Spec) (rchanges []archive.Change, err error) {
+	layerID, err := c.GetContainerTopLayerID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -217,10 +217,10 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	return nil
 }
 
-func (c *ContainerServer) exportCheckpoint(ctr *oci.Container, specgen *rspec.Spec, export string) error {
+func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Container, specgen *rspec.Spec, export string) error {
 	id := ctr.ID()
 	dest := ctr.Dir()
-	logrus.Debugf("Exporting checkpoint image of container %q to %q", id, dest)
+	logrus.WithContext(ctx).Debugf("Exporting checkpoint image of container %q to %q", id, dest)
 
 	includeFiles := []string{
 		stats.StatsDump,
@@ -232,7 +232,7 @@ func (c *ContainerServer) exportCheckpoint(ctr *oci.Container, specgen *rspec.Sp
 	}
 
 	// To correctly track deleted files, let's go through the output of 'podman diff'
-	rootFsChanges, err := c.getDiff(id, specgen)
+	rootFsChanges, err := c.getDiff(ctx, id, specgen)
 	if err != nil {
 		return fmt.Errorf("error exporting root file-system diff for %q: %w", id, err)
 	}

@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -10,7 +11,9 @@ import (
 
 // ReopenContainerLog reopens the containers log file
 func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContainerLogRequest) error {
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return fmt.Errorf("could not find container %s: %w", req.ContainerId, err)
 	}

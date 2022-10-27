@@ -9,6 +9,7 @@ import (
 
 // The actual test suite
 var _ = t.Describe("PodSandboxRemove", func() {
+	ctx := context.TODO()
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
@@ -20,7 +21,7 @@ var _ = t.Describe("PodSandboxRemove", func() {
 	t.Describe("PodSandboxRemove", func() {
 		It("should fail when sandbox is not created", func() {
 			// Given
-			Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, testSandbox)).To(BeNil())
 			Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
 
 			// When

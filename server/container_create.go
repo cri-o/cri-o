@@ -350,7 +350,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		}, nil
 	}
 
-	sb, err := s.getPodSandboxFromRequest(req.PodSandboxId)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return nil, err
@@ -396,7 +396,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		}
 		// if we're able to find the container, and it's created, this is actually a duplicate request
 		// Just return that container
-		if reservedCtr := s.GetContainer(reservedID); reservedCtr != nil && reservedCtr.Created() {
+		if reservedCtr := s.GetContainer(ctx, reservedID); reservedCtr != nil && reservedCtr.Created() {
 			return &types.CreateContainerResponse{ContainerId: reservedID}, nil
 		}
 		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
@@ -406,10 +406,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, fmt.Errorf("%v: %w", resourceErr, err)
 	}
 
-	s.resourceStore.SetStageForResource(ctr.Name(), "container creating")
+	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container creating")
 
 	resourceCleaner.Add(ctx, "createCtr: releasing container name "+ctr.Name(), func() error {
-		s.ReleaseContainerName(ctr.Name())
+		s.ReleaseContainerName(ctx, ctr.Name())
 		return nil
 	})
 
@@ -418,15 +418,15 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, err
 	}
 	resourceCleaner.Add(ctx, "createCtr: deleting container "+ctr.ID()+" from storage", func() error {
-		if err := s.StorageRuntimeServer().DeleteContainer(ctr.ID()); err != nil {
+		if err := s.StorageRuntimeServer().DeleteContainer(ctx, ctr.ID()); err != nil {
 			return fmt.Errorf("failed to cleanup container storage: %w", err)
 		}
 		return nil
 	})
 
-	s.addContainer(newContainer)
+	s.addContainer(ctx, newContainer)
 	resourceCleaner.Add(ctx, "createCtr: removing container "+newContainer.ID(), func() error {
-		s.removeContainer(newContainer)
+		s.removeContainer(ctx, newContainer)
 		return nil
 	})
 
@@ -440,12 +440,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil
 	})
 
-	mappings, err := s.getSandboxIDMappings(sb)
+	mappings, err := s.getSandboxIDMappings(ctx, sb)
 	if err != nil {
 		return nil, err
 	}
 
-	s.resourceStore.SetStageForResource(ctr.Name(), "container runtime creation")
+	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container runtime creation")
 	if err := s.createContainerPlatform(ctx, newContainer, sb.CgroupParent(), mappings); err != nil {
 		return nil, err
 	}

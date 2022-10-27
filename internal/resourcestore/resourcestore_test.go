@@ -160,12 +160,14 @@ var _ = t.Describe("ResourceStore", func() {
 		})
 	})
 	Context("Stages", func() {
+		var ctx context.Context
 		BeforeEach(func() {
 			sut = resourcestore.New()
 			cleaner = resourcestore.NewResourceCleaner()
 			e = &entry{
 				id: testID,
 			}
+			ctx = context.Background()
 		})
 		AfterEach(func() {
 			sut.Close()
@@ -180,7 +182,7 @@ var _ = t.Describe("ResourceStore", func() {
 		It("should add resource if not present", func() {
 			// Given
 			testStage := "test stage"
-			sut.SetStageForResource(testName, testStage)
+			sut.SetStageForResource(ctx, testName, testStage)
 
 			// when
 			_, stage := sut.WatcherForResource(testName)
@@ -192,12 +194,12 @@ var _ = t.Describe("ResourceStore", func() {
 			// Given
 			stage1 := "test stage"
 			stage2 := "test stage2"
-			sut.SetStageForResource(testName, stage1)
+			sut.SetStageForResource(ctx, testName, stage1)
 			_, stage := sut.WatcherForResource(testName)
 			Expect(stage).To(Equal(stage1))
 
 			// when
-			sut.SetStageForResource(testName, stage2)
+			sut.SetStageForResource(ctx, testName, stage2)
 			_, stage = sut.WatcherForResource(testName)
 
 			// Then

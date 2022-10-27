@@ -19,7 +19,7 @@ import (
 func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerCheckpointRestoreOptions) (string, error) {
 	var ctr *oci.Container
 	var err error
-	ctr, err = c.LookupContainer(opts.Container)
+	ctr, err = c.LookupContainer(ctx, opts.Container)
 	if err != nil {
 		return "", fmt.Errorf("failed to find container %s: %w", opts.Container, err)
 	}

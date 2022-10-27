@@ -17,6 +17,8 @@ import (
 
 // ImageStatus returns the status of the image.
 func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest) (*types.ImageStatusResponse, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	var resp *types.ImageStatusResponse
 	image := ""
 	img := req.Image

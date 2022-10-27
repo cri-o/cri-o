@@ -11,6 +11,8 @@ import (
 
 // RemoveImage removes the image.
 func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	imageRef := ""
 	img := req.Image
 	if img != nil {
@@ -24,6 +26,9 @@ func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest)
 
 func (s *Server) removeImage(ctx context.Context, imageRef string) error {
 	var deleted bool
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, imageRef)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {

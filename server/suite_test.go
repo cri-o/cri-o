@@ -207,9 +207,10 @@ func mockNewServer() {
 }
 
 func addContainerAndSandbox() {
-	Expect(sut.AddSandbox(testSandbox)).To(BeNil())
+	ctx := context.TODO()
+	Expect(sut.AddSandbox(ctx, testSandbox)).To(BeNil())
 	Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
-	sut.AddContainer(testContainer)
+	sut.AddContainer(ctx, testContainer)
 	Expect(sut.CtrIDIndex().Add(testContainer.ID())).To(BeNil())
 	Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
 	testContainer.SetCreated()

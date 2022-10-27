@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cri-o/cri-o/internal/log"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // ContainerStats returns stats of the container. If the container does not
 // exist, the call returns an error.
 func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRequest) (*types.ContainerStatsResponse, error) {
-	container, err := s.GetContainerFromShortID(req.ContainerId)
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	container, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, err
 	}

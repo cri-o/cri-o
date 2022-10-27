@@ -49,7 +49,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
 			gomock.InOrder(
-				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).
+				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).
 					Return(nil),
 			)
 
@@ -100,7 +100,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return([]archive.Change{}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
-				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).Return(nil),
+				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).Return(nil),
 			)
 			// When
 			err := sut.CheckpointContainer(context.Background(),
@@ -149,7 +149,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return([]archive.Change{}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
-				runtimeServerMock.EXPECT().StopContainer(gomock.Any()).Return(nil),
+				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).Return(nil),
 			)
 			// When
 			err := sut.CheckpointContainer(context.Background(),

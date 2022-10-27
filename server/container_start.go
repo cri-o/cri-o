@@ -16,8 +16,10 @@ import (
 
 // StartContainer starts the container.
 func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRequest) (retErr error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	log.Infof(ctx, "Starting container: %s", req.ContainerId)
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
@@ -32,23 +34,23 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			ctx,
 			&lib.ContainerCheckpointRestoreOptions{
 				Container: c.ID(),
-				Pod:       s.getSandbox(c.Sandbox()).ID(),
+				Pod:       s.getSandbox(ctx, c.Sandbox()).ID(),
 				ContainerCheckpointOptions: libpod.ContainerCheckpointOptions{
 					TargetFile: c.ImageName(),
 				},
 			},
 		)
 		if err != nil {
-			ociContainer, err1 := s.GetContainerFromShortID(c.ID())
+			ociContainer, err1 := s.GetContainerFromShortID(ctx, c.ID())
 			if err1 != nil {
 				return fmt.Errorf("failed to find container %s: %v", c.ID(), err1)
 			}
-			s.ReleaseContainerName(ociContainer.Name())
-			err2 := s.StorageRuntimeServer().DeleteContainer(c.ID())
+			s.ReleaseContainerName(ctx, ociContainer.Name())
+			err2 := s.StorageRuntimeServer().DeleteContainer(ctx, c.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
-			s.removeContainer(ociContainer)
+			s.removeContainer(ctx, ociContainer)
 			return err
 		}
 
@@ -61,7 +63,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		return fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
 	}
 
-	sandbox := s.getSandbox(c.Sandbox())
+	sandbox := s.getSandbox(ctx, c.Sandbox())
 	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), sandbox.Annotations())
 	if err != nil {
 		return fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())

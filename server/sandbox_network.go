@@ -21,6 +21,8 @@ import (
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error
 func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, retErr error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	overallStart := time.Now()
 	// Give a network Start call a full 5 minutes, independent of the context of the request.
 	// This is to prevent the CNI plugin from taking an unbounded amount of time,
@@ -39,7 +41,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 		return nil, nil, nil
 	}
 
-	podNetwork, err := s.newPodNetwork(sb)
+	podNetwork, err := s.newPodNetwork(ctx, sb)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -119,7 +121,6 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 			}
 		}
 	}
-
 	log.Debugf(ctx, "Found POD IPs: %v", podIPs)
 
 	// metric about the whole network setup operation
@@ -128,12 +129,15 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 }
 
 // getSandboxIP retrieves the IP address for the sandbox
-func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) ([]string, error) {
+func (s *Server) getSandboxIPs(ctx context.Context, sb *sandbox.Sandbox) ([]string, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	if sb.HostNetwork() {
 		return nil, nil
 	}
 
-	podNetwork, err := s.newPodNetwork(sb)
+	podNetwork, err := s.newPodNetwork(ctx, sb)
 	if err != nil {
 		return nil, err
 	}
@@ -158,6 +162,8 @@ func (s *Server) getSandboxIPs(sb *sandbox.Sandbox) ([]string, error) {
 // networkStop cleans up and removes a pod's network.  It is best-effort and
 // must call the network plugin even if the network namespace is already gone
 func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if sb.HostNetwork() || sb.NetworkStopped() {
 		return nil
 	}
@@ -176,7 +182,7 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 			sb.Name(), sb.ID(), err)
 	}
 
-	podNetwork, err := s.newPodNetwork(sb)
+	podNetwork, err := s.newPodNetwork(ctx, sb)
 	if err != nil {
 		return err
 	}
@@ -184,12 +190,14 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 		return fmt.Errorf("failed to destroy network for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
 	}
 
-	return sb.SetNetworkStopped(true)
+	return sb.SetNetworkStopped(ctx, true)
 }
 
-func (s *Server) newPodNetwork(sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
-	var egress, ingress int64
+func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 
+	var egress, ingress int64
 	if val, ok := sb.Annotations()["kubernetes.io/egress-bandwidth"]; ok {
 		egressQ, err := resource.ParseQuantity(val)
 		if err != nil {

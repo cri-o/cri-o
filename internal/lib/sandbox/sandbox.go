@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/hostport"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -285,17 +287,23 @@ func (s *Sandbox) PortMappings() []*hostport.PortMapping {
 }
 
 // AddContainer adds a container to the sandbox
-func (s *Sandbox) AddContainer(c *oci.Container) {
+func (s *Sandbox) AddContainer(ctx context.Context, c *oci.Container) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	s.containers.Add(c.Name(), c)
 }
 
 // GetContainer retrieves a container from the sandbox
-func (s *Sandbox) GetContainer(name string) *oci.Container {
+func (s *Sandbox) GetContainer(ctx context.Context, name string) *oci.Container {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	return s.containers.Get(name)
 }
 
 // RemoveContainer deletes a container from the sandbox
-func (s *Sandbox) RemoveContainer(c *oci.Container) {
+func (s *Sandbox) RemoveContainer(ctx context.Context, c *oci.Container) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	s.containers.Delete(c.Name())
 }
 
@@ -328,14 +336,16 @@ func (s *Sandbox) RemoveInfraContainer() {
 // so that subsequent stops can return fast.
 // if createFile is true, it also creates a "stopped" file in the infra container's persistent dir
 // this is used to track the sandbox is stopped over reboots
-func (s *Sandbox) SetStopped(createFile bool) {
+func (s *Sandbox) SetStopped(ctx context.Context, createFile bool) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if s.stopped {
 		return
 	}
 	s.stopped = true
 	if createFile {
-		if err := s.createFileInInfraDir(sbStoppedFilename); err != nil {
-			logrus.Errorf("Failed to create stopped file in container state. Restore may fail: %v", err)
+		if err := s.createFileInInfraDir(ctx, sbStoppedFilename); err != nil {
+			logrus.WithContext(ctx).Errorf("Failed to create stopped file in container state. Restore may fail: %v", err)
 		}
 	}
 }
@@ -363,13 +373,15 @@ func (s *Sandbox) NetworkStopped() bool {
 // in the infra container's persistent dir
 // this is used to track the network is stopped over reboots
 // returns an error if an error occurred when creating the network-stopped file
-func (s *Sandbox) SetNetworkStopped(createFile bool) error {
+func (s *Sandbox) SetNetworkStopped(ctx context.Context, createFile bool) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if s.networkStopped {
 		return nil
 	}
 	s.networkStopped = true
 	if createFile {
-		if err := s.createFileInInfraDir(sbNetworkStoppedFilename); err != nil {
+		if err := s.createFileInInfraDir(ctx, sbNetworkStoppedFilename); err != nil {
 			return fmt.Errorf("failed to create state file in container directory. Restores may fail: %w", err)
 		}
 	}
@@ -377,7 +389,9 @@ func (s *Sandbox) SetNetworkStopped(createFile bool) error {
 }
 
 // SetContainerEnvFile sets the container environment file.
-func (s *Sandbox) SetContainerEnvFile() error {
+func (s *Sandbox) SetContainerEnvFile(ctx context.Context) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	if s.containerEnvPath != "" {
 		return nil
 	}
@@ -393,12 +407,14 @@ func (s *Sandbox) SetContainerEnvFile() error {
 	return nil
 }
 
-func (s *Sandbox) createFileInInfraDir(filename string) error {
+func (s *Sandbox) createFileInInfraDir(ctx context.Context, filename string) error {
 	// If the sandbox is not yet created,
 	// this function is being called when
 	// cleaning up a failed sandbox creation.
 	// We don't need to create the file, as there will be no
 	// sandbox to restore
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	if !s.created {
 		return nil
 	}
@@ -475,7 +491,9 @@ func (s *Sandbox) Ready(takeLock bool) bool {
 
 // UnmountShm removes the shared memory mount for the sandbox and returns an
 // error if any failure occurs.
-func (s *Sandbox) UnmountShm() error {
+func (s *Sandbox) UnmountShm(ctx context.Context) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	fp := s.ShmPath()
 	if fp == DevShmPath {
 		return nil

@@ -17,10 +17,12 @@ import (
 	"github.com/containers/common/pkg/signal"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
+	"github.com/cri-o/cri-o/internal/log"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -302,7 +304,9 @@ func (c *Container) ID() string {
 }
 
 // CleanupConmonCgroup cleans up conmon's group when using cgroupfs.
-func (c *Container) CleanupConmonCgroup() {
+func (c *Container) CleanupConmonCgroup(ctx context.Context) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if c.spoofed {
 		return
 	}
@@ -312,11 +316,11 @@ func (c *Container) CleanupConmonCgroup() {
 	}
 	cg, err := cgroups.Load(path)
 	if err != nil {
-		logrus.Infof("Error loading conmon cgroup of container %s: %v", c.ID(), err)
+		logrus.WithContext(ctx).Infof("Error loading conmon cgroup of container %s: %v", c.ID(), err)
 		return
 	}
 	if err := cg.Delete(); err != nil {
-		logrus.Infof("Error deleting conmon cgroup of container %s: %v", c.ID(), err)
+		logrus.WithContext(ctx).Infof("Error deleting conmon cgroup of container %s: %v", c.ID(), err)
 	}
 }
 

@@ -9,11 +9,13 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/go-zoo/bone"
 	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 )
 
 func (s *Server) getIDMappingsInfo() types.IDMappings {
@@ -54,11 +56,13 @@ var (
 	errSandboxNotFound = errors.New("sandbox for container not found")
 )
 
-func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainerFunc func(id string) *oci.Container, getSandboxFunc func(id string) *sandbox.Sandbox) (types.ContainerInfo, error) {
-	ctr := getContainerFunc(id)
+func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFunc, getInfraContainerFunc func(ctx context.Context, id string) *oci.Container, getSandboxFunc func(ctx context.Context, id string) *sandbox.Sandbox) (types.ContainerInfo, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	ctr := getContainerFunc(ctx, id)
 	isInfra := false
 	if ctr == nil {
-		ctr = getInfraContainerFunc(id)
+		ctr = getInfraContainerFunc(ctx, id)
 		if ctr == nil {
 			return types.ContainerInfo{}, errCtrNotFound
 		}
@@ -69,9 +73,9 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 	if ctrState == nil {
 		return types.ContainerInfo{}, errCtrStateNil
 	}
-	sb := getSandboxFunc(ctr.Sandbox())
+	sb := getSandboxFunc(ctx, ctr.Sandbox())
 	if sb == nil {
-		logrus.Debugf("Can't find sandbox %s for container %s", ctr.Sandbox(), id)
+		logrus.WithContext(ctx).Debugf("Can't find sandbox %s for container %s", ctr.Sandbox(), id)
 		return types.ContainerInfo{}, errSandboxNotFound
 	}
 
@@ -146,8 +150,9 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 	}))
 
 	mux.Get(InspectContainersEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx := context.TODO()
 		containerID := bone.GetValue(req, "id")
-		ci, err := s.getContainerInfo(containerID, s.GetContainer, s.getInfraContainer, s.getSandbox)
+		ci, err := s.getContainerInfo(ctx, containerID, s.GetContainer, s.getInfraContainer, s.getSandbox)
 		if err != nil {
 			switch err {
 			case errCtrNotFound:
@@ -174,7 +179,8 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 
 	mux.Get(InspectPauseEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		containerID := bone.GetValue(req, "id")
-		ctr := s.GetContainer(containerID)
+		ctx := context.TODO()
+		ctr := s.GetContainer(ctx, containerID)
 
 		if ctr == nil {
 			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
@@ -203,7 +209,8 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 
 	mux.Get(InspectUnpauseEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		containerID := bone.GetValue(req, "id")
-		ctr := s.GetContainer(containerID)
+		ctx := context.TODO()
+		ctr := s.GetContainer(ctx, containerID)
 
 		if ctr == nil {
 			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)

@@ -14,13 +14,15 @@ import (
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequest) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	sandbox := s.getSandbox(c.Sandbox())
+	sandbox := s.getSandbox(ctx, c.Sandbox())
 	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), sandbox.Annotations())
 	if err != nil {
 		return fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
@@ -42,6 +44,8 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 
 // stopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout int64) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if ctr.StateNoLock().Status == oci.ContainerStatePaused {
 		if err := s.Runtime().UnpauseContainer(ctx, ctr); err != nil {
 			return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
@@ -64,7 +68,7 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 		if err := s.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
 			return fmt.Errorf("failed to update container status %s: %w", ctr.ID(), err)
 		}
-		if err := s.StorageRuntimeServer().StopContainer(ctr.ID()); err != nil {
+		if err := s.StorageRuntimeServer().StopContainer(ctx, ctr.ID()); err != nil {
 			return fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 		}
 	}

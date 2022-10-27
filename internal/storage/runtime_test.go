@@ -25,6 +25,8 @@ var _ = t.Describe("Runtime", func() {
 	// The system under test
 	var sut storage.RuntimeServer
 
+	var ctx context.Context
+
 	// Prepare the system under test and register a test name and key before
 	// each test
 	BeforeEach(func() {
@@ -35,6 +37,8 @@ var _ = t.Describe("Runtime", func() {
 
 		sut = storage.GetRuntimeService(context.Background(), imageServerMock)
 		Expect(sut).NotTo(BeNil())
+
+		ctx = context.TODO()
 	})
 	AfterEach(func() {
 		mockCtrl.Finish()
@@ -175,7 +179,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// When
-			err := sut.StopContainer("id")
+			err := sut.StopContainer(ctx, "id")
 
 			// Then
 			Expect(err).To(BeNil())
@@ -184,7 +188,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to stop a container on empty ID", func() {
 			// Given
 			// When
-			err := sut.StopContainer("")
+			err := sut.StopContainer(ctx, "")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -200,7 +204,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// When
-			err := sut.StopContainer("id")
+			err := sut.StopContainer(ctx, "id")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -218,7 +222,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// When
-			err := sut.StopContainer("id")
+			err := sut.StopContainer(ctx, "id")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -415,7 +419,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// When
-			err := sut.DeleteContainer("id")
+			err := sut.DeleteContainer(ctx, "id")
 
 			// Then
 			Expect(err).To(BeNil())
@@ -424,7 +428,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to delete a container on invalid ID", func() {
 			// Given
 			// When
-			err := sut.DeleteContainer("")
+			err := sut.DeleteContainer(ctx, "")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -440,7 +444,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// When
-			err := sut.DeleteContainer("id")
+			err := sut.DeleteContainer(ctx, "id")
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -460,7 +464,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// When
-			err := sut.DeleteContainer("id")
+			err := sut.DeleteContainer(ctx, "id")
 
 			// Then
 			Expect(err).NotTo(BeNil())
