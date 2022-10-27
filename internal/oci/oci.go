@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
@@ -208,6 +209,8 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 
 // CreateContainer creates a container.
 func (r *Runtime) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	// Instantiate a new runtime implementation for this new container
 	impl, err := r.newRuntimeImpl(c)
 	if err != nil {
@@ -224,6 +227,8 @@ func (r *Runtime) CreateContainer(ctx context.Context, c *Container, cgroupParen
 
 // StartContainer starts a container.
 func (r *Runtime) StartContainer(ctx context.Context, c *Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -234,6 +239,8 @@ func (r *Runtime) StartContainer(ctx context.Context, c *Container) error {
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
 func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -244,6 +251,8 @@ func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string,
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
@@ -254,6 +263,8 @@ func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command [
 
 // UpdateContainer updates container resources
 func (r *Runtime) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -264,6 +275,8 @@ func (r *Runtime) UpdateContainer(ctx context.Context, c *Container, res *rspec.
 
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -274,6 +287,8 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 
 // DeleteContainer deletes a container.
 func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	r.runtimeImplMapMutex.RLock()
 	impl, ok := r.runtimeImplMap[c.ID()]
 	r.runtimeImplMapMutex.RUnlock()
@@ -296,6 +311,8 @@ func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error)
 
 // UpdateContainerStatus refreshes the status of the container.
 func (r *Runtime) UpdateContainerStatus(ctx context.Context, c *Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -306,6 +323,8 @@ func (r *Runtime) UpdateContainerStatus(ctx context.Context, c *Container) error
 
 // PauseContainer pauses a container.
 func (r *Runtime) PauseContainer(ctx context.Context, c *Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -316,6 +335,8 @@ func (r *Runtime) PauseContainer(ctx context.Context, c *Container) error {
 
 // UnpauseContainer unpauses a container.
 func (r *Runtime) UnpauseContainer(ctx context.Context, c *Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -326,6 +347,8 @@ func (r *Runtime) UnpauseContainer(ctx context.Context, c *Container) error {
 
 // ContainerStats provides statistics of a container.
 func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup string) (*types.ContainerStats, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
@@ -336,6 +359,8 @@ func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup strin
 
 // SignalContainer sends a signal to a container process.
 func (r *Runtime) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -346,6 +371,8 @@ func (r *Runtime) SignalContainer(ctx context.Context, c *Container, sig syscall
 
 // AttachContainer attaches IO to a running container.
 func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -356,6 +383,8 @@ func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
 func (r *Runtime) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -366,6 +395,8 @@ func (r *Runtime) PortForwardContainer(ctx context.Context, c *Container, netNsP
 
 // ReopenContainerLog reopens the log file of a container.
 func (r *Runtime) ReopenContainerLog(ctx context.Context, c *Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err

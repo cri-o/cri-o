@@ -127,6 +127,8 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 }
 
 func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	log.Infof(ctx, "Run %q runtime handler pre-stop hook for the container %q", HighPerformance, c.ID())
 
 	if isCgroupParentBurstable(s) {

@@ -43,6 +43,8 @@ const (
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
 func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if idMappings != nil && !container.Spoofed() {
 		rootPair := idMappings.RootPair()
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
@@ -139,6 +141,8 @@ func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Gene
 }
 
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
 
@@ -873,6 +877,9 @@ func clearReadOnly(m *rspec.Mount) {
 }
 
 func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	containerConfig := ctr.Config()

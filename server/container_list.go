@@ -31,6 +31,8 @@ func filterContainer(c *types.Container, filter *types.ContainerFilter) bool {
 // filterContainerList applies a protobuf-defined filter to retrieve only intended containers. Not matching
 // the filter is not considered an error but will return an empty response.
 func (s *Server) filterContainerList(ctx context.Context, filter *types.ContainerFilter, origCtrList []*oci.Container) []*oci.Container {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	// Filter using container id and pod id first.
 	if filter.Id != "" {
 		c, err := s.ContainerServer.GetContainerFromShortID(filter.Id)

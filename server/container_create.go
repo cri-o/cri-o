@@ -117,6 +117,9 @@ func ensureSharedOrSlave(path string, mountInfos []*mount.Info) error {
 }
 
 func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string, specgen *generate.Generator) ([]rspec.Mount, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	mounts := []rspec.Mount{}
 	for dest := range containerInfo.Config.Config.Volumes {
 		fp, err := securejoin.SecureJoin(rootfs, dest)
@@ -184,6 +187,9 @@ func resolveSymbolicLink(scope, path string) (string, error) {
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
 func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *types.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	if sc == nil {
 		return nil
 	}

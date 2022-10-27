@@ -3,7 +3,10 @@ package log
 
 import (
 	"context"
+	"runtime"
+
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type (
@@ -48,4 +51,15 @@ func entry(ctx context.Context) *logrus.Entry {
 	}
 
 	return logrus.NewEntry(logger).WithContext(ctx)
+}
+
+func StartSpan(ctx context.Context) (context.Context, trace.Span) {
+	spanName := "unknown"
+	// Use function signature as a span name if available
+	if pc, _, _, ok := runtime.Caller(1); ok {
+		spanName = runtime.FuncForPC(pc).Name()
+	} else {
+		Debugf(ctx, "Unable to retrieve a caller when starting span")
+	}
+	return trace.SpanFromContext(ctx).TracerProvider().Tracer("").Start(ctx, spanName)
 }

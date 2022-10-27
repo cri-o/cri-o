@@ -144,6 +144,8 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store
 func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandbox.Sandbox, retErr error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return nil, err
@@ -353,6 +355,8 @@ var ErrIsNonCrioContainer = errors.New("non CRI-O container")
 
 // LoadContainer loads a container from the disk into the container store
 func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
@@ -463,6 +467,8 @@ func isTrue(annotaton string) bool {
 // ContainerStateFromDisk retrieves information on the state of a running container
 // from the disk
 func (c *ContainerServer) ContainerStateFromDisk(ctx context.Context, ctr *oci.Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if err := ctr.FromDisk(); err != nil {
 		return err
 	}
