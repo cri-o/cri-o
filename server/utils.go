@@ -261,11 +261,11 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 		log.Infof(ctx, "Found %s %s with ID %s in resource cache; using it", resourceType, name, cachedID)
 		return cachedID, nil
 	}
-	watcher := s.resourceStore.WatcherForResource(name)
+	watcher, stage := s.resourceStore.WatcherForResource(name)
 	if watcher == nil {
 		return "", errors.Errorf("error attempting to watch for %s %s: no longer found", resourceType, name)
 	}
-	log.Infof(ctx, "Creation of %s %s not yet finished. Waiting up to %v for it to finish", resourceType, name, resourceCreationWaitTime)
+	log.Infof(ctx, "Creation of %s %s not yet finished. Currently at stage %v. Waiting up to %v for it to finish", resourceType, name, stage, resourceCreationWaitTime)
 	var err error
 	select {
 	// We should wait as long as we can (within reason), thus stalling the kubelet's sync loop.
@@ -293,5 +293,5 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 		err = errors.Errorf("the requested %s %s is now ready and will be provided to the kubelet on next retry", resourceType, name)
 	}
 
-	return "", errors.Wrap(err, "Kubelet may be retrying requests that are timing out in CRI-O due to system load")
+	return "", fmt.Errorf("kubelet may be retrying requests that are timing out in CRI-O due to system load. Currently at stage %v: %w", stage, err)
 }

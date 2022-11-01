@@ -79,16 +79,17 @@ var _ = t.Describe("ResourceStore", func() {
 		})
 		It("Should not fail to Get after retrieving Watcher", func() {
 			// When
-			_ = sut.WatcherForResource(testName)
+			_, stage := sut.WatcherForResource(testName)
 
 			// Then
 			id := sut.Get(testName)
 			Expect(id).To(BeEmpty())
+			Expect(stage).To(Equal(resourcestore.StageUnknown))
 		})
 		It("Should be able to get multiple Watchers", func() {
 			// Given
-			watcher1 := sut.WatcherForResource(testName)
-			watcher2 := sut.WatcherForResource(testName)
+			watcher1, _ := sut.WatcherForResource(testName)
+			watcher2, _ := sut.WatcherForResource(testName)
 
 			waitWatcherSet := func(watcher chan struct{}) bool {
 				<-watcher
@@ -142,7 +143,7 @@ var _ = t.Describe("ResourceStore", func() {
 			timeout := 2 * time.Second
 			sut = resourcestore.NewWithTimeout(timeout)
 
-			_ = sut.WatcherForResource(testName)
+			_, _ = sut.WatcherForResource(testName)
 
 			timedOutChan := make(chan bool)
 
@@ -156,6 +157,51 @@ var _ = t.Describe("ResourceStore", func() {
 			// Then
 			didStoreWaitForPut := <-timedOutChan
 			Expect(didStoreWaitForPut).To(Equal(true))
+		})
+	})
+	Context("Stages", func() {
+		BeforeEach(func() {
+			sut = resourcestore.New()
+			cleaner = resourcestore.NewResourceCleaner()
+			e = &entry{
+				id: testID,
+			}
+		})
+		AfterEach(func() {
+			sut.Close()
+		})
+		It("should have stage unknown if watcher requested", func() {
+			// Given
+			_, stage := sut.WatcherForResource(testName)
+
+			// Then
+			Expect(stage).To(Equal(resourcestore.StageUnknown))
+		})
+		It("should add resource if not present", func() {
+			// Given
+			testStage := "test stage"
+			sut.SetStageForResource(testName, testStage)
+
+			// when
+			_, stage := sut.WatcherForResource(testName)
+
+			// Then
+			Expect(stage).To(Equal(testStage))
+		})
+		It("should update stage", func() {
+			// Given
+			stage1 := "test stage"
+			stage2 := "test stage2"
+			sut.SetStageForResource(testName, stage1)
+			_, stage := sut.WatcherForResource(testName)
+			Expect(stage).To(Equal(stage1))
+
+			// when
+			sut.SetStageForResource(testName, stage2)
+			_, stage = sut.WatcherForResource(testName)
+
+			// Then
+			Expect(stage).To(Equal(stage2))
 		})
 	})
 })
