@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/pkg/resize"
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -97,7 +98,8 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 			v.Tag = "none"
 		}
 
-		logrus.WithContext(ctx).Debugf(
+		log.Debugf(
+			ctx,
 			"Using conmonrs version: %s, tag: %s, commit: %s, build: %s, target: %s, %s, %s",
 			v.Version, v.Tag, v.Commit, v.BuildDate, v.Target, v.RustVersion, v.CargoVersion,
 		)

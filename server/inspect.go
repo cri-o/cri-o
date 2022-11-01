@@ -75,7 +75,7 @@ func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFu
 	}
 	sb := getSandboxFunc(ctx, ctr.Sandbox())
 	if sb == nil {
-		logrus.WithContext(ctx).Debugf("Can't find sandbox %s for container %s", ctr.Sandbox(), id)
+		log.Debugf(ctx, "Can't find sandbox %s for container %s", ctr.Sandbox(), id)
 		return types.ContainerInfo{}, errSandboxNotFound
 	}
 

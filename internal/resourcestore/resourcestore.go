@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/sirupsen/logrus"
 )
 
@@ -206,7 +207,7 @@ func (rc *ResourceStore) SetStageForResource(ctx context.Context, name, stage st
 	defer rc.mutex.Unlock()
 	r, ok := rc.resources[name]
 	if !ok {
-		logrus.WithContext(ctx).Tracef("Initializing stage for resource %s to %s", name, stage)
+		log.Debugf(ctx, "Initializing stage for resource %s to %s", name, stage)
 		rc.resources[name] = &Resource{
 			watchers: []chan struct{}{},
 			name:     name,
@@ -214,6 +215,6 @@ func (rc *ResourceStore) SetStageForResource(ctx context.Context, name, stage st
 		}
 		return
 	}
-	logrus.WithContext(ctx).Tracef("Setting stage for resource %s from %s to %s", name, r.stage, stage)
+	log.Debugf(ctx, "Setting stage for resource %s from %s to %s", name, r.stage, stage)
 	r.stage = stage
 }

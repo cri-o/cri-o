@@ -520,7 +520,7 @@ func New(
 		logrus.Debug("Metrics are disabled")
 	}
 
-	if err := s.startSeccompNotifierWatcher(); err != nil {
+	if err := s.startSeccompNotifierWatcher(ctx); err != nil {
 		return nil, fmt.Errorf("start seccomp notifier watcher: %w", err)
 	}
 
@@ -684,7 +684,7 @@ func (s *Server) MonitorsCloseChan() chan struct{} {
 	return s.monitorsChan
 }
 
-func (s *Server) startSeccompNotifierWatcher() error {
+func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 	logrus.Info("Starting seccomp notifier watcher")
 	s.seccompNotifierChan = make(chan seccomp.Notification)
 
@@ -707,7 +707,7 @@ func (s *Server) startSeccompNotifierWatcher() error {
 				return nil
 			}
 
-			ctr, err := s.ContainerServer.GetContainerFromShortID(id)
+			ctr, err := s.ContainerServer.GetContainerFromShortID(ctx, id)
 			if err != nil {
 				logrus.Warnf("Skipping not existing seccomp notifier container ID: %s", id)
 				return nil
@@ -763,7 +763,7 @@ func (s *Server) startSeccompNotifierWatcher() error {
 			}
 			notifier.AddSyscall(syscall)
 
-			ctr := s.ContainerServer.GetContainer(id)
+			ctr := s.ContainerServer.GetContainer(ctx, id)
 			usedSyscalls := notifier.UsedSyscalls()
 
 			if notifier.StopContainers() {

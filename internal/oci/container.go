@@ -316,11 +316,11 @@ func (c *Container) CleanupConmonCgroup(ctx context.Context) {
 	}
 	cg, err := cgroups.Load(path)
 	if err != nil {
-		logrus.WithContext(ctx).Infof("Error loading conmon cgroup of container %s: %v", c.ID(), err)
+		log.Infof(ctx, "Error loading conmon cgroup of container %s: %v", c.ID(), err)
 		return
 	}
 	if err := cg.Delete(); err != nil {
-		logrus.WithContext(ctx).Infof("Error deleting conmon cgroup of container %s: %v", c.ID(), err)
+		log.Infof(ctx, "Error deleting conmon cgroup of container %s: %v", c.ID(), err)
 	}
 }
 

@@ -53,7 +53,7 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGUSR2, unix.SIGPIPE, signals.Hup)
 	go func() {
 		for s := range sig {
-			logrus.WithFields(logrus.Fields{
+			log.WithFields(ctx, logrus.Fields{
 				"signal": s,
 			}).Debug("received signal")
 			switch s {
@@ -66,27 +66,27 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			case unix.SIGPIPE:
 				continue
 			case signals.Interrupt:
-				logrus.Debugf("Caught SIGINT")
+				log.Debugf(ctx, "Caught SIGINT")
 			case signals.Term:
-				logrus.Debugf("Caught SIGTERM")
+				log.Debugf(ctx, "Caught SIGTERM")
 			default:
 				continue
 			}
 			*signalled = true
 			if tp != nil {
 				if err := tp.Shutdown(ctx); err != nil {
-					logrus.Warnf("Error shutting down opentelemetry tracer provider: %v", err)
+					log.Warnf(ctx, "Error shutting down opentelemetry tracer provider: %v", err)
 				}
 			}
 			gserver.GracefulStop()
 			hserver.Shutdown(ctx) // nolint: errcheck
 			if err := sserver.StopStreamServer(); err != nil {
-				logrus.Warnf("Error shutting down streaming server: %v", err)
+				log.Warnf(ctx, "Error shutting down streaming server: %v", err)
 			}
 			sserver.StopMonitors()
 			cancel()
 			if err := sserver.Shutdown(ctx); err != nil {
-				logrus.Warnf("Error shutting down main service %v", err)
+				log.Warnf(ctx, "Error shutting down main service %v", err)
 			}
 			return
 		}

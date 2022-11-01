@@ -395,11 +395,11 @@ func (r *runtimeService) DeleteContainer(ctx context.Context, idOrName string) e
 	}
 	layer, err := r.storageImageServer.GetStore().Layer(container.LayerID)
 	if err != nil {
-		logrus.WithContext(ctx).Debugf("Failed to retrieve layer %q: %v", container.LayerID, err)
+		log.Debugf(ctx, "Failed to retrieve layer %q: %v", container.LayerID, err)
 	}
 	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
 	if err != nil {
-		logrus.WithContext(ctx).Debugf("Failed to delete container %q: %v", container.ID, err)
+		log.Debugf(ctx, "Failed to delete container %q: %v", container.ID, err)
 		return err
 	}
 	if layer != nil {
@@ -462,10 +462,10 @@ func (r *runtimeService) StopContainer(ctx context.Context, idOrName string) err
 	}
 	_, err = r.storageImageServer.GetStore().Unmount(container.ID, false)
 	if err != nil {
-		logrus.WithContext(ctx).Debugf("Failed to unmount container %q: %v", container.ID, err)
+		log.Debugf(ctx, "Failed to unmount container %q: %v", container.ID, err)
 		return err
 	}
-	logrus.WithContext(ctx).Debugf("Unmounted container %q", container.ID)
+	log.Debugf(ctx, "Unmounted container %q", container.ID)
 	return nil
 }
 

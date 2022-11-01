@@ -10,6 +10,7 @@ import (
 	"github.com/checkpoint-restore/go-criu/v5/stats"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
@@ -38,12 +39,12 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 	// During checkpointing the container is unmounted. This mounts the container again.
 	mountPoint, err := c.StorageImageServer().GetStore().Mount(ctr.ID(), ctrSpec.Config.Linux.MountLabel)
 	if err != nil {
-		logrus.WithContext(ctx).Debugf("Failed to mount container %q: %v", ctr.ID(), err)
+		log.Debugf(ctx, "Failed to mount container %q: %v", ctr.ID(), err)
 		return "", err
 	}
-	logrus.WithContext(ctx).Debugf("Container mountpoint %v", mountPoint)
-	logrus.WithContext(ctx).Debugf("Sandbox %v", ctr.Sandbox())
-	logrus.WithContext(ctx).Debugf("Specgen.Config.Annotations[io.kubernetes.cri-o.SandboxID] %v", ctrSpec.Config.Annotations["io.kubernetes.cri-o.SandboxID"])
+	log.Debugf(ctx, "Container mountpoint %v", mountPoint)
+	log.Debugf(ctx, "Sandbox %v", ctr.Sandbox())
+	log.Debugf(ctx, "Specgen.Config.Annotations[io.kubernetes.cri-o.SandboxID] %v", ctrSpec.Config.Annotations["io.kubernetes.cri-o.SandboxID"])
 	// If there was no podID specified this will restore the container
 	// in its original sandbox
 	if opts.Pod == "" {
@@ -65,7 +66,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 
 	if ctr.RestoreArchive() != "" {
 		if ctr.RestoreIsOCIImage() {
-			logrus.Debugf("Restoring from %v", ctr.RestoreArchive())
+			log.Debugf(ctx, "Restoring from %v", ctr.RestoreArchive())
 			imageMountPoint, err := c.StorageImageServer().GetStore().MountImage(ctr.RestoreArchive(), nil, "")
 			if err != nil {
 				return "", err
@@ -74,7 +75,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 			defer func() {
 				_, err := c.StorageImageServer().GetStore().UnmountImage(ctr.RestoreArchive(), true)
 				if err != nil {
-					logrus.Errorf("Failed to unmount checkpoint image: %q", err)
+					log.Errorf(ctx, "Failed to unmount checkpoint image: %q", err)
 				}
 			}()
 
@@ -174,7 +175,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 						}
 						source.Close()
 					}
-					logrus.Debugf("Created missing external bind mount %q %q\n", e.FileType, e.Source)
+					log.Debugf(ctx, "Created missing external bind mount %q %q\n", e.FileType, e.Source)
 				}
 			}
 		}
@@ -212,7 +213,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 		return "", fmt.Errorf("failed to restore container %s: %w", ctr.ID(), err)
 	}
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
-		logrus.WithContext(ctx).Warnf("Unable to write containers %s state to disk: %v", ctr.ID(), err)
+		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 
 	if !opts.Keep {
@@ -222,7 +223,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 		// failed. Starting with the checkpoint directory
 		err = os.RemoveAll(ctr.CheckpointPath())
 		if err != nil {
-			logrus.WithContext(ctx).Debugf("Non-fatal: removal of checkpoint directory (%s) failed: %v", ctr.CheckpointPath(), err)
+			log.Debugf(ctx, "Non-fatal: removal of checkpoint directory (%s) failed: %v", ctr.CheckpointPath(), err)
 		}
 		cleanup := [...]string{
 			metadata.RestoreLogFile,
@@ -247,7 +248,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 			}
 			err = os.Remove(file)
 			if err != nil {
-				logrus.WithContext(ctx).Debugf("Non-fatal: removal of checkpoint file (%s) failed: %v", file, err)
+				log.Debugf(ctx, "Non-fatal: removal of checkpoint file (%s) failed: %v", file, err)
 			}
 		}
 	}

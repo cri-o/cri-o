@@ -345,7 +345,7 @@ func (s *Sandbox) SetStopped(ctx context.Context, createFile bool) {
 	s.stopped = true
 	if createFile {
 		if err := s.createFileInInfraDir(ctx, sbStoppedFilename); err != nil {
-			logrus.WithContext(ctx).Errorf("Failed to create stopped file in container state. Restore may fail: %v", err)
+			log.Errorf(ctx, "Failed to create stopped file in container state. Restore may fail: %v", err)
 		}
 	}
 }

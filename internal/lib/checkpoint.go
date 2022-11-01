@@ -13,10 +13,10 @@ import (
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/sirupsen/logrus"
 )
 
 type ContainerCheckpointRestoreOptions struct {
@@ -62,7 +62,7 @@ func (c *ContainerServer) ContainerCheckpoint(ctx context.Context, opts *Contain
 		return "", fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 	}
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
-		logrus.WithContext(ctx).Warnf("Unable to write containers %s state to disk: %v", ctr.ID(), err)
+		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 
 	if !opts.Keep {
@@ -75,7 +75,7 @@ func (c *ContainerServer) ContainerCheckpoint(ctx context.Context, opts *Contain
 		for _, del := range cleanup {
 			file := filepath.Join(ctr.Dir(), del)
 			if err := os.Remove(file); err != nil {
-				logrus.WithContext(ctx).Debugf("Unable to remove file %s", file)
+				log.Debugf(ctx, "Unable to remove file %s", file)
 			}
 		}
 	}
@@ -220,7 +220,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Container, specgen *rspec.Spec, export string) error {
 	id := ctr.ID()
 	dest := ctr.Dir()
-	logrus.WithContext(ctx).Debugf("Exporting checkpoint image of container %q to %q", id, dest)
+	log.Debugf(ctx, "Exporting checkpoint image of container %q to %q", id, dest)
 
 	includeFiles := []string{
 		stats.StatsDump,
