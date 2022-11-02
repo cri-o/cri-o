@@ -1,15 +1,16 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -29,6 +30,15 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 
 	if err := s.removeContainerInPod(ctx, sb, c); err != nil {
 		return err
+	}
+
+	if notifier, ok := s.seccompNotifiers.Load(c.ID()); ok {
+		n, ok := notifier.(*seccomp.Notifier)
+		if ok {
+			if err := n.Close(); err != nil {
+				log.Errorf(ctx, "Unable to close seccomp notifier: %v", err)
+			}
+		}
 	}
 
 	log.Infof(ctx, "Removed container %s: %s", c.ID(), c.Description())

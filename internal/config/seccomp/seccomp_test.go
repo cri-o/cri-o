@@ -98,8 +98,11 @@ var _ = t.Describe("Config", func() {
 			file := writeProfileFile()
 
 			// When
-			err = sut.Setup(
+			_, err = sut.Setup(
 				context.Background(),
+				nil,
+				"",
+				nil,
 				&generator,
 				nil,
 				k8sV1.SeccompLocalhostProfileNamePrefix+file,
@@ -115,8 +118,11 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 
 			// When
-			err = sut.Setup(
+			_, err = sut.Setup(
 				context.Background(),
+				nil,
+				"",
+				nil,
 				&generator,
 				nil,
 				k8sV1.SeccompProfileRuntimeDefault,
@@ -132,8 +138,11 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(BeNil())
 
 			// When
-			err = sut.Setup(
+			_, err = sut.Setup(
 				context.Background(),
+				nil,
+				"",
+				nil,
 				&generator,
 				nil,
 				"not-existing",
@@ -152,8 +161,11 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			err = sut.Setup(
+			_, err = sut.Setup(
 				context.Background(),
+				nil,
+				"",
+				nil,
 				&generator,
 				field,
 				"",
@@ -174,8 +186,11 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			err = sut.Setup(
+			_, err = sut.Setup(
 				context.Background(),
+				nil,
+				"",
+				nil,
 				&generator,
 				field,
 				"",
@@ -195,8 +210,11 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			err = sut.Setup(
+			_, err = sut.Setup(
 				context.Background(),
+				nil,
+				"",
+				nil,
 				&generator,
 				field,
 				"",

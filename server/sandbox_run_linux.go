@@ -855,8 +855,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.SeccompProfilePath, seccompProfilePath)
 	sb.SetSeccompProfilePath(seccompProfilePath)
 	if !privileged {
-		if err := s.Config().Seccomp().Setup(
-			ctx, g, securityContext.Seccomp, seccompProfilePath,
+		if _, err := s.config.Seccomp().Setup(
+			ctx,
+			nil,
+			"",
+			nil,
+			g,
+			securityContext.Seccomp,
+			seccompProfilePath,
 		); err != nil {
 			return nil, fmt.Errorf("setup seccomp: %w", err)
 		}

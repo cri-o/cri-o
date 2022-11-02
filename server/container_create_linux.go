@@ -617,13 +617,20 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	created := time.Now()
 	if !ctr.Privileged() {
-		if err := s.Config().Seccomp().Setup(
+		notifier, err := s.config.Seccomp().Setup(
 			ctx,
+			s.seccompNotifierChan,
+			containerID,
+			sb.Annotations(),
 			specgen,
 			securityContext.Seccomp,
 			containerConfig.Linux.SecurityContext.SeccompProfilePath,
-		); err != nil {
+		)
+		if err != nil {
 			return nil, fmt.Errorf("setup seccomp: %w", err)
+		}
+		if notifier != nil {
+			s.seccompNotifiers.Store(containerID, notifier)
 		}
 	}
 

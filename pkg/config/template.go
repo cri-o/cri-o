@@ -1127,6 +1127,34 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   should be moved to the container's cgroup
 # - monitor_env (optional, array of strings): Environment variables to pass to the montior.
 #   Replaces deprecated option "conmon_env".
+#
+# Using the seccomp notifier feature:
+#
+# This feature can help you to debug seccomp related issues, for example if
+# blocked syscalls (permission denied errors) have negative impact on the workload.
+#
+# To be able to use this feature, configure a runtime which has the annotation
+# "io.kubernetes.cri-o.seccompNotifierAction" in the allowed_annotations array.
+#
+# It also requires at least runc 1.1.0 or crun 0.19 which support the notifier
+# feature.
+#
+# If everything is setup, CRI-O will modify chosen seccomp profiles for
+# containers if the annotation "io.kubernetes.cri-o.seccompNotifierAction" is
+# set on the Pod sandbox. CRI-O will then get notified if a container is using
+# a blocked syscall and then terminate the workload after a timeout of 5
+# seconds if the value of "io.kubernetes.cri-o.seccompNotifierAction=stop".
+#
+# This also means that multiple syscalls can be captured during that period,
+# while the timeout will get reset once a new syscall has been discovered.
+#
+# This also means that the Pods "restartPolicy" has to be set to "Never",
+# otherwise the kubelet will restart the container immediately.
+#
+# Please be aware that CRI-O is not able to get notified if a syscall gets
+# blocked based on the seccomp defaultAction, which is a general runtime
+# limitation.
+
 {{ range $runtime_name, $runtime_handler := .Runtimes  }}
 {{ $.Comment }}[crio.runtime.runtimes.{{ $runtime_name }}]
 {{ $.Comment }}runtime_path = "{{ $runtime_handler.RuntimePath }}"

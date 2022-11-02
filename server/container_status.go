@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	oomKilledReason = "OOMKilled"
-	completedReason = "Completed"
-	errorReason     = "Error"
+	oomKilledReason     = "OOMKilled"
+	seccompKilledReason = "seccomp killed"
+	completedReason     = "Completed"
+	errorReason         = "Error"
 )
 
 // ContainerStatus returns status of the container.
@@ -87,6 +88,9 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 		switch {
 		case cState.OOMKilled:
 			resp.Status.Reason = oomKilledReason
+		case cState.SeccompKilled:
+			resp.Status.Reason = seccompKilledReason
+			resp.Status.Message = cState.Error
 		case resp.Status.ExitCode == 0:
 			resp.Status.Reason = completedReason
 		default:

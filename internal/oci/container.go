@@ -100,13 +100,14 @@ type ContainerVolume struct {
 // ContainerState represents the status of a container.
 type ContainerState struct {
 	specs.State
-	Created   time.Time `json:"created"`
-	Started   time.Time `json:"started,omitempty"`
-	Finished  time.Time `json:"finished,omitempty"`
-	ExitCode  *int32    `json:"exitCode,omitempty"`
-	OOMKilled bool      `json:"oomKilled,omitempty"`
-	Error     string    `json:"error,omitempty"`
-	InitPid   int       `json:"initPid,omitempty"`
+	Created       time.Time `json:"created"`
+	Started       time.Time `json:"started,omitempty"`
+	Finished      time.Time `json:"finished,omitempty"`
+	ExitCode      *int32    `json:"exitCode,omitempty"`
+	OOMKilled     bool      `json:"oomKilled,omitempty"`
+	SeccompKilled bool      `json:"seccompKilled,omitempty"`
+	Error         string    `json:"error,omitempty"`
+	InitPid       int       `json:"initPid,omitempty"`
 	// The unix start time of the container's init PID.
 	// This is used to track whether the PID we have stored
 	// is the same as the corresponding PID on the host.

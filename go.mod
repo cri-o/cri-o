@@ -55,6 +55,7 @@ require (
 	github.com/opencontainers/selinux v1.10.2
 	github.com/prometheus/client_golang v1.13.0
 	github.com/psampaz/go-mod-outdated v0.8.0
+	github.com/seccomp/libseccomp-golang v0.10.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.8.0
@@ -301,7 +302,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/saschagrunert/go-modiff v1.3.0 // indirect
 	github.com/sassoftware/relic v0.0.0-20210427151427-dfb082b79b74 // indirect
-	github.com/seccomp/libseccomp-golang v0.10.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
