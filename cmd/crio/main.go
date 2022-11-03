@@ -24,7 +24,6 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
 	v1 "github.com/cri-o/cri-o/server/cri/v1"
-	"github.com/cri-o/cri-o/server/cri/v1alpha2"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -333,7 +332,6 @@ func main() {
 			}
 		}
 
-		v1alpha2.Register(grpcServer, crioServer)
 		v1.Register(grpcServer, crioServer)
 
 		// after the daemon is done setting up we can notify systemd api
