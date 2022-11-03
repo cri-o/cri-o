@@ -24,6 +24,7 @@ linters:
     - depguard
     - dogsled
     - dupl
+    - dupword
     - durationcheck
     - errcheck
     - errchkjson
@@ -56,6 +57,7 @@ linters:
     - staticcheck
     - stylecheck
     - tenv
+    - testableexamples
     - tparallel
     - typecheck
     - unconvert

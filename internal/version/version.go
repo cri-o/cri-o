@@ -81,10 +81,10 @@ func shouldCrioWipe(versionFileName, versionString string) (bool, error) {
 	return newVersion.Major != oldVersion.Major || newVersion.Minor != oldVersion.Minor, nil
 }
 
-// WriteVersionFile writes the version information to a given file
-// file is the location of the old version file
-// gitCommit is the current git commit version. It will be added to the file
-// to aid in debugging, but will not be used to compare versions
+// WriteVersionFile writes the version information to a given file is the
+// location of the old version file gitCommit is the current git commit
+// version. It will be added to the file to aid in debugging, but will not be
+// used to compare versions
 func (i *Info) WriteVersionFile(file string) error {
 	return writeVersionFile(file, i.GitCommit, Version)
 }

@@ -1225,7 +1225,7 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 			), args...)
 		}
 
-		// Copy from the the namespace port connection to the client stream
+		// Copy from the namespace port connection to the client stream
 		go func() {
 			debug("copy data from container to client")
 			_, err := io.Copy(stream, conn)
