@@ -55,7 +55,7 @@ func (c *container) SpecAddNamespaces(sb *sandbox.Sandbox, targetCtr *oci.Contai
 		}
 		ns, err := serverConfig.NamespaceManager().NamespaceFromProcEntry(targetPID, nsmgr.PIDNS)
 		if err != nil {
-			return fmt.Errorf("target PID namespace namespace from proc: %w", err)
+			return fmt.Errorf("target PID namespace from proc: %w", err)
 		}
 		if err := c.spec.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), ns.Path()); err != nil {
 			return fmt.Errorf("updating container PID namespace to target %s: %w", targetCtr.ID(), err)

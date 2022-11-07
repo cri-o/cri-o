@@ -244,7 +244,7 @@ type RuntimeConfig struct {
 	ConmonEnv []string `toml:"conmon_env"`
 
 	// HooksDir holds paths to the directories containing hooks
-	// configuration files.  When the same filename is present in in
+	// configuration files.  When the same filename is present in
 	// multiple directories, the file in the directory listed last in
 	// this slice takes precedence.
 	HooksDir []string `toml:"hooks_dir"`
