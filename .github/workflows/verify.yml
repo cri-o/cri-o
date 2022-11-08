@@ -26,9 +26,9 @@ jobs:
       - uses: golangci/golangci-lint-action@v3
         with:
           version: v1.50.1
-
-          # Only show new issues for a pull request.
-          only-new-issues: true
+          skip-cache: true
+          skip-pkg-cache: true
+          skip-build-cache: true
 
   shellcheck:
     runs-on: ubuntu-latest
