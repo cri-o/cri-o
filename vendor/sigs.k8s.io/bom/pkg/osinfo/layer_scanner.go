@@ -178,7 +178,7 @@ func (loss *LayerScanner) extractFileFromTar(tarPath, filePath, destPath string)
 				if !strings.HasPrefix(target, string(filepath.Separator)) {
 					newTarget := filepath.Dir(filePath)
 
-					// nolint:gosec // This is not zipslip, path it not used for writing just
+					//nolint:gosec // This is not zipslip, path it not used for writing just
 					// to search a file in the tarfile, the extract path is fexed.
 					newTarget = filepath.Join(newTarget, hdr.Linkname)
 					target = filepath.Clean(newTarget)

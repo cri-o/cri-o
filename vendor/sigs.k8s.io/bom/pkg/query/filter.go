@@ -162,7 +162,7 @@ func (cycler *ObjectCycler) CycleFull(objects map[string]spdx.Object, fn Matcher
 // Recursion will traverse the SBOM graph and return the element that
 // matches the query without continuing down its relationships
 func doRecursion(
-	// nolint:gocritic // seen is passed recursively
+	//nolint:gocritic // seen is passed recursively
 	objects map[string]spdx.Object, fn MatcherFunction, seen *map[string]struct{},
 ) map[string]spdx.Object {
 	newSet := map[string]spdx.Object{}
@@ -202,7 +202,7 @@ func doRecursion(
 // object, it will continue traversing its relationships returning all
 // matching objects in a flat array
 func doFullRecursion(
-	// nolint:gocritic // seen is passed recursively
+	//nolint:gocritic // seen is passed recursively
 	objects map[string]spdx.Object, fn MatcherFunction, seen *map[string]struct{},
 ) map[string]spdx.Object {
 	newSet := map[string]spdx.Object{}

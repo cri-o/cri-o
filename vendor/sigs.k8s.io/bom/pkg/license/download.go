@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:gosec
 // SHA1 is the currently accepted hash algorithm for SPDX documents, used for
 // file integrity checks, NOT security.
 // Instances of G401 and G505 can be safely ignored in this file.
 //
 // ref: https://github.com/spdx/spdx-spec/issues/11
+//
+//nolint:gosec
 package license
 
 import (
@@ -140,7 +141,7 @@ func (ddi *DefaultDownloaderImpl) SetOptions(opts *DownloaderOptions) {
 // GetLicenses downloads the main json file listing all SPDX supported licenses
 func (ddi *DefaultDownloaderImpl) GetLicenses() (licenses *List, err error) {
 	// TODO: Cache licenselist
-	logrus.Info("Downloading main SPDX license data from " + LicenseDataURL)
+	logrus.Debugf("Downloading main SPDX license data from " + LicenseDataURL)
 
 	// Get the list of licenses
 	licensesJSON, err := http.NewAgent().Get(LicenseDataURL + LicenseListFilename)
@@ -249,13 +250,13 @@ func (ddi *DefaultDownloaderImpl) getLicenseFromURL(url string) (license *Licens
 
 	// If we still don't have json data, download it
 	if len(licenseJSON) == 0 {
-		logrus.Infof("Downloading license data from %s", url)
+		logrus.Debugf("Downloading license data from %s", url)
 		licenseJSON, err = http.NewAgent().Get(url)
 		if err != nil {
 			return nil, fmt.Errorf("getting %s: %w", url, err)
 		}
 
-		logrus.Infof("Downloaded %d bytes from %s", len(licenseJSON), url)
+		logrus.Debugf("Downloaded %d bytes from %s", len(licenseJSON), url)
 
 		if ddi.Options.EnableCache {
 			if err := ddi.cacheData(url, licenseJSON); err != nil {

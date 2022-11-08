@@ -112,7 +112,8 @@ func (f *File) SetEntity(e *Entity) {
 }
 
 // Draw renders the file data as a tree-like structure
-// nolint:gocritic
+//
+//nolint:gocritic
 func (f *File) Draw(builder *strings.Builder, o *DrawingOptions, depth int, seen *map[string]struct{}) {
 	connector := connectorT
 	if o.LastItem {
@@ -168,8 +169,8 @@ func getFileTypes(path string) []string {
 	case "mp3", "wav", "aif", "cda", "mid", "midi",
 		"mpa", "ogg", "wma", "wpl":
 		return []string{"AUDIO"}
-	case "zip", "tar", "tar.gz", "tar.bz2", "7z", "arj",
-		"deb", "pkg", "rar", "rpm", "z":
+	case "zip", "tar", "gz", "bz2", "7z", "arj",
+		"deb", "pkg", "rar", "rpm", "z", "cpio":
 		return []string{"ARCHIVE"}
 	default:
 		return []string{"OTHER"}
