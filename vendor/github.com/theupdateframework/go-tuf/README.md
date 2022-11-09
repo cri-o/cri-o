@@ -152,6 +152,10 @@ Adds signatures (the output of `tuf sign-payload`) to the given role metadata fi
 
 If the signature does not verify, it will not be added.
 
+#### `tuf status --valid-at <date> <role>`
+
+Check if the role's metadata will be expired on the given date. 
+
 #### Usage of environment variables
 
 The `tuf` CLI supports receiving passphrases via environment variables in
@@ -273,7 +277,7 @@ Enter root keys passphrase:
 Copy `root.json.sigs` back to the repo box and import the signatures:
 
 ``` bash
-$ tuf add-signatures --signatures=root.json.sigs root.json
+$ tuf add-signatures --signatures root.json.sigs root.json
 ```
 
 This achieves the same state as the above flow for the repo box:
@@ -597,6 +601,39 @@ $ tree .
 │   ├── targets.json
 │   └── timestamp.json
 └── staged
+```
+
+#### Adding a new root key
+
+Copy `staged/root.json` to the root box and generate a new root key on the root box:
+
+```bash
+$ tuf gen-key root
+$ tuf sign root.json
+```
+
+Copy `staged/root.json` from the root box and commit:
+
+```bash
+$ tuf commit
+```
+
+#### Rotating root key(s)
+
+Copy `staged/root.json` to the root box to do the rotation, where `abcd` is the keyid of the key that is being replaced:
+
+```bash
+$ tuf gen-key root
+$ tuf revoke-key root abcd
+$ tuf sign root.json
+```
+
+Note that `revoke-key` removes the old key from `root.json`, but the key remains in the `keys/` directory on the root box as it is needed to sign the next `root.json`. After this signing is done, the old key may be removed from `keys/`. Any number of keys may be added or revoked during this step, but ensure that at least a threshold of valid keys remain.
+
+Copy `staged/root.json` from the root box to commit:
+
+```bash
+$ tuf commit
 ```
 
 ## Client

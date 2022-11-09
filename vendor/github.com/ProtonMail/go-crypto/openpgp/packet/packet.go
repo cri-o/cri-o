@@ -521,3 +521,19 @@ const (
 	KeyCompromised ReasonForRevocation = 2
 	KeyRetired     ReasonForRevocation = 3
 )
+
+// Curve is a mapping to supported ECC curves for key generation.
+// See https://www.ietf.org/archive/id/draft-ietf-openpgp-crypto-refresh-06.html#name-curve-specific-wire-formats
+type Curve string
+
+const (
+	Curve25519 Curve = "Curve25519"
+	Curve448 Curve = "Curve448"
+	CurveNistP256 Curve = "P256"
+	CurveNistP384 Curve = "P384"
+	CurveNistP521 Curve = "P521"
+	CurveSecP256k1 Curve = "SecP256k1"
+	CurveBrainpoolP256 Curve = "BrainpoolP256"
+	CurveBrainpoolP384 Curve = "BrainpoolP384"
+	CurveBrainpoolP512 Curve = "BrainpoolP512"
+)

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package dsse includes wrappers to support DSSE
 package dsse
 
 import (
@@ -37,7 +38,7 @@ func (a *SignerAdapter) Sign(data []byte) ([]byte, error) {
 }
 
 // Verify disabled `go-securesystemslib/dsse.Verifier`
-func (a *SignerAdapter) Verify(data []byte, sig []byte) error {
+func (a *SignerAdapter) Verify(data, sig []byte) error {
 	return errors.New("Verify disabled")
 }
 
@@ -59,7 +60,7 @@ type VerifierAdapter struct {
 }
 
 // Verify implements `go-securesystemslib/dsse.Verifier`
-func (a *VerifierAdapter) Verify(data []byte, sig []byte) error {
+func (a *VerifierAdapter) Verify(data, sig []byte) error {
 	return a.SignatureVerifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 }
 

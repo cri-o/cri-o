@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package fulcioroots fetches Fulcio root and intermediate certificates from TUF metadata
 package fulcioroots
 
 import (
@@ -40,22 +41,8 @@ var fulcioTargetStr = `fulcio.crt.pem`
 // This is the v1 migrated root.
 var fulcioV1TargetStr = `fulcio_v1.crt.pem`
 
-// The untrusted intermediate CA certificate, used for chain building
-// TODO: Remove once this is bundled in TUF metadata.
-var fulcioIntermediateV1 = `-----BEGIN CERTIFICATE-----
-MIICGjCCAaGgAwIBAgIUALnViVfnU0brJasmRkHrn/UnfaQwCgYIKoZIzj0EAwMw
-KjEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MREwDwYDVQQDEwhzaWdzdG9yZTAeFw0y
-MjA0MTMyMDA2MTVaFw0zMTEwMDUxMzU2NThaMDcxFTATBgNVBAoTDHNpZ3N0b3Jl
-LmRldjEeMBwGA1UEAxMVc2lnc3RvcmUtaW50ZXJtZWRpYXRlMHYwEAYHKoZIzj0C
-AQYFK4EEACIDYgAE8RVS/ysH+NOvuDZyPIZtilgUF9NlarYpAd9HP1vBBH1U5CV7
-7LSS7s0ZiH4nE7Hv7ptS6LvvR/STk798LVgMzLlJ4HeIfF3tHSaexLcYpSASr1kS
-0N/RgBJz/9jWCiXno3sweTAOBgNVHQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYIKwYB
-BQUHAwMwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHQ4EFgQU39Ppz1YkEZb5qNjp
-KFWixi4YZD8wHwYDVR0jBBgwFoAUWMAeX5FFpWapesyQoZMi0CrFxfowCgYIKoZI
-zj0EAwMDZwAwZAIwPCsQK4DYiZYDPIaDi5HFKnfxXx6ASSVmERfsynYBiX2X6SJR
-nZU84/9DZdnFvvxmAjBOt6QpBlc4J/0DxvkTCqpclvziL6BCCPnjdlIB3Pu3BxsP
-mygUY7Ii2zbdCdliiow=
------END CERTIFICATE-----`
+// This is the untrusted v1 intermediate CA certificate, used or chain building.
+var fulcioV1IntermediateTargetStr = `fulcio_intermediate_v1.crt.pem`
 
 // Get returns the Fulcio root certificate.
 func Get() (*x509.CertPool, error) {
@@ -86,7 +73,7 @@ func initRoots() (*x509.CertPool, *x509.CertPool, error) {
 	}
 	// Retrieve from the embedded or cached TUF root. If expired, a network
 	// call is made to update the root.
-	targets, err := tufClient.GetTargetsByMeta(tuf.Fulcio, []string{fulcioTargetStr, fulcioV1TargetStr})
+	targets, err := tufClient.GetTargetsByMeta(tuf.Fulcio, []string{fulcioTargetStr, fulcioV1TargetStr, fulcioV1IntermediateTargetStr})
 	if err != nil {
 		return nil, nil, fmt.Errorf("error getting targets: %w", err)
 	}
@@ -109,7 +96,6 @@ func initRoots() (*x509.CertPool, *x509.CertPool, error) {
 			}
 		}
 	}
-	intermediatePool.AppendCertsFromPEM([]byte(fulcioIntermediateV1))
 
 	return rootPool, intermediatePool, nil
 }

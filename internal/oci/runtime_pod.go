@@ -58,10 +58,15 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 	client, err := conmonClient.New(&conmonClient.ConmonServerConfig{
 		ConmonServerPath: handler.MonitorPath,
 		LogLevel:         conmonClient.FromLogrusLevel(logrus.GetLevel()),
+		LogDriver:        conmonClient.LogDriverSystemd,
 		Runtime:          handler.RuntimePath,
 		ServerRunDir:     c.dir,
 		RuntimeRoot:      runRoot,
 		CgroupManager:    cgroupManager,
+		Tracing: &conmonClient.Tracing{
+			Enabled:  r.config.EnableTracing,
+			Endpoint: fmt.Sprintf("http://%s", r.config.TracingEndpoint),
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -83,14 +88,18 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) error {
 	// If this container is the infra container, all that needs to be done is move conmonrs to the pod cgroup
 	if c.IsInfra() {
-		v, err := r.client.Version(ctx)
+		v, err := r.client.Version(ctx, &conmonClient.VersionConfig{Verbose: false})
 		if err != nil {
 			return fmt.Errorf("failed to get version of client before moving server to cgroup: %w", err)
 		}
 
+		if v.Tag == "" {
+			v.Tag = "none"
+		}
+
 		logrus.Debugf(
-			"Using conmonrs version: %s, tag: %s, commit: %s, build: %s, rustc: %s",
-			v.Version, v.Tag, v.Commit, v.BuildDate, v.RustVersion,
+			"Using conmonrs version: %s, tag: %s, commit: %s, build: %s, target: %s, %s, %s",
+			v.Version, v.Tag, v.Commit, v.BuildDate, v.Target, v.RustVersion, v.CargoVersion,
 		)
 
 		// Platform specific container setup
@@ -109,9 +118,10 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		ID:           c.ID(),
 		BundlePath:   c.bundlePath,
 		Terminal:     c.terminal,
+		Stdin:        c.stdin,
 		ExitPaths:    []string{filepath.Join(r.oci.config.ContainerExitsDir, c.ID()), c.exitFilePath()},
 		OOMExitPaths: []string{filepath.Join(c.bundlePath, "oom")}, // Keep in sync with location in oci.UpdateContainerStatus()
-		LogDrivers: []conmonClient.LogDriver{
+		LogDrivers: []conmonClient.ContainerLogDriver{
 			{
 				Type:    conmonClient.LogDriverTypeContainerRuntimeInterface,
 				Path:    c.logPath,
@@ -249,7 +259,7 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 	)
 
 	if inputStream != nil {
-		stdin = &conmonClient.In{Reader: inputStream}
+		stdin = &conmonClient.In{ReadCloser: io.NopCloser(inputStream)}
 	}
 	if outputStream != nil {
 		stdout = &conmonClient.Out{WriteCloser: outputStream}
@@ -262,7 +272,8 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 		ID:                c.ID(),
 		SocketPath:        attachSocketPath,
 		Tty:               tty,
-		StopAfterStdinEOF: c.stdin && !c.StdinOnce() && !tty,
+		StopAfterStdinEOF: c.stdin && c.StdinOnce() && !tty,
+		ContainerStdin:    c.stdin,
 		Resize:            libpodResize,
 		Streams: conmonClient.AttachStreams{
 			Stdin:  stdin,
