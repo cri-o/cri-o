@@ -99,6 +99,11 @@ type attachReaderValue struct {
 
 // AttachContainer can be used to attach to a running container.
 func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) error {
+	ctx, span := c.startSpan(ctx, "AttachContainer")
+	if span != nil {
+		defer span.End()
+	}
+
 	conn, err := c.newRPCConn()
 	if err != nil {
 		return fmt.Errorf("create RPC connection: %w", err)
@@ -193,14 +198,14 @@ func (c *ConmonClient) attach(ctx context.Context, cfg *AttachConfig) (err error
 
 	id := uuid.NewString()
 
-	receiveStdoutError, stdinDone := c.setupStdioChannels(cfg, conn, id)
+	receiveStdoutError, stdinDone := c.setupStdioChannels(ctx, cfg, conn, id)
 	if cfg.PostAttachFunc != nil {
 		if err := cfg.PostAttachFunc(); err != nil {
 			return fmt.Errorf("run post attach func: %w", err)
 		}
 	}
 
-	if err := c.readStdio(cfg, conn, id, receiveStdoutError, stdinDone); err != nil {
+	if err := c.readStdio(ctx, cfg, conn, id, receiveStdoutError, stdinDone); err != nil {
 		return fmt.Errorf("read stdio: %w", err)
 	}
 
@@ -208,11 +213,16 @@ func (c *ConmonClient) attach(ctx context.Context, cfg *AttachConfig) (err error
 }
 
 func (c *ConmonClient) setupStdioChannels(
-	cfg *AttachConfig, conn *net.UnixConn, id string,
+	ctx context.Context, cfg *AttachConfig, conn *net.UnixConn, id string,
 ) (receiveStdoutError, stdinDone chan error) {
+	ctx, span := c.startSpan(ctx, "setupStdioChannels")
+	if span != nil {
+		defer span.End()
+	}
+
 	receiveStdoutError = make(chan error)
 	go func() {
-		receiveStdoutError <- c.redirectResponseToOutputStreams(cfg, conn)
+		receiveStdoutError <- c.redirectResponseToOutputStreams(ctx, cfg, conn)
 	}()
 
 	stdinDone = make(chan error)
@@ -233,7 +243,14 @@ func (c *ConmonClient) setupStdioChannels(
 	return receiveStdoutError, stdinDone
 }
 
-func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn io.Reader) (err error) {
+func (c *ConmonClient) redirectResponseToOutputStreams(
+	ctx context.Context, cfg *AttachConfig, conn io.Reader,
+) (err error) {
+	ctx, span := c.startSpan(ctx, "redirectResponseToOutputStreams")
+	if span != nil {
+		defer span.End()
+	}
+
 	buf := make([]byte, attachPacketBufSize+1) /* Sync with conmonrs ATTACH_PACKET_BUF_SIZE */
 	defer func() {
 		if cfg.Streams.Stdout != nil {
@@ -249,7 +266,7 @@ func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn i
 		c.logger.WithError(er).Tracef("Got %d bytes from attach connection", nr)
 
 		if nr > 0 {
-			cont, er := c.handlePacket(cfg, buf, nr)
+			cont, er := c.handlePacket(ctx, cfg, buf, nr)
 			if er != nil {
 				return er
 			}
@@ -279,7 +296,14 @@ func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn i
 	return nil
 }
 
-func (c *ConmonClient) handlePacket(cfg *AttachConfig, buf []byte, nr int) (cont bool, err error) {
+func (c *ConmonClient) handlePacket(
+	ctx context.Context, cfg *AttachConfig, buf []byte, nr int,
+) (cont bool, err error) {
+	_, span := c.startSpan(ctx, "handlePacket")
+	if span != nil {
+		defer span.End()
+	}
+
 	var dst io.Writer
 	switch buf[0] {
 	case attachPipeDone:
@@ -369,8 +393,13 @@ func (c *ConmonClient) closeAttachReader(val any) {
 }
 
 func (c *ConmonClient) readStdio(
-	cfg *AttachConfig, conn *net.UnixConn, id string, receiveStdoutError, stdinDone chan error,
+	ctx context.Context, cfg *AttachConfig, conn *net.UnixConn, id string, receiveStdoutError, stdinDone chan error,
 ) (err error) {
+	_, span := c.startSpan(ctx, "readStdio")
+	if span != nil {
+		defer span.End()
+	}
+
 	c.logger.Trace("Read stdio on attach")
 	select {
 	case err = <-receiveStdoutError:
@@ -433,6 +462,11 @@ type SetWindowSizeContainerConfig struct {
 
 // SetWindowSizeContainer can be used to change the window size of a running container.
 func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindowSizeContainerConfig) error {
+	ctx, span := c.startSpan(ctx, "SetWindowSizeContainer")
+	if span != nil {
+		defer span.End()
+	}
+
 	if cfg.Size == nil {
 		return errTerminalSizeNil
 	}

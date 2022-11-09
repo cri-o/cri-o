@@ -98,9 +98,8 @@ func (ic *importClient) Send(ctx context.Context, s capnp.Send) (*capnp.Answer, 
 	q := ic.c.newQuestion(s.Method)
 
 	// Send call message.
-	var err error
 	syncutil.Without(&ic.c.mu, func() {
-		err = ic.c.sendMessage(ctx, func(m rpccp.Message) error {
+		ic.c.sendMessage(ctx, func(m rpccp.Message) error {
 			return ic.c.newImportCallMessage(m, ic.id, q.id, s)
 		}, func(err error) {
 			ic.c.mu.Lock()
@@ -108,8 +107,10 @@ func (ic *importClient) Send(ctx context.Context, s capnp.Send) (*capnp.Answer, 
 
 			if err != nil {
 				ic.c.questions[q.id] = nil
+				syncutil.Without(&ic.c.mu, func() {
+					q.p.Reject(rpcerr.Failedf("send message: %w", err))
+				})
 				ic.c.questionID.remove(uint32(q.id))
-				q.p.Reject(rpcerr.Failedf("send message: %w", err))
 				return
 			}
 
@@ -120,10 +121,6 @@ func (ic *importClient) Send(ctx context.Context, s capnp.Send) (*capnp.Answer, 
 			}()
 		})
 	})
-
-	if err != nil {
-		return capnp.ErrorAnswer(s.Method, err), func() {}
-	}
 
 	ans := q.p.Answer()
 	return ans, func() {
@@ -166,10 +163,6 @@ func (c *Conn) newImportCallMessage(msg rpccp.Message, imp importID, qid questio
 	}
 	m := args.Message()
 	if err := s.PlaceArgs(args); err != nil {
-		for _, c := range m.CapTable {
-			c.Release()
-		}
-		m.CapTable = nil
 		return rpcerr.Failedf("place arguments: %w", err)
 	}
 	clients := m.CapTable
@@ -177,7 +170,6 @@ func (c *Conn) newImportCallMessage(msg rpccp.Message, imp importID, qid questio
 		// TODO(soon): save param refs
 		_, err = c.fillPayloadCapTable(payload, clients)
 	})
-	releaseList(clients).release()
 	if err != nil {
 		return rpcerr.Annotatef(err, "build call message")
 	}

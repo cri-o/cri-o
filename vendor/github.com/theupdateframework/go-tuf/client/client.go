@@ -807,6 +807,8 @@ type Destination interface {
 //   - The target does not exist in any targets
 //   - Metadata cannot be generated for the downloaded data
 //   - Generated metadata does not match local metadata for the given file
+//   - Size of the download does not match if the reported size is known and
+//     incorrect
 func (c *Client) Download(name string, dest Destination) (err error) {
 	// delete dest if there is an error
 	defer func() {

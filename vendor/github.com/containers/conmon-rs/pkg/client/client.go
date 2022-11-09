@@ -47,6 +47,7 @@ type ConmonClient struct {
 	logger         *logrus.Logger
 	attachReaders  *sync.Map // K: UUID string, V: *attachReaderValue
 	tracingEnabled bool
+	tracer         trace.Tracer
 }
 
 // ConmonServerConfig is the configuration for the conmon server instance.
@@ -101,6 +102,9 @@ type Tracing struct {
 	// Endpoint is the GRPC tracing endpoint for OLTP.
 	// Defaults to "http://localhost:4317"
 	Endpoint string
+
+	// Tracer allows the client to create additional spans if set.
+	Tracer trace.Tracer
 }
 
 // NewConmonServerConfig creates a new ConmonServerConfig instance for the
@@ -154,6 +158,12 @@ func New(config *ConmonServerConfig) (client *ConmonClient, retErr error) {
 	// Check if the process has already started, and inherit that process instead.
 	ctx, cancel := defaultContext()
 	defer cancel()
+
+	ctx, span := cl.startSpan(ctx, "New")
+	if span != nil {
+		defer span.End()
+	}
+
 	if resp, err := cl.Version(ctx, &VersionConfig{}); err == nil {
 		cl.serverPID = resp.ProcessID
 
@@ -199,14 +209,35 @@ func (c *ConmonServerConfig) toClient() (*ConmonClient, error) {
 		c.ClientLogger = logrus.StandardLogger()
 	}
 
+	var tracer trace.Tracer
+	if c.Tracing != nil && c.Tracing.Tracer != nil {
+		tracer = c.Tracing.Tracer
+	}
+
 	return &ConmonClient{
 		runDir:        c.ServerRunDir,
 		logger:        c.ClientLogger,
 		attachReaders: &sync.Map{},
+		tracer:        tracer,
 	}, nil
 }
 
+//nolint:ireturn,nolintlint // Returning the interface is intentional
+func (c *ConmonClient) startSpan(ctx context.Context, name string) (context.Context, trace.Span) {
+	if c.tracer == nil {
+		return ctx, nil
+	}
+	const prefix = "conmonrs-client: "
+
+	return c.tracer.Start(ctx, prefix+name, trace.WithSpanKind(trace.SpanKindClient))
+}
+
 func (c *ConmonClient) startServer(config *ConmonServerConfig) error {
+	_, span := c.startSpan(context.TODO(), "startServer")
+	if span != nil {
+		defer span.End()
+	}
+
 	entrypoint, args, err := c.toArgs(config)
 	if err != nil {
 		return fmt.Errorf("convert config to args: %w", err)
@@ -349,6 +380,11 @@ func pidGivenFile(file string) (uint32, error) {
 }
 
 func (c *ConmonClient) waitUntilServerUp() (err error) {
+	_, span := c.startSpan(context.TODO(), "waitUntilServerUp")
+	if span != nil {
+		defer span.End()
+	}
+
 	for i := 0; i < 100; i++ {
 		ctx, cancel := defaultContext()
 
@@ -449,6 +485,11 @@ type VersionResponse struct {
 func (c *ConmonClient) Version(
 	ctx context.Context, cfg *VersionConfig,
 ) (*VersionResponse, error) {
+	ctx, span := c.startSpan(ctx, "Version")
+	if span != nil {
+		defer span.End()
+	}
+
 	conn, err := c.newRPCConn()
 	if err != nil {
 		return nil, fmt.Errorf("create RPC connection: %w", err)
@@ -611,6 +652,11 @@ type CreateContainerResponse struct {
 func (c *ConmonClient) CreateContainer(
 	ctx context.Context, cfg *CreateContainerConfig,
 ) (*CreateContainerResponse, error) {
+	ctx, span := c.startSpan(ctx, "CreateContainer")
+	if span != nil {
+		defer span.End()
+	}
+
 	conn, err := c.newRPCConn()
 	if err != nil {
 		return nil, fmt.Errorf("create RPC connection: %w", err)
@@ -721,6 +767,11 @@ type ExecContainerResult struct {
 // ExecSyncContainer can be used to execute a command within a running
 // container.
 func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfig) (*ExecContainerResult, error) {
+	ctx, span := c.startSpan(ctx, "ExecSyncContainer")
+	if span != nil {
+		defer span.End()
+	}
+
 	conn, err := c.newRPCConn()
 	if err != nil {
 		return nil, fmt.Errorf("create RPC connection: %w", err)
@@ -831,6 +882,11 @@ func (c *ConmonClient) PID() uint32 {
 // Shutdown kill the server via SIGINT. Waits up to 10 seconds for the server
 // PID to be removed from the system.
 func (c *ConmonClient) Shutdown() error {
+	_, span := c.startSpan(context.TODO(), "Shutdown")
+	if span != nil {
+		defer span.End()
+	}
+
 	c.attachReaders.Range(func(_, in any) bool {
 		c.closeAttachReader(in)
 
@@ -880,6 +936,11 @@ type ReopenLogContainerConfig struct {
 // ReopenLogContainer can be used to rotate all configured container log
 // drivers.
 func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogContainerConfig) error {
+	ctx, span := c.startSpan(ctx, "ReopenLogContainer")
+	if span != nil {
+		defer span.End()
+	}
+
 	conn, err := c.newRPCConn()
 	if err != nil {
 		return fmt.Errorf("create RPC connection: %w", err)

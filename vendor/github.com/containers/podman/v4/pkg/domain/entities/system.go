@@ -47,6 +47,7 @@ type SystemDfOptions struct {
 
 // SystemDfReport describes the response for df information
 type SystemDfReport struct {
+	ImagesSize int64
 	Images     []*SystemDfImageReport
 	Containers []*SystemDfContainerReport
 	Volumes    []*SystemDfVolumeReport
@@ -83,12 +84,6 @@ type SystemDfVolumeReport struct {
 	Links           int
 	Size            int64
 	ReclaimableSize int64
-}
-
-// SystemResetOptions describes the options for resetting your
-// container runtime storage, etc
-type SystemResetOptions struct {
-	Force bool
 }
 
 // SystemVersionReport describes version information about the running Podman service

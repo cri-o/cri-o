@@ -3,7 +3,6 @@ package specgenutil
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
@@ -18,9 +17,9 @@ import (
 // ReadPodIDFile reads the specified file and returns its content (i.e., first
 // line).
 func ReadPodIDFile(path string) (string, error) {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
-		return "", fmt.Errorf("error reading pod ID file: %w", err)
+		return "", fmt.Errorf("reading pod ID file: %w", err)
 	}
 	return strings.Split(string(content), "\n")[0], nil
 }
@@ -165,7 +164,7 @@ func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) 
 	}
 	ctrStart, ctrLen, err := parseAndValidateRange(ctrPort)
 	if err != nil {
-		return newPort, fmt.Errorf("error parsing container port: %w", err)
+		return newPort, fmt.Errorf("parsing container port: %w", err)
 	}
 	newPort.ContainerPort = ctrStart
 	newPort.Range = ctrLen
@@ -197,7 +196,7 @@ func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) 
 		} else {
 			hostStart, hostLen, err := parseAndValidateRange(*hostPort)
 			if err != nil {
-				return newPort, fmt.Errorf("error parsing host port: %w", err)
+				return newPort, fmt.Errorf("parsing host port: %w", err)
 			}
 			if hostLen != ctrLen {
 				return newPort, fmt.Errorf("host and container port ranges have different lengths: %d vs %d", hostLen, ctrLen)

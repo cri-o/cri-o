@@ -316,12 +316,19 @@ type App struct {
 	// cli.go uses text/template to render templates. You can
 	// render custom help text by setting this variable.
 	CustomAppHelpTemplate string
+	// SliceFlagSeparator is used to customize the separator for SliceFlag, the default is ","
+	SliceFlagSeparator string
 	// Boolean to enable short-option handling so user can combine several
 	// single-character bool arguments into one
 	// i.e. foobar -o -v -> foobar -ov
 	UseShortOptionHandling bool
 	// Enable suggestions for commands and flags
 	Suggest bool
+	// Allows global flags set by libraries which use flag.XXXVar(...) directly
+	// to be parsed through this library
+	AllowExtFlags bool
+	// Treat all flags as normal arguments if true
+	SkipFlagParsing bool
 
 	// Has unexported fields.
 }
@@ -841,7 +848,7 @@ func Exit(message interface{}, exitCode int) ExitCoder
 
     This is the simplest way to trigger a non-zero exit code for an App
     without having to call os.Exit manually. During testing, this behavior
-    can be avoided by overiding the ExitErrHandler function on an App or the
+    can be avoided by overriding the ExitErrHandler function on an App or the
     package-global OsExiter function.
 
 func NewExitError(message interface{}, exitCode int) ExitCoder
@@ -2430,6 +2437,7 @@ type InputSourceContext interface {
 	String(name string) (string, error)
 	StringSlice(name string) ([]string, error)
 	IntSlice(name string) ([]int, error)
+	Int64Slice(name string) ([]int64, error)
 	Generic(name string) (cli.Generic, error)
 	Bool(name string) (bool, error)
 
@@ -2486,6 +2494,9 @@ func NewInt64SliceFlag(fl *cli.Int64SliceFlag) *Int64SliceFlag
 func (f *Int64SliceFlag) Apply(set *flag.FlagSet) error
     Apply saves the flagSet for later usage calls, then calls the wrapped
     Int64SliceFlag.Apply
+
+func (f *Int64SliceFlag) ApplyInputSourceValue(cCtx *cli.Context, isc InputSourceContext) error
+    ApplyInputSourceValue applies a Int64Slice value if required
 
 type IntFlag struct {
 	*cli.IntFlag
@@ -2546,6 +2557,10 @@ func (fsm *MapInputSource) Generic(name string) (cli.Generic, error)
 
 func (fsm *MapInputSource) Int(name string) (int, error)
     Int returns an int from the map if it exists otherwise returns 0
+
+func (fsm *MapInputSource) Int64Slice(name string) ([]int64, error)
+    Int64Slice returns an []int64 from the map if it exists otherwise returns
+    nil
 
 func (fsm *MapInputSource) IntSlice(name string) ([]int, error)
     IntSlice returns an []int from the map if it exists otherwise returns nil

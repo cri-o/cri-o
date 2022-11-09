@@ -111,7 +111,11 @@ func (c *cachingClient) calculateExpireTime(headers http.Header) time.Time {
 			maxAge = ma
 		}
 	}
-	age, err := strconv.Atoi(headers.Get("age"))
+	a := headers.Get("age")
+	if a == "" {
+		return c.now().Add(time.Duration(maxAge) * time.Second)
+	}
+	age, err := strconv.Atoi(a)
 	if err != nil {
 		return c.now()
 	}

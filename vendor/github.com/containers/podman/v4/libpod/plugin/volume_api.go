@@ -3,8 +3,9 @@ package plugin
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -13,8 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"errors"
-
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/docker/go-plugins-helpers/sdk"
 	"github.com/docker/go-plugins-helpers/volume"
@@ -40,7 +40,6 @@ var (
 )
 
 const (
-	defaultTimeout   = 5 * time.Second
 	volumePluginType = "VolumeDriver"
 )
 
@@ -75,9 +74,9 @@ type activateResponse struct {
 func validatePlugin(newPlugin *VolumePlugin) error {
 	// It's a socket. Is it a plugin?
 	// Hit the Activate endpoint to find out if it is, and if so what kind
-	req, err := http.NewRequest("POST", "http://plugin"+activatePath, nil)
+	req, err := http.NewRequest(http.MethodPost, "http://plugin"+activatePath, nil)
 	if err != nil {
-		return fmt.Errorf("error making request to volume plugin %s activation endpoint: %w", newPlugin.Name, err)
+		return fmt.Errorf("making request to volume plugin %s activation endpoint: %w", newPlugin.Name, err)
 	}
 
 	req.Header.Set("Host", newPlugin.getURI())
@@ -85,25 +84,25 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 
 	resp, err := newPlugin.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error sending request to plugin %s activation endpoint: %w", newPlugin.Name, err)
+		return fmt.Errorf("sending request to plugin %s activation endpoint: %w", newPlugin.Name, err)
 	}
 	defer resp.Body.Close()
 
 	// Response code MUST be 200. Anything else, we have to assume it's not
 	// a valid plugin.
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("got status code %d from activation endpoint for plugin %s: %w", resp.StatusCode, newPlugin.Name, ErrNotPlugin)
 	}
 
 	// Read and decode the body so we can tell if this is a volume plugin.
-	respBytes, err := ioutil.ReadAll(resp.Body)
+	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("error reading activation response body from plugin %s: %w", newPlugin.Name, err)
+		return fmt.Errorf("reading activation response body from plugin %s: %w", newPlugin.Name, err)
 	}
 
 	respStruct := new(activateResponse)
 	if err := json.Unmarshal(respBytes, respStruct); err != nil {
-		return fmt.Errorf("error unmarshalling plugin %s activation response: %w", newPlugin.Name, err)
+		return fmt.Errorf("unmarshalling plugin %s activation response: %w", newPlugin.Name, err)
 	}
 
 	foundVolume := false
@@ -129,7 +128,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 
 // GetVolumePlugin gets a single volume plugin, with the given name, at the
 // given path.
-func GetVolumePlugin(name string, path string, timeout int) (*VolumePlugin, error) {
+func GetVolumePlugin(name string, path string, timeout *uint, cfg *config.Config) (*VolumePlugin, error) {
 	pluginsLock.Lock()
 	defer pluginsLock.Unlock()
 
@@ -152,13 +151,11 @@ func GetVolumePlugin(name string, path string, timeout int) (*VolumePlugin, erro
 	// Need an HTTP client to force a Unix connection.
 	// And since we can reuse it, might as well cache it.
 	client := new(http.Client)
-	client.Timeout = defaultTimeout
-	// if the user specified a non-zero timeout, use their value. Else, keep the default.
-	if timeout != 0 {
-		if time.Duration(timeout)*time.Second < defaultTimeout {
-			logrus.Warnf("the default timeout for volume creation is %d seconds, setting a time less than that may break this feature.", defaultTimeout)
-		}
-		client.Timeout = time.Duration(timeout) * time.Second
+	client.Timeout = 5 * time.Second
+	if timeout != nil {
+		client.Timeout = time.Duration(*timeout) * time.Second
+	} else if cfg != nil {
+		client.Timeout = time.Duration(cfg.Engine.VolumePluginTimeout) * time.Second
 	}
 	// This bit borrowed from pkg/bindings/connection.go
 	client.Transport = &http.Transport{
@@ -199,7 +196,7 @@ func (p *VolumePlugin) verifyReachable() error {
 			return fmt.Errorf("%s: %w", p.Name, ErrPluginRemoved)
 		}
 
-		return fmt.Errorf("error accessing plugin %s: %w", p.Name, err)
+		return fmt.Errorf("accessing plugin %s: %w", p.Name, err)
 	}
 	return nil
 }
@@ -215,13 +212,13 @@ func (p *VolumePlugin) sendRequest(toJSON interface{}, endpoint string) (*http.R
 	if toJSON != nil {
 		reqJSON, err = json.Marshal(toJSON)
 		if err != nil {
-			return nil, fmt.Errorf("error marshalling request JSON for volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
+			return nil, fmt.Errorf("marshalling request JSON for volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
 		}
 	}
 
-	req, err := http.NewRequest("POST", "http://plugin"+endpoint, bytes.NewReader(reqJSON))
+	req, err := http.NewRequest(http.MethodPost, "http://plugin"+endpoint, bytes.NewReader(reqJSON))
 	if err != nil {
-		return nil, fmt.Errorf("error making request to volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
+		return nil, fmt.Errorf("making request to volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
 	}
 
 	req.Header.Set("Host", p.getURI())
@@ -229,7 +226,7 @@ func (p *VolumePlugin) sendRequest(toJSON interface{}, endpoint string) (*http.R
 
 	resp, err := p.Client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error sending request to volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
+		return nil, fmt.Errorf("sending request to volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
 	}
 	// We are *deliberately not closing* response here. It is the
 	// responsibility of the caller to do so after reading the response.
@@ -243,9 +240,9 @@ func (p *VolumePlugin) makeErrorResponse(err, endpoint, volName string) error {
 		err = "empty error from plugin"
 	}
 	if volName != "" {
-		return fmt.Errorf("error on %s on volume %s in volume plugin %s: %w", endpoint, volName, p.Name, errors.New(err))
+		return fmt.Errorf("on %s on volume %s in volume plugin %s: %w", endpoint, volName, p.Name, errors.New(err))
 	}
-	return fmt.Errorf("error on %s in volume plugin %s: %w", endpoint, p.Name, errors.New(err))
+	return fmt.Errorf("on %s in volume plugin %s: %w", endpoint, p.Name, errors.New(err))
 }
 
 // Handle error responses from plugin
@@ -254,15 +251,15 @@ func (p *VolumePlugin) handleErrorResponse(resp *http.Response, endpoint, volNam
 	// errors, but I don't think we can guarantee all plugins do that.
 	// Let's interpret anything other than 200 as an error.
 	// If there isn't an error, don't even bother decoding the response.
-	if resp.StatusCode != 200 {
-		errResp, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		errResp, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
+			return fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 		}
 
 		errStruct := new(volume.ErrorResponse)
 		if err := json.Unmarshal(errResp, errStruct); err != nil {
-			return fmt.Errorf("error unmarshalling JSON response from volume plugin %s: %w", p.Name, err)
+			return fmt.Errorf("unmarshalling JSON response from volume plugin %s: %w", p.Name, err)
 		}
 
 		return p.makeErrorResponse(errStruct.Err, endpoint, volName)
@@ -310,14 +307,14 @@ func (p *VolumePlugin) ListVolumes() ([]*volume.Volume, error) {
 		return nil, err
 	}
 
-	volumeRespBytes, err := ioutil.ReadAll(resp.Body)
+	volumeRespBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
+		return nil, fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 	}
 
 	volumeResp := new(volume.ListResponse)
 	if err := json.Unmarshal(volumeRespBytes, volumeResp); err != nil {
-		return nil, fmt.Errorf("error unmarshalling volume plugin %s list response: %w", p.Name, err)
+		return nil, fmt.Errorf("unmarshalling volume plugin %s list response: %w", p.Name, err)
 	}
 
 	return volumeResp.Volumes, nil
@@ -345,14 +342,14 @@ func (p *VolumePlugin) GetVolume(req *volume.GetRequest) (*volume.Volume, error)
 		return nil, err
 	}
 
-	getRespBytes, err := ioutil.ReadAll(resp.Body)
+	getRespBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
+		return nil, fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 	}
 
 	getResp := new(volume.GetResponse)
 	if err := json.Unmarshal(getRespBytes, getResp); err != nil {
-		return nil, fmt.Errorf("error unmarshalling volume plugin %s get response: %w", p.Name, err)
+		return nil, fmt.Errorf("unmarshalling volume plugin %s get response: %w", p.Name, err)
 	}
 
 	return getResp.Volume, nil
@@ -401,14 +398,14 @@ func (p *VolumePlugin) GetVolumePath(req *volume.PathRequest) (string, error) {
 		return "", err
 	}
 
-	pathRespBytes, err := ioutil.ReadAll(resp.Body)
+	pathRespBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
+		return "", fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 	}
 
 	pathResp := new(volume.PathResponse)
 	if err := json.Unmarshal(pathRespBytes, pathResp); err != nil {
-		return "", fmt.Errorf("error unmarshalling volume plugin %s path response: %w", p.Name, err)
+		return "", fmt.Errorf("unmarshalling volume plugin %s path response: %w", p.Name, err)
 	}
 
 	return pathResp.Mountpoint, nil
@@ -438,14 +435,14 @@ func (p *VolumePlugin) MountVolume(req *volume.MountRequest) (string, error) {
 		return "", err
 	}
 
-	mountRespBytes, err := ioutil.ReadAll(resp.Body)
+	mountRespBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
+		return "", fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 	}
 
 	mountResp := new(volume.MountResponse)
 	if err := json.Unmarshal(mountRespBytes, mountResp); err != nil {
-		return "", fmt.Errorf("error unmarshalling volume plugin %s path response: %w", p.Name, err)
+		return "", fmt.Errorf("unmarshalling volume plugin %s path response: %w", p.Name, err)
 	}
 
 	return mountResp.Mountpoint, nil
