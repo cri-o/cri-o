@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 
 	"sigs.k8s.io/release-utils/util"
 )
@@ -89,28 +89,33 @@ func (catalog *Catalog) WriteLicensesAsText(targetDir string) error {
 			return fmt.Errorf("creating license data dir: %w", err)
 		}
 	}
-	wg := sync.WaitGroup{}
+
+	var wg errgroup.Group
 	var err error
 	for _, l := range catalog.List.Licenses {
-		wg.Add(1)
-		go func(l *License) {
-			defer wg.Done()
+		l := l
+		wg.Go(func() error {
 			if l.IsDeprecatedLicenseID {
-				return
+				return nil
 			}
-			if lerr := l.WriteText(filepath.Join(targetDir, l.LicenseID+".txt")); err != nil {
+			licPath := filepath.Join(targetDir, "assets", l.LicenseID)
+			if !util.Exists(licPath) {
+				if err = os.MkdirAll(licPath, 0o755); err != nil {
+					err = fmt.Errorf("creating license directory: %w", err)
+				}
+			}
+			if lerr := l.WriteText(filepath.Join(licPath, "license.txt")); err != nil {
 				if err == nil {
 					err = lerr
 				} else {
 					err = fmt.Errorf("%v: %w", lerr, err)
 				}
 			}
-		}(l)
+			return nil
+		})
 	}
-	wg.Wait()
-
-	if err != nil {
-		return fmt.Errorf("caught errors while writing license files: %w", err)
+	if err := wg.Wait(); err != nil {
+		return fmt.Errorf("while writing license files: %w", err)
 	}
 	return nil
 }
@@ -120,6 +125,6 @@ func (catalog *Catalog) GetLicense(label string) *License {
 	if lic, ok := catalog.List.Licenses[label]; ok {
 		return lic
 	}
-	logrus.Warn("Label %s is not an identifier of a known license " + label)
+	logrus.Warnf("Label %s is not an identifier of a known license ", label)
 	return nil
 }

@@ -24,7 +24,7 @@ import (
 
 	"sigs.k8s.io/bom/pkg/query"
 	"sigs.k8s.io/bom/pkg/spdx"
-	v222 "sigs.k8s.io/bom/pkg/spdx/json/v2.2.2"
+	spdxJSON "sigs.k8s.io/bom/pkg/spdx/json/v2.3"
 )
 
 type Serializer interface {
@@ -49,11 +49,11 @@ func (json *JSON) Serialize(doc *spdx.Document) (string, error) {
 	if _, err := doc.Render(); err != nil {
 		return "", fmt.Errorf("pre-rendering the document: %w", err)
 	}
-	jsonDoc := v222.Document{
+	jsonDoc := spdxJSON.Document{
 		ID:      doc.ID,
 		Name:    doc.Name,
-		Version: v222.Version,
-		CreationInfo: v222.CreationInfo{
+		Version: spdxJSON.Version,
+		CreationInfo: spdxJSON.CreationInfo{
 			Created: time.Now().UTC().Format("2006-01-02T15:04:05Z07:00"),
 			Creators: []string{
 				"Tool: sigs.k8s.io/bom/pkg/spdx",
@@ -63,8 +63,8 @@ func (json *JSON) Serialize(doc *spdx.Document) (string, error) {
 		DataLicense:       doc.DataLicense,
 		Namespace:         doc.Namespace,
 		DocumentDescribes: []string{},
-		Packages:          []v222.Package{},
-		Relationships:     []v222.Relationship{},
+		Packages:          []spdxJSON.Package{},
+		Relationships:     []spdxJSON.Relationship{},
 	}
 
 	// Generate the array for the cycler
@@ -93,7 +93,7 @@ func (json *JSON) Serialize(doc *spdx.Document) (string, error) {
 
 			// Add the package's relationships to the doc
 			for _, r := range *p.GetRelationships() {
-				jsonDoc.Relationships = append(jsonDoc.Relationships, v222.Relationship{
+				jsonDoc.Relationships = append(jsonDoc.Relationships, spdxJSON.Relationship{
 					Element: p.SPDXID(),
 					Type:    string(r.Type),
 					Related: r.Peer.SPDXID(),
@@ -110,7 +110,7 @@ func (json *JSON) Serialize(doc *spdx.Document) (string, error) {
 
 			// Add the package's relationships to the doc
 			for _, r := range *f.GetRelationships() {
-				jsonDoc.Relationships = append(jsonDoc.Relationships, v222.Relationship{
+				jsonDoc.Relationships = append(jsonDoc.Relationships, spdxJSON.Relationship{
 					Element: f.SPDXID(),
 					Type:    string(r.Type),
 					Related: r.Peer.SPDXID(),
@@ -128,7 +128,7 @@ func (json *JSON) Serialize(doc *spdx.Document) (string, error) {
 
 // buildJSONPackage converts a SPDX package struct to a json package
 // TODO(pueco): Validate package information to make sure its a valid package
-func (json *JSON) buildJSONPackage(p *spdx.Package) (jsonPackage v222.Package, err error) {
+func (json *JSON) buildJSONPackage(p *spdx.Package) (jsonPackage spdxJSON.Package, err error) {
 	// Update the Verification code
 	if err := p.ComputeVerificationCode(); err != nil {
 		return jsonPackage, fmt.Errorf("computing verification code: %w", err)
@@ -139,7 +139,13 @@ func (json *JSON) buildJSONPackage(p *spdx.Package) (jsonPackage v222.Package, e
 		return jsonPackage, fmt.Errorf("computing license list from files: %w", err)
 	}
 
-	jsonPackage = v222.Package{
+	externalRefs := make([]spdxJSON.ExternalRef, len(p.ExternalRefs))
+	for i, ref := range p.ExternalRefs {
+		externalRefs[i].Category = ref.Category
+		externalRefs[i].Locator = ref.Locator
+		externalRefs[i].Type = ref.Type
+	}
+	jsonPackage = spdxJSON.Package{
 		ID:                   p.SPDXID(),
 		Name:                 p.Name,
 		Version:              p.Version,
@@ -148,11 +154,12 @@ func (json *JSON) buildJSONPackage(p *spdx.Package) (jsonPackage v222.Package, e
 		LicenseDeclared:      p.LicenseDeclared,
 		DownloadLocation:     p.DownloadLocation,
 		LicenseInfoFromFiles: p.LicenseInfoFromFiles,
+		PrimaryPurpose:       p.PrimaryPurpose,
 		CopyrightText:        p.CopyrightText,
 		HasFiles:             []string{},
-		Checksums:            []v222.Checksum{},
-		ExternalRefs:         []v222.ExternalRef{},
-		VerificationCode: v222.PackageVerificationCode{
+		Checksums:            []spdxJSON.Checksum{},
+		ExternalRefs:         externalRefs,
+		VerificationCode: spdxJSON.PackageVerificationCode{
 			Value: p.VerificationCode,
 		},
 	}
@@ -168,8 +175,9 @@ func (json *JSON) buildJSONPackage(p *spdx.Package) (jsonPackage v222.Package, e
 	if jsonPackage.DownloadLocation == "" {
 		jsonPackage.DownloadLocation = spdx.NONE
 	}
+
 	for algo, value := range p.Checksum {
-		jsonPackage.Checksums = append(jsonPackage.Checksums, v222.Checksum{
+		jsonPackage.Checksums = append(jsonPackage.Checksums, spdxJSON.Checksum{
 			Algorithm: algo,
 			Value:     value,
 		})
@@ -194,11 +202,11 @@ func (json *JSON) buildJSONPackage(p *spdx.Package) (jsonPackage v222.Package, e
 // TODO(pueco): Validate file information , eg check checksums are
 // enum : [ "SHA256", "SHA1", "SHA384", "MD2", "MD4", "SHA512", "MD6", "MD5", "SHA224" ]
 // "required" : [ "SPDXID", "copyrightText", "fileName", "licenseConcluded" ],
-func (json *JSON) buildJSONFile(f *spdx.File) (jsonFile v222.File, err error) {
+func (json *JSON) buildJSONFile(f *spdx.File) (jsonFile spdxJSON.File, err error) {
 	if f.SPDXID() == "" {
 		return jsonFile, fmt.Errorf("unamble to serialzie file, it has no SPDX ID defined")
 	}
-	jsonFile = v222.File{
+	jsonFile = spdxJSON.File{
 		ID:            f.SPDXID(),
 		Name:          f.Name,
 		CopyrightText: f.CopyrightText,
@@ -207,7 +215,7 @@ func (json *JSON) buildJSONFile(f *spdx.File) (jsonFile v222.File, err error) {
 		// Description:       f.Description,
 		FileTypes:         f.FileType,
 		LicenseInfoInFile: []string{f.LicenseInfoInFile},
-		Checksums:         []v222.Checksum{},
+		Checksums:         []spdxJSON.Checksum{},
 	}
 	if jsonFile.LicenseConcluded == "" {
 		jsonFile.LicenseConcluded = spdx.NOASSERTION
@@ -216,7 +224,7 @@ func (json *JSON) buildJSONFile(f *spdx.File) (jsonFile v222.File, err error) {
 		jsonFile.CopyrightText = spdx.NOASSERTION
 	}
 	for algo, value := range f.Checksum {
-		jsonFile.Checksums = append(jsonFile.Checksums, v222.Checksum{
+		jsonFile.Checksums = append(jsonFile.Checksums, spdxJSON.Checksum{
 			Algorithm: algo,
 			Value:     value,
 		})

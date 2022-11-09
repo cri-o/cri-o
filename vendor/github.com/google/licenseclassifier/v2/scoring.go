@@ -18,6 +18,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -40,8 +41,13 @@ func (c *Classifier) score(id string, unknown, known *indexedDocument, unknownSt
 	knownLength := known.size()
 	diffs := docDiff(id, unknown, unknownStart, unknownEnd, known, 0, knownLength)
 
-	start, end := diffRange(known.norm, diffs)
+	start, end := diffRange(known.Norm, diffs)
 	distance := scoreDiffs(id, diffs[start:end])
+
+	if c.tc.traceScoring(known.s.origin) {
+		c.tc.trace("Diffs against %s:\n%s", known.s.origin, spew.Sdump(diffs[start:end]))
+	}
+
 	if distance < 0 {
 		// If the distance is negative, this indicates an unacceptable diff so we return a zero-confidence match.
 		if c.tc.traceScoring(known.s.origin) {
@@ -126,7 +132,7 @@ func scoreDiffs(id string, diffs []diffmatchpatch.Diff) int {
 	// previously cached.
 	prevText := ""
 	prevDelete := ""
-	for _, diff := range diffs {
+	for i, diff := range diffs {
 		text := diff.Text
 		switch diff.Type {
 		case diffmatchpatch.DiffInsert:
@@ -162,13 +168,24 @@ func scoreDiffs(id string, diffs []diffmatchpatch.Diff) int {
 				"PHP":                              {"php"},
 				"SISSL":                            {"sun standards"},
 				"SGI-B":                            {"silicon graphics"},
+				"SunPro":                           {"sunpro"},
 				"X11":                              {"x consortium"},
 			}
 
 			for k, ps := range inducedPhrases {
-				if strings.HasPrefix(id, k) {
+				if strings.HasPrefix(LicenseName(id), k) {
 					for _, p := range ps {
 						if strings.Index(text, p) != -1 {
+							// Check to make sure there isn't a corresponding diff for this
+							// insert that also contains the text. This prevents against diff
+							// blocks that are too big and force a false hit on this check,
+							// which usually happens with URLs since they are stored in one
+							// token but can happen in other cases as well. We don't look just
+							// for delete diffs because the subsequent text may reference the
+							// content in case a URL was truncated.
+							if i+1 < len(diffs) && strings.Index(diffs[i+1].Text, p) != -1 {
+								continue
+							}
 							return introducedPhraseChange
 						}
 					}
@@ -184,8 +201,9 @@ func scoreDiffs(id string, diffs []diffmatchpatch.Diff) int {
 				// GPL instead of the LGPL. This is fine from a licensing perspective,
 				// but we need to tweak matching to ignore that particular case. In
 				// other circumstances, inserting or removing the word Lesser in the
-				// GPL context is not an acceptable change.
-				if !strings.Contains(prevText, "warranty") {
+				// GPL context is not an acceptable change. There is also a reference to
+				// it when suggesting to use the LGPL.
+				if !strings.Contains(prevText, "warranty") && !strings.Contains(prevText, "is covered by the gnu") {
 					return lesserGPLChange
 				}
 			}
@@ -194,9 +212,12 @@ func scoreDiffs(id string, diffs []diffmatchpatch.Diff) int {
 			prevDelete = ""
 
 		case diffmatchpatch.DiffDelete:
-			if text == "lesser" && strings.HasSuffix(prevText, "gnu") {
+			// Avoid substitution in most cases. The two exceptions are with usage
+			// statements that are talking about *another* license, and don't affect
+			// the detection of the current license.
+			if (text == "lesser" || text == "library") && strings.HasSuffix(prevText, "gnu") {
 				// Same as above to avoid matching GPL instead of LGPL here.
-				if !strings.Contains(prevText, "warranty") {
+				if !strings.Contains(prevText, "warranty") && !strings.Contains(prevText, "is covered by the gnu") {
 					return lesserGPLChange
 				}
 			}

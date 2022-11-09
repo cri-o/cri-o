@@ -21,7 +21,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -61,14 +60,14 @@ func (h *goRunnerHandler) ReadPackageData(layerPath string, pkg *Package) error 
 		return fmt.Errorf("fetching go-runner VERSION file: %w", err)
 	}
 
-	df, err := ioutil.TempFile(os.TempDir(), "gorunner-dockerfile-")
+	df, err := os.CreateTemp(os.TempDir(), "gorunner-dockerfile-")
 	if err != nil {
 		return fmt.Errorf("creating temporary file to read go-runner license: %w", err)
 	}
 	defer df.Close()
 	defer os.Remove(df.Name())
 
-	if err := ioutil.WriteFile(df.Name(), lic, os.FileMode(0o644)); err != nil {
+	if err := os.WriteFile(df.Name(), lic, os.FileMode(0o644)); err != nil {
 		return fmt.Errorf("writing go-runner license to temp file: %w", err)
 	}
 

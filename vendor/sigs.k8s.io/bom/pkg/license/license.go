@@ -180,7 +180,7 @@ func (r *Reader) ReadTopLicense(path string) (*ClassifyResult, error) {
 			return nil, fmt.Errorf("scanning topmost license file: %w", err)
 		}
 		if len(result) != 0 {
-			logrus.Infof("Concluded license %s from %s", result[0].License.LicenseID, licenseFilePath)
+			logrus.Debugf("Concluded license %s from %s", result[0].License.LicenseID, licenseFilePath)
 			return result[0], nil
 		}
 	}
@@ -224,9 +224,9 @@ func (r *Reader) ReadTopLicense(path string) (*ClassifyResult, error) {
 		}
 	}
 	if res == nil {
-		logrus.Warnf("Could not find any licensing information in %s", path)
+		logrus.Debugf("Could not find any licensing information in %s", path)
 	} else {
-		logrus.Infof("Concluded license %s from %s", res.License.LicenseID, licenseFilePath)
+		logrus.Debugf("Concluded license %s from %s", res.License.LicenseID, licenseFilePath)
 	}
 	return res, nil
 }
