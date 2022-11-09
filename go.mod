@@ -26,7 +26,7 @@ require (
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/podman/v4 v4.2.1
 	github.com/containers/storage v1.43.0
-	github.com/coreos/go-systemd/v22 v22.4.0
+	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.18
 	github.com/cri-o/ocicni v0.4.0
