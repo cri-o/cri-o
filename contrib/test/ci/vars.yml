@@ -33,6 +33,11 @@ int_test_env:
     STORAGE_OPTIONS: >
         --storage-driver=overlay
 
+# Environment variables to set when executing integration tests with crun (mixed with int_test_env)
+crun_test_env:
+    CONTAINER_DEFAULT_RUNTIME: "crun"
+    CONTAINER_RUNTIMES: "crun::/run/crun:oci"
+
 # for ssh ID generation
 ssh_user: "{{ lookup('env','USER') }}"
 ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"

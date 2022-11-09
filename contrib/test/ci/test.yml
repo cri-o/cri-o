@@ -34,6 +34,11 @@
     path: "{{ artifacts }}"
     state: directory
 
+- name: set crun runtime if enabled
+  set_fact:
+    int_test_env: "{{ int_test_env | combine(crun_test_env) }}"
+  when: "build_crun | bool"
+
 - name: kata configuration
   block:
     - name: configure integration test suite for kata
