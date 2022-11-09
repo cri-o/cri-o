@@ -324,7 +324,9 @@ func (u *unmarshalInfo) computeUnmarshalInfo() {
 			}
 			panic("bad type for XXX_extensions field: " + f.Type.Name())
 		}
-		if f.Name == "XXX_NoUnkeyedLiteral" || f.Name == "XXX_sizecache" {
+		// ignore all fields that are not known to gogo/protobuf, to avoid panic
+		// this is a temporary hack, waiting for containerd removal of gogo/protobuf dependency
+		if f.Name == "XXX_NoUnkeyedLiteral" || f.Name == "XXX_sizecache" || f.Name == "state" || f.Name == "sizeCache" || f.Name == "unknownFields" {
 			continue
 		}
 
