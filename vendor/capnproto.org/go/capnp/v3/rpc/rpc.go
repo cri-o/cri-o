@@ -10,7 +10,7 @@ import (
 
 	"capnproto.org/go/capnp/v3"
 	"capnproto.org/go/capnp/v3/exc"
-	"capnproto.org/go/capnp/v3/internal/mpsc"
+	"capnproto.org/go/capnp/v3/exp/mpsc"
 	"capnproto.org/go/capnp/v3/internal/syncutil"
 	rpccp "capnproto.org/go/capnp/v3/std/capnp/rpc"
 	"golang.org/x/sync/errgroup"
@@ -207,6 +207,7 @@ func (c *Conn) Bootstrap(ctx context.Context) (bc capnp.Client) {
 	if !c.startTask() {
 		return capnp.ErrorClient(rpcerr.Disconnectedf("connection closed"))
 	}
+	defer c.tasks.Done()
 
 	bootCtx, cancel := context.WithCancel(ctx)
 	q := c.newQuestion(capnp.Method{})
@@ -223,15 +224,14 @@ func (c *Conn) Bootstrap(ctx context.Context) (bc capnp.Client) {
 		return err
 
 	}, func(err error) {
-		defer c.tasks.Done()
-
-		c.mu.Lock()
-		defer c.mu.Unlock()
-
 		if err != nil {
-			c.questions[q.id] = nil
-			c.questionID.remove(uint32(q.id))
+			syncutil.With(&c.mu, func() {
+				c.questions[q.id] = nil
+			})
 			q.bootstrapPromise.Reject(exc.Annotate("rpc", "bootstrap", err))
+			syncutil.With(&c.mu, func() {
+				c.questionID.remove(uint32(q.id))
+			})
 			return
 		}
 
@@ -343,6 +343,7 @@ func (c *Conn) release() {
 	exports := c.exports
 	embargoes := c.embargoes
 	answers := c.answers
+	questions := c.questions
 	c.imports = nil
 	c.exports = nil
 	c.embargoes = nil
@@ -356,6 +357,7 @@ func (c *Conn) release() {
 	c.releaseExports(exports)
 	c.liftEmbargoes(embargoes)
 	c.releaseAnswers(answers)
+	c.releaseQuestions(questions)
 
 }
 
@@ -390,6 +392,18 @@ func (c *Conn) releaseAnswers(answers map[answerID]*answer) {
 		if a != nil {
 			releaseList(a.resultCapTable).release()
 			a.releaseMsg()
+		}
+	}
+}
+
+func (c *Conn) releaseQuestions(questions []*question) {
+	for _, q := range questions {
+		canceled := q != nil && q.flags&finished != 0
+		if !canceled {
+			// Only reject the question if it isn't already flagged
+			// as finished; otherwise it was rejected when the finished
+			// flag was set.
+			q.Reject(ExcClosed)
 		}
 	}
 }
@@ -652,7 +666,6 @@ func (c *Conn) handleCall(ctx context.Context, call rpccp.Call, releaseCall capn
 			c.answers[id] = errorAnswer(c, id, err)
 		})
 		c.er.ReportError(err)
-		clearCapTable(call.Message())
 		releaseCall()
 		return nil
 	}
@@ -675,7 +688,6 @@ func (c *Conn) handleCall(ctx context.Context, call rpccp.Call, releaseCall capn
 		c.mu.Unlock()
 		c.er.ReportError(parseErr)
 		rl.release()
-		clearCapTable(call.Message())
 		releaseCall()
 		return nil
 	}
@@ -685,7 +697,6 @@ func (c *Conn) handleCall(ctx context.Context, call rpccp.Call, releaseCall capn
 			return
 		}
 		released = true
-		clearCapTable(call.Message())
 		releaseCall()
 	}
 	switch p.target.which {
@@ -697,7 +708,6 @@ func (c *Conn) handleCall(ctx context.Context, call rpccp.Call, releaseCall capn
 			ans.releaseMsg = nil
 			c.mu.Unlock()
 			releaseRet()
-			clearCapTable(call.Message())
 			releaseCall()
 			return rpcerr.Failedf("incoming call: unknown export ID %d", id)
 		}
@@ -724,7 +734,6 @@ func (c *Conn) handleCall(ctx context.Context, call rpccp.Call, releaseCall capn
 			ans.releaseMsg = nil
 			c.mu.Unlock()
 			releaseRet()
-			clearCapTable(call.Message())
 			releaseCall()
 			return rpcerr.Failedf("incoming call: use of unknown or finished answer ID %d for promised answer target", p.target.promisedAnswer)
 		}
@@ -734,7 +743,6 @@ func (c *Conn) handleCall(ctx context.Context, call rpccp.Call, releaseCall capn
 				rl := ans.sendException(tgtAns.err)
 				c.mu.Unlock()
 				rl.release()
-				clearCapTable(call.Message())
 				releaseCall()
 				return nil
 			}
@@ -748,7 +756,6 @@ func (c *Conn) handleCall(ctx context.Context, call rpccp.Call, releaseCall capn
 				rl := ans.sendException(err)
 				c.mu.Unlock()
 				rl.release()
-				clearCapTable(call.Message())
 				releaseCall()
 				c.er.ReportError(err)
 				return nil
@@ -759,7 +766,6 @@ func (c *Conn) handleCall(ctx context.Context, call rpccp.Call, releaseCall capn
 				rl := ans.sendException(err)
 				c.mu.Unlock()
 				rl.release()
-				clearCapTable(call.Message())
 				releaseCall()
 				return nil
 			}
@@ -951,7 +957,6 @@ func (c *Conn) handleReturn(ctx context.Context, ret rpccp.Return, release capnp
 				q.p.Fulfill(pr.result)
 				q.bootstrapPromise.Fulfill(q.p.Answer().Client())
 				q.p.ReleaseClients()
-				clearCapTable(pr.result.Message())
 				release()
 			})
 		case q.bootstrapPromise != nil && pr.err != nil:
@@ -971,11 +976,7 @@ func (c *Conn) handleReturn(ctx context.Context, ret rpccp.Return, release capnp
 				release()
 			})
 		default:
-			m := ret.Message()
-			q.release = func() {
-				clearCapTable(m)
-				release()
-			}
+			q.release = release
 			syncutil.Without(&c.mu, func() {
 				q.p.Fulfill(pr.result)
 			})
@@ -1464,15 +1465,20 @@ func (c *Conn) startTask() (ok bool) {
 // The caller MUST hold c.mu.  The callback will be called without
 // holding c.mu.  Callers of sendMessage MAY wish to reacquire the
 // c.mu within the callback.
-func (c *Conn) sendMessage(ctx context.Context, f func(rpccp.Message) error, callback func(error)) error {
+func (c *Conn) sendMessage(ctx context.Context, f func(rpccp.Message) error, callback func(error)) {
 	msg, send, release, err := c.transport.NewMessage(ctx)
-	if err != nil {
-		return rpcerr.Failedf("create message: %w", err)
-	}
 
-	if err = f(msg); err != nil {
-		release()
-		return rpcerr.Failedf("build message: %w", err)
+	// If errors happen when allocating or building the message, set up dummy send/release
+	// functions so the error handling logic in callback() runs as normal:
+	if err != nil {
+		release = func() {}
+		send = func() error {
+			return rpcerr.Failedf("create message: %w", err)
+		}
+	} else if err = f(msg); err != nil {
+		send = func() error {
+			return rpcerr.Failedf("build message: %w", err)
+		}
 	}
 
 	c.sender.Send(asyncSend{
@@ -1480,8 +1486,6 @@ func (c *Conn) sendMessage(ctx context.Context, f func(rpccp.Message) error, cal
 		send:     send,
 		callback: callback,
 	})
-
-	return nil
 }
 
 type asyncSend struct {
@@ -1508,9 +1512,4 @@ func (as asyncSend) Send() {
 
 		as.callback(err)
 	}
-}
-
-func clearCapTable(msg *capnp.Message) {
-	releaseList(msg.CapTable).release()
-	msg.CapTable = nil
 }

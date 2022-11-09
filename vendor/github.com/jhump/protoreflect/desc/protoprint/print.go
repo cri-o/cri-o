@@ -139,6 +139,31 @@ type Printer struct {
 	// When printing fully-qualified names, they will be preceded by a dot, to
 	// avoid any ambiguity that they might be relative vs. fully-qualified.
 	ForceFullyQualifiedNames bool
+
+	// The number of options that trigger short options expressions to be
+	// rendered using multiple lines. Short options expressions are those
+	// found on fields and enum values, that use brackets ("[" and "]") and
+	// comma-separated options. If more options than this are present, they
+	// will be expanded to multiple lines (one option per line).
+	//
+	// If unset (e.g. if zero), a default threshold of 3 is used.
+	ShortOptionsExpansionThresholdCount int
+
+	// The length of printed options that trigger short options expressions to
+	// be rendered using multiple lines. If the short options contain more than
+	// one option and their printed length is longer than this threshold, they
+	// will be expanded to multiple lines (one option per line).
+	//
+	// If unset (e.g. if zero), a default threshold of 50 is used.
+	ShortOptionsExpansionThresholdLength int
+
+	// The length of a printed option value message literal that triggers the
+	// message literal to be rendered using multiple lines instead of using a
+	// compact single-line form. The message must include at least two fields
+	// or contain a field that is a nested message to be expanded.
+	//
+	// If unset (e.g. if zero), a default threshold of 50 is used.
+	MessageLiteralExpansionThresholdLength int
 }
 
 // CommentType is a kind of comments in a proto source file. This can be used
@@ -990,10 +1015,7 @@ func (p *Printer) printField(fld *desc.FieldDescriptor, mf *dynamic.MessageFacto
 			opts[-internal.Field_jsonNameTag] = []option{{name: "json_name", val: jsn}}
 		}
 
-		elements := elementAddrs{dsc: fld, opts: opts}
-		elements.addrs = optionsAsElementAddrs(internal.Field_optionsTag, 0, opts)
-		p.sort(elements, sourceInfo, path)
-		p.printOptionElementsShort(elements, w, sourceInfo, path, indent)
+		p.printOptionsShort(fld, opts, internal.Field_optionsTag, w, sourceInfo, path, indent)
 
 		if group {
 			fmt.Fprintln(w, "{")
@@ -1161,7 +1183,7 @@ func (p *Printer) printExtensionRanges(parent *desc.MessageDescriptor, ranges []
 		})
 	}
 	dsc := extensionRange{owner: parent, extRange: ranges[0]}
-	p.printOptionsShort(dsc, opts, mf, internal.ExtensionRange_optionsTag, w, sourceInfo, elPath, indent)
+	p.extractAndPrintOptionsShort(dsc, opts, mf, internal.ExtensionRange_optionsTag, w, sourceInfo, elPath, indent)
 
 	fmt.Fprintln(w, ";")
 }
@@ -1319,7 +1341,7 @@ func (p *Printer) printEnumValue(evd *desc.EnumValueDescriptor, mf *dynamic.Mess
 		numSi := sourceInfo.Get(append(path, internal.EnumVal_numberTag))
 		p.printElementString(numSi, w, indent, fmt.Sprintf("%d", evd.GetNumber()))
 
-		p.printOptionsShort(evd, evd.GetOptions(), mf, internal.EnumVal_optionsTag, w, sourceInfo, path, indent)
+		p.extractAndPrintOptionsShort(evd, evd.GetOptions(), mf, internal.EnumVal_optionsTag, w, sourceInfo, path, indent)
 
 		fmt.Fprint(w, ";")
 	})
@@ -1417,14 +1439,14 @@ func (p *Printer) printMethod(mtd *desc.MethodDescriptor, mf *dynamic.MessageFac
 			elements := elementAddrs{dsc: mtd, opts: opts}
 			elements.addrs = optionsAsElementAddrs(internal.Method_optionsTag, 0, opts)
 			p.sort(elements, sourceInfo, path)
-			path = append(path, internal.Method_optionsTag)
 
-			for i, addr := range elements.addrs {
+			for i, el := range elements.addrs {
 				if i > 0 {
 					p.newLine(w)
 				}
-				o := elements.at(addr).([]option)
-				p.printOptionsLong(o, w, sourceInfo, path, indent)
+				o := elements.at(el).([]option)
+				childPath := append(path, el.elementType, int32(el.elementIndex))
+				p.printOptionsLong(o, w, sourceInfo, childPath, indent)
 			}
 
 			p.indent(w, indent-1)
@@ -1441,15 +1463,16 @@ func (p *Printer) printOptionsLong(opts []option, w *writer, sourceInfo internal
 		func(i int32) *descriptor.SourceCodeInfo_Location {
 			return sourceInfo.Get(append(path, i))
 		},
-		func(w *writer, indent int, opt option) {
+		func(w *writer, indent int, opt option, _ bool) {
 			p.indent(w, indent)
 			fmt.Fprint(w, "option ")
 			p.printOption(opt.name, opt.val, w, indent)
 			fmt.Fprint(w, ";")
-		})
+		},
+		false)
 }
 
-func (p *Printer) printOptionsShort(dsc interface{}, optsMsg proto.Message, mf *dynamic.MessageFactory, optsTag int32, w *writer, sourceInfo internal.SourceInfoMap, path []int32, indent int) {
+func (p *Printer) extractAndPrintOptionsShort(dsc interface{}, optsMsg proto.Message, mf *dynamic.MessageFactory, optsTag int32, w *writer, sourceInfo internal.SourceInfoMap, path []int32, indent int) {
 	d, ok := dsc.(desc.Descriptor)
 	if !ok {
 		d = dsc.(extensionRange).owner
@@ -1461,20 +1484,64 @@ func (p *Printer) printOptionsShort(dsc interface{}, optsMsg proto.Message, mf *
 		}
 		return
 	}
-
-	elements := elementAddrs{dsc: dsc, opts: opts}
-	elements.addrs = optionsAsElementAddrs(optsTag, 0, opts)
-	p.sort(elements, sourceInfo, path)
-	p.printOptionElementsShort(elements, w, sourceInfo, path, indent)
+	p.printOptionsShort(dsc, opts, optsTag, w, sourceInfo, path, indent)
 }
 
-func (p *Printer) printOptionElementsShort(addrs elementAddrs, w *writer, sourceInfo internal.SourceInfoMap, path []int32, indent int) {
-	if len(addrs.addrs) == 0 {
+func (p *Printer) printOptionsShort(dsc interface{}, opts map[int32][]option, optsTag int32, w *writer, sourceInfo internal.SourceInfoMap, path []int32, indent int) {
+	elements := elementAddrs{dsc: dsc, opts: opts}
+	elements.addrs = optionsAsElementAddrs(optsTag, 0, opts)
+	if len(elements.addrs) == 0 {
 		return
 	}
-	first := true
-	fmt.Fprint(w, "[")
-	for _, addr := range addrs.addrs {
+	p.sort(elements, sourceInfo, path)
+
+	// we render expanded form if there are many options
+	count := 0
+	for _, addr := range elements.addrs {
+		opts := elements.at(addr).([]option)
+		count += len(opts)
+	}
+	threshold := p.ShortOptionsExpansionThresholdCount
+	if threshold <= 0 {
+		threshold = 3
+	}
+
+	if count > threshold {
+		p.printOptionElementsShort(elements, w, sourceInfo, path, indent, true)
+	} else {
+		var tmp bytes.Buffer
+		tmpW := *w
+		tmpW.Writer = &tmp
+		p.printOptionElementsShort(elements, &tmpW, sourceInfo, path, indent, false)
+		threshold := p.ShortOptionsExpansionThresholdLength
+		if threshold <= 0 {
+			threshold = 50
+		}
+		// we subtract 3 so we don't consider the leading " [" and trailing "]"
+		if tmp.Len()-3 > threshold {
+			p.printOptionElementsShort(elements, w, sourceInfo, path, indent, true)
+		} else {
+			// not too long: commit what we rendered
+			b := tmp.Bytes()
+			if w.space && len(b) > 0 && b[0] == ' ' {
+				// don't write extra space
+				b = b[1:]
+			}
+			w.Write(b)
+			w.newline = tmpW.newline
+			w.space = tmpW.space
+		}
+	}
+}
+
+func (p *Printer) printOptionElementsShort(addrs elementAddrs, w *writer, sourceInfo internal.SourceInfoMap, path []int32, indent int, expand bool) {
+	if expand {
+		fmt.Fprintln(w, "[")
+		indent++
+	} else {
+		fmt.Fprint(w, "[")
+	}
+	for i, addr := range addrs.addrs {
 		opts := addrs.at(addr).([]option)
 		var childPath []int32
 		if addr.elementIndex < 0 {
@@ -1483,7 +1550,11 @@ func (p *Printer) printOptionElementsShort(addrs elementAddrs, w *writer, source
 		} else {
 			childPath = append(path, addr.elementType, int32(addr.elementIndex))
 		}
-		p.printOptions(opts, w, inline(indent),
+		optIndent := indent
+		if !expand {
+			optIndent = inline(indent)
+		}
+		p.printOptions(opts, w, optIndent,
 			func(i int32) *descriptor.SourceCodeInfo_Location {
 				p := childPath
 				if addr.elementIndex >= 0 {
@@ -1491,24 +1562,36 @@ func (p *Printer) printOptionElementsShort(addrs elementAddrs, w *writer, source
 				}
 				return sourceInfo.Get(p)
 			},
-			func(w *writer, indent int, opt option) {
-				if first {
-					first = false
-				} else {
-					fmt.Fprint(w, ", ")
+			func(w *writer, indent int, opt option, more bool) {
+				if expand {
+					p.indent(w, indent)
 				}
 				p.printOption(opt.name, opt.val, w, indent)
-				fmt.Fprint(w, " ") // trailing space
-			})
+				if more {
+					if expand {
+						fmt.Fprintln(w, ",")
+					} else {
+						fmt.Fprint(w, ", ")
+					}
+				}
+			},
+			i < len(addrs.addrs)-1)
+	}
+	if expand {
+		p.indent(w, indent-1)
 	}
 	fmt.Fprint(w, "] ")
 }
 
-func (p *Printer) printOptions(opts []option, w *writer, indent int, siFetch func(i int32) *descriptor.SourceCodeInfo_Location, fn func(w *writer, indent int, opt option)) {
+func (p *Printer) printOptions(opts []option, w *writer, indent int, siFetch func(i int32) *descriptor.SourceCodeInfo_Location, fn func(w *writer, indent int, opt option, more bool), haveMore bool) {
 	for i, opt := range opts {
+		more := haveMore
+		if !more {
+			more = i < len(opts)-1
+		}
 		si := siFetch(int32(i))
 		p.printElement(false, si, w, indent, func(w *writer) {
-			fn(w, indent, opt)
+			fn(w, indent, opt, more)
 		})
 	}
 }
@@ -1581,15 +1664,68 @@ func (p *Printer) printOption(name string, optVal interface{}, w *writer, indent
 	case *desc.EnumValueDescriptor:
 		fmt.Fprintf(w, "%s", optVal.GetName())
 	case proto.Message:
-		// TODO: if value is too long, marshal to text format with indentation to
-		// make output prettier (also requires correctly indenting subsequent lines)
-
 		// TODO: alternate approach so we can apply p.ForceFullyQualifiedNames
 		// inside the resulting value?
 
-		fmt.Fprintf(w, "{ %s }", proto.CompactTextString(optVal))
+		if indent < 0 {
+			// if printing inline, always use compact form
+			fmt.Fprintf(w, "{ %s }", proto.CompactTextString(optVal))
+			return
+		}
+		m := proto.TextMarshaler{
+			Compact:   true,
+			ExpandAny: true,
+		}
+		str := strings.TrimSuffix(m.Text(optVal), " ")
+		fieldCount := strings.Count(str, ":")
+		nestedCount := strings.Count(str, "{") + strings.Count(str, "<")
+		if fieldCount <= 1 && nestedCount == 0 {
+			// can't expand
+			fmt.Fprintf(w, "{ %s }", str)
+			return
+		}
+		threshold := p.MessageLiteralExpansionThresholdLength
+		if threshold == 0 {
+			threshold = 50
+		}
+		if len(str) <= threshold {
+			// no need to expand
+			fmt.Fprintf(w, "{ %s }", str)
+			return
+		}
+
+		// multi-line form
+		m.Compact = false
+		str = m.Text(optVal)
+		fmt.Fprintln(w, "{")
+		p.indentMessageLiteral(w, indent+1, str)
+		p.indent(w, indent)
+		fmt.Fprint(w, "}")
 	default:
 		panic(fmt.Sprintf("unknown type of value %T for field %s", optVal, name))
+	}
+}
+
+func (p *Printer) indentMessageLiteral(w *writer, indent int, val string) {
+	lines := strings.Split(val, "\n")
+	for _, l := range lines {
+		if l == "" {
+			continue
+		}
+		if p.Indent != "  " {
+			var prefix int
+			for i := 0; i < len(l); i++ {
+				if l[i] != ' ' {
+					prefix = i
+					break
+				}
+			}
+			// replace text marshaller indent (2 spaces) with p.Indent
+			prefixStr := strings.ReplaceAll(l[:prefix], "  ", p.Indent)
+			l = prefixStr + l[prefix:]
+		}
+		p.indent(w, indent)
+		fmt.Fprintln(w, l)
 	}
 }
 
@@ -2433,7 +2569,7 @@ func (w *writer) Write(p []byte) (int, error) {
 	if w.space {
 		// skip any trailing space if the following
 		// character is semicolon, comma, or close bracket
-		if p[0] != ';' && p[0] != ',' && p[0] != ']' {
+		if p[0] != ';' && p[0] != ',' {
 			_, err := w.Writer.Write([]byte{' '})
 			if err != nil {
 				w.err = err

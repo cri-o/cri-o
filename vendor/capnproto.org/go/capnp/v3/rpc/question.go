@@ -157,9 +157,13 @@ func (q *question) PipelineSend(ctx context.Context, transform []capnp.PipelineO
 			return q.c.newPipelineCallMessage(m, q.id, transform, q2.id, s)
 		}, func(err error) {
 			if err != nil {
-				q.c.questions[q2.id] = nil
-				q.c.questionID.remove(uint32(q2.id))
-				q.p.Reject(rpcerr.Failedf("send message: %w", err))
+				syncutil.With(&q.c.mu, func() {
+					q.c.questions[q2.id] = nil
+				})
+				q2.p.Reject(rpcerr.Failedf("send message: %w", err))
+				syncutil.With(&q.c.mu, func() {
+					q.c.questionID.remove(uint32(q2.id))
+				})
 				return
 			}
 
@@ -169,7 +173,6 @@ func (q *question) PipelineSend(ctx context.Context, transform []capnp.PipelineO
 				q2.handleCancel(ctx)
 			}()
 		})
-
 	})
 
 	ans := q2.p.Answer()
@@ -226,10 +229,6 @@ func (c *Conn) newPipelineCallMessage(msg rpccp.Message, tgt questionID, transfo
 	}
 	m := args.Message()
 	if err := s.PlaceArgs(args); err != nil {
-		for _, c := range m.CapTable {
-			c.Release()
-		}
-		m.CapTable = nil
 		return rpcerr.Failedf("place arguments: %w", err)
 	}
 	clients := m.CapTable
@@ -237,7 +236,6 @@ func (c *Conn) newPipelineCallMessage(msg rpccp.Message, tgt questionID, transfo
 		// TODO(soon): save param refs
 		_, err = c.fillPayloadCapTable(payload, clients)
 	})
-	releaseList(clients).release()
 
 	if err != nil {
 		return rpcerr.Annotatef(err, "build call message")

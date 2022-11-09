@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -202,7 +201,7 @@ func GenerateFileMeta(r io.Reader, hashAlgorithms ...string) (data.FileMeta, err
 		hashes[hashAlgorithm] = h
 		r = io.TeeReader(r, h)
 	}
-	n, err := io.Copy(ioutil.Discard, r)
+	n, err := io.Copy(io.Discard, r)
 	if err != nil {
 		return data.FileMeta{}, err
 	}
@@ -218,7 +217,7 @@ type versionedMeta struct {
 }
 
 func generateVersionedFileMeta(r io.Reader, hashAlgorithms ...string) (data.FileMeta, int64, error) {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return data.FileMeta{}, 0, err
 	}
@@ -247,8 +246,9 @@ func GenerateSnapshotFileMeta(r io.Reader, hashAlgorithms ...string) (data.Snaps
 		return data.SnapshotFileMeta{}, err
 	}
 	return data.SnapshotFileMeta{
-		FileMeta: m,
-		Version:  v,
+		Length:  m.Length,
+		Hashes:  m.Hashes,
+		Version: v,
 	}, nil
 }
 
@@ -268,8 +268,9 @@ func GenerateTimestampFileMeta(r io.Reader, hashAlgorithms ...string) (data.Time
 		return data.TimestampFileMeta{}, err
 	}
 	return data.TimestampFileMeta{
-		FileMeta: m,
-		Version:  v,
+		Length:  m.Length,
+		Hashes:  m.Hashes,
+		Version: v,
 	}, nil
 }
 
@@ -299,7 +300,7 @@ func HashedPaths(p string, hashes data.Hashes) []string {
 
 func AtomicallyWriteFile(filename string, data []byte, perm os.FileMode) error {
 	dir, name := filepath.Split(filename)
-	f, err := ioutil.TempFile(dir, name)
+	f, err := os.CreateTemp(dir, name)
 	if err != nil {
 		return err
 	}

@@ -4,11 +4,11 @@
 package grpcdynamic
 
 import (
+	"context"
 	"fmt"
 	"io"
 
 	"github.com/golang/protobuf/proto"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
@@ -27,12 +27,7 @@ type Stub struct {
 // type used to construct Stubs. But the use of this interface allows
 // construction of stubs that use alternate concrete types as the transport for
 // RPC operations.
-type Channel interface {
-	Invoke(ctx context.Context, method string, args, reply interface{}, opts ...grpc.CallOption) error
-	NewStream(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error)
-}
-
-var _ Channel = (*grpc.ClientConn)(nil)
+type Channel = grpc.ClientConnInterface
 
 // NewStub creates a new RPC stub that uses the given channel for dispatching RPCs.
 func NewStub(channel Channel) Stub {
@@ -79,6 +74,7 @@ func (s Stub) InvokeRpcServerStream(ctx context.Context, method *desc.MethodDesc
 		ClientStreams: method.IsClientStreaming(),
 	}
 	if cs, err := s.channel.NewStream(ctx, &sd, requestMethod(method), opts...); err != nil {
+		cancel()
 		return nil, err
 	} else {
 		err = cs.SendMsg(request)
@@ -91,6 +87,11 @@ func (s Stub) InvokeRpcServerStream(ctx context.Context, method *desc.MethodDesc
 			cancel()
 			return nil, err
 		}
+		go func() {
+			// when the new stream is finished, also cleanup the parent context
+			<-cs.Context().Done()
+			cancel()
+		}()
 		return &ServerStream{cs, method.GetOutputType(), s.mf}, nil
 	}
 }
@@ -108,8 +109,14 @@ func (s Stub) InvokeRpcClientStream(ctx context.Context, method *desc.MethodDesc
 		ClientStreams: method.IsClientStreaming(),
 	}
 	if cs, err := s.channel.NewStream(ctx, &sd, requestMethod(method), opts...); err != nil {
+		cancel()
 		return nil, err
 	} else {
+		go func() {
+			// when the new stream is finished, also cleanup the parent context
+			<-cs.Context().Done()
+			cancel()
+		}()
 		return &ClientStream{cs, method, s.mf, cancel}, nil
 	}
 }

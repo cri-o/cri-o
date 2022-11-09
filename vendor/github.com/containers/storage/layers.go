@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -344,7 +343,15 @@ func (r *layerStore) layerspath() string {
 func (r *layerStore) Load() error {
 	shouldSave := false
 	rpath := r.layerspath()
-	data, err := ioutil.ReadFile(rpath)
+	info, err := os.Stat(rpath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		r.layerspathModified = info.ModTime()
+	}
+	data, err := os.ReadFile(rpath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -435,7 +442,7 @@ func (r *layerStore) LoadLocked() error {
 func (r *layerStore) loadMounts() error {
 	mounts := make(map[string]*Layer)
 	mpath := r.mountspath()
-	data, err := ioutil.ReadFile(mpath)
+	data, err := os.ReadFile(mpath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -556,6 +563,8 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 		uidMap:         copyIDMap(s.uidMap),
 		gidMap:         copyIDMap(s.gidMap),
 	}
+	rlstore.Lock()
+	defer rlstore.Unlock()
 	if err := rlstore.Load(); err != nil {
 		return nil, err
 	}
@@ -577,6 +586,8 @@ func newROLayerStore(rundir string, layerdir string, driver drivers.Driver) (ROL
 		bymount:        make(map[string]*Layer),
 		byname:         make(map[string]*Layer),
 	}
+	rlstore.RLock()
+	defer rlstore.Unlock()
 	if err := rlstore.Load(); err != nil {
 		return nil, err
 	}
@@ -746,7 +757,7 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		templateUncompressedDigest, templateUncompressedSize = templateLayer.UncompressedDigest, templateLayer.UncompressedSize
 		templateCompressionType = templateLayer.CompressionType
 		templateUIDs, templateGIDs = append([]uint32{}, templateLayer.UIDs...), append([]uint32{}, templateLayer.GIDs...)
-		templateTSdata, tserr = ioutil.ReadFile(r.tspath(templateLayer.ID))
+		templateTSdata, tserr = os.ReadFile(r.tspath(templateLayer.ID))
 		if tserr != nil && !os.IsNotExist(tserr) {
 			return nil, -1, tserr
 		}
@@ -1381,6 +1392,9 @@ func (r *layerStore) Wipe() error {
 	for id := range r.byid {
 		ids = append(ids, id)
 	}
+	sort.Slice(ids, func(i, j int) bool {
+		return r.byid[ids[i]].Created.After(r.byid[ids[j]].Created)
+	})
 	for _, id := range ids {
 		if err := r.Delete(id); err != nil {
 			return err
@@ -1660,7 +1674,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	if compressedDigester != nil {
 		compressedWriter = compressedDigester.Hash()
 	} else {
-		compressedWriter = ioutil.Discard
+		compressedWriter = io.Discard
 	}
 	compressedCounter := ioutils.NewWriteCounter(compressedWriter)
 	defragmented = io.TeeReader(defragmented, compressedCounter)
@@ -1924,7 +1938,6 @@ func (r *layerStore) Modified() (bool, error) {
 	}
 	if info != nil {
 		tmodified = info.ModTime() != r.layerspathModified
-		r.layerspathModified = info.ModTime()
 	}
 
 	return tmodified, nil

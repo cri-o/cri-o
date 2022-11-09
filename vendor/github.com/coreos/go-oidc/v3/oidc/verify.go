@@ -21,6 +21,18 @@ const (
 	issuerGoogleAccountsNoScheme = "accounts.google.com"
 )
 
+// TokenExpiredError indicates that Verify failed because the token was expired. This
+// error does NOT indicate that the token is not also invalid for other reasons. Other
+// checks might have failed if the expiration check had not failed.
+type TokenExpiredError struct {
+	// Expiry is the time when the token expired.
+	Expiry time.Time
+}
+
+func (e *TokenExpiredError) Error() string {
+	return fmt.Sprintf("oidc: token is expired (Token Expiry: %v)", e.Expiry)
+}
+
 // KeySet is a set of publc JSON Web Keys that can be used to validate the signature
 // of JSON web tokens. This is expected to be backed by a remote key set through
 // provider metadata discovery or an in-memory set of keys delivered out-of-band.
@@ -95,6 +107,17 @@ type Config struct {
 
 	// Time function to check Token expiry. Defaults to time.Now
 	Now func() time.Time
+
+	// InsecureSkipSignatureCheck causes this package to skip JWT signature validation.
+	// It's intended for special cases where providers (such as Azure), use the "none"
+	// algorithm.
+	//
+	// This option can only be enabled safely when the ID Token is received directly
+	// from the provider after the token exchange.
+	//
+	// This option MUST NOT be used when receiving an ID Token from sources other
+	// than the token endpoint.
+	InsecureSkipSignatureCheck bool
 }
 
 // Verifier returns an IDTokenVerifier that uses the provider's key set to verify JWTs.
@@ -184,11 +207,6 @@ func resolveDistributedClaim(ctx context.Context, verifier *IDTokenVerifier, src
 //    token, err := verifier.Verify(ctx, rawIDToken)
 //
 func (v *IDTokenVerifier) Verify(ctx context.Context, rawIDToken string) (*IDToken, error) {
-	jws, err := jose.ParseSigned(rawIDToken)
-	if err != nil {
-		return nil, fmt.Errorf("oidc: malformed jwt: %v", err)
-	}
-
 	// Throw out tokens with invalid claims before trying to verify the token. This lets
 	// us do cheap checks before possibly re-syncing keys.
 	payload, err := parseJWT(rawIDToken)
@@ -260,7 +278,7 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, rawIDToken string) (*IDTok
 		nowTime := now()
 
 		if t.Expiry.Before(nowTime) {
-			return nil, fmt.Errorf("oidc: token is expired (Token Expiry: %v)", t.Expiry)
+			return nil, &TokenExpiredError{Expiry: t.Expiry}
 		}
 
 		// If nbf claim is provided in token, ensure that it is indeed in the past.
@@ -274,6 +292,15 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, rawIDToken string) (*IDTok
 				return nil, fmt.Errorf("oidc: current time %v before the nbf (not before) time: %v", nowTime, nbfTime)
 			}
 		}
+	}
+
+	if v.config.InsecureSkipSignatureCheck {
+		return t, nil
+	}
+
+	jws, err := jose.ParseSigned(rawIDToken)
+	if err != nil {
+		return nil, fmt.Errorf("oidc: malformed jwt: %v", err)
 	}
 
 	switch len(jws.Signatures) {
@@ -296,6 +323,7 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, rawIDToken string) (*IDTok
 
 	t.sigAlgorithm = sig.Header.Algorithm
 
+	ctx = context.WithValue(ctx, parsedJWTKey, jws)
 	gotPayload, err := v.keySet.VerifySignature(ctx, rawIDToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify signature: %v", err)

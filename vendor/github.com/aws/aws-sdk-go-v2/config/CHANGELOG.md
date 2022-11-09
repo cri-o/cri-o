@@ -1,3 +1,67 @@
+# v1.17.7 (2022-09-20)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.6 (2022-09-14)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.5 (2022-09-02)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.4 (2022-08-31)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.3 (2022-08-30)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.2 (2022-08-29)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.1 (2022-08-15)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.0 (2022-08-14)
+
+* **Feature**: Add alternative mechanism for determning the users `$HOME` or `%USERPROFILE%` location when the environment variables are not present.
+
+# v1.16.1 (2022-08-11)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.16.0 (2022-08-10)
+
+* **Feature**: Adds support for the following settings in the `~/.aws/credentials` file: `sso_account_id`, `sso_region`, `sso_role_name`, `sso_start_url`, and `ca_bundle`.
+
+# v1.15.17 (2022-08-09)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.15.16 (2022-08-08)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.15.15 (2022-08-01)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.15.14 (2022-07-11)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.15.13 (2022-07-05)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.15.12 (2022-06-29)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
 # v1.15.11 (2022-06-16)
 
 * **Dependency Update**: Updated to the latest SDK module versions
