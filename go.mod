@@ -45,8 +45,8 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/intel/goresctrl v0.3.0
 	github.com/json-iterator/go v1.1.12
-	github.com/onsi/ginkgo/v2 v2.3.1
-	github.com/onsi/gomega v1.22.1
+	github.com/onsi/ginkgo/v2 v2.5.0
+	github.com/onsi/gomega v1.24.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/opencontainers/runc v1.1.4
@@ -67,9 +67,9 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.11.0
 	go.opentelemetry.io/otel/sdk v1.11.0
 	go.opentelemetry.io/otel/trace v1.11.0
-	golang.org/x/net v0.1.0
+	golang.org/x/net v0.2.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.1.0
+	golang.org/x/sys v0.2.0
 	google.golang.org/grpc v1.50.1
 	k8s.io/api v0.25.0
 	k8s.io/apimachinery v0.25.0
@@ -375,7 +375,7 @@ require (
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/oauth2 v0.1.0 // indirect
-	golang.org/x/term v0.1.0 // indirect
+	golang.org/x/term v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	golang.org/x/tools v0.2.0 // indirect
