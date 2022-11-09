@@ -2,7 +2,6 @@ package trust
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,14 +71,14 @@ func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
 			continue
 		}
 		configPath := filepath.Join(dirPath, configName)
-		configBytes, err := ioutil.ReadFile(configPath)
+		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, err
 		}
 		var config registryConfiguration
 		err = yaml.Unmarshal(configBytes, &config)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing %s: %w", configPath, err)
+			return nil, fmt.Errorf("parsing %s: %w", configPath, err)
 		}
 		if config.DefaultDocker != nil {
 			if mergedConfig.DefaultDocker != nil {

@@ -3,6 +3,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/containers/podman/v4/libpod/events"
@@ -11,6 +12,10 @@ import (
 
 // newEventer returns an eventer that can be used to read/write events
 func (r *Runtime) newEventer() (events.Eventer, error) {
+	if r.config.Engine.EventsLogFilePath == "" {
+		// default, use path under tmpdir when none was explicitly set by the user
+		r.config.Engine.EventsLogFilePath = filepath.Join(r.config.Engine.TmpDir, "events", "events.log")
+	}
 	options := events.EventerOptions{
 		EventerType:    r.config.Engine.EventsLogger,
 		LogFilePath:    r.config.Engine.EventsLogFilePath,
@@ -29,6 +34,7 @@ func (c *Container) newContainerEvent(status events.Status) {
 
 	e.Details = events.Details{
 		ID:         e.ID,
+		PodID:      c.PodID(),
 		Attributes: c.Labels(),
 	}
 
@@ -54,7 +60,14 @@ func (c *Container) newContainerExitedEvent(exitCode int32) {
 	e.Name = c.Name()
 	e.Image = c.config.RootfsImageName
 	e.Type = events.Container
+	e.PodID = c.PodID()
 	e.ContainerExitCode = int(exitCode)
+
+	e.Details = events.Details{
+		ID:         e.ID,
+		Attributes: c.Labels(),
+	}
+
 	if err := c.runtime.eventer.Write(e); err != nil {
 		logrus.Errorf("Unable to write container exited event: %q", err)
 	}
@@ -70,6 +83,12 @@ func (c *Container) newExecDiedEvent(sessionID string, exitCode int) {
 	e.ContainerExitCode = exitCode
 	e.Attributes = make(map[string]string)
 	e.Attributes["execID"] = sessionID
+
+	e.Details = events.Details{
+		ID:         e.ID,
+		Attributes: c.Labels(),
+	}
+
 	if err := c.runtime.eventer.Write(e); err != nil {
 		logrus.Errorf("Unable to write exec died event: %q", err)
 	}
@@ -121,11 +140,7 @@ func (v *Volume) newVolumeEvent(status events.Status) {
 // Events is a wrapper function for everyone to begin tailing the events log
 // with options
 func (r *Runtime) Events(ctx context.Context, options events.ReadOptions) error {
-	eventer, err := r.newEventer()
-	if err != nil {
-		return err
-	}
-	return eventer.Read(ctx, options)
+	return r.eventer.Read(ctx, options)
 }
 
 // GetEvents reads the event log and returns events based on input filters
@@ -136,10 +151,6 @@ func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Ev
 		Filters:      filters,
 		FromStart:    true,
 		Stream:       false,
-	}
-	eventer, err := r.newEventer()
-	if err != nil {
-		return nil, err
 	}
 
 	logEvents := make([]*events.Event, 0, len(eventChannel))
@@ -152,7 +163,7 @@ func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Ev
 		readLock.Unlock()
 	}()
 
-	readErr := eventer.Read(ctx, options)
+	readErr := r.eventer.Read(ctx, options)
 	readLock.Lock() // Wait for the events to be consumed.
 	return logEvents, readErr
 }

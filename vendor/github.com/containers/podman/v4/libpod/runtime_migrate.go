@@ -5,7 +5,6 @@ package libpod
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,7 +22,7 @@ func (r *Runtime) stopPauseProcess() error {
 		if err != nil {
 			return fmt.Errorf("could not get pause process pid file path: %w", err)
 		}
-		data, err := ioutil.ReadFile(pausePidPath)
+		data, err := os.ReadFile(pausePidPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil
@@ -92,7 +91,7 @@ func (r *Runtime) migrate() error {
 
 		if needsWrite {
 			if err := r.state.RewriteContainerConfig(ctr, ctr.config); err != nil {
-				return fmt.Errorf("error rewriting config for container %s: %w", ctr.ID(), err)
+				return fmt.Errorf("rewriting config for container %s: %w", ctr.ID(), err)
 			}
 		}
 	}

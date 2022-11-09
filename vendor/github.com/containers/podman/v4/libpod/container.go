@@ -3,7 +3,7 @@ package libpod
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -124,10 +124,6 @@ type Container struct {
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
 
-	// Used to query the NOTIFY_SOCKET once along with setting up
-	// mounts etc.
-	notifySocket string
-
 	slirp4netnsSubnet *net.IPNet
 }
 
@@ -241,6 +237,9 @@ type ContainerNamedVolume struct {
 	Dest string `json:"dest"`
 	// Options are fstab style mount options
 	Options []string `json:"options,omitempty"`
+	// IsAnonymous sets the named volume as anonymous even if it has a name
+	// This is used for emptyDir volumes from a kube yaml
+	IsAnonymous bool `json:"setAnonymous,omitempty"`
 }
 
 // ContainerOverlayVolume is a overlay volume that will be mounted into the
@@ -352,16 +351,18 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 
 	if f, err := os.Open(c.state.ConfigPath); err == nil {
 		returnSpec = new(spec.Spec)
-		content, err := ioutil.ReadAll(f)
+		content, err := io.ReadAll(f)
 		if err != nil {
-			return nil, fmt.Errorf("error reading container config: %w", err)
+			return nil, fmt.Errorf("reading container config: %w", err)
 		}
 		if err := json.Unmarshal(content, &returnSpec); err != nil {
-			return nil, fmt.Errorf("error unmarshalling container config: %w", err)
+			// Malformed spec, just use c.config.Spec instead
+			logrus.Warnf("Error unmarshalling container %s config: %v", c.ID(), err)
+			return c.config.Spec, nil
 		}
 	} else if !os.IsNotExist(err) {
 		// ignore when the file does not exist
-		return nil, fmt.Errorf("error opening container config: %w", err)
+		return nil, fmt.Errorf("opening container config: %w", err)
 	}
 
 	return returnSpec, nil
@@ -679,6 +680,14 @@ func (c *Container) WorkingDir() string {
 	return "/"
 }
 
+// Terminal returns true if the container has a terminal
+func (c *Container) Terminal() bool {
+	if c.config.Spec != nil && c.config.Spec.Process != nil {
+		return c.config.Spec.Process.Terminal
+	}
+	return false
+}
+
 // State Accessors
 // Require locking
 
@@ -704,7 +713,7 @@ func (c *Container) Mounted() (bool, string, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return false, "", fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return false, "", fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	// We cannot directly return c.state.Mountpoint as it is not guaranteed
@@ -734,7 +743,7 @@ func (c *Container) StartedTime() (time.Time, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return time.Time{}, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return time.Time{}, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.state.StartedTime, nil
@@ -746,7 +755,7 @@ func (c *Container) FinishedTime() (time.Time, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return time.Time{}, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return time.Time{}, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.state.FinishedTime, nil
@@ -761,7 +770,7 @@ func (c *Container) ExitCode() (int32, bool, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return 0, false, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return 0, false, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.state.ExitCode, c.state.Exited, nil
@@ -773,7 +782,7 @@ func (c *Container) OOMKilled() (bool, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return false, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return false, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.state.OOMKilled, nil
@@ -860,7 +869,7 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 
 	returnSession := new(ExecSession)
 	if err := JSONDeepCopy(session, returnSession); err != nil {
-		return nil, fmt.Errorf("error copying contents of container %s exec session %s: %w", c.ID(), session.ID(), err)
+		return nil, fmt.Errorf("copying contents of container %s exec session %s: %w", c.ID(), session.ID(), err)
 	}
 
 	return returnSession, nil
@@ -920,7 +929,7 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return "", fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return "", fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 
@@ -958,7 +967,7 @@ func (c *Container) CgroupPath() (string, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return "", fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return "", fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.cGroupPath()
@@ -989,7 +998,7 @@ func (c *Container) cGroupPath() (string, error) {
 	// the lookup.
 	// See #10602 for more details.
 	procPath := fmt.Sprintf("/proc/%d/cgroup", c.state.PID)
-	lines, err := ioutil.ReadFile(procPath)
+	lines, err := os.ReadFile(procPath)
 	if err != nil {
 		// If the file doesn't exist, it means the container could have been terminated
 		// so report it.
@@ -1058,7 +1067,7 @@ func (c *Container) RootFsSize() (int64, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return -1, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return -1, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.rootFsSize()
@@ -1070,7 +1079,7 @@ func (c *Container) RWSize() (int64, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return -1, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return -1, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.rwSize()
@@ -1134,20 +1143,6 @@ func (c *Container) NetworkDisabled() (bool, error) {
 	return networkDisabled(c)
 }
 
-func networkDisabled(c *Container) (bool, error) {
-	if c.config.CreateNetNS {
-		return false, nil
-	}
-	if !c.config.PostConfigureNetNS {
-		for _, ns := range c.config.Spec.Linux.Namespaces {
-			if ns.Type == spec.NetworkNamespace {
-				return ns.Path == "", nil
-			}
-		}
-	}
-	return false, nil
-}
-
 func (c *Container) HostNetwork() bool {
 	if c.config.CreateNetNS || c.config.NetNsCtr != "" {
 		return false
@@ -1172,7 +1167,7 @@ func (c *Container) ContainerState() (*ContainerState, error) {
 	}
 	returnConfig := new(ContainerState)
 	if err := JSONDeepCopy(c.state, returnConfig); err != nil {
-		return nil, fmt.Errorf("error copying container %s state: %w", c.ID(), err)
+		return nil, fmt.Errorf("copying container %s state: %w", c.ID(), err)
 	}
 	return c.state, nil
 }

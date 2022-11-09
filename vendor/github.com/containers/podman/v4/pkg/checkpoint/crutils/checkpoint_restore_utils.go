@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -159,11 +158,11 @@ func CRCreateRootFsDiffTar(changes *[]archive.Change, mountPoint, destination st
 			IncludeFiles:     rootfsIncludeFiles,
 		})
 		if err != nil {
-			return includeFiles, fmt.Errorf("error exporting root file-system diff to %q: %w", rootfsDiffPath, err)
+			return includeFiles, fmt.Errorf("exporting root file-system diff to %q: %w", rootfsDiffPath, err)
 		}
 		rootfsDiffFile, err := os.Create(rootfsDiffPath)
 		if err != nil {
-			return includeFiles, fmt.Errorf("error creating root file-system diff file %q: %w", rootfsDiffPath, err)
+			return includeFiles, fmt.Errorf("creating root file-system diff file %q: %w", rootfsDiffPath, err)
 		}
 		defer rootfsDiffFile.Close()
 		if _, err = io.Copy(rootfsDiffFile, rootfsTar); err != nil {
@@ -237,7 +236,7 @@ func CRRuntimeSupportsPodCheckpointRestore(runtimePath string) bool {
 // given checkpoint archive and returns the runtime used to create
 // the given checkpoint archive.
 func CRGetRuntimeFromArchive(input string) (*string, error) {
-	dir, err := ioutil.TempDir("", "checkpoint")
+	dir, err := os.MkdirTemp("", "checkpoint")
 	if err != nil {
 		return nil, err
 	}

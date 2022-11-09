@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -35,7 +36,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if s.Pod != "" {
 		pod, err = rt.LookupPod(s.Pod)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("error retrieving pod %s: %w", s.Pod, err)
+			return nil, nil, nil, fmt.Errorf("retrieving pod %s: %w", s.Pod, err)
 		}
 		if pod.HasInfraContainer() {
 			infra, err = pod.InfraContainer()
@@ -55,9 +56,10 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		}
 	}
 
-	if err := FinishThrottleDevices(s); err != nil {
+	if err := specgen.FinishThrottleDevices(s); err != nil {
 		return nil, nil, nil, err
 	}
+
 	// Set defaults for unset namespaces
 	if s.PidNS.IsDefault() {
 		defaultNS, err := GetDefaultNamespaceMode("pid", rtc, pod)
@@ -342,7 +344,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		if s.StopSignal == nil {
 			stopSignal, err := util.ParseSignal("RTMIN+3")
 			if err != nil {
-				return nil, fmt.Errorf("error parsing systemd signal: %w", err)
+				return nil, fmt.Errorf("parsing systemd signal: %w", err)
 			}
 			s.StopSignal = &stopSignal
 		}
@@ -351,7 +353,13 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	if len(s.SdNotifyMode) > 0 {
 		options = append(options, libpod.WithSdNotifyMode(s.SdNotifyMode))
+		if s.SdNotifyMode != define.SdNotifyModeIgnore {
+			if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
+				options = append(options, libpod.WithSdNotifySocket(notify))
+			}
+		}
 	}
+
 	if pod != nil {
 		logrus.Debugf("adding container to pod %s", pod.Name())
 		options = append(options, rt.WithPod(pod))
@@ -379,9 +387,10 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		var vols []*libpod.ContainerNamedVolume
 		for _, v := range volumes {
 			vols = append(vols, &libpod.ContainerNamedVolume{
-				Name:    v.Name,
-				Dest:    v.Dest,
-				Options: v.Options,
+				Name:        v.Name,
+				Dest:        v.Dest,
+				Options:     v.Options,
+				IsAnonymous: v.IsAnonymous,
 			})
 		}
 		options = append(options, libpod.WithNamedVolumes(vols))
@@ -504,6 +513,10 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	if s.ContainerHealthCheckConfig.HealthConfig != nil {
 		options = append(options, libpod.WithHealthCheck(s.ContainerHealthCheckConfig.HealthConfig))
 		logrus.Debugf("New container has a health check")
+	}
+
+	if s.ContainerHealthCheckConfig.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone {
+		options = append(options, libpod.WithHealthCheckOnFailureAction(s.ContainerHealthCheckConfig.HealthCheckOnFailureAction))
 	}
 
 	if len(s.Secrets) != 0 {

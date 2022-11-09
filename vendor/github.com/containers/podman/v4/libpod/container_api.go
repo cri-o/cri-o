@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"sync"
@@ -16,7 +15,9 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/storage/pkg/archive"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // Init creates a container in the OCI runtime, moving a container from
@@ -96,6 +97,15 @@ func (c *Container) Start(ctx context.Context, recursive bool) error {
 
 	// Start the container
 	return c.start()
+}
+
+// Update updates the given container.
+// only the cgroup config can be updated and therefore only a linux resource spec is passed.
+func (c *Container) Update(res *spec.LinuxResources) error {
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+	return c.update(res)
 }
 
 // StartAndAttach starts a container and attaches to it.
@@ -234,7 +244,12 @@ func (c *Container) Kill(signal uint) error {
 
 	c.newContainerEvent(events.Kill)
 
-	return c.save()
+	// Make sure to wait for the container to exit in case of SIGKILL.
+	if signal == uint(unix.SIGKILL) {
+		return c.waitForConmonToExitAndSave()
+	}
+
+	return nil
 }
 
 // Attach attaches to a container.
@@ -264,7 +279,7 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 	// Send a SIGWINCH after attach succeeds so that most programs will
 	// redraw the screen for the new attach session.
 	attachRdy := make(chan bool, 1)
-	if c.config.Spec.Process != nil && c.config.Spec.Process.Terminal {
+	if c.Terminal() {
 		go func() {
 			<-attachRdy
 			if err := c.ociRuntime.KillContainer(c, uint(signal.SIGWINCH), false); err != nil {
@@ -469,7 +484,7 @@ func (c *Container) AddArtifact(name string, data []byte) error {
 		return define.ErrCtrRemoved
 	}
 
-	return ioutil.WriteFile(c.getArtifactPath(name), data, 0o740)
+	return os.WriteFile(c.getArtifactPath(name), data, 0o740)
 }
 
 // GetArtifact reads the specified artifact file from the container
@@ -478,7 +493,7 @@ func (c *Container) GetArtifact(name string) ([]byte, error) {
 		return nil, define.ErrCtrRemoved
 	}
 
-	return ioutil.ReadFile(c.getArtifactPath(name))
+	return os.ReadFile(c.getArtifactPath(name))
 }
 
 // RemoveArtifact deletes the specified artifacts file
@@ -505,6 +520,12 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 	id := c.ID()
 	var conmonTimer time.Timer
 	conmonTimerSet := false
+
+	conmonPidFd := c.getConmonPidFd()
+	if conmonPidFd != -1 {
+		defer unix.Close(conmonPidFd)
+	}
+	conmonPidFdTriggered := false
 
 	getExitCode := func() (bool, int32, error) {
 		containerRemoved := false
@@ -573,7 +594,18 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 		case <-ctx.Done():
 			return -1, fmt.Errorf("waiting for exit code of container %s canceled", id)
 		default:
-			time.Sleep(pollInterval)
+			if conmonPidFd != -1 && !conmonPidFdTriggered {
+				// If possible (pidfd works), the first cycle we block until conmon dies
+				// If this happens, and we fall back to the old poll delay
+				// There is a deadlock in the cleanup code for "play kube" which causes
+				// conmon to not exit, so unfortunately we have to use the poll interval
+				// timeout here to avoid hanging.
+				fds := []unix.PollFd{{Fd: int32(conmonPidFd), Events: unix.POLLIN}}
+				_, _ = unix.Poll(fds, int(pollInterval.Milliseconds()))
+				conmonPidFdTriggered = true
+			} else {
+				time.Sleep(pollInterval)
+			}
 		}
 	}
 }
@@ -674,7 +706,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 			// When the container has already been removed, the OCI runtime directory remain.
 			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
 				if err := c.cleanupRuntime(ctx); err != nil {
-					return fmt.Errorf("error cleaning up container %s from OCI runtime: %w", c.ID(), err)
+					return fmt.Errorf("cleaning up container %s from OCI runtime: %w", c.ID(), err)
 				}
 				return nil
 			}

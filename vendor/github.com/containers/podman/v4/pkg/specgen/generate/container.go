@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,9 +18,8 @@ import (
 	envLib "github.com/containers/podman/v4/pkg/env"
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/podman/v4/pkg/specgen"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) (*libimage.Image, string, *libimage.ImageData, error) {
@@ -115,7 +115,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	// Get Default Environment from containers.conf
 	defaultEnvs, err := envLib.ParseSlice(rtc.GetDefaultEnvEx(s.EnvHost, s.HTTPProxy))
 	if err != nil {
-		return nil, fmt.Errorf("error parsing fields in containers.conf: %w", err)
+		return nil, fmt.Errorf("parsing fields in containers.conf: %w", err)
 	}
 	var envs map[string]string
 
@@ -128,6 +128,17 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			return nil, fmt.Errorf("env fields from image failed to parse: %w", err)
 		}
 		defaultEnvs = envLib.Join(envLib.DefaultEnvVariables(), envLib.Join(defaultEnvs, envs))
+	}
+
+	for _, e := range s.EnvMerge {
+		processedWord, err := imagebuilder.ProcessWord(e, envLib.Slice(defaultEnvs))
+		if err != nil {
+			return nil, fmt.Errorf("unable to process variables for --env-merge %s: %w", e, err)
+		}
+		splitWord := strings.Split(processedWord, "=")
+		if _, ok := defaultEnvs[splitWord[0]]; ok {
+			defaultEnvs[splitWord[0]] = splitWord[1]
+		}
 	}
 
 	for _, e := range s.UnsetEnv {
@@ -260,19 +271,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	// If caller did not specify Pids Limits load default
-	if s.ResourceLimits == nil || s.ResourceLimits.Pids == nil {
-		if s.CgroupsMode != "disabled" {
-			limit := rtc.PidsLimit()
-			if limit != 0 {
-				if s.ResourceLimits == nil {
-					s.ResourceLimits = &spec.LinuxResources{}
-				}
-				s.ResourceLimits.Pids = &spec.LinuxPids{
-					Limit: limit,
-				}
-			}
-		}
-	}
+	s.InitResourceLimits(rtc)
 
 	if s.LogConfiguration == nil {
 		s.LogConfiguration = &specgen.LogConfig{}
@@ -306,60 +305,6 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	return warnings, nil
-}
-
-// FinishThrottleDevices takes the temporary representation of the throttle
-// devices in the specgen and looks up the major and major minors. it then
-// sets the throttle devices proper in the specgen
-func FinishThrottleDevices(s *specgen.SpecGenerator) error {
-	if bps := s.ThrottleReadBpsDevice; len(bps) > 0 {
-		for k, v := range bps {
-			statT := unix.Stat_t{}
-			if err := unix.Stat(k, &statT); err != nil {
-				return err
-			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
-			if s.ResourceLimits.BlockIO == nil {
-				s.ResourceLimits.BlockIO = new(spec.LinuxBlockIO)
-			}
-			s.ResourceLimits.BlockIO.ThrottleReadBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleReadBpsDevice, v)
-		}
-	}
-	if bps := s.ThrottleWriteBpsDevice; len(bps) > 0 {
-		for k, v := range bps {
-			statT := unix.Stat_t{}
-			if err := unix.Stat(k, &statT); err != nil {
-				return err
-			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
-			s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice, v)
-		}
-	}
-	if iops := s.ThrottleReadIOPSDevice; len(iops) > 0 {
-		for k, v := range iops {
-			statT := unix.Stat_t{}
-			if err := unix.Stat(k, &statT); err != nil {
-				return err
-			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
-			s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice, v)
-		}
-	}
-	if iops := s.ThrottleWriteIOPSDevice; len(iops) > 0 {
-		for k, v := range iops {
-			statT := unix.Stat_t{}
-			if err := unix.Stat(k, &statT); err != nil {
-				return err
-			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
-			s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice, v)
-		}
-	}
-	return nil
 }
 
 // ConfigToSpec takes a completed container config and converts it back into a specgenerator for purposes of cloning an existing container
@@ -407,7 +352,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 		if conf.Spec.Process != nil && conf.Spec.Process.Env != nil {
 			env := make(map[string]string)
 			for _, entry := range conf.Spec.Process.Env {
-				split := strings.Split(entry, "=")
+				split := strings.SplitN(entry, "=", 2)
 				if len(split) == 2 {
 					env[split[0]] = split[1]
 				}
@@ -557,4 +502,42 @@ func mapSecurityConfig(c *libpod.ContainerConfig, s *specgen.SpecGenerator) {
 	s.User = c.User
 	s.Groups = c.Groups
 	s.HostUsers = c.HostUsers
+}
+
+// Check name looks for existing containers/pods with the same name, and modifies the given string until a new name is found
+func CheckName(rt *libpod.Runtime, n string, kind bool) string {
+	switch {
+	case strings.Contains(n, "-clone"):
+		ind := strings.Index(n, "-clone") + 6
+		num, err := strconv.Atoi(n[ind:])
+		if num == 0 && err != nil { // clone1 is hard to get with this logic, just check for it here.
+			if kind {
+				_, err = rt.LookupContainer(n + "1")
+			} else {
+				_, err = rt.LookupPod(n + "1")
+			}
+
+			if err != nil {
+				n += "1"
+				break
+			}
+		} else {
+			n = n[0:ind]
+		}
+		err = nil
+		count := num
+		for err == nil {
+			count++
+			tempN := n + strconv.Itoa(count)
+			if kind {
+				_, err = rt.LookupContainer(tempN)
+			} else {
+				_, err = rt.LookupPod(tempN)
+			}
+		}
+		n += strconv.Itoa(count)
+	default:
+		n += "-clone"
+	}
+	return n
 }

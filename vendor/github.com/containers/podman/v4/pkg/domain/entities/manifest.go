@@ -4,7 +4,12 @@ import "github.com/containers/image/v5/types"
 
 // ManifestCreateOptions provides model for creating manifest
 type ManifestCreateOptions struct {
+	// True when adding lists to include all images
 	All bool `schema:"all"`
+	// Amend an extant list if there's already one with the desired name
+	Amend bool `schema:"amend"`
+	// Should TLS registry certificate be verified?
+	SkipTLSVerify types.OptionalBool `json:"-" schema:"-"`
 }
 
 // ManifestAddOptions provides model for adding digests to manifest list
@@ -59,6 +64,18 @@ type ManifestModifyOptions struct {
 	Operation string `json:"operation" schema:"operation"` // Valid values: update, remove, annotate
 	ManifestAddOptions
 	ManifestRemoveOptions
+}
+
+// ManifestPushReport provides the model for the pushed manifest
+//
+// swagger:model
+type ManifestPushReport struct {
+	// ID of the pushed manifest
+	ID string `json:"Id"`
+	// Stream used to provide push progress
+	Stream string `json:"stream,omitempty"`
+	// Error contains text of errors from pushing
+	Error string `json:"error,omitempty"`
 }
 
 // ManifestRemoveOptions provides the model for removing digests from a manifest

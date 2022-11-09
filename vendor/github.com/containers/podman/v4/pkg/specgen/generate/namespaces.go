@@ -3,7 +3,6 @@ package generate
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/containers/common/libimage"
@@ -11,11 +10,11 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 )
 
@@ -113,12 +112,12 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		if err != nil {
 			// This is likely to be of the fatal kind (pod was
 			// removed) so hard fail
-			return nil, fmt.Errorf("error looking up pod %s infra container: %w", pod.ID(), err)
+			return nil, fmt.Errorf("looking up pod %s infra container: %w", pod.ID(), err)
 		}
 		if infraID != "" {
 			ctr, err := rt.GetContainer(infraID)
 			if err != nil {
-				return nil, fmt.Errorf("error retrieving pod %s infra container %s: %w", pod.ID(), infraID, err)
+				return nil, fmt.Errorf("retrieving pod %s infra container %s: %w", pod.ID(), infraID, err)
 			}
 			infraCtr = ctr
 		}
@@ -136,7 +135,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		pidCtr, err := rt.LookupContainer(s.PidNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share pid namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share pid namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithPIDNSFrom(pidCtr))
 	}
@@ -155,7 +154,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		ipcCtr, err := rt.LookupContainer(s.IpcNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share ipc namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share ipc namespace with: %w", err)
 		}
 		if ipcCtr.ConfigNoCopy().NoShmShare {
 			return nil, fmt.Errorf("joining IPC of container %s is not allowed: non-shareable IPC (hint: use IpcMode:shareable for the donor container)", ipcCtr.ID())
@@ -187,7 +186,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		utsCtr, err := rt.LookupContainer(s.UtsNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share uts namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share uts namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithUTSNSFrom(utsCtr))
 	}
@@ -198,12 +197,18 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		if !rootless.IsRootless() {
 			return nil, errors.New("keep-id is only supported in rootless mode")
 		}
-		toReturn = append(toReturn, libpod.WithAddCurrentUserPasswdEntry())
+		opts, err := namespaces.UsernsMode(s.UserNS.String()).GetKeepIDOptions()
+		if err != nil {
+			return nil, err
+		}
+		if opts.UID == nil && opts.GID == nil {
+			toReturn = append(toReturn, libpod.WithAddCurrentUserPasswdEntry())
+		}
 
 		// If user is not overridden, set user in the container
 		// to user running Podman.
 		if s.User == "" {
-			_, uid, gid, err := util.GetKeepIDMapping()
+			_, uid, gid, err := util.GetKeepIDMapping(opts)
 			if err != nil {
 				return nil, err
 			}
@@ -222,7 +227,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		userCtr, err := rt.LookupContainer(s.UserNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share user namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share user namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithUserNSFrom(userCtr))
 	}
@@ -254,7 +259,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		cgroupCtr, err := rt.LookupContainer(s.CgroupNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share cgroup namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share cgroup namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithCgroupNSFrom(cgroupCtr))
 	}
@@ -282,7 +287,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		netCtr, err := rt.LookupContainer(s.NetNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share net namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share net namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithNetNSFrom(netCtr))
 	case specgen.Slirp:
@@ -355,153 +360,6 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	}
 
 	return toReturn, nil
-}
-
-func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt *libpod.Runtime, pod *libpod.Pod) error {
-	// PID
-	switch s.PidNS.NSMode {
-	case specgen.Path:
-		if _, err := os.Stat(s.PidNS.Value); err != nil {
-			return fmt.Errorf("cannot find specified PID namespace path: %w", err)
-		}
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), s.PidNS.Value); err != nil {
-			return err
-		}
-	case specgen.Host:
-		if err := g.RemoveLinuxNamespace(string(spec.PIDNamespace)); err != nil {
-			return err
-		}
-	case specgen.Private:
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), ""); err != nil {
-			return err
-		}
-	}
-
-	// IPC
-	switch s.IpcNS.NSMode {
-	case specgen.Path:
-		if _, err := os.Stat(s.IpcNS.Value); err != nil {
-			return fmt.Errorf("cannot find specified IPC namespace path: %w", err)
-		}
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), s.IpcNS.Value); err != nil {
-			return err
-		}
-	case specgen.Host:
-		if err := g.RemoveLinuxNamespace(string(spec.IPCNamespace)); err != nil {
-			return err
-		}
-	case specgen.Private:
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), ""); err != nil {
-			return err
-		}
-	}
-
-	// UTS
-	switch s.UtsNS.NSMode {
-	case specgen.Path:
-		if _, err := os.Stat(s.UtsNS.Value); err != nil {
-			return fmt.Errorf("cannot find specified UTS namespace path: %w", err)
-		}
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), s.UtsNS.Value); err != nil {
-			return err
-		}
-	case specgen.Host:
-		if err := g.RemoveLinuxNamespace(string(spec.UTSNamespace)); err != nil {
-			return err
-		}
-	case specgen.Private:
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), ""); err != nil {
-			return err
-		}
-	}
-
-	hostname := s.Hostname
-	if hostname == "" {
-		switch {
-		case s.UtsNS.NSMode == specgen.FromPod:
-			hostname = pod.Hostname()
-		case s.UtsNS.NSMode == specgen.FromContainer:
-			utsCtr, err := rt.LookupContainer(s.UtsNS.Value)
-			if err != nil {
-				return fmt.Errorf("error looking up container to share uts namespace with: %w", err)
-			}
-			hostname = utsCtr.Hostname()
-		case (s.NetNS.NSMode == specgen.Host && hostname == "") || s.UtsNS.NSMode == specgen.Host:
-			tmpHostname, err := os.Hostname()
-			if err != nil {
-				return fmt.Errorf("unable to retrieve hostname of the host: %w", err)
-			}
-			hostname = tmpHostname
-		default:
-			logrus.Debug("No hostname set; container's hostname will default to runtime default")
-		}
-	}
-
-	g.RemoveHostname()
-	if s.Hostname != "" || s.UtsNS.NSMode != specgen.Host {
-		// Set the hostname in the OCI configuration only if specified by
-		// the user or if we are creating a new UTS namespace.
-		// TODO: Should we be doing this for pod or container shared
-		// namespaces?
-		g.SetHostname(hostname)
-	}
-	if _, ok := s.Env["HOSTNAME"]; !ok && s.Hostname != "" {
-		g.AddProcessEnv("HOSTNAME", hostname)
-	}
-
-	// User
-	if _, err := specgen.SetupUserNS(s.IDMappings, s.UserNS, g); err != nil {
-		return err
-	}
-
-	// Cgroup
-	switch s.CgroupNS.NSMode {
-	case specgen.Path:
-		if _, err := os.Stat(s.CgroupNS.Value); err != nil {
-			return fmt.Errorf("cannot find specified cgroup namespace path: %w", err)
-		}
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), s.CgroupNS.Value); err != nil {
-			return err
-		}
-	case specgen.Host:
-		if err := g.RemoveLinuxNamespace(string(spec.CgroupNamespace)); err != nil {
-			return err
-		}
-	case specgen.Private:
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), ""); err != nil {
-			return err
-		}
-	}
-
-	// Net
-	switch s.NetNS.NSMode {
-	case specgen.Path:
-		if _, err := os.Stat(s.NetNS.Value); err != nil {
-			return fmt.Errorf("cannot find specified network namespace path: %w", err)
-		}
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), s.NetNS.Value); err != nil {
-			return err
-		}
-	case specgen.Host:
-		if err := g.RemoveLinuxNamespace(string(spec.NetworkNamespace)); err != nil {
-			return err
-		}
-	case specgen.Private, specgen.NoNetwork:
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), ""); err != nil {
-			return err
-		}
-	}
-
-	if g.Config.Annotations == nil {
-		g.Config.Annotations = make(map[string]string)
-	}
-	if s.PublishExposedPorts {
-		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseTrue
-	} else {
-		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseFalse
-	}
-
-	return nil
 }
 
 // GetNamespaceOptions transforms a slice of kernel namespaces

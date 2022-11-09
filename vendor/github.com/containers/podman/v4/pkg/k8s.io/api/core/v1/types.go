@@ -56,6 +56,12 @@ type VolumeSource struct {
 	// ConfigMap represents a configMap that should populate this volume
 	// +optional
 	ConfigMap *ConfigMapVolumeSource `json:"configMap,omitempty"`
+	// Secret represents a secret that should be mounted as a volume
+	Secret *SecretVolumeSource `json:"secret,omitempty"`
+	// emptyDir represents a temporary directory that shares a pod's lifetime.
+	// More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+	// +optional
+	EmptyDir *EmptyDirVolumeSource `json:"emptyDir,omitempty"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -933,15 +939,15 @@ type HTTPHeader struct {
 
 // HTTPGetAction describes an action based on HTTP Get requests.
 type HTTPGetAction struct {
-	// Path to access on the HTTP server.
+	// Path to access on the HTTP server. Defaults to /.
 	// +optional
 	Path string `json:"path,omitempty"`
 	// Name or number of the port to access on the container.
 	// Number must be in the range 1 to 65535.
 	// Name must be an IANA_SVC_NAME.
 	Port intstr.IntOrString `json:"port"`
-	// Host name to connect to, defaults to the pod IP. You probably want to set
-	// "Host" in httpHeaders instead.
+	// Host name to connect to. You probably want to set "Host" in httpHeaders instead.
+	// Defaults to the pod IP in Kubernetes, in case of Podman to localhost.
 	// +optional
 	Host string `json:"host,omitempty"`
 	// Scheme to use for connecting to the host.
@@ -958,9 +964,9 @@ type URIScheme string
 
 const (
 	// URISchemeHTTP means that the scheme used will be http://
-	URISchemeHTTP URIScheme = "HTTP"
+	URISchemeHTTP URIScheme = "http"
 	// URISchemeHTTPS means that the scheme used will be https://
-	URISchemeHTTPS URIScheme = "HTTPS"
+	URISchemeHTTPS URIScheme = "https"
 )
 
 // TCPSocketAction describes an action based on opening a socket
@@ -1978,6 +1984,18 @@ type PodSpec struct {
 	// Default to false.
 	// +optional
 	SetHostnameAsFQDN *bool `json:"setHostnameAsFQDN,omitempty"`
+	// Use the host's user namespace.
+	// Optional: Default to true.
+	// If set to true or not present, the pod will be run in the host user namespace, useful
+	// for when the pod needs a feature only available to the host user namespace, such as
+	// loading a kernel module with CAP_SYS_MODULE.
+	// When set to false, a new userns is created for the pod. Setting false is useful for
+	// mitigating container breakout vulnerabilities even allowing users to run their
+	// containers as root without actually having root privileges on the host.
+	// This field is alpha-level and is only honored by servers that enable the UserNamespacesSupport feature.
+	// +k8s:conversion-gen=false
+	// +optional
+	HostUsers *bool `json:"hostUsers,omitempty"`
 }
 
 type UnsatisfiableConstraintAction string
@@ -2219,7 +2237,8 @@ type PodDNSConfigOption struct {
 
 // IP address information for entries in the (plural) PodIPs field.
 // Each entry includes:
-//    IP: An IP address allocated to the pod. Routable at least within the cluster.
+//
+//	IP: An IP address allocated to the pod. Routable at least within the cluster.
 type PodIP struct {
 	// ip is an IP address (IPv4 or IPv6) assigned to the pod
 	IP string `json:"ip,omitempty"`
@@ -3268,17 +3287,18 @@ type ServiceAccountList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Endpoints is a collection of endpoints that implement the actual service. Example:
-//   Name: "mysvc",
-//   Subsets: [
-//     {
-//       Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
-//       Ports: [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
-//     },
-//     {
-//       Addresses: [{"ip": "10.10.3.3"}],
-//       Ports: [{"name": "a", "port": 93}, {"name": "b", "port": 76}]
-//     },
-//  ]
+//
+//	 Name: "mysvc",
+//	 Subsets: [
+//	   {
+//	     Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
+//	     Ports: [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
+//	   },
+//	   {
+//	     Addresses: [{"ip": "10.10.3.3"}],
+//	     Ports: [{"name": "a", "port": 93}, {"name": "b", "port": 76}]
+//	   },
+//	]
 type Endpoints struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -3300,13 +3320,16 @@ type Endpoints struct {
 // EndpointSubset is a group of addresses with a common set of ports. The
 // expanded set of endpoints is the Cartesian product of Addresses x Ports.
 // For example, given:
-//   {
-//     Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
-//     Ports:     [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
-//   }
+//
+//	{
+//	  Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
+//	  Ports:     [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
+//	}
+//
 // The resulting set of endpoints can be viewed as:
-//     a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],
-//     b: [ 10.10.1.1:309, 10.10.2.2:309 ]
+//
+//	a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],
+//	b: [ 10.10.1.1:309, 10.10.2.2:309 ]
 type EndpointSubset struct {
 	// IP addresses which offer the related ports that are marked as ready. These endpoints
 	// should be considered safe for load balancers and clients to utilize.
@@ -3638,6 +3661,7 @@ type ServiceProxyOptions struct {
 //     and the version of the actual struct is irrelevant.
 //  5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type
 //     will affect numerous schemas.  Don't make new APIs embed an underspecified API type they do not control.
+//
 // Instead of using this type, create a locally provided and used type that is well-focused on your reference.
 // For example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

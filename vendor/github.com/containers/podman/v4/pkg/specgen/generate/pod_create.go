@@ -2,6 +2,7 @@ package generate
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -13,12 +14,17 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgenutil"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
 
 func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 	if err := p.PodSpecGen.Validate(); err != nil {
 		return nil, err
+	}
+
+	if p.PodSpecGen.ResourceLimits == nil {
+		p.PodSpecGen.ResourceLimits = &specs.LinuxResources{}
 	}
 
 	if !p.PodSpecGen.NoInfra {
@@ -38,10 +44,27 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 		}
 	}
 
+	if !p.PodSpecGen.NoInfra {
+		err := specgen.FinishThrottleDevices(p.PodSpecGen.InfraContainerSpec)
+		if err != nil {
+			return nil, err
+		}
+		if p.PodSpecGen.InfraContainerSpec.ResourceLimits != nil &&
+			p.PodSpecGen.InfraContainerSpec.ResourceLimits.BlockIO != nil {
+			p.PodSpecGen.ResourceLimits.BlockIO = p.PodSpecGen.InfraContainerSpec.ResourceLimits.BlockIO
+		}
+		err = specgen.WeightDevices(p.PodSpecGen.InfraContainerSpec)
+		if err != nil {
+			return nil, err
+		}
+		p.PodSpecGen.ResourceLimits = p.PodSpecGen.InfraContainerSpec.ResourceLimits
+	}
+
 	options, err := createPodOptions(&p.PodSpecGen)
 	if err != nil {
 		return nil, err
 	}
+
 	pod, err := rt.NewPod(context.Background(), p.PodSpecGen, options...)
 	if err != nil {
 		return nil, err
@@ -55,6 +78,11 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 			return nil, err
 		}
 		p.PodSpecGen.InfraContainerSpec.User = "" // infraSpec user will get incorrectly assigned via the container creation process, overwrite here
+		// infra's resource limits are used as a parsing tool,
+		// we do not want infra to get these resources in its cgroup
+		// make sure of that here.
+		p.PodSpecGen.InfraContainerSpec.ResourceLimits = nil
+		p.PodSpecGen.InfraContainerSpec.WeightDevice = nil
 		rtSpec, spec, opts, err := MakeContainer(context.Background(), rt, p.PodSpecGen.InfraContainerSpec, false, nil)
 		if err != nil {
 			return nil, err
@@ -120,6 +148,10 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 
 	if len(p.Hostname) > 0 {
 		options = append(options, libpod.WithPodHostname(p.Hostname))
+	}
+
+	if p.ResourceLimits != nil {
+		options = append(options, libpod.WithPodResources(*p.ResourceLimits))
 	}
 
 	options = append(options, libpod.WithPodExitPolicy(p.ExitPolicy))
@@ -290,6 +322,19 @@ func PodConfigToSpec(rt *libpod.Runtime, spec *specgen.PodSpecGenerator, infraOp
 		}
 
 		spec.InfraContainerSpec = infraSpec
+		matching, err := json.Marshal(infraSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		// track name before unmarshal so we do not overwrite w/ infra
+		name := spec.Name
+		err = json.Unmarshal(matching, spec)
+		if err != nil {
+			return nil, err
+		}
+
+		spec.Name = name
 	}
 
 	// need to reset hostname, name etc of both pod and infra

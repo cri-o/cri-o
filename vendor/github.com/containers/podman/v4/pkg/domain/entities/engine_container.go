@@ -13,7 +13,7 @@ import (
 
 type ContainerCopyFunc func() error
 
-type ContainerEngine interface {
+type ContainerEngine interface { //nolint:interfacebloat
 	AutoUpdate(ctx context.Context, options AutoUpdateOptions) ([]*AutoUpdateReport, []error)
 	Config(ctx context.Context) (*config.Config, error)
 	ContainerAttach(ctx context.Context, nameOrID string, options AttachOptions) error
@@ -51,9 +51,11 @@ type ContainerEngine interface {
 	ContainerTop(ctx context.Context, options TopOptions) (*StringSliceReport, error)
 	ContainerUnmount(ctx context.Context, nameOrIDs []string, options ContainerUnmountOptions) ([]*ContainerUnmountReport, error)
 	ContainerUnpause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
+	ContainerUpdate(ctx context.Context, options *ContainerUpdateOptions) (string, error)
 	ContainerWait(ctx context.Context, namesOrIds []string, options WaitOptions) ([]WaitReport, error)
 	Diff(ctx context.Context, namesOrIds []string, options DiffOptions) (*DiffReport, error)
 	Events(ctx context.Context, opts EventsOptions) error
+	GenerateSpec(ctx context.Context, opts *GenerateSpecOptions) (*GenerateSpecReport, error)
 	GenerateSystemd(ctx context.Context, nameOrID string, opts GenerateSystemdOptions) (*GenerateSystemdReport, error)
 	GenerateKube(ctx context.Context, nameOrIDs []string, opts GenerateKubeOptions) (*GenerateKubeReport, error)
 	SystemPrune(ctx context.Context, options SystemPruneOptions) (*SystemPruneReport, error)
@@ -73,7 +75,7 @@ type ContainerEngine interface {
 	PodCreate(ctx context.Context, specg PodSpec) (*PodCreateReport, error)
 	PodClone(ctx context.Context, podClone PodCloneOptions) (*PodCloneReport, error)
 	PodExists(ctx context.Context, nameOrID string) (*BoolReport, error)
-	PodInspect(ctx context.Context, options PodInspectOptions) (*PodInspectReport, error)
+	PodInspect(ctx context.Context, namesOrID []string, options InspectOptions) ([]*PodInspectReport, []error, error)
 	PodKill(ctx context.Context, namesOrIds []string, options PodKillOptions) ([]*PodKillReport, error)
 	PodLogs(ctx context.Context, pod string, options PodLogsOptions) error
 	PodPause(ctx context.Context, namesOrIds []string, options PodPauseOptions) ([]*PodPauseReport, error)

@@ -6,14 +6,12 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/containers/buildah/pkg/parse"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod/define"
@@ -27,12 +25,6 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
-)
-
-// Runtime Creation Options
-var (
-	// SdNotifyModeValues describes the only values that SdNotifyMode can be
-	SdNotifyModeValues = []string{define.SdNotifyModeContainer, define.SdNotifyModeConmon, define.SdNotifyModeIgnore}
 )
 
 // WithStorageConfig uses the given configuration to set up container storage.
@@ -613,6 +605,17 @@ func WithSystemd() CtrCreateOption {
 	}
 }
 
+// WithSdNotifySocket sets the sd-notify of the container
+func WithSdNotifySocket(socketPath string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.SdNotifySocket = socketPath
+		return nil
+	}
+}
+
 // WithSdNotifyMode sets the sd-notify method
 func WithSdNotifyMode(mode string) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -620,9 +623,8 @@ func WithSdNotifyMode(mode string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		// verify values
-		if len(mode) > 0 && !cutil.StringInSlice(strings.ToLower(mode), SdNotifyModeValues) {
-			return fmt.Errorf("--sdnotify values must be one of %q: %w", strings.Join(SdNotifyModeValues, ", "), define.ErrInvalidArg)
+		if err := define.ValidateSdNotifyMode(mode); err != nil {
+			return err
 		}
 
 		ctr.config.SdNotifyMode = mode
@@ -1411,9 +1413,10 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 			}
 
 			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{
-				Name:    vol.Name,
-				Dest:    vol.Dest,
-				Options: mountOpts,
+				Name:        vol.Name,
+				Dest:        vol.Dest,
+				Options:     mountOpts,
+				IsAnonymous: vol.IsAnonymous,
 			})
 		}
 
@@ -1466,6 +1469,17 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 			return define.ErrCtrFinalized
 		}
 		ctr.config.HealthCheckConfig = healthCheck
+		return nil
+	}
+}
+
+// WithHealthCheckOnFailureAction adds an on-failure action to health-check config
+func WithHealthCheckOnFailureAction(action define.HealthCheckOnFailureAction) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.HealthCheckOnFailureAction = action
 		return nil
 	}
 }
@@ -1693,14 +1707,22 @@ func withSetAnon() VolumeCreateOption {
 	}
 }
 
-// WithVolumeDriverTimeout sets the volume creation timeout period
-func WithVolumeDriverTimeout(timeout int) VolumeCreateOption {
+// WithVolumeDriverTimeout sets the volume creation timeout period.
+// Only usable if a non-local volume driver is in use.
+func WithVolumeDriverTimeout(timeout uint) VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.Timeout = timeout
+		if volume.config.Driver == "" || volume.config.Driver == define.VolumeDriverLocal {
+			return fmt.Errorf("Volume driver timeout can only be used with non-local volume drivers: %w", define.ErrInvalidArg)
+		}
+
+		tm := timeout
+
+		volume.config.Timeout = &tm
+
 		return nil
 	}
 }
@@ -2141,6 +2163,18 @@ func WithServiceContainer(id string) PodCreateOption {
 		}
 
 		pod.config.ServiceContainerID = id
+		return nil
+	}
+}
+
+// WithPodResources sets resource limits to be applied to the pod's cgroup
+// these will be inherited by all containers unless overridden.
+func WithPodResources(resources specs.LinuxResources) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+		pod.config.ResourceLimits = resources
 		return nil
 	}
 }

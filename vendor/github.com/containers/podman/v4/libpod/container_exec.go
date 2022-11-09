@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -182,7 +181,7 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 	}
 
 	// Generate an ID for our new exec session
-	sessionID := stringid.GenerateNonCryptoID()
+	sessionID := stringid.GenerateRandomID()
 	found := true
 	// This really ought to be a do-while, but Go doesn't have those...
 	for found {
@@ -194,7 +193,7 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 			}
 		}
 		if found {
-			sessionID = stringid.GenerateNonCryptoID()
+			sessionID = stringid.GenerateRandomID()
 		}
 	}
 
@@ -205,7 +204,7 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 	session.State = define.ExecStateCreated
 	session.Config = new(ExecConfig)
 	if err := JSONDeepCopy(config, session.Config); err != nil {
-		return "", fmt.Errorf("error copying exec configuration into exec session: %w", err)
+		return "", fmt.Errorf("copying exec configuration into exec session: %w", err)
 	}
 
 	if len(session.Config.ExitCommand) > 0 {
@@ -372,7 +371,7 @@ func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachS
 		if lastErr != nil {
 			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
 		}
-		return fmt.Errorf("error syncing container %s state to update exec session %s: %w", c.ID(), sessionID, err)
+		return fmt.Errorf("syncing container %s state to update exec session %s: %w", c.ID(), sessionID, err)
 	}
 
 	// Now handle the error from readExecExitCode above.
@@ -809,7 +808,7 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 			// streaming.
 			diedEvent, err := c.runtime.GetExecDiedEvent(context.Background(), c.ID(), sessionID)
 			if err != nil {
-				return -1, fmt.Errorf("error retrieving exec session %s exit code: %w", sessionID, err)
+				return -1, fmt.Errorf("retrieving exec session %s exit code: %w", sessionID, err)
 			}
 			return diedEvent.ContainerExitCode, nil
 		}
@@ -911,7 +910,7 @@ func (c *Container) createExecBundle(sessionID string) (retErr error) {
 	if err := os.MkdirAll(c.execExitFileDir(sessionID), execDirPermission); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return fmt.Errorf("error creating OCI runtime exit file path %s: %w", c.execExitFileDir(sessionID), err)
+			return fmt.Errorf("creating OCI runtime exit file path %s: %w", c.execExitFileDir(sessionID), err)
 		}
 	}
 	return nil
@@ -928,7 +927,7 @@ func (c *Container) readExecExitCode(sessionID string) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-	ec, err := ioutil.ReadFile(exitFile)
+	ec, err := os.ReadFile(exitFile)
 	if err != nil {
 		return -1, err
 	}
@@ -1121,7 +1120,7 @@ func writeExecExitCode(c *Container, sessionID string, exitCode int) error {
 			// need to. Exit without error.
 			return nil
 		}
-		return fmt.Errorf("error syncing container %s state to remove exec session %s: %w", c.ID(), sessionID, err)
+		return fmt.Errorf("syncing container %s state to remove exec session %s: %w", c.ID(), sessionID, err)
 	}
 
 	return justWriteExecExitCode(c, sessionID, exitCode)
