@@ -3,7 +3,7 @@ go 1.19
 module github.com/cri-o/cri-o
 
 require (
-	github.com/BurntSushi/toml v1.2.0
+	github.com/BurntSushi/toml v1.2.1
 	github.com/Microsoft/go-winio v0.6.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0
@@ -25,7 +25,7 @@ require (
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/podman/v4 v4.2.1
-	github.com/containers/storage v1.43.0
+	github.com/containers/storage v1.44.0
 	github.com/coreos/go-systemd/v22 v22.4.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.18
@@ -106,7 +106,7 @@ require (
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
-	github.com/Microsoft/hcsshim v0.9.4 // indirect
+	github.com/Microsoft/hcsshim v0.9.5 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20220824120805-4b6e5c587895 // indirect
 	github.com/ThalesIgnite/crypto11 v1.2.5 // indirect
@@ -246,7 +246,7 @@ require (
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
-	github.com/klauspost/compress v1.15.11 // indirect
+	github.com/klauspost/compress v1.15.12 // indirect
 	github.com/klauspost/pgzip v1.2.6-0.20220930104621-17e8dac29df8 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20220723181115-27de4befb95e // indirect
