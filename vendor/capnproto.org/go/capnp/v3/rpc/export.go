@@ -173,7 +173,7 @@ func (c *Conn) sendCap(d rpccp.CapDescriptor, client capnp.Client) (_ exportID, 
 
 // fillPayloadCapTable adds descriptors of payload's message's
 // capabilities into payload's capability table and returns the
-// reference counts added to the exports table.
+// reference counts that have been added to the exports table.
 //
 // The caller must be holding onto c.mu.
 func (c *Conn) fillPayloadCapTable(payload rpccp.Payload, clients []capnp.Client) (map[exportID]uint32, error) {

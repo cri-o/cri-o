@@ -62,6 +62,7 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 
 	extraHost := make([]v1.HostAlias, 0)
 	hostNetwork := false
+	hostUsers := true
 	if p.HasInfraContainer() {
 		infraContainer, err := p.getInfraContainer()
 		if err != nil {
@@ -87,8 +88,9 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 			return nil, servicePorts, err
 		}
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
+		hostUsers = infraContainer.IDMappings().HostUIDMapping && infraContainer.IDMappings().HostGIDMapping
 	}
-	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork)
+	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -348,7 +350,7 @@ func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, erro
 	return sps, nil
 }
 
-func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork bool) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers bool) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
@@ -446,10 +448,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 		podVolumes,
 		&dnsInfo,
 		hostNetwork,
+		hostUsers,
 		hostname), nil
 }
 
-func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork bool, hostname string) *v1.Pod {
+func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork, hostUsers bool, hostname string) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -468,12 +471,21 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 		CreationTimestamp: v12.Now(),
 		Annotations:       annotations,
 	}
+	// Set enableServiceLinks to false as podman doesn't use the service port environment variables
+	enableServiceLinks := false
+	// Set automountServiceAccountToken to false as podman doesn't use service account tokens
+	automountServiceAccountToken := false
 	ps := v1.PodSpec{
-		Containers:     containers,
-		Hostname:       hostname,
-		HostNetwork:    hostNetwork,
-		InitContainers: initCtrs,
-		Volumes:        volumes,
+		Containers:                   containers,
+		Hostname:                     hostname,
+		HostNetwork:                  hostNetwork,
+		InitContainers:               initCtrs,
+		Volumes:                      volumes,
+		EnableServiceLinks:           &enableServiceLinks,
+		AutomountServiceAccountToken: &automountServiceAccountToken,
+	}
+	if !hostUsers {
+		ps.HostUsers = &hostUsers
 	}
 	if dnsOptions != nil && (len(dnsOptions.Nameservers)+len(dnsOptions.Searches)+len(dnsOptions.Options) > 0) {
 		ps.DNSConfig = dnsOptions
@@ -492,6 +504,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
+	hostUsers := true
 	hostNetwork := true
 	podDNS := v1.PodDNSConfig{}
 	kubeAnnotations := make(map[string]string)
@@ -520,6 +533,9 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 
 		if !ctr.HostNetwork() {
 			hostNetwork = false
+		}
+		if !(ctr.IDMappings().HostUIDMapping && ctr.IDMappings().HostGIDMapping) {
+			hostUsers = false
 		}
 		kubeCtr, kubeVols, ctrDNS, annotations, err := containerToV1Container(ctx, ctr)
 		if err != nil {
@@ -582,6 +598,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 		kubeVolumes,
 		&podDNS,
 		hostNetwork,
+		hostUsers,
 		hostname), nil
 }
 
@@ -681,12 +698,12 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	// container.EnvFromSource =
 	kubeContainer.SecurityContext = kubeSec
 	kubeContainer.StdinOnce = false
-	kubeContainer.TTY = c.config.Spec.Process.Terminal
+	kubeContainer.TTY = c.Terminal()
 
-	if c.config.Spec.Linux != nil &&
-		c.config.Spec.Linux.Resources != nil {
-		if c.config.Spec.Linux.Resources.Memory != nil &&
-			c.config.Spec.Linux.Resources.Memory.Limit != nil {
+	resources := c.LinuxResources()
+	if resources != nil {
+		if resources.Memory != nil &&
+			resources.Memory.Limit != nil {
 			if kubeContainer.Resources.Limits == nil {
 				kubeContainer.Resources.Limits = v1.ResourceList{}
 			}
@@ -696,11 +713,11 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 			kubeContainer.Resources.Limits[v1.ResourceMemory] = *qty
 		}
 
-		if c.config.Spec.Linux.Resources.CPU != nil &&
-			c.config.Spec.Linux.Resources.CPU.Quota != nil &&
-			c.config.Spec.Linux.Resources.CPU.Period != nil {
-			quota := *c.config.Spec.Linux.Resources.CPU.Quota
-			period := *c.config.Spec.Linux.Resources.CPU.Period
+		if resources.CPU != nil &&
+			resources.CPU.Quota != nil &&
+			resources.CPU.Period != nil {
+			quota := *resources.CPU.Quota
+			period := *resources.CPU.Period
 
 			if quota > 0 && period > 0 {
 				cpuLimitMilli := int64(1000 * util.PeriodAndQuotaToCores(period, quota))

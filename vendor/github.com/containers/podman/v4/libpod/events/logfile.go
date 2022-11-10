@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build linux || freebsd
+// +build linux freebsd
 
 package events
 
@@ -9,9 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/containers/podman/v4/pkg/util"
@@ -25,6 +25,21 @@ import (
 // options and the event itself.  Methods for reading and writing are also defined from it.
 type EventLogFile struct {
 	options EventerOptions
+}
+
+// newLogFileEventer creates a new EventLogFile eventer
+func newLogFileEventer(options EventerOptions) (*EventLogFile, error) {
+	// Create events log dir
+	if err := os.MkdirAll(filepath.Dir(options.LogFilePath), 0700); err != nil {
+		return nil, fmt.Errorf("creating events dirs: %w", err)
+	}
+	// We have to make sure the file is created otherwise reading events will hang.
+	// https://github.com/containers/podman/issues/15688
+	fd, err := os.OpenFile(options.LogFilePath, os.O_RDONLY|os.O_CREATE, 0700)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event log file: %w", err)
+	}
+	return &EventLogFile{options: options}, fd.Close()
 }
 
 // Writes to the log file
@@ -108,6 +123,8 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 			}
 		}()
 	}
+	logrus.Debugf("Reading events from file %q", e.options.LogFilePath)
+
 	var line *tail.Line
 	var ok bool
 	for {
@@ -186,11 +203,11 @@ func truncate(filePath string) error {
 	size := origFinfo.Size()
 	threshold := size / 2
 
-	tmp, err := ioutil.TempFile(path.Dir(filePath), "")
+	tmp, err := os.CreateTemp(path.Dir(filePath), "")
 	if err != nil {
 		// Retry in /tmp in case creating a tmp file in the same
 		// directory has failed.
-		tmp, err = ioutil.TempFile("", "")
+		tmp, err = os.CreateTemp("", "")
 		if err != nil {
 			return err
 		}

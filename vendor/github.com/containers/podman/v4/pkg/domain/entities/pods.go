@@ -164,6 +164,15 @@ type PodCloneOptions struct {
 	Start               bool
 }
 
+type ContainerMode string
+
+const (
+	InfraMode  = ContainerMode("infra")
+	CloneMode  = ContainerMode("clone")
+	UpdateMode = ContainerMode("update")
+	CreateMode = ContainerMode("create")
+)
+
 type ContainerCreateOptions struct {
 	Annotation        []string
 	Attach            []string
@@ -203,6 +212,7 @@ type ContainerCreateOptions struct {
 	HealthRetries     uint
 	HealthStartPeriod string
 	HealthTimeout     string
+	HealthOnFailure   string
 	Hostname          string `json:"hostname,omitempty"`
 	HTTPProxy         bool
 	HostUsers         []string
@@ -263,6 +273,7 @@ type ContainerCreateOptions struct {
 	TTY               bool
 	Timezone          string
 	Umask             string
+	EnvMerge          []string
 	UnsetEnv          []string
 	UnsetEnvAll       bool
 	UIDMap            []string
@@ -426,15 +437,6 @@ type PodPSOptions struct {
 	Namespace bool
 	Quiet     bool
 	Sort      string
-}
-
-type PodInspectOptions struct {
-	Latest bool
-
-	// Options for the API.
-	NameOrID string
-
-	Format string
 }
 
 type PodInspectReport struct {

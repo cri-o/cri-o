@@ -203,10 +203,7 @@ func (srv *Server) handleCalls(ctx context.Context) {
 func (srv *Server) handleCall(ctx context.Context, c *Call) {
 	defer srv.wg.Done()
 
-	err := ctx.Err()
-	if err == nil {
-		err = c.method.Impl(ctx, c)
-	}
+	err := c.method.Impl(ctx, c)
 
 	c.recv.ReleaseArgs()
 	if err == nil {

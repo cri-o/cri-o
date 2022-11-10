@@ -677,10 +677,12 @@ func (d *diskCache) Set(p string, b []byte) error {
 	if err := d.memory.Set(p, b); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(d.base, 0o700); err != nil {
+
+	fp := filepath.FromSlash(filepath.Join(d.base, p))
+	if err := os.MkdirAll(filepath.Dir(fp), 0o700); err != nil {
 		return fmt.Errorf("creating targets dir: %w", err)
 	}
-	fp := filepath.FromSlash(filepath.Join(d.base, p))
+
 	return os.WriteFile(fp, b, 0o600)
 }
 
@@ -694,8 +696,13 @@ func noCache() bool {
 
 func remoteFromMirror(mirror string) (client.RemoteStore, error) {
 	// This is for compatibility with specifying a GCS bucket remote.
-	if _, parseErr := url.ParseRequestURI(mirror); parseErr != nil {
-		mirror = fmt.Sprintf("https://%s.storage.googleapis.com", mirror)
+	u, parseErr := url.ParseRequestURI(mirror)
+	if parseErr != nil {
+		return client.HTTPRemoteStore(fmt.Sprintf("https://%s.storage.googleapis.com", mirror), nil, nil)
 	}
-	return client.HTTPRemoteStore(mirror, nil, nil)
+	if u.Scheme != "file" {
+		return client.HTTPRemoteStore(mirror, nil, nil)
+	}
+	// Use local filesystem for remote.
+	return client.NewFileRemoteStore(os.DirFS(u.Path), "")
 }

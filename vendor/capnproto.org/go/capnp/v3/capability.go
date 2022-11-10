@@ -554,7 +554,7 @@ func (c Client) String() string {
 // reference to the capability, then the underlying resources associated
 // with the capability will be released.
 //
-// Release will panic if c has already been released, but not if c is
+// Release has no effect if c has already been released, or if c is
 // nil or resolved to null.
 func (c Client) Release() {
 	if c.client == nil {
@@ -674,13 +674,28 @@ func (cp *ClientPromise) Reject(err error) {
 // hook may have been shut down earlier if the client ran out of
 // references.
 func (cp *ClientPromise) Fulfill(c Client) {
+	cp.fulfill(c)
+	cp.shutdown()
+}
+
+// shutdown waits for all outstanding calls on the hook to complete and
+// references to be dropped, and then shuts down the hook. The caller
+// must have previously invoked cp.fulfill().
+func (cp *ClientPromise) shutdown() {
+	<-cp.h.done
+	cp.h.Shutdown()
+}
+
+// fulfill is like Fulfill, except that it does not wait for outsanding calls
+// to return answers or shut down the underlying hook.
+func (cp *ClientPromise) fulfill(c Client) {
 	// Obtain next client hook.
 	var rh *clientHook
 	if (c != Client{}) {
 		c.mu.Lock()
 		if c.released {
 			c.mu.Unlock()
-			panic("ClientPromise.Resolve with a released client")
+			panic("ClientPromise.Fulfill with a released client")
 		}
 		// TODO(maybe): c.h = resolveHook(c.h)
 		rh = c.h
@@ -691,7 +706,7 @@ func (cp *ClientPromise) Fulfill(c Client) {
 	cp.h.mu.Lock()
 	if cp.h.isResolved() {
 		cp.h.mu.Unlock()
-		panic("ClientPromise.Resolve called more than once")
+		panic("ClientPromise.Fulfill called more than once")
 	}
 	cp.h.resolvedHook = rh
 	close(cp.h.resolved)
@@ -711,8 +726,6 @@ func (cp *ClientPromise) Fulfill(c Client) {
 		rh.refs += refs
 		rh.mu.Unlock()
 	}
-	<-cp.h.done
-	cp.h.Shutdown()
 }
 
 // A WeakClient is a weak reference to a capability: it refers to a
@@ -816,7 +829,8 @@ type Recv struct {
 	Args Struct
 
 	// ReleaseArgs is called after Args is no longer referenced.
-	// Must not be nil.
+	// Must not be nil. If called more than once, subsequent calls
+	// must silently no-op.
 	ReleaseArgs ReleaseFunc
 
 	// Returner manages the results.

@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -1656,7 +1658,7 @@ func (p *Printer) printOption(name string, optVal interface{}, w *writer, indent
 	case string:
 		fmt.Fprintf(w, "%s", quotedString(optVal))
 	case []byte:
-		fmt.Fprintf(w, "%s", quotedString(string(optVal)))
+		fmt.Fprintf(w, "%s", quotedBytes(string(optVal)))
 	case bool:
 		fmt.Fprintf(w, "%v", optVal)
 	case ident:
@@ -1978,12 +1980,12 @@ func optionsAsElementAddrs(optionsTag int32, order int, opts map[int32][]option)
 	return optAddrs
 }
 
-// quotedString implements the text format for string literals for protocol
-// buffers. This form is also acceptable for string literals in option values
-// by the protocol buffer compiler, protoc.
-func quotedString(s string) string {
+// quotedBytes implements the text format for string literals for protocol
+// buffers. Since the underlying data is a bytes field, this encodes all
+// bytes outside the 7-bit ASCII printable range. To preserve unicode strings
+// without byte escapes, use quotedString.
+func quotedBytes(s string) string {
 	var b bytes.Buffer
-	// use WriteByte here to get any needed indent
 	b.WriteByte('"')
 	// Loop over the bytes, not the runes.
 	for i := 0; i < len(s); i++ {
@@ -2009,6 +2011,62 @@ func quotedString(s string) string {
 			}
 		}
 	}
+	b.WriteByte('"')
+
+	return b.String()
+}
+
+// quotedString implements the text format for string literals for protocol
+// buffers. This form is also acceptable for string literals in option values
+// by the protocol buffer compiler, protoc.
+func quotedString(s string) string {
+	var b bytes.Buffer
+	b.WriteByte('"')
+	// Loop over the bytes, not the runes.
+	for {
+		r, n := utf8.DecodeRuneInString(s)
+		if n == 0 {
+			break // end of string
+		}
+		if r == utf8.RuneError && n == 1 {
+			// Invalid UTF8! Use an octal byte escape to encode the bad byte.
+			fmt.Fprintf(&b, "\\%03o", s[0])
+			s = s[1:]
+			continue
+		}
+
+		// Divergence from C++: we don't escape apostrophes.
+		// There's no need to escape them, and the C++ parser
+		// copes with a naked apostrophe.
+		switch r {
+		case '\n':
+			b.WriteString("\\n")
+		case '\r':
+			b.WriteString("\\r")
+		case '\t':
+			b.WriteString("\\t")
+		case '"':
+			b.WriteString("\\")
+		case '\\':
+			b.WriteString("\\\\")
+		default:
+			if unicode.IsPrint(r) {
+				b.WriteRune(r)
+			} else {
+				// if it's not printable, use a unicode escape
+				if r > 0xffff {
+					fmt.Fprintf(&b, "\\U%08X", r)
+				} else if r > 0x7F {
+					fmt.Fprintf(&b, "\\u%04X", r)
+				} else {
+					fmt.Fprintf(&b, "\\%03o", byte(r))
+				}
+			}
+		}
+
+		s = s[n:]
+	}
+
 	b.WriteByte('"')
 
 	return b.String()
