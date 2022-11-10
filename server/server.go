@@ -169,6 +169,8 @@ func (s *Server) getPortForward(req *types.PortForwardRequest) (*types.PortForwa
 // For every container it fails to restore, it returns that containers image, so that
 // it can be cleaned up (if we're using internal_wipe).
 func (s *Server) restore(ctx context.Context) []string {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	containersAndTheirImages := map[string]string{}
 	containers, err := s.Store().Containers()
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -211,7 +213,7 @@ func (s *Server) restore(ctx context.Context) []string {
 			}
 			// Release the infra container name and the pod name for future use
 			if strings.Contains(n, oci.InfraContainerName) {
-				s.ReleaseContainerName(n)
+				s.ReleaseContainerName(ctx, n)
 			} else {
 				s.ReleasePodName(n)
 			}
@@ -227,7 +229,7 @@ func (s *Server) restore(ctx context.Context) []string {
 					log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 				}
 				// Release the container name for future use
-				s.ReleaseContainerName(n)
+				s.ReleaseContainerName(ctx, n)
 			}
 			// Remove the container from the list of podContainers, or else we'll retry the delete later,
 			// causing a useless debug message.
@@ -254,7 +256,7 @@ func (s *Server) restore(ctx context.Context) []string {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the container name
-			s.ReleaseContainerName(n)
+			s.ReleaseContainerName(ctx, n)
 		}
 	}
 
@@ -282,7 +284,7 @@ func (s *Server) restore(ctx context.Context) []string {
 
 	// Restore sandbox IPs
 	for _, sb := range s.ListSandboxes() {
-		ips, err := s.getSandboxIPs(sb)
+		ips, err := s.getSandboxIPs(ctx, sb)
 		if err != nil {
 			log.Warnf(ctx, "Could not restore sandbox IP for %v: %v", sb.ID(), err)
 			continue
@@ -518,7 +520,7 @@ func New(
 		logrus.Debug("Metrics are disabled")
 	}
 
-	if err := s.startSeccompNotifierWatcher(); err != nil {
+	if err := s.startSeccompNotifierWatcher(ctx); err != nil {
 		return nil, fmt.Errorf("start seccomp notifier watcher: %w", err)
 	}
 
@@ -540,6 +542,8 @@ func useDefaultUmask() {
 // indicates an upgrade has happened, it attempts to wipe that list of images.
 // This attempt is best-effort.
 func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if !s.config.InternalWipe {
 		return
 	}
@@ -600,39 +604,57 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 	}
 }
 
-func (s *Server) addSandbox(sb *sandbox.Sandbox) error {
-	return s.ContainerServer.AddSandbox(sb)
+func (s *Server) addSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	return s.ContainerServer.AddSandbox(ctx, sb)
 }
 
-func (s *Server) getSandbox(id string) *sandbox.Sandbox {
+func (s *Server) getSandbox(ctx context.Context, id string) *sandbox.Sandbox {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	return s.ContainerServer.GetSandbox(id)
 }
 
-func (s *Server) removeSandbox(id string) error {
-	return s.ContainerServer.RemoveSandbox(id)
+func (s *Server) removeSandbox(ctx context.Context, id string) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	return s.ContainerServer.RemoveSandbox(ctx, id)
 }
 
-func (s *Server) addContainer(c *oci.Container) {
-	s.ContainerServer.AddContainer(c)
+func (s *Server) addContainer(ctx context.Context, c *oci.Container) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	s.ContainerServer.AddContainer(ctx, c)
 }
 
-func (s *Server) addInfraContainer(c *oci.Container) {
-	s.ContainerServer.AddInfraContainer(c)
+func (s *Server) addInfraContainer(ctx context.Context, c *oci.Container) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	s.ContainerServer.AddInfraContainer(ctx, c)
 }
 
-func (s *Server) getInfraContainer(id string) *oci.Container {
-	return s.ContainerServer.GetInfraContainer(id)
+func (s *Server) getInfraContainer(ctx context.Context, id string) *oci.Container {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	return s.ContainerServer.GetInfraContainer(ctx, id)
 }
 
-func (s *Server) removeContainer(c *oci.Container) {
-	s.ContainerServer.RemoveContainer(c)
+func (s *Server) removeContainer(ctx context.Context, c *oci.Container) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	s.ContainerServer.RemoveContainer(ctx, c)
 }
 
-func (s *Server) removeInfraContainer(c *oci.Container) {
-	s.ContainerServer.RemoveInfraContainer(c)
+func (s *Server) removeInfraContainer(ctx context.Context, c *oci.Container) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	s.ContainerServer.RemoveInfraContainer(ctx, c)
 }
 
-func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox, error) {
+func (s *Server) getPodSandboxFromRequest(ctx context.Context, podSandboxID string) (*sandbox.Sandbox, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if podSandboxID == "" {
 		return nil, sandbox.ErrIDEmpty
 	}
@@ -642,7 +664,7 @@ func (s *Server) getPodSandboxFromRequest(podSandboxID string) (*sandbox.Sandbox
 		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %w", podSandboxID, err)
 	}
 
-	sb := s.getSandbox(sandboxID)
+	sb := s.getSandbox(ctx, sandboxID)
 	if sb == nil {
 		return nil, fmt.Errorf("specified pod sandbox not found: %s", sandboxID)
 	}
@@ -662,7 +684,7 @@ func (s *Server) MonitorsCloseChan() chan struct{} {
 	return s.monitorsChan
 }
 
-func (s *Server) startSeccompNotifierWatcher() error {
+func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 	logrus.Info("Starting seccomp notifier watcher")
 	s.seccompNotifierChan = make(chan seccomp.Notification)
 
@@ -685,7 +707,7 @@ func (s *Server) startSeccompNotifierWatcher() error {
 				return nil
 			}
 
-			ctr, err := s.ContainerServer.GetContainerFromShortID(id)
+			ctr, err := s.ContainerServer.GetContainerFromShortID(ctx, id)
 			if err != nil {
 				logrus.Warnf("Skipping not existing seccomp notifier container ID: %s", id)
 				return nil
@@ -741,7 +763,7 @@ func (s *Server) startSeccompNotifierWatcher() error {
 			}
 			notifier.AddSyscall(syscall)
 
-			ctr := s.ContainerServer.GetContainer(id)
+			ctr := s.ContainerServer.GetContainer(ctx, id)
 			usedSyscalls := notifier.UsedSyscalls()
 
 			if notifier.StopContainers() {
@@ -803,13 +825,15 @@ func (s *Server) monitorExits(ctx context.Context, watcher *fsnotify.Watcher, do
 }
 
 func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	log.Debugf(ctx, "Event: %v", event)
 	if event.Op&fsnotify.Create != fsnotify.Create {
 		return
 	}
 	containerID := filepath.Base(event.Name)
 	log.Debugf(ctx, "Container or sandbox exited: %v", containerID)
-	c := s.GetContainer(containerID)
+	c := s.GetContainer(ctx, containerID)
 	resource := "container"
 	if c == nil {
 		sb := s.GetSandbox(containerID)

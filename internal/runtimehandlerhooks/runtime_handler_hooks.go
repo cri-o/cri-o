@@ -18,6 +18,8 @@ type RuntimeHandlerHooks interface {
 
 // GetRuntimeHandlerHooks returns RuntimeHandlerHooks implementation by the runtime handler name
 func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handler string, annotations map[string]string) (RuntimeHandlerHooks, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if strings.Contains(handler, HighPerformance) {
 		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
 		return &HighPerformanceHooks{config.IrqBalanceConfigFile}, nil

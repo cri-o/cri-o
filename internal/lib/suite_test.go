@@ -177,8 +177,9 @@ func mockDirs(manifest []byte) {
 }
 
 func addContainerAndSandbox() {
-	Expect(sut.AddSandbox(mySandbox)).To(BeNil())
-	sut.AddContainer(myContainer)
+	ctx := context.TODO()
+	Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+	sut.AddContainer(ctx, myContainer)
 	Expect(sut.CtrIDIndex().Add(containerID)).To(BeNil())
 	Expect(sut.PodIDIndex().Add(sandboxID)).To(BeNil())
 	myContainer.SetCreated()

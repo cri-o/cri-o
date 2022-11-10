@@ -19,14 +19,16 @@ import (
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
 func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainerRequest) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	log.Infof(ctx, "Removing container: %s", req.ContainerId)
 	// save container description to print
-	c, err := s.GetContainerFromShortID(req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	sb := s.getSandbox(c.Sandbox())
+	sb := s.getSandbox(ctx, c.Sandbox())
 
 	if err := s.removeContainerInPod(ctx, sb, c); err != nil {
 		return err
@@ -46,6 +48,8 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 }
 
 func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, c *oci.Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if !sb.Stopped() {
 		if err := s.stopContainer(ctx, c, int64(10)); err != nil {
 			return fmt.Errorf("failed to stop container for removal")
@@ -60,23 +64,23 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 		return fmt.Errorf("failed to remove container exit file %s: %w", c.ID(), err)
 	}
 
-	c.CleanupConmonCgroup()
+	c.CleanupConmonCgroup(ctx)
 
-	if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
+	if err := s.StorageRuntimeServer().StopContainer(ctx, c.ID()); err != nil && err != storage.ErrContainerUnknown {
 		// assume container already umounted
 		log.Warnf(ctx, "Failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 	}
 
-	if err := s.StorageRuntimeServer().DeleteContainer(c.ID()); err != nil && err != storage.ErrContainerUnknown {
+	if err := s.StorageRuntimeServer().DeleteContainer(ctx, c.ID()); err != nil && err != storage.ErrContainerUnknown {
 		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 	}
 
-	s.ReleaseContainerName(c.Name())
-	s.removeContainer(c)
+	s.ReleaseContainerName(ctx, c.Name())
+	s.removeContainer(ctx, c)
 	if err := s.CtrIDIndex().Delete(c.ID()); err != nil {
 		return fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %v", c.Name(), sb.ID(), err)
 	}
-	sb.RemoveContainer(c)
+	sb.RemoveContainer(ctx, c)
 
 	return nil
 }

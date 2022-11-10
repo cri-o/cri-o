@@ -28,7 +28,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -43,6 +42,8 @@ const (
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
 func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if idMappings != nil && !container.Spoofed() {
 		rootPair := idMappings.RootPair()
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
@@ -139,6 +140,8 @@ func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Gene
 }
 
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	// TODO: simplify this function (cyclomatic complexity here is high)
 	// TODO: factor generating/updating the spec into something other projects can vendor
 
@@ -239,7 +242,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	containerIDMappings, err := s.getSandboxIDMappings(sb)
+	containerIDMappings, err := s.getSandboxIDMappings(ctx, sb)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +254,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	metadata := containerConfig.Metadata
 
-	s.resourceStore.SetStageForResource(ctr.Name(), "container storage creation")
+	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
 		image, imgResult.ID,
@@ -268,7 +271,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: deleting container %s from storage", containerInfo.ID)
-			if err := s.StorageRuntimeServer().DeleteContainer(containerInfo.ID); err != nil {
+			if err := s.StorageRuntimeServer().DeleteContainer(ctx, containerInfo.ID); err != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err)
 			}
 		}
@@ -316,13 +319,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
 
-	s.resourceStore.SetStageForResource(ctr.Name(), "container volume configuration")
+	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
 	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW)
 	if err != nil {
 		return nil, err
 	}
 
-	s.resourceStore.SetStageForResource(ctr.Name(), "container device creation")
+	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container device creation")
 	configuredDevices := s.config.Devices()
 
 	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
@@ -339,7 +342,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	s.resourceStore.SetStageForResource(ctr.Name(), "container storage start")
+	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage start")
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %w", containerName, containerID, err)
@@ -348,13 +351,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: stopping storage container %s", containerID)
-			if err := s.StorageRuntimeServer().StopContainer(containerID); err != nil {
+			if err := s.StorageRuntimeServer().StopContainer(ctx, containerID); err != nil {
 				log.Warnf(ctx, "Couldn't stop storage container: %v: %v", containerID, err)
 			}
 		}
 	}()
 
-	s.resourceStore.SetStageForResource(ctr.Name(), "container spec configuration")
+	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container spec configuration")
 
 	labels := containerConfig.Labels
 
@@ -484,7 +487,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	var nsTargetCtr *oci.Container
 	if target := containerConfig.Linux.SecurityContext.NamespaceOptions.TargetId; target != "" {
-		nsTargetCtr = s.GetContainer(target)
+		nsTargetCtr = s.GetContainer(ctx, target)
 	}
 
 	if err := ctr.SpecAddNamespaces(sb, nsTargetCtr, &s.config); err != nil {
@@ -873,6 +876,9 @@ func clearReadOnly(m *rspec.Mount) {
 }
 
 func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	volumes := []oci.ContainerVolume{}
 	ociMounts := []rspec.Mount{}
 	containerConfig := ctr.Config()
@@ -992,7 +998,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 
 		if m.SelinuxRelabel {
 			if skipRelabel {
-				logrus.Debugf("Skipping relabel for %s because of super privileged container (type: spc_t)", src)
+				log.Debugf(ctx, "Skipping relabel for %s because of super privileged container (type: spc_t)", src)
 			} else if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
 				return nil, nil, err
 			}

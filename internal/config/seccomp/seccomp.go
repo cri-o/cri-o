@@ -210,6 +210,8 @@ func (c *Config) setupFromPath(
 	specGenerator *generate.Generator,
 	profilePath string,
 ) (*Notifier, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	log.Debugf(ctx, "Setup seccomp from profile path: %s", profilePath)
 
 	if profilePath == "" {
@@ -297,6 +299,8 @@ func (c *Config) setupFromField(
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
 ) (*Notifier, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	log.Debugf(ctx, "Setup seccomp from profile field: %+v", profileField)
 
 	if c.IsDisabled() {

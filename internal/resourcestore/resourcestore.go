@@ -1,10 +1,12 @@
 package resourcestore
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/sirupsen/logrus"
 )
 
@@ -200,12 +202,12 @@ func (rc *ResourceStore) WatcherForResource(name string) (watcher chan struct{},
 	return watcher, r.stage
 }
 
-func (rc *ResourceStore) SetStageForResource(name, stage string) {
+func (rc *ResourceStore) SetStageForResource(ctx context.Context, name, stage string) {
 	rc.mutex.Lock()
 	defer rc.mutex.Unlock()
 	r, ok := rc.resources[name]
 	if !ok {
-		logrus.Tracef("Initializing stage for resource %s to %s", name, stage)
+		log.Debugf(ctx, "Initializing stage for resource %s to %s", name, stage)
 		rc.resources[name] = &Resource{
 			watchers: []chan struct{}{},
 			name:     name,
@@ -213,6 +215,6 @@ func (rc *ResourceStore) SetStageForResource(name, stage string) {
 		}
 		return
 	}
-	logrus.Tracef("Setting stage for resource %s from %s to %s", name, r.stage, stage)
+	log.Debugf(ctx, "Setting stage for resource %s from %s to %s", name, r.stage, stage)
 	r.stage = stage
 }

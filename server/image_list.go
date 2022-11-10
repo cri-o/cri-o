@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -8,6 +9,8 @@ import (
 
 // ListImages lists existing images.
 func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (*types.ListImagesResponse, error) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	filter := ""
 	reqFilter := req.Filter
 	if reqFilter != nil {

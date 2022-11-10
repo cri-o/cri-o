@@ -21,6 +21,8 @@ var localRegistryPrefix = "localhost/"
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
 	var err error
 	image := ""
@@ -105,6 +107,9 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 // readability and maintainability.
 func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string, error) {
 	var err error
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	sourceCtx := *s.config.SystemContext   // A shallow copy we can modify
 	sourceCtx.DockerLogMirrorChoice = true // Add info level log of the pull source
 	if pullArgs.credentials.Username != "" {

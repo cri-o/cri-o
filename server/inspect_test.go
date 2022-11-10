@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -36,6 +37,7 @@ func TestGetInfo(t *testing.T) {
 }
 
 func TestGetContainerInfo(t *testing.T) {
+	ctx := context.TODO()
 	s := &Server{}
 	created := time.Now()
 	labels := map[string]string{
@@ -47,7 +49,7 @@ func TestGetContainerInfo(t *testing.T) {
 		"io.kubernetes.test":  "value",
 		"io.kubernetes.test1": "value1",
 	}
-	getContainerFunc := func(id string) *oci.Container {
+	getContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "image", "imageName", "imageRef", &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
@@ -61,15 +63,15 @@ func TestGetContainerInfo(t *testing.T) {
 		container.SetState(cstate)
 		return container
 	}
-	getInfraContainerFunc := func(id string) *oci.Container {
+	getInfraContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		return nil
 	}
-	getSandboxFunc := func(id string) *sandbox.Sandbox {
+	getSandboxFunc := func(ctx context.Context, id string) *sandbox.Sandbox {
 		s := &sandbox.Sandbox{}
 		s.AddIPs([]string{"1.1.1.42"})
 		return s
 	}
-	ci, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
+	ci, err := s.getContainerInfo(ctx, "", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,17 +142,18 @@ func TestGetContainerInfo(t *testing.T) {
 }
 
 func TestGetContainerInfoCtrNotFound(t *testing.T) {
+	ctx := context.TODO()
 	s := &Server{}
-	getContainerFunc := func(id string) *oci.Container {
+	getContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		return nil
 	}
-	getInfraContainerFunc := func(id string) *oci.Container {
+	getInfraContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		return nil
 	}
-	getSandboxFunc := func(id string) *sandbox.Sandbox {
+	getSandboxFunc := func(ctx context.Context, id string) *sandbox.Sandbox {
 		return nil
 	}
-	_, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
+	_, err := s.getContainerInfo(ctx, "", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
 	if err == nil {
 		t.Fatal("expected an error but got nothing")
 	}
@@ -160,11 +163,12 @@ func TestGetContainerInfoCtrNotFound(t *testing.T) {
 }
 
 func TestGetContainerInfoCtrStateNil(t *testing.T) {
+	ctx := context.TODO()
 	s := &Server{}
 	created := time.Now()
 	labels := map[string]string{}
 	annotations := map[string]string{}
-	getContainerFunc := func(id string) *oci.Container {
+	getContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", "imageName", "imageRef", &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
@@ -173,15 +177,15 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 		container.SetState(nil)
 		return container
 	}
-	getInfraContainerFunc := func(id string) *oci.Container {
+	getInfraContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		return nil
 	}
-	getSandboxFunc := func(id string) *sandbox.Sandbox {
+	getSandboxFunc := func(ctx context.Context, id string) *sandbox.Sandbox {
 		s := &sandbox.Sandbox{}
 		s.AddIPs([]string{"1.1.1.42"})
 		return s
 	}
-	_, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
+	_, err := s.getContainerInfo(ctx, "", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
 	if err == nil {
 		t.Fatal("expected an error but got nothing")
 	}
@@ -191,11 +195,12 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 }
 
 func TestGetContainerInfoSandboxNotFound(t *testing.T) {
+	ctx := context.TODO()
 	s := &Server{}
 	created := time.Now()
 	labels := map[string]string{}
 	annotations := map[string]string{}
-	getContainerFunc := func(id string) *oci.Container {
+	getContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", "imageName", "imageRef", &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
@@ -203,13 +208,13 @@ func TestGetContainerInfoSandboxNotFound(t *testing.T) {
 		container.SetMountPoint("/var/foo/container")
 		return container
 	}
-	getInfraContainerFunc := func(id string) *oci.Container {
+	getInfraContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		return nil
 	}
-	getSandboxFunc := func(id string) *sandbox.Sandbox {
+	getSandboxFunc := func(ctx context.Context, id string) *sandbox.Sandbox {
 		return nil
 	}
-	_, err := s.getContainerInfo("", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
+	_, err := s.getContainerInfo(ctx, "", getContainerFunc, getInfraContainerFunc, getSandboxFunc)
 	if err == nil {
 		t.Fatal("expected an error but got nothing")
 	}

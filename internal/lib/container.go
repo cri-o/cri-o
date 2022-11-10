@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 
 	cstorage "github.com/containers/storage"
@@ -10,8 +11,8 @@ import (
 )
 
 // GetStorageContainer searches for a container with the given name or ID in the given store
-func (c *ContainerServer) GetStorageContainer(container string) (*cstorage.Container, error) {
-	ociCtr, err := c.LookupContainer(container)
+func (c *ContainerServer) GetStorageContainer(ctx context.Context, container string) (*cstorage.Container, error) {
+	ociCtr, err := c.LookupContainer(ctx, container)
 	if err != nil {
 		return nil, err
 	}
@@ -19,8 +20,8 @@ func (c *ContainerServer) GetStorageContainer(container string) (*cstorage.Conta
 }
 
 // GetContainerTopLayerID gets the ID of the top layer of the given container
-func (c *ContainerServer) GetContainerTopLayerID(containerID string) (string, error) {
-	ctr, err := c.GetStorageContainer(containerID)
+func (c *ContainerServer) GetContainerTopLayerID(ctx context.Context, containerID string) (string, error) {
+	ctr, err := c.GetStorageContainer(ctx, containerID)
 	if err != nil {
 		return "", err
 	}
@@ -28,7 +29,7 @@ func (c *ContainerServer) GetContainerTopLayerID(containerID string) (string, er
 }
 
 // GetContainerFromShortID gets an oci container matching the specified full or partial id
-func (c *ContainerServer) GetContainerFromShortID(cid string) (*oci.Container, error) {
+func (c *ContainerServer) GetContainerFromShortID(ctx context.Context, cid string) (*oci.Container, error) {
 	if cid == "" {
 		return nil, fmt.Errorf("container ID should not be empty")
 	}
@@ -38,7 +39,7 @@ func (c *ContainerServer) GetContainerFromShortID(cid string) (*oci.Container, e
 		return nil, fmt.Errorf("container with ID starting with %s not found: %w", cid, err)
 	}
 
-	ctr := c.GetContainer(containerID)
+	ctr := c.GetContainer(ctx, containerID)
 	if ctr == nil {
 		return nil, fmt.Errorf("specified container not found: %s", containerID)
 	}
@@ -51,7 +52,7 @@ func (c *ContainerServer) GetContainerFromShortID(cid string) (*oci.Container, e
 }
 
 // LookupContainer returns the container with the given name or full or partial id
-func (c *ContainerServer) LookupContainer(idOrName string) (*oci.Container, error) {
+func (c *ContainerServer) LookupContainer(ctx context.Context, idOrName string) (*oci.Container, error) {
 	if idOrName == "" {
 		return nil, fmt.Errorf("container ID or name should not be empty")
 	}
@@ -65,7 +66,7 @@ func (c *ContainerServer) LookupContainer(idOrName string) (*oci.Container, erro
 		}
 	}
 
-	return c.GetContainerFromShortID(ctrID)
+	return c.GetContainerFromShortID(ctx, ctrID)
 }
 
 func (c *ContainerServer) getSandboxFromRequest(pid string) (*sandbox.Sandbox, error) {

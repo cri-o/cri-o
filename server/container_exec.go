@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -24,7 +25,9 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 
 // Exec endpoint for streaming.Runtime
 func (s StreamService) Exec(containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	c, err := s.runtimeServer.GetContainerFromShortID(containerID)
+	ctx, span := log.StartSpan(context.TODO())
+	defer span.End()
+	c, err := s.runtimeServer.GetContainerFromShortID(ctx, containerID)
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}

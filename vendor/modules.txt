@@ -2030,6 +2030,12 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
+# github.com/uptrace/opentelemetry-go-extra/otellogrus v0.1.17
+## explicit; go 1.18
+github.com/uptrace/opentelemetry-go-extra/otellogrus
+# github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.17
+## explicit; go 1.18
+github.com/uptrace/opentelemetry-go-extra/otelutil
 # github.com/urfave/cli v1.22.9
 ## explicit; go 1.11
 github.com/urfave/cli
@@ -2276,6 +2282,7 @@ go.opentelemetry.io/otel/internal/baggage
 go.opentelemetry.io/otel/internal/global
 go.opentelemetry.io/otel/propagation
 go.opentelemetry.io/otel/semconv/internal
+go.opentelemetry.io/otel/semconv/v1.10.0
 go.opentelemetry.io/otel/semconv/v1.12.0
 go.opentelemetry.io/otel/semconv/v1.4.0
 # go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.0

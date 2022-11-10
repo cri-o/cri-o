@@ -11,7 +11,6 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,7 +27,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 	var podCheckpointDirectory string
 	var checkpointedPodOptions metadata.CheckpointedPodOptions
 
-	_, err := s.GetContainerFromShortID(req.ContainerId)
+	_, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		// Maybe the user specified a Pod
 		sb, err := s.LookupSandbox(req.ContainerId)
@@ -88,7 +87,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 		}
 		defer func() {
 			if err := os.RemoveAll(podCheckpointDirectory); err != nil {
-				logrus.Errorf("Could not recursively remove %s: %q", podCheckpointDirectory, err)
+				log.Errorf(ctx, "Could not recursively remove %s: %q", podCheckpointDirectory, err)
 			}
 		}()
 

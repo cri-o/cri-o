@@ -86,6 +86,9 @@ type exitCodeInfo struct {
 
 // CreateContainer creates a container.
 func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) (retErr error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	if c.Spoofed() {
 		return nil
 	}
@@ -140,7 +143,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		args = append(args, "-i")
 	}
 	if restore {
-		logrus.Debugf("Restore is true %v", restore)
+		log.Debugf(ctx, "Restore is true %v", restore)
 		args = append(args, "--restore", c.CheckpointPath())
 		if c.Spec().Process.SelinuxLabel != "" {
 			args = append(
@@ -164,7 +167,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		}
 	}
 
-	logrus.WithFields(logrus.Fields{
+	log.WithFields(ctx, logrus.Fields{
 		"args": args,
 	}).Debugf("running conmon: %s", r.handler.MonitorPath)
 
@@ -309,6 +312,8 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 // StartContainer starts a container.
 func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -343,6 +348,8 @@ func prepareExec() (pidFileName string, parentPipe, childPipe *os.File, _ error)
 }
 
 func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	// Split the log on newlines, which is what separates entries.
 	lines := bytes.SplitAfter(l, []byte{'\n'})
 	for _, line := range lines {
@@ -388,6 +395,9 @@ func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
 func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
+
 	if c.Spoofed() {
 		return nil
 	}
@@ -468,6 +478,9 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	if c.Spoofed() {
 		return nil, nil
 	}
@@ -725,6 +738,8 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 }
 
 func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -740,6 +755,9 @@ func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, 
 
 // UpdateContainer updates container resources
 func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
+
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -768,6 +786,9 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 }
 
 func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration, ignoreKill bool) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	done := make(chan struct{})
 	// we could potentially re-use "done" channel to exit the loop on timeout,
 	// but we use another channel "chControl" so that we never panic
@@ -847,6 +868,8 @@ func WaitContainerStop(ctx context.Context, c *Container, timeout time.Duration,
 
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout int64) (retErr error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if c.SetAsStopping(timeout) {
 		return nil
 	}
@@ -908,6 +931,8 @@ func checkProcessGone(c *Container) {
 
 // DeleteContainer deletes a container.
 func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -943,6 +968,8 @@ func updateContainerStatusFromExitFile(c *Container) error {
 
 // UpdateContainerStatus refreshes the status of the container.
 func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -1077,6 +1104,8 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 
 // ContainerStats provides statistics of a container.
 func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*types.ContainerStats, error) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 	return r.containerStats(c, cgroup)
@@ -1084,6 +1113,8 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 
 // SignalContainer sends a signal to a container process.
 func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -1112,6 +1143,8 @@ func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool)
 
 // AttachContainer attaches IO to a running container.
 func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if c.Spoofed() {
 		return nil
 	}
@@ -1190,6 +1223,8 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 
 // PortForwardContainer forwards the specified port into the provided container.
 func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	log.Infof(ctx,
 		"Starting port forward for %s in network namespace %s", c.ID(), netNsPath,
 	)
@@ -1281,6 +1316,8 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 
 // ReopenContainerLog reopens the log file of a container.
 func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if c.Spoofed() {
 		return nil
 	}
@@ -1459,8 +1496,8 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := c.CheckpointPath()
 
-	logrus.Debugf("Writing checkpoint to %s", imagePath)
-	logrus.Debugf("Writing checkpoint logs to %s", workPath)
+	log.Debugf(ctx, "Writing checkpoint to %s", imagePath)
+	log.Debugf(ctx, "Writing checkpoint logs to %s", workPath)
 	args := []string{}
 	args = append(
 		args,

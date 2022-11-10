@@ -14,6 +14,8 @@ import (
 )
 
 func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	stopMutex := sb.StopMutex()
 	stopMutex.Lock()
 	defer stopMutex.Unlock()
@@ -78,12 +80,12 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		return fmt.Errorf("unable to remove managed namespaces: %w", err)
 	}
 
-	if err := sb.UnmountShm(); err != nil {
+	if err := sb.UnmountShm(ctx); err != nil {
 		return err
 	}
 
 	log.Infof(ctx, "Stopped pod sandbox: %s", sb.ID())
-	sb.SetStopped(true)
+	sb.SetStopped(ctx, true)
 
 	return nil
 }

@@ -124,9 +124,10 @@ var _ = t.Describe("ContainerCreate", func() {
 		})
 
 		It("should fail when container is stopped", func() {
+			ctx := context.TODO()
 			// Given
 			addContainerAndSandbox()
-			testSandbox.SetStopped(false)
+			testSandbox.SetStopped(ctx, false)
 
 			// When
 			response, err := sut.CreateContainer(context.Background(),
@@ -142,9 +143,10 @@ var _ = t.Describe("ContainerCreate", func() {
 		})
 
 		It("should fail when container checkpoint archive is empty", func() {
+			ctx := context.TODO()
 			// Given
 			addContainerAndSandbox()
-			testSandbox.SetStopped(false)
+			testSandbox.SetStopped(ctx, false)
 
 			request := &types.CreateContainerRequest{
 				PodSandboxId:  testSandbox.ID(),

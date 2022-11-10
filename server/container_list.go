@@ -31,9 +31,11 @@ func filterContainer(c *types.Container, filter *types.ContainerFilter) bool {
 // filterContainerList applies a protobuf-defined filter to retrieve only intended containers. Not matching
 // the filter is not considered an error but will return an empty response.
 func (s *Server) filterContainerList(ctx context.Context, filter *types.ContainerFilter, origCtrList []*oci.Container) []*oci.Container {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	// Filter using container id and pod id first.
 	if filter.Id != "" {
-		c, err := s.ContainerServer.GetContainerFromShortID(filter.Id)
+		c, err := s.ContainerServer.GetContainerFromShortID(ctx, filter.Id)
 		if err != nil {
 			// If we don't find a container ID with a filter, it should not
 			// be considered an error.  Log a warning and return an empty struct
@@ -49,7 +51,7 @@ func (s *Server) filterContainerList(ctx context.Context, filter *types.Containe
 			return nil
 		}
 	} else if filter.PodSandboxId != "" {
-		sb, err := s.getPodSandboxFromRequest(filter.PodSandboxId)
+		sb, err := s.getPodSandboxFromRequest(ctx, filter.PodSandboxId)
 		if err != nil {
 			return nil
 		}
@@ -61,6 +63,8 @@ func (s *Server) filterContainerList(ctx context.Context, filter *types.Containe
 
 // ListContainers lists all containers by filters.
 func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRequest) (*types.ListContainersResponse, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	var ctrs []*types.Container
 	filter := req.Filter
 	ctrList, err := s.ContainerServer.ListContainers()

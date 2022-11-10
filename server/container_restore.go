@@ -69,7 +69,7 @@ func (s *Server) CRImportCheckpoint(
 	}
 
 	if checkpointIsOCIImage {
-		logrus.Debugf("Restoring from oci image %s\n", input)
+		log.Debugf(ctx, "Restoring from oci image %s\n", input)
 
 		imageRef, err := istorage.Transport.ParseStoreReference(s.ContainerServer.StorageImageServer().GetStore(), input)
 		if err != nil {
@@ -124,7 +124,7 @@ func (s *Server) CRImportCheckpoint(
 		if err != nil {
 			return "", fmt.Errorf("unpacking of checkpoint archive %s failed: %w", mountPoint, err)
 		}
-		logrus.Debugf("Unpacked checkpoint in %s", mountPoint)
+		log.Debugf(ctx, "Unpacked checkpoint in %s", mountPoint)
 	}
 
 	// Load spec.dump from temporary directory
@@ -187,7 +187,7 @@ func (s *Server) CRImportCheckpoint(
 		}
 	}
 
-	sb, err := s.getPodSandboxFromRequest(sbID)
+	sb, err := s.getPodSandboxFromRequest(ctx, sbID)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
 			return "", err
@@ -266,7 +266,7 @@ func (s *Server) CRImportCheckpoint(
 			}
 		}
 
-		logrus.Debugf("Adding mounts %#v", mount)
+		log.Debugf(ctx, "Adding mounts %#v", mount)
 		containerConfig.Mounts = append(containerConfig.Mounts, mount)
 	}
 	sandboxConfig := &types.PodSandboxConfig{
@@ -294,7 +294,7 @@ func (s *Server) CRImportCheckpoint(
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: releasing container name %s", ctr.Name())
-			s.ReleaseContainerName(ctr.Name())
+			s.ReleaseContainerName(ctx, ctr.Name())
 		}
 	}()
 	ctr.SetRestore(true)
@@ -306,19 +306,19 @@ func (s *Server) CRImportCheckpoint(
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: deleting container %s from storage", ctr.ID())
-			err2 := s.StorageRuntimeServer().DeleteContainer(ctr.ID())
+			err2 := s.StorageRuntimeServer().DeleteContainer(ctx, ctr.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
 		}
 	}()
 
-	s.addContainer(newContainer)
+	s.addContainer(ctx, newContainer)
 
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: removing container %s", newContainer.ID())
-			s.removeContainer(newContainer)
+			s.removeContainer(ctx, newContainer)
 		}
 	}()
 

@@ -19,6 +19,7 @@ import (
 
 // The actual test suite
 var _ = t.Describe("ContainerServer", func() {
+	ctx := context.TODO()
 	// Prepare the sut
 	BeforeEach(beforeEach)
 
@@ -413,7 +414,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed", func() {
 			// Given
 			createDummyState()
-			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
 			mockDirs(testManifest)
 
 			// When
@@ -440,7 +441,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with failing ContainerRunDirectory", func() {
 			// Given
-			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
 			gomock.InOrder(
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -458,7 +459,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with failing ContainerDirectory", func() {
 			// Given
-			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
 			gomock.InOrder(
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -679,8 +680,8 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("AddContainer/AddSandbox", func() {
 		It("should succeed", func() {
 			// Given
-			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
-			sut.AddContainer(myContainer)
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			sut.AddContainer(ctx, myContainer)
 
 			// When
 			hasSandbox := sut.HasSandbox(mySandbox.ID())
@@ -694,7 +695,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail when sandbox not available", func() {
 			// Given
-			sut.AddContainer(myContainer)
+			sut.AddContainer(ctx, myContainer)
 
 			// When
 			hasSandbox := sut.HasSandbox(mySandbox.ID())
@@ -709,10 +710,10 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("RemoveContainer/RemoveSandbox", func() {
 		It("should succeed", func() {
 			// Given
-			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
-			sut.AddContainer(myContainer)
-			sut.RemoveContainer(myContainer)
-			Expect(sut.RemoveSandbox(mySandbox.ID())).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			sut.AddContainer(ctx, myContainer)
+			sut.RemoveContainer(ctx, myContainer)
+			Expect(sut.RemoveSandbox(ctx, mySandbox.ID())).To(BeNil())
 
 			// When
 			hasSandbox := sut.HasSandbox(mySandbox.ID())
@@ -726,10 +727,10 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail to remove container when sandbox not available", func() {
 			// Given
-			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
-			sut.AddContainer(myContainer)
-			Expect(sut.RemoveSandbox(mySandbox.ID())).To(BeNil())
-			sut.RemoveContainer(myContainer)
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			sut.AddContainer(ctx, myContainer)
+			Expect(sut.RemoveSandbox(ctx, mySandbox.ID())).To(BeNil())
+			sut.RemoveContainer(ctx, myContainer)
 
 			// When
 			hasSandbox := sut.HasSandbox(mySandbox.ID())
@@ -742,7 +743,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail to remove sandbox when not available", func() {
 			// Given
-			Expect(sut.RemoveSandbox(mySandbox.ID())).To(BeNil())
+			Expect(sut.RemoveSandbox(ctx, mySandbox.ID())).To(BeNil())
 
 			// When
 			hasSandbox := sut.HasSandbox(mySandbox.ID())
@@ -755,8 +756,8 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("ListContainer/ListSandbox", func() {
 		It("should succeed", func() {
 			// Given
-			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
-			sut.AddContainer(myContainer)
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			sut.AddContainer(ctx, myContainer)
 
 			// When
 			sandboxes := sut.ListSandboxes()
@@ -770,8 +771,8 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should succeed filtered", func() {
 			// Given
-			Expect(sut.AddSandbox(mySandbox)).To(BeNil())
-			sut.AddContainer(myContainer)
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			sut.AddContainer(ctx, myContainer)
 
 			// When
 			sandboxes := sut.ListSandboxes()
@@ -793,10 +794,10 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("AddInfraContainer", func() {
 		It("should succeed", func() {
 			// Given
-			sut.AddInfraContainer(myContainer)
+			sut.AddInfraContainer(ctx, myContainer)
 
 			// When
-			container := sut.GetInfraContainer(myContainer.ID())
+			container := sut.GetInfraContainer(ctx, myContainer.ID())
 
 			// Then
 			Expect(container).NotTo(BeNil())
@@ -806,11 +807,11 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("RemoveInfraContainer", func() {
 		It("should succeed", func() {
 			// Given
-			sut.AddInfraContainer(myContainer)
-			sut.RemoveInfraContainer(myContainer)
+			sut.AddInfraContainer(ctx, myContainer)
+			sut.RemoveInfraContainer(ctx, myContainer)
 
 			// When
-			container := sut.GetInfraContainer(myContainer.ID())
+			container := sut.GetInfraContainer(ctx, myContainer.ID())
 
 			// Then
 			Expect(container).To(BeNil())

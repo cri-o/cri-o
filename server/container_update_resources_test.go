@@ -75,7 +75,8 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			// Then
 			Expect(err).To(BeNil())
 
-			c := sut.GetContainer(testContainer.ID())
+			ctx := context.TODO()
+			c := sut.GetContainer(ctx, testContainer.ID())
 			Expect(int(*c.Spec().Linux.Resources.CPU.Period)).To(Equal(100000))
 			Expect(int(*c.Spec().Linux.Resources.CPU.Quota)).To(Equal(20000))
 			Expect(int(*c.Spec().Linux.Resources.CPU.Shares)).To(Equal(1024))

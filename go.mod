@@ -60,6 +60,7 @@ require (
 	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
+	github.com/uptrace/opentelemetry-go-extra/otellogrus v0.1.17
 	github.com/urfave/cli/v2 v2.20.2
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.36.3
@@ -333,6 +334,7 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802 // indirect
 	github.com/transparency-dev/merkle v0.0.1 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
+	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.17 // indirect
 	github.com/urfave/cli v1.22.9 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
 	github.com/vbauerster/mpb/v7 v7.5.3 // indirect

@@ -161,6 +161,8 @@ func (c *container) SpecAddMount(r rspec.Mount) {
 
 // SpecAddAnnotation adds all annotations to the spec
 func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool) (err error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
 	const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
 

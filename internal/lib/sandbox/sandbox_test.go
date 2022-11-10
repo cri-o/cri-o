@@ -1,6 +1,7 @@
 package sandbox_test
 
 import (
+	"context"
 	"time"
 
 	"github.com/cri-o/cri-o/internal/hostport"
@@ -102,11 +103,12 @@ var _ = t.Describe("Sandbox", func() {
 
 	t.Describe("Stopped", func() {
 		It("should succeed", func() {
+			ctx := context.TODO()
 			// Given
 			Expect(testSandbox.Stopped()).To(BeFalse())
 
 			// When
-			testSandbox.SetStopped(false)
+			testSandbox.SetStopped(ctx, false)
 
 			// Then
 			Expect(testSandbox.Stopped()).To(BeTrue())
@@ -115,11 +117,12 @@ var _ = t.Describe("Sandbox", func() {
 
 	t.Describe("NetworkStopped", func() {
 		It("should succeed", func() {
+			ctx := context.TODO()
 			// Given
 			Expect(testSandbox.NetworkStopped()).To(BeFalse())
 
 			// When
-			Expect(testSandbox.SetNetworkStopped(false)).To(BeNil())
+			Expect(testSandbox.SetNetworkStopped(ctx, false)).To(BeNil())
 
 			// Then
 			Expect(testSandbox.NetworkStopped()).To(BeTrue())
@@ -210,21 +213,22 @@ var _ = t.Describe("Sandbox", func() {
 		})
 
 		It("should succeed to add and remove a container", func() {
+			ctx := context.TODO()
 			// Given
-			Expect(testSandbox.GetContainer(testContainer.Name())).To(BeNil())
+			Expect(testSandbox.GetContainer(ctx, testContainer.Name())).To(BeNil())
 
 			// When
-			testSandbox.AddContainer(testContainer)
+			testSandbox.AddContainer(ctx, testContainer)
 
 			// Then
-			Expect(testSandbox.GetContainer(testContainer.Name())).
+			Expect(testSandbox.GetContainer(ctx, testContainer.Name())).
 				To(Equal(testContainer))
 
 			// And When
-			testSandbox.RemoveContainer(testContainer)
+			testSandbox.RemoveContainer(ctx, testContainer)
 
 			// Then
-			Expect(testSandbox.GetContainer(testContainer.Name())).To(BeNil())
+			Expect(testSandbox.GetContainer(ctx, testContainer.Name())).To(BeNil())
 		})
 
 		It("should succeed to add and remove an infra container", func() {
@@ -276,12 +280,13 @@ var _ = t.Describe("Sandbox", func() {
 		})
 
 		It("should set containerenv file", func() {
+			ctx := context.TODO()
 			// Given
 			Expect(testSandbox.ContainerEnvPath()).To(BeEmpty())
 			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
 
 			// When
-			Expect(testSandbox.SetContainerEnvFile()).To(BeNil())
+			Expect(testSandbox.SetContainerEnvFile(ctx)).To(BeNil())
 
 			// Then
 			Expect(testSandbox.ContainerEnvPath()).To(ContainSubstring(".containerenv"))

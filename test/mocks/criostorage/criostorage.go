@@ -5,6 +5,7 @@
 package criostoragemock
 
 import (
+	context "context"
 	reflect "reflect"
 
 	types "github.com/containers/image/v5/types"
@@ -194,17 +195,17 @@ func (mr *MockRuntimeServerMockRecorder) CreatePodSandbox(arg0, arg1, arg2, arg3
 }
 
 // DeleteContainer mocks base method.
-func (m *MockRuntimeServer) DeleteContainer(arg0 string) error {
+func (m *MockRuntimeServer) DeleteContainer(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteContainer", arg0)
+	ret := m.ctrl.Call(m, "DeleteContainer", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteContainer indicates an expected call of DeleteContainer.
-func (mr *MockRuntimeServerMockRecorder) DeleteContainer(arg0 interface{}) *gomock.Call {
+func (mr *MockRuntimeServerMockRecorder) DeleteContainer(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContainer", reflect.TypeOf((*MockRuntimeServer)(nil).DeleteContainer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContainer", reflect.TypeOf((*MockRuntimeServer)(nil).DeleteContainer), arg0, arg1)
 }
 
 // GetContainerMetadata mocks base method.
@@ -282,15 +283,15 @@ func (mr *MockRuntimeServerMockRecorder) StartContainer(arg0 interface{}) *gomoc
 }
 
 // StopContainer mocks base method.
-func (m *MockRuntimeServer) StopContainer(arg0 string) error {
+func (m *MockRuntimeServer) StopContainer(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StopContainer", arg0)
+	ret := m.ctrl.Call(m, "StopContainer", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // StopContainer indicates an expected call of StopContainer.
-func (mr *MockRuntimeServerMockRecorder) StopContainer(arg0 interface{}) *gomock.Call {
+func (mr *MockRuntimeServerMockRecorder) StopContainer(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopContainer", reflect.TypeOf((*MockRuntimeServer)(nil).StopContainer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopContainer", reflect.TypeOf((*MockRuntimeServer)(nil).StopContainer), arg0, arg1)
 }

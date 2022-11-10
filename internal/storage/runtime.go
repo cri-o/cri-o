@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/log"
 	json "github.com/json-iterator/go"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -82,7 +83,7 @@ type RuntimeServer interface {
 	// omitted, but not both.  All other arguments are required.
 	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
-	DeleteContainer(idOrName string) error
+	DeleteContainer(ctx context.Context, idOrName string) error
 
 	// StartContainer makes sure a container's filesystem is mounted, and
 	// returns the location of its root filesystem, which is not guaranteed
@@ -90,7 +91,7 @@ type RuntimeServer interface {
 	StartContainer(idOrName string) (string, error)
 	// StopContainer attempts to unmount a container's root filesystem,
 	// freeing up any kernel resources which may be limited.
-	StopContainer(idOrName string) error
+	StopContainer(ctx context.Context, idOrName string) error
 
 	// GetWorkDir returns the path of a nonvolatile directory on the
 	// filesystem (somewhere under the Store's Root directory) which can be
@@ -378,7 +379,9 @@ func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
 	}
 }
 
-func (r *runtimeService) DeleteContainer(idOrName string) error {
+func (r *runtimeService) DeleteContainer(ctx context.Context, idOrName string) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if idOrName == "" {
 		return ErrInvalidContainerID
 	}
@@ -392,11 +395,11 @@ func (r *runtimeService) DeleteContainer(idOrName string) error {
 	}
 	layer, err := r.storageImageServer.GetStore().Layer(container.LayerID)
 	if err != nil {
-		logrus.Debugf("Failed to retrieve layer %q: %v", container.LayerID, err)
+		log.Debugf(ctx, "Failed to retrieve layer %q: %v", container.LayerID, err)
 	}
 	err = r.storageImageServer.GetStore().DeleteContainer(container.ID)
 	if err != nil {
-		logrus.Debugf("Failed to delete container %q: %v", container.ID, err)
+		log.Debugf(ctx, "Failed to delete container %q: %v", container.ID, err)
 		return err
 	}
 	if layer != nil {
@@ -447,7 +450,9 @@ func (r *runtimeService) StartContainer(idOrName string) (string, error) {
 	return mountPoint, nil
 }
 
-func (r *runtimeService) StopContainer(idOrName string) error {
+func (r *runtimeService) StopContainer(ctx context.Context, idOrName string) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 	if idOrName == "" {
 		return ErrInvalidContainerID
 	}
@@ -457,10 +462,10 @@ func (r *runtimeService) StopContainer(idOrName string) error {
 	}
 	_, err = r.storageImageServer.GetStore().Unmount(container.ID, false)
 	if err != nil {
-		logrus.Debugf("Failed to unmount container %q: %v", container.ID, err)
+		log.Debugf(ctx, "Failed to unmount container %q: %v", container.ID, err)
 		return err
 	}
-	logrus.Debugf("Unmounted container %q", container.ID)
+	log.Debugf(ctx, "Unmounted container %q", container.ID)
 	return nil
 }
 

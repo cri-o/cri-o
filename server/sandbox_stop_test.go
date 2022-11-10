@@ -21,10 +21,11 @@ var _ = t.Describe("PodSandboxStatus", func() {
 
 	t.Describe("PodSandboxStatus", func() {
 		It("should succeed with already stopped sandbox", func() {
+			ctx := context.TODO()
 			// Given
 			addContainerAndSandbox()
-			testSandbox.SetStopped(false)
-			Expect(testSandbox.SetNetworkStopped(false)).To(BeNil())
+			testSandbox.SetStopped(ctx, false)
+			Expect(testSandbox.SetNetworkStopped(ctx, false)).To(BeNil())
 
 			// When
 			err := sut.StopPodSandbox(context.Background(),
