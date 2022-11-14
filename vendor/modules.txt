@@ -777,7 +777,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.44.1-0.20230101110555-a747b27fe4ca
+# github.com/containers/storage v1.44.1-0.20230101110555-a747b27fe4ca => github.com/mtrmac/storage v0.0.0-20230103232939-ffeaed8fa4f7
 ## explicit; go 1.17
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1447,7 +1447,7 @@ github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v1.1.0
 ## explicit
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.15.13
+# github.com/klauspost/compress v1.15.14
 ## explicit; go 1.17
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
@@ -3405,3 +3405,4 @@ sigs.k8s.io/zeitgeist/upstream
 # k8s.io/mount-utils => k8s.io/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20220823173643-a866cbe2e5bb
 # k8s.io/pod-security-admission => k8s.io/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20220823173643-a866cbe2e5bb
 # k8s.io/sample-apiserver => k8s.io/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20220823173643-a866cbe2e5bb
+# github.com/containers/storage => github.com/mtrmac/storage v0.0.0-20230103232939-ffeaed8fa4f7
