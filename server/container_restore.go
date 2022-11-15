@@ -23,10 +23,13 @@ import (
 // taken from Podman
 func (s *Server) CRImportCheckpoint(
 	ctx context.Context,
-	input, sbID, sandboxUID string,
-	createMounts []*types.Mount,
-	createAnnotations map[string]string,
+	createConfig *types.ContainerConfig,
+	sbID, sandboxUID string,
 ) (ctrID string, retErr error) {
+	input := createConfig.Image.Image
+	createMounts := createConfig.Mounts
+	createAnnotations := createConfig.Annotations
+
 	// First get the container definition from the
 	// tarball to a temporary directory
 	archiveFile, err := os.Open(input)
@@ -152,6 +155,13 @@ func (s *Server) CRImportCheckpoint(
 		},
 		Annotations: originalAnnotations,
 		Labels:      originalLabels,
+	}
+
+	if createConfig.Linux.Resources != nil {
+		containerConfig.Linux.Resources = createConfig.Linux.Resources
+	}
+	if createConfig.Linux.SecurityContext != nil {
+		containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
 	}
 
 	ignoreMounts := map[string]bool{
