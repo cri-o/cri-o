@@ -159,11 +159,10 @@ func (r *runtimePod) CheckpointContainer(
 func (r *runtimePod) RestoreContainer(
 	ctx context.Context,
 	c *Container,
-	sbSpec *rspec.Spec,
-	infraPid int,
 	cgroupParent string,
+	mountLabel string,
 ) error {
-	return r.oci.RestoreContainer(ctx, c, sbSpec, infraPid, cgroupParent)
+	return r.oci.RestoreContainer(ctx, c, cgroupParent, mountLabel)
 }
 
 func (r *runtimePod) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {

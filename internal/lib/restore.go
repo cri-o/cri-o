@@ -8,6 +8,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v6/stats"
+	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/log"
@@ -31,8 +32,10 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 	}
 
 	// Get config.json
-	configFile := filepath.Join(ctr.Dir(), "config.json")
-	ctrSpec, err := generate.NewFromFile(configFile)
+	// This file is generated twice by earlier code. Once in BundlePath() and
+	// once in Dir(). This code takes the version from Dir(), modifies it and
+	// overwrites both versions (Dir() and BundlePath())
+	ctrSpec, err := generate.NewFromFile(filepath.Join(ctr.Dir(), "config.json"))
 	if err != nil {
 		return "", err
 	}
@@ -51,15 +54,6 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 		opts.Pod = ctr.Sandbox()
 	}
 	sb, err := c.LookupSandbox(opts.Pod)
-	if err != nil {
-		return "", err
-	}
-	ic := sb.InfraContainer()
-	if ic == nil {
-		return "", fmt.Errorf("infra container of sandbox %v not found", sb.Name())
-	}
-	infraConfigFile := filepath.Join(ic.BundlePath(), "config.json")
-	specgen, err := generate.NewFromFile(infraConfigFile)
 	if err != nil {
 		return "", err
 	}
@@ -209,7 +203,55 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 		}
 	}
 
-	if err := c.runtime.RestoreContainer(ctx, ctr, specgen.Config, ic.State().Pid, sb.CgroupParent()); err != nil {
+	// We need to adapt the to be restored container to the sandbox created for this container.
+
+	// The container will be restored in another sandbox. Adapt to
+	// namespaces of the new sandbox
+	for i, n := range ctrSpec.Config.Linux.Namespaces {
+		if n.Path == "" {
+			// The namespace in the original container did not point to
+			// an existing interface. Leave it as it is.
+			// CRIU will restore the namespace
+			continue
+		}
+		for _, np := range sb.NamespacePaths() {
+			if string(np.Type()) == string(n.Type) {
+				ctrSpec.Config.Linux.Namespaces[i].Path = np.Path()
+				break
+			}
+		}
+	}
+
+	// Update Sandbox Name
+	ctrSpec.AddAnnotation(annotations.SandboxName, sb.Name())
+	// Update Sandbox ID
+	ctrSpec.AddAnnotation(annotations.SandboxID, opts.Pod)
+
+	mData := fmt.Sprintf(
+		"k8s_%s_%s_%s_%s0",
+		ctr.Name(),
+		sb.KubeName(),
+		sb.Namespace(),
+		sb.Metadata().Uid,
+	)
+	ctrSpec.AddAnnotation(annotations.Name, mData)
+
+	ctr.SetSandbox(opts.Pod)
+
+	saveOptions := generate.ExportOptions{}
+	if err := ctrSpec.SaveToFile(filepath.Join(ctr.Dir(), "config.json"), saveOptions); err != nil {
+		return "", err
+	}
+	if err := ctrSpec.SaveToFile(filepath.Join(ctr.BundlePath(), "config.json"), saveOptions); err != nil {
+		return "", err
+	}
+
+	if err := c.runtime.RestoreContainer(
+		ctx,
+		ctr,
+		sb.CgroupParent(),
+		sb.MountLabel(),
+	); err != nil {
 		return "", fmt.Errorf("failed to restore container %s: %w", ctr.ID(), err)
 	}
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {

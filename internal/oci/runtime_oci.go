@@ -17,7 +17,6 @@ import (
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containernetworking/plugins/pkg/ns"
 	conmonconfig "github.com/containers/conmon/runner/config"
-	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/storage/pkg/pools"
@@ -30,7 +29,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
@@ -1528,7 +1526,7 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 }
 
 // RestoreContainer restores a container.
-func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, sbSpec *rspec.Spec, infraPid int, cgroupParent string) error {
+func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, cgroupParent, mountLabel string) error {
 	if err := r.checkpointRestoreSupported(); err != nil {
 		return err
 	}
@@ -1555,78 +1553,6 @@ func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, sbSpec 
 		return fmt.Errorf("error removing container %s winsz file: %w", c.ID(), err)
 	}
 
-	// Figure out if this container will be restored in another sandbox
-	oldSbID := c.Sandbox()
-	if oldSbID == "" {
-		return fmt.Errorf("failed to detect sandbox of to be restored container %s", c.ID())
-	}
-	newSbID := sbSpec.Annotations[annotations.SandboxID]
-	if newSbID == "" {
-		return fmt.Errorf("failed to detect destination sandbox of to be restored container %s", c.ID())
-	}
-
-	// Get config.json to adapt for restore (mostly annotations for restore in another sandbox)
-	configFile := filepath.Join(c.BundlePath(), "config.json")
-	specgen, err := generate.NewFromFile(configFile)
-	if err != nil {
-		return err
-	}
-
-	if oldSbID != newSbID {
-		// The container will be restored in another (not the original) sandbox
-		// Adapt to namespaces of the new sandbox
-		for i, n := range specgen.Config.Linux.Namespaces {
-			if n.Path == "" {
-				// The namespace in the original container did not point to
-				// an existing interface. Leave it as it is.
-				continue
-			}
-			for _, on := range sbSpec.Linux.Namespaces {
-				if on.Type == n.Type {
-					var nsPath string
-					if n.Type == rspec.NetworkNamespace {
-						// Type for network namespaces is 'network'.
-						// The kernel link is 'net'.
-						nsPath = fmt.Sprintf("/proc/%d/ns/%s", infraPid, "net")
-					} else {
-						nsPath = fmt.Sprintf("/proc/%d/ns/%s", infraPid, n.Type)
-					}
-					specgen.Config.Linux.Namespaces[i].Path = nsPath
-					break
-				}
-			}
-		}
-
-		// Update Sandbox Name
-		specgen.AddAnnotation(annotations.SandboxName, sbSpec.Annotations[annotations.Name])
-		// Update Sandbox ID
-		specgen.AddAnnotation(annotations.SandboxID, newSbID)
-
-		// Update Name
-		ctrMetadata := types.ContainerMetadata{}
-		err = json.Unmarshal([]byte(sbSpec.Annotations[annotations.Metadata]), &ctrMetadata)
-		if err != nil {
-			return err
-		}
-		ctrName := ctrMetadata.Name
-
-		podMetadata := types.PodSandboxMetadata{}
-		err = json.Unmarshal([]byte(specgen.Config.Annotations[annotations.Metadata]), &podMetadata)
-		if err != nil {
-			return err
-		}
-		uid := podMetadata.Uid
-		mData := fmt.Sprintf("k8s_%s_%s_%s_%s0", ctrName, sbSpec.Annotations[annotations.KubeName], sbSpec.Annotations[annotations.Namespace], uid)
-		specgen.AddAnnotation(annotations.Name, mData)
-
-		c.SetSandbox(newSbID)
-
-		saveOptions := generate.ExportOptions{}
-		if err := specgen.SaveToFile(configFile, saveOptions); err != nil {
-			return err
-		}
-	}
-
 	c.state.InitPid = 0
 	c.state.InitStartTime = ""
 
@@ -1639,7 +1565,7 @@ func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, sbSpec 
 	if err := crutils.CRCreateFileWithLabel(
 		c.BundlePath(),
 		metadata.RestoreLogFile,
-		specgen.Config.Linux.MountLabel,
+		mountLabel,
 	); err != nil {
 		return err
 	}

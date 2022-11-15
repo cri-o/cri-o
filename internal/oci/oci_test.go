@@ -238,11 +238,9 @@ var _ = t.Describe("Oci", func() {
 			beforeEach(sandboxID)
 			config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/true",
+				MonitorPath: "/bin/true",
 			}
 
-			specgen := &specs.Spec{
-				Version: "1.0.0",
-			}
 			err := os.Mkdir("checkpoint", 0o700)
 			Expect(err).To(BeNil())
 			defer os.RemoveAll("checkpoint")
@@ -250,35 +248,24 @@ var _ = t.Describe("Oci", func() {
 			Expect(err).To(BeNil())
 			inventory.Close()
 
-			// When
-			err = sut.RestoreContainer(context.Background(), myContainer, specgen, 42, "no-parent-cgroup-exists")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(Equal("failed to detect destination sandbox of to be restored container containerID"))
-		})
-		It("RestoreContainer should fail with destination sandbox detection", func() {
-			if !criu.CheckForCriu(criu.PodCriuVersion) {
-				Skip("CRIU is missing or too old.")
-			}
-			// Given
-			beforeEach("")
 			specgen := &specs.Spec{
-				Version: "1.0.0",
+				Version:     "1.0.0",
+				Annotations: map[string]string{"io.kubernetes.cri-o.SandboxID": "sandboxID"},
+				Linux: &specs.Linux{
+					MountLabel: ".",
+				},
+				Process: &specs.Process{
+					SelinuxLabel: "",
+				},
 			}
-			err := os.Mkdir("checkpoint", 0o700)
-			Expect(err).To(BeNil())
-			defer os.RemoveAll("checkpoint")
-			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
-			Expect(err).To(BeNil())
-			inventory.Close()
+			myContainer.SetSpec(specgen)
 
 			// When
-			err = sut.RestoreContainer(context.Background(), myContainer, specgen, 42, "no-parent-cgroup-exists")
+			err = sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(Equal("failed to detect sandbox of to be restored container containerID"))
+			Expect(err.Error()).To(ContainSubstring("failed"))
 		})
 		It("RestoreContainer should fail", func() {
 			if !criu.CheckForCriu(criu.PodCriuVersion) {
@@ -325,7 +312,7 @@ var _ = t.Describe("Oci", func() {
 			config.Conmon = "/bin/true"
 
 			// When
-			err = sut.RestoreContainer(context.Background(), myContainer, specgen, 42, "no-parent-cgroup-exists")
+			err = sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
 			defer os.RemoveAll("restore.log")
 
 			// Then
@@ -338,15 +325,8 @@ var _ = t.Describe("Oci", func() {
 			}
 			// Given
 			beforeEach(sandboxID)
-			specgen := &specs.Spec{
-				Version:     "1.0.0",
-				Annotations: map[string]string{"io.kubernetes.cri-o.SandboxID": "sandboxID"},
-				Linux: &specs.Linux{
-					MountLabel: ".",
-				},
-			}
 			// When
-			err := sut.RestoreContainer(context.Background(), myContainer, specgen, 42, "no-parent-cgroup-exists")
+			err := sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
 
 			// Then
 			Expect(err).NotTo(BeNil())

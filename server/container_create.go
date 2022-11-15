@@ -334,11 +334,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		// it to the checkpoint code.
 		ctrID, err := s.CRImportCheckpoint(
 			ctx,
-			req.Config.Image.Image,
+			req.Config,
 			req.PodSandboxId,
 			req.SandboxConfig.Metadata.Uid,
-			req.Config.Mounts,
-			req.Config.Annotations,
 		)
 		if err != nil {
 			return nil, err
