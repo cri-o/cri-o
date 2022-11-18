@@ -646,6 +646,9 @@ const (
 type CreateContainerResponse struct {
 	// PID is the container process identifier.
 	PID uint32
+
+	// NamespacesPath is the base path where the namespaces are mounted.
+	NamespacesPath string
 }
 
 // CreateContainer can be used to create a new running container instance.
@@ -1003,4 +1006,142 @@ func (c *ConmonClient) metadataBytes(ctx context.Context) ([]byte, error) {
 	}
 
 	return metadata, nil
+}
+
+// CreateaNamespacesConfig is the configuration for calling the
+// CreateNamespaces method.
+type CreateaNamespacesConfig struct {
+	// Namespaces are the list of namespaces to unshare.
+	Namespaces []Namespace
+}
+
+// CreateaNamespacesResponse is the response of the CreateNamespaces method.
+type CreateaNamespacesResponse struct {
+	Namespaces []*NamespacesResponse
+}
+
+// NamespacesResponse is the response data for the CreateaNamespacesResponse.
+type NamespacesResponse struct {
+	// Namespace is the type of namespace.
+	Type Namespace
+
+	// Path is the base path to the namespaces directory.
+	Path string
+}
+
+// CreateNamespaces can be used to create a new set of namespaces.
+func (c *ConmonClient) CreateNamespaces(
+	ctx context.Context, cfg *CreateaNamespacesConfig,
+) (*CreateaNamespacesResponse, error) {
+	ctx, span := c.startSpan(ctx, "CreateNamespaces")
+	if span != nil {
+		defer span.End()
+	}
+
+	conn, err := c.newRPCConn()
+	if err != nil {
+		return nil, fmt.Errorf("create RPC connection: %w", err)
+	}
+	defer conn.Close()
+	client := proto.Conmon(conn.Bootstrap(ctx))
+
+	future, free := client.CreateNamespaces(ctx, func(p proto.Conmon_createNamespaces_Params) error {
+		req, err := p.NewRequest()
+		if err != nil {
+			return fmt.Errorf("create request: %w", err)
+		}
+
+		metadata, err := c.metadataBytes(ctx)
+		if err != nil {
+			return fmt.Errorf("get metadata: %w", err)
+		}
+		if err := req.SetMetadata(metadata); err != nil {
+			return fmt.Errorf("set metadata: %w", err)
+		}
+
+		namespaces, err := req.NewNamespaces(int32(len(cfg.Namespaces)))
+		if err != nil {
+			return fmt.Errorf("init namespaces: %w", err)
+		}
+
+		for i, namespace := range cfg.Namespaces {
+			switch namespace {
+			case NamespaceIPC:
+				namespaces.Set(i, proto.Conmon_Namespace_ipc)
+
+			case NamespaceNet:
+				namespaces.Set(i, proto.Conmon_Namespace_net)
+
+			case NamespacePID:
+				namespaces.Set(i, proto.Conmon_Namespace_pid)
+
+			case NamespaceUser:
+				namespaces.Set(i, proto.Conmon_Namespace_user)
+
+			case NamespaceUTS:
+				namespaces.Set(i, proto.Conmon_Namespace_uts)
+			}
+		}
+
+		if err := req.SetNamespaces(namespaces); err != nil {
+			return fmt.Errorf("set namespaces: %w", err)
+		}
+
+		return nil
+	})
+	defer free()
+
+	result, err := future.Struct()
+	if err != nil {
+		return nil, fmt.Errorf("create result: %w", err)
+	}
+
+	response, err := result.Response()
+	if err != nil {
+		return nil, fmt.Errorf("set response: %w", err)
+	}
+
+	namespaces, err := response.Namespaces()
+	if err != nil {
+		return nil, fmt.Errorf("set path: %w", err)
+	}
+
+	namespacesResponse := []*NamespacesResponse{}
+	for i := 0; i < namespaces.Len(); i++ {
+		namespace := namespaces.At(i)
+
+		var typ Namespace
+		switch namespace.Type() {
+		case proto.Conmon_Namespace_ipc:
+			typ = NamespaceIPC
+
+		case proto.Conmon_Namespace_net:
+			typ = NamespaceNet
+
+		case proto.Conmon_Namespace_pid:
+			typ = NamespacePID
+
+		case proto.Conmon_Namespace_user:
+			typ = NamespaceUser
+
+		case proto.Conmon_Namespace_uts:
+			typ = NamespaceUTS
+		}
+
+		path, err := namespace.Path()
+		if err != nil {
+			return nil, fmt.Errorf("namespace has no path: %w", err)
+		}
+
+		namespacesResponse = append(namespacesResponse,
+			&NamespacesResponse{
+				Type: typ,
+				Path: path,
+			},
+		)
+	}
+
+	return &CreateaNamespacesResponse{
+		Namespaces: namespacesResponse,
+	}, nil
 }

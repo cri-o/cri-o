@@ -1,7 +1,7 @@
 # bitbucket.org/creachadair/shell v0.0.7
 ## explicit; go 1.16
 bitbucket.org/creachadair/shell
-# capnproto.org/go/capnp/v3 v3.0.0-alpha.8
+# capnproto.org/go/capnp/v3 v3.0.0-alpha.9
 ## explicit; go 1.18
 capnproto.org/go/capnp/v3
 capnproto.org/go/capnp/v3/encoding/text
@@ -607,7 +607,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.4.0
+# github.com/containers/conmon-rs v0.4.0 => github.com/saschagrunert/conmon-rs v0.0.0-20221121130322-49365e9634e0
 ## explicit; go 1.18
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
@@ -1559,7 +1559,7 @@ github.com/oklog/ulid
 # github.com/olekukonko/tablewriter v0.0.5
 ## explicit; go 1.12
 github.com/olekukonko/tablewriter
-# github.com/onsi/ginkgo/v2 v2.5.0
+# github.com/onsi/ginkgo/v2 v2.5.1
 ## explicit; go 1.18
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -3355,6 +3355,7 @@ sigs.k8s.io/zeitgeist/dependency
 sigs.k8s.io/zeitgeist/pkg/container
 sigs.k8s.io/zeitgeist/pkg/gitlab
 sigs.k8s.io/zeitgeist/upstream
+# github.com/containers/conmon-rs => github.com/saschagrunert/conmon-rs v0.0.0-20221121130322-49365e9634e0
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
 # github.com/u-root/u-root => github.com/u-root/u-root v0.8.1-0.20220307150114-d511ded1d944
 # k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20220823173643-a866cbe2e5bb

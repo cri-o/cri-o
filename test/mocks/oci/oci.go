@@ -10,6 +10,7 @@ import (
 	reflect "reflect"
 	syscall "syscall"
 
+	nsmgr "github.com/cri-o/cri-o/internal/config/nsmgr"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	gomock "github.com/golang/mock/gomock"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -95,6 +96,21 @@ func (m *MockRuntimeImpl) CreateContainer(arg0 context.Context, arg1 *oci.Contai
 func (mr *MockRuntimeImplMockRecorder) CreateContainer(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).CreateContainer), arg0, arg1, arg2, arg3)
+}
+
+// CreateNamespaces mocks base method.
+func (m *MockRuntimeImpl) CreateNamespaces(arg0 context.Context, arg1 *nsmgr.PodNamespacesConfig) (map[nsmgr.NSType]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateNamespaces", arg0, arg1)
+	ret0, _ := ret[0].(map[nsmgr.NSType]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateNamespaces indicates an expected call of CreateNamespaces.
+func (mr *MockRuntimeImplMockRecorder) CreateNamespaces(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNamespaces", reflect.TypeOf((*MockRuntimeImpl)(nil).CreateNamespaces), arg0, arg1)
 }
 
 // DeleteContainer mocks base method.

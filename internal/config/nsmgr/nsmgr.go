@@ -132,6 +132,39 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 		return nil, fmt.Errorf("failed to pin namespaces %v: %s %w", cfg.Namespaces, output, err)
 	}
 
+	return mgr.getNamespaces(cfg)
+}
+
+func (mgr *NamespaceManager) ConfigureNamespaces(cfg *PodNamespacesConfig, paths map[NSType]string) ([]Namespace, error) {
+	if paths == nil {
+		return nil, errors.New("no namespace paths provided")
+	}
+
+	// Sanity check, we can only manage one namespaces dir
+	namespacesDir := ""
+	for _, path := range paths {
+		if namespacesDir == "" {
+			namespacesDir = filepath.Dir(path)
+		} else if filepath.Dir(path) != namespacesDir {
+			return nil, errors.New("all namespaces must be part of the same directory")
+		}
+	}
+
+	logrus.Debugf("Setting namespaces dir to %s", namespacesDir)
+	mgr.namespacesDir = namespacesDir
+
+	for _, ns := range cfg.Namespaces {
+		if ns.Host {
+			continue
+		}
+
+		ns.Path = paths[ns.Type]
+	}
+
+	return mgr.getNamespaces(cfg)
+}
+
+func (mgr *NamespaceManager) getNamespaces(cfg *PodNamespacesConfig) ([]Namespace, error) {
 	returnedNamespaces := make([]Namespace, 0, len(cfg.Namespaces))
 	for _, ns := range cfg.Namespaces {
 		ns, err := GetNamespace(ns.Path, ns.Type)

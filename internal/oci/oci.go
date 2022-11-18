@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -58,6 +59,7 @@ type Runtime struct {
 // on the host will be limited to the RuntimeOCI implementation.
 type RuntimeImpl interface {
 	CreateContainer(context.Context, *Container, string, bool) error
+	CreateNamespaces(context.Context, *nsmgr.PodNamespacesConfig) (map[nsmgr.NSType]string, error)
 	StartContainer(context.Context, *Container) error
 	ExecContainer(context.Context, *Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
@@ -435,4 +437,21 @@ func (r *Runtime) RestoreContainer(ctx context.Context, c *Container, sbSpec *rs
 	}
 
 	return impl.RestoreContainer(ctx, c, sbSpec, infraPid, cgroupParent)
+}
+
+func (r *Runtime) CreateNamespaces(ctx context.Context, c *Container, config *nsmgr.PodNamespacesConfig) (map[nsmgr.NSType]string, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+	// Instantiate a new runtime implementation for this new container
+	impl, err := r.newRuntimeImpl(c)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assign this runtime implementation to the current container
+	r.runtimeImplMapMutex.Lock()
+	r.runtimeImplMap[c.ID()] = impl
+	r.runtimeImplMapMutex.Unlock()
+
+	return impl.CreateNamespaces(ctx, config)
 }

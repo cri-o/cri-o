@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/containers/common/pkg/resize"
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -141,6 +143,62 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		return fmt.Errorf("set init PID: %w", err)
 	}
 	return nil
+}
+
+func (r *runtimePod) CreateNamespaces(ctx context.Context, config *nsmgr.PodNamespacesConfig) (map[nsmgr.NSType]string, error) {
+	namespaces := []conmonClient.Namespace{}
+	for _, ns := range config.Namespaces {
+		if ns.Host {
+			continue
+		}
+		switch ns.Type {
+		case nsmgr.IPCNS:
+			namespaces = append(namespaces, conmonClient.NamespaceIPC)
+
+		case nsmgr.NETNS:
+			namespaces = append(namespaces, conmonClient.NamespaceNet)
+
+		case nsmgr.PIDNS:
+			namespaces = append(namespaces, conmonClient.NamespacePID)
+
+		case nsmgr.USERNS:
+			namespaces = append(namespaces, conmonClient.NamespaceUser)
+
+		case nsmgr.UTSNS:
+			namespaces = append(namespaces, conmonClient.NamespaceUTS)
+		}
+	}
+
+	resp, err := r.client.CreateNamespaces(ctx, &conmonClient.CreateaNamespacesConfig{Namespaces: namespaces})
+	if err != nil {
+		if strings.Contains(err.Error(), "Method not implemented.") {
+			logrus.Info("Skipping namespace creation because conmon-rs version does not support it")
+			return nil, nil
+		}
+		return nil, fmt.Errorf("create namespaces: %w", err)
+	}
+
+	result := make(map[nsmgr.NSType]string, 0)
+	for _, ns := range resp.Namespaces {
+		switch ns.Type {
+		case conmonClient.NamespaceIPC:
+			result[nsmgr.IPCNS] = ns.Path
+
+		case conmonClient.NamespaceNet:
+			result[nsmgr.NETNS] = ns.Path
+
+		case conmonClient.NamespacePID:
+			result[nsmgr.PIDNS] = ns.Path
+
+		case conmonClient.NamespaceUser:
+			result[nsmgr.USERNS] = ns.Path
+
+		case conmonClient.NamespaceUTS:
+			result[nsmgr.UTSNS] = ns.Path
+		}
+	}
+
+	return result, nil
 }
 
 func (r *runtimePod) StartContainer(ctx context.Context, c *Container) error {

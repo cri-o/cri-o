@@ -45,7 +45,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/intel/goresctrl v0.3.0
 	github.com/json-iterator/go v1.1.12
-	github.com/onsi/ginkgo/v2 v2.5.0
+	github.com/onsi/ginkgo/v2 v2.5.1
 	github.com/onsi/gomega v1.24.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
@@ -88,9 +88,11 @@ require (
 	sigs.k8s.io/zeitgeist v0.3.5
 )
 
+replace github.com/containers/conmon-rs => github.com/saschagrunert/conmon-rs v0.0.0-20221121130322-49365e9634e0
+
 require (
 	bitbucket.org/creachadair/shell v0.0.7 // indirect
-	capnproto.org/go/capnp/v3 v3.0.0-alpha.8 // indirect
+	capnproto.org/go/capnp/v3 v3.0.0-alpha.9 // indirect
 	cloud.google.com/go v0.104.0 // indirect
 	cloud.google.com/go/compute v1.10.0 // indirect
 	cloud.google.com/go/iam v0.5.0 // indirect
