@@ -21,3 +21,4 @@ Below is a non-exhaustive list of CRI-O adopters in production environments:
   container manager that supports creating pods that are strongly isolated using
   the Linux user-namespace (as of Jan 2022).
 * [Lyft](https://www.lyft.com/) has used CRI-O since 2017, alongside our [CNI IPvlan networking](https://github.com/lyft/cni-ipvlan-vpc-k8s) in AWS. All of Lyft runs on top of our Kubernetes stack.
+* [Reddit](https://www.reddit.com) has been using CRI-O as the runtime for all self-managed Kubernetes clusters since 2021.  CRI-O was chosen for its clean and easy to reason about codebase, its good observability, and its ability to allow for transparently rewriting image registries for mirroring.
