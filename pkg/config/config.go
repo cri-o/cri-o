@@ -856,8 +856,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		}
 	}
 
-	if !(c.ConmonCgroup == "pod" || strings.HasSuffix(c.ConmonCgroup, ".slice")) {
-		return errors.New("conmon cgroup should be 'pod' or a systemd slice")
+	if !(c.ConmonCgroup == "pod" || c.ConmonCgroup == "" || strings.HasSuffix(c.ConmonCgroup, ".slice")) {
+		return errors.New("conmon cgroup should be 'pod', or empty (if using cgroupfs manager), or a systemd slice")
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
@@ -962,8 +962,14 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		}
 		c.cgroupManager = cgroupManager
 
-		if !c.cgroupManager.IsSystemd() && c.ConmonCgroup != "pod" && c.ConmonCgroup != "" {
-			return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
+		if !c.cgroupManager.IsSystemd() {
+			if c.ConmonCgroup != "pod" && c.ConmonCgroup != "" {
+				return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
+			}
+		} else {
+			if !(c.ConmonCgroup == "pod" || strings.HasSuffix(c.ConmonCgroup, ".slice")) {
+				return errors.New("systemd manager conmon cgroup should be 'pod' or a systemd slice")
+			}
 		}
 	}
 
