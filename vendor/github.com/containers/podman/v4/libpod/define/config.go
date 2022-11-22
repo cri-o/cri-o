@@ -40,6 +40,10 @@ type InfoData struct {
 // itself.
 const VolumeDriverLocal = "local"
 
+// VolumeDriverImage is the "image" volume driver. It is managed by Libpod and
+// uses volumes backed by an image.
+const VolumeDriverImage = "image"
+
 const (
 	OCIManifestDir  = "oci-dir"
 	OCIArchive      = "oci-archive"
@@ -81,15 +85,8 @@ const NoLogging = "none"
 // PassthroughLogging is the string conmon expects when specifying to use the passthrough driver
 const PassthroughLogging = "passthrough"
 
-// Strings used for --sdnotify option to podman
-const (
-	SdNotifyModeContainer = "container"
-	SdNotifyModeConmon    = "conmon"
-	SdNotifyModeIgnore    = "ignore"
-)
-
 // DefaultRlimitValue is the value set by default for nofile and nproc
 const RLimitDefaultValue = uint64(1048576)
 
 // BindMountPrefix distinguishes its annotations from others
-const BindMountPrefix = "bind-mount-options:"
+const BindMountPrefix = "bind-mount-options"

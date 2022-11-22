@@ -20,7 +20,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/docker/docker/opts"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -74,14 +73,21 @@ func getCPULimits(c *entities.ContainerCreateOptions) *specs.LinuxCPU {
 func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (*specs.LinuxBlockIO, error) {
 	var err error
 	io := &specs.LinuxBlockIO{}
+	if s.ResourceLimits == nil {
+		s.ResourceLimits = &specs.LinuxResources{}
+	}
 	hasLimits := false
 	if b := c.BlkIOWeight; len(b) > 0 {
+		if s.ResourceLimits.BlockIO == nil {
+			s.ResourceLimits.BlockIO = &specs.LinuxBlockIO{}
+		}
 		u, err := strconv.ParseUint(b, 10, 16)
 		if err != nil {
 			return nil, fmt.Errorf("invalid value for blkio-weight: %w", err)
 		}
 		nu := uint16(u)
 		io.Weight = &nu
+		s.ResourceLimits.BlockIO.Weight = &nu
 		hasLimits = true
 	}
 
@@ -259,6 +265,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 			Test: []string{"NONE"},
 		}
 	}
+
+	onFailureAction, err := define.ParseHealthCheckOnFailureAction(c.HealthOnFailure)
+	if err != nil {
+		return err
+	}
+	s.HealthCheckOnFailureAction = onFailureAction
+
 	if err := setNamespaces(s, c); err != nil {
 		return err
 	}
@@ -355,10 +368,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// First transform the os env into a map. We need it for the labels later in
 	// any case.
-	osEnv, err := envLib.ParseSlice(os.Environ())
-	if err != nil {
-		return fmt.Errorf("error parsing host environment variables: %w", err)
-	}
+	osEnv := envLib.Map(os.Environ())
 
 	if !s.EnvHost {
 		s.EnvHost = c.EnvHost
@@ -457,11 +467,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// SHM Size
 	if c.ShmSize != "" {
-		var m opts.MemBytes
-		if err := m.Set(c.ShmSize); err != nil {
+		val, err := units.RAMInBytes(c.ShmSize)
+
+		if err != nil {
 			return fmt.Errorf("unable to translate --shm-size: %w", err)
 		}
-		val := m.Value()
+
 		s.ShmSize = &val
 	}
 
@@ -503,44 +514,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.ResourceLimits = &specs.LinuxResources{}
 	}
 
-	if s.ResourceLimits.Memory == nil || (len(c.Memory) != 0 || len(c.MemoryReservation) != 0 || len(c.MemorySwap) != 0 || c.MemorySwappiness != 0) {
-		s.ResourceLimits.Memory, err = getMemoryLimits(c)
-		if err != nil {
-			return err
-		}
-	}
-	if s.ResourceLimits.BlockIO == nil || (len(c.BlkIOWeight) != 0 || len(c.BlkIOWeightDevice) != 0) {
-		s.ResourceLimits.BlockIO, err = getIOLimits(s, c)
-		if err != nil {
-			return err
-		}
-	}
-	if c.PIDsLimit != nil {
-		pids := specs.LinuxPids{
-			Limit: *c.PIDsLimit,
-		}
-
-		s.ResourceLimits.Pids = &pids
-	}
-
-	if s.ResourceLimits.CPU == nil || (c.CPUPeriod != 0 || c.CPUQuota != 0 || c.CPURTPeriod != 0 || c.CPURTRuntime != 0 || c.CPUS != 0 || len(c.CPUSetCPUs) != 0 || len(c.CPUSetMems) != 0 || c.CPUShares != 0) {
-		s.ResourceLimits.CPU = getCPULimits(c)
-	}
-
-	unifieds := make(map[string]string)
-	for _, unified := range c.CgroupConf {
-		splitUnified := strings.SplitN(unified, "=", 2)
-		if len(splitUnified) < 2 {
-			return errors.New("--cgroup-conf must be formatted KEY=VALUE")
-		}
-		unifieds[splitUnified[0]] = splitUnified[1]
-	}
-	if len(unifieds) > 0 {
-		s.ResourceLimits.Unified = unifieds
-	}
-
-	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil && s.ResourceLimits.Unified == nil {
-		s.ResourceLimits = nil
+	s.ResourceLimits, err = GetResources(s, c)
+	if err != nil {
+		return err
 	}
 
 	if s.LogConfiguration == nil {
@@ -786,7 +762,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 			}
 			retries, err := strconv.Atoi(splitRestart[1])
 			if err != nil {
-				return fmt.Errorf("error parsing restart policy retry count: %w", err)
+				return fmt.Errorf("parsing restart policy retry count: %w", err)
 			}
 			if retries < 0 {
 				return errors.New("must specify restart policy retry count as a number greater than 0")
@@ -831,6 +807,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 	if !s.Volatile {
 		s.Volatile = c.Rm
+	}
+	if len(s.EnvMerge) == 0 || len(c.EnvMerge) != 0 {
+		s.EnvMerge = c.EnvMerge
 	}
 	if len(s.UnsetEnv) == 0 || len(c.UnsetEnv) != 0 {
 		s.UnsetEnv = c.UnsetEnv
@@ -1163,4 +1142,48 @@ func parseLinuxResourcesDeviceAccess(device string) (specs.LinuxDeviceCgroup, er
 		Minor:  minor,
 		Access: access,
 	}, nil
+}
+
+func GetResources(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (*specs.LinuxResources, error) {
+	var err error
+	if s.ResourceLimits.Memory == nil || (len(c.Memory) != 0 || len(c.MemoryReservation) != 0 || len(c.MemorySwap) != 0 || c.MemorySwappiness != 0) {
+		s.ResourceLimits.Memory, err = getMemoryLimits(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if s.ResourceLimits.BlockIO == nil || (len(c.BlkIOWeight) != 0 || len(c.BlkIOWeightDevice) != 0 || len(c.DeviceReadBPs) != 0 || len(c.DeviceWriteBPs) != 0) {
+		s.ResourceLimits.BlockIO, err = getIOLimits(s, c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if c.PIDsLimit != nil {
+		pids := specs.LinuxPids{
+			Limit: *c.PIDsLimit,
+		}
+
+		s.ResourceLimits.Pids = &pids
+	}
+
+	if s.ResourceLimits.CPU == nil || (c.CPUPeriod != 0 || c.CPUQuota != 0 || c.CPURTPeriod != 0 || c.CPURTRuntime != 0 || c.CPUS != 0 || len(c.CPUSetCPUs) != 0 || len(c.CPUSetMems) != 0 || c.CPUShares != 0) {
+		s.ResourceLimits.CPU = getCPULimits(c)
+	}
+
+	unifieds := make(map[string]string)
+	for _, unified := range c.CgroupConf {
+		splitUnified := strings.SplitN(unified, "=", 2)
+		if len(splitUnified) < 2 {
+			return nil, errors.New("--cgroup-conf must be formatted KEY=VALUE")
+		}
+		unifieds[splitUnified[0]] = splitUnified[1]
+	}
+	if len(unifieds) > 0 {
+		s.ResourceLimits.Unified = unifieds
+	}
+
+	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil && s.ResourceLimits.Unified == nil {
+		s.ResourceLimits = nil
+	}
+	return s.ResourceLimits, nil
 }

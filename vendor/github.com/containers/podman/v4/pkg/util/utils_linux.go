@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -71,7 +70,7 @@ func FindDeviceNodes() (map[string]string, error) {
 	return nodes, nil
 }
 
-func AddPrivilegedDevices(g *generate.Generator) error {
+func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
 	hostDevices, err := getDevices("/dev")
 	if err != nil {
 		return err
@@ -105,6 +104,9 @@ func AddPrivilegedDevices(g *generate.Generator) error {
 		}
 	} else {
 		for _, d := range hostDevices {
+			if systemdMode && strings.HasPrefix(d.Path, "/dev/tty") {
+				continue
+			}
 			g.AddDevice(d)
 		}
 		// Add resources device - need to clear the existing one first.
@@ -119,7 +121,7 @@ func AddPrivilegedDevices(g *generate.Generator) error {
 
 // based on getDevices from runc (libcontainer/devices/devices.go)
 func getDevices(path string) ([]spec.LinuxDevice, error) {
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		if rootless.IsRootless() && os.IsPermission(err) {
 			return nil, nil
@@ -146,7 +148,7 @@ func getDevices(path string) ([]spec.LinuxDevice, error) {
 			}
 		case f.Name() == "console":
 			continue
-		case f.Mode()&os.ModeSymlink != 0:
+		case f.Type()&os.ModeSymlink != 0:
 			continue
 		}
 

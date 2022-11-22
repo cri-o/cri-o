@@ -94,6 +94,8 @@ type ImageRemoveOptions struct {
 	Ignore bool
 	// Confirms if given name is a manifest list and removes it, otherwise returns error.
 	LookupManifest bool
+	// NoPrune will not remove dangling images
+	NoPrune bool
 }
 
 // ImageRemoveReport is the response for removing one or more image(s) from storage
@@ -154,6 +156,8 @@ type ImagePullOptions struct {
 	SkipTLSVerify types.OptionalBool
 	// PullPolicy whether to pull new image
 	PullPolicy config.PullPolicy
+	// Writer is used to display copy information including progress bars.
+	Writer io.Writer
 }
 
 // ImagePullReport is the response from pulling one or more images.
@@ -331,7 +335,8 @@ type ImageSaveOptions struct {
 	// Output - write image to the specified path.
 	Output string
 	// Quiet - suppress output when copying images
-	Quiet bool
+	Quiet           bool
+	SignaturePolicy string
 }
 
 // ImageScpOptions provide options for securely copying images to and from a remote host

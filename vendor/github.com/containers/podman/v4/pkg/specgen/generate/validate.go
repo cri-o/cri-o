@@ -3,12 +3,12 @@ package generate
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/sysinfo"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/utils"
 )
@@ -18,6 +18,11 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 	warnings := []string{}
 
 	sysInfo := sysinfo.New(true)
+
+	if s.ResourceLimits != nil && rootless.IsRootless() {
+		s.ResourceLimits = nil
+		warnings = append(warnings, "Resource limits are not supported and ignored on cgroups V1 rootless systems")
+	}
 
 	if s.ResourceLimits == nil {
 		return warnings, nil
@@ -76,7 +81,7 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 		}
 	}
 
-	// CPU Checks
+	// CPU checks
 	if s.ResourceLimits.CPU != nil {
 		cpu := s.ResourceLimits.CPU
 		if cpu.Shares != nil && !sysInfo.CPUShares {
@@ -163,6 +168,7 @@ func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error
 		return warnings, nil
 	}
 
+	// Memory checks
 	if s.ResourceLimits.Memory != nil && s.ResourceLimits.Memory.Swap != nil {
 		own, err := utils.GetOwnCgroup()
 		if err != nil {
@@ -173,7 +179,7 @@ func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error
 			// If running under the root cgroup try to create or reuse a "probe" cgroup to read memory values
 			own = "podman_probe"
 			_ = os.MkdirAll(filepath.Join("/sys/fs/cgroup", own), 0o755)
-			_ = ioutil.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+memory"), 0o644)
+			_ = os.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+memory"), 0o644)
 		}
 
 		memoryMax := filepath.Join("/sys/fs/cgroup", own, "memory.max")
@@ -190,6 +196,19 @@ func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error
 		if errMemoryMax == nil && errMemorySwapMax != nil {
 			warnings = append(warnings, "Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.")
 			s.ResourceLimits.Memory.Swap = nil
+		}
+	}
+
+	// CPU checks
+	if s.ResourceLimits.CPU != nil {
+		cpu := s.ResourceLimits.CPU
+		if cpu.RealtimePeriod != nil {
+			warnings = append(warnings, "Realtime period not supported on cgroups V2 systems")
+			cpu.RealtimePeriod = nil
+		}
+		if cpu.RealtimeRuntime != nil {
+			warnings = append(warnings, "Realtime runtime not supported on cgroups V2 systems")
+			cpu.RealtimeRuntime = nil
 		}
 	}
 	return warnings, nil

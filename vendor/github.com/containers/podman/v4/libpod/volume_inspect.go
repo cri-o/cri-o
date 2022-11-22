@@ -39,7 +39,7 @@ func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 		req.Name = v.Name()
 		resp, err := v.plugin.GetVolume(req)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving volume %s information from plugin %s: %w", v.Name(), v.Driver(), err)
+			return nil, fmt.Errorf("retrieving volume %s information from plugin %s: %w", v.Name(), v.Driver(), err)
 		}
 		if resp != nil {
 			data.Status = resp.Status
@@ -64,7 +64,13 @@ func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 	data.MountCount = v.state.MountCount
 	data.NeedsCopyUp = v.state.NeedsCopyUp
 	data.NeedsChown = v.state.NeedsChown
-	data.Timeout = v.config.Timeout
+	data.StorageID = v.config.StorageID
+
+	if v.config.Timeout != nil {
+		data.Timeout = *v.config.Timeout
+	} else if v.UsesVolumeDriver() {
+		data.Timeout = v.runtime.config.Engine.VolumePluginTimeout
+	}
 
 	return data, nil
 }

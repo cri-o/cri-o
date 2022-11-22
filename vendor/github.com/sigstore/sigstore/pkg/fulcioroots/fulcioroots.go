@@ -30,8 +30,8 @@ import (
 
 var (
 	rootsOnce        sync.Once
-	roots            *x509.CertPool
-	intermediates    *x509.CertPool
+	roots            []*x509.Certificate
+	intermediates    []*x509.Certificate
 	singletonRootErr error
 )
 
@@ -46,27 +46,59 @@ var fulcioV1IntermediateTargetStr = `fulcio_intermediate_v1.crt.pem`
 
 // Get returns the Fulcio root certificate.
 func Get() (*x509.CertPool, error) {
+	pool := x509.NewCertPool()
+	if err := GetWithCertPool(pool); err != nil {
+		return nil, err
+	}
+	return pool, nil
+}
+
+// GetWithCertPool returns the Fulcio root certificate appended to the given CertPool.
+func GetWithCertPool(pool *x509.CertPool) error {
 	rootsOnce.Do(func() {
 		roots, intermediates, singletonRootErr = initRoots()
 		if singletonRootErr != nil {
 			return
 		}
 	})
-	return roots, singletonRootErr
+	if singletonRootErr != nil {
+		return singletonRootErr
+	}
+
+	for _, c := range roots {
+		pool.AddCert(c)
+	}
+	return nil
 }
 
 // GetIntermediates returns the Fulcio intermediate certificates.
 func GetIntermediates() (*x509.CertPool, error) {
+	pool := x509.NewCertPool()
+	if err := GetIntermediatesWithCertPool(pool); err != nil {
+		return nil, err
+	}
+	return pool, nil
+}
+
+// GetIntermediatesWithCertPool returns the Fulcio intermediate certificates appended to the given CertPool.
+func GetIntermediatesWithCertPool(pool *x509.CertPool) error {
 	rootsOnce.Do(func() {
 		roots, intermediates, singletonRootErr = initRoots()
 		if singletonRootErr != nil {
 			return
 		}
 	})
-	return intermediates, singletonRootErr
+	if singletonRootErr != nil {
+		return singletonRootErr
+	}
+
+	for _, c := range intermediates {
+		pool.AddCert(c)
+	}
+	return nil
 }
 
-func initRoots() (*x509.CertPool, *x509.CertPool, error) {
+func initRoots() ([]*x509.Certificate, []*x509.Certificate, error) {
 	tufClient, err := tuf.NewFromEnv(context.Background())
 	if err != nil {
 		return nil, nil, fmt.Errorf("initializing tuf: %w", err)
@@ -80,8 +112,8 @@ func initRoots() (*x509.CertPool, *x509.CertPool, error) {
 	if len(targets) == 0 {
 		return nil, nil, errors.New("none of the Fulcio roots have been found")
 	}
-	rootPool := x509.NewCertPool()
-	intermediatePool := x509.NewCertPool()
+	rootPool := []*x509.Certificate{}
+	intermediatePool := []*x509.Certificate{}
 	for _, t := range targets {
 		certs, err := cryptoutils.UnmarshalCertificatesFromPEM(t.Target)
 		if err != nil {
@@ -90,9 +122,9 @@ func initRoots() (*x509.CertPool, *x509.CertPool, error) {
 		for _, cert := range certs {
 			// root certificates are self-signed
 			if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
-				rootPool.AddCert(cert)
+				rootPool = append(rootPool, cert)
 			} else {
-				intermediatePool.AddCert(cert)
+				intermediatePool = append(intermediatePool, cert)
 			}
 		}
 	}

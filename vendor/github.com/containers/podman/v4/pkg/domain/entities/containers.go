@@ -71,12 +71,15 @@ type StringSliceReport struct {
 }
 
 type PauseUnPauseOptions struct {
-	All bool
+	Filters map[string][]string
+	All     bool
+	Latest  bool
 }
 
 type PauseUnpauseReport struct {
-	Err error
-	Id  string //nolint:revive,stylecheck
+	Err      error
+	Id       string //nolint:revive,stylecheck
+	RawInput string
 }
 
 type StopOptions struct {
@@ -116,6 +119,7 @@ type KillReport struct {
 }
 
 type RestartOptions struct {
+	Filters map[string][]string
 	All     bool
 	Latest  bool
 	Running bool
@@ -123,11 +127,13 @@ type RestartOptions struct {
 }
 
 type RestartReport struct {
-	Err error
-	Id  string //nolint:revive,stylecheck
+	Err      error
+	Id       string //nolint:revive,stylecheck
+	RawInput string
 }
 
 type RmOptions struct {
+	Filters map[string][]string
 	All     bool
 	Depend  bool
 	Force   bool
@@ -198,6 +204,7 @@ type CheckpointOptions struct {
 type CheckpointReport struct {
 	Err             error                                   `json:"-"`
 	Id              string                                  `json:"Id"` //nolint:revive,stylecheck
+	RawInput        string                                  `json:"RawInput"`
 	RuntimeDuration int64                                   `json:"runtime_checkpoint_duration"`
 	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
 }
@@ -224,6 +231,7 @@ type RestoreOptions struct {
 type RestoreReport struct {
 	Err             error                                   `json:"-"`
 	Id              string                                  `json:"Id"` //nolint:revive,stylecheck
+	RawInput        string                                  `json:"RawInput"`
 	RuntimeDuration int64                                   `json:"runtime_restore_duration"`
 	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
 }
@@ -370,6 +378,7 @@ type ContainerCleanupOptions struct {
 type ContainerCleanupReport struct {
 	CleanErr error
 	Id       string //nolint:revive,stylecheck
+	RawInput string
 	RmErr    error
 	RmiErr   error
 }
@@ -384,8 +393,9 @@ type ContainerInitOptions struct {
 // ContainerInitReport describes the results of a
 // container init
 type ContainerInitReport struct {
-	Err error
-	Id  string //nolint:revive,stylecheck
+	Err      error
+	Id       string //nolint:revive,stylecheck
+	RawInput string
 }
 
 // ContainerMountOptions describes the input values for mounting containers
@@ -484,4 +494,10 @@ type ContainerCloneOptions struct {
 	RawImageName string
 	Run          bool
 	Force        bool
+}
+
+// ContainerUpdateOptions containers options for updating an existing containers cgroup configuration
+type ContainerUpdateOptions struct {
+	NameOrID string
+	Specgen  *specgen.SpecGenerator
 }

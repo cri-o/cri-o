@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	buildahDefine "github.com/containers/buildah/define"
@@ -47,11 +46,28 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 					return fmt.Errorf("removing image %s: container %s using image could not be removed: %w", imageID, ctr.ID(), err)
 				}
 			} else {
-				if err := r.removeContainer(ctx, ctr, true, false, false, timeout); err != nil {
+				if err := r.removeContainer(ctx, ctr, true, false, false, false, timeout); err != nil {
 					return fmt.Errorf("removing image %s: container %s using image could not be removed: %w", imageID, ctr.ID(), err)
 				}
 			}
 		}
+
+		// Need to handle volumes with the image driver
+		vols, err := r.state.AllVolumes()
+		if err != nil {
+			return err
+		}
+		for _, vol := range vols {
+			if vol.config.Driver != define.VolumeDriverImage || vol.config.StorageImageID != imageID {
+				continue
+			}
+			// Do a force removal of the volume, and all containers
+			// using it.
+			if err := r.RemoveVolume(ctx, vol, true, nil); err != nil {
+				return fmt.Errorf("removing image %s: volume %s backed by image could not be removed: %w", imageID, vol.Name(), err)
+			}
+		}
+
 		// Note that `libimage` will take care of removing any leftover
 		// containers from the storage.
 		return nil
@@ -73,6 +89,10 @@ func (r *Runtime) IsExternalContainerCallback(_ context.Context) libimage.IsExte
 			return false, nil
 		}
 		if errors.Is(err, define.ErrNoSuchCtr) {
+			return true, nil
+		}
+		isVol, err := r.state.ContainerIDIsVolume(idOrName)
+		if err == nil && !isVol {
 			return true, nil
 		}
 		return false, nil
@@ -105,9 +125,9 @@ func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions,
 // DownloadFromFile reads all of the content from the reader and temporarily
 // saves in it $TMPDIR/importxyz, which is deleted after the image is imported
 func DownloadFromFile(reader *os.File) (string, error) {
-	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
+	outFile, err := os.CreateTemp(util.Tmpdir(), "import")
 	if err != nil {
-		return "", fmt.Errorf("error creating file: %w", err)
+		return "", fmt.Errorf("creating file: %w", err)
 	}
 	defer outFile.Close()
 
@@ -115,7 +135,7 @@ func DownloadFromFile(reader *os.File) (string, error) {
 
 	_, err = io.Copy(outFile, reader)
 	if err != nil {
-		return "", fmt.Errorf("error saving %s to %s: %w", reader.Name(), outFile.Name(), err)
+		return "", fmt.Errorf("saving %s to %s: %w", reader.Name(), outFile.Name(), err)
 	}
 
 	return outFile.Name(), nil
