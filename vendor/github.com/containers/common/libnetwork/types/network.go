@@ -54,7 +54,7 @@ type Network struct {
 	// to public or other Networks.
 	Internal bool `json:"internal"`
 	// DNSEnabled is whether name resolution is active for container on
-	// this Network.
+	// this Network. Only supported with the bridge driver.
 	DNSEnabled bool `json:"dns_enabled"`
 	// Labels is a set of key-value labels that have been applied to the
 	// Network.
@@ -226,6 +226,9 @@ type NetworkOptions struct {
 	// Networks contains all networks with the PerNetworkOptions.
 	// The map should contain at least one element.
 	Networks map[string]PerNetworkOptions `json:"networks"`
+	// List of custom DNS server for podman's DNS resolver.
+	// Priority order will be kept as defined by user in the configuration.
+	DNSServers []string `json:"dns_servers,omitempty"`
 }
 
 // PortMapping is one or more ports that will be mapped into the container.

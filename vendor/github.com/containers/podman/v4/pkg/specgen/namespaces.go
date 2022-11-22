@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -308,6 +309,14 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 	case ns == "keep-id":
 		toReturn.NSMode = KeepID
 		return toReturn, nil
+	case strings.HasPrefix(ns, "keep-id:"):
+		split := strings.SplitN(ns, ":", 2)
+		if len(split) != 2 {
+			return toReturn, errors.New("invalid setting for keep-id: mode")
+		}
+		toReturn.NSMode = KeepID
+		toReturn.Value = split[1]
+		return toReturn, nil
 	case ns == "nomap":
 		toReturn.NSMode = NoMap
 		return toReturn, nil
@@ -490,13 +499,18 @@ func SetupUserNS(idmappings *storage.IDMappingOptions, userns Namespace, g *gene
 			return user, err
 		}
 	case KeepID:
-		mappings, uid, gid, err := util.GetKeepIDMapping()
+		opts, err := namespaces.UsernsMode(userns.String()).GetKeepIDOptions()
+		if err != nil {
+			return user, err
+		}
+		mappings, uid, gid, err := util.GetKeepIDMapping(opts)
 		if err != nil {
 			return user, err
 		}
 		idmappings = mappings
 		g.SetProcessUID(uint32(uid))
 		g.SetProcessGID(uint32(gid))
+		g.AddProcessAdditionalGid(uint32(gid))
 		user = fmt.Sprintf("%d:%d", uid, gid)
 		if err := privateUserNamespace(idmappings, g); err != nil {
 			return user, err
@@ -509,6 +523,7 @@ func SetupUserNS(idmappings *storage.IDMappingOptions, userns Namespace, g *gene
 		idmappings = mappings
 		g.SetProcessUID(uint32(uid))
 		g.SetProcessGID(uint32(gid))
+		g.AddProcessAdditionalGid(uint32(gid))
 		user = fmt.Sprintf("%d:%d", uid, gid)
 		if err := privateUserNamespace(idmappings, g); err != nil {
 			return user, err

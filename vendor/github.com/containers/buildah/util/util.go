@@ -118,18 +118,18 @@ func ExpandNames(names []string, systemContext *types.SystemContext, store stora
 		var name reference.Named
 		nameList, _, err := resolveName(n, systemContext, store)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing name %q: %w", n, err)
+			return nil, fmt.Errorf("parsing name %q: %w", n, err)
 		}
 		if len(nameList) == 0 {
 			named, err := reference.ParseNormalizedNamed(n)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing name %q: %w", n, err)
+				return nil, fmt.Errorf("parsing name %q: %w", n, err)
 			}
 			name = named
 		} else {
 			named, err := reference.ParseNormalizedNamed(nameList[0])
 			if err != nil {
-				return nil, fmt.Errorf("error parsing name %q: %w", nameList[0], err)
+				return nil, fmt.Errorf("parsing name %q: %w", nameList[0], err)
 			}
 			name = named
 		}
@@ -169,7 +169,7 @@ func ResolveNameToReferences(
 ) (refs []types.ImageReference, err error) {
 	names, transport, err := resolveName(image, systemContext, store)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing name %q: %w", image, err)
+		return nil, fmt.Errorf("parsing name %q: %w", image, err)
 	}
 
 	if transport != DefaultTransport {
@@ -185,7 +185,7 @@ func ResolveNameToReferences(
 		refs = append(refs, ref)
 	}
 	if len(refs) == 0 {
-		return nil, fmt.Errorf("error locating images with names %v", names)
+		return nil, fmt.Errorf("locating images with names %v", names)
 	}
 	return refs, nil
 }
@@ -206,7 +206,7 @@ func AddImageNames(store storage.Store, firstRegistry string, systemContext *typ
 
 	for _, tag := range addNames {
 		if err := localImage.Tag(tag); err != nil {
-			return fmt.Errorf("error tagging image %s: %w", image.ID, err)
+			return fmt.Errorf("tagging image %s: %w", image.ID, err)
 		}
 	}
 
@@ -465,23 +465,4 @@ func VerifyTagName(imageSpec string) (types.ImageReference, error) {
 		}
 	}
 	return ref, nil
-}
-
-// Cause returns the most underlying error for the provided one. There is a
-// maximum error depth of 100 to avoid endless loops. An additional error log
-// message will be created if this maximum has reached.
-func Cause(err error) (cause error) {
-	cause = err
-
-	const maxDepth = 100
-	for i := 0; i <= maxDepth; i++ {
-		res := errors.Unwrap(cause)
-		if res == nil {
-			return cause
-		}
-		cause = res
-	}
-
-	logrus.Errorf("Max error depth of %d reached, cannot unwrap until root cause: %v", maxDepth, err)
-	return cause
 }
