@@ -59,6 +59,7 @@ linters:
     - tenv
     - testableexamples
     - tparallel
+    - typecheck
     - unconvert
     - unparam
     - unused
@@ -101,7 +102,6 @@ linters:
     # - tagliatelle
     # - testpackage
     # - thelper
-    # - typecheck
     # - varnamelen
     # - wastedassign
     # - wrapcheck
