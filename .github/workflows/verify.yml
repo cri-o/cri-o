@@ -17,12 +17,10 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
+      - run: scripts/github-actions-packages
       - uses: golangci/golangci-lint-action@v3
         with:
           version: v1.45.2
-
-          # Only show new issues for a pull request.
-          only-new-issues: true
 
   shellcheck:
     runs-on: ubuntu-latest
