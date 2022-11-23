@@ -93,6 +93,10 @@ Note that kpod and its container management and debugging commands have moved to
 | [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md) | Registries Configuration file         |
 | [storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)     | Storage Configuration file            |
 
+## Security
+
+The security process for reporting vulnerabilities is described in [SECURITY.md](./SECURITY.md).
+
 ## OCI Hooks Support
 
 [You can configure CRI-O][podman-hooks] to inject [OCI Hooks][spec-hooks] when creating containers.
