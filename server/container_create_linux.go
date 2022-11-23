@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -799,6 +801,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	} else if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
 		return nil, err
+	}
+	if v := sb.Annotations()[crioann.UmaskAnnotation]; v != "" {
+		umaskRegexp := regexp.MustCompile(`^[0-7]{1,4}$`)
+		if !umaskRegexp.MatchString(v) {
+			return nil, fmt.Errorf("invalid umask string %s", v)
+		}
+		decVal, err := strconv.ParseUint(sb.Annotations()[crioann.UmaskAnnotation], 8, 32)
+		if err != nil {
+			return nil, err
+		}
+		umask := uint32(decVal)
+		specgen.Config.Process.User.Umask = &umask
 	}
 
 	if containerIDMappings == nil {

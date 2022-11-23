@@ -347,6 +347,7 @@ A workload is chosen for a pod based on whether the workload's **activation_anno
   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
   "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
   "io.kubernetes.cri-o.seccompNotifierAction" for enabling the seccomp notifier feature.
+  "io.kubernetes.cri-o.umask" for setting the umask for container init process.
 
 #### Using the seccomp notifier feature:
 
