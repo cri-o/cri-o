@@ -475,16 +475,16 @@ func (c *Compiler) GetArity(ref Ref) int {
 //
 // E.g., given the following module:
 //
-//	package a.b.c
+//		package a.b.c
 //
-//	p[k] = v { ... }    # rule1
-//  p[k1] = v1 { ... }  # rule2
+//		p[k] = v { ... }    # rule1
+//	 p[k1] = v1 { ... }  # rule2
 //
 // The following calls yield the rules on the right.
 //
-//  GetRulesExact("data.a.b.c.p")   => [rule1, rule2]
-//  GetRulesExact("data.a.b.c.p.x") => nil
-//  GetRulesExact("data.a.b.c")     => nil
+//	GetRulesExact("data.a.b.c.p")   => [rule1, rule2]
+//	GetRulesExact("data.a.b.c.p.x") => nil
+//	GetRulesExact("data.a.b.c")     => nil
 func (c *Compiler) GetRulesExact(ref Ref) (rules []*Rule) {
 	node := c.RuleTree
 
@@ -502,16 +502,16 @@ func (c *Compiler) GetRulesExact(ref Ref) (rules []*Rule) {
 //
 // E.g., given the following module:
 //
-//	package a.b.c
+//		package a.b.c
 //
-//	p[k] = v { ... }    # rule1
-//  p[k1] = v1 { ... }  # rule2
+//		p[k] = v { ... }    # rule1
+//	 p[k1] = v1 { ... }  # rule2
 //
 // The following calls yield the rules on the right.
 //
-//  GetRulesForVirtualDocument("data.a.b.c.p")   => [rule1, rule2]
-//  GetRulesForVirtualDocument("data.a.b.c.p.x") => [rule1, rule2]
-//  GetRulesForVirtualDocument("data.a.b.c")     => nil
+//	GetRulesForVirtualDocument("data.a.b.c.p")   => [rule1, rule2]
+//	GetRulesForVirtualDocument("data.a.b.c.p.x") => [rule1, rule2]
+//	GetRulesForVirtualDocument("data.a.b.c")     => nil
 func (c *Compiler) GetRulesForVirtualDocument(ref Ref) (rules []*Rule) {
 
 	node := c.RuleTree
@@ -532,17 +532,17 @@ func (c *Compiler) GetRulesForVirtualDocument(ref Ref) (rules []*Rule) {
 //
 // E.g., given the following module:
 //
-//  package a.b.c
+//	package a.b.c
 //
-//  p[x] = y { ... }  # rule1
-//  p[k] = v { ... }  # rule2
-//  q { ... }         # rule3
+//	p[x] = y { ... }  # rule1
+//	p[k] = v { ... }  # rule2
+//	q { ... }         # rule3
 //
 // The following calls yield the rules on the right.
 //
-//  GetRulesWithPrefix("data.a.b.c.p")   => [rule1, rule2]
-//  GetRulesWithPrefix("data.a.b.c.p.a") => nil
-//  GetRulesWithPrefix("data.a.b.c")     => [rule1, rule2, rule3]
+//	GetRulesWithPrefix("data.a.b.c.p")   => [rule1, rule2]
+//	GetRulesWithPrefix("data.a.b.c.p.a") => nil
+//	GetRulesWithPrefix("data.a.b.c")     => [rule1, rule2, rule3]
 func (c *Compiler) GetRulesWithPrefix(ref Ref) (rules []*Rule) {
 
 	node := c.RuleTree
@@ -581,18 +581,18 @@ func extractRules(s []util.T) (rules []*Rule) {
 //
 // E.g., given the following module:
 //
-//  package a.b.c
+//	package a.b.c
 //
-//  p[x] = y { q[x] = y; ... } # rule1
-//  q[x] = y { ... }           # rule2
+//	p[x] = y { q[x] = y; ... } # rule1
+//	q[x] = y { ... }           # rule2
 //
 // The following calls yield the rules on the right.
 //
-//  GetRules("data.a.b.c.p")	=> [rule1]
-//  GetRules("data.a.b.c.p.x")	=> [rule1]
-//  GetRules("data.a.b.c.q")	=> [rule2]
-//  GetRules("data.a.b.c")		=> [rule1, rule2]
-//  GetRules("data.a.b.d")		=> nil
+//	GetRules("data.a.b.c.p")	=> [rule1]
+//	GetRules("data.a.b.c.p.x")	=> [rule1]
+//	GetRules("data.a.b.c.q")	=> [rule2]
+//	GetRules("data.a.b.c")		=> [rule1, rule2]
+//	GetRules("data.a.b.d")		=> nil
 func (c *Compiler) GetRules(ref Ref) (rules []*Rule) {
 
 	set := map[*Rule]struct{}{}
@@ -627,34 +627,34 @@ func (c *Compiler) GetRulesDynamic(ref Ref) []*Rule {
 //
 // E.g., given the following modules:
 //
-//  package a.b.c
+//	package a.b.c
 //
-//  r1 = 1  # rule1
+//	r1 = 1  # rule1
 //
 // and:
 //
-//  package a.d.c
+//	package a.d.c
 //
-//  r2 = 2  # rule2
+//	r2 = 2  # rule2
 //
 // The following calls yield the rules on the right.
 //
-//  GetRulesDynamicWithOpts("data.a[x].c[y]", opts) => [rule1, rule2]
-//  GetRulesDynamicWithOpts("data.a[x].c.r2", opts) => [rule2]
-//  GetRulesDynamicWithOpts("data.a.b[x][y]", opts) => [rule1]
+//	GetRulesDynamicWithOpts("data.a[x].c[y]", opts) => [rule1, rule2]
+//	GetRulesDynamicWithOpts("data.a[x].c.r2", opts) => [rule2]
+//	GetRulesDynamicWithOpts("data.a.b[x][y]", opts) => [rule1]
 //
 // Using the RulesOptions parameter, the inclusion of hidden modules can be
 // controlled:
 //
 // With
 //
-//  package system.main
+//	package system.main
 //
-//  r3 = 3 # rule3
+//	r3 = 3 # rule3
 //
 // We'd get this result:
 //
-//  GetRulesDynamicWithOpts("data[x]", RulesOptions{IncludeHiddenModules: true}) => [rule1, rule2, rule3]
+//	GetRulesDynamicWithOpts("data[x]", RulesOptions{IncludeHiddenModules: true}) => [rule1, rule2, rule3]
 //
 // Without the options, it would be excluded.
 func (c *Compiler) GetRulesDynamicWithOpts(ref Ref, opts RulesOptions) []*Rule {
@@ -1053,7 +1053,25 @@ func mergeSchemas(schemas ...*gojsonschema.SubSchema) (*gojsonschema.SubSchema, 
 	return result, nil
 }
 
-func parseSchema(schema interface{}) (types.Type, error) {
+type schemaParser struct {
+	definitionCache map[string]*cachedDef
+}
+
+type cachedDef struct {
+	properties []*types.StaticProperty
+}
+
+func newSchemaParser() *schemaParser {
+	return &schemaParser{
+		definitionCache: map[string]*cachedDef{},
+	}
+}
+
+func (parser *schemaParser) parseSchema(schema interface{}) (types.Type, error) {
+	return parser.parseSchemaWithPropertyKey(schema, "")
+}
+
+func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, propertyKey string) (types.Type, error) {
 	subSchema, ok := schema.(*gojsonschema.SubSchema)
 	if !ok {
 		return nil, fmt.Errorf("unexpected schema type %v", subSchema)
@@ -1061,7 +1079,10 @@ func parseSchema(schema interface{}) (types.Type, error) {
 
 	// Handle referenced schemas, returns directly when a $ref is found
 	if subSchema.RefSchema != nil {
-		return parseSchema(subSchema.RefSchema)
+		if existing, ok := parser.definitionCache[subSchema.Ref.String()]; ok {
+			return types.NewObject(existing.properties, nil), nil
+		}
+		return parser.parseSchemaWithPropertyKey(subSchema.RefSchema, subSchema.Ref.String())
 	}
 
 	// Handle anyOf
@@ -1073,7 +1094,7 @@ func parseSchema(schema interface{}) (types.Type, error) {
 			copySchema := *subSchema
 			copySchemaRef := &copySchema
 			copySchemaRef.AnyOf = nil
-			coreType, err := parseSchema(copySchemaRef)
+			coreType, err := parser.parseSchema(copySchemaRef)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected schema type %v: %w", subSchema, err)
 			}
@@ -1088,7 +1109,7 @@ func parseSchema(schema interface{}) (types.Type, error) {
 
 		// Iterate through every property of AnyOf and add it to orType
 		for _, pSchema := range subSchema.AnyOf {
-			newtype, err := parseSchema(pSchema)
+			newtype, err := parser.parseSchema(pSchema)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected schema type %v: %w", pSchema, err)
 			}
@@ -1111,12 +1132,12 @@ func parseSchema(schema interface{}) (types.Type, error) {
 				if err != nil {
 					return nil, err
 				}
-				return parseSchema(objectOrArrayResult)
+				return parser.parseSchema(objectOrArrayResult)
 			} else if subSchema.Types.String() != allOfResult.Types.String() {
 				return nil, fmt.Errorf("unable to merge these schemas")
 			}
 		}
-		return parseSchema(allOfResult)
+		return parser.parseSchema(allOfResult)
 	}
 
 	if subSchema.Types.IsTyped() {
@@ -1131,15 +1152,28 @@ func parseSchema(schema interface{}) (types.Type, error) {
 
 		} else if subSchema.Types.Contains("object") {
 			if len(subSchema.PropertiesChildren) > 0 {
-				staticProps := make([]*types.StaticProperty, 0, len(subSchema.PropertiesChildren))
+				def := &cachedDef{
+					properties: make([]*types.StaticProperty, 0, len(subSchema.PropertiesChildren)),
+				}
 				for _, pSchema := range subSchema.PropertiesChildren {
-					newtype, err := parseSchema(pSchema)
+					def.properties = append(def.properties, types.NewStaticProperty(pSchema.Property, nil))
+				}
+				if propertyKey != "" {
+					parser.definitionCache[propertyKey] = def
+				}
+				for _, pSchema := range subSchema.PropertiesChildren {
+					newtype, err := parser.parseSchema(pSchema)
 					if err != nil {
 						return nil, fmt.Errorf("unexpected schema type %v: %w", pSchema, err)
 					}
-					staticProps = append(staticProps, types.NewStaticProperty(pSchema.Property, newtype))
+					for i, prop := range def.properties {
+						if prop.Key == pSchema.Property {
+							def.properties[i].Value = newtype
+							break
+						}
+					}
 				}
-				return types.NewObject(staticProps, nil), nil
+				return types.NewObject(def.properties, nil), nil
 			}
 			return types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)), nil
 
@@ -1147,7 +1181,7 @@ func parseSchema(schema interface{}) (types.Type, error) {
 			if len(subSchema.ItemsChildren) > 0 {
 				if subSchema.ItemsChildrenIsSingleSchema {
 					iSchema := subSchema.ItemsChildren[0]
-					newtype, err := parseSchema(iSchema)
+					newtype, err := parser.parseSchema(iSchema)
 					if err != nil {
 						return nil, fmt.Errorf("unexpected schema type %v", iSchema)
 					}
@@ -1156,7 +1190,7 @@ func parseSchema(schema interface{}) (types.Type, error) {
 				newTypes := make([]types.Type, 0, len(subSchema.ItemsChildren))
 				for i := 0; i != len(subSchema.ItemsChildren); i++ {
 					iSchema := subSchema.ItemsChildren[i]
-					newtype, err := parseSchema(iSchema)
+					newtype, err := parser.parseSchema(iSchema)
 					if err != nil {
 						return nil, fmt.Errorf("unexpected schema type %v", iSchema)
 					}
@@ -1171,11 +1205,11 @@ func parseSchema(schema interface{}) (types.Type, error) {
 	// Assume types if not specified in schema
 	if len(subSchema.PropertiesChildren) > 0 {
 		if err := subSchema.Types.Add("object"); err == nil {
-			return parseSchema(subSchema)
+			return parser.parseSchema(subSchema)
 		}
 	} else if len(subSchema.ItemsChildren) > 0 {
 		if err := subSchema.Types.Add("array"); err == nil {
-			return parseSchema(subSchema)
+			return parser.parseSchema(subSchema)
 		}
 	}
 
@@ -1259,10 +1293,10 @@ func (c *Compiler) compile() {
 		if c.Failed() {
 			return
 		}
-		for _, s := range c.after[s.name] {
-			err := c.runStageAfter(s.MetricName, s.Stage)
-			if err != nil {
+		for _, a := range c.after[s.name] {
+			if err := c.runStageAfter(a.MetricName, a.Stage); err != nil {
 				c.err(err)
+				return
 			}
 		}
 	}
@@ -1565,11 +1599,11 @@ func checkVoidCalls(env *TypeEnv, x interface{}) Errors {
 //
 // For example, given the following print statement:
 //
-//   print("the value of x is:", input.x)
+//	print("the value of x is:", input.x)
 //
 // The expression would be rewritten to:
 //
-//   print({__local0__ | __local0__ = "the value of x is:"}, {__local1__ | __local1__ = input.x})
+//	print({__local0__ | __local0__ = "the value of x is:"}, {__local1__ | __local1__ = input.x})
 func rewritePrintCalls(gen *localVarGenerator, getArity func(Ref) int, globals VarSet, body Body) Errors {
 
 	var errs Errors
@@ -2196,7 +2230,7 @@ func (c *Compiler) rewriteWithModifiers() {
 			if !ok {
 				return x, nil
 			}
-			body, err := rewriteWithModifiersInBody(c, f, body)
+			body, err := rewriteWithModifiersInBody(c, c.unsafeBuiltinsMap, f, body)
 			if err != nil {
 				c.err(err)
 			}
@@ -2475,17 +2509,18 @@ func (qc *queryCompiler) checkTypes(_ *QueryContext, body Body) (Body, error) {
 }
 
 func (qc *queryCompiler) checkUnsafeBuiltins(_ *QueryContext, body Body) (Body, error) {
-	var unsafe map[string]struct{}
-	if qc.unsafeBuiltins != nil {
-		unsafe = qc.unsafeBuiltins
-	} else {
-		unsafe = qc.compiler.unsafeBuiltinsMap
-	}
-	errs := checkUnsafeBuiltins(unsafe, body)
+	errs := checkUnsafeBuiltins(qc.unsafeBuiltinsMap(), body)
 	if len(errs) > 0 {
 		return nil, errs
 	}
 	return body, nil
+}
+
+func (qc *queryCompiler) unsafeBuiltinsMap() map[string]struct{} {
+	if qc.unsafeBuiltins != nil {
+		return qc.unsafeBuiltins
+	}
+	return qc.compiler.unsafeBuiltinsMap
 }
 
 func (qc *queryCompiler) checkDeprecatedBuiltins(_ *QueryContext, body Body) (Body, error) {
@@ -2498,7 +2533,7 @@ func (qc *queryCompiler) checkDeprecatedBuiltins(_ *QueryContext, body Body) (Bo
 
 func (qc *queryCompiler) rewriteWithModifiers(_ *QueryContext, body Body) (Body, error) {
 	f := newEqualityFactory(newLocalVarGenerator("q", body))
-	body, err := rewriteWithModifiersInBody(qc.compiler, f, body)
+	body, err := rewriteWithModifiersInBody(qc.compiler, qc.unsafeBuiltinsMap(), f, body)
 	if err != nil {
 		return nil, Errors{err}
 	}
@@ -2763,7 +2798,13 @@ func NewModuleTree(mods map[string]*Module) *ModuleTreeNode {
 	root := &ModuleTreeNode{
 		Children: map[Value]*ModuleTreeNode{},
 	}
-	for _, m := range mods {
+	names := make([]string, 0, len(mods))
+	for name := range mods {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		m := mods[name]
 		node := root
 		for i, x := range m.Package.Path {
 			c, ok := node.Children[x.Value]
@@ -4577,7 +4618,7 @@ func rewriteDeclaredVarsInExpr(g *localVarGenerator, stack *localDeclaredVars, e
 		case *Term:
 			stop, errs = rewriteDeclaredVarsInTerm(g, stack, x, errs, strict)
 		case *With:
-			_, errs = rewriteDeclaredVarsInTerm(g, stack, x.Value, errs, strict)
+			errs = rewriteDeclaredVarsInTermRecursive(g, stack, x.Value, errs, strict)
 			stop = true
 		}
 		return stop
@@ -4715,7 +4756,7 @@ func rewriteDeclaredVarsInTermRecursive(g *localVarGenerator, stack *localDeclar
 		var stop bool
 		switch n := n.(type) {
 		case *With:
-			_, errs = rewriteDeclaredVarsInTerm(g, stack, n.Value, errs, strict)
+			errs = rewriteDeclaredVarsInTermRecursive(g, stack, n.Value, errs, strict)
 			stop = true
 		case *Term:
 			stop, errs = rewriteDeclaredVarsInTerm(g, stack, n, errs, strict)
@@ -4779,10 +4820,10 @@ func rewriteDeclaredVar(g *localVarGenerator, stack *localDeclaredVars, v Var, o
 // rewriteWithModifiersInBody will rewrite the body so that with modifiers do
 // not contain terms that require evaluation as values. If this function
 // encounters an invalid with modifier target then it will raise an error.
-func rewriteWithModifiersInBody(c *Compiler, f *equalityFactory, body Body) (Body, *Error) {
+func rewriteWithModifiersInBody(c *Compiler, unsafeBuiltinsMap map[string]struct{}, f *equalityFactory, body Body) (Body, *Error) {
 	var result Body
 	for i := range body {
-		exprs, err := rewriteWithModifier(c, f, body[i])
+		exprs, err := rewriteWithModifier(c, unsafeBuiltinsMap, f, body[i])
 		if err != nil {
 			return nil, err
 		}
@@ -4797,11 +4838,11 @@ func rewriteWithModifiersInBody(c *Compiler, f *equalityFactory, body Body) (Bod
 	return result, nil
 }
 
-func rewriteWithModifier(c *Compiler, f *equalityFactory, expr *Expr) ([]*Expr, *Error) {
+func rewriteWithModifier(c *Compiler, unsafeBuiltinsMap map[string]struct{}, f *equalityFactory, expr *Expr) ([]*Expr, *Error) {
 
 	var result []*Expr
 	for i := range expr.With {
-		eval, err := validateWith(c, expr, i)
+		eval, err := validateWith(c, unsafeBuiltinsMap, expr, i)
 		if err != nil {
 			return nil, err
 		}
@@ -4816,7 +4857,7 @@ func rewriteWithModifier(c *Compiler, f *equalityFactory, expr *Expr) ([]*Expr, 
 	return append(result, expr), nil
 }
 
-func validateWith(c *Compiler, expr *Expr, i int) (bool, *Error) {
+func validateWith(c *Compiler, unsafeBuiltinsMap map[string]struct{}, expr *Expr, i int) (bool, *Error) {
 	target, value := expr.With[i].Target, expr.With[i].Value
 
 	// Ensure that values that are built-ins are rewritten to Ref (not Var)
@@ -4824,6 +4865,10 @@ func validateWith(c *Compiler, expr *Expr, i int) (bool, *Error) {
 		if _, ok := c.builtins[v.String()]; ok {
 			value.Value = Ref([]*Term{NewTerm(v)})
 		}
+	}
+	isBuiltinRefOrVar, err := isBuiltinRefOrVar(c.builtins, unsafeBuiltinsMap, target)
+	if err != nil {
+		return false, err
 	}
 
 	switch {
@@ -4848,15 +4893,15 @@ func validateWith(c *Compiler, expr *Expr, i int) (bool, *Error) {
 			if child := node.Child(ref[len(ref)-1].Value); child != nil {
 				for _, v := range child.Values {
 					if len(v.(*Rule).Head.Args) > 0 {
-						if validateWithFunctionValue(c.builtins, c.RuleTree, value) {
-							return false, nil
+						if ok, err := validateWithFunctionValue(c.builtins, unsafeBuiltinsMap, c.RuleTree, value); err != nil || ok {
+							return false, err // may be nil
 						}
 					}
 				}
 			}
 		}
 	case isInputRef(target): // ok, valid
-	case isBuiltinRefOrVar(c.builtins, target):
+	case isBuiltinRefOrVar:
 
 		// NOTE(sr): first we ensure that parsed Var builtins (`count`, `concat`, etc)
 		// are rewritten to their proper Ref convention
@@ -4870,8 +4915,8 @@ func validateWith(c *Compiler, expr *Expr, i int) (bool, *Error) {
 			return false, err
 		}
 
-		if validateWithFunctionValue(c.builtins, c.RuleTree, value) {
-			return false, nil
+		if ok, err := validateWithFunctionValue(c.builtins, unsafeBuiltinsMap, c.RuleTree, value); err != nil || ok {
+			return false, err // may be nil
 		}
 	default:
 		return false, NewError(TypeErr, target.Location, "with keyword target must reference existing %v, %v, or a function", InputRootDocument, DefaultRootDocument)
@@ -4900,13 +4945,13 @@ func validateWithBuiltinTarget(bi *Builtin, target Ref, loc *location.Location) 
 	return nil
 }
 
-func validateWithFunctionValue(bs map[string]*Builtin, ruleTree *TreeNode, value *Term) bool {
+func validateWithFunctionValue(bs map[string]*Builtin, unsafeMap map[string]struct{}, ruleTree *TreeNode, value *Term) (bool, *Error) {
 	if v, ok := value.Value.(Ref); ok {
 		if ruleTree.Find(v) != nil { // ref exists in rule tree
-			return true
+			return true, nil
 		}
 	}
-	return isBuiltinRefOrVar(bs, value)
+	return isBuiltinRefOrVar(bs, unsafeMap, value)
 }
 
 func isInputRef(term *Term) bool {
@@ -4927,13 +4972,16 @@ func isDataRef(term *Term) bool {
 	return false
 }
 
-func isBuiltinRefOrVar(bs map[string]*Builtin, term *Term) bool {
+func isBuiltinRefOrVar(bs map[string]*Builtin, unsafeBuiltinsMap map[string]struct{}, term *Term) (bool, *Error) {
 	switch v := term.Value.(type) {
 	case Ref, Var:
+		if _, ok := unsafeBuiltinsMap[v.String()]; ok {
+			return false, NewError(CompileErr, term.Location, "with keyword replacing built-in function: target must not be unsafe: %q", v)
+		}
 		_, ok := bs[v.String()]
-		return ok
+		return ok, nil
 	}
-	return false
+	return false, nil
 }
 
 func isVirtual(node *TreeNode, ref Ref) bool {

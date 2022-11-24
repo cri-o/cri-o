@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	validator "github.com/go-playground/validator/v10"
@@ -41,7 +40,7 @@ type Signature struct {
 
 // NewSignature creates and validates an x509 signature object
 func NewSignature(r io.Reader) (*Signature, error) {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +102,7 @@ type cert struct {
 
 // NewPublicKey implements the pki.PublicKey interface
 func NewPublicKey(r io.Reader) (*PublicKey, error) {
-	rawPub, err := ioutil.ReadAll(r)
+	rawPub, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

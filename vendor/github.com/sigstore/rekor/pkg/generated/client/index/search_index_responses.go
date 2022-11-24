@@ -68,7 +68,8 @@ func NewSearchIndexOK() *SearchIndexOK {
 	return &SearchIndexOK{}
 }
 
-/* SearchIndexOK describes a response with status code 200, with default header values.
+/*
+SearchIndexOK describes a response with status code 200, with default header values.
 
 Returns zero or more entry UUIDs from the transparency log based on search query
 */
@@ -76,9 +77,39 @@ type SearchIndexOK struct {
 	Payload []string
 }
 
+// IsSuccess returns true when this search index o k response has a 2xx status code
+func (o *SearchIndexOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this search index o k response has a 3xx status code
+func (o *SearchIndexOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this search index o k response has a 4xx status code
+func (o *SearchIndexOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this search index o k response has a 5xx status code
+func (o *SearchIndexOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this search index o k response a status code equal to that given
+func (o *SearchIndexOK) IsCode(code int) bool {
+	return code == 200
+}
+
 func (o *SearchIndexOK) Error() string {
 	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexOK  %+v", 200, o.Payload)
 }
+
+func (o *SearchIndexOK) String() string {
+	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexOK  %+v", 200, o.Payload)
+}
+
 func (o *SearchIndexOK) GetPayload() []string {
 	return o.Payload
 }
@@ -98,7 +129,8 @@ func NewSearchIndexBadRequest() *SearchIndexBadRequest {
 	return &SearchIndexBadRequest{}
 }
 
-/* SearchIndexBadRequest describes a response with status code 400, with default header values.
+/*
+SearchIndexBadRequest describes a response with status code 400, with default header values.
 
 The content supplied to the server was invalid
 */
@@ -106,9 +138,39 @@ type SearchIndexBadRequest struct {
 	Payload *models.Error
 }
 
+// IsSuccess returns true when this search index bad request response has a 2xx status code
+func (o *SearchIndexBadRequest) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this search index bad request response has a 3xx status code
+func (o *SearchIndexBadRequest) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this search index bad request response has a 4xx status code
+func (o *SearchIndexBadRequest) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this search index bad request response has a 5xx status code
+func (o *SearchIndexBadRequest) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this search index bad request response a status code equal to that given
+func (o *SearchIndexBadRequest) IsCode(code int) bool {
+	return code == 400
+}
+
 func (o *SearchIndexBadRequest) Error() string {
 	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexBadRequest  %+v", 400, o.Payload)
 }
+
+func (o *SearchIndexBadRequest) String() string {
+	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexBadRequest  %+v", 400, o.Payload)
+}
+
 func (o *SearchIndexBadRequest) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -132,7 +194,8 @@ func NewSearchIndexDefault(code int) *SearchIndexDefault {
 	}
 }
 
-/* SearchIndexDefault describes a response with status code -1, with default header values.
+/*
+SearchIndexDefault describes a response with status code -1, with default header values.
 
 There was an internal error in the server while processing the request
 */
@@ -147,9 +210,39 @@ func (o *SearchIndexDefault) Code() int {
 	return o._statusCode
 }
 
+// IsSuccess returns true when this search index default response has a 2xx status code
+func (o *SearchIndexDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this search index default response has a 3xx status code
+func (o *SearchIndexDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this search index default response has a 4xx status code
+func (o *SearchIndexDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this search index default response has a 5xx status code
+func (o *SearchIndexDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this search index default response a status code equal to that given
+func (o *SearchIndexDefault) IsCode(code int) bool {
+	return o._statusCode == code
+}
+
 func (o *SearchIndexDefault) Error() string {
 	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndex default  %+v", o._statusCode, o.Payload)
 }
+
+func (o *SearchIndexDefault) String() string {
+	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndex default  %+v", o._statusCode, o.Payload)
+}
+
 func (o *SearchIndexDefault) GetPayload() *models.Error {
 	return o.Payload
 }

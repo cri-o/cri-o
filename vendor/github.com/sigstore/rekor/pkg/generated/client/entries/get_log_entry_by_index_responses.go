@@ -68,7 +68,8 @@ func NewGetLogEntryByIndexOK() *GetLogEntryByIndexOK {
 	return &GetLogEntryByIndexOK{}
 }
 
-/* GetLogEntryByIndexOK describes a response with status code 200, with default header values.
+/*
+GetLogEntryByIndexOK describes a response with status code 200, with default header values.
 
 the entry in the transparency log requested along with an inclusion proof
 */
@@ -76,9 +77,39 @@ type GetLogEntryByIndexOK struct {
 	Payload models.LogEntry
 }
 
+// IsSuccess returns true when this get log entry by index o k response has a 2xx status code
+func (o *GetLogEntryByIndexOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this get log entry by index o k response has a 3xx status code
+func (o *GetLogEntryByIndexOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get log entry by index o k response has a 4xx status code
+func (o *GetLogEntryByIndexOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this get log entry by index o k response has a 5xx status code
+func (o *GetLogEntryByIndexOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get log entry by index o k response a status code equal to that given
+func (o *GetLogEntryByIndexOK) IsCode(code int) bool {
+	return code == 200
+}
+
 func (o *GetLogEntryByIndexOK) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexOK  %+v", 200, o.Payload)
 }
+
+func (o *GetLogEntryByIndexOK) String() string {
+	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexOK  %+v", 200, o.Payload)
+}
+
 func (o *GetLogEntryByIndexOK) GetPayload() models.LogEntry {
 	return o.Payload
 }
@@ -98,14 +129,44 @@ func NewGetLogEntryByIndexNotFound() *GetLogEntryByIndexNotFound {
 	return &GetLogEntryByIndexNotFound{}
 }
 
-/* GetLogEntryByIndexNotFound describes a response with status code 404, with default header values.
+/*
+GetLogEntryByIndexNotFound describes a response with status code 404, with default header values.
 
 The content requested could not be found
 */
 type GetLogEntryByIndexNotFound struct {
 }
 
+// IsSuccess returns true when this get log entry by index not found response has a 2xx status code
+func (o *GetLogEntryByIndexNotFound) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get log entry by index not found response has a 3xx status code
+func (o *GetLogEntryByIndexNotFound) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get log entry by index not found response has a 4xx status code
+func (o *GetLogEntryByIndexNotFound) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get log entry by index not found response has a 5xx status code
+func (o *GetLogEntryByIndexNotFound) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get log entry by index not found response a status code equal to that given
+func (o *GetLogEntryByIndexNotFound) IsCode(code int) bool {
+	return code == 404
+}
+
 func (o *GetLogEntryByIndexNotFound) Error() string {
+	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexNotFound ", 404)
+}
+
+func (o *GetLogEntryByIndexNotFound) String() string {
 	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexNotFound ", 404)
 }
 
@@ -121,7 +182,8 @@ func NewGetLogEntryByIndexDefault(code int) *GetLogEntryByIndexDefault {
 	}
 }
 
-/* GetLogEntryByIndexDefault describes a response with status code -1, with default header values.
+/*
+GetLogEntryByIndexDefault describes a response with status code -1, with default header values.
 
 There was an internal error in the server while processing the request
 */
@@ -136,9 +198,39 @@ func (o *GetLogEntryByIndexDefault) Code() int {
 	return o._statusCode
 }
 
+// IsSuccess returns true when this get log entry by index default response has a 2xx status code
+func (o *GetLogEntryByIndexDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this get log entry by index default response has a 3xx status code
+func (o *GetLogEntryByIndexDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this get log entry by index default response has a 4xx status code
+func (o *GetLogEntryByIndexDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this get log entry by index default response has a 5xx status code
+func (o *GetLogEntryByIndexDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this get log entry by index default response a status code equal to that given
+func (o *GetLogEntryByIndexDefault) IsCode(code int) bool {
+	return o._statusCode == code
+}
+
 func (o *GetLogEntryByIndexDefault) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndex default  %+v", o._statusCode, o.Payload)
 }
+
+func (o *GetLogEntryByIndexDefault) String() string {
+	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndex default  %+v", o._statusCode, o.Payload)
+}
+
 func (o *GetLogEntryByIndexDefault) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -280,6 +280,7 @@ type Repo struct {
 //go:generate /usr/bin/env bash -c "cat ../scripts/boilerplate/boilerplate.generatego.txt gitfakes/fake_worktree.go > gitfakes/_fake_worktree.go && mv gitfakes/_fake_worktree.go gitfakes/fake_worktree.go"
 
 // Repository is the main interface to the git.Repository functionality
+//
 //counterfeiter:generate . Repository
 type Repository interface {
 	CreateTag(string, plumbing.Hash, *git.CreateTagOptions) (*plumbing.Reference, error)
@@ -295,6 +296,7 @@ type Repository interface {
 }
 
 // Worktree is the main interface to the git.Worktree functionality
+//
 //counterfeiter:generate . Worktree
 type Worktree interface {
 	Add(string) (plumbing.Hash, error)
@@ -630,7 +632,7 @@ func (r *Repo) latestNonPatchFinalVersions() ([]semver.Version, error) {
 		return nil, err
 	}
 
-	_ = tags.ForEach(func(t *plumbing.Reference) error { // nolint: errcheck
+	_ = tags.ForEach(func(t *plumbing.Reference) error { //nolint: errcheck
 		ver, err := util.TagStringToSemver(t.Name().Short())
 
 		if err == nil {
@@ -1020,7 +1022,7 @@ func (r *Repo) Tags() (res []string, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("get tags: %w", err)
 	}
-	_ = tags.ForEach(func(t *plumbing.Reference) error { // nolint: errcheck
+	_ = tags.ForEach(func(t *plumbing.Reference) error { //nolint: errcheck
 		res = append(res, t.Name().Short())
 		return nil
 	})

@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/sirupsen/logrus"
 )
 

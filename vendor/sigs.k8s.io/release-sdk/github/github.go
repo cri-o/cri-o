@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -166,7 +166,7 @@ type NewIssueOptions struct {
 // GitHub requests.
 func New() *GitHub {
 	token := env.Default(TokenEnvKey, "")
-	client, _ := NewWithToken(token) // nolint: errcheck
+	client, _ := NewWithToken(token) //nolint: errcheck
 	return client
 }
 
