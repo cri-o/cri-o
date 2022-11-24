@@ -81,7 +81,7 @@ jobs:
           JOBS: '2'
 
   test-cgroupfs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/setup-go@v3
         with:
