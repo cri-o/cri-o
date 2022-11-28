@@ -988,6 +988,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		log.Infof(ctx, "RunSandbox: context was either canceled or the deadline was exceeded: %v", ctx.Err())
 		return nil, ctx.Err()
 	}
+
+	// Since it's not a context error, we can delete the resource from the store, it will be tracked in the server from now on.
+	s.resourceStore.Delete(sbox.Name())
+
 	sb.SetCreated()
 
 	log.Infof(ctx, "Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
