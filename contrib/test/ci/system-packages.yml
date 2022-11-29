@@ -71,6 +71,11 @@
 
 - name: Install container-selinux separately (see https://github.com/cri-o/cri-o/discussions/6405)
   become: yes
+  shell: sudo rpm -ql policycoreutils
+  when: ansible_distribution == 'RedHat'
+
+- name: Install container-selinux separately (see https://github.com/cri-o/cri-o/discussions/6405)
+  become: yes
   shell: sudo yum reinstall -y container-selinux
   when: ansible_distribution == 'RedHat'
 
