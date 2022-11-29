@@ -20,8 +20,8 @@
     enablerepo: powertools
     name:
       #- atomic-registries
-      - container-selinux
       - curl
+      - container-selinux
       #- device-mapper-devel
       - expect
       - findutils
@@ -63,10 +63,16 @@
       - rpcbind
       - rsync
       - sed
+      - policycoreutils
       - skopeo-containers
       - socat
       - tar
       - wget
+
+- name: Install container-selinux separately (see https://github.com/cri-o/cri-o/discussions/6405)
+  become: yes
+  shell: sudo yum reinstall -y container-selinux
+  when: ansible_distribution == 'RedHat'
 
 - name: Install optional packages For Fedora/CentOS
   become: yes
