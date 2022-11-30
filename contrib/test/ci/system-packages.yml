@@ -68,7 +68,17 @@
       - tar
       - wget
 
-- name: Install optional packages For Fedora/CentOS
+- name: Install optional packages For CentOS Stream 9
+  become: yes
+  yum:
+    state: present
+    enablerepo: crb
+    name:
+      - glibc-static
+      - gpgme-devel
+  when: ansible_distribution == 'CentOS' and ansible_distribution_version == 9
+
+- name: Install optional packages For Fedora/CentOS 8
   become: yes
   yum:
     state: present
@@ -76,7 +86,7 @@
     name:
       - glibc-static
       - gpgme-devel
-  when: ansible_distribution != 'RedHat'
+  when: ansible_distribution != 'RedHat' and (ansible_distribution == 'CentOS' and ansible_distribution_version != 9)
 
 - name: Add Fedora <=29 specific packages
   package:
