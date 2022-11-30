@@ -76,7 +76,7 @@
     name:
       - glibc-static
       - gpgme-devel
-  when: ansible_distribution == 'CentOS' and ansible_distribution_version == 9
+  when: ansible_distribution == 'CentOS' and ansible_distribution_release == "Stream" and ansible_distribution_major_version|int > 8
 
 - name: Install optional packages For Fedora/CentOS 8
   become: yes
