@@ -33,7 +33,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 		log.Debugf(ctx, "StopPodSandboxResponse %s", req.PodSandboxId)
 		return &types.StopPodSandboxResponse{}, nil
 	}
-	if err := s.stopPodSandbox(ctx, sb); err != nil {
+	if err := s.stopPodSandbox(ctx, sb, defaultRemovalTimeoutSec); err != nil {
 		return nil, err
 	}
 

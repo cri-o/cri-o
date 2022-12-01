@@ -10,6 +10,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 )
 
-func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
+func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox, timeout int64) error {
 	return fmt.Errorf("unsupported")
 }
