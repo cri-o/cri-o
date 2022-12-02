@@ -87,8 +87,10 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 }
 
 func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) error {
-	// If this container is the infra container, all that needs to be done is move conmonrs to the pod cgroup
-	if c.IsInfra() {
+	// If this container is the infra container or spoofed,
+	// then it is the pod container and we move conmonrs
+	// to the right configured cgroup.
+	if c.IsInfra() || c.Spoofed() {
 		v, err := r.client.Version(ctx, &conmonClient.VersionConfig{Verbose: false})
 		if err != nil {
 			return fmt.Errorf("failed to get version of client before moving server to cgroup: %w", err)

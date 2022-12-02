@@ -16,9 +16,6 @@ import (
 const InfraContainerName = "POD"
 
 func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
-	if c.Spoofed() {
-		return nil
-	}
 	g := &generate.Generator{
 		Config: &rspec.Spec{
 			Linux: &rspec.Linux{
