@@ -31,7 +31,7 @@ function teardown() {
 		skip "not yet supported by conmonrs"
 	fi
 
-	CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_DROP_INFRA_CTR=false CONTAINER_MANAGE_NS_LIFECYCLE=false CONTAINER_CONMON_CGROUP="customcrioconmon.slice" start_crio
+	CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_DROP_INFRA_CTR=false CONTAINER_CONMON_CGROUP="customcrioconmon.slice" start_crio
 
 	jq '	  .linux.cgroup_parent = "Burstablecriotest123.slice"' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_config_slice.json
