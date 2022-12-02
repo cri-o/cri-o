@@ -26,6 +26,18 @@ function teardown() {
 	[[ "$output" == "1234" ]]
 }
 
+@test "conmon pod cgroup" {
+	CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_DROP_INFRA_CTR=false CONTAINER_CONMON_CGROUP="pod" start_crio
+
+	jq '	  .linux.cgroup_parent = "Burstablecriotest123.slice"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_config_slice.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox_config_slice.json)
+
+	output=$(systemctl status "crio-conmon-$pod_id.scope")
+	[[ "$output" == *"Burstablecriotest123.slice"* ]]
+}
+
 @test "conmon custom cgroup" {
 	if [[ $RUNTIME_TYPE == pod ]]; then
 		skip "not yet supported by conmonrs"
