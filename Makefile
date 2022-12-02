@@ -83,17 +83,7 @@ CROSS_BUILD_TARGETS := \
 	bin/crio.cross.darwin.amd64 \
 	bin/crio.cross.linux.amd64
 
-# If GOPATH not specified, use one in the local directory
-ifeq ($(GOPATH),)
-export GOPATH := $(CURDIR)/_output
-unexport GOBIN
-endif
-GOPKGDIR := $(GOPATH)/src/$(PROJECT)
-GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 GO_FILES := $(shell find . -type f -name '*.go' -not -name '*_test.go')
-
-# Update VPATH so make finds .gopathok
-VPATH := $(VPATH):$(GOPATH)
 
 # Set DEBUG=1 to enable debug symbols in binaries
 DEBUG ?= 0
@@ -137,16 +127,8 @@ help:
 # Dummy target for marking pattern rules phony
 .explicit_phony:
 
-.gopathok:
-ifeq ("$(wildcard $(GOPKGDIR))","")
-	mkdir -p "$(GOPKGBASEDIR)"
-	ln -s "$(CURDIR)" "$(GOPKGDIR)"
-endif
-	if [ ! -d "$(GOPATH)" ]; then mkdir -p $(GOPATH); fi
-	touch "$(GOPATH)/.gopathok"
-
 # See also: .github/workflows/verify.yml.
-lint: .gopathok ${GOLANGCI_LINT}
+lint:  ${GOLANGCI_LINT}
 	${GOLANGCI_LINT} version
 	${GOLANGCI_LINT} linters
 	GL_DEBUG=gocritic ${GOLANGCI_LINT} run
@@ -176,19 +158,19 @@ shellcheck: shellfiles ${SHELLCHECK}
 bin/pinns:
 	$(MAKE) -C pinns
 
-test/copyimg/copyimg: $(GO_FILES) .gopathok
+test/copyimg/copyimg: $(GO_FILES)
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
 
-test/checkseccomp/checkseccomp: $(GO_FILES) .gopathok
+test/checkseccomp/checkseccomp: $(GO_FILES)
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
-test/checkcriu/checkcriu: $(GO_FILES) .gopathok
+test/checkcriu/checkcriu: $(GO_FILES)
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkcriu
 
-bin/crio: $(GO_FILES) .gopathok
+bin/crio: $(GO_FILES)
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
-bin/crio-status: $(GO_FILES) .gopathok
+bin/crio-status: $(GO_FILES)
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static:
@@ -216,9 +198,6 @@ dependencies: ${GO_MOD_OUTDATED}
 		--output-path ${BUILD_PATH}/dependencies
 
 clean:
-ifneq ($(GOPATH),)
-	rm -f "$(GOPATH)/.gopathok"
-endif
 	rm -rf _output
 	rm -f docs/*.5 docs/*.8
 	rm -fr test/testdata/redis-image
@@ -237,7 +216,7 @@ endif
 local-cross:
 	@$(MAKE) --keep-going $(CROSS_BUILD_TARGETS)
 
-bin/crio.cross.%: .gopathok .explicit_phony
+bin/crio.cross.%:  .explicit_phony
 	@echo "==> make $@"; \
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
@@ -391,11 +370,11 @@ test-binaries: test/copyimg/copyimg test/checkseccomp/checkseccomp test/checkcri
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
-docs/%.5: docs/%.5.md .gopathok ${GO_MD2MAN}
+docs/%.5: docs/%.5.md  ${GO_MD2MAN}
 	(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || \
 		(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
-docs/%.8: docs/%.8.md .gopathok ${GO_MD2MAN}
+docs/%.8: docs/%.8.md  ${GO_MD2MAN}
 	(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || \
 		(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
@@ -438,7 +417,7 @@ get-script:
 verify-dependencies: ${ZEITGEIST}
 	${BUILD_BIN_PATH}/zeitgeist validate --local-only --base-path . --config dependencies.yaml
 
-install: .gopathok install.bin install.man install.completions install.systemd install.config
+install:  install.bin install.man install.completions install.systemd install.config
 
 install.bin-nobuild:
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
