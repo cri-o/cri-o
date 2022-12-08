@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -923,7 +924,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	resourceCleaner.Add(ctx, description, func() error {
 		// Clean-up steps from RemovePodSanbox
 		log.Infof(ctx, description)
-		if err := s.ContainerServer.StopContainer(ctx, container, int64(10)); err != nil {
+		if err := s.ContainerServer.StopContainer(ctx, container, defaultRemovalTimeoutSec); err != nil {
 			return errors.Errorf("failed to stop container for removal")
 		}
 

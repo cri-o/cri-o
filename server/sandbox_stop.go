@@ -31,5 +31,5 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 		log.Debugf(ctx, "StopPodSandboxResponse %s", req.PodSandboxID)
 		return nil
 	}
-	return s.stopPodSandbox(ctx, sb)
+	return s.stopPodSandbox(ctx, sb, defaultRemovalTimeoutSec)
 }

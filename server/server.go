@@ -40,8 +40,9 @@ import (
 )
 
 const (
-	certRefreshInterval = time.Minute * 5
-	rootlessEnvName     = "_CRIO_ROOTLESS"
+	certRefreshInterval            = time.Minute * 5
+	rootlessEnvName                = "_CRIO_ROOTLESS"
+	defaultRemovalTimeoutSec int64 = 10
 )
 
 var errSandboxNotCreated = errors.New("sandbox not created")
@@ -570,7 +571,13 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 			}
 		}
 		for _, sb := range s.ContainerServer.ListSandboxes() {
-			if err := s.removePodSandbox(ctx, sb); err != nil {
+			const timeoutSec = 0
+
+			if err := s.stopPodSandbox(ctx, sb, timeoutSec); err != nil {
+				log.Warnf(ctx, "Failed to stop sandbox %s: %v", sb.ID(), err)
+			}
+
+			if err := s.removePodSandbox(ctx, sb, timeoutSec); err != nil {
 				log.Warnf(ctx, "Failed to remove sandbox %s: %v", sb.ID(), err)
 			}
 		}

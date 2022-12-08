@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package server
@@ -15,7 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
+func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox, timeout int64) error {
 	stopMutex := sb.StopMutex()
 	stopMutex.Lock()
 	defer stopMutex.Unlock()
@@ -55,7 +56,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 				}
 				c := ctr
 				waitGroup.Go(func() error {
-					if err := s.StopContainerAndWait(ctx, c, int64(10)); err != nil {
+					if err := s.StopContainerAndWait(ctx, c, timeout); err != nil {
 						return fmt.Errorf("failed to stop container for pod sandbox %s: %v", sb.ID(), err)
 					}
 					if err := s.StorageRuntimeServer().StopContainer(c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
@@ -82,7 +83,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	if podInfraContainer != nil {
 		podInfraStatus := podInfraContainer.State()
 		if podInfraStatus.Status != oci.ContainerStateStopped {
-			if err := s.StopContainerAndWait(ctx, podInfraContainer, int64(10)); err != nil {
+			if err := s.StopContainerAndWait(ctx, podInfraContainer, timeout); err != nil {
 				return fmt.Errorf("failed to stop infra container for pod sandbox %s: %v", sb.ID(), err)
 			}
 		}
