@@ -29,6 +29,8 @@ function setup_file() {
 	export IRQBALANCE_CONF
 	export CONFIGLET
 	export BANNEDCPUS_CONF
+
+	export BATS_NO_PARALLELIZE_WITHIN_FILE=true
 }
 
 function setup() {
