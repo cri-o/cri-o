@@ -2,6 +2,12 @@
 - name: include variable to check if python2-dnf can be installed
   include: python3.yml
 
+- name: ensure selinux-policy is up to date
+  become: yes
+  yum:
+    state: latest
+    name: selinux-policy
+
 - name: Install optional packages For RedHat
   become: yes
   yum:
