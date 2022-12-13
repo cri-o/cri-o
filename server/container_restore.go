@@ -231,6 +231,16 @@ func (s *Server) CRImportCheckpoint(
 		containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
 	}
 
+	if dumpSpec.Linux != nil {
+		if dumpSpec.Linux.MaskedPaths != nil {
+			containerConfig.Linux.SecurityContext.MaskedPaths = dumpSpec.Linux.MaskedPaths
+		}
+
+		if dumpSpec.Linux.ReadonlyPaths != nil {
+			containerConfig.Linux.SecurityContext.ReadonlyPaths = dumpSpec.Linux.ReadonlyPaths
+		}
+	}
+
 	ignoreMounts := map[string]bool{
 		"/proc":              true,
 		"/dev":               true,
