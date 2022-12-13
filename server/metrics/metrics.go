@@ -14,7 +14,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/process"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/metrics/collectors"
+	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
