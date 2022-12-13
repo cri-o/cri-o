@@ -14,7 +14,7 @@ import (
 
 var crio *runtime
 
-func Setup() {
+func setup() {
 	if *crioSocket == "" && *nriSocket == "" {
 		return
 	}
@@ -32,7 +32,7 @@ func Setup() {
 	crio = r
 }
 
-func Cleanup() {
+func cleanup() {
 	if crio != nil {
 		crio.Disconnect()
 		crio = nil
@@ -48,10 +48,10 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	SetupLogging()
-	Setup()
+	setupLogging()
+	setup()
 	status := m.Run()
-	Cleanup()
+	cleanup()
 
 	os.Exit(status)
 }
@@ -69,7 +69,7 @@ func (t *testLogger) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func SetupLogging() {
+func setupLogging() {
 	std := logrus.StandardLogger()
 	tst := &testLogger{
 		Out: std.Out,
@@ -94,7 +94,7 @@ func (t *nriTest) Setup(stdT *testing.T) {
 	t.namespace = getTestNamespace()
 	t.T = stdT
 
-	t.PurgePodsAndContainers()
+	t.purgePodsAndContainers()
 
 	for i := range t.plugins {
 		if len(t.options) >= i+1 {
@@ -139,10 +139,10 @@ func (t *nriTest) Cleanup() {
 		}
 	}
 
-	t.PurgePodsAndContainers()
+	t.purgePodsAndContainers()
 }
 
-func (t *nriTest) PurgePodsAndContainers() {
+func (t *nriTest) purgePodsAndContainers() {
 	t.T.Helper()
 
 	var (
@@ -237,7 +237,7 @@ func (t *nriTest) execShellScript(ctr, cmd string) (stdout, stderr []byte, exitC
 	return stdout, stderr, exitCode
 }
 
-func (t *nriTest) VerifyPodIDs(ids []string, pods []*api.PodSandbox, description string) {
+func (t *nriTest) verifyPodIDs(ids []string, pods []*api.PodSandbox, description string) {
 	idMap := map[string]struct{}{}
 	for _, id := range ids {
 		idMap[id] = struct{}{}
@@ -248,7 +248,7 @@ func (t *nriTest) VerifyPodIDs(ids []string, pods []*api.PodSandbox, description
 	}
 }
 
-func (t *nriTest) VerifyContainerIDs(ids []string, ctrs []*api.Container, description string) {
+func (t *nriTest) verifyContainerIDs(ids []string, ctrs []*api.Container, description string) {
 	idMap := map[string]struct{}{}
 	for _, id := range ids {
 		idMap[id] = struct{}{}

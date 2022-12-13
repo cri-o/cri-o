@@ -67,8 +67,8 @@ func TestPluginSynchronization(stdT *testing.T) {
 	}
 
 	synced := t.StartPlugins(WaitForPluginSync)
-	t.VerifyPodIDs(pods, synced[0].pods, "pods synchronized with plugin")
-	t.VerifyContainerIDs(ctrs, synced[0].ctrs, "containers synchronized with plugin")
+	t.verifyPodIDs(pods, synced[0].pods, "pods synchronized with plugin")
+	t.verifyContainerIDs(ctrs, synced[0].ctrs, "containers synchronized with plugin")
 }
 
 func TestPodEvents(stdT *testing.T) {
