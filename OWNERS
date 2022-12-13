@@ -4,7 +4,6 @@ approvers:
   - giuseppe
   - umohnani8
   - saschagrunert
-  - vrothberg
   - haircommander
   - fidencio
   - kolyshkin
@@ -17,3 +16,4 @@ emeritus_approvers:
   - sboeuf
   - runcom
   - rhatdan
+  - vrothberg
