@@ -2,17 +2,6 @@
 - name: include variable to check if python2-dnf can be installed
   include: python3.yml
 
-- name: Install optional packages For RedHat
-  become: yes
-  yum:
-    state: present
-    enablerepo: codeready-builder-for-rhel-9-x86_64-rpms
-    name:
-      - glibc-static
-      - gpgme-devel
-      - yajl-devel
-  when: ansible_distribution == 'RedHat'
-
 - name: Make sure we have all required packages
   become: yes
   yum:
@@ -68,6 +57,17 @@
       - tar
       - wget
 
+- name: Install optional packages For RedHat
+  become: yes
+  yum:
+    state: present
+    enablerepo: codeready-builder-for-rhel-9-x86_64-rpms
+    name:
+      - glibc-static
+      - gpgme-devel
+      - yajl-devel
+  when: ansible_distribution == 'RedHat'
+
 - name: Install optional packages For CentOS Stream 9
   become: yes
   yum:
@@ -88,14 +88,15 @@
       - gpgme-devel
   when: ansible_distribution != 'RedHat' and (ansible_distribution == 'CentOS' and ansible_distribution_version != 9)
 
-- name: Add Fedora <=29 specific packages
-  package:
-    name: "{{ item }}"
+- name: Add Fedora specific packages
+  become: yes
+  yum:
     state: present
-  with_items:
-   - python2-boto
-   - btrfs-progs-devel
-  when: (supports_python3 is not defined or not supports_python3) and ansible_distribution in ['Fedora']
+    name:
+      - btrfs-progs-devel
+      - gpgme-devel
+      - glibc-static
+  when: ansible_distribution in ['Fedora']
 
 - name: Add python-boto for RHEL and CentOS
   become: yes
