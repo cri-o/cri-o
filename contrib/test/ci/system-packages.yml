@@ -66,6 +66,7 @@
       - glibc-static
       - gpgme-devel
       - yajl-devel
+      - libsemanage-devel
   when: ansible_distribution == 'RedHat'
 
 - name: Install optional packages For CentOS Stream 9
