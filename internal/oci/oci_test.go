@@ -182,7 +182,7 @@ var _ = t.Describe("Oci", func() {
 				Skip("CRIU is missing or too old.")
 			}
 			// Given
-			beforeEach(sandboxID)
+			beforeEach()
 			defer os.RemoveAll("dump.log")
 			config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/true",
@@ -209,7 +209,7 @@ var _ = t.Describe("Oci", func() {
 			}
 			// Given
 			defer os.RemoveAll("dump.log")
-			beforeEach(sandboxID)
+			beforeEach()
 			config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/false",
 			}
@@ -235,7 +235,7 @@ var _ = t.Describe("Oci", func() {
 				Skip("CRIU is missing or too old.")
 			}
 			// Given
-			beforeEach(sandboxID)
+			beforeEach()
 			config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/true",
 				MonitorPath: "/bin/true",
@@ -272,7 +272,7 @@ var _ = t.Describe("Oci", func() {
 				Skip("CRIU is missing or too old.")
 			}
 			// Given
-			beforeEach(sandboxID)
+			beforeEach()
 			config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/true",
 				MonitorPath: "/bin/true",
@@ -324,7 +324,7 @@ var _ = t.Describe("Oci", func() {
 				Skip("CRIU is missing or too old.")
 			}
 			// Given
-			beforeEach(sandboxID)
+			beforeEach()
 			// When
 			err := sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
 

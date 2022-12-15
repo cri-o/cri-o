@@ -33,12 +33,12 @@ const (
 	containerID = "containerID"
 )
 
-func beforeEach(sbID string) {
+func beforeEach() {
 	var err error
 	myContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", "", "",
-		&types.ContainerMetadata{}, sbID, false,
+		&types.ContainerMetadata{}, sandboxID, false,
 		false, false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
 }
