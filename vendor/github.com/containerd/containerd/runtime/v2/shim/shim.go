@@ -22,21 +22,23 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
-	"strings"
 	"time"
 
+	shimapi "github.com/containerd/containerd/api/runtime/task/v2"
 	"github.com/containerd/containerd/events"
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/pkg/shutdown"
 	"github.com/containerd/containerd/plugin"
-	shimapi "github.com/containerd/containerd/runtime/v2/task"
+	"github.com/containerd/containerd/protobuf"
+	"github.com/containerd/containerd/protobuf/proto"
 	"github.com/containerd/containerd/version"
 	"github.com/containerd/ttrpc"
-	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,6 +54,7 @@ type StartOpts struct {
 	ContainerdBinary string
 	Address          string
 	TTRPCAddress     string
+	Debug            bool
 }
 
 type StopStatus struct {
@@ -175,7 +178,7 @@ func setLogger(ctx context.Context, id string) (context.Context, error) {
 		l.Logger.SetLevel(logrus.DebugLevel)
 	}
 	f, err := openLog(ctx, id)
-	if err != nil { //nolint:staticcheck // Ignore SA4023 as some platforms always return error
+	if err != nil {
 		return ctx, err
 	}
 	l.Logger.SetOutput(f)
@@ -223,7 +226,7 @@ func (stm shimToManager) Stop(ctx context.Context, id string) (StopStatus, error
 	return StopStatus{
 		Pid:        int(dr.Pid),
 		ExitStatus: int(dr.ExitStatus),
-		ExitedAt:   dr.ExitedAt,
+		ExitedAt:   protobuf.FromTimestamp(dr.ExitedAt),
 	}, nil
 }
 
@@ -246,7 +249,7 @@ func RunManager(ctx context.Context, manager Manager, opts ...BinaryOpts) {
 func run(ctx context.Context, manager Manager, initFunc Init, name string, config Config) error {
 	parseFlags()
 	if versionFlag {
-		fmt.Printf("%s:\n", os.Args[0])
+		fmt.Printf("%s:\n", filepath.Base(os.Args[0]))
 		fmt.Println("  Version: ", version.Version)
 		fmt.Println("  Revision:", version.Revision)
 		fmt.Println("  Go version:", version.GoVersion)
@@ -261,12 +264,12 @@ func run(ctx context.Context, manager Manager, initFunc Init, name string, confi
 	setRuntime()
 
 	signals, err := setupSignals(config)
-	if err != nil { //nolint:staticcheck // Ignore SA4023 as some platforms always return error
+	if err != nil {
 		return err
 	}
 
 	if !config.NoSubreaper {
-		if err := subreaper(); err != nil { //nolint:staticcheck // Ignore SA4023 as some platforms always return error
+		if err := subreaper(); err != nil {
 			return err
 		}
 	}
@@ -319,7 +322,7 @@ func run(ctx context.Context, manager Manager, initFunc Init, name string, confi
 		data, err := proto.Marshal(&shimapi.DeleteResponse{
 			Pid:        uint32(ss.Pid),
 			ExitStatus: uint32(ss.ExitStatus),
-			ExitedAt:   ss.ExitedAt,
+			ExitedAt:   protobuf.ToTimestamp(ss.ExitedAt),
 		})
 		if err != nil {
 			return err
@@ -333,6 +336,7 @@ func run(ctx context.Context, manager Manager, initFunc Init, name string, confi
 			ContainerdBinary: containerdBinaryFlag,
 			Address:          addressFlag,
 			TTRPCAddress:     ttrpcAddress,
+			Debug:            debugFlag,
 		}
 
 		address, err := manager.Start(ctx, id, opts)
@@ -445,7 +449,7 @@ func run(ctx context.Context, manager Manager, initFunc Init, name string, confi
 		}
 	}
 
-	if err := serve(ctx, server, signals, sd.Shutdown); err != nil { //nolint:staticcheck // Ignore SA4023 as some platforms always return error
+	if err := serve(ctx, server, signals, sd.Shutdown); err != nil {
 		if err != shutdown.ErrShutdown {
 			return err
 		}
@@ -477,13 +481,12 @@ func serve(ctx context.Context, server *ttrpc.Server, signals chan os.Signal, sh
 	}
 
 	l, err := serveListener(socketFlag)
-	if err != nil { //nolint:staticcheck // Ignore SA4023 as some platforms always return error
+	if err != nil {
 		return err
 	}
 	go func() {
 		defer l.Close()
-		if err := server.Serve(ctx, l); err != nil &&
-			!strings.Contains(err.Error(), "use of closed network connection") {
+		if err := server.Serve(ctx, l); err != nil && !errors.Is(err, net.ErrClosed) {
 			log.G(ctx).WithError(err).Fatal("containerd-shim: ttrpc server failure")
 		}
 	}()
