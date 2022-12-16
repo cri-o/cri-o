@@ -12,3 +12,13 @@ systemctl kill -s USR1 crio.service
 ```
 
 CRI-O will catch the signal, and write the routine stacks to `/tmp/crio-goroutine-stacks-$timestamp.log`
+
+### Forcing Go Garbage Collection
+
+You may have a need to manully run Go garbage collection for CRI-O.  To force garbage collection send CRI-O SIGUSR2 using `kill` or `systemctl` (if running CRI-O as a systemd unit):
+
+```bash
+kill -s SIGUSR2 $crio-pid
+
+systemctl kill -s USR2 crio.service
+```
