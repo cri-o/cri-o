@@ -219,7 +219,7 @@ func ReadBazelVersion(workDir string) (string, error) {
 		// The check for version in bazel-genfiles can be removed once everyone is
 		// off of versions before 0.25.0.
 		// https://github.com/bazelbuild/bazel/issues/8651
-		version, err = os.ReadFile(filepath.Join(workDir, "bazel-genfiles", "version"))
+		version, err = os.ReadFile(filepath.Join(workDir, "bazel-genfiles/version"))
 	}
 	return string(version), err
 }

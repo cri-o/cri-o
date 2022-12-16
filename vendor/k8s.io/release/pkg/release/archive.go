@@ -221,7 +221,7 @@ func (a *defaultArchiverImpl) DeleteStalePasswordFiles(releaseBuildDir string) e
 	}
 
 	// Delete the git remote config to avoid it ending in the stage bucket
-	gitConf := filepath.Join(releaseBuildDir, "k8s.io", "kubernetes", ".git", "config")
+	gitConf := filepath.Join(releaseBuildDir, "k8s.io/kubernetes/.git/config")
 	if util.Exists(gitConf) {
 		if err := os.Remove(gitConf); err != nil {
 			return errors.Wrap(err, "deleting git remote config")

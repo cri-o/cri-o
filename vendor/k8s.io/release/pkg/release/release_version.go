@@ -151,7 +151,7 @@ func GenerateReleaseVersion(
 	// session/type Other labels such as alpha, beta, and rc are set as needed
 	// Index ordering is important here as it's how they are processed
 	releaseVersions := &Versions{}
-	if branchFromMaster { // nolint:gocritic // a switch case would not make it better
+	if branchFromMaster {
 		branchMatch := regex.BranchRegex.FindStringSubmatch(branch)
 		if len(branchMatch) < 3 {
 			return nil, errors.Errorf("invalid formatted branch %s", branch)
@@ -198,7 +198,7 @@ func GenerateReleaseVersion(
 		if releaseType == ReleaseTypeOfficial {
 			releaseVersions.official = releaseVersions.prime
 			// Only primary branches get rc releases
-			if regexp.MustCompile(`^release-(\d+)\.(\d+)$`).MatchString(branch) {
+			if regexp.MustCompile(`^release-([0-9]{1,})\.([0-9]{1,})$`).MatchString(branch) {
 				releaseVersions.rc = fmt.Sprintf(
 					"v%d.%d.%d-rc.0", v.Major, v.Minor, v.Patch+1,
 				)

@@ -92,10 +92,8 @@ func (imagesList *ManifestList) Write(filePath string) error {
 // ToYAML serializes an image list into an YAML file.
 // We serialize the data by hand to emulate the way it's done by the image promoter
 func (imagesList *ManifestList) ToYAML() ([]byte, error) {
-	// Images are sorted by:
-	//	  1. Name 2. Tag
-	// If there are multiple tags for a single image digest, the smallest tag is used in the sort.''
-	// Image tags are sorted lexicographically as they are not guaranteed to be Semver compliant. See https://github.com/opencontainers/distribution-spec/issues/154 fpr more details.
+	// The image promoter code sorts images by:
+	//	  1. Name 2. Digest SHA (asc)  3. Tag
 
 	// First, sort by name (sort #1)
 	sort.Slice(*imagesList, func(i, j int) bool {
@@ -109,9 +107,15 @@ func (imagesList *ManifestList) ToYAML() ([]byte, error) {
 		yamlCode += fmt.Sprintf("- name: %s\n", imgData.Name)
 		yamlCode += "  dmap:\n"
 
-		sortedDigests := sortImageDigestMapByTag(imgData.DMap)
+		// Now, lets sort by the digest sha (sort #2)
+		keys := make([]string, 0, len(imgData.DMap))
+		for k := range imgData.DMap {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
 
-		for _, digestSHA := range sortedDigests {
+		for _, digestSHA := range keys {
+			// Finally, sort bt tag (sort #3)
 			tags := imgData.DMap[digestSHA]
 			sort.Strings(tags)
 			yamlCode += fmt.Sprintf("    %q: [", digestSHA)
@@ -126,32 +130,4 @@ func (imagesList *ManifestList) ToYAML() ([]byte, error) {
 	}
 
 	return []byte(yamlCode), nil
-}
-
-func sortImageDigestMapByTag(imageDMap map[string][]string) []string {
-	var sortedDigests []string
-	// we need to sort the map by value (tags)
-	tags := make([]string, 0, len(imageDMap))
-	valuesToKeys := make(map[string][]string)
-	for k, v := range imageDMap {
-		// find the smallest tag for each image digest
-		sort.Strings(v)
-		first := v[0]
-		// and add it to the list of tags
-		if _, ok := valuesToKeys[first]; !ok {
-			tags = append(tags, first)
-		}
-		valuesToKeys[first] = append(valuesToKeys[first], k)
-	}
-	// Then, sort the tags lexicographically
-	sort.Strings(tags)
-
-	for _, v := range tags {
-		// for each version, add the corresponding digest SHA to the list of sorted digests.
-		digests := valuesToKeys[v]
-		sort.Strings(digests) // in the unlikely case that there are multiple tags for the same digest, we sort them to make sure this function is deterministic
-		sortedDigests = append(sortedDigests, digests...)
-	}
-
-	return sortedDigests
 }

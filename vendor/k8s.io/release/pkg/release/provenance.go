@@ -143,8 +143,7 @@ func (di *defaultProvenanceCheckerImpl) downloadStagedArtifacts(
 
 // processAttestation
 func (di *defaultProvenanceCheckerImpl) processAttestation(
-	opts *ProvenanceCheckerOptions, buildVersion string,
-) (s *provenance.Statement, err error) {
+	opts *ProvenanceCheckerOptions, buildVersion string) (s *provenance.Statement, err error) {
 	// Load the downloaded statement
 	s, err = provenance.LoadStatement(filepath.Join(opts.StageDirectory, buildVersion, ProvenanceFilename))
 	if err != nil {
@@ -169,14 +168,12 @@ func (di *defaultProvenanceCheckerImpl) processAttestation(
 }
 
 func (di *defaultProvenanceCheckerImpl) checkProvenance(
-	opts *ProvenanceCheckerOptions, s *provenance.Statement,
-) error {
+	opts *ProvenanceCheckerOptions, s *provenance.Statement) error {
 	return errors.Wrap(s.VerifySubjects(opts.StageDirectory), "checking subjects in attestation")
 }
 
 func (di *defaultProvenanceCheckerImpl) generateFinalAttestation(
-	opts *ProvenanceCheckerOptions, sbom, stageProvenance, version string,
-) error {
+	opts *ProvenanceCheckerOptions, sbom, stageProvenance, version string) error {
 	doc, err := spdx.OpenDoc(sbom)
 	if err != nil {
 		return errors.Wrapf(err, "parsing sbom for version %s from %s", version, sbom)
@@ -243,8 +240,7 @@ func (pr *ProvenanceReader) GetStagingSubjects(path string) ([]intoto.Subject, e
 type defaultProvenanceReaderImpl struct{}
 
 func (di *defaultProvenanceReaderImpl) GetStagingSubjects(
-	opts *ProvenanceReaderOptions, path string,
-) ([]intoto.Subject, error) {
+	opts *ProvenanceReaderOptions, path string) ([]intoto.Subject, error) {
 	// Create the dummy statement to read artifacts
 	dummy := provenance.NewSLSAStatement()
 
@@ -279,8 +275,7 @@ func (di *defaultProvenanceReaderImpl) GetStagingSubjects(
 }
 
 func (di *defaultProvenanceReaderImpl) GetBuildSubjects(
-	opts *ProvenanceReaderOptions, path, version string,
-) ([]intoto.Subject, error) {
+	opts *ProvenanceReaderOptions, path, version string) ([]intoto.Subject, error) {
 	// The path in the bucket were built artifacts will be staged
 	gcsPath := filepath.Join(opts.Bucket, StagePath, opts.BuildVersion)
 

@@ -4,10 +4,10 @@ This directory contains a tool called `release-notes` and a set of library utili
 
 ## Install
 
-The simplest way to install the `release-notes` CLI is via `go install`:
+The simplest way to install the `release-notes` CLI is via `go get`:
 
 ```
-$ go install k8s.io/release/cmd/release-notes@latest
+GO111MODULE=on go get k8s.io/release/cmd/release-notes
 ```
 
 This will install `release-notes` to `$(go env GOPATH)/bin/release-notes`.

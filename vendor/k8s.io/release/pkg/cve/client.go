@@ -17,9 +17,10 @@ limitations under the License.
 package cve
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 
 	"k8s.io/release/pkg/release"
 	"sigs.k8s.io/release-sdk/object"
@@ -63,12 +64,12 @@ func NewClient() *Client {
 // Write writes a map to the bucket
 func (c *Client) Write(cve, mapPath string) error {
 	if err := c.impl.CheckID(cve); err != nil {
-		return fmt.Errorf("checking CVE identifier: %w", err)
+		return errors.Wrap(err, "checking CVE identifier")
 	}
 
 	// Validate the information in the data maps
 	if err := c.impl.ValidateCVEMap(cve, mapPath, &c.options); err != nil {
-		return fmt.Errorf("validating CVE data in map file: %w", err)
+		return errors.Wrap(err, "validating CVE data in map file")
 	}
 
 	destPath := object.GcsPrefix + filepath.Join(
@@ -79,7 +80,7 @@ func (c *Client) Write(cve, mapPath string) error {
 	if err := c.impl.CopyFile(
 		mapPath, destPath, &c.options,
 	); err != nil {
-		return fmt.Errorf("writing %s map file to CVE bucket: %w", cve, err)
+		return errors.Wrapf(err, "writing %s map file to CVE bucket", cve)
 	}
 
 	return nil
@@ -93,7 +94,7 @@ func (c *Client) CheckID(cve string) error {
 // Delete removes a CVE entry from the security bucket location
 func (c *Client) Delete(cve string) error {
 	if err := c.impl.CheckID(cve); err != nil {
-		return fmt.Errorf("checking CVE identifier: %w", err)
+		return errors.Wrap(err, "checking CVE identifier")
 	}
 
 	return c.impl.DeleteFile(

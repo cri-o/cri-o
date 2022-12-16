@@ -27,22 +27,17 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"sigs.k8s.io/release-sdk/sign"
 	"sigs.k8s.io/release-utils/command"
 )
 
 // Images is a wrapper around container image related functionality.
 type Images struct {
 	imageImpl
-	signer *sign.Signer
 }
 
 // NewImages creates a new Images instance
 func NewImages() *Images {
-	return &Images{
-		imageImpl: &defaultImageImpl{},
-		signer:    sign.New(sign.Default()),
-	}
+	return &Images{&defaultImageImpl{}}
 }
 
 // SetImpl can be used to set the internal image implementation.
@@ -56,8 +51,6 @@ type imageImpl interface {
 	Execute(cmd string, args ...string) error
 	ExecuteOutput(cmd string, args ...string) (string, error)
 	RepoTagFromTarball(path string) (string, error)
-	SignImage(*sign.Signer, string) error
-	VerifyImage(*sign.Signer, string) error
 }
 
 type defaultImageImpl struct{}
@@ -83,16 +76,6 @@ func (*defaultImageImpl) RepoTagFromTarball(path string) (string, error) {
 		return "", err
 	}
 	return tagOutput.OutputTrimNL(), nil
-}
-
-func (*defaultImageImpl) SignImage(signer *sign.Signer, reference string) error {
-	_, err := signer.SignImage(reference)
-	return err
-}
-
-func (*defaultImageImpl) VerifyImage(signer *sign.Signer, reference string) error {
-	_, err := signer.VerifyImage(reference)
-	return err
 }
 
 var tagRegex = regexp.MustCompile(`^.+/(.+):.+$`)
@@ -128,10 +111,6 @@ func (i *Images) Publish(registry, version, buildPath string) error {
 				"gcloud", "docker", "--", "push", newTagWithArch,
 			); err != nil {
 				return errors.Wrap(err, "push container image")
-			}
-
-			if err := i.SignImage(i.signer, newTagWithArch); err != nil {
-				return errors.Wrap(err, "sign container image")
 			}
 
 			if err := i.Execute(
@@ -187,10 +166,6 @@ func (i *Images) Publish(registry, version, buildPath string) error {
 		); err != nil {
 			return errors.Wrap(err, "push manifest")
 		}
-
-		if err := i.SignImage(i.signer, imageVersion); err != nil {
-			return errors.Wrap(err, "sign manifest list")
-		}
 	}
 
 	return nil
@@ -203,14 +178,7 @@ func (i *Images) Validate(registry, version, buildPath string) error {
 	version = i.normalizeVersion(version)
 
 	manifestImages, err := i.GetManifestImages(
-		registry, version, buildPath,
-		func(_, _, image string) error {
-			logrus.Infof("Verifying that image is signed: %s", image)
-			return errors.Wrap(
-				i.VerifyImage(i.signer, image),
-				"verify signed image",
-			)
-		},
+		registry, version, buildPath, nil,
 	)
 	if err != nil {
 		return errors.Wrap(err, "get manifest images")
@@ -227,11 +195,6 @@ func (i *Images) Validate(registry, version, buildPath string) error {
 			)
 		}
 
-		logrus.Info("Verifying that image manifest list is signed")
-		if err := i.VerifyImage(i.signer, imageVersion); err != nil {
-			return errors.Wrap(err, "verify signed manifest list")
-		}
-
 		manifest := string(manifestBytes)
 		manifestFile, err := os.CreateTemp("", "manifest-")
 		if err != nil {
@@ -242,6 +205,7 @@ func (i *Images) Validate(registry, version, buildPath string) error {
 				err, "write manifest to %s", manifestFile.Name(),
 			)
 		}
+		defer os.RemoveAll(manifestFile.Name())
 
 		for _, arch := range arches {
 			logrus.Infof(
@@ -268,10 +232,6 @@ func (i *Images) Validate(registry, version, buildPath string) error {
 			}
 
 			logrus.Infof("Digest for %s on %s: %s", imageVersion, arch, digest)
-		}
-
-		if err := os.RemoveAll(manifestFile.Name()); err != nil {
-			return errors.Wrap(err, "remove manifest file")
 		}
 	}
 
@@ -313,6 +273,7 @@ func (i *Images) Exists(registry, version string, fast bool) (bool, error) {
 				err, "write manifest to %s", manifestFile.Name(),
 			)
 		}
+		defer os.RemoveAll(manifestFile.Name())
 
 		for _, arch := range arches {
 			logrus.Infof(
@@ -339,10 +300,6 @@ func (i *Images) Exists(registry, version string, fast bool) (bool, error) {
 			}
 
 			logrus.Infof("Digest for %s on %s: %s", imageVersion, arch, digest)
-		}
-
-		if err := os.RemoveAll(manifestFile.Name()); err != nil {
-			return false, errors.Wrap(err, "remove manifest file")
 		}
 	}
 

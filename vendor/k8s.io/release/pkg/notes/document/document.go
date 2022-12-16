@@ -28,8 +28,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"sigs.k8s.io/promo-tools/v3/image"
 	"sigs.k8s.io/release-utils/hash"
 
@@ -123,40 +121,14 @@ func fetchImageMetadata(dir, tag string) (*ImageMetadata, error) {
 	}
 
 	res := ImageMetadata{}
-
-	// Link the images to their corresponding Google Cloud container registry
-	// location.
-	const linkBase = "https://console.cloud.google.com/gcr/images/k8s-artifacts-prod/us/"
-
-	for manifest, tempArchitectures := range manifests {
-		imageName := strings.TrimPrefix(manifest, image.ProdRegistry+"/")
-
-		architectures := []string{}
-		for _, architecture := range tempArchitectures {
-			architectures = append(
-				architectures,
-				markdownLink(architecture, linkBase+imageName+"-"+architecture),
-			)
-		}
-
+	for manifest, architectures := range manifests {
 		res = append(res, Image{
-			Name: markdownLink(
-				fmt.Sprintf("%s:%s", manifest, tag),
-				linkBase+imageName,
-			),
+			Name:          fmt.Sprintf("%s:%s", manifest, tag),
 			Architectures: architectures,
 		})
 	}
 
-	sort.SliceStable(res, func(i, j int) bool {
-		return res[i].Name < res[j].Name
-	})
-
 	return &res, nil
-}
-
-func markdownLink(text, link string) string {
-	return fmt.Sprintf("[%s](%s)", text, link)
 }
 
 // fileInfo fetches file metadata for files in `dir` matching `patterns`
@@ -311,7 +283,7 @@ func New(
 		}
 
 		// TODO: Refactor the logic here and add testing.
-		if note.DuplicateKind { // nolint:gocritic // a switch case would not make it better
+		if note.DuplicateKind {
 			kind := mapKind(highestPriorityKind(note.Kinds))
 			if existing, ok := kindCategory[kind]; ok {
 				*existing.NoteEntries = append(*existing.NoteEntries, processNote(note.Markdown))
@@ -458,8 +430,7 @@ func CreateDownloadsTable(w io.Writer, bucket, tars, images, prevTag, newTag str
 	}
 
 	fmt.Fprintf(w, "# %s\n\n", newTag)
-	fmt.Fprint(w, markdownLink("Documentation", "https://docs.k8s.io"))
-	fmt.Fprintf(w, "\n\n")
+	fmt.Fprintf(w, "[Documentation](https://docs.k8s.io)\n\n")
 
 	fmt.Fprintf(w, "## Downloads for %s\n\n", newTag)
 
@@ -483,8 +454,7 @@ func CreateDownloadsTable(w io.Writer, bucket, tars, images, prevTag, newTag str
 			fmt.Fprintln(w, "-------- | -----------")
 
 			for _, f := range files[header] {
-				fmt.Fprint(w, markdownLink(f.Name, f.URL))
-				fmt.Fprintf(w, " | `%s`\n", f.Checksum)
+				fmt.Fprintf(w, "[%s](%s) | `%s`\n", f.Name, f.URL, f.Checksum)
 			}
 			fmt.Fprintln(w, "")
 		}
@@ -531,20 +501,14 @@ func mapKind(kind notes.Kind) notes.Kind {
 }
 
 func prettyKind(kind notes.Kind) string {
-	switch kind {
-	case notes.KindAPIChange:
+	if kind == notes.KindAPIChange {
 		return "API Change"
-
-	case notes.KindFailingTest:
+	} else if kind == notes.KindFailingTest {
 		return "Failing Test"
-
-	case notes.KindBug:
+	} else if kind == notes.KindBug {
 		return "Bug or Regression"
-
-	case notes.KindOther:
+	} else if kind == notes.KindOther {
 		return string(notes.KindOther)
-
-	default:
-		return cases.Title(language.English).String(string(kind))
 	}
+	return strings.Title(string(kind))
 }

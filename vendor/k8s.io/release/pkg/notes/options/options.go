@@ -290,20 +290,15 @@ func (o *Options) resolveDiscoverMode() error {
 	}
 
 	var result git.DiscoverResult
-	switch o.DiscoverMode {
-	case RevisionDiscoveryModeMergeBaseToLatest:
+	if o.DiscoverMode == RevisionDiscoveryModeMergeBaseToLatest {
 		result, err = repo.LatestReleaseBranchMergeBaseToLatest()
-
-	case RevisionDiscoveryModePatchToPatch:
+	} else if o.DiscoverMode == RevisionDiscoveryModePatchToPatch {
 		result, err = repo.LatestPatchToPatch(o.Branch)
-
-	case RevisionDiscoveryModePatchToLatest:
+	} else if o.DiscoverMode == RevisionDiscoveryModePatchToLatest {
 		result, err = repo.LatestPatchToLatest(o.Branch)
-
-	case RevisionDiscoveryModeMinorToMinor:
+	} else if o.DiscoverMode == RevisionDiscoveryModeMinorToMinor {
 		result, err = repo.LatestNonPatchFinalToMinor()
 	}
-
 	if err != nil {
 		return err
 	}

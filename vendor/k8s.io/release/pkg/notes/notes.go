@@ -33,12 +33,10 @@ import (
 	"time"
 	"unicode"
 
-	gogithub "github.com/google/go-github/v45/github"
+	gogithub "github.com/google/go-github/v39/github"
 	"github.com/nozzle/throttler"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"gopkg.in/yaml.v2"
 
 	"k8s.io/release/pkg/notes/options"
@@ -366,10 +364,10 @@ func noteTextFromString(s string) (string, error) {
 	exps := []*regexp.Regexp{
 		// (?s) is needed for '.' to be matching on newlines, by default that's disabled
 		// we need to match ungreedy 'U', because after the notes a `docs` block can occur
-		regexp.MustCompile("(?sU)```release-notes?\\r\\n(?P<note>.+)\\r\\n```"),
-		regexp.MustCompile("(?sU)```dev-release-notes?\\r\\n(?P<note>.+)"),
+		regexp.MustCompile("(?sU)```release-note[s]?\\r\\n(?P<note>.+)\\r\\n```"),
+		regexp.MustCompile("(?sU)```dev-release-note[s]?\\r\\n(?P<note>.+)"),
 		regexp.MustCompile("(?sU)```\\r\\n(?P<note>.+)\\r\\n```"),
-		regexp.MustCompile("(?sU)```release-notes?\n(?P<note>.+)\n```"),
+		regexp.MustCompile("(?sU)```release-note[s]?\n(?P<note>.+)\n```"),
 	}
 
 	for _, exp := range exps {
@@ -396,7 +394,7 @@ func noteTextFromString(s string) (string, error) {
 }
 
 func DocumentationFromString(s string) []*Documentation {
-	regex := regexp.MustCompile("(?s)```docs\\r?\\n(?P<text>.+)\\r?\\n```")
+	regex := regexp.MustCompile("(?s)```docs[\\r]?\\n(?P<text>.+)[\\r]?\\n```")
 	match := regex.FindStringSubmatch(s)
 
 	if len(match) < 1 {
@@ -619,7 +617,7 @@ var noteExclusionFilters = []*regexp.Regexp{
 	// 'none','n/a','na' case insensitive with optional trailing
 	// whitespace, wrapped in ``` with/without release-note identifier
 	// the 'none','n/a','na' can also optionally be wrapped in quotes ' or "
-	regexp.MustCompile("(?i)```release-notes?\\s*('\")?(none|n/a|na)?('\")?\\s*```"),
+	regexp.MustCompile("(?i)```release-note[s]?\\s*('|\")?(none|n/a|na)?('|\")?\\s*```"),
 
 	// simple '/release-note-none' tag
 	regexp.MustCompile("/release-note-none"),
@@ -1034,7 +1032,7 @@ func prettySIG(sig string) string {
 		case "api", "aws", "cli", "gcp":
 			parts[i] = strings.ToUpper(part)
 		default:
-			parts[i] = cases.Title(language.English).String(part)
+			parts[i] = strings.Title(part)
 		}
 	}
 	return strings.Join(parts, " ")
@@ -1048,14 +1046,11 @@ func prettifySIGList(sigs []string) string {
 	sort.Strings(sigs)
 
 	for i, sig := range sigs {
-		switch i {
-		case 0:
+		if i == 0 {
 			sigList = fmt.Sprintf("SIG %s", prettySIG(sig))
-
-		case len(sigs) - 1:
+		} else if i == len(sigs)-1 {
 			sigList = fmt.Sprintf("%s and %s", sigList, prettySIG(sig))
-
-		default:
+		} else {
 			sigList = fmt.Sprintf("%s, %s", sigList, prettySIG(sig))
 		}
 	}

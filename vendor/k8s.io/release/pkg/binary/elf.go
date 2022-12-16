@@ -141,14 +141,11 @@ func GetELFHeader(path string) (*ELFHeader, error) {
 
 	// Check if binary byte order is big or little endian
 	var endianness binary.ByteOrder
-	switch hBytes[5] {
-	case 1:
-		endianness = binary.LittleEndian
-
-	case 2:
+	if hBytes[5] == 2 {
 		endianness = binary.BigEndian
-
-	default:
+	} else if hBytes[5] == 1 {
+		endianness = binary.LittleEndian
+	} else {
 		return nil, errors.Wrap(err, "invalid endianness specified in elf binary")
 	}
 
