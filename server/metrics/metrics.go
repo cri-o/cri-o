@@ -314,9 +314,9 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			prometheus.CounterOpts{
 				Subsystem: collectors.Subsystem,
 				Name:      collectors.ContainersSeccompNotifierCountTotal.String(),
-				Help:      "Amount of containers stopped because they used a forbidden syscalls by their name",
+				Help:      "Number of forbidden syscalls by syscall and container name",
 			},
-			[]string{"name", "syscalls"},
+			[]string{"name", "syscall"},
 		),
 	}
 	return Instance()
@@ -448,8 +448,8 @@ func (m *Metrics) MetricContainersOOMTotalInc() {
 	m.metricContainersOOMTotal.Inc()
 }
 
-func (m *Metrics) MetricContainersSeccompNotifierCountTotalInc(name, syscalls string) {
-	c, err := m.metricContainersSeccompNotifierCountTotal.GetMetricWithLabelValues(name, syscalls)
+func (m *Metrics) MetricContainersSeccompNotifierCountTotalInc(name, syscall string) {
+	c, err := m.metricContainersSeccompNotifierCountTotal.GetMetricWithLabelValues(name, syscall)
 	if err != nil {
 		logrus.Warnf("Unable to write container seccomp notifier metric: %v", err)
 		return

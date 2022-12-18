@@ -782,7 +782,7 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 				})
 			}
 
-			metrics.Instance().MetricContainersSeccompNotifierCountTotalInc(ctr.Name(), usedSyscalls)
+			metrics.Instance().MetricContainersSeccompNotifierCountTotalInc(ctr.Name(), syscall)
 		}
 	}()
 
