@@ -1051,7 +1051,7 @@ func (r *runtimeVM) CheckpointContainer(ctx context.Context, c *Container, specg
 }
 
 // RestoreContainer not implemented for runtimeVM
-func (r *runtimeVM) RestoreContainer(ctx context.Context, c *Container, sbSpec *rspec.Spec, infraPid int, cgroupParent string) error {
+func (r *runtimeVM) RestoreContainer(ctx context.Context, c *Container, cgroupParent, mountLabel string) error {
 	log.Debugf(ctx, "RuntimeVM.RestoreContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.RestoreContainer() end")
 

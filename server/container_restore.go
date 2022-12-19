@@ -57,11 +57,14 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (b
 // taken from Podman
 func (s *Server) CRImportCheckpoint(
 	ctx context.Context,
-	input, sbID, sandboxUID string,
-	createMounts []*types.Mount,
-	createAnnotations map[string]string,
+	createConfig *types.ContainerConfig,
+	sbID, sandboxUID string,
 ) (ctrID string, retErr error) {
 	var mountPoint string
+
+	input := createConfig.Image.Image
+	createMounts := createConfig.Mounts
+	createAnnotations := createConfig.Annotations
 
 	checkpointIsOCIImage, err := s.checkIfCheckpointOCIImage(ctx, input)
 	if err != nil {
@@ -219,6 +222,13 @@ func (s *Server) CRImportCheckpoint(
 		},
 		Annotations: originalAnnotations,
 		Labels:      originalLabels,
+	}
+
+	if createConfig.Linux.Resources != nil {
+		containerConfig.Linux.Resources = createConfig.Linux.Resources
+	}
+	if createConfig.Linux.SecurityContext != nil {
+		containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
 	}
 
 	ignoreMounts := map[string]bool{

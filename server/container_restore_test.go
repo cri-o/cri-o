@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 var _ = t.Describe("ContainerRestore", func() {
@@ -53,14 +54,19 @@ var _ = t.Describe("ContainerRestore", func() {
 						User: "10", Size: &size,
 					}, nil),
 			)
+
+			containerConfig := &types.ContainerConfig{
+				Image: &types.ImageSpec{
+					Image: "does-not-exist.tar",
+				},
+			}
+
 			// When
 			_, err := sut.CRImportCheckpoint(
 				context.Background(),
-				"does-not-exist.tar",
+				containerConfig,
 				"",
 				"",
-				nil,
-				nil,
 			)
 
 			// Then
@@ -74,14 +80,17 @@ var _ = t.Describe("ContainerRestore", func() {
 			Expect(err).To(BeNil())
 			archive.Close()
 			defer os.RemoveAll("empty.tar")
+			containerConfig := &types.ContainerConfig{
+				Image: &types.ImageSpec{
+					Image: "empty.tar",
+				},
+			}
 			// When
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
-				"empty.tar",
+				containerConfig,
 				"",
 				"",
-				nil,
-				nil,
 			)
 			// Then
 			Expect(err.Error()).To(ContainSubstring(`failed to read "spec.dump": failed to read`))
@@ -93,14 +102,17 @@ var _ = t.Describe("ContainerRestore", func() {
 			err := os.WriteFile("no.tar", []byte("notar"), 0o644)
 			Expect(err).To(BeNil())
 			defer os.RemoveAll("no.tar")
+			containerConfig := &types.ContainerConfig{
+				Image: &types.ImageSpec{
+					Image: "no.tar",
+				},
+			}
 			// When
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
-				"no.tar",
+				containerConfig,
 				"",
 				"",
-				nil,
-				nil,
 			)
 			// Then
 			Expect(err.Error()).To(ContainSubstring(`unpacking of checkpoint archive`))
@@ -124,14 +136,17 @@ var _ = t.Describe("ContainerRestore", func() {
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
+			containerConfig := &types.ContainerConfig{
+				Image: &types.ImageSpec{
+					Image: "archive.tar",
+				},
+			}
 			// When
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
-				"archive.tar",
+				containerConfig,
 				"",
 				"",
-				nil,
-				nil,
 			)
 			// Then
 			Expect(err.Error()).To(ContainSubstring(`failed to read "spec.dump": failed to unmarshal `))
@@ -158,14 +173,17 @@ var _ = t.Describe("ContainerRestore", func() {
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
+			containerConfig := &types.ContainerConfig{
+				Image: &types.ImageSpec{
+					Image: "archive.tar",
+				},
+			}
 			// When
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
-				"archive.tar",
+				containerConfig,
 				"",
 				"",
-				nil,
-				nil,
 			)
 
 			// Then
@@ -193,15 +211,18 @@ var _ = t.Describe("ContainerRestore", func() {
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
+			containerConfig := &types.ContainerConfig{
+				Image: &types.ImageSpec{
+					Image: "archive.tar",
+				},
+			}
 			// When
 
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
-				"archive.tar",
+				containerConfig,
 				"",
 				"",
-				nil,
-				nil,
 			)
 
 			// Then
@@ -235,15 +256,18 @@ var _ = t.Describe("ContainerRestore", func() {
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
+			containerConfig := &types.ContainerConfig{
+				Image: &types.ImageSpec{
+					Image: "archive.tar",
+				},
+			}
 			// When
 
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
-				"archive.tar",
+				containerConfig,
 				"",
 				"",
-				nil,
-				nil,
 			)
 
 			// Then
@@ -280,15 +304,18 @@ var _ = t.Describe("ContainerRestore", func() {
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
+			containerConfig := &types.ContainerConfig{
+				Image: &types.ImageSpec{
+					Image: "archive.tar",
+				},
+			}
 			// When
 
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
-				"archive.tar",
+				containerConfig,
 				"",
 				"",
-				nil,
-				nil,
 			)
 
 			// Then
@@ -332,14 +359,17 @@ var _ = t.Describe("ContainerRestore", func() {
 				storeMock.EXPECT().UnmountImage(gomock.Any(), true).
 					Return(false, nil),
 			)
+			containerConfig := &types.ContainerConfig{
+				Image: &types.ImageSpec{
+					Image: "localhost/checkpoint-image:tag1",
+				},
+			}
 			// When
 			_, err := sut.CRImportCheckpoint(
 				context.Background(),
-				"localhost/checkpoint-image:tag1",
+				containerConfig,
 				"",
 				"",
-				nil,
-				nil,
 			)
 
 			// Then

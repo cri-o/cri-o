@@ -76,7 +76,7 @@ type RuntimeImpl interface {
 		int32, io.ReadWriteCloser) error
 	ReopenContainerLog(context.Context, *Container) error
 	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
-	RestoreContainer(context.Context, *Container, *rspec.Spec, int, string) error
+	RestoreContainer(context.Context, *Container, string, string) error
 }
 
 // New creates a new Runtime with options provided
@@ -428,11 +428,11 @@ func (r *Runtime) CheckpointContainer(ctx context.Context, c *Container, specgen
 }
 
 // RestoreContainer restores a container.
-func (r *Runtime) RestoreContainer(ctx context.Context, c *Container, sbSpec *rspec.Spec, infraPid int, cgroupParent string) error {
+func (r *Runtime) RestoreContainer(ctx context.Context, c *Container, cgroupParent, mountLabel string) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.RestoreContainer(ctx, c, sbSpec, infraPid, cgroupParent)
+	return impl.RestoreContainer(ctx, c, cgroupParent, mountLabel)
 }

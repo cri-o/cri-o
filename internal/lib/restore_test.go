@@ -87,7 +87,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(res).To(Equal(""))
-			Expect(err.Error()).To(Equal(`infra container of sandbox  not found`))
+			Expect(err.Error()).To(Equal(`failed to restore container containerID: a complete checkpoint for this container cannot be found, cannot restore: stat checkpoint/inventory.img: no such file or directory`))
 		})
 	})
 	t.Describe("ContainerRestore", func() {
