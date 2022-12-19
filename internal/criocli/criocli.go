@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/metrics/collectors"
+	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )

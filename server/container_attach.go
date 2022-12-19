@@ -6,6 +6,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	otel_collector "github.com/cri-o/cri-o/server/otel-collector"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,7 +26,8 @@ func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.A
 
 // Attach endpoint for streaming.Runtime
 func (s StreamService) Attach(containerID string, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	ctx, span := log.StartSpan(context.TODO())
+	ctx := otel_collector.AddRequestNameAndID(context.Background(), "Attach")
+	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	c, err := s.runtimeServer.GetContainerFromShortID(ctx, containerID)
 	if err != nil {

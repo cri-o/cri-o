@@ -32,7 +32,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/server/metrics/collectors"
+	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/cmdrunner"

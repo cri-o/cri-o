@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/log"
+	otel_collector "github.com/cri-o/cri-o/server/otel-collector"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -21,7 +22,9 @@ func (s *Server) PortForward(ctx context.Context, req *types.PortForwardRequest)
 }
 
 func (s StreamService) PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error {
-	ctx := log.AddRequestNameAndID(context.Background(), "PortForward")
+	ctx := otel_collector.AddRequestNameAndID(context.Background(), "PortForward")
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
 
 	// if we error in this function before Copying all of the content out of the stream,
 	// this stream will eventually get full, which causes leakages and can eventually brick CRI-O

@@ -24,7 +24,7 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
 	v1 "github.com/cri-o/cri-o/server/cri/v1"
-	"github.com/cri-o/cri-o/server/metrics"
+	otel_collector "github.com/cri-o/cri-o/server/otel-collector"
 	"github.com/cri-o/cri-o/utils"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/sirupsen/logrus"
@@ -277,8 +277,8 @@ func main() {
 		}
 
 		var tracerProvider *sdktrace.TracerProvider
-		chainUnaryServer := grpc_middleware.ChainUnaryServer(metrics.UnaryInterceptor(), log.UnaryInterceptor())
-		chainStreamServer := grpc_middleware.ChainStreamServer(log.StreamInterceptor())
+		chainUnaryServer := grpc_middleware.ChainUnaryServer(otel_collector.UnaryInterceptor())
+		chainStreamServer := grpc_middleware.ChainStreamServer(otel_collector.StreamInterceptor())
 		if config.EnableTracing {
 			var opts []otelgrpc.Option
 			tracerProvider, opts, err = opentelemetry.InitTracing(
@@ -290,11 +290,10 @@ func main() {
 				logrus.Fatalf("Failed to initialize tracer provider: %v", err)
 			}
 			chainUnaryServer = grpc_middleware.ChainUnaryServer(
-				metrics.UnaryInterceptor(),
-				log.UnaryInterceptor(),
+				otel_collector.UnaryInterceptor(),
 				otelgrpc.UnaryServerInterceptor(opts...),
 			)
-			chainStreamServer = grpc_middleware.ChainStreamServer(log.StreamInterceptor(), otelgrpc.StreamServerInterceptor(opts...))
+			chainStreamServer = grpc_middleware.ChainStreamServer(otel_collector.StreamInterceptor(), otelgrpc.StreamServerInterceptor(opts...))
 		}
 		grpcServer := grpc.NewServer(
 			grpc.UnaryInterceptor(chainUnaryServer),
