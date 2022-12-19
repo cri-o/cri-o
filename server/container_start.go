@@ -15,13 +15,13 @@ import (
 )
 
 // StartContainer starts the container.
-func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRequest) (retErr error) {
+func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRequest) (res *types.StartContainerResponse, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	log.Infof(ctx, "Starting container: %s", req.ContainerId)
 	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
-		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
 	if c.Restore() {
@@ -43,7 +43,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		if err != nil {
 			ociContainer, err1 := s.GetContainerFromShortID(ctx, c.ID())
 			if err1 != nil {
-				return fmt.Errorf("failed to find container %s: %v", c.ID(), err1)
+				return nil, fmt.Errorf("failed to find container %s: %v", c.ID(), err1)
 			}
 			s.ReleaseContainerName(ctx, ociContainer.Name())
 			err2 := s.StorageRuntimeServer().DeleteContainer(ctx, c.ID())
@@ -51,22 +51,22 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
 			s.removeContainer(ctx, ociContainer)
-			return err
+			return nil, err
 		}
 
 		log.Infof(ctx, "Restored container: %s", ctr)
-		return nil
+		return &types.StartContainerResponse{}, nil
 	}
 
 	state := c.State()
 	if state.Status != oci.ContainerStateCreated {
-		return fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
+		return nil, fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
 	}
 
 	sandbox := s.getSandbox(ctx, c.Sandbox())
 	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), sandbox.Annotations())
 	if err != nil {
-		return fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
+		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
 	}
 
 	defer func() {
@@ -89,12 +89,12 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 
 	if hooks != nil {
 		if err := hooks.PreStart(ctx, c, sandbox); err != nil {
-			return fmt.Errorf("failed to run pre-start hook for container %q: %w", c.ID(), err)
+			return nil, fmt.Errorf("failed to run pre-start hook for container %q: %w", c.ID(), err)
 		}
 	}
 
 	if err := s.Runtime().StartContainer(ctx, c); err != nil {
-		return fmt.Errorf("failed to start container %s: %w", c.ID(), err)
+		return nil, fmt.Errorf("failed to start container %s: %w", c.ID(), err)
 	}
 
 	log.WithFields(ctx, map[string]interface{}{
@@ -103,5 +103,6 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		"sandboxID":   sandbox.ID(),
 		"PID":         state.Pid,
 	}).Infof("Started container")
-	return nil
+
+	return &types.StartContainerResponse{}, nil
 }

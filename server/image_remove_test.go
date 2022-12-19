@@ -30,7 +30,7 @@ var _ = t.Describe("ImageRemove", func() {
 					gomock.Any()).Return(nil),
 			)
 			// When
-			err := sut.RemoveImage(context.Background(),
+			_, err := sut.RemoveImage(context.Background(),
 				&types.RemoveImageRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
@@ -47,7 +47,7 @@ var _ = t.Describe("ImageRemove", func() {
 					gomock.Any()).Return(nil),
 			)
 			// When
-			err := sut.RemoveImage(context.Background(),
+			_, err := sut.RemoveImage(context.Background(),
 				&types.RemoveImageRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
@@ -64,7 +64,7 @@ var _ = t.Describe("ImageRemove", func() {
 					gomock.Any()).Return(t.TestError),
 			)
 			// When
-			err := sut.RemoveImage(context.Background(),
+			_, err := sut.RemoveImage(context.Background(),
 				&types.RemoveImageRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
@@ -79,7 +79,7 @@ var _ = t.Describe("ImageRemove", func() {
 					Return(nil, t.TestError),
 			)
 			// When
-			err := sut.RemoveImage(context.Background(),
+			_, err := sut.RemoveImage(context.Background(),
 				&types.RemoveImageRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
@@ -89,7 +89,7 @@ var _ = t.Describe("ImageRemove", func() {
 		It("should fail without specified image", func() {
 			// Given
 			// When
-			err := sut.RemoveImage(context.Background(),
+			_, err := sut.RemoveImage(context.Background(),
 				&types.RemoveImageRequest{Image: &types.ImageSpec{Image: ""}})
 
 			// Then

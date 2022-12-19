@@ -37,7 +37,7 @@ var _ = t.Describe("ContainerRemove", func() {
 			)
 
 			// When
-			err := sut.RemoveContainer(context.Background(),
+			_, err := sut.RemoveContainer(context.Background(),
 				&types.RemoveContainerRequest{
 					ContainerId: testContainer.ID(),
 				})
@@ -49,7 +49,7 @@ var _ = t.Describe("ContainerRemove", func() {
 		It("should fail on container remove error", func() {
 			// Given
 			// When
-			err := sut.RemoveContainer(context.Background(),
+			_, err := sut.RemoveContainer(context.Background(),
 				&types.RemoveContainerRequest{})
 
 			// Then

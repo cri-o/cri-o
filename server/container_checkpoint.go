@@ -18,9 +18,9 @@ import (
 )
 
 // CheckpointContainer checkpoints a container
-func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointContainerRequest) error {
+func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointContainerRequest) (*types.CheckpointContainerResponse, error) {
 	if !s.config.RuntimeConfig.CheckpointRestore() {
-		return fmt.Errorf("checkpoint/restore support not available")
+		return nil, fmt.Errorf("checkpoint/restore support not available")
 	}
 
 	var opts []*lib.ContainerCheckpointRestoreOptions
@@ -32,17 +32,17 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 		// Maybe the user specified a Pod
 		sb, err := s.LookupSandbox(req.ContainerId)
 		if err != nil {
-			return status.Errorf(codes.NotFound, "could not find container or pod %q: %v", req.ContainerId, err)
+			return nil, status.Errorf(codes.NotFound, "could not find container or pod %q: %v", req.ContainerId, err)
 		}
 		if req.Location == "" {
-			return status.Errorf(codes.NotFound, "Pod checkpointing requires a destination file")
+			return nil, status.Errorf(codes.NotFound, "Pod checkpointing requires a destination file")
 		}
 
 		log.Infof(ctx, "Checkpointing pod: %s", req.ContainerId)
 		// Create a temporary directory
 		podCheckpointDirectory, err = os.MkdirTemp("", "checkpoint")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		sandboxConfig := types.PodSandboxConfig{
 			Metadata: &types.PodSandboxMetadata{
@@ -83,7 +83,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 			sandboxConfig.DnsConfig = dnsConfig
 		}
 		if _, err := metadata.WriteJSONFile(sandboxConfig, podCheckpointDirectory, metadata.PodDumpFile); err != nil {
-			return err
+			return nil, err
 		}
 		defer func() {
 			if err := os.RemoveAll(podCheckpointDirectory); err != nil {
@@ -104,7 +104,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 			checkpointedPodOptions.Containers = append(checkpointedPodOptions.Containers, ctr.Name())
 		}
 		if len(opts) == 0 {
-			return status.Errorf(codes.NotFound, "No containers found in Pod %q", req.ContainerId)
+			return nil, status.Errorf(codes.NotFound, "No containers found in Pod %q", req.ContainerId)
 		}
 		checkpointedPodOptions.Version = 1
 		checkpointedPodOptions.MountLabel = sb.MountLabel()
@@ -126,36 +126,36 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 	for _, opt := range opts {
 		_, err = s.ContainerServer.ContainerCheckpoint(ctx, opt)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if podCheckpointDirectory != "" {
 		if podOptions, err := metadata.WriteJSONFile(checkpointedPodOptions, podCheckpointDirectory, metadata.PodOptionsFile); err != nil {
-			return fmt.Errorf("error creating checkpointedContainers list file %q: %w", podOptions, err)
+			return nil, fmt.Errorf("error creating checkpointedContainers list file %q: %w", podOptions, err)
 		}
 		// It is a Pod checkpoint. Create the archive
 		podTar, err := archive.TarWithOptions(podCheckpointDirectory, &archive.TarOptions{
 			IncludeSourceDir: true,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// The resulting tar archive should not readable by everyone as it contains
 		// every memory page of the checkpointed processes.
 		podTarFile, err := os.OpenFile(req.Location, os.O_RDWR|os.O_CREATE, 0o600)
 		if err != nil {
-			return fmt.Errorf("error creating pod checkpoint archive %q: %w", req.Location, err)
+			return nil, fmt.Errorf("error creating pod checkpoint archive %q: %w", req.Location, err)
 		}
 		defer podTarFile.Close()
 		_, err = io.Copy(podTarFile, podTar)
 		if err != nil {
-			return fmt.Errorf("failed writing to pod tar archive %q: %w", req.Location, err)
+			return nil, fmt.Errorf("failed writing to pod tar archive %q: %w", req.Location, err)
 		}
 		log.Infof(ctx, "Checkpointed pod: %s", req.ContainerId)
 	} else {
 		log.Infof(ctx, "Checkpointed container: %s", req.ContainerId)
 	}
 
-	return nil
+	return &types.CheckpointContainerResponse{}, nil
 }

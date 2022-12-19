@@ -24,7 +24,7 @@ var _ = t.Describe("ContainerStart", func() {
 			addContainerAndSandbox()
 
 			// When
-			err := sut.StartContainer(context.Background(),
+			_, err := sut.StartContainer(context.Background(),
 				&types.StartContainerRequest{
 					ContainerId: testContainer.ID(),
 				})
@@ -36,7 +36,7 @@ var _ = t.Describe("ContainerStart", func() {
 		It("should fail with invalid container ID", func() {
 			// Given
 			// When
-			err := sut.StartContainer(context.Background(),
+			_, err := sut.StartContainer(context.Background(),
 				&types.StartContainerRequest{})
 
 			// Then
@@ -48,7 +48,7 @@ var _ = t.Describe("ContainerStart", func() {
 			addContainerAndSandbox()
 
 			// When
-			err := sut.StartContainer(context.Background(),
+			_, err := sut.StartContainer(context.Background(),
 				&types.StartContainerRequest{
 					ContainerId: testContainer.ID(),
 				},

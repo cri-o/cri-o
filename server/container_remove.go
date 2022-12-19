@@ -18,20 +18,20 @@ import (
 
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
-func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainerRequest) error {
+func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainerRequest) (*types.RemoveContainerResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	log.Infof(ctx, "Removing container: %s", req.ContainerId)
 	// save container description to print
 	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
-		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
 	sb := s.getSandbox(ctx, c.Sandbox())
 
 	if err := s.removeContainerInPod(ctx, sb, c); err != nil {
-		return err
+		return nil, err
 	}
 
 	if notifier, ok := s.seccompNotifiers.Load(c.ID()); ok {
@@ -44,7 +44,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 	}
 
 	log.Infof(ctx, "Removed container %s: %s", c.ID(), c.Description())
-	return nil
+	return &types.RemoveContainerResponse{}, nil
 }
 
 func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, c *oci.Container) error {

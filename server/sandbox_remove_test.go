@@ -25,7 +25,7 @@ var _ = t.Describe("PodSandboxRemove", func() {
 			Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
 
 			// When
-			err := sut.RemovePodSandbox(context.Background(),
+			_, err := sut.RemovePodSandbox(context.Background(),
 				&types.RemovePodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
@@ -34,7 +34,7 @@ var _ = t.Describe("PodSandboxRemove", func() {
 
 		It("should fail with empty sandbox ID", func() {
 			// When
-			err := sut.StopPodSandbox(context.Background(),
+			_, err := sut.StopPodSandbox(context.Background(),
 				&types.StopPodSandboxRequest{})
 
 			// Then
