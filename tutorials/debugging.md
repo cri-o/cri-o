@@ -15,7 +15,7 @@ CRI-O will catch the signal, and write the routine stacks to `/tmp/crio-goroutin
 
 ### Forcing Go Garbage Collection
 
-You may have a need to manully run Go garbage collection for CRI-O.  To force garbage collection send CRI-O SIGUSR2 using `kill` or `systemctl` (if running CRI-O as a systemd unit):
+You may have a need to manually run Go garbage collection for CRI-O.  To force garbage collection, send CRI-O SIGUSR2 using `kill` or `systemctl` (if running CRI-O as a systemd unit).
 
 ```bash
 kill -s SIGUSR2 $crio-pid
