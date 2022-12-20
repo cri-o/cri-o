@@ -13,33 +13,33 @@ import (
 )
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
-func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequest) error {
+func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequest) (*types.StopContainerResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
 	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
-		return status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
 	sandbox := s.getSandbox(ctx, c.Sandbox())
 	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), sandbox.Annotations())
 	if err != nil {
-		return fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
+		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
 	}
 
 	if hooks != nil {
 		if err := hooks.PreStop(ctx, c, sandbox); err != nil {
-			return fmt.Errorf("failed to run pre-stop hook for container %q: %w", c.ID(), err)
+			return nil, fmt.Errorf("failed to run pre-stop hook for container %q: %w", c.ID(), err)
 		}
 	}
 
 	if err := s.stopContainer(ctx, c, req.Timeout); err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Infof(ctx, "Stopped container %s: %s", c.ID(), c.Description())
-	return nil
+	return &types.StopContainerResponse{}, nil
 }
 
 // stopContainer stops a running container with a grace period (i.e., timeout).

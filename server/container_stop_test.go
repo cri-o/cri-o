@@ -29,7 +29,7 @@ var _ = t.Describe("ContainerStop", func() {
 			})
 
 			// When
-			err := sut.StopContainer(context.Background(),
+			_, err := sut.StopContainer(context.Background(),
 				&types.StopContainerRequest{
 					ContainerId: testContainer.ID(),
 				})
@@ -41,7 +41,7 @@ var _ = t.Describe("ContainerStop", func() {
 		It("should fail with invalid container id", func() {
 			// Given
 			// When
-			err := sut.StopContainer(context.Background(),
+			_, err := sut.StopContainer(context.Background(),
 				&types.StopContainerRequest{ContainerId: "id"})
 
 			// Then

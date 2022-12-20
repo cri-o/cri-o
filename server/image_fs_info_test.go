@@ -31,7 +31,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 			defer os.RemoveAll(testImageDir)
 
 			// When
-			response, err := sut.ImageFsInfo(context.Background())
+			response, err := sut.ImageFsInfo(context.Background(), nil)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -48,7 +48,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 			)
 
 			// When
-			response, err := sut.ImageFsInfo(context.Background())
+			response, err := sut.ImageFsInfo(context.Background(), nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())

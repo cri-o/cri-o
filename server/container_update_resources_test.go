@@ -36,7 +36,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			addContainerAndSandbox()
 
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
+			_, err := sut.UpdateContainerResources(context.Background(),
 				&types.UpdateContainerResourcesRequest{
 					ContainerId: testContainer.ID(),
 				},
@@ -59,7 +59,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			addContainerAndSandbox()
 
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
+			_, err := sut.UpdateContainerResources(context.Background(),
 				&types.UpdateContainerResourcesRequest{
 					ContainerId: testContainer.ID(),
 					Linux: &types.LinuxContainerResources{
@@ -89,7 +89,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			addContainerAndSandbox()
 
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
+			_, err := sut.UpdateContainerResources(context.Background(),
 				&types.UpdateContainerResourcesRequest{
 					ContainerId: testContainer.ID(),
 				})
@@ -101,7 +101,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 		It("should fail with invalid container id", func() {
 			// Given
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
+			_, err := sut.UpdateContainerResources(context.Background(),
 				&types.UpdateContainerResourcesRequest{
 					ContainerId: testContainer.ID(),
 				})
@@ -113,7 +113,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 		It("should fail with empty container ID", func() {
 			// Given
 			// When
-			err := sut.UpdateContainerResources(context.Background(),
+			_, err := sut.UpdateContainerResources(context.Background(),
 				&types.UpdateContainerResourcesRequest{})
 
 			// Then

@@ -22,7 +22,7 @@ var _ = t.Describe("ReopenContainerLog", func() {
 		It("should fail on invalid container ID", func() {
 			// Given
 			// When
-			err := sut.ReopenContainerLog(
+			_, err := sut.ReopenContainerLog(
 				context.Background(),
 				&types.ReopenContainerLogRequest{},
 			)

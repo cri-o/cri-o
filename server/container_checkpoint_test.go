@@ -54,7 +54,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// When
-			err := sut.CheckpointContainer(context.Background(),
+			_, err := sut.CheckpointContainer(context.Background(),
 				&types.CheckpointContainerRequest{
 					ContainerId: testContainer.ID(),
 				})
@@ -66,7 +66,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 		It("should fail with invalid container id", func() {
 			// Given
 			// When
-			err := sut.CheckpointContainer(context.Background(),
+			_, err := sut.CheckpointContainer(context.Background(),
 				&types.CheckpointContainerRequest{
 					ContainerId: testContainer.ID(),
 				})
@@ -78,7 +78,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			// Given
 			addContainerAndSandbox()
 			// When
-			err := sut.CheckpointContainer(context.Background(),
+			_, err := sut.CheckpointContainer(context.Background(),
 				&types.CheckpointContainerRequest{
 					ContainerId: testSandbox.ID(),
 				})
@@ -103,7 +103,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).Return(nil),
 			)
 			// When
-			err := sut.CheckpointContainer(context.Background(),
+			_, err := sut.CheckpointContainer(context.Background(),
 				&types.CheckpointContainerRequest{
 					ContainerId: testSandbox.ID(),
 					Location:    "cp.tar",
@@ -152,7 +152,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).Return(nil),
 			)
 			// When
-			err := sut.CheckpointContainer(context.Background(),
+			_, err := sut.CheckpointContainer(context.Background(),
 				&types.CheckpointContainerRequest{
 					ContainerId: testSandbox.ID(),
 					Location:    "cp.tar",
@@ -174,7 +174,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				storeMock.EXPECT().Container(gomock.Any()).Return(nil, t.TestError),
 			)
 			// When
-			err := sut.CheckpointContainer(context.Background(),
+			_, err := sut.CheckpointContainer(context.Background(),
 				&types.CheckpointContainerRequest{
 					ContainerId: testSandbox.ID(),
 					Location:    "cp.tar",
@@ -202,7 +202,7 @@ var _ = t.Describe("ContainerCheckpoint with CheckpointRestore set to false", fu
 		It("should fail with checkpoint/restore support not available", func() {
 			// Given
 			// When
-			err := sut.CheckpointContainer(context.Background(),
+			_, err := sut.CheckpointContainer(context.Background(),
 				&types.CheckpointContainerRequest{
 					ContainerId: testContainer.ID(),
 				})

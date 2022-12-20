@@ -23,7 +23,6 @@ import (
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
-	v1 "github.com/cri-o/cri-o/server/cri/v1"
 	otel_collector "github.com/cri-o/cri-o/server/otel-collector"
 	"github.com/cri-o/cri-o/utils"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -35,6 +34,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
+	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func writeCrioGoroutineStacks() {
@@ -341,7 +341,8 @@ func main() {
 			}
 		}
 
-		v1.Register(grpcServer, crioServer)
+		v1.RegisterRuntimeServiceServer(grpcServer, crioServer)
+		v1.RegisterImageServiceServer(grpcServer, crioServer)
 
 		// after the daemon is done setting up we can notify systemd api
 		notifySystem()

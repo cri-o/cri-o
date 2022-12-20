@@ -11,7 +11,7 @@ import (
 
 // StopPodSandbox stops the sandbox. If there are any running containers in the
 // sandbox, they should be force terminated.
-func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRequest) error {
+func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRequest) (*types.StopPodSandboxResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// platform dependent call
@@ -19,10 +19,10 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {
-			return err
+			return nil, err
 		}
 		if err == errSandboxNotCreated {
-			return fmt.Errorf("StopPodSandbox failed as the sandbox is not created: %s", req.PodSandboxId)
+			return nil, fmt.Errorf("StopPodSandbox failed as the sandbox is not created: %s", req.PodSandboxId)
 		}
 
 		// If the sandbox isn't found we just return an empty response to adhere
@@ -31,7 +31,11 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 
 		log.Warnf(ctx, "Could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxId, err)
 		log.Debugf(ctx, "StopPodSandboxResponse %s", req.PodSandboxId)
-		return nil
+		return &types.StopPodSandboxResponse{}, nil
 	}
-	return s.stopPodSandbox(ctx, sb)
+	if err := s.stopPodSandbox(ctx, sb); err != nil {
+		return nil, err
+	}
+
+	return &types.StopPodSandboxResponse{}, nil
 }

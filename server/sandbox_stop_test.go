@@ -28,7 +28,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			Expect(testSandbox.SetNetworkStopped(ctx, false)).To(BeNil())
 
 			// When
-			err := sut.StopPodSandbox(context.Background(),
+			_, err := sut.StopPodSandbox(context.Background(),
 				&types.StopPodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
@@ -38,7 +38,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 		It("should succeed with inavailable sandbox", func() {
 			// Given
 			// When
-			err := sut.StopPodSandbox(context.Background(),
+			_, err := sut.StopPodSandbox(context.Background(),
 				&types.StopPodSandboxRequest{PodSandboxId: "invalid"})
 
 			// Then
@@ -54,7 +54,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			)
 
 			// When
-			err := sut.StopPodSandbox(context.Background(),
+			_, err := sut.StopPodSandbox(context.Background(),
 				&types.StopPodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
@@ -64,7 +64,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 		It("should fail with empty sandbox ID", func() {
 			// Given
 			// When
-			err := sut.StopPodSandbox(context.Background(),
+			_, err := sut.StopPodSandbox(context.Background(),
 				&types.StopPodSandboxRequest{})
 
 			// Then

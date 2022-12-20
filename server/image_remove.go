@@ -10,7 +10,7 @@ import (
 )
 
 // RemoveImage removes the image.
-func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest) error {
+func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest) (*types.RemoveImageResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	imageRef := ""
@@ -19,9 +19,12 @@ func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest)
 		imageRef = img.Image
 	}
 	if imageRef == "" {
-		return fmt.Errorf("no image specified")
+		return nil, fmt.Errorf("no image specified")
 	}
-	return s.removeImage(ctx, imageRef)
+	if err := s.removeImage(ctx, imageRef); err != nil {
+		return nil, err
+	}
+	return &types.RemoveImageResponse{}, nil
 }
 
 func (s *Server) removeImage(ctx context.Context, imageRef string) error {

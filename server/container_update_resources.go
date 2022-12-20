@@ -14,29 +14,29 @@ import (
 )
 
 // UpdateContainerResources updates ContainerConfig of the container.
-func (s *Server) UpdateContainerResources(ctx context.Context, req *types.UpdateContainerResourcesRequest) error {
+func (s *Server) UpdateContainerResources(ctx context.Context, req *types.UpdateContainerResourcesRequest) (*types.UpdateContainerResourcesResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	state := c.State()
 	if !(state.Status == oci.ContainerStateRunning || state.Status == oci.ContainerStateCreated) {
-		return fmt.Errorf("container %s is not running or created state: %s", c.ID(), state.Status)
+		return nil, fmt.Errorf("container %s is not running or created state: %s", c.ID(), state.Status)
 	}
 
 	if req.Linux != nil {
 		resources := toOCIResources(req.Linux)
 		if err := s.Runtime().UpdateContainer(ctx, c, resources); err != nil {
-			return err
+			return nil, err
 		}
 
 		// update memory store with updated resources
 		s.UpdateContainerLinuxResources(c, resources)
 	}
 
-	return nil
+	return &types.UpdateContainerResourcesResponse{}, nil
 }
 
 // toOCIResources converts CRI resource constraints to OCI.
