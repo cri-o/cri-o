@@ -466,6 +466,9 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, ctx.Err()
 	}
 
+	// Since it's not a context error, we can delete the resource from the store, it will be tracked in the server from now on.
+	s.resourceStore.Delete(ctr.Name())
+
 	newContainer.SetCreated()
 
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())

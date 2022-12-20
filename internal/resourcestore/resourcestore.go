@@ -179,6 +179,15 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleane
 	return nil
 }
 
+// Delete deletes the specified resource from the store.
+// Any resource that has a stage set, but was never Put should have Delete called, or else it will leak.
+func (rc *ResourceStore) Delete(name string) {
+	rc.mutex.Lock()
+	defer rc.mutex.Unlock()
+
+	delete(rc.resources, name)
+}
+
 // WatcherForResource looks up a Resource by name, and gives it a watcher.
 // If no entry exists for that resource, a placeholder is created and a watcher is given to that
 // placeholder resource.
