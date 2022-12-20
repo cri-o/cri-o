@@ -44,7 +44,7 @@ function teardown() {
 	grep -q "Got seccomp notifier message for container ID: $CTR (syscall = swapoff)" "$CRIO_LOG"
 	crictl inspect "$CTR" | jq -e '.status.reason == "seccomp killed"'
 	crictl inspect "$CTR" | jq -e '.status.message == "Used forbidden syscalls: swapoff (3x)"'
-	curl -sf "http://localhost:$PORT/metrics" | grep 'container_runtime_crio_containers_seccomp_notifier_count_total{name="k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0",syscalls="swapoff (3x)"} 1'
+	curl -sf "http://localhost:$PORT/metrics" | grep 'container_runtime_crio_containers_seccomp_notifier_count_total{name="k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0",syscall="swapoff"} 3'
 }
 
 @test "seccomp notifier with runtime/default but not stop" {
@@ -72,7 +72,7 @@ function teardown() {
 	# Assert
 	grep -q "Got seccomp notifier message for container ID: $CTR (syscall = swapoff)" "$CRIO_LOG"
 	crictl inspect "$CTR" | jq -e '.status.state == "CONTAINER_RUNNING"'
-	curl -sf "http://localhost:$PORT/metrics" | grep 'container_runtime_crio_containers_seccomp_notifier_count_total{name="k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0",syscalls="swapoff (3x)"} 1'
+	curl -sf "http://localhost:$PORT/metrics" | grep 'container_runtime_crio_containers_seccomp_notifier_count_total{name="k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0",syscall="swapoff"} 3'
 }
 
 @test "seccomp notifier with custom profile" {
