@@ -225,8 +225,10 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 			}
 		}()
 		// Platform specific container setup
-		if err := r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid); err != nil {
-			return err
+		if !c.Spoofed() {
+			if err := r.createContainerPlatform(c, cgroupParent, cmd.Process.Pid); err != nil {
+				return err
+			}
 		}
 
 		/* We set the cgroup, now the child can start creating children */
