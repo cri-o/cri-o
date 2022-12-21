@@ -3,8 +3,8 @@ package server
 import (
 	"fmt"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/podman/v4/libpod"
-	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
@@ -32,12 +32,11 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 
 		ctr, err := s.ContainerServer.ContainerRestore(
 			ctx,
-			&lib.ContainerCheckpointRestoreOptions{
-				Container: c.ID(),
-				Pod:       s.getSandbox(ctx, c.Sandbox()).ID(),
-				ContainerCheckpointOptions: libpod.ContainerCheckpointOptions{
-					TargetFile: c.ImageName(),
-				},
+			&metadata.ContainerConfig{
+				ID: c.ID(),
+			},
+			&libpod.ContainerCheckpointOptions{
+				TargetFile: c.ImageName(),
 			},
 		)
 		if err != nil {

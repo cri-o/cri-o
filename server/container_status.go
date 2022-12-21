@@ -2,9 +2,11 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
 	json "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
@@ -115,26 +117,51 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	return resp, nil
 }
 
+type containerInfo struct {
+	SandboxID   string    `json:"sandboxID"`
+	Pid         int       `json:"pid"`
+	RuntimeSpec spec.Spec `json:"runtimeSpec"`
+	Privileged  bool      `json:"privileged"`
+}
+
+type containerInfoCheckpointRestore struct {
+	CheckpointedAt time.Time `json:"checkpointedAt"`
+	Restored       bool      `json:"restored"`
+}
+
 func (s *Server) createContainerInfo(container *oci.Container) (map[string]string, error) {
 	metadata, err := s.StorageRuntimeServer().GetContainerMetadata(container.ID())
 	if err != nil {
 		return nil, fmt.Errorf("getting container metadata: %w", err)
 	}
 
-	info := struct {
-		SandboxID   string    `json:"sandboxID"`
-		Pid         int       `json:"pid"`
-		RuntimeSpec spec.Spec `json:"runtimeSpec"`
-		Privileged  bool      `json:"privileged"`
-	}{
-		container.Sandbox(),
-		container.State().Pid,
-		container.Spec(),
-		metadata.Privileged,
-	}
-	bytes, err := json.Marshal(info)
+	bytes, err := func(metadata *storage.RuntimeContainerMetadata) ([]byte, error) {
+		localContainerInfo := containerInfo{
+			SandboxID:   container.Sandbox(),
+			Pid:         container.State().Pid,
+			RuntimeSpec: container.Spec(),
+			Privileged:  metadata.Privileged,
+		}
+
+		if s.config.CheckpointRestore() {
+			localContainerInfoCheckpointRestore := containerInfoCheckpointRestore{
+				CheckpointedAt: container.CheckpointedAt(),
+				Restored:       container.Restore(),
+			}
+			info := struct {
+				containerInfo
+				containerInfoCheckpointRestore
+			}{
+				localContainerInfo,
+				localContainerInfoCheckpointRestore,
+			}
+			return json.Marshal(info)
+		}
+
+		return json.Marshal(localContainerInfo)
+	}(&metadata)
 	if err != nil {
-		return nil, fmt.Errorf("marshal data: %v: %w", info, err)
+		return nil, fmt.Errorf("marshal data: %w", err)
 	}
 	return map[string]string{"info": string(bytes)}, nil
 }

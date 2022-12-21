@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v6/stats"
@@ -19,18 +20,15 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
-type ContainerCheckpointRestoreOptions struct {
-	Container string
-	Pod       string
-
-	libpod.ContainerCheckpointOptions
-}
-
 // ContainerCheckpoint checkpoints a running container.
-func (c *ContainerServer) ContainerCheckpoint(ctx context.Context, opts *ContainerCheckpointRestoreOptions) (string, error) {
-	ctr, err := c.LookupContainer(ctx, opts.Container)
+func (c *ContainerServer) ContainerCheckpoint(
+	ctx context.Context,
+	config *metadata.ContainerConfig,
+	opts *libpod.ContainerCheckpointOptions,
+) (string, error) {
+	ctr, err := c.LookupContainer(ctx, config.ID)
 	if err != nil {
-		return "", fmt.Errorf("failed to find container %s: %w", opts.Container, err)
+		return "", fmt.Errorf("failed to find container %s: %w", config.ID, err)
 	}
 
 	configFile := filepath.Join(ctr.BundlePath(), "config.json")
@@ -164,6 +162,8 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 			}
 			return c.config.DefaultRuntime
 		}(),
+		CheckpointedAt: time.Now(),
+		Restored:       ctr.Restore(),
 	}
 
 	if _, err := metadata.WriteJSONFile(config, ctr.Dir(), metadata.ConfigDumpFile); err != nil {
