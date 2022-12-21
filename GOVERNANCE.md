@@ -48,6 +48,7 @@ CRI-O has four tiers of code contributors: community members, reviewers, approve
 * Approvers are the set of people that have final say over the direction of the project. For any PR to merge, an approver must approve it.
 * Emeritus Approvers can be considered "retired" approver--while they don't have approval rights, they are listed in the OWNERS file to indicate their expertise in the area.
 The current list of reviewers and approvers can be found in the [CRI-O OWNERS file](https://github.com/cri-o/cri-o/blob/main/OWNERS).
+Further, some more detailed information can be found in the [CRI-O Maintainers file](https://github.com/cri-o/cri-o/blob/main/MAINTAINERS.md).
 
 ### Community Member
 
