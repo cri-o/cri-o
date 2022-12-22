@@ -22,6 +22,7 @@ import (
 type CertVerifyOptions struct {
 	Cert                         string
 	CertEmail                    string
+	CertIdentity                 string
 	CertOidcIssuer               string
 	CertGithubWorkflowTrigger    string
 	CertGithubWorkflowSha        string
@@ -38,9 +39,13 @@ var _ Interface = (*RekorOptions)(nil)
 func (o *CertVerifyOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.Cert, "certificate", "",
 		"path to the public certificate. The certificate will be verified against the Fulcio roots if the --certificate-chain option is not passed.")
+	_ = cmd.Flags().SetAnnotation("certificate", cobra.BashCompFilenameExt, []string{"cert"})
 
 	cmd.Flags().StringVar(&o.CertEmail, "certificate-email", "",
 		"the email expected in a valid Fulcio certificate")
+
+	cmd.Flags().StringVar(&o.CertIdentity, "certificate-identity", "",
+		"the identity expected in a valid Fulcio certificate. Valid values include email address, DNS names, IP addresses, and URIs.")
 
 	cmd.Flags().StringVar(&o.CertOidcIssuer, "certificate-oidc-issuer", "",
 		"the OIDC issuer expected in a valid Fulcio certificate, e.g. https://token.actions.githubusercontent.com or https://oauth2.sigstore.dev/auth")
@@ -67,6 +72,7 @@ func (o *CertVerifyOptions) AddFlags(cmd *cobra.Command) {
 			"when building the certificate chain for the signing certificate. "+
 			"Must start with the parent intermediate CA certificate of the "+
 			"signing certificate and end with the root certificate")
+	_ = cmd.Flags().SetAnnotation("certificate-chain", cobra.BashCompFilenameExt, []string{"cert"})
 
 	cmd.Flags().BoolVar(&o.EnforceSCT, "enforce-sct", false,
 		"whether to enforce that a certificate contain an embedded SCT, a proof of "+

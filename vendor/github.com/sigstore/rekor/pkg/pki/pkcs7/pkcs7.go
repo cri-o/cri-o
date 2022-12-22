@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	"github.com/sassoftware/relic/lib/pkcs7"
@@ -43,7 +42,7 @@ type Signature struct {
 
 // NewSignature creates and validates an PKCS7 signature object
 func NewSignature(r io.Reader) (*Signature, error) {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +141,7 @@ type PublicKey struct {
 
 // NewPublicKey implements the pki.PublicKey interface
 func NewPublicKey(r io.Reader) (*PublicKey, error) {
-	rawPub, err := ioutil.ReadAll(r)
+	rawPub, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

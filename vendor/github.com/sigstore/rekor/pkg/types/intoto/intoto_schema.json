@@ -7,6 +7,9 @@
     "oneOf": [
         {
             "$ref": "v0.0.1/intoto_v0_0_1_schema.json"
+        },
+        {
+            "$ref": "v0.0.2/intoto_v0_0_2_schema.json"
         }
     ]
 }

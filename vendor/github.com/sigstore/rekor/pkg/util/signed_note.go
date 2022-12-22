@@ -134,10 +134,10 @@ func (s SignedNote) String() string {
 //
 // \u2014 name signature
 //
-// * name is the string associated with the signer
-// * signature is a base64 encoded string; the first 4 bytes of the decoded value is a
-//   hint to the public key; it is a big-endian encoded uint32 representing the first
-//   4 bytes of the SHA256 hash of the public key
+//   - name is the string associated with the signer
+//   - signature is a base64 encoded string; the first 4 bytes of the decoded value is a
+//     hint to the public key; it is a big-endian encoded uint32 representing the first
+//     4 bytes of the SHA256 hash of the public key
 func (s *SignedNote) UnmarshalText(data []byte) error {
 	sigSplit := []byte("\n\n")
 	// Must end with signature block preceded by blank line.

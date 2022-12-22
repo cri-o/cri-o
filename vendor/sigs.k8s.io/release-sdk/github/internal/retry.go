@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,12 +57,13 @@ func DefaultGithubErrChecker() func(error) bool {
 // Other special errors should be easy to implement too.
 //
 // It can be used like this:
-//  for shouldRetry := GithubErrChecker(10, time.Sleep); ; {
-//    commit, res, err := github_client.GetCommit(...)
-//    if !shouldRetry(err) {
-//      return commit, res, err
-//    }
-//  }
+//
+//	for shouldRetry := GithubErrChecker(10, time.Sleep); ; {
+//	  commit, res, err := github_client.GetCommit(...)
+//	  if !shouldRetry(err) {
+//	    return commit, res, err
+//	  }
+//	}
 func GithubErrChecker(maxTries int, sleeper func(time.Duration)) func(error) bool {
 	try := 0
 

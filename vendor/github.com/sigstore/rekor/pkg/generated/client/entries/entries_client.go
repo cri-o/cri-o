@@ -56,10 +56,9 @@ type ClientService interface {
 }
 
 /*
-  CreateLogEntry creates an entry in the transparency log
+CreateLogEntry creates an entry in the transparency log
 
-  Creates an entry in the transparency log for a detached signature, public key, and content. Items can be included in the request or fetched by the server when URLs are specified.
-
+Creates an entry in the transparency log for a detached signature, public key, and content. Items can be included in the request or fetched by the server when URLs are specified.
 */
 func (a *Client) CreateLogEntry(params *CreateLogEntryParams, opts ...ClientOption) (*CreateLogEntryCreated, error) {
 	// TODO: Validate the params before sending
@@ -96,7 +95,7 @@ func (a *Client) CreateLogEntry(params *CreateLogEntryParams, opts ...ClientOpti
 }
 
 /*
-  GetLogEntryByIndex retrieves an entry and inclusion proof from the transparency log if it exists by index
+GetLogEntryByIndex retrieves an entry and inclusion proof from the transparency log if it exists by index
 */
 func (a *Client) GetLogEntryByIndex(params *GetLogEntryByIndexParams, opts ...ClientOption) (*GetLogEntryByIndexOK, error) {
 	// TODO: Validate the params before sending
@@ -133,9 +132,9 @@ func (a *Client) GetLogEntryByIndex(params *GetLogEntryByIndexParams, opts ...Cl
 }
 
 /*
-  GetLogEntryByUUID gets log entry and information required to generate an inclusion proof for the entry in the transparency log
+GetLogEntryByUUID gets log entry and information required to generate an inclusion proof for the entry in the transparency log
 
-  Returns the entry, root hash, tree size, and a list of hashes that can be used to calculate proof of an entry being included in the transparency log
+Returns the entry, root hash, tree size, and a list of hashes that can be used to calculate proof of an entry being included in the transparency log
 */
 func (a *Client) GetLogEntryByUUID(params *GetLogEntryByUUIDParams, opts ...ClientOption) (*GetLogEntryByUUIDOK, error) {
 	// TODO: Validate the params before sending
@@ -172,7 +171,7 @@ func (a *Client) GetLogEntryByUUID(params *GetLogEntryByUUIDParams, opts ...Clie
 }
 
 /*
-  SearchLogQuery searches transparency log for one or more log entries
+SearchLogQuery searches transparency log for one or more log entries
 */
 func (a *Client) SearchLogQuery(params *SearchLogQueryParams, opts ...ClientOption) (*SearchLogQueryOK, error) {
 	// TODO: Validate the params before sending
