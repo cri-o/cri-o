@@ -478,6 +478,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		log.Warnf(ctx, "NRI post-create event failed for container %q: %v",
 			newContainer.ID(), err)
 	}
+	s.generateCRIEvent(ctx, newContainer, types.ContainerEventType_CONTAINER_CREATED_EVENT)
 
 	log.Infof(ctx, "Created container %s: %s", newContainer.ID(), newContainer.Description())
 	return &types.CreateContainerResponse{

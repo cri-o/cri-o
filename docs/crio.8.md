@@ -46,6 +46,7 @@ crio
 [--enable-criu-support]
 [--enable-metrics]
 [--enable-nri]
+[--enable-pod-events]
 [--enable-profile-unix-socket]
 [--enable-tracing]
 [--gid-mappings]=[value]
@@ -219,6 +220,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--enable-metrics**: Enable metrics endpoint for the server on localhost:9090.
 
 **--enable-nri**: Enable NRI (Node Resource Interface) support. (default: false)
+
+**--enable-pod-events**: If true, CRI-O starts sending the container events to the kubelet
 
 **--enable-profile-unix-socket**: Enable pprof profiler on crio unix domain socket.
 

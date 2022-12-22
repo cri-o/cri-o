@@ -104,6 +104,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	if err := s.Runtime().StartContainer(ctx, c); err != nil {
 		return nil, fmt.Errorf("failed to start container %s: %w", c.ID(), err)
 	}
+	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STARTED_EVENT)
 
 	if err := s.nri.postStartContainer(ctx, sandbox, c); err != nil {
 		log.Warnf(ctx, "NRI post-start failed for container %q: %v", c.ID(), err)
