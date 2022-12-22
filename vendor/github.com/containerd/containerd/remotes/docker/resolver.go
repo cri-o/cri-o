@@ -34,8 +34,9 @@ import (
 	"github.com/containerd/containerd/remotes"
 	"github.com/containerd/containerd/remotes/docker/schema1" //nolint:staticcheck // Ignore SA1019. Need to keep deprecated package for compatibility.
 	remoteerrors "github.com/containerd/containerd/remotes/errors"
+	"github.com/containerd/containerd/tracing"
 	"github.com/containerd/containerd/version"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
@@ -70,6 +71,9 @@ type Authorizer interface {
 	// unmodified. It may also add an `Authorization` header as
 	//  "bearer <some bearer token>"
 	//  "basic <base64 encoded credentials>"
+	//
+	// It may return remotes/errors.ErrUnexpectedStatus, which for example,
+	// can be used by the caller to find out the status code returned by the registry.
 	Authorize(context.Context, *http.Request) error
 
 	// AddResponses adds a 401 response for the authorizer to consider when
@@ -152,7 +156,8 @@ func NewResolver(options ResolverOptions) remotes.Resolver {
 			images.MediaTypeDockerSchema2Manifest,
 			images.MediaTypeDockerSchema2ManifestList,
 			ocispec.MediaTypeImageManifest,
-			ocispec.MediaTypeImageIndex, "*/*"}, ", "))
+			ocispec.MediaTypeImageIndex, "*/*",
+		}, ", "))
 	} else {
 		resolveHeader["Accept"] = options.Headers["Accept"]
 		delete(options.Headers, "Accept")
@@ -551,7 +556,7 @@ func (r *request) do(ctx context.Context) (*http.Response, error) {
 		return nil, fmt.Errorf("failed to authorize: %w", err)
 	}
 
-	var client = &http.Client{}
+	client := &http.Client{}
 	if r.host.Client != nil {
 		*client = *r.host.Client
 	}
@@ -566,11 +571,18 @@ func (r *request) do(ctx context.Context) (*http.Response, error) {
 			return nil
 		}
 	}
-
+	_, httpSpan := tracing.StartSpan(
+		ctx,
+		tracing.Name("remotes.docker.resolver", "HTTPRequest"),
+		tracing.WithHTTPRequest(req),
+	)
+	defer httpSpan.End()
 	resp, err := client.Do(req)
 	if err != nil {
+		httpSpan.SetStatus(err)
 		return nil, fmt.Errorf("failed to do request: %w", err)
 	}
+	httpSpan.SetAttributes(tracing.HTTPStatusCodeAttributes(resp.StatusCode)...)
 	log.G(ctx).WithFields(responseFields(resp)).Debug("fetch response received")
 	return resp, nil
 }
