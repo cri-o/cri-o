@@ -104,8 +104,8 @@ make GO_MD2MAN=go-md2man docs
 install -dp %{buildroot}%{_sysconfdir}/cni/net.d
 mkdir -p %{buildroot}%{_sysconfdir}/%{service_name}
 install -p -m 644 ./%{service_name}.conf %{buildroot}%{_sysconfdir}/%{service_name}/%{service_name}.conf
-install -p -m 644 contrib/cni/10-crio-bridge.conf %{buildroot}%{_sysconfdir}/cni/net.d/100-crio-bridge.conf
-install -p -m 644 contrib/cni/99-loopback.conf %{buildroot}%{_sysconfdir}/cni/net.d/200-loopback.conf
+install -p -m 644 contrib/cni/10-crio-bridge.conflist %{buildroot}%{_sysconfdir}/cni/net.d/100-crio-bridge.conf
+install -p -m 644 contrib/cni/99-loopback.conflist %{buildroot}%{_sysconfdir}/cni/net.d/200-loopback.conf
 
 make PREFIX=%{buildroot}%{_usr} DESTDIR=%{buildroot} \
             install.bin \
