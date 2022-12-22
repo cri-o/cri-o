@@ -1,7 +1,7 @@
 set -x
 install $SELINUX -d -m 755 "$DESTDIR$CNIDIR"
 install $SELINUX -D -m 755 -t "$DESTDIR$OPT_CNI_BIN_DIR" cni-plugins/*
-install $SELINUX -D -m 644 -t "$DESTDIR$CNIDIR" /contrib/cni/10-crio-bridge.conflist
+install $SELINUX -D -m 644 -t "$DESTDIR$CNIDIR" contrib/10-crio-bridge.conflist
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/conmon
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crictl
 install $SELINUX -d -m 755 "$DESTDIR$BASHINSTALLDIR"
