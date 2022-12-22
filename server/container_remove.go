@@ -43,7 +43,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 			}
 		}
 	}
-
+	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_DELETED_EVENT)
 	log.Infof(ctx, "Removed container %s: %s", c.ID(), c.Description())
 	return &types.RemoveContainerResponse{}, nil
 }

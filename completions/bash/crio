@@ -48,6 +48,7 @@ h
 --enable-criu-support
 --enable-metrics
 --enable-nri
+--enable-pod-events
 --enable-profile-unix-socket
 --enable-tracing
 --gid-mappings

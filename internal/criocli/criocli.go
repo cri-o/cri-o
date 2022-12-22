@@ -386,7 +386,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("stats-collection-period") {
 		config.StatsCollectionPeriod = ctx.Int("stats-collection-period")
 	}
-
+	if ctx.IsSet("enable-pod-events") {
+		config.EnablePodEvents = ctx.Bool("enable-pod-events")
+	}
 	return nil
 }
 
@@ -1075,6 +1077,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Enable CRIU integration, requires that the criu binary is available in $PATH.",
 			EnvVars: []string{"CONTAINER_ENABLE_CRIU_SUPPORT"},
 			Value:   false,
+		},
+		&cli.BoolFlag{
+			Name:    "enable-pod-events",
+			Usage:   "If true, CRI-O starts sending the container events to the kubelet",
+			EnvVars: []string{"ENABLE_POD_EVENTS"},
 		},
 	}
 }

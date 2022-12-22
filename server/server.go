@@ -17,6 +17,11 @@ import (
 	"sync"
 	"time"
 
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
 	storageTypes "github.com/containers/storage/types"
@@ -66,8 +71,9 @@ type Server struct {
 	hostportManager hostport.HostPortManager
 
 	*lib.ContainerServer
-	monitorsChan      chan struct{}
-	defaultIDMappings *idtools.IDMappings
+	monitorsChan        chan struct{}
+	defaultIDMappings   *idtools.IDMappings
+	ContainerEventsChan chan types.ContainerEventResponse
 
 	minimumMappableUID, minimumMappableGID int64
 
@@ -343,6 +349,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		}
 	}
 
+	if s.config.EnablePodEvents {
+		// closing a non-nil channel only if the evented pleg is enabled
+		close(s.ContainerEventsChan)
+	}
+
 	return nil
 }
 
@@ -437,7 +448,10 @@ func New(
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
 		resourceStore:            resourcestore.New(),
 	}
-
+	if s.config.EnablePodEvents {
+		// creating a container events channel only if the evented pleg is enabled
+		s.ContainerEventsChan = make(chan types.ContainerEventResponse, 1000)
+	}
 	if err := configureMaxThreads(); err != nil {
 		return nil, err
 	}
@@ -834,6 +848,9 @@ func (s *Server) monitorExits(ctx context.Context, watcher *fsnotify.Watcher, do
 			go s.handleExit(ctx, event)
 		case err := <-watcher.Errors:
 			log.Debugf(ctx, "Watch error: %v", err)
+			if s.config.EnablePodEvents {
+				close(s.ContainerEventsChan)
+			}
 			close(done)
 			return
 		case <-s.monitorsChan:
@@ -879,7 +896,121 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 		}
 	}
 
+	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STOPPED_EVENT)
 	if err := os.Remove(event.Name); err != nil {
 		log.Warnf(ctx, "Failed to remove exit file: %v", err)
 	}
+}
+
+func (s *Server) getSandboxStatuses(ctx context.Context, sandboxID string) (*types.PodSandboxStatus, error) {
+	sandboxStatusRequest := &types.PodSandboxStatusRequest{PodSandboxId: sandboxID}
+	sandboxStatus, err := s.PodSandboxStatus(ctx, sandboxStatusRequest)
+
+	if isNotFound(err) {
+		return nil, err
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("getSandboxStatuses: %w", err)
+	}
+
+	return sandboxStatus.GetStatus(), nil
+}
+
+func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([]*types.ContainerStatus, error) {
+	listContainerRequest := &types.ListContainersRequest{Filter: &types.ContainerFilter{LabelSelector: map[string]string{kubetypes.KubernetesPodUIDLabel: sandboxUID}}}
+	containers, err := s.ListContainers(ctx, listContainerRequest)
+	if err != nil {
+		return []*types.ContainerStatus{}, err
+	}
+
+	containerStatuses := []*types.ContainerStatus{}
+	for _, cc := range containers.GetContainers() {
+		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.Id}
+		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
+		if isNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return []*types.ContainerStatus{}, err
+		}
+		containerStatuses = append(containerStatuses, resp.GetStatus())
+	}
+
+	return containerStatuses, nil
+}
+
+func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxID string) ([]*types.ContainerStatus, error) {
+	listContainerRequest := &types.ListContainersRequest{Filter: &types.ContainerFilter{PodSandboxId: sandboxID}}
+	containers, err := s.ListContainers(ctx, listContainerRequest)
+	if err != nil {
+		return []*types.ContainerStatus{}, err
+	}
+
+	containerStatuses := []*types.ContainerStatus{}
+	for _, cc := range containers.GetContainers() {
+		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.Id, Verbose: false}
+		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
+		if isNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return []*types.ContainerStatus{}, err
+		}
+		containerStatuses = append(containerStatuses, resp.GetStatus())
+	}
+
+	return containerStatuses, nil
+}
+
+func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container, eventType types.ContainerEventType) {
+	// returning no error if the Evented PLEG feature is not enabled
+	if !s.config.EnablePodEvents {
+		return
+	}
+	if err := s.Runtime().UpdateContainerStatus(ctx, container); err != nil {
+		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to update the container status %s: %v", eventType, container.ID(), err)
+		return
+	}
+
+	if !s.HasSandbox(container.Sandbox()) {
+		return
+	}
+
+	sandboxStatuses, err := s.getSandboxStatuses(ctx, s.GetSandbox(container.Sandbox()).ID())
+
+	if isNotFound(err) {
+		return
+	}
+
+	if err != nil {
+		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get sandbox statuses of the pod %s: %v", eventType, sandboxStatuses.Metadata.Uid, err)
+		return
+	}
+
+	containerStatuses, err := s.getContainerStatuses(ctx, sandboxStatuses.Metadata.Uid)
+	if err != nil {
+		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get container statuses of the pod %s: %v", eventType, sandboxStatuses.Metadata.Uid, err)
+		return
+	}
+
+	select {
+	case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: container.ID(), ContainerEventType: eventType, CreatedAt: time.Now().UnixNano(), PodSandboxStatus: sandboxStatuses, ContainersStatuses: containerStatuses}:
+		log.Debugf(ctx, "Container event %s generated for %s", eventType, container.ID())
+	default:
+		log.Errorf(ctx, "GenerateCRIEvent: failed to generate event %s for container %s", eventType, container.ID())
+		return
+	}
+}
+
+func isNotFound(err error) bool {
+	s, ok := status.FromError(err)
+	if !ok {
+		return ok
+	}
+	if s.Code() == codes.NotFound {
+		return true
+	}
+
+	return false
 }

@@ -147,6 +147,43 @@ function check_oci_annotation() {
 	[[ "$output" == "" ]]
 }
 
+@test "ctr pod lifecycle with evented pleg enabled" {
+	ENABLE_POD_EVENTS=true start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	output=$(crictl pods --quiet)
+	[[ "$output" == "$pod_id" ]]
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	output=$(crictl ps --quiet --state created)
+	[[ "$output" == "$ctr_id" ]]
+	wait_for_log "Container event CONTAINER_CREATED_EVENT generated"
+
+	crictl start "$ctr_id"
+	wait_for_log "Container event CONTAINER_STARTED_EVENT generated"
+	output=$(crictl ps --quiet --state running)
+	[[ "$output" == "$ctr_id" ]]
+
+	crictl stop "$ctr_id"
+	wait_for_log "Container event CONTAINER_STOPPED_EVENT generated"
+	output=$(crictl ps --quiet --state exited)
+	[[ "$output" == "$ctr_id" ]]
+
+	crictl rm "$ctr_id"
+	wait_for_log "Container event CONTAINER_DELETED_EVENT generated"
+
+	crictl ps --quiet
+	crictl stopp "$pod_id"
+	output=$(crictl pods --quiet)
+	[[ "$output" == "$pod_id" ]]
+	output=$(crictl ps --quiet)
+	[[ "$output" == "" ]]
+
+	crictl rmp "$pod_id"
+	output=$(crictl pods --quiet)
+	[[ "$output" == "" ]]
+}
+
 @test "ctr logging" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)

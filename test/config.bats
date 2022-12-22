@@ -45,6 +45,16 @@ function teardown() {
 	[[ "$output" == *"not a valid logrus"*"wrong-level"* ]]
 }
 
+@test "config dir should fail with invalid evented_pleg option" {
+	# given
+	printf '[crio.runtime]\nenable_pod_events = "on"\n' > "$CRIO_CONFIG_DIR"/00-default
+
+	# when
+	run "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR"
+	# then
+	[ "$status" -ne 0 ]
+}
+
 @test "choose different default runtime should succeed" {
 	# when
 	unset CONTAINER_RUNTIMES

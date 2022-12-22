@@ -952,6 +952,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
+	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_CREATED_EVENT)
 	if err := s.Runtime().StartContainer(ctx, container); err != nil {
 		return nil, err
 	}
@@ -997,6 +998,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	s.resourceStore.Delete(sbox.Name())
 
 	sb.SetCreated()
+	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_STARTED_EVENT)
 
 	log.Infof(ctx, "Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
 	resp = &types.RunPodSandboxResponse{PodSandboxId: sbox.ID()}

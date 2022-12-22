@@ -42,6 +42,7 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 		log.Warnf(ctx, "NRI stop failed for container %q: %v", c.ID(), err)
 	}
 
+	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_DELETED_EVENT)
 	log.Infof(ctx, "Stopped container %s: %s", c.ID(), c.Description())
 	return &types.StopContainerResponse{}, nil
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -36,6 +37,16 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 		}
 	}
 
+	var containerStatuses []*types.ContainerStatus
+	var timestamp int64
+	if s.config.EnablePodEvents {
+		timestamp = time.Now().Unix()
+		containerStatuses, err = s.getContainerStatusesFromSandboxID(ctx, req.PodSandboxId)
+		if err != nil {
+			return nil, status.Errorf(codes.Unknown, "could not get container statuses of the sandbox Id %q: %v", req.PodSandboxId, err)
+		}
+	}
+
 	sandboxID := sb.ID()
 	resp := &types.PodSandboxStatusResponse{
 		Status: &types.PodSandboxStatus{
@@ -48,6 +59,8 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 			Metadata:    sb.Metadata(),
 			Linux:       linux,
 		},
+		ContainersStatuses: containerStatuses,
+		Timestamp:          timestamp,
 	}
 
 	if len(sb.IPs()) > 0 {

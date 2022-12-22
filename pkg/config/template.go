@@ -421,6 +421,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.EnableCriuSupport, c.EnableCriuSupport),
 		},
 		{
+			templateString: templateStringCrioRuntimeEnablePodEvents,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.EnablePodEvents, c.EnablePodEvents),
+		},
+		{
 			templateString: templateStringCrioRuntimeDefaultRuntime,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.DefaultRuntime, c.DefaultRuntime),
@@ -1082,6 +1087,12 @@ const templateStringCrioRuntimePinnsPath = `# pinns_path is the path to find the
 const templateStringCrioRuntimeEnableCriuSupport = `# Globally enable/disable CRIU support which is necessary to
 # checkpoint and restore container or pods (even if CRIU is found in $PATH).
 {{ $.Comment }}enable_criu_support = {{ .EnableCriuSupport }}
+
+`
+
+const templateStringCrioRuntimeEnablePodEvents = `# Enable/disable the generation of the container,
+# sandbox lifecycle events to be sent to the Kubelet to optimize the PLEG
+{{ $.Comment }}enable_pod_events = {{ .EnablePodEvents }}
 
 `
 
