@@ -816,6 +816,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		makeOCIConfigurationRootless(specgen)
 	}
 
+	if err := s.nri.createContainer(ctx, specgen, sb, ociContainer); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if retErr != nil {
+			s.nri.undoCreateContainer(ctx, specgen, sb, ociContainer)
+		}
+	}()
+
 	saveOptions := generate.ExportOptions{}
 	if err := specgen.SaveToFile(filepath.Join(containerInfo.Dir, "config.json"), saveOptions); err != nil {
 		return nil, err

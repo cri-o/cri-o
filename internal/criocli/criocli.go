@@ -362,6 +362,18 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("tracing-sampling-rate-per-million") {
 		config.TracingSamplingRatePerMillion = ctx.Int("tracing-sampling-rate-per-million")
 	}
+	if ctx.IsSet("enable-nri") {
+		config.NRI.Enabled = ctx.Bool("enable-nri")
+	}
+	if ctx.IsSet("nri-config-file") {
+		config.NRI.ConfigPath = ctx.String("nri-config-file")
+	}
+	if ctx.IsSet("nri-listen") {
+		config.NRI.SocketPath = ctx.String("nri-listen")
+	}
+	if ctx.IsSet("nri-plugin-dir") {
+		config.NRI.PluginPath = ctx.String("nri-plugin-dir")
+	}
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
 	}
@@ -813,6 +825,22 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   defConf.TracingEndpoint,
 			Usage:   "Address on which the gRPC tracing collector will listen.",
 			EnvVars: []string{"CONTAINER_TRACING_ENDPOINT"},
+		},
+		&cli.BoolFlag{
+			Name:  "enable-nri",
+			Usage: fmt.Sprintf("Enable NRI (Node Resource Interface) support. (default: %v)", defConf.NRI.Enabled),
+		},
+		&cli.StringFlag{
+			Name:  "nri-config-file",
+			Usage: fmt.Sprintf("NRI configuration file to use. (default: %q)", defConf.NRI.ConfigPath),
+		},
+		&cli.StringFlag{
+			Name:  "nri-listen",
+			Usage: fmt.Sprintf("Socket to listen on for externally started NRI plugins to connect to. (default: %q)", defConf.NRI.SocketPath),
+		},
+		&cli.StringFlag{
+			Name:  "nri-plugin-dir",
+			Usage: fmt.Sprintf("Directory to scan for pre-installed NRI plugins to start automatically. (default: %q)", defConf.NRI.PluginPath),
 		},
 		&cli.StringFlag{
 			Name:    "big-files-temporary-dir",

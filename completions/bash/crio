@@ -47,6 +47,7 @@ h
 --drop-infra-ctr
 --enable-criu-support
 --enable-metrics
+--enable-nri
 --enable-profile-unix-socket
 --enable-tracing
 --gid-mappings
@@ -76,6 +77,9 @@ h
 --minimum-mappable-uid
 --namespaces-dir
 --no-pivot
+--nri-config-file
+--nri-listen
+--nri-plugin-dir
 --pause-command
 --pause-image
 --pause-image-auth-file

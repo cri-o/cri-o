@@ -107,6 +107,18 @@ jobs:
           sudo -E make completions-generation
           hack/tree_status.sh
 
+  validate-nri-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: build
+          path: bin
+      - run: |
+          sudo -E make check-nri-bats-tests
+
   build-static-amd64:
     runs-on: ubuntu-latest
     steps:

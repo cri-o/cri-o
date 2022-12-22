@@ -75,6 +75,10 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		return fmt.Errorf("failed to delete pod sandbox %s from index: %w", sb.ID(), err)
 	}
 
+	if err := s.nri.removePodSandbox(ctx, sb); err != nil {
+		log.Warnf(ctx, "NRI pod removal failed for %q: %v", sb.ID(), err)
+	}
+
 	log.Infof(ctx, "Removed pod sandbox: %s", sb.ID())
 	return nil
 }

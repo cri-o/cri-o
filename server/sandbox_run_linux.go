@@ -981,6 +981,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 	sb.AddIPs(ips)
 
+	if err := s.nri.runPodSandbox(ctx, sb); err != nil {
+		return nil, err
+	}
+
 	if isContextError(ctx.Err()) {
 		if err := s.resourceStore.Put(sbox.Name(), sb, resourceCleaner); err != nil {
 			log.Errorf(ctx, "RunSandbox: failed to save progress of sandbox %s: %v", sbox.ID(), err)

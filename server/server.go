@@ -39,6 +39,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	nriIf "github.com/cri-o/cri-o/internal/nri"
 )
 
 const (
@@ -79,6 +81,9 @@ type Server struct {
 
 	seccompNotifierChan chan seccomp.Notification
 	seccompNotifiers    sync.Map
+
+	// NRI runtime interface
+	nri *nriAPI
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -524,6 +529,21 @@ func New(
 		return nil, fmt.Errorf("start seccomp notifier watcher: %w", err)
 	}
 
+	// Set up our NRI adaptation.
+	api, err := nriIf.New(s.Config().NRI)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create NRI interface: %v", err)
+	}
+
+	s.nri = &nriAPI{
+		cri: s,
+		nri: api,
+	}
+
+	if err := s.nri.start(); err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -834,6 +854,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	containerID := filepath.Base(event.Name)
 	log.Debugf(ctx, "Container or sandbox exited: %v", containerID)
 	c := s.GetContainer(ctx, containerID)
+	nriCtr := c
 	resource := "container"
 	if c == nil {
 		sb := s.GetSandbox(containerID)
@@ -851,6 +872,13 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	if err := s.ContainerStateToDisk(ctx, c); err != nil {
 		log.Warnf(ctx, "Unable to write %s %s state to disk: %v", resource, c.ID(), err)
 	}
+
+	if nriCtr != nil {
+		if err := s.nri.stopContainer(ctx, nil, nriCtr); err != nil {
+			log.Warnf(ctx, "NRI stop container request of %s failed: %v", nriCtr.ID(), err)
+		}
+	}
+
 	if err := os.Remove(event.Name); err != nil {
 		log.Warnf(ctx, "Failed to remove exit file: %v", err)
 	}
