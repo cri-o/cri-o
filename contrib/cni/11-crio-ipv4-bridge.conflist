@@ -1,5 +1,5 @@
 {
-  "cniVersion": "1.0.0",
+  "cniVersion": "0.3.1",
   "name": "crio",
   "plugins": [
     {
