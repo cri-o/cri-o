@@ -1,7 +1,10 @@
 package lib
 
 import (
+	"fmt"
+
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 )
@@ -33,4 +36,20 @@ func (c *ContainerServer) removeSandboxPlatform(sb *sandbox.Sandbox) error {
 		}
 	}
 	return nil
+}
+
+func configNsPath(spec *rspec.Spec, nsType rspec.LinuxNamespaceType) (string, error) {
+	for _, ns := range spec.Linux.Namespaces {
+		if ns.Type != nsType {
+			continue
+		}
+
+		if ns.Path == "" {
+			return "", fmt.Errorf("empty networking namespace")
+		}
+
+		return ns.Path, nil
+	}
+
+	return "", fmt.Errorf("missing networking namespace")
 }
