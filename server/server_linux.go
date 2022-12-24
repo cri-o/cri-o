@@ -6,6 +6,9 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime/debug"
+	"strconv"
+	"strings"
 
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/log"
@@ -117,5 +120,22 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 		}
 	}()
 
+	return nil
+}
+
+// configureMaxThreads sets the Go runtime max threads threshold
+// which is 90% of the kernel setting from /proc/sys/kernel/threads-max
+func configureMaxThreads() error {
+	mt, err := os.ReadFile("/proc/sys/kernel/threads-max")
+	if err != nil {
+		return fmt.Errorf("read max threads file: %w", err)
+	}
+	mtint, err := strconv.Atoi(strings.TrimSpace(string(mt)))
+	if err != nil {
+		return err
+	}
+	maxThreads := (mtint / 100) * 90
+	debug.SetMaxThreads(maxThreads)
+	logrus.Debugf("Golang's threads limit set to %d", maxThreads)
 	return nil
 }
