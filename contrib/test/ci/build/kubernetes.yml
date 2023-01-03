@@ -1,10 +1,19 @@
 ---
+- name: Check if kubernetes repo already exists
+  stat:
+    path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+  register: kube_repo
+
+- name: Delete kubernetes repo if already exists
+  file:
+    state: absent
+    path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
+  when: kube_repo.stat.exists
 
 - name: clone kubernetes source repo
   git:
     repo: "https://github.com/{{ k8s_github_fork }}/kubernetes.git"
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
-    # based on kube v1.9.0-alpha.2, update as needed
     version: "{{ k8s_git_version }}"
     force: "{{ force_clone | default(False) | bool}}"
 
