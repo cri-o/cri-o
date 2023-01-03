@@ -495,6 +495,20 @@ func (mr *MockStoreMockRecorder) GIDMap() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GIDMap", reflect.TypeOf((*MockStore)(nil).GIDMap))
 }
 
+// GarbageCollect mocks base method.
+func (m *MockStore) GarbageCollect() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GarbageCollect")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GarbageCollect indicates an expected call of GarbageCollect.
+func (mr *MockStoreMockRecorder) GarbageCollect() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GarbageCollect", reflect.TypeOf((*MockStore)(nil).GarbageCollect))
+}
+
 // GetDigestLock mocks base method.
 func (m *MockStore) GetDigestLock(arg0 digest.Digest) (lockfile.Locker, error) {
 	m.ctrl.T.Helper()
@@ -1127,6 +1141,20 @@ func (m *MockStore) Status() ([][2]string, error) {
 func (mr *MockStoreMockRecorder) Status() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockStore)(nil).Status))
+}
+
+// TransientStore mocks base method.
+func (m *MockStore) TransientStore() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TransientStore")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// TransientStore indicates an expected call of TransientStore.
+func (mr *MockStoreMockRecorder) TransientStore() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransientStore", reflect.TypeOf((*MockStore)(nil).TransientStore))
 }
 
 // UIDMap mocks base method.
