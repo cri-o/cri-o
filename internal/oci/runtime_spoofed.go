@@ -76,6 +76,7 @@ func (r *runtimeSpoofed) StartContainer(ctx context.Context, c *Container) error
 	defer c.opLock.Unlock()
 
 	c.state.Started = time.Now()
+	c.state.Pid = c.state.InitPid
 	return nil
 }
 
@@ -135,6 +136,18 @@ func (r *runtimeSpoofed) StopContainer(ctx context.Context, c *Container, timeou
 
 	if err := c.ShouldBeStopped(); err != nil {
 		return err
+	}
+
+	proc, err := os.FindProcess(c.state.InitPid)
+	if err != nil {
+		log.Debugf(ctx, "Can't find spoofed process: %d", c.state.InitPid)
+		c.state.Status = ContainerStateStopped
+		c.state.Finished = time.Now()
+		return errors.New("Unable to find spoofed container process")
+	}
+
+	if err = proc.Kill(); err != nil {
+		log.Warnf(ctx, "failed to kill process: %s", err)
 	}
 
 	c.state.Status = ContainerStateStopped
