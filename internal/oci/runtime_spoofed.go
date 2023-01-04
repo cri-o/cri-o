@@ -58,7 +58,7 @@ func (r *runtimeSpoofed) CreateContainer(ctx context.Context, c *Container, cgro
 	}
 	err := cmd.Start()
 	if err != nil {
-		return fmt.Errorf("error creating spoofed process: %v", err)
+		return fmt.Errorf("Error creating spoofed process: %v", err)
 	}
 	pid := cmd.Process.Pid
 	logrus.Infof("Setting spoofed Pid to %d", pid)
@@ -147,7 +147,7 @@ func (r *runtimeSpoofed) StopContainer(ctx context.Context, c *Container, timeou
 	}
 
 	if err = proc.Kill(); err != nil {
-		log.Warnf(ctx, "failed to kill process: %s", err)
+		log.Warnf(ctx, "Failed to kill process: %s", err)
 	}
 
 	c.state.Status = ContainerStateStopped
