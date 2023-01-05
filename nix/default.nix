@@ -11,6 +11,8 @@ let
         gnupg = pkg.gnupg.override {
           libusb1 = null;
           pcsclite = null;
+          enableMinimal = true;
+          guiSupport = false;
         };
       };
     };
