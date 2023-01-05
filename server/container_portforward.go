@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/log"
-	otel_collector "github.com/cri-o/cri-o/server/otel-collector"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -21,8 +20,7 @@ func (s *Server) PortForward(ctx context.Context, req *types.PortForwardRequest)
 	return resp, nil
 }
 
-func (s StreamService) PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error {
-	ctx := otel_collector.AddRequestNameAndID(context.Background(), "PortForward")
+func (s StreamService) PortForward(ctx context.Context, podSandboxID string, port int32, stream io.ReadWriteCloser) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
