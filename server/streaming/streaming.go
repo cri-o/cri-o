@@ -63,9 +63,9 @@ type Server interface {
 
 // Runtime is the interface to execute the commands and provide the streams.
 type Runtime interface {
-	Exec(containerID string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error
-	Attach(containerID string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error
-	PortForward(podSandboxID string, port int32, stream io.ReadWriteCloser) error
+	Exec(ctx context.Context, containerID string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error
+	Attach(ctx context.Context, containerID string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error
+	PortForward(ctx context.Context, podSandboxID string, port int32, stream io.ReadWriteCloser) error
 }
 
 // Config defines the options used for running the stream server.
@@ -374,13 +374,13 @@ var (
 )
 
 func (a *criAdapter) ExecInContainer(ctx context.Context, podName string, podUID apiTypes.UID, container string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize, timeout time.Duration) error {
-	return a.Runtime.Exec(container, cmd, in, out, err, tty, resize)
+	return a.Runtime.Exec(ctx, container, cmd, in, out, err, tty, resize)
 }
 
 func (a *criAdapter) AttachContainer(ctx context.Context, podName string, podUID apiTypes.UID, container string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
-	return a.Runtime.Attach(container, in, out, err, tty, resize)
+	return a.Runtime.Attach(ctx, container, in, out, err, tty, resize)
 }
 
 func (a *criAdapter) PortForward(ctx context.Context, podName string, podUID apiTypes.UID, port int32, stream io.ReadWriteCloser) error {
-	return a.Runtime.PortForward(podName, port, stream)
+	return a.Runtime.PortForward(ctx, podName, port, stream)
 }
