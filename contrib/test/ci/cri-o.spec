@@ -13,7 +13,7 @@
 
 %if ! 0%{?centos} && 0%{?rhel}
 # Golang minor version
-%global gominver 18
+%global gominver 19
 %define gobuild(o:) scl enable go-toolset-1.%{gominver} -- go build -buildmode pie -compiler gc -tags="rpm_crashtraceback no_openssl ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
 %else
 %define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback no_openssl ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
@@ -32,7 +32,7 @@
 %global service_name crio
 
 Name: %{repo}
-Version: 1.24.0
+Version: 1.26.0
 Release: 1.ci%{?dist}
 Summary: Kubernetes Container Runtime Interface for OCI-based containers
 License: ASL 2.0
