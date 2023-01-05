@@ -39,17 +39,17 @@ type fakeTable struct {
 
 type fakeIPTables struct {
 	tables        map[string]*fakeTable
-	builtinChains map[string]sets.String
+	builtinChains map[string]sets.Set[string]
 	protocol      utiliptables.Protocol
 }
 
 func newFakeIPTables() *fakeIPTables {
 	return &fakeIPTables{
 		tables: make(map[string]*fakeTable),
-		builtinChains: map[string]sets.String{
-			string(utiliptables.TableFilter): sets.NewString("INPUT", "FORWARD", "OUTPUT"),
-			string(utiliptables.TableNAT):    sets.NewString("PREROUTING", "INPUT", "OUTPUT", "POSTROUTING"),
-			string(utiliptables.TableMangle): sets.NewString("PREROUTING", "INPUT", "FORWARD", "OUTPUT", "POSTROUTING"),
+		builtinChains: map[string]sets.Set[string]{
+			string(utiliptables.TableFilter): sets.New("INPUT", "FORWARD", "OUTPUT"),
+			string(utiliptables.TableNAT):    sets.New("PREROUTING", "INPUT", "OUTPUT", "POSTROUTING"),
+			string(utiliptables.TableMangle): sets.New("PREROUTING", "INPUT", "FORWARD", "OUTPUT", "POSTROUTING"),
 		},
 		protocol: utiliptables.ProtocolIPv4,
 	}
