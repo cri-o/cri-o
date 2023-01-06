@@ -874,6 +874,8 @@ func addOCIBindMounts(ctx context.Context, mountLabel string, containerConfig *p
 			} else if err := securityLabel(src, mountLabel, false); err != nil {
 				return nil, nil, err
 			}
+		} else {
+			logrus.Debugf("Skipping relabel for %s because kubelet did not request it", src)
 		}
 
 		volumes = append(volumes, oci.ContainerVolume{
