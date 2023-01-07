@@ -144,6 +144,13 @@ apt update
 apt install -y -t buster-backports libseccomp2 || apt update -y -t buster-backports libseccomp2
 ```
 
+Note: You may need to add the authentication keys for the buster-backports repo before you can updating apt.
+
+```shell
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 648ACFD622F3D138
+```
+
 And then run the following as root:
 
 ```shell
