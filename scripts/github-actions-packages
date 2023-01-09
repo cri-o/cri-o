@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CRIU_REPO="https://download.opensuse.org/repositories/devel:/tools:/criu/xUbuntu_20.04"
+CRIU_REPO="https://download.opensuse.org/repositories/devel:/tools:/criu/xUbuntu_22.04"
 
 curl -fSsl $CRIU_REPO/Release.key | sudo apt-key add -
 echo "deb $CRIU_REPO/ /" | sudo tee /etc/apt/sources.list.d/criu.list

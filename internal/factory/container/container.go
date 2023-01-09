@@ -154,6 +154,8 @@ func New() (Container, error) {
 }
 
 // SpecAddMount adds a specified mount to the spec
+//
+//nolint:gocritic // passing the spec mount around here is intentional
 func (c *container) SpecAddMount(r rspec.Mount) {
 	c.spec.RemoveMount(r.Destination)
 	c.spec.AddMount(r)
