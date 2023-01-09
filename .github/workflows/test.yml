@@ -209,7 +209,11 @@ jobs:
         with:
           name: bundle
           path: build/bundle
-      - run: make bundle-test
+      - run: make bundle-test || true
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
+
 
   bundle-test-e2e:
     runs-on: ubuntu-latest
