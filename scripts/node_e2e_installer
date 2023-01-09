@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Commit to run upstream node e2e tests
 NODE_E2E_COMMIT=085e3a03cf17d8a97e14551ec83137954328f627
+ENABLE_POD_EVENTS=${ENABLE_POD_EVENTS:-"false"}
 
 enable_selinux() {
     # Make sure SELinux is enabled
@@ -48,6 +49,15 @@ EOF
 drop_infra_ctr = false
 EOF
 
+    for condition in "true" "True" "TRUE"; do
+        if [[ "${ENABLE_POD_EVENTS}" = "$condition" ]]; then
+            cat <<EOF >/etc/crio/crio.conf.d/40-evented-pleg.conf
+[crio.runtime]
+enable_pod_events = true
+EOF
+            break
+        fi
+    done
 }
 
 enable_selinux
