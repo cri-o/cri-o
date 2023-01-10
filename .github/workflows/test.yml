@@ -88,9 +88,7 @@ jobs:
         with:
           name: build
           path: bin
-      - run: |
-          chmod -R +x bin
-          sudo rm /etc/containers/storage.conf
+      - run: chmod -R +x bin
       - run: |
           sudo -E make docs-generation
           hack/tree_status.sh
@@ -104,9 +102,7 @@ jobs:
         with:
           name: build
           path: bin
-      - run: |
-          chmod -R +x bin
-          sudo rm /etc/containers/storage.conf
+      - run: chmod -R +x bin
       - run: |
           sudo -E make completions-generation
           hack/tree_status.sh
