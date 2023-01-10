@@ -50,7 +50,7 @@ var _ = t.Describe("ContainerAttach", func() {
 		It("shoud fail if container was not found", func() {
 			// Given
 			// When
-			err := testStreamService.Attach(testContainer.ID(),
+			err := testStreamService.Attach(context.Background(), testContainer.ID(),
 				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
 
 			// Then

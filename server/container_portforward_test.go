@@ -49,7 +49,7 @@ var _ = t.Describe("ContainerPortforward", func() {
 		It("shoud fail when sandbox not found", func() {
 			// Given
 			// When
-			err := testStreamService.PortForward(testSandbox.ID(), 0, nil)
+			err := testStreamService.PortForward(context.Background(), testSandbox.ID(), 0, nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())
