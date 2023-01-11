@@ -458,14 +458,26 @@ func (r *runtimeService) StopContainer(ctx context.Context, idOrName string) err
 	}
 	container, err := r.storageImageServer.GetStore().Container(idOrName)
 	if err != nil {
+		if errors.Is(err, storage.ErrContainerUnknown) {
+			log.Infof(ctx, "Container %s not known, assuming it got already removed", idOrName)
+			return nil
+		}
+
+		log.Warnf(ctx, "Failed to get container %s: %v", idOrName, err)
 		return err
 	}
-	_, err = r.storageImageServer.GetStore().Unmount(container.ID, false)
-	if err != nil {
-		log.Debugf(ctx, "Failed to unmount container %q: %v", container.ID, err)
+
+	if _, err := r.storageImageServer.GetStore().Unmount(container.ID, true); err != nil {
+		if errors.Is(err, storage.ErrLayerUnknown) {
+			log.Infof(ctx, "Layer for container %s not known", container.ID)
+			return nil
+		}
+
+		log.Warnf(ctx, "Failed to unmount container %s: %v", container.ID, err)
 		return err
 	}
-	log.Debugf(ctx, "Unmounted container %q", container.ID)
+
+	log.Debugf(ctx, "Unmounted container %s", container.ID)
 	return nil
 }
 
