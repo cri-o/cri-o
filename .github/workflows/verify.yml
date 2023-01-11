@@ -97,6 +97,7 @@ jobs:
       - run: make check-config-template
 
   get-script:
+    if: ${{ github.base_ref == 'main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -104,6 +105,7 @@ jobs:
       - run: crio version
 
   get-script-with-verification:
+    if: ${{ github.base_ref == 'main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
