@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,6 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// package adapters provides helper functions for the google.type protobuf
-// messages (Decimal, Fraction, etc.).
-package adapters
+package storage
+
+import (
+	"context"
+
+	"google.golang.org/grpc/metadata"
+)
+
+// InsertMetadata inserts the given gRPC metadata into the outgoing context.
+func InsertMetadata(ctx context.Context, mds ...metadata.MD) context.Context {
+	return insertMetadata(ctx, mds...)
+}
