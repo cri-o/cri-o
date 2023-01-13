@@ -52,7 +52,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b
 	github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/runtime-spec v1.0.3-0.20220825212826-86290f6a00fb
-	github.com/opencontainers/runtime-tools v0.9.1-0.20221026201742-946c877fa809
+	github.com/opencontainers/runtime-tools v0.9.1-0.20221107153022-2802ff9ff545
 	github.com/opencontainers/selinux v1.10.2
 	github.com/prometheus/client_golang v1.14.0
 	github.com/psampaz/go-mod-outdated v0.8.0
