@@ -27,6 +27,8 @@ jobs:
       - run: scripts/github-actions-packages
       - run: make
       - run: bin/crio version
+      - run: make bin/crio.cross.linux.amd64
+      - run: bin/crio.cross.linux.amd64 version
       - uses: actions/upload-artifact@v3
         with:
           name: build
