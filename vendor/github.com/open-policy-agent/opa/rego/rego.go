@@ -29,6 +29,7 @@ import (
 	"github.com/open-policy-agent/opa/storage"
 	"github.com/open-policy-agent/opa/storage/inmem"
 	"github.com/open-policy-agent/opa/topdown"
+	"github.com/open-policy-agent/opa/topdown/builtins"
 	"github.com/open-policy-agent/opa/topdown/cache"
 	"github.com/open-policy-agent/opa/topdown/print"
 	"github.com/open-policy-agent/opa/tracing"
@@ -115,6 +116,7 @@ type EvalContext struct {
 	indexing               bool
 	earlyExit              bool
 	interQueryBuiltinCache cache.InterQueryCache
+	ndBuiltinCache         builtins.NDBCache
 	resolvers              []refResolver
 	sortSets               bool
 	printHook              print.Hook
@@ -250,6 +252,14 @@ func EvalSeed(r io.Reader) EvalOption {
 func EvalInterQueryBuiltinCache(c cache.InterQueryCache) EvalOption {
 	return func(e *EvalContext) {
 		e.interQueryBuiltinCache = c
+	}
+}
+
+// EvalNDBuiltinCache sets the non-deterministic builtin cache that built-in functions can
+// use during evaluation.
+func EvalNDBuiltinCache(c builtins.NDBCache) EvalOption {
+	return func(e *EvalContext) {
+		e.ndBuiltinCache = c
 	}
 }
 
@@ -508,6 +518,7 @@ type Rego struct {
 	bundles                map[string]*bundle.Bundle
 	skipBundleVerification bool
 	interQueryBuiltinCache cache.InterQueryCache
+	ndBuiltinCache         builtins.NDBCache
 	strictBuiltinErrors    bool
 	resolvers              []refResolver
 	schemaSet              *ast.SchemaSet
@@ -1015,6 +1026,13 @@ func InterQueryBuiltinCache(c cache.InterQueryCache) func(r *Rego) {
 	}
 }
 
+// NDBuiltinCache sets the non-deterministic builtins cache.
+func NDBuiltinCache(c builtins.NDBCache) func(r *Rego) {
+	return func(r *Rego) {
+		r.ndBuiltinCache = c
+	}
+}
+
 // StrictBuiltinErrors tells the evaluator to treat all built-in function errors as fatal errors.
 func StrictBuiltinErrors(yes bool) func(r *Rego) {
 	return func(r *Rego) {
@@ -1162,6 +1180,7 @@ func (r *Rego) Eval(ctx context.Context) (ResultSet, error) {
 		EvalInstrument(r.instrument),
 		EvalTime(r.time),
 		EvalInterQueryBuiltinCache(r.interQueryBuiltinCache),
+		EvalNDBuiltinCache(r.ndBuiltinCache),
 		EvalSeed(r.seed),
 	}
 
@@ -1235,6 +1254,7 @@ func (r *Rego) Partial(ctx context.Context) (*PartialQueries, error) {
 		EvalMetrics(r.metrics),
 		EvalInstrument(r.instrument),
 		EvalInterQueryBuiltinCache(r.interQueryBuiltinCache),
+		EvalNDBuiltinCache(r.ndBuiltinCache),
 	}
 
 	for _, t := range r.queryTracers {
@@ -1906,6 +1926,7 @@ func (r *Rego) eval(ctx context.Context, ectx *EvalContext) (ResultSet, error) {
 		WithIndexing(ectx.indexing).
 		WithEarlyExit(ectx.earlyExit).
 		WithInterQueryBuiltinCache(ectx.interQueryBuiltinCache).
+		WithNDBuiltinCache(ectx.ndBuiltinCache).
 		WithStrictBuiltinErrors(r.strictBuiltinErrors).
 		WithSeed(ectx.seed).
 		WithPrintHook(ectx.printHook).
@@ -1970,6 +1991,7 @@ func (r *Rego) evalWasm(ctx context.Context, ectx *EvalContext) (ResultSet, erro
 		Time:                   ectx.time,
 		Seed:                   ectx.seed,
 		InterQueryBuiltinCache: ectx.interQueryBuiltinCache,
+		NDBuiltinCache:         ectx.ndBuiltinCache,
 		PrintHook:              ectx.printHook,
 		Capabilities:           ectx.capabilities,
 	})
@@ -2181,6 +2203,7 @@ func (r *Rego) partial(ctx context.Context, ectx *EvalContext) (*PartialQueries,
 		WithSkipPartialNamespace(r.skipPartialNamespace).
 		WithShallowInlining(r.shallowInlining).
 		WithInterQueryBuiltinCache(ectx.interQueryBuiltinCache).
+		WithNDBuiltinCache(ectx.ndBuiltinCache).
 		WithStrictBuiltinErrors(r.strictBuiltinErrors).
 		WithSeed(ectx.seed).
 		WithPrintHook(ectx.printHook)
