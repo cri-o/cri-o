@@ -42,8 +42,9 @@ The CRI-O project and its leadership embrace the following values:
  
 ## Contribution Tiers
 
-CRI-O has four tiers of code contributors: community members, reviewers, approvers and emeritus approvers.
+CRI-O has five tiers of code contributors: community members, org members, reviewers, approvers and emeritus approvers.
 * Anyone can (and is encouraged to) be a community member, whose responsibilities are up to the contributor (submitting PRs, reviewing PRs).
+* An org member is someone added to the [cri-o](https://github.com/cri-o) organization, and can be considered to be a community member whose contributions have demonstrated they can be trusted with access to the CRI-O CI.
 * Reviewers are a set of people responsible for reviewing PRs and triaging issues. In most cases, they're also responsible for fixing issues in the code base.
 * Approvers are the set of people that have final say over the direction of the project. For any PR to merge, an approver must approve it.
 * Emeritus Approvers can be considered "retired" approver--while they don't have approval rights, they are listed in the OWNERS file to indicate their expertise in the area.
@@ -61,11 +62,22 @@ Further, some more detailed information can be found in the [CRI-O Maintainers f
 	* Give conference presentations
 	* Testing out new releases
 
+### CRI-O Organization Member
+
+#### How to be come an org member
+
+* Organization members are contributors whose contributions automatically have CI run on them.
+* As such, a proven track-record of good faith contributions is requred for org membership.
+* To become an org member, one should file an issue with [this template](https://github.com/cri-o/cri-o/issues/new?template=org_member.yml&title=REQUEST%3A+New+organization+membership+for+%3Cyour-GH-handle%3E).
+
+#### Reviewer responsibilities
+* Organization members are expected to fulfill the responsibilities of a community member, with a layer of added trust that the CRI-O CI will not be used in a malicious or wasteful manner.
+
 ### Reviewer
 
 #### How to become a reviewer
 
-* If a community member would like to take on a more active role in the community, and one day become an approver, becoming a reviewer is a good first step.
+* If an org member would like to take on a more active role in the community, and one day become an approver, becoming a reviewer is a good first step.
 * Becoming a reviewer allows someone to build trust with the community and deepen their knowledge of the code base.
 * To become a reviewer, one should file an issue with [this template](https://github.com/cri-o/cri-o/issues/new?template=reviewer.yml&title=REQUEST%3A+New+reviewer+status+for+%3Cyour-GH-handle%3E).
 * To find a sponsor, a community member is encouraged to reach out to the approvers. The approver team is happy to foster growth within the CRI-O community.
