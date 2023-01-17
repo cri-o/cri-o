@@ -28,11 +28,13 @@ dependencies:
       match: VERSION
 
   - name: cni-plugins
-    version: v1.1.1
+    version: v1.2.0
     refPaths:
     - path: scripts/versions
       match: cni-plugins
     - path: contrib/test/integration/build/plugins.yml
+      match: version
+    - path: contrib/test/ci/build/plugins.yml
       match: version
 
   - name: conmon
