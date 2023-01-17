@@ -635,6 +635,13 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 		addressPath := filepath.Join(c.BundlePath(), "address")
 		data, err := os.ReadFile(addressPath)
 		if err != nil {
+			// If the container is actually removed, this error is expected and should be ignored.
+			// In this case, the container's status should be "Stopped".
+			if c.state.Status == ContainerStateStopped {
+				log.Debugf(ctx, "Skipping status update for: %+v", c.state)
+				return nil
+			}
+
 			log.Warnf(ctx, "Failed to read shim address: %v", err)
 			return errors.New("runtime not correctly setup")
 		}
