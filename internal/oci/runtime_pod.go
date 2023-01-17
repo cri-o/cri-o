@@ -14,6 +14,7 @@ import (
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -65,6 +66,7 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		RuntimeRoot:      runRoot,
 		CgroupManager:    cgroupManager,
 		Tracing: &conmonClient.Tracing{
+			Tracer:   opentelemetry.Tracer(),
 			Enabled:  r.config.EnableTracing,
 			Endpoint: fmt.Sprintf("http://%s", r.config.TracingEndpoint),
 		},
