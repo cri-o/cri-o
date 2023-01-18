@@ -284,17 +284,24 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 
 	// Cleanup the deletedPods in the networking plugin
 	wipeResourceCleaner := resourcestore.NewResourceCleaner()
-	for _, sb := range deletedPods {
-		sb := sb
-		cleanupFunc := func() error {
-			err := s.networkStop(context.Background(), sb)
-			if err == nil {
-				log.Infof(ctx, "Successfully cleaned up network for pod %s", sb.ID())
-			}
+	cleanupFunc := func() error {
+		if err := s.config.CNIPluginReadyOrError(); err != nil {
 			return err
 		}
-		wipeResourceCleaner.Add(ctx, "cleanup sandbox network", cleanupFunc)
+		var (
+			last      error
+			numErrors int
+		)
+		for _, sb := range deletedPods {
+			if err := s.networkStop(context.Background(), sb); err != nil {
+				log.Errorf(context.Background(), "Failed to cleanup sandbox %s network: %v", sb.ID(), err)
+				numErrors++
+				last = fmt.Errorf("failed to cleanup sandbox networks: The last of %d errors is %w", numErrors, err)
+			}
+		}
+		return last
 	}
+	wipeResourceCleaner.Add(ctx, "cleanup all sandbox networks", cleanupFunc)
 
 	// If any failed to be deleted, the networking plugin is likely not ready.
 	// The cleanup should be retried until it succeeds.
