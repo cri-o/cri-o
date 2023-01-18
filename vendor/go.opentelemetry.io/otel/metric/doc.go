@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package otel // import "go.opentelemetry.io/otel"
+/*
+Package metric provides an implementation of the metrics part of the
+OpenTelemetry API.
 
-// Version is the current release version of OpenTelemetry in use.
-func Version() string {
-	return "1.11.2"
-}
+This package is currently in a pre-GA phase. Backwards incompatible changes
+may be introduced in subsequent minor version releases as we work to track the
+evolving OpenTelemetry specification and user feedback.
+*/
+package metric // import "go.opentelemetry.io/otel/metric"

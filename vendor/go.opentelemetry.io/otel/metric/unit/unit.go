@@ -12,9 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package otel // import "go.opentelemetry.io/otel"
+package unit // import "go.opentelemetry.io/otel/metric/unit"
 
-// Version is the current release version of OpenTelemetry in use.
-func Version() string {
-	return "1.11.2"
-}
+// Unit is a determinate standard quantity of measurement.
+type Unit string
+
+// Units defined by OpenTelemetry.
+const (
+	Dimensionless Unit = "1"
+	Bytes         Unit = "By"
+	Milliseconds  Unit = "ms"
+)
