@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package maybe
@@ -5,7 +6,7 @@ package maybe
 import (
 	"os"
 
-	"github.com/google/renameio"
+	"github.com/google/renameio/v2"
 )
 
 // WriteFile mirrors ioutil.WriteFile. On Linux it uses renameio.WriteFile to

@@ -1363,7 +1363,10 @@ github.com/google/pprof/profile
 # github.com/google/renameio v1.0.1
 ## explicit; go 1.13
 github.com/google/renameio
-github.com/google/renameio/maybe
+# github.com/google/renameio/v2 v2.0.0
+## explicit; go 1.13
+github.com/google/renameio/v2
+github.com/google/renameio/v2/maybe
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit; go 1.13
 github.com/google/shlex
@@ -3307,11 +3310,12 @@ k8s.io/utils/trace
 # mvdan.cc/editorconfig v0.2.0
 ## explicit; go 1.15
 mvdan.cc/editorconfig
-# mvdan.cc/sh/v3 v3.5.1
-## explicit; go 1.17
+# mvdan.cc/sh/v3 v3.6.0
+## explicit; go 1.18
 mvdan.cc/sh/v3/cmd/shfmt
 mvdan.cc/sh/v3/fileutil
 mvdan.cc/sh/v3/syntax
+mvdan.cc/sh/v3/syntax/typedjson
 # oras.land/oras-go v1.2.0
 ## explicit; go 1.17
 oras.land/oras-go/pkg/artifact

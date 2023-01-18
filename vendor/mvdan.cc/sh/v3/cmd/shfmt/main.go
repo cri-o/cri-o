@@ -16,7 +16,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	maybeio "github.com/google/renameio/maybe"
+	maybeio "github.com/google/renameio/v2/maybe"
 	diffpkg "github.com/pkg/diff"
 	diffwrite "github.com/pkg/diff/write"
 	"golang.org/x/term"
@@ -24,6 +24,7 @@ import (
 
 	"mvdan.cc/sh/v3/fileutil"
 	"mvdan.cc/sh/v3/syntax"
+	"mvdan.cc/sh/v3/syntax/typedjson"
 )
 
 // TODO: this flag business screams generics. try again with Go 1.18+.
@@ -69,7 +70,8 @@ var (
 	keepPadding = &boolFlag{"kp", "keep-padding", false}
 	funcNext    = &boolFlag{"fn", "func-next-line", false}
 
-	toJSON = &boolFlag{"tojson", "", false} // TODO(v4): consider "to-json" for consistency
+	toJSON   = &boolFlag{"tojson", "to-json", false} // TODO(v4): remove "tojson" for consistency
+	fromJSON = &boolFlag{"", "from-json", false}
 
 	// useEditorConfig will be false if any parser or printer flags were used.
 	useEditorConfig = true
@@ -89,7 +91,7 @@ var (
 	allFlags = []interface{}{
 		versionFlag, list, write, simplify, minify, find, diff,
 		lang, posix, filename,
-		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON,
+		indent, binNext, caseIndent, spaceRedirs, keepPadding, funcNext, toJSON, fromJSON,
 	}
 )
 
@@ -168,7 +170,8 @@ Printer options:
 Utilities:
 
   -f, --find   recursively find all shell files and print the paths
-  --tojson     print syntax tree to stdout as a typed JSON
+  --to-json    print syntax tree to stdout as a typed JSON
+  --from-json  read syntax tree from stdin as a typed JSON
 
 For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 `)
@@ -237,6 +240,9 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 	}
 	if flag.NArg() == 0 || (flag.NArg() == 1 && flag.Arg(0) == "-") {
 		name := "<standard input>"
+		if toJSON.val {
+			name = "" // the default is not useful there
+		}
 		if filename.val != "" {
 			name = filename.val
 		}
@@ -253,7 +259,7 @@ For more information, see 'man shfmt' and https://github.com/mvdan/sh.
 		return 1
 	}
 	if toJSON.val {
-		fmt.Fprintln(os.Stderr, "-tojson can only be used with stdin")
+		fmt.Fprintln(os.Stderr, "--to-json can only be used with stdin")
 		return 1
 	}
 	status := 0
@@ -394,7 +400,7 @@ func formatPath(path string, checkShebang bool) error {
 	}
 	readBuf.Reset()
 	if checkShebang || shebangForAuto {
-		n, err := io.ReadAtLeast(f, copyBuf[:32], len("#/bin/sh\n"))
+		n, err := io.ReadAtLeast(f, copyBuf[:32], len("#!/bin/sh\n"))
 		switch {
 		case !checkShebang:
 			// only wanted the shebang for LangAuto
@@ -426,29 +432,43 @@ func formatPath(path string, checkShebang bool) error {
 	return formatBytes(readBuf.Bytes(), path, fileLang)
 }
 
-func formatBytes(src []byte, path string, lang syntax.LangVariant) error {
+func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	if useEditorConfig {
 		props, err := ecQuery.Find(path)
 		if err != nil {
 			return err
 		}
-		propsOptions(lang, props)
+		propsOptions(fileLang, props)
 	} else {
-		syntax.Variant(lang)(parser)
+		syntax.Variant(fileLang)(parser)
 	}
-	prog, err := parser.Parse(bytes.NewReader(src), path)
-	if err != nil {
-		return err
+	var node syntax.Node
+	var err error
+	if fromJSON.val {
+		node, err = typedjson.Decode(bytes.NewReader(src))
+		if err != nil {
+			return err
+		}
+	} else {
+		node, err = parser.Parse(bytes.NewReader(src), path)
+		if err != nil {
+			if s, ok := err.(syntax.LangError); ok && lang.val == syntax.LangAuto {
+				return fmt.Errorf("%w (parsed as %s via -%s=%s)", s, fileLang, lang.short, lang.val)
+			}
+			return err
+		}
 	}
 	if simplify.val {
-		syntax.Simplify(prog)
+		syntax.Simplify(node)
 	}
 	if toJSON.val {
 		// must be standard input; fine to return
-		return writeJSON(out, prog, true)
+		// TODO: change the default behavior to be compact,
+		// and allow using --to-json=pretty or --to-json=indent.
+		return typedjson.EncodeOptions{Indent: "\t"}.Encode(out, node)
 	}
 	writeBuf.Reset()
-	printer.Print(&writeBuf, prog)
+	printer.Print(&writeBuf, node)
 	res := writeBuf.Bytes()
 	if !bytes.Equal(src, res) {
 		if list.val {

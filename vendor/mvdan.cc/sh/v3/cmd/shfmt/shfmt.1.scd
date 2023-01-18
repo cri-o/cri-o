@@ -74,7 +74,7 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-bn*, *--binary-next-line*
 	Binary ops like *&&* and *|* may start a line.
 
-*-ci*, *--switch-case-indent*
+*-ci*, *--case-indent*
 	Switch cases will be indented.
 
 *-sr*, *--space-redirects*
@@ -91,8 +91,11 @@ predictable. Some aspects of the format can be configured via printer flags.
 *-f*, *--find*
 	Recursively find all shell files and print the paths.
 
-*-tojson*
+*--to-json*
 	Print syntax tree to stdout as a typed JSON.
+
+*--from-json*
+	Read syntax tree from stdin as a typed JSON.
 
 # EXAMPLES
 
