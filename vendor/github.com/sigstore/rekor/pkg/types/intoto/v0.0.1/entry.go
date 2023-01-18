@@ -25,7 +25,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -286,22 +286,26 @@ func (v V001Entry) CreateFromArtifactProperties(_ context.Context, props types.A
 		if props.ArtifactPath.IsAbs() {
 			return nil, errors.New("intoto envelopes cannot be fetched over HTTP(S)")
 		}
-		artifactBytes, err = ioutil.ReadFile(filepath.Clean(props.ArtifactPath.Path))
+		artifactBytes, err = os.ReadFile(filepath.Clean(props.ArtifactPath.Path))
 		if err != nil {
 			return nil, err
 		}
 	}
 	publicKeyBytes := props.PublicKeyBytes
-	if publicKeyBytes == nil {
-		if props.PublicKeyPath == nil {
-			return nil, errors.New("public key must be provided to verify signature")
+	if len(publicKeyBytes) == 0 {
+		if len(props.PublicKeyPaths) != 1 {
+			return nil, errors.New("only one public key must be provided to verify signature")
 		}
-		publicKeyBytes, err = ioutil.ReadFile(filepath.Clean(props.PublicKeyPath.Path))
+		keyBytes, err := os.ReadFile(filepath.Clean(props.PublicKeyPaths[0].Path))
 		if err != nil {
 			return nil, fmt.Errorf("error reading public key file: %w", err)
 		}
+		publicKeyBytes = append(publicKeyBytes, keyBytes)
+	} else if len(publicKeyBytes) != 1 {
+		return nil, errors.New("only one public key must be provided")
 	}
-	kb := strfmt.Base64(publicKeyBytes)
+
+	kb := strfmt.Base64(publicKeyBytes[0])
 
 	re := V001Entry{
 		IntotoObj: models.IntotoV001Schema{

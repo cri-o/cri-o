@@ -321,7 +321,7 @@ func (w *writer) writeRule(rule *ast.Rule, isElse, useContainsKW, useIf bool, co
 		return comments
 	}
 
-	if useIf && partialSetException && !isElse {
+	if useIf && partialSetException {
 		w.write(" if")
 		if len(rule.Body) == 1 {
 			if rule.Body[0].Location.Row == rule.Head.Location.Row {
@@ -471,10 +471,19 @@ func (w *writer) insertComments(comments []*ast.Comment, loc *ast.Location) []*a
 
 func (w *writer) writeBody(body ast.Body, comments []*ast.Comment) []*ast.Comment {
 	comments = w.insertComments(comments, body.Loc())
-	offset := 0
 	for i, expr := range body {
-		if i > 0 && expr.Location.Row-body[i-1].Location.Row-offset > 1 {
-			w.blankLine()
+		// Insert a blank line in before the expression if it was not right
+		// after the previous expression.
+		if i > 0 {
+			lastRow := body[i-1].Location.Row
+			for _, c := range body[i-1].Location.Text {
+				if c == '\n' {
+					lastRow++
+				}
+			}
+			if expr.Location.Row > lastRow+1 {
+				w.blankLine()
+			}
 		}
 		w.startLine()
 
@@ -854,7 +863,7 @@ func (w *writer) writeComprehension(open, close byte, term *ast.Term, body ast.B
 }
 
 func (w *writer) writeComprehensionBody(open, close byte, body ast.Body, term, compr *ast.Location, comments []*ast.Comment) []*ast.Comment {
-	var exprs []interface{}
+	exprs := make([]interface{}, 0, len(body))
 	for _, expr := range body {
 		exprs = append(exprs, expr)
 	}
@@ -1004,7 +1013,7 @@ func groupIterable(elements []interface{}, last *ast.Location) [][]interface{} {
 	})
 
 	var lines [][]interface{}
-	var cur []interface{}
+	cur := make([]interface{}, 0, len(elements))
 	for i, t := range elements {
 		elem := t
 		loc := getLoc(elem)

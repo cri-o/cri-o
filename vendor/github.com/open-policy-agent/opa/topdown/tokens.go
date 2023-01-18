@@ -254,7 +254,12 @@ func builtinJWTVerifyES512(bctx BuiltinContext, args []*ast.Term, iter func(*ast
 	return err
 }
 
-func verifyES(publicKey interface{}, digest []byte, signature []byte) error {
+func verifyES(publicKey interface{}, digest []byte, signature []byte) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("ECDSA signature verification error: %v", r)
+		}
+	}()
 	publicKeyEcdsa, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		return fmt.Errorf("incorrect public key type")
@@ -309,7 +314,7 @@ func getKeysFromCertOrJWK(certificate string) ([]verificationKey, error) {
 		return nil, fmt.Errorf("failed to parse a JWK key (set): %w", err)
 	}
 
-	var keys []verificationKey
+	keys := make([]verificationKey, 0, len(jwks.Keys))
 	for _, k := range jwks.Keys {
 		key, err := k.Materialize()
 		if err != nil {
@@ -783,7 +788,12 @@ func verifyRSAPSS(key interface{}, hash crypto.Hash, digest []byte, signature []
 	return nil
 }
 
-func verifyECDSA(key interface{}, hash crypto.Hash, digest []byte, signature []byte) error {
+func verifyECDSA(key interface{}, hash crypto.Hash, digest []byte, signature []byte) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("ECDSA signature verification error: %v", r)
+		}
+	}()
 	publicKeyEcdsa, ok := key.(*ecdsa.PublicKey)
 	if !ok {
 		return fmt.Errorf("incorrect public key type")
@@ -1064,18 +1074,28 @@ func builtinJWTDecodeVerify(bctx BuiltinContext, args []*ast.Term, iter func(*as
 	}
 	// RFC7159 4.1.4 exp
 	if exp := payload.Get(jwtExpKey); exp != nil {
-		// constraints.time is in nanoseconds but exp Value is in seconds
-		compareTime := ast.FloatNumberTerm(float64(constraints.time) / 1000000000)
-		if ast.Compare(compareTime, exp.Value.(ast.Number)) != -1 {
-			return iter(unverified)
+		switch exp.Value.(type) {
+		case ast.Number:
+			// constraints.time is in nanoseconds but exp Value is in seconds
+			compareTime := ast.FloatNumberTerm(float64(constraints.time) / 1000000000)
+			if ast.Compare(compareTime, exp.Value.(ast.Number)) != -1 {
+				return iter(unverified)
+			}
+		default:
+			return fmt.Errorf("exp value must be a number")
 		}
 	}
 	// RFC7159 4.1.5 nbf
 	if nbf := payload.Get(jwtNbfKey); nbf != nil {
-		// constraints.time is in nanoseconds but nbf Value is in seconds
-		compareTime := ast.FloatNumberTerm(float64(constraints.time) / 1000000000)
-		if ast.Compare(compareTime, nbf.Value.(ast.Number)) == -1 {
-			return iter(unverified)
+		switch nbf.Value.(type) {
+		case ast.Number:
+			// constraints.time is in nanoseconds but nbf Value is in seconds
+			compareTime := ast.FloatNumberTerm(float64(constraints.time) / 1000000000)
+			if ast.Compare(compareTime, nbf.Value.(ast.Number)) == -1 {
+				return iter(unverified)
+			}
+		default:
+			return fmt.Errorf("nbf value must be a number")
 		}
 	}
 

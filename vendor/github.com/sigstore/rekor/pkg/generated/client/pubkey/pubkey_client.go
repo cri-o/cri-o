@@ -50,9 +50,9 @@ type ClientService interface {
 }
 
 /*
-  GetPublicKey retrieves the public key that can be used to validate the signed tree head
+GetPublicKey retrieves the public key that can be used to validate the signed tree head
 
-  Returns the public key that can be used to validate the signed tree head
+Returns the public key that can be used to validate the signed tree head
 */
 func (a *Client) GetPublicKey(params *GetPublicKeyParams, opts ...ClientOption) (*GetPublicKeyOK, error) {
 	// TODO: Validate the params before sending

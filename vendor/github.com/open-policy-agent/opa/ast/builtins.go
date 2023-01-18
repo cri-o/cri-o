@@ -102,6 +102,7 @@ var DefaultBuiltins = [...]*Builtin{
 	RegexTemplateMatch,
 	RegexFind,
 	RegexFindAllStringSubmatch,
+	RegexReplace,
 
 	// Sets
 	SetDiff,
@@ -284,14 +285,18 @@ var DefaultBuiltins = [...]*Builtin{
 // built-in definitions.
 var BuiltinMap map[string]*Builtin
 
-// IgnoreDuringPartialEval is a set of built-in functions that should not be
-// evaluated during partial evaluation. These functions are not partially
-// evaluated because they are not pure.
+// Deprecated: Builtins can now be directly annotated with the
+// Nondeterministic property, and when set to true, will be ignored
+// for partial evaluation.
 var IgnoreDuringPartialEval = []*Builtin{
+	RandIntn,
+	UUIDRFC4122,
+	JWTDecodeVerify,
+	JWTEncodeSignRaw,
+	JWTEncodeSign,
 	NowNanos,
 	HTTPSend,
-	UUIDRFC4122,
-	RandIntn,
+	OPARuntime,
 	NetLookupIPAddr,
 }
 
@@ -1176,6 +1181,19 @@ The old string comparisons are done in argument order.`,
 					types.S)),
 			).Description("replacement pairs"),
 			types.Named("value", types.S).Description("string to replace substring matches in"),
+		),
+		types.Named("output", types.S),
+	),
+}
+
+var RegexReplace = &Builtin{
+	Name:        "regex.replace",
+	Description: `Find and replaces the text using the regular expression pattern.`,
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("s", types.S).Description("string being processed"),
+			types.Named("pattern", types.S).Description("regex pattern to be applied"),
+			types.Named("value", types.S).Description("regex value"),
 		),
 		types.Named("output", types.S),
 	),
@@ -2512,11 +2530,11 @@ var HTTPSend = &Builtin{
 // GraphQLParse returns a pair of AST objects from parsing/validation.
 var GraphQLParse = &Builtin{
 	Name:        "graphql.parse",
-	Description: "Returns AST objects for a given GraphQL query and schema after validating the query against the schema. Returns undefined if errors were encountered during parsing or validation.",
+	Description: "Returns AST objects for a given GraphQL query and schema after validating the query against the schema. Returns undefined if errors were encountered during parsing or validation. The query and/or schema can be either GraphQL strings or AST objects from the other GraphQL builtin functions.",
 	Decl: types.NewFunction(
 		types.Args(
-			types.Named("query", types.S),
-			types.Named("schema", types.S),
+			types.Named("query", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))),
+			types.Named("schema", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))),
 		),
 		types.Named("output", types.NewArray([]types.Type{
 			types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)),
@@ -2528,11 +2546,11 @@ var GraphQLParse = &Builtin{
 // GraphQLParseAndVerify returns a boolean and a pair of AST object from parsing/validation.
 var GraphQLParseAndVerify = &Builtin{
 	Name:        "graphql.parse_and_verify",
-	Description: "Returns a boolean indicating success or failure alongside the parsed ASTs for a given GraphQL query and schema after validating the query against the schema.",
+	Description: "Returns a boolean indicating success or failure alongside the parsed ASTs for a given GraphQL query and schema after validating the query against the schema. The query and/or schema can be either GraphQL strings or AST objects from the other GraphQL builtin functions.",
 	Decl: types.NewFunction(
 		types.Args(
-			types.Named("query", types.S),
-			types.Named("schema", types.S),
+			types.Named("query", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))),
+			types.Named("schema", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))),
 		),
 		types.Named("output", types.NewArray([]types.Type{
 			types.B,
@@ -2572,11 +2590,11 @@ var GraphQLParseSchema = &Builtin{
 // schema, and returns false for all other inputs.
 var GraphQLIsValid = &Builtin{
 	Name:        "graphql.is_valid",
-	Description: "Checks that a GraphQL query is valid against a given schema.",
+	Description: "Checks that a GraphQL query is valid against a given schema. The query and/or schema can be either GraphQL strings or AST objects from the other GraphQL builtin functions.",
 	Decl: types.NewFunction(
 		types.Args(
-			types.Named("query", types.S),
-			types.Named("schema", types.S),
+			types.Named("query", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))),
+			types.Named("schema", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))),
 		),
 		types.Named("output", types.B).Description("`true` if the query is valid under the given schema. `false` otherwise."),
 	),

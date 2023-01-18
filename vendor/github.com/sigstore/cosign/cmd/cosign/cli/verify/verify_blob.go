@@ -66,7 +66,7 @@ func isb64(data []byte) bool {
 }
 
 // nolint
-func VerifyBlobCmd(ctx context.Context, ko options.KeyOpts, certRef, certEmail,
+func VerifyBlobCmd(ctx context.Context, ko options.KeyOpts, certRef, certEmail, certIdentity,
 	certOidcIssuer, certChain, sigRef, blobRef, certGithubWorkflowTrigger, certGithubWorkflowSha,
 	certGithubWorkflowName,
 	certGithubWorkflowRepository,
@@ -90,6 +90,7 @@ func VerifyBlobCmd(ctx context.Context, ko options.KeyOpts, certRef, certEmail,
 
 	co := &cosign.CheckOpts{
 		CertEmail:                    certEmail,
+		CertIdentity:                 certIdentity,
 		CertOidcIssuer:               certOidcIssuer,
 		CertGithubWorkflowTrigger:    certGithubWorkflowTrigger,
 		CertGithubWorkflowSha:        certGithubWorkflowSha,
@@ -107,7 +108,7 @@ func VerifyBlobCmd(ctx context.Context, ko options.KeyOpts, certRef, certEmail,
 			co.RekorClient = rekorClient
 		}
 	}
-	if certRef == "" || options.EnableExperimental() {
+	if options.EnableExperimental() {
 		co.RootCerts, err = fulcio.GetRoots()
 		if err != nil {
 			return fmt.Errorf("getting Fulcio roots: %w", err)
@@ -145,9 +146,18 @@ func VerifyBlobCmd(ctx context.Context, ko options.KeyOpts, certRef, certEmail,
 			return err
 		}
 		if certChain == "" {
+			co.RootCerts, err = fulcio.GetRoots()
+			if err != nil {
+				return fmt.Errorf("getting Fulcio roots: %w", err)
+			}
+
+			co.IntermediateCerts, err = fulcio.GetIntermediates()
+			if err != nil {
+				return fmt.Errorf("getting Fulcio intermediates: %w", err)
+			}
 			co.SigVerifier, err = cosign.ValidateAndUnpackCert(cert, co)
 			if err != nil {
-				return err
+				return fmt.Errorf("validating certRef: %w", err)
 			}
 		} else {
 			// Verify certificate with chain
@@ -157,7 +167,7 @@ func VerifyBlobCmd(ctx context.Context, ko options.KeyOpts, certRef, certEmail,
 			}
 			co.SigVerifier, err = cosign.ValidateAndUnpackCertWithChain(cert, chain, co)
 			if err != nil {
-				return err
+				return fmt.Errorf("verifying certRef with certChain: %w", err)
 			}
 		}
 	case ko.BundlePath != "":
@@ -178,10 +188,33 @@ func VerifyBlobCmd(ctx context.Context, ko options.KeyOpts, certRef, certEmail,
 			// check if cert is actually a public key
 			co.SigVerifier, err = sigs.LoadPublicKeyRaw(certBytes, crypto.SHA256)
 		} else {
-			co.SigVerifier, err = cosign.ValidateAndUnpackCert(cert, co)
+			if certChain == "" {
+				co.RootCerts, err = fulcio.GetRoots()
+				if err != nil {
+					return fmt.Errorf("getting Fulcio roots: %w", err)
+				}
+				co.IntermediateCerts, err = fulcio.GetIntermediates()
+				if err != nil {
+					return fmt.Errorf("getting Fulcio intermediates: %w", err)
+				}
+				co.SigVerifier, err = cosign.ValidateAndUnpackCert(cert, co)
+				if err != nil {
+					return fmt.Errorf("verifying certificate from bundle: %w", err)
+				}
+			} else {
+				// Verify certificate with chain
+				chain, err := loadCertChainFromFileOrURL(certChain)
+				if err != nil {
+					return err
+				}
+				co.SigVerifier, err = cosign.ValidateAndUnpackCertWithChain(cert, chain, co)
+				if err != nil {
+					return fmt.Errorf("verifying certificate from bundle with chain: %w", err)
+				}
+			}
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("loading verifier from bundle: %w", err)
 		}
 		bundle = b.Bundle
 	// No certificate is provided: search by artifact sha in the TLOG.
@@ -378,7 +411,26 @@ func tlogFindCertificate(ctx context.Context, rekorClient *client.Rekor,
 func tlogFindEntry(ctx context.Context, client *client.Rekor,
 	blobBytes []byte, sig string, pem []byte) (*models.LogEntryAnon, error) {
 	b64sig := base64.StdEncoding.EncodeToString([]byte(sig))
-	return cosign.FindTlogEntry(ctx, client, b64sig, blobBytes, pem)
+	tlogEntries, err := cosign.FindTlogEntry(ctx, client, b64sig, blobBytes, pem)
+	if err != nil {
+		return nil, err
+	}
+	if len(tlogEntries) == 0 {
+		return nil, fmt.Errorf("no valid tlog entries found with proposed entry")
+	}
+	// Always return the earliest integrated entry. That
+	// always suffices for verification of signature time.
+	var earliestLogEntry models.LogEntryAnon
+	var earliestLogEntryTime *time.Time
+	// We'll always return a tlog entry because there's at least one entry in the log.
+	for _, entry := range tlogEntries {
+		entryTime := time.Unix(*entry.IntegratedTime, 0)
+		if earliestLogEntryTime == nil || entryTime.Before(*earliestLogEntryTime) {
+			earliestLogEntryTime = &entryTime
+			earliestLogEntry = entry
+		}
+	}
+	return &earliestLogEntry, nil
 }
 
 // signatures returns the raw signature
@@ -524,7 +576,7 @@ func verifyBundleMatchesData(ctx context.Context, bundle *bundle.RekorBundle, bl
 
 func reconstructCanonicalizedEntry(ctx context.Context, kind, apiVersion string, blobBytes, certBytes, sigBytes []byte) (types.EntryImpl, error) {
 	props := types.ArtifactProperties{
-		PublicKeyBytes: certBytes,
+		PublicKeyBytes: [][]byte{certBytes},
 		PKIFormat:      string(pki.X509),
 	}
 	switch kind {
@@ -544,11 +596,13 @@ func reconstructCanonicalizedEntry(ctx context.Context, kind, apiVersion string,
 	if err != nil {
 		return nil, err
 	}
-	entry, err := types.NewEntry(proposedEntry)
+
+	eimpl, err := types.CreateVersionedEntry(proposedEntry)
 	if err != nil {
 		return nil, err
 	}
-	can, err := entry.Canonicalize(ctx)
+
+	can, err := types.CanonicalizeEntry(ctx, eimpl)
 	if err != nil {
 		return nil, err
 	}
@@ -556,7 +610,13 @@ func reconstructCanonicalizedEntry(ctx context.Context, kind, apiVersion string,
 	if err != nil {
 		return nil, err
 	}
-	return types.NewEntry(proposedEntryCan)
+
+	eimpl, err = types.UnmarshalEntry(proposedEntryCan)
+	if err != nil {
+		return nil, err
+	}
+
+	return eimpl, nil
 }
 
 // unmarshalEntryImpl decodes the base64-encoded entry to a specific entry type (types.EntryImpl).
@@ -571,7 +631,7 @@ func unmarshalEntryImpl(e string) (types.EntryImpl, string, string, error) {
 		return nil, "", "", err
 	}
 
-	entry, err := types.NewEntry(pe)
+	entry, err := types.UnmarshalEntry(pe)
 	if err != nil {
 		return nil, "", "", err
 	}

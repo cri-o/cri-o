@@ -50,7 +50,11 @@ type ClientService interface {
 }
 
 /*
-  SearchIndex searches index by entry metadata
+	SearchIndex searches index by entry metadata
+
+	EXPERIMENTAL - this endpoint is offered as best effort only and may be changed or removed in future releases.
+
+The results returned from this endpoint may be incomplete.
 */
 func (a *Client) SearchIndex(params *SearchIndexParams, opts ...ClientOption) (*SearchIndexOK, error) {
 	// TODO: Validate the params before sending

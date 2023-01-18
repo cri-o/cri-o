@@ -66,6 +66,18 @@ type Options struct {
 	// MaxRetries indicates the number of times to retry operations
 	// when transient failures occur
 	MaxRetries uint
+
+	// The amount of maximum workers for parallel executions.
+	// Defaults to 100.
+	MaxWorkers uint
+
+	// CacheTimeout is the timeout for the internal caches.
+	// Defaults to 2 hours.
+	CacheTimeout time.Duration
+
+	// MaxCacheItems is the maximumg amount of items the internal caches can hold.
+	// Defaults to 10000.
+	MaxCacheItems uint64
 }
 
 // Default returns a default Options instance.
@@ -76,6 +88,9 @@ func Default() *Options {
 		EnableTokenProviders: true,
 		AttachSignature:      true,
 		MaxRetries:           3,
+		MaxWorkers:           100,
+		CacheTimeout:         2 * time.Hour,
+		MaxCacheItems:        10000,
 	}
 }
 
