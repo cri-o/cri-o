@@ -6,6 +6,7 @@
 package builtins
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -26,6 +27,67 @@ func (c Cache) Put(k, v interface{}) {
 func (c Cache) Get(k interface{}) (interface{}, bool) {
 	v, ok := c[k]
 	return v, ok
+}
+
+// We use an ast.Object for the cached keys/values because a naive
+// map[ast.Value]ast.Value will not correctly detect value equality of
+// the member keys.
+type NDBCache map[string]ast.Object
+
+// Put updates the cache for the named built-in.
+// Automatically creates the 2-level hierarchy as needed.
+func (c NDBCache) Put(name string, k, v ast.Value) {
+	if _, ok := c[name]; !ok {
+		c[name] = ast.NewObject()
+	}
+	c[name].Insert(ast.NewTerm(k), ast.NewTerm(v))
+}
+
+// Get returns the cached value for k for the named builtin.
+func (c NDBCache) Get(name string, k ast.Value) (ast.Value, bool) {
+	if m, ok := c[name]; ok {
+		v := m.Get(ast.NewTerm(k))
+		if v != nil {
+			return v.Value, true
+		}
+		return nil, false
+	}
+	return nil, false
+}
+
+// Convenience functions for serializing the data structure.
+func (c NDBCache) MarshalJSON() ([]byte, error) {
+	out := make(map[string]json.RawMessage)
+	for bname, obj := range c {
+		j, err := json.Marshal(ast.NewTerm(obj))
+		if err != nil {
+			return nil, err
+		}
+		out[bname] = j
+	}
+	return json.Marshal(out)
+}
+
+func (c *NDBCache) UnmarshalJSON(data []byte) error {
+	out := map[string]ast.Object{}
+	var incoming map[string]ast.Term
+
+	// We deserialize into a map of Terms, and then extract out the Objects.
+	err := json.Unmarshal(data, &incoming)
+	if err != nil {
+		return err
+	}
+	for k, v := range incoming {
+		if obj, ok := v.Value.(ast.Object); ok {
+			out[k] = obj
+		} else {
+			return fmt.Errorf("expected Object, got other Value type in conversion")
+		}
+	}
+
+	*c = out
+
+	return nil
 }
 
 // ErrOperand represents an invalid operand has been passed to a built-in
@@ -189,24 +251,30 @@ func IntToNumber(i *big.Int) ast.Number {
 
 // StringSliceOperand converts x to a []string. If the cast fails, a descriptive error is
 // returned.
-func StringSliceOperand(x ast.Value, pos int) ([]string, error) {
-	a, err := ArrayOperand(x, pos)
-	if err != nil {
+func StringSliceOperand(a ast.Value, pos int) ([]string, error) {
+	type iterable interface {
+		Iter(func(*ast.Term) error) error
+		Len() int
+	}
+
+	strs, ok := a.(iterable)
+	if !ok {
+		return nil, NewOperandTypeErr(pos, a, "array", "set")
+	}
+
+	var outStrs = make([]string, 0, strs.Len())
+	if err := strs.Iter(func(x *ast.Term) error {
+		s, ok := x.Value.(ast.String)
+		if !ok {
+			return NewOperandElementErr(pos, a, x.Value, "string")
+		}
+		outStrs = append(outStrs, string(s))
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 
-	var f = make([]string, a.Len())
-	for k := 0; k < a.Len(); k++ {
-		b := a.Elem(k)
-		c, ok := b.Value.(ast.String)
-		if !ok {
-			return nil, NewOperandElementErr(pos, x, b.Value, "[]string")
-		}
-
-		f[k] = string(c)
-	}
-
-	return f, nil
+	return outStrs, nil
 }
 
 // RuneSliceOperand converts x to a []rune. If the cast fails, a descriptive error is
