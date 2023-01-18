@@ -62,7 +62,8 @@ func NewGetLogInfoOK() *GetLogInfoOK {
 	return &GetLogInfoOK{}
 }
 
-/* GetLogInfoOK describes a response with status code 200, with default header values.
+/*
+GetLogInfoOK describes a response with status code 200, with default header values.
 
 A JSON object with the root hash and tree size as properties
 */
@@ -70,9 +71,39 @@ type GetLogInfoOK struct {
 	Payload *models.LogInfo
 }
 
+// IsSuccess returns true when this get log info o k response has a 2xx status code
+func (o *GetLogInfoOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this get log info o k response has a 3xx status code
+func (o *GetLogInfoOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get log info o k response has a 4xx status code
+func (o *GetLogInfoOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this get log info o k response has a 5xx status code
+func (o *GetLogInfoOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get log info o k response a status code equal to that given
+func (o *GetLogInfoOK) IsCode(code int) bool {
+	return code == 200
+}
+
 func (o *GetLogInfoOK) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log][%d] getLogInfoOK  %+v", 200, o.Payload)
 }
+
+func (o *GetLogInfoOK) String() string {
+	return fmt.Sprintf("[GET /api/v1/log][%d] getLogInfoOK  %+v", 200, o.Payload)
+}
+
 func (o *GetLogInfoOK) GetPayload() *models.LogInfo {
 	return o.Payload
 }
@@ -96,7 +127,8 @@ func NewGetLogInfoDefault(code int) *GetLogInfoDefault {
 	}
 }
 
-/* GetLogInfoDefault describes a response with status code -1, with default header values.
+/*
+GetLogInfoDefault describes a response with status code -1, with default header values.
 
 There was an internal error in the server while processing the request
 */
@@ -111,9 +143,39 @@ func (o *GetLogInfoDefault) Code() int {
 	return o._statusCode
 }
 
+// IsSuccess returns true when this get log info default response has a 2xx status code
+func (o *GetLogInfoDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this get log info default response has a 3xx status code
+func (o *GetLogInfoDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this get log info default response has a 4xx status code
+func (o *GetLogInfoDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this get log info default response has a 5xx status code
+func (o *GetLogInfoDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this get log info default response a status code equal to that given
+func (o *GetLogInfoDefault) IsCode(code int) bool {
+	return o._statusCode == code
+}
+
 func (o *GetLogInfoDefault) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log][%d] getLogInfo default  %+v", o._statusCode, o.Payload)
 }
+
+func (o *GetLogInfoDefault) String() string {
+	return fmt.Sprintf("[GET /api/v1/log][%d] getLogInfo default  %+v", o._statusCode, o.Payload)
+}
+
 func (o *GetLogInfoDefault) GetPayload() *models.Error {
 	return o.Payload
 }

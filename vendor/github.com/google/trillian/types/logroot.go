@@ -20,20 +20,21 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/google/certificate-transparency-go/tls"
+	"github.com/google/trillian/types/internal/tls"
 
 	"github.com/google/trillian"
 )
 
 // LogRootV1 holds the TLS-deserialization of the following structure
 // (described in RFC5246 section 4 notation):
-// struct {
-//   uint64 tree_size;
-//   opaque root_hash<0..128>;
-//   uint64 timestamp_nanos;
-//   uint64 revision;
-//   opaque metadata<0..65535>;
-// } LogRootV1;
+//
+//	struct {
+//	  uint64 tree_size;
+//	  opaque root_hash<0..128>;
+//	  uint64 timestamp_nanos;
+//	  uint64 revision;
+//	  opaque metadata<0..65535>;
+//	} LogRootV1;
 type LogRootV1 struct {
 	// TreeSize is the number of leaves in the log Merkle tree.
 	TreeSize uint64
@@ -55,12 +56,13 @@ type LogRootV1 struct {
 // LogRoot holds the TLS-deserialization of the following structure
 // (described in RFC5246 section 4 notation):
 // enum { v1(1), (65535)} Version;
-// struct {
-//   Version version;
-//   select(version) {
-//     case v1: LogRootV1;
-//   }
-// } LogRoot;
+//
+//	struct {
+//	  Version version;
+//	  select(version) {
+//	    case v1: LogRootV1;
+//	  }
+//	} LogRoot;
 type LogRoot struct {
 	Version tls.Enum   `tls:"size:2"`
 	V1      *LogRootV1 `tls:"selector:Version,val:1"`

@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -143,6 +143,9 @@ type Client interface {
 	CreateComment(
 		context.Context, string, string, int, string,
 	) (*github.IssueComment, *github.Response, error)
+	ListIssues(
+		context.Context, string, string, *github.IssueListByRepoOptions,
+	) ([]*github.Issue, *github.Response, error)
 }
 
 // NewIssueOptions is a struct of optional fields for new issues
@@ -166,7 +169,7 @@ type NewIssueOptions struct {
 // GitHub requests.
 func New() *GitHub {
 	token := env.Default(TokenEnvKey, "")
-	client, _ := NewWithToken(token) // nolint: errcheck
+	client, _ := NewWithToken(token) //nolint: errcheck
 	return client
 }
 
@@ -339,7 +342,7 @@ func (g *githubClient) ListBranches(
 ) ([]*github.Branch, *github.Response, error) {
 	branches, response, err := g.Repositories.ListBranches(ctx, owner, repo, opt)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetching brnaches from repo: %w", err)
+		return nil, nil, fmt.Errorf("fetching branches from repo: %w", err)
 	}
 
 	return branches, response, nil
@@ -476,6 +479,17 @@ func (g *githubClient) CreateComment(
 			return issueComment, resp, err
 		}
 	}
+}
+
+func (g *githubClient) ListIssues(
+	ctx context.Context, owner, repo string, opts *github.IssueListByRepoOptions,
+) ([]*github.Issue, *github.Response, error) {
+	issues, response, err := g.Issues.ListByRepo(ctx, owner, repo, opts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetching issues from repo: %w", err)
+	}
+
+	return issues, response, nil
 }
 
 // SetClient can be used to manually set the internal GitHub client
@@ -1046,4 +1060,42 @@ func (g *githubClient) AddLabels(
 			return appliedLabels, resp, err
 		}
 	}
+}
+
+// IssueState is the enum for all available issue states.
+type IssueState string
+
+const (
+	// IssueStateAll can be used to list all issues.
+	IssueStateAll IssueState = "all"
+
+	// IssueStateOpen can be used to list only open issues.
+	IssueStateOpen IssueState = "open"
+
+	// IssueStateClosed can be used to list only closed issues.
+	IssueStateClosed IssueState = "closed"
+)
+
+// ListIssues gets the issues from a GitHub repository.
+// State filters issues based on their state. Possible values are: open,
+// closed, all. Default is "open".
+func (g *GitHub) ListIssues(owner, repo string, state IssueState) ([]*github.Issue, error) {
+	options := &github.IssueListByRepoOptions{
+		State:       string(state),
+		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
+	}
+	issues := []*github.Issue{}
+	for {
+		more, r, err := g.Client().ListIssues(context.Background(), owner, repo, options)
+		if err != nil {
+			return issues, fmt.Errorf("getting issues from client: %w", err)
+		}
+		issues = append(issues, more...)
+		if r.NextPage == 0 {
+			break
+		}
+		options.Page = r.NextPage
+	}
+
+	return issues, nil
 }
