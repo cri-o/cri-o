@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	branch        = "gh-pages"
-	tokenKey      = "GITHUB_TOKEN"
-	defaultBranch = "main"
+	branch           = "gh-pages"
+	currentBranchKey = "CURRENT_BRANCH"
+	tokenKey         = "GITHUB_TOKEN"
+	defaultBranch    = "main"
 )
 
 var outputPath string
@@ -74,16 +75,15 @@ func run() error {
 	}
 	logrus.Infof("Using HEAD commit %s", head)
 
-	targetBranch := defaultBranch
-	currentBranch, err := repo.CurrentBranch()
-	if err != nil {
-		return errors.Wrap(err, "get current branch")
+	currentBranch, currentBranchSet := os.LookupEnv(currentBranchKey)
+	if !currentBranchSet || currentBranch == "" {
+		logrus.Infof(
+			"%s environment variable is not set, using default branch `%s`",
+			currentBranchKey, defaultBranch,
+		)
+		currentBranch = defaultBranch
 	}
-	logrus.Infof("Found current branch %s", currentBranch)
-	if git.IsReleaseBranch(currentBranch) && currentBranch != defaultBranch {
-		targetBranch = currentBranch
-	}
-	logrus.Infof("Using target branch %s", targetBranch)
+	logrus.Infof("Using branch: %s", currentBranch)
 
 	templateFile, err := ioutil.TempFile("", "")
 	if err != nil {
@@ -158,7 +158,7 @@ Download one of our static release bundles via our Google Cloud Bucket:
 		"./build/bin/release-notes",
 		"--org=cri-o",
 		"--repo=cri-o",
-		"--branch="+targetBranch,
+		"--branch="+currentBranch,
 		"--repo-path=/tmp/cri-o-repo",
 		"--required-author=",
 		"--start-rev="+startTag,
