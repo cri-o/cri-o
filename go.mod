@@ -18,15 +18,15 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.28.1-0.20221029151733-c2cf9fa47ab6
+	github.com/containers/buildah v1.28.2
 	github.com/containers/common v0.50.2-0.20221104122933-582fadb8228b
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.4.0
-	github.com/containers/image/v5 v5.23.1-0.20221101011818-2f770d6d5a0c
+	github.com/containers/image/v5 v5.23.1
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.6
-	github.com/containers/podman/v4 v4.3.0-rc1.0.20221108211503-757fdca77b0f
-	github.com/containers/storage v1.44.1-0.20230101110555-a747b27fe4ca
+	github.com/containers/podman/v4 v4.3.1
+	github.com/containers/storage v1.43.1-0.20221024131621-fae5bbf607fc
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.18
@@ -155,6 +155,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/checkpoint-restore/go-criu/v5 v5.3.0 // indirect
 	github.com/cheggaaa/pb/v3 v3.0.8 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20220119192733-fe33c00cee21 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
@@ -265,7 +266,7 @@ require (
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/klauspost/compress v1.15.13 // indirect
+	github.com/klauspost/compress v1.15.14 // indirect
 	github.com/klauspost/pgzip v1.2.6-0.20220930104621-17e8dac29df8 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect

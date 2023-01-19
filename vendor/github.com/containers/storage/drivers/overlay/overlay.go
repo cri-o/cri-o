@@ -17,7 +17,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"unicode"
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/drivers/overlayutils"
@@ -357,9 +356,9 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		if opts.forceMask != nil {
 			return nil, errors.New("'force_mask' is supported only with 'mount_program'")
 		}
-		// check if they are running over btrfs, aufs, overlay, or ecryptfs
+		// check if they are running over btrfs, aufs, zfs, overlay, or ecryptfs
 		switch fsMagic {
-		case graphdriver.FsMagicAufs, graphdriver.FsMagicOverlay, graphdriver.FsMagicEcryptfs:
+		case graphdriver.FsMagicAufs, graphdriver.FsMagicZfs, graphdriver.FsMagicOverlay, graphdriver.FsMagicEcryptfs:
 			return nil, fmt.Errorf("'overlay' is not supported over %s, a mount_program is required: %w", backingFs, graphdriver.ErrIncompatibleFS)
 		}
 		if unshare.IsRootless() && isNetworkFileSystem(fsMagic) {
@@ -1202,9 +1201,6 @@ func (d *Driver) Remove(id string) error {
 	if err := system.EnsureRemoveAll(dir); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if d.quotaCtl != nil {
-		d.quotaCtl.ClearQuota(dir)
-	}
 	return nil
 }
 
@@ -1382,9 +1378,28 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		return "", errors.New("max depth exceeded")
 	}
 
-	// absLowers is the list of lowers as absolute paths.
+	// absLowers is the list of lowers as absolute paths, which works well with additional stores.
 	absLowers := []string{}
+	// relLowers is the list of lowers as paths relative to the driver's home directory.  If
+	// additional stores are being used, some of these will still be absolute paths.
+	relLowers := []string{}
 
+	// Check if $link/../diff{1-*} exist.  If they do, add them, in order, as the front of the lowers
+	// lists that we're building.  "diff" itself is the upper, so it won't be in the lists.
+	link, err := os.ReadFile(path.Join(dir, "link"))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		logrus.Warnf("Can't read parent link %q because it does not exist. Going through storage to recreate the missing links.", path.Join(dir, "link"))
+		if err := d.recreateSymlinks(); err != nil {
+			return "", fmt.Errorf("recreating the links: %w", err)
+		}
+		link, err = os.ReadFile(path.Join(dir, "link"))
+		if err != nil {
+			return "", err
+		}
+	}
 	diffN := 1
 	perms := defaultPerms
 	if d.options.forceMask != nil {
@@ -1398,6 +1413,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	}
 	for err == nil {
 		absLowers = append(absLowers, filepath.Join(dir, nameWithSuffix("diff", diffN)))
+		relLowers = append(relLowers, dumbJoin(linkDir, string(link), "..", nameWithSuffix("diff", diffN)))
 		diffN++
 		st, err = os.Stat(filepath.Join(dir, nameWithSuffix("diff", diffN)))
 		if err == nil && !permsKnown {
@@ -1447,10 +1463,12 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			lower = newpath
 		}
 		absLowers = append(absLowers, lower)
+		relLowers = append(relLowers, l)
 		diffN = 1
 		_, err = os.Stat(dumbJoin(lower, "..", nameWithSuffix("diff", diffN)))
 		for err == nil {
 			absLowers = append(absLowers, dumbJoin(lower, "..", nameWithSuffix("diff", diffN)))
+			relLowers = append(relLowers, dumbJoin(l, "..", nameWithSuffix("diff", diffN)))
 			diffN++
 			_, err = os.Stat(dumbJoin(lower, "..", nameWithSuffix("diff", diffN)))
 		}
@@ -1458,6 +1476,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	if len(absLowers) == 0 {
 		absLowers = append(absLowers, path.Join(dir, "empty"))
+		relLowers = append(relLowers, path.Join(id, "empty"))
 	}
 	// user namespace requires this to move a directory from lower to upper.
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
@@ -1591,16 +1610,17 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return nil
 		}
 	} else if len(mountData) >= pageSize {
-		// Use mountFrom when the mount data has exceeded the page size. The mount syscall fails if
-		// the mount data cannot fit within a page and relative links make the mount data much
+		// Use (possibly) relative paths and mountFrom when the mount data has exceeded
+		// the page size. The mount syscall fails if the mount data cannot
+		// fit within a page and relative links make the mount data much
 		// smaller at the expense of requiring a fork exec to chdir().
 
 		workdir = path.Join(id, "work")
 		if readWrite {
 			diffDir := path.Join(id, "diff")
-			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workdir)
+			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), diffDir, workdir)
 		} else {
-			opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(absLowers, ":"))
+			opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(relLowers, ":"))
 		}
 		if len(optsList) > 0 {
 			opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))
@@ -1699,40 +1719,6 @@ func (d *Driver) Put(id string) error {
 func (d *Driver) Exists(id string) bool {
 	_, err := os.Stat(d.dir(id))
 	return err == nil
-}
-
-func nameLooksLikeID(name string) bool {
-	if len(name) != 64 {
-		return false
-	}
-	for _, c := range name {
-		if !unicode.Is(unicode.ASCII_Hex_Digit, c) {
-			return false
-		}
-	}
-	return true
-}
-
-// List layers (not including additional image stores)
-func (d *Driver) ListLayers() ([]string, error) {
-	entries, err := os.ReadDir(d.home)
-	if err != nil {
-		return nil, err
-	}
-
-	layers := make([]string, 0)
-
-	for _, entry := range entries {
-		id := entry.Name()
-		// Does it look like a datadir directory?
-		if !entry.IsDir() || !nameLooksLikeID(id) {
-			continue
-		}
-
-		layers = append(layers, id)
-	}
-
-	return layers, err
 }
 
 // isParent returns if the passed in parent is the direct parent of the passed in layer

@@ -449,10 +449,14 @@ github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0
 ## explicit; go 1.15
 github.com/checkpoint-restore/checkpointctl/lib
+# github.com/checkpoint-restore/go-criu/v5 v5.3.0
+## explicit; go 1.13
+github.com/checkpoint-restore/go-criu/v5
+github.com/checkpoint-restore/go-criu/v5/magic
+github.com/checkpoint-restore/go-criu/v5/rpc
+github.com/checkpoint-restore/go-criu/v5/stats
 # github.com/checkpoint-restore/go-criu/v6 v6.3.0
 ## explicit; go 1.16
-github.com/checkpoint-restore/go-criu/v6
-github.com/checkpoint-restore/go-criu/v6/rpc
 github.com/checkpoint-restore/go-criu/v6/stats
 # github.com/cheggaaa/pb/v3 v3.0.8
 ## explicit; go 1.12
@@ -600,7 +604,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit; go 1.17
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.28.1-0.20221029151733-c2cf9fa47ab6
+# github.com/containers/buildah v1.28.2
 ## explicit; go 1.17
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -675,7 +679,7 @@ github.com/containers/conmon/runner/config
 ## explicit; go 1.18
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
-# github.com/containers/image/v5 v5.23.1-0.20221101011818-2f770d6d5a0c
+# github.com/containers/image/v5 v5.23.1
 ## explicit; go 1.17
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -760,7 +764,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v4 v4.3.0-rc1.0.20221108211503-757fdca77b0f
+# github.com/containers/podman/v4 v4.3.1
 ## explicit; go 1.17
 github.com/containers/podman/v4/cmd/podman/parse
 github.com/containers/podman/v4/libpod
@@ -823,7 +827,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.44.1-0.20230101110555-a747b27fe4ca
+# github.com/containers/storage v1.43.1-0.20221024131621-fae5bbf607fc
 ## explicit; go 1.17
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1502,7 +1506,7 @@ github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v1.2.0
 ## explicit
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.15.13
+# github.com/klauspost/compress v1.15.14
 ## explicit; go 1.17
 github.com/klauspost/compress
 github.com/klauspost/compress/flate

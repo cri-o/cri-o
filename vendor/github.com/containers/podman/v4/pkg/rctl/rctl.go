@@ -3,6 +3,9 @@
 
 package rctl
 
+// #include <sys/rctl.h>
+import "C"
+
 import (
 	"bytes"
 	"fmt"

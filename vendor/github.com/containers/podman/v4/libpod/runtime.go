@@ -165,7 +165,7 @@ func SetXdgDirs() error {
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
 func NewRuntime(ctx context.Context, options ...RuntimeOption) (*Runtime, error) {
-	conf, err := config.Default()
+	conf, err := config.NewConfig("")
 	if err != nil {
 		return nil, err
 	}
@@ -547,10 +547,9 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// This ensures that no two processes will be in runtime.refresh at once
 	aliveLock.Lock()
 	doRefresh := false
-	unLockFunc := aliveLock.Unlock
 	defer func() {
-		if unLockFunc != nil {
-			unLockFunc()
+		if aliveLock.Locked() {
+			aliveLock.Unlock()
 		}
 	}()
 
@@ -569,8 +568,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 					logrus.Debug("Invalid systemd user session for current user")
 				}
 			}
-			unLockFunc()
-			unLockFunc = nil
+			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
 			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
 				return fmt.Errorf("could not get pause process pid file path: %w", err)
@@ -1021,8 +1019,8 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 	if !r.storageSet.GraphDriverNameSet && dbConfig.GraphDriver != "" {
 		if r.storageConfig.GraphDriverName != dbConfig.GraphDriver &&
 			r.storageConfig.GraphDriverName != "" {
-			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files (%q) to resolve.  May prevent use of images created by other tools",
-				r.storageConfig.GraphDriverName, dbConfig.GraphDriver, r.storageConfig.GraphRoot)
+			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve.  May prevent use of images created by other tools",
+				r.storageConfig.GraphDriverName, dbConfig.GraphDriver)
 		}
 		r.storageConfig.GraphDriverName = dbConfig.GraphDriver
 	}

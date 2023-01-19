@@ -6,7 +6,6 @@ package overlay
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"syscall"
 	"unsafe"
 
@@ -113,14 +112,7 @@ func createIDMappedMount(source, target string, pid int) error {
 // createUsernsProcess forks the current process and creates a user namespace using the specified
 // mappings.  It returns the pid of the new process.
 func createUsernsProcess(uidMaps []idtools.IDMap, gidMaps []idtools.IDMap) (int, func(), error) {
-	var pid uintptr
-	var err syscall.Errno
-
-	if runtime.GOARCH == "s390x" {
-		pid, _, err = syscall.Syscall6(uintptr(unix.SYS_CLONE), 0, unix.CLONE_NEWUSER|uintptr(unix.SIGCHLD), 0, 0, 0, 0)
-	} else {
-		pid, _, err = syscall.Syscall6(uintptr(unix.SYS_CLONE), unix.CLONE_NEWUSER|uintptr(unix.SIGCHLD), 0, 0, 0, 0, 0)
-	}
+	pid, _, err := syscall.Syscall6(uintptr(unix.SYS_CLONE), unix.CLONE_NEWUSER|uintptr(unix.SIGCHLD), 0, 0, 0, 0, 0)
 	if err != 0 {
 		return -1, nil, err
 	}

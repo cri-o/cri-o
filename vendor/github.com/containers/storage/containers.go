@@ -10,27 +10,10 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
-	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/truncindex"
 	digest "github.com/opencontainers/go-digest"
 )
-
-type containerLocations uint8
-
-// The backing store is split in two json files, one (the volatile)
-// that is written without fsync() meaning it isn't as robust to
-// unclean shutdown
-const (
-	stableContainerLocation containerLocations = 1 << iota
-	volatileContainerLocation
-
-	numContainerLocationIndex = iota
-)
-
-func containerLocationFromIndex(index int) containerLocations {
-	return 1 << index
-}
 
 // A Container is a reference to a read-write layer with metadata.
 type Container struct {
@@ -81,9 +64,6 @@ type Container struct {
 	GIDMap []idtools.IDMap `json:"gidmap,omitempty"`
 
 	Flags map[string]interface{} `json:"flags,omitempty"`
-
-	// volatileStore is true if the container is from the volatile json file
-	volatileStore bool `json:"-"`
 }
 
 // rwContainerStore provides bookkeeping for information about Containers.
@@ -135,16 +115,11 @@ type rwContainerStore interface {
 
 	// Containers returns a slice enumerating the known containers.
 	Containers() ([]Container, error)
-
-	// Clean up unreferenced datadirs
-	GarbageCollect() error
 }
 
 type containerStore struct {
-	lockfile   *lockfile.LockFile
+	lockfile   Locker
 	dir        string
-	jsonPath   [numContainerLocationIndex]string
-	lastWrite  lockfile.LastWrite
 	containers []*Container
 	idindex    *truncindex.TruncIndex
 	byid       map[string]*Container
@@ -167,7 +142,6 @@ func copyContainer(c *Container) *Container {
 		UIDMap:         copyIDMap(c.UIDMap),
 		GIDMap:         copyIDMap(c.GIDMap),
 		Flags:          copyStringInterfaceMap(c.Flags),
-		volatileStore:  c.volatileStore,
 	}
 }
 
@@ -202,13 +176,6 @@ func (c *Container) MountOpts() []string {
 	}
 }
 
-func containerLocation(c *Container) containerLocations {
-	if c.volatileStore {
-		return volatileContainerLocation
-	}
-	return stableContainerLocation
-}
-
 // startWritingWithReload makes sure the store is fresh if canReload, and locks it for writing.
 // If this succeeds, the caller MUST call stopWriting().
 //
@@ -224,7 +191,7 @@ func (r *containerStore) startWritingWithReload(canReload bool) error {
 	}()
 
 	if canReload {
-		if _, err := r.reloadIfChanged(true); err != nil {
+		if err := r.ReloadIfChanged(); err != nil {
 			return err
 		}
 	}
@@ -248,41 +215,18 @@ func (r *containerStore) stopWriting() {
 // If this succeeds, the caller MUST call stopReading().
 func (r *containerStore) startReading() error {
 	r.lockfile.RLock()
-	unlockFn := r.lockfile.Unlock // A function to call to clean up, or nil
+	succeeded := false
 	defer func() {
-		if unlockFn != nil {
-			unlockFn()
+		if !succeeded {
+			r.lockfile.Unlock()
 		}
 	}()
 
-	if tryLockedForWriting, err := r.reloadIfChanged(false); err != nil {
-		if !tryLockedForWriting {
-			return err
-		}
-		unlockFn()
-		unlockFn = nil
-
-		r.lockfile.Lock()
-		unlockFn = r.lockfile.Unlock
-		if _, err := r.reloadIfChanged(true); err != nil {
-			return err
-		}
-		unlockFn()
-		unlockFn = nil
-
-		r.lockfile.RLock()
-		unlockFn = r.lockfile.Unlock
-		// We need to check for a reload reload once more because the on-disk state could have been modified
-		// after we released the lock.
-		// If that, _again_, finds inconsistent state, just give up.
-		// We could, plausibly, retry a few times, but that inconsistent state (duplicate container names)
-		// shouldn’t be saved (by correct implementations) in the first place.
-		if _, err := r.reloadIfChanged(false); err != nil {
-			return fmt.Errorf("(even after successfully cleaning up once:) %w", err)
-		}
+	if err := r.ReloadIfChanged(); err != nil {
+		return err
 	}
 
-	unlockFn = nil
+	succeeded = true
 	return nil
 }
 
@@ -291,28 +235,16 @@ func (r *containerStore) stopReading() {
 	r.lockfile.Unlock()
 }
 
-// reloadIfChanged reloads the contents of the store from disk if it is changed.
-//
-// The caller must hold r.lockfile for reading _or_ writing; lockedForWriting is true
-// if it is held for writing.
-//
-// If !lockedForWriting and this function fails, the return value indicates whether
-// reloadIfChanged() with lockedForWriting could succeed.
-func (r *containerStore) reloadIfChanged(lockedForWriting bool) (bool, error) {
+// ReloadIfChanged reloads the contents of the store from disk if it is changed.
+func (r *containerStore) ReloadIfChanged() error {
 	r.loadMut.Lock()
 	defer r.loadMut.Unlock()
 
-	lastWrite, modified, err := r.lockfile.ModifiedSince(r.lastWrite)
-	if err != nil {
-		return false, err
+	modified, err := r.lockfile.Modified()
+	if err == nil && modified {
+		return r.Load()
 	}
-	if modified {
-		if tryLockedForWriting, err := r.load(lockedForWriting); err != nil {
-			return tryLockedForWriting, err // r.lastWrite is unchanged, so we will load the next time again.
-		}
-		r.lastWrite = lastWrite
-	}
-	return false, nil
+	return err
 }
 
 func (r *containerStore) Containers() ([]Container, error) {
@@ -323,37 +255,8 @@ func (r *containerStore) Containers() ([]Container, error) {
 	return containers, nil
 }
 
-// This looks for datadirs in the store directory that are not referenced
-// by the json file and removes it. These can happen in the case of unclean
-// shutdowns or regular restarts in transient store mode.
-func (r *containerStore) GarbageCollect() error {
-	entries, err := os.ReadDir(r.dir)
-	if err != nil {
-		// Unexpected, don't try any GC
-		return err
-	}
-
-	for _, entry := range entries {
-		id := entry.Name()
-		// Does it look like a datadir directory?
-		if !entry.IsDir() || !nameLooksLikeID(id) {
-			continue
-		}
-
-		// Should the id be there?
-		if r.byid[id] != nil {
-			continue
-		}
-
-		// Otherwise remove datadir
-		moreErr := os.RemoveAll(filepath.Join(r.dir, id))
-		// Propagate first error
-		if moreErr != nil && err == nil {
-			err = moreErr
-		}
-	}
-
-	return err
+func (r *containerStore) containerspath() string {
+	return filepath.Join(r.dir, "containers.json")
 }
 
 func (r *containerStore) datadir(id string) string {
@@ -364,141 +267,71 @@ func (r *containerStore) datapath(id, key string) string {
 	return filepath.Join(r.datadir(id), makeBigDataBaseName(key))
 }
 
-// load reloads the contents of the store from disk.
-//
-// Most callers should call reloadIfChanged() instead, to avoid overhead and to correctly
-// manage r.lastWrite.
-//
-// The caller must hold r.lockfile for reading _or_ writing; lockedForWriting is true
-// if it is held for writing.
-//
-// If !lockedForWriting and this function fails, the return value indicates whether
-// retrying with lockedForWriting could succeed.
-func (r *containerStore) load(lockedForWriting bool) (bool, error) {
-	var modifiedLocations containerLocations
+// Load reloads the contents of the store from disk.  It should be called
+// with the lock held.
+func (r *containerStore) Load() error {
+	needSave := false
+	rpath := r.containerspath()
+	data, err := os.ReadFile(rpath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
 	containers := []*Container{}
-
-	ids := make(map[string]*Container)
-
-	for locationIndex := 0; locationIndex < numContainerLocationIndex; locationIndex++ {
-		location := containerLocationFromIndex(locationIndex)
-		rpath := r.jsonPath[locationIndex]
-
-		data, err := os.ReadFile(rpath)
-		if err != nil && !os.IsNotExist(err) {
-			return false, err
-		}
-
-		locationContainers := []*Container{}
-		if len(data) != 0 {
-			if err := json.Unmarshal(data, &locationContainers); err != nil {
-				return false, fmt.Errorf("loading %q: %w", rpath, err)
-			}
-		}
-
-		for _, container := range locationContainers {
-			// There should be no duplicated ids between json files, but lets check to be sure
-			if ids[container.ID] != nil {
-				continue // skip invalid duplicated container
-			}
-			// Remember where the container came from
-			if location == volatileContainerLocation {
-				container.volatileStore = true
-			}
-			containers = append(containers, container)
-			ids[container.ID] = container
-		}
-	}
-
-	idlist := make([]string, 0, len(containers))
 	layers := make(map[string]*Container)
+	idlist := []string{}
+	ids := make(map[string]*Container)
 	names := make(map[string]*Container)
-	var errorToResolveBySaving error // == nil
-	for n, container := range containers {
-		idlist = append(idlist, container.ID)
-		layers[container.LayerID] = containers[n]
-		for _, name := range container.Names {
-			if conflict, ok := names[name]; ok {
-				r.removeName(conflict, name)
-				errorToResolveBySaving = errors.New("container store is inconsistent and the current caller does not hold a write lock")
-				modifiedLocations |= containerLocation(container)
+	if err = json.Unmarshal(data, &containers); len(data) == 0 || err == nil {
+		idlist = make([]string, 0, len(containers))
+		for n, container := range containers {
+			idlist = append(idlist, container.ID)
+			ids[container.ID] = containers[n]
+			layers[container.LayerID] = containers[n]
+			for _, name := range container.Names {
+				if conflict, ok := names[name]; ok {
+					r.removeName(conflict, name)
+					needSave = true
+				}
+				names[name] = containers[n]
 			}
-			names[name] = containers[n]
 		}
 	}
-
 	r.containers = containers
 	r.idindex = truncindex.NewTruncIndex(idlist) // Invalid values in idlist are ignored: they are not a reason to refuse processing the whole store.
 	r.byid = ids
 	r.bylayer = layers
 	r.byname = names
-	if errorToResolveBySaving != nil {
-		if !lockedForWriting {
-			return true, errorToResolveBySaving
-		}
-		return false, r.save(modifiedLocations)
+	if needSave {
+		return r.Save()
 	}
-	return false, nil
-}
-
-// Save saves the contents of the store to disk.  It should be called with
-// the lock held, locked for writing.
-func (r *containerStore) save(saveLocations containerLocations) error {
-	r.lockfile.AssertLockedForWriting()
-	for locationIndex := 0; locationIndex < numContainerLocationIndex; locationIndex++ {
-		location := containerLocationFromIndex(locationIndex)
-		if location&saveLocations == 0 {
-			continue
-		}
-		rpath := r.jsonPath[locationIndex]
-		if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
-			return err
-		}
-		subsetContainers := make([]*Container, 0, len(r.containers))
-		for _, container := range r.containers {
-			if containerLocation(container) == location {
-				subsetContainers = append(subsetContainers, container)
-			}
-		}
-
-		jdata, err := json.Marshal(&subsetContainers)
-		if err != nil {
-			return err
-		}
-		var opts *ioutils.AtomicFileWriterOptions
-		if location == volatileContainerLocation {
-			opts = &ioutils.AtomicFileWriterOptions{
-				NoSync: true,
-			}
-		}
-		if err := ioutils.AtomicWriteFileWithOpts(rpath, jdata, 0600, opts); err != nil {
-			return err
-		}
-	}
-	lw, err := r.lockfile.RecordWrite()
-	if err != nil {
-		return err
-	}
-	r.lastWrite = lw
 	return nil
 }
 
-func (r *containerStore) saveFor(modifiedContainer *Container) error {
-	return r.save(containerLocation(modifiedContainer))
+// Save saves the contents of the store to disk.  It should be called with
+// the lock held.
+func (r *containerStore) Save() error {
+	if !r.lockfile.Locked() {
+		return errors.New("container store is not locked")
+	}
+	rpath := r.containerspath()
+	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
+		return err
+	}
+	jdata, err := json.Marshal(&r.containers)
+	if err != nil {
+		return err
+	}
+	if err := ioutils.AtomicWriteFile(rpath, jdata, 0600); err != nil {
+		return err
+	}
+	return r.lockfile.Touch()
 }
 
-func newContainerStore(dir string, runDir string, transient bool) (rwContainerStore, error) {
+func newContainerStore(dir string) (rwContainerStore, error) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
-	volatileDir := dir
-	if transient {
-		if err := os.MkdirAll(runDir, 0700); err != nil {
-			return nil, err
-		}
-		volatileDir = runDir
-	}
-	lockfile, err := lockfile.GetLockFile(filepath.Join(volatileDir, "containers.lock"))
+	lockfile, err := GetLockfile(filepath.Join(dir, "containers.lock"))
 	if err != nil {
 		return nil, err
 	}
@@ -509,21 +342,12 @@ func newContainerStore(dir string, runDir string, transient bool) (rwContainerSt
 		byid:       make(map[string]*Container),
 		bylayer:    make(map[string]*Container),
 		byname:     make(map[string]*Container),
-		jsonPath: [numContainerLocationIndex]string{
-			filepath.Join(dir, "containers.json"),
-			filepath.Join(volatileDir, "volatile-containers.json"),
-		},
 	}
-
 	if err := cstore.startWritingWithReload(false); err != nil {
 		return nil, err
 	}
-	cstore.lastWrite, err = cstore.lockfile.GetLastWrite()
-	if err != nil {
-		return nil, err
-	}
 	defer cstore.stopWriting()
-	if _, err := cstore.load(true); err != nil {
+	if err := cstore.Load(); err != nil {
 		return nil, err
 	}
 	return &cstore, nil
@@ -550,7 +374,7 @@ func (r *containerStore) ClearFlag(id string, flag string) error {
 		return ErrContainerUnknown
 	}
 	delete(container.Flags, flag)
-	return r.saveFor(container)
+	return r.Save()
 }
 
 func (r *containerStore) SetFlag(id string, flag string, value interface{}) error {
@@ -562,7 +386,7 @@ func (r *containerStore) SetFlag(id string, flag string, value interface{}) erro
 		container.Flags = make(map[string]interface{})
 	}
 	container.Flags[flag] = value
-	return r.saveFor(container)
+	return r.Save()
 }
 
 func (r *containerStore) Create(id string, names []string, image, layer, metadata string, options *ContainerOptions) (container *Container, err error) {
@@ -595,32 +419,33 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 	if err := hasOverlappingRanges(options.GIDMap); err != nil {
 		return nil, err
 	}
-	container = &Container{
-		ID:             id,
-		Names:          names,
-		ImageID:        image,
-		LayerID:        layer,
-		Metadata:       metadata,
-		BigDataNames:   []string{},
-		BigDataSizes:   make(map[string]int64),
-		BigDataDigests: make(map[string]digest.Digest),
-		Created:        time.Now().UTC(),
-		Flags:          copyStringInterfaceMap(options.Flags),
-		UIDMap:         copyIDMap(options.UIDMap),
-		GIDMap:         copyIDMap(options.GIDMap),
-		volatileStore:  options.Volatile,
+	if err == nil {
+		container = &Container{
+			ID:             id,
+			Names:          names,
+			ImageID:        image,
+			LayerID:        layer,
+			Metadata:       metadata,
+			BigDataNames:   []string{},
+			BigDataSizes:   make(map[string]int64),
+			BigDataDigests: make(map[string]digest.Digest),
+			Created:        time.Now().UTC(),
+			Flags:          copyStringInterfaceMap(options.Flags),
+			UIDMap:         copyIDMap(options.UIDMap),
+			GIDMap:         copyIDMap(options.GIDMap),
+		}
+		r.containers = append(r.containers, container)
+		r.byid[id] = container
+		// This can only fail on duplicate IDs, which shouldn’t happen — and in that case the index is already in the desired state anyway.
+		// Implementing recovery from an unlikely and unimportant failure here would be too risky.
+		_ = r.idindex.Add(id)
+		r.bylayer[layer] = container
+		for _, name := range names {
+			r.byname[name] = container
+		}
+		err = r.Save()
+		container = copyContainer(container)
 	}
-	r.containers = append(r.containers, container)
-	r.byid[id] = container
-	// This can only fail on duplicate IDs, which shouldn’t happen — and in that case the index is already in the desired state anyway.
-	// Implementing recovery from an unlikely and unimportant failure here would be too risky.
-	_ = r.idindex.Add(id)
-	r.bylayer[layer] = container
-	for _, name := range names {
-		r.byname[name] = container
-	}
-	err = r.saveFor(container)
-	container = copyContainer(container)
 	return container, err
 }
 
@@ -634,7 +459,7 @@ func (r *containerStore) Metadata(id string) (string, error) {
 func (r *containerStore) SetMetadata(id, metadata string) error {
 	if container, ok := r.lookup(id); ok {
 		container.Metadata = metadata
-		return r.saveFor(container)
+		return r.Save()
 	}
 	return ErrContainerUnknown
 }
@@ -663,7 +488,7 @@ func (r *containerStore) updateNames(id string, names []string, op updateNameOpe
 		r.byname[name] = container
 	}
 	container.Names = names
-	return r.saveFor(container)
+	return r.Save()
 }
 
 func (r *containerStore) Delete(id string) error {
@@ -695,7 +520,7 @@ func (r *containerStore) Delete(id string) error {
 			r.containers = append(r.containers[:toDeleteIndex], r.containers[toDeleteIndex+1:]...)
 		}
 	}
-	if err := r.saveFor(container); err != nil {
+	if err := r.Save(); err != nil {
 		return err
 	}
 	if err := os.RemoveAll(r.datadir(id)); err != nil {
@@ -734,7 +559,6 @@ func (r *containerStore) BigData(id, key string) ([]byte, error) {
 	return os.ReadFile(r.datapath(c.ID, key))
 }
 
-// Requires startWriting. Yes, really, WRITING (see SetBigData).
 func (r *containerStore) BigDataSize(id, key string) (int64, error) {
 	if key == "" {
 		return -1, fmt.Errorf("can't retrieve size of container big data with empty name: %w", ErrInvalidBigDataName)
@@ -743,7 +567,10 @@ func (r *containerStore) BigDataSize(id, key string) (int64, error) {
 	if !ok {
 		return -1, ErrContainerUnknown
 	}
-	if size, ok := c.BigDataSizes[key]; ok { // This is valid, and returns ok == false, for BigDataSizes == nil.
+	if c.BigDataSizes == nil {
+		c.BigDataSizes = make(map[string]int64)
+	}
+	if size, ok := c.BigDataSizes[key]; ok {
 		return size, nil
 	}
 	if data, err := r.BigData(id, key); err == nil && data != nil {
@@ -762,7 +589,6 @@ func (r *containerStore) BigDataSize(id, key string) (int64, error) {
 	return -1, ErrSizeUnknown
 }
 
-// Requires startWriting. Yes, really, WRITING (see SetBigData).
 func (r *containerStore) BigDataDigest(id, key string) (digest.Digest, error) {
 	if key == "" {
 		return "", fmt.Errorf("can't retrieve digest of container big data value with empty name: %w", ErrInvalidBigDataName)
@@ -771,7 +597,10 @@ func (r *containerStore) BigDataDigest(id, key string) (digest.Digest, error) {
 	if !ok {
 		return "", ErrContainerUnknown
 	}
-	if d, ok := c.BigDataDigests[key]; ok { // This is valid, and returns ok == false, for BigDataSizes == nil.
+	if c.BigDataDigests == nil {
+		c.BigDataDigests = make(map[string]digest.Digest)
+	}
+	if d, ok := c.BigDataDigests[key]; ok {
 		return d, nil
 	}
 	if data, err := r.BigData(id, key); err == nil && data != nil {
@@ -838,7 +667,7 @@ func (r *containerStore) SetBigData(id, key string, data []byte) error {
 			save = true
 		}
 		if save {
-			err = r.saveFor(c)
+			err = r.Save()
 		}
 	}
 	return err

@@ -22,7 +22,6 @@ type TomlConfig struct {
 		RunRoot             string            `toml:"runroot,omitempty"`
 		GraphRoot           string            `toml:"graphroot,omitempty"`
 		RootlessStoragePath string            `toml:"rootless_storage_path,omitempty"`
-		TransientStore      bool              `toml:"transient_store,omitempty"`
 		Options             cfg.OptionsConfig `toml:"options,omitempty"`
 	} `toml:"storage"`
 }
@@ -39,11 +38,6 @@ var (
 	once                       sync.Once
 	storeOptions               StoreOptions
 	storeError                 error
-	defaultConfigFileSet       bool
-	// defaultConfigFile path to the system wide storage.conf file
-	defaultConfigFile = SystemConfigFile
-	// DefaultStoreOptions is a reasonable default set of options.
-	defaultStoreOptions StoreOptions
 )
 
 func loadDefaultStoreOptions() {
@@ -235,8 +229,6 @@ type StoreOptions struct {
 	PullOptions map[string]string `toml:"pull_options"`
 	// DisableVolatile doesn't allow volatile mounts when it is set.
 	DisableVolatile bool `json:"disable-volatile,omitempty"`
-	// If transient, don't persist containers over boot (stores db in runroot)
-	TransientStore bool `json:"transient_store,omitempty"`
 }
 
 // isRootlessDriver returns true if the given storage driver is valid for containers running as non root
@@ -455,7 +447,6 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) erro
 	}
 
 	storeOptions.DisableVolatile = config.Storage.Options.DisableVolatile
-	storeOptions.TransientStore = config.Storage.TransientStore
 
 	storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, cfg.GetGraphDriverOptions(storeOptions.GraphDriverName, config.Storage.Options)...)
 

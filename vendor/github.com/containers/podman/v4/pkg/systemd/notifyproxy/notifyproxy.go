@@ -183,21 +183,20 @@ func (p *NotifyProxy) WaitAndClose() error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		go func() {
-			for {
-				select {
-				case <-ctx.Done():
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				state, err := p.container.State()
+				if err != nil {
+					p.errorChan <- err
 					return
-				case <-time.After(time.Second):
-					state, err := p.container.State()
-					if err != nil {
-						p.errorChan <- err
-						return
-					}
-					if state != define.ContainerStateRunning {
-						p.errorChan <- fmt.Errorf("%w: %s", ErrNoReadyMessage, p.container.ID())
-						return
-					}
 				}
+				if state != define.ContainerStateRunning {
+					p.errorChan <- fmt.Errorf("%w: %s", ErrNoReadyMessage, p.container.ID())
+					return
+				}
+				time.Sleep(time.Second)
 			}
 		}()
 	}

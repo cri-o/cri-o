@@ -1,4 +1,3 @@
-//go:build !exclude_graphdriver_btrfs && linux
 // +build !exclude_graphdriver_btrfs,linux
 
 package register

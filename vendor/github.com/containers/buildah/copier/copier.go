@@ -22,7 +22,6 @@ import (
 
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/pkg/compression"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/reexec"
@@ -1463,10 +1462,6 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 			hdr.Mode = int64(*options.ChmodFiles)
 		}
 	}
-	// read fflags, if any
-	if err := archive.ReadFileFlagsToTarHeader(contentPath, hdr); err != nil {
-		return fmt.Errorf("getting fflags: %w", err)
-	}
 	var f *os.File
 	if hdr.Typeflag == tar.TypeReg {
 		// open the file first so that we don't write a header for it if we can't actually read it
@@ -1571,15 +1566,15 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 		return nil
 	}
 	makeDirectoryWriteable := func(directory string) error {
-		st, err := os.Lstat(directory)
-		if err != nil {
-			return fmt.Errorf("copier: put: error reading permissions of directory %q: %w", directory, err)
-		}
-		mode := st.Mode() & os.ModePerm
 		if _, ok := directoryModes[directory]; !ok {
+			st, err := os.Lstat(directory)
+			if err != nil {
+				return fmt.Errorf("copier: put: error reading permissions of directory %q: %w", directory, err)
+			}
+			mode := st.Mode()
 			directoryModes[directory] = mode
 		}
-		if err = os.Chmod(directory, 0o700); err != nil {
+		if err := os.Chmod(directory, 0o700); err != nil {
 			return fmt.Errorf("copier: put: error making directory %q writable: %w", directory, err)
 		}
 		return nil
@@ -1867,16 +1862,21 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			// set other bits that might have been reset by chown()
 			if hdr.Typeflag != tar.TypeSymlink {
 				if hdr.Mode&cISUID == cISUID {
-					mode |= syscall.S_ISUID
+					mode |= os.ModeSetuid
 				}
 				if hdr.Mode&cISGID == cISGID {
-					mode |= syscall.S_ISGID
+					mode |= os.ModeSetgid
 				}
 				if hdr.Mode&cISVTX == cISVTX {
-					mode |= syscall.S_ISVTX
+					mode |= os.ModeSticky
 				}
-				if err = syscall.Chmod(path, uint32(mode)); err != nil {
-					return fmt.Errorf("setting additional permissions on %q to 0%o: %w", path, mode, err)
+				if hdr.Typeflag == tar.TypeDir {
+					// if/when we do the final setting of permissions on this
+					// directory, make sure to incorporate these bits, too
+					directoryModes[path] = mode
+				}
+				if err = os.Chmod(path, mode); err != nil {
+					return fmt.Errorf("copier: put: setting additional permissions on %q to 0%o: %w", path, mode, err)
 				}
 			}
 			// set xattrs, including some that might have been reset by chown()
@@ -1893,10 +1893,6 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			}
 			if err = lutimes(hdr.Typeflag == tar.TypeSymlink, path, hdr.AccessTime, hdr.ModTime); err != nil {
 				return fmt.Errorf("setting access and modify timestamps on %q to %s and %s: %w", path, hdr.AccessTime, hdr.ModTime, err)
-			}
-			// set fflags if supported
-			if err := archive.WriteFileFlagsFromTarHeader(path, hdr); err != nil {
-				return fmt.Errorf("copier: put: error setting fflags on %q: %w", path, err)
 			}
 		nextHeader:
 			hdr, err = tr.Next()

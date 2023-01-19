@@ -14,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
-	stypes "github.com/containers/storage/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -158,13 +157,7 @@ func (r *Runtime) reset(ctx context.Context) error {
 		}
 	}
 
-	xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	if xdgRuntimeDir != "" {
-		xdgRuntimeDir, err = filepath.EvalSymlinks(xdgRuntimeDir)
-		if err != nil {
-			return err
-		}
-	}
+	xdgRuntimeDir := filepath.Clean(os.Getenv("XDG_RUNTIME_DIR"))
 	_, prevError := r.store.Shutdown(true)
 	graphRoot := filepath.Clean(r.store.GraphRoot())
 	if graphRoot == xdgRuntimeDir {
@@ -216,14 +209,9 @@ func (r *Runtime) reset(ctx context.Context) error {
 		}
 	}
 	if storageConfPath, err := storage.DefaultConfigFile(rootless.IsRootless()); err == nil {
-		switch storageConfPath {
-		case stypes.SystemConfigFile:
-			break
-		default:
-			if _, err = os.Stat(storageConfPath); err == nil {
-				fmt.Printf(" A %q config file exists.\n", storageConfPath)
-				fmt.Println("Remove this file if you did not modify the configuration.")
-			}
+		if _, err = os.Stat(storageConfPath); err == nil {
+			fmt.Printf("A storage.conf file exists at %s\n", storageConfPath)
+			fmt.Println("You should remove this file if you did not modify the configuration.")
 		}
 	} else {
 		if prevError != nil {

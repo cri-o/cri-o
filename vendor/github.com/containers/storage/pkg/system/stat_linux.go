@@ -9,8 +9,7 @@ func fromStatT(s *syscall.Stat_t) (*StatT, error) {
 		uid:  s.Uid,
 		gid:  s.Gid,
 		rdev: uint64(s.Rdev),
-		mtim: s.Mtim,
-		dev:  uint64(s.Dev)}, nil
+		mtim: s.Mtim}, nil
 }
 
 // FromStatT converts a syscall.Stat_t type to a system.Stat_t type

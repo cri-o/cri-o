@@ -17,11 +17,10 @@ type Volume struct {
 	config *VolumeConfig
 	state  *VolumeState
 
-	ignoreIfExists bool
-	valid          bool
-	plugin         *plugin.VolumePlugin
-	runtime        *Runtime
-	lock           lock.Locker
+	valid   bool
+	plugin  *plugin.VolumePlugin
+	runtime *Runtime
+	lock    lock.Locker
 }
 
 // VolumeConfig holds the volume's immutable configuration.
@@ -280,8 +279,4 @@ func (v *Volume) Unmount() error {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 	return v.unmount(false)
-}
-
-func (v *Volume) NeedsMount() bool {
-	return v.needsMount()
 }

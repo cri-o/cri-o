@@ -113,9 +113,9 @@ var (
 // RunsOnSystemd returns whether the system is using systemd
 func RunsOnSystemd() bool {
 	runsOnSystemdOnce.Do(func() {
-		// per sd_booted(3), check for this dir
-		fd, err := os.Stat("/run/systemd/system")
-		runsOnSystemd = err == nil && fd.IsDir()
+		initCommand, err := os.ReadFile("/proc/1/comm")
+		// On errors, default to systemd
+		runsOnSystemd = err != nil || strings.TrimRight(string(initCommand), "\n") == "systemd"
 	})
 	return runsOnSystemd
 }

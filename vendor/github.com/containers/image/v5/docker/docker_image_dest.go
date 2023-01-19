@@ -244,7 +244,7 @@ func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.
 		logrus.Debugf("... not present")
 		return false, -1, nil
 	default:
-		return false, -1, fmt.Errorf("checking whether a blob %s exists in %s: %w", digest, repo.Name(), registryHTTPResponseToError(res))
+		return false, -1, fmt.Errorf("failed to read from destination repository %s: %d (%s)", reference.Path(d.ref.ref), res.StatusCode, http.StatusText(res.StatusCode))
 	}
 }
 
@@ -407,7 +407,7 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 // If the destination is in principle available, refuses this manifest type (e.g. it does not recognize the schema),
 // but may accept a different manifest type, the returned error must be an ManifestTypeRejectedError.
 func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte, instanceDigest *digest.Digest) error {
-	var refTail string
+	refTail := ""
 	if instanceDigest != nil {
 		// If the instanceDigest is provided, then use it as the refTail, because the reference,
 		// whether it includes a tag or a digest, refers to the list as a whole, and not this
@@ -487,10 +487,15 @@ func successStatus(status int) bool {
 	return status >= 200 && status <= 399
 }
 
-// isManifestInvalidError returns true iff err from registryHTTPResponseToError is a “manifest invalid” error.
+// isManifestInvalidError returns true iff err from client.HandleErrorResponse is a “manifest invalid” error.
 func isManifestInvalidError(err error) bool {
-	var ec errcode.ErrorCoder
-	if ok := errors.As(err, &ec); !ok {
+	errors, ok := err.(errcode.Errors)
+	if !ok || len(errors) == 0 {
+		return false
+	}
+	err = errors[0]
+	ec, ok := err.(errcode.ErrorCoder)
+	if !ok {
 		return false
 	}
 
@@ -580,8 +585,8 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures []signature
 
 	// NOTE: Keep this in sync with docs/signature-protocols.md!
 	for i, signature := range signatures {
-		sigURL := lookasideStorageURL(d.c.signatureBase, manifestDigest, i)
-		err := d.putOneSignature(sigURL, signature)
+		url := lookasideStorageURL(d.c.signatureBase, manifestDigest, i)
+		err := d.putOneSignature(url, signature)
 		if err != nil {
 			return err
 		}
@@ -592,8 +597,8 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures []signature
 	// is enough for dockerImageSource to stop looking for other signatures, so that
 	// is sufficient.
 	for i := len(signatures); ; i++ {
-		sigURL := lookasideStorageURL(d.c.signatureBase, manifestDigest, i)
-		missing, err := d.c.deleteOneSignature(sigURL)
+		url := lookasideStorageURL(d.c.signatureBase, manifestDigest, i)
+		missing, err := d.c.deleteOneSignature(url)
 		if err != nil {
 			return err
 		}
@@ -605,13 +610,13 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures []signature
 	return nil
 }
 
-// putOneSignature stores sig to sigURL.
+// putOneSignature stores sig to url.
 // NOTE: Keep this in sync with docs/signature-protocols.md!
-func (d *dockerImageDestination) putOneSignature(sigURL *url.URL, sig signature.Signature) error {
-	switch sigURL.Scheme {
+func (d *dockerImageDestination) putOneSignature(url *url.URL, sig signature.Signature) error {
+	switch url.Scheme {
 	case "file":
-		logrus.Debugf("Writing to %s", sigURL.Path)
-		err := os.MkdirAll(filepath.Dir(sigURL.Path), 0755)
+		logrus.Debugf("Writing to %s", url.Path)
+		err := os.MkdirAll(filepath.Dir(url.Path), 0755)
 		if err != nil {
 			return err
 		}
@@ -619,16 +624,16 @@ func (d *dockerImageDestination) putOneSignature(sigURL *url.URL, sig signature.
 		if err != nil {
 			return err
 		}
-		err = os.WriteFile(sigURL.Path, blob, 0644)
+		err = os.WriteFile(url.Path, blob, 0644)
 		if err != nil {
 			return err
 		}
 		return nil
 
 	case "http", "https":
-		return fmt.Errorf("Writing directly to a %s lookaside %s is not supported. Configure a lookaside-staging: location", sigURL.Scheme, sigURL.Redacted())
+		return fmt.Errorf("Writing directly to a %s lookaside %s is not supported. Configure a lookaside-staging: location", url.Scheme, url.Redacted())
 	default:
-		return fmt.Errorf("Unsupported scheme when writing signature to %s", sigURL.Redacted())
+		return fmt.Errorf("Unsupported scheme when writing signature to %s", url.Redacted())
 	}
 }
 
@@ -767,23 +772,23 @@ func (d *dockerImageDestination) putBlobBytesAsOCI(ctx context.Context, contents
 	}, nil
 }
 
-// deleteOneSignature deletes a signature from sigURL, if it exists.
+// deleteOneSignature deletes a signature from url, if it exists.
 // If it successfully determines that the signature does not exist, returns (true, nil)
 // NOTE: Keep this in sync with docs/signature-protocols.md!
-func (c *dockerClient) deleteOneSignature(sigURL *url.URL) (missing bool, err error) {
-	switch sigURL.Scheme {
+func (c *dockerClient) deleteOneSignature(url *url.URL) (missing bool, err error) {
+	switch url.Scheme {
 	case "file":
-		logrus.Debugf("Deleting %s", sigURL.Path)
-		err := os.Remove(sigURL.Path)
+		logrus.Debugf("Deleting %s", url.Path)
+		err := os.Remove(url.Path)
 		if err != nil && os.IsNotExist(err) {
 			return true, nil
 		}
 		return false, err
 
 	case "http", "https":
-		return false, fmt.Errorf("Writing directly to a %s lookaside %s is not supported. Configure a lookaside-staging: location", sigURL.Scheme, sigURL.Redacted())
+		return false, fmt.Errorf("Writing directly to a %s lookaside %s is not supported. Configure a lookaside-staging: location", url.Scheme, url.Redacted())
 	default:
-		return false, fmt.Errorf("Unsupported scheme when deleting signature from %s", sigURL.Redacted())
+		return false, fmt.Errorf("Unsupported scheme when deleting signature from %s", url.Redacted())
 	}
 }
 

@@ -27,12 +27,6 @@ func GetRuntimeDir() (string, error) {
 
 	rootlessRuntimeDirOnce.Do(func() {
 		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-
-		if runtimeDir != "" {
-			rootlessRuntimeDir, rootlessRuntimeDirError = filepath.EvalSymlinks(runtimeDir)
-			return
-		}
-
 		uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
 		if runtimeDir == "" {
 			tmpDir := filepath.Join("/run", "user", uid)

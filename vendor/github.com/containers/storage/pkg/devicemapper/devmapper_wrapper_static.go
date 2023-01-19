@@ -1,4 +1,3 @@
-//go:build linux && cgo && static_build
 // +build linux,cgo,static_build
 
 package devicemapper

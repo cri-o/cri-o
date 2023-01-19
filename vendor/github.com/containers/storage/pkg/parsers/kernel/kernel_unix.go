@@ -1,4 +1,3 @@
-//go:build linux || freebsd || solaris || openbsd
 // +build linux freebsd solaris openbsd
 
 // Package kernel provides helper function to get, parse and compare kernel

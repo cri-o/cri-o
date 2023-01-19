@@ -18,7 +18,6 @@ type StatT struct {
 	rdev uint64
 	size int64
 	mtim syscall.Timespec
-	dev  uint64
 	platformStatT
 }
 
@@ -50,11 +49,6 @@ func (s StatT) Size() int64 {
 // Mtim returns file's last modification time.
 func (s StatT) Mtim() syscall.Timespec {
 	return s.mtim
-}
-
-// Dev returns a unique identifier for owning filesystem
-func (s StatT) Dev() uint64 {
-	return s.dev
 }
 
 // Stat takes a path to a file and returns
