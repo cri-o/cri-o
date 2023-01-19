@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Versions to be used
 declare -A VERSIONS=(
-    ["cni-plugins"]=v1.1.1
+    ["cni-plugins"]=v1.2.0
     ["conmon"]=v2.1.2
     ["cri-tools"]=v1.26.0
     ["runc"]=v1.1.4
