@@ -17,7 +17,7 @@ require (
 	github.com/containerd/ttrpc v1.1.1-0.20220420014843-944ef4a40df3
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
-	github.com/containernetworking/plugins v1.1.1
+	github.com/containernetworking/plugins v1.2.0
 	github.com/containers/buildah v1.28.1-0.20221029151733-c2cf9fa47ab6
 	github.com/containers/common v0.50.2-0.20221104122933-582fadb8228b
 	github.com/containers/conmon v2.0.20+incompatible
