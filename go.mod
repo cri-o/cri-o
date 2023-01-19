@@ -82,7 +82,7 @@ require (
 	k8s.io/kubernetes v1.26.0
 	k8s.io/release v0.14.0
 	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d
-	mvdan.cc/sh/v3 v3.5.1
+	mvdan.cc/sh/v3 v3.6.0
 	sigs.k8s.io/bom v0.4.1
 	sigs.k8s.io/release-sdk v0.9.7
 	sigs.k8s.io/release-utils v0.7.3
@@ -237,6 +237,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/licenseclassifier/v2 v2.0.0 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
+	github.com/google/renameio/v2 v2.0.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/trillian v1.5.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
