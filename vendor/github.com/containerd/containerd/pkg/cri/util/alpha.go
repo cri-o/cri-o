@@ -1,6 +1,3 @@
-//go:build !windows && !darwin
-// +build !windows,!darwin
-
 /*
    Copyright The containerd Authors.
 
@@ -17,19 +14,39 @@
    limitations under the License.
 */
 
-package sys
+package util
 
 import (
-	"os"
-	"path/filepath"
-	"strconv"
+	"github.com/containerd/containerd/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-// GetOpenFds returns the number of open fds for the process provided by pid
-func GetOpenFds(pid int) (int, error) {
-	dirs, err := os.ReadDir(filepath.Join("/proc", strconv.Itoa(pid), "fd"))
+func AlphaReqToV1Req(
+	alphar protoreflect.ProtoMessage,
+	v1r interface{ Unmarshal(_ []byte) error },
+) error {
+	p, err := proto.Marshal(alphar)
 	if err != nil {
-		return -1, err
+		return err
 	}
-	return len(dirs), nil
+
+	if err = v1r.Unmarshal(p); err != nil {
+		return err
+	}
+	return nil
+}
+
+func V1RespToAlphaResp(
+	v1res interface{ Marshal() ([]byte, error) },
+	alphares protoreflect.ProtoMessage,
+) error {
+	p, err := v1res.Marshal()
+	if err != nil {
+		return err
+	}
+
+	if err = proto.Unmarshal(p, alphares); err != nil {
+		return err
+	}
+	return nil
 }
