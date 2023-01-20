@@ -23,8 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"k8s.io/release/pkg/notes/options"
 
 	"github.com/cheggaaa/pb/v3"
@@ -50,7 +48,7 @@ func (g *Gatherer) ListReleaseNotesV2() (*ReleaseNotes, error) {
 	// left parent of Git commits is always the main branch parent
 	pairs, err := g.listLeftParentCommits(g.options)
 	if err != nil {
-		return nil, errors.Wrap(err, "listing offline commits")
+		return nil, fmt.Errorf("listing offline commits: %w", err)
 	}
 
 	// load map providers specified in options
@@ -58,7 +56,7 @@ func (g *Gatherer) ListReleaseNotesV2() (*ReleaseNotes, error) {
 	for _, initString := range g.options.MapProviderStrings {
 		provider, err := NewProviderFromInitString(initString)
 		if err != nil {
-			return nil, errors.Wrap(err, "while getting release notes map providers")
+			return nil, fmt.Errorf("while getting release notes map providers: %w", err)
 		}
 		mapProviders = append(mapProviders, provider)
 	}
@@ -244,19 +242,19 @@ func (g *Gatherer) listLeftParentCommits(opts *options.Options) ([]*commitPrPair
 
 	endCommit, err := localRepository.CommitObject(plumbing.NewHash(opts.EndSHA))
 	if err != nil {
-		return nil, errors.Wrap(err, "finding commit of EndSHA")
+		return nil, fmt.Errorf("finding commit of EndSHA: %w", err)
 	}
 
 	startCommit, err := localRepository.CommitObject(plumbing.NewHash(opts.StartSHA))
 	if err != nil {
-		return nil, errors.Wrap(err, "finding commit of StartSHA")
+		return nil, fmt.Errorf("finding commit of StartSHA: %w", err)
 	}
 
 	logrus.Debugf("finding merge base (last shared commit) between the two SHAs")
 	startTime := time.Now()
 	lastSharedCommits, err := endCommit.MergeBase(startCommit)
 	if err != nil {
-		return nil, errors.Wrap(err, "finding shared commits")
+		return nil, fmt.Errorf("finding shared commits: %w", err)
 	}
 	if len(lastSharedCommits) == 0 {
 		return nil, fmt.Errorf("no shared commits between the provided SHAs")
@@ -276,7 +274,7 @@ func (g *Gatherer) listLeftParentCommits(opts *options.Options) ([]*commitPrPair
 		// Find and collect commit objects
 		commitPointer, err := localRepository.CommitObject(hashPointer)
 		if err != nil {
-			return nil, errors.Wrap(err, "finding CommitObject")
+			return nil, fmt.Errorf("finding CommitObject: %w", err)
 		}
 
 		// Find and collect PR number from commit message

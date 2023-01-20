@@ -17,6 +17,7 @@ limitations under the License.
 package document
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -26,11 +27,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"sigs.k8s.io/promo-tools/v3/image"
 	"sigs.k8s.io/release-utils/hash"
 
 	"k8s.io/release/pkg/cve"
@@ -38,6 +37,8 @@ import (
 	"k8s.io/release/pkg/notes/options"
 	"k8s.io/release/pkg/release"
 )
+
+const prodRegistry = "registry.k8s.io"
 
 // Document represents the underlying structure of a release notes document.
 type Document struct {
@@ -91,7 +92,7 @@ func fetchFileMetadata(dir, urlPrefix, tag string) (*FileMetadata, error) {
 	for fileType, patterns := range m {
 		fInfo, err := fileInfo(dir, patterns, urlPrefix, tag)
 		if err != nil {
-			return nil, errors.Wrap(err, "fetching file info")
+			return nil, fmt.Errorf("fetching file info: %w", err)
 		}
 		*fileType = append(*fileType, fInfo...)
 		fileCount += len(fInfo)
@@ -112,10 +113,10 @@ func fetchImageMetadata(dir, tag string) (*ImageMetadata, error) {
 	}
 
 	manifests, err := release.NewImages().GetManifestImages(
-		image.ProdRegistry, tag, dir, nil,
+		prodRegistry, tag, dir, nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "get manifest images")
+		return nil, fmt.Errorf("get manifest images: %w", err)
 	}
 
 	if len(manifests) == 0 {
@@ -129,7 +130,7 @@ func fetchImageMetadata(dir, tag string) (*ImageMetadata, error) {
 	const linkBase = "https://console.cloud.google.com/gcr/images/k8s-artifacts-prod/us/"
 
 	for manifest, tempArchitectures := range manifests {
-		imageName := strings.TrimPrefix(manifest, image.ProdRegistry+"/")
+		imageName := strings.TrimPrefix(manifest, prodRegistry+"/")
 
 		architectures := []string{}
 		for _, architecture := range tempArchitectures {
@@ -171,7 +172,7 @@ func fileInfo(dir string, patterns []string, urlPrefix, tag string) ([]File, err
 		for _, filePath := range matches {
 			sha512, err := hash.SHA512ForFile(filePath)
 			if err != nil {
-				return nil, errors.Wrap(err, "get sha512")
+				return nil, fmt.Errorf("get sha512: %w", err)
 			}
 
 			fileName := filepath.Base(filePath)
@@ -253,12 +254,12 @@ func GatherReleaseNotesDocument(
 ) (*Document, error) {
 	releaseNotes, err := notes.GatherReleaseNotes(opts)
 	if err != nil {
-		return nil, errors.Wrapf(err, "gathering release notes")
+		return nil, fmt.Errorf("gathering release notes: %w", err)
 	}
 
 	doc, err := New(releaseNotes, previousRev, currentRev)
 	if err != nil {
-		return nil, errors.Wrapf(err, "creating release note document")
+		return nil, fmt.Errorf("creating release note document: %w", err)
 	}
 
 	return doc, nil
@@ -295,12 +296,12 @@ func New(
 
 			// Populate the struct from the raw interface
 			if err := newcve.ReadRawInterface(note.DataFields["cve"]); err != nil {
-				return nil, errors.Wrap(err, "reading CVE data embedded in map file")
+				return nil, fmt.Errorf("reading CVE data embedded in map file: %w", err)
 			}
 
 			// Verify that CVE data has the minimum fields defined
 			if err := newcve.Validate(); err != nil {
-				return nil, errors.Wrapf(err, "checking CVE map file for PR #%d", pr)
+				return nil, fmt.Errorf("checking CVE map file for PR #%d: %w", pr, err)
 			}
 			doc.CVEList = append(doc.CVEList, newcve)
 		}
@@ -311,7 +312,7 @@ func New(
 		}
 
 		// TODO: Refactor the logic here and add testing.
-		if note.DuplicateKind { // nolint:gocritic // a switch case would not make it better
+		if note.DuplicateKind { //nolint:gocritic // a switch case would not make it better
 			kind := mapKind(highestPriorityKind(note.Kinds))
 			if existing, ok := kindCategory[kind]; ok {
 				*existing.NoteEntries = append(*existing.NoteEntries, processNote(note.Markdown))
@@ -361,30 +362,30 @@ func (d *Document) RenderMarkdownTemplate(bucket, tars, images, templateSpec str
 
 	fileMetadata, err := fetchFileMetadata(tars, urlPrefix, d.CurrentRevision)
 	if err != nil {
-		return "", errors.Wrap(err, "fetching file downloads metadata")
+		return "", fmt.Errorf("fetching file downloads metadata: %w", err)
 	}
 	d.FileDownloads = fileMetadata
 
 	imageMetadata, err := fetchImageMetadata(images, d.CurrentRevision)
 	if err != nil {
-		return "", errors.Wrap(err, "fetching image downloads metadata")
+		return "", fmt.Errorf("fetching image downloads metadata: %w", err)
 	}
 	d.ImageDownloads = imageMetadata
 
 	goTemplate, err := d.template(templateSpec)
 	if err != nil {
-		return "", errors.Wrap(err, "fetching template")
+		return "", fmt.Errorf("fetching template: %w", err)
 	}
 	tmpl, err := template.New("markdown").
 		Funcs(template.FuncMap{"prettyKind": prettyKind}).
 		Parse(goTemplate)
 	if err != nil {
-		return "", errors.Wrap(err, "parsing template")
+		return "", fmt.Errorf("parsing template: %w", err)
 	}
 
 	var s strings.Builder
 	if err := tmpl.Execute(&s, d); err != nil {
-		return "", errors.Wrapf(err, "rendering with template")
+		return "", fmt.Errorf("rendering with template: %w", err)
 	}
 	return strings.TrimSpace(s.String()), nil
 }
@@ -399,7 +400,7 @@ func (d *Document) template(templateSpec string) (string, error) {
 	}
 
 	if !strings.HasPrefix(templateSpec, options.GoTemplatePrefix) {
-		return "", errors.Errorf(
+		return "", fmt.Errorf(
 			"bad template format: expected %q, %q or %q. Got: %q",
 			options.GoTemplateDefault,
 			options.GoTemplatePrefix+"<file.template>",
@@ -417,10 +418,10 @@ func (d *Document) template(templateSpec string) (string, error) {
 	// Assume file-based template
 	b, err := os.ReadFile(templatePathOrOnline)
 	if err != nil {
-		return "", errors.Wrap(err, "reading template")
+		return "", fmt.Errorf("reading template: %w", err)
 	}
 	if len(b) == 0 {
-		return "", errors.Errorf("template %q must be non-empty", templatePathOrOnline)
+		return "", fmt.Errorf("template %q must be non-empty", templatePathOrOnline)
 	}
 
 	return string(b), nil
@@ -440,12 +441,12 @@ func CreateDownloadsTable(w io.Writer, bucket, tars, images, prevTag, newTag str
 	urlPrefix := release.URLPrefixForBucket(bucket)
 	fileMetadata, err := fetchFileMetadata(tars, urlPrefix, newTag)
 	if err != nil {
-		return errors.Wrap(err, "fetching file downloads metadata")
+		return fmt.Errorf("fetching file downloads metadata: %w", err)
 	}
 
 	imageMetadata, err := fetchImageMetadata(images, newTag)
 	if err != nil {
-		return errors.Wrap(err, "fetching image downloads metadata")
+		return fmt.Errorf("fetching image downloads metadata: %w", err)
 	}
 
 	if fileMetadata == nil && imageMetadata == nil {

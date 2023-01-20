@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"regexp"
 
-	cvss "github.com/spiegel-im-spiegel/go-cvss/v3/metric"
+	cvss "github.com/goark/go-cvss/v3/metric"
 )
 
 // CVE Information of a linked CVE vulnerability
@@ -73,7 +73,7 @@ func (cve *CVE) ReadRawInterface(cvedata interface{}) error {
 }
 
 // Validate checks the data defined in a CVE map is complete and valid
-func (cve *CVE) Validate() error {
+func (cve *CVE) Validate() (err error) {
 	// Verify that rating is defined and a known string
 	if cve.CVSSRating == "" {
 		return errors.New("missing CVSS rating from CVE data")
@@ -91,13 +91,18 @@ func (cve *CVE) Validate() error {
 		return errors.New("string CVSS vector missing from CVE data")
 	}
 
+	var bm cvss.Metrics
 	// Parse the vector string to make sure it is well formed
-	bm, err := cvss.NewBase().Decode(cve.CVSSVector)
+	if len(cve.CVSSVector) == 44 {
+		bm, err = cvss.NewBase().Decode(cve.CVSSVector)
+	} else {
+		bm, err = cvss.NewTemporal().Decode(cve.CVSSVector)
+	}
 	if err != nil {
 		return fmt.Errorf("parsing CVSS vector string: %w", err)
 	}
 	cve.CalcLink = fmt.Sprintf(
-		"https://www.first.org/cvss/calculator/%s#%s", bm.Ver.String(), cve.CVSSVector,
+		"https://www.first.org/cvss/calculator/%s#%s", bm.BaseMetrics().Ver.String(), cve.CVSSVector,
 	)
 
 	if cve.CVSSScore == 0 {

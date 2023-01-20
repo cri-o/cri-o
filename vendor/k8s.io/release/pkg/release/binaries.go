@@ -17,9 +17,9 @@ limitations under the License.
 package release
 
 import (
+	"fmt"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/release/pkg/binary"
 )
@@ -54,7 +54,7 @@ func (ac *ArtifactChecker) Options() *ArtifactCheckerOptions {
 func (ac *ArtifactChecker) CheckBinaryTags() error {
 	for _, tag := range ac.opts.Versions {
 		if err := ac.impl.CheckVersionTags(ac.opts, tag); err != nil {
-			return errors.Wrapf(err, "checking tags in %s binaries", tag)
+			return fmt.Errorf("checking tags in %s binaries: %w", tag, err)
 		}
 	}
 	return nil
@@ -65,7 +65,7 @@ func (ac *ArtifactChecker) CheckBinaryTags() error {
 func (ac *ArtifactChecker) CheckBinaryArchitectures() error {
 	for _, tag := range ac.opts.Versions {
 		if err := ac.impl.CheckVersionArch(ac.opts, tag); err != nil {
-			return errors.Wrapf(err, "checking tags in %s binaries", tag)
+			return fmt.Errorf("checking tags in %s binaries: %w", tag, err)
 		}
 	}
 	return nil
@@ -95,13 +95,13 @@ func (impl *defaultArtifactCheckerImpl) CheckVersionTags(
 ) error {
 	binaries, err := impl.ListReleaseBinaries(opts, version)
 	if err != nil {
-		return errors.Wrapf(err, "listing binaries for release %s", version)
+		return fmt.Errorf("listing binaries for release %s: %w", version, err)
 	}
 	logrus.Infof("Checking %d binaries for tag %s", len(binaries), version)
 	for _, binData := range binaries {
 		bin, err := binary.New(binData.Path)
 		if err != nil {
-			return errors.Wrapf(err, "creating binary from %s", binData.Path)
+			return fmt.Errorf("creating binary from %s: %w", binData.Path, err)
 		}
 
 		// The mounter binary is not tagged
@@ -112,10 +112,10 @@ func (impl *defaultArtifactCheckerImpl) CheckVersionTags(
 		// TODO: Ensure binary contains the correct commit message
 		contains, err := bin.ContainsStrings(version)
 		if err != nil {
-			return errors.Wrapf(err, "scanning binary %s", binData.Path)
+			return fmt.Errorf("scanning binary %s: %w", binData.Path, err)
 		}
 		if !contains {
-			return errors.Errorf(
+			return fmt.Errorf(
 				"tag %s not found in produced binary: %s ", version, binData.Path,
 			)
 		}
@@ -130,20 +130,29 @@ func (impl *defaultArtifactCheckerImpl) CheckVersionArch(
 ) error {
 	binaries, err := impl.ListReleaseBinaries(opts, version)
 	if err != nil {
-		return errors.Wrapf(err, "listing binaries for release %s", version)
+		return fmt.Errorf("listing binaries for release %s: %w", version, err)
 	}
 	logrus.Infof("Ensuring architecture of %d binaries for version %s", len(binaries), version)
 	for _, binData := range binaries {
 		bin, err := binary.New(binData.Path)
 		if err != nil {
-			return errors.Wrapf(err, "creating binary object from %s", binData.Path)
+			return fmt.Errorf("creating binary object from %s: %w", binData.Path, err)
 		}
 
 		if bin.Arch() != binData.Arch || bin.OS() != binData.Platform {
-			return errors.Errorf(
+			return fmt.Errorf(
 				"binary %s has incorrect architecture: expected %s/%s got %s/%s",
 				binData.Path, binData.Arch, binData.Platform, bin.Arch(), bin.OS(),
 			)
+		}
+
+		linkMode, err := bin.LinkMode()
+		if err != nil {
+			logrus.Warnf("Unable to get linkmode from binary %s: %v", binData.Path, err)
+		} else if linkMode == binary.LinkModeDynamic {
+			// TODO: fail hard if not all binaries are static (or unknown)
+			// Ref: https://github.com/kubernetes/release/issues/2786
+			logrus.Warnf("Binary is dynamically linked, which should be nothing we release: %s", binData.Path)
 		}
 	}
 	return nil

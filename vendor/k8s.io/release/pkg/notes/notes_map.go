@@ -17,11 +17,12 @@ limitations under the License.
 package notes
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
@@ -59,7 +60,7 @@ func ParseReleaseNotesMap(mapPath string) (*[]ReleaseNotesMap, error) {
 	notemaps := []ReleaseNotesMap{}
 	yamlReader, err := os.Open(mapPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "opening maps")
+		return nil, fmt.Errorf("opening maps: %w", err)
 	}
 	defer yamlReader.Close()
 
@@ -70,7 +71,7 @@ func ParseReleaseNotesMap(mapPath string) (*[]ReleaseNotesMap, error) {
 		if err := decoder.Decode(&noteMap); err == io.EOF {
 			break
 		} else if err != nil {
-			return nil, errors.Wrap(err, "decoding note map")
+			return nil, fmt.Errorf("decoding note map: %w", err)
 		}
 		notemaps = append(notemaps, noteMap)
 	}
@@ -142,7 +143,7 @@ func (mp *DirectoryMapProvider) readMaps() error {
 	for _, fileName := range fileList {
 		notemaps, err := ParseReleaseNotesMap(fileName)
 		if err != nil {
-			return errors.Wrapf(err, "while parsing note map in %s", fileName)
+			return fmt.Errorf("while parsing note map in %s: %w", fileName, err)
 		}
 		for i, notemap := range *notemaps {
 			if _, ok := mp.Maps[notemap.PR]; !ok {
@@ -160,7 +161,7 @@ func (mp *DirectoryMapProvider) GetMapsForPR(pr int) (notesMap []*ReleaseNotesMa
 	if mp.Maps == nil {
 		err := mp.readMaps()
 		if err != nil {
-			return nil, errors.Wrap(err, "while reading release notes maps")
+			return nil, fmt.Errorf("while reading release notes maps: %w", err)
 		}
 	}
 	if notesMap, ok := mp.Maps[pr]; ok {

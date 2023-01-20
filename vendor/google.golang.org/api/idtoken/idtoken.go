@@ -54,7 +54,9 @@ func NewClient(ctx context.Context, audience string, opts ...ClientOption) (*htt
 	// Skip DialSettings validation so added TokenSource will not conflict with user
 	// provided credentials.
 	opts = append(opts, option.WithTokenSource(ts), internaloption.SkipDialSettingsValidation())
-	t, err := htransport.NewTransport(ctx, http.DefaultTransport, opts...)
+	httpTransport := http.DefaultTransport.(*http.Transport).Clone()
+	httpTransport.MaxIdleConnsPerHost = 100
+	t, err := htransport.NewTransport(ctx, httpTransport, opts...)
 	if err != nil {
 		return nil, err
 	}

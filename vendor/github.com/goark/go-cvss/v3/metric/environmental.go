@@ -4,8 +4,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/spiegel-im-spiegel/errs"
-	"github.com/spiegel-im-spiegel/go-cvss/cvsserr"
+	"github.com/goark/errs"
+	"github.com/goark/go-cvss/cvsserr"
 )
 
 //Base is Environmental Metrics for CVSSv3
