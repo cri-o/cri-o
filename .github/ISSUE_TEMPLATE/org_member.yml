@@ -1,0 +1,41 @@
+name: CRI-O Organization Member Request
+description: Request membership status in the CRI-O organization
+title: "REQUEST: New org member status for <your-GH-handle>"
+body:
+- id: github
+  type: input
+  attributes:
+    label: GitHub Username
+    placeholder: e.g. @example_user
+  validations:
+    required: true
+- id: requirements
+  type: checkboxes
+  attributes:
+    label: Requirements
+    options:
+    - label: I have reviewed the [community membership guidelines](https://git.k8s.io/community/community-membership.md)
+      required: true
+    - label: I have [enabled 2FA on my GitHub account](https://github.com/settings/security)
+      required: true
+    - label: I have one sponsor from the list of approvers in at least one OWNERS file within the CRI-O repository
+      required: true
+    - label: I have spoken to my sponsor ahead of this application, and they have agreed to sponsor my application
+      required: true
+- id: sponsor
+  type: input
+  attributes:
+    label: "Sponsor"
+    description: GitHub handle of your sponsor
+    placeholder: e.g. @sponsor
+  validations:
+    required: true
+- id: contributions
+  type: textarea
+  attributes:
+    label: List of contributions to the CRI-O project
+    placeholder: |
+      - PRs reviewed / authored
+      - Issues responded to
+  validations:
+    required: true
