@@ -1,10 +1,10 @@
-package main
+package criocli
 
 import (
 	"github.com/urfave/cli/v2"
 )
 
-var publishCommand = &cli.Command{
+var PublishCommand = &cli.Command{
 	Name:  "publish",
 	Usage: "receive shimv2 events",
 	Flags: []cli.Flag{

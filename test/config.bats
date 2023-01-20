@@ -26,7 +26,7 @@ function teardown() {
 
 	# when
 	start_crio_no_setup
-	output=$("${CRIO_STATUS_BINARY_PATH}" --socket="${CRIO_SOCKET}" config)
+	output=$("${CRIO_BINARY_PATH}" status --socket="${CRIO_SOCKET}" config)
 
 	# then
 	[[ "$output" == *"pids_limit = 5678"* ]]

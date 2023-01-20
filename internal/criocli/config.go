@@ -1,11 +1,10 @@
-package main
+package criocli
 
 import (
 	"fmt"
 	"os"
 
 	"github.com/cri-o/cri-o/internal/config/migrate"
-	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -13,7 +12,7 @@ import (
 
 var from string
 
-var configCommand = &cli.Command{
+var ConfigCommand = &cli.Command{
 	Name: "config",
 	Usage: `Outputs a commented version of the configuration file that could be used
 by CRI-O. This allows you to save you current configuration setup and then load
@@ -48,7 +47,7 @@ it later with **--config**. Global options will modify the output.`,
 		})
 		logrus.SetLevel(logrus.InfoLevel)
 
-		conf, err := criocli.GetConfigFromContext(c)
+		conf, err := GetConfigFromContext(c)
 		if err != nil {
 			return err
 		}

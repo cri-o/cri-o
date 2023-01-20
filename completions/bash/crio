@@ -10,6 +10,7 @@ md
 config
 version
 wipe
+status
 help
 h
 --absent-mount-sources-to-reject

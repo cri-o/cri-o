@@ -1,4 +1,4 @@
-package main
+package criocli
 
 import (
 	"errors"
@@ -6,7 +6,6 @@ import (
 	"os"
 
 	cstorage "github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/version"
 	crioconf "github.com/cri-o/cri-o/pkg/config"
@@ -15,7 +14,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var wipeCommand = &cli.Command{
+var WipeCommand = &cli.Command{
 	Name:   "wipe",
 	Usage:  "wipe CRI-O's container and image storage",
 	Action: crioWipe,
@@ -29,7 +28,7 @@ var wipeCommand = &cli.Command{
 }
 
 func crioWipe(c *cli.Context) error {
-	config, err := criocli.GetConfigFromContext(c)
+	config, err := GetConfigFromContext(c)
 	if err != nil {
 		return err
 	}

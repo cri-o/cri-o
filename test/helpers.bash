@@ -16,9 +16,6 @@ CRIO_ROOT=${CRIO_ROOT:-$(
 CRIO_BINARY=${CRIO_BINARY:-crio}
 CRIO_BINARY_PATH=${CRIO_BINARY_PATH:-${CRIO_ROOT}/bin/$CRIO_BINARY}
 
-# Path to the crio-status binary.
-CRIO_STATUS_BINARY_PATH=${CRIO_STATUS_BINARY_PATH:-${CRIO_ROOT}/bin/crio-status}
-
 # Path to the pinns binary
 PINNS_BINARY_PATH=${PINNS_BINARY_PATH:-${CRIO_ROOT}/bin/pinns}
 
