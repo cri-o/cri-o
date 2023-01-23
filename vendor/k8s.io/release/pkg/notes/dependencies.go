@@ -17,9 +17,9 @@ limitations under the License.
 package notes
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/saschagrunert/go-modiff/pkg/modiff"
 
 	"sigs.k8s.io/release-sdk/git"
@@ -66,7 +66,7 @@ func (d *Dependencies) ChangesForURL(url, from, to string) (string, error) {
 
 	res, err := d.moDiff.Run(config)
 	if err != nil {
-		return "", errors.Wrap(err, "getting dependency changes")
+		return "", fmt.Errorf("getting dependency changes: %w", err)
 	}
 
 	return res, nil

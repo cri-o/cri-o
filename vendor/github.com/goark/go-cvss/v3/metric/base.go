@@ -4,8 +4,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/spiegel-im-spiegel/errs"
-	"github.com/spiegel-im-spiegel/go-cvss/cvsserr"
+	"github.com/goark/errs"
+	"github.com/goark/go-cvss/cvsserr"
 )
 
 //Base is Base Metrics for CVSSv3
@@ -155,6 +155,15 @@ func (bm *Base) Score() float64 {
 //Severity returns severity by score of Base metrics
 func (bm *Base) Severity() Severity {
 	return severity(bm.Score())
+}
+
+type Metrics interface {
+	// BaseMetrics returns the base type for any given metrics type.
+	BaseMetrics() *Base
+}
+
+func (bm *Base) BaseMetrics() *Base {
+	return bm
 }
 
 /* Copyright 2018-2020 Spiegel

@@ -18,10 +18,10 @@ package binary
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,7 +57,7 @@ type PEBinary struct {
 func NewPEBinary(filePath string, opts *Options) (bin *PEBinary, err error) {
 	header, err := GetPEHeader(filePath)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading header from binary")
+		return nil, fmt.Errorf("reading header from binary: %w", err)
 	}
 	if header == nil {
 		logrus.Infof("file is not a PE executable")
@@ -133,7 +133,7 @@ func (peh *PEHeader) WordLength() int {
 func GetPEHeader(path string) (*PEHeader, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "opening binary for reading")
+		return nil, fmt.Errorf("opening binary for reading: %w", err)
 	}
 	defer f.Close()
 
@@ -149,10 +149,10 @@ func GetPEHeader(path string) (*PEHeader, error) {
 		signoff := int64(binary.LittleEndian.Uint32(dosheader[0x3c:]))
 		var sign [4]byte
 		if _, err := f.ReadAt(sign[:], signoff); err != nil {
-			return nil, errors.Wrap(err, "reading the PE file header location")
+			return nil, fmt.Errorf("reading the PE file header location: %w", err)
 		}
 		if !(sign[0] == 'P' && sign[1] == 'E' && sign[2] == 0 && sign[3] == 0) {
-			return nil, errors.New("Invalid PE COFF file signature")
+			return nil, errors.New("invalid PE COFF file signature")
 		}
 		base = signoff + 4
 	} else {
@@ -163,7 +163,7 @@ func GetPEHeader(path string) (*PEHeader, error) {
 	}
 
 	if _, err := f.Seek(base, 0); err != nil {
-		return nil, errors.Wrap(err, "seeking to start of the PE file header location")
+		return nil, fmt.Errorf("seeking to start of the PE file header location: %w", err)
 	}
 
 	// Read the full header, will be discarded later
@@ -174,13 +174,13 @@ func GetPEHeader(path string) (*PEHeader, error) {
 
 	// Now from the full file header we got, we jump to the "optional" header
 	if _, err = f.Seek(base+int64(binary.Size(header)), 0); err != nil {
-		return nil, errors.Wrap(err, "Unable to seek to start of PE Optional header")
+		return nil, fmt.Errorf("unable to seek to start of PE Optional header: %w", err)
 	}
 
 	// Read the file optional header
 	oheader := &PEOptionalHeader{}
 	if err := binary.Read(f, binary.LittleEndian, oheader); err != nil {
-		return nil, errors.Wrap(err, "reading optional PE header from binary")
+		return nil, fmt.Errorf("reading optional PE header from binary: %w", err)
 	}
 
 	return &PEHeader{
@@ -197,4 +197,9 @@ func (pe *PEBinary) Arch() string {
 // OS returns the operating system of the binary
 func (pe *PEBinary) OS() string {
 	return WIN
+}
+
+// LinkMode returns the linking mode of the binary.
+func (pe *PEBinary) LinkMode() (LinkMode, error) {
+	return LinkModeUnknown, nil
 }

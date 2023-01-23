@@ -17,9 +17,9 @@ limitations under the License.
 package release
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-sdk/git"
@@ -32,6 +32,7 @@ type Version struct {
 }
 
 // VersionClient is a client for getting Kubernetes versions
+//
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 //counterfeiter:generate . VersionClient
 type VersionClient interface {
@@ -107,7 +108,7 @@ func (v *Version) GetKubeVersionForBranch(versionType VersionType, branch string
 	version := ""
 	if branch != git.DefaultBranch {
 		if !git.IsReleaseBranch(branch) {
-			return "", errors.Errorf("%s is not a valid release branch", branch)
+			return "", fmt.Errorf("%s is not a valid release branch", branch)
 		}
 		version = strings.TrimPrefix(branch, "release-")
 	}
@@ -122,7 +123,7 @@ func (v *Version) kubeVersionFromURL(url string) (string, error) {
 	logrus.Infof("Retrieving Kubernetes build version from %s...", url)
 	version, httpErr := v.client.GetURLResponse(url)
 	if httpErr != nil {
-		return "", errors.Wrap(httpErr, "retrieving kube version")
+		return "", fmt.Errorf("retrieving kube version: %w", httpErr)
 	}
 
 	logrus.Infof("Retrieved Kubernetes version: %s", version)

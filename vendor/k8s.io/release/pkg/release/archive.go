@@ -17,12 +17,12 @@ limitations under the License.
 package release
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-sdk/gcli"
@@ -106,12 +106,12 @@ func (o *ArchiverOptions) Validate() error {
 
 	// Check if the build version is well formed (used for cleaning old staged build)
 	if _, err := util.TagStringToSemver(o.BuildVersion); err != nil {
-		return errors.Wrap(err, "verifying build version tag")
+		return fmt.Errorf("verifying build version tag: %w", err)
 	}
 
 	// Check if the prime version is well formed
 	if _, err := util.TagStringToSemver(o.PrimeVersion); err != nil {
-		return errors.Wrap(err, "verifying prime version tag")
+		return fmt.Errorf("verifying prime version tag: %w", err)
 	}
 
 	return nil
@@ -134,7 +134,7 @@ type defaultArchiverImpl struct{}
 func (archiver *Archiver) ArchiveRelease() error {
 	// Verify options are complete
 	if err := archiver.impl.ValidateOptions(archiver.opts); err != nil {
-		return errors.Wrap(err, "validating archive options")
+		return fmt.Errorf("validating archive options: %w", err)
 	}
 
 	// TODO: Is this still relevant?
@@ -153,7 +153,7 @@ func (archiver *Archiver) ArchiveRelease() error {
 	if err := archiver.impl.DeleteStalePasswordFiles(
 		archiver.opts.ReleaseBuildDir,
 	); err != nil {
-		return errors.Wrap(err, "looking for stale password files")
+		return fmt.Errorf("looking for stale password files: %w", err)
 	}
 
 	// Clean previous staged builds
@@ -161,7 +161,7 @@ func (archiver *Archiver) ArchiveRelease() error {
 		object.GcsPrefix+filepath.Join(archiver.opts.Bucket, StagePath),
 		archiver.opts.BuildVersion,
 	); err != nil {
-		return errors.Wrap(err, "deleting previous staged builds")
+		return fmt.Errorf("deleting previous staged builds: %w", err)
 	}
 
 	// Copy the release to the bucket
@@ -169,7 +169,7 @@ func (archiver *Archiver) ArchiveRelease() error {
 		archiver.opts.ReleaseBuildDir,
 		archiver.opts.ArchiveBucketPath(),
 	); err != nil {
-		return errors.Wrap(err, "while copying the release directory")
+		return fmt.Errorf("while copying the release directory: %w", err)
 	}
 
 	// copy_logs_to_workdir
@@ -178,14 +178,14 @@ func (archiver *Archiver) ArchiveRelease() error {
 		filepath.Join(archiver.opts.ReleaseBuildDir, logsArchiveSubPath),
 		filepath.Join(archiver.opts.ArchiveBucketPath(), logsArchiveSubPath),
 	); err != nil {
-		return errors.Wrap(err, "copying release logs to archive")
+		return fmt.Errorf("copying release logs to archive: %w", err)
 	}
 
 	// Make the logs private (remove AllUsers from the GCS ACL)
 	if err := archiver.impl.MakeFilesPrivate(
 		filepath.Join(archiver.opts.ArchiveBucketPath(), logsArchiveSubPath),
 	); err != nil {
-		return errors.Wrapf(err, "setting private ACL on logs")
+		return fmt.Errorf("setting private ACL on logs: %w", err)
 	}
 
 	logrus.Info("Release archive complete")
@@ -194,7 +194,10 @@ func (archiver *Archiver) ArchiveRelease() error {
 
 // validateOptions runs the options validation
 func (a *defaultArchiverImpl) ValidateOptions(o *ArchiverOptions) error {
-	return errors.Wrap(o.Validate(), "validating options")
+	if err := o.Validate(); err != nil {
+		return fmt.Errorf("validating options: %w", err)
+	}
+	return nil
 }
 
 // makeFilesPrivate updates the ACL on all files in a directory
@@ -203,11 +206,11 @@ func (a *defaultArchiverImpl) MakeFilesPrivate(archiveBucketPath string) error {
 	gcs := object.NewGCS()
 	logsPath, err := gcs.NormalizePath(archiveBucketPath + "/*")
 	if err != nil {
-		return errors.Wrap(err, "normalizing gcs path to modify ACL")
+		return fmt.Errorf("normalizing gcs path to modify ACL: %w", err)
 	}
 	// logrun -s $GSUTIL acl ch -d AllUsers "$archive_bucket/$build_dir/${LOGFILE##*/}*" || true
 	if err := gcli.GSUtil("acl", "ch", "-d", "AllUsers", logsPath); err != nil {
-		return errors.Wrapf(err, "removing public access from files in %s", archiveBucketPath)
+		return fmt.Errorf("removing public access from files in %s: %w", archiveBucketPath, err)
 	}
 	return nil
 }
@@ -217,14 +220,14 @@ func (a *defaultArchiverImpl) DeleteStalePasswordFiles(releaseBuildDir string) e
 	if err := command.NewWithWorkDir(
 		releaseBuildDir, "find", "-type", "f", "-name", "rsyncd.password", "-delete",
 	).RunSuccess(); err != nil {
-		return errors.Wrap(err, "deleting temporary password files")
+		return fmt.Errorf("deleting temporary password files: %w", err)
 	}
 
 	// Delete the git remote config to avoid it ending in the stage bucket
 	gitConf := filepath.Join(releaseBuildDir, "k8s.io", "kubernetes", ".git", "config")
 	if util.Exists(gitConf) {
 		if err := os.Remove(gitConf); err != nil {
-			return errors.Wrap(err, "deleting git remote config")
+			return fmt.Errorf("deleting git remote config: %w", err)
 		}
 	} else {
 		logrus.Warn("git configuration file not found, nothing to remove")
@@ -244,26 +247,26 @@ func (a *defaultArchiverImpl) CopyReleaseLogs(
 	if archiveBucketLogsPath != "" {
 		archiveBucketLogsPath, err = gcs.NormalizePath(archiveBucketLogsPath)
 		if err != nil {
-			return errors.Wrap(err, "normalizing remote logfile destination")
+			return fmt.Errorf("normalizing remote logfile destination: %w", err)
 		}
 	}
 	// Check the destination directory exists
 	if !util.Exists(targetDir) {
 		if err := os.Mkdir(targetDir, os.FileMode(0o755)); err != nil {
-			return errors.Wrap(err, "creating logs archive directory")
+			return fmt.Errorf("creating logs archive directory: %w", err)
 		}
 	}
 	for _, fileName := range logFiles {
 		// Strip the logfiles from control chars and sensitive data
 		if err := util.CleanLogFile(fileName); err != nil {
-			return errors.Wrap(err, "sanitizing logfile")
+			return fmt.Errorf("sanitizing logfile: %w", err)
 		}
 
 		logrus.Infof("Copying %s to %s", fileName, targetDir)
 		if err := util.CopyFileLocal(
 			fileName, filepath.Join(targetDir, filepath.Base(fileName)), true,
 		); err != nil {
-			return errors.Wrapf(err, "Copying logfile %s to %s", fileName, targetDir)
+			return fmt.Errorf("copying logfile %s to %s: %w", fileName, targetDir, err)
 		}
 	}
 	// TODO: Grab previous log files from stage and copy them to logs dir
@@ -272,7 +275,7 @@ func (a *defaultArchiverImpl) CopyReleaseLogs(
 	if archiveBucketLogsPath != "" {
 		logrus.Infof("Rsyncing logs to remote bucket %s", archiveBucketLogsPath)
 		if err := gcs.RsyncRecursive(targetDir, archiveBucketLogsPath); err != nil {
-			return errors.Wrap(err, "while synching log files to remote bucket addr")
+			return fmt.Errorf("while synching log files to remote bucket addr: %w", err)
 		}
 	}
 	return nil
@@ -286,24 +289,24 @@ func (a *defaultArchiverImpl) CopyReleaseToBucket(releaseBuildDir, archiveBucket
 	gcs := object.NewGCS()
 	remoteDest, err := gcs.NormalizePath(archiveBucketPath)
 	if err != nil {
-		return errors.Wrap(err, "normalizing destination path")
+		return fmt.Errorf("normalizing destination path: %w", err)
 	}
 
 	srcPath := filepath.Join(releaseBuildDir, "k8s.io")
 	tarball := srcPath + ".tar.gz"
 	logrus.Infof("Compressing %s to %s", srcPath, tarball)
 	if err := tar.Compress(tarball, srcPath); err != nil {
-		return errors.Wrap(err, "create source tarball")
+		return fmt.Errorf("create source tarball: %w", err)
 	}
 
 	logrus.Infof("Removing source path %s before syncing", srcPath)
 	if err := os.RemoveAll(srcPath); err != nil {
-		return errors.Wrap(err, "remove source path")
+		return fmt.Errorf("remove source path: %w", err)
 	}
 
 	logrus.Infof("Rsync %s to %s", releaseBuildDir, remoteDest)
 	if err := gcs.RsyncRecursive(releaseBuildDir, remoteDest); err != nil {
-		return errors.Wrap(err, "copying release directory to bucket")
+		return fmt.Errorf("copying release directory to bucket: %w", err)
 	}
 	return nil
 }
@@ -313,7 +316,7 @@ func (a *defaultArchiverImpl) GetLogFiles(logsDir string) ([]string, error) {
 	logFiles := []string{}
 	tmpContents, err := os.ReadDir(logsDir)
 	if err != nil {
-		return nil, errors.Wrapf(err, "searching for logfiles in %s", logsDir)
+		return nil, fmt.Errorf("searching for logfiles in %s: %w", logsDir, err)
 	}
 	for _, finfo := range tmpContents {
 		if strings.HasPrefix(finfo.Name(), "anago") &&
@@ -330,7 +333,7 @@ func (a *defaultArchiverImpl) CleanStagedBuilds(bucketPath, buildVersion string)
 	// Build the prefix we will be looking for
 	semver, err := util.TagStringToSemver(buildVersion)
 	if err != nil {
-		return errors.Wrap(err, "parsing semver from tag")
+		return fmt.Errorf("parsing semver from tag: %w", err)
 	}
 	dirPrefix := fmt.Sprintf("%s%d.%d", util.TagPrefix, semver.Major, semver.Minor)
 
@@ -345,20 +348,20 @@ func (a *defaultArchiverImpl) CleanStagedBuilds(bucketPath, buildVersion string)
 	// Normalize the bucket path
 	path, err := gcs.NormalizePath(bucketPath, dirPrefix+"*")
 	if err != nil {
-		return errors.Wrap(err, "normalizing stage path")
+		return fmt.Errorf("normalizing stage path: %w", err)
 	}
 
 	// Get all staged build that match the pattern
 	output, err := gcli.GSUtilOutput("ls", "-d", path)
 	if err != nil {
-		return errors.Wrap(err, "listing bucket contents")
+		return fmt.Errorf("listing bucket contents: %w", err)
 	}
 
 	for _, line := range strings.Fields(output) {
 		if strings.Contains(line, dirPrefix) && !strings.Contains(line, buildVersion) {
 			logrus.Infof("Deleting previous staged build: %s", line)
 			if err := gcs.DeletePath(line); err != nil {
-				return errors.Wrap(err, "calling gsutil to delete build")
+				return fmt.Errorf("calling gsutil to delete build: %w", err)
 			}
 		}
 	}
