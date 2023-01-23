@@ -11,7 +11,7 @@ By default, your CNI configurations are read from `/etc/cni/net.d`.
 This can be overwritten by specifying `crio.network.network_dir` in your override of `/etc/crio/crio.conf.d`.
 
 CRI-O chooses a CNI configuration from this directory with lexicographic precidence (10-config will be chosen over 99-config).
-However, CRI-O will only choose a network whose name matches the value of `crio.network.cni_default_network` (default value is `crio`).
+However, CRI-O will only choose a network whose name matches the value of `crio.network.cni_default_network` (default value is `""`).
 
 Unless you have a specific networking configuration you'd like to use, we recommend installing either [10-crio-bridge.conflist][dual-stack], or [11-crio-ipv4-bridge.conflist][ipv4-only].
 Installing in this case means: Copy the respective files to the configuration directory like so:
