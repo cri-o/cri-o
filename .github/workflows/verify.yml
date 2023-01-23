@@ -74,6 +74,7 @@ jobs:
       - run: make check-log-lines
 
   get-script:
+    if: ${{ github.base_ref == 'main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
