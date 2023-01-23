@@ -10,6 +10,7 @@ upstream_tag_template: v{version}
 downstream_package_name: cri-o
 actions:
   post-upstream-clone: "wget https://src.fedoraproject.org/rpms/cri-o/raw/rawhide/f/cri-o.spec -O cri-o.spec"
+srpm_build_deps: ["wget"]
 jobs:
 - job: copr_build
   trigger: commit
