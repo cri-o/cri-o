@@ -52,3 +52,19 @@ function teardown() {
 	echo "checking $ctr1_mem != $ctr2_mem"
 	[ "$ctr1_mem" != "$ctr2_mem" ]
 }
+
+@test "pod stats" {
+	# given
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	# when
+	json=$(crictl statsp --id "$pod_id" -o json)
+	echo "$json"
+	jq -e '.stats[0].attributes.id == "'"$pod_id"'"' <<< "$json"
+
+	# Check that the container is listed in the statsp response
+	jq -e '.stats[0].linux.containers[0].attributes.id == "'"$ctr_id"'"' <<< "$json"
+}
