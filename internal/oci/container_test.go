@@ -228,6 +228,118 @@ var _ = t.Describe("Container", func() {
 		Expect(signal).To(Equal("5"))
 	})
 
+	It("should succeed to set the all container resources", func() {
+		// Given
+		var cpuPeriod uint64 = 100000
+		var cpuQuota int64 = 20000
+		var cpuShares uint64 = 1024
+		cpusetCpus := "0-3,12-15"
+		cpusetMems := "0,1"
+		oomScoreAdj := 100
+		var memoryLimitInBytes int64 = 1024
+		var memorySwapLimitInBytes int64 = 1024
+		hugepageLimits := []specs.LinuxHugepageLimit{
+			{
+				Pagesize: "1KB",
+				Limit:    1024,
+			},
+			{
+				Pagesize: "2KB",
+				Limit:    2048,
+			},
+		}
+		unified := map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+		}
+
+		newSpec := specs.Spec{
+			Linux: &specs.Linux{
+				Resources: &specs.LinuxResources{
+					CPU: &specs.LinuxCPU{
+						Shares: &cpuShares,
+						Quota:  &cpuQuota,
+						Period: &cpuPeriod,
+						Cpus:   cpusetCpus,
+						Mems:   cpusetMems,
+					},
+					Memory: &specs.LinuxMemory{
+						Limit: &memoryLimitInBytes,
+						Swap:  &memorySwapLimitInBytes,
+					},
+					HugepageLimits: hugepageLimits,
+					Unified:        unified,
+				},
+			},
+			Process: &specs.Process{
+				OOMScoreAdj: &oomScoreAdj,
+			},
+		}
+
+		// When
+		sut.SetSpec(&newSpec)
+		containerResources := sut.GetResources()
+
+		// Then
+		Expect(containerResources.Linux.CpuPeriod).To(Equal(int64(cpuPeriod)))
+		Expect(containerResources.Linux.CpuQuota).To(Equal(cpuQuota))
+		Expect(containerResources.Linux.CpuShares).To(Equal(int64(cpuShares)))
+		Expect(containerResources.Linux.CpusetCpus).To(Equal(cpusetCpus))
+		Expect(containerResources.Linux.CpusetMems).To(Equal(cpusetMems))
+		Expect(containerResources.Linux.OomScoreAdj).To(Equal(int64(oomScoreAdj)))
+		Expect(containerResources.Linux.MemoryLimitInBytes).To(Equal(memoryLimitInBytes))
+		Expect(containerResources.Linux.MemorySwapLimitInBytes).To(Equal(memorySwapLimitInBytes))
+		Expect(containerResources.Linux.Unified).To(Equal(unified))
+		for i := 0; i < len(containerResources.Linux.HugepageLimits); i++ {
+			Expect(containerResources.Linux.HugepageLimits[i].PageSize).To(Equal(hugepageLimits[i].Pagesize))
+			Expect(containerResources.Linux.HugepageLimits[i].Limit).To(Equal(hugepageLimits[i].Limit))
+		}
+	})
+
+	It("should succeed to set the fewer container resources", func() {
+		// Given
+		var cpuPeriod uint64 = 100000
+		var cpuQuota int64 = 20000
+		var cpuShares uint64 = 1024
+		cpusetCpus := "0-3,12-15"
+		cpusetMems := "0,1"
+		var memoryLimitInBytes int64 = 1024
+		var memorySwapLimitInBytes int64 = 1024
+
+		newSpec := specs.Spec{
+			Linux: &specs.Linux{
+				Resources: &specs.LinuxResources{
+					CPU: &specs.LinuxCPU{
+						Shares: &cpuShares,
+						Quota:  &cpuQuota,
+						Period: &cpuPeriod,
+						Cpus:   cpusetCpus,
+						Mems:   cpusetMems,
+					},
+					Memory: &specs.LinuxMemory{
+						Limit: &memoryLimitInBytes,
+						Swap:  &memorySwapLimitInBytes,
+					},
+				},
+			},
+		}
+
+		// When
+		sut.SetSpec(&newSpec)
+		containerResources := sut.GetResources()
+
+		// Then
+		Expect(containerResources.Linux.CpuPeriod).To(Equal(int64(cpuPeriod)))
+		Expect(containerResources.Linux.CpuQuota).To(Equal(cpuQuota))
+		Expect(containerResources.Linux.CpuShares).To(Equal(int64(cpuShares)))
+		Expect(containerResources.Linux.CpusetCpus).To(Equal(cpusetCpus))
+		Expect(containerResources.Linux.CpusetMems).To(Equal(cpusetMems))
+		Expect(containerResources.Linux.MemoryLimitInBytes).To(Equal(memoryLimitInBytes))
+		Expect(containerResources.Linux.MemorySwapLimitInBytes).To(Equal(memorySwapLimitInBytes))
+		Expect(len(containerResources.Linux.Unified)).To(Equal(0))
+		Expect(len(containerResources.Linux.HugepageLimits)).To(Equal(0))
+	})
+
 	t.Describe("FromDisk", func() {
 		BeforeEach(func() {
 			Expect(os.MkdirAll(sut.Dir(), 0o755)).To(BeNil())
