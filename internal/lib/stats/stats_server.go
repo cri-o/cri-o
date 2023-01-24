@@ -120,6 +120,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
 			updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
 		}
+		containerStats = append(containerStats, cStats)
 	}
 	sandboxStats.Linux.Containers = containerStats
 	if old, ok := ss.sboxStats[sb.ID()]; ok {
