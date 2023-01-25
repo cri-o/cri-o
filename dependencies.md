@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 25 Jan 2023 10:15:06 UTC for commit [4eee789][0]._
+_Generated on Wed, 25 Jan 2023 12:42:16 UTC for commit [613241f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4eee78936fd608773620d3d7f5fe5626d21a8dc3
+[0]: https://github.com/cri-o/cri-o/commit/613241f2f90729130cf2268598e8b2056268b735
 
 ## Outdated Dependencies
 
@@ -21,7 +21,6 @@ _Generated on Wed, 25 Jan 2023 10:15:06 UTC for commit [4eee789][0]._
 | k8s.io/api                                  | v0.0.0-20221208195143-b46a3f887ca9       | v0.0.0-20230125005821-d29e3bd7aa49 | true   | true             |
 | k8s.io/apimachinery                         | v0.0.0-20221208195143-b46a3f887ca9       | v0.0.0-20230125005821-d29e3bd7aa49 | true   | true             |
 | k8s.io/cri-api                              | v0.0.0-20221208195143-b46a3f887ca9       | v0.0.0-20230125005821-d29e3bd7aa49 | true   | true             |
-| k8s.io/klog/v2                              | v2.80.1                                  | v2.90.0                            | true   | true             |
 | k8s.io/kubernetes                           | v1.26.0                                  | v1.26.1                            | true   | true             |
 | k8s.io/utils                                | v0.0.0-20221107191617-1a15be271d1d       | v0.0.0-20230115233650-391b47cb4029 | true   | true             |
 
@@ -355,7 +354,7 @@ _Generated on Wed, 25 Jan 2023 10:15:06 UTC for commit [4eee789][0]._
 | github.com/containerd/go-runc                                                           | v1.0.0                                            |                                    | false  | true             |
 | github.com/containerd/imgcrypt                                                          | v1.1.5-0.20220421044638-8ba028dca028              | v1.1.7                             | false  | true             |
 | github.com/containerd/nri                                                               | v0.2.0                                            |                                    | true   | true             |
-| github.com/containerd/stargz-snapshotter/estargz                                        | v0.13.0                                           |                                    | false  | true             |
+| github.com/containerd/stargz-snapshotter/estargz                                        | v0.13.0                                           | v0.14.0                            | false  | true             |
 | github.com/containerd/ttrpc                                                             | v1.1.1-0.20220420014843-944ef4a40df3              |                                    | true   | true             |
 | github.com/containerd/typeurl                                                           | v1.0.3-0.20220422153119-7f6e6d160d67              |                                    | true   | true             |
 | github.com/containerd/zfs                                                               | v1.0.0                                            |                                    | false  | true             |
@@ -510,7 +509,7 @@ _Generated on Wed, 25 Jan 2023 10:15:06 UTC for commit [4eee789][0]._
 | github.com/go-zoo/bone                                                                  | v1.3.0                                            |                                    | true   | true             |
 | github.com/goadesign/goa                                                                | v2.2.5+incompatible                               |                                    | false  | true             |
 | github.com/goark/errs                                                                   | v1.1.0                                            |                                    | false  | true             |
-| github.com/goark/go-cvss                                                                | v1.3.0                                            | v1.3.2                             | false  | true             |
+| github.com/goark/go-cvss                                                                | v1.3.0                                            | v1.4.0                             | false  | true             |
 | github.com/gobuffalo/attrs                                                              | v0.0.0-20190224210810-a9411de4debd                | v1.0.3                             | false  | true             |
 | github.com/gobuffalo/depgen                                                             | v0.1.0                                            | v0.2.0                             | false  | true             |
 | github.com/gobuffalo/envy                                                               | v1.7.0                                            | v1.10.2                            | false  | true             |
@@ -1072,7 +1071,7 @@ _Generated on Wed, 25 Jan 2023 10:15:06 UTC for commit [4eee789][0]._
 | k8s.io/dynamic-resource-allocation                                                      | v0.0.0-20221208195143-b46a3f887ca9                | v0.0.0-20230125005821-d29e3bd7aa49 | false  | true             |
 | k8s.io/gengo                                                                            | v0.0.0-20220902162205-c0856e24416d                | v0.0.0-20221011193443-fad74ee6edd9 | false  | true             |
 | k8s.io/klog                                                                             | v1.0.0                                            |                                    | false  | true             |
-| k8s.io/klog/v2                                                                          | v2.80.1                                           | v2.90.0                            | true   | true             |
+| k8s.io/klog/v2                                                                          | v2.90.0                                           |                                    | true   | true             |
 | k8s.io/kms                                                                              | v0.0.0-20221208195143-b46a3f887ca9                | v0.0.0-20230125005821-d29e3bd7aa49 | false  | true             |
 | k8s.io/kube-aggregator                                                                  | v0.0.0-20221208195143-b46a3f887ca9                | v0.0.0-20230125005821-d29e3bd7aa49 | false  | true             |
 | k8s.io/kube-controller-manager                                                          | v0.0.0-20221208195143-b46a3f887ca9                | v0.0.0-20230125005821-d29e3bd7aa49 | false  | true             |
