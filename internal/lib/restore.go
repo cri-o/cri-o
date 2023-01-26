@@ -8,6 +8,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v6/stats"
+	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/storage/pkg/archive"
@@ -18,12 +19,16 @@ import (
 )
 
 // ContainerRestore restores a checkpointed container.
-func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerCheckpointRestoreOptions) (string, error) {
+func (c *ContainerServer) ContainerRestore(
+	ctx context.Context,
+	config *metadata.ContainerConfig,
+	opts *libpod.ContainerCheckpointOptions,
+) (string, error) {
 	var ctr *oci.Container
 	var err error
-	ctr, err = c.LookupContainer(ctx, opts.Container)
+	ctr, err = c.LookupContainer(ctx, config.ID)
 	if err != nil {
-		return "", fmt.Errorf("failed to find container %s: %w", opts.Container, err)
+		return "", fmt.Errorf("failed to find container %s: %w", config.ID, err)
 	}
 
 	cStatus := ctr.State()
@@ -48,12 +53,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 	log.Debugf(ctx, "Container mountpoint %v", mountPoint)
 	log.Debugf(ctx, "Sandbox %v", ctr.Sandbox())
 	log.Debugf(ctx, "Specgen.Config.Annotations[io.kubernetes.cri-o.SandboxID] %v", ctrSpec.Config.Annotations["io.kubernetes.cri-o.SandboxID"])
-	// If there was no podID specified this will restore the container
-	// in its original sandbox
-	if opts.Pod == "" {
-		opts.Pod = ctr.Sandbox()
-	}
-	sb, err := c.LookupSandbox(opts.Pod)
+	sb, err := c.LookupSandbox(ctr.Sandbox())
 	if err != nil {
 		return "", err
 	}
@@ -225,7 +225,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 	// Update Sandbox Name
 	ctrSpec.AddAnnotation(annotations.SandboxName, sb.Name())
 	// Update Sandbox ID
-	ctrSpec.AddAnnotation(annotations.SandboxID, opts.Pod)
+	ctrSpec.AddAnnotation(annotations.SandboxID, ctr.Sandbox())
 
 	mData := fmt.Sprintf(
 		"k8s_%s_%s_%s_%s0",
@@ -236,7 +236,7 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
 	)
 	ctrSpec.AddAnnotation(annotations.Name, mData)
 
-	ctr.SetSandbox(opts.Pod)
+	ctr.SetSandbox(ctr.Sandbox())
 
 	saveOptions := generate.ExportOptions{}
 	if err := ctrSpec.SaveToFile(filepath.Join(ctr.Dir(), "config.json"), saveOptions); err != nil {

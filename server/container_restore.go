@@ -348,6 +348,7 @@ func (s *Server) CRImportCheckpoint(
 	newContainer.SetRestore(true)
 	newContainer.SetRestoreArchive(input)
 	newContainer.SetRestoreIsOCIImage(checkpointIsOCIImage)
+	newContainer.SetCheckpointedAt(config.CheckpointedAt)
 
 	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
 		log.Infof(ctx, "RestoreCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())

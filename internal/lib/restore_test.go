@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
+	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -34,11 +35,16 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore", func() {
 		It("should fail with invalid container ID", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-			opts.Container = "invalid"
+			config := &metadata.ContainerConfig{
+				ID: "invalid",
+			}
 
 			// When
-			res, err := sut.ContainerRestore(context.Background(), &opts)
+			res, err := sut.ContainerRestore(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -49,8 +55,6 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore", func() {
 		It("should fail with container not running", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-
 			addContainerAndSandbox()
 
 			myContainer.SetState(&oci.ContainerState{
@@ -58,10 +62,15 @@ var _ = t.Describe("ContainerRestore", func() {
 			})
 			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
-			opts.Container = containerID
-
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
 			// When
-			res, err := sut.ContainerRestore(context.Background(), &opts)
+			res, err := sut.ContainerRestore(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -72,17 +81,22 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore", func() {
 		It("should fail with invalid config", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-
 			addContainerAndSandbox()
-			opts.Container = containerID
 
 			gomock.InOrder(
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
 			)
 
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
+
 			// When
-			res, err := sut.ContainerRestore(context.Background(), &opts)
+			res, err := sut.ContainerRestore(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -93,11 +107,11 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore", func() {
 		It("should fail with failed to restore container", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-
 			createDummyConfig()
 			addContainerAndSandbox()
-			opts.Container = containerID
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
 			myContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateStopped},
 			})
@@ -122,7 +136,11 @@ var _ = t.Describe("ContainerRestore", func() {
 			Expect(err).To(BeNil())
 			inventory.Close()
 			// When
-			res, err := sut.ContainerRestore(context.Background(), &opts)
+			res, err := sut.ContainerRestore(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			defer os.RemoveAll("restore.log")
 			// Then
@@ -134,9 +152,9 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore from archive", func() {
 		It("should fail with failed to restore", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-
-			opts.Container = containerID
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
 
 			Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{},"mounts":[{"type":"not-bind"},{"type":"bind","source":"/"}]}`), 0o644)).To(BeNil())
 			addContainerAndSandbox()
@@ -198,7 +216,11 @@ var _ = t.Describe("ContainerRestore", func() {
 			defer os.RemoveAll("bundle")
 
 			// When
-			res, err := sut.ContainerRestore(context.Background(), &opts)
+			res, err := sut.ContainerRestore(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -209,9 +231,9 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore from OCI images", func() {
 		It("should fail with failed to restore", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-
-			opts.Container = containerID
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
 
 			createDummyConfig()
 			addContainerAndSandbox()
@@ -290,7 +312,11 @@ var _ = t.Describe("ContainerRestore", func() {
 			defer os.RemoveAll("bundle")
 
 			// When
-			res, err := sut.ContainerRestore(context.Background(), &opts)
+			res, err := sut.ContainerRestore(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())

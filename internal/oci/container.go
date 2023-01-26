@@ -114,6 +114,8 @@ type ContainerState struct {
 	// This is used to track whether the PID we have stored
 	// is the same as the corresponding PID on the host.
 	InitStartTime string `json:"initStartTime,omitempty"`
+	// Checkpoint/Restore related states
+	CheckpointedAt time.Time `json:"checkpointedTime,omitempty"`
 }
 
 // NewContainer creates a container object.
@@ -291,6 +293,16 @@ func (c *Container) StatePath() string {
 // CreatedAt returns the container creation time
 func (c *Container) CreatedAt() time.Time {
 	return c.state.Created
+}
+
+// CheckpointedAt returns the container checkpoint time
+func (c *Container) CheckpointedAt() time.Time {
+	return c.state.CheckpointedAt
+}
+
+// SetCheckpointedAt sets the time of checkpointing
+func (c *Container) SetCheckpointedAt(checkpointedAt time.Time) {
+	c.state.CheckpointedAt = checkpointedAt
 }
 
 // Name returns the name of the container.

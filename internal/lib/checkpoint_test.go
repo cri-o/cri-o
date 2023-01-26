@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
+	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/criu"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -35,14 +36,19 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail with container not running", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
 
 			addContainerAndSandbox()
 
-			opts.Container = containerID
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
 
 			// When
-			res, err := sut.ContainerCheckpoint(context.Background(), &opts)
+			res, err := sut.ContainerCheckpoint(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -53,10 +59,10 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	t.Describe("ContainerCheckpoint", func() {
 		It("should succeed", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-
 			addContainerAndSandbox()
-			opts.Container = containerID
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
 
 			myContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
@@ -69,21 +75,26 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// When
-			res, err := sut.ContainerCheckpoint(context.Background(), &opts)
+			res, err := sut.ContainerCheckpoint(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(res).To(Equal(opts.Container))
+			Expect(res).To(Equal(config.ID))
 		})
 	})
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail because runtime failure (/bin/false)", func() {
 			// Given
 			mockRuncToFalseInLibConfig()
-			var opts lib.ContainerCheckpointRestoreOptions
 
 			addContainerAndSandbox()
-			opts.Container = containerID
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
 
 			myContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
@@ -91,7 +102,11 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
 			// When
-			_, err := sut.ContainerCheckpoint(context.Background(), &opts)
+			_, err := sut.ContainerCheckpoint(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).ToNot(BeNil())
@@ -101,8 +116,6 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail with export", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-
 			// Overwrite container config to add external bind mounts
 			tmpFile, err := os.CreateTemp("", "restore-test-file")
 			Expect(err).To(BeNil())
@@ -138,8 +151,12 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			Expect(os.WriteFile("config.json", []byte(containerConfig), 0o644)).To(BeNil())
 
 			addContainerAndSandbox()
-			opts.Container = containerID
-			opts.TargetFile = "cp.tar"
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
+			opts := &libpod.ContainerCheckpointOptions{
+				TargetFile: "cp.tar",
+			}
 			defer os.RemoveAll("cp.tar")
 
 			myContainer.SetState(&oci.ContainerState{
@@ -156,20 +173,20 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// When
-			res, err := sut.ContainerCheckpoint(context.Background(), &opts)
+			res, err := sut.ContainerCheckpoint(context.Background(), config, opts)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(res).To(ContainSubstring(opts.Container))
+			Expect(res).To(ContainSubstring(config.ID))
 		})
 	})
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail during unmount", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-
 			addContainerAndSandbox()
-			opts.Container = containerID
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
 
 			myContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
@@ -182,7 +199,11 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// When
-			_, err := sut.ContainerCheckpoint(context.Background(), &opts)
+			_, err := sut.ContainerCheckpoint(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err.Error()).To(Equal(`failed to unmount container containerID: error`))
@@ -197,11 +218,16 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail with invalid container ID", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-			opts.Container = "invalid"
+			config := &metadata.ContainerConfig{
+				ID: "invalid",
+			}
 
 			// When
-			res, err := sut.ContainerCheckpoint(context.Background(), &opts)
+			res, err := sut.ContainerCheckpoint(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -212,14 +238,17 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail with invalid config", func() {
 			// Given
-			var opts lib.ContainerCheckpointRestoreOptions
-
 			addContainerAndSandbox()
-
-			opts.Container = containerID
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
 
 			// When
-			res, err := sut.ContainerCheckpoint(context.Background(), &opts)
+			res, err := sut.ContainerCheckpoint(
+				context.Background(),
+				config,
+				&libpod.ContainerCheckpointOptions{},
+			)
 
 			// Then
 			Expect(err).NotTo(BeNil())
