@@ -153,6 +153,8 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	config := &metadata.ContainerConfig{
 		ID:              ctr.ID(),
 		Name:            ctr.Name(),
+		RootfsImage:     ctr.Image(),
+		RootfsImageRef:  ctr.ImageRef(),
 		RootfsImageName: ctr.ImageName(),
 		CreatedTime:     ctr.CreatedAt(),
 		OCIRuntime: func() string {
@@ -174,7 +176,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	// directories. This is disabled during restore as CRIU requires the bind mount
 	// source to be of the same type. Directories need to be directories and regular
 	// files need to be regular files. CRIU will fail to bind mount a directory on
-	// a file. Especiallay when restoring a Kubernetes container outside of Kubernetes
+	// a file. Especially when restoring a Kubernetes container outside of Kubernetes
 	// a couple of bind mounts are files (e.g. /etc/resolv.conf). To solve this
 	// CRI-O is now tracking all bind mount types in the checkpoint archive. This
 	// way it is possible to know if a missing bind mount needs to be a file or a
