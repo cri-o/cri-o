@@ -1106,10 +1106,15 @@ func StringSliceTrySplit(ctx *cli.Context, name string) []string {
 			"Parsed commma separated CLI flag %q into dedicated values %v",
 			name, values,
 		)
-	} else {
-		// Copy the slice to avoid the cli flags being overwritten
-		values = append(values[:0:0], values...)
+
+		return values
 	}
 
-	return values
+	// Copy the slice to avoid the cli flags being overwritten
+	trimmedValues := []string{}
+	for _, value := range values {
+		trimmedValues = append(trimmedValues, strings.TrimSpace(value))
+	}
+
+	return trimmedValues
 }
