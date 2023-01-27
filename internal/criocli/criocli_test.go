@@ -89,3 +89,48 @@ var _ = t.Describe("completion generation", func() {
 		),
 	)
 })
+
+// CLI Flags/Parameter test suite
+var _ = t.Describe("CLI Flags", func() {
+	const flagName = "crio"
+
+	var (
+		flagSet      *flag.FlagSet
+		ctx          *cli.Context
+		app          *cli.App
+		err          error
+		commandFlags []cli.Flag
+	)
+
+	BeforeEach(func() {
+		flagSet = flag.NewFlagSet(flagName, flag.ExitOnError)
+		app = cli.NewApp()
+		ctx = cli.NewContext(app, flagSet, nil)
+	})
+
+	It("Flag test hostnetwork-disable-selinux", func() {
+		// Default Config
+		app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
+		Expect(err).To(BeNil())
+		config, err := criocli.GetConfigFromContext(ctx)
+		Expect(err).To(BeNil())
+
+		// Then
+		Expect(config.RuntimeConfig.HostNetworkDisableSELinux).To(Equal(true))
+
+		// Set Config & Merge
+		setFlag := &cli.BoolFlag{
+			Name:       "hostnetwork-disable-selinux",
+			Value:      false,
+			HasBeenSet: true,
+		}
+		err = setFlag.Apply(flagSet)
+		Expect(err).To(BeNil())
+		ctx.Command.Flags = append(commandFlags, setFlag)
+		config, err = criocli.GetAndMergeConfigFromContext(ctx)
+		Expect(err).To(BeNil())
+
+		// Then
+		Expect(config.RuntimeConfig.HostNetworkDisableSELinux).To(Equal(setFlag.Value))
+	})
+})

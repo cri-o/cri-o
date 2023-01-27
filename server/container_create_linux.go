@@ -294,7 +294,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		processLabel, mountLabel = "", ""
 	}
 
-	if hostNet {
+	if hostNet && s.config.RuntimeConfig.HostNetworkDisableSELinux {
 		processLabel = ""
 	}
 
