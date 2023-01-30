@@ -2150,7 +2150,7 @@ github.com/uptrace/opentelemetry-go-extra/otelutil
 # github.com/urfave/cli v1.22.9
 ## explicit; go 1.11
 github.com/urfave/cli
-# github.com/urfave/cli/v2 v2.24.1
+# github.com/urfave/cli/v2 v2.24.2
 ## explicit; go 1.18
 github.com/urfave/cli/v2
 # github.com/vbatts/tar-split v0.11.2
