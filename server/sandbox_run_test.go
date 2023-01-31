@@ -40,6 +40,10 @@ var _ = t.Describe("RunPodSandbox", func() {
 					Return(storage.RuntimeContainerMetadata{}, nil),
 				runtimeServerMock.EXPECT().SetContainerMetadata(gomock.Any(),
 					gomock.Any()).Return(nil),
+				runtimeServerMock.EXPECT().StartContainer(gomock.Any()).
+					Return(emptyDir, nil),
+				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).
+					Return(nil),
 				runtimeServerMock.EXPECT().DeleteContainer(gomock.Any(), gomock.Any()).
 					Return(nil),
 			)

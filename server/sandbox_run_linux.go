@@ -708,63 +708,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		g.AddAnnotation(k, v)
 	}
 
-	// Add default sysctls given in crio.conf
-	sysctls := s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC, req.Config.Linux.Sysctls)
-
-	// set up namespaces
-	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox namespace creation")
-	nsCleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(ctx, hostNetwork, hostIPC, hostPID, sandboxIDMappings, sysctls, sb, g)
-	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
-	// However, we don't immediately register this func with resourceCleaner because we need to pair the
-	// ns cleanup with networkStop. Otherwise, we could try to cleanup the namespace before the network stop runs,
-	// which could put us in a weird state.
-	nsCleanupDescription := fmt.Sprintf("runSandbox: cleaning up namespaces after failing to run sandbox %s", sbox.ID())
-	nsCleanupFunc := func() error {
-		for idx := range nsCleanupFuncs {
-			if err := nsCleanupFuncs[idx](); err != nil {
-				return fmt.Errorf("RunSandbox: failed to cleanup namespace %w", err)
-			}
-		}
-		return nil
-	}
-	if err != nil {
-		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
-		return nil, err
-	}
-
-	// now that we have the namespaces, we should create the network if we're managing namespace Lifecycle
-	var ips []string
-	var result cnitypes.Result
-
-	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox network creation")
-	ips, result, err = s.networkStart(ctx, sb)
-	if err != nil {
-		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
-		return nil, err
-	}
-	resourceCleaner.Add(ctx, "runSandbox: stopping network for sandbox"+sb.ID(), func() error {
-		// use a new context to prevent an expired context from preventing a stop
-		if err := s.networkStop(context.Background(), sb); err != nil {
-			return fmt.Errorf("error stopping network on cleanup: %w", err)
-		}
-
-		// Now that we've succeeded in stopping the network, cleanup namespaces
-		log.Infof(ctx, nsCleanupDescription)
-		return nsCleanupFunc()
-	})
-	if result != nil {
-		resultCurrent, err := current.NewResultFromResult(result)
-		if err != nil {
-			return nil, err
-		}
-		cniResultJSON, err := json.Marshal(resultCurrent)
-		if err != nil {
-			return nil, err
-		}
-		g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
-	}
-	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox storage start")
-
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(sbox.ID())
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %w", containerName, sb.Name(), sbox.ID(), err)
@@ -856,23 +799,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	sb.SetNamespaceOptions(securityContext.NamespaceOptions)
 
-	seccompProfilePath := securityContext.SeccompProfilePath
-	g.AddAnnotation(annotations.SeccompProfilePath, seccompProfilePath)
-	sb.SetSeccompProfilePath(seccompProfilePath)
-	if !privileged {
-		if _, err := s.config.Seccomp().Setup(
-			ctx,
-			nil,
-			"",
-			nil,
-			g,
-			securityContext.Seccomp,
-			seccompProfilePath,
-		); err != nil {
-			return nil, fmt.Errorf("setup seccomp: %w", err)
-		}
-	}
-
 	runtimeType, err := s.Runtime().RuntimeType(runtimeHandler)
 	if err != nil {
 		return nil, err
@@ -908,6 +834,81 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			return nil, fmt.Errorf("create dropped infra %s cgroup: %w", sbox.ID(), err)
 		}
 	}
+
+	// Add default sysctls given in crio.conf
+	sysctls := s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC, req.Config.Linux.Sysctls)
+
+	// set up namespaces
+	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox namespace creation")
+	nsCleanupFuncs, err := s.configureGeneratorForSandboxNamespaces(ctx, hostNetwork, hostIPC, hostPID, sandboxIDMappings, sysctls, sb, g, container)
+	// We want to cleanup after ourselves if we are managing any namespaces and fail in this function.
+	// However, we don't immediately register this func with resourceCleaner because we need to pair the
+	// ns cleanup with networkStop. Otherwise, we could try to cleanup the namespace before the network stop runs,
+	// which could put us in a weird state.
+	nsCleanupDescription := fmt.Sprintf("runSandbox: cleaning up namespaces after failing to run sandbox %s", sbox.ID())
+	nsCleanupFunc := func() error {
+		for idx := range nsCleanupFuncs {
+			if err := nsCleanupFuncs[idx](); err != nil {
+				return fmt.Errorf("RunSandbox: failed to cleanup namespace %w", err)
+			}
+		}
+		return nil
+	}
+	if err != nil {
+		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
+		return nil, err
+	}
+
+	// now that we have the namespaces, we should create the network if we're managing namespace Lifecycle
+	var ips []string
+	var result cnitypes.Result
+
+	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox network creation")
+	ips, result, err = s.networkStart(ctx, sb)
+	if err != nil {
+		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
+		return nil, err
+	}
+	resourceCleaner.Add(ctx, "runSandbox: stopping network for sandbox"+sb.ID(), func() error {
+		// use a new context to prevent an expired context from preventing a stop
+		if err := s.networkStop(context.Background(), sb); err != nil {
+			return fmt.Errorf("error stopping network on cleanup: %w", err)
+		}
+
+		// Now that we've succeeded in stopping the network, cleanup namespaces
+		log.Infof(ctx, nsCleanupDescription)
+		return nsCleanupFunc()
+	})
+	if result != nil {
+		resultCurrent, err := current.NewResultFromResult(result)
+		if err != nil {
+			return nil, err
+		}
+		cniResultJSON, err := json.Marshal(resultCurrent)
+		if err != nil {
+			return nil, err
+		}
+		g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
+	}
+	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox storage start")
+
+	seccompProfilePath := securityContext.SeccompProfilePath
+	g.AddAnnotation(annotations.SeccompProfilePath, seccompProfilePath)
+	sb.SetSeccompProfilePath(seccompProfilePath)
+	if !privileged {
+		if _, err := s.config.Seccomp().Setup(
+			ctx,
+			nil,
+			"",
+			nil,
+			g,
+			securityContext.Seccomp,
+			seccompProfilePath,
+		); err != nil {
+			return nil, fmt.Errorf("setup seccomp: %w", err)
+		}
+	}
+
 	container.SetMountPoint(mountPoint)
 	container.SetSpec(g.Config)
 
@@ -1060,7 +1061,15 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.G
 // as well as whether CRI-O should be managing the namespace lifecycle.
 // it returns a slice of cleanup funcs, all of which are the respective NamespaceRemove() for the sandbox.
 // The caller should defer the cleanup funcs if there is an error, to make sure each namespace we are managing is properly cleaned up.
-func (s *Server) configureGeneratorForSandboxNamespaces(ctx context.Context, hostNetwork, hostIPC, hostPID bool, idMappings *idtools.IDMappings, sysctls map[string]string, sb *libsandbox.Sandbox, g *generate.Generator) (cleanupFuncs []func() error, retErr error) {
+func (s *Server) configureGeneratorForSandboxNamespaces(
+	ctx context.Context,
+	hostNetwork, hostIPC, hostPID bool,
+	idMappings *idtools.IDMappings,
+	sysctls map[string]string,
+	sb *libsandbox.Sandbox,
+	g *generate.Generator,
+	container *oci.Container,
+) (cleanupFuncs []func() error, retErr error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 	// Since we need a process to hold open the PID namespace, CRI-O can't manage the NS lifecycle
@@ -1092,10 +1101,30 @@ func (s *Server) configureGeneratorForSandboxNamespaces(ctx context.Context, hos
 		})
 	}
 
-	// now that we've configured the namespaces we're sharing, create them
-	namespaces, err := s.config.NamespaceManager().NewPodNamespaces(namespaceConfig)
+	var (
+		createdNamespaces map[nsmgr.NSType]string
+		err               error
+	)
+	// The namespaces should only be created and tracked if the pod has a pod
+	// level pid namespace. Otherwise, we're needlessly creating the infra
+	// container again.
+	if sb.NamespaceOptions().GetPid() == types.NamespaceMode_POD {
+		createdNamespaces, err = s.Runtime().CreateNamespaces(ctx, container, namespaceConfig)
+		if err != nil {
+			return nil, fmt.Errorf("create namespaces in runtime: %w", err)
+		}
+	}
+
+	var namespaces []nsmgr.Namespace
+	if createdNamespaces != nil {
+		// use the preconfigured namespaces from the runtime
+		namespaces, err = s.config.NamespaceManager().ConfigureNamespaces(namespaceConfig, createdNamespaces)
+	} else {
+		// create new namespaces via pinns as fallback
+		namespaces, err = s.config.NamespaceManager().NewPodNamespaces(namespaceConfig)
+	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("configure generator for sandbox namespaces: %w", err)
 	}
 
 	sb.AddManagedNamespaces(namespaces)

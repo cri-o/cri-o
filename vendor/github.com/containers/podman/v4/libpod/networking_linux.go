@@ -53,7 +53,7 @@ const (
 type RootlessNetNS struct {
 	ns   ns.NetNS
 	dir  string
-	Lock lockfile.Locker
+	Lock *lockfile.LockFile
 }
 
 // getPath will join the given path to the rootless netns dir
@@ -63,7 +63,7 @@ func (r *RootlessNetNS) getPath(path string) string {
 
 // Do - run the given function in the rootless netns.
 // It does not lock the rootlessCNI lock, the caller
-// should only lock when needed, e.g. for cni operations.
+// should only lock when needed, e.g. for network operations.
 func (r *RootlessNetNS) Do(toRun func() error) error {
 	err := r.ns.Do(func(_ ns.NetNS) error {
 		// Before we can run the given function,
@@ -269,7 +269,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 		// at this stage the container is already locked.
 		// also do not try to lock only containers which are not currently in net
 		// teardown because this will result in an ABBA deadlock between the rootless
-		// cni lock and the container lock
+		// rootless netns lock and the container lock
 		// because we need to get the state we have to sync otherwise this will not
 		// work because the state is empty by default
 		// I do not like this but I do not see a better way at moment
@@ -281,7 +281,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 		// only check for an active netns, we cannot use the container state
 		// because not running does not mean that the netns does not need cleanup
 		// only if the netns is empty we know that we do not need cleanup
-		return c.state.NetNS != nil
+		return c.state.NetNS != ""
 	}
 	ctrs, err := runtime.GetContainers(activeNetns)
 	if err != nil {
@@ -293,7 +293,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 		return nil
 	}
 	logrus.Debug("Cleaning up rootless network namespace")
-	err = netns.UnmountNS(r.ns)
+	err = netns.UnmountNS(r.ns.Path())
 	if err != nil {
 		return err
 	}
@@ -333,7 +333,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	runDir := r.config.Engine.TmpDir
 
 	lfile := filepath.Join(runDir, "rootless-netns.lock")
-	lock, err := lockfile.GetLockfile(lfile)
+	lock, err := lockfile.GetLockFile(lfile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get rootless-netns lockfile: %w", err)
 	}
@@ -368,7 +368,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	ns, err := ns.GetNS(path)
 	if err != nil {
 		if !new {
-			// return a error if we could not get the namespace and should no create one
+			// return an error if we could not get the namespace and should no create one
 			return nil, fmt.Errorf("getting rootless network namespace: %w", err)
 		}
 		// create a new namespace
@@ -498,7 +498,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 			return nil, fmt.Errorf("failed to create rootless netns resolv.conf: %w", err)
 		}
 		// create cni directories to store files
-		// they will be bind mounted to the correct location in a extra mount ns
+		// they will be bind mounted to the correct location in an extra mount ns
 		err = os.MkdirAll(filepath.Join(rootlessNetNsDir, persistentCNIDir), 0700)
 		if err != nil {
 			return nil, fmt.Errorf("could not create rootless-netns var directory: %w", err)
@@ -548,7 +548,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[string]types.StatusBlock, rerr error) {
+func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[string]types.StatusBlock, rerr error) {
 	if err := r.exposeMachinePorts(ctr.config.PortMappings); err != nil {
 		return nil, err
 	}
@@ -563,6 +563,9 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[str
 	if ctr.config.NetMode.IsSlirp4netns() {
 		return nil, r.setupSlirp4netns(ctr, ctrNS)
 	}
+	if ctr.config.NetMode.IsPasta() {
+		return nil, r.setupPasta(ctr, ctrNS)
+	}
 	networks, err := ctr.networks()
 	if err != nil {
 		return nil, err
@@ -574,7 +577,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[str
 	}
 
 	netOpts := ctr.getNetworkOptions(networks)
-	netStatus, err := r.setUpNetwork(ctrNS.Path(), netOpts)
+	netStatus, err := r.setUpNetwork(ctrNS, netOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -584,25 +587,24 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[str
 	// not set up port because they are still active
 	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 && ctr.getNetworkStatus() == nil {
 		// set up port forwarder for rootless netns
-		netnsPath := ctrNS.Path()
 		// TODO: support slirp4netns port forwarder as well
 		// make sure to fix this in container.handleRestartPolicy() as well
 		// Important we have to call this after r.setUpNetwork() so that
 		// we can use the proper netStatus
-		err = r.setupRootlessPortMappingViaRLK(ctr, netnsPath, netStatus)
+		err = r.setupRootlessPortMappingViaRLK(ctr, ctrNS, netStatus)
 	}
 	return netStatus, err
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q map[string]types.StatusBlock, retErr error) {
+func (r *Runtime) createNetNS(ctr *Container) (n string, q map[string]types.StatusBlock, retErr error) {
 	ctrNS, err := netns.NewNS()
 	if err != nil {
-		return nil, nil, fmt.Errorf("creating network namespace for container %s: %w", ctr.ID(), err)
+		return "", nil, fmt.Errorf("creating network namespace for container %s: %w", ctr.ID(), err)
 	}
 	defer func() {
 		if retErr != nil {
-			if err := netns.UnmountNS(ctrNS); err != nil {
+			if err := netns.UnmountNS(ctrNS.Path()); err != nil {
 				logrus.Errorf("Unmounting partially created network namespace for container %s: %v", ctr.ID(), err)
 			}
 			if err := ctrNS.Close(); err != nil {
@@ -614,8 +616,8 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q map[string]types.St
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 
 	var networkStatus map[string]types.StatusBlock
-	networkStatus, err = r.configureNetNS(ctr, ctrNS)
-	return ctrNS, networkStatus, err
+	networkStatus, err = r.configureNetNS(ctr, ctrNS.Path())
+	return ctrNS.Path(), networkStatus, err
 }
 
 // Configure the network namespace using the container process
@@ -649,44 +651,12 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 		return fmt.Errorf("cannot mount %s: %w", nsPath, err)
 	}
 
-	netNS, err := ns.GetNS(nsPath)
-	if err != nil {
-		return err
-	}
-	networkStatus, err := r.configureNetNS(ctr, netNS)
+	networkStatus, err := r.configureNetNS(ctr, nsPath)
 
 	// Assign NetNS attributes to container
-	ctr.state.NetNS = netNS
+	ctr.state.NetNS = nsPath
 	ctr.state.NetworkStatus = networkStatus
 	return err
-}
-
-// Join an existing network namespace
-func joinNetNS(path string) (ns.NetNS, error) {
-	netNS, err := ns.GetNS(path)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving network namespace at %s: %w", path, err)
-	}
-
-	return netNS, nil
-}
-
-// Close a network namespace.
-// Differs from teardownNetNS() in that it will not attempt to undo the setup of
-// the namespace, but will instead only close the open file descriptor
-func (r *Runtime) closeNetNS(ctr *Container) error {
-	if ctr.state.NetNS == nil {
-		// The container has no network namespace, we're set
-		return nil
-	}
-
-	if err := ctr.state.NetNS.Close(); err != nil {
-		return fmt.Errorf("closing network namespace for container %s: %w", ctr.ID(), err)
-	}
-
-	ctr.state.NetNS = nil
-
-	return nil
 }
 
 // Tear down a network namespace, undoing all state associated with it.
@@ -699,7 +669,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	// Do not check the error here, we want to always umount the netns
 	// This will ensure that the container interface will be deleted
 	// even when there is a CNI or netavark bug.
-	prevErr := r.teardownCNI(ctr)
+	prevErr := r.teardownNetwork(ctr)
 
 	// First unmount the namespace
 	if err := netns.UnmountNS(ctr.state.NetNS); err != nil {
@@ -709,22 +679,14 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		return fmt.Errorf("unmounting network namespace for container %s: %w", ctr.ID(), err)
 	}
 
-	// Now close the open file descriptor
-	if err := ctr.state.NetNS.Close(); err != nil {
-		if prevErr != nil {
-			logrus.Error(prevErr)
-		}
-		return fmt.Errorf("closing network namespace for container %s: %w", ctr.ID(), err)
-	}
-
-	ctr.state.NetNS = nil
+	ctr.state.NetNS = ""
 
 	return prevErr
 }
 
 func getContainerNetNS(ctr *Container) (string, *Container, error) {
-	if ctr.state.NetNS != nil {
-		return ctr.state.NetNS.Path(), nil, nil
+	if ctr.state.NetNS != "" {
+		return ctr.state.NetNS, nil, nil
 	}
 	if ctr.config.NetNsCtr != "" {
 		c, err := ctr.runtime.GetContainer(ctr.config.NetNsCtr)

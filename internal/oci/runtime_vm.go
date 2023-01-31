@@ -28,6 +28,7 @@ import (
 	"github.com/containerd/typeurl"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
@@ -1056,4 +1057,9 @@ func (r *runtimeVM) RestoreContainer(ctx context.Context, c *Container, cgroupPa
 	defer log.Debugf(ctx, "RuntimeVM.RestoreContainer() end")
 
 	return errors.New("restoring not implemented for runtimeVM")
+}
+
+// CreateNamespaces is not supported by the VM runtime.
+func (r *runtimeVM) CreateNamespaces(context.Context, string, *nsmgr.PodNamespacesConfig) (map[nsmgr.NSType]string, error) {
+	return nil, nil
 }

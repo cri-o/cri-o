@@ -38,7 +38,7 @@ func canMountSys(isRootless, isNewUserns bool, s *specgen.SpecGenerator) bool {
 	}
 	if isNewUserns {
 		switch s.NetNS.NSMode {
-		case specgen.Slirp, specgen.Private, specgen.NoNetwork, specgen.Bridge:
+		case specgen.Slirp, specgen.Pasta, specgen.Private, specgen.NoNetwork, specgen.Bridge:
 			return true
 		default:
 			return false
@@ -107,11 +107,19 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 		sysMnt := spec.Mount{
 			Destination: "/sys",
-			Type:        "bind", // should we use a constant for this, like createconfig?
+			Type:        "bind",
 			Source:      "/sys",
 			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
 		}
 		g.AddMount(sysMnt)
+		g.RemoveMount("/sys/fs/cgroup")
+		sysFsCgroupMnt := spec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        "bind",
+			Source:      "/sys/fs/cgroup",
+			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
+		}
+		g.AddMount(sysFsCgroupMnt)
 		if !s.Privileged && isRootless {
 			g.AddLinuxMaskedPaths("/sys/kernel")
 		}
@@ -286,8 +294,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	if s.Remove {
 		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseTrue
-	} else {
-		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseFalse
 	}
 
 	if len(s.VolumesFrom) > 0 {
@@ -296,14 +302,10 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	if s.Privileged {
 		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseTrue
-	} else {
-		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseFalse
 	}
 
 	if s.Init {
 		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseTrue
-	} else {
-		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseFalse
 	}
 
 	if s.OOMScoreAdj != nil {
