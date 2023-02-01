@@ -1,4 +1,0 @@
----
-collections:
-- name: ansible.posix
-  version: 1.4.0

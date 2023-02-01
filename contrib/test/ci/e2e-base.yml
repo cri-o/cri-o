@@ -48,7 +48,7 @@
 - name: enable and start the custom cluster
   become: yes
   systemd:
-    name: customcluster.service
+    name: customcluster
     state: started
     enabled: yes
     daemon_reload: yes
@@ -58,8 +58,7 @@
   become: yes
   ansible.builtin.shell:
     cmd: /usr/bin/kubectl get nodes -o jsonpath='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}' | grep 'Ready=True'
-  environment:
-    KUBECONFIG: /var/run/kubernetes/admin.kubeconfig
+  environment: '{{ e2e_test_env }}'
   register: kube_poll
   until: kube_poll.rc == 0
   retries: 100

@@ -4,28 +4,19 @@
   git:
     repo: "https://github.com/{{ k8s_github_fork }}/kubernetes.git"
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
-    # based on kube v1.9.0-alpha.2, update as needed
     version: "{{ k8s_git_version }}"
     force: "{{ force_clone | default(False) | bool}}"
-
-#TODO this replaces all github downloads for etcd and replaces them with the same version
-- name: set etcd url
-  ansible.builtin.replace: 
-    path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/hack/lib/etcd.sh"
-    regexp: "^.*https://github.com.*$"
-    replace: "url=\"https://storage.googleapis.com/crio-ci/etcd-v${ETCD_VERSION}.tar.gz\""
 
 - name: install etcd
   command: "hack/install-etcd.sh"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
 
-- name: build kubernetes
-  make:
-    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
-    target: clean
-  async: '{{ 60 * 60 * 4 }}'
-  poll: 60
+- name: clear cache
+  become: yes
+  file: 
+    state: absent 
+    path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/local/go/cache"
 
 - name: build kubernetes
   make:

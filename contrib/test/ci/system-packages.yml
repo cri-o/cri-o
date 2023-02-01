@@ -1,6 +1,11 @@
 ---
 - name: include variable to check if python2-dnf can be installed
-  include: python3.yml
+  set_fact:
+    supports_python3: true
+    cacheable: true
+  when: (ansible_distribution == 'RedHat' and ansible_distribution_major_version|int >= 8) or
+        (ansible_distribution == 'CentOS' and ansible_distribution_major_version|int >= 8) or
+        (ansible_distribution == 'Fedora' and ansible_distribution_major_version|int >= 30)
 
 - name: Make sure we have all required packages
   become: yes
@@ -8,10 +13,8 @@
     state: present
     enablerepo: powertools
     name:
-      #- atomic-registries
       - container-selinux
       - curl
-      #- device-mapper-devel
       - expect
       - findutils
       - gcc
@@ -22,13 +25,11 @@
       - iproute
       - iptables
       - krb5-workstation
-      #- libassuan-devel
       - libffi-devel
       - libgpg-error-devel
       - libguestfs-tools
       - libseccomp-devel
       - libvirt-client
-      #- libvirt-python
       - libxml2-devel
       - libxslt-devel
       - libcap-devel
@@ -36,18 +37,11 @@
       - mlocate
       - nfs-utils
       - nmap-ncat
-      #- oci-register-machine
-      #- oci-systemd-hook
-      #- oci-umount
       - openssl
       - openssl-devel
       - pkgconfig
       - python3
-      #- python2-crypto
-      #- python-devel
       - python-rhsm-certificates
-      #- python-virtualenv
-      #- PyYAML
       - redhat-rpm-config
       - rpcbind
       - rsync
@@ -78,6 +72,18 @@
       - glibc-static
       - gpgme-devel
   when: ansible_distribution == 'CentOS' and ansible_distribution_release == "Stream" and ansible_distribution_major_version|int > 8
+
+- name: Install optional packages For RHEL
+  become: yes
+  yum:
+    state: present
+    enablerepo: codeready-builder-for-rhel-9-x86_64-rpms
+    name:
+      - glibc-static
+      - gpgme-devel
+      - yajl-devel
+      - libsemanage-devel
+  when: ansible_distribution == 'RedHat'
 
 - name: Install optional packages For Fedora/CentOS 8
   become: yes

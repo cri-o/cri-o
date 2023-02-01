@@ -1,0 +1,13 @@
+---
+- hosts: localhost, all
+  become: yes
+  environment:
+    GOPATH: /usr/go
+  connection: local
+  tags:
+    - setup
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tasks:
+    - name: set up the system
+      include: "setup.yml"

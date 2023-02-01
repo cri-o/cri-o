@@ -6,14 +6,10 @@
   connection: local
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
-  tasks:
-    - name: set up the system
-      include: "setup.yml"
-
-    - name: setup critest
-      include: "build/cri-tools.yml"
-      vars:
-        force_clone: true
-    
+  tasks:    
     - name: run critest validation and benchmarks
       include: "critest.yml"
+    
+    - name: changing permission of temp file
+      become: yes
+      file: dest=/tmp/artifacts owner=deadbeef group=deadbeef mode=0777 recurse=yes

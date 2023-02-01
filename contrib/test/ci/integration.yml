@@ -67,5 +67,5 @@
       vars: 
         ansible_async_dir: '/tmp/artifacts/async'
       environment: '{{ int_test_env }}'  # from vars.yml and main.yml
-      async: '{{ int_test_timeout | default(60 * 30) }}'  # seconds
+      async: '{{ int_test_timeout | default(90 * 60) }}'  # seconds
       poll: 30
