@@ -1,4 +1,4 @@
-name: project operator pipeline
+name:  crio-metrics-exporter docker pipeline
 
 on:
   push:
