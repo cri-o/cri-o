@@ -50,10 +50,6 @@ func run() error {
 		return fmt.Errorf("creating Kubernetes client: %w", err)
 	}
 
-	//namespace, _, err := config.Namespace()
-	//if err != nil {
-	//        panic(err)
-	//}
 
 	logrus.Info("Retrieving nodes")
 	ctx := context.Background()
