@@ -17,11 +17,17 @@ import (
 	"sigs.k8s.io/release-utils/env"
 )
 
-const (
-	namespace = "cri-o-metrics-exporter"
-	service   = namespace
-	configMap = namespace
-)
+//const (
+//	namespace = "cri-o-metrics-exporter"
+//	service   = namespace
+//	configMap = namespace
+//)
+
+
+
+var namespace = env.Default("POD_NAMESPACE", "cri-o-metrics-exporter")
+var service = namespace  
+var configMap = namespace
 
 func main() {
 	if err := run(); err != nil {
@@ -43,6 +49,11 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("creating Kubernetes client: %w", err)
 	}
+
+	//namespace, _, err := config.Namespace()
+	//if err != nil {
+	//        panic(err)
+	//}
 
 	logrus.Info("Retrieving nodes")
 	ctx := context.Background()

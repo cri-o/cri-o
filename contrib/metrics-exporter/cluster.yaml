@@ -102,6 +102,10 @@ spec:
           env:
             - name: CRIO_METRICS_PORT
               value: "9090"
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           resources:
             requests:
               memory: 16Mi
