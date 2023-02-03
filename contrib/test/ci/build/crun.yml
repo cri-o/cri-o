@@ -8,24 +8,24 @@
     version: "HEAD"
 
 - name: Install crun dependencies
-  raw: >
-    yum install -y \
-      python \
-      git \
-      gcc \
-      automake \
-      autoconf \
-      libcap-devel \
-      systemd-devel \
-      yajl-devel \
-      libseccomp-devel \
-      libselinux-devel \
-      glibc-static \
-      python3-libmount \
-      libtool \
-      pkgconf-pkg-config \
-      gperf \
-      libtool
+  dnf:
+    name:
+      - python
+      - git
+      - gcc
+      - automake
+      - autoconf
+      - libcap-devel
+      - systemd-devel
+      - yajl-devel
+      - libseccomp-devel
+      - libselinux-devel
+      - glibc-static
+      - python3-libmount
+      - libtool
+      - pkgconf-pkg-config
+      - gperf
+      - libtool
 
 - name: Install go-md2man for RHEL9
   block:
@@ -48,8 +48,8 @@
   when: (ansible_distribution == 'RedHat' and ansible_distribution_major_version|int == 9)
 
 - name: Install go-md2man for RHEL8/Fedora/CentOS
-  raw: >
-    yum install -y go-md2man
+  dnf:
+    name: go-md2man
   when: (ansible_distribution in ['RedHat', 'CentOS', 'Fedora']  and ansible_distribution_major_version|int != 9)
 
 - name: Run autogen.sh

@@ -5,7 +5,6 @@
     state: directory
 
 ## extract source
-
 - name: check if cri-o.tar.gz exists
   stat:
     path: "/home/deadbeef/cri-o.tar.gz"
@@ -29,7 +28,6 @@
   when: (vagrant_dir.stat.isdir is defined) and (vagrant_dir.stat.isdir)
 
 ## Check for python executable
-
 - name: see if the python executable or symlink is available
   stat:
     path: /usr/bin/python
@@ -67,14 +65,6 @@
     target: install
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
-- name: set manage network ns lifecycle and drop infra
-  copy:
-    dest: /etc/crio/crio.conf.d/01-ns-lifecycle.conf
-    content: |
-      [crio.runtime]
-      manage_ns_lifecycle = true
-      drop_infra_ctr = true
-
 - name: use crun
   copy:
     dest: /etc/crio/crio.conf.d/01-crun.conf
@@ -95,7 +85,6 @@
       [crio.runtime.runtimes.crun]
       runtime_type = "pod"
       runtime_root = "/run/crun"
-
   when: "use_conmonrs | default(False) | bool"
 
 - name: use kata
@@ -122,17 +111,3 @@
       dest: /etc/cni/net.d/99-loopback.conflist
     - src: test/redhat_sigstore.yaml
       dest: /etc/containers/registries.d/registry.access.redhat.com.yaml
-
-- name: run with overlay
-  copy:
-    dest: /etc/crio/crio.conf.d/01-overlay.conf
-    content: |
-      [crio]
-      storage_driver = "overlay"
-
-- name: add quay.io and docker.io as default registries
-  copy:
-    dest: /etc/crio/crio.conf.d/01-registries.conf
-    content: |
-      [crio.image]
-      registries = [ "quay.io", "docker.io" ]

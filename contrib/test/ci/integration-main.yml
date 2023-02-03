@@ -8,38 +8,17 @@
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   tasks:
-    - name: set up the system
-      include: "setup.yml"
-
-    - name: install parallel 
-      include: "build/parallel.yml"
-    
-    - name: clone build and install kubernetes
-      include: "build/kubernetes.yml"
-      vars:
-        k8s_git_version: "master"
-        k8s_github_fork: "kubernetes"
-        crio_socket: "/run/crio/crio.sock"
-      when: "(cgroupv2 is undefined) or (cgroupv2 == False) | bool"
-
-    - name: clone build and install kubernetes for cgroup v2
-      include: "build/kubernetes.yml"
-      vars:
-        k8s_git_version: "master"
-        k8s_github_fork: "kubernetes"
-        crio_socket: "/run/crio/crio.sock"
-      when: "cgroupv2 | bool"
-
-    - name: install parallel
-      include: "build/parallel.yml"
-    
-    - name: clone build and install bats
-      include: "build/bats.yml"
-    
-    - name: clone build and install cri-tools
-      include: "build/cri-tools.yml"
-      vars:
-        force_clone: true
-    
+    - name: enable and start CRI-O
+      become: yes
+      systemd:
+        name: crio
+        state: started
+        enabled: yes
+        daemon_reload: yes
+   
     - name: run cri-o integration tests
-      include: "test.yml"
+      include: "integration.yml"
+
+    - name: changing permission of temp file 
+      become: yes 
+      file: dest=/tmp/artifacts owner=deadbeef group=deadbeef mode=0777 recurse=yes

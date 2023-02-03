@@ -1,5 +1,0 @@
----
-- name: install conmon-rs
-  shell: curl -sSfL --retry 5 --retry-delay 3 https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get | bash -s -- -o /usr/bin/conmonrs
-  register: out
-- debug: var=out.stdout_lines

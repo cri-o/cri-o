@@ -1,7 +1,4 @@
 ---
-- name: include variable to check if python2-dnf can be installed
-  include: python3.yml
-
 - name: install parallel package for Fedora
   package:
     name: parallel

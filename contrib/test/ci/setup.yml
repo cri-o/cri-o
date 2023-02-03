@@ -1,12 +1,12 @@
 ---
 - name: set up the system
+  include: "system-packages.yml"
+
+- name: install system packages
   include: "system.yml"
 
 - name: install Golang tools
-  include: "golang.yml"
-
-- name: clone build and install cri-o
-  include: "build/cri-o.yml"
+  include: "build/golang.yml"
 
 - name: clone build and install bats
   include: "build/bats.yml"
@@ -14,18 +14,13 @@
 - name: clone build and install cri-tools
   include: "build/cri-tools.yml"
 
-- name: clone build and install kubetest
-  include: "build/kubetest.yml"
-  vars:
-    force_clone: true
-
 - name: clone build and install runc
   include: "build/runc.yml"
   when: "build_runc | bool"
 
 - name: clone build and install crun
   include: "build/crun.yml"
-  when: "build_crun | bool"
+  when: "build_crun | default(False) | bool"
 
 - name: install Kata Containers
   include: "build/kata.yml"
@@ -38,7 +33,51 @@
   include: "build/conmon.yml"
 
 - name: install conmon-rs
-  include: "build/conmon-rs.yml"
+  shell: "curl -sSfL --retry 5 --retry-delay 3 https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get | bash -s -- -o /usr/bin/conmonrs"
 
 - name: install jq
   include: "build/jq.yml"
+
+- name: install kubernetes
+  include: "build/kubernetes.yml"
+  vars:
+    force_clone: true
+    k8s_git_version: "master"
+    k8s_github_fork: "kubernetes"
+    crio_socket: "/run/crio/crio.sock"
+
+- name: clone build and install kubetest                                                                     
+  include: "build/kubetest.yml"                                                                              
+  vars:                                                                                                      
+    force_clone: true  
+
+- name: clone and build crio 
+  include: build/cri-o.yml
+
+- name: Ensures crio conf dir exists
+  file: path=/etc/crio/crio.conf.d state=directory
+
+- name: set manage network ns lifecycle and drop infra
+  copy:
+    dest: /etc/crio/crio.conf.d/01-ns-lifecycle.conf
+    content: |
+      [crio.runtime]
+      manage_ns_lifecycle = true
+      drop_infra_ctr = true
+
+- name: run with overlay
+  copy:
+    dest: /etc/crio/crio.conf.d/01-overlay.conf
+    content: |
+      [crio]
+      storage_driver = "overlay"
+
+- name: add quay.io and docker.io as default registries
+  copy:
+    dest: /etc/crio/crio.conf.d/01-registries.conf
+    content: |
+      [crio.image]
+      registries = [ "quay.io", "docker.io" ]
+
+- name: build parallel 
+  include: "build/parallel.yml"
