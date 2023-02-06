@@ -36,9 +36,8 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 
 	pidFileLock.Lock()
 	defer func() {
-		if pidFileLock.Locked() {
-			pidFileLock.Unlock()
-		}
+		// PATCHED: newer c/storage doesn't have the Locked() method
+		pidFileLock.Unlock()
 	}()
 
 	// Now the pause PID file is locked.  Try to join once again in case it changed while it was not locked.

@@ -512,10 +512,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// and use it to lock important operations
 	aliveLock.Lock()
 	doRefresh := false
+	// PATCHED: newer c/storage doesn't have the Locked() method
+	unLockFunc := aliveLock.Unlock
 	defer func() {
-		if aliveLock.Locked() {
-			aliveLock.Unlock()
-		}
+		unLockFunc()
 	}()
 
 	_, err = os.Stat(runtimeAliveFile)
@@ -533,7 +533,8 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 					logrus.Debug("Invalid systemd user session for current user")
 				}
 			}
-			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
+			unLockFunc() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
+			unLockFunc = nil
 			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
 				return errors.Wrapf(err, "could not get pause process pid file path")
