@@ -2,9 +2,9 @@ package ioutils
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // AtomicFileWriterOptions specifies options for creating the atomic file writer.
@@ -14,9 +14,12 @@ type AtomicFileWriterOptions struct {
 	// storage after it has been written and before it is moved to
 	// the specified path.
 	NoSync bool
+	// On successful return from Close() this is set to the mtime of the
+	// newly written file.
+	ModTime time.Time
 }
 
-var defaultWriterOptions AtomicFileWriterOptions = AtomicFileWriterOptions{}
+var defaultWriterOptions = AtomicFileWriterOptions{}
 
 // SetDefaultOptions overrides the default options used when creating an
 // atomic file writer.
@@ -28,7 +31,14 @@ func SetDefaultOptions(opts AtomicFileWriterOptions) {
 // temporary file and closing it atomically changes the temporary file to
 // destination path. Writing and closing concurrently is not allowed.
 func NewAtomicFileWriterWithOpts(filename string, perm os.FileMode, opts *AtomicFileWriterOptions) (io.WriteCloser, error) {
-	f, err := ioutil.TempFile(filepath.Dir(filename), ".tmp-"+filepath.Base(filename))
+	return newAtomicFileWriter(filename, perm, opts)
+}
+
+// newAtomicFileWriter returns WriteCloser so that writing to it writes to a
+// temporary file and closing it atomically changes the temporary file to
+// destination path. Writing and closing concurrently is not allowed.
+func newAtomicFileWriter(filename string, perm os.FileMode, opts *AtomicFileWriterOptions) (*atomicFileWriter, error) {
+	f, err := os.CreateTemp(filepath.Dir(filename), ".tmp-"+filepath.Base(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -55,20 +65,29 @@ func NewAtomicFileWriter(filename string, perm os.FileMode) (io.WriteCloser, err
 }
 
 // AtomicWriteFile atomically writes data to a file named by filename.
-func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
-	f, err := NewAtomicFileWriter(filename, perm)
+func AtomicWriteFileWithOpts(filename string, data []byte, perm os.FileMode, opts *AtomicFileWriterOptions) error {
+	f, err := newAtomicFileWriter(filename, perm, opts)
 	if err != nil {
 		return err
 	}
 	n, err := f.Write(data)
 	if err == nil && n < len(data) {
 		err = io.ErrShortWrite
-		f.(*atomicFileWriter).writeErr = err
+		f.writeErr = err
 	}
 	if err1 := f.Close(); err == nil {
 		err = err1
 	}
+
+	if opts != nil {
+		opts.ModTime = f.modTime
+	}
+
 	return err
+}
+
+func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
+	return AtomicWriteFileWithOpts(filename, data, perm, nil)
 }
 
 type atomicFileWriter struct {
@@ -77,6 +96,7 @@ type atomicFileWriter struct {
 	writeErr error
 	perm     os.FileMode
 	noSync   bool
+	modTime  time.Time
 }
 
 func (w *atomicFileWriter) Write(dt []byte) (int, error) {
@@ -99,9 +119,25 @@ func (w *atomicFileWriter) Close() (retErr error) {
 			return err
 		}
 	}
+
+	// fstat before closing the fd
+	info, statErr := w.f.Stat()
+	if statErr == nil {
+		w.modTime = info.ModTime()
+	}
+	// We delay error reporting until after the real call to close()
+	// to match the traditional linux close() behaviour that an fd
+	// is invalid (closed) even if close returns failure. While
+	// weird, this allows a well defined way to not leak open fds.
+
 	if err := w.f.Close(); err != nil {
 		return err
 	}
+
+	if statErr != nil {
+		return statErr
+	}
+
 	if err := os.Chmod(w.f.Name(), w.perm); err != nil {
 		return err
 	}
@@ -124,7 +160,7 @@ type AtomicWriteSet struct {
 // commit. If no temporary directory is given the system
 // default is used.
 func NewAtomicWriteSet(tmpDir string) (*AtomicWriteSet, error) {
-	td, err := ioutil.TempDir(tmpDir, "write-set-")
+	td, err := os.MkdirTemp(tmpDir, "write-set-")
 	if err != nil {
 		return nil, err
 	}

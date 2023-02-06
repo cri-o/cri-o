@@ -78,6 +78,13 @@ var (
 
 	// ErrNotSupported is an error encountered when hcs doesn't support the request
 	ErrPlatformNotSupported = errors.New("unsupported platform request")
+
+	// ErrProcessAlreadyStopped is returned by hcs if the process we're trying to kill has already been stopped.
+	ErrProcessAlreadyStopped = syscall.Errno(0x8037011f)
+
+	// ErrInvalidHandle is an error that can be encountrered when querying the properties of a compute system when the handle to that
+	// compute system has already been closed.
+	ErrInvalidHandle = syscall.Errno(0x6)
 )
 
 type ErrorEvent struct {
@@ -147,7 +154,7 @@ func (e *HcsError) Error() string {
 
 func (e *HcsError) Temporary() bool {
 	err, ok := e.Err.(net.Error)
-	return ok && err.Temporary()
+	return ok && err.Temporary() //nolint:staticcheck
 }
 
 func (e *HcsError) Timeout() bool {
@@ -186,7 +193,7 @@ func (e *SystemError) Error() string {
 
 func (e *SystemError) Temporary() bool {
 	err, ok := e.Err.(net.Error)
-	return ok && err.Temporary()
+	return ok && err.Temporary() //nolint:staticcheck
 }
 
 func (e *SystemError) Timeout() bool {
@@ -217,7 +224,7 @@ func (e *ProcessError) Error() string {
 
 func (e *ProcessError) Temporary() bool {
 	err, ok := e.Err.(net.Error)
-	return ok && err.Temporary()
+	return ok && err.Temporary() //nolint:staticcheck
 }
 
 func (e *ProcessError) Timeout() bool {
@@ -247,6 +254,14 @@ func IsNotExist(err error) bool {
 	err = getInnerError(err)
 	return err == ErrComputeSystemDoesNotExist ||
 		err == ErrElementNotFound
+}
+
+// IsErrorInvalidHandle checks whether the error is the result of an operation carried
+// out on a handle that is invalid/closed. This error popped up while trying to query
+// stats on a container in the process of being stopped.
+func IsErrorInvalidHandle(err error) bool {
+	err = getInnerError(err)
+	return err == ErrInvalidHandle
 }
 
 // IsAlreadyClosed checks if an error is caused by the Container or Process having been
@@ -281,6 +296,7 @@ func IsTimeout(err error) bool {
 func IsAlreadyStopped(err error) bool {
 	err = getInnerError(err)
 	return err == ErrVmcomputeAlreadyStopped ||
+		err == ErrProcessAlreadyStopped ||
 		err == ErrElementNotFound
 }
 

@@ -5,8 +5,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"unicode"
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
@@ -27,7 +29,7 @@ var (
 const defaultPerms = os.FileMode(0555)
 
 func init() {
-	graphdriver.Register("vfs", Init)
+	graphdriver.MustRegister("vfs", Init)
 }
 
 // Init returns a new VFS driver.
@@ -97,7 +99,7 @@ func (d *Driver) Status() [][2]string {
 
 // Metadata is used for implementing the graphdriver.ProtoDriver interface. VFS does not currently have any meta data.
 func (d *Driver) Metadata(id string) (map[string]string, error) {
-	return nil, nil
+	return nil, nil //nolint: nilnil
 }
 
 // Cleanup is used to implement graphdriver.ProtoDriver. There is no cleanup required for this driver.
@@ -170,6 +172,10 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 	}()
 
 	rootPerms := defaultPerms
+	if runtime.GOOS == "darwin" {
+		rootPerms = os.FileMode(0700)
+	}
+
 	if parent != "" {
 		st, err := system.Stat(d.dir(parent))
 		if err != nil {
@@ -189,7 +195,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 	if parent != "" {
 		parentDir, err := d.Get(parent, graphdriver.MountOpts{})
 		if err != nil {
-			return fmt.Errorf("%s: %s", parent, err)
+			return fmt.Errorf("%s: %w", parent, err)
 		}
 		if err := dirCopy(parentDir, dir); err != nil {
 			return err
@@ -258,6 +264,40 @@ func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
 func (d *Driver) Exists(id string) bool {
 	_, err := os.Stat(d.dir(id))
 	return err == nil
+}
+
+func nameLooksLikeID(name string) bool {
+	if len(name) != 64 {
+		return false
+	}
+	for _, c := range name {
+		if !unicode.Is(unicode.ASCII_Hex_Digit, c) {
+			return false
+		}
+	}
+	return true
+}
+
+// List layers (not including additional image stores)
+func (d *Driver) ListLayers() ([]string, error) {
+	entries, err := os.ReadDir(d.homes[0])
+	if err != nil {
+		return nil, err
+	}
+
+	layers := make([]string, 0)
+
+	for _, entry := range entries {
+		id := entry.Name()
+		// Does it look like a datadir directory?
+		if !entry.IsDir() || !nameLooksLikeID(id) {
+			continue
+		}
+
+		layers = append(layers, id)
+	}
+
+	return layers, err
 }
 
 // AdditionalImageStores returns additional image stores supported by the driver

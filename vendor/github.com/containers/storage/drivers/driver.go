@@ -1,20 +1,19 @@
 package graphdriver
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/vbatts/tar-split/tar/storage"
-
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
 	digest "github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
+	"github.com/vbatts/tar-split/tar/storage"
 )
 
 // FsMagic unsigned id of the filesystem in use.
@@ -39,7 +38,7 @@ var (
 	ErrLayerUnknown = errors.New("unknown layer")
 )
 
-//CreateOpts contains optional arguments for Create() and CreateReadWrite()
+// CreateOpts contains optional arguments for Create() and CreateReadWrite()
 // methods.
 type CreateOpts struct {
 	MountLabel string
@@ -48,13 +47,13 @@ type CreateOpts struct {
 	ignoreChownErrors bool
 }
 
-// MountOpts contains optional arguments for LayerStope.Mount() methods.
+// MountOpts contains optional arguments for Driver.Get() methods.
 type MountOpts struct {
 	// Mount label is the MAC Labels to assign to mount point (SELINUX)
 	MountLabel string
 	// UidMaps & GidMaps are the User Namespace mappings to be assigned to content in the mount point
-	UidMaps []idtools.IDMap // nolint: golint
-	GidMaps []idtools.IDMap // nolint: golint
+	UidMaps []idtools.IDMap //nolint: golint,revive
+	GidMaps []idtools.IDMap //nolint: golint
 	Options []string
 
 	// Volatile specifies whether the container storage can be optimized
@@ -110,6 +109,9 @@ type ProtoDriver interface {
 	// Exists returns whether a filesystem layer with the specified
 	// ID exists on this driver.
 	Exists(id string) bool
+	// Returns a list of layer ids that exist on this driver (does not include
+	// additional storage layers). Not supported by all backends.
+	ListLayers() ([]string, error)
 	// Status returns a set of key-value pairs which give low
 	// level diagnostic status about this driver.
 	Status() [][2]string
@@ -279,10 +281,18 @@ func init() {
 	drivers = make(map[string]InitFunc)
 }
 
+// MustRegister registers an InitFunc for the driver, or panics.
+// It is suitable for package’s init() sections.
+func MustRegister(name string, initFunc InitFunc) {
+	if err := Register(name, initFunc); err != nil {
+		panic(fmt.Sprintf("failed to register containers/storage graph driver %q: %v", name, err))
+	}
+}
+
 // Register registers an InitFunc for the driver.
 func Register(name string, initFunc InitFunc) error {
 	if _, exists := drivers[name]; exists {
-		return fmt.Errorf("Name already registered %s", name)
+		return fmt.Errorf("name already registered %s", name)
 	}
 	drivers[name] = initFunc
 
@@ -296,7 +306,7 @@ func GetDriver(name string, config Options) (Driver, error) {
 	}
 
 	logrus.Errorf("Failed to GetDriver graph %s %s", name, config.Root)
-	return nil, errors.Wrapf(ErrNotSupported, "failed to GetDriver graph %s %s", name, config.Root)
+	return nil, fmt.Errorf("failed to GetDriver graph %s %s: %w", name, config.Root, ErrNotSupported)
 }
 
 // getBuiltinDriver initializes and returns the registered driver, but does not try to load from plugins
@@ -305,13 +315,14 @@ func getBuiltinDriver(name, home string, options Options) (Driver, error) {
 		return initFunc(filepath.Join(home, name), options)
 	}
 	logrus.Errorf("Failed to built-in GetDriver graph %s %s", name, home)
-	return nil, errors.Wrapf(ErrNotSupported, "failed to built-in GetDriver graph %s %s", name, home)
+	return nil, fmt.Errorf("failed to built-in GetDriver graph %s %s: %w", name, home, ErrNotSupported)
 }
 
 // Options is used to initialize a graphdriver
 type Options struct {
 	Root                string
 	RunRoot             string
+	DriverPriority      []string
 	DriverOptions       []string
 	UIDMaps             []idtools.IDMap
 	GIDMaps             []idtools.IDMap
@@ -327,9 +338,18 @@ func New(name string, config Options) (Driver, error) {
 
 	// Guess for prior driver
 	driversMap := scanPriorDrivers(config.Root)
-	for _, name := range priority {
-		if name == "vfs" {
-			// don't use vfs even if there is state present.
+
+	// use the supplied priority list unless it is empty
+	prioList := config.DriverPriority
+	if len(prioList) == 0 {
+		prioList = priority
+	}
+
+	for _, name := range prioList {
+		if name == "vfs" && len(config.DriverPriority) == 0 {
+			// don't use vfs even if there is state present and vfs
+			// has not been explicitly added to the override driver
+			// priority list
 			continue
 		}
 		if _, prior := driversMap[name]; prior {
@@ -362,7 +382,7 @@ func New(name string, config Options) (Driver, error) {
 	}
 
 	// Check for priority drivers first
-	for _, name := range priority {
+	for _, name := range prioList {
 		driver, err := getBuiltinDriver(name, config.Root, config)
 		if err != nil {
 			if isDriverNotSupported(err) {
@@ -384,14 +404,13 @@ func New(name string, config Options) (Driver, error) {
 		}
 		return driver, nil
 	}
-	return nil, fmt.Errorf("No supported storage backend found")
+	return nil, fmt.Errorf("no supported storage backend found")
 }
 
 // isDriverNotSupported returns true if the error initializing
 // the graph driver is a non-supported error.
 func isDriverNotSupported(err error) bool {
-	cause := errors.Cause(err)
-	return cause == ErrNotSupported || cause == ErrPrerequisites || cause == ErrIncompatibleFS
+	return errors.Is(err, ErrNotSupported) || errors.Is(err, ErrPrerequisites) || errors.Is(err, ErrIncompatibleFS)
 }
 
 // scanPriorDrivers returns an un-ordered scan of directories of prior storage drivers
@@ -405,4 +424,22 @@ func scanPriorDrivers(root string) map[string]bool {
 		}
 	}
 	return driversMap
+}
+
+// driverPut is driver.Put, but errors are handled either by updating mainErr or just logging.
+// Typical usage:
+//
+//	func …(…) (err error) {
+//		…
+//		defer driverPut(driver, id, &err)
+//	}
+func driverPut(driver ProtoDriver, id string, mainErr *error) {
+	if err := driver.Put(id); err != nil {
+		err = fmt.Errorf("unmounting layer %s: %w", id, err)
+		if *mainErr == nil {
+			*mainErr = err
+		} else {
+			logrus.Errorf(err.Error())
+		}
+	}
 }

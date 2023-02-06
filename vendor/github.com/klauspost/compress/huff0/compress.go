@@ -2,6 +2,7 @@ package huff0
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 	"sync"
 )
@@ -289,6 +290,10 @@ func (s *Scratch) compress4X(src []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		if len(s.Out)-idx > math.MaxUint16 {
+			// We cannot store the size in the jump table
+			return nil, ErrIncompressible
+		}
 		// Write compressed length as little endian before block.
 		if i < 3 {
 			// Last length is not written.
@@ -332,6 +337,10 @@ func (s *Scratch) compress4Xp(src []byte) ([]byte, error) {
 			return nil, errs[i]
 		}
 		o := s.tmpOut[i]
+		if len(o) > math.MaxUint16 {
+			// We cannot store the size in the jump table
+			return nil, ErrIncompressible
+		}
 		// Write compressed length as little endian before block.
 		if i < 3 {
 			// Last length is not written.
@@ -356,29 +365,29 @@ func (s *Scratch) countSimple(in []byte) (max int, reuse bool) {
 	m := uint32(0)
 	if len(s.prevTable) > 0 {
 		for i, v := range s.count[:] {
+			if v == 0 {
+				continue
+			}
 			if v > m {
 				m = v
 			}
-			if v > 0 {
-				s.symbolLen = uint16(i) + 1
-				if i >= len(s.prevTable) {
-					reuse = false
-				} else {
-					if s.prevTable[i].nBits == 0 {
-						reuse = false
-					}
-				}
+			s.symbolLen = uint16(i) + 1
+			if i >= len(s.prevTable) {
+				reuse = false
+			} else if s.prevTable[i].nBits == 0 {
+				reuse = false
 			}
 		}
 		return int(m), reuse
 	}
 	for i, v := range s.count[:] {
+		if v == 0 {
+			continue
+		}
 		if v > m {
 			m = v
 		}
-		if v > 0 {
-			s.symbolLen = uint16(i) + 1
-		}
+		s.symbolLen = uint16(i) + 1
 	}
 	return int(m), false
 }
@@ -395,6 +404,7 @@ func (s *Scratch) canUseTable(c cTable) bool {
 	return true
 }
 
+//lint:ignore U1000 used for debugging
 func (s *Scratch) validateTable(c cTable) bool {
 	if len(c) < int(s.symbolLen) {
 		return false

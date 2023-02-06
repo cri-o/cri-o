@@ -53,7 +53,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path"
@@ -94,7 +93,7 @@ func generateUniqueProjectID(path string) (uint32, error) {
 	}
 	stat, ok := fileinfo.Sys().(*syscall.Stat_t)
 	if !ok {
-		return 0, fmt.Errorf("Not a syscall.Stat_t %s", path)
+		return 0, fmt.Errorf("not a syscall.Stat_t %s", path)
 
 	}
 	projectID := projectIDsAllocatedPerQuotaHome + (stat.Ino*projectIDsAllocatedPerQuotaHome)%(math.MaxUint32-projectIDsAllocatedPerQuotaHome)
@@ -212,6 +211,12 @@ func (q *Control) SetQuota(targetPath string, quota Quota) error {
 	return q.setProjectQuota(projectID, quota)
 }
 
+// ClearQuota removes the map entry in the quotas map for targetPath.
+// It does so to prevent the map leaking entries as directories are deleted.
+func (q *Control) ClearQuota(targetPath string) {
+	delete(q.quotas, targetPath)
+}
+
 // setProjectQuota - set the quota for project id on xfs block device
 func (q *Control) setProjectQuota(projectID uint32, quota Quota) error {
 	var d C.fs_disk_quota_t
@@ -305,8 +310,8 @@ func (q *Control) fsDiskQuotaFromPath(targetPath string) (C.fs_disk_quota_t, err
 		uintptr(unsafe.Pointer(cs)), uintptr(C.__u32(projectID)),
 		uintptr(unsafe.Pointer(&d)), 0, 0)
 	if errno != 0 {
-		return d, fmt.Errorf("Failed to get quota limit for projid %d on %s: %v",
-			projectID, q.backingFsBlockDev, errno.Error())
+		return d, fmt.Errorf("failed to get quota limit for projid %d on %s: %w",
+			projectID, q.backingFsBlockDev, errno)
 	}
 
 	return d, nil
@@ -324,7 +329,7 @@ func getProjectID(targetPath string) (uint32, error) {
 	_, _, errno := unix.Syscall(unix.SYS_IOCTL, getDirFd(dir), C.FS_IOC_FSGETXATTR,
 		uintptr(unsafe.Pointer(&fsx)))
 	if errno != 0 {
-		return 0, fmt.Errorf("Failed to get projid for %s: %v", targetPath, errno.Error())
+		return 0, fmt.Errorf("failed to get projid for %s: %w", targetPath, errno)
 	}
 
 	return uint32(fsx.fsx_projid), nil
@@ -342,14 +347,14 @@ func setProjectID(targetPath string, projectID uint32) error {
 	_, _, errno := unix.Syscall(unix.SYS_IOCTL, getDirFd(dir), C.FS_IOC_FSGETXATTR,
 		uintptr(unsafe.Pointer(&fsx)))
 	if errno != 0 {
-		return fmt.Errorf("Failed to get projid for %s: %v", targetPath, errno.Error())
+		return fmt.Errorf("failed to get projid for %s: %w", targetPath, errno)
 	}
 	fsx.fsx_projid = C.__u32(projectID)
 	fsx.fsx_xflags |= C.FS_XFLAG_PROJINHERIT
 	_, _, errno = unix.Syscall(unix.SYS_IOCTL, getDirFd(dir), C.FS_IOC_FSSETXATTR,
 		uintptr(unsafe.Pointer(&fsx)))
 	if errno != 0 {
-		return fmt.Errorf("Failed to set projid for %s: %v", targetPath, errno.Error())
+		return fmt.Errorf("failed to set projid for %s: %w", targetPath, errno)
 	}
 
 	return nil
@@ -358,7 +363,7 @@ func setProjectID(targetPath string, projectID uint32) error {
 // findNextProjectID - find the next project id to be used for containers
 // by scanning driver home directory to find used project ids
 func (q *Control) findNextProjectID() error {
-	files, err := ioutil.ReadDir(q.basePath)
+	files, err := os.ReadDir(q.basePath)
 	if err != nil {
 		return fmt.Errorf("read directory failed : %s", q.basePath)
 	}
@@ -392,7 +397,7 @@ func openDir(path string) (*C.DIR, error) {
 
 	dir := C.opendir(Cpath)
 	if dir == nil {
-		return nil, fmt.Errorf("Can't open dir")
+		return nil, fmt.Errorf("can't open dir %v", Cpath)
 	}
 	return dir, nil
 }
@@ -417,10 +422,13 @@ func makeBackingFsDev(home string) (string, error) {
 	}
 
 	backingFsBlockDev := path.Join(home, "backingFsBlockDev")
+	backingFsBlockDevTmp := backingFsBlockDev + ".tmp"
 	// Re-create just in case someone copied the home directory over to a new device
-	unix.Unlink(backingFsBlockDev)
-	if err := unix.Mknod(backingFsBlockDev, unix.S_IFBLK|0600, int(stat.Dev)); err != nil {
-		return "", fmt.Errorf("Failed to mknod %s: %v", backingFsBlockDev, err)
+	if err := unix.Mknod(backingFsBlockDevTmp, unix.S_IFBLK|0600, int(stat.Dev)); err != nil {
+		return "", fmt.Errorf("failed to mknod %s: %w", backingFsBlockDevTmp, err)
+	}
+	if err := unix.Rename(backingFsBlockDevTmp, backingFsBlockDev); err != nil {
+		return "", fmt.Errorf("failed to rename %s to %s: %w", backingFsBlockDevTmp, backingFsBlockDev, err)
 	}
 
 	return backingFsBlockDev, nil
