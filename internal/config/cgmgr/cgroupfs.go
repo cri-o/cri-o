@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v3/pkg/cgroups"
-	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/utils"
 	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
@@ -168,14 +167,15 @@ func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) error {
 		},
 	}
 
+	var err error
 	if node.CgroupIsV2() {
-		var err error
-		mgr, err = fs2.NewManager(cg, cgPath, rootless.IsRootless())
-		if err != nil {
-			return err
-		}
+		mgr, err = fs2.NewManager(cg, cgPath)
+
 	} else {
-		mgr = fs.NewManager(cg, paths, rootless.IsRootless())
+		mgr, err = fs.NewManager(cg, paths)
+	}
+	if err != nil {
+		return err
 	}
 	return mgr.Set(cg.Resources)
 }
