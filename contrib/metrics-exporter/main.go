@@ -17,9 +17,11 @@ import (
 	"sigs.k8s.io/release-utils/env"
 )
 
-var namespace = env.Default("POD_NAMESPACE", "cri-o-metrics-exporter")
-var service = namespace  
-var configMap = namespace
+var (
+	namespace = env.Default("POD_NAMESPACE", "cri-o-metrics-exporter")
+	service = namespace  
+	configMap = namespace
+)
 func main() {
 	if err := run(); err != nil {
 		logrus.Fatalf("Unable to run: %v", err)
