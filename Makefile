@@ -193,7 +193,7 @@ test/checkcriu/checkcriu: $(GO_FILES) .gopathok
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkcriu
 
 test/nri/nri.test: $(wildcard test/nri/*.go) .gopathok
-	$(GO) test --tags "test $(BUILDTAGS)" -c $(PROJECT)/test/nri -o $@ 
+	$(GO) test --tags "test $(BUILDTAGS)" -c $(PROJECT)/test/nri -o $@
 
 bin/crio: $(GO_FILES) .gopathok
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
@@ -292,7 +292,7 @@ ${BOM}:
 bom: ${BOM}
 
 ${GOLANGCI_LINT}:
-	export VERSION=v1.50.1 \
+	export VERSION=v1.51.1 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sSfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
