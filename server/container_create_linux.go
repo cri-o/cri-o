@@ -393,7 +393,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 				}
 				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
 				if resources.MemorySwapLimitInBytes != 0 {
-					if resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
+					if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
 						return nil, errors.Errorf(
 							"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
 							ctr.ID(),
