@@ -50,6 +50,7 @@ type runtimeVM struct {
 	path       string
 	fifoDir    string
 	configPath string
+	exitsPath  string
 	ctx        context.Context
 	client     *ttrpc.Client
 	task       task.TaskService
@@ -68,7 +69,7 @@ const (
 )
 
 // newRuntimeVM creates a new runtimeVM instance
-func newRuntimeVM(path, root, configPath string) RuntimeImpl {
+func newRuntimeVM(path, root, configPath, exitsPath string) RuntimeImpl {
 	logrus.Debug("oci.newRuntimeVM() start")
 	defer logrus.Debug("oci.newRuntimeVM() end")
 
@@ -87,6 +88,7 @@ func newRuntimeVM(path, root, configPath string) RuntimeImpl {
 	return &runtimeVM{
 		path:       path,
 		configPath: configPath,
+		exitsPath:  exitsPath,
 		fifoDir:    filepath.Join(root, "crio", "fifo"),
 		ctx:        context.Background(),
 		ctrs:       make(map[string]containerInfo),
@@ -269,6 +271,11 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 	go func() {
 		_, err := r.wait(c.ID(), "")
 		if err == nil {
+			// create a file on the exitsDir so that cri-o server can detect it
+			path := filepath.Join(r.exitsPath+"/", c.ID())
+			if fileErr := os.WriteFile(path, []byte("Exited"), 0o644); err != nil {
+				log.Warnf(ctx, "Unable to write exit file %v", fileErr)
+			}
 			if err1 := r.updateContainerStatus(ctx, c); err1 != nil {
 				log.Warnf(ctx, "Error updating container status %v", err1)
 			}
@@ -635,6 +642,13 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 		addressPath := filepath.Join(c.BundlePath(), "address")
 		data, err := os.ReadFile(addressPath)
 		if err != nil {
+			// If the container is actually removed, this error is expected and should be ignored.
+			// In this case, the container's status should be "Stopped".
+			if c.state.Status == ContainerStateStopped {
+				log.Debugf(ctx, "Skipping status update for: %+v", c.state)
+				return nil
+			}
+
 			log.Warnf(ctx, "Failed to read shim address: %v", err)
 			return errors.New("runtime not correctly setup")
 		}
