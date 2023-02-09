@@ -77,6 +77,7 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 It is currently in active development in the Kubernetes community through the [design proposal](https://github.com/kubernetes/kubernetes/pull/26788). Questions and issues should be raised in the Kubernetes [sig-node Slack channel](https://kubernetes.slack.com/archives/sig-node).
 
 ## Roadmap
+
 A roadmap that describes the direction of CRI-O can be found [here](/roadmap.md).
 
 ## Commands
@@ -245,6 +246,10 @@ default UID mappings (format <container>:<host>:<size>):
 #### Metrics
 
 Please refer to the [CRI-O Metrics guide](tutorials/metrics.md).
+
+#### Tracing
+
+Please refer to the [CRI-O Tracing guide](tutorials/tracing.md).
 
 #### Container Runtime Interface special cases
 
