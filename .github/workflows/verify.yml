@@ -8,7 +8,7 @@ on:
       - release-*
   pull_request:
 env:
-  GO_VERSION: '1.19'
+  GO_VERSION: '1.20'
 permissions:
   contents: read
 
@@ -26,7 +26,7 @@ jobs:
       - run: scripts/github-actions-packages
       - uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.50.1
+          version: v1.51.1
 
   shellcheck:
     runs-on: ubuntu-latest
