@@ -406,11 +406,6 @@ func main() {
 		case <-serverCloseCh:
 		}
 
-		if err := crioServer.Shutdown(ctx); err != nil {
-			logrus.Warnf("Error shutting down service: %v", err)
-		}
-		cancel()
-
 		<-streamServerCloseCh
 		logrus.Debugf("Closed stream server")
 		<-serverMonitorsCh
