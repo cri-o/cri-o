@@ -10,5 +10,12 @@
 # review when someone opens a pull request.
 *                                @google/trillian-team
 
-/*.proto                         @Martin2112 @AlCutter @pphaneuf
-/storage/storagepb/storage.proto @Martin2112 @AlCutter @pphaneuf
+/*.proto                         @mhutchinson @AlCutter @pphaneuf
+/storage/storagepb/storage.proto @mhutchinson @AlCutter @pphaneuf
+
+# Mitigation for https://github.com/google/trillian/issues/1297
+# Folks to watch out for hanges to DB schemas and ensure that
+# there's a note added in a sensible location about how to
+# upgrade schema instances.
+/storage/mysql/schema/*          @mhutchinson @AlCutter @pphaneuf
+/storage/cloudspanner/spanner.sdl @mhutchinson @AlCutter @pphaneuf

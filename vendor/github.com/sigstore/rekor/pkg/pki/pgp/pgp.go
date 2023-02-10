@@ -25,9 +25,11 @@ import (
 	"net/http"
 
 	validator "github.com/go-playground/validator/v10"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
-	"golang.org/x/crypto/openpgp/packet"
+
+	//TODO: https://github.com/sigstore/rekor/issues/286
+	"golang.org/x/crypto/openpgp"        //nolint:staticcheck
+	"golang.org/x/crypto/openpgp/armor"  //nolint:staticcheck
+	"golang.org/x/crypto/openpgp/packet" //nolint:staticcheck
 
 	sigsig "github.com/sigstore/sigstore/pkg/signature"
 )

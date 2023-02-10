@@ -20,9 +20,9 @@ import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/util"
-	"github.com/spf13/viper"
 )
 
 func GetRekorClient(rekorServerURL string, opts ...Option) (*client.Rekor, error) {
@@ -32,19 +32,18 @@ func GetRekorClient(rekorServerURL string, opts ...Option) (*client.Rekor, error
 	}
 	o := makeOptions(opts...)
 
-	rt := httptransport.New(url.Host, client.DefaultBasePath, []string{url.Scheme})
+	retryableClient := retryablehttp.NewClient()
+	retryableClient.RetryMax = int(o.RetryCount)
+	retryableClient.Logger = o.Logger
+
+	httpClient := retryableClient.StandardClient()
+	httpClient.Transport = createRoundTripper(httpClient.Transport, o)
+
+	rt := httptransport.NewWithClient(url.Host, client.DefaultBasePath, []string{url.Scheme}, httpClient)
 	rt.Consumers["application/json"] = runtime.JSONConsumer()
 	rt.Consumers["application/x-pem-file"] = runtime.TextConsumer()
 	rt.Consumers["application/pem-certificate-chain"] = runtime.TextConsumer()
 	rt.Producers["application/json"] = runtime.JSONProducer()
-	rt.Producers["application/timestamp-query"] = runtime.ByteStreamProducer()
-	rt.Consumers["application/timestamp-reply"] = runtime.ByteStreamConsumer()
-
-	if viper.GetString("api-key") != "" {
-		rt.DefaultAuthentication = httptransport.APIKeyAuth("apiKey", "query", viper.GetString("api-key"))
-	}
-
-	rt.Transport = createRoundTripper(rt.Transport, o)
 
 	registry := strfmt.Default
 	registry.Add("signedCheckpoint", &util.SignedNote{}, util.SignedCheckpointValidator)

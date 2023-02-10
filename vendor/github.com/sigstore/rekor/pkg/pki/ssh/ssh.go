@@ -18,7 +18,6 @@ package ssh
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	sigsig "github.com/sigstore/sigstore/pkg/signature"
 	"golang.org/x/crypto/ssh"
@@ -32,7 +31,7 @@ type Signature struct {
 
 // NewSignature creates and Validates an ssh signature object
 func NewSignature(r io.Reader) (*Signature, error) {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +76,7 @@ type PublicKey struct {
 
 // NewPublicKey implements the pki.PublicKey interface
 func NewPublicKey(r io.Reader) (*PublicKey, error) {
-	rawPub, err := ioutil.ReadAll(r)
+	rawPub, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

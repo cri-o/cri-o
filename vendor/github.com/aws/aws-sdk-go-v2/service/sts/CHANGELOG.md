@@ -1,3 +1,40 @@
+# v1.18.0 (2023-01-05)
+
+* **Feature**: Add `ErrorCodeOverride` field to all error structs (aws/smithy-go#401).
+
+# v1.17.7 (2022-12-15)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.6 (2022-12-02)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.5 (2022-11-22)
+
+* No change notes available for this release.
+
+# v1.17.4 (2022-11-17)
+
+* **Documentation**: Documentation updates for AWS Security Token Service.
+
+# v1.17.3 (2022-11-16)
+
+* No change notes available for this release.
+
+# v1.17.2 (2022-11-10)
+
+* No change notes available for this release.
+
+# v1.17.1 (2022-10-24)
+
+* **Dependency Update**: Updated to the latest SDK module versions
+
+# v1.17.0 (2022-10-21)
+
+* **Feature**: Add presign functionality for sts:AssumeRole operation
+* **Dependency Update**: Updated to the latest SDK module versions
+
 # v1.16.19 (2022-09-20)
 
 * **Dependency Update**: Updated to the latest SDK module versions
